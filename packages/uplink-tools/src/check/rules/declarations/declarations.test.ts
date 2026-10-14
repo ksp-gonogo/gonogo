@@ -397,7 +397,7 @@ function Widget() {
   useTelemetry("vessel.flight");
   useTelemetry("vessel.orbit");
   useTelemetry("vessel.propulsion");
-  useTelemetry("system.bodies");
+  useTelemetry("trackingStation.bodies");
   return null;
 }
 registerComponent({ id: "w", component: Widget });

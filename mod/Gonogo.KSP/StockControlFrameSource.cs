@@ -25,7 +25,7 @@ namespace Gonogo.KSP
     /// sampled inside a channel mapper, and those run on the Courier thread:
     /// <c>UnityEngine.Object.name</c> in particular is a native call a non-Unity
     /// thread may not make, which is why the body travels as <c>bodyName</c>, the
-    /// same key <c>system.bodies</c> uses.</para>
+    /// same key <c>trackingStation.bodies</c> uses.</para>
     /// </summary>
     internal sealed class StockControlFrameSource : IControlFrameSource
     {

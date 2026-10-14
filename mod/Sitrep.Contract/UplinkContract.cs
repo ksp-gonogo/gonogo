@@ -1574,7 +1574,7 @@ namespace Sitrep.Contract
         /// any <see cref="DelayRole.Delayed"/> channel, which holds its last
         /// value, while <see cref="DelayRole.TrueNow"/> channels
         /// (<c>comms.delay</c>, <c>comms.connectivity</c>, <c>time.*</c>,
-        /// <c>system.bodies</c>) keep flowing, so the operator sees the outage
+        /// <c>trackingStation.bodies</c>) keep flowing, so the operator sees the outage
         /// live. On reconnect what was withheld is delivered. If the active
         /// vessel changes while the link is down, what was withheld is
         /// discarded and never delivered.</para>

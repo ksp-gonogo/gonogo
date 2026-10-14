@@ -24,7 +24,7 @@ import { LandingStatusComponent } from "./index";
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
 const KERBIN = { index: 1, name: "Kerbin", radius: 600_000, mu: 3.5316e12 };
 
-/** A planet-pack body absent from the stock table; every fact here is one `system.bodies` reports. */
+/** A planet-pack body absent from the stock table; every fact here is one `trackingStation.bodies` reports. */
 const EARTH = {
   index: 1,
   name: "Earth",
@@ -41,7 +41,7 @@ function emitVessel(
       name: string;
       radius: number;
       mu: number;
-      /** The nested block `system.bodies` carries; `null` is the host saying airless. */
+      /** The nested block `trackingStation.bodies` carries; `null` is the host saying airless. */
       atmosphere?: { depth: number } | null;
     };
     quality: number;
@@ -57,7 +57,7 @@ function emitVessel(
     situation?: number;
   },
 ) {
-  stream.emit("system.bodies", {
+  stream.emit("trackingStation.bodies", {
     bodies: [
       {
         name: opts.body.name,

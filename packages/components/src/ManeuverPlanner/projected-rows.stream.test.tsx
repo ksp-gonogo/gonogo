@@ -7,7 +7,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
 /**
- * The preview's projected apsides. The fixture carries `system.bodies` because
+ * The preview's projected apsides. The fixture carries `trackingStation.bodies` because
  * the rows are altitudes; without a body radius they would print plausible
  * radii.
  */
@@ -47,7 +47,7 @@ function setup() {
       // Without a stated horizon the conic model withdraws and the current apsides go with it.
       horizon: ANALYTIC_UNBOUNDED_HORIZON,
     });
-    fixture.emit("system.bodies", {
+    fixture.emit("trackingStation.bodies", {
       bodies: [
         { index: 1, name: "Kerbin", gravParameter: 3.5316e12, radius: 600000 },
       ],

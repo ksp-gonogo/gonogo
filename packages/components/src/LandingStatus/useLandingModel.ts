@@ -101,7 +101,7 @@ export function useLandingModel(): LandingModel {
     ? vecMagnitude(bare(targetStream.relativePosition))
     : undefined;
   const identityReading = useTelemetry("vessel.identity");
-  const bodiesReading = useTelemetry("system.bodies");
+  const bodiesReading = useTelemetry("trackingStation.bodies");
   const flightReading = useTelemetry("vessel.flight");
   const surfaceReading = useTelemetry("vessel.surface");
   const propulsionReading = useTelemetry("vessel.propulsion");

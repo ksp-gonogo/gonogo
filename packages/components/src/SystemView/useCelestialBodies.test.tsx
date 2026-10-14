@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { useCelestialBodies } from "./useCelestialBodies";
 
-/** `useCelestialBodies` reads `system.bodies` through a real `TelemetryProvider` and enriches each body with derived almanac values. */
+/** `useCelestialBodies` reads `trackingStation.bodies` through a real `TelemetryProvider` and enriches each body with derived almanac values. */
 
 const KERBIN_MU = 3.5316e12;
 
@@ -19,7 +19,7 @@ function renderBodies() {
 }
 
 describe("useCelestialBodies", () => {
-  it("returns an empty array before the first system.bodies sample", () => {
+  it("returns an empty array before the first trackingStation.bodies sample", () => {
     const { result } = renderBodies();
     expect(result.current).toEqual([]);
   });
@@ -27,7 +27,7 @@ describe("useCelestialBodies", () => {
   it("maps the streamed tree and resolves parentIndex → referenceBody name", async () => {
     const { fixture, result } = renderBodies();
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             index: 0,
@@ -72,7 +72,7 @@ describe("useCelestialBodies", () => {
   it("carries the game's own mass and surface gravity, and derives the period", async () => {
     const { fixture, result } = renderBodies();
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             index: 0,
@@ -125,7 +125,7 @@ describe("useCelestialBodies", () => {
   it("surfaces the nested atmosphere object and its convenience mirrors; null for airless bodies", async () => {
     const { fixture, result } = renderBodies();
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             index: 0,
@@ -185,7 +185,7 @@ describe("useCelestialBodies", () => {
   it("rebuilds cleanly when a smaller tree arrives, no stale bodies linger", async () => {
     const { fixture, result } = renderBodies();
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           { index: 0, name: "A", parentIndex: null, orbit: null },
           { index: 1, name: "B", parentIndex: 0, orbit: null },
@@ -196,7 +196,7 @@ describe("useCelestialBodies", () => {
     await waitFor(() => expect(result.current).toHaveLength(3));
 
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [{ index: 0, name: "A", parentIndex: null, orbit: null }],
       });
     });

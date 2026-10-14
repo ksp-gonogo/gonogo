@@ -38,7 +38,7 @@ import {
  * @category Reckoners
  */
 export interface ConicOrbitInput {
-  /** Index into `system.bodies` of the body the orbit is around. */
+  /** Index into `trackingStation.bodies` of the body the orbit is around. */
   referenceBodyIndex: number;
   /** Semi-major axis. */
   sma: Quantityish;
@@ -63,8 +63,8 @@ export interface ConicOrbitInput {
 }
 
 /**
- * The fields of `system.bodies` used to find where a body's atmosphere starts.
- * A `system.bodies` payload can be passed as it is. Useful for deciding whether
+ * The fields of `trackingStation.bodies` used to find where a body's atmosphere starts.
+ * A `trackingStation.bodies` payload can be passed as it is. Useful for deciding whether
  * a vessel's orbit passes through the atmosphere. Taken by
  * {@link entryInterfaceRadius}, {@link atmosphereDepthOf} and the atmospheric
  * reckoner.
@@ -72,7 +72,7 @@ export interface ConicOrbitInput {
  * @category Reckoners
  */
 export interface ConicBodiesInput {
-  /** The bodies, as `system.bodies` lists them. */
+  /** The bodies, as `trackingStation.bodies` lists them. */
   bodies: readonly {
     index: number;
     radius?: Quantityish;
@@ -296,7 +296,7 @@ export function entryInterfaceRadius(
   const body = bodies.bodies.find((b) => b.index === index);
   if (!body) return undefined;
   /*
-   * `magnitudeOr` rather than the raw field: `system.bodies` arrives unwrapped
+   * `magnitudeOr` rather than the raw field: `trackingStation.bodies` arrives unwrapped
    * today and wrapped the moment its type shape is registered, and a floor that
    * silently became NaN would stop declining without saying so.
    */
@@ -460,7 +460,7 @@ export function keplerAdmissibility(
     return {
       declined: {
         reason: "beyond-horizon",
-        input: "@system.bodies",
+        input: "@trackingStation.bodies",
         note: "outside the body's sphere of influence, where another body's gravity takes over",
       },
     };
@@ -471,7 +471,7 @@ export function keplerAdmissibility(
       return {
         declined: {
           reason: "beyond-horizon",
-          input: "@system.bodies",
+          input: "@trackingStation.bodies",
           note: "below the atmosphere interface, where drag the conic does not model takes over",
         },
       };
@@ -488,7 +488,7 @@ export function keplerAdmissibility(
       return {
         declined: {
           reason: "beyond-horizon",
-          input: "@system.bodies",
+          input: "@trackingStation.bodies",
           note: "the conic passed below the atmosphere interface or the surface before then",
         },
       };
@@ -624,7 +624,7 @@ export function loadedRegimeDecline(
   const floor = entryInterfaceRadius(bodies, orbit.referenceBodyIndex);
   if (floor === undefined) {
     return underPhysics(
-      "@system.bodies",
+      "@trackingStation.bodies",
       "the craft is under physics and nothing places the air it might be in",
     );
   }
@@ -637,7 +637,7 @@ export function loadedRegimeDecline(
   }
   if (!(magnitude(now.position) > floor)) {
     return underPhysics(
-      "@system.bodies",
+      "@trackingStation.bodies",
       "the craft is inside the atmosphere, where drag the conic does not model acts on it",
     );
   }

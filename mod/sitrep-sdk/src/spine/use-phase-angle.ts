@@ -33,7 +33,7 @@ const NO_ANGLES: ReadonlyMap<number, number> = new Map();
 
 /** The catalogue as the processor holds it; a held catalogue is still the catalogue. */
 function useCatalogue(): CelestialFacts | undefined {
-  // gonogo:reads system.bodies
+  // gonogo:reads trackingStation.bodies
   const reading = useProcessor(CELESTIAL_FACTS);
   return reading?.state === "observed" || reading?.state === "held"
     ? reading.value

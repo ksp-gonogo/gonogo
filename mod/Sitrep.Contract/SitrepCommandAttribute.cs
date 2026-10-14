@@ -20,7 +20,7 @@ namespace Sitrep.Contract
     /// handler's <c>CommandResult&lt;T&gt;</c>, which the SDK maps to
     /// <c>CommandResultOf&lt;T&gt;</c>. <see cref="Result"/> is for a command
     /// that resolves with something that is not a <see cref="CommandResult"/>
-    /// at all (<c>system.bodies.statesAt</c> resolves a bare
+    /// at all (<c>trackingStation.bodies.statesAt</c> resolves a bare
     /// <see cref="BodyStatesReply"/>), and names that type exactly. Setting
     /// both is an error that stops the build.</para>
     ///

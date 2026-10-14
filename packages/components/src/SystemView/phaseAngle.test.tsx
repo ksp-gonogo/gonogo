@@ -25,7 +25,7 @@ describe("usePhaseAngle", () => {
     const { fixture, result } = renderPhaseAngles(["Mun"]);
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         systemBodies([{ index: 1, name: "Mun", lan: 90 }]),
       );
       fixture.emit("vessel.orbit", vesselAtLongitude(0));
@@ -37,7 +37,7 @@ describe("usePhaseAngle", () => {
     const { fixture, result } = renderPhaseAngles(["Mun"]);
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         systemBodies([{ index: 1, name: "Mun", anomalyDeg: 180 }]),
       );
       fixture.emit("vessel.orbit", vesselAtLongitude(0));
@@ -49,7 +49,7 @@ describe("usePhaseAngle", () => {
     const { fixture, result } = renderPhaseAngles(["Mun"]);
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         systemBodies([{ index: 1, name: "Mun", lan: 10 }]),
       );
       fixture.emit("vessel.orbit", vesselAtLongitude(350));
@@ -62,7 +62,7 @@ describe("usePhaseAngle", () => {
     const { fixture, result } = renderPhaseAngles(["Mun"]);
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         systemBodies([
           { index: 1, name: "Mun", lan: 30, argPe: 40, anomalyDeg: 20 },
         ]),
@@ -76,7 +76,7 @@ describe("usePhaseAngle", () => {
     const { fixture, result } = renderPhaseAngles(["Mun", "Minmus"]);
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         systemBodies([
           { index: 1, name: "Mun", lan: 45 },
           { index: 2, name: "Minmus", lan: 135, sma: 47_000_000 },
@@ -93,7 +93,7 @@ describe("usePhaseAngle", () => {
     const { fixture, result } = renderPhaseAngles(["Mun", "Root"]);
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         systemBodies([
           { index: 1, name: "Mun", lan: 90 },
           { index: 2, name: "Root", noElements: true },
@@ -109,7 +109,7 @@ describe("usePhaseAngle", () => {
     const { fixture, result, rerender } = renderPhaseAngles(["Mun"]);
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         systemBodies([{ index: 1, name: "Mun", lan: 90 }]),
       );
     });
@@ -124,7 +124,7 @@ describe("usePhaseAngle", () => {
     const { fixture, result } = renderPhaseAngles(["Mun"]);
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         systemBodies([{ index: 1, name: "Mun", lan: 90 }]),
       );
       fixture.emit("vessel.orbit", {
@@ -142,7 +142,7 @@ describe("usePhaseAngle", () => {
     const { fixture, result } = renderPhaseAngles(["Mun"]);
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         systemBodies([{ index: 1, name: "Mun", inc: 60, anomalyDeg: 45 }]),
       );
       fixture.emit("vessel.orbit", vesselAtLongitude(0));
@@ -168,7 +168,7 @@ describe("usePhaseAngle", () => {
     it("is empty when no horizon was stated at all", async () => {
       const { fixture, result } = renderPhaseAngles(["Mun"]);
       act(() => {
-        fixture.emit("system.bodies", mun);
+        fixture.emit("trackingStation.bodies", mun);
         // No `horizon` at all is not a licence to extrapolate.
         const { horizon: _dropped, ...noHorizon } = vesselAtLongitude(0);
         fixture.emit("vessel.orbit", noHorizon);
@@ -179,7 +179,7 @@ describe("usePhaseAngle", () => {
     it("is empty once the view instant runs past the integrator's horizon", async () => {
       const { fixture, result } = renderPhaseAngles(["Mun"]);
       act(() => {
-        fixture.emit("system.bodies", mun);
+        fixture.emit("trackingStation.bodies", mun);
         // The clock is pinned at UT 0, so a horizon at -100 is already behind it.
         fixture.emit(
           "vessel.orbit",
@@ -192,7 +192,7 @@ describe("usePhaseAngle", () => {
     it("answers for an integrating provider inside its horizon, shape or no shape", async () => {
       const { fixture, result } = renderPhaseAngles(["Mun"]);
       act(() => {
-        fixture.emit("system.bodies", mun);
+        fixture.emit("trackingStation.bodies", mun);
         fixture.emit(
           "vessel.orbit",
           vesselAtLongitude(0, integratedHorizon(5000)),
@@ -205,7 +205,7 @@ describe("usePhaseAngle", () => {
       // Where the craft is does not depend on whether a conic is the right renderer for its path.
       const { fixture, result } = renderPhaseAngles(["Mun"]);
       act(() => {
-        fixture.emit("system.bodies", mun);
+        fixture.emit("trackingStation.bodies", mun);
         fixture.emit("vessel.orbit", vesselAtLongitude(0, UNBOUNDED_HORIZON));
       });
       await waitFor(() => expect(result.current.get(1)).toBeCloseTo(90, 4));
@@ -221,7 +221,7 @@ describe("usePhaseAngle", () => {
       const { result } = renderPhaseAngles(["Mun"], fixture);
       act(() => {
         fixture.emit(
-          "system.bodies",
+          "trackingStation.bodies",
           systemBodies([{ index: 1, name: "Mun", lan: 90 }]),
         );
         // Unbounded reach with an integrated shape is a producer the conic reckoner will not extend.
@@ -258,7 +258,7 @@ describe("usePhaseAngle", () => {
       );
       act(() => {
         fixture.emit(
-          "system.bodies",
+          "trackingStation.bodies",
           systemBodies([{ index: 1, name: "Mun", lan: 90, untilUt: HORIZON }]),
         );
         fixture.emit("vessel.orbit", vesselAtLongitude(0), { validAt: VIEW });
@@ -293,7 +293,7 @@ describe("phase angles under signal delay", () => {
       { wrapper: fixture.Provider },
     );
     act(() => {
-      fixture.emit("system.bodies", MUN);
+      fixture.emit("trackingStation.bodies", MUN);
       fixture.emit("vessel.orbit", vesselAtLongitude(0), {
         validAt: UT_NOW - owlt,
         deliveredAt: UT_NOW,
@@ -349,7 +349,7 @@ describe("phase angles under signal delay", () => {
       { wrapper: fixture.Provider },
     );
     act(() => {
-      fixture.emit("system.bodies", MUN, { validAt: 100 });
+      fixture.emit("trackingStation.bodies", MUN, { validAt: 100 });
       fixture.emit("vessel.orbit", vesselAtLongitude(0), { validAt: UT_NOW });
     });
     await waitFor(() => expect(result.current.reading?.state).toBe("observed"));
@@ -382,7 +382,7 @@ describe("phase angles under signal delay", () => {
     );
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         systemBodies([
           { index: 1, name: "Mun", lan: 90, untilUt: UT_NOW + 500 },
         ]),

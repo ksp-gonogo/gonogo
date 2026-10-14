@@ -1685,7 +1685,7 @@ export interface ReckonerExemptions {
    * reckoner offers different models: `vessel.flight` uses an orbit model above
    * the atmosphere and integrates the observed descent rate below it, and only
    * the second may outlive `vessel.orbit`, while both stay bound by
-   * `system.bodies`.
+   * `trackingStation.bodies`.
    */
   readonly perBasis?: {
     readonly [basis: string]: {

@@ -19,7 +19,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <see cref="ChannelEngine"/> the production mod uses:
     ///
     /// <list type="bullet">
-    /// <item><description><c>system.bodies</c>: the real retrofit, using
+    /// <item><description><c>trackingStation.bodies</c>: the real retrofit, using
     /// <see cref="SystemViewProvider.BuildSystemBodies"/> verbatim, exercised
     /// by <see cref="ReplayToWebSocketEndToEndTests"/>'s payload-shape
     /// assertions.</description></item>
@@ -27,7 +27,7 @@ namespace Sitrep.Host.IntegrationTests
     /// (reads <c>snapshot.Values["raw"]</c>) used by the low-level
     /// engine-mechanics tests (rewind, zero-subscriber gating) that push
     /// arbitrary dictionaries through the pipeline without caring about the
-    /// real system.bodies schema: proof the engine handles more than one
+    /// real trackingStation.bodies schema: proof the engine handles more than one
     /// registered channel at once.</description></item>
     /// </list>
     /// </summary>

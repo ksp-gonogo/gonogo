@@ -51,7 +51,7 @@ import { useMemo } from "react";
  */
 export function useOrbitSolve(): OrbitalSolve | null {
   const reading = useTelemetry("vessel.orbit");
-  const bodiesReading = useStream<BodyRadiusTable>("system.bodies");
+  const bodiesReading = useStream<BodyRadiusTable>("trackingStation.bodies");
   // The roster does not decay, and a tombstone is the one null it answers.
   const bodies =
     bodiesReading.state === "observed" || bodiesReading.state === "held"
@@ -90,7 +90,7 @@ export function useOrbitSolve(): OrbitalSolve | null {
  */
 export function useOrbitSolveReading(): Reading<OrbitalSolve> {
   const reading = useTelemetry("vessel.orbit");
-  const bodiesReading = useStream<BodyRadiusTable>("system.bodies");
+  const bodiesReading = useStream<BodyRadiusTable>("trackingStation.bodies");
   const bodies =
     bodiesReading.state === "observed" || bodiesReading.state === "held"
       ? bodiesReading.value

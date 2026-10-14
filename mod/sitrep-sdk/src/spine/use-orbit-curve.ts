@@ -25,7 +25,7 @@ export type OrbitCurveSubject =
       kind: "body";
       /** The system's celestial facts, or `undefined` before they arrive. */
       facts: CelestialFacts | undefined;
-      /** The body's index in `system.bodies`. */
+      /** The body's index in `trackingStation.bodies`. */
       index: number;
     }
   | {

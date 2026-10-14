@@ -59,7 +59,7 @@ function mountScene({ catalogListsCraft = true } = {}) {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", {
+    fixture.emit("trackingStation.bodies", {
       bodies: [
         {
           index: 0,

@@ -24,7 +24,6 @@ export const GENERATED_TRUENOW_TOPICS = [
   "ksp.revertAvailability",
   "settings.gonogo",
   "spaceCenter.scene",
-  "system.bodies",
   "system.channels",
   "system.frame",
   "system.units",
@@ -33,6 +32,7 @@ export const GENERATED_TRUENOW_TOPICS = [
   "system.uplinks",
   "time.calendar",
   "time.warp",
+  "trackingStation.bodies",
 ] as const;
 
 /**

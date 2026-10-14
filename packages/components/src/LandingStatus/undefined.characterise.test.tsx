@@ -74,7 +74,7 @@ describe("LandingStatus: what undefined means today", () => {
 
   /** A Mun descent, by default the steep unrecoverable one (5 km AGL carrying 540 m/s); overrides give a viable descent where the `ABORT` hero is not under test. */
   function emitMunDescent(over: DescentOverrides = {}): void {
-    stream.emit("system.bodies", {
+    stream.emit("trackingStation.bodies", {
       bodies: [
         {
           name: MUN.name,

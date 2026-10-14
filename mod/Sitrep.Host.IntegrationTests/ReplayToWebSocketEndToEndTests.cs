@@ -19,7 +19,7 @@ namespace Sitrep.Host.IntegrationTests
     /// mapper -&gt; Courier/outbox wiring -&gt; a real
     /// <see cref="FleckTransportListener"/>), but driven by a synthetic
     /// <see cref="RecordedSession"/> instead of live KSP, and asserts a real
-    /// <see cref="ClientWebSocket"/> observes the delayed <c>system.bodies</c>
+    /// <see cref="ClientWebSocket"/> observes the delayed <c>trackingStation.bodies</c>
     /// stream correctly -- including through a UT rewind (an F9 quickload).
     ///
     /// This now runs against the same <see cref="ChannelEngine"/> class

@@ -224,8 +224,8 @@ describe("keplerAdmissibility carries a loaded coast", () => {
         reason: "under-physics",
         input: "@vessel.propulsion",
       },
-      noRoster: { reason: "under-physics", input: "@system.bodies" },
-      inAir: { reason: "under-physics", input: "@system.bodies" },
+      noRoster: { reason: "under-physics", input: "@trackingStation.bodies" },
+      inAir: { reason: "under-physics", input: "@trackingStation.bodies" },
       commandInGap: {
         reason: "under-physics",
         input: "@system.uplink.pending",

@@ -46,7 +46,7 @@ describe("KeplerPeriodComponent", () => {
     const { container } = renderKepler();
 
     act(() => {
-      stream.emit("system.bodies", {
+      stream.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Kerbin",
@@ -82,7 +82,7 @@ describe("KeplerPeriodComponent", () => {
     const { container } = renderKepler();
 
     act(() => {
-      stream.emit("system.bodies", {
+      stream.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Mun",
@@ -120,7 +120,7 @@ describe("KeplerPeriodComponent", () => {
     const { container } = renderKepler();
 
     act(() => {
-      stream.emit("system.bodies", {
+      stream.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Earth",

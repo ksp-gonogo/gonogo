@@ -2728,9 +2728,6 @@
     "spaceCenter.astronautComplex": {
       "applicants": "CrewRosterEntry[]"
     },
-    "system.bodies": {
-      "bodies": "BodyEntry[]"
-    },
     "system.frame": {
       "settableFrames": "ControlFrameOption[]"
     },
@@ -2742,6 +2739,9 @@
     },
     "time.warp": {
       "meta": "PayloadMeta"
+    },
+    "trackingStation.bodies": {
+      "bodies": "BodyEntry[]"
     },
     "trackingStation.catalog": {
       "entries": "CatalogEntry[]"

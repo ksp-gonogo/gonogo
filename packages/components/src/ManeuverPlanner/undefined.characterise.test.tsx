@@ -66,7 +66,7 @@ function emitOrbitReady(
     horizon: ANALYTIC_UNBOUNDED_HORIZON,
     ...overrides,
   });
-  fixture.emit("system.bodies", {
+  fixture.emit("trackingStation.bodies", {
     bodies: [{ index: 1, name: "Kerbin", radius: 600000 }],
   });
 }
@@ -161,13 +161,13 @@ describe("ManeuverPlanner: the absence gates fire today", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders an EMPTY reference-body caption when system.bodies is a confirmed tombstone", async () => {
+  it("renders an EMPTY reference-body caption when trackingStation.bodies is a confirmed tombstone", async () => {
     // A tombstoned roster resolves to null, which passes the caption's `!== undefined` gate.
     const { fixture, view } = setup();
     await screen.findByText("Awaiting orbit telemetry");
     act(() => {
       emitOrbitReady(fixture);
-      fixture.emit("system.bodies", null);
+      fixture.emit("trackingStation.bodies", null);
     });
     await waitFor(() => {
       expect(refBodyCaption(view.container)).not.toBeNull();
@@ -177,12 +177,12 @@ describe("ManeuverPlanner: the absence gates fire today", () => {
 });
 
 describe("ManeuverPlanner: the reference-body caption's three states", () => {
-  it("renders the body name once system.bodies resolves the index", async () => {
+  it("renders the body name once trackingStation.bodies resolves the index", async () => {
     const { fixture, view } = setup();
     await screen.findByText("Awaiting orbit telemetry");
     act(() => {
       emitOrbitReady(fixture);
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             index: 1,

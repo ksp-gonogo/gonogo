@@ -36,7 +36,7 @@ public class VesselIdentity
     [SitrepUnit(Units.Enumeration)]
     public Situation Situation { get; set; }
 
-    /// <summary>Index into <c>system.bodies</c> of the body the vessel orbits; null when the vessel has no orbit yet (for example a just-spawned EVA kerbal).</summary>
+    /// <summary>Index into <c>trackingStation.bodies</c> of the body the vessel orbits; null when the vessel has no orbit yet (for example a just-spawned EVA kerbal).</summary>
     [SitrepUnit(Units.Id)]
     public int? ParentBodyIndex { get; set; }
 

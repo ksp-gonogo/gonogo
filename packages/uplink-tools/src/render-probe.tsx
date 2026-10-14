@@ -1273,7 +1273,7 @@ function readScene(mounted: Mounted): SceneReport {
  * One pass is not enough, and the reason is a property of the widget rather
  * than a timing accident: a widget subscribes to a per-body or per-vessel topic
  * only after learning which body, so a per-body coverage channel has no
- * subscriber until `system.bodies` and `vessel.identity` have both arrived and
+ * subscriber until `trackingStation.bodies` and `vessel.identity` have both arrived and
  * the rows keyed on them have mounted. Production behaves the same way (a mod only
  * produces a channel while something is subscribed to it), so rounds are the
  * faithful shape, not a workaround.

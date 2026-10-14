@@ -120,7 +120,7 @@ function emitReady(
   fixture: ReturnType<typeof setupStreamFixture>,
   orbitOverrides: Record<string, unknown> = {},
 ) {
-  fixture.emit("system.bodies", { bodies: [SUN, EARTH, MARS, VENUS] });
+  fixture.emit("trackingStation.bodies", { bodies: [SUN, EARTH, MARS, VENUS] });
   fixture.emit("vessel.orbit", { ...LEO, ...orbitOverrides });
 }
 
@@ -174,7 +174,7 @@ describe("TransferWindow: nothing has arrived at all", () => {
 });
 
 describe("TransferWindow: the absence gates fire today", () => {
-  it("blames the vessel orbit when the orbit HAS arrived and system.bodies has not", async () => {
+  it("blames the vessel orbit when the orbit HAS arrived and trackingStation.bodies has not", async () => {
     // `!orbit || !origin` is one message for two absences: here only the body table is missing.
     const { fixture } = setup();
     await screen.findByText("Waiting for vessel orbit...");
@@ -191,7 +191,9 @@ describe("TransferWindow: the absence gates fire today", () => {
     const { fixture } = setup();
     await screen.findByText("Waiting for vessel orbit...");
     act(() => {
-      fixture.emit("system.bodies", { bodies: [SUN, EARTH, MARS, VENUS] });
+      fixture.emit("trackingStation.bodies", {
+        bodies: [SUN, EARTH, MARS, VENUS],
+      });
       fixture.emit("vessel.orbit", null);
     });
     // The tombstone genuinely reached the store.

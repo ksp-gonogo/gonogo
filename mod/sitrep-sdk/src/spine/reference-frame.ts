@@ -112,7 +112,7 @@ export type ReadFrameKind = (typeof READ_FRAME_KINDS)[number];
 export interface ReadFrameChoice {
   /** Which kind of frame. */
   kind: ReadFrameKind;
-  /** The selected body's `system.bodies` index. Unused by `follow-control-frame`. */
+  /** The selected body's `trackingStation.bodies` index. Unused by `follow-control-frame`. */
   bodyIndex?: number | null;
 }
 

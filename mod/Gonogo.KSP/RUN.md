@@ -41,7 +41,7 @@ device on the LAN at `ws://<this-KSP-machine-LAN-IP>:8090`. Connect any WS
 client and send:
 
 ```json
-{"type":"subscribe","topic":"system.bodies"}
+{"type":"subscribe","topic":"trackingStation.bodies"}
 ```
 
 ## Notes

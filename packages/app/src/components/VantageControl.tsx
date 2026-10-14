@@ -176,7 +176,7 @@ function VantagePicker() {
   const optionId = (key: string) => `${optionIdPrefix}-${key}`;
 
   // The body catalogue is a fact that does not change within a save, so a held one is still the catalogue.
-  const bodiesReading = useTelemetry("system.bodies");
+  const bodiesReading = useTelemetry("trackingStation.bodies");
   const bodies = stillTrue(bodiesReading, undefined)?.bodies;
 
   const labels = vantageLabels(active);

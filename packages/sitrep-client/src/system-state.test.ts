@@ -21,7 +21,7 @@ function bodiesPoint(
 function fakeGet(
   point: TimelinePoint<SystemBodiesPayload> | undefined,
 ): DerivedGet {
-  return derivedGetOf({ "system.bodies": point });
+  return derivedGetOf({ "trackingStation.bodies": point });
 }
 
 const THREE_BODIES: SystemBodiesPayload = {
@@ -32,8 +32,8 @@ const THREE_BODIES: SystemBodiesPayload = {
   ],
 };
 
-describe("deriveSystemState: bodyCount (batch-2: b.number off the raw system.bodies array)", () => {
-  it("counts the bodies in system.bodies", () => {
+describe("deriveSystemState: bodyCount (batch-2: b.number off the raw trackingStation.bodies array)", () => {
+  it("counts the bodies in trackingStation.bodies", () => {
     expect(deriveSystemState(fakeGet(bodiesPoint(THREE_BODIES)))).toEqual({
       bodyCount: 3,
     });
@@ -45,11 +45,11 @@ describe("deriveSystemState: bodyCount (batch-2: b.number off the raw system.bod
     });
   });
 
-  it("undefined while system.bodies hasn't arrived (resyncing): never throws", () => {
+  it("undefined while trackingStation.bodies hasn't arrived (resyncing): never throws", () => {
     expect(deriveSystemState(fakeGet(undefined))).toBeUndefined();
   });
 
-  it("null on a confirmed system.bodies tombstone", () => {
+  it("null on a confirmed trackingStation.bodies tombstone", () => {
     expect(deriveSystemState(fakeGet(bodiesPoint(null)))).toBeNull();
   });
 });

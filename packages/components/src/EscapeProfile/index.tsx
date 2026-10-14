@@ -16,13 +16,13 @@ import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useStreamBody } from "../shared/useStreamBody";
 
 const topics = defineTopicManifest({
-  // The escape-velocity curve needs the body's own radius and gravitational parameter, both on `system.bodies`.
-  channels: ["vessel.flight", "vessel.identity", "system.bodies"],
+  // The escape-velocity curve needs the body's own radius and gravitational parameter, both on `trackingStation.bodies`.
+  channels: ["vessel.flight", "vessel.identity", "trackingStation.bodies"],
   fields: [
     "vessel.flight.altitudeAsl",
     "vessel.flight.orbitalSpeed",
     "vessel.identity.parentBodyIndex",
-    "system.bodies",
+    "trackingStation.bodies",
   ],
 });
 
@@ -72,7 +72,7 @@ function EscapeProfileComponent({
 }: Readonly<ComponentProps<EscapeProfileConfig>>) {
   const flightReading = topics.useTelemetry("vessel.flight");
   const bodyName = useBodyName(useParentBodyIndex());
-  // Matched by name against the same `system.bodies` roster the name came from, so planet-pack bodies resolve.
+  // Matched by name against the same `trackingStation.bodies` roster the name came from, so planet-pack bodies resolve.
   const body = useStreamBody(bodyName);
 
   const windowSec = config?.windowSec ?? 600;

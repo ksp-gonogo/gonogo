@@ -55,7 +55,7 @@ let drawn: Drawn = { held: undefined, modelled: undefined };
 /** Reads what GroundTrack reads to place the two marks, and nothing else. */
 function Probe() {
   const flight = useTelemetry("vessel.flight");
-  const bodies = useTelemetry("system.bodies");
+  const bodies = useTelemetry("trackingStation.bodies");
   const view = useViewUt();
   const position = flight.state === "observed" ? flight.value : undefined;
   const roster = bodies.state === "observed" ? bodies.value : undefined;
@@ -108,7 +108,11 @@ describe("useModelledPosition", () => {
     };
     await act(async () => {
       const at = { validAt: U0, deliveredAt: U0 };
-      transport.emit("system.bodies", payloadOf("system.bodies"), at);
+      transport.emit(
+        "trackingStation.bodies",
+        payloadOf("trackingStation.bodies"),
+        at,
+      );
       transport.emit("vessel.identity", payloadOf("vessel.identity"), at);
       frame();
       await scheduledFrame();

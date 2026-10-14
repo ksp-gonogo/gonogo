@@ -88,7 +88,7 @@ describe("Orbit View figures: a stale orbit with no model", () => {
     );
 
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [{ name: "Kerbin", index: 1, radius: 600000 }],
       });
       // A loaded craft's elements are osculating, so the model declines under physics while the shape stays drawable.

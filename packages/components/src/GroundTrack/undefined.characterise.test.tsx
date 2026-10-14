@@ -23,13 +23,13 @@ import {
 import type { MapOverlayContext } from "./index";
 import { GroundTrackComponent } from "./index";
 
-/** What absence means at each of GroundTrack's telemetry reads: `vessel.flight` for position and altitude, `vessel.identity` and `system.bodies` for the body. */
+/** What absence means at each of GroundTrack's telemetry reads: `vessel.flight` for position and altitude, `vessel.identity` and `trackingStation.bodies` for the body. */
 
 const GROUND_TRACK_CHANNELS = [
   "vessel.flight",
   "vessel.orbit",
   "vessel.identity",
-  "system.bodies",
+  "trackingStation.bodies",
 ] as const;
 
 describe("GroundTrack: what undefined telemetry means today", () => {
@@ -111,7 +111,7 @@ describe("GroundTrack: what undefined telemetry means today", () => {
         parentBodyIndex: 1,
         launchUt: 0,
       });
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [{ index: 1, name: "Kerbin", radius: 600_000 }],
       });
     });
@@ -168,7 +168,7 @@ describe("GroundTrack: what undefined telemetry means today", () => {
     emitBodyOnly(fixture);
     await flushFrames();
 
-    // The body is a join of identity and system.bodies, neither of which is flight data, so the label and map stand without vessel.flight and only the position is missing.
+    // The body is a join of identity and trackingStation.bodies, neither of which is flight data, so the label and map stand without vessel.flight and only the position is missing.
     expect(screen.getByText(/Kerbin/)).toBeInTheDocument();
     expect(visibleText(container)).toBe(
       "GROUND TRACKKerbinNO DATAFollowLANDEDNo position data",

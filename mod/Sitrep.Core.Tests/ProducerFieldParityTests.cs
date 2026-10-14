@@ -439,7 +439,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// The reported blindness, end to end against the real contract types
-        /// and through the same grading the Theory uses: a <c>system.bodies</c>
+        /// and through the same grading the Theory uses: a <c>trackingStation.bodies</c>
         /// producer whose rows are written by a helper.
         ///
         /// <para>Before the walk and the nested descent, this gate graded

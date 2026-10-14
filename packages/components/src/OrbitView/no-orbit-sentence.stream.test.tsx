@@ -34,7 +34,7 @@ function scene(
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", { bodies: [EARTH] });
+    fixture.emit("trackingStation.bodies", { bodies: [EARTH] });
     fixture.emit("vessel.identity", {
       vesselId: "ov-nos-vessel",
       name: "Test Vessel",

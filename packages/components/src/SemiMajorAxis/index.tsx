@@ -25,7 +25,7 @@ import { useBodyName } from "../shared/useBodyName";
 import read from "./semi-major-axis.declarations.g";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.orbit", "system.bodies"],
+  channels: ["vessel.orbit", "trackingStation.bodies"],
   optionalChannels: read.optionalChannels,
   fields: ["vessel.orbit.sma", "vessel.orbit.referenceBodyIndex"],
 });

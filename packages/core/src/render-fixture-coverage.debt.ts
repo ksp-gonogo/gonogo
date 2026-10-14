@@ -33,7 +33,7 @@ export const COINCIDENTAL: readonly string[] = [
   /*
    * `payload.kind === "button"` in the widget's `useActionInput` handler: a
    * SERIAL INPUT discriminant, not a telemetry field. It had no payload field
-   * to collide with until `BodyEntry.horizon` landed, which gave `system.bodies`
+   * to collide with until `BodyEntry.horizon` landed, which gave `trackingStation.bodies`
    * a nested `kind` and made the name a match. ResourceOps reads no body at all;
    * the topic reaches its fixtures through the shared stream.
    */

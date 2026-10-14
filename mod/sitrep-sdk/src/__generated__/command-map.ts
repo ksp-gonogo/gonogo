@@ -176,8 +176,6 @@ export interface GeneratedCommandArgsMap {
   "settings.mod.write": WriteModSettingArgs;
   /** Apply the settings from one Save press together and write the settings file once. */
   "settings.save": SaveSettingsArgs;
-  /** Ask where a body is at each of a list of instants. */
-  "system.bodies.statesAt": BodyStatesRequest;
   /** Put the view in a different reference frame. */
   "system.frame.set": SetControlFrameArgs;
   /** Asks what a command's gate says about one particular call, from the command centre asking, without sending it. */
@@ -190,6 +188,8 @@ export interface GeneratedCommandArgsMap {
   "time.setPaused": SetPausedArgs;
   /** Select a time-warp rate. */
   "time.setWarpIndex": SetWarpIndexArgs;
+  /** Ask where a body is at each of a list of instants. */
+  "trackingStation.bodies.statesAt": BodyStatesRequest;
   /** Set or clear the abort action group. */
   "vessel.control.setAbort": SetEnabledArgs;
   /** Set a numbered custom action group on or off. */
@@ -303,8 +303,6 @@ export interface GeneratedCommandReplyMap {
   "settings.mod.write": CommandResult;
   /** Apply the settings from one Save press together and write the settings file once. */
   "settings.save": CommandResult;
-  /** Ask where a body is at each of a list of instants. */
-  "system.bodies.statesAt": BodyStatesReply;
   /** Put the view in a different reference frame. */
   "system.frame.set": CommandResult;
   /** Asks what a command's gate says about one particular call, from the command centre asking, without sending it. */
@@ -317,6 +315,8 @@ export interface GeneratedCommandReplyMap {
   "time.setPaused": CommandResult;
   /** Select a time-warp rate. */
   "time.setWarpIndex": CommandResult;
+  /** Ask where a body is at each of a list of instants. */
+  "trackingStation.bodies.statesAt": BodyStatesReply;
   /** Set or clear the abort action group. */
   "vessel.control.setAbort": CommandResult;
   /** Set a numbered custom action group on or off. */
@@ -403,13 +403,13 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "science.experiment.transmit": "CommandResultOf<ScienceTransmission>",
   "settings.mod.write": "CommandResult",
   "settings.save": "CommandResult",
-  "system.bodies.statesAt": "BodyStatesReply",
   "system.frame.set": "CommandResult",
   "system.gate.check": "GateVerdict",
   "system.uplink.cancel": "UplinkActionReply",
   "system.uplink.resend": "UplinkActionReply",
   "time.setPaused": "CommandResult",
   "time.setWarpIndex": "CommandResult",
+  "trackingStation.bodies.statesAt": "BodyStatesReply",
   "vessel.control.setAbort": "CommandResult",
   "vessel.control.setActionGroup": "CommandResult",
   "vessel.control.setAxes": "CommandResult",
@@ -506,13 +506,13 @@ export const GENERATED_COMMAND_RAIL = {
   "science.experiment.transmit": { replies: true, delayed: true },
   "settings.mod.write": { replies: true, delayed: false },
   "settings.save": { replies: true, delayed: false },
-  "system.bodies.statesAt": { replies: true, delayed: false },
   "system.frame.set": { replies: true, delayed: false },
   "system.gate.check": { replies: true, delayed: false },
   "system.uplink.cancel": { replies: true, delayed: false },
   "system.uplink.resend": { replies: true, delayed: false },
   "time.setPaused": { replies: true, delayed: false },
   "time.setWarpIndex": { replies: true, delayed: false },
+  "trackingStation.bodies.statesAt": { replies: true, delayed: false },
   "vessel.control.setAbort": { replies: true, delayed: true },
   "vessel.control.setActionGroup": { replies: true, delayed: true },
   "vessel.control.setAxes": { replies: true, delayed: true },
@@ -571,13 +571,13 @@ export const GENERATED_COMMAND_IDS = [
   "science.experiment.transmit",
   "settings.mod.write",
   "settings.save",
-  "system.bodies.statesAt",
   "system.frame.set",
   "system.gate.check",
   "system.uplink.cancel",
   "system.uplink.resend",
   "time.setPaused",
   "time.setWarpIndex",
+  "trackingStation.bodies.statesAt",
   "vessel.control.setAbort",
   "vessel.control.setActionGroup",
   "vessel.control.setAxes",

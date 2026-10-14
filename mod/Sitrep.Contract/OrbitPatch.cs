@@ -8,14 +8,14 @@ namespace Sitrep.Contract;
 /// One conic segment of a vessel's future trajectory, a patched-conic
 /// "patch" in KSP's own sense (<c>Orbit.nextPatch</c>/<c>previousPatch</c>).
 /// A patch carries everything needed to propagate and draw it with no
-/// <c>system.bodies</c> join: its Keplerian elements, KSP's own
+/// <c>trackingStation.bodies</c> join: its Keplerian elements, KSP's own
 /// already-computed shape fields (<see cref="PeA"/>, <see cref="ApA"/>,
 /// <see cref="SemiLatusRectum"/>, <see cref="SemiMinorAxis"/>), its body's
 /// gravitational parameter (<see cref="Mu"/>) and the transitions at each end.
 ///
 /// <para>Bodies are carried twice. <see cref="ReferenceBodyIndex"/> and
 /// <see cref="ClosestEncounterBodyIndex"/> are the identity, the
-/// <c>system.bodies</c> index every other body reference in this contract uses
+/// <c>trackingStation.bodies</c> index every other body reference in this contract uses
 /// (<see cref="VesselOrbit.ReferenceBodyIndex"/> among them). <see cref="ReferenceBody"/>
 /// and <see cref="ClosestEncounterBody"/> are the body's name, for display.</para>
 ///
@@ -105,7 +105,7 @@ public class OrbitPatch
     [SitrepUnit(Units.Metres)]
     public double SemiMinorAxis { get; set; }
 
-    /// <summary>Name of the body this patch orbits, as <c>system.bodies</c>
+    /// <summary>Name of the body this patch orbits, as <c>trackingStation.bodies</c>
     /// names it. For display; <see cref="ReferenceBodyIndex"/> is the identity.</summary>
     [SitrepUnit(Units.Text)]
     public string ReferenceBody { get; set; } = "";
@@ -129,7 +129,7 @@ public class OrbitPatch
     public double? Mu { get; set; }
 
     /// <summary>
-    /// Body this patch orbits, as its <c>system.bodies</c> index (KSP's
+    /// Body this patch orbits, as its <c>trackingStation.bodies</c> index (KSP's
     /// <c>CelestialBody.flightGlobalsIndex</c>). This is the identity, where
     /// <see cref="ReferenceBody"/> is the display name, and it is the key every
     /// other body reference in this contract uses
@@ -148,7 +148,7 @@ public class OrbitPatch
     public int? ReferenceBodyIndex { get; set; }
 
     /// <summary>
-    /// <see cref="ClosestEncounterBody"/>'s <c>system.bodies</c> index, on the
+    /// <see cref="ClosestEncounterBody"/>'s <c>trackingStation.bodies</c> index, on the
     /// same terms as <see cref="ReferenceBodyIndex"/>. Null when there is no
     /// encounter, and also null on a recording that does not carry it; read
     /// <see cref="ClosestEncounterBody"/> to tell the two apart.

@@ -1,5 +1,5 @@
 /**
- * The body a widget draws against: physics from `system.bodies`, keyed by an
+ * The body a widget draws against: physics from `trackingStation.bodies`, keyed by an
  * index a planet pack does not change, and the stock name-keyed table only for
  * presentation and for a field the stream does not report.
  */
@@ -26,7 +26,7 @@ export type StreamBody = BodyDefinition & {
 };
 
 /**
- * The atmosphere block as `system.bodies` reports it: `null` means airless,
+ * The atmosphere block as `trackingStation.bodies` reports it: `null` means airless,
  * while an absent key means a stream that does not report atmospheres.
  */
 export interface StreamAtmosphere {
@@ -38,7 +38,7 @@ export interface StreamAtmosphere {
   pressures?: readonly Value<"kPa">[] | null;
 }
 
-/** The fields of a `system.bodies` entry that describe the body physically. */
+/** The fields of a `trackingStation.bodies` entry that describe the body physically. */
 export interface StreamBodyFacts {
   index?: number;
   name?: string | null;
@@ -88,7 +88,7 @@ function pressureProfile(
   return { altitudes, pressures };
 }
 
-/** Merges a `system.bodies` entry over its table namesake; `undefined` when neither source knows the body's radius. */
+/** Merges a `trackingStation.bodies` entry over its table namesake; `undefined` when neither source knows the body's radius. */
 export function bodyFromStream(
   facts: StreamBodyFacts | null | undefined,
 ): StreamBody | undefined {
@@ -125,7 +125,7 @@ export function bodyFromStream(
   };
 }
 
-/** A `system.bodies` payload, as much of it as this resolution needs. */
+/** A `trackingStation.bodies` payload, as much of it as this resolution needs. */
 export interface StreamBodies {
   bodies: readonly StreamBodyFacts[];
 }
@@ -156,9 +156,9 @@ export function bodyNamed(
  * reading still names the body.
  */
 export function parentBodyFromTopics(
-  topics: DepTopics<readonly ["vessel.identity", "system.bodies"]>,
+  topics: DepTopics<readonly ["vessel.identity", "trackingStation.bodies"]>,
 ): StreamBody | undefined {
   const identity = stillTrue(topics["vessel.identity"], null);
-  const bodies = stillTrue(topics["system.bodies"], null);
+  const bodies = stillTrue(topics["trackingStation.bodies"], null);
   return bodyAtIndex(bodies, identity?.parentBodyIndex);
 }

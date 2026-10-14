@@ -108,7 +108,7 @@ export function findImpactPoint(
  * name. Useful for turning an inertial impact position into a longitude on a
  * rotating body. Used by `predictImpactPoint`.
  *
- * It is only a fallback for a stock game whose `system.bodies` stream reports no
+ * It is only a fallback for a stock game whose `trackingStation.bodies` stream reports no
  * rotation period. A body in neither gets no impact point.
  */
 export const ROTATION_PERIOD_SECONDS: Readonly<Record<string, number>> = {
@@ -144,7 +144,7 @@ const IMPACT_WALK_MAX_HORIZON_SEC = 1200;
 const IMPACT_WALK_MIN_STEPS = 60;
 
 /**
- * The `system.bodies` fields the impact point reads: each body's index, radius
+ * The `trackingStation.bodies` fields the impact point reads: each body's index, radius
  * and rotation period. Useful for placing a predicted landing on the right body.
  * Taken by `predictImpactPoint`.
  */
@@ -190,7 +190,7 @@ function mag(v: Quantityish): number {
 }
 
 /**
- * The sidereal rotation period `system.bodies` reports for the body at
+ * The sidereal rotation period `trackingStation.bodies` reports for the body at
  * `index`, or `undefined` when it reports none a walk could divide by.
  */
 function rotationPeriodOf(

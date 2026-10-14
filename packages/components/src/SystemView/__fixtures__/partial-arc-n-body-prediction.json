@@ -6,13 +6,13 @@
     "body": "Kerbin",
     "situation": "A 250 km circular Kerbin orbit, captured live. Paired with full-orbit-ring-stock-solver, which is the same frame under the analytic solver",
     "provider": "principia-nbody",
-    "notes": "vessel.orbit captured live off the Deck's Sitrep stream on 2026-08-23 with Principia 2026.8.12 loaded and its provider elected: trajectoryKind=2 (Integrated), horizon.kind=2 (Until) with untilUt. system.bodies and vessel.identity come off the same capture."
+    "notes": "vessel.orbit captured live off the Deck's Sitrep stream on 2026-08-23 with Principia 2026.8.12 loaded and its provider elected: trajectoryKind=2 (Integrated), horizon.kind=2 (Until) with untilUt. trackingStation.bodies and vessel.identity come off the same capture."
   },
   "_stream": {
     "pinnedUt": 315659.495086983,
     "emits": [
       {
-        "channel": "system.bodies",
+        "channel": "trackingStation.bodies",
         "value": {
           "bodies": [
             {

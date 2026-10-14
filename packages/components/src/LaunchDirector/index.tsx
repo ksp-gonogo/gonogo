@@ -57,7 +57,7 @@ registerComponent<LaunchDirectorConfig>({
     "spaceCenter.launchSites.isStock",
     "spaceCenter.launchSites.padOccupied",
     "spaceCenter.launchSites.padVesselTitle",
-    "system.bodies",
+    "trackingStation.bodies",
     "trackingStation.catalog",
     "spaceCenter.scene.scene",
     "spaceCenter.scene.launchSite",

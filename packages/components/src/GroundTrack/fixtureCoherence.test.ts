@@ -122,9 +122,8 @@ for (const [path, mod] of Object.entries(MODULES)) {
     .at(-1);
   const flight = flightEmit?.value as WireFlight | undefined;
   const flightUt = flightEmit?.meta?.validAt ?? ut;
-  const bodies = emits.find((e) => e.channel === "system.bodies")?.value as
-    | { bodies?: Array<{ name: string; radius: number }> }
-    | undefined;
+  const bodies = emits.find((e) => e.channel === "trackingStation.bodies")
+    ?.value as { bodies?: Array<{ name: string; radius: number }> } | undefined;
   const first = bodies?.bodies?.[0];
   if (!orbit || !flight || !first) continue;
   scenes.push({

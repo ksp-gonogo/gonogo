@@ -30,7 +30,7 @@ function store(): TimelineStore {
 }
 
 /**
- * The fixture topic is `system.bodies`, which the contract declares nothing
+ * The fixture topic is `trackingStation.bodies`, which the contract declares nothing
  * reckonable on, and that is deliberate: these tests are about the store's
  * identity, staleness and tombstone mechanics, and a topic carrying a
  * `[SitrepReckonable]` mark answers its value-bearing `"none"` arms with a
@@ -38,7 +38,7 @@ function store(): TimelineStore {
  * what any of them is asking about. The decline has its own describe block.
  *
  * It was `vessel.orbit` until 2026-09-16, when that topic was marked so its
- * conic could refuse reachably. `system.bodies` is a better fixture than
+ * conic could refuse reachably. `trackingStation.bodies` is a better fixture than
  * "whatever is unmarked today": it is a catalogue rather than a reading of
  * anything, so there is nothing for a model to move and nothing should ever
  * mark it.
@@ -54,23 +54,23 @@ describe("TimelineStore.sampleReading", () => {
     // a wasted allocation. This is the property that makes the union usable
     // from a hook at all.
     const s = store();
-    s.ingest("system.bodies", point(10, 5));
+    s.ingest("trackingStation.bodies", point(10, 5));
     s.beginFrame();
 
-    const first = s.sampleReading("system.bodies");
-    const second = s.sampleReading("system.bodies");
+    const first = s.sampleReading("trackingStation.bodies");
+    const second = s.sampleReading("trackingStation.bodies");
     expect(second).toBe(first);
   });
 
   it("builds a fresh reading once the frame advances", () => {
     const s = store();
-    s.ingest("system.bodies", point(10, 5));
+    s.ingest("trackingStation.bodies", point(10, 5));
     s.beginFrame();
-    const first = s.sampleReading("system.bodies");
+    const first = s.sampleReading("trackingStation.bodies");
 
-    s.ingest("system.bodies", point(11, 6));
+    s.ingest("trackingStation.bodies", point(11, 6));
     s.beginFrame();
-    const second = s.sampleReading("system.bodies");
+    const second = s.sampleReading("trackingStation.bodies");
 
     expect(second).not.toBe(first);
     expect(second).toEqual({
@@ -83,23 +83,23 @@ describe("TimelineStore.sampleReading", () => {
 
   it("agrees with the value and status reads for the same frame", () => {
     const s = store();
-    s.ingest("system.bodies", point(10, 5));
+    s.ingest("trackingStation.bodies", point(10, 5));
     s.beginFrame();
 
     const frame = s.currentFrame();
-    expect(s.sampleReading("system.bodies", frame)).toEqual({
+    expect(s.sampleReading("trackingStation.bodies", frame)).toEqual({
       state: "observed",
       reckoning: { status: "none" },
-      value: s.sample<number>("system.bodies", frame)?.payload,
+      value: s.sample<number>("trackingStation.bodies", frame)?.payload,
       atUt: value("ut", 10),
     });
-    expect(s.sampleStatus("system.bodies", frame)).toBe("live");
+    expect(s.sampleStatus("trackingStation.bodies", frame)).toBe("live");
   });
 
   it("is pending for a topic that has never produced a point", () => {
     const s = store();
     s.beginFrame();
-    expect(s.sampleReading("system.bodies")).toEqual({
+    expect(s.sampleReading("trackingStation.bodies")).toEqual({
       state: "pending",
       reckoning: { status: "none" },
     });
@@ -107,9 +107,9 @@ describe("TimelineStore.sampleReading", () => {
 
   it("reports the link going down as stale, keeping the last value", () => {
     const s = store();
-    s.ingest("system.bodies", point(10, 5));
+    s.ingest("trackingStation.bodies", point(10, 5));
     s.beginFrame();
-    expect(s.sampleReading("system.bodies")).toEqual({
+    expect(s.sampleReading("trackingStation.bodies")).toEqual({
       state: "observed",
       reckoning: { status: "none" },
       value: 5,
@@ -118,7 +118,7 @@ describe("TimelineStore.sampleReading", () => {
 
     s.setTransportConnected(false);
     s.beginFrame();
-    expect(s.sampleReading("system.bodies")).toEqual({
+    expect(s.sampleReading("trackingStation.bodies")).toEqual({
       state: "held",
       reckoning: { status: "none" },
       grade: "disconnected",
@@ -129,9 +129,9 @@ describe("TimelineStore.sampleReading", () => {
 
   it("reports a tombstone as a confirmed absence, with its own age", () => {
     const s = store();
-    s.ingest("system.bodies", point(10, null));
+    s.ingest("trackingStation.bodies", point(10, null));
     s.beginFrame();
-    expect(s.sampleReading("system.bodies")).toEqual({
+    expect(s.sampleReading("trackingStation.bodies")).toEqual({
       state: "absent",
       reckoning: { status: "none" },
       atUt: value("ut", 10),
@@ -163,7 +163,7 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
 
   it("spells a cross-topic input the way the contract does", () => {
     /*
-     * vessel.flight.altitudeAsl declares @vessel.orbit and @system.bodies, and
+     * vessel.flight.altitudeAsl declares @vessel.orbit and @trackingStation.bodies, and
      * the @ is what a widget renders: the string the operator sees and the
      * string the contract carries are the same string.
      */
@@ -206,10 +206,12 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
 
   it("leaves a topic the contract declares nothing about untouched", () => {
     const s = store();
-    s.ingest("system.bodies", point(10, 5));
+    s.ingest("trackingStation.bodies", point(10, 5));
     s.beginFrame();
 
-    expect(s.sampleReading("system.bodies")).not.toHaveProperty("declined");
+    expect(s.sampleReading("trackingStation.bodies")).not.toHaveProperty(
+      "declined",
+    );
   });
 
   it("leaves it untouched even when a registered model declines on it", () => {
@@ -221,16 +223,18 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
      * silent drop the decline exists to end, wearing the decline's own clothes.
      */
     clearReckoners();
-    declareTestReckonable("system.bodies", "some-uplink");
-    registerReckoner("system.bodies", "some-uplink", {
+    declareTestReckonable("trackingStation.bodies", "some-uplink");
+    registerReckoner("trackingStation.bodies", "some-uplink", {
       deps: [],
       reckon: () => ({ declined: { reason: "model-inapplicable" as const } }),
     });
     const s = store();
-    s.ingest("system.bodies", point(10, 5));
+    s.ingest("trackingStation.bodies", point(10, 5));
     s.beginFrame();
 
-    expect(s.sampleReading("system.bodies")).not.toHaveProperty("declined");
+    expect(s.sampleReading("trackingStation.bodies")).not.toHaveProperty(
+      "declined",
+    );
     clearReckoners();
     registerCoreReckoners();
   });
@@ -251,7 +255,7 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
     expect(after).not.toBe(before);
     expect(after.reckoning).toMatchObject({
       status: "declined",
-      declined: { reason: "input-absent", input: "@system.bodies" },
+      declined: { reason: "input-absent", input: "@trackingStation.bodies" },
     });
   });
 });

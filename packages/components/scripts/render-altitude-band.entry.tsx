@@ -110,7 +110,7 @@ function read(row: Row): TopicReading<FlightSample> {
   });
   const store = new TimelineStore(clock);
   store.setTransportConnected(false);
-  store.ingest("system.bodies", point(0, SYSTEM));
+  store.ingest("trackingStation.bodies", point(0, SYSTEM));
   store.ingest("vessel.orbit", point(0, ORBIT));
   for (const s of row.samples) {
     wall = s.at + LIGHT_TIME_SECONDS;

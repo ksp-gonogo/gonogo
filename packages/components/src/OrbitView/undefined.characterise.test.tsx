@@ -22,7 +22,7 @@ const LKO: OrbitScenario = {
   argPe: 0,
 };
 
-/** Same orbit, no `vessel.identity`/`system.bodies`: parent body unresolved. */
+/** Same orbit, no `vessel.identity`/`trackingStation.bodies`: parent body unresolved. */
 const LKO_NO_BODY: OrbitScenario = { sma: 681500, ecc: 0.005, argPe: 0 };
 
 describe("OrbitView: nothing has arrived at all", () => {

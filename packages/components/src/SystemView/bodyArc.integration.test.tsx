@@ -83,7 +83,7 @@ async function mount(munHorizon?: Record<string, unknown>) {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", system(munHorizon));
+    fixture.emit("trackingStation.bodies", system(munHorizon));
     fixture.emit("system.frame", { kind: 1, centreBody: "Kerbin" });
   });
   await waitFor(() => {

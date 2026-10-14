@@ -177,7 +177,7 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
 });
 
 describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
-  it("renders every Body cell as the null placeholder while system.bodies has not arrived", async () => {
+  it("renders every Body cell as the null placeholder while trackingStation.bodies has not arrived", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
@@ -193,7 +193,7 @@ describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
     expect(screen.queryByText("Mun")).toBeNull();
 
     act(() => {
-      fixture.emit("system.bodies", BODIES);
+      fixture.emit("trackingStation.bodies", BODIES);
     });
     // The other side of the same gate, so the assertion above is pinning an absence rather than a permanently-missing feature.
     await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
@@ -206,7 +206,7 @@ describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
     act(() => {
       fixture.emit("trackingStation.catalog", ONE_CRAFT);
       // `b.name != null` skips the entry entirely, so the index stays unmapped and the row falls into the same placeholder as above.
-      fixture.emit("system.bodies", { bodies: [{ index: 1 }] });
+      fixture.emit("trackingStation.bodies", { bodies: [{ index: 1 }] });
     });
 
     await waitFor(() =>
@@ -220,7 +220,7 @@ describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
     renderRoster(fixture);
 
     act(() => {
-      fixture.emit("system.bodies", BODIES);
+      fixture.emit("trackingStation.bodies", BODIES);
       // `v.bodyIndex != null` short-circuits before the lookup, so a populated bodies map makes no difference.
       fixture.emit("trackingStation.catalog", {
         entries: [
@@ -250,7 +250,7 @@ describe("FleetRoster: partial vessel records", () => {
     renderRoster(fixture);
 
     act(() => {
-      fixture.emit("system.bodies", BODIES);
+      fixture.emit("trackingStation.bodies", BODIES);
       fixture.emit("trackingStation.catalog", {
         entries: [
           {
@@ -301,7 +301,7 @@ describe("FleetRoster: partial vessel records", () => {
     renderRoster(fixture);
 
     act(() => {
-      fixture.emit("system.bodies", BODIES);
+      fixture.emit("trackingStation.bodies", BODIES);
       fixture.emit("trackingStation.catalog", {
         entries: [
           {

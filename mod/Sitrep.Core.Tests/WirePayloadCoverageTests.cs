@@ -110,7 +110,7 @@ namespace Sitrep.Core.Tests
             // dv.stages: StageDeltaVViewProvider.BuildStages writes each stage
             // inline; its BuildSummary sibling is graded.
             "StageDeltaVEntry",
-            // system.bodies / trackingStation.catalog / target.available: the roots are
+            // trackingStation.bodies / trackingStation.catalog / target.available: the roots are
             // graded (SystemViewProvider.BuildSystemBodies and friends); these
             // are the rows and sub-objects those roots assemble from the raw
             // capture's flat keys, with no method of their own.

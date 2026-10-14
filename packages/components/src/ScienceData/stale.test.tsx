@@ -37,7 +37,7 @@ describe("ScienceData when its reads are held", () => {
   /** A landed Mun vessel with one record aboard, an archive, and banked science. */
   function emitLandedWithScience(): void {
     act(() => {
-      stream.emit("system.bodies", {
+      stream.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Mun",

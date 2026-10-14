@@ -287,7 +287,7 @@ describe("ResourceOps", () => {
     act(() => {
       fixture.emit("isru.drills", DRILLS);
       fixture.emit("isru.converters", []);
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [{ name: "Duna", index: 2, parentIndex: 0, radius: 320000 }],
       });
       fixture.emit("vessel.identity", {

@@ -63,7 +63,7 @@ function feedDeltaV(fixture: StreamFixture, dvActual: number): void {
 
 function feedKerbin(fixture: StreamFixture, radius: number): void {
   act(() => {
-    fixture.emit("system.bodies", {
+    fixture.emit("trackingStation.bodies", {
       bodies: [
         {
           index: 0,

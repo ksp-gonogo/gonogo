@@ -5,7 +5,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// <c>system.bodies.statesAt</c>: where a body is at instants the caller chose,
+    /// <c>trackingStation.bodies.statesAt</c>: where a body is at instants the caller chose,
     /// from whichever propagation provider the install elected.
     ///
     /// <para>Registered into the vantage-aware store, so the dispatch gate is
@@ -36,7 +36,7 @@ namespace Sitrep.Host.Tests
             // The engine's, not a mod's: the question is about the solar system the
             // install is running, and the answer comes from whichever provider was
             // elected rather than from anyone's plugin.
-            Assert.Equal("system.bodies.statesAt", ChannelEngine.BodyStatesAtCommand);
+            Assert.Equal("trackingStation.bodies.statesAt", ChannelEngine.BodyStatesAtCommand);
         }
 
         [Fact]

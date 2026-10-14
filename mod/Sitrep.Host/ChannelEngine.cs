@@ -26,7 +26,7 @@ namespace Sitrep.Host
     /// + delay, the timeline-reset broadcast, and the three-domain threading
     /// model (main-loop / Courier / socket): but drives a set of channels
     /// and commands registered by <see cref="ISitrepUplink"/>s, not one
-    /// hardwired <c>system.bodies</c> topic. This embodies the central rule:
+    /// hardwired <c>trackingStation.bodies</c> topic. This embodies the central rule:
     /// "providers are registered mappers; the engine owns the pipeline."
     ///
     /// KSP is never touched here, same discipline <c>GonogoBodiesServer</c>
@@ -790,7 +790,7 @@ namespace Sitrep.Host
 
 
         /// <summary>
-        /// <c>system.bodies.statesAt</c>: where a body is at instants the caller
+        /// <c>trackingStation.bodies.statesAt</c>: where a body is at instants the caller
         /// chose, from the elected propagation provider.
         ///
         /// <para>A command rather than a channel because nothing publishes an answer
@@ -800,10 +800,10 @@ namespace Sitrep.Host
         /// <para>The vantage is ignored, and that is not an oversight. A body's
         /// conic is a published fact rather than something one command centre knows
         /// and another does not, and the elements it is solved from already reach
-        /// every client on <c>system.bodies</c>. There is nothing here for a vantage
+        /// every client on <c>trackingStation.bodies</c>. There is nothing here for a vantage
         /// to gate.</para>
         /// </summary>
-        internal const string BodyStatesAtCommand = "system.bodies.statesAt";
+        internal const string BodyStatesAtCommand = "trackingStation.bodies.statesAt";
 
         // The ground-side pending-uplink queue self-report channel (see
         // Sitrep.Contract.PendingUplink's doc comment for the prediction-only
@@ -994,7 +994,7 @@ namespace Sitrep.Host
         // buffers rather than records live) AND FlushReveal releases nothing,
         // even a pre-outage in-flight entry whose finite horizon the clock would
         // otherwise overtake: so telemetry FREEZES at last-known. TrueNow
-        // channels (comms.connectivity / time.* / system.bodies) still flow,
+        // channels (comms.connectivity / time.* / trackingStation.bodies) still flow,
         // along with the freeze-exempt comms.link, so the operator sees the
         // outage live. This is DISTINCT
         // from delay==0: a genuine connected, in-LOS zero-distance link still
@@ -1621,13 +1621,13 @@ namespace Sitrep.Host
                 Topic = UplinksTopic,
                 Delivery = Delivery.LossyLatest,
                 // A registered-uplink roster with mostly-static health barely
-                // changes tick to tick, same cadence class as system.bodies,
+                // changes tick to tick, same cadence class as trackingStation.bodies,
                 // so the 30s keyframe floor is what the steady state costs.
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 // Uplink health/availability is a ground-side fact about the
                 // MOD itself (is this uplink even working), not something
                 // that flows through a vessel's comms link, same class as
-                // system.bodies/scansat.available, so TrueNow.
+                // trackingStation.bodies/scansat.available, so TrueNow.
                 Delay = DelayRole.TrueNow,
             };
             _channelSources[UplinksTopic] = BuildSystemUplinksPayload;
@@ -1689,7 +1689,7 @@ namespace Sitrep.Host
                 // Ground-side bookkeeping: what the CENTRE dispatched and
                 // when: not vessel telemetry, so it does not ride gonogo's
                 // reveal clock. Same class as UplinksTopic/comms.connectivity/
-                // system.bodies: TrueNow.
+                // trackingStation.bodies: TrueNow.
                 Delay = DelayRole.TrueNow,
                 ViewerFilter = FilterPendingForViewer,
             };

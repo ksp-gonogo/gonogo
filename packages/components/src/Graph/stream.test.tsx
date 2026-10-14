@@ -369,7 +369,7 @@ describe("Graph: genuinely runs off the stream", () => {
     );
 
     act(() => {
-      fixture.emit("system.bodies", { bodies: [AIRLESS_KERBIN] });
+      fixture.emit("trackingStation.bodies", { bodies: [AIRLESS_KERBIN] });
       for (const [validAt, orbitalSpeed] of ECCENTRIC_KERBIN_SPEEDS) {
         fixture.emit("vessel.orbit", ECCENTRIC_KERBIN_ORBIT, {
           validAt,
@@ -439,7 +439,7 @@ describe("Graph: genuinely runs off the stream", () => {
     );
 
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [{ ...AIRLESS_KERBIN, atmosphere: { depth: 70_000 } }],
       });
       for (let validAt = 0; validAt <= 10; validAt++) {

@@ -79,7 +79,7 @@ describe("AtmosphereProfile when the flight reading is held", () => {
         externalTemperature: 291,
       });
       fixture.emit("vessel.identity", { parentBodyIndex: 1 });
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Kerbin",

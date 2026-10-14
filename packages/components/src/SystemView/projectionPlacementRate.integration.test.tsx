@@ -87,7 +87,7 @@ describe("SystemView placement rate", () => {
       </fixture.Provider>,
     );
     act(() => {
-      fixture.emit("system.bodies", system);
+      fixture.emit("trackingStation.bodies", system);
       fixture.emit("system.frame", { kind: 1, centreBody: "Kerbin" });
     });
     await waitFor(() => {

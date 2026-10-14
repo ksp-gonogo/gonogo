@@ -13,7 +13,7 @@ namespace Sitrep.Host.Tests
     /// <c>"scene"</c> encodings are mapped and asserted against the class doc's
     /// rules: the launch-site roster keyed and distinguishable (stock pad +
     /// runway + a synthetic MH/KK site), <c>isStock</c> honored, body name
-    /// resolved to a <c>system.bodies</c> index, the scene enum folded to the
+    /// resolved to a <c>trackingStation.bodies</c> index, the scene enum folded to the
     /// six output strings (incl. the <c>"Other"</c> fallback), and null-not-
     /// empty when the snapshot has no data yet, plus a clean round-trip
     /// through the real production wire path

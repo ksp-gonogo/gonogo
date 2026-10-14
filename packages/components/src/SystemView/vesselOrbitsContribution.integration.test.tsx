@@ -69,7 +69,7 @@ describe("SystemView: active vessel excluded from its own faint orbit contributi
     );
 
     act(() => {
-      fixture.emit("system.bodies", kerbinSystem());
+      fixture.emit("trackingStation.bodies", kerbinSystem());
       fixture.emit("vessel.identity", {
         vesselId: "v-active",
         name: "Tester",
@@ -166,7 +166,7 @@ describe("SystemView: active vessel excluded from its own faint orbit contributi
     );
 
     act(() => {
-      fixture.emit("system.bodies", kerbinSystem());
+      fixture.emit("trackingStation.bodies", kerbinSystem());
       fixture.emit("vessel.identity", {
         vesselId: "v-active",
         name: "Tester",

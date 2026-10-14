@@ -80,7 +80,7 @@ export type _ResolvesScienceDeployed = Expect<
   Equal<TopicPayload<"deployed.bases">, DeployedEntry[]>
 >;
 export type _ResolvesSystemBodies = Expect<
-  Equal<TopicPayload<"system.bodies">, SystemBodies>
+  Equal<TopicPayload<"trackingStation.bodies">, SystemBodies>
 >;
 export type _ResolvesSystemVessels = Expect<
   Equal<TopicPayload<"trackingStation.catalog">, TrackingStationCatalog>

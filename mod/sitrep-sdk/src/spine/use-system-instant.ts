@@ -17,6 +17,6 @@ import { useProcessor } from "./use-processor";
  * @category Solar system and fleet
  */
 export function useSystemInstant(): SystemPoses | undefined {
-  // gonogo:reads system.bodies
+  // gonogo:reads trackingStation.bodies
   return useProcessor(SYSTEM_POSES);
 }

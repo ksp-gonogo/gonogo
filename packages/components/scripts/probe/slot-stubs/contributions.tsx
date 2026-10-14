@@ -141,9 +141,9 @@ plantContribution("space-center-status.facilities", {
 const ENTITY_OFFSET_M = 1_500_000;
 
 plantContribution("system-view.entities", {
-  deps: ["system.bodies"],
+  deps: ["trackingStation.bodies"],
   compute: (topics) =>
-    stillTrue(topics["system.bodies"], null)?.bodies.flatMap((body) =>
+    stillTrue(topics["trackingStation.bodies"], null)?.bodies.flatMap((body) =>
       body.name
         ? [
             {
@@ -186,9 +186,9 @@ plantContribution("system-view.vessel-status", {
  * in is the one thing that differs from the host without it.
  */
 plantContribution("system-view.projection", {
-  deps: ["system.bodies"],
+  deps: ["trackingStation.bodies"],
   compute: (topics) =>
-    stillTrue(topics["system.bodies"], null)?.bodies.flatMap((body) =>
+    stillTrue(topics["trackingStation.bodies"], null)?.bodies.flatMap((body) =>
       body.parentIndex != null && body.parentIndex !== body.index
         ? [
             {

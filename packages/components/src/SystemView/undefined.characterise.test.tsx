@@ -161,10 +161,10 @@ describe("SystemView: what undefined means today", () => {
     expect(container.querySelector("svg")).toBeNull();
   });
 
-  it("treats a null system.bodies payload exactly as never having heard", async () => {
+  it("treats a null trackingStation.bodies payload exactly as never having heard", async () => {
     const { container } = mount();
     act(() => {
-      fixture.emit("system.bodies", kerbinSystem());
+      fixture.emit("trackingStation.bodies", kerbinSystem());
     });
     await waitFor(() =>
       expect(screen.getAllByText("Kerbin").length).toBeGreaterThan(0),
@@ -172,7 +172,7 @@ describe("SystemView: what undefined means today", () => {
 
     // A tombstone reaches the hook as `null` and reverts to the never-arrived sentence, with no age on the confirmation.
     act(() => {
-      fixture.emit("system.bodies", null, { validAt: 50, seq: 1 });
+      fixture.emit("trackingStation.bodies", null, { validAt: 50, seq: 1 });
     });
     await waitFor(() =>
       expect(screen.getByText("Waiting for body data...")).toBeInTheDocument(),
@@ -184,7 +184,7 @@ describe("SystemView: what undefined means today", () => {
     const { container } = mount({ frame: "auto" });
     // Bodies only: no vessel.identity, so `identity?.parentBodyIndex != null` fails and `vesselBody` is null.
     act(() => {
-      fixture.emit("system.bodies", kerbinSystem());
+      fixture.emit("trackingStation.bodies", kerbinSystem());
     });
 
     // `resolveFrame("auto", null)` falls back to the root, text identical to a vessel confirmed at Kerbin.
@@ -201,7 +201,7 @@ describe("SystemView: what undefined means today", () => {
   it("draws no target marker while vessel.target is absent, then one when it lands", async () => {
     const { container } = mount({ frame: "Kerbin" });
     act(() => {
-      fixture.emit("system.bodies", kerbinSystem());
+      fixture.emit("trackingStation.bodies", kerbinSystem());
       fixture.emit("vessel.identity", {
         vesselId: "v",
         name: "Tester",
@@ -229,7 +229,7 @@ describe("SystemView: what undefined means today", () => {
   it("omits the encounter suffix while vessel.orbit is absent, then prints it when it lands", async () => {
     mount({ frame: "Kerbin" });
     act(() => {
-      fixture.emit("system.bodies", kerbinSystem());
+      fixture.emit("trackingStation.bodies", kerbinSystem());
       fixture.emit("vessel.identity", {
         vesselId: "v",
         name: "Tester",
@@ -256,7 +256,7 @@ describe("SystemView: what undefined means today", () => {
   it("draws neither a vessel dot nor a predicted arc while vessel.orbit is absent", async () => {
     const { container } = mount({ frame: "Kerbin" });
     act(() => {
-      fixture.emit("system.bodies", kerbinSystem());
+      fixture.emit("trackingStation.bodies", kerbinSystem());
       fixture.emit("vessel.identity", {
         vesselId: "v",
         name: "Tester",
@@ -287,7 +287,7 @@ describe("SystemView: what undefined means today", () => {
   it("calls the craft the literal string 'Vessel' when identity carries no name", async () => {
     mount({ frame: "Kerbin" });
     act(() => {
-      fixture.emit("system.bodies", kerbinSystem());
+      fixture.emit("trackingStation.bodies", kerbinSystem());
       fixture.emit("vessel.identity", { vesselId: "v" });
     });
     await waitFor(() =>
@@ -318,7 +318,7 @@ describe("SystemView: what undefined means today", () => {
   it("falls back to the root frame when identity arrives without a parentBodyIndex", async () => {
     mount({ frame: "auto" });
     act(() => {
-      fixture.emit("system.bodies", kerbinSystem());
+      fixture.emit("trackingStation.bodies", kerbinSystem());
       fixture.emit("vessel.identity", { vesselId: "v", name: "Tester" });
     });
 
@@ -331,7 +331,7 @@ describe("SystemView: what undefined means today", () => {
   it("draws no craft when the orbit record carries no lan or argPe", async () => {
     const { container } = mount({ frame: "Kerbin" });
     act(() => {
-      fixture.emit("system.bodies", kerbinSystem());
+      fixture.emit("trackingStation.bodies", kerbinSystem());
       fixture.emit("vessel.identity", {
         vesselId: "v",
         name: "Tester",

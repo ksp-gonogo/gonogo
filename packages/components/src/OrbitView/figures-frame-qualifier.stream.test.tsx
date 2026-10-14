@@ -15,7 +15,7 @@ import { OrbitViewComponent } from "./index";
  */
 
 const KERBOL_SYSTEM = rotatingControlFrame._stream.emits.find(
-  (e) => e.channel === "system.bodies",
+  (e) => e.channel === "trackingStation.bodies",
 )?.value;
 
 function mount({
@@ -42,7 +42,7 @@ function mount({
 
 function emitOrbit(fixture: ReturnType<typeof setupStreamFixture>) {
   act(() => {
-    fixture.emit("system.bodies", KERBOL_SYSTEM);
+    fixture.emit("trackingStation.bodies", KERBOL_SYSTEM);
     fixture.emit("vessel.orbit", {
       referenceBodyIndex: 1,
       sma: 682500,

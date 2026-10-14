@@ -75,7 +75,7 @@ describe("wrapCommandReply", () => {
     // The unit under test is the one field, and naming it is what makes this an
     // assertion about the declared type rather than about a literal.
     const reply = wrapCommandReply<Pick<BodyStatesReply, "states">>(
-      "system.bodies.statesAt",
+      "trackingStation.bodies.statesAt",
       { states: [{ ut: 4242, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 }] },
     );
     expect(isValue(reply.states[0].ut)).toBe(true);

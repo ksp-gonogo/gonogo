@@ -92,7 +92,7 @@ function mount(frame: string, meanAnomalyAtEpoch = -1.06) {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", SYSTEM);
+    fixture.emit("trackingStation.bodies", SYSTEM);
     fixture.emit("vessel.identity", {
       vesselId: "v-active",
       name: "Active Craft",
@@ -246,7 +246,7 @@ describe("SystemView draws a target on an open orbit", () => {
     );
     const analytic = { kind: 1, trajectoryKind: 1 };
     act(() => {
-      fixture.emit("system.bodies", SYSTEM);
+      fixture.emit("trackingStation.bodies", SYSTEM);
       fixture.emit("vessel.identity", {
         vesselId: "v-active",
         name: "Active Craft",

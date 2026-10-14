@@ -376,7 +376,7 @@ namespace Sitrep.Core.Tests
         {
             var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)), RealTimeNeverBinding());
 
-            var first = emitter.Decide("system.bodies", BuildBodiesPayload(), 0);
+            var first = emitter.Decide("trackingStation.bodies", BuildBodiesPayload(), 0);
             Assert.True(first.ShouldEmit);
             Assert.Equal(EmissionReason.Keyframe, first.Reason);
 
@@ -384,15 +384,15 @@ namespace Sitrep.Core.Tests
              * The 1 Hz steady state the deck capture records: the body set has
              * not moved, so every one of these rebuilt-but-identical payloads
              * must skip. Reference equality reads all 29 as changed, which is
-             * how system.bodies came to be 82% of the stream's bytes.
+             * how trackingStation.bodies came to be 82% of the stream's bytes.
              */
             for (var ut = 1; ut < 30; ut++)
             {
-                var decision = emitter.Decide("system.bodies", BuildBodiesPayload(), ut);
+                var decision = emitter.Decide("trackingStation.bodies", BuildBodiesPayload(), ut);
                 Assert.False(decision.ShouldEmit, $"expected a skip at ut={ut}");
             }
 
-            Assert.Equal(1, emitter.CountersFor("system.bodies").Emitted);
+            Assert.Equal(1, emitter.CountersFor("trackingStation.bodies").Emitted);
         }
 
         [Fact]
@@ -400,14 +400,14 @@ namespace Sitrep.Core.Tests
         {
             var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)), RealTimeNeverBinding());
 
-            emitter.Decide("system.bodies", BuildBodiesPayload(), 0); // keyframe
+            emitter.Decide("trackingStation.bodies", BuildBodiesPayload(), 0); // keyframe
 
             var moved = BuildBodiesPayload();
             var body = (Dictionary<string, object?>)((List<object?>)moved["bodies"]!)[0]!;
             var orbit = (Dictionary<string, object?>)body["orbit"]!;
             orbit["ecc"] = 0.0168;
 
-            var decision = emitter.Decide("system.bodies", moved, 1);
+            var decision = emitter.Decide("trackingStation.bodies", moved, 1);
             Assert.True(decision.ShouldEmit);
             Assert.Equal(EmissionReason.Change, decision.Reason);
         }
@@ -417,14 +417,14 @@ namespace Sitrep.Core.Tests
         {
             var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)), RealTimeNeverBinding());
 
-            emitter.Decide("system.bodies", BuildBodiesPayload(), 0); // keyframe #1
+            emitter.Decide("trackingStation.bodies", BuildBodiesPayload(), 0); // keyframe #1
 
             for (var ut = 1; ut < 30; ut++)
             {
-                Assert.False(emitter.Decide("system.bodies", BuildBodiesPayload(), ut).ShouldEmit);
+                Assert.False(emitter.Decide("trackingStation.bodies", BuildBodiesPayload(), ut).ShouldEmit);
             }
 
-            var keyframe = emitter.Decide("system.bodies", BuildBodiesPayload(), 30);
+            var keyframe = emitter.Decide("trackingStation.bodies", BuildBodiesPayload(), 30);
             Assert.True(keyframe.ShouldEmit);
             Assert.Equal(EmissionReason.Keyframe, keyframe.Reason);
         }
@@ -442,11 +442,11 @@ namespace Sitrep.Core.Tests
             var emitter = new ChannelEmitter(Policy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)), RealTimeNeverBinding());
             var payload = BuildBodiesPayload();
 
-            emitter.Decide("system.bodies", payload, 0); // keyframe
+            emitter.Decide("trackingStation.bodies", payload, 0); // keyframe
 
             for (var ut = 1; ut < 30; ut++)
             {
-                Assert.False(emitter.Decide("system.bodies", payload, ut).ShouldEmit);
+                Assert.False(emitter.Decide("trackingStation.bodies", payload, ut).ShouldEmit);
             }
         }
 

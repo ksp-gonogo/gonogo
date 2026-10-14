@@ -32,7 +32,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <c>vessel.resources</c>, <c>vessel.thermal</c>, <c>vessel.control</c>,
     /// <c>vessel.comms</c>, <c>vessel.propulsion</c>, <c>vessel.maneuver</c>,
     /// <c>vessel.target</c>, <c>vessel.crew</c>, <c>vessel.structure</c>,
-    /// <c>system.bodies</c>, <c>time.warp</c> -- fifteen channels total)
+    /// <c>trackingStation.bodies</c>, <c>time.warp</c> -- fifteen channels total)
     /// -- exactly the raw JSON text a real <c>ClientWebSocket</c> received,
     /// byte-for-byte -- to a JSON fixture at
     /// <c>local_docs/telemetry-mod/recordings/reference-wire-fixture.json</c>

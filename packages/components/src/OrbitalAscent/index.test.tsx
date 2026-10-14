@@ -17,7 +17,7 @@ import { OrbitalAscentComponent } from "./index";
 const ORBITAL_ASCENT_CHANNELS = [
   "vessel.flight",
   "vessel.identity",
-  "system.bodies",
+  "trackingStation.bodies",
 ] as const;
 
 describe("OrbitalAscentComponent", () => {
@@ -68,7 +68,7 @@ describe("OrbitalAscentComponent", () => {
     },
   ) {
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             name,

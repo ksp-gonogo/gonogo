@@ -6,9 +6,9 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// KSP-free mapping logic for the "System View" typed stream topic
-    /// (<see cref="Topic"/> = <c>"system.bodies"</c>). Reads the raw body
+    /// (<see cref="Topic"/> = <c>"trackingStation.bodies"</c>). Reads the raw body
     /// data an <see cref="IKspHost.Sample"/> snapshot carries and produces
-    /// the clean, typed <c>system.bodies</c> wire payload: an explicit
+    /// the clean, typed <c>trackingStation.bodies</c> wire payload: an explicit
     /// parent-index tree instead of flat <c>b.*[idx]</c> keys, no in-band
     /// numeric sentinels for missing data, and no <c>eccentricAnomaly</c>
     /// field.
@@ -48,7 +48,7 @@ namespace Sitrep.Host
     /// after a <see cref="RecordedSessionCodec"/> JSON round-trip (the
     /// <see cref="ReplayKspHost"/> path): both are accepted.
     ///
-    /// <para><b>The <c>system.bodies</c> payload this produces</b> (a plain
+    /// <para><b>The <c>trackingStation.bodies</c> payload this produces</b> (a plain
     /// <c>Dictionary&lt;string, object?&gt;</c> / <c>List&lt;object?&gt;</c> /
     /// scalar tree: the exact shape <c>Sitrep.Contract.Serialization.JsonWriter.AppendValue</c>
     /// already walks, so it drops straight into a
@@ -87,7 +87,7 @@ namespace Sitrep.Host
     public static class SystemViewProvider
     {
         /// <summary>The typed stream topic this provider feeds.</summary>
-        public const string Topic = "system.bodies";
+        public const string Topic = "trackingStation.bodies";
 
         /// <summary>The tracking station's catalog, every object a command centre knows of: see <see cref="BuildTrackingStationCatalog"/>.</summary>
         public const string CatalogTopic = "trackingStation.catalog";
@@ -119,7 +119,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw <c>"bodies"</c> value (see
-        /// the class doc for the encoding) to the clean <c>system.bodies</c>
+        /// the class doc for the encoding) to the clean <c>trackingStation.bodies</c>
         /// payload. Returns <c>null</c> (not an empty-bodies payload) when
         /// the snapshot doesn't carry a <c>"bodies"</c> list at all (e.g. no
         /// sample has landed yet), so a caller can distinguish "no data yet"
@@ -341,7 +341,7 @@ namespace Sitrep.Host
         /// (no separate Sitrep.Contract POCO: this channel isn't
         /// vessel-scoped-provenance like the <c>vessel.*</c> family, it's a
         /// <c>system</c>-domain snapshot list, same shape class as
-        /// <c>system.bodies</c>). Returns <c>null</c>: not an empty-roster
+        /// <c>trackingStation.bodies</c>). Returns <c>null</c>: not an empty-roster
         /// payload: when the snapshot doesn't carry a <c>"vessels"</c> list
         /// at all (main menu / nothing loaded yet), same "no data yet" vs.
         /// "zero vessels" distinction <see cref="BuildSystemBodies"/> makes.

@@ -270,7 +270,7 @@ export interface SystemEntitySubjectPosition {
   subject: {
     /** Marks this position as that of a subject the widget places itself. */
     kind: "body";
-    /** The body's index in `system.bodies`. */
+    /** The body's index in `trackingStation.bodies`. */
     bodyIndex: number;
   };
 }
@@ -442,7 +442,7 @@ export interface SystemViewProjection {
   choice: ReadFrameChoice;
   /** How big the picture is in this frame. */
   extent: SystemProjectionExtent;
-  /** The `system.bodies` index of the body the diagram must be centred on for this projection to be offered. */
+  /** The `trackingStation.bodies` index of the body the diagram must be centred on for this projection to be offered. */
   frameBodyIndex: number;
 }
 

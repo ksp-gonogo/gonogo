@@ -82,7 +82,7 @@ function mount(parentBodyIndex: number, frame: string) {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", SYSTEM);
+    fixture.emit("trackingStation.bodies", SYSTEM);
     fixture.emit("vessel.identity", {
       vesselId: "v-active",
       name: "Active Craft",

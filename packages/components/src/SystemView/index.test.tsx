@@ -121,7 +121,7 @@ describe("SystemViewComponent", () => {
 
   function primeStream(orbit?: unknown) {
     act(() => {
-      fixture.emit("system.bodies", kerbinSystem());
+      fixture.emit("trackingStation.bodies", kerbinSystem());
       fixture.emit("vessel.identity", {
         vesselId: "v",
         name: "Tester",

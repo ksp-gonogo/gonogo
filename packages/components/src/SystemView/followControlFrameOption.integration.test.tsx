@@ -88,7 +88,7 @@ function mount() {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", kerbolSystem());
+    fixture.emit("trackingStation.bodies", kerbolSystem());
   });
   return { fixture, view };
 }

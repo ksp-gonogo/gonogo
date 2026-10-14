@@ -704,7 +704,7 @@ CORE_UPLINK_CLIENT.registerContribution({
   contributes: "plots",
   deps: [
     "vessel.identity",
-    "system.bodies",
+    "trackingStation.bodies",
     "vessel.flight",
     "vessel.surface",
     "vessel.landing",

@@ -107,7 +107,7 @@ import { decodeWideNumbers } from "./wideNumbers";
 function bodiesFrame() {
   return {
     type: "stream-data" as const,
-    topic: "system.bodies",
+    topic: "trackingStation.bodies",
     payload: {
       bodies: [
         { name: "Sun", index: 0, mass: 1.7565459e28, radius: 261600000 },
@@ -169,7 +169,7 @@ describe("a relayed frame the packer refuses", () => {
     ).not.toThrow();
 
     expect(error).toHaveBeenCalledWith(
-      expect.stringContaining("topic=system.bodies"),
+      expect.stringContaining("topic=trackingStation.bodies"),
       expect.any(Error),
     );
     conn.failAll = false;

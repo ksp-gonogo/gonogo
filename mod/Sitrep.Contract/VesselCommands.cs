@@ -219,7 +219,7 @@ public class SetTargetArgs
     public uint? PartId { get; set; }
 
     /// <summary>
-    /// The body's <c>system.bodies</c> index, the same index
+    /// The body's <c>trackingStation.bodies</c> index, the same index
     /// <see cref="VesselOrbit.ReferenceBodyIndex"/> uses. Required when
     /// <see cref="Kind"/> is <see cref="TargetKind.Body"/>, and also when it is
     /// <see cref="TargetKind.Position"/>, where it names the body

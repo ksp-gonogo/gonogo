@@ -1591,7 +1591,7 @@ describe("the body a contribution resolves", () => {
   // Low enough that the atmospheric gate is open either way, so the case measures the radius and not the gate.
   const payloadsFor = (body: Record<string, unknown>) => ({
     "vessel.identity": { parentBodyIndex: 1 },
-    "system.bodies": { bodies: [body] },
+    "trackingStation.bodies": { bodies: [body] },
     "vessel.flight": {
       latitude: value("°", 0.2),
       longitude: value("°", 12),

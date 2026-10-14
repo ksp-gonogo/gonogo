@@ -230,8 +230,6 @@ export interface GeneratedTopicPayloadMap {
   "spaceCenter.savedShips": SavedShipEntry[];
   /** The `spaceCenter.scene` Topic payload: the single current KSP game scene. */
   "spaceCenter.scene": SpaceCenterScene;
-  /** The `system.bodies` Topic payload: every celestial body in the game, as a tree, wrapped as `{ "bodies": [ ... ] }`. */
-  "system.bodies": SystemBodies;
   /** The frame the game's own navigation view is expressed in, which is what the player is looking at. */
   "system.frame": ControlFrame;
   /** The `target.available` Topic payload: the list of everything targetable from the active vessel, as the active vessel knows it. */
@@ -240,6 +238,8 @@ export interface GeneratedTopicPayloadMap {
   "time.calendar": TimeCalendar;
   /** The `time.warp` Topic payload: the game's time-warp and pause state, as separate typed fields. */
   "time.warp": WarpState;
+  /** The `trackingStation.bodies` Topic payload: every celestial body in the game, as a tree, wrapped as `{ "bodies": [ ... ] }`. */
+  "trackingStation.bodies": SystemBodies;
   /** The `trackingStation.catalog` Topic payload: every object the receiving command centre knows of, craft and tracked space objects alike, one entry each, wrapped as `{ "entries": [ ... ] }`. */
   "trackingStation.catalog": TrackingStationCatalog;
   /** The `vessel.attitude` Topic payload: pitch, heading and roll of the vessel's control reference, the orientation the pilot steers by, against the local surface up and north, in two named frames. */
@@ -347,11 +347,11 @@ export const GENERATED_TOPIC_IDS = [
   "spaceCenter.pois",
   "spaceCenter.savedShips",
   "spaceCenter.scene",
-  "system.bodies",
   "system.frame",
   "target.available",
   "time.calendar",
   "time.warp",
+  "trackingStation.bodies",
   "trackingStation.catalog",
   "vessel.attitude",
   "vessel.comms",

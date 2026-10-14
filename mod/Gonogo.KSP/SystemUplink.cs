@@ -7,7 +7,7 @@ using Sitrep.Host.Propagation;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The <c>system.bodies</c> retrofit: the reference
+    /// The <c>trackingStation.bodies</c> retrofit: the reference
     /// <see cref="ISitrepUplink"/>, proving the uplink contract fits
     /// the exact channel <c>GonogoBodiesServer</c> used to hand-wire.
     ///
@@ -43,7 +43,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// The frame the game's navigation view is in: what the player is looking
         /// at, and what a widget set to follow the control frame resolves against.
-        /// Beside <c>system.bodies</c> and <c>system.units</c> because it is the
+        /// Beside <c>trackingStation.bodies</c> and <c>system.units</c> because it is the
         /// same kind of fact, one global reference the whole view is read in.
         /// </summary>
         public const string ControlFrameTopic = "system.frame";
@@ -68,7 +68,7 @@ namespace Gonogo.KSP
                     Topic = SystemViewProvider.Topic,
                     Delivery = Delivery.LossyLatest,
                     /*
-                     * system.bodies is a static structured channel: radii,
+                     * trackingStation.bodies is a static structured channel: radii,
                      * gravitational parameters and atmospheres, which change
                      * when the game's body set does and essentially never
                      * during a flight. So the 30s keyframe is what this
@@ -119,7 +119,7 @@ namespace Gonogo.KSP
                 // (read from FlightDriver's static flags, the same ones KSP's
                 // pause menu gates its revert buttons on), known independent of
                 // any vessel's comms link, so TrueNow -- same class as
-                // system.bodies. Two bools that only flip on launch/revert, so
+                // trackingStation.bodies. Two bools that only flip on launch/revert, so
                 // the 30s keyframe floor is what the steady state costs.
                 new ChannelDeclaration
                 {
@@ -133,7 +133,7 @@ namespace Gonogo.KSP
                 // game.dlc -- which KSP expansions are installed. A ground-side,
                 // scene-independent game fact (the Meta.Dlc path): known
                 // independent of any vessel's comms link, so TrueNow -- same
-                // class as system.bodies/career.status. It effectively never
+                // class as trackingStation.bodies/career.status. It effectively never
                 // changes mid-session (an expansion isn't installed/uninstalled
                 // while KSP runs), so the 30s keyframe floor is what the steady
                 // state costs.

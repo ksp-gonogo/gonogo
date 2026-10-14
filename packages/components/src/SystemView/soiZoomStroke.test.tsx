@@ -83,7 +83,7 @@ describe("SystemView: near-parent orbit stroke stays readable at SOI zoom (board
       </fixture.Provider>,
     );
     act(() => {
-      fixture.emit("system.bodies", wideSystem());
+      fixture.emit("trackingStation.bodies", wideSystem());
     });
     await waitFor(() =>
       expect(

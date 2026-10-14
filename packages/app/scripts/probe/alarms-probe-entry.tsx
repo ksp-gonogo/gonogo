@@ -57,14 +57,14 @@ const ORBIT = {
 };
 
 /**
- * What the scenes draw from: `vessel.orbit` and `system.bodies` for the orbit
+ * What the scenes draw from: `vessel.orbit` and `trackingStation.bodies` for the orbit
  * solve the apsis presets anchor to, `vessel.control` for the action-group
  * caption, `vessel.maneuver` for the node presets, and the two channels the time
  * context is read out of.
  */
 const SUBSCRIBED = [
   "vessel.orbit",
-  "system.bodies",
+  "trackingStation.bodies",
   "vessel.control",
   "vessel.maneuver",
   "commandCentre.roster",
@@ -180,7 +180,7 @@ async function renderScene(scene: Scene): Promise<void> {
   /* The vantage stamp rides the frame meta, which is how the client learns
      which centre its data is delayed from; the roster is what turns that id
      into a name an operator reads. */
-  fixture.emit("system.bodies", {
+  fixture.emit("trackingStation.bodies", {
     bodies: [{ index: 1, name: "Kerbin", radius: 600_000 }],
   });
   fixture.emit("commandCentre.roster", [

@@ -14,7 +14,7 @@ namespace Sitrep.Core
     /// <c>!Equals(lastEmitted, value)</c> fallback was reference equality and
     /// answered "changed" for every structured payload ever considered. The
     /// gate worked for scalars and was inert for the rest. Measured against
-    /// the deck's RO 200 km capture, <c>system.bodies</c> alone was 82% of the
+    /// the deck's RO 200 km capture, <c>trackingStation.bodies</c> alone was 82% of the
     /// stream's bytes at 1 Hz while its content never moved once.</para>
     ///
     /// <para><b>Leaves compare exactly</b>, never through
@@ -51,7 +51,7 @@ namespace Sitrep.Core
          * is not a catchable failure. The node budget terminates a cycle and
          * the depth cap keeps recursion inside the stack while it does. Both
          * are far above any real payload: the largest measured tree,
-         * system.bodies under RSS with atmosphere pressure profiles, is ~1,400
+         * trackingStation.bodies under RSS with atmosphere pressure profiles, is ~1,400
          * nodes at depth 4.
          */
         private const int MaxNodes = 100_000;

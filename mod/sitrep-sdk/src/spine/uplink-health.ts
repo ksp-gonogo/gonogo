@@ -14,7 +14,7 @@ import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
  * Named distinctly from the raw wire topic (`system.uplinks` stays the raw
  * wire topic; this derived channel
  * registers as `system.uplinkHealth`) for the same reason
- * `system.bodies` -> `system.state` are two different topic names: a derived
+ * `trackingStation.bodies` -> `system.state` are two different topic names: a derived
  * channel registered under the same name as its own input would recurse
  * into itself the first time `derive` calls `get()` on that input.
  */

@@ -38,7 +38,7 @@ describe("LandingStatus when the solve inputs are held", () => {
   /** A viable Mun descent: 5 km AGL, 50 m/s down, thrust to spare. */
   function emitDescent(): void {
     act(() => {
-      stream.emit("system.bodies", {
+      stream.emit("trackingStation.bodies", {
         bodies: [
           {
             name: MUN.name,

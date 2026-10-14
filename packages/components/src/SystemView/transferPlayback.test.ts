@@ -107,7 +107,9 @@ describe("Mun transfer playback capture", () => {
 describe("Mun transfer playback keyframes", () => {
   it("restates the catalogue on every frame, so no body figure goes held as the clock runs", () => {
     for (const frame of transferFrames()) {
-      const bodies = frame.emits.find((e) => e.channel === "system.bodies");
+      const bodies = frame.emits.find(
+        (e) => e.channel === "trackingStation.bodies",
+      );
       expect(bodies?.meta?.deliveredAt).toBe(frame.ut);
     }
   });

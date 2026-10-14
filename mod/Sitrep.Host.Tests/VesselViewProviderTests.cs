@@ -1710,7 +1710,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// A patch must be propagable from what it carries. `Mu` and the body
         /// index are what make it so: without them a consumer had to resolve
-        /// `ReferenceBody` through `system.bodies` before it could use a patch
+        /// `ReferenceBody` through `trackingStation.bodies` before it could use a patch
         /// at all, which a vessel's own orbit has never needed.
         /// </summary>
         [Fact]

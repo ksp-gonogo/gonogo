@@ -109,14 +109,14 @@ describe("sitrep-client end-to-end spine", () => {
       </TelemetryProvider>,
     );
 
-    expect(transport.isSubscribed("system.bodies")).toBe(true);
+    expect(transport.isSubscribed("trackingStation.bodies")).toBe(true);
     // Nothing publishes either of these, so a subscription to one is a subscription to silence.
     expect(transport.isSubscribed("system.state")).toBe(false);
     expect(transport.isSubscribed("system.state.bodyCount")).toBe(false);
 
     // `StubTransport.emit` is subscription-gated, so delivery here is itself the proof the wire subscription is real rather than bookkeeping.
     act(() => {
-      transport.emit("system.bodies", {
+      transport.emit("trackingStation.bodies", {
         bodies: [
           { name: "Sun", index: 0, parentIndex: null, radius: 261_600_000 },
           { name: "Kerbin", index: 1, parentIndex: 0, radius: 600_000 },
@@ -127,6 +127,6 @@ describe("sitrep-client end-to-end spine", () => {
     await waitFor(() => expect(screen.getByText("bodies:3")).toBeTruthy());
 
     unmount();
-    expect(transport.isSubscribed("system.bodies")).toBe(false);
+    expect(transport.isSubscribed("trackingStation.bodies")).toBe(false);
   });
 });

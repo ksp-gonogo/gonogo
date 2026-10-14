@@ -44,7 +44,7 @@ function feed(fixture: StreamFixture, topic: string, payload: unknown): void {
 /** The identity and roster, and no `vessel.surface`, so body and situation resolve while the locale stays absent. */
 function feedSituation(fixture: StreamFixture): void {
   act(() => {
-    fixture.emit("system.bodies", {
+    fixture.emit("trackingStation.bodies", {
       bodies: [
         { name: "Mun", index: 2, parentIndex: 0, radius: 200_000, orbit: null },
       ],

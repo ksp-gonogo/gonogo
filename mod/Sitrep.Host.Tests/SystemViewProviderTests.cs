@@ -14,7 +14,7 @@ namespace Sitrep.Host.Tests
     /// <see cref="KspSnapshot"/> carrying the raw <c>"bodies"</c> encoding
     /// (root star with no parent, an orbiting planet with a full orbit, and
     /// a moon missing a couple of raw fields) is mapped to the
-    /// <c>system.bodies</c> payload and asserted against every rule in the
+    /// <c>trackingStation.bodies</c> payload and asserted against every rule in the
     /// class doc: the parent-index tree, root orbit == null, missing raw
     /// fields → null (never a sentinel), no <c>eccentricAnomaly</c> key
     /// anywhere, and the payload serializing cleanly through the real

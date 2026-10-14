@@ -8,7 +8,7 @@ namespace Sitrep.Host
     /// Small mapping helpers genuinely shared by more than one
     /// <c>*ViewProvider</c>: extracted (M3 R3 capture-adds) when
     /// <c>SystemViewProvider</c>'s new <c>trackingStation.catalog</c> roster mapper
-    /// needed the exact same body-name -&gt; <c>system.bodies</c> index
+    /// needed the exact same body-name -&gt; <c>trackingStation.bodies</c> index
     /// resolution and <see cref="VesselType"/>/<see cref="Situation"/>
     /// string parsing <see cref="VesselViewProvider"/> already had, private,
     /// for <c>vessel.identity</c>. Rather than duplicate this logic a second
@@ -23,7 +23,7 @@ namespace Sitrep.Host
     internal static class SharedMappers
     {
         /// <summary>
-        /// Resolves a body name to its stable <c>system.bodies</c> index by
+        /// Resolves a body name to its stable <c>trackingStation.bodies</c> index by
         /// scanning <c>snapshot.Values["bodies"]</c>: see
         /// <see cref="VesselViewProvider"/>'s original doc comment on this
         /// method (moved here verbatim). Returns null if the bodies list is

@@ -16,7 +16,7 @@ import { type StreamFixture, setupStreamFixture } from "./setupStreamFixture";
 export const ORBIT_SCENARIO_CHANNELS = [
   "vessel.orbit",
   "vessel.identity",
-  "system.bodies",
+  "trackingStation.bodies",
 ] as const;
 
 /** Kerbin's standard gravitational parameter, for finite propagation. */
@@ -25,7 +25,7 @@ const KERBIN_MU = 3.5316e12;
 export interface OrbitScenario {
   /** Parent body name (drives `getBody` color/radius/atmosphere + subtitle). Omit for a body-less render. */
   bodyName?: string;
-  /** `system.bodies` index of the parent body. Default 0. */
+  /** `trackingStation.bodies` index of the parent body. Default 0. */
   bodyIndex?: number;
   /** Body mean radius, metres. Default Kerbin's 600 000. */
   bodyRadius?: number;
@@ -80,8 +80,8 @@ export function emitScenario(fixture: StreamFixture, s: OrbitScenario): void {
         launchUt: 0,
       });
     }
-    /* Always emitted, empty when no body is named: the conic declares `system.bodies` as an input, and an empty roster solves the orbit while leaving the apsis altitudes unresolvable. */
-    fixture.emit("system.bodies", {
+    /* Always emitted, empty when no body is named: the conic declares `trackingStation.bodies` as an input, and an empty roster solves the orbit while leaving the apsis altitudes unresolvable. */
+    fixture.emit("trackingStation.bodies", {
       bodies:
         s.bodyName === undefined
           ? []

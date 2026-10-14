@@ -37,9 +37,9 @@ describe("SemiMajorAxis: genuinely runs off the stream", () => {
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
     act(() => {
-      // referenceBodyIndex 1 resolves to "Kerbin" against system.bodies.
+      // referenceBodyIndex 1 resolves to "Kerbin" against trackingStation.bodies.
       fixture.emit("vessel.orbit", { sma: 680000, referenceBodyIndex: 1 });
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Kerbin",

@@ -231,7 +231,7 @@ describe("CELESTIAL_FACTS", () => {
     // TransferWindow, and useBodyRotation (which OrbitView calls).
     const off = [1, 2, 3, 4].map(() => runtime.activate(CELESTIAL_FACTS.id));
 
-    store.ingest("system.bodies", point(0, SYSTEM));
+    store.ingest("trackingStation.bodies", point(0, SYSTEM));
     for (let i = 0; i < 5; i++) store.beginFrame();
 
     // One for the first activation, none for the three that share it, one per frame.
@@ -243,7 +243,7 @@ describe("CELESTIAL_FACTS", () => {
 
   it("carries the 3 game-authored almanac fields verbatim, and derives 2 more", () => {
     const off = runtime.activate(CELESTIAL_FACTS.id);
-    store.ingest("system.bodies", point(0, SYSTEM));
+    store.ingest("trackingStation.bodies", point(0, SYSTEM));
     store.beginFrame();
 
     const facts = derived<CelestialFacts>(CELESTIAL_FACTS.id);
@@ -278,7 +278,7 @@ describe("CELESTIAL_FACTS", () => {
     // host's non-finite-is-absent rule drops it. Nothing bounds the star, and a
     // client-side reconstruction would have invented a number for it.
     const off = runtime.activate(CELESTIAL_FACTS.id);
-    store.ingest("system.bodies", point(0, SYSTEM));
+    store.ingest("trackingStation.bodies", point(0, SYSTEM));
     store.beginFrame();
 
     const kerbol = derived<CelestialFacts>(CELESTIAL_FACTS.id)?.bodies[0];
@@ -302,7 +302,7 @@ describe("CELESTIAL_FACTS", () => {
       runtime.subscribe(CELESTIAL_FACTS.id, cb),
     );
 
-    store.ingest("system.bodies", point(0, SYSTEM));
+    store.ingest("trackingStation.bodies", point(0, SYSTEM));
     for (let i = 0; i < 10; i++) {
       store.beginFrame();
       wall.advanceBy(1);
@@ -324,12 +324,12 @@ describe("CELESTIAL_FACTS", () => {
       runtime.subscribe(CELESTIAL_FACTS.id, cb),
     );
 
-    store.ingest("system.bodies", point(0, SYSTEM));
+    store.ingest("trackingStation.bodies", point(0, SYSTEM));
     store.beginFrame();
     expect(listeners.reduce((n, cb) => n + cb.mock.calls.length, 0)).toBe(4);
 
     // A full Kerbin day later: the bodies have measurably moved along.
-    store.ingest("system.bodies", point(21_600, SYSTEM));
+    store.ingest("trackingStation.bodies", point(21_600, SYSTEM));
     store.beginFrame();
 
     expect(listeners.reduce((n, cb) => n + cb.mock.calls.length, 0)).toBe(8);
@@ -340,7 +340,7 @@ describe("CELESTIAL_FACTS", () => {
 
   it("carries both index lookups for the 3 bodies, keyed both ways", () => {
     const off = runtime.activate(CELESTIAL_FACTS.id);
-    store.ingest("system.bodies", point(0, SYSTEM));
+    store.ingest("trackingStation.bodies", point(0, SYSTEM));
     store.beginFrame();
 
     const facts = derived<CelestialFacts>(CELESTIAL_FACTS.id);
@@ -352,7 +352,7 @@ describe("CELESTIAL_FACTS", () => {
 
   it("keeps the catalogue when the link drops, because a body list is a fact", () => {
     const off = runtime.activate(CELESTIAL_FACTS.id);
-    store.ingest("system.bodies", point(0, SYSTEM));
+    store.ingest("trackingStation.bodies", point(0, SYSTEM));
     store.beginFrame();
     store.setTransportConnected(false);
     store.beginFrame();
@@ -362,7 +362,7 @@ describe("CELESTIAL_FACTS", () => {
     off();
   });
 
-  it("is an empty catalogue, not a crash, before system.bodies lands", () => {
+  it("is an empty catalogue, not a crash, before trackingStation.bodies lands", () => {
     const off = runtime.activate(CELESTIAL_FACTS.id);
     store.beginFrame();
 

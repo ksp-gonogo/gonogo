@@ -51,7 +51,7 @@ function formatManeuverAddCommand(args: unknown): string {
 // StubTransport delivers only to subscribed channels, and the trigger service's non-hook reads subscribe to nothing.
 utFixture.client.subscribe("vessel.orbit", () => {});
 utFixture.client.subscribe("vessel.identity", () => {});
-utFixture.client.subscribe("system.bodies", () => {});
+utFixture.client.subscribe("trackingStation.bodies", () => {});
 
 /**
  * One frame, so frame-driven quantities (view UT, the trigger service's
@@ -117,7 +117,7 @@ function emitFullOrbit(bodyName = "Kerbin"): void {
   // The trigger tests threshold on this orbit's sma and plan against its conic, which needs the body radius.
   utFixture.emit("vessel.orbit", VESSEL_ORBIT_STREAM_FIXTURE);
   utFixture.emit("vessel.identity", VESSEL_IDENTITY_STREAM_FIXTURE);
-  utFixture.emit("system.bodies", {
+  utFixture.emit("trackingStation.bodies", {
     bodies: [
       {
         name: bodyName,
@@ -280,7 +280,7 @@ describe("ManeuverPlannerComponent", () => {
         ecc: 0.1765,
       });
       // The conic declares the roster as an input; without it there is no plan to judge.
-      spent.emit("system.bodies", {
+      spent.emit("trackingStation.bodies", {
         bodies: [{ name: "Kerbin", index: 1, radius: 600_000 }],
       });
       // A real zero: a fact about the vessel, not the absence of one.

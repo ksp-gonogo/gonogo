@@ -116,7 +116,7 @@ describe("the built-in contributions draw a held value as held", () => {
     const entities = (vessels: unknown) =>
       compute("system-view.entities", "core:system-view-vessel-orbits", {
         "trackingStation.catalog": vessels,
-        "system.bodies": observed(bodies),
+        "trackingStation.bodies": observed(bodies),
         "comms.network": PENDING,
       }) ?? [];
     expect(entities(observed(roster))[0]?.currency).toBeUndefined();

@@ -66,7 +66,9 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
   it("POIs arrived but the mapped body is undefined: reads as EMPTY, not as pending", async () => {
     const { result, fixture } = renderPois(undefined);
     act(() => {
-      fixture.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });
+      fixture.emit("trackingStation.bodies", {
+        bodies: [{ index: 1, name: "Kerbin" }],
+      });
       fixture.emit("spaceCenter.pois", [
         {
           id: "launchSite:Runway",
@@ -84,7 +86,7 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
     expect(result.current).toEqual([]);
   });
 
-  it("POIs arrived but system.bodies never did: every POI is SILENTLY dropped, reported as an empty body", async () => {
+  it("POIs arrived but trackingStation.bodies never did: every POI is SILENTLY dropped, reported as an empty body", async () => {
     const { result, fixture } = renderPois("Kerbin");
     act(() => {
       fixture.emit("spaceCenter.pois", [
@@ -104,11 +106,11 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
     expect(result.current).toEqual([]);
   });
 
-  it("a system.bodies entry with no name is dropped from the index, taking its POIs with it", async () => {
+  it("a trackingStation.bodies entry with no name is dropped from the index, taking its POIs with it", async () => {
     const { result, fixture } = renderPois("Kerbin");
     act(() => {
       // Body 1 arrived without a name, so its POI can never match a bodyId.
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [{ index: 1 }, { index: 2, name: "Mun" }],
       });
       fixture.emit("spaceCenter.pois", [
@@ -145,7 +147,9 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
   it("a POI entry missing any required field vanishes entirely rather than rendering partially", async () => {
     const { result, fixture } = renderPois("Kerbin");
     act(() => {
-      fixture.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });
+      fixture.emit("trackingStation.bodies", {
+        bodies: [{ index: 1, name: "Kerbin" }],
+      });
       fixture.emit("spaceCenter.pois", [
         {
           id: "complete",
@@ -195,7 +199,9 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
   it("a POI entry with no bodyIndex is dropped by the body filter, before toMapPoi ever sees it", async () => {
     const { result, fixture } = renderPois("Kerbin");
     act(() => {
-      fixture.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });
+      fixture.emit("trackingStation.bodies", {
+        bodies: [{ index: 1, name: "Kerbin" }],
+      });
       fixture.emit("spaceCenter.pois", [
         {
           id: "no-bodyIndex",
@@ -215,7 +221,9 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
   it("a contractTarget with no funds/agent fields still becomes a POI, carrying undefined meta values", async () => {
     const { result, fixture } = renderPois("Kerbin");
     act(() => {
-      fixture.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });
+      fixture.emit("trackingStation.bodies", {
+        bodies: [{ index: 1, name: "Kerbin" }],
+      });
       fixture.emit("spaceCenter.pois", [
         {
           id: "contract:bare",

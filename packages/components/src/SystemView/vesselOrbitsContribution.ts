@@ -369,12 +369,12 @@ function heldWhere(
 CORE_UPLINK_CLIENT.registerContribution({
   id: "system-view-vessel-orbits",
   contributes: "system-view.entities",
-  deps: ["trackingStation.catalog", "system.bodies", "comms.network"],
+  deps: ["trackingStation.catalog", "trackingStation.bodies", "comms.network"],
   compute: (topics) => {
     const vesselsReading = topics["trackingStation.catalog"];
     const networkReading = topics["comms.network"];
     const vessels = lastValue(vesselsReading);
-    const bodies = stillTrue(topics["system.bodies"], null);
+    const bodies = stillTrue(topics["trackingStation.bodies"], null);
     const vesselsHeld = vesselsReading.state === "held";
     return [
       ...heldWhere(computeVesselOrbitEntities(vessels, bodies), vesselsHeld),

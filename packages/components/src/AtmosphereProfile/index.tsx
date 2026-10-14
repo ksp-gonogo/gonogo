@@ -17,7 +17,7 @@ export interface AtmosphereProfileConfig {
 }
 
 const topics = defineTopicManifest({
-  channels: ["vessel.flight", "vessel.identity", "system.bodies"],
+  channels: ["vessel.flight", "vessel.identity", "trackingStation.bodies"],
   fields: [
     "vessel.flight.altitudeAsl",
     "vessel.flight.atmDensity",
@@ -50,7 +50,7 @@ function AtmosphereProfileComponent({
     return undefined;
   })();
   const bodyName = useBodyName(useParentBodyIndex());
-  /* Resolved against the `system.bodies` roster the name came from, so a planet-pack rename resolves. */
+  /* Resolved against the `trackingStation.bodies` roster the name came from, so a planet-pack rename resolves. */
   const body = useStreamBody(bodyName);
   /* Off the same reading as the atmospheric numbers, modelled fields overlaid. A held record with no model still places the line, which wears the held mark. */
   const altitude = (flight ?? flightObserved)?.altitudeAsl;

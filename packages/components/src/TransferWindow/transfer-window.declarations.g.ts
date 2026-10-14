@@ -2,5 +2,5 @@
 export default {
   optionalChannels: ["dv.stages", "vessel.structure"],
   optionalChannelFamilies: [],
-  commands: ["system.bodies.statesAt"],
+  commands: ["trackingStation.bodies.statesAt"],
 } as const;

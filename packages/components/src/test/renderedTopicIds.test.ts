@@ -12,10 +12,14 @@ describe("renderedTopicIds", () => {
     expect(
       renderedTopicIds(
         mounted(
-          `<p>waiting on vessel.orbit</p><span title="input @system.bodies">x</span><i aria-label="system.bodies.3">y</i>`,
+          `<p>waiting on vessel.orbit</p><span title="input @trackingStation.bodies">x</span><i aria-label="trackingStation.bodies.3">y</i>`,
         ),
       ).sort(),
-    ).toEqual(["system.bodies", "system.bodies.3", "vessel.orbit"]);
+    ).toEqual([
+      "trackingStation.bodies",
+      "trackingStation.bodies.3",
+      "vessel.orbit",
+    ]);
   });
 
   it("passes prose, figures and abbreviations", () => {

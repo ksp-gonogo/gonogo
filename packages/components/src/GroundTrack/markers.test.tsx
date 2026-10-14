@@ -102,7 +102,7 @@ function emitDescent(
   quality: Quality = Quality.Loaded,
 ) {
   act(() => {
-    fixture.emit("system.bodies", BODIES);
+    fixture.emit("trackingStation.bodies", BODIES);
     fixture.emit(
       "vessel.orbit",
       { ...ORBIT, meta: { source: "vessel:v1", quality } },
@@ -216,7 +216,7 @@ describe("GroundTrack's vessel marker under signal delay", () => {
     // The frames left the craft a light-time before its present of UT.
     const meta = { validAt: UT - owlt, deliveredAt: UT };
     act(() => {
-      fixture.emit("system.bodies", BODIES, meta);
+      fixture.emit("trackingStation.bodies", BODIES, meta);
       fixture.emit(
         "vessel.identity",
         {

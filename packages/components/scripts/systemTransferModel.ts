@@ -61,7 +61,7 @@ interface CatalogueBody {
 }
 
 const catalogue = fixture._stream.emits.find(
-  (e) => e.channel === "system.bodies",
+  (e) => e.channel === "trackingStation.bodies",
 ) as { value: { bodies: CatalogueBody[] } };
 
 const MUN = catalogue.value.bodies.find(
@@ -249,7 +249,7 @@ function keyframesAt(ut: number): PlaybackEmit[] {
     .filter((e) => e.channel !== "vessel.orbit")
     .map((e) => {
       let value: unknown = e.value;
-      if (e.channel === "system.bodies") value = TILTED_CATALOGUE;
+      if (e.channel === "trackingStation.bodies") value = TILTED_CATALOGUE;
       if (e.channel === "vessel.identity" && bound) {
         value = { ...(e.value as object), parentBodyIndex: MUN.index };
       }
@@ -282,7 +282,7 @@ function clockLine(ut: number): string {
 export function transferFirstScene(): Record<string, unknown> {
   return firstScene(
     fixture,
-    { "system.bodies": TILTED_CATALOGUE, "vessel.orbit": orbitAt(0) },
+    { "trackingStation.bodies": TILTED_CATALOGUE, "vessel.orbit": orbitAt(0) },
     "transfer-playback",
     0,
   );

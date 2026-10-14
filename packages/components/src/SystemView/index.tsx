@@ -95,7 +95,7 @@ import { SystemViewConfigForm } from "./SystemViewConfigForm";
 
 // comms.network and system.uplink.pending are also read directly, for the host-side path highlight and traffic.
 const topics = defineTopicManifest({
-  channels: ["system.bodies"],
+  channels: ["trackingStation.bodies"],
   optionalChannels: read.optionalChannels,
   fields: [
     "vessel.identity.vesselId",
@@ -211,7 +211,7 @@ function SystemViewComponent({
     : undefined;
   const vesselPlotState = vesselPlotStateFromStatus(vesselStatus ?? null);
   // A catalogue and a name, neither of which decays.
-  const bodiesReading = topics.useTelemetry("system.bodies");
+  const bodiesReading = topics.useTelemetry("trackingStation.bodies");
   const systemBodies =
     bodiesReading.state === "observed" || bodiesReading.state === "held"
       ? bodiesReading.value
@@ -253,7 +253,7 @@ function SystemViewComponent({
     commsNetwork,
   });
 
-  // Keyed by `system.bodies`' stable index, never array position.
+  // Keyed by `trackingStation.bodies`' stable index, never array position.
   const nameByIndex = useMemo(() => {
     const m = new Map<number, string>();
     for (const b of systemBodies?.bodies ?? []) {

@@ -13,7 +13,7 @@ import { SemiMajorAxisComponent } from "./index";
  *   gate: one "No orbit data" state for nothing arrived, a record without sma,
  *   a tombstone, and a non-finite number
  * - the subtitle's body suffix is bare while the body table has not arrived,
- *   and the null glyph once `system.bodies` is a confirmed tombstone
+ *   and the null glyph once `trackingStation.bodies` is a confirmed tombstone
  */
 
 function renderSma(fixture: ReturnType<typeof setupStreamFixture>) {
@@ -112,7 +112,7 @@ describe("SemiMajorAxis: what undefined means today", () => {
     );
   });
 
-  it("drops the reference-body suffix while system.bodies has not arrived", async () => {
+  it("drops the reference-body suffix while trackingStation.bodies has not arrived", async () => {
     // The body table has not landed, so the subtitle is the bare label.
     const fixture = makeFixture();
     renderSma(fixture);
@@ -132,7 +132,7 @@ describe("SemiMajorAxis: what undefined means today", () => {
 
     act(() => {
       fixture.emit("vessel.orbit", { sma: 675_000, referenceBodyIndex: 1 });
-      fixture.emit("system.bodies", null);
+      fixture.emit("trackingStation.bodies", null);
     });
 
     await waitFor(() => expect(visibleText()).toContain("675.0 km"));
@@ -148,7 +148,7 @@ describe("SemiMajorAxis: what undefined means today", () => {
 
     act(() => {
       fixture.emit("vessel.orbit", { sma: 675_000, referenceBodyIndex: 1 });
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Duna",

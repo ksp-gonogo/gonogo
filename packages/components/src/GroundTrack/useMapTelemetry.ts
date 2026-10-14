@@ -155,8 +155,8 @@ export function useMapTelemetry(
 
   // The body picker (config.bodyOverride) lets the operator inspect any body; unset follows the vessel.
   const targetBodyId = bodyOverride ?? bodyName;
-  /* Radius and rotation period come off `system.bodies`, matched by name, so a planet-pack rename still gets a ground track. */
-  const bodiesReading = useTelemetry("system.bodies");
+  /* Radius and rotation period come off `trackingStation.bodies`, matched by name, so a planet-pack rename still gets a ground track. */
+  const bodiesReading = useTelemetry("trackingStation.bodies");
   /* A body's radius does not decay, so a held roster is the right read. */
   const bodies =
     bodiesReading.state === "observed" || bodiesReading.state === "held"

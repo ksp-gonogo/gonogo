@@ -27,7 +27,7 @@ describe("EscapeProfile: reads the parent body off the stream", () => {
 
     // A radius and no GM for "Proxima", so the Notice proves the name streamed.
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Proxima",

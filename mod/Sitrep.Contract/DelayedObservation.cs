@@ -79,7 +79,7 @@ namespace Sitrep.Contract
         /// cref="CentreBodyIndex"/>. Null on a refusal.</summary>
         public StateVector? State { get; }
 
-        /// <summary>The <c>system.bodies</c> index of the body <see cref="State"/>
+        /// <summary>The <c>trackingStation.bodies</c> index of the body <see cref="State"/>
         /// is expressed about. Null on a refusal.</summary>
         public int? CentreBodyIndex { get; }
 
@@ -127,7 +127,7 @@ namespace Sitrep.Contract
         /// instant, which no arrived light can produce.
         /// </summary>
         /// <param name="state">The state, relative to <paramref name="centreBodyIndex"/>.</param>
-        /// <param name="centreBodyIndex">The <c>system.bodies</c> index of the body the state is about.</param>
+        /// <param name="centreBodyIndex">The <c>trackingStation.bodies</c> index of the body the state is about.</param>
         /// <param name="observedAtUt">When the state was true, from the sample itself.</param>
         /// <param name="viewUt">The instant the vantage is currently seeing.</param>
         public static DelayedObservation At(

@@ -111,7 +111,7 @@ function setup(earthHorizon: Horizon, marsHorizon: Horizon, pinnedUt = 0) {
   act(() => {
     // The catalogue's last sample is for UT 0, so a later view instant is past it.
     fixture.emit(
-      "system.bodies",
+      "trackingStation.bodies",
       { bodies: [SUN, earth(earthHorizon), mars(marsHorizon)] },
       { validAt: 0 },
     );

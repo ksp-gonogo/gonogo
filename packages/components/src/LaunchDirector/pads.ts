@@ -5,7 +5,7 @@ export interface LaunchSiteEntry {
   name: string;
   displayName: string;
   facility: string;
-  /** The `system.bodies` index of the body the site stands on; `null` when the site reported none. */
+  /** The `trackingStation.bodies` index of the body the site stands on; `null` when the site reported none. */
   bodyIndex: number | null;
   /** Surface latitude of the site; `null` when it reported none, never a zero. */
   latitude: Value<"°"> | null;

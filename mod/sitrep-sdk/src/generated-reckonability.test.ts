@@ -56,10 +56,10 @@ describe("generated reckonability.ts", () => {
      * not say that, which is why the attribute is AllowMultiple instead.
      */
     expect(rows).toMatch(
-      /\{ topic: "vessel\.flight", field: "altitudeAsl", basis: "kepler-propagation", inputs: \[ \{ topic: "vessel\.orbit", path: "" \}, \{ topic: "system\.bodies", path: "" \} \] \}/,
+      /\{ topic: "vessel\.flight", field: "altitudeAsl", basis: "kepler-propagation", inputs: \[ \{ topic: "vessel\.orbit", path: "" \}, \{ topic: "trackingStation\.bodies", path: "" \} \] \}/,
     );
     expect(rows).toMatch(
-      /\{ topic: "vessel\.flight", field: "altitudeAsl", basis: "rate-integration", inputs: \[ \{ topic: "", path: "verticalSpeed" \}, \{ topic: "", path: "gForce" \}, \{ topic: "system\.bodies", path: "" \} \] \}/,
+      /\{ topic: "vessel\.flight", field: "altitudeAsl", basis: "rate-integration", inputs: \[ \{ topic: "", path: "verticalSpeed" \}, \{ topic: "", path: "gForce" \}, \{ topic: "trackingStation\.bodies", path: "" \} \] \}/,
     );
   });
 

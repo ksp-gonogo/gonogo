@@ -6,7 +6,7 @@ import { decodeWideNumbers, encodeWideNumbers } from "./wideNumbers";
 function bodiesFrame() {
   return {
     type: "stream-data" as const,
-    topic: "system.bodies",
+    topic: "trackingStation.bodies",
     payload: {
       bodies: [
         {
@@ -31,7 +31,7 @@ function bodiesFrame() {
 }
 
 describe("numbers the PeerJS packer refuses", () => {
-  it("throws on a real system.bodies payload, which is what stopped a station receiving it", () => {
+  it("throws on a real trackingStation.bodies payload, which is what stopped a station receiving it", () => {
     expect(() =>
       util.pack({ type: "sitrep-frame", message: bodiesFrame() }),
     ).toThrow("Invalid integer");

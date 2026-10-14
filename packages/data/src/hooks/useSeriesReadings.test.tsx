@@ -82,7 +82,7 @@ function buildStreamFixture(pinnedUt: number) {
   }
 
   function emitOrbiting(uts: readonly number[]): void {
-    transport.emit("system.bodies", KERBIN_SYSTEM, {
+    transport.emit("trackingStation.bodies", KERBIN_SYSTEM, {
       validAt: 0,
       deliveredAt: 0,
       quality: Quality.OnRails,

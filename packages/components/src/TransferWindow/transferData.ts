@@ -154,7 +154,7 @@ export interface PorkchopBuildInput {
   centerDepUt?: number;
   /**
    * Where each body is, at an instant on the grid's own axes. Both default to
-   * the client's Keplerian `solve`; the widget injects `system.bodies.statesAt`
+   * the client's Keplerian `solve`; the widget injects `trackingStation.bodies.statesAt`
    * so the grid uses the game's elected propagation provider.
    */
   propagateOrigin?: (ut: number) => StateLike;

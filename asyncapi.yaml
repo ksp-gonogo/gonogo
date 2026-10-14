@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 43.0.0
+  version: 44.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 87 telemetry
     channels a client subscribes to, and 62 commands it dispatches, with the payload
@@ -198,13 +198,13 @@ info:
     - name: spaceCenter
       description: 7 telemetry channels, 0 commands
     - name: system
-      description: 2 telemetry channels, 5 commands
+      description: 1 telemetry channel, 4 commands
     - name: target
       description: 1 telemetry channel, 0 commands
     - name: time
       description: 2 telemetry channels, 2 commands
     - name: trackingStation
-      description: 1 telemetry channel, 0 commands
+      description: 2 telemetry channels, 1 command
     - name: vessel
       description: 21 telemetry channels, 18 commands
   externalDocs:
@@ -2776,63 +2776,6 @@ channels:
         $ref: "#/components/messages/streamData.spaceCenter.scene"
       event:
         $ref: "#/components/messages/event"
-  system.bodies:
-    address: system.bodies
-    description: |-
-      Carries a `SystemBodies`.
-
-      The `system.bodies` Topic payload: every celestial body in the game, as a
-      tree, wrapped as `{ "bodies": [ ... ] }`. The whole payload is `null`, not
-      an empty list, when no sample has been taken yet, so "no data yet" and "zero
-      bodies" stay distinct.
-
-      Carries no `Meta` field: unlike the `vessel.*` family, its `Meta` rides the
-      envelope (`StreamData.Meta`), never the payload body.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: discrete
-    x-sitrep-keyframe-interval-ut: 30
-    messages:
-      streamData:
-        $ref: "#/components/messages/streamData.system.bodies"
-      event:
-        $ref: "#/components/messages/event"
-  system.bodies.statesAt:
-    address: system.bodies.statesAt
-    description: |-
-      Takes `BodyStatesRequest`.
-
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
-
-      Ask where a body is at each of a list of instants. Args for
-      `system.bodies.statesAt`: where one body is at each of a list of instants,
-      from the propagation provider in use on this install. The instants are the
-      caller's own, such as the departure and arrival times a transfer search
-      tries.
-
-      The command centre is the sender's, taken from the connection the command
-      arrives on; there is no field to name another.
-
-      A centre body is required, with no default: the reply is expressed relative
-      to it. For a transfer search, name the parent both endpoints orbit; the same
-      request works for a moon system.
-
-      `BodyStatesRequest.certification` is required too: the caller states whether
-      it accepts results past the span the provider vouches for, and a request
-      that does not say is refused.
-
-      The result is a conic (two-body) solve, so no ephemeris horizon applies to
-      it.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.system.bodies.statesAt"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.system.bodies.statesAt"
   system.frame:
     address: system.frame
     description: |-
@@ -2848,7 +2791,7 @@ channels:
       a plan is being discussed.
 
       Bodies are named by `bodyName`, the key of every other body table on the
-      wire, `system.bodies` included.
+      wire, `trackingStation.bodies` included.
 
       A pulsating frame turns about two groups of bodies, and its origin is
       defined by the mass of each whole group, so the sets travel as well as the
@@ -3109,6 +3052,63 @@ channels:
         $ref: "#/components/messages/streamData.time.warp"
       event:
         $ref: "#/components/messages/event"
+  trackingStation.bodies:
+    address: trackingStation.bodies
+    description: |-
+      Carries a `SystemBodies`.
+
+      The `trackingStation.bodies` Topic payload: every celestial body in the
+      game, as a tree, wrapped as `{ "bodies": [ ... ] }`. The whole payload is
+      `null`, not an empty list, when no sample has been taken yet, so "no data
+      yet" and "zero bodies" stay distinct.
+
+      Carries no `Meta` field: unlike the `vessel.*` family, its `Meta` rides the
+      envelope (`StreamData.Meta`), never the payload body.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: true-now
+    x-sitrep-sample-kind: discrete
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.trackingStation.bodies"
+      event:
+        $ref: "#/components/messages/event"
+  trackingStation.bodies.statesAt:
+    address: trackingStation.bodies.statesAt
+    description: |-
+      Takes `BodyStatesRequest`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      Ask where a body is at each of a list of instants. Args for
+      `trackingStation.bodies.statesAt`: where one body is at each of a list of
+      instants, from the propagation provider in use on this install. The instants
+      are the caller's own, such as the departure and arrival times a transfer
+      search tries.
+
+      The command centre is the sender's, taken from the connection the command
+      arrives on; there is no field to name another.
+
+      A centre body is required, with no default: the reply is expressed relative
+      to it. For a transfer search, name the parent both endpoints orbit; the same
+      request works for a moon system.
+
+      `BodyStatesRequest.certification` is required too: the caller states whether
+      it accepts results past the span the provider vouches for, and a request
+      that does not say is refused.
+
+      The result is a conic (two-body) solve, so no ephemeris horizon applies to
+      it.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.trackingStation.bodies.statesAt"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.trackingStation.bodies.statesAt"
   trackingStation.catalog:
     address: trackingStation.catalog
     description: |-
@@ -3814,9 +3814,9 @@ channels:
       A coast moves only `VesselOrbit.meanAnomalyAtEpoch` and `VesselOrbit.epoch`,
       by Kepler propagation; the other elements are constants of the orbit. A burn
       moves every element, by powered integration from `vessel.propulsion`, the
-      firing stage's propellant in `dv.stages` and `system.bodies`. A reckoning's
-      `modelled` list says which paths its model moved, and a consumer wanting a
-      whole modelled orbit overlays those on the observed payload.
+      firing stage's propellant in `dv.stages` and `trackingStation.bodies`. A
+      reckoning's `modelled` list says which paths its model moved, and a consumer
+      wanting a whole modelled orbit overlays those on the observed payload.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -4635,20 +4635,6 @@ operations:
         $ref: "#/channels/settings.save"
       messages:
         - $ref: "#/channels/settings.save/messages/commandResponse"
-  dispatch:system.bodies.statesAt:
-    action: send
-    channel:
-      $ref: "#/channels/system.bodies.statesAt"
-    title: Dispatch system.bodies.statesAt
-    tags:
-      - name: system
-    messages:
-      - $ref: "#/channels/system.bodies.statesAt/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/system.bodies.statesAt"
-      messages:
-        - $ref: "#/channels/system.bodies.statesAt/messages/commandResponse"
   dispatch:system.frame.set:
     action: send
     channel:
@@ -4733,6 +4719,20 @@ operations:
         $ref: "#/channels/time.setWarpIndex"
       messages:
         - $ref: "#/channels/time.setWarpIndex/messages/commandResponse"
+  dispatch:trackingStation.bodies.statesAt:
+    action: send
+    channel:
+      $ref: "#/channels/trackingStation.bodies.statesAt"
+    title: Dispatch trackingStation.bodies.statesAt
+    tags:
+      - name: trackingStation
+    messages:
+      - $ref: "#/channels/trackingStation.bodies.statesAt/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/trackingStation.bodies.statesAt"
+      messages:
+        - $ref: "#/channels/trackingStation.bodies.statesAt/messages/commandResponse"
   dispatch:vessel.control.setAbort:
     action: send
     channel:
@@ -5645,17 +5645,6 @@ operations:
     messages:
       - $ref: "#/channels/spaceCenter.scene/messages/streamData"
       - $ref: "#/channels/spaceCenter.scene/messages/event"
-  read:system.bodies:
-    action: receive
-    channel:
-      $ref: "#/channels/system.bodies"
-    title: Read system.bodies
-    description: Delivered only after `subscribe` names `system.bodies` on the session channel, which the mod answers here with an `event` named `subscribed`.
-    tags:
-      - name: system
-    messages:
-      - $ref: "#/channels/system.bodies/messages/streamData"
-      - $ref: "#/channels/system.bodies/messages/event"
   read:system.frame:
     action: receive
     channel:
@@ -5700,6 +5689,17 @@ operations:
     messages:
       - $ref: "#/channels/time.warp/messages/streamData"
       - $ref: "#/channels/time.warp/messages/event"
+  read:trackingStation.bodies:
+    action: receive
+    channel:
+      $ref: "#/channels/trackingStation.bodies"
+    title: Read trackingStation.bodies
+    description: Delivered only after `subscribe` names `trackingStation.bodies` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: trackingStation
+    messages:
+      - $ref: "#/channels/trackingStation.bodies/messages/streamData"
+      - $ref: "#/channels/trackingStation.bodies/messages/event"
   read:trackingStation.catalog:
     action: receive
     channel:
@@ -6533,21 +6533,6 @@ components:
                 const: settings.save
               args:
                 $ref: "#/components/schemas/SaveSettingsArgs"
-    commandRequest.system.bodies.statesAt:
-      name: command-request
-      title: Dispatch system.bodies.statesAt
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `system.bodies.statesAt`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: system.bodies.statesAt
-              args:
-                $ref: "#/components/schemas/BodyStatesRequest"
     commandRequest.system.frame.set:
       name: command-request
       title: Dispatch system.frame.set
@@ -6638,6 +6623,21 @@ components:
                 const: time.setWarpIndex
               args:
                 $ref: "#/components/schemas/SetWarpIndexArgs"
+    commandRequest.trackingStation.bodies.statesAt:
+      name: command-request
+      title: Dispatch trackingStation.bodies.statesAt
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `trackingStation.bodies.statesAt`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: trackingStation.bodies.statesAt
+              args:
+                $ref: "#/components/schemas/BodyStatesRequest"
     commandRequest.vessel.control.setAbort:
       name: command-request
       title: Dispatch vessel.control.setAbort
@@ -7402,19 +7402,6 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/CommandResult"
-    commandResponse.system.bodies.statesAt:
-      name: command-response
-      title: Reply to system.bodies.statesAt
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `system.bodies.statesAt`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                $ref: "#/components/schemas/BodyStatesReply"
     commandResponse.system.frame.set:
       name: command-response
       title: Reply to system.frame.set
@@ -7493,6 +7480,19 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/CommandResult"
+    commandResponse.trackingStation.bodies.statesAt:
+      name: command-response
+      title: Reply to trackingStation.bodies.statesAt
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `trackingStation.bodies.statesAt`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/BodyStatesReply"
     commandResponse.vessel.control.setAbort:
       name: command-response
       title: Reply to vessel.control.setAbort
@@ -8604,19 +8604,6 @@ components:
                 const: spaceCenter.scene
               payload:
                 $ref: "#/components/schemas/SpaceCenterScene"
-    streamData.system.bodies:
-      name: stream-data
-      title: A frame on system.bodies
-      contentType: application/json
-      payload:
-        description: The `stream-data` envelope carrying `system.bodies`.
-        allOf:
-          - $ref: "#/components/schemas/StreamData"
-          - properties:
-              topic:
-                const: system.bodies
-              payload:
-                $ref: "#/components/schemas/SystemBodies"
     streamData.system.frame:
       name: stream-data
       title: A frame on system.frame
@@ -8669,6 +8656,19 @@ components:
                 const: time.warp
               payload:
                 $ref: "#/components/schemas/WarpState"
+    streamData.trackingStation.bodies:
+      name: stream-data
+      title: A frame on trackingStation.bodies
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `trackingStation.bodies`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: trackingStation.bodies
+              payload:
+                $ref: "#/components/schemas/SystemBodies"
     streamData.trackingStation.catalog:
       name: stream-data
       title: A frame on trackingStation.catalog
@@ -9579,8 +9579,8 @@ components:
     BodyStatesReply:
       type: object
       description: |-
-        The reply to `system.bodies.statesAt`: the solved states, or why there are
-        none.
+        The reply to `trackingStation.bodies.statesAt`: the solved states, or why
+        there are none.
 
         Branch on `BodyStatesReply.solved`, never on an empty list: a body the
         provider could not place and a request that named no instants are different
@@ -9623,10 +9623,10 @@ components:
       type: object
       description: |-
         Ask where a body is at each of a list of instants. Args for
-        `system.bodies.statesAt`: where one body is at each of a list of instants,
-        from the propagation provider in use on this install. The instants are the
-        caller's own, such as the departure and arrival times a transfer search
-        tries.
+        `trackingStation.bodies.statesAt`: where one body is at each of a list of
+        instants, from the propagation provider in use on this install. The instants
+        are the caller's own, such as the departure and arrival times a transfer
+        search tries.
 
         The command centre is the sender's, taken from the connection the command
         arrives on; there is no field to name another.
@@ -9650,7 +9650,7 @@ components:
         bodyIndex:
           type: number
           x-sitrep-unit: id
-          description: The body, by its `system.bodies` index.
+          description: The body, by its `trackingStation.bodies` index.
         centreBodyIndex:
           type: number
           x-sitrep-unit: id
@@ -11838,8 +11838,8 @@ components:
             - "null"
           x-sitrep-unit: id
           description: |-
-            Index into `system.bodies` of the body this centre sits on. Null when
-            unknown, not surface-anchored, or the centre is a moving vessel.
+            Index into `trackingStation.bodies` of the body this centre sits on. Null
+            when unknown, not surface-anchored, or the centre is a moving vessel.
     CommsConnectivity:
       type: object
       description: |-
@@ -12174,11 +12174,12 @@ components:
             relays that barely move against each other in that time, so their lengths
             are kept as measured. The craft is propagated on `@vessel.orbit`, and its
             peer is placed from `@commandCentre.roster`, whose body-fixed latitude and
-            longitude need the rotation phase on `@system.bodies`.
+            longitude need the rotation phase on `@trackingStation.bodies`.
 
             A first hop that ends at a relay places the relay from its entry on
             `@trackingStation.catalog`: the orbit the command centre last heard for it,
-            about the body whose gravitational parameter `@system.bodies` carries.
+            about the body whose gravitational parameter `@trackingStation.bodies`
+            carries.
 
             `CommsDelay.source` is an input because two of its members are a zero that
             does not mean "no distance": delay switched off, or a save with no comms
@@ -12667,9 +12668,9 @@ components:
       type: object
       description: |-
         One body's occlusion geometry, as resolved by the elected model.
-        `CommsOcclusionBody.index` matches `BodyEntry.Index` on `system.bodies`
-        (both are `CelestialBody.flightGlobalsIndex`), so a consumer joins the two
-        without name-matching.
+        `CommsOcclusionBody.index` matches `BodyEntry.Index` on
+        `trackingStation.bodies` (both are `CelestialBody.flightGlobalsIndex`), so a
+        consumer joins the two without name-matching.
 
         Both radii ride the wire: `CommsOcclusionBody.radiusMeters` is what the rock
         measures and `CommsOcclusionBody.occludingRadiusMeters` is what the backend
@@ -12686,7 +12687,7 @@ components:
           x-sitrep-unit: id
           description: |-
             The body's `CelestialBody.flightGlobalsIndex`: the join key onto
-            `BodyEntry.Index` in `system.bodies`.
+            `BodyEntry.Index` in `trackingStation.bodies`.
         name:
           type:
             - string
@@ -12993,7 +12994,7 @@ components:
         a plan is being discussed.
 
         Bodies are named by `bodyName`, the key of every other body table on the
-        wire, `system.bodies` included.
+        wire, `trackingStation.bodies` included.
 
         A pulsating frame turns about two groups of bodies, and its origin is
         defined by the mass of each whole group, so the sets travel as well as the
@@ -16719,8 +16720,8 @@ components:
             - "null"
           x-sitrep-unit: id
           description: |-
-            Index into `system.bodies` of the body being transitioned into; null if that
-            body couldn't be resolved.
+            Index into `trackingStation.bodies` of the body being transitioned into;
+            null if that body couldn't be resolved.
     OrbitEntry:
       type: object
       description: |-
@@ -16783,17 +16784,18 @@ components:
       description: |-
         One conic segment of a vessel's future trajectory, a patched-conic "patch"
         in KSP's own sense (`Orbit.nextPatch`/`previousPatch`). A patch carries
-        everything needed to propagate and draw it with no `system.bodies` join: its
-        Keplerian elements, KSP's own already-computed shape fields
+        everything needed to propagate and draw it with no `trackingStation.bodies`
+        join: its Keplerian elements, KSP's own already-computed shape fields
         (`OrbitPatch.peA`, `OrbitPatch.apA`, `OrbitPatch.semiLatusRectum`,
         `OrbitPatch.semiMinorAxis`), its body's gravitational parameter
         (`OrbitPatch.mu`) and the transitions at each end.
 
         Bodies are carried twice. `OrbitPatch.referenceBodyIndex` and
-        `OrbitPatch.closestEncounterBodyIndex` are the identity, the `system.bodies`
-        index every other body reference in this contract uses
-        (`VesselOrbit.referenceBodyIndex` among them). `OrbitPatch.referenceBody`
-        and `OrbitPatch.closestEncounterBody` are the body's name, for display.
+        `OrbitPatch.closestEncounterBodyIndex` are the identity, the
+        `trackingStation.bodies` index every other body reference in this contract
+        uses (`VesselOrbit.referenceBodyIndex` among them).
+        `OrbitPatch.referenceBody` and `OrbitPatch.closestEncounterBody` are the
+        body's name, for display.
 
         `OrbitPatch.lan`, `OrbitPatch.argPe` and `OrbitPatch.meanAnomalyAtEpoch` are
         null when KSP's value for them is undefined, as `VesselOrbit.lan` and
@@ -16924,8 +16926,8 @@ components:
           type: string
           x-sitrep-unit: text
           description: |-
-            Name of the body this patch orbits, as `system.bodies` names it. For
-            display; `OrbitPatch.referenceBodyIndex` is the identity.
+            Name of the body this patch orbits, as `trackingStation.bodies` names it.
+            For display; `OrbitPatch.referenceBodyIndex` is the identity.
         closestEncounterBody:
           type:
             - string
@@ -16953,7 +16955,7 @@ components:
             - "null"
           x-sitrep-unit: id
           description: |-
-            Body this patch orbits, as its `system.bodies` index (KSP's
+            Body this patch orbits, as its `trackingStation.bodies` index (KSP's
             `CelestialBody.flightGlobalsIndex`). This is the identity, where
             `OrbitPatch.referenceBody` is the display name, and it is the key every
             other body reference in this contract uses
@@ -16969,9 +16971,9 @@ components:
             - "null"
           x-sitrep-unit: id
           description: |-
-            `OrbitPatch.closestEncounterBody`'s `system.bodies` index, on the same terms
-            as `OrbitPatch.referenceBodyIndex`. Null when there is no encounter, and
-            also null on a recording that does not carry it; read
+            `OrbitPatch.closestEncounterBody`'s `trackingStation.bodies` index, on the
+            same terms as `OrbitPatch.referenceBodyIndex`. Null when there is no
+            encounter, and also null on a recording that does not carry it; read
             `OrbitPatch.closestEncounterBody` to tell the two apart.
     OrbitPayloadMeta:
       type: object
@@ -19317,7 +19319,7 @@ components:
             - "null"
           x-sitrep-unit: id
           description: |-
-            The body's `system.bodies` index, the same index
+            The body's `trackingStation.bodies` index, the same index
             `VesselOrbit.referenceBodyIndex` uses. Required when `SetTargetArgs.kind` is
             `TargetKind.Body`, and also when it is `TargetKind.Position`, where it names
             the body `SetTargetArgs.latitude` and `SetTargetArgs.longitude` are measured
@@ -20132,10 +20134,10 @@ components:
     SystemBodies:
       type: object
       description: |-
-        The `system.bodies` Topic payload: every celestial body in the game, as a
-        tree, wrapped as `{ "bodies": [ ... ] }`. The whole payload is `null`, not
-        an empty list, when no sample has been taken yet, so "no data yet" and "zero
-        bodies" stay distinct.
+        The `trackingStation.bodies` Topic payload: every celestial body in the
+        game, as a tree, wrapped as `{ "bodies": [ ... ] }`. The whole payload is
+        `null`, not an empty list, when no sample has been taken yet, so "no data
+        yet" and "zero bodies" stay distinct.
 
         Carries no `Meta` field: unlike the `vessel.*` family, its `Meta` rides the
         envelope (`StreamData.Meta`), never the payload body.
@@ -20203,8 +20205,8 @@ components:
         - const: 1
           title: Body
           description: |-
-            A celestial body. `VesselTarget.bodyIndex` carries its `system.bodies`
-            index.
+            A celestial body. `VesselTarget.bodyIndex` carries its
+            `trackingStation.bodies` index.
         - const: 2
           title: Other
           description: Anything not classified more finely, such as a waypoint. Carries no id.
@@ -20287,7 +20289,9 @@ components:
             - number
             - "null"
           x-sitrep-unit: id
-          description: "Index into `system.bodies`: set for `TargetKind.Body`. Null otherwise."
+          description: |-
+            Index into `trackingStation.bodies`: set for `TargetKind.Body`. Null
+            otherwise.
         partId:
           type:
             - number
@@ -20404,8 +20408,8 @@ components:
             - "null"
           x-sitrep-unit: id
           description: |-
-            Index into `system.bodies` of the body `TargetListEntry.orbit` is around.
-            Null wherever `TargetListEntry.orbit` is.
+            Index into `trackingStation.bodies` of the body `TargetListEntry.orbit` is
+            around. Null wherever `TargetListEntry.orbit` is.
     ThermalHottestPart:
       type: object
       description: |-
@@ -21423,8 +21427,8 @@ components:
             - "null"
           x-sitrep-unit: id
           description: |-
-            Index into `system.bodies` of the body the vessel orbits; null when the
-            vessel has no orbit yet (for example a just-spawned EVA kerbal).
+            Index into `trackingStation.bodies` of the body the vessel orbits; null when
+            the vessel has no orbit yet (for example a just-spawned EVA kerbal).
         launchUt:
           type:
             - number
@@ -21892,9 +21896,9 @@ components:
         A coast moves only `VesselOrbit.meanAnomalyAtEpoch` and `VesselOrbit.epoch`,
         by Kepler propagation; the other elements are constants of the orbit. A burn
         moves every element, by powered integration from `vessel.propulsion`, the
-        firing stage's propellant in `dv.stages` and `system.bodies`. A reckoning's
-        `modelled` list says which paths its model moved, and a consumer wanting a
-        whole modelled orbit overlays those on the observed payload.
+        firing stage's propellant in `dv.stages` and `trackingStation.bodies`. A
+        reckoning's `modelled` list says which paths its model moved, and a consumer
+        wanting a whole modelled orbit overlays those on the observed payload.
       required:
         - referenceBodyIndex
         - sma
@@ -21910,7 +21914,7 @@ components:
         referenceBodyIndex:
           type: number
           x-sitrep-unit: id
-          description: Index into `system.bodies` of the body this orbit is around.
+          description: Index into `trackingStation.bodies` of the body this orbit is around.
         sma:
           type: number
           x-sitrep-unit: m
@@ -21948,8 +21952,8 @@ components:
             Mean anomaly at `VesselOrbit.epoch`, in radians, not degrees, matching KSP's
             `Orbit.meanAnomalyAtEpoch`. Reckonable by Kepler propagation, from
             `VesselOrbit.sma`, `VesselOrbit.mu`, `VesselOrbit.horizon` and
-            `system.bodies`, and under a burn by powered integration with the other
-            elements.
+            `trackingStation.bodies`, and under a burn by powered integration with the
+            other elements.
         epoch:
           type: number
           x-sitrep-unit: ut
@@ -22644,10 +22648,10 @@ components:
             - "null"
           x-sitrep-unit: id
           description: |-
-            The target's `system.bodies` index, populated only when `VesselTarget.kind`
-            is `TargetKind.Body`, matching `SetTargetArgs.bodyIndex`. Null for any other
-            target, or when the body name could not be resolved against `system.bodies`
-            this tick.
+            The target's `trackingStation.bodies` index, populated only when
+            `VesselTarget.kind` is `TargetKind.Body`, matching
+            `SetTargetArgs.bodyIndex`. Null for any other target, or when the body name
+            could not be resolved against `trackingStation.bodies` this tick.
         partId:
           type:
             - number

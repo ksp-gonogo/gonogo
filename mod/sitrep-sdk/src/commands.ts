@@ -90,7 +90,7 @@ export interface CommandReplyMap extends SdkOwnedCommandReplyMap {}
  * default `Reply` of {@link useCommand} and {@link UseCommandResult}. Useful for
  * typing a handle to a command whose id is built at runtime.
  *
- * `system.bodies.statesAt` is the one exception: it replies with a
+ * `trackingStation.bodies.statesAt` is the one exception: it replies with a
  * `BodyStatesReply` rather than an envelope, so its handle cannot be passed
  * where a bare `UseCommandResult` is expected.
  *

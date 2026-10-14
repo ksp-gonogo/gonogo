@@ -49,7 +49,7 @@ describe("the stream of a capsule's frame", () => {
   };
 
   it("says the body has an ocean and that the capsule has no engine", () => {
-    const bodies = stream(true)["system.bodies"];
+    const bodies = stream(true)["trackingStation.bodies"];
     expect(JSON.stringify(bodies)).toContain('"hasOcean":true');
     const propulsion = stream(true)["vessel.propulsion"];
     expect(JSON.stringify(propulsion)).toContain('"availableThrust":0');

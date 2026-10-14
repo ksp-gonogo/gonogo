@@ -116,7 +116,7 @@ function mount(patches: readonly unknown[]) {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", system());
+    fixture.emit("trackingStation.bodies", system());
     fixture.emit("vessel.identity", {
       vesselId: "v-active",
       name: "Active Craft",

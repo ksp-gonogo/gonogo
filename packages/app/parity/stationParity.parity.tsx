@@ -53,7 +53,7 @@ function relayedTopic(message: unknown): string | undefined {
 }
 
 const CANARY_ID = "orbit-view/lko-circular";
-const CANARY_TOPIC = "system.bodies";
+const CANARY_TOPIC = "trackingStation.bodies";
 
 function canary(): ParityScene {
   const scene = scenes.find((s) => s.id === CANARY_ID);
@@ -67,7 +67,7 @@ function canary(): ParityScene {
 /**
  * The gate proves it can see the fault it exists for before its verdicts mean
  * anything. Each plant loses one frame the canary's widget draws from, the way
- * the packer refusing a body's mass once lost `system.bodies` for every
+ * the packer refusing a body's mass once lost `trackingStation.bodies` for every
  * station, and the station must then draw something else. A plant the gate
  * cannot see means every green below is a gate that cannot see either.
  */

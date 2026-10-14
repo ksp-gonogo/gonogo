@@ -161,7 +161,7 @@ function buildStreamFixture(opts: { pinnedUt: number }) {
     orbit: Record<string, unknown> = ECCENTRIC_KERBIN_ORBIT,
     quality: Quality = Quality.OnRails,
   ): void {
-    transport.emit("system.bodies", KERBIN_SYSTEM, {
+    transport.emit("trackingStation.bodies", KERBIN_SYSTEM, {
       validAt: 0,
       deliveredAt: 0,
       quality: Quality.OnRails,
@@ -281,7 +281,7 @@ describe("useDataSeries: a modelled quantity that arrived with a unit", () => {
     );
 
     act(() => {
-      fixture.transport.emit("system.bodies", KERBIN_SYSTEM, {
+      fixture.transport.emit("trackingStation.bodies", KERBIN_SYSTEM, {
         validAt: 0,
         deliveredAt: 0,
         quality: Quality.OnRails,
@@ -321,7 +321,7 @@ describe("useDataSeries: the inputs the model was promised", () => {
    * series read subscribed, and a raw topic's reckoner deps are neither, so a
    * lone widget plotting `vessel.flight.altitudeAsl` on an otherwise empty
    * screen declined with `input-absent` and drew no tail. It worked only where
-   * some other widget happened to be holding `vessel.orbit` and `system.bodies`
+   * some other widget happened to be holding `vessel.orbit` and `trackingStation.bodies`
    * up, which is a fact about the rest of the dashboard.
    */
   it("subscribes the deps of the elected reckoner for a lone plot", () => {
@@ -336,7 +336,7 @@ describe("useDataSeries: the inputs the model was promised", () => {
     // The plotted topic is a field of `vessel.flight`, so the deps come off the PARENT record's model, the same ladder `rawReckonedWalk` walks.
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
-    expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
+    expect(fixture.transport.isSubscribed("trackingStation.bodies")).toBe(true);
   });
 
   it("releases them again when the plot unmounts", () => {
@@ -354,7 +354,9 @@ describe("useDataSeries: the inputs the model was promised", () => {
     // A subscription taken for the life of a read and never given back is a leak nothing else in the tree would ever count.
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(false);
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(false);
-    expect(fixture.transport.isSubscribed("system.bodies")).toBe(false);
+    expect(fixture.transport.isSubscribed("trackingStation.bodies")).toBe(
+      false,
+    );
   });
 
   it("subscribes nothing extra where the model declares no deps", () => {
@@ -369,7 +371,9 @@ describe("useDataSeries: the inputs the model was promised", () => {
     // Both core dead-reckoning models declare `deps: []`, and an empty declaration has to leave the subscription set exactly as it was.
     expect(fixture.transport.isSubscribed("vessel.target")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(false);
-    expect(fixture.transport.isSubscribed("system.bodies")).toBe(false);
+    expect(fixture.transport.isSubscribed("trackingStation.bodies")).toBe(
+      false,
+    );
   });
 });
 

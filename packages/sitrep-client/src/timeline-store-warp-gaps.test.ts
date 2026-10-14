@@ -175,7 +175,7 @@ describe("TimelineStore.gapModel", () => {
     // A tick longer than this orbit's 9458 s period.
     const s = store();
     s.ingest("time.warp", point(0, warp(10_000)));
-    s.ingest("system.bodies", point(0, { bodies: [] }));
+    s.ingest("trackingStation.bodies", point(0, { bodies: [] }));
     s.ingest("vessel.orbit", point(0, orbit()));
     s.ingest(
       "vessel.orbit",
@@ -191,7 +191,7 @@ describe("TimelineStore.gapModel", () => {
   it("withdraws the conic where the patch ends inside the tick", () => {
     const s = store();
     s.ingest("time.warp", point(0, warp(AT_100000X)));
-    s.ingest("system.bodies", point(0, { bodies: [] }));
+    s.ingest("trackingStation.bodies", point(0, { bodies: [] }));
     s.ingest(
       "vessel.orbit",
       point(0, orbit({ encounter: { transitionUt: value("ut", 5000) } })),
@@ -219,7 +219,7 @@ describe("TimelineStore.gapModel", () => {
     };
     s.ingest("time.warp", point(0, warp(10_000)));
     s.ingest(
-      "system.bodies",
+      "trackingStation.bodies",
       point(0, {
         bodies: [{ index: 1, radius: 900_000, atmosphere: { depth: 200_000 } }],
       }),
@@ -269,7 +269,7 @@ describe("TimelineStore.gapModel", () => {
     });
 
     s.ingest(
-      "system.bodies",
+      "trackingStation.bodies",
       point(0, { bodies: [{ index: 1, radius: 600_000 }] }),
     );
     expect(gapAt(s, "vessel.flight.altitudeAsl")).toMatchObject({

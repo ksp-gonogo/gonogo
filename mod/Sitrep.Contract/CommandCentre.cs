@@ -45,7 +45,7 @@ namespace Sitrep.Contract
         /// <summary>What kind of centre this is. A <see cref="CommandCentreKind.CrewedVessel"/> is at zero delay to itself.</summary>
         CommandCentreKind Kind { get; }
 
-        /// <summary>Index into <c>system.bodies</c> of the body this centre sits on; null when unknown or not on a surface.</summary>
+        /// <summary>Index into <c>trackingStation.bodies</c> of the body this centre sits on; null when unknown or not on a surface.</summary>
         int? BodyIndex { get; }
 
         /// <summary>

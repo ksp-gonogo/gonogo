@@ -3,14 +3,14 @@ import { useMemo } from "react";
 import { bodyNamed, type StreamBodies, type StreamBody } from "./streamBody";
 
 /**
- * The streamed body for a name resolved off the same `system.bodies` roster,
+ * The streamed body for a name resolved off the same `trackingStation.bodies` roster,
  * which a caller must declare. Memoised because callers sample curves off it.
  */
 export function useStreamBody(
   name: string | null | undefined,
   fallbackName?: string | null,
 ): StreamBody | undefined {
-  const reading = useTelemetry("system.bodies");
+  const reading = useTelemetry("trackingStation.bodies");
   // A body roster does not decay, so a held one still answers.
   const bodies =
     reading.state === "observed" || reading.state === "held"

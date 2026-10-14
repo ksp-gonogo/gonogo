@@ -40,7 +40,7 @@ import { VantageRefusedContext } from "./vantageRefused";
  * duplicated subscription (same topic fanned twice), and a reconnect storm
  * re-sending every keyframe: all show up directly as excess frames, whereas a
  * byte budget would also trip on a legitimately large one-off keyframe payload
- * (a big `system.bodies`/parts snapshot) that isn't a rate problem at all.
+ * (a big `trackingStation.bodies`/parts snapshot) that isn't a rate problem at all.
  *
  * **Threshold.** Steady state across the ~15 streamed channels at their mixed
  * cadences (vessel.orbit ~1 Hz, most others slower, occasional keyframes) sits

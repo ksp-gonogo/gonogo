@@ -77,7 +77,7 @@ describe("SystemView: system-view.entities contribution wiring", () => {
     );
 
     act(() => {
-      fixture.emit("system.bodies", kerbinSystem());
+      fixture.emit("trackingStation.bodies", kerbinSystem());
       fixture.emit("vessel.identity", {
         vesselId: "v",
         name: "Tester",

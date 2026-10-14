@@ -106,12 +106,15 @@ export function emitOf(fixture: Json, channel: string): Json {
   return found;
 }
 
-/** The first body of a scene's `system.bodies`, which the stock descents leave without its gravity and rotation. */
+/** The first body of a scene's `trackingStation.bodies`, which the stock descents leave without its gravity and rotation. */
 function withBodyFigures(
   fixture: Json,
   figures: { surfaceGravity: number; rotationPeriod: number },
 ): Json {
-  const bodies = recordAt(emitOf(fixture, "system.bodies"), "value").bodies;
+  const bodies = recordAt(
+    emitOf(fixture, "trackingStation.bodies"),
+    "value",
+  ).bodies;
   if (!Array.isArray(bodies)) throw new Error("the scene carries no bodies");
   Object.assign(bodies[0], figures);
   return fixture;
@@ -201,7 +204,7 @@ function linkLostScene(approaching: Json): GeneratedScene {
 
 // ── The Kerbin atmospheric scenes (hand-built; different body + atmosphere) ───
 const EMITTED = [
-  "system.bodies",
+  "trackingStation.bodies",
   "vessel.identity",
   "vessel.orbit",
   "vessel.flight",
@@ -278,7 +281,7 @@ function kerbinScene(spec: KerbinScene): GeneratedScene {
     landing.siteHeightsExtentMeters = roundedScene(2 * halfExtent);
   }
   const channels: Record<string, unknown> = {
-    "system.bodies": {
+    "trackingStation.bodies": {
       bodies: [
         {
           name: "Kerbin",

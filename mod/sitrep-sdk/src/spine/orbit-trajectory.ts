@@ -114,7 +114,7 @@ export type TrajectoryFrameKindLike =
 export interface TrajectoryFrame {
   /** What kind of frame it is. */
   kind: TrajectoryFrameKindLike;
-  /** Index into `system.bodies` of the frame's centre, when it has one. */
+  /** Index into `trackingStation.bodies` of the frame's centre, when it has one. */
   centreBodyIndex?: number;
   /** True when the frame's lengths are not lengths, so a readout says so rather than showing a number. */
   lengthsPulsate: boolean;
@@ -123,7 +123,7 @@ export interface TrajectoryFrame {
    * first is the one held at the far end of the first axis.
    */
   primaryBodyIndex?: number;
-  /** Index into `system.bodies` of the second body the frame is named for. */
+  /** Index into `trackingStation.bodies` of the second body the frame is named for. */
   secondaryBodyIndex?: number;
   /**
    * How to read a coordinate in this frame. Absent means metres; only a
@@ -228,7 +228,7 @@ export interface OrbitTrajectoryInput {
     /** `undefined` only for a producer that dropped the field, which the gate refuses. */
     horizon?: PropagationHorizonLike;
     /**
-     * The `system.bodies` index the elements are measured against. Needed only
+     * The `trackingStation.bodies` index the elements are measured against. Needed only
      * to re-express the curve into a read frame, because that is the one thing
      * here that has to know where the curve sits in the system rather than only
      * its shape.

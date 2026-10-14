@@ -22,14 +22,14 @@ import { useTrajectoryKind } from "../shared/useTrajectoryKind";
 import read from "./kepler-period.declarations.g";
 
 const topics = defineTopicManifest({
-  // The reference curve needs the body's radius and gravitational parameter from `system.bodies`.
-  channels: ["vessel.orbit", "vessel.identity", "system.bodies"],
+  // The reference curve needs the body's radius and gravitational parameter from `trackingStation.bodies`.
+  channels: ["vessel.orbit", "vessel.identity", "trackingStation.bodies"],
   fields: [
     "vessel.orbit.sma",
     "vessel.orbit.mu",
     "vessel.orbit.referenceBodyIndex",
     "vessel.identity.parentBodyIndex",
-    "system.bodies",
+    "trackingStation.bodies",
   ],
 });
 

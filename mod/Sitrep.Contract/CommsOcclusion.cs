@@ -154,7 +154,7 @@ public static class CommsOcclusionModels
 
 /// <summary>
 /// One body's occlusion geometry, as resolved by the elected model.
-/// <see cref="Index"/> matches <c>BodyEntry.Index</c> on <c>system.bodies</c>
+/// <see cref="Index"/> matches <c>BodyEntry.Index</c> on <c>trackingStation.bodies</c>
 /// (both are <c>CelestialBody.flightGlobalsIndex</c>), so a consumer joins the
 /// two without name-matching.
 ///
@@ -172,7 +172,7 @@ public class CommsOcclusionBody
 {
     /// <summary>
     /// The body's <c>CelestialBody.flightGlobalsIndex</c>: the join key onto
-    /// <c>BodyEntry.Index</c> in <c>system.bodies</c>.
+    /// <c>BodyEntry.Index</c> in <c>trackingStation.bodies</c>.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public int Index { get; set; }

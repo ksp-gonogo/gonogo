@@ -56,7 +56,7 @@ describe("FleetComms: actions augment on SystemView, comms drawing on the contri
     );
     act(() => {
       // Without an `isHome` body the ground station has no honest position and the edge is omitted.
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             index: 0,

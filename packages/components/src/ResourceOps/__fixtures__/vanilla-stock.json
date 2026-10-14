@@ -7,7 +7,7 @@
   "_stream": {
     "emits": [
       {
-        "channel": "system.bodies",
+        "channel": "trackingStation.bodies",
         "value": {
           "bodies": [
             {

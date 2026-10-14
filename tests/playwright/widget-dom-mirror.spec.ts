@@ -5,7 +5,7 @@
  * reach the data source layer; this one proves they reach the DOM.
  *
  * Ap is solved from the fixture's `vessel.orbit.{sma,ecc}` over
- * `system.bodies`' Kerbin radius (`sitrep-stream-server.mjs`):
+ * `trackingStation.bodies`' Kerbin radius (`sitrep-stream-server.mjs`):
  * `sma·(1+ecc) - bodyRadius`. With sma=773862.315964763 /
  * ecc=0.0956792487342901 / radius=600000 that comes out to ~247904.9 m, which
  * formatDistance renders as "247.9 km". Loose match: formatDistance is

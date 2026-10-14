@@ -71,7 +71,9 @@ type _OrbitFields = Expect<
 // model to move. The tree changes once a session and is permanently stale, and
 // a hold-last is the right reading of it, which is why the input-horizon rule
 // says an unmodelled input "makes no claim about how far it reaches".
-type _UnmarkedIsNever = Expect<Equal<ReckonableFields<"system.bodies">, never>>;
+type _UnmarkedIsNever = Expect<
+  Equal<ReckonableFields<"trackingStation.bodies">, never>
+>;
 
 // Each declared field is a real key of its real payload. This is the assertion
 // that turns a codegen typo into a compile error rather than an empty `Pick`.

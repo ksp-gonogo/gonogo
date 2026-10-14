@@ -55,7 +55,7 @@ function setup() {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", {
+    fixture.emit("trackingStation.bodies", {
       bodies: [
         { index: 1, name: "Kerbin", gravParameter: 3.5316e12, radius: 600000 },
       ],

@@ -29,7 +29,7 @@ export interface MoonSpec {
   noElements?: boolean;
 }
 
-/** A `system.bodies` payload: Kerbin as the root, and these bodies orbiting it. */
+/** A `trackingStation.bodies` payload: Kerbin as the root, and these bodies orbiting it. */
 export function systemBodies(moons: readonly MoonSpec[]) {
   return {
     bodies: [

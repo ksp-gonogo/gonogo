@@ -15,8 +15,8 @@ const emit = (channel: string) =>
 
 /** The scene's wire values, wrapped as a reader sees them. */
 const bodies = wrapTopicPayload<SystemBodies>(
-  "system.bodies",
-  emit("system.bodies") as never,
+  "trackingStation.bodies",
+  emit("trackingStation.bodies") as never,
 );
 const roster = wrapTopicPayload<TrackingStationCatalog>(
   "trackingStation.catalog",

@@ -161,7 +161,7 @@ function scene(options: { activeOrbit?: boolean } = {}) {
   });
   const store = new TimelineStore(clock, {});
   store.setTransportConnected(false);
-  store.ingest("system.bodies", point(0, SYSTEM));
+  store.ingest("trackingStation.bodies", point(0, SYSTEM));
   if (options.activeOrbit !== false) {
     store.ingest("vessel.orbit", point(0, ACTIVE_ORBIT));
   }

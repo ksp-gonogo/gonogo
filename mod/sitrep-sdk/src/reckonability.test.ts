@@ -28,15 +28,15 @@ describe("a value served by several models", () => {
     ]);
     // The point of two rows rather than one row with two bases: the input lists differ, and a merged list could not say which inputs buy which model.
     expect(rows.map((row) => row.inputs.map(reckonableInputSpelling))).toEqual([
-      ["@vessel.orbit", "@system.bodies"],
+      ["@vessel.orbit", "@trackingStation.bodies"],
       [
         "@vessel.orbit",
         "@vessel.propulsion",
         "@dv.stages",
         "@vessel.structure",
-        "@system.bodies",
+        "@trackingStation.bodies",
       ],
-      ["verticalSpeed", "gForce", "@system.bodies"],
+      ["verticalSpeed", "gForce", "@trackingStation.bodies"],
     ]);
   });
 
@@ -48,7 +48,7 @@ describe("a value served by several models", () => {
      * this forward" wants everything any model of it needs; a consumer asking
      * which inputs buy which model reads the rows above.
      *
-     * `@system.bodies` and `@vessel.orbit` are declared by more than one model and appear once.
+     * `@trackingStation.bodies` and `@vessel.orbit` are declared by more than one model and appear once.
      */
     expect(
       reckonableInputsOf("vessel.flight", "altitudeAsl")?.map(
@@ -56,7 +56,7 @@ describe("a value served by several models", () => {
       ),
     ).toEqual([
       "@vessel.orbit",
-      "@system.bodies",
+      "@trackingStation.bodies",
       "@vessel.propulsion",
       "@dv.stages",
       "@vessel.structure",

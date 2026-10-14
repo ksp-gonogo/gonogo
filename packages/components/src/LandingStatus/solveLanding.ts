@@ -1,5 +1,5 @@
 /**
- * The full-vector suicide-burn solve, client-side from `vessel.flight`, `vessel.propulsion`, `vessel.orbit` and `system.bodies`.
+ * The full-vector suicide-burn solve, client-side from `vessel.flight`, `vessel.propulsion`, `vessel.orbit` and `trackingStation.bodies`.
  *
  * The burn must null the whole velocity vector: a vacuum landing is mostly a horizontal problem, and a vertical-only solve under-states the burn by orders of magnitude, firing too late. The model decelerates the full surface speed over the terrain height at `aNet = aMax - g`; it has no drag, so the widget suppresses it on atmospheric bodies.
  *

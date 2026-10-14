@@ -73,12 +73,12 @@ export type {
 } from "./slots";
 
 const topics = defineTopicManifest({
-  /* `system.bodies` is matched by the name the running game reports, not the bundled stock table. `vessel.orbit` also carries the next apsis the chip row solves from its elements. */
+  /* `trackingStation.bodies` is matched by the name the running game reports, not the bundled stock table. `vessel.orbit` also carries the next apsis the chip row solves from its elements. */
   channels: [
     "vessel.flight",
     "vessel.orbit",
     "vessel.identity",
-    "system.bodies",
+    "trackingStation.bodies",
   ],
   optionalChannels: read.optionalChannels,
   fields: [

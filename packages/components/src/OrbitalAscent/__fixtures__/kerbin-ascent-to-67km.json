@@ -1882,7 +1882,7 @@
         }
       },
       {
-        "channel": "system.bodies",
+        "channel": "trackingStation.bodies",
         "value": {
           "bodies": [
             {

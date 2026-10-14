@@ -109,7 +109,7 @@ async function mountMap(horizon: PropagationHorizonLike) {
       parentBodyIndex: 1,
       launchUt: 0,
     });
-    fixture.emit("system.bodies", {
+    fixture.emit("trackingStation.bodies", {
       bodies: [
         {
           index: 1,

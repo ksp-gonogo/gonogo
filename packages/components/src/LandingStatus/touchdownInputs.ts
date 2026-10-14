@@ -194,7 +194,7 @@ export function registerTouchdownPlot(
     contributes: "plots",
     deps: [
       "vessel.identity",
-      "system.bodies",
+      "trackingStation.bodies",
       "vessel.flight",
       "vessel.surface",
       "vessel.landing",

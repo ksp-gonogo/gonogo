@@ -33,7 +33,7 @@ const UPLINKS = {
  */
 const INPUTS: Record<string, Record<string, unknown>> = {
   "system.state": {
-    "system.bodies": {
+    "trackingStation.bodies": {
       bodies: [
         {
           name: "Kerbin",

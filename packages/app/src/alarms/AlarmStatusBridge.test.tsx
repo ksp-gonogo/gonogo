@@ -226,7 +226,7 @@ describe("alarm attribution survives the vocabulary migration", () => {
     const landingStatus = [
       "vessel.orbit",
       "vessel.identity",
-      "system.bodies",
+      "trackingStation.bodies",
       "vessel.target",
       "vessel.flight",
       "vessel.surface",

@@ -2,7 +2,7 @@
  * Interplanetary/interlunar transfer-window math: pure, deterministic,
  * side-effect-free (SI units: metres, seconds, m/s; angles in degrees at the
  * public boundary). Client-derived from the body Keplerian elements already on
- * the wire (`system.bodies`), no mod channel.
+ * the wire (`trackingStation.bodies`), no mod channel.
  *
  * Two layers:
  *   - the coplanar Hohmann model (phase angle, synodic window timing, ejection

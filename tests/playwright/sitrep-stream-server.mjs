@@ -91,7 +91,7 @@ const KERBIN_MU = 3.5316e12; // stock Kerbin GM
 const KERBIN_RADIUS = 600000; // stock Kerbin mean radius, metres
 
 export const SNAPSHOT = {
-  "system.bodies": {
+  "trackingStation.bodies": {
     bodies: [
       {
         name: "Kerbin",

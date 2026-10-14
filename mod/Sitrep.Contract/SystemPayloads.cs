@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>system.bodies</c> Topic payload: every celestial body in the
+/// The <c>trackingStation.bodies</c> Topic payload: every celestial body in the
 /// game, as a tree, wrapped as <c>{ "bodies": [ ... ] }</c>. The whole payload
 /// is <c>null</c>, not an empty list, when no sample has been taken yet, so
 /// "no data yet" and "zero bodies" stay distinct.
@@ -26,7 +26,7 @@ namespace Sitrep.Contract;
 /// and silence.
 /// </categoryDescription>
 [SitrepContract]
-[SitrepTopic("system.bodies")]
+[SitrepTopic("trackingStation.bodies")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -258,7 +258,7 @@ public class AtmosphereEntry
     /// <internal>
     /// It costs 16 to 48 points per atmospheric body, which on a real RO
     /// install (33 bodies, 11 with air) is 5.2 kB added to a 23.3 kB
-    /// system.bodies emit, re-sent every second for a table that is fixed for
+    /// trackingStation.bodies emit, re-sent every second for a table that is fixed for
     /// the session. If the channel is given a change-gate that can see a
     /// payload has not moved, this is the field that gains most from it.
     /// Measured against the ten pressure curves the RSS install ships, the worst

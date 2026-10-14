@@ -32,7 +32,7 @@ describe("LandingStatus: the sections slot", () => {
 
   function emitDescent(): void {
     act(() => {
-      stream.emit("system.bodies", {
+      stream.emit("trackingStation.bodies", {
         bodies: [
           {
             name: MUN.name,

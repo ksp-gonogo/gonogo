@@ -10,7 +10,7 @@ import { useCommand } from "./use-command";
  * at an instant. Useful for dispatching that query by name. It belongs to the
  * engine and not to an Uplink.
  */
-export const BODY_STATES_COMMAND = "system.bodies.statesAt";
+export const BODY_STATES_COMMAND = "trackingStation.bodies.statesAt";
 
 export interface BodyStatesQuery {
   /**
@@ -33,7 +33,7 @@ export interface BodyStatesQuery {
 
 /**
  * Returns a function that asks the mod for the position of every body at one or
- * more instants, over `system.bodies.statesAt`. Useful for placing bodies on a
+ * more instants, over `trackingStation.bodies.statesAt`. Useful for placing bodies on a
  * transfer plot at instants other than the one on screen. Used by the transfer
  * window widget.
  *

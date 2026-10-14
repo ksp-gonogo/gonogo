@@ -2085,7 +2085,7 @@ const WIDGETS: WidgetRenderConfig[] = [
   },
   {
     // FleetRoster: fleet-wide roster TABLE (one row per known vessel),
-    // reading the real `trackingStation.catalog`/`system.bodies` Topics (stream
+    // reading the real `trackingStation.catalog`/`trackingStation.bodies` Topics (stream
     // fixtures). Mixed-fleet exercises direct/relay/no-link/unknown comms
     // plus known/unknown crew; all-linked is the quiet-day baseline; empty
     // exercises the confirmed-zero-vessels state. There is no per-vessel

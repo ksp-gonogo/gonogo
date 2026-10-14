@@ -45,7 +45,7 @@ function emitSituation(
   fixture: StreamFixture,
   { situation, landedAt }: { situation: number; landedAt: string },
 ) {
-  fixture.emit("system.bodies", {
+  fixture.emit("trackingStation.bodies", {
     bodies: [
       { name: "Mun", index: 2, parentIndex: 0, radius: 200_000, orbit: null },
     ],

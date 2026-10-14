@@ -43,10 +43,10 @@ export interface StreamBinary
 }
 /**
 * Ask where a body is at each of a list of instants. Args for
-* `system.bodies.statesAt`: where one body is at each of a list of instants,
-* from the propagation provider in use on this install. The instants are the
-* caller's own, such as the departure and arrival times a transfer search
-* tries.
+* `trackingStation.bodies.statesAt`: where one body is at each of a list of
+* instants, from the propagation provider in use on this install. The instants
+* are the caller's own, such as the departure and arrival times a transfer
+* search tries.
 *
 * The command centre is the sender's, taken from the connection the command
 * arrives on; there is no field to name another.
@@ -66,7 +66,7 @@ export interface StreamBinary
 */
 export interface BodyStatesRequest
 {
-	/** The body, by its `system.bodies` index. */
+	/** The body, by its `trackingStation.bodies` index. */
 	bodyIndex: number;
 	/**
 	* The body the reply is expressed relative to, by the same index. For a
@@ -90,8 +90,8 @@ export interface BodyStatesRequest
 	certification: PropagationCertification;
 }
 /**
-* The reply to `system.bodies.statesAt`: the solved states, or why there are
-* none.
+* The reply to `trackingStation.bodies.statesAt`: the solved states, or why
+* there are none.
 *
 * Branch on `BodyStatesReply.solved`, never on an empty list: a body the
 * provider could not place and a request that named no instants are different
@@ -2362,11 +2362,12 @@ export interface CommsDelay
 	* relays that barely move against each other in that time, so their lengths
 	* are kept as measured. The craft is propagated on `@vessel.orbit`, and its
 	* peer is placed from `@commandCentre.roster`, whose body-fixed latitude and
-	* longitude need the rotation phase on `@system.bodies`.
+	* longitude need the rotation phase on `@trackingStation.bodies`.
 	*
 	* A first hop that ends at a relay places the relay from its entry on
 	* `@trackingStation.catalog`: the orbit the command centre last heard for it,
-	* about the body whose gravitational parameter `@system.bodies` carries.
+	* about the body whose gravitational parameter `@trackingStation.bodies`
+	* carries.
 	*
 	* `CommsDelay.source` is an input because two of its members are a zero that
 	* does not mean "no distance": delay switched off, or a save with no comms
@@ -2434,8 +2435,8 @@ export interface CommsCommandCentre
 	*/
 	kind?: string | null;
 	/**
-	* Index into `system.bodies` of the body this centre sits on. Null when
-	* unknown, not surface-anchored, or the centre is a moving vessel.
+	* Index into `trackingStation.bodies` of the body this centre sits on. Null
+	* when unknown, not surface-anchored, or the centre is a moving vessel.
 	*/
 	bodyIndex?: number | null;
 }
@@ -2863,9 +2864,9 @@ export interface CommsNextLoss
 }
 /**
 * One body's occlusion geometry, as resolved by the elected model.
-* `CommsOcclusionBody.index` matches `BodyEntry.Index` on `system.bodies`
-* (both are `CelestialBody.flightGlobalsIndex`), so a consumer joins the two
-* without name-matching.
+* `CommsOcclusionBody.index` matches `BodyEntry.Index` on
+* `trackingStation.bodies` (both are `CelestialBody.flightGlobalsIndex`), so a
+* consumer joins the two without name-matching.
 *
 * Both radii ride the wire: `CommsOcclusionBody.radiusMeters` is what the rock
 * measures and `CommsOcclusionBody.occludingRadiusMeters` is what the backend
@@ -2878,7 +2879,7 @@ export interface CommsOcclusionBody
 {
 	/**
 	* The body's `CelestialBody.flightGlobalsIndex`: the join key onto
-	* `BodyEntry.Index` in `system.bodies`.
+	* `BodyEntry.Index` in `trackingStation.bodies`.
 	*/
 	index: number;
 	/**
@@ -3017,7 +3018,7 @@ export interface CommsRouteHold
 * a plan is being discussed.
 *
 * Bodies are named by `bodyName`, the key of every other body table on the
-* wire, `system.bodies` included.
+* wire, `trackingStation.bodies` included.
 *
 * A pulsating frame turns about two groups of bodies, and its origin is
 * defined by the mass of each whole group, so the sets travel as well as the
@@ -5047,17 +5048,18 @@ export interface NoCommandArgs
 /**
 * One conic segment of a vessel's future trajectory, a patched-conic "patch"
 * in KSP's own sense (`Orbit.nextPatch`/`previousPatch`). A patch carries
-* everything needed to propagate and draw it with no `system.bodies` join: its
-* Keplerian elements, KSP's own already-computed shape fields
+* everything needed to propagate and draw it with no `trackingStation.bodies`
+* join: its Keplerian elements, KSP's own already-computed shape fields
 * (`OrbitPatch.peA`, `OrbitPatch.apA`, `OrbitPatch.semiLatusRectum`,
 * `OrbitPatch.semiMinorAxis`), its body's gravitational parameter
 * (`OrbitPatch.mu`) and the transitions at each end.
 *
 * Bodies are carried twice. `OrbitPatch.referenceBodyIndex` and
-* `OrbitPatch.closestEncounterBodyIndex` are the identity, the `system.bodies`
-* index every other body reference in this contract uses
-* (`VesselOrbit.referenceBodyIndex` among them). `OrbitPatch.referenceBody`
-* and `OrbitPatch.closestEncounterBody` are the body's name, for display.
+* `OrbitPatch.closestEncounterBodyIndex` are the identity, the
+* `trackingStation.bodies` index every other body reference in this contract
+* uses (`VesselOrbit.referenceBodyIndex` among them).
+* `OrbitPatch.referenceBody` and `OrbitPatch.closestEncounterBody` are the
+* body's name, for display.
 *
 * `OrbitPatch.lan`, `OrbitPatch.argPe` and `OrbitPatch.meanAnomalyAtEpoch` are
 * null when KSP's value for them is undefined, as `VesselOrbit.lan` and
@@ -5144,8 +5146,8 @@ export interface OrbitPatch
 	/** Semi-minor axis in metres, KSP's `Orbit.semiMinorAxis`. */
 	semiMinorAxis: Value<"m">;
 	/**
-	* Name of the body this patch orbits, as `system.bodies` names it. For
-	* display; `OrbitPatch.referenceBodyIndex` is the identity.
+	* Name of the body this patch orbits, as `trackingStation.bodies` names it.
+	* For display; `OrbitPatch.referenceBodyIndex` is the identity.
 	*/
 	referenceBody: string;
 	/**
@@ -5164,7 +5166,7 @@ export interface OrbitPatch
 	*/
 	mu?: Value<"m³/s²"> | null;
 	/**
-	* Body this patch orbits, as its `system.bodies` index (KSP's
+	* Body this patch orbits, as its `trackingStation.bodies` index (KSP's
 	* `CelestialBody.flightGlobalsIndex`). This is the identity, where
 	* `OrbitPatch.referenceBody` is the display name, and it is the key every
 	* other body reference in this contract uses
@@ -5177,9 +5179,9 @@ export interface OrbitPatch
 	*/
 	referenceBodyIndex?: number | null;
 	/**
-	* `OrbitPatch.closestEncounterBody`'s `system.bodies` index, on the same terms
-	* as `OrbitPatch.referenceBodyIndex`. Null when there is no encounter, and
-	* also null on a recording that does not carry it; read
+	* `OrbitPatch.closestEncounterBody`'s `trackingStation.bodies` index, on the
+	* same terms as `OrbitPatch.referenceBodyIndex`. Null when there is no
+	* encounter, and also null on a recording that does not carry it; read
 	* `OrbitPatch.closestEncounterBody` to tell the two apart.
 	*/
 	closestEncounterBodyIndex?: number | null;
@@ -7776,10 +7778,10 @@ export interface StageDeltaVSummary
 	totalBurnTime?: Value<"s"> | null;
 }
 /**
-* The `system.bodies` Topic payload: every celestial body in the game, as a
-* tree, wrapped as `{ "bodies": [ ... ] }`. The whole payload is `null`, not
-* an empty list, when no sample has been taken yet, so "no data yet" and "zero
-* bodies" stay distinct.
+* The `trackingStation.bodies` Topic payload: every celestial body in the
+* game, as a tree, wrapped as `{ "bodies": [ ... ] }`. The whole payload is
+* `null`, not an empty list, when no sample has been taken yet, so "no data
+* yet" and "zero bodies" stay distinct.
 *
 * Carries no `Meta` field: unlike the `vessel.*` family, its `Meta` rides the
 * envelope (`StreamData.Meta`), never the payload body.
@@ -8320,7 +8322,10 @@ export interface TargetListEntry
 	* `TargetKind.Part`. Null otherwise.
 	*/
 	vesselId?: string | null;
-	/** Index into `system.bodies`: set for `TargetKind.Body`. Null otherwise. */
+	/**
+	* Index into `trackingStation.bodies`: set for `TargetKind.Body`. Null
+	* otherwise.
+	*/
 	bodyIndex?: number | null;
 	/**
 	* KSP `Part.flightID`: set for `TargetKind.Part` (scoped by
@@ -8405,8 +8410,8 @@ export interface TargetListEntry
 	*/
 	orbit?: OrbitEntry | null;
 	/**
-	* Index into `system.bodies` of the body `TargetListEntry.orbit` is around.
-	* Null wherever `TargetListEntry.orbit` is.
+	* Index into `trackingStation.bodies` of the body `TargetListEntry.orbit` is
+	* around. Null wherever `TargetListEntry.orbit` is.
 	*/
 	orbitBodyIndex?: number | null;
 }
@@ -9118,7 +9123,7 @@ export interface SetTargetArgs
 	*/
 	partId?: number;
 	/**
-	* The body's `system.bodies` index, the same index
+	* The body's `trackingStation.bodies` index, the same index
 	* `VesselOrbit.referenceBodyIndex` uses. Required when `SetTargetArgs.kind` is
 	* `TargetKind.Body`, and also when it is `TargetKind.Position`, where it names
 	* the body `SetTargetArgs.latitude` and `SetTargetArgs.longitude` are measured
@@ -9784,8 +9789,8 @@ export interface VesselIdentity
 	*/
 	situation: Situation;
 	/**
-	* Index into `system.bodies` of the body the vessel orbits; null when the
-	* vessel has no orbit yet (for example a just-spawned EVA kerbal).
+	* Index into `trackingStation.bodies` of the body the vessel orbits; null when
+	* the vessel has no orbit yet (for example a just-spawned EVA kerbal).
 	*/
 	parentBodyIndex?: number | null;
 	/**
@@ -10320,9 +10325,9 @@ export interface VesselManeuver
 * A coast moves only `VesselOrbit.meanAnomalyAtEpoch` and `VesselOrbit.epoch`,
 * by Kepler propagation; the other elements are constants of the orbit. A burn
 * moves every element, by powered integration from `vessel.propulsion`, the
-* firing stage's propellant in `dv.stages` and `system.bodies`. A reckoning's
-* `modelled` list says which paths its model moved, and a consumer wanting a
-* whole modelled orbit overlays those on the observed payload.
+* firing stage's propellant in `dv.stages` and `trackingStation.bodies`. A
+* reckoning's `modelled` list says which paths its model moved, and a consumer
+* wanting a whole modelled orbit overlays those on the observed payload.
 *
 * @category Orbits and trajectories
 * @categoryDescription Orbits and trajectories
@@ -10332,7 +10337,7 @@ export interface VesselManeuver
 */
 export interface VesselOrbit
 {
-	/** Index into `system.bodies` of the body this orbit is around. */
+	/** Index into `trackingStation.bodies` of the body this orbit is around. */
 	referenceBodyIndex: number;
 	/** Semi-major axis, in metres. */
 	sma: Value<"m">;
@@ -10357,8 +10362,8 @@ export interface VesselOrbit
 	* Mean anomaly at `VesselOrbit.epoch`, in radians, not degrees, matching KSP's
 	* `Orbit.meanAnomalyAtEpoch`. Reckonable by Kepler propagation, from
 	* `VesselOrbit.sma`, `VesselOrbit.mu`, `VesselOrbit.horizon` and
-	* `system.bodies`, and under a burn by powered integration with the other
-	* elements.
+	* `trackingStation.bodies`, and under a burn by powered integration with the
+	* other elements.
 	*/
 	meanAnomalyAtEpoch: Value<"rad">;
 	/**
@@ -10564,8 +10569,8 @@ export interface OrbitEncounter
 	/** Universal time at which the vessel crosses the sphere-of-influence boundary. */
 	transitionUt: Value<"ut">;
 	/**
-	* Index into `system.bodies` of the body being transitioned into; null if that
-	* body couldn't be resolved.
+	* Index into `trackingStation.bodies` of the body being transitioned into;
+	* null if that body couldn't be resolved.
 	*/
 	bodyIndex?: number | null;
 }
@@ -11220,8 +11225,8 @@ export enum TargetKind {
 	/** A vessel. `VesselTarget.vesselId` carries its guid. */
 	Vessel = 0,
 	/**
-	* A celestial body. `VesselTarget.bodyIndex` carries its `system.bodies`
-	* index.
+	* A celestial body. `VesselTarget.bodyIndex` carries its
+	* `trackingStation.bodies` index.
 	*/
 	Body = 1,
 	/** Anything not classified more finely, such as a waypoint. Carries no id. */
@@ -11300,10 +11305,10 @@ export interface VesselTarget
 	*/
 	vesselId?: string | null;
 	/**
-	* The target's `system.bodies` index, populated only when `VesselTarget.kind`
-	* is `TargetKind.Body`, matching `SetTargetArgs.bodyIndex`. Null for any other
-	* target, or when the body name could not be resolved against `system.bodies`
-	* this tick.
+	* The target's `trackingStation.bodies` index, populated only when
+	* `VesselTarget.kind` is `TargetKind.Body`, matching
+	* `SetTargetArgs.bodyIndex`. Null for any other target, or when the body name
+	* could not be resolved against `trackingStation.bodies` this tick.
 	*/
 	bodyIndex?: number | null;
 	/**

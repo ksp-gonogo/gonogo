@@ -22,7 +22,7 @@ namespace Sitrep.Contract;
 /// <see cref="Epoch"/>, by Kepler propagation; the other elements are
 /// constants of the orbit. A burn moves every element, by powered integration
 /// from <c>vessel.propulsion</c>, the firing stage's propellant in
-/// <c>dv.stages</c> and <c>system.bodies</c>. A reckoning's <c>modelled</c>
+/// <c>dv.stages</c> and <c>trackingStation.bodies</c>. A reckoning's <c>modelled</c>
 /// list says which paths its model moved, and a consumer wanting a whole
 /// modelled orbit overlays those on the observed payload.</para>
 /// </summary>
@@ -39,40 +39,40 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.orbit")]
 public class VesselOrbit
 {
-    /// <summary>Index into <c>system.bodies</c> of the body this orbit is around.</summary>
+    /// <summary>Index into <c>trackingStation.bodies</c> of the body this orbit is around.</summary>
     [SitrepUnit(Units.Id)]
     public int ReferenceBodyIndex { get; set; }
 
     /// <summary>Semi-major axis, in metres.</summary>
     [SitrepUnit(Units.Metres)]
-    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     public double Sma { get; set; }
 
     /// <summary>Eccentricity. Below 1 for a closed orbit, 1 or above for an escape trajectory.</summary>
     [SitrepUnit(Units.Dimensionless)]
-    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     public double Ecc { get; set; }
 
     /// <summary>Inclination, in degrees (KSP's <c>Orbit.inclination</c>).</summary>
     [SitrepUnit(Units.Degrees)]
-    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     public double Inc { get; set; }
 
     /// <summary>Longitude of ascending node, degrees; <c>null</c> only when absent, never NaN and never 0 as a stand-in. An equatorial orbit still has one.</summary>
     [SitrepUnit(Units.Degrees)]
-    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     public double? Lan { get; set; }
 
     /// <summary>Argument of periapsis, degrees; <c>null</c> only when absent, never NaN and never 0 as a stand-in. A circular orbit still has one.</summary>
     [SitrepUnit(Units.Degrees)]
-    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     public double? ArgPe { get; set; }
 
     /// <summary>
     /// Mean anomaly at <see cref="Epoch"/>, in radians, not degrees, matching
     /// KSP's <c>Orbit.meanAnomalyAtEpoch</c>. Reckonable by Kepler
     /// propagation, from <see cref="Sma"/>, <see cref="Mu"/>,
-    /// <see cref="Horizon"/> and <c>system.bodies</c>, and under a burn by
+    /// <see cref="Horizon"/> and <c>trackingStation.bodies</c>, and under a burn by
     /// powered integration with the other elements.
     /// </summary>
     [SitrepUnit(Units.Radians)]
@@ -82,8 +82,8 @@ public class VesselOrbit
      * without a mark that withdrawal reads as `reckoning: "none"`, indistinguishable from an
      * unmodelled topic.
      */
-    [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "horizon", "@system.bodies")]
-    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "horizon", "@trackingStation.bodies")]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     public double MeanAnomalyAtEpoch { get; set; }
 
     /// <summary>
@@ -93,8 +93,8 @@ public class VesselOrbit
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     // Moves with MeanAnomalyAtEpoch: advancing one without the other would date the phase to the wrong instant.
-    [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "horizon", "@system.bodies")]
-    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "horizon", "@trackingStation.bodies")]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     [SitrepSampleKind(SampleKind.Continuous)]
     public double Epoch { get; set; }
 
@@ -352,7 +352,7 @@ public class OrbitEncounter
     [SitrepUnit(Units.UniversalTime)]
     public double TransitionUt { get; set; }
 
-    /// <summary>Index into <c>system.bodies</c> of the body being transitioned
+    /// <summary>Index into <c>trackingStation.bodies</c> of the body being transitioned
     /// into; null if that body couldn't be resolved.</summary>
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }

@@ -8120,7 +8120,7 @@
       },
       {
         "key": "sitrep-sdk . COMMAND_IDS",
-        "note": "robotics.servo.setTarget is replaced by robotics.servo.setAngle and robotics.servo.setExtension, each with the unit it carries"
+        "note": "robotics.servo.setTarget is replaced by robotics.servo.setAngle and robotics.servo.setExtension, each with the unit it carries. system.bodies.statesAt is now trackingStation.bodies.statesAt, with the bodies Topic it answers for"
       },
       {
         "key": "sitrep-sdk . CONTRACT_MAJOR",
@@ -8524,7 +8524,7 @@
       },
       {
         "key": "sitrep-sdk . TOPIC_IDS",
-        "note": "Gains crash.hasRecent and recovery.hasRecent, now one-field payloads with their own types where each was a bare boolean. The alarm roster Topic alarm.scet is now alarm.activeList, since it lists every kind of alarm. system.vessels and fleet.silence are replaced by trackingStation.catalog, each command centre's catalog of the objects it knows of and its contact with each craft"
+        "note": "Gains crash.hasRecent and recovery.hasRecent, now one-field payloads with their own types where each was a bare boolean. The alarm roster Topic alarm.scet is now alarm.activeList, since it lists every kind of alarm. system.vessels and fleet.silence are replaced by trackingStation.catalog, each command centre's catalog of the objects it knows of and its contact with each craft. system.bodies is now trackingStation.bodies, the same at every command centre"
       },
       {
         "key": "sitrep-sdk . TargetingHudContext",
@@ -9163,6 +9163,10 @@
         "note": "A slot listed in ContributionRegistry types compute from that slot's entry, so a literal such as tone: \"info\" returned from compute is checked against the slot's entry and no longer widens to a string; a component slot id keeps the earlier form"
       },
       {
+        "key": "sitrep-sdk ./spine BODY_STATES_COMMAND",
+        "note": "Names trackingStation.bodies.statesAt, the command's new name"
+      },
+      {
         "key": "sitrep-sdk ./spine CelestialBody#trueAnomaly",
         "note": "Removed: a body's place is a pose, not a field of the catalogue. Read it from useSystemInstant, which carries how well the place is known; a field on a static fact had no way to say it was stale"
       },
@@ -9237,6 +9241,10 @@
       {
         "key": "sitrep-sdk ./spine LibrationPoint#inertial",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine NEVER_RECKONABLE",
+        "note": "Lists trackingStation.bodies in place of system.bodies"
       },
       {
         "key": "sitrep-sdk ./spine OrbitTrajectory",

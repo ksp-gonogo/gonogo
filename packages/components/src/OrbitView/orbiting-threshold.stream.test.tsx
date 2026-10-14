@@ -40,7 +40,7 @@ function setup(sma: number, ecc: number, meanAnomalyAtEpoch = 0) {
       horizon: ANALYTIC_UNBOUNDED_HORIZON,
       mu: 3.986e14,
     });
-    fixture.emit("system.bodies", { bodies: [EARTH] });
+    fixture.emit("trackingStation.bodies", { bodies: [EARTH] });
     fixture.emit("vessel.identity", {
       vesselId: "ov-orb-vessel",
       name: "Test Vessel",

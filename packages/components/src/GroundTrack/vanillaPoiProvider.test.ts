@@ -62,7 +62,9 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
     const target = () =>
       result.current?.[0]?.actions?.find((a) => a.id === "set-target");
     act(() => {
-      fixture.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });
+      fixture.emit("trackingStation.bodies", {
+        bodies: [{ index: 1, name: "Kerbin" }],
+      });
       fixture.emit("spaceCenter.pois", [
         {
           id: "launchSite:Runway",
@@ -112,7 +114,7 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
     renderedTrees.push(unmount);
 
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           { index: 1, name: "Kerbin" },
           { index: 2, name: "Mun" },
@@ -203,7 +205,9 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
     renderedTrees.push(unmount);
 
     act(() => {
-      fixture.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });
+      fixture.emit("trackingStation.bodies", {
+        bodies: [{ index: 1, name: "Kerbin" }],
+      });
       fixture.emit("spaceCenter.pois", [
         {
           id: "launchSite:Runway",

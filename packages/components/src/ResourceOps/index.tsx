@@ -42,7 +42,7 @@ const topics = defineTopicManifest({
  *
  * Both channels are active-vessel scoped, so an empty list means this vessel has
  * no drills or converters. The header's location comes from `vessel.identity`
- * and `system.bodies` because the entries carry no vessel or body field.
+ * and `trackingStation.bodies` because the entries carry no vessel or body field.
  *
  * The hardware on a card is a fact and survives a held channel; what it is
  * doing (run state, rates, abundance) is withheld, with the header naming which
@@ -120,7 +120,7 @@ function ResourceOpsComponent(
   // A vessel's name and parent body change only on an event, so the last answer still holds.
   const identity = stillTrue(topics.useTelemetry("vessel.identity"), undefined);
   const systemBodies = stillTrue(
-    topics.useTelemetry("system.bodies"),
+    topics.useTelemetry("trackingStation.bodies"),
     undefined,
   );
   const bodyName = useMemo(() => {

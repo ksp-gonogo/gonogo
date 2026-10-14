@@ -47,7 +47,7 @@ const MUN_QUARTER_PERIOD =
 CORE_UPLINK_CLIENT.registerContribution({
   id: "test-kerbin-mun-pulsating",
   contributes: "system-view.projection",
-  deps: ["system.bodies"],
+  deps: ["trackingStation.bodies"],
   compute: (): SystemViewProjection[] => [
     {
       id: "test.kerbin-mun",
@@ -158,7 +158,10 @@ function mount(options: {
   );
 
   act(() => {
-    fixture.emit("system.bodies", kerbolSystem(options.inclination ?? 0));
+    fixture.emit(
+      "trackingStation.bodies",
+      kerbolSystem(options.inclination ?? 0),
+    );
     fixture.emit("vessel.identity", {
       vesselId: "v-active",
       name: "Active Craft",

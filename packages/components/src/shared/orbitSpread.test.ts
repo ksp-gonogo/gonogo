@@ -70,7 +70,7 @@ function readingAt(
     epoch: 0,
   });
   store.ingest(
-    "system.bodies",
+    "trackingStation.bodies",
     at({ bodies: [{ index: 1, radius: value("m", 600_000) }] }) as never,
   );
   store.ingest("vessel.orbit", at(orbit(departure, ecc)) as never);

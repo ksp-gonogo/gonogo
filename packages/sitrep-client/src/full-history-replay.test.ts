@@ -77,11 +77,15 @@ describe("buildFullHistoryStore", () => {
     // key", which is why the gap survived. `isDerivedTopic` is the distinction
     // the answer alone cannot carry.
     const fixture: ReplayFixture = {
-      subscribedTopics: ["system.bodies"],
+      subscribedTopics: ["trackingStation.bodies"],
       frames: [
-        frame("system.bodies", { bodies: [{ name: "Kerbin", index: 1 }] }, 0),
         frame(
-          "system.bodies",
+          "trackingStation.bodies",
+          { bodies: [{ name: "Kerbin", index: 1 }] },
+          0,
+        ),
+        frame(
+          "trackingStation.bodies",
           {
             bodies: [
               { name: "Kerbin", index: 1 },

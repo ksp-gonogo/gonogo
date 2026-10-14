@@ -180,7 +180,7 @@ function scene(
   });
   const store = new TimelineStore(clock);
   store.setTransportConnected(false);
-  store.ingest("system.bodies", point(observedAt, SYSTEM));
+  store.ingest("trackingStation.bodies", point(observedAt, SYSTEM));
   store.ingest("commandCentre.roster", point(observedAt, ROSTER));
   store.ingest("vessel.orbit", point(observedAt, circularOrbit(CRAFT_SMA)));
   store.ingest("comms.path", point(observedAt, { hops: [...hops] }));

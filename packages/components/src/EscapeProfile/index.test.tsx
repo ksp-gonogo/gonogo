@@ -10,13 +10,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { EscapeProfileComponent } from "./index";
 
-/** Names the parent body via `vessel.identity.parentBodyIndex` against a single-entry `system.bodies` roster; the default facts are Kerbin's radius with no gravitational parameter. */
+/** Names the parent body via `vessel.identity.parentBodyIndex` against a single-entry `trackingStation.bodies` roster; the default facts are Kerbin's radius with no gravitational parameter. */
 function emitBody(
   fixture: ReturnType<typeof setupStreamFixture>,
   name: string,
   facts: { radius?: number; gravParameter?: number } = {},
 ) {
-  fixture.emit("system.bodies", {
+  fixture.emit("trackingStation.bodies", {
     bodies: [
       {
         name,

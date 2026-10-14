@@ -34,7 +34,7 @@ function scene(orbit: Record<string, unknown>, quality = Quality.OnRails) {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", { bodies: [EARTH] });
+    fixture.emit("trackingStation.bodies", { bodies: [EARTH] });
     fixture.emit("vessel.identity", {
       vesselId: "co-ms-vessel",
       name: "Test Vessel",

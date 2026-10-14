@@ -65,7 +65,7 @@ async function renderDiagram() {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", system());
+    fixture.emit("trackingStation.bodies", system());
   });
   await waitFor(() =>
     expect(

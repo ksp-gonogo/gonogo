@@ -253,11 +253,11 @@ async function mountScene(): Promise<void> {
     </ThemeProvider>,
   );
   await frame();
-  for (const topic of ["system.bodies"]) {
+  for (const topic of ["trackingStation.bodies"]) {
     for (let i = 0; i < 60 && !transport.isSubscribed(topic); i++)
       await frame();
   }
-  transport.emit("system.bodies", system());
+  transport.emit("trackingStation.bodies", system());
   await frame();
 }
 

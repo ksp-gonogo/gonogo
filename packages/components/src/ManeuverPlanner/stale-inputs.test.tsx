@@ -40,7 +40,7 @@ describe("ManeuverPlanner when its apsis inputs stop arriving", () => {
         // The control below needs a conic model, which needs a stated horizon.
         horizon: ANALYTIC_UNBOUNDED_HORIZON,
       });
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [{ index: 1, name: "Kerbin", radius: 600000 }],
       });
     });

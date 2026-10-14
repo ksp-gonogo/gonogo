@@ -96,7 +96,7 @@ describe("no topic-redirect map", { timeout: 60_000 }, () => {
       writeFileSync(
         join(dir, "clean.ts"),
         [
-          'const def = { topic: "system.state", inputs: ["system.bodies"] };',
+          'const def = { topic: "system.state", inputs: ["trackingStation.bodies"] };',
           'const units = { "vessel.flight.altitudeAsl": "m" };',
           'const labels = { "vessel.flight": "Flight" };',
           "",

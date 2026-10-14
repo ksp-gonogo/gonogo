@@ -60,7 +60,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
   }
 
   function emitMunDescent() {
-    stream.emit("system.bodies", {
+    stream.emit("trackingStation.bodies", {
       bodies: [
         {
           name: MUN.name,

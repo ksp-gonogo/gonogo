@@ -38,7 +38,7 @@ describe("OrbitView: an orbit held with no model", () => {
   it("draws the held orbit and the craft as the held square at its last place, in place of the sentence", async () => {
     const { fixture, container } = mount();
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [{ name: "Kerbin", index: 1, radius: 600000 }],
       });
       fixture.emit("vessel.identity", {
@@ -105,7 +105,7 @@ describe("OrbitView: an orbit held with no model", () => {
     });
     const { fixture } = mount();
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [{ name: "Kerbin", index: 1, radius: 600000 }],
       });
       fixture.emit("vessel.identity", {
@@ -153,7 +153,7 @@ describe("OrbitView: an orbit held with no model", () => {
   it("draws nothing and keeps its waiting sentence where no orbit was ever heard", async () => {
     const { fixture, container } = mount();
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [{ name: "Kerbin", index: 1, radius: 600000 }],
       });
       fixture.store.setTransportConnected(false);

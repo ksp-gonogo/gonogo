@@ -52,7 +52,7 @@ describe("Orbit View figures: t-Pe shows the null-display placeholder on a hyper
         parentBodyIndex: 1,
         launchUt: 0,
       });
-      stream.emit("system.bodies", {
+      stream.emit("trackingStation.bodies", {
         bodies: [{ index: 1, name: "Kerbin", parentIndex: 0, radius: 600000 }],
       });
     });

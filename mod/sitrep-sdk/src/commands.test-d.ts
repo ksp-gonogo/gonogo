@@ -61,7 +61,7 @@ export type _TypedPayloadReply = AssertTrue<
   >
 >;
 export type _NonResultReply = AssertTrue<
-  Equal<CommandReply<"system.bodies.statesAt">, BodyStatesReply>
+  Equal<CommandReply<"trackingStation.bodies.statesAt">, BodyStatesReply>
 >;
 
 // The union is closed over the generated ids, so a command that was never

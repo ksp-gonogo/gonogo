@@ -17,7 +17,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetRosterComponent } from "./index";
 
-/** FleetRoster runs entirely off the real stream: `trackingStation.catalog` for the roster, `system.bodies` for body names. */
+/** FleetRoster runs entirely off the real stream: `trackingStation.catalog` for the roster, `trackingStation.bodies` for body names. */
 
 const BODIES = {
   bodies: [
@@ -233,7 +233,7 @@ describe("FleetRosterComponent", () => {
     const fixture = newFixture();
     renderRoster(fixture);
     act(() => {
-      fixture.emit("system.bodies", BODIES);
+      fixture.emit("trackingStation.bodies", BODIES);
       fixture.emit("trackingStation.catalog", MIXED);
     });
     await waitFor(() => {
@@ -244,7 +244,7 @@ describe("FleetRosterComponent", () => {
     expect(screen.getByText("Duna Lander Bravo")).toBeInTheDocument();
     expect(screen.getByText("Eve Orbiter Charlie")).toBeInTheDocument();
     expect(screen.getByText("New Contact")).toBeInTheDocument();
-    // Body names resolved via system.bodies; the unresolved contact has none.
+    // Body names resolved via trackingStation.bodies; the unresolved contact has none.
     expect(screen.getByText("Kerbin")).toBeInTheDocument();
     expect(screen.getByText("Mun")).toBeInTheDocument();
     expect(screen.getByText("Duna")).toBeInTheDocument();
@@ -266,7 +266,7 @@ describe("FleetRosterComponent", () => {
     const fixture = newFixture();
     renderRoster(fixture);
     act(() => {
-      fixture.emit("system.bodies", BODIES);
+      fixture.emit("trackingStation.bodies", BODIES);
       fixture.emit("trackingStation.catalog", {
         entries: [
           {
@@ -316,7 +316,7 @@ describe("FleetRosterComponent", () => {
     const fixture = newFixture();
     renderRoster(fixture);
     act(() => {
-      fixture.emit("system.bodies", BODIES);
+      fixture.emit("trackingStation.bodies", BODIES);
       fixture.emit("trackingStation.catalog", MIXED);
     });
     await waitFor(() => {
@@ -336,7 +336,7 @@ describe("FleetRosterComponent", () => {
     const fixture = newFixture();
     renderRoster(fixture, { w: 5, h: 7 });
     act(() => {
-      fixture.emit("system.bodies", BODIES);
+      fixture.emit("trackingStation.bodies", BODIES);
       fixture.emit("trackingStation.catalog", MIXED);
     });
     await screen.findByText("Kerbin Station Alpha");
@@ -349,7 +349,7 @@ describe("FleetRosterComponent", () => {
     const fixture = newFixture();
     renderRoster(fixture);
     act(() => {
-      fixture.emit("system.bodies", BODIES);
+      fixture.emit("trackingStation.bodies", BODIES);
       fixture.emit("trackingStation.catalog", ALL_LINKED);
     });
     await waitFor(() => {
@@ -373,7 +373,7 @@ describe("FleetRosterComponent", () => {
     const fixture = newFixture();
     renderRoster(fixture);
     act(() => {
-      fixture.emit("system.bodies", BODIES);
+      fixture.emit("trackingStation.bodies", BODIES);
       fixture.emit("trackingStation.catalog", ALL_LINKED);
     });
 
@@ -406,7 +406,7 @@ describe("FleetRosterComponent", () => {
     const fixture = newFixture();
     const container = renderRoster(fixture);
     act(() => {
-      fixture.emit("system.bodies", BODIES);
+      fixture.emit("trackingStation.bodies", BODIES);
       fixture.emit("trackingStation.catalog", MIXED);
     });
     await waitFor(() => {

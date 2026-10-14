@@ -121,7 +121,7 @@
     "pinnedUt": 43274.2794794121,
     "emits": [
       {
-        "channel": "system.bodies",
+        "channel": "trackingStation.bodies",
         "value": {
           "bodies": [
             {

@@ -19,10 +19,10 @@ import { useMemo } from "react";
  * Active or Offered surface contract waypoint. Stock behaviour, so it lives
  * beside GroundTrack rather than in an Uplink.
  */
-/** Resolve a `system.bodies` index (its stable index, never array position) to its name. */
+/** Resolve a `trackingStation.bodies` index (its stable index, never array position) to its name. */
 function useBodyNameByIndex(): Map<number, string> {
   // A body catalogue changes only when the game does, so a held one is still the catalogue.
-  const bodiesReading = useTelemetry("system.bodies");
+  const bodiesReading = useTelemetry("trackingStation.bodies");
   const systemBodies =
     bodiesReading.state === "observed" || bodiesReading.state === "held"
       ? bodiesReading.value

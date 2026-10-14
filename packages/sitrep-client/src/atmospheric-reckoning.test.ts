@@ -252,7 +252,7 @@ function scene(
   });
   const store = new TimelineStore(clock);
   store.setTransportConnected(false);
-  store.ingest("system.bodies", point(0, SYSTEM, lightTimeSeconds));
+  store.ingest("trackingStation.bodies", point(0, SYSTEM, lightTimeSeconds));
   store.ingest("vessel.orbit", point(0, orbit, lightTimeSeconds));
   return {
     store,
@@ -517,7 +517,7 @@ describe("the handover between the conic and the air", () => {
     expect(reading.reckoning.status).toBe("declined");
     expect(reading.reckoning).toMatchObject({
       status: "declined",
-      declined: { reason: "beyond-horizon", input: "@system.bodies" },
+      declined: { reason: "beyond-horizon", input: "@trackingStation.bodies" },
     });
   });
 });
@@ -1087,7 +1087,7 @@ describe("how well the descent fit knows the altitude it carried", () => {
  * models on the flight reckoner's two real declared inputs.
  *
  * Synthetic because nothing in the shipped tree models `vessel.orbit` or
- * `system.bodies`: `reckoner-input-rule-ledger.test.ts` pins that the set of
+ * `trackingStation.bodies`: `reckoner-input-rule-ledger.test.ts` pins that the set of
  * pairs either rule can act on is empty, and it stays empty after this change.
  * So every case here is about structure, and none of it fires on a live client
  * today. What it is worth is that the day someone does model the body roster,
@@ -1156,15 +1156,15 @@ describe("the altitude band through the store's input-rule walk", () => {
     // settles the altitude's reach.
     declareTestReckonable("vessel.orbit", "test-uplink");
     registerReckoner("vessel.orbit", "test-uplink", reachingTo(20));
-    declareTestReckonable("system.bodies", "test-uplink");
-    registerReckoner("system.bodies", "test-uplink", reachingTo(12));
+    declareTestReckonable("trackingStation.bodies", "test-uplink");
+    registerReckoner("trackingStation.bodies", "test-uplink", reachingTo(12));
 
     const reading = s.at(13);
 
     expect(reading.reckoning.status).toBe("declined");
     expect(reading.reckoning).toMatchObject({
       status: "declined",
-      declined: { reason: "beyond-horizon", input: "@system.bodies" },
+      declined: { reason: "beyond-horizon", input: "@trackingStation.bodies" },
     });
   });
 
@@ -1173,8 +1173,8 @@ describe("the altitude band through the store's input-rule walk", () => {
     s.descend(SCATTERED_DESCENT);
     declareTestReckonable("vessel.orbit", "test-uplink");
     registerReckoner("vessel.orbit", "test-uplink", reachingTo(20));
-    declareTestReckonable("system.bodies", "test-uplink");
-    registerReckoner("system.bodies", "test-uplink", reachingTo(12));
+    declareTestReckonable("trackingStation.bodies", "test-uplink");
+    registerReckoner("trackingStation.bodies", "test-uplink", reachingTo(12));
 
     // The control for the case above: one second earlier, nothing has run out and the same frame is carried.
     expect(s.at(11).reckoning.status).toBe("available");
@@ -1188,9 +1188,9 @@ describe("the altitude band through the store's input-rule walk", () => {
     const t = scene();
     t.descend(SCATTERED_DESCENT);
     const pulls = { count: 0 };
-    declareTestReckonable("system.bodies", "test-uplink");
+    declareTestReckonable("trackingStation.bodies", "test-uplink");
     registerReckoner(
-      "system.bodies",
+      "trackingStation.bodies",
       "test-uplink",
       bandedBy("sigma1", 40, pulls),
     );
@@ -1211,9 +1211,9 @@ describe("the altitude band through the store's input-rule walk", () => {
     const s = scene();
     s.descend(SCATTERED_DESCENT);
     const pulls = { count: 0 };
-    declareTestReckonable("system.bodies", "test-uplink");
+    declareTestReckonable("trackingStation.bodies", "test-uplink");
     registerReckoner(
-      "system.bodies",
+      "trackingStation.bodies",
       "test-uplink",
       bandedBy("bound", 40, pulls),
     );

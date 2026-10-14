@@ -11,7 +11,10 @@ const MUN_RADIUS = 200_000;
 
 /** The scenes set over the Mun: a Kerbin scene states its own orbit by hand. */
 const munScenes = generatedScenes().filter((s) => {
-  const bodies = recordAt(emitOf(s.fixture, "system.bodies"), "value").bodies;
+  const bodies = recordAt(
+    emitOf(s.fixture, "trackingStation.bodies"),
+    "value",
+  ).bodies;
   return (
     Array.isArray(bodies) && isRecord(bodies[0]) && bodies[0].name === "Mun"
   );

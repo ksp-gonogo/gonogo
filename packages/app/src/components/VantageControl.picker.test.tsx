@@ -223,7 +223,7 @@ describe("VantagePicker's option rows say where a centre is and whether it can b
     const fixture = mountPicker();
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         { bodies: [{ index: 1, name: "Kerbin", isHome: true }] },
         { vantage: KSC },
       );

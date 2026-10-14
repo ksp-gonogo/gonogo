@@ -376,7 +376,7 @@ CORE_UPLINK_CLIENT.registerContribution({
   contributes: "plots",
   deps: [
     "vessel.identity",
-    "system.bodies",
+    "trackingStation.bodies",
     "vessel.flight",
     "vessel.surface",
     "vessel.landing",
@@ -399,7 +399,7 @@ CORE_UPLINK_CLIENT.registerContribution({
         landing?.projectedTouchdownSpeed?.magnitude ?? null,
       atmosphereColor: body?.atmosphereColor ?? null,
       dragToWeight: landing?.dragToWeightRatio?.magnitude ?? null,
-      // The reported gravity first, then the one the elements imply, both off `system.bodies` so planet packs resolve.
+      // The reported gravity first, then the one the elements imply, both off `trackingStation.bodies` so planet packs resolve.
       surfaceGravity:
         body?.surfaceGravity ??
         (body?.gm != null && body.radius > 0

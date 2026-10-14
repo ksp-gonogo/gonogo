@@ -17,7 +17,7 @@ import { AtmosphereProfileComponent } from "./index";
  *
  *  - `showNoBodyNotice = bodyName !== undefined && body === undefined` is the
  *    one place that tells absent from present but unusable (neither the
- *    `system.bodies` roster nor the bundled table can build the body)
+ *    `trackingStation.bodies` roster nor the bundled table can build the body)
  *  - a flight record without altitude drops the current-pressure marker with
  *    no trace, while the rest of the chart draws
  *  - `liveDensity > 1e-9` suppresses the HUD chip identically for absent,
@@ -41,7 +41,7 @@ function renderAtmo() {
   return { fixture, ...rendered };
 }
 
-/** The body-name chain (`vessel.identity.parentBodyIndex` against `system.bodies`), plus the `vessel.flight` record. */
+/** The body-name chain (`vessel.identity.parentBodyIndex` against `trackingStation.bodies`), plus the `vessel.flight` record. */
 function emitBody(
   fixture: ReturnType<typeof setupStreamFixture>,
   name: string,
@@ -49,7 +49,7 @@ function emitBody(
 ) {
   fixture.emit("vessel.flight", opts.flight ?? {});
   fixture.emit("vessel.identity", { parentBodyIndex: 1 });
-  fixture.emit("system.bodies", {
+  fixture.emit("trackingStation.bodies", {
     bodies: [{ name, index: 1, parentIndex: 0, radius: 600_000, orbit: null }],
   });
 }
@@ -109,7 +109,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
     act(() => {
       fixture.emit("vessel.flight", {});
       fixture.emit("vessel.identity", { parentBodyIndex: 1 });
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Definitely-Not-A-Body",

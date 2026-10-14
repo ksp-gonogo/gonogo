@@ -974,7 +974,7 @@ namespace Gonogo.KSP
                     ? (int?)closestEncounterBody.flightGlobalsIndex
                     : null,
                 // Read off the same body the elements above are relative to, so
-                // a patch propagates from what it carries with no system.bodies
+                // a patch propagates from what it carries with no trackingStation.bodies
                 // join. Matches BuildOrbit's own mu read.
                 Mu = body.gravParameter,
             };
@@ -2276,7 +2276,7 @@ namespace Gonogo.KSP
                     }
                     entries.Add(new Dictionary<string, object?>
                     {
-                        // i is the system.bodies index (BuildBodyEntry
+                        // i is the trackingStation.bodies index (BuildBodyEntry
                         // enumerates FlightGlobals.Bodies in the SAME order).
                         ["kind"] = "Body",
                         ["name"] = b.GetName(),

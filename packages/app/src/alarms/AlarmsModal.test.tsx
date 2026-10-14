@@ -320,7 +320,7 @@ function emitOrbitAtApsis(
     },
   });
   // That conic's other declared input.
-  emit("system.bodies", {
+  emit("trackingStation.bodies", {
     bodies: [{ index: 1, name: "Kerbin", radius: 600_000 }],
   });
 }

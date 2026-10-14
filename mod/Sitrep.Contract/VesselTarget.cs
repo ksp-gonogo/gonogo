@@ -35,7 +35,7 @@ public enum TargetKind
 {
     /// <summary>A vessel. <see cref="VesselTarget.VesselId"/> carries its guid.</summary>
     Vessel,
-    /// <summary>A celestial body. <see cref="VesselTarget.BodyIndex"/> carries its <c>system.bodies</c> index.</summary>
+    /// <summary>A celestial body. <see cref="VesselTarget.BodyIndex"/> carries its <c>trackingStation.bodies</c> index.</summary>
     Body,
     /// <summary>Anything not classified more finely, such as a waypoint. Carries no id.</summary>
     Other,
@@ -125,10 +125,10 @@ public class VesselTarget
     public string? VesselId { get; set; }
 
     /// <summary>
-    /// The target's <c>system.bodies</c> index, populated only when
+    /// The target's <c>trackingStation.bodies</c> index, populated only when
     /// <see cref="Kind"/> is <see cref="TargetKind.Body"/>, matching
     /// <see cref="SetTargetArgs.BodyIndex"/>. Null for any other target, or when
-    /// the body name could not be resolved against <c>system.bodies</c> this
+    /// the body name could not be resolved against <c>trackingStation.bodies</c> this
     /// tick.
     /// </summary>
     [SitrepUnit(Units.Id)]

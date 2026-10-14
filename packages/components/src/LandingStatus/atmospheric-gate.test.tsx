@@ -55,7 +55,7 @@ describe("LandingStatus atmospheric site gate", () => {
     drift = 0,
     terminalVelocity: number | null = 120,
   ) {
-    stream.emit("system.bodies", {
+    stream.emit("trackingStation.bodies", {
       bodies: [
         {
           name: "Kerbin",

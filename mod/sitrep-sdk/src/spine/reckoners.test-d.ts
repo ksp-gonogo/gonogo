@@ -60,7 +60,7 @@ registerReckoner("vessel.target", "core", {
  * either. `frame.history` is the reckoner's OWN topic over its own window.
  */
 registerReckoner("vessel.flight", "core", {
-  deps: ["vessel.orbit", "system.bodies"],
+  deps: ["vessel.orbit", "trackingStation.bodies"],
   window: { spanUt: 300, maxSamples: 32, minSamples: 2 },
   depWindows: { "vessel.orbit": { spanUt: 120, maxSamples: 8 } },
   reckon(_point, [orbitHistory, bodies], frame) {
@@ -108,8 +108,8 @@ registerReckoner("vessel.flight", "core", {
  */
 registerReckoner("vessel.flight", "core", {
   deps: ["vessel.orbit"],
-  // @ts-expect-error `system.bodies` is not one of this reckoner's declared deps.
-  depWindows: { "system.bodies": { spanUt: 60, maxSamples: 4 } },
+  // @ts-expect-error `trackingStation.bodies` is not one of this reckoner's declared deps.
+  depWindows: { "trackingStation.bodies": { spanUt: 60, maxSamples: 4 } },
   reckon() {
     return { declined: { reason: "model-inapplicable" } };
   },

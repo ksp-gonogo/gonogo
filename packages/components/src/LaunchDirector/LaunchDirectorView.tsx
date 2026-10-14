@@ -57,7 +57,7 @@ export function LaunchDirectorComponent({
     undefined,
   );
   // A site names its body by index; the body catalogue is a fact, so a held one still answers.
-  const bodies = stillTrue(useTelemetry("system.bodies"), undefined);
+  const bodies = stillTrue(useTelemetry("trackingStation.bodies"), undefined);
   const awayBodies = useMemo(
     () => awayBodyNames(bodies?.bodies ?? []),
     [bodies],

@@ -723,7 +723,7 @@ export function channelsFor(
   const distances = groundTrackDistances(extent.behind, extent.ahead);
   const halfExtent = siteGridHalfExtent(drift, f.aglMeters);
   return {
-    "system.bodies": {
+    "trackingStation.bodies": {
       bodies: [
         { name: "Mun", index: 3, parentIndex: 0, radius: R, orbit: null },
       ],
@@ -809,7 +809,7 @@ export function channelsFor(
 }
 
 export const EMITTED = [
-  "system.bodies",
+  "trackingStation.bodies",
   "vessel.identity",
   "vessel.orbit",
   "vessel.flight",

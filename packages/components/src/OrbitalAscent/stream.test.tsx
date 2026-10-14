@@ -24,10 +24,10 @@ describe("OrbitalAscent off the stream", () => {
     expect(visibleText(container)).toContain("ORBITAL ASCENT");
     expect(container.textContent).not.toContain("No reference data");
 
-    expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
+    expect(fixture.transport.isSubscribed("trackingStation.bodies")).toBe(true);
 
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Gargantua",

@@ -68,7 +68,7 @@ describe("a typed command's args reach the wire as bare numbers", () => {
       certification: PropagationCertification.Unbounded,
     };
 
-    await client.dispatch("system.bodies.statesAt", request).result;
+    await client.dispatch("trackingStation.bodies.statesAt", request).result;
 
     expect(wireArgsOf(transport).uts).toEqual([100, 200]);
   });
@@ -88,7 +88,7 @@ describe("a typed command's args reach the wire as bare numbers", () => {
       certification: PropagationCertification.Unbounded,
     };
 
-    client.dispatch("system.bodies.statesAt", request);
+    client.dispatch("trackingStation.bodies.statesAt", request);
 
     expect(isValue(request.uts[0])).toBe(true);
   });
@@ -103,7 +103,7 @@ describe("a command reply's declared quantities arrive as Values", () => {
     }));
     const client = createTestTelemetryClient(transport);
 
-    const reply = await client.dispatch("system.bodies.statesAt", {
+    const reply = await client.dispatch("trackingStation.bodies.statesAt", {
       bodyIndex: 1,
       centreBodyIndex: 0,
       uts: [],

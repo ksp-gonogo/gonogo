@@ -33,7 +33,7 @@ function setup(body: Record<string, unknown>) {
       horizon: ANALYTIC_UNBOUNDED_HORIZON,
       mu: 3.986e14,
     });
-    fixture.emit("system.bodies", { bodies: [body] });
+    fixture.emit("trackingStation.bodies", { bodies: [body] });
     // The widget resolves the body from this index against the roster above.
     fixture.emit("vessel.identity", {
       vesselId: "ov-o2-vessel",

@@ -303,7 +303,7 @@ export function atmosphereChannelsFor(
   const identity = channels["vessel.identity"];
   return {
     ...channels,
-    "system.bodies": {
+    "trackingStation.bodies": {
       bodies: [
         {
           name: body.name,

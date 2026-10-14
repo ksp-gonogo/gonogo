@@ -47,7 +47,7 @@ describe("Orbit View figures on a station: only its declared Topics arrive", () 
         parentBodyIndex: 1,
         launchUt: 0,
       },
-      "system.bodies": { bodies: [KERBIN] },
+      "trackingStation.bodies": { bodies: [KERBIN] },
     };
     act(() => {
       for (const topic of declared) {

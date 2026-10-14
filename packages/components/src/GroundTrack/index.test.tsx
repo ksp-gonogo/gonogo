@@ -42,14 +42,14 @@ const GROUND_TRACK_CHANNELS = [
   "vessel.flight",
   "vessel.orbit",
   "vessel.identity",
-  "system.bodies",
+  "trackingStation.bodies",
 ] as const;
 
 interface VesselScenario {
   lat?: number;
   lon?: number;
   altitude?: number;
-  /** Parent body name, as `system.bodies` reports it: drives every body read. */
+  /** Parent body name, as `trackingStation.bodies` reports it: drives every body read. */
   body?: string;
   /** Mean radius the stream reports for it. Kerbin's unless a case says otherwise. */
   bodyRadius?: number;
@@ -207,7 +207,7 @@ describe("GroundTrackComponent", () => {
           parentBodyIndex: 1,
           launchUt: 0,
         });
-        fixture.emit("system.bodies", {
+        fixture.emit("trackingStation.bodies", {
           bodies: [
             {
               index: 1,

@@ -68,7 +68,12 @@ import { WindowsList } from "./WindowsList";
 export type { TransferWindowActions } from "./config";
 
 const topics = defineTopicManifest({
-  channels: ["system.bodies", "vessel.orbit", "target.available", "dv.summary"],
+  channels: [
+    "trackingStation.bodies",
+    "vessel.orbit",
+    "target.available",
+    "dv.summary",
+  ],
   optionalChannels: read.optionalChannels,
 });
 
@@ -79,7 +84,7 @@ const WINDOW_COUNT = 5;
 
 /**
  * Transfer Window: departure planning derived client-side from the body
- * elements on `system.bodies`. Three linked instruments: the phase dial, the
+ * elements on `trackingStation.bodies`. Three linked instruments: the phase dial, the
  * windows list (select a row to focus the chart on it), and the porkchop Δv
  * surface for the selected window.
  */

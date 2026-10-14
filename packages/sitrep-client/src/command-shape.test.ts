@@ -28,7 +28,7 @@ describe("commandDelayed", () => {
 
   it("exempts a presentation choice, which sends nothing anywhere", () => {
     expect(commandDelayed("system.frame.set")).toBe(false);
-    expect(commandDelayed("system.bodies.statesAt")).toBe(false);
+    expect(commandDelayed("trackingStation.bodies.statesAt")).toBe(false);
   });
 
   it("delays everything else, which is the default a new command gets", () => {

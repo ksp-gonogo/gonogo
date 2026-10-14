@@ -38,44 +38,44 @@ describe("the game's own state, held on the store", () => {
 
   it("holds an observed topic with the grade loading once a load has run 750 ms", () => {
     const s = store();
-    s.ingest("system.bodies", point(10, BODIES));
+    s.ingest("trackingStation.bodies", point(10, BODIES));
     s.beginFrame();
-    expect(s.sampleReading("system.bodies").state).toBe("observed");
+    expect(s.sampleReading("trackingStation.bodies").state).toBe("observed");
 
     s.setGameState("loading", "FLIGHT");
     vi.advanceTimersByTime(749);
-    expect(s.sampleReading("system.bodies").state).toBe("observed");
+    expect(s.sampleReading("trackingStation.bodies").state).toBe("observed");
 
     vi.advanceTimersByTime(1);
-    const held = s.sampleReading("system.bodies");
+    const held = s.sampleReading("trackingStation.bodies");
     expect(held.state).toBe("held");
     expect(held.state === "held" && held.grade).toBe("loading");
   });
 
   it("reads observed again at once when the game is ready", () => {
     const s = store();
-    s.ingest("system.bodies", point(10, BODIES));
+    s.ingest("trackingStation.bodies", point(10, BODIES));
     s.setGameState("loading", "FLIGHT");
     vi.advanceTimersByTime(800);
-    expect(s.sampleReading("system.bodies").state).toBe("held");
+    expect(s.sampleReading("trackingStation.bodies").state).toBe("held");
 
     s.setGameState("ready", "FLIGHT");
 
-    expect(s.sampleReading("system.bodies").state).toBe("observed");
+    expect(s.sampleReading("trackingStation.bodies").state).toBe("observed");
   });
 
   it("changes no reading for a load that ends inside the onset", () => {
     const s = store();
-    s.ingest("system.bodies", point(10, BODIES));
+    s.ingest("trackingStation.bodies", point(10, BODIES));
     s.beginFrame();
-    const before = s.sampleReading("system.bodies");
+    const before = s.sampleReading("trackingStation.bodies");
 
     s.setGameState("loading", "SPACECENTER");
     vi.advanceTimersByTime(300);
     s.setGameState("ready", "SPACECENTER");
     vi.advanceTimersByTime(2000);
 
-    expect(s.sampleReading("system.bodies")).toBe(before);
+    expect(s.sampleReading("trackingStation.bodies")).toBe(before);
     expect(s.gameStatus().state).toBe("ready");
   });
 
@@ -84,12 +84,12 @@ describe("the game's own state, held on the store", () => {
     s.setGameState("loading", "FLIGHT");
     vi.advanceTimersByTime(800);
 
-    expect(s.sampleReading("system.bodies").state).toBe("pending");
+    expect(s.sampleReading("trackingStation.bodies").state).toBe("pending");
   });
 
   it("makes a derived channel inherit the grade", () => {
     const s = store();
-    s.ingest("system.bodies", point(10, BODIES));
+    s.ingest("trackingStation.bodies", point(10, BODIES));
     s.setGameState("loading", "FLIGHT");
     vi.advanceTimersByTime(800);
 
@@ -98,11 +98,11 @@ describe("the game's own state, held on the store", () => {
 
   it("holds every reading at once, with no onset, when there is no game", () => {
     const s = store();
-    s.ingest("system.bodies", point(10, BODIES));
+    s.ingest("trackingStation.bodies", point(10, BODIES));
 
     s.setGameState("no-game", "MAINMENU");
 
-    const held = s.sampleReading("system.bodies");
+    const held = s.sampleReading("trackingStation.bodies");
     expect(held.state === "held" && held.grade).toBe("no-game");
     expect(s.gameStatus()).toEqual({ state: "no-game", scene: "MAINMENU" });
   });

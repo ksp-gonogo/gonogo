@@ -3,7 +3,7 @@ import { defineTopicManifest } from "@ksp-gonogo/core";
 export const fleetRosterTopics = defineTopicManifest({
   channels: [
     "trackingStation.catalog",
-    "system.bodies",
+    "trackingStation.bodies",
     "commandCentre.roster",
   ],
 });

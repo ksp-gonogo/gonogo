@@ -15,7 +15,7 @@ import { SystemViewComponent } from "./index";
 /**
  * The vessel's trajectory is drawn in whatever shape its provider says it is, so an integrating provider gets neither a closed ellipse nor a one-period conic prediction.
  *
- * The bodies are not gated on the vessel's horizon: `system.bodies` carries a horizon per body, honoured in `systemInstantAt`.
+ * The bodies are not gated on the vessel's horizon: `trackingStation.bodies` carries a horizon per body, honoured in `systemInstantAt`.
  */
 
 const CONTRIBUTIONS_META = {
@@ -99,7 +99,7 @@ async function mount(horizon: PropagationHorizonLike) {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", kerbinSystem());
+    fixture.emit("trackingStation.bodies", kerbinSystem());
     fixture.emit("vessel.identity", {
       vesselId: "v",
       name: "Tester",

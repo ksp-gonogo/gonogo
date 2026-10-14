@@ -22,7 +22,7 @@ import {
  * ## Why the second case is here at all
  *
  * Both rules are structurally enforced and, on this tree, inert. Core's four
- * models declare `vessel.orbit`, `system.bodies` or nothing, and nobody models
+ * models declare `vessel.orbit`, `trackingStation.bodies` or nothing, and nobody models
  * those; every Uplink-owned model declares an unmodelled topic or no deps at
  * all. A rule with nothing to bite on reports clean forever and reads as working, which is
  * the failure the second case exists to stop: it pins the pairs where an input
@@ -62,7 +62,7 @@ describe("the input-rule ledger", () => {
     // `vessel.flight` on the rate-integration basis, from `vessel.orbit` only:
     // that model integrates the OBSERVED descent rate, so it does not derive
     // from the conic and the conic running out says nothing about how far it
-    // reaches. It stays bound by `system.bodies`, whose atmosphere depth is the
+    // reaches. It stays bound by `trackingStation.bodies`, whose atmosphere depth is the
     // boundary between its two regimes, which is exactly why the opt-out names
     // an input rather than a rule.
     expect(getReckonerExemptions()).toEqual([
@@ -94,7 +94,7 @@ describe("the input-rule ledger", () => {
      * - `vessel.flight` on the RATE-INTEGRATION basis: NOT bound by
      *   `vessel.orbit`, and exempt above with its reason. It integrates the
      *   observed descent rate and is the model that takes over where the conic
-     *   stopped. Still bound by `system.bodies`
+     *   stopped. Still bound by `trackingStation.bodies`
      * - `vessel.orbit.truth`: bound. Position and velocity are solved from the
      *   same elements at the same instant, so it reaches exactly as far as they
      *   do and not one frame further

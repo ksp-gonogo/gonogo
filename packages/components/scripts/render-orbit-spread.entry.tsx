@@ -85,7 +85,7 @@ const clock = new ViewClock({
 });
 const store = new TimelineStore(clock);
 store.setTransportConnected(false);
-store.ingest("system.bodies", point(0, BODIES));
+store.ingest("trackingStation.bodies", point(0, BODIES));
 store.ingest("vessel.orbit", point(0, orbitPayload(scene.driftMetres)));
 wall = scene.viewAfter;
 store.beginFrame();

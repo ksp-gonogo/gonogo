@@ -866,7 +866,7 @@ namespace Gonogo.KSP
                     Delay = delay,
                     // The backend declares the RULE; the body list it applies to
                     // comes from the snapshot this capture was already handed
-                    // (the same one system.bodies reads), so no backend has to
+                    // (the same one trackingStation.bodies reads), so no backend has to
                     // walk FlightGlobals itself.
                     Occlusion = OcclusionFor(backend, snapshot),
                     // The backend declares the RULE and its own rating under it.

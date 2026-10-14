@@ -539,14 +539,14 @@ registerComponent({ id: "w", component: Widget });
       "w.tsx": widget(
         "  useProcessor(FACTS);\n  useProcessor(SUMMARY);",
         `${SERIES}
-const FACTS = CLIENT_HANDLE.registerProcessor({ id: "f", deps: [{ reading: "system.bodies" }] as const });
+const FACTS = CLIENT_HANDLE.registerProcessor({ id: "f", deps: [{ reading: "trackingStation.bodies" }] as const });
 const SUMMARY = defineProcessor({ id: "s", deps: [FACTS, "dv.stages"] as const });`,
       ),
     });
     expect(ids(w.reads)).toEqual([
       "dv.stages",
-      "system.bodies",
-      "system.bodies",
+      "trackingStation.bodies",
+      "trackingStation.bodies",
     ]);
     expect(w.unresolved).toEqual([]);
   });

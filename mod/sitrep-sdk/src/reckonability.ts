@@ -132,7 +132,7 @@ export function reckonableInputsOf(
 /**
  * Returns a declared input written as the contract writes it, which is also
  * how a decline names it: `relativeVelocity` for a field of the same Topic,
- * `@system.bodies` for another Topic, `@vessel.orbit#mu` for a field of
+ * `@trackingStation.bodies` for another Topic, `@vessel.orbit#mu` for a field of
  * another Topic. Useful for naming the input that stopped a model when telling
  * the operator why a figure is unavailable. Used by the timeline store.
  *

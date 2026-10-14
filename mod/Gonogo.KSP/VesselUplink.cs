@@ -110,7 +110,7 @@ namespace Gonogo.KSP
                 // Orbital elements barely move on-rails (maneuver/SOI
                 // transitions only) but can move every tick off-rails
                 // (powered/atmospheric flight) -- a 30s keyframe cadence
-                // follows system.bodies' precedent (SystemUplink). The
+                // follows trackingStation.bodies' precedent (SystemUplink). The
                 // payload is a Dictionary tree (see VesselViewProvider's
                 // wire-adapter doc comment), which ChannelEmitter's
                 // change-gate compares by value, so an on-rails coast costs

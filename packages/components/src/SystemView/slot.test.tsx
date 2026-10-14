@@ -54,7 +54,7 @@ describe("SystemView: augment slots (spec §4)", () => {
     );
     renderedTrees.push(unmount);
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             index: 0,

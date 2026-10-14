@@ -2664,7 +2664,7 @@ export class TimelineStore {
    *
    * Only an input that has a model can have run out. An input nobody models is
    * held-last and makes no claim about how far it reaches, so declining on one
-   * would refuse every model in the tree: `system.bodies` changes once a session
+   * would refuse every model in the tree: `trackingStation.bodies` changes once a session
    * and is permanently held, and a hold-last is exactly the right reading of
    * it.
    *
@@ -3546,7 +3546,7 @@ export class TimelineStore {
     // not be stamped more current than the most delayed thing it read, and its
     // inputs are pinned to the same lane so one value is never assembled from
     // two instants a light-time apart. A channel reading a delayed vessel
-    // channel and the true-now `system.bodies` stays delayed, and reads the body
+    // channel and the true-now `trackingStation.bodies` stays delayed, and reads the body
     // catalogue at the delayed instant.
     const lane = derivedLane(def, this.declaredLane);
 

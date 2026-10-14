@@ -81,7 +81,7 @@ function mount() {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", kerbolSystem());
+    fixture.emit("trackingStation.bodies", kerbolSystem());
     fixture.emit("vessel.identity", {
       vesselId: "v-active",
       name: "Active Craft",

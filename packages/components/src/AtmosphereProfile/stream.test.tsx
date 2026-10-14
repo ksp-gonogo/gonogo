@@ -11,7 +11,7 @@ import { AtmosphereProfileComponent } from "./index";
 /**
  * AtmosphereProfile running off the real stream pipeline via `StubTransport`,
  * with no `DataSource` registered: the body resolves through
- * `vessel.identity.parentBodyIndex` against `system.bodies`, and the air
+ * `vessel.identity.parentBodyIndex` against `trackingStation.bodies`, and the air
  * readings are raw `vessel.flight` fields.
  */
 describe("AtmosphereProfile: genuinely runs off the stream (M3 batch 2)", () => {
@@ -45,7 +45,7 @@ describe("AtmosphereProfile: genuinely runs off the stream (M3 batch 2)", () => 
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.identity")).toBe(true);
-    expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
+    expect(fixture.transport.isSubscribed("trackingStation.bodies")).toBe(true);
 
     act(() => {
       fixture.emit("vessel.flight", {
@@ -55,7 +55,7 @@ describe("AtmosphereProfile: genuinely runs off the stream (M3 batch 2)", () => 
         externalTemperature: 291,
       });
       fixture.emit("vessel.identity", { parentBodyIndex: 1 });
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Kerbin",

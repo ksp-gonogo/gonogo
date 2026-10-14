@@ -321,7 +321,7 @@ describe("LaunchDirectorComponent", () => {
     expect(padRowText("KSC Pad")).not.toContain("Kerbin");
 
     act(() => {
-      stream.emit("system.bodies", {
+      stream.emit("trackingStation.bodies", {
         bodies: [
           { name: "Sun", index: 0, isHome: false },
           { name: "Kerbin", index: 1, isHome: true },

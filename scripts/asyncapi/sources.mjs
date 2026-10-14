@@ -39,7 +39,7 @@ export const SOURCES = {
    * Where core channels and commands are declared.
    *
    * Almost all of them are in the plugin assembly, on an `UplinkManifest`. A
-   * few commands are declared by the engine itself (`system.bodies.statesAt`,
+   * few commands are declared by the engine itself (`trackingStation.bodies.statesAt`,
    * registered straight into `ChannelEngine`'s own table), so the host is
    * scanned too.
    */

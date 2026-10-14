@@ -22,7 +22,7 @@ import { TransferWindowComponent } from "./index";
 
 const DEG = Math.PI / 180;
 
-// Wire `system.bodies` entries (BodyEntry shape; angles in radians).
+// Wire `trackingStation.bodies` entries (BodyEntry shape; angles in radians).
 const SUN = {
   index: 0,
   name: "Sun",
@@ -101,7 +101,9 @@ function setup(targetBodyIndex?: number, opts?: { budgetDvVac?: number }) {
   );
   // Inside `act`: the fixture's clock is suspended, so each emit publishes and renders on the spot.
   act(() => {
-    fixture.emit("system.bodies", { bodies: [SUN, EARTH, MARS, VENUS] });
+    fixture.emit("trackingStation.bodies", {
+      bodies: [SUN, EARTH, MARS, VENUS],
+    });
     // Vessel in a 700 km-ish LEO around Earth (index 1).
     fixture.emit("vessel.orbit", {
       referenceBodyIndex: 1,

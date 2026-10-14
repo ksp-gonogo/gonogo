@@ -60,7 +60,7 @@ describe("LandingStatus on the launchpad", () => {
   /** A craft on the pad: a few metres between its root part and the terrain datum, which the descent solve would turn into a free fall. */
   function emitOnThePad() {
     act(() => {
-      stream.emit("system.bodies", {
+      stream.emit("trackingStation.bodies", {
         bodies: [
           {
             name: KERBIN.name,

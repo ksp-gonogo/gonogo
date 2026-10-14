@@ -92,7 +92,7 @@ const LIGHT_TIME_SECONDS = 10;
  * A store carrying one orbit sample at the given quality, read at the SCET
  * `at` is given. The wall clock stands for the craft's UT, so the sample lands
  * a light-time after it was stamped.
- * `roster` is the `system.bodies` payload, and `null` leaves the roster out.
+ * `roster` is the `trackingStation.bodies` payload, and `null` leaves the roster out.
  */
 /** An airless body well inside the orbit, so a coast round it is in vacuum. */
 const AIRLESS: ConicBodiesInput = {
@@ -146,7 +146,7 @@ function scene(
   const store = new TimelineStore(clock);
   store.setTransportConnected(false);
   if (roster !== null) {
-    store.ingest("system.bodies", point(0, roster, Quality.OnRails));
+    store.ingest("trackingStation.bodies", point(0, roster, Quality.OnRails));
   }
   store.ingest(
     "vessel.orbit",
@@ -302,7 +302,7 @@ describe("the vessel.orbit reckoner", () => {
 
     expect(reading.reckoning).toMatchObject({
       status: "declined",
-      declined: { reason: "beyond-horizon", input: "@system.bodies" },
+      declined: { reason: "beyond-horizon", input: "@trackingStation.bodies" },
     });
   });
 
@@ -340,7 +340,7 @@ describe("the vessel.orbit reckoner", () => {
     const store = new TimelineStore(clock);
     store.setTransportConnected(false);
     store.ingest(
-      "system.bodies",
+      "trackingStation.bodies",
       point(0, AIRLESS, Quality.OnRails) as TimelinePoint<ConicBodiesInput>,
     );
     const burn = (t: number) => {
@@ -424,7 +424,7 @@ describe("the vessel.orbit reckoner", () => {
     const store = new TimelineStore(clock);
     store.setTransportConnected(false);
     store.ingest(
-      "system.bodies",
+      "trackingStation.bodies",
       point(0, AIRLESS, Quality.OnRails) as TimelinePoint<ConicBodiesInput>,
     );
     const n = Math.sqrt(PLANET_MU / SMA ** 3);

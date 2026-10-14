@@ -51,9 +51,9 @@ export type { OrbitViewActions } from "./config";
 export type { OrbitOverlayContext } from "./slots";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.orbit", "vessel.identity", "system.bodies"],
+  channels: ["vessel.orbit", "vessel.identity", "trackingStation.bodies"],
   optionalChannels: read.optionalChannels,
-  // Per field so alarms stay off a widget that does not draw them; `system.bodies` carries the body geometry.
+  // Per field so alarms stay off a widget that does not draw them; `trackingStation.bodies` carries the body geometry.
   fields: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",

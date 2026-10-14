@@ -23,7 +23,7 @@ function renderBodies(opts: { pinnedUt?: number } = { pinnedUt: 0 }) {
 }
 
 describe("useCelestialBodies: what undefined means today", () => {
-  it("answers a stable empty roster before any system.bodies sample, never a hole", () => {
+  it("answers a stable empty roster before any trackingStation.bodies sample, never a hole", () => {
     const { result, rerender } = renderBodies();
 
     // An empty array, not undefined: consumers map over it unguarded, so never-arrived reads as "no bodies".
@@ -40,7 +40,7 @@ describe("useCelestialBodies: what undefined means today", () => {
     const { fixture, result } = renderBodies();
     // The record is present with the array missing, so the gate short-circuits.
     act(() => {
-      fixture.emit("system.bodies", {});
+      fixture.emit("trackingStation.bodies", {});
     });
 
     await waitFor(() => expect(result.current).toHaveLength(0));
@@ -50,7 +50,7 @@ describe("useCelestialBodies: what undefined means today", () => {
     const { fixture, result } = renderBodies();
     const beforeAnySample = result.current;
     act(() => {
-      fixture.emit("system.bodies", { bodies: [] });
+      fixture.emit("trackingStation.bodies", { bodies: [] });
     });
 
     // "No bodies reported" and "nothing heard" are one state to every consumer.
@@ -58,17 +58,19 @@ describe("useCelestialBodies: what undefined means today", () => {
     expect(result.current).toEqual(beforeAnySample);
   });
 
-  it("treats a null system.bodies payload as not-arrived-yet, not as a confirmed absence", async () => {
+  it("treats a null trackingStation.bodies payload as not-arrived-yet, not as a confirmed absence", async () => {
     // View time ahead of both samples so the tombstone is the one sampled.
     const { fixture, result } = renderBodies({ pinnedUt: 10 });
     act(() => {
-      fixture.emit("system.bodies", { bodies: [{ index: 0, name: "Kerbin" }] });
+      fixture.emit("trackingStation.bodies", {
+        bodies: [{ index: 0, name: "Kerbin" }],
+      });
     });
     await waitFor(() => expect(result.current).toHaveLength(1));
 
     // A tombstone surfaces as `null`, the same gate fires, and a confirmed empty system renders like a cold topic with no age.
     act(() => {
-      fixture.emit("system.bodies", null, { validAt: 5, seq: 1 });
+      fixture.emit("trackingStation.bodies", null, { validAt: 5, seq: 1 });
     });
     await waitFor(() => expect(result.current).toHaveLength(0));
   });
@@ -76,7 +78,7 @@ describe("useCelestialBodies: what undefined means today", () => {
   it("reports a body with no atmosphere field as confidently airless", async () => {
     const { fixture, result } = renderBodies();
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             index: 0,
@@ -103,7 +105,7 @@ describe("useCelestialBodies: what undefined means today", () => {
   it("nulls every orbit element and every orbit derivation for a body with no orbit", async () => {
     const { fixture, result } = renderBodies();
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             index: 0,
@@ -137,7 +139,7 @@ describe("useCelestialBodies: what undefined means today", () => {
   it("nulls the mu-derived properties for a body whose gravParameter never arrived", async () => {
     const { fixture, result } = renderBodies();
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [{ index: 0, name: "Kerbin", parentIndex: null, orbit: null }],
       });
     });
@@ -159,7 +161,7 @@ describe("useCelestialBodies: what undefined means today", () => {
   it("nulls a child's derived period when the parent's mu is the missing field", async () => {
     const { fixture, result } = renderBodies();
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           // Parent present but with no gravParameter: the child's orbit is complete and still cannot be turned into a period or an anomaly.
           { index: 0, name: "Kerbin", parentIndex: null, orbit: null },

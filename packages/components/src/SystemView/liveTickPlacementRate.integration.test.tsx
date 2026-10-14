@@ -95,7 +95,7 @@ describe("SystemView placement rate under a live clock", () => {
       </fixture.Provider>,
     );
     act(() => {
-      fixture.emit("system.bodies", system);
+      fixture.emit("trackingStation.bodies", system);
       fixture.emit("system.frame", { kind: 1, centreBody: "Kerbin" });
       fixture.emit("vessel.identity", {
         vesselId: "v",

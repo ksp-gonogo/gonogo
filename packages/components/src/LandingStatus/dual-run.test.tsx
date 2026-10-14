@@ -6,7 +6,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LandingStatusComponent } from "./index";
 
 /**
- * The atmospheric-board stream render, with `bodyName` named from `vessel.identity.parentBodyIndex` against `system.bodies`.
+ * The atmospheric-board stream render, with `bodyName` named from `vessel.identity.parentBodyIndex` against `trackingStation.bodies`.
  * `kerbin-reentry-atmospheric` descends through an atmosphere with no mod terminal velocity, so the vacuum burn numbers are suppressed and the estimate board (velocity, air density, drag-building note) shows instead of a silent "descent unmodelled".
  */
 
@@ -27,7 +27,7 @@ describe("LandingStatus: atmospheric stream render golden (delay=0)", () => {
     );
 
     act(() => {
-      stream.emit("system.bodies", {
+      stream.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Kerbin",

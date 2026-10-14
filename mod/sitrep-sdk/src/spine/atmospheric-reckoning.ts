@@ -42,7 +42,7 @@ import {
  * have had to publish.
  *
  * `VesselFlight.AltitudeAsl` declares this model, beside the conic and with its
- * own inputs (`verticalSpeed`, `gForce`, `@system.bodies`), which is what makes
+ * own inputs (`verticalSpeed`, `gForce`, `@trackingStation.bodies`), which is what makes
  * it a promise to anyone holding the stream rather than a thing our client
  * happens to do. Every withdrawal below that blames an input therefore names it
  * in the contract's own spelling.
@@ -414,7 +414,7 @@ export function atmosphericAdmissibility(
     return {
       declined: {
         reason: "model-inapplicable",
-        input: "@system.bodies",
+        input: "@trackingStation.bodies",
         note: "not inside the parent body's atmosphere, where the conic carries the altitude instead",
       },
     };

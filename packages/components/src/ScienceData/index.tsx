@@ -38,7 +38,7 @@ export type { ScienceDataAboardRowContext } from "@ksp-gonogo/sitrep-sdk";
 const topics = defineTopicManifest({
   channels: [
     "vessel.identity",
-    "system.bodies",
+    "trackingStation.bodies",
     "vessel.surface",
     "science.experiments",
     "science.experimentBreakdown",

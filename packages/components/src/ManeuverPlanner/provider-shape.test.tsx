@@ -75,7 +75,7 @@ function mountPlanner(horizon: PropagationHorizonLike, instanceId: string) {
       parentBodyIndex: 1,
       launchUt: 0,
     });
-    fixture.emit("system.bodies", {
+    fixture.emit("trackingStation.bodies", {
       bodies: [{ index: 1, name: "Kerbin", parentIndex: 0, radius: 600000 }],
     });
     fixture.emit("vessel.maneuver", {

@@ -65,7 +65,7 @@ namespace Gonogo.KSP
                     Delivery = Delivery.LossyLatest,
                     // Career state changes on player action (accept a
                     // contract, spend funds, activate a strategy), not per
-                    // frame - the same 30s keyframe cadence system.bodies
+                    // frame - the same 30s keyframe cadence trackingStation.bodies
                     // uses, and the change-gate compares the payload tree by
                     // value, so a career nobody is touching costs the
                     // keyframe alone.

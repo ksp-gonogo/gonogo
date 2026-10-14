@@ -36,7 +36,7 @@ describe("ManeuverPlanner under signal delay", () => {
     const meta = { validAt: UT_NOW - OWLT, deliveredAt: UT_NOW };
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         { bodies: [{ index: 1, name: "Kerbin", radius: 600_000 }] },
         meta,
       );

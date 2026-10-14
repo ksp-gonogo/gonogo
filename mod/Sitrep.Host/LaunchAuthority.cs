@@ -16,7 +16,7 @@ namespace Sitrep.Host
             IsStar = isStar;
         }
 
-        /// <summary>Index into system.bodies. Two roots are the same system exactly when these match.</summary>
+        /// <summary>Index into trackingStation.bodies. Two roots are the same system exactly when these match.</summary>
         public int BodyIndex { get; }
 
         public string Name { get; }

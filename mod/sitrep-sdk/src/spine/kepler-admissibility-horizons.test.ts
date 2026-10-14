@@ -119,7 +119,7 @@ describe("keplerAdmissibility along an arc: the atmospheric interface", () => {
         PERIAPSIS_UT,
       ),
     ).toMatchObject({
-      declined: { reason: "beyond-horizon", input: "@system.bodies" },
+      declined: { reason: "beyond-horizon", input: "@trackingStation.bodies" },
     });
   });
 
@@ -166,7 +166,7 @@ describe("keplerAdmissibility along an arc: what lies between the elements and t
         backAtApoapsis,
       ),
     ).toMatchObject({
-      declined: { reason: "beyond-horizon", input: "@system.bodies" },
+      declined: { reason: "beyond-horizon", input: "@trackingStation.bodies" },
     });
   });
 
@@ -240,7 +240,7 @@ describe("keplerAdmissibility along an arc: the sphere of influence", () => {
         30 * DAY,
       ),
     ).toMatchObject({
-      declined: { reason: "beyond-horizon", input: "@system.bodies" },
+      declined: { reason: "beyond-horizon", input: "@trackingStation.bodies" },
     });
   });
 

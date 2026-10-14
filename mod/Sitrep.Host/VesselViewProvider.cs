@@ -2185,7 +2185,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Resolves a body name (KspHost's raw vessel.orbit.referenceBody /
         /// identity.parentBody / encounter.body all carry names, not indices)
-        /// to its stable <c>system.bodies</c> index, by scanning
+        /// to its stable <c>trackingStation.bodies</c> index, by scanning
         /// <c>snapshot.Values["bodies"]</c> -- the same raw list
         /// <see cref="SystemViewProvider"/> reads. Returns null if the bodies
         /// list is absent or the name doesn't match any entry (never a

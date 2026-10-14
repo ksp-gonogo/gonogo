@@ -15,9 +15,9 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// Engine-level tests for <see cref="ChannelEngine"/> that go beyond the
-    /// single <c>system.bodies</c> topic <see cref="ReplayToWebSocketEndToEndTests"/>
+    /// single <c>trackingStation.bodies</c> topic <see cref="ReplayToWebSocketEndToEndTests"/>
     /// exercises: proving the multi-topic/multi-command generalization
-    /// itself (not just that the retrofitted <c>system.bodies</c> channel
+    /// itself (not just that the retrofitted <c>trackingStation.bodies</c> channel
     /// still behaves like <c>GonogoBodiesServer</c> did).
     /// </summary>
     public class ChannelEngineTests
@@ -4171,7 +4171,7 @@ namespace Sitrep.Host.IntegrationTests
         /// A trivial raw-passthrough channel (same shape as
         /// <see cref="TestSystemUplink.RawTopic"/>, kept separate so
         /// these epoch-focused tests aren't coupled to that uplink's
-        /// unrelated <c>system.bodies</c>/rewind-stall scenarios) plus two
+        /// unrelated <c>trackingStation.bodies</c>/rewind-stall scenarios) plus two
         /// commands for the epoch-on-command-response proof: a
         /// delayed one (rides the Courier's signal delay round trip) and a
         /// non-delayed one (used purely as an ordering barrier -- see

@@ -41,7 +41,7 @@ interface PadSectionProps {
   pads: readonly LaunchSiteEntry[];
   activePad: LaunchSiteEntry | undefined;
   onPickPad: (name: string) => void;
-  /** Names of the bodies away from the home world, by `system.bodies` index. */
+  /** Names of the bodies away from the home world, by `trackingStation.bodies` index. */
   awayBodies: ReadonlyMap<number, string>;
   padCraft: readonly SavedShip[];
   /** False while the saved-craft list has never arrived, which is not an empty pad. */

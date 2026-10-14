@@ -948,13 +948,13 @@ export function getVesselIdentity(): VesselIdentity | undefined {
 }
 
 /**
- * The body tree from `system.bodies`, keyed by stable body index, as a single
+ * The body tree from `trackingStation.bodies`, keyed by stable body index, as a single
  * read for a caller that cannot use hooks. Useful for turning an orbital radius
  * into an altitude, which needs the reference body's own radius, and for naming
  * bodies to the operator. Used by the maneuver-trigger host service.
  */
 export function getSystemBodies(): SystemBodies | undefined {
-  return sampleActiveTopic<SystemBodies>("system.bodies");
+  return sampleActiveTopic<SystemBodies>("trackingStation.bodies");
 }
 
 /**

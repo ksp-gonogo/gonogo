@@ -123,7 +123,7 @@ function registerProbeReckoner(): void {
     name: "Equivalence Probe",
     description:
       "Registers core's conic a second time, through the author surface.",
-    /* What its contract's codegen writes for [assembly: SitrepReckonableOn("vessel.flight", "altitudeAsl", ReckoningBases.KeplerPropagation, "@vessel.orbit", "@system.bodies")]. */
+    /* What its contract's codegen writes for [assembly: SitrepReckonableOn("vessel.flight", "altitudeAsl", ReckoningBases.KeplerPropagation, "@vessel.orbit", "@trackingStation.bodies")]. */
     tags: {
       reckonable: [
         {
@@ -132,14 +132,14 @@ function registerProbeReckoner(): void {
           basis: "kepler-propagation",
           inputs: [
             { topic: "vessel.orbit", path: "" },
-            { topic: "system.bodies", path: "" },
+            { topic: "trackingStation.bodies", path: "" },
           ],
         },
       ],
     },
   });
   PROBE.registerReckoner("vessel.flight", {
-    deps: ["vessel.orbit", "system.bodies"],
+    deps: ["vessel.orbit", "trackingStation.bodies"],
     reckon(_point, [orbitPoint, bodiesPoint], { reckonUt }) {
       const orbit = orbitPoint?.payload;
       const bodies = bodiesPoint?.payload ?? undefined;
@@ -155,7 +155,10 @@ function registerProbeReckoner(): void {
       )?.radius;
       if (radius == null) {
         return {
-          declined: { reason: "input-absent", input: "@system.bodies" },
+          declined: {
+            reason: "input-absent",
+            input: "@trackingStation.bodies",
+          },
         };
       }
       return {
@@ -199,7 +202,7 @@ function scene(encounterUt?: number) {
     wall = scetUt;
     store.beginFrame();
   };
-  store.ingest("system.bodies", point(0, SYSTEM));
+  store.ingest("trackingStation.bodies", point(0, SYSTEM));
   store.ingest(
     "vessel.orbit",
     point(0, {
@@ -373,7 +376,7 @@ describe("core's conic and an Uplink's registration of it are the same model", (
     store.beginFrame();
     expect(store.sampleReading("vessel.flight").reckoning).toMatchObject({
       status: "declined",
-      declined: { reason: "input-absent", input: "@system.bodies" },
+      declined: { reason: "input-absent", input: "@trackingStation.bodies" },
     });
   });
 

@@ -82,7 +82,7 @@ describe("useSystemInstant", () => {
     const { fixture, result } = renderInstant();
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         catalogue({
           kind: UNTIL,
           trajectoryKind: INTEGRATED,
@@ -111,7 +111,7 @@ describe("useSystemInstant", () => {
     const { fixture, result } = renderInstant();
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         catalogue({
           kind: UNTIL,
           trajectoryKind: INTEGRATED,
@@ -131,7 +131,7 @@ describe("useSystemInstant", () => {
     const { fixture, result } = renderInstant();
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         catalogue({
           kind: UNTIL,
           trajectoryKind: INTEGRATED,
@@ -161,7 +161,7 @@ describe("useSystemInstant", () => {
   it("keeps a body on a fixed orbit exact however old the catalogue is", async () => {
     const { fixture, result } = renderInstant();
     act(() => {
-      fixture.emit("system.bodies", catalogue(), { validAt: 300 });
+      fixture.emit("trackingStation.bodies", catalogue(), { validAt: 300 });
     });
     await waitFor(() =>
       expect(poseAtIndex(result.current, 1)?.currency).toBe("exact"),

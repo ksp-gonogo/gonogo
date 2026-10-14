@@ -2,7 +2,7 @@
   "_meta": {
     "shows": "A 680 km semi-major axis orbit while the game has reported that it will send no body list at all (rather than the list still loading), so the reference body cannot be named.",
     "scenario": "low-kerbin-orbit-body-unnamed",
-    "notes": "Low Kerbin Orbit with system.bodies a confirmed tombstone, so the reference body is known to be unnameable rather than still loading."
+    "notes": "Low Kerbin Orbit with trackingStation.bodies a confirmed tombstone, so the reference body is known to be unnameable rather than still loading."
   },
   "_series": {
     "vessel.orbit.sma": [
@@ -70,7 +70,7 @@
         }
       },
       {
-        "channel": "system.bodies",
+        "channel": "trackingStation.bodies",
         "value": null
       }
     ],

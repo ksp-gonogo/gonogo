@@ -36,7 +36,7 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = resolve(HERE, "../src/LandingStatus/__render_handover__");
 
-/** Kerbin, as `system.bodies` publishes it. */
+/** Kerbin, as `trackingStation.bodies` publishes it. */
 const KERBIN = {
   radius: 600_000,
   atmosphereDepth: 70_000,
@@ -424,7 +424,7 @@ function fixtureFor(frame: Frame): unknown {
       pinnedUt: viewUt,
       emits: [
         {
-          channel: "system.bodies",
+          channel: "trackingStation.bodies",
           value: {
             bodies: [
               {

@@ -64,7 +64,7 @@ describe("Orbit View figures: full render off the stream", () => {
         parentBodyIndex: 1,
         launchUt: 0,
       });
-      streamFixture.emit("system.bodies", {
+      streamFixture.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Kerbin",

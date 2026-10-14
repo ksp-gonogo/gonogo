@@ -147,7 +147,7 @@ describe("SitrepPeerRelay", () => {
     );
     // Nothing else, however commonplace: a station reads `vessel.orbit` because a widget on it asked, not because it is a well-known topic.
     expect(transport.isSubscribed("vessel.orbit")).toBe(false);
-    expect(transport.isSubscribed("system.bodies")).toBe(false);
+    expect(transport.isSubscribed("trackingStation.bodies")).toBe(false);
 
     /* The roster outlives the station, because the provider holds it for the
        host's own delay lanes, so the relay letting go shows as it no longer

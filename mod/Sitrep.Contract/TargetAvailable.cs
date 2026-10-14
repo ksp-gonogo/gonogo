@@ -64,7 +64,7 @@ public class TargetListEntry
     [SitrepUnit(Units.Id)]
     public string? VesselId { get; set; }
 
-    /// <summary>Index into <c>system.bodies</c>: set for <see cref="TargetKind.Body"/>. Null otherwise.</summary>
+    /// <summary>Index into <c>trackingStation.bodies</c>: set for <see cref="TargetKind.Body"/>. Null otherwise.</summary>
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 
@@ -167,7 +167,7 @@ public class TargetListEntry
     /// </summary>
     public OrbitEntry? Orbit { get; set; }
 
-    /// <summary>Index into <c>system.bodies</c> of the body <see cref="Orbit"/> is around. Null wherever <see cref="Orbit"/> is.</summary>
+    /// <summary>Index into <c>trackingStation.bodies</c> of the body <see cref="Orbit"/> is around. Null wherever <see cref="Orbit"/> is.</summary>
     [SitrepUnit(Units.Id)]
     public int? OrbitBodyIndex { get; set; }
 }
@@ -215,6 +215,6 @@ public class TargetAvailable
     /// <see cref="TargetListEntry.Orbit"/> and the active vessel's own orbit.
     /// Every other field of every entry is the observation.</para>
     /// </summary>
-    [SitrepReckonable(ReckoningBases.KeplerPropagation, "@vessel.orbit", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "@vessel.orbit", "@trackingStation.bodies")]
     public IReadOnlyList<TargetListEntry> Entries { get; set; } = new List<TargetListEntry>();
 }

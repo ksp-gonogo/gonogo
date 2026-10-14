@@ -28,7 +28,7 @@ describe("SemiMajorAxis: renders off the stream alone", () => {
         sma: lkoKerbin["vessel.orbit.sma"],
         referenceBodyIndex: 1,
       });
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             name: lkoKerbin["o.referenceBody"],

@@ -46,7 +46,7 @@ export interface FleetVessel {
   /** Stable vessel id, the row key and the line-updates slot correlation key. */
   id: string;
   name: string;
-  /** Body the vessel orbits/sits on, resolved via `system.bodies`; null when unresolved. */
+  /** Body the vessel orbits/sits on, resolved via `trackingStation.bodies`; null when unresolved. */
   body: string | null;
   /** Kerbals aboard; null when the producer could not read it this tick (never a fabricated 0). */
   crewCount: number | null;
@@ -104,7 +104,9 @@ export function useFleet(): {
   );
   const system = stillTrue(systemReading, EMPTY_FLEET);
   // The body catalogue is a fact, and a tombstone for it would mean a save with no celestial bodies, which cannot happen; `undefined` is the honest answer there.
-  const bodiesReading = fleetRosterTopics.useTelemetry("system.bodies");
+  const bodiesReading = fleetRosterTopics.useTelemetry(
+    "trackingStation.bodies",
+  );
   const bodies = stillTrue(bodiesReading, undefined);
 
   const nameByIndex = useMemo(() => {

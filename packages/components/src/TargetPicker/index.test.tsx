@@ -258,7 +258,7 @@ describe("TargetPickerComponent: the range to a craft only known of", () => {
 
   function emitSky() {
     act(() => {
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           { index: 1, name: "Kerbin", radius: 600_000, gravParameter: MU },
         ],

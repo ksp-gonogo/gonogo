@@ -72,7 +72,7 @@ describe("KeplerPeriod: reads body names off the stream", () => {
         parentBodyIndex: 42,
         launchUt: 0,
       });
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Gallium",
@@ -86,7 +86,7 @@ describe("KeplerPeriod: reads body names off the stream", () => {
     });
 
     expect(fixture.transport.isSubscribed("vessel.identity")).toBe(true);
-    expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
+    expect(fixture.transport.isSubscribed("trackingStation.bodies")).toBe(true);
 
     await waitFor(() =>
       expect(screen.getByText(/No reference data/)).toBeTruthy(),

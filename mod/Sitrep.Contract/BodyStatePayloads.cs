@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Ask where a body is at each of a list of instants. Args for <c>system.bodies.statesAt</c>: where one body is at each of a
+    /// Ask where a body is at each of a list of instants. Args for <c>trackingStation.bodies.statesAt</c>: where one body is at each of a
     /// list of instants, from the propagation provider in use on this install.
     /// The instants are the caller's own, such as the departure and arrival
     /// times a transfer search tries.
@@ -41,12 +41,12 @@ namespace Sitrep.Contract
     [TsInterface]
 #endif
     [SitrepCommand(
-        "system.bodies.statesAt",
+        "trackingStation.bodies.statesAt",
         Result = typeof(BodyStatesReply),
         Delay = DelayRole.TrueNow)]
     public class BodyStatesRequest
     {
-        /// <summary>The body, by its <c>system.bodies</c> index.</summary>
+        /// <summary>The body, by its <c>trackingStation.bodies</c> index.</summary>
         [SitrepUnit(Units.Id)]
         public int BodyIndex { get; set; }
 
@@ -89,7 +89,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// The reply to <c>system.bodies.statesAt</c>: the solved states, or why
+    /// The reply to <c>trackingStation.bodies.statesAt</c>: the solved states, or why
     /// there are none.
     ///
     /// <para>Branch on <see cref="Solved"/>, never on an empty list: a body the

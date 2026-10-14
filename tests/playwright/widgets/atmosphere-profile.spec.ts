@@ -4,7 +4,7 @@
  * "waiting for body telemetry" empty state staying absent) on the host.
  *
  * The fixture (`sitrep-stream-server.mjs`) has:
- *   vessel.identity.parentBodyIndex = 1, named "Kerbin" by system.bodies
+ *   vessel.identity.parentBodyIndex = 1, named "Kerbin" by trackingStation.bodies
  *   vessel.flight.altitudeAsl       = ~101 km (above Kerbin's atmosphere)
  *
  * Kerbin is a known body with an atmospheric model, so on the host:

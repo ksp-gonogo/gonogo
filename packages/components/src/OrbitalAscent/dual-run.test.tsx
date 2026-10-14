@@ -25,7 +25,7 @@ describe("OrbitalAscent: stream render golden (delay=0)", () => {
     );
 
     act(() => {
-      streamFixture.emit("system.bodies", {
+      streamFixture.emit("trackingStation.bodies", {
         bodies: [
           {
             name: UNTABLED_BODY,

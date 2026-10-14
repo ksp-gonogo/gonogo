@@ -29,7 +29,7 @@ namespace Sitrep.Contract.TestSupport
     /// </summary>
     public static class ReckonabilityAssertion
     {
-        /// <summary>Marks a whole-payload cross-topic input: <c>@system.bodies</c>.</summary>
+        /// <summary>Marks a whole-payload cross-topic input: <c>@trackingStation.bodies</c>.</summary>
         private const char TopicPrefix = '@';
 
         /// <summary>Separates a cross-topic input's topic from its field path: <c>@vessel.orbit#mu</c>.</summary>

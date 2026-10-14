@@ -41,18 +41,18 @@ public class VesselFlight
     // TWO models, one per regime, because the conic stops describing what happens at the
     // atmosphere interface and that is exactly where a descent is watched.
     //
-    // Above it: the conic gives the orbital radius; system.bodies is what turns that into an
+    // Above it: the conic gives the orbital radius; trackingStation.bodies is what turns that into an
     // altitude, because the reference body's radius is the only place sea level is published.
-    [SitrepReckonable(ReckoningBases.KeplerPropagation, "@vessel.orbit", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "@vessel.orbit", "@trackingStation.bodies")]
     // Below it: the altitude advanced by the observed descent rate. verticalSpeed IS that rate,
     // measured, so it already carries whatever the installed aerodynamics did and no drag model
     // is needed or wanted. gForce bounds how far the rate may be carried, being the sensed
     // non-gravitational magnitude and so a direct read on how fast the regime is changing.
-    // system.bodies again, for the atmosphere depth: that depth is the boundary between the two
+    // trackingStation.bodies again, for the atmosphere depth: that depth is the boundary between the two
     // models, and without it neither knows which regime it is in.
-    [SitrepReckonable(ReckoningBases.RateIntegration, "verticalSpeed", "gForce", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.RateIntegration, "verticalSpeed", "gForce", "@trackingStation.bodies")]
     // Under thrust the conic and the descent both stand down; the burn model carries the altitude off its integrated state, banded the way vessel.orbit's elements are.
-    [SitrepReckonable(ReckoningBases.PoweredIntegration, "@vessel.orbit", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "@vessel.orbit", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     public double AltitudeAsl { get; set; }
 
     /// <summary>Height above terrain (AGL, KSP's <c>Vessel.radarAltitude</c>), metres. Not derivable from orbital elements, so it is streamed as measured.</summary>
@@ -69,10 +69,10 @@ public class VesselFlight
 
     /// <summary>Speed relative to the parent body's inertial frame, metres per second (KSP's <c>Vessel.obt_speed</c>).</summary>
     [SitrepUnit(Units.MetresPerSecond)]
-    // The vis-viva speed falls out of the elements and mu alone. No body radius, so system.bodies
+    // The vis-viva speed falls out of the elements and mu alone. No body radius, so trackingStation.bodies
     // is NOT declared: an input a model does not use is a false promise the gate cannot catch.
     [SitrepReckonable(ReckoningBases.KeplerPropagation, "@vessel.orbit")]
-    [SitrepReckonable(ReckoningBases.PoweredIntegration, "@vessel.orbit", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
+    [SitrepReckonable(ReckoningBases.PoweredIntegration, "@vessel.orbit", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     public double OrbitalSpeed { get; set; }
 
     /// <summary>Multiples of standard gravity (KSP's <c>Vessel.geeForce</c>).</summary>

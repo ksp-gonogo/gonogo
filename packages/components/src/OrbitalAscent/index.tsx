@@ -38,15 +38,15 @@ export function horizontalOf(
 }
 
 const topics = defineTopicManifest({
-  // The reference curve needs the body's radius and gravitational parameter from `system.bodies`.
-  channels: ["vessel.flight", "vessel.identity", "system.bodies"],
+  // The reference curve needs the body's radius and gravitational parameter from `trackingStation.bodies`.
+  channels: ["vessel.flight", "vessel.identity", "trackingStation.bodies"],
   optionalChannels: read.optionalChannels,
   fields: [
     "vessel.flight.altitudeAsl",
     "vessel.flight.orbitalSpeed",
     "vessel.flight.verticalSpeed",
     "vessel.identity.parentBodyIndex",
-    "system.bodies",
+    "trackingStation.bodies",
   ],
 });
 

@@ -67,7 +67,7 @@ describe("AtmosphereProfile: the pressure curve is the game's, not a model", () 
     fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
     fixture.emit("vessel.flight", { altitudeAsl });
     fixture.emit("vessel.identity", { parentBodyIndex: 1 });
-    fixture.emit("system.bodies", {
+    fixture.emit("trackingStation.bodies", {
       bodies: [
         {
           name,

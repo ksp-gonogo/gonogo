@@ -45,7 +45,7 @@ function fixture() {
   // StubTransport delivers only to subscribed channels.
   client.subscribe("vessel.orbit", () => {});
   client.subscribe("vessel.identity", () => {});
-  client.subscribe("system.bodies", () => {});
+  client.subscribe("trackingStation.bodies", () => {});
 
   const commands: string[] = [];
   const calls: Array<{ command: string; args: unknown }> = [];
@@ -68,7 +68,7 @@ function fixture() {
   };
 
   // An Earth-sized body no stock table carries, as real Values because the stream hydrates every declared quantity.
-  emit("system.bodies", {
+  emit("trackingStation.bodies", {
     bodies: [{ index: 1, name: "Earth", radius: value("m", 6_371_000) }],
   });
   emit("vessel.orbit", ORBIT);

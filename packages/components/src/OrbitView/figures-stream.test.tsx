@@ -9,7 +9,7 @@ import { OrbitViewComponent } from "./index";
 
 /**
  * Orbit View figures on the real provider pipeline via `StubTransport`. The solved figures resolve off the elements alone; the two apsis altitudes stay absent because no body in the roster carries a radius.
- * `system.bodies` is emitted empty because the conic declares it as an input: an empty roster satisfies the input and still resolves no radius.
+ * `trackingStation.bodies` is emitted empty because the conic declares it as an input: an empty roster satisfies the input and still resolves no radius.
  */
 describe("Orbit View figures: genuinely runs off the stream", () => {
   it("reads sma/eccentricity/inclination/argPe/period off the real stream pipeline, not legacy", async () => {
@@ -47,7 +47,7 @@ describe("Orbit View figures: genuinely runs off the stream", () => {
         epoch: 10,
       });
       // The conic's declared input, satisfied and empty.
-      fixture.emit("system.bodies", { bodies: [] });
+      fixture.emit("trackingStation.bodies", { bodies: [] });
     });
 
     await waitFor(() => expect(visibleText()).toContain("0.3°"));

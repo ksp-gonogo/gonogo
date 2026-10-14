@@ -21,7 +21,7 @@ describe("useLivePhaseAngles: what undefined means today", () => {
   it("answers no phase angle for a fully-elemented body while vessel.orbit is absent", () => {
     const { fixture, result } = renderPhaseAngles(["Mun"]);
     act(() => {
-      fixture.emit("system.bodies", MUN_AT_90);
+      fixture.emit("trackingStation.bodies", MUN_AT_90);
     });
 
     // The gate short-circuits before the body loop, so one absent read erases every body's answer.
@@ -33,7 +33,7 @@ describe("useLivePhaseAngles: what undefined means today", () => {
   it("hands every data-less render the same EMPTY map instance, whatever the bodies are", () => {
     const { fixture, result, rerender } = renderPhaseAngles(["Mun"]);
     act(() => {
-      fixture.emit("system.bodies", MUN_AT_90);
+      fixture.emit("trackingStation.bodies", MUN_AT_90);
     });
     const first = result.current;
 
@@ -48,7 +48,7 @@ describe("useLivePhaseAngles: what undefined means today", () => {
     const { fixture, result } = renderPhaseAngles(["Mun"]);
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         systemBodies([{ index: 1, name: "Mun", noElements: true }]),
       );
     });
@@ -67,7 +67,7 @@ describe("useLivePhaseAngles: what undefined means today", () => {
     const { fixture, result } = renderPhaseAngles(["Mun", "Ike"]);
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         systemBodies([
           { index: 1, name: "Mun", lan: 90 },
           { index: 2, name: "Ike", noElements: true },
@@ -88,7 +88,7 @@ describe("useLivePhaseAngles: what undefined means today", () => {
       setupStreamFixture({ pinnedUt: 10, suspendFrames: true }),
     );
     act(() => {
-      fixture.emit("system.bodies", MUN_AT_90);
+      fixture.emit("trackingStation.bodies", MUN_AT_90);
       fixture.emit("vessel.orbit", vesselAtLongitude(0));
     });
     await waitFor(() => expect(result.current.size).toBe(1));
@@ -115,7 +115,7 @@ describe("useLivePhaseAngles: what undefined means today", () => {
     };
     const { fixture, result } = renderPhaseAngles(["Mun"]);
     act(() => {
-      fixture.emit("system.bodies", MUN_AT_90);
+      fixture.emit("trackingStation.bodies", MUN_AT_90);
       fixture.emit("vessel.orbit", noNodeElements);
     });
 
@@ -124,7 +124,7 @@ describe("useLivePhaseAngles: what undefined means today", () => {
 
     const explicitZeroes = renderPhaseAngles(["Mun"]);
     act(() => {
-      explicitZeroes.fixture.emit("system.bodies", MUN_AT_90);
+      explicitZeroes.fixture.emit("trackingStation.bodies", MUN_AT_90);
       explicitZeroes.fixture.emit("vessel.orbit", vesselAtLongitude(0));
     });
     await waitFor(() =>

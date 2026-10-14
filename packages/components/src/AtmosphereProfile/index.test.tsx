@@ -14,14 +14,14 @@ import { AtmosphereProfileComponent } from "./index";
 
 /**
  * Names the parent body: `vessel.identity.parentBodyIndex` resolved against a
- * single-entry `system.bodies` table.
+ * single-entry `trackingStation.bodies` table.
  */
 function emitBody(
   fixture: ReturnType<typeof setupStreamFixture>,
   name: string,
 ) {
   fixture.emit("vessel.identity", { parentBodyIndex: 1 });
-  fixture.emit("system.bodies", {
+  fixture.emit("trackingStation.bodies", {
     bodies: [{ name, index: 1, parentIndex: 0, radius: 600_000, orbit: null }],
   });
 }

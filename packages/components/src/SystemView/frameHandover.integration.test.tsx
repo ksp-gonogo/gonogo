@@ -102,7 +102,7 @@ function mount() {
   );
   const view = render(tree("auto"));
   act(() => {
-    fixture.emit("system.bodies", SYSTEM);
+    fixture.emit("trackingStation.bodies", SYSTEM);
     fixture.emit("vessel.identity", {
       vesselId: "v-active",
       name: "Active Craft",
@@ -495,7 +495,7 @@ describe("SystemView when the craft changes the body it orbits", () => {
       await waitFor(() => onScreen(view.container, 'circle[data-body="Mun"]'));
       if (system !== undefined) {
         act(() => {
-          fixture.emit("system.bodies", system);
+          fixture.emit("trackingStation.bodies", system);
         });
       }
       enterTheMun(fixture);

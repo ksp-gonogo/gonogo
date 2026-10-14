@@ -21,7 +21,7 @@ registerStockBodies();
 const CURRENT_ORBIT_CHANNELS = [
   "vessel.orbit",
   "vessel.identity",
-  "system.bodies",
+  "trackingStation.bodies",
 ] as const;
 
 const KERBIN_MU = 3.5316e12;
@@ -80,7 +80,7 @@ function emitOrbit(fixture: StreamFixture, o: OrbitEmission) {
         launchUt: 0,
       });
     }
-    fixture.emit("system.bodies", {
+    fixture.emit("trackingStation.bodies", {
       bodies: [
         o.withBody
           ? { index: 0, name: "Kerbin", radius: KERBIN_RADIUS }

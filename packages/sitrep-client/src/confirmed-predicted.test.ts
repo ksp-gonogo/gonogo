@@ -326,7 +326,7 @@ describe("raw frame-cache defeats the epoch guard: the LENS-4 ghost (M2 T5 close
     const store = new TimelineStore(clock);
     store.registerDerivedChannel(systemStateChannel);
 
-    store.ingest("system.bodies", {
+    store.ingest("trackingStation.bodies", {
       validAt: 100,
       payload: { bodies: [{ name: "Kerbin", index: 1 }] },
       meta: makeMeta({ validAt: 100, deliveredAt: 100 }),
@@ -341,15 +341,15 @@ describe("raw frame-cache defeats the epoch guard: the LENS-4 ghost (M2 T5 close
       store.sample<{ bodyCount: number }>("system.state", token)?.payload,
     ).toEqual({ bodyCount: 1 });
 
-    // Mid-token quickload rewind via an UNRELATED topic: system.bodies hasn't re-sampled, so it's swept to the new epoch with no points.
+    // Mid-token quickload rewind via an UNRELATED topic: trackingStation.bodies hasn't re-sampled, so it's swept to the new epoch with no points.
     store.ingest(
       "system.clock",
       numberPoint(4500, 4500, { deliveredAt: 4500, epoch: 1 }),
     );
 
     // SAME token: no beginFrame(). The channel's OWN derived-memo key folds
-    // epoch, so it recomputes: but that recompute calls get("system.bodies"),
-    // i.e. sample("system.bodies", token). If THAT raw read still served its
+    // epoch, so it recomputes: but that recompute calls get("trackingStation.bodies"),
+    // i.e. sample("trackingStation.bodies", token). If THAT raw read still served its
     // pre-bump cache entry, the recompute would derive off the dead epoch-0
     // input and stamp the result with the NEW epoch, a ghost masquerading as
     // post-rewind truth.

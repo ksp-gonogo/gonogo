@@ -284,7 +284,7 @@ function poweredFlightModel(
     return {
       declined: {
         reason: "input-absent",
-        input: "@system.bodies",
+        input: "@trackingStation.bodies",
         note: "the reference body publishes no radius, so there is no sea level to measure from",
       },
     };
@@ -310,7 +310,7 @@ function poweredFlightModel(
  * and off the observed descent rates below it.
  *
  * The declared inputs are `@vessel.orbit` (the elements and their epoch) and
- * `@system.bodies` (the reference body's radius, which is the only place sea
+ * `@trackingStation.bodies` (the reference body's radius, which is the only place sea
  * level is published), so the store has both before this runs. Above the
  * atmosphere the arithmetic is `propagateVesselOrbit` and one subtraction.
  *
@@ -353,7 +353,7 @@ function registerFlightReckoner(): void {
   registerReckoner("vessel.flight", CORE_RECKONER_OWNER, {
     deps: [
       "vessel.orbit",
-      "system.bodies",
+      "trackingStation.bodies",
       { reading: "vessel.propulsion" },
       { reading: "system.uplink.pending" },
       { reading: "dv.stages" },
@@ -377,7 +377,7 @@ function registerFlightReckoner(): void {
         "rate-integration": {
           horizon: {
             "vessel.orbit":
-              "this model integrates the OBSERVED descent rate, which already carries whatever the installed aerodynamics did, so it does not derive from the conic and the conic running out says nothing about how far it reaches. It is the model that takes over WHERE the conic has stopped. It stays bound by `system.bodies`, whose atmosphere depth is the boundary between the two models.",
+              "this model integrates the OBSERVED descent rate, which already carries whatever the installed aerodynamics did, so it does not derive from the conic and the conic running out says nothing about how far it reaches. It is the model that takes over WHERE the conic has stopped. It stays bound by `trackingStation.bodies`, whose atmosphere depth is the boundary between the two models.",
           },
         },
       },
@@ -494,7 +494,7 @@ function registerFlightReckoner(): void {
         return {
           declined: {
             reason: "input-absent",
-            input: "@system.bodies",
+            input: "@trackingStation.bodies",
             note: "the reference body publishes no radius, so there is no sea level to measure from",
           },
         };
@@ -559,7 +559,7 @@ function registerFlightReckoner(): void {
  */
 function catalogRelayOrbit(
   catalog: TopicPayload<"trackingStation.catalog"> | null | undefined,
-  bodies: TopicPayload<"system.bodies"> | null | undefined,
+  bodies: TopicPayload<"trackingStation.bodies"> | null | undefined,
   vesselId: string,
 ): CommsPeerOrbit | undefined {
   const entry = catalog?.entries?.find((e) => e.vesselId === vesselId);
@@ -599,7 +599,7 @@ function catalogRelayOrbit(
  * what this adds is the join from published channels to the two positions that
  * arithmetic needs. `comms.path` names the far end of hop zero,
  * `commandCentre.roster` says where that end is when it is a ground station
- * (body-fixed, so it also needs the body's rotation phase off `system.bodies`),
+ * (body-fixed, so it also needs the body's rotation phase off `trackingStation.bodies`),
  * `trackingStation.catalog` where it is when it is a relay, and `vessel.orbit`
  * propagates the craft.
  *
@@ -625,14 +625,14 @@ function catalogRelayOrbit(
  *
  * A route whose first hop ends at a relay places the relay from its entry on
  * `trackingStation.catalog`: the orbit the command centre last heard for that
- * craft, about the body whose gravitational parameter `system.bodies` carries.
+ * craft, about the body whose gravitational parameter `trackingStation.bodies` carries.
  */
 function registerCommsDelayReckoner(): void {
   registerReckoner("comms.delay", CORE_RECKONER_OWNER, {
     deps: [
       "comms.path",
       "vessel.orbit",
-      "system.bodies",
+      "trackingStation.bodies",
       "commandCentre.roster",
       // A reading rather than a required dep: a direct route never needs it.
       { reading: "trackingStation.catalog" },
@@ -769,7 +769,7 @@ function registerTargetRosterReckoner(): void {
   registerReckoner("target.available", CORE_RECKONER_OWNER, {
     deps: [
       "vessel.orbit",
-      "system.bodies",
+      "trackingStation.bodies",
       { reading: "vessel.propulsion" },
       { reading: "system.uplink.pending" },
     ],
@@ -926,7 +926,7 @@ function registerScienceLabReckoner(): void {
  * propagator's output at all, so the honest answer names the input that ruled
  * the model out rather than quietly returning nothing.
  *
- * `system.bodies` is a DEP without being a contract input: the mark needs only
+ * `trackingStation.bodies` is a DEP without being a contract input: the mark needs only
  * `@vessel.orbit#mu`, and the roster is wanted for the atmosphere floor. Being a
  * bare Topic dep makes an absent roster a decline here, which is stricter than
  * `vessel.orbit`'s posture on the same fact and deliberately so:
@@ -938,7 +938,7 @@ function registerOrbitTruthReckoner(): void {
   registerReckoner("vessel.orbit.truth", CORE_RECKONER_OWNER, {
     deps: [
       "vessel.orbit",
-      "system.bodies",
+      "trackingStation.bodies",
       { reading: "vessel.propulsion" },
       { reading: "system.uplink.pending" },
     ],
@@ -1064,7 +1064,7 @@ function registerOrbitTruthReckoner(): void {
 function registerOrbitReckoner(): void {
   registerReckoner("vessel.orbit", CORE_RECKONER_OWNER, {
     deps: [
-      { reading: "system.bodies" },
+      { reading: "trackingStation.bodies" },
       { reading: "vessel.propulsion" },
       { reading: "system.uplink.pending" },
       { reading: "dv.stages" },

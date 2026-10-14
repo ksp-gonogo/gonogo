@@ -12,7 +12,7 @@ import "./vesselOrbitsContribution";
 /**
  * The CommNet relay graph half of `system-view-vessel-orbits`, end to end: a real `comms.network` stream through `SystemViewComponent` into the `SystemEntitiesLayer` DOM.
  *
- * `system.bodies` flags Kerbin `isHome: true`, which the graph's `"home"` node resolves against.
+ * `trackingStation.bodies` flags Kerbin `isHome: true`, which the graph's `"home"` node resolves against.
  */
 
 const KERBOL_MU = 1.1723328e18;
@@ -90,7 +90,7 @@ describe("SystemView: comms.network relay graph as faint connection lines", () =
     );
 
     act(() => {
-      fixture.emit("system.bodies", kerbolSystem());
+      fixture.emit("trackingStation.bodies", kerbolSystem());
       fixture.emit("vessel.identity", {
         vesselId: "v-active",
         name: "Tester",

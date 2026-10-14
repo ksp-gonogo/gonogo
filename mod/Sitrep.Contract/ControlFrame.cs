@@ -53,7 +53,7 @@ namespace Sitrep.Contract
     /// put the player's view where a plan is being discussed.</para>
     ///
     /// <para>Bodies are named by <c>bodyName</c>, the key of every other body
-    /// table on the wire, <c>system.bodies</c> included.</para>
+    /// table on the wire, <c>trackingStation.bodies</c> included.</para>
     ///
     /// <para>A pulsating frame turns about two groups of bodies, and its origin
     /// is defined by the mass of each whole group, so the sets travel as well as

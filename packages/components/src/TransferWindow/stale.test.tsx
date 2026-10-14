@@ -106,7 +106,7 @@ function setup() {
 
 function emitParked(fixture: ReturnType<typeof setupStreamFixture>) {
   act(() => {
-    fixture.emit("system.bodies", { bodies: [SUN, EARTH, MARS] });
+    fixture.emit("trackingStation.bodies", { bodies: [SUN, EARTH, MARS] });
     fixture.emit("vessel.orbit", LEO);
   });
 }
@@ -201,7 +201,7 @@ describe("TransferWindow when the parking orbit is held", () => {
     // `absent` is the subject answering, not the link failing: the orbitless wording and no held mark.
     const { fixture, view } = setup();
     act(() => {
-      fixture.emit("system.bodies", { bodies: [SUN, EARTH, MARS] });
+      fixture.emit("trackingStation.bodies", { bodies: [SUN, EARTH, MARS] });
       fixture.emit("vessel.orbit", null);
     });
     await waitFor(() => expect(visibleText(view.container)).toMatch(NO_ORBIT));

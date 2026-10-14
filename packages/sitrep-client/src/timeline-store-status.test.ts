@@ -386,7 +386,10 @@ describe("a derived channel's default status: worst of its declared inputs, thro
 
   it("carries its input's held status, on the channel and on its field subtopic", () => {
     const store = systemStore();
-    store.ingest("system.bodies", recordPoint(10, BODIES, Staleness.Held));
+    store.ingest(
+      "trackingStation.bodies",
+      recordPoint(10, BODIES, Staleness.Held),
+    );
     store.beginFrame();
 
     expect(store.sampleStatus("system.state")).toBe("held");
@@ -395,7 +398,7 @@ describe("a derived channel's default status: worst of its declared inputs, thro
 
   it("reads 'absent' when its input is tombstoned", () => {
     const store = systemStore();
-    store.ingest("system.bodies", recordPoint(10, null));
+    store.ingest("trackingStation.bodies", recordPoint(10, null));
     store.beginFrame();
 
     expect(store.sampleStatus("system.state")).toBe("absent");
@@ -410,7 +413,7 @@ describe("a derived channel's default status: worst of its declared inputs, thro
 
   it("reads 'live' off a fresh, on-time input", () => {
     const store = systemStore();
-    store.ingest("system.bodies", recordPoint(10, BODIES));
+    store.ingest("trackingStation.bodies", recordPoint(10, BODIES));
     store.beginFrame();
 
     expect(store.sampleStatus("system.state")).toBe("live");

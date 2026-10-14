@@ -67,7 +67,7 @@ function buildOrbitStoreFixture(pinnedUt: number) {
   client.attachStore(store);
   const dropOrbitReader = client.subscribe("vessel.orbit", () => {});
   client.subscribe("vessel.identity", () => {});
-  client.subscribe("system.bodies", () => {});
+  client.subscribe("trackingStation.bodies", () => {});
 
   const calls: Array<{ command: string; args: unknown }> = [];
   let answer: unknown = null;
@@ -103,7 +103,7 @@ function buildOrbitStoreFixture(pinnedUt: number) {
       store.beginFrame();
     },
     emitBodies(payload: unknown): void {
-      transport.emit("system.bodies", payload);
+      transport.emit("trackingStation.bodies", payload);
       store.beginFrame();
     },
   };

@@ -28,7 +28,7 @@ function mountAt(transitionUt: number) {
   );
   // With the clock suspended each emit publishes, and renders, on the spot.
   act(() => {
-    fixture.emit("system.bodies", {
+    fixture.emit("trackingStation.bodies", {
       bodies: [
         { name: "Kerbin", index: 1 },
         { name: "Mun", index: 2 },
@@ -92,7 +92,7 @@ describe("OrbitalEventChips under signal delay", () => {
     };
     act(() => {
       fixture.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         {
           bodies: [
             { name: "Kerbin", index: 1 },

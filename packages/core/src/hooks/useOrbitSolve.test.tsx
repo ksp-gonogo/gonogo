@@ -103,7 +103,7 @@ describe("useOrbitSolve", () => {
     expect(result.current).toBeNull();
   });
 
-  it("solves every field once vessel.orbit + system.bodies arrive on rails", async () => {
+  it("solves every field once vessel.orbit + trackingStation.bodies arrive on rails", async () => {
     const { transport, Provider } = makeHarness();
     const { result } = renderHook(() => useOrbitSolve(), {
       wrapper: Provider,
@@ -114,7 +114,7 @@ describe("useOrbitSolve", () => {
         quality: Quality.OnRails,
         source: "vessel:1",
       });
-      transport.emit("system.bodies", BODIES, {
+      transport.emit("trackingStation.bodies", BODIES, {
         quality: Quality.OnRails,
         source: "system:1",
       });
@@ -152,7 +152,7 @@ describe("useOrbitSolve", () => {
         { ...ORBIT, timeToAp: 600, timeToPe: 1500 },
         { quality: Quality.Loaded, source: "vessel:1" },
       );
-      transport.emit("system.bodies", BODIES, {
+      transport.emit("trackingStation.bodies", BODIES, {
         quality: Quality.OnRails,
         source: "system:1",
       });
@@ -184,7 +184,7 @@ describe("useOrbitSolve", () => {
         quality: Quality.Loaded,
         source: "vessel:1",
       });
-      transport.emit("system.bodies", BODIES, {
+      transport.emit("trackingStation.bodies", BODIES, {
         quality: Quality.OnRails,
         source: "system:1",
       });
@@ -209,7 +209,7 @@ describe("useOrbitSolve", () => {
     });
 
     act(() => {
-      transport.emit("system.bodies", BODIES, {
+      transport.emit("trackingStation.bodies", BODIES, {
         quality: Quality.OnRails,
         source: "system:1",
       });
@@ -261,7 +261,7 @@ describe("useOrbitSolve", () => {
         { quality: Quality.OnRails, source: "vessel:1" },
       );
       transport.emit(
-        "system.bodies",
+        "trackingStation.bodies",
         {
           bodies: [
             { ...BODIES.bodies[0], atmosphere: { depth: 70_000 } },
@@ -286,7 +286,7 @@ describe("useOrbitSolve", () => {
         quality: Quality.OnRails,
         source: "vessel:1",
       });
-      transport.emit("system.bodies", BODIES, {
+      transport.emit("trackingStation.bodies", BODIES, {
         quality: Quality.OnRails,
         source: "system:1",
       });
@@ -320,7 +320,7 @@ describe("useOrbitSolve", () => {
         { ...ORBIT, sma: -2_400_000, ecc: 1.283 },
         { quality: Quality.OnRails, source: "vessel:1" },
       );
-      transport.emit("system.bodies", BODIES, {
+      transport.emit("trackingStation.bodies", BODIES, {
         quality: Quality.OnRails,
         source: "system:1",
       });
@@ -347,7 +347,7 @@ describe("useOrbitSolve", () => {
         quality: Quality.OnRails,
         source: "vessel:1",
       });
-      transport.emit("system.bodies", BODIES, {
+      transport.emit("trackingStation.bodies", BODIES, {
         quality: Quality.OnRails,
         source: "system:1",
       });
@@ -395,7 +395,10 @@ describe("useOrbitSolve under signal delay", () => {
     };
     act(() => {
       transport.emit("vessel.orbit", ORBIT, { ...meta, source: "vessel:1" });
-      transport.emit("system.bodies", BODIES, { ...meta, source: "system:1" });
+      transport.emit("trackingStation.bodies", BODIES, {
+        ...meta,
+        source: "system:1",
+      });
     });
     await waitFor(() => expect(result.current.observed).not.toBeNull());
     return result.current;

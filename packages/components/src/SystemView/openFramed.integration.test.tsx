@@ -135,7 +135,7 @@ function mount(options: { frame?: string; craft?: boolean } = {}) {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.bodies", SYSTEM);
+    fixture.emit("trackingStation.bodies", SYSTEM);
   });
   if (options.craft !== false) {
     emitCraft(fixture, { index: KERBIN_INDEX, mu: KERBIN_MU }, LOW_ORBIT);

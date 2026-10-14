@@ -43,7 +43,7 @@ export interface OrbitalSolve {
    * Why the body radius is a parameter rather than a lookup
    *
    * Two of these fields are altitudes, which is a radius minus the reference
-   * body's. Resolving that means walking `system.bodies`, and the walk carries a
+   * body's. Resolving that means walking `trackingStation.bodies`, and the walk carries a
    * three-way discipline (absent vs not-yet-resolvable vs confirmed tombstone)
    * that belongs to the caller's channel, not to the mathematics. Taking the
    * resolved radius keeps this pure and still lets the discipline through: pass
@@ -405,7 +405,7 @@ function declinedUnderPhysics(
 }
 
 /**
- * The part of `system.bodies` an orbit solve needs: the stable-index body list
+ * The part of `trackingStation.bodies` an orbit solve needs: the stable-index body list
  * and nothing else. Useful for resolving the radius of the body an orbit is
  * about. Taken by {@link bodyRadiusOf}, and passed by the orbit hook and the
  * maneuver planner.
@@ -422,7 +422,7 @@ export interface BodyRadiusTable {
 
 /**
  * The mean radius of the body at `index`, with the three-way rule every
- * `system.bodies` lookup follows. Useful for converting an orbit's radius into an
+ * `trackingStation.bodies` lookup follows. Useful for converting an orbit's radius into an
  * altitude above the surface the operator knows. Used by the orbit hook, the
  * maneuver planner and the maneuver trigger services.
  *

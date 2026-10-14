@@ -26,7 +26,7 @@ export function useIsOrbiting(
   const PeA = solve?.periapsisAlt ?? undefined;
   const ApA = solve?.apoapsisAlt ?? undefined;
 
-  // The atmosphere height comes off `system.bodies`, so a caller must carry that channel.
+  // The atmosphere height comes off `trackingStation.bodies`, so a caller must carry that channel.
   const body = useStreamBody(bodyName);
 
   return useMemo(() => {

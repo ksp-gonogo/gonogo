@@ -90,12 +90,12 @@ function bodiesPayload(): unknown {
   const system = loadFixtureEmit(
     "SystemView",
     "kerbin-mun-encounter",
-    "system.bodies",
+    "trackingStation.bodies",
   ).value as { bodies: Record<string, unknown>[] };
   const kerbin = loadFixtureEmit(
     "GroundTrack",
     "kerbin-lko-equator",
-    "system.bodies",
+    "trackingStation.bodies",
   ).value as { bodies: Record<string, unknown>[] };
   const groundKerbin = kerbin.bodies.find((b) => b.name === "Kerbin") ?? {};
   return {
@@ -395,14 +395,15 @@ export function buildHeroFrames(): HeroFrame[] {
       "time.warp": { paused: false },
       "comms.link": { connected: true },
       "vessel.comms": { connected: true, signalStrength: 1, controlState: 4 },
-      "system.bodies": bodies,
+      "trackingStation.bodies": bodies,
       ...dvTopics(s),
     };
     const lines: WireLine[] = [];
     for (const [topic, payload] of Object.entries(topics)) {
       // The mod re-confirms a Topic on every frame, so a reading that has not changed is still current. Only the body catalogue, which never changes, is sent once.
       const key = JSON.stringify(payload);
-      if (topic === "system.bodies" && previous.get(topic) === key) continue;
+      if (topic === "trackingStation.bodies" && previous.get(topic) === key)
+        continue;
       previous.set(topic, key);
       seq += 1;
       lines.push({

@@ -76,7 +76,7 @@ namespace Sitrep.Host.IntegrationTests
             // All 18 channels this milestone must prove: VesselUplink's 17
             // (vessel.* + time.warp, including the M3 R3 vessel.dock/
             // vessel.surface capture-adds) plus SystemUplink's
-            // system.bodies. (trackingStation.catalog is a separate,
+            // trackingStation.bodies. (trackingStation.catalog is a separate,
             // per-centre channel not exercised by this reference
             // recording -- see SystemViewProviderTests for its builder's
             // own headless coverage.)

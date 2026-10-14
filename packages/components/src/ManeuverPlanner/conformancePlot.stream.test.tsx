@@ -26,7 +26,7 @@ function emitOrbitReady(fixture: ReturnType<typeof setupStreamFixture>) {
     horizon: ANALYTIC_UNBOUNDED_HORIZON,
     patches: [],
   });
-  fixture.emit("system.bodies", {
+  fixture.emit("trackingStation.bodies", {
     bodies: [{ index: 1, name: "Kerbin", radius: 600000 }],
   });
 }

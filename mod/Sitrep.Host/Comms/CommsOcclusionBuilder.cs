@@ -9,7 +9,7 @@ namespace Sitrep.Host.Comms
     /// knows about, producing the <c>comms.occlusion</c> payload.
     ///
     /// <para>The body list is read from the same <see cref="KspSnapshot"/> that
-    /// already feeds <c>system.bodies</c> (<c>KspHost.Sample</c> captures name /
+    /// already feeds <c>trackingStation.bodies</c> (<c>KspHost.Sample</c> captures name /
     /// index / radius / hasAtmosphere per body on the Unity main thread), so
     /// this adds no KSP read of its own and is pure, KSP-free arithmetic over
     /// data someone else already captured. It also means the payload survives a

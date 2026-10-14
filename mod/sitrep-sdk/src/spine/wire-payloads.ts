@@ -29,7 +29,7 @@ export interface Vec3 {
  *
  * `transitionType` is the raw ordinal of the transition kind (Initial 0, Final
  * 1, Encounter 2, Escape 3, Maneuver 4, Collision 5, Unknown 6). `transitionUt`
- * is the instant of the transition. `bodyIndex` is the `system.bodies` index
+ * is the instant of the transition. `bodyIndex` is the `trackingStation.bodies` index
  * of the body being entered, `null` when it could not be resolved.
  */
 export interface OrbitEncounterPayload {
@@ -203,7 +203,7 @@ export interface VesselCommsPayload {
 }
 
 /**
- * The orbital elements of one body within `system.bodies`, `null` for the root
+ * The orbital elements of one body within `trackingStation.bodies`, `null` for the root
  * star only. Useful for drawing a body's orbit. Units match
  * the vessel orbit payload: degrees for `inc`, `lan` and `argPe`, radians for
  * `meanAnomalyAtEpoch`.
@@ -219,9 +219,9 @@ export interface SystemBodyOrbitPayload {
 }
 
 /**
- * One body in the `system.bodies` array: its name, size, orbit and atmosphere.
+ * One body in the `trackingStation.bodies` array: its name, size, orbit and atmosphere.
  * Useful for showing the operator what a body is like. Used by the orbital
- * solver, which reads bodies from `system.bodies`.
+ * solver, which reads bodies from `trackingStation.bodies`.
  *
  * `index` is the stable id that `vessel.orbit.referenceBodyIndex` and
  * `vessel.identity.parentBodyIndex` point at, and array position is not.
@@ -246,7 +246,7 @@ export interface SystemBodyPayload {
 }
 
 /**
- * The payload of the `system.bodies` Topic: every body of the system. Useful
+ * The payload of the `trackingStation.bodies` Topic: every body of the system. Useful
  * for listing and placing the bodies for the operator. Used by the system state
  * derivation that counts and indexes the bodies.
  */

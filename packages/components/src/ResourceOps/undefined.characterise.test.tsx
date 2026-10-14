@@ -215,7 +215,7 @@ describe("ResourceOps: what undefined means today", () => {
     expect(within(statsHeader()).queryByText("at")).not.toBeInTheDocument();
   });
 
-  it("names the vessel with no body when system.bodies has not arrived yet", async () => {
+  it("names the vessel with no body when trackingStation.bodies has not arrived yet", async () => {
     const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", DRILLS);
@@ -242,7 +242,7 @@ describe("ResourceOps: what undefined means today", () => {
     act(() => {
       fixture.emit("isru.drills", DRILLS);
       fixture.emit("isru.converters", []);
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [{ name: "Duna", index: 2, parentIndex: 0, radius: 320000 }],
       });
       fixture.emit("vessel.identity", {
@@ -265,7 +265,7 @@ describe("ResourceOps: what undefined means today", () => {
     act(() => {
       fixture.emit("isru.drills", DRILLS);
       fixture.emit("isru.converters", []);
-      fixture.emit("system.bodies", {
+      fixture.emit("trackingStation.bodies", {
         bodies: [{ name: "Duna", index: 2, parentIndex: 0, radius: 320000 }],
       });
       fixture.emit("vessel.identity", {

@@ -405,7 +405,7 @@ describe("widget fixtures conform to the generated contract", () => {
     const omittedHorizon = omissions.filter((o) => o.field === "horizon");
     expect(
       omittedHorizon.length,
-      "no fixture omits system.bodies[].horizon, the case this scan was written for; a fixture fix would make this assertion stale, a walk that stopped recording would too",
+      "no fixture omits trackingStation.bodies[].horizon, the case this scan was written for; a fixture fix would make this assertion stale, a walk that stopped recording would too",
     ).toBeGreaterThan(0);
   });
 });

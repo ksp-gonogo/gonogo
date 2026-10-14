@@ -4,14 +4,14 @@ import { CELESTIAL_FACTS, useProcessor } from "@ksp-gonogo/sitrep-client";
 /**
  * The name of the body at a stable index. A held catalogue is still the
  * catalogue, so a held one answers. `undefined` means not resolvable yet;
- * `null` means `system.bodies` itself is a confirmed tombstone, read from the
+ * `null` means `trackingStation.bodies` itself is a confirmed tombstone, read from the
  * topic because the processor answers an absent input with an empty catalogue.
  */
 export function useBodyName(
   index: number | null | undefined,
 ): string | null | undefined {
   const reading = useProcessor(CELESTIAL_FACTS);
-  const bodies = useTelemetry("system.bodies");
+  const bodies = useTelemetry("trackingStation.bodies");
   if (index == null) return undefined;
   if (bodies.state === "absent") return null;
   if (reading === undefined) return undefined;

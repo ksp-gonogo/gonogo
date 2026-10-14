@@ -215,7 +215,7 @@ export interface CelestialBody {
 }
 
 /**
- * Every body in the solar system as the latest `system.bodies` describes it,
+ * Every body in the solar system as the latest `trackingStation.bodies` describes it,
  * computed once per frame. Read it with `useProcessor(CELESTIAL_FACTS)`. Useful
  * for looking up a body by index or name. Used by the system view and the
  * transfer window planner.
@@ -223,7 +223,7 @@ export interface CelestialBody {
  * @category Solar system and fleet
  */
 export interface CelestialFacts {
-  /** Every body, in the order `system.bodies` lists them. */
+  /** Every body, in the order `trackingStation.bodies` lists them. */
   bodies: CelestialBody[];
   /** Each body's name by its index. */
   // Plain records, not Maps: the processor compares results structurally, and a Map would differ every frame.
@@ -373,7 +373,7 @@ const NOTHING_KNOWN: CelestialFacts = {
 };
 
 /**
- * Returns {@link CelestialFacts} from a `system.bodies` payload's `bodies`. The
+ * Returns {@link CelestialFacts} from a `trackingStation.bodies` payload's `bodies`. The
  * same computation {@link CELESTIAL_FACTS} runs each frame, for use without a
  * running telemetry stream, such as in a test. Where a body is at an instant is
  * a different question, answered by `systemPosesAt`. Useful for checking the
@@ -415,7 +415,7 @@ export const CELESTIAL_FACTS = CORE_UPLINK_CLIENT.registerProcessor({
   // FACT: it changes when the game changes, and nothing changes it down a link
   // that is not delivering, so a held one is still the catalogue and is used
   // as-is. `pending` and `absent` both mean there is nothing to enrich.
-  deps: [{ reading: "system.bodies" }] as const,
+  deps: [{ reading: "trackingStation.bodies" }] as const,
   compute: ([reading]): CelestialFacts => {
     const known =
       reading.state === "observed" || reading.state === "held"

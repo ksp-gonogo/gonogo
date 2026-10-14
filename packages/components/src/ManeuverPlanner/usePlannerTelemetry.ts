@@ -105,7 +105,7 @@ export function usePlannerTelemetry() {
   const orbitalSpeed = magnitudeOf(speedNow()) ?? undefined;
   const radius = solve?.orbitalRadius ?? undefined;
   const parentBodyIndex = useParentBodyIndex();
-  const bodiesReading = useStream<BodyRadiusTable>("system.bodies");
+  const bodiesReading = useStream<BodyRadiusTable>("trackingStation.bodies");
   // The roster does not decay, and a tombstone is the one null it answers.
   const bodies = stillTrue(bodiesReading, null);
   const refBody = useBodyName(orbit?.referenceBodyIndex);

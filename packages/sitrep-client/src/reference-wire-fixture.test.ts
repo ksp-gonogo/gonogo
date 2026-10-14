@@ -22,7 +22,7 @@ import { ViewClock } from "./view-clock";
  * replays the real reference recording through
  * `ReplayKspHost -> ChannelEngine` (both extensions registered, zero network
  * delay) and captures every raw wire frame for six real channels
- * (`vessel.orbit`, `vessel.flight`, `system.bodies`, `time.warp`,
+ * (`vessel.orbit`, `vessel.flight`, `trackingStation.bodies`, `time.warp`,
  * `vessel.control`, `vessel.comms`) to
  * `local_docs/telemetry-mod/recordings/reference-wire-fixture.json`:
  * gitignored/local-only, regenerated on demand (`dotnet test
@@ -164,7 +164,7 @@ describe.skipIf(!fixtureExists)(
         expect.arrayContaining([
           "vessel.orbit",
           "vessel.flight",
-          "system.bodies",
+          "trackingStation.bodies",
           "time.warp",
           "vessel.control",
           "vessel.comms",
@@ -317,7 +317,7 @@ describe.skipIf(!fixtureExists)(
           // internal lastConfirmedViewUt clamp). Deliberately NOT asserted
           // on raw clock.confirmedEdgeUt() directly: the real captured wire
           // order interleaves independently-cadenced channels (vessel.orbit
-          // ~1s, time.warp/system.bodies on a much slower keyframe), and a
+          // ~1s, time.warp/trackingStation.bodies on a much slower keyframe), and a
           // later-ARRIVING frame from a slower channel can carry an OLDER
           // deliveredAt than one already observed from a faster channel,
           // confirmedEdgeUt() itself briefly dips when that happens (its own

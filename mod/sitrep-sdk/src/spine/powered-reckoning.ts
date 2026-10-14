@@ -661,7 +661,7 @@ export function poweredFlight(
   if (floor !== undefined && !(radius > floor)) {
     return {
       declined: underPhysics(
-        "@system.bodies",
+        "@trackingStation.bodies",
         "the burn carries the craft into the air before then",
       ),
     };
@@ -673,7 +673,7 @@ export function poweredFlight(
   if (radius > soi) {
     return {
       declined: underPhysics(
-        "@system.bodies",
+        "@trackingStation.bodies",
         "the burn carries the craft out of this body's sphere of influence before then",
       ),
     };

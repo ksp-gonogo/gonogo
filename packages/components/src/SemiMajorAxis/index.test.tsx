@@ -43,7 +43,7 @@ describe("SemiMajorAxisComponent", () => {
     act(() => {
       // Kerbin radius 600 km plus 75 km altitude.
       stream.emit("vessel.orbit", { sma: 675_000, referenceBodyIndex: 1 });
-      stream.emit("system.bodies", {
+      stream.emit("trackingStation.bodies", {
         bodies: [
           {
             name: "Kerbin",

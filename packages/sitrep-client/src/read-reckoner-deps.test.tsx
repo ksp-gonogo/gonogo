@@ -23,7 +23,7 @@ import { ViewClock } from "./view-clock";
  * channel's declared `inputs`, and a raw topic's reckoner deps are neither, so
  * a model whose declared inputs nobody else on the screen happened to be
  * holding up declined `input-absent` for ever. `vessel.flight`'s reckoner
- * declares `vessel.orbit` and `system.bodies`, and a widget reading an altitude
+ * declares `vessel.orbit` and `trackingStation.bodies`, and a widget reading an altitude
  * has no reason to know that.
  *
  * The assertions are on the transport rather than on a rendered value: a
@@ -94,7 +94,7 @@ describe("a point read holds up its reckoner's declared inputs", () => {
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
     // `vessel.flight`'s reckoner declares both of these, and nothing else on this screen is reading either.
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
-    expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
+    expect(fixture.transport.isSubscribed("trackingStation.bodies")).toBe(true);
   });
 
   it("releases them again when the read unmounts", () => {
@@ -111,7 +111,9 @@ describe("a point read holds up its reckoner's declared inputs", () => {
 
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(false);
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(false);
-    expect(fixture.transport.isSubscribed("system.bodies")).toBe(false);
+    expect(fixture.transport.isSubscribed("trackingStation.bodies")).toBe(
+      false,
+    );
   });
 
   it("subscribes the deps for a canonical useTelemetry read", () => {
@@ -125,7 +127,7 @@ describe("a point read holds up its reckoner's declared inputs", () => {
 
     expect(screen.getByTestId("reading").textContent).toBeTruthy();
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
-    expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
+    expect(fixture.transport.isSubscribed("trackingStation.bodies")).toBe(true);
   });
 
   it("subscribes the deps an UPLINK's model declares, on the same terms", () => {
@@ -209,6 +211,8 @@ describe("a point read holds up its reckoner's declared inputs", () => {
     // Both core dead-reckoning models declare `deps: []`, and an empty declaration has to leave the subscription set exactly as it was.
     expect(fixture.transport.isSubscribed("vessel.target")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(false);
-    expect(fixture.transport.isSubscribed("system.bodies")).toBe(false);
+    expect(fixture.transport.isSubscribed("trackingStation.bodies")).toBe(
+      false,
+    );
   });
 });

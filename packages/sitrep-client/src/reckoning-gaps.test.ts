@@ -93,7 +93,7 @@ describe("a derived reading must not claim the frame's own SCET as its observati
     const { store } = delayedStore(wall);
     store.registerDerivedChannel(systemStateChannel);
 
-    store.ingest("system.bodies", bodiesPoint(100));
+    store.ingest("trackingStation.bodies", bodiesPoint(100));
     wall.advanceBy(1200);
     store.setTransportConnected(false);
     store.beginFrame();

@@ -100,7 +100,7 @@ export const NEVER_RECKONABLE = [
   // -- Configuration and catalogues. They change when the GAME changes, never
   // continuously, so a model has no dimension to move them along.
   //
-  // `system.bodies` belongs here, and the channel is the only thing that does:
+  // `trackingStation.bodies` belongs here, and the channel is the only thing that does:
   // it never moves, so a reckoner would have to hand it a NEW set of elements
   // each frame, and nothing does or should. Where a body IS at an instant is a
   // different question, answered by `SYSTEM_POSES` on top of the channel the way
@@ -108,7 +108,7 @@ export const NEVER_RECKONABLE = [
   // an instant reads a published fact rather than advancing a payload, and the
   // pose it returns carries the currency (exact, modelled, held, withdrawn) the
   // bare numbers cannot.
-  "system.bodies",
+  "trackingStation.bodies",
   "time.calendar",
   "game.dlc",
   "spaceCenter.launchSites",

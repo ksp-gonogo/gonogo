@@ -312,7 +312,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(model.ModelName, payload.ModelName);
         }
 
-        /// <summary>Body index matches <c>system.bodies</c>' own, so a consumer joins the two without name-matching.</summary>
+        /// <summary>Body index matches <c>trackingStation.bodies</c>' own, so a consumer joins the two without name-matching.</summary>
         [Fact]
         public void Payload_CarriesTheSystemBodiesIndex()
         {

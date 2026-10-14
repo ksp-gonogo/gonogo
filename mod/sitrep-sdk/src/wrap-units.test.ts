@@ -118,7 +118,7 @@ describe("wrapTopicPayload", () => {
         atmosphere: { depth: Value };
         orbit: { sma: Value };
       }[];
-    }>("system.bodies", {
+    }>("trackingStation.bodies", {
       bodies: [
         {
           index: 1,
@@ -217,12 +217,19 @@ describe("a body's orbit, deterministic while its horizon says so", () => {
   });
 
   it("reaches the bodies of the system through the Topic", () => {
-    const payload = wrapTopicPayload<{ bodies: Body[] }>("system.bodies", {
-      bodies: [
-        { radius: 1, orbit: { sma: 2, ecc: 0, epoch: 0 }, horizon: ANALYTIC },
-        { radius: 1, orbit: { sma: 2, ecc: 0, epoch: 0 }, horizon: INTEGRATED },
-      ],
-    } as never);
+    const payload = wrapTopicPayload<{ bodies: Body[] }>(
+      "trackingStation.bodies",
+      {
+        bodies: [
+          { radius: 1, orbit: { sma: 2, ecc: 0, epoch: 0 }, horizon: ANALYTIC },
+          {
+            radius: 1,
+            orbit: { sma: 2, ecc: 0, epoch: 0 },
+            horizon: INTEGRATED,
+          },
+        ],
+      } as never,
+    );
     expect(payload.bodies[0]?.orbit.sma.deterministic).toBe(true);
     expect(payload.bodies[1]?.orbit.sma.deterministic).toBeUndefined();
   });

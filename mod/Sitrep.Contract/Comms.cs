@@ -641,12 +641,12 @@ public class CommsDelay
     /// that time, so their lengths are kept as measured. The craft is
     /// propagated on <c>@vessel.orbit</c>, and its peer is placed from
     /// <c>@commandCentre.roster</c>, whose body-fixed latitude and longitude
-    /// need the rotation phase on <c>@system.bodies</c>.</para>
+    /// need the rotation phase on <c>@trackingStation.bodies</c>.</para>
     ///
     /// <para>A first hop that ends at a relay places the relay from its entry
     /// on <c>@trackingStation.catalog</c>: the orbit the command centre last
     /// heard for it, about the body whose gravitational parameter
-    /// <c>@system.bodies</c> carries.</para>
+    /// <c>@trackingStation.bodies</c> carries.</para>
     ///
     /// <para><see cref="Source"/> is an input because two of its members are a
     /// zero that does not mean "no distance": delay switched off, or a save
@@ -667,7 +667,7 @@ public class CommsDelay
         "source",
         "@comms.path",
         "@vessel.orbit",
-        "@system.bodies",
+        "@trackingStation.bodies",
         "@commandCentre.roster",
         "@trackingStation.catalog")]
     public double? OneWaySeconds { get; set; }
@@ -754,7 +754,7 @@ public class CommsCommandCentre
     [SitrepUnit(Units.Text)]
     public string? Kind { get; set; }
     /// <summary>
-    /// Index into <c>system.bodies</c> of the body this centre sits on. Null
+    /// Index into <c>trackingStation.bodies</c> of the body this centre sits on. Null
     /// when unknown, not surface-anchored, or the centre is a moving vessel.
     /// </summary>
     [SitrepUnit(Units.Id)]

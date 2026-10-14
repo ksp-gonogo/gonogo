@@ -42,7 +42,7 @@ registerComponent<ManeuverPlannerConfig>({
     "vessel.orbit.argPe",
     "vessel.flight.orbitalSpeed",
     "vessel.orbit.referenceBodyIndex",
-    "system.bodies",
+    "trackingStation.bodies",
     "vessel.identity.parentBodyIndex",
     "vessel.maneuver.nodes",
     "vessel.target",

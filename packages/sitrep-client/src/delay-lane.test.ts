@@ -121,12 +121,12 @@ describe("a channel's declared delay role", () => {
 
   it("keeps a derived channel mixing roles on the delayed lane", () => {
     const { store } = startStore();
-    /* `system.bodies` is TrueNow and `vessel.flight` is not. The output must
+    /* `trackingStation.bodies` is TrueNow and `vessel.flight` is not. The output must
        not be stamped more current than the most delayed thing it read. */
-    store.ingest("system.bodies", point(UT_NOW, { bodies: [] }));
+    store.ingest("trackingStation.bodies", point(UT_NOW, { bodies: [] }));
     store.registerDerivedChannel({
       topic: "mixed.state",
-      inputs: ["system.bodies", DELAYED_TOPIC],
+      inputs: ["trackingStation.bodies", DELAYED_TOPIC],
       derive: (get) => {
         const flight = get(DELAYED_TOPIC);
         return flight ? { at: flight.validAt } : undefined;
@@ -138,10 +138,10 @@ describe("a channel's declared delay role", () => {
 
   it("lets an all-TrueNow derived channel run at true now", () => {
     const { store } = startStore();
-    store.ingest("system.bodies", point(UT_NOW, { bodies: [] }));
+    store.ingest("trackingStation.bodies", point(UT_NOW, { bodies: [] }));
     store.registerDerivedChannel({
       topic: "ground.state",
-      inputs: ["system.bodies", TRUE_NOW_TOPIC],
+      inputs: ["trackingStation.bodies", TRUE_NOW_TOPIC],
       derive: (get) => {
         const dlc = get(TRUE_NOW_TOPIC);
         return dlc ? { at: dlc.validAt } : undefined;

@@ -66,7 +66,7 @@ namespace Sitrep.Contract
     /// <list type="bullet">
     /// <item>a bare path (<c>relativeVelocity</c>, <c>orbit.mu</c>): a camelCased
     /// property path on the same payload, walking nested contract types</item>
-    /// <item><c>@&lt;topicId&gt;</c> (<c>@system.bodies</c>): the whole payload of
+    /// <item><c>@&lt;topicId&gt;</c> (<c>@trackingStation.bodies</c>): the whole payload of
     /// another Topic</item>
     /// <item><c>@&lt;topicId&gt;#&lt;path&gt;</c> (<c>@vessel.orbit#mu</c>): a field
     /// path inside another Topic's payload</item>
@@ -85,7 +85,7 @@ namespace Sitrep.Contract
     /// so a model covers all of them or none. A value whose own inputs have all
     /// arrived is still withheld while a sibling's input is missing:
     /// <see cref="Sitrep.Contract.VesselFlight.OrbitalSpeed"/> declares only
-    /// <c>@vessel.orbit</c> and is withheld until <c>@system.bodies</c>, which
+    /// <c>@vessel.orbit</c> and is withheld until <c>@trackingStation.bodies</c>, which
     /// <c>AltitudeAsl</c> needs, has arrived. So list only the inputs a model cannot
     /// run without; one it merely refines with belongs to a registered reckoner, not
     /// the mark.</para>

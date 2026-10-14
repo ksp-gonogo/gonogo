@@ -165,7 +165,7 @@ function orbit(sma: number, meanAnomalyAtEpoch = 0, argPe = 0) {
  */
 function sceneEmits(): Array<{ topic: string; value: unknown }> {
   return [
-    { topic: "system.bodies", value: kerbolSystem() },
+    { topic: "trackingStation.bodies", value: kerbolSystem() },
     {
       topic: "vessel.identity",
       value: {
@@ -514,7 +514,7 @@ async function captureOrbits(probeHtmlOut: string): Promise<void> {
     // interval so the confirmed edge keeps pace with the clock, the way a
     // live mod connection's steady sample stream would.
     const positionEmits = sceneEmits().filter(
-      (e) => e.topic === "vessel.orbit" || e.topic === "system.bodies",
+      (e) => e.topic === "vessel.orbit" || e.topic === "trackingStation.bodies",
     );
     await page.evaluate(
       (args) =>
