@@ -646,6 +646,28 @@ describe("LaunchDirectorComponent", () => {
     });
   });
 
+  it("says that the Tracking Station saves first in the kit's tip, never a browser title", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    act(() => {
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      emitInFlightVessel(stream, { name: "Probe X", altitudeAsl: 2000 });
+      stream.emit("crash.hasRecent", { recent: false });
+    });
+
+    const button = (await screen.findByText("Tracking Station")).closest(
+      "button",
+    );
+    expect(button).not.toBeNull();
+    expect(button).not.toHaveAttribute("title");
+
+    await user.hover(button as HTMLElement);
+    expect(
+      await screen.findByText(/saves the game first/i),
+    ).toBeInTheDocument();
+  });
+
   /*
    * The switcher dispatches the roster's stable `vesselId` guid, never a
    * positional index. Body-kind entries are not offered, and a SpaceObject

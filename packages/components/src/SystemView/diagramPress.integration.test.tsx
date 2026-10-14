@@ -42,7 +42,7 @@ function holdFrames() {
   onTestFinished(() => spy.mockRestore());
 }
 
-function mountScene() {
+function mountScene({ catalogListsCraft = true } = {}) {
   const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
   const view = render(
     <fixture.Provider>
@@ -107,19 +107,21 @@ function mountScene() {
       horizon: { kind: 1, trajectoryKind: 1 },
     });
     fixture.emit("trackingStation.catalog", {
-      entries: [
-        {
-          vesselId: "v-active",
-          name: "Active Craft",
-          vesselType: 0,
-          situation: 3,
-          bodyIndex: 1,
-          crewCount: 2,
-          crewCapacity: 3,
-          commsControlSource: 2,
-          orbit: orbit(3_000_000),
-        },
-      ],
+      entries: catalogListsCraft
+        ? [
+            {
+              vesselId: "v-active",
+              name: "Active Craft",
+              vesselType: 0,
+              situation: 3,
+              bodyIndex: 1,
+              crewCount: 2,
+              crewCapacity: 3,
+              commsControlSource: 2,
+              orbit: orbit(3_000_000),
+            },
+          ]
+        : [],
     });
   });
   return { fixture, ...view };
@@ -139,6 +141,21 @@ describe("SystemView: pressing the diagram", () => {
     );
     expect(screen.getByText("Active Craft")).toBeInTheDocument();
     expect(screen.queryByText("orbiting Kerbol")).not.toBeInTheDocument();
+  });
+
+  /** A centre whose catalog has not listed the flown craft yet still lets the operator select it, from the craft's own reports. */
+  it("selects the active vessel from its own marker before the catalog lists it", async () => {
+    mountScene({ catalogListsCraft: false });
+    const hit = await screen.findByRole("button", { name: "Active vessel" });
+    expect(hit).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(hit);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Active vessel" }),
+      ).toHaveAttribute("aria-pressed", "true"),
+    );
+    expect(screen.getByText("Active Craft")).toBeInTheDocument();
   });
 
   it("pins a pressed body's almanac in the aside, and holds the view on it when it is pressed again", async () => {

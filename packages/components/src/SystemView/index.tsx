@@ -67,6 +67,7 @@ import type { SystemOverlayContext } from "./slots";
 import { createUtBucketThrottle } from "./utBucketThrottle";
 // The host's own `system-view.projection` entries, so the picker and resolver run on a bare install.
 import "./projectionContribution";
+import { orbitFramingZoom } from "./orbitFraming";
 import { SystemDiagram } from "./SystemDiagram";
 import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
 import { CommsSourceCaption, TargetOrbitCaption } from "./TargetOrbitCaption";
@@ -75,9 +76,6 @@ import {
   targetHorizonOf,
   targetParentOf,
 } from "./targetOrbit";
-// Registers the built-in vessel-orbits contribution.
-import "./vesselOrbitsContribution";
-import { orbitFramingZoom } from "./orbitFraming";
 import { panelHohmannFor, transferStatusesFor } from "./transferWindow";
 import {
   type CelestialBody,
@@ -88,6 +86,8 @@ import { useCommsEntities } from "./useCommsEntities";
 import { usePanZoom } from "./usePanZoom";
 import { VesselInfoPanel } from "./VesselInfoPanel";
 import { vesselPlotStateFromStatus } from "./VesselMarker";
+// Registers the built-in vessel-orbits contribution.
+import { flownCraftEntity } from "./vesselOrbitsContribution";
 // Registers the built-in `system-view.vessel-status` contribution.
 import "./vesselStatusContribution";
 import "./slots";
@@ -100,6 +100,8 @@ const topics = defineTopicManifest({
   fields: [
     "vessel.identity.vesselId",
     "vessel.identity.name",
+    "vessel.identity.vesselType",
+    "vessel.identity.situation",
     "vessel.identity.parentBodyIndex",
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
@@ -214,6 +216,10 @@ function SystemViewComponent({
     bodiesReading.state === "observed" || bodiesReading.state === "held"
       ? bodiesReading.value
       : undefined;
+  const flownCraft = useMemo(
+    () => flownCraftEntity(identity, orbit, systemBodies),
+    [identity, orbit, systemBodies],
+  );
   const targetReading = topics.useTelemetry("vessel.target");
   const targetName =
     targetReading.state === "observed" || targetReading.state === "held"
@@ -243,6 +249,7 @@ function SystemViewComponent({
   } = useCommsEntities({
     activeVesselId: identity?.vesselId,
     activeVesselHasOrbit: orbit != null,
+    flownCraft,
     commsNetwork,
   });
 

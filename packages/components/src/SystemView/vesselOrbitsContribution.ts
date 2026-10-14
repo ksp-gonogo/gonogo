@@ -7,6 +7,7 @@ import {
   Situation,
   type SystemBodies,
   stillTrue,
+  type TopicPayload,
   type TrackingStationCatalog,
   VesselType,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -235,6 +236,41 @@ export function computeVesselOrbitEntities(
   }
 
   return entities;
+}
+
+/**
+ * The flown craft as a catalog entity, built from its own `vessel.identity`
+ * and `vessel.orbit`, for a centre whose catalog does not list it yet. Crew
+ * and comms read as unknown, since the craft's own report does not carry
+ * them; everything else is placed and labelled exactly as a catalog entry
+ * would be. Null without an identity or a resolvable body.
+ */
+export function flownCraftEntity(
+  identity: TopicPayload<"vessel.identity"> | undefined,
+  orbit: TopicPayload<"vessel.orbit"> | undefined,
+  bodies: SystemBodies | null | undefined,
+): SystemEntity | null {
+  if (identity == null) return null;
+  const entry: CatalogEntry = {
+    vesselId: identity.vesselId,
+    name: identity.name,
+    vesselType: identity.vesselType,
+    situation: identity.situation,
+    bodyIndex: identity.parentBodyIndex,
+    orbit:
+      orbit == null
+        ? null
+        : {
+            sma: orbit.sma,
+            ecc: orbit.ecc,
+            inc: orbit.inc,
+            lan: orbit.lan,
+            argPe: orbit.argPe,
+            meanAnomalyAtEpoch: orbit.meanAnomalyAtEpoch,
+            epoch: orbit.epoch,
+          },
+  };
+  return computeVesselOrbitEntities({ entries: [entry] }, bodies)[0] ?? null;
 }
 
 /** The body flagged `isHome`, or `null` when none is, which keeps the home edge omitted rather than placed at a guessed body. */

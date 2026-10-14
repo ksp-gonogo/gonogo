@@ -19,6 +19,8 @@ import { useEntitySelection } from "./useEntitySelection";
 
 type ContributedEntity = Contributed<SystemEntity>;
 
+const FLOWN_CRAFT = "system-view:flown-craft";
+
 export interface CommsEntities {
   entities: readonly ContributedEntity[];
   selectedVesselId: string | null;
@@ -26,7 +28,7 @@ export interface CommsEntities {
   handleEntityActivate: (id: string) => void;
   /** Drops the selection, whatever it is. */
   clearSelection: () => void;
-  /** The active vessel's own entity, whose roster fields the aside shows when the marker is pressed; null when no contribution describes it. */
+  /** The active vessel's own entity, whose roster fields the aside shows when the marker is pressed; null only when there is no active vessel to describe. */
   activeVesselEntityId: string | null;
   decorate: (id: string) => SystemEntityStyle | undefined;
   traffic: TrafficState;
@@ -41,10 +43,13 @@ export interface CommsEntities {
 export function useCommsEntities({
   activeVesselId,
   activeVesselHasOrbit,
+  flownCraft,
   commsNetwork,
 }: {
   activeVesselId: string | undefined;
   activeVesselHasOrbit: boolean;
+  /** The flown craft built from its own reports, standing in while no contribution describes it. */
+  flownCraft: SystemEntity | null;
   commsNetwork: CommsNetwork | undefined;
 }): CommsEntities {
   // True-now command-centre bookkeeping, as FleetComms reads it: dispatch-time facts, not delayed telemetry.
@@ -55,7 +60,22 @@ export function useCommsEntities({
   const { showCommlinks, showCommandTraffic } = useFleetCommsToggles();
 
   // SystemView owns the one piece of dynamic state a contribution cannot: which entity is selected.
-  const rawEntities = useContributions("system-view.entities");
+  const contributed = useContributions("system-view.entities");
+  // The flown craft is always selectable: until the centre's catalog lists it, its own reports stand in.
+  const rawEntities = useMemo(() => {
+    if (
+      flownCraft === null ||
+      contributed.some(
+        (e) =>
+          e.vesselId === flownCraft.vesselId &&
+          e.shape.kind !== "connection-line" &&
+          e.meta != null,
+      )
+    ) {
+      return contributed;
+    }
+    return [...contributed, { ...flownCraft, contributionId: FLOWN_CRAFT }];
+  }, [contributed, flownCraft]);
   /*
    * The active vessel's own entry is suppressed only while SystemDiagram draws its dedicated ring from `vessel.orbit`, so identity without an orbit never strands a hop endpoint.
    * `showCommlinks` off drops every `connection-line` entity, and the selected-path highlight with them.
