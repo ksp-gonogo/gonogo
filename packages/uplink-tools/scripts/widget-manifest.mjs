@@ -43,7 +43,7 @@ const PAGE_SCENES = {
   "comm-signal": "strong-direct-ksc",
   "contract-manager": "multiple-active-contracts",
   "crew-status": "valentina-solo-orbit",
-  "current-orbit": "circular-lko",
+  "orbit-view": "lko-circular",
   experiments: "instruments-holding-data",
   "fleet-roster": "mixed-fleet",
   "fuel-status": "asparagus-multi-stage",

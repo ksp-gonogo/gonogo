@@ -7,7 +7,6 @@ export * from "./AtmosphereProfile";
 export * from "./CommSignal";
 export * from "./ContractManager";
 export * from "./CrewStatus";
-export * from "./CurrentOrbit";
 export * from "./EscapeProfile";
 export * from "./Experiments";
 export * from "./FleetComms";

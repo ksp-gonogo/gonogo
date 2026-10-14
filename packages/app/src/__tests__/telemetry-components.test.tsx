@@ -1,13 +1,12 @@
 /**
  * Smoke tests for telemetry visualisation components:
- * CurrentOrbit, Rendezvous, OrbitView, GroundTrack.
+ * Rendezvous, OrbitView, GroundTrack.
  *
  * These are integration tests: real data source, real hooks, real components,
  * only the network is intercepted by MSW.
  */
 
 import {
-  CurrentOrbitComponent,
   GroundTrackComponent,
   OrbitViewComponent,
   RendezvousComponent,
@@ -103,24 +102,24 @@ function setupTelemetryStream() {
   };
 }
 
-describe("CurrentOrbitComponent", () => {
-  it("renders ORBIT heading", () => {
-    renderWidget(<CurrentOrbitComponent id="t" />);
-    expect(screen.getByText("ORBIT")).toBeInTheDocument();
+describe("OrbitViewComponent figures", () => {
+  it("renders ORBIT VIEW heading", () => {
+    renderWidget(<OrbitViewComponent id="t" />);
+    expect(screen.getByText("ORBIT VIEW")).toBeInTheDocument();
   });
 
   it("shows dashes before data arrives", () => {
-    renderWidget(<CurrentOrbitComponent id="t" />);
+    renderWidget(<OrbitViewComponent id="t" />);
     const dashes = screen.getAllByText(NULL_DISPLAY);
     expect(dashes.length).toBeGreaterThan(0);
   });
 
   it("shows apoapsis value when data arrives", async () => {
-    // CurrentOrbit solves apoapsis from `vessel.orbit` on rails, measured from the reference body's radius in `system.bodies`: sma*(1+ecc) - radius. sma 850k, ecc 0, Kerbin radius 600k -> 250_000 -> formatDistance '250.0 km'.
+    // OrbitView solves apoapsis from `vessel.orbit` on rails, measured from the reference body's radius in `system.bodies`: sma*(1+ecc) - radius. sma 850k, ecc 0, Kerbin radius 600k -> 250_000 -> formatDistance '250.0 km'.
     const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
-        <CurrentOrbitComponent id="t" />
+        <OrbitViewComponent id="t" />
       </stream.Provider>,
     );
     act(() => {
@@ -147,12 +146,7 @@ describe("CurrentOrbitComponent", () => {
           meanAnomalyAtEpoch: 0,
           epoch: 0,
           mu: 3.5316e12,
-          // The apoapsis figure is read off the mini diagram's apsis marker, so
-          // this needs a drawable trajectory as well as the solved value: the
-          // widget asks the propagation seam what shape the orbit is before
-          // drawing one, and a sample with no stated shape gets no conic and no
-          // markers on it. Same horizon the sibling OrbitView case states, and
-          // the same one the stock analytic producer sends.
+          // The apsis figures need a drawable shape: the widget asks the propagation seam what shape the orbit is, and a sample with no stated shape gets none. This is the horizon the stock analytic producer sends.
           horizon: {
             kind: PropagationHorizonKindLike.Unbounded,
             trajectoryKind: TrajectoryKindLike.Analytic,
@@ -161,11 +155,7 @@ describe("CurrentOrbitComponent", () => {
         { quality: Quality.OnRails },
       );
     });
-    await waitFor(() =>
-      expect(
-        screen.getByLabelText(/Apoapsis altitude 250\.0 km/),
-      ).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(visibleText()).toContain("250.0 km"));
   });
 
   it("shows reference body when provided", async () => {
@@ -173,7 +163,7 @@ describe("CurrentOrbitComponent", () => {
     const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
-        <CurrentOrbitComponent id="t" />
+        <OrbitViewComponent id="t" />
       </stream.Provider>,
     );
     act(() => {

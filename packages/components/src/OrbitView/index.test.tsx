@@ -44,9 +44,39 @@ describe("OrbitViewComponent", () => {
     expect(container.querySelector("svg")).toBeNull();
   });
 
-  it("renders the diagram in a wide-short landscape cell (12×3)", async () => {
-    const { container } = renderOrbitViewStream({ w: 12, h: 3 }, LKO);
-    // Landscape: cols >= 8 && rows >= 3 is enough.
+  it("gives the figures and the regime at the smallest size, with no diagram", async () => {
+    const { container } = renderOrbitViewStream({ w: 3, h: 4 }, LKO);
+
+    await waitFor(() => {
+      if (!/km/.test(visibleText(container))) {
+        throw new Error("figures have not resolved yet");
+      }
+    });
+    const text = visibleText(container);
+    expect(text).toContain("Ap");
+    expect(text).toContain("Pe");
+    expect(text).toContain("Kerbin");
+    expect(text).toContain("ORBIT");
+    expect(container.querySelector("svg")).toBeNull();
+  });
+
+  it("keeps every figure beside the diagram once it joins", async () => {
+    const { container } = renderOrbitViewStream({ w: 9, h: 18 }, LKO);
+
+    await waitFor(() => {
+      if (container.querySelector("svg") === null) {
+        throw new Error("diagram has not rendered yet");
+      }
+    });
+    const text = visibleText(container);
+    for (const label of ["Ap", "Pe", "t-Ap", "t-Pe", "Inc", "Ecc", "T"]) {
+      expect(text).toContain(label);
+    }
+  });
+
+  it("renders the diagram in a wide-short landscape cell (12×5)", async () => {
+    const { container } = renderOrbitViewStream({ w: 12, h: 5 }, LKO);
+    // Landscape: cols >= 12 && rows >= 5 is enough.
     await waitFor(() => {
       if (container.querySelector("svg") === null) {
         throw new Error("diagram has not rendered yet");

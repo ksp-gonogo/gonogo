@@ -1,0 +1,182 @@
+import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { describe, expect, it } from "vitest";
+import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
+import { setupStreamFixture } from "../test/setupStreamFixture";
+import { OrbitViewComponent } from "./index";
+
+/** `hasOrbit` must not require apoapsis, which is `null` on a hyperbolic orbit, so the diagram still renders. */
+
+const KERBIN_MU = 3.5316e12;
+
+describe("Orbit View figures: a hyperbolic orbit still counts as hasOrbit", () => {
+  it("renders the mini diagram (not suppressed) for a fully hyperbolic orbit", async () => {
+    registerStockBodies();
+    const stream = setupStreamFixture({
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
+
+    const { container } = render(
+      <stream.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "orbit-o2" }}>
+          <OrbitViewComponent config={{}} id="orbit-o2" w={9} h={18} />
+        </DashboardItemContext.Provider>
+      </stream.Provider>,
+    );
+
+    act(() => {
+      stream.emit(
+        "vessel.orbit",
+        {
+          referenceBodyIndex: 1,
+          sma: -2_000_000,
+          ecc: 1.4,
+          inc: 0,
+          lan: 0,
+          argPe: 0,
+          meanAnomalyAtEpoch: 0,
+          epoch: 0,
+          mu: KERBIN_MU,
+          horizon: ANALYTIC_UNBOUNDED_HORIZON,
+        },
+        { quality: Quality.OnRails },
+      );
+      stream.emit("vessel.identity", {
+        vesselId: "v1",
+        name: "Escape Pod",
+        vesselType: 0,
+        situation: 1,
+        parentBodyIndex: 1,
+        launchUt: 0,
+      });
+      stream.emit("system.bodies", {
+        bodies: [{ index: 1, name: "Kerbin", parentIndex: 0, radius: 600000 }],
+      });
+    });
+
+    await waitFor(() => expect(getEccentricityCell(container)).toBe("1.4000"));
+    expect(container.querySelector("svg")).not.toBeNull();
+  });
+});
+
+/**
+ * A loaded craft at 1x: the mod stamps `Quality.Loaded`, so the conic declines
+ * to advance the elements. The apsides and the diagram come from the elements
+ * as they stand, and the countdowns from KSP's own, sent on the sample and run
+ * down by the view time since it was taken.
+ */
+describe("Orbit View figures: a craft under physics keeps every figure", () => {
+  async function renderLoaded(
+    countdowns: { timeToAp?: number; timeToPe?: number },
+    sampleUt: number,
+    viewUt: number,
+  ) {
+    registerStockBodies();
+    const stream = setupStreamFixture({
+      pinnedUt: viewUt,
+      suspendFrames: true,
+    });
+    const { container } = render(
+      <stream.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "orbit-o4" }}>
+          <OrbitViewComponent config={{}} id="orbit-o4" w={9} h={18} />
+        </DashboardItemContext.Provider>
+      </stream.Provider>,
+    );
+
+    act(() => {
+      stream.emit(
+        "vessel.orbit",
+        {
+          referenceBodyIndex: 1,
+          sma: 681_500,
+          ecc: 0.005135,
+          inc: 0,
+          lan: 0,
+          argPe: 0,
+          meanAnomalyAtEpoch: 0,
+          epoch: sampleUt,
+          mu: KERBIN_MU,
+          horizon: ANALYTIC_UNBOUNDED_HORIZON,
+          ...countdowns,
+        },
+        { quality: Quality.Loaded, validAt: sampleUt },
+      );
+      stream.emit("vessel.identity", {
+        vesselId: "v1",
+        name: "Loaded Ship",
+        vesselType: 0,
+        situation: 1,
+        parentBodyIndex: 1,
+        launchUt: 0,
+      });
+      stream.emit("system.bodies", {
+        bodies: [{ index: 1, name: "Kerbin", parentIndex: 0, radius: 600000 }],
+      });
+    });
+
+    await waitFor(() => expect(getEccentricityCell(container)).toBe("0.0051"));
+    return container;
+  }
+
+  it("draws a loaded craft's apsides and diagram off the elements as they stand", async () => {
+    const container = await renderLoaded({}, 0, 0);
+
+    // sma(1 ± ecc) less Kerbin's 600 km, off the elements as they stand.
+    await waitFor(() =>
+      expect(getValueCell(container, "Ap")).toMatch(/^85\.0/),
+    );
+    expect(getValueCell(container, "Pe")).toMatch(/^78\.0/);
+    expect(container.querySelector("svg")).not.toBeNull();
+  });
+
+  it("shows KSP's time to apoapsis and periapsis at 1x", async () => {
+    const container = await renderLoaded(
+      { timeToAp: 900, timeToPe: 1800 },
+      0,
+      0,
+    );
+
+    await waitFor(() => expect(getValueCell(container, "t-Ap")).toBe("15min"));
+    expect(getValueCell(container, "t-Pe")).toBe("30min");
+  });
+
+  it("runs them down by the view time elapsed since the sample", async () => {
+    // Sampled at UT 40, viewed at UT 100: both apsides are a minute nearer.
+    const container = await renderLoaded(
+      { timeToAp: 900, timeToPe: 1800 },
+      40,
+      100,
+    );
+
+    await waitFor(() => expect(getValueCell(container, "t-Ap")).toBe("14min"));
+    expect(getValueCell(container, "t-Pe")).toBe("29min");
+  });
+
+  it("dashes the countdowns of a sample that carries none", async () => {
+    const container = await renderLoaded({}, 0, 0);
+
+    await waitFor(() =>
+      expect(getValueCell(container, "Ap")).toMatch(/^85\.0/),
+    );
+    expect(getValueCell(container, "t-Ap")).toBe(NULL_DISPLAY);
+    expect(getValueCell(container, "t-Pe")).toBe(NULL_DISPLAY);
+  });
+});
+
+function getEccentricityCell(container: HTMLElement): string | undefined {
+  return getValueCell(container, "Ecc");
+}
+
+function getValueCell(
+  container: HTMLElement,
+  label: string,
+): string | undefined {
+  const labelEl = Array.from(container.querySelectorAll("span")).find(
+    (el) => el.textContent === label,
+  );
+  return labelEl?.nextElementSibling?.textContent ?? undefined;
+}

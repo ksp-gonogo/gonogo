@@ -28,8 +28,6 @@ export const PUNCTUATION_DASH_DEBT: Record<string, number> = {
   "packages/app/src/peer/PeerHostService.ts": 5,
   "packages/app/src/peer/RetryPolicy.ts": 1,
   "packages/app/src/peer/stationPeerId.ts": 1,
-  "packages/components/src/CurrentOrbit/__fixtures__/circular-lko-link-lost.json": 1,
-  "packages/components/src/CurrentOrbit/__fixtures__/circular-lko.json": 1,
   "packages/components/src/LandingStatus/carried-altitude.test.tsx": 1,
   "packages/components/src/Rendezvous/__fixtures__/approach-closing-link-lost.json": 1,
   "packages/components/src/Rendezvous/__fixtures__/approach-closing.json": 1,

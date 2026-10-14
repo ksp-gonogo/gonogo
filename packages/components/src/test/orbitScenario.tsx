@@ -8,8 +8,8 @@ import { type StreamFixture, setupStreamFixture } from "./setupStreamFixture";
 
 /**
  * One `vessel.orbit` sample emitted onto a real stream fixture, shared by
- * every widget that draws a trajectory, so a horizon that makes OrbitView
- * refuse makes CurrentOrbit refuse identically.
+ * every widget that draws a trajectory, so a horizon that makes one refuse makes
+ * every other refuse identically.
  */
 
 /** The channels a scenario emits, carried by every orbit-stream fixture. */
