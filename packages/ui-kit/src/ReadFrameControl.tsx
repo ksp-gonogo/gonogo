@@ -7,7 +7,7 @@ import { Field, FieldHint, FieldLabel, Select } from "./Form";
 /**
  * One frame a {@link ReadFrameControl} can offer, and what an operator calls
  * it. Useful for naming each frame the operator can pick between. Used by the
- * current orbit widget's configuration form.
+ * orbit view widget's configuration form.
  *
  * @category Form
  */
@@ -44,7 +44,7 @@ export interface ReadFrameControlProps {
  * The control a frame-dependent widget picks its read frame with: a labelled,
  * keyboard-operable `<select>` over `options`, with an optional hint below.
  * Useful for letting the operator choose which body or vessel a drawing is
- * centred on. Used by the configuration forms of the current orbit and system
+ * centred on. Used by the configuration forms of the orbit view and system
  * view widgets.
  *
  * A read frame is the frame of reference a widget draws positions in, such as

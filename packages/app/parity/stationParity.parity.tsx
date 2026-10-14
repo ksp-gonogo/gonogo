@@ -11,7 +11,7 @@
  * of. Canvas pixels are not compared.
  *
  *   pnpm --filter @ksp-gonogo/app parity-gate
- *   PARITY_SCENE=current-orbit pnpm --filter @ksp-gonogo/app parity-gate
+ *   PARITY_SCENE=orbit-view pnpm --filter @ksp-gonogo/app parity-gate
  */
 
 vi.mock("peerjs", async (importOriginal) => {
@@ -52,7 +52,7 @@ function relayedTopic(message: unknown): string | undefined {
   return typeof topic === "string" ? topic : undefined;
 }
 
-const CANARY_ID = "current-orbit/circular-lko";
+const CANARY_ID = "orbit-view/lko-circular";
 const CANARY_TOPIC = "system.bodies";
 
 function canary(): ParityScene {

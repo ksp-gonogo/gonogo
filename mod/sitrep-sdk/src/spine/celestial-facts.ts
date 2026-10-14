@@ -403,7 +403,7 @@ export function deriveCelestialFacts(
  * The processor that computes {@link CelestialFacts} once per frame. Read it
  * with `useProcessor(CELESTIAL_FACTS)`, or list it in a contribution's `deps`.
  * Do not register a processor with the same id. Useful for showing the operator
- * facts about the bodies of the solar system. Used by the current orbit widget,
+ * facts about the bodies of the solar system. Used by the orbit view widget,
  * the transfer window planner and the system view.
  *
  * @category Solar system and fleet
