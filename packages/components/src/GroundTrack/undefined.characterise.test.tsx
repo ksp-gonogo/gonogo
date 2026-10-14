@@ -171,7 +171,7 @@ describe("GroundTrack: what undefined telemetry means today", () => {
     // The body is a join of identity and system.bodies, neither of which is flight data, so the label and map stand without vessel.flight and only the position is missing.
     expect(screen.getByText(/Kerbin/)).toBeInTheDocument();
     expect(visibleText(container)).toBe(
-      "GROUND TRACKKerbinNO DATAFollowNo position data",
+      "GROUND TRACKKerbinNO DATAFollowLANDEDNo position data",
     );
   });
 
@@ -248,7 +248,7 @@ describe("GroundTrack: what undefined telemetry means today", () => {
     // Position fields go through `flight?.x`, so a tombstone and a cold start render alike for position; the body still resolves.
     expect(screen.getByText("No position data")).toBeInTheDocument();
     expect(visibleText(container)).toBe(
-      "GROUND TRACKKerbinNO DATAFollowNo position data",
+      "GROUND TRACKKerbinNO DATAFollowLANDEDNo position data",
     );
   });
 
