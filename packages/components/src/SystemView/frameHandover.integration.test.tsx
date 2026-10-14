@@ -297,7 +297,6 @@ describe("SystemView when the craft changes the body it orbits", () => {
     // The frame is the star until the craft's body arrives: that change is not the craft crossing anything.
     const { view } = mount();
     await waitFor(() => onScreen(view.container, 'circle[data-body="Mun"]'));
-    expect(screen.queryByRole("button", { name: "Reset view" })).toBeNull();
     expect(view.container.textContent).not.toContain("was");
     // A planet's star is not marked: only a moon's planet is.
     expect(
@@ -378,6 +377,8 @@ describe("SystemView when the craft changes the body it orbits", () => {
     const frames = holdFrames();
     const { fixture, view } = mount();
     await waitFor(() => onScreen(view.container, 'circle[data-body="Mun"]'));
+    // The picture opens on the craft's orbit; the whole frame is what the ease ends on.
+    fireEvent.click(await screen.findByRole("button", { name: "Reset view" }));
     const fitted = onScreen(view.container, 'circle[data-body="Kerbin"]').scale;
     enterTheMun(fixture);
     await waitFor(() =>
