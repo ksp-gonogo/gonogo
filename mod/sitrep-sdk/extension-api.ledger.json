@@ -15041,6 +15041,146 @@
         "note": "Exported from the kit's index because published signatures take it"
       },
       {
+        "key": "ui-kit . Graph",
+        "note": "the measured, framed chart the graph widget is built on, published so an Uplink can draw a chart the same way"
+      },
+      {
+        "key": "ui-kit . GraphProps",
+        "note": "props of Graph: the chart's series, domains, thresholds and the notice and readout around it"
+      },
+      {
+        "key": "ui-kit . GraphProps#\"aria-label\"?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#children?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#chrome?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#crosshair?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#emptyState?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#footer?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#gridScale?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#headerActions?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#height?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#hideXAxis?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#layers?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#notice?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#plotReadout?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#referenceCurves?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#series",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#spatial?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#thresholds?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#title?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#xAxisLabel?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#xDomain",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#xKind?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#xReadFormat?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#xTickFormat?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#xUnit?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#yAxisLabel?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#yDomainPrimary?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#yDomainSecondary?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#yScalePrimary?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#yScaleSecondary?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#ySecondaryAxisLabel?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#yTickFormat?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphProps#yUnit?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
+        "key": "ui-kit . GraphThreshold",
+        "note": "a threshold line given as a quantity or reading, which Graph places and tones"
+      },
+      {
         "key": "ui-kit . GroundPoint",
         "note": "A latitude and longitude in degrees, the point type the wrapped-map helpers take"
       },
@@ -15481,6 +15621,22 @@
         "note": "New: held or at-risk, the predicted result a control outlines"
       },
       {
+        "key": "ui-kit . PresentPoint",
+        "note": "where a graph's newest sample stands, handed to a readout"
+      },
+      {
+        "key": "ui-kit . PresentPoint#references",
+        "note": "member of PresentPoint, new with it"
+      },
+      {
+        "key": "ui-kit . PresentPoint#x",
+        "note": "member of PresentPoint, new with it"
+      },
+      {
+        "key": "ui-kit . PresentPoint#y",
+        "note": "member of PresentPoint, new with it"
+      },
+      {
         "key": "ui-kit . REFUSAL_TIMEOUT_MS",
         "note": "exported, since the published docs of useCommandButton link it"
       },
@@ -15495,6 +15651,58 @@
       {
         "key": "ui-kit . ReadoutProps#tone?",
         "note": "Readout tone, as it was on the inline prop type"
+      },
+      {
+        "key": "ui-kit . ReadoutRoom",
+        "note": "the space a graph offers its readout, handed to a plotReadout function"
+      },
+      {
+        "key": "ui-kit . ReadoutRoom#compact",
+        "note": "member of ReadoutRoom, new with it"
+      },
+      {
+        "key": "ui-kit . ReadoutRoom#height",
+        "note": "member of ReadoutRoom, new with it"
+      },
+      {
+        "key": "ui-kit . ReadoutRoom#present?",
+        "note": "member of ReadoutRoom, new with it"
+      },
+      {
+        "key": "ui-kit . ReadoutRoom#tight",
+        "note": "member of ReadoutRoom, new with it"
+      },
+      {
+        "key": "ui-kit . ReadoutRoom#width",
+        "note": "member of ReadoutRoom, new with it"
+      },
+      {
+        "key": "ui-kit . ReferenceCurve",
+        "note": "a static curve drawn behind the series of a value-axis graph"
+      },
+      {
+        "key": "ui-kit . ReferenceCurve#axis?",
+        "note": "member of ReferenceCurve, new with it"
+      },
+      {
+        "key": "ui-kit . ReferenceCurve#color?",
+        "note": "member of ReferenceCurve, new with it"
+      },
+      {
+        "key": "ui-kit . ReferenceCurve#id",
+        "note": "member of ReferenceCurve, new with it"
+      },
+      {
+        "key": "ui-kit . ReferenceCurve#label",
+        "note": "member of ReferenceCurve, new with it"
+      },
+      {
+        "key": "ui-kit . ReferenceCurve#xs",
+        "note": "member of ReferenceCurve, new with it"
+      },
+      {
+        "key": "ui-kit . ReferenceCurve#ys",
+        "note": "member of ReferenceCurve, new with it"
       },
       {
         "key": "ui-kit . SeriesType",

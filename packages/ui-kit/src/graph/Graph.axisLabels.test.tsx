@@ -1,28 +1,33 @@
-import { render } from "@ksp-gonogo/test-utils";
-import { LineChart } from "@ksp-gonogo/ui";
+import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
-import { unitTick } from "../Graph/ticks";
+import { installFixedSizeResizeObserver } from "../testing";
+import { Graph } from "./Graph";
 
 /**
- * The descent envelope's axes across the ranges a descent zooms them through, at the plot sizes the widget draws: no two labels on an axis may read the same, nor any read wrong.
+ * A graph's unit-labelled axes across the ranges a descent zooms them through, at the plot sizes the widget draws: no two labels on an axis may read the same, nor any read wrong.
  */
 const SIDES = [127, 140, 274];
 
-describe("the descent envelope's axes", () => {
+describe("a graph's unit-labelled axes", () => {
   it("never write two ticks the same, at any height span from 50 m to 30 km and any speed span from 5 to 600 m/s", () => {
     const repeats: string[] = [];
     for (const side of SIDES) {
       for (let top = 50; top <= 30_000; top *= 1.15) {
         const right = 5 + (top / 30_000) * 595;
+        const uninstall = installFixedSizeResizeObserver({
+          width: side,
+          height: side,
+        });
         const { container, unmount } = render(
-          <LineChart
+          <Graph
+            chrome="bare"
             series={[]}
+            xKind="value"
+            crosshair={false}
             xDomain={[0, right]}
             yDomainPrimary={[0, top]}
-            xTickFormat={(v, _d, ticks) => unitTick("m/s", v, ticks)}
-            yTickFormat={(v, ticks) => unitTick("m", v, ticks)}
-            width={side}
-            height={side}
+            xUnit="m/s"
+            yUnit="m"
           />,
         );
         const y = [
@@ -44,6 +49,7 @@ describe("the descent envelope's axes", () => {
           }
         }
         unmount();
+        uninstall();
       }
     }
     expect(repeats).toEqual([]);

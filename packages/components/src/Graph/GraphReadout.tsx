@@ -3,7 +3,7 @@ import { useStream } from "@ksp-gonogo/sitrep-client";
 import { deriveReading, seriesKeyOf, value } from "@ksp-gonogo/sitrep-sdk";
 import { Readout, Sparkline } from "@ksp-gonogo/ui";
 import { NULL_DISPLAY, Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties, ReactNode, RefObject } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { GraphSeries } from "./GraphSeries";
 import { paletteColor } from "./palette";
 import { formatReadoutValue } from "./ticks";
@@ -15,7 +15,6 @@ interface Props {
   cfg: GraphSeriesSpec;
   meta: DataKeyMeta | undefined;
   raw: SeriesRange<number>;
-  containerRef: RefObject<HTMLDivElement>;
   /** Whether this series still needs its own fetcher mounted, false when it arrived via `computedSeries`. */
   needsFetch: boolean;
   windowSec: number;
@@ -29,7 +28,6 @@ export function GraphReadout({
   cfg,
   meta,
   raw,
-  containerRef,
   needsFetch,
   windowSec,
   onData,
@@ -77,7 +75,7 @@ export function GraphReadout({
       )}
       sections={
         <Section fill>
-          <div ref={containerRef} style={READOUT_BODY}>
+          <div style={READOUT_BODY}>
             {seriesLabel !== readoutTitle && (
               <div style={READOUT_LABEL}>{seriesLabel}</div>
             )}
