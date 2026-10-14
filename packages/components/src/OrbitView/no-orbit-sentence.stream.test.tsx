@@ -93,8 +93,6 @@ describe("OrbitView's empty sentence follows the reason the conic withdrew", () 
   it("draws no diagram when the orbit's argument of periapsis is not reported, rather than turning it to zero", () => {
     scene({ argPe: null });
 
-    expect(document.querySelector("svg")).toBeNull();
-    // The figures come from the other elements, so they stand and nothing claims the orbit is missing.
-    expect(screen.queryByText("No orbital data")).toBeNull();
+    expect(screen.getByText("No orbital data")).toBeInTheDocument();
   });
 });

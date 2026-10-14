@@ -45,8 +45,6 @@ export const UPLINK_EXTERNAL_ENTRIES = [
   ["@ksp-gonogo/data", "ext-data"],
   ["@ksp-gonogo/ui", "ext-ui"],
   ["@ksp-gonogo/ui-kit", "ext-ui-kit"],
-  ["@ksp-gonogo/ui-kit/grid", "ext-ui-kit-grid"],
-  ["@ksp-gonogo/ui-kit/guards", "ext-ui-kit-guards"],
   ["@ksp-gonogo/sitrep-client", "ext-sitrep-client"],
   ["@ksp-gonogo/sitrep-sdk", "ext-sitrep-sdk"],
   ["@ksp-gonogo/sitrep-sdk/frames", "ext-sitrep-sdk-frames"],

@@ -196,24 +196,33 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "OrbitView/__fixtures__",
     outPath: "renders/orbit-view-widget",
     modes: [
-      // Minimum size (3x4): the figures alone, Ap and Pe.
-      { name: "tiny-3x4", w: 3, h: 4 },
-      // 4x6: adds t-Ap, t-Pe and inclination. No diagram.
-      { name: "compact-4x6", w: 4, h: 6 },
-      // 5x5: still figures alone, with inclination.
+      // Pill fallback: both thresholds unmet; only status pill rendered.
+      { name: "pill-3x4", w: 3, h: 4 },
+      // Landscape-relaxed diagram: cols≥8 && rows≥3 branch.
+      { name: "landscape-10x4", w: 10, h: 4 },
+      // Minimum square diagram: just above the 5×5 threshold.
       { name: "square-5x5", w: 5, h: 5 },
-      // 5x8: the shortest portrait tile the diagram opens in, above the figures.
-      { name: "medium-5x8", w: 5, h: 8 },
-      // Wide but too short for a diagram: the figures alone, in a row.
-      { name: "wide-12x4", w: 12, h: 4 },
-      // Shortest wide tile the diagram opens in, with the figures beside it.
-      { name: "wide-12x5", w: 12, h: 5 },
-      // Wide and shallow: the figures sit beside the diagram.
-      { name: "landscape-12x6", w: 12, h: 6 },
       // Default registered size for the widget.
       { name: "default-9x18", w: 9, h: 18 },
       // Generous size: body, orbit, and labels have plenty of room.
       { name: "large-14x22", w: 14, h: 22 },
+    ],
+  },
+  {
+    widgetId: "current-orbit",
+    fixturesPath: "CurrentOrbit/__fixtures__",
+    outPath: "renders/current-orbit-widget",
+    modes: [
+      // Minimum size (3×4): Ap + Pe only, no subtitle, no diagram.
+      { name: "tiny-3x4", w: 3, h: 4 },
+      // 4×6: adds subtitle, inclination, t-Ap/t-Pe. Diagram still hidden.
+      { name: "compact-4x6", w: 4, h: 6 },
+      // 5×8: all rows + diagram slot (rows=8, cols=5, exactly on threshold).
+      { name: "medium-5x8", w: 5, h: 8 },
+      // Default size: every row + generous diagram.
+      { name: "default-9x18", w: 9, h: 18 },
+      // Landscape: wide and shallow: ResizeObserver flips flex-direction.
+      { name: "landscape-12x6", w: 12, h: 6 },
     ],
   },
   {

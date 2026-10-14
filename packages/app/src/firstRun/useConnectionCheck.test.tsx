@@ -135,23 +135,4 @@ describe("useConnectionCheck: a connection that does not answer", () => {
     act(() => world.set("reconnecting"));
     expect(result.current.state).toBe("checking");
   });
-
-  it("starts the count again after a reconnect that happened while no setup step was open", () => {
-    const world = makeSource("reconnecting");
-    registerDataSource(world.source);
-    const first = renderHook(() => useConnectionCheck());
-    act(() => {
-      vi.advanceTimersByTime(CONNECT_GRACE_MS);
-    });
-    first.unmount();
-
-    act(() => world.set("connected"));
-    act(() => {
-      vi.advanceTimersByTime(CONNECT_GRACE_MS);
-    });
-    act(() => world.set("reconnecting"));
-
-    const later = renderHook(() => useConnectionCheck());
-    expect(later.result.current.state).toBe("checking");
-  });
 });

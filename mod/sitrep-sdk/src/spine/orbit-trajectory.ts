@@ -157,7 +157,7 @@ export type ArcFarEnd =
  * {@link useOrbitTrajectory}: as a conic from its elements, as the sampled arc
  * the provider vouched for, or not at all. Useful for deciding what to draw for
  * the vessel's orbit. Used by the maneuver planner's preview and conformance
- * plot and the orbit view widget.
+ * plot and the current orbit widget.
  *
  * A `withheld` answer carries a {@link ReckoningDecline}, the same shape a
  * declined model gives, so show it the way any declined figure is shown: a short

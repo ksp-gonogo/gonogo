@@ -21,7 +21,7 @@ const MAP = "widget-ground-track";
 const DASHBOARD = {
   items: [
     { i: MAP, componentId: "ground-track" },
-    { i: "widget-orbit-view", componentId: "orbit-view" },
+    { i: "widget-current-orbit", componentId: "current-orbit" },
   ],
   layouts: Object.fromEntries(
     ([12, 10, 8, 6, 4] as const).map((cols, idx) => [
@@ -29,7 +29,7 @@ const DASHBOARD = {
       [
         { i: MAP, x: 0, y: 0, w: cols, h: 8, moved: false, static: false },
         {
-          i: "widget-orbit-view",
+          i: "widget-current-orbit",
           x: 0,
           y: 8,
           w: cols,

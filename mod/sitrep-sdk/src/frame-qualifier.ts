@@ -8,7 +8,7 @@ import type { ReadFrameChoice } from "./spine/reference-frame";
  * frame of `follow-control-frame` with `resolveReadFrame` first; unresolved,
  * it counts as unknown. Useful for deciding whether an orbital readout means
  * anything in the frame the operator chose. Taken by {@link lengthsAreLengths}
- * and {@link apsidesExist}, and used by the orbit view widget.
+ * and {@link apsidesExist}, and used by the current orbit widget.
  *
  * @category Orbits and trajectories
  */
@@ -59,7 +59,7 @@ export function lengthsAreLengths(
  * Returns whether periapsis and apoapsis exist in this frame. They need a
  * single central body, so they are `"invalid"` in the rotating frames, which
  * turn about a pair of bodies, and in a frame relative to the target. Useful for deciding whether to show the
- * operator periapsis and apoapsis. Used by the orbit view widget and the
+ * operator periapsis and apoapsis. Used by the current orbit widget and the
  * maneuver planner.
  *
  * @category Orbits and trajectories
@@ -109,7 +109,7 @@ const FRAME_NAMES: Readonly<Record<number, string>> = {
  * A frame kind this version has no name for is shown by its number, and a body
  * the frame did not report keeps its placeholder, such as
  * `"<centre>-Centred Inertial"`, so a gap is visible rather than guessed at. Useful for telling the operator
- * which frame a readout is measured in. Used by the orbit view and semi-major
+ * which frame a readout is measured in. Used by the current orbit and semi-major
  * axis widgets and by the app's control frame settings.
  *
  * @category Orbits and trajectories
@@ -143,7 +143,7 @@ export function controlFrameLabel(
  * current frame, such as `"No apoapsis in this frame"`, or `undefined` when
  * the quantity is valid and should be shown. Useful for telling the operator that a
  * blank readout comes from the frame they chose and not from a lost signal.
- * Used by the orbit view widget and the maneuver planner.
+ * Used by the current orbit widget and the maneuver planner.
  *
  * @param validity - From {@link lengthsAreLengths} or {@link apsidesExist}.
  * @param quantity - The quantity's name, such as `"apoapsis"`.

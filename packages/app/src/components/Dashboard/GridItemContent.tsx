@@ -36,7 +36,6 @@ import { AlarmStatusBridge } from "../../alarms/AlarmStatusBridge";
 import { TrajectoryCurrencyBridge } from "../../trajectory/TrajectoryCurrencyBridge";
 import {
   getUplinkOutcomes,
-  haveUplinksSettled,
   subscribeUplinkOutcomes,
 } from "../../uplinks/loaderState";
 import { UnvouchedDevClientBridge } from "../../uplinks/UnvouchedDevClientBridge";
@@ -77,11 +76,6 @@ export const GridItemContent = memo(function GridItemContent({
     subscribeUplinkOutcomes,
     getUplinkOutcomes,
     getUplinkOutcomes,
-  );
-  const uplinksSettled = useSyncExternalStore(
-    subscribeUplinkOutcomes,
-    haveUplinksSettled,
-    haveUplinksSettled,
   );
   const def = getComponent(item.componentId);
   const sizeDeltaFor = useSizeDeltaFor();
@@ -149,7 +143,6 @@ export const GridItemContent = memo(function GridItemContent({
         <ComponentWrapper>
           <UnavailableWidget
             componentId={item.componentId}
-            settled={uplinksSettled}
             onRemove={onRemove}
           />
         </ComponentWrapper>

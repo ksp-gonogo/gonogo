@@ -107,7 +107,7 @@ describe("MainScreen smoke", () => {
     localStorage.setItem(
       "gonogo:dashboard:main",
       JSON.stringify({
-        items: [{ i: "orbit", componentId: "orbit-view" }],
+        items: [{ i: "orbit", componentId: "current-orbit" }],
         layouts: { lg: [{ i: "orbit", x: 0, y: 0, w: 4, h: 4 }] },
       }),
     );

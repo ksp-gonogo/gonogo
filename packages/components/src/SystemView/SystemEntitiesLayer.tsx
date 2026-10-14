@@ -9,7 +9,6 @@ export type { SystemEntityPulse } from "./pulseSweeps";
 
 import { activateOnKey } from "./activateOnKey";
 import {
-  createRingCache,
   type ResolvedSystemEntity,
   resolveSystemEntities,
 } from "./resolveSystemEntities";
@@ -46,10 +45,9 @@ export function SystemEntitiesLayer({
   pulses,
   nowUt,
 }: Readonly<SystemEntitiesLayerProps>) {
-  const ringOf = useMemo(createRingCache, []);
   const resolved = useMemo(
-    () => resolveSystemEntities(entities, ctx, decorate, ringOf),
-    [entities, ctx, decorate, ringOf],
+    () => resolveSystemEntities(entities, ctx, decorate),
+    [entities, ctx, decorate],
   );
 
   if (resolved.length === 0 && !hasSweep(pulses, resolved)) return null;
