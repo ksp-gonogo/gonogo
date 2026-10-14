@@ -46,6 +46,7 @@ import {
   RemoveButton,
   WidgetError,
 } from "./shared";
+import { UnavailableWidget } from "./UnavailableWidget";
 import { GearButton, GearWrapper } from "./WidgetGearMenu";
 
 interface GridItemContentProps {
@@ -71,7 +72,7 @@ export const GridItemContent = memo(function GridItemContent({
   removeItem,
 }: GridItemContentProps) {
   // The registry does not notify, and an Uplink's client can load after the first render, so a load outcome is what says to look again.
-  useSyncExternalStore(
+  const uplinkOutcomes = useSyncExternalStore(
     subscribeUplinkOutcomes,
     getUplinkOutcomes,
     getUplinkOutcomes,
@@ -131,7 +132,23 @@ export const GridItemContent = memo(function GridItemContent({
     [item.i, item.config, updateItemConfig],
   );
 
-  if (!def) return null;
+  if (!def) {
+    // An Uplink's widgets register once its client loads, so nothing is drawn while one is still loading.
+    if (uplinkOutcomes.some((o) => o.status === "loading")) return null;
+    return (
+      <>
+        <Tooltip text="Drag to reposition" announce={false}>
+          <CellHeader className="drag-handle" />
+        </Tooltip>
+        <ComponentWrapper>
+          <UnavailableWidget
+            componentId={item.componentId}
+            onRemove={onRemove}
+          />
+        </ComponentWrapper>
+      </>
+    );
+  }
   // The room the extensions rendering here ask for moves where the widget stops showing its tiny form.
   const sizedDef = withSizeDelta(def, sizeDeltaFor(def));
   const declaredConfig = item.config ?? def.defaultConfig ?? {};

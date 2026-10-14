@@ -14,8 +14,18 @@ import {
   HalfWidthIcon,
 } from "@ksp-gonogo/ui";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
-import { memo, useCallback, useMemo, useRef } from "react";
+import {
+  memo,
+  useCallback,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 import styled from "styled-components";
+import {
+  getUplinkOutcomes,
+  subscribeUplinkOutcomes,
+} from "../../uplinks/loaderState";
 import type { DashboardItem, DashboardProps } from "./index";
 import { ROW_HEIGHT } from "./layoutNormalization";
 import {
@@ -25,6 +35,7 @@ import {
   RemoveButton,
   WidgetError,
 } from "./shared";
+import { UnavailableWidget } from "./UnavailableWidget";
 import { useScrollIntoViewOnAdd } from "./useScrollIntoViewOnAdd";
 import { GearButton } from "./WidgetGearMenu";
 
@@ -99,6 +110,11 @@ const MobileItemContent = memo(function MobileItemContent({
   isHighlighted,
   onHighlightEnd,
 }: MobileItemContentProps) {
+  const uplinkOutcomes = useSyncExternalStore(
+    subscribeUplinkOutcomes,
+    getUplinkOutcomes,
+    getUplinkOutcomes,
+  );
   const def = getComponent(item.componentId);
 
   const onSaveConfig = useCallback(
@@ -127,7 +143,27 @@ const MobileItemContent = memo(function MobileItemContent({
   );
   const itemContext = useMemo(() => ({ instanceId: item.i }), [item.i]);
 
-  if (!def) return null;
+  if (!def) {
+    // An Uplink's widgets register once its client loads, so nothing is drawn while one is still loading.
+    if (uplinkOutcomes.some((o) => o.status === "loading")) return null;
+    const unavailableHeight = 3 * ROW_HEIGHT;
+    return (
+      <MobileCell
+        $half={false}
+        $height={unavailableHeight}
+        data-i={item.i}
+        data-mobile-width="full"
+        data-mobile-height={unavailableHeight}
+      >
+        <ComponentWrapper>
+          <UnavailableWidget
+            componentId={item.componentId}
+            onRemove={onRemove}
+          />
+        </ComponentWrapper>
+      </MobileCell>
+    );
+  }
   const Comp = def.component;
   // Per-instance override beats the component's default. Stored on the
   // DashboardItem so it persists per screen (mobile and desktop layouts

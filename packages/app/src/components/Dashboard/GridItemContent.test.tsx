@@ -148,7 +148,7 @@ describe("GridItemContent: draggableCancel structural guard", () => {
     expect(cancelTarget).toContainElement(configureBtn);
   });
 
-  it("renders nothing for a saved widget whose id is no longer registered, without throwing", () => {
+  it("draws the unavailable tile for a saved widget whose id is no longer registered, without throwing", () => {
     const { container } = render(
       <GridItemContent
         item={{ i: "w9", componentId: "targeting" }}
@@ -160,7 +160,8 @@ describe("GridItemContent: draggableCancel structural guard", () => {
       />,
     );
 
-    expect(container.textContent).toBe("");
+    expect(container.textContent).toContain("targeting");
+    expect(container.textContent).toContain("is not available");
   });
 
   it("wraps the Remove button in .widget-action-buttons even without a config component", () => {
