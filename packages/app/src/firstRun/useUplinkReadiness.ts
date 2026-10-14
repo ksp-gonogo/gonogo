@@ -63,6 +63,14 @@ export interface UplinkReadinessEntry {
   coreContract: ContractVersionReading | null;
   /** The mod's whole roster row, health self-report included, or null for an id the mod does not list. */
   rosterEntry: UplinkHealthEntry | null;
+  /**
+   * Part of the core mod rather than an add-on the operator installed: the mod
+   * lists it with no author and no repository, which every installable Uplink
+   * declares. An Uplink the mod refused for its contract also lists neither,
+   * but it is an add-on whose refusal the operator needs, so it is never
+   * bundled. The setup does not count a bundled Uplink or draw a row for it.
+   */
+  bundled: boolean;
   /** The recorded load outcome, or null when nothing was attempted for this id. */
   outcome: UplinkLoadOutcome | null;
   state: UplinkReadinessState;
@@ -121,6 +129,9 @@ function stateOf(
  * client to be missing. `undefined` means the mod has not said, which is read as
  * every Uplink declaring one rather than as none.
  *
+ * `bundledIds` is the ids of the Uplinks that ship inside the core mod; none
+ * when the mod has not said.
+ *
  * `roster` is tri-state. `undefined` means the mod has not answered yet and
  * `null` means it answered with a tombstone; both contribute no roster rows,
  * and only the hook's `loading` flag tells them apart.
@@ -129,6 +140,7 @@ export function computeUplinkReadiness(
   roster: SystemUplinkHealth | null | undefined,
   outcomes: readonly UplinkLoadOutcome[],
   clientDeclarations?: ReadonlySet<string>,
+  bundledIds?: ReadonlySet<string>,
 ): UplinkReadinessEntry[] {
   const rosterById = new Map(
     (roster?.uplinks ?? []).map((entry) => [entry.id, entry]),
@@ -146,6 +158,11 @@ export function computeUplinkReadiness(
     const modAvailable =
       (rosterEntry?.available ?? false) && !healthUnavailable;
     const declaredContract = rosterEntry?.contract ?? null;
+    const contractRefused = isContractRefusal(
+      modAvailable,
+      declaredContract,
+      coreContract,
+    );
     return {
       id,
       name: outcome?.name ?? rosterEntry?.name ?? id,
@@ -158,22 +175,25 @@ export function computeUplinkReadiness(
       declaredContract,
       coreContract,
       rosterEntry: rosterEntry ?? null,
+      bundled: installed && !contractRefused && (bundledIds?.has(id) ?? false),
       outcome,
       state: stateOf(
         outcome,
         installed,
         modAvailable,
-        isContractRefusal(modAvailable, declaredContract, coreContract),
+        contractRefused,
         clientDeclarations?.has(id) ?? true,
       ),
     };
   });
 }
 
-/** The two fields of a raw `system.uplinks` entry that say whether the Uplink ships a client. */
+/** The fields of a raw `system.uplinks` entry that say whether the Uplink ships a client and who wrote it. */
 interface RawClientDeclarations {
   uplinks: Array<{
     id: string;
+    author?: string | null;
+    repo?: string | null;
     expectedClientHash?: string | null;
     clientSource?: unknown;
   }>;
@@ -212,8 +232,22 @@ export function useUplinkReadiness(): UseUplinkReadinessResult {
         )
       : undefined;
 
+  const bundledIds =
+    declarations.state === "observed" || declarations.state === "held"
+      ? new Set(
+          declarations.value.uplinks
+            .filter((u) => !u.author && !u.repo)
+            .map((u) => u.id),
+        )
+      : undefined;
+
   return {
-    entries: computeUplinkReadiness(roster, outcomes, clientDeclarations),
+    entries: computeUplinkReadiness(
+      roster,
+      outcomes,
+      clientDeclarations,
+      bundledIds,
+    ),
     waitingForMod: roster === undefined,
   };
 }

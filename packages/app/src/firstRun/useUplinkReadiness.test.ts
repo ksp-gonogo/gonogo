@@ -290,3 +290,41 @@ describe("computeUplinkReadiness: an Uplink that declares no client", () => {
     expect(entries[0]?.state).toBe("no-client");
   });
 });
+
+describe("computeUplinkReadiness: Uplinks inside the core mod", () => {
+  it("marks only the ids the mod lists without an author or repository, and never an unlisted one", () => {
+    const entries = computeUplinkReadiness(
+      roster([{ id: "widget-a" }, { id: "widget-b" }]),
+      [{ id: "widget-c", name: "Widget C", status: "loaded" }],
+      undefined,
+      new Set(["widget-a", "widget-c"]),
+    );
+    expect(entries.map((e) => [e.id, e.bundled])).toEqual([
+      ["widget-a", true],
+      ["widget-b", false],
+      ["widget-c", false],
+    ]);
+  });
+
+  it("keeps a contract-refused Uplink visible, since it is an add-on whose refusal the operator needs", () => {
+    const entries = computeUplinkReadiness(
+      roster(
+        [
+          {
+            id: "widget-a",
+            available: false,
+            contract: { major: 14, minor: 5 },
+          },
+        ],
+        { major: 15, minor: 0 },
+      ),
+      [],
+      undefined,
+      new Set(["widget-a"]),
+    );
+    expect(entries[0]).toMatchObject({
+      bundled: false,
+      state: "contract-mismatch",
+    });
+  });
+});

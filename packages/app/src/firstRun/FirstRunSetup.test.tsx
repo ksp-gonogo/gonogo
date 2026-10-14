@@ -187,9 +187,21 @@ function rosterEntry(overrides: { id: string } & Record<string, unknown>) {
     available: true,
     reason: null,
     expectedClientHash: "client-hash",
+    author: "Test Author",
+    repo: "example/addon",
     health: { state: 0, detail: null },
     ...overrides,
   };
+}
+
+/** An Uplink inside the core mod: no author, no repository, no client. */
+function coreEntry(id: string) {
+  return rosterEntry({
+    id,
+    expectedClientHash: null,
+    author: null,
+    repo: null,
+  });
 }
 
 describe("FirstRunSetup: step sequence", () => {
@@ -378,7 +390,7 @@ describe("FirstRunSetup: the KSP connection check", () => {
     ).toHaveAttribute("href", SETUP_LINKS.networking);
   });
 
-  it("says why a second computer helps when KSP is on this one, and that the port is not to be forwarded", async () => {
+  it("gives the optional background tip when KSP is on this computer, and that the port is not to be forwarded", async () => {
     renderSetup(undefined, { ksp: "connected" });
     await goToConnect();
 
@@ -489,17 +501,22 @@ describe("FirstRunSetup: the health check", () => {
 });
 
 describe("FirstRunSetup: the Uplinks reading", () => {
-  it("reads all working with no second count line, and no row for a mod-only capability", async () => {
+  it("counts the add-ons installed, not the Uplinks inside the core mod, and says a mod-only add-on adds no widgets", async () => {
     setUplinkOutcome({ id: "widget-loaded", name: "Loaded", status: "loaded" });
     const { wsClients } = renderSetup();
     await goToUplinks();
     await emitRoster(wsClients, [
       rosterEntry({ id: "widget-loaded" }),
-      rosterEntry({ id: "capability-a", expectedClientHash: null }),
-      rosterEntry({ id: "capability-b", expectedClientHash: null }),
+      rosterEntry({ id: "data-only", expectedClientHash: null }),
+      coreEntry("core-a"),
+      coreEntry("core-b"),
     ]);
 
-    await screen.findByText(say("uplinks.check.allWorking", { installed: 3 }));
+    await screen.findByText(say("uplinks.check.allWorking", { installed: 2 }));
+    expect(screen.getByText("data-only")).toBeInTheDocument();
+    expect(screen.getByText(say("uplinks.row.modOnly"))).toBeInTheDocument();
+    expect(screen.queryByText("core-a")).toBeNull();
+    expect(screen.queryByText("core-b")).toBeNull();
     expect(
       screen.queryByText(say("uplinks.summary", { loaded: 1, installed: 1 })),
     ).toBeNull();
@@ -515,7 +532,7 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     await emitRoster(wsClients, [
       rosterEntry({ id: "widget-loaded" }),
       rosterEntry({ id: "widget-noclient" }),
-      rosterEntry({ id: "capability-a", expectedClientHash: null }),
+      coreEntry("core-a"),
     ]);
 
     await screen.findByText(

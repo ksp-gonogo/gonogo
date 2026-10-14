@@ -34,6 +34,7 @@ function entry(
       modSettings: false,
       health: { state: health, detail: null, facts: [] },
     },
+    bundled: false,
     outcome: null,
     state: "loaded",
     ...rest,
@@ -163,5 +164,35 @@ describe("isThisComputer", () => {
     ]) {
       expect(isThisComputer(host), host).toBe(false);
     }
+  });
+});
+
+describe("uplinksCheck: Uplinks inside the core mod", () => {
+  it("leaves them out of the count, so one add-on reads as one", () => {
+    const check = uplinksCheck({
+      entries: [
+        entry({ id: "addon" }),
+        entry({ id: "core-a", bundled: true, state: "mod-only" }),
+        entry({ id: "core-b", bundled: true, state: "mod-only" }),
+      ],
+      waitingForMod: false,
+    });
+    expect(check).toEqual({
+      state: "pass",
+      text: say("uplinks.check.allWorking", { installed: 1 }),
+    });
+  });
+
+  it("reads as none when the mod lists only its own, and never flags one that is unavailable", () => {
+    const unavailable = entry({
+      id: "makingHistory",
+      bundled: true,
+      state: "unavailable",
+      health: "unavailable",
+    });
+    expect(needsAttention(unavailable)).toBe(false);
+    expect(
+      uplinksCheck({ entries: [unavailable], waitingForMod: false }),
+    ).toEqual({ state: "pass", text: say("uplinks.check.none") });
   });
 });

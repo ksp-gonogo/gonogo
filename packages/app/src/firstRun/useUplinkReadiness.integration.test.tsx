@@ -98,6 +98,8 @@ describe("useUplinkReadiness: hook wiring", () => {
             available: true,
             reason: null,
             expectedClientHash: "client-hash",
+            author: "Test Author",
+            repo: "example/addon",
             health: { state: 0, detail: null },
           },
         ],

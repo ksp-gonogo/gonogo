@@ -29,7 +29,7 @@ import { Hint, Prose, StepCheck } from "./StepParts";
  */
 function summarise(entries: readonly UplinkReadinessEntry[]): string {
   const installed = entries.filter(
-    (entry) => entry.installed && entry.state !== "mod-only",
+    (entry) => entry.installed && !entry.bundled && entry.state !== "mod-only",
   );
   const loaded = installed.filter((entry) => entry.state === "loaded");
   const refused = installed.filter(
@@ -56,8 +56,13 @@ function summarise(entries: readonly UplinkReadinessEntry[]): string {
  */
 export function UplinkReadinessStep() {
   const readiness = useUplinkReadiness();
-  const { entries, waitingForMod } = readiness;
+  const { waitingForMod } = readiness;
   const check = uplinksCheck(readiness);
+  /*
+   * Uplinks inside the core mod are not something the operator installed, so
+   * they get no row and no share of the count.
+   */
+  const entries = readiness.entries.filter((entry) => !entry.bundled);
   const installed = entries.filter((entry) => entry.installed);
 
   /*
@@ -227,7 +232,11 @@ function ReadinessReading({
         </StatusIndicator>
       );
     case "mod-only":
-      return null;
+      return (
+        <Text level="faint" size="xs">
+          {say("uplinks.row.modOnly")}
+        </Text>
+      );
     case "no-client":
       return (
         <StatusIndicator tone="warn">

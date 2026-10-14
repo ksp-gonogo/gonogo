@@ -72,7 +72,8 @@ export function isThisComputer(host: string): boolean {
  * part is not on the active craft.
  */
 export function needsAttention(entry: UplinkReadinessEntry): boolean {
-  if (!entry.installed || entry.state === "mod-only") return false;
+  if (!entry.installed || entry.bundled || entry.state === "mod-only")
+    return false;
   if (entry.rosterEntry?.health.state === "unavailable") return true;
   return entry.state !== "loaded" && entry.state !== "loading";
 }
@@ -87,7 +88,9 @@ export function uplinksCheck({
       text: say("uplinks.check.waiting"),
     };
 
-  const installed = entries.filter((entry) => entry.installed);
+  const installed = entries.filter(
+    (entry) => entry.installed && !entry.bundled,
+  );
   if (installed.length === 0)
     return {
       state: "pass",
