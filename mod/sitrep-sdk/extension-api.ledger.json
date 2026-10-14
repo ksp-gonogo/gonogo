@@ -10215,6 +10215,10 @@
         "note": "an augment setting field names its kind with SettingKind, the same type a registered setting and a mod settings row use"
       },
       {
+        "key": "ui-kit . COL_WIDTH",
+        "note": "Column width of the dashboard grid in px, now 21 beside a 20 px gap (was 32 beside 8)"
+      },
+      {
         "key": "ui-kit . ComboboxListbox",
         "note": "its label prop is now aria-label"
       },
@@ -10311,6 +10315,10 @@
         "note": "removed with Fill"
       },
       {
+        "key": "ui-kit . GRID_MARGIN",
+        "note": "Gap between dashboard tiles in px, now 20 on both axes so the tile grab bar fits in it (was 8)"
+      },
+      {
         "key": "ui-kit . HeldFigure",
         "note": "Gains the optional elsewhere prop and its kind widens with \"current\". A caller that passes neither, or a kind of held or modelled alone, draws exactly as before"
       },
@@ -10377,6 +10385,10 @@
       {
         "key": "ui-kit . RECKONING_MARK",
         "note": "Gains a current entry (the lilac ring, which has only a hollow form) and a hollowDomSize on held and modelled. Every field a caller read before is unchanged; code that walks the table's keys now meets current"
+      },
+      {
+        "key": "ui-kit . ROW_HEIGHT",
+        "note": "Dashboard grid row height in px, now 13 so row plus gap keeps the 33 px pitch (was 25)"
       },
       {
         "key": "ui-kit . RailContinuity",
@@ -10825,6 +10837,18 @@
       {
         "key": "ui-kit . ~SymbolsOfKind",
         "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "ui-kit ./grid COL_WIDTH",
+        "note": "Column width of the dashboard grid in px, now 21 beside a 20 px gap (was 32 beside 8)"
+      },
+      {
+        "key": "ui-kit ./grid GRID_MARGIN",
+        "note": "Gap between dashboard tiles in px, now 20 on both axes so the tile grab bar fits in it (was 8)"
+      },
+      {
+        "key": "ui-kit ./grid ROW_HEIGHT",
+        "note": "Dashboard grid row height in px, now 13 so row plus gap keeps the 33 px pitch (was 25)"
       }
     ],
     "additions": [

@@ -479,9 +479,9 @@ function baselineConfig<Config>(opts: SnapshotOpts<Config>): Config {
 }
 
 /** Grid-unit to pixel conversion, the same arithmetic `scripts/widgetRenderHarness.ts` sizes the playwright iframe with. */
-const COL_WIDTH = 32;
-const ROW_HEIGHT = 25;
-const GRID_MARGIN = 8;
+const COL_WIDTH = 21;
+const ROW_HEIGHT = 13;
+const GRID_MARGIN = 20;
 
 function modePixels(mode: WidgetSnapshotMode): { w: number; h: number } {
   return {

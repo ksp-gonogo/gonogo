@@ -37,7 +37,8 @@ export const CompactLabel = styled.span`
   font-size: var(--font-size-caption);
   letter-spacing: 0.12em;
   color: var(--color-text-faint);
-  min-width: 28px;
+  /* The three-letter labels are as wide as each other, so no floor is needed to align them; a floor takes room the figure and its mark need on the narrowest tile. */
+  flex-shrink: 0;
   text-transform: uppercase;
 `;
 

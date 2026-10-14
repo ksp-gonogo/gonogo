@@ -250,7 +250,7 @@ describe("Navball control surface: what undefined means today", () => {
   });
 
   it("arms fly-by-wire with no delay caveat at all when comms.delay has never arrived", async () => {
-    mount("nb-undef-fbw-delay", { w: 10, h: 20, controlMode: true });
+    mount("nb-undef-fbw-delay", { w: 10, h: 21, controlMode: true });
 
     act(() => {
       screen.getByRole("button", { name: "Arm FBW" }).click();
@@ -267,7 +267,7 @@ describe("Navball control surface: what undefined means today", () => {
   });
 
   it("warns about fly-by-wire delay only once comms.delay reports a real light-time", async () => {
-    mount("nb-undef-fbw-delay-real", { w: 10, h: 20, controlMode: true });
+    mount("nb-undef-fbw-delay-real", { w: 10, h: 21, controlMode: true });
 
     act(() => {
       screen.getByRole("button", { name: "Arm FBW" }).click();
