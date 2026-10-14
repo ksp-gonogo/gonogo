@@ -42,6 +42,46 @@ export const InputAbsent: Story = {
   },
 };
 
+/** An integrating provider that has not computed this far reads like any other model past its horizon. */
+export const BeyondIntegration: Story = {
+  args: {
+    declined: {
+      reason: "beyond-horizon",
+      note: "The trajectory is not computed this far ahead yet.",
+    },
+  },
+};
+
+/** A model that does not apply to this orbit. */
+export const ModelInapplicable: Story = {
+  args: {
+    declined: {
+      reason: "model-inapplicable",
+      note: "The integrated trajectory could not be sampled.",
+    },
+  },
+};
+
+/** Two Uplinks registering a model for one Topic. */
+export const Contested: Story = {
+  args: {
+    declined: {
+      reason: "contested",
+      note: "More than one Uplink models this Topic and none is used.",
+    },
+  },
+};
+
+/** A model that has not yet seen enough of its own Topic. */
+export const InsufficientHistory: Story = {
+  args: {
+    declined: {
+      reason: "insufficient-history",
+      note: "The model needs more past samples than it holds.",
+    },
+  },
+};
+
 /** The frame asked for cannot be built, which is not a failure of the model. */
 export const FrameUnavailable: Story = {
   args: {
