@@ -46,7 +46,8 @@
           "vantage": "KSC",
           "validAt": 0,
           "deliveredAt": 2,
-          "seq": 1
+          "seq": 1,
+          "sampleId": 1
         }
       ]
     }
@@ -110,7 +111,8 @@
           "vantage": "KSC",
           "validAt": 0,
           "deliveredAt": 2,
-          "seq": 1
+          "seq": 1,
+          "sampleId": 1
         },
         {
           "kind": "stream",
@@ -121,7 +123,8 @@
           "vantage": "DSN",
           "validAt": 0,
           "deliveredAt": 5,
-          "seq": 2
+          "seq": 2,
+          "sampleId": 1
         }
       ]
     }
@@ -173,7 +176,8 @@
           "vantage": "KSC",
           "validAt": 0,
           "deliveredAt": 2,
-          "seq": 1
+          "seq": 1,
+          "sampleId": 1
         }
       ]
     }
@@ -221,7 +225,8 @@
           "vantage": "KSC",
           "validAt": 0,
           "deliveredAt": 3,
-          "seq": 1
+          "seq": 1,
+          "sampleId": 1
         }
       ]
     }
@@ -323,7 +328,8 @@
           "vantage": "KSC",
           "validAt": 0,
           "deliveredAt": 2,
-          "seq": 1
+          "seq": 1,
+          "sampleId": 1
         },
         {
           "kind": "stream",
@@ -334,7 +340,8 @@
           "vantage": "KSC",
           "validAt": 1,
           "deliveredAt": 3,
-          "seq": 2
+          "seq": 2,
+          "sampleId": 2
         },
         {
           "kind": "stream",
@@ -345,7 +352,8 @@
           "vantage": "KSC",
           "validAt": 2,
           "deliveredAt": 4,
-          "seq": 3
+          "seq": 3,
+          "sampleId": 3
         }
       ]
     }
@@ -559,7 +567,8 @@
           "vantage": "KSC",
           "validAt": 0,
           "deliveredAt": 2,
-          "seq": 1
+          "seq": 1,
+          "sampleId": 1
         },
         {
           "kind": "stream",
@@ -570,7 +579,8 @@
           "vantage": "KSC",
           "validAt": 1,
           "deliveredAt": 3,
-          "seq": 2
+          "seq": 2,
+          "sampleId": 2
         },
         {
           "kind": "command",

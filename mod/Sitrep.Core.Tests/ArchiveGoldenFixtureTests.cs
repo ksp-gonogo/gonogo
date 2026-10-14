@@ -111,6 +111,10 @@ namespace Sitrep.Core.Tests
                             Assert.True(
                                 expectedValidAt == actual.Value.ValidAt,
                                 $"[{name}] readAtVantage({topic}, {vantage}, {delaySeconds}, {nowUt}) expected validAt {expectedValidAt} but got {actual.Value.ValidAt}");
+                            var expectedSampleId = expectedElement.GetProperty("sampleId").GetInt64();
+                            Assert.True(
+                                expectedSampleId == actual.Value.SampleId,
+                                $"[{name}] readAtVantage({topic}, {vantage}, {delaySeconds}, {nowUt}) expected sampleId {expectedSampleId} but got {actual.Value.SampleId}");
                         }
                         break;
                     }

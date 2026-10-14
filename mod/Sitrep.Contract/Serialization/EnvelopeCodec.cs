@@ -52,7 +52,8 @@ namespace Sitrep.Contract.Serialization
     public static class EnvelopeCodec
     {
         /// <summary>Serializes a <see cref="Meta"/> block as a JSON object.
-        /// <see cref="Meta.GapSinceUt"/> is omitted when null; every other field
+        /// <see cref="Meta.Quality"/>, <see cref="Meta.GapSinceUt"/> and
+        /// <see cref="Meta.SampleId"/> are omitted when null; every other field
         /// is always written.</summary>
         /// <param name="meta">The block to write.</param>
         /// <returns>The JSON text of the object.</returns>
@@ -63,9 +64,9 @@ namespace Sitrep.Contract.Serialization
             return sb.ToString();
         }
 
-        /// <summary>Parses a JSON <see cref="Meta"/> object. <c>gapSinceUt</c> may be
-        /// absent or <c>null</c>, both read as <c>null</c>; every other field is
-        /// required.</summary>
+        /// <summary>Parses a JSON <see cref="Meta"/> object. <c>quality</c>,
+        /// <c>gapSinceUt</c> and <c>sampleId</c> may be absent or <c>null</c>, both
+        /// read as <c>null</c>; every other field is required.</summary>
         /// <param name="json">The JSON text of one <c>meta</c> object.</param>
         /// <returns>The parsed block.</returns>
         /// <exception cref="FormatException">The text is not a JSON object, or a
@@ -122,6 +123,13 @@ namespace Sitrep.Contract.Serialization
                 JsonWriter.AppendNumber(sb, meta.GapSinceUt.Value);
             }
 
+            // Omitted when null, as gapSinceUt is: events and command replies are not recorded samples.
+            if (meta.SampleId.HasValue)
+            {
+                AppendField(sb, "sampleId");
+                JsonWriter.AppendInteger(sb, meta.SampleId.Value);
+            }
+
             sb.Append('}');
         }
 
@@ -140,6 +148,7 @@ namespace Sitrep.Contract.Serialization
                 TimelineEpoch = (int)RequireDouble(raw, "timelineEpoch"),
                 // Optional on the way in so a recording that never carried it still parses; absent and null both mean "this sample opens no known break".
                 GapSinceUt = OptionalDouble(raw, "gapSinceUt"),
+                SampleId = OptionalDouble(raw, "sampleId") is double sampleId ? (long)sampleId : null,
             };
         }
 

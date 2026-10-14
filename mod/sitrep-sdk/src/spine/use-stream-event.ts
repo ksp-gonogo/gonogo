@@ -44,8 +44,9 @@ export function useStreamEvent<Payload>(
      * The mod also answers a resubscribe, which follows every reconnect and
      * every change of command centre, with the Topic's last sample as a new
      * frame. It is the same event, so each delivery is compared with the last
-     * one seen, the replayed one included. The frame's own sequence number
-     * cannot tell them apart, since the mod stamps one on every frame it sends.
+     * one seen, the replayed one included, by the sample it carries: the frame's
+     * own sequence number is new on every frame, and two events can share an
+     * instant and a payload.
      */
     let replayingSticky = true;
     let lastSeen: string | undefined;
@@ -61,11 +62,18 @@ export function useStreamEvent<Payload>(
   }, [client, topic]);
 }
 
-/** What makes two deliveries the same event: the timeline, the instant and the payload. `undefined` where the frame's `Meta` is not known. */
+/**
+ * What makes two deliveries the same event: the timeline and the recorded
+ * sample. A frame that names no sample, which the mod never sends on a stream,
+ * falls back to its instant and payload. `undefined` where the frame's `Meta`
+ * is not known.
+ */
 function eventKey(
   payload: unknown,
   meta: Meta | undefined,
 ): string | undefined {
   if (meta === undefined) return undefined;
-  return `${meta.timelineEpoch ?? 0}\0${meta.validAt}\0${JSON.stringify(payload)}`;
+  const epoch = meta.timelineEpoch ?? 0;
+  if (meta.sampleId != null) return `${epoch}\0#${meta.sampleId}`;
+  return `${epoch}\0${meta.validAt}\0${JSON.stringify(payload)}`;
 }

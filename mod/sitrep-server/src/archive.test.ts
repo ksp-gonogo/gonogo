@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Archive } from "./archive";
+import { Archive, type Sample } from "./archive";
 
 describe("Archive", () => {
   it("readAtVantage returns the latest sample with validAt <= sceneUt (nowUt - delaySeconds)", () => {
@@ -14,6 +14,7 @@ describe("Archive", () => {
     expect(archive.readAtVantage("v.altitude", "v1", 2, 5)).toEqual({
       value: 400,
       validAt: 3,
+      sampleId: 4,
     });
   });
 
@@ -29,11 +30,13 @@ describe("Archive", () => {
     expect(archive.readAtVantage("v.altitude", "v1", 2, 5)).toEqual({
       value: 400,
       validAt: 3,
+      sampleId: 4,
     });
     // v2: delay 5, now 5 -> scene 0 -> validAt 0 sample. Independent cursor.
     expect(archive.readAtVantage("v.altitude", "v2", 5, 5)).toEqual({
       value: 100,
       validAt: 0,
+      sampleId: 1,
     });
   });
 
@@ -47,20 +50,20 @@ describe("Archive", () => {
 
     // First read: now=5, delay=2 -> scene=3 -> validAt 3.
     const first = archive.readAtVantage("v.altitude", "v1", 2, 5);
-    expect(first).toEqual({ value: 400, validAt: 3 });
+    expect(first).toEqual({ value: 400, validAt: 3, sampleId: 4 });
 
     // Second read: delay grows to 4 while now only advances to 6 -> naive scene
     // would be 6-4=2, which is BEHIND the previous scene of 3. Freeze: clamp to
     // the last scene (3), so validAt must not decrease.
     const second = archive.readAtVantage("v.altitude", "v1", 4, 6);
-    expect(second).toEqual({ value: 400, validAt: 3 });
+    expect(second).toEqual({ value: 400, validAt: 3, sampleId: 4 });
 
     // Third read: now advances enough to move past the frozen scene again.
     // now=10, delay=4 -> scene=6, clamped scene stays monotonic (>= 3), so we
     // should now see the sample valid at the new scene (still validAt 3, since
     // it's the latest recorded sample <= 6).
     const third = archive.readAtVantage("v.altitude", "v1", 4, 10);
-    expect(third).toEqual({ value: 400, validAt: 3 });
+    expect(third).toEqual({ value: 400, validAt: 3, sampleId: 4 });
     expect(third?.validAt).toBeGreaterThanOrEqual(second?.validAt ?? -Infinity);
   });
 
@@ -83,14 +86,27 @@ describe("Archive", () => {
     const r1 = archive.readAtVantage("ab", "c", 0, 0);
     const r2 = archive.readAtVantage("a", "bc", 0, 0);
 
-    expect(r1).toEqual({ value: "topic-ab-c", validAt: 0 });
-    expect(r2).toEqual({ value: "topic-a-bc", validAt: 0 });
+    expect(r1).toEqual({ value: "topic-ab-c", validAt: 0, sampleId: 1 });
+    expect(r2).toEqual({ value: "topic-a-bc", validAt: 0, sampleId: 2 });
   });
 
   it("returns undefined for a topic with no recorded samples", () => {
     const archive = new Archive();
 
     expect(archive.readAtVantage("nonexistent", "v1", 0, 100)).toBeUndefined();
+  });
+
+  it("gives every recorded sample its own id, and the same id on every read of it", () => {
+    const archive = new Archive();
+
+    archive.record("console.lines", "a", 5);
+    archive.record("console.lines", "a", 5);
+
+    const [first, second] = archive.samples("console.lines");
+    expect(first?.sampleId).not.toBe(second?.sampleId);
+    expect(archive.readAtVantage("console.lines", "v1", 0, 5)?.sampleId).toBe(
+      second?.sampleId,
+    );
   });
 
   describe("samples", () => {
@@ -102,9 +118,9 @@ describe("Archive", () => {
       archive.record("v.altitude", 300, 2);
 
       expect(archive.samples("v.altitude")).toEqual([
-        { value: 100, validAt: 0 },
-        { value: 200, validAt: 1 },
-        { value: 300, validAt: 2 },
+        { value: 100, validAt: 0, sampleId: 1 },
+        { value: 200, validAt: 1, sampleId: 2 },
+        { value: 300, validAt: 2, sampleId: 3 },
       ]);
     });
 
@@ -119,15 +135,12 @@ describe("Archive", () => {
 
       archive.record("v.altitude", 100, 0);
 
-      const list = archive.samples("v.altitude") as {
-        value: unknown;
-        validAt: number;
-      }[];
-      list.push({ value: 999, validAt: 999 });
-      list[0] = { value: "tampered", validAt: 0 };
+      const list = archive.samples("v.altitude") as Sample[];
+      list.push({ value: 999, validAt: 999, sampleId: 999 });
+      list[0] = { value: "tampered", validAt: 0, sampleId: 1 };
 
       expect(archive.samples("v.altitude")).toEqual([
-        { value: 100, validAt: 0 },
+        { value: 100, validAt: 0, sampleId: 1 },
       ]);
     });
   });

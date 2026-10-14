@@ -10,9 +10,11 @@
  * sample.
  */
 
-interface Sample {
+/** One recorded sample, and the number that names it on every delivery (`Meta.sampleId`). */
+export interface Sample {
   value: unknown;
   validAt: number;
+  sampleId: number;
 }
 
 export class Archive {
@@ -20,13 +22,15 @@ export class Archive {
   private readonly samplesByTopic = new Map<string, Sample[]>();
   // topic -> vantage -> last clamped sceneUt used for that cursor.
   private readonly cursors = new Map<string, Map<string, number>>();
+  // The id the next recorded sample takes, never reused.
+  private nextSampleId = 1;
 
   /**
    * Ascending per-topic sample list (by validAt). Returns a fresh copy (not
    * a reference to the internal array), so callers can't mutate archive
    * state through it. Empty array for a topic with no recorded samples.
    */
-  samples(topic: string): ReadonlyArray<{ value: unknown; validAt: number }> {
+  samples(topic: string): ReadonlyArray<Sample> {
     const list = this.samplesByTopic.get(topic);
     return list ? [...list] : [];
   }
@@ -39,7 +43,11 @@ export class Archive {
       this.samplesByTopic.set(topic, list);
     }
 
-    const sample: Sample = { value, validAt: validAtUt };
+    const sample: Sample = {
+      value,
+      validAt: validAtUt,
+      sampleId: this.nextSampleId++,
+    };
 
     // Common case: appended in ascending order already.
     if (list.length === 0 || validAtUt >= list[list.length - 1].validAt) {
@@ -78,7 +86,7 @@ export class Archive {
     topic: string,
     vantage: string,
     sceneUt: number,
-  ): { value: unknown; validAt: number } | undefined {
+  ): Sample | undefined {
     let byVantage = this.cursors.get(topic);
     if (!byVantage) {
       byVantage = new Map<string, number>();
@@ -107,7 +115,7 @@ export class Archive {
       return undefined;
     }
 
-    return { value: found.value, validAt: found.validAt };
+    return { ...found };
   }
 
   /**
@@ -122,7 +130,7 @@ export class Archive {
     vantage: string,
     delaySeconds: number,
     nowUt: number,
-  ): { value: unknown; validAt: number } | undefined {
+  ): Sample | undefined {
     const rawScene = nowUt - delaySeconds;
     const lastScene = this.cursors.get(topic)?.get(vantage);
     const scene =
@@ -152,6 +160,6 @@ export class Archive {
       return undefined;
     }
 
-    return { value: found.value, validAt: found.validAt };
+    return { ...found };
   }
 }

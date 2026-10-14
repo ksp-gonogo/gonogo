@@ -3,7 +3,7 @@ import { act, render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
-import { StubTransport } from "./stub-transport";
+import { makeMeta, StubTransport } from "./stub-transport";
 import { useStreamEvent } from "./use-stream-event";
 
 interface Crash {
@@ -160,6 +160,76 @@ describe("useStreamEvent", () => {
     });
 
     expect(late).not.toHaveBeenCalled();
+  });
+
+  it("fires for each of two identical events at one instant, told apart by their sample ids", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const onCrash = vi.fn();
+    render(
+      <TelemetryProvider client={client}>
+        <CrashListener onCrash={onCrash} />
+      </TelemetryProvider>,
+    );
+
+    act(() => {
+      transport.emit(
+        "crash.lastCrash",
+        { vesselName: "Kerbal X", ut: 100 },
+        { validAt: 100, deliveredAt: 100, seq: 7, sampleId: 40 },
+      );
+      transport.emit(
+        "crash.lastCrash",
+        { vesselName: "Kerbal X", ut: 100 },
+        { validAt: 100, deliveredAt: 100, seq: 8, sampleId: 41 },
+      );
+    });
+    expect(onCrash).toHaveBeenCalledTimes(2);
+
+    // The mod's answer to a resubscribe is the last of them again.
+    act(() => {
+      transport.emit(
+        "crash.lastCrash",
+        { vesselName: "Kerbal X", ut: 100 },
+        { validAt: 100, deliveredAt: 460, seq: 31, sampleId: 41 },
+      );
+    });
+    expect(onCrash).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not fire for a sample that reached the client before anything subscribed, when the mod sends it again", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const onCrash = vi.fn();
+    // A frame still in flight when the last subscriber let go.
+    act(() => {
+      transport.emitRaw({
+        type: "stream-data",
+        topic: "crash.lastCrash",
+        payload: { vesselName: "Kerbal X", ut: 100 },
+        meta: makeMeta({
+          validAt: 100,
+          deliveredAt: 100,
+          seq: 7,
+          sampleId: 40,
+        }),
+      });
+    });
+    render(
+      <TelemetryProvider client={client}>
+        <CrashListener onCrash={onCrash} />
+      </TelemetryProvider>,
+    );
+
+    act(() => {
+      transport.emit(
+        "crash.lastCrash",
+        { vesselName: "Kerbal X", ut: 100 },
+        { validAt: 100, deliveredAt: 460, seq: 31, sampleId: 40 },
+      );
+    });
+
+    expect(onCrash).not.toHaveBeenCalled();
   });
 
   it("stops firing after the subscriber unmounts", () => {

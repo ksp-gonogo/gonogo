@@ -47,12 +47,21 @@ namespace Sitrep.Core
         /// </summary>
         public DelayStamp? Stamp { get; }
 
-        public ArchiveSample(object? value, double validAt, int epoch = 0, DelayStamp? stamp = null)
+        /// <summary>
+        /// The number <see cref="Archive.Record"/> gave this sample, unique within
+        /// its archive and the same on every read of it: what
+        /// <see cref="Meta.SampleId"/> carries. <c>0</c> for a sample built
+        /// outside an archive.
+        /// </summary>
+        public long SampleId { get; }
+
+        public ArchiveSample(object? value, double validAt, int epoch = 0, DelayStamp? stamp = null, long sampleId = 0)
         {
             Value = value;
             ValidAt = validAt;
             Epoch = epoch;
             Stamp = stamp;
+            SampleId = sampleId;
         }
     }
 
@@ -93,7 +102,11 @@ namespace Sitrep.Core
             public double ValidAt;
             public int Epoch;
             public DelayStamp? Stamp;
+            public long Id;
         }
+
+        // The id the next recorded sample takes. Never reused, so a pruned or reset sample's id never names a later one.
+        private long _nextSampleId = 1;
 
         // topic -> samples, kept ascending by validAt.
         private readonly Dictionary<string, List<Sample>> _samplesByTopic =
@@ -136,7 +149,7 @@ namespace Sitrep.Core
             var copy = new ArchiveSample[list.Count];
             for (var i = 0; i < list.Count; i++)
             {
-                copy[i] = new ArchiveSample(list[i].Value, list[i].ValidAt, list[i].Epoch, list[i].Stamp);
+                copy[i] = new ArchiveSample(list[i].Value, list[i].ValidAt, list[i].Epoch, list[i].Stamp, list[i].Id);
             }
             return copy;
         }
@@ -148,7 +161,8 @@ namespace Sitrep.Core
         /// pre-existing call site, i.e. the golden-fixture conformance tests
         /// that replay the TS reference, which has no epoch concept at all).
         /// </summary>
-        public void Record(string topic, object? value, double validAtUt, int epoch = 0, DelayStamp? stamp = null)
+        /// <returns>The sample's <see cref="ArchiveSample.SampleId"/>.</returns>
+        public long Record(string topic, object? value, double validAtUt, int epoch = 0, DelayStamp? stamp = null, long? sampleId = null)
         {
             if (!_samplesByTopic.TryGetValue(topic, out var list))
             {
@@ -156,13 +170,13 @@ namespace Sitrep.Core
                 _samplesByTopic[topic] = list;
             }
 
-            var sample = new Sample { Value = value, ValidAt = validAtUt, Epoch = epoch, Stamp = stamp };
+            var sample = new Sample { Value = value, ValidAt = validAtUt, Epoch = epoch, Stamp = stamp, Id = sampleId ?? ClaimSampleId() };
 
             // Common case: appended in ascending order already.
             if (list.Count == 0 || validAtUt >= list[list.Count - 1].ValidAt)
             {
                 list.Add(sample);
-                return;
+                return sample.Id;
             }
 
             // Out-of-order record: insert to keep the list ascending by ValidAt.
@@ -172,7 +186,17 @@ namespace Sitrep.Core
                 insertAt--;
             }
             list.Insert(insertAt, sample);
+            return sample.Id;
         }
+
+        /// <summary>
+        /// Hands out the next <see cref="ArchiveSample.SampleId"/> without
+        /// recording anything: for a sample delivered before it is archived, or
+        /// never archived at all, which still needs an id no recorded sample of
+        /// this archive shares. Pass it to <see cref="Record"/> to archive the
+        /// sample under it.
+        /// </summary>
+        public long ClaimSampleId() => _nextSampleId++;
 
         /// <summary>
         /// Move <paramref name="vantage"/>'s cursor on <paramref name="topic"/>
@@ -315,7 +339,7 @@ namespace Sitrep.Core
 
             var found = LatestDeliveredAtOrBefore(list, sceneUt, vantage, nowUt);
 
-            return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch, found.Stamp);
+            return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch, found.Stamp, found.Id);
         }
 
         /// <summary>
@@ -366,7 +390,7 @@ namespace Sitrep.Core
 
             var found = LatestDeliveredAtOrBefore(list, scene, vantage, nowUt);
 
-            return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch, found.Stamp);
+            return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch, found.Stamp, found.Id);
         }
 
         /// <summary>
@@ -658,7 +682,7 @@ namespace Sitrep.Core
             var topics = new HashSet<string>(_samplesByTopic.Keys);
             topics.UnionWith(_cursors.Keys);
 
-            var state = new ArchiveState();
+            var state = new ArchiveState { NextSampleId = _nextSampleId };
             foreach (var topic in topics)
             {
                 var topicState = new ArchiveTopicState { Topic = topic };
@@ -674,6 +698,7 @@ namespace Sitrep.Core
                             Epoch = sample.Epoch,
                             DelayBase = sample.Stamp?.BaseSeconds,
                             DelayByVantage = CopyStampRows(sample.Stamp),
+                            Id = sample.Id,
                         });
                     }
                 }
@@ -706,7 +731,7 @@ namespace Sitrep.Core
         /// </summary>
         public static Archive Restore(ArchiveState state)
         {
-            var archive = new Archive();
+            var archive = new Archive { _nextSampleId = state.NextSampleId };
 
             foreach (var topicState in state.Topics)
             {
@@ -723,6 +748,7 @@ namespace Sitrep.Core
                             Stamp = sampleState.DelayBase == null
                                 ? null
                                 : new DelayStamp(sampleState.DelayBase.Value, sampleState.DelayByVantage),
+                            Id = sampleState.Id,
                         });
                     }
                     archive._samplesByTopic[topicState.Topic] = list;
@@ -762,6 +788,9 @@ namespace Sitrep.Core
     public sealed class ArchiveState
     {
         public List<ArchiveTopicState> Topics { get; set; } = new List<ArchiveTopicState>();
+
+        /// <summary>The id the restored archive gives the next sample it records, so no restored id is handed out again.</summary>
+        public long NextSampleId { get; set; } = 1;
     }
 
     /// <summary>One topic's samples and cursor positions within an <see cref="ArchiveState"/>.</summary>
@@ -790,6 +819,9 @@ namespace Sitrep.Core
         public double? DelayBase { get; set; }
 
         public Dictionary<string, double>? DelayByVantage { get; set; }
+
+        /// <summary>The sample's <see cref="ArchiveSample.SampleId"/>.</summary>
+        public long Id { get; set; }
     }
 
     /// <summary>One vantage's clamped cursor scene within an <see cref="ArchiveTopicState"/>.</summary>

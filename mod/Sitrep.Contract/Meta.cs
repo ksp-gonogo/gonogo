@@ -178,6 +178,23 @@ public class Meta
     [SitrepUnit(Units.UniversalTime)]
     [SitrepOmittedWhenNull]
     public double? GapSinceUt { get; set; }
+
+    /// <summary>
+    /// Which recorded sample the payload is. Every delivery of one sample carries
+    /// the same number, including the copy sent again when a client subscribes
+    /// or resubscribes, and two samples recorded on one node never share one,
+    /// even with the same instant and an identical payload. A client tells a
+    /// repeated delivery from a repeated event by it: two frames with equal
+    /// <see cref="TimelineEpoch"/> and <see cref="SampleId"/> are the same sample.
+    ///
+    /// <para>Set on every <c>stream-data</c> frame and binary frame header, and
+    /// omitted from the wire on events and command replies, which are not
+    /// recorded samples. Unrelated to <see cref="Seq"/>, which numbers frames
+    /// rather than samples.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    [SitrepOmittedWhenNull]
+    public long? SampleId { get; set; }
 }
 
 /// <summary>

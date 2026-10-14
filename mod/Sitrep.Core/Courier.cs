@@ -599,6 +599,7 @@ namespace Sitrep.Core
             {
                 return;
             }
+            samples = WithSampleIds(node, samples);
 
             // The reacquisition geometry, pinned once for the whole dump. Each
             // archived copy is stamped with its own WAIT plus that light-time
@@ -641,7 +642,8 @@ namespace Sitrep.Core
                                 sample.Value,
                                 sample.ValidAt,
                                 sample.Epoch,
-                                dumpStamp.Plus(dumpedAtUt - sample.ValidAt));
+                                dumpStamp.Plus(dumpedAtUt - sample.ValidAt),
+                                sample.SampleId);
                         }
                     }
                     if (!subs.Contains(subscriber))
@@ -692,6 +694,7 @@ namespace Sitrep.Core
             {
                 return;
             }
+            samples = WithSampleIds(node, samples);
             var subscribers = new List<Subscriber>();
             if (_subscribers.TryGetValue(node, out var byTopic) && byTopic.TryGetValue(topic, out var subs))
             {
@@ -709,7 +712,7 @@ namespace Sitrep.Core
                 var archive = ArchiveFor(node);
                 foreach (var sample in samples)
                 {
-                    archive.Record(topic, sample.Value, sample.ValidAt, sample.Epoch, DelayStamp.DeliveredTo(vantage, arrivedAtUt - sample.ValidAt));
+                    archive.Record(topic, sample.Value, sample.ValidAt, sample.Epoch, DelayStamp.DeliveredTo(vantage, arrivedAtUt - sample.ValidAt), sample.SampleId);
                 }
                 foreach (var subscriber in subscribers)
                 {
@@ -785,7 +788,7 @@ namespace Sitrep.Core
             // went with it) hands over the stamp it was last measured under.
             var stamp = sentUnder ?? _network.StampFor(node);
 
-            ArchiveFor(node).Record(topic, value, validAtUt, _epoch, stamp);
+            var sampleId = ArchiveFor(node).Record(topic, value, validAtUt, _epoch, stamp);
             NoteGapOpeningSample(node, topic, validAtUt, gapSinceUt);
 
             // Bound the archives as time moves, so a long session does not make
@@ -804,7 +807,7 @@ namespace Sitrep.Core
                     stickyByTopic = new Dictionary<string, ArchiveSample>();
                     _stickyKeyframes[node] = stickyByTopic;
                 }
-                stickyByTopic[topic] = new ArchiveSample(value, validAtUt, _epoch, stamp);
+                stickyByTopic[topic] = new ArchiveSample(value, validAtUt, _epoch, stamp, sampleId);
             }
 
             if (!_subscribers.TryGetValue(node, out var byTopic) || !byTopic.TryGetValue(topic, out var subs))
@@ -848,7 +851,7 @@ namespace Sitrep.Core
                     // same topic. A rewind still drops this scheduled callback
                     // wholesale (ManualClock.Reset), exactly as the re-read lane
                     // would have returned nothing for an abandoned sample.
-                    var forwarded = new ArchiveSample(value, validAtUt, epoch, stamp);
+                    var forwarded = new ArchiveSample(value, validAtUt, epoch, stamp, sampleId);
                     ScheduleDelivery(fireUt, fireAt =>
                     {
                         if (!subs.Contains(subscriber))
@@ -921,7 +924,7 @@ namespace Sitrep.Core
         {
             var addressed = new AddressedSample
             {
-                Sample = new ArchiveSample(value, validAtUt, _epoch, stamp),
+                Sample = new ArchiveSample(value, validAtUt, _epoch, stamp, ArchiveFor(node).ClaimSampleId()),
                 Audience = new HashSet<string>(audience, StringComparer.Ordinal),
             };
             addressed.LastFireUt = validAtUt;
@@ -1360,7 +1363,7 @@ namespace Sitrep.Core
             {
                 Topic = topic,
                 Payload = sample.Value,
-                Meta = MakeMeta(node, vantage, sample.ValidAt, deliveredAt, sample.Epoch, staleness, gapSinceUt, QualityOf(sample.Value)),
+                Meta = MakeMeta(node, vantage, sample.ValidAt, deliveredAt, sample.Epoch, staleness, gapSinceUt, QualityOf(sample.Value), sample.SampleId),
             };
         }
 
@@ -1449,7 +1452,8 @@ namespace Sitrep.Core
             int epoch,
             Staleness staleness,
             double? gapSinceUt = null,
-            Quality? quality = null)
+            Quality? quality = null,
+            long? sampleId = null)
         {
             return new Meta
             {
@@ -1463,6 +1467,7 @@ namespace Sitrep.Core
                 Active = true,
                 Staleness = staleness,
                 TimelineEpoch = epoch,
+                SampleId = sampleId,
             };
         }
 
@@ -1470,6 +1475,19 @@ namespace Sitrep.Core
         {
             _seq += 1;
             return _seq;
+        }
+
+        /// <summary>The same samples, each given an id from <paramref name="node"/>'s archive, which they are archived under when they arrive.</summary>
+        private IReadOnlyList<ArchiveSample> WithSampleIds(string node, IReadOnlyList<ArchiveSample> samples)
+        {
+            var archive = ArchiveFor(node);
+            var stamped = new ArchiveSample[samples.Count];
+            for (var i = 0; i < samples.Count; i++)
+            {
+                var sample = samples[i];
+                stamped[i] = new ArchiveSample(sample.Value, sample.ValidAt, sample.Epoch, sample.Stamp, archive.ClaimSampleId());
+            }
+            return stamped;
         }
 
         /// <summary>
@@ -1629,7 +1647,7 @@ namespace Sitrep.Core
                     continue;
                 }
                 var fireUt = Math.Max(now, newest.ValidAt + live);
-                var reissued = new ArchiveSample(newest.Value, newest.ValidAt, newest.Epoch, _network.StampFor(node));
+                var reissued = new ArchiveSample(newest.Value, newest.ValidAt, newest.Epoch, _network.StampFor(node), newest.SampleId);
                 foreach (var subscriber in mine)
                 {
                     _clock.Schedule(fireUt, () =>

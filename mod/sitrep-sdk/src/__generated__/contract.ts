@@ -4788,6 +4788,19 @@ export interface Meta
 	* there is no gap, as `Meta.quality` is when unstated.
 	*/
 	gapSinceUt?: number;
+	/**
+	* Which recorded sample the payload is. Every delivery of one sample carries
+	* the same number, including the copy sent again when a client subscribes or
+	* resubscribes, and two samples recorded on one node never share one, even
+	* with the same instant and an identical payload. A client tells a repeated
+	* delivery from a repeated event by it: two frames with equal
+	* `Meta.timelineEpoch` and `Meta.sampleId` are the same sample.
+	*
+	* Set on every `stream-data` frame and binary frame header, and omitted from
+	* the wire on events and command replies, which are not recorded samples.
+	* Unrelated to `Meta.seq`, which numbers frames rather than samples.
+	*/
+	sampleId?: number;
 }
 /**
 * The provenance stamp carried inside a payload that describes one subject,

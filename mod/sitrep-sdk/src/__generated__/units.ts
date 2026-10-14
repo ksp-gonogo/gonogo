@@ -885,6 +885,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     deliveredAt: "ut",
     gapSinceUt: "ut",
     quality: "enum",
+    sampleId: "id",
     seq: "id",
     source: "id",
     staleness: "enum",

@@ -35,7 +35,8 @@
         "nowUt": 5,
         "expected": {
           "value": 400,
-          "validAt": 3
+          "validAt": 3,
+          "sampleId": 4
         }
       }
     ]
@@ -76,7 +77,8 @@
         "nowUt": 5,
         "expected": {
           "value": 400,
-          "validAt": 3
+          "validAt": 3,
+          "sampleId": 4
         }
       },
       {
@@ -87,7 +89,8 @@
         "nowUt": 5,
         "expected": {
           "value": 100,
-          "validAt": 0
+          "validAt": 0,
+          "sampleId": 1
         }
       }
     ]
@@ -128,7 +131,8 @@
         "nowUt": 5,
         "expected": {
           "value": 400,
-          "validAt": 3
+          "validAt": 3,
+          "sampleId": 4
         }
       },
       {
@@ -139,7 +143,8 @@
         "nowUt": 6,
         "expected": {
           "value": 400,
-          "validAt": 3
+          "validAt": 3,
+          "sampleId": 4
         }
       },
       {
@@ -150,7 +155,8 @@
         "nowUt": 10,
         "expected": {
           "value": 400,
-          "validAt": 3
+          "validAt": 3,
+          "sampleId": 4
         }
       }
     ]
@@ -219,7 +225,8 @@
         "nowUt": 5,
         "expected": {
           "value": 400,
-          "validAt": 3
+          "validAt": 3,
+          "sampleId": 2
         }
       },
       {
@@ -230,7 +237,8 @@
         "nowUt": 4,
         "expected": {
           "value": 300,
-          "validAt": 2
+          "validAt": 2,
+          "sampleId": 3
         }
       }
     ]
@@ -259,7 +267,8 @@
         "nowUt": 0,
         "expected": {
           "value": "topic-ab-c",
-          "validAt": 0
+          "validAt": 0,
+          "sampleId": 1
         }
       },
       {
@@ -270,7 +279,8 @@
         "nowUt": 0,
         "expected": {
           "value": "topic-a-bc",
-          "validAt": 0
+          "validAt": 0,
+          "sampleId": 2
         }
       }
     ]

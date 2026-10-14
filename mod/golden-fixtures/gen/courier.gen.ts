@@ -121,6 +121,8 @@ interface StreamEvent {
   validAt: number;
   deliveredAt: number;
   seq: number;
+  /** The recorded sample this delivery is: equal across every delivery of one sample. */
+  sampleId: number | null;
 }
 
 interface CommandEvent {
@@ -202,6 +204,7 @@ function runScenario(scenario: Scenario): ScenarioResult {
               validAt: msg.meta.validAt,
               deliveredAt: msg.meta.deliveredAt,
               seq: msg.meta.seq,
+              sampleId: msg.meta.sampleId ?? null,
             });
           },
         );

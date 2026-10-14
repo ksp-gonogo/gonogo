@@ -63,6 +63,7 @@ namespace Sitrep.Core.Tests
             public double ValidAt;
             public double DeliveredAt;
             public long Seq;
+            public long? SampleId;
         }
 
         /// <summary>
@@ -125,6 +126,7 @@ namespace Sitrep.Core.Tests
                                 ValidAt = msg.Meta.ValidAt,
                                 DeliveredAt = msg.Meta.DeliveredAt,
                                 Seq = msg.Meta.Seq,
+                                SampleId = msg.Meta.SampleId,
                             });
                         });
                         unsubById[id] = unsub;
@@ -211,6 +213,11 @@ namespace Sitrep.Core.Tests
 
                 if (expectedKind == "stream")
                 {
+                    var expectedSampleId = expected.GetProperty("sampleId");
+                    long? wantSampleId = expectedSampleId.ValueKind == JsonValueKind.Null ? null : expectedSampleId.GetInt64();
+                    Assert.True(
+                        wantSampleId == actual.SampleId,
+                        $"[{name}] event[{i}] expected sampleId {wantSampleId} but got {actual.SampleId}");
                     Assert.True(
                         expected.GetProperty("subscribeId").GetString() == actual.SubscribeId,
                         $"[{name}] event[{i}] subscribeId mismatch");

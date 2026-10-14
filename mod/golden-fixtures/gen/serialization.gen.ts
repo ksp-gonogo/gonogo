@@ -159,11 +159,18 @@ const metaRecorded: Meta = {
   gapSinceUt: 3980,
 };
 
+// A stream sample as the mod sends one, naming the recorded sample it is. Only
+// a stream frame carries `sampleId`; events and command replies omit it.
+const metaSample: Meta = {
+  ...metaNormal,
+  sampleId: 314,
+};
+
 const streamDataNumber: StreamData<number> = {
   type: "stream-data",
   topic: "vessel.altitude",
   payload: 70432.125,
-  meta: metaNormal,
+  meta: metaSample,
 };
 
 const streamDataObject: StreamData<Record<string, unknown>> = {
@@ -230,6 +237,7 @@ const unsubscribe: Unsubscribe = {
 
 const vectors: Vector[] = [
   { name: "meta-normal", kind: "meta", json: safeStringify(metaNormal) },
+  { name: "meta-sample", kind: "meta", json: safeStringify(metaSample) },
   {
     name: "meta-loaded",
     kind: "meta",

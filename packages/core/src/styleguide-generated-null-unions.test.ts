@@ -85,6 +85,8 @@ const OMITTED_WHEN_NULL = new Set([
   "Meta.gapSinceUt",
   // EnvelopeCodec.AppendMeta guards it on HasValue too: only a payload that states a quality puts one on its envelope.
   "Meta.quality",
+  // And this one: an event or a command reply is not a recorded sample, so it names none.
+  "Meta.sampleId",
   /* EnvelopeCodec's CommandAccepted writer guards both on HasValue: only a
      command held for store-and-forward carries them. */
   "CommandAccepted.predictedReplyUt",
@@ -246,6 +248,7 @@ describe("generated contract types can hold the null the wire sends", () => {
       "utf8",
     );
     expect(sdk).toMatch(/\n\tgapSinceUt\?: number;\n/);
+    expect(sdk).toMatch(/\n\tsampleId\?: number;\n/);
     expect(sdk).toMatch(/\n\tcommandedValue\?: number;\n/);
     // The reference-typed half. Nothing about a reference type excludes it, so
     // these hold only while their marker does.

@@ -21,7 +21,7 @@ import {
   Staleness,
   type StreamData,
 } from "@ksp-gonogo/sitrep-sdk";
-import { Archive } from "./archive";
+import { Archive, type Sample } from "./archive";
 import type { Clock } from "./clock";
 import type { Network } from "./stub-network";
 
@@ -267,14 +267,17 @@ export class Courier {
     node: string,
     topic: string,
     vantage: string,
-    sample: { value: unknown; validAt: number },
+    sample: Sample,
     deliveredAt: number,
   ): StreamData<unknown> {
     return {
       type: "stream-data",
       topic,
       payload: sample.value,
-      meta: this.makeMeta(node, vantage, sample.validAt, deliveredAt),
+      meta: {
+        ...this.makeMeta(node, vantage, sample.validAt, deliveredAt),
+        sampleId: sample.sampleId,
+      },
     };
   }
 

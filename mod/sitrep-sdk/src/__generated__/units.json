@@ -845,6 +845,7 @@
       "deliveredAt": "ut",
       "gapSinceUt": "ut",
       "quality": "enum",
+      "sampleId": "id",
       "seq": "id",
       "source": "id",
       "staleness": "enum",

@@ -346,6 +346,8 @@ export class TelemetryClient {
   private readonly clock: Clock;
   private readonly subscribers = new Map<string, Set<Subscription>>();
   private readonly lastValues = new Map<string, unknown>();
+  /** The `Meta` of the frame that carried each topic's `lastValues` entry, so a value replayed on subscribe says which sample it is. */
+  private readonly lastMetas = new Map<string, Meta>();
 
   /**
    * The newest point each subscribed topic has delivered, kept so a store
@@ -868,7 +870,7 @@ export class TelemetryClient {
       this.invokeCallback(
         cb,
         this.lastValues.get(topic),
-        this.lastPoints.get(topic)?.meta,
+        this.lastMetas.get(topic),
       );
     }
 
@@ -879,6 +881,7 @@ export class TelemetryClient {
       if (current.size === 0) {
         this.subscribers.delete(topic);
         this.lastValues.delete(topic);
+        this.lastMetas.delete(topic);
         this.lastPoints.delete(topic);
         this.newestRaw.delete(topic);
         this.transport.send({ type: "unsubscribe", topic });
@@ -1299,6 +1302,7 @@ export class TelemetryClient {
 
     this.subscribers.clear();
     this.lastValues.clear();
+    this.lastMetas.clear();
     this.lastPoints.clear();
     this.newestRaw.clear();
     this.storeListeners.clear();
@@ -1476,6 +1480,7 @@ export class TelemetryClient {
     };
     if (newest) {
       this.lastValues.set(topic, payload);
+      this.lastMetas.set(topic, meta);
       if (this.subscribers.has(topic)) this.lastPoints.set(topic, point);
       const subs = this.subscribers.get(topic);
       if (subs) {

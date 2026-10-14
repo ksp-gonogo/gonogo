@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 44.0.0
+  version: 44.1.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 87 telemetry
     channels a client subscribes to, and 62 commands it dispatches, with the payload
@@ -16497,6 +16497,22 @@ components:
             A client draws it as a break rather than joining across it: a line
             interpolated through an outage looks like data. Omitted from the wire when
             there is no gap, as `Meta.quality` is when unstated.
+        sampleId:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            Which recorded sample the payload is. Every delivery of one sample carries
+            the same number, including the copy sent again when a client subscribes or
+            resubscribes, and two samples recorded on one node never share one, even
+            with the same instant and an identical payload. A client tells a repeated
+            delivery from a repeated event by it: two frames with equal
+            `Meta.timelineEpoch` and `Meta.sampleId` are the same sample.
+
+            Set on every `stream-data` frame and binary frame header, and omitted from
+            the wire on events and command replies, which are not recorded samples.
+            Unrelated to `Meta.seq`, which numbers frames rather than samples.
     MissingUnlock:
       type: object
       description: |-

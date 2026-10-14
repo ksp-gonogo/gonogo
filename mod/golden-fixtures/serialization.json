@@ -5,6 +5,11 @@
     "json": "{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0}"
   },
   {
+    "name": "meta-sample",
+    "kind": "meta",
+    "json": "{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0,\"sampleId\":314}"
+  },
+  {
     "name": "meta-loaded",
     "kind": "meta",
     "json": "{\"source\":\"vessel-1\",\"validAt\":0,\"seq\":1,\"deliveredAt\":0,\"vantage\":\"KSC\",\"quality\":1,\"active\":false,\"staleness\":1,\"timelineEpoch\":3}"
@@ -22,7 +27,7 @@
   {
     "name": "stream-data-number",
     "kind": "streamData",
-    "json": "{\"type\":\"stream-data\",\"topic\":\"vessel.altitude\",\"payload\":70432.125,\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0}}"
+    "json": "{\"type\":\"stream-data\",\"topic\":\"vessel.altitude\",\"payload\":70432.125,\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0,\"sampleId\":314}}"
   },
   {
     "name": "stream-data-object",
