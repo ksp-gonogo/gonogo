@@ -3,6 +3,7 @@
 A telemetry mod system and mission control dashboard for [Kerbal Space Program](https://www.kerbalspaceprogram.com/). The mod captures live data and makes it available in an API. The Gonogo app provides a UI for a multiplayer mission control experience, with movable widgets for all kinds of data.
 
 **Quickstart:** [Gonogo Home Page](https://ksp-gonogo.github.io/)
+
 **Joining a friend's game?** Nothing to install: [jump to joining](#joining-a-friends-game).
 
 <img src="docs/assets/hero-dashboard.png" alt="The Gonogo dashboard mid-flight: a navball, ascent graphs, an orbit view, fuel and stage readouts, and thermal and comms status" />
