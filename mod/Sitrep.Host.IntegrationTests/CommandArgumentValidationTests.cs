@@ -73,6 +73,74 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public void ARequiredArgumentSentAsNullIsRefusedByName()
+        {
+            var probe = new RemoveProbe();
+            using var engine = Started(probe);
+            try
+            {
+                var reason = Malformed(engine, RemoveProbe.Command, new Dictionary<string, object?> { ["nodeId"] = null });
+                Assert.Contains("requires argument \"nodeId\"", reason);
+                Assert.Equal(0, probe.Runs);
+            }
+            finally { engine.Stop(); }
+        }
+
+        [Fact]
+        public void AnUnknownArgumentNestedInsideAnArgumentIsRefusedByItsPath()
+        {
+            var probe = new RemoveProbe();
+            using var engine = Started(probe);
+            try
+            {
+                var step = new Dictionary<string, object?> { ["id"] = "a", ["colour"] = "red" };
+                var reason = Malformed(engine, RemoveProbe.NestedCommand, new Dictionary<string, object?>
+                {
+                    ["steps"] = new List<object?> { new Dictionary<string, object?> { ["id"] = "ok" }, step },
+                });
+                Assert.Contains("\"steps[1].colour\"", reason);
+
+                var missing = Malformed(engine, RemoveProbe.NestedCommand, new Dictionary<string, object?>
+                {
+                    ["steps"] = new List<object?> { new Dictionary<string, object?>() },
+                });
+                Assert.Contains("requires argument \"steps[0].id\"", missing);
+                Assert.Equal(0, probe.Runs);
+            }
+            finally { engine.Stop(); }
+        }
+
+        [Fact]
+        public void AGateCheckAboutArgumentsTheCommandDoesNotTakeIsRefusedByName()
+        {
+            var probe = new RemoveProbe();
+            using var engine = Started(probe);
+            try
+            {
+                var reason = Malformed(engine, "system.gate.check", new Dictionary<string, object?>
+                {
+                    ["command"] = RemoveProbe.Command,
+                    ["args"] = new Dictionary<string, object?> { ["id"] = "n1" },
+                });
+                Assert.Contains("\"id\"", reason);
+
+                string? answered = null;
+                engine.DispatchCommandAndWait(
+                    "system.gate.check",
+                    new Dictionary<string, object?>
+                    {
+                        ["command"] = RemoveProbe.Command,
+                        ["args"] = new Dictionary<string, object?>(),
+                    },
+                    "vantage-1",
+                    r => answered = r?.GetType().Name,
+                    Timeout);
+                Assert.NotNull(answered);
+            }
+            finally { engine.Stop(); }
+        }
+
+        [Fact]
         public void AnArgumentOfTheWrongTypeIsRefusedByName()
         {
             var probe = new RemoveProbe();
@@ -143,6 +211,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             public const string Command = "test.removeNode";
             public const string OptionalCommand = "test.optionalArgs";
+            public const string NestedCommand = "test.nestedArgs";
 
             private int _runs;
 
@@ -158,6 +227,7 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     new CommandDeclaration { Command = Command, Delay = DelayRole.TrueNow },
                     new CommandDeclaration { Command = OptionalCommand, Delay = DelayRole.TrueNow },
+                    new CommandDeclaration { Command = NestedCommand, Delay = DelayRole.TrueNow },
                 },
             };
 
@@ -169,7 +239,22 @@ namespace Sitrep.Host.IntegrationTests
                     return a.NodeId;
                 });
                 host.AddCommandHandler<OptionalArgs, string>(OptionalCommand, _ => "ok");
+                host.AddCommandHandler<NestedArgs, string>(NestedCommand, _ =>
+                {
+                    _runs++;
+                    return "ok";
+                });
             }
+        }
+
+        public class NestedArgs
+        {
+            public List<NestedStep> Steps { get; set; } = new List<NestedStep>();
+        }
+
+        public class NestedStep
+        {
+            public string Id { get; set; } = "";
         }
 
         public class OptionalArgs

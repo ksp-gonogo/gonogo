@@ -50,9 +50,49 @@ namespace Sitrep.Host
             {
                 return false;
             }
-            job.OnResult(GateCheck(BindCommandArgs(job.Args, typeof(GateCheckRequest)) as GateCheckRequest, job.Vantage));
+            var request = BindCommandArgs(job.Args, typeof(GateCheckRequest)) as GateCheckRequest;
+            var inner = request == null ? null : UnfittingCheckedArgsReason(request);
+            if (inner != null)
+            {
+                if (job.OnMalformed != null) job.OnMalformed(inner);
+                else job.OnRefused?.Invoke(FaultCode.InvalidEnvelope, inner);
+                job.Done?.Set();
+                return true;
+            }
+
+            job.OnResult(GateCheck(request, job.Vantage));
             job.Done?.Set();
             return true;
+        }
+
+        /// <summary>
+        /// Why the arguments a check asks about could not be sent to the command
+        /// it names, or null. Only names and types are held to the command's
+        /// declared arguments: a check may leave arguments out, since asking
+        /// about a command with nothing chosen yet is what it is for.
+        /// </summary>
+        private string? UnfittingCheckedArgsReason(GateCheckRequest request)
+        {
+            if (!_commandArgTypes.TryGetValue(request.Command, out var argsType))
+            {
+                return null;
+            }
+
+            var shape = CommandArgsShape.Violation(request.Command, request.Args, argsType, requireAll: false);
+            if (shape != null)
+            {
+                return shape;
+            }
+
+            try
+            {
+                BindCommandArgs(request.Args, argsType);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                return $"args of \"{request.Command}\" do not bind to {argsType.Name}: {SafeExceptionMessage(ex)}";
+            }
         }
 
         private object GateCheck(GateCheckRequest? request, string vantage)

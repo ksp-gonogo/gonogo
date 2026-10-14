@@ -28,9 +28,16 @@ namespace Sitrep.Host
         /// <summary>
         /// The sentence that says which argument of <paramref name="command"/>
         /// is unknown or missing, or null when the call's names fit
-        /// <paramref name="argsType"/>.
+        /// <paramref name="argsType"/>. Arguments nested inside an argument, or
+        /// inside the elements of a list argument, are held to the same rule
+        /// and named by their path (<c>steps[1].target</c>).
+        ///
+        /// <para>An argument sent as an explicit null is missing when the
+        /// contract requires it. <paramref name="requireAll"/> false checks
+        /// names only, for a question about a call whose arguments are not all
+        /// chosen yet.</para>
         /// </summary>
-        internal static string? Violation(string command, object? args, Type argsType)
+        internal static string? Violation(string command, object? args, Type argsType, bool requireAll = true)
         {
             if (args != null && argsType.IsInstanceOfType(args))
             {
@@ -43,37 +50,112 @@ namespace Sitrep.Host
                 return null;
             }
 
-            var defaults = DefaultInstance(argsType);
-            var required = props.Where(p => IsRequired(p, defaults)).ToList();
             if (args == null)
             {
+                var required = requireAll ? RequiredOf(props, argsType) : new List<PropertyInfo>();
                 return required.Count == 0
                     ? null
                     : $"\"{command}\" was sent no arguments but requires {Names(required)}";
             }
 
-            if (!(args is IDictionary<string, object?> dict))
-            {
-                return null;
-            }
+            return args is IDictionary<string, object?> dict
+                ? Walk(command, "", dict, argsType, props, requireAll)
+                : null;
+        }
 
+        private static string? Walk(
+            string command,
+            string path,
+            IDictionary<string, object?> dict,
+            Type type,
+            List<PropertyInfo> props,
+            bool requireAll)
+        {
             foreach (var key in dict.Keys)
             {
                 if (!props.Any(p => string.Equals(p.Name, key, StringComparison.OrdinalIgnoreCase)))
                 {
-                    return $"\"{command}\" has no argument \"{key}\"; its arguments are {Names(props)}";
+                    return $"\"{command}\" has no argument \"{path}{key}\"; its arguments are {Names(props)}";
                 }
             }
 
-            foreach (var prop in required)
+            if (requireAll)
             {
-                if (!dict.Keys.Any(k => string.Equals(k, prop.Name, StringComparison.OrdinalIgnoreCase)))
+                foreach (var prop in RequiredOf(props, type))
                 {
-                    return $"\"{command}\" requires argument \"{WireName(prop)}\" and it was not sent";
+                    var sent = dict.FirstOrDefault(kv => string.Equals(kv.Key, prop.Name, StringComparison.OrdinalIgnoreCase));
+                    if (sent.Key == null || sent.Value == null)
+                    {
+                        return $"\"{command}\" requires argument \"{path}{WireName(prop)}\" and it was not sent";
+                    }
+                }
+            }
+
+            foreach (var kv in dict)
+            {
+                var prop = props.First(p => string.Equals(p.Name, kv.Key, StringComparison.OrdinalIgnoreCase));
+                var inner = Nested(command, path + WireName(prop), kv.Value, prop.PropertyType, requireAll);
+                if (inner != null)
+                {
+                    return inner;
                 }
             }
 
             return null;
+        }
+
+        private static string? Nested(string command, string path, object? value, Type type, bool requireAll)
+        {
+            if (value is IDictionary<string, object?> dict)
+            {
+                var props = Declared(type);
+                return props.Count == 0 ? null : Walk(command, path + ".", dict, type, props, requireAll);
+            }
+
+            var element = ElementTypeOf(type);
+            if (element == null || !(value is System.Collections.IEnumerable items) || value is string)
+            {
+                return null;
+            }
+
+            var index = 0;
+            foreach (var item in items)
+            {
+                var inner = Nested(command, $"{path}[{index}]", item, element, requireAll);
+                if (inner != null)
+                {
+                    return inner;
+                }
+
+                index++;
+            }
+
+            return null;
+        }
+
+        private static Type? ElementTypeOf(Type type)
+        {
+            if (type.IsArray)
+            {
+                return type.GetElementType();
+            }
+
+            if (type == typeof(string) || !type.IsGenericType)
+            {
+                return null;
+            }
+
+            var generic = type.GetGenericTypeDefinition();
+            return generic == typeof(List<>) || generic == typeof(IList<>) || generic == typeof(IReadOnlyList<>)
+                || generic == typeof(IEnumerable<>) || generic == typeof(ICollection<>) || generic == typeof(IReadOnlyCollection<>)
+                ? type.GetGenericArguments()[0]
+                : null;
+        }
+
+        private static List<PropertyInfo> RequiredOf(List<PropertyInfo> props, Type type)
+        {
+            var defaults = DefaultInstance(type);
+            return props.Where(p => IsRequired(p, defaults)).ToList();
         }
 
         private static List<PropertyInfo> Declared(Type argsType)
