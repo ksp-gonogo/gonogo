@@ -89,11 +89,13 @@ const STORAGE_KEY = "gonogo:dashboard:main";
 /**
  * What a render-only stylesheet needs to take the screen's chrome away the way
  * a screen with its tile headers and top strip hidden looks: the drag bar and
- * its buttons go, resize grips go, the tiles keep their panel edges.
+ * its buttons go, resize grips go, the tiles keep their panel edges, and the
+ * room the grid keeps above its first row for a grab bar is taken back.
  */
 const CLEAN_CHROME = `
   .dashboard-grid .drag-handle { display: none !important; }
   .dashboard-grid .react-resizable-handle { display: none !important; }
+  .dashboard-grid { margin-top: -20px; }
 `;
 
 function nextFrame(): Promise<void> {

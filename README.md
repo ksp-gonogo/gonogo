@@ -6,12 +6,7 @@ A telemetry mod system and mission control dashboard for [Kerbal Space Program](
 
 **Joining a friend's game?** Nothing to install: [jump to joining](#joining-a-friends-game).
 
-<img src="docs/assets/hero-dashboard.png" alt="The Gonogo dashboard mid-flight: a navball, ascent graphs, an orbit view, fuel and stage readouts, and thermal and comms status" />
-
-<p align="center">
-  <img src="docs/assets/navball-adaptive-scaling.png" alt="The navball widget at four sizes, from a numeric readout to a full control surface" height="240" />
-  <img src="docs/assets/navball-attitude-sweep.gif" alt="The navball animating through a gravity-turn ascent" height="240" />
-</p>
+<img src="docs/assets/hero-dashboard.gif" alt="The Gonogo dashboard flying a three-stage craft from the pad to orbit: a ground track, orbit view, altitude and orbital speed graph, fuel and delta-v readouts, a system view and SAS and fairing action groups" />
 
 ## Real Light Delay
 

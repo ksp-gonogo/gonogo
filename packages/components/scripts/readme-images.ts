@@ -36,8 +36,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "../../..");
 const ASSETS = resolve(REPO_ROOT, "docs/assets");
 
-/** The composition and chrome whose render is written to the README's hero and takeoff images. */
-const README_HERO = { composition: "systemview", chrome: "today" } as const;
+/** The composition and chrome whose render is written to the README's hero animation. */
+const README_HERO = { composition: "compact", chrome: "clean" } as const;
 
 /** How far into the flight a hero still is taken, from 0 to 1. */
 const HERO_STILL_AT = 0.66;
@@ -46,6 +46,8 @@ const HERO_STRIDE = 1;
 
 /** Frames per second of every animation. A GIF is written at the stage's CSS width, half of what the H.264 twin keeps. */
 const FPS = 15;
+/** Frames per second of a hero animation, which spans a long flight and is kept small by the slower rate. */
+const HERO_FPS = 10;
 /** Every Nth model frame is rendered: frame N is at the same model instant in every instance. */
 const SIZES_STRIDE = 2;
 /** Seconds the last frame is held before the loop restarts. */
@@ -54,8 +56,7 @@ const HOLD_SECONDS = 1.5;
 /** What a run writes into docs/assets. */
 const GENERATED = [
   "docs/assets/navball-sizes.gif",
-  "docs/assets/hero-dashboard.png",
-  "docs/assets/takeoff-ascent.gif",
+  "docs/assets/hero-dashboard.gif",
 ];
 
 async function readmeReferences(): Promise<string[]> {
@@ -155,9 +156,10 @@ async function encode(
   gifWidth: number,
   gif: string | undefined,
   mp4: string | undefined,
+  fps = FPS,
 ): Promise<void> {
-  const hold = Math.round(HOLD_SECONDS * FPS);
-  const input = ["-framerate", String(FPS), "-i", join(frames, "f%04d.png")];
+  const hold = Math.round(HOLD_SECONDS * fps);
+  const input = ["-framerate", String(fps), "-i", join(frames, "f%04d.png")];
   // Hold the last frame by cloning it, so the loop rests before it restarts.
   const tail = `tpad=stop_mode=clone:stop=${hold}`;
   if (gif) {
@@ -273,8 +275,8 @@ async function heroAnimate(
         path: join(tmp, `f${String(i).padStart(4, "0")}.png`),
       });
     }
-    console.log(`${name}: ${steps} frames at ${FPS} fps`);
-    await encode(tmp, spec.width, gif, mp4);
+    console.log(`${name}: ${steps} frames at ${HERO_FPS} fps`);
+    await encode(tmp, spec.width, gif, mp4, HERO_FPS);
   } finally {
     await rm(tmp, { recursive: true, force: true });
   }
@@ -350,12 +352,11 @@ async function main(): Promise<void> {
         }
       } else {
         const spec = heroSpec(README_HERO.composition, README_HERO.chrome);
-        await heroStill(session.page, spec, join(ASSETS, "hero-dashboard.png"));
         await heroAnimate(
           session.page,
           spec,
           "hero",
-          join(ASSETS, "takeoff-ascent.gif"),
+          join(ASSETS, "hero-dashboard.gif"),
           undefined,
         );
       }

@@ -57,8 +57,8 @@ const G_SURFACE = 9.81;
 const LF_UNIT_TONNES = 0.005;
 
 /** Seconds of game time between frames while the craft climbs, and while it coasts. */
-const ASCENT_STEP = 2;
-const COAST_STEP = 24;
+const ASCENT_STEP = 1;
+const COAST_STEP = 8;
 /** Seconds of the circularisation burn's tail carried at the ascent's rate. */
 const ASCENT_TAIL = 14;
 
@@ -354,7 +354,7 @@ function dvTopics(s: FlightSample) {
   } as Record<string, unknown>;
 }
 
-/** The seconds-since-lift-off each frame is taken at: closely through the climb and burn, then by the half minute round the orbit. */
+/** The seconds-since-lift-off each frame is taken at: closely through the climb and burn, then every eight seconds round the orbit. */
 function frameTimes(samples: readonly FlightSample[]): number[] {
   const orbitAt =
     samples.find((s) => s.elements.periapsisAlt > 80_000 && s.altitude > 70_000)

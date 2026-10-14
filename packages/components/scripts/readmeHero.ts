@@ -83,10 +83,10 @@ export const HERO_COMPOSITIONS: Record<string, HeroComposition> = {
       },
     ],
   },
-  /** The smaller screen: no System View, no camera. */
+  /** The smaller screen: no camera, the two action groups in their tiny form beside a small System View. */
   compact: {
     width: 1280,
-    rows: 20,
+    rows: 21,
     tiles: [
       { id: "track", widget: "ground-track", at: [0, 0, 22, 10] },
       { id: "orbit", widget: "orbit-view", at: [22, 0, 14, 10] },
@@ -94,20 +94,50 @@ export const HERO_COMPOSITIONS: Record<string, HeroComposition> = {
         id: "graph",
         widget: "graph",
         config: FLIGHT_GRAPH,
-        at: [0, 10, 18, 10],
+        at: [0, 10, 14, 11],
       },
-      { id: "fuel", widget: "fuel-status", at: [18, 10, 12, 10] },
+      { id: "fuel", widget: "fuel-status", at: [14, 10, 12, 11] },
+      { id: "system", widget: "system-view", at: [26, 10, 6, 11] },
       {
         id: "sas",
         widget: "action-group",
         config: { actionGroupId: "SAS" },
-        at: [30, 10, 6, 5],
+        at: [32, 10, 4, 5],
       },
       {
         id: "ag1",
         widget: "action-group",
         config: { actionGroupId: "AG1" },
-        at: [30, 15, 6, 5],
+        at: [32, 15, 4, 6],
+      },
+    ],
+  },
+  /** The same, with System View wider above the two action groups side by side. */
+  compactwide: {
+    width: 1280,
+    rows: 21,
+    tiles: [
+      { id: "track", widget: "ground-track", at: [0, 0, 22, 10] },
+      { id: "orbit", widget: "orbit-view", at: [22, 0, 14, 10] },
+      {
+        id: "graph",
+        widget: "graph",
+        config: FLIGHT_GRAPH,
+        at: [0, 10, 14, 11],
+      },
+      { id: "fuel", widget: "fuel-status", at: [14, 10, 12, 11] },
+      { id: "system", widget: "system-view", at: [26, 10, 10, 8] },
+      {
+        id: "sas",
+        widget: "action-group",
+        config: { actionGroupId: "SAS" },
+        at: [26, 18, 5, 3],
+      },
+      {
+        id: "ag1",
+        widget: "action-group",
+        config: { actionGroupId: "AG1" },
+        at: [31, 18, 5, 3],
       },
     ],
   },
