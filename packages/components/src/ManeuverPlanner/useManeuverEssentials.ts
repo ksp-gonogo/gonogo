@@ -20,11 +20,19 @@ export function useManeuverEssentials(): readonly TinyEssential[] {
   // The game's own vessel total, as the planner's feasibility check uses.
   const budget = useProcessor(DELTA_V_BUDGET);
   const nowUt = useViewUt();
-  const underway = nodeUnderway(unlessLocked(maneuver.nodes.value), nowUt);
+  const nodes = unlessLocked(maneuver.nodes.value);
+  const underway = nodeUnderway(nodes, nowUt);
+  // Every node is behind the craft: a dash would say nothing about why there is no figure.
+  const allPassed =
+    nowUt !== undefined &&
+    nodes != null &&
+    nodes.length > 0 &&
+    nodes.every((n) => passed(n, nowUt));
   return [
     {
       // The figure is the planned size, which a burn in progress has not been drawn down from.
-      label: underway ? "Node ΔV planned" : "Node ΔV",
+      label: underway ? "Burn ΔV planned" : "Node ΔV",
+      word: allPassed ? "PASSED" : undefined,
       value: deriveReading(
         maneuver,
         (m) => firstNodeDv(m.nodes, nowUt),
