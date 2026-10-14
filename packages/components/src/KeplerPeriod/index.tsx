@@ -6,6 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import { deriveReading, type VesselOrbit, value } from "@ksp-gonogo/sitrep-sdk";
+import { EmptyState, Panel, Section } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import {
   type ComputedSeries,
@@ -170,6 +171,20 @@ function KeplerPeriodComponent({
       `No reference data for ${body.name}: plotting trace only.`) ||
     (showNoBodyNotice && `Unknown body “${bodyName}”: plotting trace only.`) ||
     undefined;
+
+  // A craft with no orbit has no period to plot against, so the message stands alone rather than beside empty axes and a legend.
+  if (offOrbit && notice !== undefined) {
+    return (
+      <Panel
+        panelTitle="KEPLER PERIOD"
+        sections={
+          <Section full>
+            <EmptyState>{notice}</EmptyState>
+          </Section>
+        }
+      />
+    );
+  }
 
   return (
     // gonogo:reads vessel.orbit

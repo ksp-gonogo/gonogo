@@ -180,4 +180,33 @@ describe("KeplerPeriodComponent", () => {
       expect(screen.getByText(/escape trajectory/)).toBeTruthy();
     });
   });
+
+  it("draws the landed message alone, with no axes or legend beside it", async () => {
+    const { container } = renderKepler();
+
+    act(() => {
+      stream.emit("vessel.orbit", {
+        referenceBodyIndex: 1,
+        sma: 700000,
+        ecc: 0.01,
+        inc: 0,
+        lan: 0,
+        argPe: 0,
+        meanAnomalyAtEpoch: 0,
+        epoch: 10,
+        mu: 3.5316e12,
+      });
+      stream.emit("vessel.identity", {
+        parentBodyIndex: 1,
+        launchUt: null,
+        situation: 1,
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Landed: no orbit.")).toBeInTheDocument(),
+    );
+    expect(container.querySelector("svg")).toBeNull();
+    expect(screen.queryByText(/Semi-major axis/)).toBeNull();
+  });
 });
