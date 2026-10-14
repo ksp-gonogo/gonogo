@@ -28,7 +28,7 @@ export interface WidgetRecord {
   optionalChannels: string[];
   /** The commands the widget's controls can send, as the registration lists them. */
   commands: string[];
-  /** The Topic families the widget needs to render, each as a pattern such as `fleet.<vessel>.contact`. */
+  /** The Topic families the widget needs to render, each as a pattern such as `fleet.<vessel>.delay`. */
   channelFamilies: string[];
   /** The Topic families the widget reads when present and draws without otherwise. */
   optionalChannelFamilies: string[];

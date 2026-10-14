@@ -1,5 +1,8 @@
 import { clearAugments, DashboardItemContext } from "@ksp-gonogo/core";
-import { RosterCommsControlSource } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CatalogContact,
+  RosterCommsControlSource,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -46,7 +49,7 @@ function renderRoster(fixture: StreamFixture, size = { w: 8, h: 10 }) {
 
 /** One fully-populated craft, so a test can isolate one absent read. */
 const ONE_CRAFT = {
-  vessels: [
+  entries: [
     {
       vesselId: "v-probe",
       name: "Explorer",
@@ -123,7 +126,7 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
     ).toBeInTheDocument();
 
     act(() => {
-      fixture.emit("system.vessels", { vessels: [] });
+      fixture.emit("trackingStation.catalog", { entries: [] });
     });
 
     // The gate's whole purpose: an arrived empty roster is a different sentence from a roster that has never arrived.
@@ -138,7 +141,7 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
     renderRoster(fixture);
 
     act(() => {
-      fixture.emit("system.vessels", ONE_CRAFT);
+      fixture.emit("trackingStation.catalog", ONE_CRAFT);
     });
     await waitFor(() =>
       expect(screen.getByText("Explorer")).toBeInTheDocument(),
@@ -146,7 +149,7 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
 
     act(() => {
       // A tombstone payload is `null`, not `undefined`, so `known` stays set while the table empties.
-      fixture.emit("system.vessels", null, { validAt: 100 });
+      fixture.emit("trackingStation.catalog", null, { validAt: 100 });
     });
 
     // This is the null-vs-undefined site, and the widget DOES distinguish them: a tombstone reads as "no vessels tracked", never as pending.
@@ -163,7 +166,7 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
 
     act(() => {
       // Partial payload: `known` reads the record and `vessels` the field, so they disagree and the confident copy wins.
-      fixture.emit("system.vessels", {});
+      fixture.emit("trackingStation.catalog", {});
     });
 
     await waitFor(() =>
@@ -179,7 +182,7 @@ describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
     renderRoster(fixture);
 
     act(() => {
-      fixture.emit("system.vessels", ONE_CRAFT);
+      fixture.emit("trackingStation.catalog", ONE_CRAFT);
     });
 
     await waitFor(() =>
@@ -201,7 +204,7 @@ describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
     renderRoster(fixture);
 
     act(() => {
-      fixture.emit("system.vessels", ONE_CRAFT);
+      fixture.emit("trackingStation.catalog", ONE_CRAFT);
       // `b.name != null` skips the entry entirely, so the index stays unmapped and the row falls into the same placeholder as above.
       fixture.emit("system.bodies", { bodies: [{ index: 1 }] });
     });
@@ -219,8 +222,8 @@ describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
     act(() => {
       fixture.emit("system.bodies", BODIES);
       // `v.bodyIndex != null` short-circuits before the lookup, so a populated bodies map makes no difference.
-      fixture.emit("system.vessels", {
-        vessels: [
+      fixture.emit("trackingStation.catalog", {
+        entries: [
           {
             vesselId: "v-nobody",
             name: "Unplaced Craft",
@@ -248,8 +251,8 @@ describe("FleetRoster: partial vessel records", () => {
 
     act(() => {
       fixture.emit("system.bodies", BODIES);
-      fixture.emit("system.vessels", {
-        vessels: [
+      fixture.emit("trackingStation.catalog", {
+        entries: [
           {
             // Neither crew field read this tick: `magnitudeOf(undefined)` is null and `crewLabel` returns the placeholder, never a 0.
             vesselId: "v-unread",
@@ -299,8 +302,8 @@ describe("FleetRoster: partial vessel records", () => {
 
     act(() => {
       fixture.emit("system.bodies", BODIES);
-      fixture.emit("system.vessels", {
-        vessels: [
+      fixture.emit("trackingStation.catalog", {
+        entries: [
           {
             vesselId: "v-unread-comms",
             name: "Unread Comms",
@@ -344,16 +347,16 @@ async function openSignalPanel(name: RegExp): Promise<HTMLElement> {
 }
 
 describe("FleetRoster: the `contact == null` absence gate", () => {
-  it("reports the link state as `unknown` and omits the delay row entirely before either fleet.<guid> topic arrives", async () => {
+  it("reports the link state as `unknown` and omits the delay row entirely before any contact or delay arrives", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
     act(() => {
-      fixture.emit("system.vessels", ONE_CRAFT);
+      fixture.emit("trackingStation.catalog", ONE_CRAFT);
     });
 
     const panel = await openSignalPanel(/Explorer signal/i);
-    // The row's own comms tag still reads DIRECT off `system.vessels`, so the two disagree inside one row.
+    // The row's own comms tag still reads DIRECT off `trackingStation.catalog`, so the two disagree inside one row.
     expect(visibleText(panel)).toContain("unknown");
     // `oneWay != null` gates the whole Delay term, so there is no label at all rather than a delay of zero or a placeholder.
     expect(visibleText(panel)).not.toContain("Delay");
@@ -361,35 +364,15 @@ describe("FleetRoster: the `contact == null` absence gate", () => {
     expect(screen.getByText("DIRECT")).toBeInTheDocument();
   });
 
-  it("does not distinguish a contact tombstone from a contact that never arrived", async () => {
+  it("reads a silent contact as a confident `no path`, and the delay beside it as the last known", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
     act(() => {
-      fixture.emit("system.vessels", ONE_CRAFT);
-    });
-    await screen.findByRole("button", { name: /Explorer signal/i });
-    act(() => {
-      fixture.emit("fleet.v-probe.contact", { connected: true });
-    });
-
-    const panel = await openSignalPanel(/Explorer signal/i);
-    await waitFor(() => expect(visibleText(panel)).toContain("connected"));
-
-    act(() => {
-      // A confirmed "no contact record" takes the same `== null` test as never-arrived, so the Link term renders the cold-start state.
-      fixture.emit("fleet.v-probe.contact", null, { validAt: 100 });
-    });
-
-    await waitFor(() => expect(visibleText(panel)).toContain("unknown"));
-  });
-
-  it("reads an absent `connected` field inside an arrived contact record as a confident `no path`", async () => {
-    const fixture = newFixture();
-    renderRoster(fixture);
-
-    act(() => {
-      fixture.emit("system.vessels", ONE_CRAFT);
+      fixture.emit(
+        "trackingStation.catalog",
+        withContact({ contact: CatalogContact.Silent, lastContactUt: 100 }),
+      );
     });
     await screen.findByRole("button", { name: /Explorer signal/i });
     act(() => {
@@ -397,8 +380,6 @@ describe("FleetRoster: the `contact == null` absence gate", () => {
         oneWaySeconds: 4.5,
         connected: true,
       });
-      // A contact record with no reachability flag: the ternary has no third arm, so an unread field reads as a confirmed lack of a path.
-      fixture.emit("fleet.v-probe.contact", { lastContactUt: 100 });
     });
 
     const panel = await openSignalPanel(/Explorer signal/i);
@@ -409,46 +390,51 @@ describe("FleetRoster: the `contact == null` absence gate", () => {
     expect(visibleText(panel)).toMatch(/round-trip[\s~]*9\s*s/i);
   });
 
-  it("omits the delay row for a contact-resolved link whose oneWaySeconds never arrived", async () => {
+  it("omits the delay row for a link in contact whose oneWaySeconds never arrived", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
     act(() => {
-      fixture.emit("system.vessels", ONE_CRAFT);
-    });
-    await screen.findByRole("button", { name: /Explorer signal/i });
-    act(() => {
-      fixture.emit("fleet.v-probe.contact", { connected: true });
+      fixture.emit(
+        "trackingStation.catalog",
+        withContact({
+          contact: CatalogContact.InContact,
+          lastContactUt: 2_000,
+        }),
+      );
     });
 
     const panel = await openSignalPanel(/Explorer signal/i);
-    // The Link term resolves off `.contact` while `oneWay != null` still gates the Delay term away: the two topics are read separately.
+    // The Link term resolves off the catalog while `oneWay != null` still gates the Delay term away: the two are read separately.
     await waitFor(() => expect(visibleText(panel)).toContain("connected"));
     expect(visibleText(panel)).not.toContain("Delay");
   });
 });
 
 const SILENT = {
-  state: "Silent",
-  silenceSinceUt: 1_000,
-  deadlineUt: 9_000,
-  deadlineBasis: "predicted-reacquisition",
-  predictedReacquisitionUt: 2_600,
+  contact: CatalogContact.Silent,
+  lastContactUt: 1_000,
+  expectedReturnUt: 2_600,
+  overdueAfterUt: 2_600,
 };
 
-describe("FleetRoster: the `!silence` absence gate", () => {
-  it("renders no contact badge of any kind before silence.<guid>.state arrives", async () => {
+function withContact(contact: Record<string, unknown>) {
+  return { entries: [{ ...ONE_CRAFT.entries[0], ...contact }] };
+}
+
+describe("FleetRoster: the `contact == null` badge gate", () => {
+  it("renders no contact badge of any kind before the centre has word of a route", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
     act(() => {
-      fixture.emit("system.vessels", ONE_CRAFT);
+      fixture.emit("trackingStation.catalog", ONE_CRAFT);
     });
 
     await waitFor(() =>
       expect(screen.getByText("Explorer")).toBeInTheDocument(),
     );
-    // An unarrived silence reckoning renders nothing, exactly like a confirmed-nominal vessel, so each badge is asserted absent by name.
+    // No contact field renders nothing, exactly like a craft in contact, so each badge is asserted absent by name.
     expect(screen.queryByText(/no contact/i)).toBeNull();
     expect(screen.queryByText(/overdue/i)).toBeNull();
     expect(screen.queryByText(/reacquire/i)).toBeNull();
@@ -457,7 +443,7 @@ describe("FleetRoster: the `!silence` absence gate", () => {
     expect(screen.queryByRole("alert")).toBeNull();
 
     act(() => {
-      fixture.emit("silence.v-probe.state", SILENT);
+      fixture.emit("trackingStation.catalog", withContact(SILENT));
     });
     // The other side of the gate: the cell CAN render, so the absences above are the gate firing rather than a dead code path.
     await waitFor(() =>
@@ -465,47 +451,16 @@ describe("FleetRoster: the `!silence` absence gate", () => {
     );
   });
 
-  it("does not distinguish a silence tombstone from a silence that never arrived", async () => {
+  it("reads a silent craft with no expected return as `no contact`, never as overdue", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
     act(() => {
-      fixture.emit("system.vessels", ONE_CRAFT);
-    });
-    await screen.findByRole("button", { name: /Explorer signal/i });
-    act(() => {
-      fixture.emit("silence.v-probe.state", SILENT);
-    });
-    await waitFor(() =>
-      expect(screen.getByText(/reacquire in/i)).toBeInTheDocument(),
-    );
-
-    act(() => {
-      // `!silence` is true for `null` too, so a confirmed "no silence record" is drawn as nominal, like never-arrived.
-      fixture.emit("silence.v-probe.state", null, { validAt: 100 });
-    });
-
-    await waitFor(() => expect(screen.queryByText(/reacquire/i)).toBeNull());
-    expect(screen.queryByText(/no contact/i)).toBeNull();
-    expect(screen.queryByRole("status")).toBeNull();
-    expect(screen.getByText("Explorer")).toBeInTheDocument();
-  });
-
-  it("reads a silence record with no predicted reacquisition as `no contact`, never as overdue", async () => {
-    const fixture = newFixture();
-    renderRoster(fixture);
-
-    act(() => {
-      fixture.emit("system.vessels", ONE_CRAFT);
-    });
-    await screen.findByRole("button", { name: /Explorer signal/i });
-    act(() => {
-      // An absent field and an explicit null both mean `waiting`, so no countdown is invented from the deadline.
-      fixture.emit("silence.v-probe.state", {
-        state: "Silent",
-        silenceSinceUt: 1_000,
-        deadlineUt: 9_000,
-      });
+      // An absent field and an explicit null both mean `waiting`, so no countdown is invented.
+      fixture.emit(
+        "trackingStation.catalog",
+        withContact({ contact: CatalogContact.Silent, lastContactUt: 1_000 }),
+      );
     });
 
     await waitFor(() =>

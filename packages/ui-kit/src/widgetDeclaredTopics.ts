@@ -13,7 +13,7 @@ export interface WidgetTopicDeclaration {
   channels?: readonly string[];
   /** The Topics the widget reads when they are published. */
   optionalChannels?: readonly string[];
-  /** Families of Topics the widget cannot draw without, as patterns such as `fleet.<vessel>.contact`. */
+  /** Families of Topics the widget cannot draw without, as patterns such as `fleet.<vessel>.delay`. */
   channelFamilies?: readonly string[];
   /** Families of Topics the widget reads when they are published. */
   optionalChannelFamilies?: readonly string[];
@@ -75,7 +75,7 @@ export function widgetDrawnFields(
 
 /**
  * Every family of runtime-built Topic ids a widget declares, required and
- * optional joined, without duplicates, such as `"fleet.<vessel>.contact"`.
+ * optional joined, without duplicates, such as `"fleet.<vessel>.delay"`.
  * Useful for showing the operator an alarm on widgets that draw a figure whose
  * Topic id is built at runtime. Used by the dashboard, which matches alarms
  * against these with `topicMatchesFamily`.

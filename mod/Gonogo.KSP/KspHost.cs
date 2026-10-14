@@ -319,7 +319,7 @@ namespace Gonogo.KSP
                     }
 
                     // M3 R3 capture-add: the FULL known-vessel roster (not
-                    // just the active one) -- system.vessels' raw source, for
+                    // just the active one) -- trackingStation.catalog's raw source, for
                     // TargetPicker-style widgets. Same "omit the key entirely
                     // rather than emit an empty list when there's truly
                     // nothing yet" convention as "bodies" above; an empty
@@ -1818,14 +1818,14 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The M3 R3 <c>system.vessels</c> roster capture-add's raw per-vessel
+        /// The M3 R3 <c>trackingStation.catalog</c> roster capture-add's raw per-vessel
         /// entry (primitives only, same discipline as every other Build*
         /// helper in this class): id/name/vesselType/situation/mainBody, plus
         /// the FleetRoster crew/comms capture-add (crewCount/crewCapacity/
         /// commsConnected/commsControlSource), plus the vessel's own orbital
         /// elements (see <see cref="AddRosterOrbitFields"/>).
         /// <c>mainBody</c> is the raw body name (not yet resolved to an
-        /// index -- <c>SystemViewProvider.BuildSystemVessels</c> resolves it
+        /// index -- <c>SystemViewProvider.BuildTrackingStationCatalog</c> resolves it
         /// against <c>snapshot.Values["bodies"]</c>, same two-step pattern
         /// <c>BuildIdentity</c>'s <c>parentBody</c> already uses), read off
         /// <c>orbitDriver.orbit.referenceBody</c> directly (never the

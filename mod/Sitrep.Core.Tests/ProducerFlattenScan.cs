@@ -117,7 +117,7 @@ namespace Sitrep.Core.Tests
     /// <para>The wire-producing-class condition is load-bearing rather than
     /// decoration. Without it <c>Gonogo.KSP.KspHost.BuildBodyEntry</c> and
     /// <c>BuildVesselRosterEntry</c> are read as producers for
-    /// <c>BodyEntry</c>/<c>VesselRosterEntry</c>, and they are not: they build the
+    /// <c>BodyEntry</c>/<c>CatalogEntry</c>, and they are not: they build the
     /// internal capture snapshot, whose key set deliberately differs from the wire
     /// (a body's atmosphere is flat there and nested on the wire, a roster
     /// vessel's orbit likewise), and <c>SystemViewProvider</c> is what turns one

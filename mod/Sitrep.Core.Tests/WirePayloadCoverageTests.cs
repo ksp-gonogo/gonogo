@@ -91,10 +91,6 @@ namespace Sitrep.Core.Tests
             // graded; the wrapper and the nested rows under them are not.
             "CareerStatus", "CareerFacility",
             "CareerContract", "CareerContractParameter", "CareerStrategy", "CareerTechNode",
-            // fleet.silence: FleetSilenceRosterBuilder wraps per-vessel entries
-            // (reused from FleetVesselSilenceBuilder, which IS graded) in a
-            // { vessels: [...] } dictionary.
-            "FleetSilence", "FleetSilenceEntry",
             // currency.<guid>.science: CurrencyEventBuilder.BuildScienceCredit
             // and its reputation sibling return the flattened dictionary that
             // CurrencyEventUplink publishes.
@@ -114,11 +110,11 @@ namespace Sitrep.Core.Tests
             // dv.stages: StageDeltaVViewProvider.BuildStages writes each stage
             // inline; its BuildSummary sibling is graded.
             "StageDeltaVEntry",
-            // system.bodies / system.vessels / target.available: the roots are
+            // system.bodies / trackingStation.catalog / target.available: the roots are
             // graded (SystemViewProvider.BuildSystemBodies and friends); these
             // are the rows and sub-objects those roots assemble from the raw
             // capture's flat keys, with no method of their own.
-            "BodyEntry", "AtmosphereEntry", "OrbitEntry", "VesselRosterEntry", "TargetListEntry",
+            "BodyEntry", "AtmosphereEntry", "OrbitEntry", "CatalogEntry", "TargetListEntry",
             // robotics.available: BreakingGroundViewProvider builds this tree
             // without a method named for it.
             "RoboticsAvailability",

@@ -211,6 +211,27 @@
       "title": "text",
       "unlocked": "flag"
     },
+    "CatalogEntry": {
+      "bodyIndex": "id",
+      "commsConnected": "flag",
+      "commsControlSource": "enum",
+      "contact": "enum",
+      "crewCapacity": "count",
+      "crewCount": "count",
+      "declaredLostUt": "ut",
+      "expectedReturnUt": "ut",
+      "landedAt": "text",
+      "lastContactUt": "ut",
+      "latitude": "°",
+      "longitude": "°",
+      "name": "text",
+      "overdueAfterUt": "ut",
+      "placeAsOfUt": "ut",
+      "placeSource": "enum",
+      "situation": "enum",
+      "vesselId": "id",
+      "vesselType": "enum"
+    },
     "CentreDelayEntry": {
       "id": "id",
       "oneWaySeconds": "s"
@@ -669,30 +690,9 @@
     "FireCrewArgs": {
       "kerbalName": "id"
     },
-    "FleetSilenceEntry": {
-      "deadlineBasis": "enum",
-      "deadlineUt": "ut",
-      "predictedReacquisitionUt": "ut",
-      "predictionGraceSeconds": "s",
-      "silenceSinceUt": "ut",
-      "state": "enum",
-      "vesselId": "id"
-    },
-    "FleetVesselContact": {
-      "connected": "flag",
-      "lastContactUt": "ut"
-    },
     "FleetVesselLink": {
       "connected": "flag",
       "oneWaySeconds": "s"
-    },
-    "FleetVesselSilence": {
-      "deadlineBasis": "enum",
-      "deadlineUt": "ut",
-      "predictedReacquisitionUt": "ut",
-      "predictionGraceSeconds": "s",
-      "silenceSinceUt": "ut",
-      "state": "enum"
     },
     "FlightCurrent": {
       "flightId": "id",
@@ -1582,22 +1582,6 @@
       "thrustStartedUt": "ut",
       "totalMass": "t"
     },
-    "VesselRosterEntry": {
-      "bodyIndex": "id",
-      "commsConnected": "flag",
-      "commsControlSource": "enum",
-      "crewCapacity": "count",
-      "crewCount": "count",
-      "landedAt": "text",
-      "latitude": "°",
-      "longitude": "°",
-      "name": "text",
-      "placeAsOfUt": "ut",
-      "placeSource": "enum",
-      "situation": "enum",
-      "vesselId": "id",
-      "vesselType": "enum"
-    },
     "VesselStructure": {
       "currentStage": "id",
       "partCount": "count",
@@ -2310,6 +2294,9 @@
     "CareerTech": {
       "nodes": "CareerTechNode[]"
     },
+    "CatalogEntry": {
+      "orbit": "OrbitEntry"
+    },
     "ChannelDeclaration": {
       "emission": "EmissionPolicy",
       "requires": "CommandRequirement[]"
@@ -2455,9 +2442,6 @@
     "EventMsg": {
       "meta": "Meta"
     },
-    "FleetSilence": {
-      "vessels": "FleetSilenceEntry[]"
-    },
     "FleetVesselResources": {
       "resources": "*ResourceAmount"
     },
@@ -2559,9 +2543,6 @@
     "SystemBodies": {
       "bodies": "BodyEntry[]"
     },
-    "SystemVessels": {
-      "vessels": "VesselRosterEntry[]"
-    },
     "TargetAvailable": {
       "entries": "TargetListEntry[]"
     },
@@ -2570,6 +2551,9 @@
     },
     "TimeCalendar": {
       "meta": "PayloadMeta"
+    },
+    "TrackingStationCatalog": {
+      "entries": "CatalogEntry[]"
     },
     "UplinkHealth": {
       "facts": "UplinkHealthFact[]"
@@ -2637,9 +2621,6 @@
     "VesselResources": {
       "meta": "PayloadMeta",
       "resources": "*ResourceAmount"
-    },
-    "VesselRosterEntry": {
-      "orbit": "OrbitEntry"
     },
     "VesselStructure": {
       "meta": "PayloadMeta"
@@ -2726,9 +2707,6 @@
     "eva.crew": {
       "kerbals": "EvaKerbal[]"
     },
-    "fleet.silence": {
-      "vessels": "FleetSilenceEntry[]"
-    },
     "isru.converters": {
       "inputs": "IsruResourceFlow[]",
       "outputs": "IsruResourceFlow[]"
@@ -2756,9 +2734,6 @@
     "system.frame": {
       "settableFrames": "ControlFrameOption[]"
     },
-    "system.vessels": {
-      "vessels": "VesselRosterEntry[]"
-    },
     "target.available": {
       "entries": "TargetListEntry[]"
     },
@@ -2767,6 +2742,9 @@
     },
     "time.warp": {
       "meta": "PayloadMeta"
+    },
+    "trackingStation.catalog": {
+      "entries": "CatalogEntry[]"
     },
     "vessel.attitude": {
       "meta": "PayloadMeta"
@@ -2853,6 +2831,13 @@
     "CareerMode": {
       "mode": "GameMode"
     },
+    "CatalogEntry": {
+      "commsControlSource": "RosterCommsControlSource",
+      "contact": "CatalogContact",
+      "placeSource": "RosterPlaceSource",
+      "situation": "Situation",
+      "vesselType": "VesselType"
+    },
     "CommcastTraffic": {
       "kind": null
     },
@@ -2896,14 +2881,6 @@
     },
     "DeployedEntry": {
       "power": "DeployedPowerState"
-    },
-    "FleetSilenceEntry": {
-      "deadlineBasis": null,
-      "state": null
-    },
-    "FleetVesselSilence": {
-      "deadlineBasis": null,
-      "state": null
     },
     "FlightCurrent": {
       "phase": "Situation"
@@ -3005,12 +2982,6 @@
     "VesselPhysicsMode": {
       "mode": "PhysicsMode"
     },
-    "VesselRosterEntry": {
-      "commsControlSource": "RosterCommsControlSource",
-      "placeSource": "RosterPlaceSource",
-      "situation": "Situation",
-      "vesselType": "VesselType"
-    },
     "VesselTarget": {
       "kind": "TargetKind"
     },
@@ -3093,6 +3064,13 @@
     }
   },
   "enumMembers": {
+    "CatalogContact": {
+      "0": "InContact",
+      "1": "Silent",
+      "2": "Overdue",
+      "3": "Lost",
+      "4": "Gone"
+    },
     "CommsControlSource": {
       "0": "None",
       "1": "Partial",

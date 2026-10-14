@@ -41,7 +41,7 @@
  *   `identity.vesselId` and `vessel.orbit`, so withholding the latter no
  *   longer leaves v-active markerless, it falls through to the same faint
  *   `orbit-path` ring `system-view-vessel-orbits` already draws for
- *   v-relay/v-other (`system.vessels`' own per-vessel `orbit` field, never
+ *   v-relay/v-other (`trackingStation.catalog`' own per-vessel `orbit` field, never
  *   filtered by this capture): every hop endpoint (home, v-relay, v-active)
  *   renders with a real marker, and the only accent-green on screen for the
  *   whole clip is the deliberate mid-capture selection of v-other.
@@ -191,9 +191,9 @@ function sceneEmits(): Array<{ topic: string; value: unknown }> {
       },
     },
     {
-      topic: "system.vessels",
+      topic: "trackingStation.catalog",
       value: {
-        vessels: [
+        entries: [
           {
             vesselId: "v-active",
             name: "Active Craft",
@@ -254,7 +254,7 @@ function sceneEmits(): Array<{ topic: string; value: unknown }> {
  * except `vessel.orbit`, so SystemDiagram never draws the active vessel's
  * own dedicated ring/live-trajectory patch (both solid accent-green,
  * unrelated to selection, see this file's own doc comment). `v-active`
- * still carries a full orbit on its roster entry (`system.vessels`, above),
+ * still carries a full orbit on its roster entry (`trackingStation.catalog`, above),
  * so the traffic route's own endpoint still resolves a real position for
  * the connection-line to join, and (round-4 fix) picks up the same faint
  * `orbit-path` ring/dot `system-view-vessel-orbits` draws for every other

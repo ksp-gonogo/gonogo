@@ -1319,7 +1319,7 @@ namespace Sitrep.Host
                 if (string.IsNullOrEmpty(id))
                 {
                     // No stable subject id, so nothing could attribute this
-                    // entry to a kerbal: the same rule BuildSystemVessels
+                    // entry to a kerbal: the same rule BuildTrackingStationCatalog
                     // applies to a roster entry.
                     continue;
                 }

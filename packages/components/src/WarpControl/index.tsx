@@ -47,7 +47,7 @@ const topics = defineTopicManifest({
     "comms.delay.oneWaySeconds",
     "vessel.orbit.patches",
     "vessel.identity.vesselId",
-    "fleet.silence.vessels",
+    "trackingStation.catalog.entries",
     "comms.nextLoss.ut",
     "comms.nextLoss.basis",
     "comms.nextLoss.lowConfidence",
@@ -108,7 +108,10 @@ function useWarpControl(config: WarpControlConfig | undefined) {
   const viewUt = useViewUt();
   const events = warpEventTargets({
     orbit: observedValue(topics.useTelemetry("vessel.orbit")),
-    silence: stillTrue(topics.useTelemetry("fleet.silence"), undefined),
+    catalog: stillTrue(
+      topics.useTelemetry("trackingStation.catalog"),
+      undefined,
+    ),
     identity: stillTrue(topics.useTelemetry("vessel.identity"), undefined),
     loss: stillTrue(topics.useTelemetry("comms.nextLoss"), undefined),
     light: stillTrue(topics.useTelemetry("vessel.light"), undefined),

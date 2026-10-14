@@ -30,7 +30,6 @@ namespace Sitrep.Host.IntegrationTests
         public const string ExtensionPrefix = "extension.";
 
         private IDynamicChannelSource? _orbitSource;
-        private IDynamicChannelSource? _silenceSource;
         private IDynamicChannelSource? _extensionSource;
         private IUplinkHost? _host;
 
@@ -49,19 +48,6 @@ namespace Sitrep.Host.IntegrationTests
                 Delivery = Delivery.LossyLatest,
                 Delay = DelayRole.Delayed,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-            });
-            // Mirrors the production split (Gonogo.KSP.FleetChannels owns
-            // fleet.<id>.contact for core connected/lastContactUt; a
-            // comms-owned publisher owns silence.<id>.state for the
-            // SilenceTracker's reckoning): a DISJOINT prefix, same as
-            // ChannelEngine.CurrencyEventPrefix, that PerVesselNode still maps
-            // back onto this vessel's own fleet.<id> node.
-            _silenceSource = host.RegisterDynamicNamespace(ChannelEngine.SilenceEventPrefix, new ChannelDeclaration
-            { Kind = SampleKind.Continuous,
-                Delivery = Delivery.LossyLatest,
-                Delay = DelayRole.Delayed,
-                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                PerVesselNode = true,
             });
             _extensionSource = host.RegisterDynamicNamespace(ExtensionPrefix, new ChannelDeclaration
             { Kind = SampleKind.Continuous,
@@ -149,40 +135,18 @@ namespace Sitrep.Host.IntegrationTests
                 // connected light-time, and before the publishes, so they freeze.
                 _host?.SetVesselConnectivity(id, connected);
                 _orbitSource.Publisher(id + ".orbit").Publish(orbit, cap.Ut);
-                // The SilenceTracker's per-vessel contact report (mirroring the
-                // production FleetChannels publisher): the ONE field under a
-                // fleet subject that the engine treats as freeze-exempt, because
-                // it describes the blackout rather than being telemetry through
-                // it. Published on EVERY tick, including while the vessel is
-                // dark, which is precisely when it matters.
-                _orbitSource.Publisher(id + ChannelEngine.ContactMetaSuffix).Publish(
-                    Gonogo.KSP.FleetVesselContactBuilder.Build(
-                        connected, connected ? cap.Ut : (double?)null),
-                    cap.Ut);
-                // The SilenceTracker's reckoning, comms-owned in production:
-                // published under the disjoint silence.<id> namespace so it can
-                // carry its own availability, but freeze-exempt for the same
-                // reason as fleet.<id>.contact above -- everything it says is
-                // said while the vessel is dark.
-                _silenceSource?.Publisher(id + ".state").Publish(
-                    new Dictionary<string, object?>
-                    {
-                        ["state"] = connected ? "Nominal" : "Silent",
-                    },
-                    cap.Ut);
                 // The Uplink-owned per-vessel opinion: same vessel, a namespace
                 // core knows nothing about, so the ONLY thing that can route it
                 // onto this craft's own node is the declaration.
                 _extensionSource?.Publisher(id + ".field").Publish(
                     new Dictionary<string, object?> { ["value"] = id },
                     cap.Ut);
-                // The same Uplink's own state and contact fields for the craft.
-                // They end as core's two blackout reports do and are not those
-                // reports: they are this craft's telemetry.
-                _extensionSource?.Publisher(id + ChannelEngine.SilenceStateSuffix).Publish(
+                // The same Uplink's own state and contact fields for the craft:
+                // named like reports of a blackout, and this craft's telemetry all the same.
+                _extensionSource?.Publisher(id + ".state").Publish(
                     new Dictionary<string, object?> { ["value"] = connected ? "fine" : "worried" },
                     cap.Ut);
-                _extensionSource?.Publisher(id + ChannelEngine.ContactMetaSuffix).Publish(
+                _extensionSource?.Publisher(id + ".contact").Publish(
                     new Dictionary<string, object?> { ["value"] = connected },
                     cap.Ut);
                 // The PRODUCTION FleetVesselLinkBuilder, compiled into

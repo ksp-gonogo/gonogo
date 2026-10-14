@@ -2,17 +2,21 @@ import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import {
   type ContactPhase,
   contactPhase,
-  type FleetVesselSilence,
-  getLatestFleetVesselSilence,
+  expectedReturnUt,
   overdueSeconds,
 } from "@ksp-gonogo/sitrep-client";
-import { type AlertTone, stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type AlertTone,
+  type CatalogEntry,
+  stillTrue,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 
 /*
- * The `system-view.vessel-status` self-contribution: the plotted vessel's silence reckoning as a tone, emphasis and label, never colours.
+ * The `system-view.vessel-status` self-contribution: the centre's contact with the plotted vessel, from its catalog entry, as a tone, emphasis and label, never colours.
  *
- * `silence.<guid>.state` is dynamic while `deps` are static, so this depends on `vessel.identity` and reads the reckoning through the `getLatestFleetVesselSilence` bridge. It is a Processor because it moves with the view clock and that bridge, neither a declared dep; it is evaluated every frame and notifies only on change.
+ * It is a Processor because a silent craft goes overdue on the view clock, which is not a declared dep; it is evaluated every frame and notifies only on change.
  *
  * Labels are plain strings, so durations go through `writeQuantity`; they are differences of universal times, so GAME seconds on the six-hour-day ladder.
  */
@@ -27,26 +31,32 @@ export interface SystemViewVesselStatusEntry {
   tooltip?: string;
 }
 
-const PHASE_TONE: Record<Exclude<ContactPhase, "nominal">, AlertTone> = {
+const PHASE_TONE: Record<
+  Exclude<ContactPhase, "nominal" | "gone">,
+  AlertTone
+> = {
   waiting: "info",
   expected: "info",
   overdue: "warn",
   lost: "nogo",
 };
 
-/** Pure core: the entries contributed for a vessel id and its silence reckoning, exported for direct testing. */
+/** What the centre knows of its contact with a craft, as its catalog entry carries it. */
+export type VesselContactEntry = Pick<
+  CatalogEntry,
+  "contact" | "expectedReturnUt" | "overdueAfterUt"
+>;
+
+/** Pure core: the entries contributed for a vessel id and the centre's contact with it, exported for direct testing. */
 export function computeVesselStatus(
   vesselId: string,
-  silence: FleetVesselSilence | undefined,
+  entry: VesselContactEntry | undefined,
   nowUt: number,
 ): readonly SystemViewVesselStatusEntry[] {
-  const phase = contactPhase(silence, nowUt);
-  if (!phase || phase === "nominal") return [];
+  const phase = contactPhase(entry, nowUt);
+  if (!phase || phase === "nominal" || phase === "gone") return [];
 
   const tone = PHASE_TONE[phase];
-  const tooltip = silence?.deadlineBasis
-    ? `Silence basis: ${silence.deadlineBasis}`
-    : undefined;
 
   if (phase === "lost") {
     return [
@@ -55,32 +65,29 @@ export function computeVesselStatus(
         tone,
         emphasis: "reckoned",
         label: "Officially lost",
-        tooltip,
       },
     ];
   }
   if (phase === "overdue") {
-    const late = overdueSeconds(silence, nowUt);
+    const late = overdueSeconds(entry, nowUt);
     return [
       {
         target: vesselId,
         tone,
         emphasis: "reckoned",
         label: `Overdue by ${late == null ? "?" : writeQuantity(value("s", late))}`,
-        tooltip,
       },
     ];
   }
   if (phase === "expected") {
-    const predicted = silence?.predictedReacquisitionUt ?? nowUt;
-    const due = Math.max(0, predicted - nowUt);
+    const expected = expectedReturnUt(entry) ?? nowUt;
+    const due = Math.max(0, expected - nowUt);
     return [
       {
         target: vesselId,
         tone,
         emphasis: "reckoned",
         label: `Reacquire expected in ~${writeQuantity(value("s", due))}`,
-        tooltip,
       },
     ];
   }
@@ -91,23 +98,25 @@ export function computeVesselStatus(
       tone,
       emphasis: "reckoned",
       label: "No contact",
-      tooltip,
     },
   ];
 }
 
 const VESSEL_CONTACT_STATUS = CORE_UPLINK_CLIENT.registerProcessor({
   id: "system-view-vessel-contact-status",
-  deps: [{ reading: "vessel.identity" }] as const,
-  compute: ([identityReading], { viewUt }) => {
+  deps: [
+    { reading: "vessel.identity" },
+    { reading: "trackingStation.catalog" },
+  ] as const,
+  compute: ([identityReading, catalogReading], { viewUt }) => {
     // Which vessel is plotted is a fact until the operator switches, so a held identity still names it.
     const vesselId = stillTrue(identityReading, null)?.vesselId;
     if (typeof vesselId !== "string" || vesselId === "") return null;
-    return computeVesselStatus(
-      vesselId,
-      getLatestFleetVesselSilence(vesselId),
-      viewUt,
+    // A held catalog is the last the centre knew, and a craft's contact is still what it was then.
+    const entry = stillTrue(catalogReading, null)?.entries.find(
+      (e) => e.vesselId === vesselId,
     );
+    return computeVesselStatus(vesselId, entry, viewUt);
   },
 });
 
@@ -115,7 +124,7 @@ CORE_UPLINK_CLIENT.registerContribution({
   id: "system-view-vessel-silence-status",
   contributes: "system-view.vessel-status",
   deps: [VESSEL_CONTACT_STATUS],
-  // Every entry is the silence model's own judgement of how stale contact is, so it is drawn as reckoned rather than marked held.
+  // Every entry is a judgement of how stale contact is, so it is drawn as reckoned rather than marked held.
   compute: (topics) => {
     const status = topics[VESSEL_CONTACT_STATUS.id];
     return status?.state === "observed" || status?.state === "held"

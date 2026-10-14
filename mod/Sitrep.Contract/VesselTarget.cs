@@ -116,7 +116,7 @@ public class VesselTarget
     /// The target's own stable id, populated when <see cref="Kind"/> is
     /// <see cref="TargetKind.Vessel"/> (KSP's <c>Vessel.id</c> guid) or
     /// <see cref="TargetKind.Part"/> (the owning vessel's guid). The same opaque
-    /// id <c>system.vessels</c>' roster and <see cref="SetTargetArgs.VesselId"/>
+    /// id <c>trackingStation.catalog</c>' roster and <see cref="SetTargetArgs.VesselId"/>
     /// use, so a widget can hand it straight back into a re-target command
     /// with no extra lookup. Null for a body or other target; see
     /// <see cref="BodyIndex"/> for the body case.

@@ -7,7 +7,7 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// <c>system.vessels</c> is each command centre's own list: every craft it
+    /// <c>trackingStation.catalog</c> is each command centre's own list: every craft it
     /// has heard of, as it last heard it. A craft's orbit, its crew and whether
     /// its radio answers reach a centre when that craft's light does, and no
     /// centre learns anything from the list sooner.
@@ -26,8 +26,8 @@ namespace Sitrep.Host.IntegrationTests
         private static async Task<(ReckonedVantageWorld World, TestClient HomeClient, CentreView HomeView, TestClient FarClient, CentreView FarView)> SeatedAsync()
         {
             var world = await ReckonedVantageWorld.StartAsync();
-            var (homeClient, homeView) = await world.SitDownAtAsync(Home, SystemViewProvider.VesselsTopic);
-            var (farClient, farView) = await world.SitDownAtAsync(Far, SystemViewProvider.VesselsTopic);
+            var (homeClient, homeView) = await world.SitDownAtAsync(Home, SystemViewProvider.CatalogTopic);
+            var (farClient, farView) = await world.SitDownAtAsync(Far, SystemViewProvider.CatalogTopic);
             return (world, homeClient, homeView, farClient, farView);
         }
 
@@ -162,7 +162,7 @@ namespace Sitrep.Host.IntegrationTests
             await using var far = seated.FarClient;
             await TickAsync(seated, 1, 2, 301, 302);
 
-            var (validAt, deliveredAt) = seated.FarView.Stamps[SystemViewProvider.VesselsTopic];
+            var (validAt, deliveredAt) = seated.FarView.Stamps[SystemViewProvider.CatalogTopic];
             Assert.Equal(validAt, deliveredAt);
             Assert.NotNull(seated.FarView.Vessel(Relay));
             Assert.Null(seated.HomeView.Vessel(Relay));

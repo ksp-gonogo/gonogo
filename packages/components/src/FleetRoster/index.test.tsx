@@ -3,7 +3,10 @@ import {
   DashboardItemContext,
   registerAugment,
 } from "@ksp-gonogo/core";
-import { RosterCommsControlSource } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CatalogContact,
+  RosterCommsControlSource,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
@@ -14,7 +17,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetRosterComponent } from "./index";
 
-/** FleetRoster runs entirely off the real stream: `system.vessels` for the roster, `system.bodies` for body names. */
+/** FleetRoster runs entirely off the real stream: `trackingStation.catalog` for the roster, `system.bodies` for body names. */
 
 const BODIES = {
   bodies: [
@@ -26,7 +29,7 @@ const BODIES = {
 };
 
 const MIXED = {
-  vessels: [
+  entries: [
     {
       vesselId: "v-station-1",
       name: "Kerbin Station Alpha",
@@ -84,7 +87,7 @@ const MIXED = {
 
 /** Every non-craft `VesselType` the roster must filter out, plus one real craft and one unclassified contact as controls. */
 const NON_CRAFT = {
-  vessels: [
+  entries: [
     {
       vesselId: "v-craft",
       name: "Craft One",
@@ -156,7 +159,7 @@ const NON_CRAFT = {
 };
 
 const ALL_LINKED = {
-  vessels: [
+  entries: [
     {
       vesselId: "v-a",
       name: "Station Alpha",
@@ -231,7 +234,7 @@ describe("FleetRosterComponent", () => {
     renderRoster(fixture);
     act(() => {
       fixture.emit("system.bodies", BODIES);
-      fixture.emit("system.vessels", MIXED);
+      fixture.emit("trackingStation.catalog", MIXED);
     });
     await waitFor(() => {
       expect(screen.getByText("Kerbin Station Alpha")).toBeInTheDocument();
@@ -264,8 +267,8 @@ describe("FleetRosterComponent", () => {
     renderRoster(fixture);
     act(() => {
       fixture.emit("system.bodies", BODIES);
-      fixture.emit("system.vessels", {
-        vessels: [
+      fixture.emit("trackingStation.catalog", {
+        entries: [
           {
             vesselId: "v-unnamed-level",
             name: "Unnamed Level Probe",
@@ -290,7 +293,7 @@ describe("FleetRosterComponent", () => {
     const fixture = newFixture();
     renderRoster(fixture);
     act(() => {
-      fixture.emit("system.vessels", NON_CRAFT);
+      fixture.emit("trackingStation.catalog", NON_CRAFT);
     });
     await waitFor(() => {
       expect(screen.getByText("Craft One")).toBeInTheDocument();
@@ -314,7 +317,7 @@ describe("FleetRosterComponent", () => {
     renderRoster(fixture);
     act(() => {
       fixture.emit("system.bodies", BODIES);
-      fixture.emit("system.vessels", MIXED);
+      fixture.emit("trackingStation.catalog", MIXED);
     });
     await waitFor(() => {
       expect(screen.getByText("Kerbin Station Alpha")).toBeInTheDocument();
@@ -334,7 +337,7 @@ describe("FleetRosterComponent", () => {
     renderRoster(fixture, { w: 5, h: 7 });
     act(() => {
       fixture.emit("system.bodies", BODIES);
-      fixture.emit("system.vessels", MIXED);
+      fixture.emit("trackingStation.catalog", MIXED);
     });
     await screen.findByText("Kerbin Station Alpha");
     expect(screen.queryByText("Crew")).toBeNull();
@@ -347,7 +350,7 @@ describe("FleetRosterComponent", () => {
     renderRoster(fixture);
     act(() => {
       fixture.emit("system.bodies", BODIES);
-      fixture.emit("system.vessels", ALL_LINKED);
+      fixture.emit("trackingStation.catalog", ALL_LINKED);
     });
     await waitFor(() => {
       expect(screen.getByText("Station Alpha")).toBeInTheDocument();
@@ -371,7 +374,7 @@ describe("FleetRosterComponent", () => {
     renderRoster(fixture);
     act(() => {
       fixture.emit("system.bodies", BODIES);
-      fixture.emit("system.vessels", ALL_LINKED);
+      fixture.emit("trackingStation.catalog", ALL_LINKED);
     });
 
     const updates = await screen.findAllByTestId("fleet-update");
@@ -383,7 +386,7 @@ describe("FleetRosterComponent", () => {
     const fixture = newFixture();
     renderRoster(fixture);
     act(() => {
-      fixture.emit("system.vessels", { vessels: [] });
+      fixture.emit("trackingStation.catalog", { entries: [] });
     });
     await waitFor(() => {
       expect(screen.getByText("No vessels tracked")).toBeInTheDocument();
@@ -404,7 +407,7 @@ describe("FleetRosterComponent", () => {
     const container = renderRoster(fixture);
     act(() => {
       fixture.emit("system.bodies", BODIES);
-      fixture.emit("system.vessels", MIXED);
+      fixture.emit("trackingStation.catalog", MIXED);
     });
     await waitFor(() => {
       expect(screen.getByText("Kerbin Station Alpha")).toBeInTheDocument();
@@ -413,7 +416,7 @@ describe("FleetRosterComponent", () => {
   });
 
   const ONE_PROBE = {
-    vessels: [
+    entries: [
       {
         vesselId: "v-probe",
         name: "Explorer",
@@ -428,61 +431,67 @@ describe("FleetRosterComponent", () => {
     ],
   };
 
-  /** A silent craft with no prediction reads "no contact", never "overdue", and going overdue is not being declared lost. */
-  async function renderWithContact(silence: Record<string, unknown>) {
+  /** A silent craft with no expected return reads "no contact", never "overdue", and going overdue is not being declared lost. */
+  async function renderWithContact(contact: Record<string, unknown>) {
     const fixture = setupStreamFixture({
       pinnedUt: 2_000,
       suspendFrames: true,
     });
     renderRoster(fixture);
     act(() => {
-      fixture.emit("system.vessels", ONE_PROBE);
+      fixture.emit("trackingStation.catalog", ONE_PROBE);
     });
     await screen.findByRole("button", { name: /Explorer signal/i });
     act(() => {
-      fixture.emit("silence.v-probe.state", silence);
+      fixture.emit("trackingStation.catalog", {
+        entries: [{ ...ONE_PROBE.entries[0], ...contact }],
+      });
     });
     return fixture;
   }
 
   const SILENT = {
-    state: "Silent",
-    silenceSinceUt: 1_000,
-    deadlineUt: 9_000,
-    deadlineBasis: "predicted-reacquisition",
-    predictedReacquisitionUt: 2_600,
+    contact: CatalogContact.Silent,
+    lastContactUt: 1_000,
+    expectedReturnUt: 2_600,
+    overdueAfterUt: 2_600,
   };
 
-  it("counts down to a predicted reacquisition", async () => {
+  it("counts down to the expected return", async () => {
     await renderWithContact(SILENT);
 
-    // Pinned UT 2000, predicted 2600: 10 minutes out. `Unit` splits number and symbol into separate nodes, so the badge's textContent is asserted.
+    // Pinned UT 2000, expected 2600: 10 minutes out. `Unit` splits number and symbol into separate nodes, so the badge's textContent is asserted.
     const badge = await screen.findByText(/reacquire in/i);
     expect(badge.textContent).toContain("10min");
   });
 
   it("announces an overdue vessel politely, and does not call it lost", async () => {
-    await renderWithContact({ ...SILENT, predictedReacquisitionUt: 1_800 });
+    await renderWithContact({
+      ...SILENT,
+      contact: CatalogContact.Overdue,
+      expectedReturnUt: 1_800,
+      overdueAfterUt: 1_800,
+    });
 
     const overdue = await screen.findByText(/overdue by/i);
-    // Pinned UT 2000, predicted 1800: 200s late.
+    // Pinned UT 2000, expected 1800: 200s late.
     expect(overdue.textContent).toContain("3min 20s");
     expect(overdue.closest("[role='status']")).not.toBeNull();
     expect(screen.queryByText(/lost/i)).toBeNull();
   });
 
   it("announces a declared loss assertively", async () => {
-    await renderWithContact({ ...SILENT, state: "Lost" });
+    await renderWithContact({ ...SILENT, contact: CatalogContact.Lost });
 
     const lost = await screen.findByText(/lost/i);
     expect(lost.closest("[role='alert']")).not.toBeNull();
   });
 
-  it("shows no countdown for a silence geometry cannot explain", async () => {
+  it("shows no countdown for a craft with no expected return", async () => {
     await renderWithContact({
       ...SILENT,
-      deadlineBasis: "no-occultation",
-      predictedReacquisitionUt: null,
+      expectedReturnUt: null,
+      overdueAfterUt: null,
     });
 
     expect(await screen.findByText(/no contact/i)).toBeInTheDocument();
@@ -495,9 +504,9 @@ describe("FleetRosterComponent", () => {
       suspendFrames: true,
     });
     renderRoster(fixture);
-    // The row and its `.delay` subscription mount only once system.vessels arrives, so the delay is emitted after the row renders.
+    // The row and its `.delay` subscription mount only once trackingStation.catalog arrives, so the delay is emitted after the row renders.
     act(() => {
-      fixture.emit("system.vessels", ONE_PROBE);
+      fixture.emit("trackingStation.catalog", ONE_PROBE);
     });
     const trigger = await screen.findByRole("button", {
       name: /Explorer signal/i,
@@ -530,7 +539,7 @@ describe("FleetRosterComponent", () => {
       const fixture = setupStreamFixture({ suspendFrames: true });
       renderRoster(fixture);
       act(() => {
-        fixture.emit("system.vessels", ONE_PROBE);
+        fixture.emit("trackingStation.catalog", ONE_PROBE);
       });
       const trigger = await screen.findByRole("button", {
         name: /Explorer signal/i,
@@ -575,13 +584,15 @@ describe("FleetRosterComponent", () => {
     });
   });
 
-  /** The last `.delay` payload before a blackout still claims `connected: true`; the Link row must read the freeze-exempt `.contact`. */
+  /** The last `.delay` payload before a blackout still claims `connected: true`; the Link row must read the catalog's contact. */
   const BLACKED_OUT_PROBE = {
-    vessels: [
+    entries: [
       {
-        ...ONE_PROBE.vessels[0],
+        ...ONE_PROBE.entries[0],
         commsConnected: false,
         commsControlSource: RosterCommsControlSource.None,
+        contact: CatalogContact.Silent,
+        lastContactUt: 1_200,
       },
     ],
   };
@@ -609,7 +620,7 @@ describe("FleetRosterComponent", () => {
     });
     renderRoster(fixture);
     act(() => {
-      fixture.emit("system.vessels", BLACKED_OUT_PROBE);
+      fixture.emit("trackingStation.catalog", BLACKED_OUT_PROBE);
     });
     const trigger = await screen.findByRole("button", {
       name: /Explorer signal/i,
@@ -619,13 +630,6 @@ describe("FleetRosterComponent", () => {
       fixture.emit("fleet.v-probe.delay", {
         oneWaySeconds: 4.5,
         connected: true,
-      });
-    });
-    // The freeze-exempt .contact frame, which does get through.
-    act(() => {
-      fixture.emit("fleet.v-probe.contact", {
-        connected: false,
-        lastContactUt: 1_200,
       });
     });
     act(() => {
@@ -638,7 +642,7 @@ describe("FleetRosterComponent", () => {
   it("does not call a blacked-out link connected, whatever the frozen delay frame says", async () => {
     const { trigger } = await renderBlackout();
 
-    // The row's own chip already reads NONE off live `system.vessels`; the cell must not contradict it one line below.
+    // The row's own chip already reads NONE off live `trackingStation.catalog`; the cell must not contradict it one line below.
     expect(screen.getByText("NONE")).toBeInTheDocument();
     await waitFor(() => {
       expect(definitionFor(openSignalCard(trigger), /^Link$/)).toMatch(
@@ -669,7 +673,7 @@ describe("FleetRosterComponent", () => {
     });
     renderRoster(fixture);
     act(() => {
-      fixture.emit("system.vessels", ONE_PROBE);
+      fixture.emit("trackingStation.catalog", ONE_PROBE);
     });
     const trigger = await screen.findByRole("button", {
       name: /Explorer signal/i,
@@ -696,7 +700,7 @@ describe("FleetRosterComponent", () => {
     });
     const container = renderRoster(fixture);
     act(() => {
-      fixture.emit("system.vessels", ONE_PROBE);
+      fixture.emit("trackingStation.catalog", ONE_PROBE);
     });
     const trigger = await screen.findByRole("button", {
       name: /Explorer signal/i,
@@ -732,7 +736,7 @@ describe("FleetRosterComponent", () => {
     });
     renderRoster(fixture);
     act(() => {
-      fixture.emit("system.vessels", ALL_LINKED);
+      fixture.emit("trackingStation.catalog", ALL_LINKED);
       fixture.emit(
         "commandCentre.roster",
         [

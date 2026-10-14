@@ -88,8 +88,8 @@ describe("SystemView: active vessel excluded from its own faint orbit contributi
         epoch: 100,
         mu: KERBIN_MU,
       });
-      fixture.emit("system.vessels", {
-        vessels: [
+      fixture.emit("trackingStation.catalog", {
+        entries: [
           {
             vesselId: "v-active",
             name: "Tester",
@@ -174,8 +174,8 @@ describe("SystemView: active vessel excluded from its own faint orbit contributi
         situation: 3,
         parentBodyIndex: 0,
       });
-      fixture.emit("system.vessels", {
-        vessels: [
+      fixture.emit("trackingStation.catalog", {
+        entries: [
           {
             vesselId: "v-active",
             name: "Tester",

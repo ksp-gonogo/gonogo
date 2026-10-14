@@ -151,7 +151,7 @@ export function useSeparationMatrix(): SeparationMatrix | undefined {
  * `commandCentre.roster` alone, and that is the whole answer rather than half
  * of it: the roster is the union of the ground stations and the crewed control
  * vessels (`Kind: "CrewedVessel"`, ids `"vessel:<guid>"`), so joining it with
- * `system.vessels` would add only craft with nobody aboard, which have nobody
+ * `trackingStation.catalog` would add only craft with nobody aboard, which have nobody
  * to message. It is also the same vantage vocabulary `SetVantage` selects and
  * the separation ledger is keyed on, so an address needs no translation to
  * become a delay.

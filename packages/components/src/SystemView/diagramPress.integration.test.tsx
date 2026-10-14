@@ -106,8 +106,8 @@ function mountScene() {
       mu: KERBIN_MU,
       horizon: { kind: 1, trajectoryKind: 1 },
     });
-    fixture.emit("system.vessels", {
-      vessels: [
+    fixture.emit("trackingStation.catalog", {
+      entries: [
         {
           vesselId: "v-active",
           name: "Active Craft",

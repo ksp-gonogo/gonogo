@@ -1,7 +1,7 @@
 import {
   Situation,
   type SystemBodies,
-  type SystemVessels,
+  type TrackingStationCatalog,
   wrapTopicPayload,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
@@ -18,11 +18,11 @@ const bodies = wrapTopicPayload<SystemBodies>(
   "system.bodies",
   emit("system.bodies") as never,
 );
-const roster = wrapTopicPayload<SystemVessels>(
-  "system.vessels",
-  emit("system.vessels") as never,
+const roster = wrapTopicPayload<TrackingStationCatalog>(
+  "trackingStation.catalog",
+  emit("trackingStation.catalog") as never,
 );
-const sallyHuts = roster.vessels.filter((v) => v.name === "Sally-Hut 1");
+const sallyHuts = roster.entries.filter((v) => v.name === "Sally-Hut 1");
 
 function entities() {
   return computeVesselOrbitEntities(roster, bodies);

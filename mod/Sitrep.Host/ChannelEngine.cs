@@ -133,27 +133,6 @@ namespace Sitrep.Host
         public const string CurrencyEventPrefix = "currency.";
 
         /// <summary>
-        /// Source-attributed comms-silence namespace: a "silence.&lt;guid&gt;.&lt;field&gt;"
-        /// topic records under the same per-vessel node "fleet.&lt;guid&gt;" that
-        /// vessel's telemetry uses, same mapping <see cref="CurrencyEventPrefix"/>
-        /// gets and for the same reason: the mod-side <c>SilenceTracker</c>'s
-        /// reckoning of a vessel (is it in contact, how long has it been dark, when
-        /// is it declared lost) is a COMMS-owned opinion about that vessel, not core
-        /// fleet telemetry, so it is registered from the comms uplink's own
-        /// <c>Register</c> rather than the always-on fleet dynamic namespace.
-        ///
-        /// <para>A disjoint prefix rather than publishing under
-        /// <see cref="FleetNodePrefix"/> directly, for the same reason
-        /// <see cref="CurrencyEventPrefix"/> is disjoint:
-        /// <see cref="RegisterDynamicNamespace"/> keeps a prefix with its first
-        /// registrant, and re-registering "fleet." here would be refused, leaving the
-        /// event lane without its own template/ownership. Same node, own namespace, earned by
-        /// declaring <see cref="ChannelDeclaration.PerVesselNode"/> at the
-        /// registration rather than by being named here.</para>
-        /// </summary>
-        public const string SilenceEventPrefix = "silence.";
-
-        /// <summary>
         /// Resolves the Courier node a topic records/subscribes under, for the
         /// namespaces core owns itself: a per-vessel
         /// "fleet.&lt;guid&gt;.&lt;field&gt;" topic maps to its own node
@@ -183,10 +162,9 @@ namespace Sitrep.Host
         /// back to <see cref="NodeForTopic"/> for core's own namespaces.
         ///
         /// <para>Every per-vessel namespace is a declaration rather than a name
-        /// written in here, including the two that were once hardcoded
-        /// (<see cref="CurrencyEventPrefix"/>, <see cref="SilenceEventPrefix"/>):
-        /// the routing an Uplink needs cannot be conditional on core having
-        /// heard of that Uplink.</para>
+        /// written in here, <see cref="CurrencyEventPrefix"/> included: the
+        /// routing an Uplink needs cannot be conditional on core having heard
+        /// of that Uplink.</para>
         /// </summary>
         internal string NodeFor(string topic)
         {
@@ -741,20 +719,6 @@ namespace Sitrep.Host
         // a ground centre the instant it began.
         internal const string ConnectivityMetaTopic = "comms.link";
 
-        // The per-vessel contact MetaTopic suffix: "fleet.<guid>.contact" carries
-        // the core connected/lastContactUt facts for ONE vessel. Public, like
-        // FleetNodePrefix and for the same reason: the publishing uplink
-        // composes the topic from it, so there is one literal rather than two
-        // that must agree.
-        public const string ContactMetaSuffix = ".contact";
-
-        // The comms-owned per-vessel silence-reckoning MetaTopic suffix:
-        // "silence.<guid>.state" carries the SilenceTracker's view of ONE
-        // vessel (link state, when it went quiet, its officially-lost
-        // deadline, whether it has been declared Lost). Same freeze-exempt
-        // treatment as ContactMetaSuffix and for the same reason.
-        public const string SilenceStateSuffix = ".state";
-
         /// <summary>
         /// The channels that report the active craft's link itself: whether it is
         /// up (<c>comms.link</c>, <c>comms.connectivity</c>), how strong it is
@@ -774,33 +738,20 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Whether <paramref name="topic"/> escapes the freeze-on-disconnect
-        /// gate. All three exempt shapes report the blackout, so none can be
-        /// subject to it: <see cref="ConnectivityMetaTopic"/> for the active
-        /// vessel's link, and the per-vessel contact/silence channels
-        /// (<see cref="ContactMetaSuffix"/>/<see cref="SilenceStateSuffix"/>) for
-        /// a fleet subject's. Publishing a "gone quiet at UT, presumed lost by
-        /// UT" report down a lane frozen by the very silence it describes
-        /// buries it: every in-blackout sample takes an infinite reveal horizon
-        /// and is held until <see cref="ReplayInBlackoutBacklog"/> releases it
-        /// on reconnect, or <see cref="DiscardInBlackoutBacklog"/> lets it go
-        /// with the craft, so while the craft is dark the operator is told
-        /// nothing about it, the exact opposite of the feature's point.
+        /// gate. Each exempt topic reports the blackout, so none can be subject
+        /// to it: <see cref="ConnectivityMetaTopic"/> and its siblings for the
+        /// active craft's link, and the engine's own report of each craft's
+        /// link beside its craft state. A report of a link going quiet sent down
+        /// a lane frozen by that same silence would be held until the link came
+        /// back, which is the opposite of what it is for.
         ///
-        /// <para>Deliberately one field of a fleet subject, not the namespace:
-        /// that vessel's ordinary telemetry (.orbit, .delay) must keep freezing
-        /// on its own link, or the blackout would stop meaning anything.</para>
-        ///
-        /// <para>Exactly core's two topics, <c>fleet.&lt;guid&gt;.contact</c> and
-        /// <c>silence.&lt;guid&gt;.state</c>, with the engine's own report of each
-        /// craft's link beside its craft state, and no other topic that happens
-        /// to end the same way. An Uplink's own per-vessel <c>.state</c> or
-        /// <c>.contact</c> is that craft's telemetry: it is held through a
-        /// blackout and revealed on the ordinary terms.</para>
+        /// <para>Exactly those topics. A craft's ordinary telemetry keeps
+        /// freezing on its own link, and an Uplink's own per-vessel topic that
+        /// happens to end the same way is that craft's telemetry: it is held
+        /// through a blackout and revealed on the ordinary terms.</para>
         /// </summary>
         private static bool IsFreezeExempt(string topic) =>
             ActiveLinkReports.Contains(topic)
-            || IsPerVesselField(topic, FleetNodePrefix, ContactMetaSuffix)
-            || IsPerVesselField(topic, SilenceEventPrefix, SilenceStateSuffix)
             || IsPerVesselField(topic, CraftStatePrefix, CraftLinkSuffix);
 
         /// <summary>Whether <paramref name="topic"/> is exactly <paramref name="prefix"/>, one key segment, and <paramref name="suffix"/>.</summary>

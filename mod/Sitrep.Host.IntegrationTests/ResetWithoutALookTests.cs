@@ -48,7 +48,7 @@ namespace Sitrep.Host.IntegrationTests
             var (world, _) = await LoadedWhereNoCraftAreListedAsync();
             await using var _world = world;
 
-            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.VesselsTopic);
+            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.CatalogTopic);
             await using var seated = client;
             world.Tick(702.0);
             world.Tick(702.0);
@@ -78,7 +78,7 @@ namespace Sitrep.Host.IntegrationTests
             world.Tick(702.0);
             world.Tick(702.0);
 
-            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.VesselsTopic);
+            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.CatalogTopic);
             await using var seated = client;
             world.Tick(702.0);
             world.Tick(702.0);
@@ -119,7 +119,7 @@ namespace Sitrep.Host.IntegrationTests
             var before = world.Engine.HeardSnapshotNow()!;
 
             world.Game.ListNotStanding = true;
-            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.VesselsTopic);
+            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.CatalogTopic);
             await using var seated = client;
             world.Tick(703.0);
             world.Tick(704.0);
@@ -156,7 +156,7 @@ namespace Sitrep.Host.IntegrationTests
             await world.SettleAsync();
             Assert.Same(before, world.Engine.HeardSnapshotNow());
 
-            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.VesselsTopic);
+            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.CatalogTopic);
             await using var seated = client;
             world.Tick(705.0);
             world.Tick(706.0);

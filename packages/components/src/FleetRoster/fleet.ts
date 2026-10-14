@@ -1,4 +1,5 @@
 import {
+  type CatalogEntry,
   combineReadings,
   type Reading,
   RosterCommsControlSource,
@@ -12,7 +13,7 @@ import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { fleetRosterTopics } from "./topics";
 
-// `system.vessels` is deliberately unfiltered (other consumers want asteroids and debris as targets), so this widget filters to craft client-side.
+// `trackingStation.catalog` is deliberately unfiltered (other consumers want asteroids and debris as targets), so this widget filters to craft client-side.
 
 /** Real, flyable craft. Debris, space objects, EVA kerbals, flags and deployed hardware are not fleet vessels. */
 const CRAFT_VESSEL_TYPES: ReadonlySet<VesselType> = new Set([
@@ -35,6 +36,12 @@ function isRosterCraft(vesselType: VesselType): boolean {
 /** `"unknown"` is a null `commsControlSource` from the producer and must never be presented the same as a confirmed `"none"`. */
 export type CommsLink = "connected" | "relay" | "none" | "unknown";
 
+/** What the centre knows of its contact with a craft, as its catalog entry carries it. */
+export type FleetContact = Pick<
+  CatalogEntry,
+  "contact" | "lastContactUt" | "expectedReturnUt" | "overdueAfterUt"
+>;
+
 export interface FleetVessel {
   /** Stable vessel id, the row key and the line-updates slot correlation key. */
   id: string;
@@ -46,6 +53,7 @@ export interface FleetVessel {
   /** Seat capacity; null under the same condition as `crewCount`. */
   crewCapacity: number | null;
   comms: CommsLink;
+  contact: FleetContact;
 }
 
 function rosterCommsLink(
@@ -78,18 +86,22 @@ export function isLinked(link: CommsLink): boolean {
 }
 
 /** A confirmed-no-other-vessels tombstone: a fleet, and it is empty. */
-const EMPTY_FLEET = { vessels: [] as never[] };
+const EMPTY_FLEET = { entries: [] as never[] };
 
-/** `system.vessels` to the widget's row shape. `known` separates "never delivered" from "delivered an empty fleet". */
+/** `trackingStation.catalog` to the widget's row shape. `known` separates "never delivered" from "delivered an empty fleet". */
 export function useFleet(): {
   known: boolean;
   /** The roster's own reading, so a badge drawn from it can say it is held. */
-  reading: ReturnType<typeof fleetRosterTopics.useTelemetry<"system.vessels">>;
+  reading: ReturnType<
+    typeof fleetRosterTopics.useTelemetry<"trackingStation.catalog">
+  >;
   vessels: FleetVessel[];
   coverage: Reading<Value<"ratio">>;
 } {
   // A held roster counts as known (vessels do not vanish with a missing frame), and a tombstone is a confirmed empty fleet, not a wait that never ends.
-  const systemReading = fleetRosterTopics.useTelemetry("system.vessels");
+  const systemReading = fleetRosterTopics.useTelemetry(
+    "trackingStation.catalog",
+  );
   const system = stillTrue(systemReading, EMPTY_FLEET);
   // The body catalogue is a fact, and a tombstone for it would mean a save with no celestial bodies, which cannot happen; `undefined` is the honest answer there.
   const bodiesReading = fleetRosterTopics.useTelemetry("system.bodies");
@@ -105,7 +117,7 @@ export function useFleet(): {
 
   const vessels = useMemo<FleetVessel[]>(
     () =>
-      (system?.vessels ?? [])
+      (system?.entries ?? [])
         .filter((v) => isRosterCraft(v.vesselType))
         .map((v) => ({
           id: v.vesselId,
@@ -115,14 +127,20 @@ export function useFleet(): {
           crewCount: magnitudeOf(v.crewCount),
           crewCapacity: magnitudeOf(v.crewCapacity),
           comms: rosterCommsLink(v.commsControlSource),
+          contact: {
+            contact: v.contact,
+            lastContactUt: v.lastContactUt,
+            expectedReturnUt: v.expectedReturnUt,
+            overdueAfterUt: v.overdueAfterUt,
+          },
         })),
     [system, nameByIndex],
   );
 
-  /** Comms coverage as a reading derived from `system.vessels` alone, so it is exactly as current as the roster. */
+  /** Comms coverage as a reading derived from the catalog alone, so it is exactly as current as the roster. */
   const coverage = useMemo(
     () =>
-      combineReadings([systemReading.vessels], (entries) => {
+      combineReadings([systemReading.entries], (entries) => {
         // A craft whose link nobody has reported is neither covered nor uncovered, so it stays out of the count.
         const known = (entries ?? [])
           .filter((v) => isRosterCraft(v.vesselType))

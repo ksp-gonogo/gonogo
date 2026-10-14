@@ -20,7 +20,7 @@ namespace Sitrep.Host.Comms
     /// each centre at its own signal delay, which can be far shorter than the
     /// distant craft's.</para>
     ///
-    /// <para>A craft is also read when its own entry on <c>system.vessels</c>
+    /// <para>A craft is also read when its own entry on <c>trackingStation.catalog</c>
     /// changes in anything but its orbit and its link: its name, its type, its
     /// situation, its crew. A craft with no radio cannot be read again at all,
     /// since nothing it does can be sent: it is noted once, when it is first in
@@ -167,7 +167,7 @@ namespace Sitrep.Host.Comms
         public void ReadAllAgain() => Interlocked.Exchange(ref _readAll, 1);
 
         /// <summary>Main thread: the craft whose state is out of date, each read now.</summary>
-        /// <param name="roster">Each craft's <c>system.vessels</c> entry as the game shows it now, by node id, or null when the game lists none.</param>
+        /// <param name="roster">Each craft's <c>trackingStation.catalog</c> entry as the game shows it now, by node id, or null when the game lists none.</param>
         public Batch Capture(
             ContactGameLook look,
             double ut,

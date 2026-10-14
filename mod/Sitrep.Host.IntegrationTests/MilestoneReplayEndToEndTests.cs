@@ -76,10 +76,10 @@ namespace Sitrep.Host.IntegrationTests
             // All 18 channels this milestone must prove: VesselUplink's 17
             // (vessel.* + time.warp, including the M3 R3 vessel.dock/
             // vessel.surface capture-adds) plus SystemUplink's
-            // system.bodies. (system.vessels is a SEPARATE, newer
-            // SystemUplink roster channel not yet exercised by this
-            // specific reference recording/milestone -- see
-            // SystemViewProviderTests for its own headless coverage.)
+            // system.bodies. (trackingStation.catalog is a separate,
+            // per-centre channel not exercised by this reference
+            // recording -- see SystemViewProviderTests for its builder's
+            // own headless coverage.)
             var topics = VesselViewProvider.Topics.Concat(new[] { SystemViewProvider.Topic }).ToArray();
             Assert.Equal(18, topics.Length);
 

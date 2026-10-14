@@ -1,4 +1,5 @@
 import {
+  type CatalogEntry,
   CommsHopKind,
   type CommsNetwork,
   type CommsNetworkEdge,
@@ -7,9 +8,8 @@ import {
   RosterCommsControlSource,
   Situation,
   type SystemBodies,
-  type SystemVessels,
+  type TrackingStationCatalog,
   TrajectoryKind,
-  type VesselRosterEntry,
   VesselType,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -47,7 +47,7 @@ function bodies(): SystemBodies {
   };
 }
 
-function vessel(overrides: Partial<VesselRosterEntry>): VesselRosterEntry {
+function vessel(overrides: Partial<CatalogEntry>): CatalogEntry {
   return {
     vesselId: "v-1",
     name: "Tester",
@@ -58,8 +58,8 @@ function vessel(overrides: Partial<VesselRosterEntry>): VesselRosterEntry {
   };
 }
 
-function wire(vessels: VesselRosterEntry[]): SystemVessels {
-  return { vessels };
+function wire(vessels: CatalogEntry[]): TrackingStationCatalog {
+  return { entries: vessels };
 }
 
 describe("computeVesselOrbitEntities", () => {

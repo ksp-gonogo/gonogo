@@ -2,7 +2,7 @@
   "_meta": {
     "shows": "Three vessels at Kerbin and the Sun, Kerbin Station Alpha, ComSat Keostationary 1 and Jool Transfer Vehicle, all in contact, each with its signal delay in the hover card.",
     "scenario": "all-linked",
-    "source": "SYNTHESISED to the real system.vessels/system.bodies wire shape. A healthy 3-vessel fleet, every vessel with a direct or relay link (the quiet-day baseline) - renamed from the old all-nominal.json, which named this scenario after a fabricated per-vessel reliability status this widget never actually had data for."
+    "source": "SYNTHESISED to the real trackingStation.catalog/system.bodies wire shape. A healthy 3-vessel fleet, every vessel with a direct or relay link (the quiet-day baseline) - renamed from the old all-nominal.json, which named this scenario after a fabricated per-vessel reliability status this widget never actually had data for."
   },
   "_stream": {
     "pinnedUt": 0,
@@ -23,9 +23,9 @@
         }
       },
       {
-        "channel": "system.vessels",
+        "channel": "trackingStation.catalog",
         "value": {
-          "vessels": [
+          "entries": [
             {
               "vesselId": "v-station-1",
               "name": "Kerbin Station Alpha",
@@ -35,7 +35,9 @@
               "crewCount": 6,
               "crewCapacity": 6,
               "commsConnected": true,
-              "commsControlSource": 2
+              "commsControlSource": 2,
+              "contact": 0,
+              "lastContactUt": 0
             },
             {
               "vesselId": "v-comsat-1",
@@ -46,7 +48,9 @@
               "crewCount": 0,
               "crewCapacity": 0,
               "commsConnected": true,
-              "commsControlSource": 2
+              "commsControlSource": 2,
+              "contact": 0,
+              "lastContactUt": 0
             },
             {
               "vesselId": "v-transfer-1",
@@ -57,16 +61,11 @@
               "crewCount": 3,
               "crewCapacity": 4,
               "commsConnected": true,
-              "commsControlSource": 1
+              "commsControlSource": 1,
+              "contact": 0,
+              "lastContactUt": 0
             }
           ]
-        }
-      },
-      {
-        "channel": "fleet.v-station-1.contact",
-        "value": {
-          "connected": true,
-          "lastContactUt": 0
         }
       },
       {
@@ -77,24 +76,10 @@
         }
       },
       {
-        "channel": "fleet.v-comsat-1.contact",
-        "value": {
-          "connected": true,
-          "lastContactUt": 0
-        }
-      },
-      {
         "channel": "fleet.v-comsat-1.delay",
         "value": {
           "connected": true,
           "oneWaySeconds": 2.5
-        }
-      },
-      {
-        "channel": "fleet.v-transfer-1.contact",
-        "value": {
-          "connected": true,
-          "lastContactUt": 0
         }
       },
       {

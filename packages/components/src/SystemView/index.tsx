@@ -200,10 +200,7 @@ function SystemViewComponent({
       ? identityReading.value
       : undefined;
 
-  /*
-   * Reckoned contact states arrive as `system-view.vessel-status` contributions, but this one raw subscription keeps the dynamic `silence.<guid>.state` topic subscribed for them.
-   * That topic and `fleet.<guid>.contact` are freeze-exempt, so they keep reporting while the craft is dark.
-   */
+  // Reckoned contact states arrive as `system-view.vessel-status` contributions.
   const vesselGuid =
     typeof identity?.vesselId === "string" ? identity.vesselId : null;
   const vesselStatuses = useContributions("system-view.vessel-status");
@@ -769,7 +766,6 @@ function SystemViewComponent({
 
   return (
     <>
-      {vesselGuid && <VesselSilenceSubscription guid={vesselGuid} />}
       <Panel
         panelTitle="SYSTEM"
         // A second scrolling region, so reading it never scrolls the diagram off the tile.
@@ -1016,7 +1012,6 @@ export {
 
 import { unlessLocked } from "@ksp-gonogo/sitrep-sdk";
 import read from "./system-view.declarations.g";
-import { VesselSilenceSubscription } from "./VesselSilenceSubscription";
 
 export type { CelestialBody } from "./useCelestialBodies";
 export { useCelestialBodies } from "./useCelestialBodies";

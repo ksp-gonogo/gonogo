@@ -108,22 +108,6 @@ namespace Gonogo.KSP
         /// </summary>
         public const string LinkTopic = "comms.link";
 
-        /// <summary>
-        /// The fleet-wide silence roster (<see cref="Sitrep.Contract.FleetSilence"/>),
-        /// published by <see cref="SilenceTracking.FleetSilenceChannels"/> from the
-        /// same tracker tick that feeds the per-vessel <c>silence.&lt;guid&gt;.state</c>
-        /// topics. Comms-owned for the same reason those are: it is a model's
-        /// reckoning, not a fact stock KSP hands you.
-        ///
-        /// <para>A static topic on the main node, unlike its per-vessel siblings,
-        /// which is the entire point of it: a consumer that has to work the fleet
-        /// out for itself cannot name a per-guid topic. See
-        /// <see cref="Sitrep.Contract.FleetSilence"/>'s own doc comment for what
-        /// that costs (the main node's delay rather than each vessel's own) and
-        /// why the per-vessel topics stay authoritative.</para>
-        /// </summary>
-        public const string FleetSilenceTopic = "fleet.silence";
-
         // The authored choice before any save is read: delay on at real light
         // speed, which is also what a save that holds no Gonogo section loads.
         private static SignalDelayConfig _signalDelayConfig = new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
@@ -506,15 +490,6 @@ namespace Gonogo.KSP
                     Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
-                new ChannelDeclaration
-                {
-                    Kind = SampleKind.Discrete,
-                    Requires = Requirement.None,
-                    Topic = FleetSilenceTopic,
-                    Delivery = Delivery.LossyLatest,
-                    Delay = DelayRole.Delayed,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                },
             },
         };
 
@@ -595,13 +570,10 @@ namespace Gonogo.KSP
             // IUplinkHost.SetConnectivitySource.
             host.SetConnectivitySource(ComputeConnectedOnMain);
 
-            // The silence.<guid>.* namespace: the SilenceTracker's officially-
-            // lost reckoning for every fleet vessel. Registered HERE, on this
-            // uplink's pass, so the engine attributes those channels to comms:
-            // it is a comms-derived model's opinion, not core fleet telemetry
-            // (which registers unconditionally via Gonogo.KSP.FleetChannels,
-            // see that class's doc comment for the full split).
-            new FleetSilenceChannels().RegisterInto(host);
+            // The ground's forecast for each craft it loses, which the home
+            // centre judges a craft lost by. Registered on this uplink's pass
+            // because the forecast rests on the comms model's geometry.
+            new SilenceForecasts().RegisterInto(host);
         }
 
         /// <summary>

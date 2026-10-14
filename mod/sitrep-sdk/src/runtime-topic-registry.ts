@@ -116,19 +116,11 @@ export function subscribeRuntimeTopicRegistry(
  */
 export const DYNAMIC_WHOLE_TOPIC_PREFIXES: readonly string[] = [
   /*
-   * fleet.<guid>.orbit, fleet.<guid>.delay and fleet.<guid>.contact. One prefix
-   * carries the whole per-vessel namespace, so the store timelines each vessel's
-   * delayed elements, link and core-contact facts and useStream samples them
-   * into a dead-reckoned fleet position and FleetRoster's per-row delay.
+   * fleet.<guid>.orbit, fleet.<guid>.delay and fleet.<guid>.resources. One
+   * prefix carries the whole per-vessel namespace, so the store timelines each
+   * vessel's elements, link and resources as Topics of their own.
    */
   "fleet.",
-  /*
-   * silence.<guid>.state, the comms-owned SilenceTracker reckoning for one
-   * vessel. A namespace of its own rather than joining fleet. above because the
-   * core fleet facts and the comms model's opinion of them are separately owned
-   * (see mod/Sitrep.Host/ChannelEngine.cs's SilenceEventPrefix).
-   */
-  "silence.",
   /*
    * currency.<guid>.science (+ .reputation): source-attributed currency events,
    * revealed after the signal delay from their source vessel.

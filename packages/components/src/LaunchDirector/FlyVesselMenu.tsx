@@ -1,4 +1,4 @@
-import type { VesselRosterEntry } from "@ksp-gonogo/sitrep-sdk";
+import type { CatalogEntry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   type CommandButtonHandle,
@@ -25,7 +25,7 @@ export function FlyVesselMenu({
   switchCmd,
   children,
 }: {
-  vessels: readonly VesselRosterEntry[];
+  vessels: readonly CatalogEntry[];
   switchCmd: CommandButtonHandle;
   children?: ReactNode;
 }) {

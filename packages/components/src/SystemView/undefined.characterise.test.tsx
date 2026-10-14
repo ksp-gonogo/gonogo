@@ -1,4 +1,5 @@
 import { ContributionsProvider, WidgetMetaContext } from "@ksp-gonogo/core";
+import { CatalogContact } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -287,19 +288,24 @@ describe("SystemView: what undefined means today", () => {
     mount({ frame: "Kerbin" });
     act(() => {
       fixture.emit("system.bodies", kerbinSystem());
-      // The guid alone is enough to subscribe the silence topic.
       fixture.emit("vessel.identity", { vesselId: "v" });
     });
     await waitFor(() =>
       expect(screen.getAllByText("Kerbin").length).toBeGreaterThan(0),
     );
     act(() => {
-      fixture.emit("silence.v.state", {
-        state: "Lost",
-        silenceSinceUt: 50,
-        deadlineUt: 90,
-        deadlineBasis: "predicted-reacquisition",
-        predictedReacquisitionUt: 60,
+      fixture.emit("trackingStation.catalog", {
+        entries: [
+          {
+            vesselId: "v",
+            name: "",
+            vesselType: 0,
+            situation: 3,
+            contact: CatalogContact.Lost,
+            lastContactUt: 50,
+            declaredLostUt: 90,
+          },
+        ],
       });
     });
 

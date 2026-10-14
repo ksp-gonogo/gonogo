@@ -209,7 +209,7 @@ describe("a body's orbit, deterministic while its horizon says so", () => {
   });
 
   it("leaves the same shape under a rostered vessel alone, since a craft's orbit drifts", () => {
-    const vessel = wrapTypePayload("VesselRosterEntry", {
+    const vessel = wrapTypePayload("CatalogEntry", {
       orbit: { sma: 700_000, ecc: 0.01 },
     } as never) as { orbit: { sma: Value } };
     expect(vessel.orbit.sma.unit).toBe("m");

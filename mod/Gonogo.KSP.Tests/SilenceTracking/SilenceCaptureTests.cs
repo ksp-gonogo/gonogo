@@ -29,7 +29,7 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         private static SilenceState StateAfterOneCapture(UnityStandIns ksp, Vessel craft)
         {
             var tracker = Tracker();
-            new FleetSilenceChannels().CaptureSilence(tracker, new List<Vessel> { craft }, Ut);
+            new SilenceForecasts().CaptureSilence(tracker, new List<Vessel> { craft }, Ut);
             return tracker.TryGetState(craft.id.ToString())!.State;
         }
 
@@ -97,7 +97,7 @@ namespace Gonogo.KSP.Tests.SilenceTracking
             var craft = UnityStandIns.Craft(CraftId, Grounded());
             var other = UnityStandIns.Craft(OtherId, Grounded());
             var tracker = Tracker();
-            var capture = new FleetSilenceChannels();
+            var capture = new SilenceForecasts();
 
             capture.CaptureSilence(tracker, new List<Vessel> { craft, other }, Ut);
             capture.CaptureSilence(tracker, new List<Vessel> { other }, Ut + 1.0);
@@ -114,7 +114,7 @@ namespace Gonogo.KSP.Tests.SilenceTracking
             using var ksp = new UnityStandIns(Ut, DelayOn());
             SilenceTrackerSink.Unbind();
 
-            Assert.Null(new FleetSilenceChannels().CaptureSilenceOnMain(null));
+            Assert.Null(new SilenceForecasts().CaptureSilenceOnMain(null));
         }
     }
 }

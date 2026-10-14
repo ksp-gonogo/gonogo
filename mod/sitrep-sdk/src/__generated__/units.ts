@@ -251,6 +251,27 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     title: "text",
     unlocked: "flag",
   },
+  "CatalogEntry": {
+    bodyIndex: "id",
+    commsConnected: "flag",
+    commsControlSource: "enum",
+    contact: "enum",
+    crewCapacity: "count",
+    crewCount: "count",
+    declaredLostUt: "ut",
+    expectedReturnUt: "ut",
+    landedAt: "text",
+    lastContactUt: "ut",
+    latitude: "°",
+    longitude: "°",
+    name: "text",
+    overdueAfterUt: "ut",
+    placeAsOfUt: "ut",
+    placeSource: "enum",
+    situation: "enum",
+    vesselId: "id",
+    vesselType: "enum",
+  },
   "CentreDelayEntry": {
     id: "id",
     oneWaySeconds: "s",
@@ -709,30 +730,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "FireCrewArgs": {
     kerbalName: "id",
   },
-  "FleetSilenceEntry": {
-    deadlineBasis: "enum",
-    deadlineUt: "ut",
-    predictedReacquisitionUt: "ut",
-    predictionGraceSeconds: "s",
-    silenceSinceUt: "ut",
-    state: "enum",
-    vesselId: "id",
-  },
-  "FleetVesselContact": {
-    connected: "flag",
-    lastContactUt: "ut",
-  },
   "FleetVesselLink": {
     connected: "flag",
     oneWaySeconds: "s",
-  },
-  "FleetVesselSilence": {
-    deadlineBasis: "enum",
-    deadlineUt: "ut",
-    predictedReacquisitionUt: "ut",
-    predictionGraceSeconds: "s",
-    silenceSinceUt: "ut",
-    state: "enum",
   },
   "FlightCurrent": {
     flightId: "id",
@@ -1622,22 +1622,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     thrustStartedUt: "ut",
     totalMass: "t",
   },
-  "VesselRosterEntry": {
-    bodyIndex: "id",
-    commsConnected: "flag",
-    commsControlSource: "enum",
-    crewCapacity: "count",
-    crewCount: "count",
-    landedAt: "text",
-    latitude: "°",
-    longitude: "°",
-    name: "text",
-    placeAsOfUt: "ut",
-    placeSource: "enum",
-    situation: "enum",
-    vesselId: "id",
-    vesselType: "enum",
-  },
   "VesselStructure": {
     currentStage: "id",
     partCount: "count",
@@ -2384,6 +2368,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CareerTech": {
     nodes: "CareerTechNode[]",
   },
+  "CatalogEntry": {
+    orbit: "OrbitEntry",
+  },
   "ChannelDeclaration": {
     emission: "EmissionPolicy",
     requires: "CommandRequirement[]",
@@ -2529,9 +2516,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "EventMsg": {
     meta: "Meta",
   },
-  "FleetSilence": {
-    vessels: "FleetSilenceEntry[]",
-  },
   "FleetVesselResources": {
     resources: "*ResourceAmount",
   },
@@ -2633,9 +2617,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "SystemBodies": {
     bodies: "BodyEntry[]",
   },
-  "SystemVessels": {
-    vessels: "VesselRosterEntry[]",
-  },
   "TargetAvailable": {
     entries: "TargetListEntry[]",
   },
@@ -2644,6 +2625,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "TimeCalendar": {
     meta: "PayloadMeta",
+  },
+  "TrackingStationCatalog": {
+    entries: "CatalogEntry[]",
   },
   "UplinkHealth": {
     facts: "UplinkHealthFact[]",
@@ -2711,9 +2695,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "VesselResources": {
     meta: "PayloadMeta",
     resources: "*ResourceAmount",
-  },
-  "VesselRosterEntry": {
-    orbit: "OrbitEntry",
   },
   "VesselStructure": {
     meta: "PayloadMeta",
@@ -2802,9 +2783,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "eva.crew": {
     kerbals: "EvaKerbal[]",
   },
-  "fleet.silence": {
-    vessels: "FleetSilenceEntry[]",
-  },
   "isru.converters": {
     inputs: "IsruResourceFlow[]",
     outputs: "IsruResourceFlow[]",
@@ -2832,9 +2810,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "system.frame": {
     settableFrames: "ControlFrameOption[]",
   },
-  "system.vessels": {
-    vessels: "VesselRosterEntry[]",
-  },
   "target.available": {
     entries: "TargetListEntry[]",
   },
@@ -2843,6 +2818,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "time.warp": {
     meta: "PayloadMeta",
+  },
+  "trackingStation.catalog": {
+    entries: "CatalogEntry[]",
   },
   "vessel.attitude": {
     meta: "PayloadMeta",
@@ -2938,6 +2916,13 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "CareerMode": {
     mode: "GameMode",
   },
+  "CatalogEntry": {
+    commsControlSource: "RosterCommsControlSource",
+    contact: "CatalogContact",
+    placeSource: "RosterPlaceSource",
+    situation: "Situation",
+    vesselType: "VesselType",
+  },
   "CommcastTraffic": {
     kind: null,
   },
@@ -2981,14 +2966,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "DeployedEntry": {
     power: "DeployedPowerState",
-  },
-  "FleetSilenceEntry": {
-    deadlineBasis: null,
-    state: null,
-  },
-  "FleetVesselSilence": {
-    deadlineBasis: null,
-    state: null,
   },
   "FlightCurrent": {
     phase: "Situation",
@@ -3089,12 +3066,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "VesselPhysicsMode": {
     mode: "PhysicsMode",
-  },
-  "VesselRosterEntry": {
-    commsControlSource: "RosterCommsControlSource",
-    placeSource: "RosterPlaceSource",
-    situation: "Situation",
-    vesselType: "VesselType",
   },
   "VesselTarget": {
     kind: "TargetKind",
@@ -3215,6 +3186,13 @@ export const GENERATED_TYPE_DETERMINISTIC_WHILE: Readonly<Record<string, Readonl
 
 /** Each enum an `enum` field names, as its wire value to member name. */
 export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<number, string>>>> = {
+  "CatalogContact": {
+    0: "InContact",
+    1: "Silent",
+    2: "Overdue",
+    3: "Lost",
+    4: "Gone",
+  },
   "CommsControlSource": {
     0: "None",
     1: "Partial",

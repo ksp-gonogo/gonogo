@@ -4,11 +4,11 @@ export default {
     "comms.network",
     "system.frame",
     "system.uplink.pending",
-    "system.vessels",
+    "trackingStation.catalog",
     "vessel.identity",
     "vessel.orbit",
     "vessel.target",
   ],
-  optionalChannelFamilies: ["silence.<guid>.state"],
+  optionalChannelFamilies: [],
   commands: [],
 } as const;

@@ -96,7 +96,7 @@ import { FIXTURE_CONTRACT_DRIFT } from "./widget-fixture-conformance.debt";
  * <ul>
  * <li><b>A topic the generated maps do not declare is ungraded, not a
  *   failure.</b> Whole dynamic namespaces are registered at runtime
- *   (`fleet.<guid>.*`, `silence.*`, `currency.*`, per-vessel part actions) and
+ *   (`fleet.<guid>.*`, `currency.*`, per-vessel part actions) and
  *   no `[SitrepTopic]` type exists for them, and every legacy `DataSource` key
  *   that is not a topic at all (`a.physicsMode`, a centralised-script compute
  *   key, a bare numeric id) lands here too. 543 distinct ids at the seed, against

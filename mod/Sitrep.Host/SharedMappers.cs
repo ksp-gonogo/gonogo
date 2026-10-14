@@ -7,7 +7,7 @@ namespace Sitrep.Host
     /// <summary>
     /// Small mapping helpers genuinely shared by more than one
     /// <c>*ViewProvider</c>: extracted (M3 R3 capture-adds) when
-    /// <c>SystemViewProvider</c>'s new <c>system.vessels</c> roster mapper
+    /// <c>SystemViewProvider</c>'s new <c>trackingStation.catalog</c> roster mapper
     /// needed the exact same body-name -&gt; <c>system.bodies</c> index
     /// resolution and <see cref="VesselType"/>/<see cref="Situation"/>
     /// string parsing <see cref="VesselViewProvider"/> already had, private,
@@ -120,7 +120,7 @@ namespace Sitrep.Host
         /// string mapped onto <see cref="RosterCommsControlSource"/>. Null
         /// input (the producer's own "nothing to read this tick" case) maps
         /// to null, not a fabricated <c>None</c>: see
-        /// <see cref="VesselRosterEntry.CommsControlSource"/>. Hand-rolled,
+        /// <see cref="CatalogEntry.CommsControlSource"/>. Hand-rolled,
         /// same reason as <see cref="ParseVesselType"/>.
         /// </summary>
         public static RosterCommsControlSource? ParseRosterCommsControlSource(string? raw)

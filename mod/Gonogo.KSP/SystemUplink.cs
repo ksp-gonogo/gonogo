@@ -91,9 +91,9 @@ namespace Gonogo.KSP
                     // not a behavior change.
                     Delay = DelayRole.TrueNow,
                 },
-                // system.vessels is not declared here. Each command centre is sent
-                // its own, made of what it has heard of each craft, by the contact
-                // plan source (ContactPlanSource.VesselsTopic).
+                // trackingStation.catalog is not declared here. Each command centre is
+                // sent its own, made of what it knows of each object, by the contact
+                // plan source (ContactPlanSource.CatalogTopic).
                 // target.available is not declared here. It is the active craft's
                 // own list of what it knows of, assembled by the contact plan
                 // source (ContactPlanSource.TargetsTopic).

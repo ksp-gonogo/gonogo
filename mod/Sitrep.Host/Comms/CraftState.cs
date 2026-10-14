@@ -83,7 +83,7 @@ namespace Sitrep.Host.Comms
         public string? Name { get; }
 
         /// <summary>
-        /// The craft's entry on <c>system.vessels</c> as it stood when this was
+        /// The craft's entry on <c>trackingStation.catalog</c> as it stood when this was
         /// read: its name and type, its situation, its crew, its orbit. Null
         /// for a state read with no roster to hand.
         /// </summary>

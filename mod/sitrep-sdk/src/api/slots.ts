@@ -929,7 +929,7 @@ export interface PowerSystemsScope {
  * @category Widget slots
  */
 export interface FleetRosterUpdatesContext {
-  /** The craft's vessel id, as `system.vessels` carries it. */
+  /** The craft's vessel id, as `trackingStation.catalog` carries it. */
   vesselId: string;
   /** The craft's name. */
   vesselName: string;

@@ -155,6 +155,9 @@ namespace Sitrep.Host.Comms
         /// <summary>The longest a report of contact with the craft, by bare guid, can take to reach the home centre, in seconds.</summary>
         double NewsAllowanceSeconds(string vesselId);
 
+        /// <summary>The signal delay <paramref name="centre"/> last had to the craft, by bare guid, in seconds: 0 when it never had a route.</summary>
+        double LastDelaySeconds(string vesselId, string centre);
+
         /// <summary>What a real signal delay is multiplied by to get the delay the game is set to model: see <see cref="DeliveryInputs.LightFactor"/>.</summary>
         double LightFactor();
 
@@ -196,13 +199,12 @@ namespace Sitrep.Host.Comms
     /// centre's own plan has it (see <see cref="CentrePath"/>), to that centre
     /// alone.</para>
     ///
-    /// <para>And <c>system.vessels</c>: every craft a centre has heard of, as it
-    /// last heard it, to that centre alone. A craft's entry is the one read
-    /// with its state, so its orbit, its situation and its crew are as old as
-    /// the light that brought them, and whether its radio answers is what the
-    /// centre has heard of its link. A craft the centre has not heard of is not
-    /// listed. A craft with no radio is listed as the ground saw it when it
-    /// first appeared, and never again.</para>
+    /// <para>And <c>trackingStation.catalog</c>: every object a centre knows of, as
+    /// it last heard or saw it, to that centre alone. A craft's entry is the one
+    /// read with its state, so its orbit, its situation and its crew are as old
+    /// as the light that brought them; whether its radio answers, and the
+    /// centre's contact with it, are what the centre has heard. An object the
+    /// centre has not heard of or seen is not listed.</para>
     ///
     /// <para>A centre is planned for again when news reaches it, when the
     /// ground stations change, and when half its plan's horizon has passed.
@@ -224,7 +226,7 @@ namespace Sitrep.Host.Comms
 
         public const string CommandCentreTopic = "comms.commandCentre";
 
-        public const string VesselsTopic = SystemViewProvider.VesselsTopic;
+        public const string CatalogTopic = SystemViewProvider.CatalogTopic;
 
         public const string TargetsTopic = "target.available";
 
@@ -281,6 +283,14 @@ namespace Sitrep.Host.Comms
         /// </summary>
         private static readonly PerfBudget PathFramesBudget = new PerfBudget(
             "ContactPlanUplink path frames", threshold: 600, windowSec: 1.0, unit: "frames");
+
+        /// <summary>
+        /// Soft cap on catalogs published per second: one per command centre each
+        /// time news of an object reaches it or a silent craft becomes overdue
+        /// there, and once for a session that has just sat down.
+        /// </summary>
+        private static readonly PerfBudget CatalogFramesBudget = new PerfBudget(
+            "ContactPlanUplink catalogs", threshold: 120, windowSec: 1.0, unit: "catalogs");
 
         /// <summary>What one centre's current plan was made from.</summary>
         private sealed class Planned
@@ -554,9 +564,9 @@ namespace Sitrep.Host.Comms
             {
                 Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
-                Topic = VesselsTopic,
+                Topic = CatalogTopic,
                 Delivery = Delivery.LossyLatest,
-                // Addressed: each centre is sent the craft it has heard of, as it heard them.
+                // Addressed: each centre is sent the objects it knows of, as it knows them.
                 Delay = DelayRole.Delayed,
                 Addressed = true,
                 Recordable = false,
@@ -638,8 +648,8 @@ namespace Sitrep.Host.Comms
                 _streams.DeclareAddressedTopic(topic);
                 _streams.OnAddressedSubscribed(topic, centre => asked.Add(centre));
             }
-            _streams.DeclareAddressedTopic(VesselsTopic);
-            _streams.OnAddressedSubscribed(VesselsTopic, centre => _vesselsAsked.Add(centre));
+            _streams.DeclareAddressedTopic(CatalogTopic);
+            _streams.OnAddressedSubscribed(CatalogTopic, centre => _vesselsAsked.Add(centre));
             foreach (var topic in PathTopics)
             {
                 var asked = new HashSet<string>(StringComparer.Ordinal);
@@ -1006,6 +1016,7 @@ namespace Sitrep.Host.Comms
                 _rosterMemory.Clear();
                 _unreachableSent.Clear();
                 _vesselsNews.Clear();
+                _catalogDueAt.Clear();
                 _reportsSaid.Clear();
                 _reportsSent.Clear();
                 _verdicts.Clear();
@@ -1053,7 +1064,7 @@ namespace Sitrep.Host.Comms
             PublishRoutes(looked, planning);
             PublishNextLoss(looked, planning);
             PublishPaths(looked, planning);
-            PublishVessels(looked, planning);
+            PublishCatalogs(looked, planning);
             PublishRosters(looked, listening);
             PublishTargets(looked);
         }
@@ -1206,7 +1217,7 @@ namespace Sitrep.Host.Comms
             {
                 NoteGround(looked);
             }
-            PublishVessels(looked, planning);
+            PublishCatalogs(looked, planning);
             PublishRosters(looked, listening);
         }
 
@@ -1403,11 +1414,11 @@ namespace Sitrep.Host.Comms
                 : System.Threading.Volatile.Read(ref _heardNow);
         }
 
-        /// <summary>Main thread: each craft's <c>system.vessels</c> entry as the game shows it now, by node id, or null when the game lists no craft at all.</summary>
+        /// <summary>Main thread: each craft's <c>trackingStation.catalog</c> entry as the game shows it now, by node id, or null when the game lists no craft at all.</summary>
         private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>>? RosterOf(KspSnapshot snapshot)
         {
-            if (!(SystemViewProvider.BuildSystemVessels(snapshot) is IDictionary<string, object?> built)
-                || !built.TryGetValue("vessels", out var list)
+            if (!(SystemViewProvider.BuildTrackingStationCatalog(snapshot) is IDictionary<string, object?> built)
+                || !built.TryGetValue("entries", out var list)
                 || !(list is IEnumerable<object?> entries))
             {
                 return null;
@@ -1423,31 +1434,38 @@ namespace Sitrep.Host.Comms
             return roster;
         }
 
+        /// <summary>The next instant a silent craft in each centre's catalog becomes overdue there, by centre. Courier thread only.</summary>
+        private readonly Dictionary<string, double> _catalogDueAt = new Dictionary<string, double>(StringComparer.Ordinal);
+
         /// <summary>
-        /// Sends each planning centre the craft it has heard of, as it heard
-        /// them: when news has reached it since it was last sent the list, and
-        /// at once where a session has just sat down.
+        /// Sends each planning centre its catalog, as it knows each object: when
+        /// news has reached it since it was last sent one, when a silent craft
+        /// in it has become overdue, and at once where a session has just sat
+        /// down.
         /// </summary>
-        private void PublishVessels(Looked looked, IReadOnlyCollection<string> planning)
+        private void PublishCatalogs(Looked looked, IReadOnlyCollection<string> planning)
         {
-            if (!_host!.IsAnyTopicSubscribed(VesselsTopic))
+            if (!_host!.IsAnyTopicSubscribed(CatalogTopic))
             {
                 _vesselsAsked.Clear();
                 _vesselsNews.Clear();
+                _catalogDueAt.Clear();
                 return;
             }
             var sent = 0;
             foreach (var centre in planning)
             {
-                var news = _hearing!.NewsAt(centre);
-                if (!_vesselsAsked.Contains(centre) && _vesselsNews.TryGetValue(centre, out var told) && told == news)
+                var news = _hearing!.NewsAt(centre) + _hearing.ContactNewsAt(centre);
+                var due = _catalogDueAt.TryGetValue(centre, out var dueAt) && looked.Ut >= dueAt;
+                if (!_vesselsAsked.Contains(centre) && !due && _vesselsNews.TryGetValue(centre, out var told) && told == news)
                 {
                     continue;
                 }
                 _vesselsNews[centre] = news;
+                _catalogDueAt.Remove(centre);
                 var heard = new List<CraftState>(_hearing.HeardAt(centre));
                 heard.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
-                var vessels = new List<object?>(heard.Count);
+                var entries = new List<object?>(heard.Count);
                 foreach (var state in heard)
                 {
                     if (!state.Exists || state.Roster == null)
@@ -1469,19 +1487,74 @@ namespace Sitrep.Host.Comms
                     var place = _hearing.PlaceAt(centre, state.Id);
                     entry["placeSource"] = place.HasValue ? (int)place.Value.Source : (int?)null;
                     entry["placeAsOfUt"] = place?.AsOfUt;
-                    vessels.Add(entry);
+                    var contact = CatalogContactOf(centre, state.Id, looked.Ut);
+                    entry["contact"] = contact.State.HasValue ? (int)contact.State.Value : (int?)null;
+                    entry["lastContactUt"] = contact.LastContactUt;
+                    entry["expectedReturnUt"] = contact.ExpectedReturnUt;
+                    entry["overdueAfterUt"] = contact.OverdueAfterUt;
+                    entry["declaredLostUt"] = contact.DeclaredLostUt;
+                    if (contact.State == CatalogContact.Silent && contact.OverdueAfterUt is double overdueAt
+                        && (!_catalogDueAt.TryGetValue(centre, out var soonest) || overdueAt < soonest))
+                    {
+                        _catalogDueAt[centre] = overdueAt;
+                    }
+                    entries.Add(entry);
                 }
-                if (looked.VesselsUnread && vessels.Count == 0)
+                if (looked.VesselsUnread && entries.Count == 0)
                 {
                     // The game still holds its craft where its list cannot be read, so a centre that heard of none has nothing to say, which is not a list of none.
                     continue;
                 }
                 _streams!.PublishAddressedTo(
-                    VesselsTopic, new Dictionary<string, object?> { ["vessels"] = vessels }, looked.Ut, ToItself(centre));
+                    CatalogTopic, new Dictionary<string, object?> { ["entries"] = entries }, looked.Ut, ToItself(centre));
                 sent++;
             }
             _vesselsAsked.Clear();
-            PathFramesBudget.Record(sent, looked.Ut);
+            CatalogFramesBudget.Record(sent, looked.Ut);
+        }
+
+        /// <summary>
+        /// What <paramref name="centre"/> knows of its contact with the craft at
+        /// <paramref name="nowUt"/>: see <see cref="CatalogEntry.Contact"/>.
+        ///
+        /// <para>The ground's expected return is in the craft's own time, and
+        /// is shown on the centre's clock: the light of a craft heard again then
+        /// reaches the centre one of its delays later, so a craft is overdue
+        /// only once that has passed too. A crewed centre is given no expected
+        /// return, since the ground's geometry predicts its own line to the
+        /// craft and not the centre's.</para>
+        /// </summary>
+        private (CatalogContact? State, double? LastContactUt, double? ExpectedReturnUt, double? OverdueAfterUt, double? DeclaredLostUt) CatalogContactOf(
+            string centre, string nodeId, double nowUt)
+        {
+            var verdict = _hearing!.VerdictAt(centre, nodeId);
+            var declaredLostUt = verdict?.DeclaredLostUt;
+            var contact = _hearing.ContactAt(centre, nodeId);
+            if (contact == null)
+            {
+                return (null, null, null, null, declaredLostUt);
+            }
+            var last = contact.Value.LastContactUt;
+            switch (contact.Value.State)
+            {
+                case CentreContactState.Gone:
+                    return (CatalogContact.Gone, last, null, null, declaredLostUt);
+                case CentreContactState.InContact:
+                    return (CatalogContact.InContact, last, null, null, declaredLostUt);
+            }
+            if (verdict?.State == HomeVerdictState.Lost)
+            {
+                return (CatalogContact.Lost, last, null, null, declaredLostUt);
+            }
+            var forecast = _hearing.ForecastAt(centre, nodeId);
+            if (centre.StartsWith(CraftStateRecorder.VesselPrefix, StringComparison.Ordinal) || forecast?.PredictedReacquisitionUt is not double predicted)
+            {
+                return (CatalogContact.Silent, last, null, null, declaredLostUt);
+            }
+            var delay = _audience!.LastDelaySeconds(nodeId.Substring(CraftStateRecorder.VesselPrefix.Length), centre);
+            var expected = predicted + delay;
+            var overdueAfter = expected + (forecast.PredictionGraceSec ?? 0.0);
+            return (nowUt > overdueAfter ? CatalogContact.Overdue : CatalogContact.Silent, last, expected, overdueAfter, declaredLostUt);
         }
 
         /// <summary>Keeps the ground the next plans are made over, and counts each time the stations or the bodies' sizes change.</summary>

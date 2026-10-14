@@ -172,22 +172,6 @@ public static class RtConfig
                 // display-only delay/connectivity carried on fleet.<guid>.delay
                 // (fleet.<guid>.orbit reuses VesselOrbit, already listed above).
                 typeof(FleetVesselLink),
-                // fleet.<guid>.contact: the core connected/lastContactUt facts,
-                // a separate wire type from FleetVesselLink above so those
-                // fields stay legible rather than growing FleetVesselLink into
-                // two concerns.
-                typeof(FleetVesselContact),
-                // silence.<guid>.state: the comms-owned officially-lost
-                // reckoning (SilenceTracker), split out of FleetVesselContact
-                // so core fleet facts and a comms model's opinion are two
-                // separate wire types on two separately-owned namespaces.
-                typeof(FleetVesselSilence),
-                // fleet.silence: the same reckoning for the whole fleet in one
-                // static topic, so a consumer that has to work the fleet out for
-                // itself has something to read (see FleetSilence's own doc
-                // comment). The per-vessel topic above stays authoritative.
-                typeof(FleetSilence),
-                typeof(FleetSilenceEntry),
                 // fleet.<guid>.resources: what is in one fleet vessel's tanks,
                 // reusing ResourceAmount so a client reads a craft's resources
                 // the same way whether or not it is the one being flown.
@@ -322,8 +306,8 @@ public static class RtConfig
                 typeof(BodyEntry),
                 typeof(OrbitEntry),
                 typeof(AtmosphereEntry),
-                typeof(SystemVessels),
-                typeof(VesselRosterEntry),
+                typeof(TrackingStationCatalog),
+                typeof(CatalogEntry),
                 // career.mode / game.dlc / ksp.revertAvailability / robotics.available
                 typeof(CareerMode),
                 typeof(GameDlc),
@@ -503,6 +487,7 @@ public static class RtConfig
                 typeof(PhysicsMode),
                 typeof(FlightEndReason),
                 typeof(RosterCommsControlSource),
+                typeof(CatalogContact),
                 typeof(DeployedPowerState),
                 typeof(MissionObjectiveState),
                 typeof(SettingKind),
@@ -1599,16 +1584,11 @@ public static class RtConfig
         sb.Append("// A DYNAMIC namespace is registered at RUNTIME through\n");
         sb.Append("// `IUplinkHost.RegisterDynamicNamespace` and materialises its topics per\n");
         sb.Append("// subject, so no [SitrepTopic]-tagged type exists for reflection to find and\n");
-        sb.Append("// nothing about it appears below: `silence.<guid>.*`,\n");
-        sb.Append("// `currency.<guid>.<currency>`, `vessel.partActions.<flightId>`, and each\n");
+        sb.Append("// nothing about it appears below: `currency.<guid>.<currency>`,\n");
+        sb.Append("// `vessel.partActions.<flightId>`, and each\n");
         sb.Append("// Uplink's own. So a per-subject topic missing from this file may still be\n");
         sb.Append("// published: `fleet.<guid>.orbit` is. To enumerate the dynamic half, grep\n");
-        sb.Append("// the mod for `RegisterDynamicNamespace` instead.\n");
-        sb.Append("//\n");
-        sb.Append("// THE PREFIX IS NOT THE TEST, and `fleet.` is the case that proves it.\n");
-        sb.Append("// `fleet.silence` is statically declared and IS below; `fleet.<guid>.<field>`\n");
-        sb.Append("// is dynamic and is not. Reading either half as evidence about the other\n");
-        sb.Append("// goes wrong in both directions.\n\n");
+        sb.Append("// the mod for `RegisterDynamicNamespace` instead.\n\n");
 
         sb.Append("import type {\n");
         foreach (var name in typeNames)

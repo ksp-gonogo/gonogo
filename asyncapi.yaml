@@ -1,9 +1,9 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 41.3.0
+  version: 42.0.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 88 telemetry
+    The wire contract of the Gonogo mod's telemetry socket: 87 telemetry
     channels a client subscribes to, and 62 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
@@ -174,8 +174,6 @@ info:
       description: 2 telemetry channels, 0 commands
     - name: eva
       description: 1 telemetry channel, 0 commands
-    - name: fleet
-      description: 1 telemetry channel, 0 commands
     - name: flight
       description: 4 telemetry channels, 0 commands
     - name: game
@@ -199,11 +197,13 @@ info:
     - name: spaceCenter
       description: 7 telemetry channels, 0 commands
     - name: system
-      description: 3 telemetry channels, 5 commands
+      description: 2 telemetry channels, 5 commands
     - name: target
       description: 1 telemetry channel, 0 commands
     - name: time
       description: 2 telemetry channels, 2 commands
+    - name: trackingStation
+      description: 1 telemetry channel, 0 commands
     - name: vessel
       description: 21 telemetry channels, 18 commands
   externalDocs:
@@ -1504,37 +1504,6 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.eva.crew"
-      event:
-        $ref: "#/components/messages/event"
-  fleet.silence:
-    address: fleet.silence
-    description: |-
-      Carries a `FleetSilence`.
-
-      The fleet-wide silence roster on `fleet.silence`: every vessel still in the
-      game that the tracker holds a reckoning for, in one payload. A vessel that
-      has been destroyed leaves the roster; its last `silence.<guid>.state` says
-      it was lost as `destroyed`.
-
-      A per-vessel topic can only be read by something that already knows which
-      vessel to ask for. This one static topic lists every vessel, so a consumer
-      that has to work the fleet out for itself (a contribution, which declares
-      its topics statically, or a Processor) can fan out over entries that exist.
-
-      Delayed as one payload on the stream's main delay, not on each vessel's own
-      signal delay, as with `SystemVessels`. `FleetVesselSilence` on
-      `silence.<guid>.state` stays authoritative for one vessel on that vessel's
-      own signal delay; this is the fleet-wide index, and is not a substitute for
-      it.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
-    x-sitrep-keyframe-interval-ut: 30
-    messages:
-      streamData:
-        $ref: "#/components/messages/streamData.fleet.silence"
       event:
         $ref: "#/components/messages/event"
   flight.current:
@@ -3001,47 +2970,6 @@ channels:
         $ref: "#/components/messages/commandRequest.system.uplink.resend"
       commandResponse:
         $ref: "#/components/messages/commandResponse.system.uplink.resend"
-  system.vessels:
-    address: system.vessels
-    description: |-
-      Carries a `SystemVessels`.
-
-      The `system.vessels` Topic payload: every vessel the receiving command
-      centre knows of, wrapped as `{ "vessels": [ ... ] }`. Like `SystemBodies`,
-      it carries no per-payload `Meta`: that rides the envelope.
-
-      Each command centre is sent its own list and no other centre's. A centre
-      knows a vessel in two ways, and an entry is made of both.
-
-      **By sight: where it is.** A vessel's orbit, its situation and its body are
-      tracked by looking at it, whether or not it has a radio and whether or not
-      it is in contact. That reaches a centre in a straight line at light speed,
-      through no relay, so a burn far away shows here after the distance between
-      the vessel and this centre and no sooner. A vessel with no radio at all
-      (debris, an asteroid, a flag, a crewed vessel with no antenna) is known this
-      way only: it is listed once its light has arrived, with its name and kind,
-      and leaves when the light of its going has.
-
-      **By radio: everything else.** A vessel's crew and its link are its own to
-      say, and arrive over its radio's route at that route's signal delay. A
-      vessel that has been seen and not yet heard has no crew count and no link
-      state, which are absent and not zero. Where a vessel has a radio its
-      location is as fresh as the newer of the two.
-
-      What can be tracked by sight is the game's own tracking station rule at the
-      station's current level. Where the game lets the station place no vessel at
-      all, nothing is known by sight and every entry is what was heard.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
-    x-sitrep-keyframe-interval-ut: 30
-    messages:
-      streamData:
-        $ref: "#/components/messages/streamData.system.vessels"
-      event:
-        $ref: "#/components/messages/event"
   target.available:
     address: target.available
     description: |-
@@ -3049,7 +2977,7 @@ channels:
 
       The `target.available` Topic payload: the list of everything targetable from
       the active vessel, as the active vessel knows it. Wrapper object `{
-      "entries": [ ... ] }`, like `system.vessels`.
+      "entries": [ ... ] }`, like `trackingStation.catalog`.
 
       A vessel is on the list once the active vessel has come to know of it, by
       whichever of three ways tells it soonest: it is within physics range and
@@ -3178,6 +3106,53 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.time.warp"
+      event:
+        $ref: "#/components/messages/event"
+  trackingStation.catalog:
+    address: trackingStation.catalog
+    description: |-
+      Carries a `TrackingStationCatalog`.
+
+      The `trackingStation.catalog` Topic payload: every object the receiving
+      command centre knows of, craft and tracked space objects alike, one entry
+      each, wrapped as `{ "entries": [ ... ] }`. Like `SystemBodies`, it carries
+      no per-payload `Meta`: that rides the envelope.
+
+      Each command centre is sent its own catalog and no other centre's. A centre
+      knows an object in two ways, and an entry is made of both.
+
+      **By sight: where it is.** An object's orbit, its situation and its body are
+      tracked by looking at it, whether or not it has a radio and whether or not
+      it is in contact. That reaches a centre in a straight line at light speed,
+      through no relay, so a burn far away shows here after the distance between
+      the craft and this centre and no sooner. An object with no radio at all
+      (debris, an asteroid, a flag, a crewed craft with no antenna) is known this
+      way only: it is listed once its light has arrived, with its name and kind,
+      and leaves when the light of its going has.
+
+      **By radio: everything else.** A craft's crew and its link are its own to
+      say, and arrive over its radio's route at that route's signal delay. A craft
+      that has been seen and not yet heard has no crew count and no link state,
+      which are absent and not zero. Where a craft has a radio its location is as
+      fresh as the newer of the two.
+
+      **Contact.** Whether this centre is in contact with each craft is what has
+      reached this centre: in contact, silent, overdue, lost or gone. Only the
+      home centre declares a craft lost, and a centre shows the declaration once
+      it has reached it.
+
+      What can be tracked by sight is the game's own tracking station rule at the
+      station's current level. Where the game lets the station place no object at
+      all, nothing is known by sight and every entry is what was heard.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: delayed
+    x-sitrep-sample-kind: discrete
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.trackingStation.catalog"
       event:
         $ref: "#/components/messages/event"
   vessel.attitude:
@@ -5361,17 +5336,6 @@ operations:
     messages:
       - $ref: "#/channels/eva.crew/messages/streamData"
       - $ref: "#/channels/eva.crew/messages/event"
-  read:fleet.silence:
-    action: receive
-    channel:
-      $ref: "#/channels/fleet.silence"
-    title: Read fleet.silence
-    description: Delivered only after `subscribe` names `fleet.silence` on the session channel, which the mod answers here with an `event` named `subscribed`.
-    tags:
-      - name: fleet
-    messages:
-      - $ref: "#/channels/fleet.silence/messages/streamData"
-      - $ref: "#/channels/fleet.silence/messages/event"
   read:flight.current:
     action: receive
     channel:
@@ -5702,17 +5666,6 @@ operations:
     messages:
       - $ref: "#/channels/system.frame/messages/streamData"
       - $ref: "#/channels/system.frame/messages/event"
-  read:system.vessels:
-    action: receive
-    channel:
-      $ref: "#/channels/system.vessels"
-    title: Read system.vessels
-    description: Delivered only after `subscribe` names `system.vessels` on the session channel, which the mod answers here with an `event` named `subscribed`.
-    tags:
-      - name: system
-    messages:
-      - $ref: "#/channels/system.vessels/messages/streamData"
-      - $ref: "#/channels/system.vessels/messages/event"
   read:target.available:
     action: receive
     channel:
@@ -5746,6 +5699,17 @@ operations:
     messages:
       - $ref: "#/channels/time.warp/messages/streamData"
       - $ref: "#/channels/time.warp/messages/event"
+  read:trackingStation.catalog:
+    action: receive
+    channel:
+      $ref: "#/channels/trackingStation.catalog"
+    title: Read trackingStation.catalog
+    description: Delivered only after `subscribe` names `trackingStation.catalog` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: trackingStation
+    messages:
+      - $ref: "#/channels/trackingStation.catalog/messages/streamData"
+      - $ref: "#/channels/trackingStation.catalog/messages/event"
   read:vessel.attitude:
     action: receive
     channel:
@@ -8249,19 +8213,6 @@ components:
                 const: eva.crew
               payload:
                 $ref: "#/components/schemas/EvaCrew"
-    streamData.fleet.silence:
-      name: stream-data
-      title: A frame on fleet.silence
-      contentType: application/json
-      payload:
-        description: The `stream-data` envelope carrying `fleet.silence`.
-        allOf:
-          - $ref: "#/components/schemas/StreamData"
-          - properties:
-              topic:
-                const: fleet.silence
-              payload:
-                $ref: "#/components/schemas/FleetSilence"
     streamData.flight.current:
       name: stream-data
       title: A frame on flight.current
@@ -8678,19 +8629,6 @@ components:
                 const: system.frame
               payload:
                 $ref: "#/components/schemas/ControlFrame"
-    streamData.system.vessels:
-      name: stream-data
-      title: A frame on system.vessels
-      contentType: application/json
-      payload:
-        description: The `stream-data` envelope carrying `system.vessels`.
-        allOf:
-          - $ref: "#/components/schemas/StreamData"
-          - properties:
-              topic:
-                const: system.vessels
-              payload:
-                $ref: "#/components/schemas/SystemVessels"
     streamData.target.available:
       name: stream-data
       title: A frame on target.available
@@ -8730,6 +8668,19 @@ components:
                 const: time.warp
               payload:
                 $ref: "#/components/schemas/WarpState"
+    streamData.trackingStation.catalog:
+      name: stream-data
+      title: A frame on trackingStation.catalog
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `trackingStation.catalog`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: trackingStation.catalog
+              payload:
+                $ref: "#/components/schemas/TrackingStationCatalog"
     streamData.vessel.attitude:
       name: stream-data
       title: A frame on vessel.attitude
@@ -9417,8 +9368,7 @@ components:
           x-sitrep-unit: id
           description: |-
             This body's position in the list, stable for the session and the key
-            `BodyEntry.parentIndex` and `VesselRosterEntry.bodyIndex` refer to. Never
-            null.
+            `BodyEntry.parentIndex` and `CatalogEntry.bodyIndex` refer to. Never null.
         parentIndex:
           type:
             - number
@@ -10508,6 +10458,227 @@ components:
             The tech ids of the node's prerequisites, from the tree's parent edges.
             Empty for a root node. Whether a locked node is researchable is left to the
             client, from these edges and each parent's `CareerTechNode.unlocked`.
+    CatalogContact:
+      type: integer
+      description: |-
+        Whether the command centre a catalog belongs to is in contact with a craft,
+        as that centre knows it, for `CatalogEntry.contact`.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: InContact
+          description: The newest word to reach the centre says a link reaches it from the craft.
+        - const: 1
+          title: Silent
+          description: |-
+            No link reaches the centre, and the ground's expected return, if it has one,
+            has not yet passed by more than its allowance.
+        - const: 2
+          title: Overdue
+          description: |-
+            No link reaches the centre, and the expected return, allowance included, has
+            passed.
+        - const: 3
+          title: Lost
+          description: |-
+            The home centre has declared the craft lost, and the declaration has reached
+            this centre.
+        - const: 4
+          title: Gone
+          description: |-
+            The centre knows the craft is gone, from its last frame over a link or from
+            seeing it go.
+    CatalogEntry:
+      type: object
+      description: |-
+        One object in a `TrackingStationCatalog`: a craft, or a space object the
+        tracking station follows. An object with no resolvable stable id is left out
+        rather than given a made-up one, so `CatalogEntry.vesselId` is always
+        present.
+      required:
+        - vesselId
+        - name
+        - vesselType
+        - situation
+      properties:
+        vesselId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            Stable subject id (KSP vessel GUID). Always present, entries without one are
+            dropped.
+        name:
+          type: string
+          x-sitrep-unit: text
+          description: Display name; defaults to the empty string, never null.
+        vesselType:
+          description: Vessel type, as the numeric value of `VesselType`.
+          allOf:
+            - $ref: "#/components/schemas/VesselType"
+              x-sitrep-unit: enum
+        situation:
+          description: Flight situation, as the numeric value of `Situation`.
+          allOf:
+            - $ref: "#/components/schemas/Situation"
+              x-sitrep-unit: enum
+        bodyIndex:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            Index into `SystemBodies` of this vessel's main body; null when absent or
+            unresolved.
+        landedAt:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The named launch or landing site the vessel is at, as a player would read it
+            (for example "Runway" or "Woomerang Launch Site"). Null when it is on the
+            ground somewhere with no named site, and null when it is not on the ground
+            at all: an airborne or orbiting vessel has no site.
+        latitude:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: °
+          description: |-
+            Body-fixed surface latitude in degrees while the vessel is landed, splashed
+            or pre-launch. Null for a vessel in flight or in orbit, since the point
+            beneath it sweeps at orbital rate and is not where it is. Null together with
+            `CatalogEntry.longitude`.
+        longitude:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: °
+          description: |-
+            Body-fixed surface longitude in degrees, wrapped to (-180, 180]. Null
+            exactly when `CatalogEntry.latitude` is.
+        crewCount:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: count
+          description: |-
+            Kerbals aboard right now, read from the loaded vessel when it is loaded and
+            from its saved state otherwise, so an unloaded background vessel still
+            reports a real count. 0 is an uncrewed vessel; null means only that the read
+            failed.
+        crewCapacity:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: count
+          description: |-
+            Seat capacity, read the same way as `CatalogEntry.crewCount`. Null only if
+            the read failed.
+        commsConnected:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether this vessel has a live control link home, as the receiving centre
+            has heard it: an outage shows one of the centre's signal delays after the
+            vessel's last light, and its return when its light arrives again. Read for
+            every roster vessel, loaded or not. This is stock CommNet's reading
+            (`Vessel.connection.IsConnected`), not the active vessel's `comms.*`
+            channels, which a comms mod may provide.
+
+            Null when CommNet has no connection to read for this vessel, which means
+            unknown, not "no link". Two causes: rarely, a scene transition; and always,
+            for the `Debris`, `SpaceObject` (asteroids and comets) and `Unknown` vessel
+            types, which CommNet never gives a connection
+            (`CommNet.CommNetVessel.OnStart`). A debris or asteroid entry carries null
+            here on every sample.
+        commsControlSource:
+          description: |-
+            The same connection's control level. Null under the same condition as
+            `CatalogEntry.commsConnected`, including the permanent Debris, SpaceObject
+            and Unknown vessel-type case described there.
+          anyOf:
+            - $ref: "#/components/schemas/RosterCommsControlSource"
+              x-sitrep-unit: enum
+            - type: "null"
+        orbit:
+          description: |-
+            This vessel's own orbital elements, the same shape as `BodyEntry.orbit`,
+            about the body at `CatalogEntry.bodyIndex`. This is what positions a roster
+            vessel: there is no separate position field, so derive its position from
+            this orbit, joined by `CatalogEntry.vesselId`. Null when the vessel has no
+            orbit yet (during a scene transition), never a sentinel.
+          anyOf:
+            - $ref: "#/components/schemas/OrbitEntry"
+            - type: "null"
+        placeSource:
+          description: |-
+            How the centre this list belongs to last learned where the vessel is: heard
+            over a link, or seen. The place is whichever of the two is newer. A vessel
+            can be seen while no link reaches it, so a seen place says nothing about its
+            crew or its link. Null where the producer does not say.
+          anyOf:
+            - $ref: "#/components/schemas/RosterPlaceSource"
+              x-sitrep-unit: enum
+            - type: "null"
+        placeAsOfUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            The universal time the place this entry gives was true at: when the vessel
+            said it, or when the light the centre saw it by left it. Null exactly when
+            `CatalogEntry.placeSource` is.
+        contact:
+          description: |-
+            Whether this centre is in contact with the craft, as this centre knows it.
+            Null where no word of any route to the craft has ever reached this centre,
+            which is always the case for an object with no radio.
+          anyOf:
+            - $ref: "#/components/schemas/CatalogContact"
+              x-sitrep-unit: enum
+            - type: "null"
+        lastContactUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            The universal time this centre last knows it had a link to the craft: now,
+            while in contact. Null when it knows of none.
+        expectedReturnUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            The universal time this centre expects to hear the silent craft again: when
+            the ground predicts a link will reopen, plus the light-time from the craft
+            to this centre. Null while in contact, when the ground has no prediction,
+            and at a crewed centre, whose own line to the craft the ground's geometry
+            does not predict.
+        overdueAfterUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            The universal time past which the craft is overdue at this centre:
+            `CatalogEntry.expectedReturnUt` and the allowance the ground gives a late
+            return. Null exactly when `CatalogEntry.expectedReturnUt` is.
+        declaredLostUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            The universal time the home centre declared the craft lost, once that
+            declaration has reached this centre. Kept after a declaration is withdrawn,
+            beside a `CatalogEntry.contact` that is no longer `CatalogContact.Lost`.
+            Null when no declaration has reached this centre.
     CentreDelayEntry:
       type: object
       description: |-
@@ -12442,8 +12613,9 @@ components:
             What `CommsNextLoss.ut` rests on. One of `predicted-loss` (the plan closes
             the last open route at `CommsNextLoss.ut`), `no-loss-in-window` (in contact
             through `CommsNextLoss.coveredToUt`), `out-of-contact` (no route is open
-            now; `fleet.silence` says when it returns), `not-planned` (the centre holds
-            no plan that includes the craft) or `no-craft` (there is no active craft).
+            now; the craft's `trackingStation.catalog` entry says when it is expected
+            back), `not-planned` (the centre holds no plan that includes the craft) or
+            `no-craft` (there is no active craft).
         coveredToUt:
           type: number
           x-sitrep-unit: ut
@@ -14015,8 +14187,8 @@ components:
         One kerbal currently outside a craft, on the `eva.crew` channel.
 
         A kerbal on EVA is a vessel in KSP's model, with its own id, so it already
-        appears on `system.vessels` and on its own per-vessel Topics
-        (`fleet.<guid>.contact` and `fleet.<guid>.orbit`). What is here and nowhere
+        appears on `trackingStation.catalog` and on its own per-vessel Topics
+        (`fleet.<guid>.delay` and `fleet.<guid>.orbit`). What is here and nowhere
         else is the suit: what it is carrying, what it can do, and whether the place
         it is standing in would kill the wearer without it.
 
@@ -14029,7 +14201,9 @@ components:
             - string
             - "null"
           x-sitrep-unit: id
-          description: The kerbal's own vessel id, the same guid `system.vessels` carries for it.
+          description: |-
+            The kerbal's own vessel id, the same guid `trackingStation.catalog` carries
+            for it.
         parentVesselId:
           type:
             - string
@@ -14629,103 +14803,6 @@ components:
           description: |-
             The kerbal to fire: their name, as a `spaceCenter.crewRoster` entry carries
             it.
-    FleetSilence:
-      type: object
-      description: |-
-        The fleet-wide silence roster on `fleet.silence`: every vessel still in the
-        game that the tracker holds a reckoning for, in one payload. A vessel that
-        has been destroyed leaves the roster; its last `silence.<guid>.state` says
-        it was lost as `destroyed`.
-
-        A per-vessel topic can only be read by something that already knows which
-        vessel to ask for. This one static topic lists every vessel, so a consumer
-        that has to work the fleet out for itself (a contribution, which declares
-        its topics statically, or a Processor) can fan out over entries that exist.
-
-        Delayed as one payload on the stream's main delay, not on each vessel's own
-        signal delay, as with `SystemVessels`. `FleetVesselSilence` on
-        `silence.<guid>.state` stays authoritative for one vessel on that vessel's
-        own signal delay; this is the fleet-wide index, and is not a substitute for
-        it.
-      required:
-        - vessels
-      properties:
-        vessels:
-          type: array
-          items:
-            $ref: "#/components/schemas/FleetSilenceEntry"
-          description: |-
-            One entry per vessel still in the game, in no guaranteed order. Never null;
-            empty when there are none.
-    FleetSilenceEntry:
-      type: object
-      description: |-
-        One vessel's reckoning inside the fleet-wide `FleetSilence` roster: the same
-        fields `FleetVesselSilence` carries, plus the vessel id that the per-vessel
-        topic gets from its own topic string.
-      required:
-        - vesselId
-        - state
-      properties:
-        vesselId:
-          type: string
-          x-sitrep-unit: id
-          description: The KSP vessel GUID, the same id the `fleet.` and `silence.` topics key on.
-        state:
-          type: string
-          x-sitrep-unit: enum
-          description: |-
-            One of `"Nominal"` (in contact), `"Silent"` (out of contact, not yet
-            eligible to be declared lost) or `"Lost"`.
-        silenceSinceUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: UT the current silence run began. Null while Nominal.
-        deadlineUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: |-
-            UT at which this silence run becomes eligible to be declared Lost. Null
-            while Nominal, or for a destroyed vessel.
-        deadlineBasis:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: enum
-          description: |-
-            What `FleetSilenceEntry.deadlineUt` was based on. One of `orbital-period` /
-            `policy-floor` / `policy-ceiling` / `no-orbit` / `destroyed` /
-            `predicted-reacquisition` / `no-occultation` / `no-emergence-in-window` /
-            `warp-limited` / `grace-exceeds-ceiling` / `horizon-limited`. Null while
-            Nominal.
-        predictedReacquisitionUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: |-
-            When the radio path is predicted to re-open, in universal time. Null is a
-            prediction withheld, never an emergence of "now".
-        predictionGraceSeconds:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: s
-          description: |-
-            The error budget the deadline was set with, in seconds: how long past the
-            predicted return this craft may stay quiet before its silence is something
-            other than a late reappearance.
-
-            The only value on the wire that says how much confidence to place in
-            `FleetSilenceEntry.predictedReacquisitionUt` beside it.
-
-            One-sided, not a symmetric uncertainty: it is an allowance after the
-            predicted moment, so render "allowing 5 min of slack", never "+/- 5 min".
-            Null wherever the prediction is null.
     FlightCurrent:
       type: object
       description: |-
@@ -17780,7 +17857,7 @@ components:
       description: |-
         A roster vessel's control level, as stock CommNet reports it
         (`Vessel.connection.GetControlLevel()`), for
-        `VesselRosterEntry.commsControlSource`. Not the same type as
+        `CatalogEntry.commsControlSource`. Not the same type as
         `CommsControlSource`, which belongs to the active vessel's `comms.*`
         channels and whatever comms mod provides them.
       x-sitrep-enum-kind: ordinal
@@ -17805,8 +17882,8 @@ components:
     RosterPlaceSource:
       type: integer
       description: |-
-        How a command centre last learned where a vessel on its `SystemVessels` list
-        is.
+        How a command centre last learned where an object in its
+        `TrackingStationCatalog` is.
       x-sitrep-enum-kind: ordinal
       oneOf:
         - const: 0
@@ -20052,7 +20129,7 @@ components:
           x-sitrep-unit: id
           description: |-
             The vessel to switch to: KSP's `Vessel.id` guid as a string, as
-            `system.vessels` carries it.
+            `trackingStation.catalog` carries it.
     SystemBodies:
       type: object
       description: |-
@@ -20071,50 +20148,12 @@ components:
           items:
             $ref: "#/components/schemas/BodyEntry"
           description: Every body. The tree is expressed through `BodyEntry.parentIndex`.
-    SystemVessels:
-      type: object
-      description: |-
-        The `system.vessels` Topic payload: every vessel the receiving command
-        centre knows of, wrapped as `{ "vessels": [ ... ] }`. Like `SystemBodies`,
-        it carries no per-payload `Meta`: that rides the envelope.
-
-        Each command centre is sent its own list and no other centre's. A centre
-        knows a vessel in two ways, and an entry is made of both.
-
-        **By sight: where it is.** A vessel's orbit, its situation and its body are
-        tracked by looking at it, whether or not it has a radio and whether or not
-        it is in contact. That reaches a centre in a straight line at light speed,
-        through no relay, so a burn far away shows here after the distance between
-        the vessel and this centre and no sooner. A vessel with no radio at all
-        (debris, an asteroid, a flag, a crewed vessel with no antenna) is known this
-        way only: it is listed once its light has arrived, with its name and kind,
-        and leaves when the light of its going has.
-
-        **By radio: everything else.** A vessel's crew and its link are its own to
-        say, and arrive over its radio's route at that route's signal delay. A
-        vessel that has been seen and not yet heard has no crew count and no link
-        state, which are absent and not zero. Where a vessel has a radio its
-        location is as fresh as the newer of the two.
-
-        What can be tracked by sight is the game's own tracking station rule at the
-        station's current level. Where the game lets the station place no vessel at
-        all, nothing is known by sight and every entry is what was heard.
-      required:
-        - vessels
-      properties:
-        vessels:
-          type: array
-          items:
-            $ref: "#/components/schemas/VesselRosterEntry"
-          description: |-
-            Every vessel this centre has heard of, loaded or not, in id order. Debris
-            and asteroids are included.
     TargetAvailable:
       type: object
       description: |-
         The `target.available` Topic payload: the list of everything targetable from
         the active vessel, as the active vessel knows it. Wrapper object `{
-        "entries": [ ... ] }`, like `system.vessels`.
+        "entries": [ ... ] }`, like `trackingStation.catalog`.
 
         A vessel is on the list once the active vessel has come to know of it, by
         whichever of three ways tells it soonest: it is within physics range and
@@ -20521,6 +20560,50 @@ components:
             session, not a craft.
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
+    TrackingStationCatalog:
+      type: object
+      description: |-
+        The `trackingStation.catalog` Topic payload: every object the receiving
+        command centre knows of, craft and tracked space objects alike, one entry
+        each, wrapped as `{ "entries": [ ... ] }`. Like `SystemBodies`, it carries
+        no per-payload `Meta`: that rides the envelope.
+
+        Each command centre is sent its own catalog and no other centre's. A centre
+        knows an object in two ways, and an entry is made of both.
+
+        **By sight: where it is.** An object's orbit, its situation and its body are
+        tracked by looking at it, whether or not it has a radio and whether or not
+        it is in contact. That reaches a centre in a straight line at light speed,
+        through no relay, so a burn far away shows here after the distance between
+        the craft and this centre and no sooner. An object with no radio at all
+        (debris, an asteroid, a flag, a crewed craft with no antenna) is known this
+        way only: it is listed once its light has arrived, with its name and kind,
+        and leaves when the light of its going has.
+
+        **By radio: everything else.** A craft's crew and its link are its own to
+        say, and arrive over its radio's route at that route's signal delay. A craft
+        that has been seen and not yet heard has no crew count and no link state,
+        which are absent and not zero. Where a craft has a radio its location is as
+        fresh as the newer of the two.
+
+        **Contact.** Whether this centre is in contact with each craft is what has
+        reached this centre: in contact, silent, overdue, lost or gone. Only the
+        home centre declares a craft lost, and a centre shows the declaration once
+        it has reached it.
+
+        What can be tracked by sight is the game's own tracking station rule at the
+        station's current level. Where the game lets the station place no object at
+        all, nothing is known by sight and every entry is what was heard.
+      required:
+        - entries
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogEntry"
+          description: |-
+            Every object this centre knows of, loaded or not, in id order. Debris and
+            asteroids are included.
     TrajectoryKind:
       type: integer
       description: |-
@@ -22426,149 +22509,6 @@ components:
           description: "Provenance: `\"vessel:<guid>\"` for the vessel the amounts belong to."
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
-    VesselRosterEntry:
-      type: object
-      description: |-
-        One vessel in the `SystemVessels` roster. A vessel with no resolvable stable
-        id is left out rather than given a made-up one, so
-        `VesselRosterEntry.vesselId` is always present.
-      required:
-        - vesselId
-        - name
-        - vesselType
-        - situation
-      properties:
-        vesselId:
-          type: string
-          x-sitrep-unit: id
-          description: |-
-            Stable subject id (KSP vessel GUID). Always present, entries without one are
-            dropped.
-        name:
-          type: string
-          x-sitrep-unit: text
-          description: Display name; defaults to the empty string, never null.
-        vesselType:
-          description: Vessel type, as the numeric value of `VesselType`.
-          allOf:
-            - $ref: "#/components/schemas/VesselType"
-              x-sitrep-unit: enum
-        situation:
-          description: Flight situation, as the numeric value of `Situation`.
-          allOf:
-            - $ref: "#/components/schemas/Situation"
-              x-sitrep-unit: enum
-        bodyIndex:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            Index into `SystemBodies` of this vessel's main body; null when absent or
-            unresolved.
-        landedAt:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            The named launch or landing site the vessel is at, as a player would read it
-            (for example "Runway" or "Woomerang Launch Site"). Null when it is on the
-            ground somewhere with no named site, and null when it is not on the ground
-            at all: an airborne or orbiting vessel has no site.
-        latitude:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: °
-          description: |-
-            Body-fixed surface latitude in degrees while the vessel is landed, splashed
-            or pre-launch. Null for a vessel in flight or in orbit, since the point
-            beneath it sweeps at orbital rate and is not where it is. Null together with
-            `VesselRosterEntry.longitude`.
-        longitude:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: °
-          description: |-
-            Body-fixed surface longitude in degrees, wrapped to (-180, 180]. Null
-            exactly when `VesselRosterEntry.latitude` is.
-        crewCount:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: count
-          description: |-
-            Kerbals aboard right now, read from the loaded vessel when it is loaded and
-            from its saved state otherwise, so an unloaded background vessel still
-            reports a real count. 0 is an uncrewed vessel; null means only that the read
-            failed.
-        crewCapacity:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: count
-          description: |-
-            Seat capacity, read the same way as `VesselRosterEntry.crewCount`. Null only
-            if the read failed.
-        commsConnected:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            Whether this vessel has a live control link home, as the receiving centre
-            has heard it: an outage shows one of the centre's signal delays after the
-            vessel's last light, and its return when its light arrives again. Read for
-            every roster vessel, loaded or not. This is stock CommNet's reading
-            (`Vessel.connection.IsConnected`), not the active vessel's `comms.*`
-            channels, which a comms mod may provide.
-
-            Null when CommNet has no connection to read for this vessel, which means
-            unknown, not "no link". Two causes: rarely, a scene transition; and always,
-            for the `Debris`, `SpaceObject` (asteroids and comets) and `Unknown` vessel
-            types, which CommNet never gives a connection
-            (`CommNet.CommNetVessel.OnStart`). A debris or asteroid entry carries null
-            here on every sample.
-        commsControlSource:
-          description: |-
-            The same connection's control level. Null under the same condition as
-            `VesselRosterEntry.commsConnected`, including the permanent Debris,
-            SpaceObject and Unknown vessel-type case described there.
-          anyOf:
-            - $ref: "#/components/schemas/RosterCommsControlSource"
-              x-sitrep-unit: enum
-            - type: "null"
-        orbit:
-          description: |-
-            This vessel's own orbital elements, the same shape as `BodyEntry.orbit`,
-            about the body at `VesselRosterEntry.bodyIndex`. This is what positions a
-            roster vessel: there is no separate position field, so derive its position
-            from this orbit, joined by `VesselRosterEntry.vesselId`. Null when the
-            vessel has no orbit yet (during a scene transition), never a sentinel.
-          anyOf:
-            - $ref: "#/components/schemas/OrbitEntry"
-            - type: "null"
-        placeSource:
-          description: |-
-            How the centre this list belongs to last learned where the vessel is: heard
-            over a link, or seen. The place is whichever of the two is newer. A vessel
-            can be seen while no link reaches it, so a seen place says nothing about its
-            crew or its link. Null where the producer does not say.
-          anyOf:
-            - $ref: "#/components/schemas/RosterPlaceSource"
-              x-sitrep-unit: enum
-            - type: "null"
-        placeAsOfUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: |-
-            The universal time the place this entry gives was true at: when the vessel
-            said it, or when the light the centre saw it by left it. Null exactly when
-            `VesselRosterEntry.placeSource` is.
     VesselStructure:
       type: object
       description: |-
@@ -22695,10 +22635,10 @@ components:
           description: |-
             The target's own stable id, populated when `VesselTarget.kind` is
             `TargetKind.Vessel` (KSP's `Vessel.id` guid) or `TargetKind.Part` (the
-            owning vessel's guid). The same opaque id `system.vessels`' roster and
-            `SetTargetArgs.vesselId` use, so a widget can hand it straight back into a
-            re-target command with no extra lookup. Null for a body or other target; see
-            `VesselTarget.bodyIndex` for the body case.
+            owning vessel's guid). The same opaque id `trackingStation.catalog`' roster
+            and `SetTargetArgs.vesselId` use, so a widget can hand it straight back into
+            a re-target command with no extra lookup. Null for a body or other target;
+            see `VesselTarget.bodyIndex` for the body case.
         bodyIndex:
           type:
             - number

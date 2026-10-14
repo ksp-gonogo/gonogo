@@ -249,7 +249,7 @@ namespace Sitrep.Core.Tests
             // A body's elements are exact while its own horizon is Unbounded and Analytic.
             Assert.Equal("horizon", maps.DeterministicWhileByType["BodyEntry"]["orbit"]);
             // The declaration is on the use site: the same shape under a rostered vessel is a craft's orbit, which drifts.
-            Assert.DoesNotContain("VesselRosterEntry", maps.DeterministicWhileByType.Keys);
+            Assert.DoesNotContain("CatalogEntry", maps.DeterministicWhileByType.Keys);
             Assert.DoesNotContain("OrbitEntry", maps.DeterministicWhileByType.Keys);
         }
 

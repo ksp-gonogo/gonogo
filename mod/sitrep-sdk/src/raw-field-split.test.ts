@@ -60,11 +60,13 @@ describe("splitRawFieldSubtopic", () => {
   });
 
   it("still splits a field off a fixed Topic that sits under a dynamic prefix", () => {
-    expect(splitRawFieldSubtopic("fleet.silence.state")).toEqual({
-      rawTopic: "fleet.silence",
+    registerUplinkTopic("planted.under.fixed");
+    registerDynamicTopicPrefix("planted.under.");
+    expect(splitRawFieldSubtopic("planted.under.fixed.state")).toEqual({
+      rawTopic: "planted.under.fixed",
       fieldPath: ["state"],
     });
-    expect(splitRawFieldSubtopic("fleet.abc123.orbit")).toBeUndefined();
+    expect(splitRawFieldSubtopic("planted.under.abc123.orbit")).toBeUndefined();
   });
 
   it("leaves every Topic under a registered dynamic prefix whole", () => {

@@ -22,20 +22,20 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         [Fact]
         public void ACraftOnThePadRestsOnTheSurface()
         {
-            Assert.True(FleetSilenceChannels.RestsOnSurface(Craft(Vessel.Situations.PRELAUNCH, landed: true, splashed: false)));
+            Assert.True(SilenceForecasts.RestsOnSurface(Craft(Vessel.Situations.PRELAUNCH, landed: true, splashed: false)));
         }
 
         [Fact]
         public void ALandedOrSplashedCraftRestsOnTheSurface()
         {
-            Assert.True(FleetSilenceChannels.RestsOnSurface(Craft(Vessel.Situations.LANDED, landed: true, splashed: false)));
-            Assert.True(FleetSilenceChannels.RestsOnSurface(Craft(Vessel.Situations.SPLASHED, landed: false, splashed: true)));
+            Assert.True(SilenceForecasts.RestsOnSurface(Craft(Vessel.Situations.LANDED, landed: true, splashed: false)));
+            Assert.True(SilenceForecasts.RestsOnSurface(Craft(Vessel.Situations.SPLASHED, landed: false, splashed: true)));
         }
 
         [Fact]
         public void AnOrbitingCraftDoesNot()
         {
-            Assert.False(FleetSilenceChannels.RestsOnSurface(Craft(Vessel.Situations.ORBITING, landed: false, splashed: false)));
+            Assert.False(SilenceForecasts.RestsOnSurface(Craft(Vessel.Situations.ORBITING, landed: false, splashed: false)));
         }
     }
 }

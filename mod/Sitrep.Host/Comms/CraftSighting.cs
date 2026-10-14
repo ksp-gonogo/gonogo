@@ -20,10 +20,10 @@ namespace Sitrep.Host.Comms
     /// </summary>
     public sealed class CraftSighting
     {
-        /// <summary>The keys of a <c>system.vessels</c> entry that say where the craft is.</summary>
+        /// <summary>The keys of a <c>trackingStation.catalog</c> entry that say where the craft is.</summary>
         public static readonly string[] LocationFacts = { "situation", "bodyIndex", "orbit", "landedAt", "latitude", "longitude" };
 
-        /// <summary>The keys of a <c>system.vessels</c> entry it is tracked under.</summary>
+        /// <summary>The keys of a <c>trackingStation.catalog</c> entry it is tracked under.</summary>
         public static readonly string[] IdentityFacts = { "vesselId", "name", "vesselType" };
 
         /// <summary>
@@ -51,14 +51,14 @@ namespace Sitrep.Host.Comms
         /// <summary>False for the last sighting of an object: that it is no longer there.</summary>
         public bool Exists { get; }
 
-        /// <summary>The location and identity facts of the object's <c>system.vessels</c> entry as it was seen, or null when the game listed none.</summary>
+        /// <summary>The location and identity facts of the object's <c>trackingStation.catalog</c> entry as it was seen, or null when the game listed none.</summary>
         public IReadOnlyDictionary<string, object?>? Listed { get; }
 
         /// <summary>Where the craft is going, as a contact plan carries it, for a craft whose orbit was read with the sighting. Null for one that was only listed.</summary>
         public CraftState? Place { get; }
 
         /// <summary>An object seen at <paramref name="capturedUt"/>.</summary>
-        /// <param name="listed">Its whole <c>system.vessels</c> entry, of which only what can be seen is kept.</param>
+        /// <param name="listed">Its whole <c>trackingStation.catalog</c> entry, of which only what can be seen is kept.</param>
         /// <param name="place">Its state as read for a plan, of which only where it is going is kept.</param>
         public static CraftSighting Of(string id, double capturedUt, IReadOnlyDictionary<string, object?>? listed, CraftState? place = null) =>
             new CraftSighting(id, capturedUt, true, Seen(listed), place);

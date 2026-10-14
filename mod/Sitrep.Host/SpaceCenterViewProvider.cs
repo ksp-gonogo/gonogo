@@ -123,7 +123,7 @@ namespace Sitrep.Host
         /// <c>body</c> (a captured body name) resolves to a
         /// <see cref="SystemBodies"/> index via
         /// <see cref="SharedMappers.ResolveBodyIndex"/>: the same pattern
-        /// <see cref="SystemViewProvider.BuildSystemVessels"/> uses; never a
+        /// <see cref="SystemViewProvider.BuildTrackingStationCatalog"/> uses; never a
         /// fabricated sentinel index. Returns <c>null</c> (not an empty list)
         /// when the snapshot carries no <c>spaceCenter</c>/<c>launchSites</c> key
         /// at all (no sample landed / <c>PSystemSetup</c> not ready yet), so a

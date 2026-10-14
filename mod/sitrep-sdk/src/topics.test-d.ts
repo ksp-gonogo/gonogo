@@ -20,8 +20,8 @@ import type {
   PartsPower,
   ServoEntry,
   SystemBodies,
-  SystemVessels,
   TargetAvailable,
+  TrackingStationCatalog,
   VesselOrbit,
   VesselResources,
 } from "./__generated__/contract";
@@ -83,7 +83,7 @@ export type _ResolvesSystemBodies = Expect<
   Equal<TopicPayload<"system.bodies">, SystemBodies>
 >;
 export type _ResolvesSystemVessels = Expect<
-  Equal<TopicPayload<"system.vessels">, SystemVessels>
+  Equal<TopicPayload<"trackingStation.catalog">, TrackingStationCatalog>
 >;
 
 // No scansat assertion here any more. Both structured SCANsat Topics

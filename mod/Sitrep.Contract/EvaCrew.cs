@@ -9,8 +9,8 @@ namespace Sitrep.Contract;
 /// One kerbal currently outside a craft, on the <c>eva.crew</c> channel.
 ///
 /// <para>A kerbal on EVA is a vessel in KSP's model, with its own id, so it
-/// already appears on <c>system.vessels</c> and on its own per-vessel Topics
-/// (<c>fleet.&lt;guid&gt;.contact</c> and <c>fleet.&lt;guid&gt;.orbit</c>).
+/// already appears on <c>trackingStation.catalog</c> and on its own per-vessel Topics
+/// (<c>fleet.&lt;guid&gt;.delay</c> and <c>fleet.&lt;guid&gt;.orbit</c>).
 /// What is here and nowhere else is the suit: what it is carrying, what it can
 /// do, and whether the place it is standing in would kill the wearer without
 /// it.</para>
@@ -31,7 +31,7 @@ namespace Sitrep.Contract;
 #endif
 public class EvaKerbal
 {
-    /// <summary>The kerbal's own vessel id, the same guid <c>system.vessels</c>
+    /// <summary>The kerbal's own vessel id, the same guid <c>trackingStation.catalog</c>
     /// carries for it.</summary>
     [SitrepUnit(Units.Id)]
     public string? KerbalVesselId { get; set; }

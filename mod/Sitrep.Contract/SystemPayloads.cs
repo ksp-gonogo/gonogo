@@ -58,7 +58,7 @@ public class BodyEntry
     [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
-    /// <summary>This body's position in the list, stable for the session and the key <see cref="ParentIndex"/> and <see cref="VesselRosterEntry.BodyIndex"/> refer to. Never null.</summary>
+    /// <summary>This body's position in the list, stable for the session and the key <see cref="ParentIndex"/> and <see cref="CatalogEntry.BodyIndex"/> refer to. Never null.</summary>
     [SitrepUnit(Units.Id)]
     public int Index { get; set; }
 
@@ -372,62 +372,66 @@ public class OrbitEntry
 }
 
 /// <summary>
-/// The <c>system.vessels</c> Topic payload: every vessel the receiving
-/// command centre knows of, wrapped as <c>{ "vessels": [ ... ] }</c>. Like
+/// The <c>trackingStation.catalog</c> Topic payload: every object the
+/// receiving command centre knows of, craft and tracked space objects alike,
+/// one entry each, wrapped as <c>{ "entries": [ ... ] }</c>. Like
 /// <see cref="SystemBodies"/>, it carries no per-payload <c>Meta</c>: that
 /// rides the envelope.
 ///
-/// <para>Each command centre is sent its own list and no other
-/// centre's. A centre knows a vessel in two ways, and an entry is made of
+/// <para>Each command centre is sent its own catalog and no other
+/// centre's. A centre knows an object in two ways, and an entry is made of
 /// both.</para>
 ///
-/// <para><b>By sight: where it is.</b> A vessel's orbit, its situation and its
+/// <para><b>By sight: where it is.</b> An object's orbit, its situation and its
 /// body are tracked by looking at it, whether or not it has a radio and
 /// whether or not it is in contact. That reaches a centre in a straight line
 /// at light speed, through no relay, so a burn far away shows here after the
-/// distance between the vessel and this centre and no sooner. A vessel with
-/// no radio at all (debris, an asteroid, a flag, a crewed vessel with no
+/// distance between the craft and this centre and no sooner. An object with
+/// no radio at all (debris, an asteroid, a flag, a crewed craft with no
 /// antenna) is known this way only: it is listed once its light has arrived,
 /// with its name and kind, and leaves when the light of its going has.</para>
 ///
-/// <para><b>By radio: everything else.</b> A vessel's crew and its link are its
+/// <para><b>By radio: everything else.</b> A craft's crew and its link are its
 /// own to say, and arrive over its radio's route at that route's signal delay.
-/// A vessel that has been seen and not yet heard has no crew count and no
-/// link state, which are absent and not zero. Where a vessel has a radio its
+/// A craft that has been seen and not yet heard has no crew count and no
+/// link state, which are absent and not zero. Where a craft has a radio its
 /// location is as fresh as the newer of the two.</para>
+///
+/// <para><b>Contact.</b> Whether this centre is in contact with each craft is
+/// what has reached this centre: in contact, silent, overdue, lost or gone.
+/// Only the home centre declares a craft lost, and a centre shows the
+/// declaration once it has reached it.</para>
 ///
 /// <para>What can be tracked by sight is the game's own tracking station
 /// rule at the station's current level. Where the game lets the station
-/// place no vessel at all, nothing is known by sight and every entry is what
+/// place no object at all, nothing is known by sight and every entry is what
 /// was heard.</para>
 /// <internal>
-/// Each entry is SystemViewProvider.BuildSystemVessels' shape, read with the
+/// Each entry is SystemViewProvider.BuildTrackingStationCatalog's shape, read with the
 /// craft's CraftState and its CraftSighting (merged by CraftSighting.Known)
-/// and published per centre by ContactPlanSource. The tracking rule is
+/// and published per centre by ContactPlanSource, which adds the contact
+/// fields from CentreHearing. The tracking rule is
 /// GameVariables.GetOrbitDisplayMode at the tracking station's level, read in
 /// Gonogo.KSP's ContactPlanUplink; every stock level answers AllOrbits or
-/// better, and an object with no state vectors is left out at capture. It was
-/// one list on the active craft's node, which handed every centre each
-/// craft's live orbit and link at the active craft's signal delay and froze the
-/// whole list while the active craft was dark.
+/// better, and an object with no state vectors is left out at capture.
 /// </internal>
 /// </summary>
 /// <category>Solar system and fleet</category>
 [SitrepContract]
-[SitrepTopic("system.vessels")]
+[SitrepTopic("trackingStation.catalog")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-public class SystemVessels
+public class TrackingStationCatalog
 {
-    /// <summary>Every vessel this centre has heard of, loaded or not, in id order. Debris and asteroids are included.</summary>
-    public IReadOnlyList<VesselRosterEntry> Vessels { get; set; } = new List<VesselRosterEntry>();
+    /// <summary>Every object this centre knows of, loaded or not, in id order. Debris and asteroids are included.</summary>
+    public IReadOnlyList<CatalogEntry> Entries { get; set; } = new List<CatalogEntry>();
 }
 
 /// <summary>
 /// A roster vessel's control level, as stock CommNet reports it
 /// (<c>Vessel.connection.GetControlLevel()</c>), for
-/// <see cref="VesselRosterEntry.CommsControlSource"/>. Not the same type as
+/// <see cref="CatalogEntry.CommsControlSource"/>. Not the same type as
 /// <see cref="Sitrep.Contract.CommsControlSource"/>, which belongs to the
 /// active vessel's <c>comms.*</c> channels and whatever comms mod provides
 /// them.
@@ -457,8 +461,8 @@ public enum RosterCommsControlSource
 }
 
 /// <summary>
-/// How a command centre last learned where a vessel on its
-/// <see cref="SystemVessels"/> list is.
+/// How a command centre last learned where an object in its
+/// <see cref="TrackingStationCatalog"/> is.
 /// </summary>
 /// <category>Solar system and fleet</category>
 #if SITREP_CODEGEN
@@ -475,16 +479,44 @@ public enum RosterPlaceSource
 }
 
 /// <summary>
-/// One vessel in the <see cref="SystemVessels"/> roster. A vessel with no
-/// resolvable stable id is left out rather than given a made-up one, so
-/// <see cref="VesselId"/> is always present.
+/// Whether the command centre a catalog belongs to is in contact with a
+/// craft, as that centre knows it, for <see cref="CatalogEntry.Contact"/>.
+/// </summary>
+/// <category>Solar system and fleet</category>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum CatalogContact
+{
+    /// <summary>The newest word to reach the centre says a link reaches it from the craft.</summary>
+    InContact,
+
+    /// <summary>No link reaches the centre, and the ground's expected return, if it has one, has not yet passed by more than its allowance.</summary>
+    Silent,
+
+    /// <summary>No link reaches the centre, and the expected return, allowance included, has passed.</summary>
+    Overdue,
+
+    /// <summary>The home centre has declared the craft lost, and the declaration has reached this centre.</summary>
+    Lost,
+
+    /// <summary>The centre knows the craft is gone, from its last frame over a link or from seeing it go.</summary>
+    Gone,
+}
+
+/// <summary>
+/// One object in a <see cref="TrackingStationCatalog"/>: a craft, or a space
+/// object the tracking station follows. An object with no resolvable stable
+/// id is left out rather than given a made-up one, so <see cref="VesselId"/>
+/// is always present.
 /// </summary>
 /// <category>Solar system and fleet</category>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-public class VesselRosterEntry
+public class CatalogEntry
 {
     /// <summary>Stable subject id (KSP vessel GUID). Always present, entries without one are dropped.</summary>
     [SitrepUnit(Units.Id)]
@@ -600,4 +632,47 @@ public class VesselRosterEntry
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? PlaceAsOfUt { get; set; }
+
+    /// <summary>
+    /// Whether this centre is in contact with the craft, as this centre knows
+    /// it. Null where no word of any route to the craft has ever reached this
+    /// centre, which is always the case for an object with no radio.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public CatalogContact? Contact { get; set; }
+
+    /// <summary>
+    /// The universal time this centre last knows it had a link to the craft:
+    /// now, while in contact. Null when it knows of none.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? LastContactUt { get; set; }
+
+    /// <summary>
+    /// The universal time this centre expects to hear the silent craft again:
+    /// when the ground predicts a link will reopen, plus the light-time from
+    /// the craft to this centre. Null while in contact, when the ground has no
+    /// prediction, and at a crewed centre, whose own line to the craft the
+    /// ground's geometry does not predict.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? ExpectedReturnUt { get; set; }
+
+    /// <summary>
+    /// The universal time past which the craft is overdue at this centre:
+    /// <see cref="ExpectedReturnUt"/> and the allowance the ground gives a
+    /// late return. Null exactly when <see cref="ExpectedReturnUt"/> is.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? OverdueAfterUt { get; set; }
+
+    /// <summary>
+    /// The universal time the home centre declared the craft lost, once that
+    /// declaration has reached this centre. Kept after a declaration is
+    /// withdrawn, beside a <see cref="Contact"/> that is no longer
+    /// <see cref="CatalogContact.Lost"/>. Null when no declaration has reached
+    /// this centre.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? DeclaredLostUt { get; set; }
 }

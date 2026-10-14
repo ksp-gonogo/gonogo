@@ -1,13 +1,13 @@
 import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import {
+  type CatalogEntry,
   CommsHopKind,
   type CommsNetwork,
   RosterCommsControlSource,
   Situation,
   type SystemBodies,
-  type SystemVessels,
   stillTrue,
-  type VesselRosterEntry,
+  type TrackingStationCatalog,
   VesselType,
 } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf, writeQuantity } from "@ksp-gonogo/ui-kit";
@@ -58,7 +58,7 @@ function unnamedControlSource(_source: never): string {
   return "unknown";
 }
 
-function crewLabel(v: VesselRosterEntry): string {
+function crewLabel(v: CatalogEntry): string {
   const count = magnitudeOf(v.crewCount);
   const capacity = magnitudeOf(v.crewCapacity);
   if (count == null) return "unknown";
@@ -66,7 +66,7 @@ function crewLabel(v: VesselRosterEntry): string {
 }
 
 /** Whether the craft rests on its body: landed, splashed or pre-launch, the situations that have a place on the surface and no orbit worth drawing. */
-function isOnGround(v: VesselRosterEntry): boolean {
+function isOnGround(v: CatalogEntry): boolean {
   return (
     v.situation === Situation.Landed ||
     v.situation === Situation.Splashed ||
@@ -75,7 +75,7 @@ function isOnGround(v: VesselRosterEntry): boolean {
 }
 
 /** A surface position as signed degrees, such as `-0.05° -74.72°`; null unless both coordinates were read. */
-function coordinatesLabel(v: VesselRosterEntry): string | null {
+function coordinatesLabel(v: CatalogEntry): string | null {
   if (v.latitude == null || v.longitude == null) return null;
   const lat = writeQuantity(v.latitude, { decimals: 2 });
   const lon = writeQuantity(v.longitude, { decimals: 2 });
@@ -83,7 +83,7 @@ function coordinatesLabel(v: VesselRosterEntry): string | null {
 }
 
 /** Where a craft is, in the words that tell two same-named craft apart: its site, else its coordinates, else its situation. */
-function placeLabel(v: VesselRosterEntry): string {
+function placeLabel(v: CatalogEntry): string {
   if (!isOnGround(v)) return Situation[v.situation] ?? "Unknown";
   return (
     v.landedAt ?? coordinatesLabel(v) ?? Situation[v.situation] ?? "Unknown"
@@ -94,14 +94,14 @@ function placeLabel(v: VesselRosterEntry): string {
  * The name a craft is shown under: its own, and where it is when another craft in the roster has the same one, so five craft called "Sally-Hut 1" read as five.
  */
 function displayName(
-  v: VesselRosterEntry,
+  v: CatalogEntry,
   sharedNames: ReadonlySet<string>,
 ): string {
   return sharedNames.has(v.name) ? `${v.name} · ${placeLabel(v)}` : v.name;
 }
 
 /** Names that more than one roster vessel carries. */
-function namesInUseTwice(vessels: readonly VesselRosterEntry[]): Set<string> {
+function namesInUseTwice(vessels: readonly CatalogEntry[]): Set<string> {
   const seen = new Set<string>();
   const twice = new Set<string>();
   for (const v of vessels) {
@@ -113,7 +113,7 @@ function namesInUseTwice(vessels: readonly VesselRosterEntry[]): Set<string> {
 
 /** Roster fields the info panel reads: name, type, situation, body, site and position for a craft on the ground, crew, comms. */
 function metaFor(
-  v: VesselRosterEntry,
+  v: CatalogEntry,
   bodyName: string,
   sharedNames: ReadonlySet<string>,
 ): SystemEntityMeta {
@@ -144,7 +144,7 @@ interface RingPlace {
   meanAnomalyAtEpoch: number;
 }
 
-function ringPlace(v: VesselRosterEntry): RingPlace | null {
+function ringPlace(v: CatalogEntry): RingPlace | null {
   const epoch = v.orbit?.epoch;
   const meanAnomalyAtEpoch = v.orbit?.meanAnomalyAtEpoch;
   if (!epoch?.isFinite() || !meanAnomalyAtEpoch?.isFinite()) return null;
@@ -163,7 +163,7 @@ function ringPlace(v: VesselRosterEntry): RingPlace | null {
  * element is not a zero, and a path drawn from a guessed one is a confident
  * wrong orbit.
  */
-function conicElements(v: VesselRosterEntry): ConicElements | null {
+function conicElements(v: CatalogEntry): ConicElements | null {
   const sma = magnitudeOf(v.orbit?.sma);
   const ecc = magnitudeOf(v.orbit?.ecc);
   const lan = magnitudeOf(v.orbit?.lan);
@@ -183,7 +183,7 @@ function conicElements(v: VesselRosterEntry): ConicElements | null {
  * A craft on the ground is a dot at its body whatever the roster's orbit says: the game still reports an ellipse for it, one that runs through the planet.
  */
 function vesselPosition(
-  v: VesselRosterEntry,
+  v: CatalogEntry,
   bodyName: string,
 ): SystemEntityPosition {
   const elements = isOnGround(v) ? null : conicElements(v);
@@ -210,15 +210,15 @@ function vesselPosition(
  * A fully read orbit draws a faint full ring, anything less degrades to a faint dot at the body, and an unresolvable body omits the vessel.
  */
 export function computeVesselOrbitEntities(
-  vessels: SystemVessels | null | undefined,
+  vessels: TrackingStationCatalog | null | undefined,
   bodies: SystemBodies | null | undefined,
 ): readonly SystemEntity[] {
   if (!vessels) return [];
   const nameByIndex = bodyNameByIndex(bodies);
-  const sharedNames = namesInUseTwice(vessels.vessels);
+  const sharedNames = namesInUseTwice(vessels.entries);
   const entities: SystemEntity[] = [];
 
-  for (const v of vessels.vessels) {
+  for (const v of vessels.entries) {
     const bodyName =
       v.bodyIndex != null ? (nameByIndex.get(v.bodyIndex) ?? null) : null;
     if (bodyName == null) continue;
@@ -249,7 +249,7 @@ function homeBodyName(bodies: SystemBodies | null | undefined): string | null {
 function resolveNodePosition(
   nodeId: string,
   isHomeNode: boolean,
-  vesselsById: ReadonlyMap<string, VesselRosterEntry>,
+  vesselsById: ReadonlyMap<string, CatalogEntry>,
   nameByIndex: ReadonlyMap<number, string>,
   homeName: string | null,
 ): SystemEntityPosition | null {
@@ -277,14 +277,14 @@ function resolveNodePosition(
 /** The CommNet half: one faint `connection-line` per `comms.network` edge, omitting any edge whose endpoint cannot be resolved; static topology only. */
 export function computeCommsNetworkEntities(
   network: CommsNetwork | null | undefined,
-  vessels: SystemVessels | null | undefined,
+  vessels: TrackingStationCatalog | null | undefined,
   bodies: SystemBodies | null | undefined,
 ): readonly SystemEntity[] {
   if (!network) return [];
   const nameByIndex = bodyNameByIndex(bodies);
   const homeName = homeBodyName(bodies);
   const vesselsById = new Map(
-    (vessels?.vessels ?? []).map((v) => [v.vesselId, v] as const),
+    (vessels?.entries ?? []).map((v) => [v.vesselId, v] as const),
   );
   // Home is recognised by `kind`, with the literal `"home"` id as a fallback for a backend that leaves the kind unset.
   const homeNodeIds = new Set(
@@ -333,9 +333,9 @@ function heldWhere(
 CORE_UPLINK_CLIENT.registerContribution({
   id: "system-view-vessel-orbits",
   contributes: "system-view.entities",
-  deps: ["system.vessels", "system.bodies", "comms.network"],
+  deps: ["trackingStation.catalog", "system.bodies", "comms.network"],
   compute: (topics) => {
-    const vesselsReading = topics["system.vessels"];
+    const vesselsReading = topics["trackingStation.catalog"];
     const networkReading = topics["comms.network"];
     const vessels = lastValue(vesselsReading);
     const bodies = stillTrue(topics["system.bodies"], null);

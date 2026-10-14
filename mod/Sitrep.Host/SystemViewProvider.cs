@@ -89,13 +89,8 @@ namespace Sitrep.Host
         /// <summary>The typed stream topic this provider feeds.</summary>
         public const string Topic = "system.bodies";
 
-        /// <summary>
-        /// The M3 R3 roster capture-add: every known vessel (not just the
-        /// active one), for TargetPicker-style widgets that need to list
-        /// "what could I target" without the player having flown each one
-        /// yet. See <see cref="BuildSystemVessels"/>.
-        /// </summary>
-        public const string VesselsTopic = "system.vessels";
+        /// <summary>The tracking station's catalog, every object a command centre knows of: see <see cref="BuildTrackingStationCatalog"/>.</summary>
+        public const string CatalogTopic = "trackingStation.catalog";
 
         /// <summary>The <c>target.available</c> channel: see <see cref="BuildTargetAvailable"/>.</summary>
         public const string TargetAvailableTopic = "target.available";
@@ -335,9 +330,10 @@ namespace Sitrep.Host
         /// (<c>Gonogo.KSP.KspHost.BuildVesselRosterEntry</c>'s shape: id/
         /// name/vesselType/situation/mainBody/crewCount/crewCapacity/
         /// commsConnected/commsControlSource/sma..epoch, primitives only) to
-        /// the <c>system.vessels</c> payload: <c>{ "vessels": [ { vesselId,
+        /// the <c>trackingStation.catalog</c> payload: <c>{ "entries": [ { vesselId,
         /// name, vesselType, situation, bodyIndex, landedAt, latitude, longitude, crewCount, crewCapacity,
-        /// commsConnected, commsControlSource, orbit }, ... ] }</c>. Follows
+        /// commsConnected, commsControlSource, orbit }, ... ] }</c>, with every
+        /// field a centre sets on its own catalog present as null. Follows
         /// <see cref="BuildSystemBodies"/>'s own untyped-dict convention
         /// (no separate Sitrep.Contract POCO: this channel isn't
         /// vessel-scoped-provenance like the <c>vessel.*</c> family, it's a
@@ -351,14 +347,14 @@ namespace Sitrep.Host
         /// through as typed <c>null</c> whenever the producer omitted them
         /// (an unreadable/unresolved per-vessel read); never a fabricated
         /// zero/false (FleetRoster capture-add; see
-        /// <see cref="VesselRosterEntry"/>'s own doc comments for the
+        /// <see cref="CatalogEntry"/>'s own doc comments for the
         /// loaded-vs-proto crew read and the comms read's independence from
         /// <see cref="ICommsBackend"/>). <c>orbit</c> reuses <see cref="BuildOrbit"/>,
         /// the same routine <see cref="BuildBody"/> uses for
         /// <see cref="BodyEntry.Orbit"/>: null when the producer had no
         /// orbitDriver to read for this vessel.
         /// </summary>
-        public static object? BuildSystemVessels(KspSnapshot? snapshot)
+        public static object? BuildTrackingStationCatalog(KspSnapshot? snapshot)
         {
             if (snapshot?.Values == null)
             {
@@ -411,15 +407,20 @@ namespace Sitrep.Host
                     // orbitDriver to read), so an absent orbit maps to null rather
                     // than an all-null OrbitEntry.
                     ["orbit"] = rawVessel.ContainsKey("sma") ? BuildOrbit(rawVessel) : null,
-                    // How a centre learned this place is that centre's, set on its own list.
+                    // How a centre learned this place, and its contact with the craft, are that centre's, set on its own catalog.
                     ["placeSource"] = null,
                     ["placeAsOfUt"] = null,
+                    ["contact"] = null,
+                    ["lastContactUt"] = null,
+                    ["expectedReturnUt"] = null,
+                    ["overdueAfterUt"] = null,
+                    ["declaredLostUt"] = null,
                 });
             }
 
             return new Dictionary<string, object?>
             {
-                ["vessels"] = vessels,
+                ["entries"] = vessels,
             };
         }
 
@@ -429,14 +430,14 @@ namespace Sitrep.Host
         /// <c>{ entries: [ { kind, name, vesselId?, bodyIndex?, partId?,
         /// vesselType?, situation?, distance?, isCurrent }, ... ] }</c>) to the
         /// <c>target.available</c> payload: the same wrapper-object convention
-        /// as <see cref="BuildSystemVessels"/>. The producer classifies
+        /// as <see cref="BuildTrackingStationCatalog"/>. The producer classifies
         /// generically and emits the kind/type/situation as strings; this maps
         /// them to their contract enum ordinals (kind via
         /// <see cref="System.Enum.TryParse{TEnum}(string, out TEnum)"/> over the
         /// <see cref="TargetKind"/> names the producer emits), and passes the
         /// stable ids / distance / isCurrent through. Entries with no resolvable
         /// stable id per their kind are dropped (same rule
-        /// <see cref="BuildSystemVessels"/> applies).
+        /// <see cref="BuildTrackingStationCatalog"/> applies).
         /// </summary>
         public static object? BuildTargetAvailable(KspSnapshot? snapshot)
         {
@@ -468,7 +469,7 @@ namespace Sitrep.Host
 
                 // Drop an entry that lacks the stable id its kind requires --
                 // it can't round-trip into vessel.target.set (same
-                // never-a-fabricated-id rule as VesselRosterEntry).
+                // never-a-fabricated-id rule as CatalogEntry).
                 var hasStableId = kind switch
                 {
                     TargetKind.Vessel => !string.IsNullOrEmpty(vesselId),

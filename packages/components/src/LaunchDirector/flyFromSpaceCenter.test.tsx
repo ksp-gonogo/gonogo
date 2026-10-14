@@ -51,8 +51,8 @@ describe("LaunchDirector at the Space Center", () => {
       stream.emit("spaceCenter.launchSites", [
         { name: "LaunchPad", displayName: "Launch Pad", editorFacility: "VAB" },
       ]);
-      stream.emit("system.vessels", {
-        vessels: [
+      stream.emit("trackingStation.catalog", {
+        entries: [
           entry("Dune Buggy", VesselType.Rover, Situation.Landed),
           entry("Duna Relay", VesselType.Relay, Situation.Orbiting),
           entry("Asteroid XYZ", VesselType.SpaceObject, Situation.Orbiting),
@@ -89,8 +89,8 @@ describe("LaunchDirector at the Space Center", () => {
     renderWidget();
     await emitSpaceCenter();
     act(() => {
-      stream.emit("system.vessels", {
-        vessels: [
+      stream.emit("trackingStation.catalog", {
+        entries: [
           entry("Asteroid XYZ", VesselType.SpaceObject, Situation.Orbiting),
         ],
       });

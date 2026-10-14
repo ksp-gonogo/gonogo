@@ -25,14 +25,9 @@ namespace Gonogo.KSP
     /// always <c>true</c>. It registers unconditionally, independent of whether
     /// any comms backend has been elected, so it is registered directly by
     /// <see cref="GonogoAddon"/> alongside every other core Uplink rather than
-    /// through a hook installed by <see cref="CommsCoreUplink"/>. The
-    /// SilenceTracker's officially-lost reckoning (state, deadlines,
-    /// predicted reacquisition) is a comms-owned model's opinion, not a fact
-    /// stock KSP hands you, and is registered separately by
-    /// <see cref="SilenceTracking.FleetSilenceChannels"/> from inside
-    /// <see cref="CommsCoreUplink.Register"/>. See
-    /// <see cref="Sitrep.Contract.FleetVesselContact"/>'s doc comment for the
-    /// full split.</para>
+    /// through a hook installed by <see cref="CommsCoreUplink"/>. Whether each
+    /// command centre is in contact with a craft is not here: it is that
+    /// centre's own knowledge, on its <c>trackingStation.catalog</c>.</para>
     ///
     /// <para>Subscription-gated on the <c>fleet.</c> prefix: the whole fleet
     /// read is skipped when no client subscribes to any fleet topic. Each
@@ -80,15 +75,6 @@ namespace Gonogo.KSP
         /// </summary>
         private IVesselJourneyWriter? _journeyWriter;
 
-        // Main-thread-only bookkeeping: the last UT each vessel was observed
-        // connected. Written by both main-thread captures: the ungated
-        // CaptureLinksOnMain keeps it true while nobody is watching, and
-        // CaptureOnMain, which runs first in a tick, writes it too so its own
-        // report is not a tick behind. The cross-thread snapshot each
-        // FleetVesselCapture carries is what HandleOnCourier (Courier thread)
-        // actually reads.
-        private readonly LastContactBook _lastContact = new LastContactBook();
-
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "fleet",
@@ -120,9 +106,8 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// MAIN-THREAD, ungated: every vessel's connectivity, and the
-        /// last-contact bookkeeping that follows from it, so both stay true
-        /// while nobody subscribes to a fleet topic.
+        /// MAIN-THREAD, ungated: every vessel's connectivity, so it stays
+        /// true while nobody subscribes to a fleet topic.
         /// </summary>
         internal object? CaptureLinksOnMain(KspSnapshot? snapshot)
         {
@@ -132,11 +117,8 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            var ut = snapshot != null ? snapshot.Ut : 0.0;
             var config = CommsCoreUplink.SignalDelayConfig;
             var links = new List<VesselLinkCapture>(all.Count);
-            var live = new HashSet<string>(StringComparer.Ordinal);
-            _lastContact.BeginPass(CommandDeliveryScenario.GameKey, ut);
             foreach (var vessel in all)
             {
                 if (vessel == null)
@@ -145,11 +127,8 @@ namespace Gonogo.KSP
                 }
                 var id = vessel.id.ToString();
                 var connected = FleetCommsReader.ReadConnected(vessel, config);
-                _lastContact.Observe(id, connected == true, ut);
-                live.Add(id);
                 links.Add(new VesselLinkCapture { Id = id, Connected = connected });
             }
-            _lastContact.Keep(live);
             return links;
         }
 
@@ -199,7 +178,7 @@ namespace Gonogo.KSP
             }
         }
 
-        /// <summary>MAIN-THREAD capture: per vessel, its guid + routed delay + orbit-element dict + last-contact bookkeeping.</summary>
+        /// <summary>MAIN-THREAD capture: per vessel, its guid + routed delay + orbit-element dict.</summary>
         internal object? CaptureOnMain(KspSnapshot? snapshot)
         {
             var all = FlightGlobals.Vessels;
@@ -211,7 +190,6 @@ namespace Gonogo.KSP
             var ut = snapshot != null ? snapshot.Ut : 0.0;
             var config = CommsCoreUplink.SignalDelayConfig;
             var captures = new List<FleetVesselCapture>(all.Count);
-            _lastContact.BeginPass(CommandDeliveryScenario.GameKey, ut);
             foreach (var vessel in all)
             {
                 if (vessel == null)
@@ -222,7 +200,6 @@ namespace Gonogo.KSP
                 var journey = FleetCommsReader.ReadVesselJourney(vessel, config);
                 var orbit = vessel.orbitDriver != null ? KspHost.BuildOrbit(vessel.orbitDriver.orbit) : null;
                 var id = vessel.id.ToString();
-                _lastContact.Observe(id, connected == true, ut);
                 captures.Add(new FleetVesselCapture
                 {
                     Id = id,
@@ -230,14 +207,10 @@ namespace Gonogo.KSP
                     Journey = journey,
                     Connected = connected,
                     Orbit = orbit,
-                    // The silence tracker's record rides in the save, so before this
-                    // session has seen the craft connected it is the one answer there is.
-                    LastContactUt = _lastContact.Of(id)
-                        ?? SilenceTracking.SilenceTrackerSink.Current?.TryGetState(id)?.LastContactUt,
                     // Gated PER VESSEL, not with the rest of the fleet read.
                     // Walking one craft's parts is cheap; walking every craft's
                     // parts every tick because something subscribed to one
-                    // craft's contact topic is not, and the whole-namespace gate
+                    // craft's link topic is not, and the whole-namespace gate
                     // on this source cannot tell those apart. A tracker watching
                     // one probe pays for one probe.
                     Resources = ReadResources(vessel, id, ut),
@@ -347,12 +320,6 @@ namespace Gonogo.KSP
                 // Delayed namespace as .orbit, so it too arrives light-time-late).
                 _orbitSource.Publisher(v.Id + ".delay")
                     .Publish(FleetVesselLinkBuilder.Build(v.OneWaySeconds, v.Connected), cap.Ut);
-                // fleet.<guid>.contact: the core connected/lastContactUt facts.
-                // Freeze-exempt (ChannelEngine.ContactMetaSuffix), the disconnect
-                // edge must escape the reveal-gate freeze or it could never be
-                // reported at all.
-                _orbitSource.Publisher(v.Id + ChannelEngine.ContactMetaSuffix)
-                    .Publish(FleetVesselContactBuilder.Build(v.Connected, v.LastContactUt), cap.Ut);
                 // Null means nobody asked for this craft's tanks this tick (see
                 // ReadResources), which is different from a craft with none: that
                 // is an empty map and still publishes.
@@ -382,7 +349,6 @@ namespace Gonogo.KSP
             public Journey? Journey { get; set; }
             public bool? Connected { get; set; }
             public object? Orbit { get; set; }
-            public double? LastContactUt { get; set; }
             public Dictionary<string, object?>? Resources { get; set; }
         }
     }

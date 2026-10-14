@@ -59,7 +59,7 @@ export function splitRawFieldSubtopic(
     return handOut(topic, candidate, segments.slice(take));
   }
 
-  // After the known ids, so a fixed Topic under a dynamic prefix (`fleet.silence` under `fleet.`) still has fields.
+  // After the known ids, so a fixed Topic under a dynamic prefix still has fields.
   if (dynamicPrefixOf(topic) !== undefined) return undefined;
 
   return handOut(topic, `${segments[0]}.${segments[1]}`, segments.slice(2));

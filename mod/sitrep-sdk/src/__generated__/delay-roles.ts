@@ -89,5 +89,5 @@ export const GENERATED_ADDRESSED_TOPICS = [
   "comms.path",
   "comms.route",
   "comms.signal",
-  "system.vessels",
+  "trackingStation.catalog",
 ] as const;

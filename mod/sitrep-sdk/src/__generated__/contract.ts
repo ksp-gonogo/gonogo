@@ -2847,8 +2847,9 @@ export interface CommsNextLoss
 	* What `CommsNextLoss.ut` rests on. One of `predicted-loss` (the plan closes
 	* the last open route at `CommsNextLoss.ut`), `no-loss-in-window` (in contact
 	* through `CommsNextLoss.coveredToUt`), `out-of-contact` (no route is open
-	* now; `fleet.silence` says when it returns), `not-planned` (the centre holds
-	* no plan that includes the craft) or `no-craft` (there is no active craft).
+	* now; the craft's `trackingStation.catalog` entry says when it is expected
+	* back), `not-planned` (the centre holds no plan that includes the craft) or
+	* `no-craft` (there is no active craft).
 	*/
 	basis: string;
 	/**
@@ -3891,8 +3892,8 @@ export interface Pong
 * One kerbal currently outside a craft, on the `eva.crew` channel.
 *
 * A kerbal on EVA is a vessel in KSP's model, with its own id, so it already
-* appears on `system.vessels` and on its own per-vessel Topics
-* (`fleet.<guid>.contact` and `fleet.<guid>.orbit`). What is here and nowhere
+* appears on `trackingStation.catalog` and on its own per-vessel Topics
+* (`fleet.<guid>.delay` and `fleet.<guid>.orbit`). What is here and nowhere
 * else is the suit: what it is carrying, what it can do, and whether the place
 * it is standing in would kill the wearer without it.
 *
@@ -3904,7 +3905,10 @@ export interface Pong
 */
 export interface EvaKerbal
 {
-	/** The kerbal's own vessel id, the same guid `system.vessels` carries for it. */
+	/**
+	* The kerbal's own vessel id, the same guid `trackingStation.catalog` carries
+	* for it.
+	*/
 	kerbalVesselId?: string | null;
 	/**
 	* The vessel id of the craft this kerbal stepped out of, or `null` when that
@@ -4013,94 +4017,6 @@ export interface FleetVesselLink
 	connected?: boolean | null;
 }
 /**
-* The core per-vessel contact facts on `fleet.<guid>.contact`: whether the
-* vessel is currently in contact, and when it was last heard from. With
-* CommNet disabled `FleetVesselContact.connected` is always true; with it
-* enabled it is the same network-presence read `fleet.<guid>.delay` carries.
-* No modelling and no opinion about whether the vessel is lost: that judgement
-* is on `FleetVesselSilence`.
-*
-* Delayed like `FleetVesselLink`, so the value arrives one signal delay late.
-* Unlike most delayed telemetry it keeps updating while the vessel is out of
-* contact, so the loss of contact itself reaches the client.
-*
-* @category Solar system and fleet
-*/
-export interface FleetVesselContact
-{
-	/**
-	* Whether contact was observed on the most recent sample. Null when its link
-	* could not be read.
-	*/
-	connected?: boolean | null;
-	/**
-	* Universal time of the last sample that observed contact. Null before the
-	* first contact.
-	*/
-	lastContactUt?: Value<"ut"> | null;
-}
-/**
-* The lost-vessel reckoning on `silence.<guid>.state`: how long a vessel's
-* silence has run and when it becomes eligible to be declared lost. This is a
-* model's judgement from occultation geometry, not a fact stock KSP provides,
-* so it comes from the comms Uplink rather than the always-present
-* `FleetVesselContact`.
-*
-* Delayed on the same per-vessel clock as `FleetVesselContact`, and like it
-* keeps updating while the vessel is out of contact.
-*
-* Nothing here is a control input.
-*
-* @category Solar system and fleet
-*/
-export interface FleetVesselSilence
-{
-	/**
-	* One of `"Nominal"` (in contact), `"Silent"` (out of contact, not yet
-	* eligible to be declared lost) or `"Lost"`.
-	*/
-	state: string;
-	/** Universal time the current silence run began. Null while Nominal. */
-	silenceSinceUt?: Value<"ut"> | null;
-	/**
-	* Universal time at which this silence run becomes eligible to be declared
-	* Lost. Null while Nominal, or for a destroyed vessel.
-	*/
-	deadlineUt?: Value<"ut"> | null;
-	/**
-	* What `FleetVesselSilence.deadlineUt` was based on. One of `orbital-period` /
-	* `policy-floor` / `policy-ceiling` / `no-orbit` / `destroyed` /
-	* `predicted-reacquisition` / `no-occultation` / `no-emergence-in-window` /
-	* `warp-limited` / `grace-exceeds-ceiling` / `horizon-limited`. Null while
-	* Nominal.
-	*/
-	deadlineBasis?: string | null;
-	/**
-	* When the radio path is predicted to re-open, if a visibility sweep found
-	* one, in universal time. This is what "should be back in ~16 min" is rendered
-	* from.
-	*
-	* Null whenever no sound prediction exists (no geometry, no occultation to
-	* emerge from, or a warp too coarse to resolve one), and `deadlineBasis` says
-	* which. A null is a prediction withheld, never an emergence of "now": render
-	* it as "no prediction", not as an overdue vessel.
-	*/
-	predictedReacquisitionUt?: Value<"ut"> | null;
-	/**
-	* The error budget the deadline was set with, in seconds: how long past the
-	* predicted return this craft may stay quiet before its silence is something
-	* other than a late reappearance.
-	*
-	* The only value on the wire that says how much confidence to place in
-	* `FleetVesselSilence.predictedReacquisitionUt` beside it.
-	*
-	* One-sided, not a symmetric uncertainty: it is an allowance after the
-	* predicted moment, so render "allowing 5 min of slack", never "+/- 5 min".
-	* Null wherever the prediction is null.
-	*/
-	predictionGraceSeconds?: Value<"s"> | null;
-}
-/**
 * One fleet vessel's resource amounts on `fleet.<guid>.resources`: the same
 * keyed map `VesselResources` carries for the active craft, for a craft you
 * are not flying. A resource the craft has no capacity for is absent from the
@@ -4124,83 +4040,6 @@ export interface FleetVesselResources
 	* empty for a craft that carries no resources.
 	*/
 	resources: { [key:string]: ResourceAmount };
-}
-/**
-* One vessel's reckoning inside the fleet-wide `FleetSilence` roster: the same
-* fields `FleetVesselSilence` carries, plus the vessel id that the per-vessel
-* topic gets from its own topic string.
-*
-* @category Solar system and fleet
-*/
-export interface FleetSilenceEntry
-{
-	/** The KSP vessel GUID, the same id the `fleet.` and `silence.` topics key on. */
-	vesselId: string;
-	/**
-	* One of `"Nominal"` (in contact), `"Silent"` (out of contact, not yet
-	* eligible to be declared lost) or `"Lost"`.
-	*/
-	state: string;
-	/** UT the current silence run began. Null while Nominal. */
-	silenceSinceUt?: Value<"ut"> | null;
-	/**
-	* UT at which this silence run becomes eligible to be declared Lost. Null
-	* while Nominal, or for a destroyed vessel.
-	*/
-	deadlineUt?: Value<"ut"> | null;
-	/**
-	* What `FleetSilenceEntry.deadlineUt` was based on. One of `orbital-period` /
-	* `policy-floor` / `policy-ceiling` / `no-orbit` / `destroyed` /
-	* `predicted-reacquisition` / `no-occultation` / `no-emergence-in-window` /
-	* `warp-limited` / `grace-exceeds-ceiling` / `horizon-limited`. Null while
-	* Nominal.
-	*/
-	deadlineBasis?: string | null;
-	/**
-	* When the radio path is predicted to re-open, in universal time. Null is a
-	* prediction withheld, never an emergence of "now".
-	*/
-	predictedReacquisitionUt?: Value<"ut"> | null;
-	/**
-	* The error budget the deadline was set with, in seconds: how long past the
-	* predicted return this craft may stay quiet before its silence is something
-	* other than a late reappearance.
-	*
-	* The only value on the wire that says how much confidence to place in
-	* `FleetSilenceEntry.predictedReacquisitionUt` beside it.
-	*
-	* One-sided, not a symmetric uncertainty: it is an allowance after the
-	* predicted moment, so render "allowing 5 min of slack", never "+/- 5 min".
-	* Null wherever the prediction is null.
-	*/
-	predictionGraceSeconds?: Value<"s"> | null;
-}
-/**
-* The fleet-wide silence roster on `fleet.silence`: every vessel still in the
-* game that the tracker holds a reckoning for, in one payload. A vessel that
-* has been destroyed leaves the roster; its last `silence.<guid>.state` says
-* it was lost as `destroyed`.
-*
-* A per-vessel topic can only be read by something that already knows which
-* vessel to ask for. This one static topic lists every vessel, so a consumer
-* that has to work the fleet out for itself (a contribution, which declares
-* its topics statically, or a Processor) can fan out over entries that exist.
-*
-* Delayed as one payload on the stream's main delay, not on each vessel's own
-* signal delay, as with `SystemVessels`. `FleetVesselSilence` on
-* `silence.<guid>.state` stays authoritative for one vessel on that vessel's
-* own signal delay; this is the fleet-wide index, and is not a substitute for
-* it.
-*
-* @category Solar system and fleet
-*/
-export interface FleetSilence
-{
-	/**
-	* One entry per vessel still in the game, in no guaranteed order. Never null;
-	* empty when there are none.
-	*/
-	vessels: FleetSilenceEntry[];
 }
 /**
 * Why a flight ended, carried on `FlightEnded`. The detail of a crash or a
@@ -4399,7 +4238,7 @@ export interface SwitchVesselArgs
 {
 	/**
 	* The vessel to switch to: KSP's `Vessel.id` guid as a string, as
-	* `system.vessels` carries it.
+	* `trackingStation.catalog` carries it.
 	*/
 	vesselId: string;
 }
@@ -8024,8 +7863,7 @@ export interface BodyEntry
 	name?: string | null;
 	/**
 	* This body's position in the list, stable for the session and the key
-	* `BodyEntry.parentIndex` and `VesselRosterEntry.bodyIndex` refer to. Never
-	* null.
+	* `BodyEntry.parentIndex` and `CatalogEntry.bodyIndex` refer to. Never null.
 	*/
 	index: number;
 	/**
@@ -8240,46 +8078,52 @@ export interface OrbitEntry
 	epoch?: Value<"ut"> | null;
 }
 /**
-* The `system.vessels` Topic payload: every vessel the receiving command
-* centre knows of, wrapped as `{ "vessels": [ ... ] }`. Like `SystemBodies`,
-* it carries no per-payload `Meta`: that rides the envelope.
+* The `trackingStation.catalog` Topic payload: every object the receiving
+* command centre knows of, craft and tracked space objects alike, one entry
+* each, wrapped as `{ "entries": [ ... ] }`. Like `SystemBodies`, it carries
+* no per-payload `Meta`: that rides the envelope.
 *
-* Each command centre is sent its own list and no other centre's. A centre
-* knows a vessel in two ways, and an entry is made of both.
+* Each command centre is sent its own catalog and no other centre's. A centre
+* knows an object in two ways, and an entry is made of both.
 *
-* **By sight: where it is.** A vessel's orbit, its situation and its body are
+* **By sight: where it is.** An object's orbit, its situation and its body are
 * tracked by looking at it, whether or not it has a radio and whether or not
 * it is in contact. That reaches a centre in a straight line at light speed,
 * through no relay, so a burn far away shows here after the distance between
-* the vessel and this centre and no sooner. A vessel with no radio at all
-* (debris, an asteroid, a flag, a crewed vessel with no antenna) is known this
+* the craft and this centre and no sooner. An object with no radio at all
+* (debris, an asteroid, a flag, a crewed craft with no antenna) is known this
 * way only: it is listed once its light has arrived, with its name and kind,
 * and leaves when the light of its going has.
 *
-* **By radio: everything else.** A vessel's crew and its link are its own to
-* say, and arrive over its radio's route at that route's signal delay. A
-* vessel that has been seen and not yet heard has no crew count and no link
-* state, which are absent and not zero. Where a vessel has a radio its
-* location is as fresh as the newer of the two.
+* **By radio: everything else.** A craft's crew and its link are its own to
+* say, and arrive over its radio's route at that route's signal delay. A craft
+* that has been seen and not yet heard has no crew count and no link state,
+* which are absent and not zero. Where a craft has a radio its location is as
+* fresh as the newer of the two.
+*
+* **Contact.** Whether this centre is in contact with each craft is what has
+* reached this centre: in contact, silent, overdue, lost or gone. Only the
+* home centre declares a craft lost, and a centre shows the declaration once
+* it has reached it.
 *
 * What can be tracked by sight is the game's own tracking station rule at the
-* station's current level. Where the game lets the station place no vessel at
+* station's current level. Where the game lets the station place no object at
 * all, nothing is known by sight and every entry is what was heard.
 *
 * @category Solar system and fleet
 */
-export interface SystemVessels
+export interface TrackingStationCatalog
 {
 	/**
-	* Every vessel this centre has heard of, loaded or not, in id order. Debris
-	* and asteroids are included.
+	* Every object this centre knows of, loaded or not, in id order. Debris and
+	* asteroids are included.
 	*/
-	vessels: VesselRosterEntry[];
+	entries: CatalogEntry[];
 }
 /**
 * A roster vessel's control level, as stock CommNet reports it
 * (`Vessel.connection.GetControlLevel()`), for
-* `VesselRosterEntry.commsControlSource`. Not the same type as
+* `CatalogEntry.commsControlSource`. Not the same type as
 * `CommsControlSource`, which belongs to the active vessel's `comms.*`
 * channels and whatever comms mod provides them.
 *
@@ -8303,8 +8147,8 @@ export enum RosterCommsControlSource {
 	Unknown = 3
 }
 /**
-* How a command centre last learned where a vessel on its `SystemVessels` list
-* is.
+* How a command centre last learned where an object in its
+* `TrackingStationCatalog` is.
 *
 * @category Solar system and fleet
 */
@@ -8315,13 +8159,44 @@ export enum RosterPlaceSource {
 	Seen = 1
 }
 /**
-* One vessel in the `SystemVessels` roster. A vessel with no resolvable stable
-* id is left out rather than given a made-up one, so
-* `VesselRosterEntry.vesselId` is always present.
+* Whether the command centre a catalog belongs to is in contact with a craft,
+* as that centre knows it, for `CatalogEntry.contact`.
 *
 * @category Solar system and fleet
 */
-export interface VesselRosterEntry
+export enum CatalogContact {
+	/** The newest word to reach the centre says a link reaches it from the craft. */
+	InContact = 0,
+	/**
+	* No link reaches the centre, and the ground's expected return, if it has one,
+	* has not yet passed by more than its allowance.
+	*/
+	Silent = 1,
+	/**
+	* No link reaches the centre, and the expected return, allowance included, has
+	* passed.
+	*/
+	Overdue = 2,
+	/**
+	* The home centre has declared the craft lost, and the declaration has reached
+	* this centre.
+	*/
+	Lost = 3,
+	/**
+	* The centre knows the craft is gone, from its last frame over a link or from
+	* seeing it go.
+	*/
+	Gone = 4
+}
+/**
+* One object in a `TrackingStationCatalog`: a craft, or a space object the
+* tracking station follows. An object with no resolvable stable id is left out
+* rather than given a made-up one, so `CatalogEntry.vesselId` is always
+* present.
+*
+* @category Solar system and fleet
+*/
+export interface CatalogEntry
 {
 	/**
 	* Stable subject id (KSP vessel GUID). Always present, entries without one are
@@ -8350,12 +8225,12 @@ export interface VesselRosterEntry
 	* Body-fixed surface latitude in degrees while the vessel is landed, splashed
 	* or pre-launch. Null for a vessel in flight or in orbit, since the point
 	* beneath it sweeps at orbital rate and is not where it is. Null together with
-	* `VesselRosterEntry.longitude`.
+	* `CatalogEntry.longitude`.
 	*/
 	latitude?: Value<"°"> | null;
 	/**
 	* Body-fixed surface longitude in degrees, wrapped to (-180, 180]. Null
-	* exactly when `VesselRosterEntry.latitude` is.
+	* exactly when `CatalogEntry.latitude` is.
 	*/
 	longitude?: Value<"°"> | null;
 	/**
@@ -8366,8 +8241,8 @@ export interface VesselRosterEntry
 	*/
 	crewCount?: Value<"count"> | null;
 	/**
-	* Seat capacity, read the same way as `VesselRosterEntry.crewCount`. Null only
-	* if the read failed.
+	* Seat capacity, read the same way as `CatalogEntry.crewCount`. Null only if
+	* the read failed.
 	*/
 	crewCapacity?: Value<"count"> | null;
 	/**
@@ -8388,16 +8263,16 @@ export interface VesselRosterEntry
 	commsConnected?: boolean | null;
 	/**
 	* The same connection's control level. Null under the same condition as
-	* `VesselRosterEntry.commsConnected`, including the permanent Debris,
-	* SpaceObject and Unknown vessel-type case described there.
+	* `CatalogEntry.commsConnected`, including the permanent Debris, SpaceObject
+	* and Unknown vessel-type case described there.
 	*/
 	commsControlSource?: RosterCommsControlSource | null;
 	/**
 	* This vessel's own orbital elements, the same shape as `BodyEntry.orbit`,
-	* about the body at `VesselRosterEntry.bodyIndex`. This is what positions a
-	* roster vessel: there is no separate position field, so derive its position
-	* from this orbit, joined by `VesselRosterEntry.vesselId`. Null when the
-	* vessel has no orbit yet (during a scene transition), never a sentinel.
+	* about the body at `CatalogEntry.bodyIndex`. This is what positions a roster
+	* vessel: there is no separate position field, so derive its position from
+	* this orbit, joined by `CatalogEntry.vesselId`. Null when the vessel has no
+	* orbit yet (during a scene transition), never a sentinel.
 	*/
 	orbit?: OrbitEntry | null;
 	/**
@@ -8410,9 +8285,41 @@ export interface VesselRosterEntry
 	/**
 	* The universal time the place this entry gives was true at: when the vessel
 	* said it, or when the light the centre saw it by left it. Null exactly when
-	* `VesselRosterEntry.placeSource` is.
+	* `CatalogEntry.placeSource` is.
 	*/
 	placeAsOfUt?: Value<"ut"> | null;
+	/**
+	* Whether this centre is in contact with the craft, as this centre knows it.
+	* Null where no word of any route to the craft has ever reached this centre,
+	* which is always the case for an object with no radio.
+	*/
+	contact?: CatalogContact | null;
+	/**
+	* The universal time this centre last knows it had a link to the craft: now,
+	* while in contact. Null when it knows of none.
+	*/
+	lastContactUt?: Value<"ut"> | null;
+	/**
+	* The universal time this centre expects to hear the silent craft again: when
+	* the ground predicts a link will reopen, plus the light-time from the craft
+	* to this centre. Null while in contact, when the ground has no prediction,
+	* and at a crewed centre, whose own line to the craft the ground's geometry
+	* does not predict.
+	*/
+	expectedReturnUt?: Value<"ut"> | null;
+	/**
+	* The universal time past which the craft is overdue at this centre:
+	* `CatalogEntry.expectedReturnUt` and the allowance the ground gives a late
+	* return. Null exactly when `CatalogEntry.expectedReturnUt` is.
+	*/
+	overdueAfterUt?: Value<"ut"> | null;
+	/**
+	* The universal time the home centre declared the craft lost, once that
+	* declaration has reached this centre. Kept after a declaration is withdrawn,
+	* beside a `CatalogEntry.contact` that is no longer `CatalogContact.Lost`.
+	* Null when no declaration has reached this centre.
+	*/
+	declaredLostUt?: Value<"ut"> | null;
 }
 /**
 * How the active vessel comes to know of another vessel on `target.available`,
@@ -8560,7 +8467,7 @@ export interface TargetListEntry
 /**
 * The `target.available` Topic payload: the list of everything targetable from
 * the active vessel, as the active vessel knows it. Wrapper object `{
-* "entries": [ ... ] }`, like `system.vessels`.
+* "entries": [ ... ] }`, like `trackingStation.catalog`.
 *
 * A vessel is on the list once the active vessel has come to know of it, by
 * whichever of three ways tells it soonest: it is within physics range and
@@ -11386,10 +11293,10 @@ export interface VesselTarget
 	/**
 	* The target's own stable id, populated when `VesselTarget.kind` is
 	* `TargetKind.Vessel` (KSP's `Vessel.id` guid) or `TargetKind.Part` (the
-	* owning vessel's guid). The same opaque id `system.vessels`' roster and
-	* `SetTargetArgs.vesselId` use, so a widget can hand it straight back into a
-	* re-target command with no extra lookup. Null for a body or other target; see
-	* `VesselTarget.bodyIndex` for the body case.
+	* owning vessel's guid). The same opaque id `trackingStation.catalog`' roster
+	* and `SetTargetArgs.vesselId` use, so a widget can hand it straight back into
+	* a re-target command with no extra lookup. Null for a body or other target;
+	* see `VesselTarget.bodyIndex` for the body case.
 	*/
 	vesselId?: string | null;
 	/**

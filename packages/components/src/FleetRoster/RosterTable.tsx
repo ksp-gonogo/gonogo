@@ -12,24 +12,46 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
 import { COMMS, COMMS_TONE } from "./comms";
-import { FleetContactCell } from "./FleetContactCell";
+import { useContactBadge } from "./FleetContactCell";
 import { FleetSignalCell } from "./FleetSignalCell";
 import { crewLabel, type FleetVessel } from "./fleet";
-import { ColLabel, LinkDot } from "./RosterCells";
+import { ColLabel, LinkDot, LinkDotSpacer } from "./RosterCells";
 import { UpdatesRow } from "./UpdatesRow";
 
 const ROW_HEIGHT = 25;
 const GRID_FULL = "minmax(0, 1fr) auto 48px 66px";
 const GRID_COMPACT = "minmax(0, 1fr)";
+const NAME_CELL_STYLE = { gap: "7px", padding: "var(--inset-roster-cell)" };
+
+/** A vessel's contact badge on its own line, indented past the link dot so it starts under the name; renders nothing while there is no badge. */
+function ContactLine({ vessel: v }: { vessel: FleetVessel }) {
+  const badge = useContactBadge(v.contact, v.name);
+  if (badge == null) return null;
+  return (
+    <Cluster
+      justify="start"
+      align="center"
+      style={{
+        ...NAME_CELL_STYLE,
+        paddingBottom: "var(--gutter-roster-cell)",
+      }}
+    >
+      <LinkDotSpacer />
+      {badge}
+    </Cluster>
+  );
+}
 
 function RosterRow({
   vessel: v,
   compact,
   showUpdates,
+  contactHeld,
 }: {
   vessel: FleetVessel;
   compact: boolean;
   showUpdates: boolean;
+  contactHeld: boolean;
 }) {
   const comms = COMMS[v.comms];
   return (
@@ -40,14 +62,7 @@ function RosterRow({
         style={compact ? { minHeight: ROW_HEIGHT } : { height: ROW_HEIGHT }}
       >
         <Tooltip text={v.name} announce={false}>
-          <Cluster
-            justify="start"
-            align="center"
-            style={{
-              gap: "7px",
-              padding: "var(--inset-roster-cell)",
-            }}
-          >
+          <Cluster justify="start" align="center" style={NAME_CELL_STYLE}>
             <LinkDot tone={COMMS_TONE[v.comms]} aria-label={comms.aria} />
             {compact ? (
               <Stack style={{ flex: 1, minWidth: 0 }}>
@@ -73,6 +88,8 @@ function RosterRow({
                     vesselName={v.name}
                     tone={COMMS_TONE[v.comms]}
                     label={comms.label}
+                    contact={v.contact}
+                    contactHeld={contactHeld}
                   />
                 </Cluster>
               </Stack>
@@ -85,8 +102,7 @@ function RosterRow({
               >
                 {v.name}
               </Truncate>
-            )}
-            <FleetContactCell guid={v.id} vesselName={v.name} />
+            )}{" "}
           </Cluster>
         </Tooltip>
         {!compact && (
@@ -126,10 +142,13 @@ function RosterRow({
               vesselName={v.name}
               tone={COMMS_TONE[v.comms]}
               label={comms.label}
+              contact={v.contact}
+              contactHeld={contactHeld}
             />
           </div>
         )}
       </Grid>
+      <ContactLine vessel={v} />
       {showUpdates && (
         <UpdatesRow>
           <AugmentSlot
@@ -152,11 +171,14 @@ export function RosterTable({
   known,
   vessels,
   compact,
+  contactHeld,
 }: {
   known: boolean;
   vessels: FleetVessel[];
   /** Narrow widths fold Body, Crew and Link under the vessel name; height never gates columns, the list scrolls. */
   compact: boolean;
+  /** Whether the catalog the rows came from has stopped arriving, so each row's contact is the last known. */
+  contactHeld: boolean;
 }) {
   // Not gated on `compact`: the augment sheds detail at narrow widths itself, so a critical alarm never vanishes.
   const showUpdates = useSlotBound("fleet-roster.updates");
@@ -186,7 +208,12 @@ export function RosterTable({
 
       {vessels.map((v) => (
         <Fragment key={v.id}>
-          <RosterRow vessel={v} compact={compact} showUpdates={showUpdates} />
+          <RosterRow
+            vessel={v}
+            compact={compact}
+            showUpdates={showUpdates}
+            contactHeld={contactHeld}
+          />
         </Fragment>
       ))}
     </>

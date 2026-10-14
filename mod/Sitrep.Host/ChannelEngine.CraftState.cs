@@ -299,6 +299,9 @@ namespace Sitrep.Host
             return longest;
         }
 
+        public double LastDelaySeconds(string vesselId, string centre) =>
+            _craftReached.TryGetValue(vesselId, out var reached) && reached.TryGetValue(centre, out var row) ? row.Seconds : 0.0;
+
         internal const string CraftRadioSuffix = ".radio";
 
         /// <summary>The topic a craft's radio readings are recorded under.</summary>

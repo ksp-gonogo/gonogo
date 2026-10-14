@@ -9,22 +9,23 @@ using UnityEngine;
 namespace Gonogo.KSP.SilenceTracking
 {
     /// <summary>
-    /// The <c>silence.&lt;guid&gt;.*</c> dynamic namespace: the SilenceTracker's
-    /// officially-lost reckoning for every fleet vessel (link state, when it
-    /// went quiet, its deadline, whether it has been declared Lost). A
-    /// COMMS-OWNED model's opinion, not a fact stock KSP hands you, so it is
-    /// registered from <see cref="CommsCoreUplink.Register"/> rather than
-    /// alongside the always-on core <see cref="FleetChannels"/>. See
-    /// <see cref="Sitrep.Contract.FleetVesselContact"/>'s doc comment for the
-    /// full core/comms split.
+    /// The ground's forecast for every craft it loses: when the ground expects
+    /// to hear it again, and the deadline past which the home centre may
+    /// declare it lost. The <see cref="SilenceTracker"/> works it out from the
+    /// game's geometry each tick, and each forecast is handed to the engine
+    /// when it changes. Registered from <see cref="CommsCoreUplink.Register"/>,
+    /// because the geometry is the comms model's.
     ///
-    /// <para><b>Ungated, deliberately, unlike <see cref="FleetChannels"/>.</b>
-    /// <see cref="SilenceTracker"/>'s state machine has to advance every tick
-    /// regardless of whether any client is watching, otherwise whether a
-    /// vessel is declared lost would depend on which browser tab happens to be
-    /// open. See <see cref="CaptureSilenceOnMain"/>.</para>
+    /// <para>The ground has lost a craft when the craft's route no longer ends at
+    /// a ground station, which is what the geometry predicts the return of. A
+    /// craft heard only through a crewed craft is lost to the ground.</para>
+    ///
+    /// <para><b>Ungated.</b> The tracker has to advance every tick whether or not
+    /// any client is watching, otherwise whether a craft is declared lost would
+    /// depend on which browser tab happens to be open. See
+    /// <see cref="CaptureSilenceOnMain"/>.</para>
     /// </summary>
-    public sealed class FleetSilenceChannels
+    public sealed class SilenceForecasts
     {
         /// <summary>
         /// Soft cap on the always-run silence capture, sized generously above
@@ -33,43 +34,19 @@ namespace Gonogo.KSP.SilenceTracking
         /// keeps at any warp rate.
         /// </summary>
         private static readonly PerfBudget SilenceCaptureBudget = new PerfBudget(
-            "FleetSilenceChannels silence capture", threshold: 2000, windowSec: 1.0, unit: "vessels");
+            "SilenceForecasts silence capture", threshold: 2000, windowSec: 1.0, unit: "vessels");
 
-        /// <summary>
-        /// Roster entries pushed onto <c>fleet.silence</c> per real second. Sized like
-        /// the capture budget above: the aggregate carries one entry per tracked
-        /// vessel per tick, so a fleet that outgrows the capture budget outgrows
-        /// this at the same moment, and a duplicated publish shows up here first.
-        /// </summary>
-        private static readonly PerfBudget SilenceRosterBudget = new PerfBudget(
-            "FleetSilenceChannels roster entries", threshold: 2000, windowSec: 1.0, unit: "entries");
-
-        /// <summary>
-        /// Roster publishes per five real seconds. <see cref="RealTimeRepublishGate"/> holds the
-        /// topic to one a second at the most, so the budget sits just above that and a path that
-        /// bypasses the gate (or a sampler that fires faster than the gate expects) shows up here.
-        /// Counted on the wall clock: a window in game seconds holds one sample whatever the warp.
-        /// </summary>
-        private static readonly PerfBudget SilenceRosterPublishBudget = new PerfBudget(
-            "FleetSilenceChannels roster publishes", threshold: 6, windowSec: 5.0, unit: "publishes");
-
-        private static readonly Stopwatch RealClock = Stopwatch.StartNew();
-
-        private readonly RealTimeRepublishGate _rosterGate = new RealTimeRepublishGate();
-        private List<SilenceContactSnapshot>? _lastSentRoster;
-        private IDynamicChannelSource? _silenceSource;
-        private IChannelPublisher? _rosterPublisher;
         private ICraftForecastWriter? _forecasts;
 
         /// <summary>The forecast last handed to the engine for each vessel, so only a change is recorded. Courier thread only.</summary>
         private readonly Dictionary<string, CraftForecast> _forecastSaid = new Dictionary<string, CraftForecast>();
 
-        public FleetSilenceChannels()
+        public SilenceForecasts()
         {
         }
 
         /// <param name="forecasts">Where the ground's forecasts go, which registration otherwise finds on the host.</param>
-        internal FleetSilenceChannels(ICraftForecastWriter forecasts) => _forecasts = forecasts;
+        internal SilenceForecasts(ICraftForecastWriter forecasts) => _forecasts = forecasts;
 
         /// <summary>
         /// Called from <see cref="CommsCoreUplink.Register"/>, on that uplink's
@@ -79,20 +56,6 @@ namespace Gonogo.KSP.SilenceTracking
         public void RegisterInto(IUplinkHost host)
         {
             SilenceGeometrySink.Bind(host.Kernel);
-            _silenceSource = host.RegisterDynamicNamespace(ChannelEngine.SilenceEventPrefix, new ChannelDeclaration
-            {
-                Kind = SampleKind.Discrete,
-                Requires = Requirement.None,
-                Delivery = Delivery.LossyLatest,
-                Delay = DelayRole.Delayed,
-                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                // silence.<guid>.<field> is this vessel's own reckoning, so it
-                // records on that craft's node. Declared here rather than known
-                // to the engine.
-                PerVesselNode = true,
-            });
-
-            _rosterPublisher = host.Publisher(CommsCoreUplink.FleetSilenceTopic);
             _forecasts ??= host as ICraftForecastWriter;
 
             // Ungated: no subscriptionTopicPrefixes argument, see this
@@ -106,7 +69,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// <see cref="SilenceTracker.Tick"/> (mutating the current save's
         /// tracker via <see cref="SilenceTrackerSink"/>), and returns an
         /// immutable snapshot of the touched vessels for the Courier thread
-        /// to publish.
+        /// to hand over.
         ///
         /// <para>Snapshots rather than handing out the tracker's own
         /// <see cref="VesselContactState"/> instances: those are reused and
@@ -178,72 +141,15 @@ namespace Gonogo.KSP.SilenceTracking
                 });
             }
 
-            // The aggregate carries every vessel still in the game, not just the
-            // ones this tick touched. `touched` is a change list, and a consumer
-            // that has to work the fleet out for itself needs the whole fleet: a
-            // vessel sitting quietly at Nominal is exactly the one that would go
-            // missing from a change-list roster and reappear only when it went
-            // dark, which is the wrong way round. Destroyed vessels are left out:
-            // the tracker never forgets them, so listing them would size the
-            // payload by every vessel the save ever launched.
-            var roster = new List<SilenceContactSnapshot>(tracker.States.Count);
-            foreach (var state in tracker.LiveStates)
-            {
-                roster.Add(new SilenceContactSnapshot
-                {
-                    VesselId = state.VesselId,
-                    State = state.State,
-                    SilenceSinceUt = state.SilenceSinceUt,
-                    DeadlineUt = state.DeadlineUt,
-                    DeadlineBasis = state.DeadlineBasis,
-                    PredictedReacquisitionUt = state.PredictedReacquisitionUt,
-                    PredictionGraceSec = state.PredictionGraceSec,
-                });
-            }
-
-            return new SilenceCapture { Ut = ut, Vessels = snapshots, Roster = roster, Tracker = tracker };
+            return new SilenceCapture { Ut = ut, Vessels = snapshots, Tracker = tracker };
         }
 
-        /// <summary>
-        /// COURIER-THREAD handle: publish each touched vessel's
-        /// <c>silence.&lt;guid&gt;.state</c>. This channel rides its own Delayed
-        /// namespace but is FREEZE-EXEMPT in the engine (see
-        /// <see cref="ChannelEngine.SilenceStateSuffix"/>, which the suffix here
-        /// must match): everything it has to say is said while the vessel is
-        /// dark, so a lane frozen by that same silence would carry none of it.
-        /// </summary>
+        /// <summary>COURIER-THREAD handle: hands the engine each forecast the capture changed.</summary>
         internal void HandleSilenceOnCourier(object? captured)
         {
-            if (captured is SilenceCapture forecasting)
+            if (captured is SilenceCapture cap)
             {
-                SayForecasts(forecasting);
-            }
-            if (captured is not SilenceCapture cap || _silenceSource == null)
-            {
-                SilenceTrace.NotPublished(captured, _silenceSource == null);
-                return;
-            }
-            SilenceTrace.Publishing(cap.Vessels.Count);
-            foreach (var v in cap.Vessels)
-            {
-                _silenceSource.Publisher(v.VesselId + ChannelEngine.SilenceStateSuffix).Publish(
-                    FleetVesselSilenceBuilder.Build(v.State.ToString(), v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis, v.PredictedReacquisitionUt, v.PredictionGraceSec),
-                    cap.Ut);
-            }
-
-            var realSec = RealClock.Elapsed.TotalSeconds;
-            if (_rosterPublisher != null && _rosterGate.Admit(!SameRoster(_lastSentRoster, cap.Roster), realSec))
-            {
-                _lastSentRoster = cap.Roster;
-                var entries = new List<Dictionary<string, object?>>(cap.Roster.Count);
-                foreach (var v in cap.Roster)
-                {
-                    entries.Add(FleetSilenceRosterBuilder.BuildEntry(
-                        v.VesselId, v.State.ToString(), v.SilenceSinceUt, v.DeadlineUt, v.DeadlineBasis, v.PredictedReacquisitionUt, v.PredictionGraceSec));
-                }
-                SilenceRosterBudget.Record(entries.Count, realSec);
-                SilenceRosterPublishBudget.Record(1, realSec);
-                _rosterPublisher.Publish(FleetSilenceRosterBuilder.Build(entries), cap.Ut);
+                SayForecasts(cap);
             }
         }
 
@@ -299,21 +205,14 @@ namespace Gonogo.KSP.SilenceTracking
             && a.PredictedReacquisitionUt == b.PredictedReacquisitionUt
             && a.PredictionGraceSec == b.PredictionGraceSec;
 
-        private static bool SameRoster(List<SilenceContactSnapshot>? sent, List<SilenceContactSnapshot> now)
-        {
-            if (sent == null || sent.Count != now.Count)
-            {
-                return false;
-            }
-            for (var i = 0; i < now.Count; i++)
-            {
-                if (!sent[i].SameAs(now[i]))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
+        /// <summary>
+        /// Whether the craft sits on its body rather than on a conic, which is the
+        /// game's own <c>LandedOrSplashed</c>: a craft in prelaunch is landed too.
+        /// The game stops maintaining such a craft's orbit once it is packed, so
+        /// its elements describe nothing and a geometry swept from them fails the
+        /// frame self-check by the body's radius on every capture.
+        /// </summary>
+        internal static bool RestsOnSurface(Vessel vessel) => vessel.LandedOrSplashed;
 
         /// <summary>
         /// The full element set, matching <c>KspHost</c>'s <c>vessel.orbit</c>
@@ -325,15 +224,6 @@ namespace Gonogo.KSP.SilenceTracking
         /// fewer fields costs nothing; a policy reading fabricated ones is
         /// worse than no policy.</para>
         /// </summary>
-        /// <summary>
-        /// Whether the craft sits on its body rather than on a conic, which is the
-        /// game's own <c>LandedOrSplashed</c>: a craft in prelaunch is landed too.
-        /// The game stops maintaining such a craft's orbit once it is packed, so
-        /// its elements describe nothing and a geometry swept from them fails the
-        /// frame self-check by the body's radius on every capture.
-        /// </summary>
-        internal static bool RestsOnSurface(Vessel vessel) => vessel.LandedOrSplashed;
-
         private static OrbitElements? BuildOrbitElements(Vessel vessel)
         {
             var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
@@ -377,11 +267,8 @@ namespace Gonogo.KSP.SilenceTracking
             /// <summary>The tracker this was captured from. A new one is a new save or a reload, which says every forecast again.</summary>
             public SilenceTracker? Tracker { get; set; }
 
-            /// <summary>The vessels this tick touched, which is what the per-vessel topics publish.</summary>
+            /// <summary>The vessels this tick touched.</summary>
             public List<SilenceContactSnapshot> Vessels { get; set; } = new List<SilenceContactSnapshot>();
-
-            /// <summary>Every tracked vessel, which is what the fleet-wide roster publishes.</summary>
-            public List<SilenceContactSnapshot> Roster { get; set; } = new List<SilenceContactSnapshot>();
         }
 
         /// <summary>
@@ -399,15 +286,6 @@ namespace Gonogo.KSP.SilenceTracking
             public string? DeadlineBasis { get; set; }
             public double? PredictedReacquisitionUt { get; set; }
             public double? PredictionGraceSec { get; set; }
-
-            public bool SameAs(SilenceContactSnapshot other) =>
-                VesselId == other.VesselId
-                && State == other.State
-                && SilenceSinceUt == other.SilenceSinceUt
-                && DeadlineUt == other.DeadlineUt
-                && DeadlineBasis == other.DeadlineBasis
-                && PredictedReacquisitionUt == other.PredictedReacquisitionUt
-                && PredictionGraceSec == other.PredictionGraceSec;
         }
     }
 }

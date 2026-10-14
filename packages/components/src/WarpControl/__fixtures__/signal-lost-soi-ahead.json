@@ -2,7 +2,7 @@
   "_meta": {
     "shows": "A craft in flight at 1x that has lost its signal with a return predicted fifteen minutes out, and a trajectory that enters the Mun's sphere of influence in about an hour, so both warp-to actions have a target: the signal return and the Mun encounter.",
     "scenario": "signal-lost-soi-ahead",
-    "notes": "vessel.identity names the craft; fleet.silence marks it Silent with a predicted reacquisition; vessel.orbit carries a two-patch chain whose first patch ends in an Encounter."
+    "notes": "vessel.identity names the craft; trackingStation.catalog marks it silent with an expected return; vessel.orbit carries a two-patch chain whose first patch ends in an Encounter."
   },
   "kc.scene": "Flight",
   "kc.padOccupied": false,
@@ -51,13 +51,17 @@
         }
       },
       {
-        "channel": "fleet.silence",
+        "channel": "trackingStation.catalog",
         "value": {
-          "vessels": [
+          "entries": [
             {
               "vesselId": "11111111-1111-1111-1111-111111111111",
-              "state": "Silent",
-              "predictedReacquisitionUt": 5000900
+              "name": "Craft",
+              "vesselType": 0,
+              "situation": 3,
+              "contact": 1,
+              "expectedReturnUt": 5000900,
+              "overdueAfterUt": 5000900
             }
           ]
         }
@@ -65,7 +69,10 @@
       {
         "channel": "vessel.orbit",
         "value": {
-          "horizon": { "kind": 1, "trajectoryKind": 1 },
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          },
           "patches": [
             {
               "referenceBody": "Kerbin",

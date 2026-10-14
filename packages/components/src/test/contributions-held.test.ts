@@ -103,7 +103,7 @@ describe("the built-in contributions draw a held value as held", () => {
       bodies: [{ index: 1, name: "Kerbin" } as SystemBodies["bodies"][number]],
     };
     const roster = {
-      vessels: [
+      entries: [
         {
           vesselId: "v-1",
           name: "Relay",
@@ -115,7 +115,7 @@ describe("the built-in contributions draw a held value as held", () => {
     };
     const entities = (vessels: unknown) =>
       compute("system-view.entities", "core:system-view-vessel-orbits", {
-        "system.vessels": vessels,
+        "trackingStation.catalog": vessels,
         "system.bodies": observed(bodies),
         "comms.network": PENDING,
       }) ?? [];

@@ -42,7 +42,7 @@ export interface Rule {
 export interface ReadRecord {
   /** A Topic id or a command id when the read is exact. */
   id?: string;
-  /** A family pattern such as `fleet.<vessel>.contact`. */
+  /** A family pattern such as `fleet.<vessel>.delay`. */
   family?: string;
   call: string;
   file: string;

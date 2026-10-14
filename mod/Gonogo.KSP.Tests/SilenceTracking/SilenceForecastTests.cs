@@ -40,14 +40,14 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         {
             using var ksp = new UnityStandIns(Ut, DelayOn());
             var recorded = new Recorded();
-            var channels = new FleetSilenceChannels(recorded);
+            var forecasts = new SilenceForecasts(recorded);
             var tracker = Tracker();
 
-            channels.HandleSilenceOnCourier(channels.CaptureSilence(tracker, new List<Vessel> { Craft(true) }, Ut));
-            channels.HandleSilenceOnCourier(channels.CaptureSilence(tracker, new List<Vessel> { Craft(true) }, Ut + 1.0));
-            channels.HandleSilenceOnCourier(channels.CaptureSilence(tracker, new List<Vessel> { Craft(false) }, Ut + 2.0));
-            channels.HandleSilenceOnCourier(channels.CaptureSilence(tracker, new List<Vessel> { Craft(false) }, Ut + 3.0));
-            channels.HandleSilenceOnCourier(channels.CaptureSilence(tracker, new List<Vessel> { Craft(true) }, Ut + 4.0));
+            forecasts.HandleSilenceOnCourier(forecasts.CaptureSilence(tracker, new List<Vessel> { Craft(true) }, Ut));
+            forecasts.HandleSilenceOnCourier(forecasts.CaptureSilence(tracker, new List<Vessel> { Craft(true) }, Ut + 1.0));
+            forecasts.HandleSilenceOnCourier(forecasts.CaptureSilence(tracker, new List<Vessel> { Craft(false) }, Ut + 2.0));
+            forecasts.HandleSilenceOnCourier(forecasts.CaptureSilence(tracker, new List<Vessel> { Craft(false) }, Ut + 3.0));
+            forecasts.HandleSilenceOnCourier(forecasts.CaptureSilence(tracker, new List<Vessel> { Craft(true) }, Ut + 4.0));
 
             Assert.Equal(3, recorded.Forecasts.Count);
             Assert.All(recorded.Forecasts, f => Assert.Equal(CraftId.ToString(), f.VesselId));
@@ -65,10 +65,10 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         {
             using var ksp = new UnityStandIns(Ut, DelayOn());
             var recorded = new Recorded();
-            var channels = new FleetSilenceChannels(recorded);
+            var forecasts = new SilenceForecasts(recorded);
 
-            channels.HandleSilenceOnCourier(channels.CaptureSilence(Tracker(), new List<Vessel> { Craft(true) }, Ut));
-            channels.HandleSilenceOnCourier(channels.CaptureSilence(Tracker(), new List<Vessel> { Craft(true) }, Ut + 1.0));
+            forecasts.HandleSilenceOnCourier(forecasts.CaptureSilence(Tracker(), new List<Vessel> { Craft(true) }, Ut));
+            forecasts.HandleSilenceOnCourier(forecasts.CaptureSilence(Tracker(), new List<Vessel> { Craft(true) }, Ut + 1.0));
 
             Assert.Equal(2, recorded.Forecasts.Count);
         }

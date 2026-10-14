@@ -3,7 +3,7 @@ import {
   DashboardItemContext,
   dispatchAction,
 } from "@ksp-gonogo/core";
-import { TransitionType } from "@ksp-gonogo/sitrep-sdk";
+import { CatalogContact, TransitionType } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -57,12 +57,18 @@ async function mount(scenario: Scenario) {
     });
     fixture.emit("spaceCenter.scene", { scene: "Flight" });
     fixture.emit("vessel.identity", { vesselId: VESSEL });
-    fixture.emit("fleet.silence", {
-      vessels: [
+    fixture.emit("trackingStation.catalog", {
+      entries: [
         {
           vesselId: VESSEL,
-          state: scenario.silent ? "Silent" : "Nominal",
-          predictedReacquisitionUt: scenario.silent?.predictedUt ?? null,
+          name: "Craft",
+          vesselType: 0,
+          situation: 3,
+          contact: scenario.silent
+            ? CatalogContact.Silent
+            : CatalogContact.InContact,
+          expectedReturnUt: scenario.silent?.predictedUt ?? null,
+          overdueAfterUt: scenario.silent?.predictedUt ?? null,
         },
       ],
     });

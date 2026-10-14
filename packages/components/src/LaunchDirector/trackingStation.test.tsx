@@ -42,8 +42,8 @@ describe("LaunchDirector in the Tracking Station", () => {
     });
     await screen.findByText("In the Tracking Station");
     act(() => {
-      stream.emit("system.vessels", {
-        vessels: [
+      stream.emit("trackingStation.catalog", {
+        entries: [
           { vesselId: "guid-a", name: "Mun Lander", vesselType: 2 },
           { vesselId: "guid-rock", name: "Asteroid XYZ", vesselType: 10 },
         ],

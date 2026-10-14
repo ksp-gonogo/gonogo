@@ -92,6 +92,12 @@ export {
   derivePeriod,
   deriveTrueAnomalyDeg,
 } from "./body-derivations";
+export {
+  type ContactPhase,
+  contactPhase,
+  expectedReturnUt,
+  overdueSeconds,
+} from "./catalog";
 // The two shared Processors and their result types. Also on the SDK's ROOT
 // barrel, which is what an Uplink imports; here so app-side call sites read the
 // same as every other spine name.
@@ -206,19 +212,6 @@ export {
   dvCurrentStageResourceChannel,
   dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
-export {
-  type ContactPhase,
-  contactPhase,
-  type FleetSilenceRoster,
-  type FleetVesselContact,
-  type FleetVesselSilence,
-  getLatestFleetVesselSilence,
-  overdueSeconds,
-  type SilenceDeadlineBasis,
-  silenceByVessel,
-  useFleetVesselContact,
-  useFleetVesselSilence,
-} from "./fleet-contact";
 export {
   type FleetVesselLink,
   useFleetVesselLink,

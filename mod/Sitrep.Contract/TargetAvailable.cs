@@ -175,7 +175,7 @@ public class TargetListEntry
 /// <summary>
 /// The <c>target.available</c> Topic payload: the list of everything
 /// targetable from the active vessel, as the active vessel knows it. Wrapper
-/// object <c>{ "entries": [ ... ] }</c>, like <c>system.vessels</c>.
+/// object <c>{ "entries": [ ... ] }</c>, like <c>trackingStation.catalog</c>.
 ///
 /// <para>A vessel is on the list once the active vessel has come to know of
 /// it, by whichever of three ways tells it soonest: it is within physics range

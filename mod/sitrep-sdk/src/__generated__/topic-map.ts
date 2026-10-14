@@ -13,16 +13,11 @@
 // A DYNAMIC namespace is registered at RUNTIME through
 // `IUplinkHost.RegisterDynamicNamespace` and materialises its topics per
 // subject, so no [SitrepTopic]-tagged type exists for reflection to find and
-// nothing about it appears below: `silence.<guid>.*`,
-// `currency.<guid>.<currency>`, `vessel.partActions.<flightId>`, and each
+// nothing about it appears below: `currency.<guid>.<currency>`,
+// `vessel.partActions.<flightId>`, and each
 // Uplink's own. So a per-subject topic missing from this file may still be
 // published: `fleet.<guid>.orbit` is. To enumerate the dynamic half, grep
 // the mod for `RegisterDynamicNamespace` instead.
-//
-// THE PREFIX IS NOT THE TEST, and `fleet.` is the case that proves it.
-// `fleet.silence` is statically declared and IS below; `fleet.<guid>.<field>`
-// is dynamic and is not. Reading either half as evidence about the other
-// goes wrong in both directions.
 
 import type {
   ArchiveEntry,
@@ -58,7 +53,6 @@ import type {
   EvaCrew,
   ExperimentBreakdownEntry,
   ExperimentEntry,
-  FleetSilence,
   FlightCurrent,
   FlightEnded,
   FlightStarted,
@@ -88,9 +82,9 @@ import type {
   StageDeltaVEntry,
   StageDeltaVSummary,
   SystemBodies,
-  SystemVessels,
   TargetAvailable,
   TimeCalendar,
+  TrackingStationCatalog,
   UnreachableCentreEntry,
   VesselAttitude,
   VesselComms,
@@ -180,8 +174,6 @@ export interface GeneratedTopicPayloadMap {
   "dv.summary": StageDeltaVSummary;
   /** Every kerbal currently outside a craft. */
   "eva.crew": EvaCrew;
-  /** The fleet-wide silence roster on `fleet.silence`: every vessel still in the game that the tracker holds a reckoning for, in one payload. */
-  "fleet.silence": FleetSilence;
   /** Which flight is active and what phase it is in, for the vessel gonogo is reporting as active. */
   "flight.current": FlightCurrent;
   /** The `flight.ended` Topic payload: an event that is always delivered, in the order it happened, and held back by the signal delay like any value about a craft, sent once per flight when it stops being trackable: recovered, crashed, destroyed or reverted. */
@@ -242,14 +234,14 @@ export interface GeneratedTopicPayloadMap {
   "system.bodies": SystemBodies;
   /** The frame the game's own navigation view is expressed in, which is what the player is looking at. */
   "system.frame": ControlFrame;
-  /** The `system.vessels` Topic payload: every vessel the receiving command centre knows of, wrapped as `{ "vessels": [ ... ] }`. */
-  "system.vessels": SystemVessels;
   /** The `target.available` Topic payload: the list of everything targetable from the active vessel, as the active vessel knows it. */
   "target.available": TargetAvailable;
   /** The `time.calendar` Topic payload: how long a minute, hour, day and year are, and what real-world instant UT 0 is (when the game has one), as the running game defines them. */
   "time.calendar": TimeCalendar;
   /** The `time.warp` Topic payload: the game's time-warp and pause state, as separate typed fields. */
   "time.warp": WarpState;
+  /** The `trackingStation.catalog` Topic payload: every object the receiving command centre knows of, craft and tracked space objects alike, one entry each, wrapped as `{ "entries": [ ... ] }`. */
+  "trackingStation.catalog": TrackingStationCatalog;
   /** The `vessel.attitude` Topic payload: pitch, heading and roll of the vessel's control reference, the orientation the pilot steers by, against the local surface up and north, in two named frames. */
   "vessel.attitude": VesselAttitude;
   /** The `vessel.comms` Topic payload: the active vessel's own CommNet connection, from KSP's `vessel.connection`. */
@@ -327,7 +319,6 @@ export const GENERATED_TOPIC_IDS = [
   "dv.stages",
   "dv.summary",
   "eva.crew",
-  "fleet.silence",
   "flight.current",
   "flight.ended",
   "flight.started",
@@ -358,10 +349,10 @@ export const GENERATED_TOPIC_IDS = [
   "spaceCenter.scene",
   "system.bodies",
   "system.frame",
-  "system.vessels",
   "target.available",
   "time.calendar",
   "time.warp",
+  "trackingStation.catalog",
   "vessel.attitude",
   "vessel.comms",
   "vessel.control",

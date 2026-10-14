@@ -972,7 +972,7 @@ namespace Sitrep.Host.IntegrationTests
 
         public string? Routes => _latest.TryGetValue(ContactPlanSource.RouteTopic, out var payload) ? payload : null;
 
-        public string? Vessels => Latest(SystemViewProvider.VesselsTopic);
+        public string? Vessels => Latest(SystemViewProvider.CatalogTopic);
 
         /// <summary>One craft's entry in the roster this centre holds, or null when the roster does not list it.</summary>
         public JsonElement? Vessel(string vesselId)
@@ -982,7 +982,7 @@ namespace Sitrep.Host.IntegrationTests
                 return null;
             }
             using var doc = JsonDocument.Parse(Vessels);
-            foreach (var entry in doc.RootElement.GetProperty("vessels").EnumerateArray())
+            foreach (var entry in doc.RootElement.GetProperty("entries").EnumerateArray())
             {
                 if (entry.GetProperty("vesselId").GetString() == vesselId)
                 {

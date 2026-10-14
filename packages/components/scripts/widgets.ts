@@ -671,7 +671,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         ],
         forFixtures: ["realtime-1x"],
       },
-      // The signal-return target, which arms an alarm at the instant fleet.silence predicts.
+      // The signal-return target, which arms an alarm at the instant the catalog expects the craft back.
       {
         name: "warp-to-contact-open-8x7",
         w: 8,
@@ -2094,7 +2094,7 @@ const WIDGETS: WidgetRenderConfig[] = [
   },
   {
     // FleetRoster: fleet-wide roster TABLE (one row per known vessel),
-    // reading the real `system.vessels`/`system.bodies` Topics (stream
+    // reading the real `trackingStation.catalog`/`system.bodies` Topics (stream
     // fixtures). Mixed-fleet exercises direct/relay/no-link/unknown comms
     // plus known/unknown crew; all-linked is the quiet-day baseline; empty
     // exercises the confirmed-zero-vessels state. There is no per-vessel

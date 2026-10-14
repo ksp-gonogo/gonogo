@@ -50,7 +50,7 @@ public class RevertToEditorArgs
 [SitrepCommand("ksp.switchVessel", Delay = DelayRole.TrueNow)]
 public class SwitchVesselArgs
 {
-    /// <summary>The vessel to switch to: KSP's <c>Vessel.id</c> guid as a string, as <c>system.vessels</c> carries it.</summary>
+    /// <summary>The vessel to switch to: KSP's <c>Vessel.id</c> guid as a string, as <c>trackingStation.catalog</c> carries it.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 }

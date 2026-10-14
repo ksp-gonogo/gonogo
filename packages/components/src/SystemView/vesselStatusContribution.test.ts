@@ -1,25 +1,28 @@
-import type { FleetVesselSilence } from "@ksp-gonogo/sitrep-client";
+import { CatalogContact, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { computeVesselStatus } from "./vesselStatusContribution";
+import {
+  computeVesselStatus,
+  type VesselContactEntry,
+} from "./vesselStatusContribution";
 
 const silent = (
-  over: Partial<FleetVesselSilence> = {},
-): FleetVesselSilence => ({
-  state: "Silent",
-  silenceSinceUt: 1_000,
-  deadlineUt: 4_000,
-  deadlineBasis: "predicted-reacquisition",
-  predictedReacquisitionUt: 2_000,
+  over: Partial<VesselContactEntry> = {},
+): VesselContactEntry => ({
+  contact: CatalogContact.Silent,
+  expectedReturnUt: value("ut", 2_000),
+  overdueAfterUt: value("ut", 2_000),
   ...over,
 });
 
 describe("computeVesselStatus", () => {
-  it("contributes nothing when no silence data has arrived for the vessel", () => {
+  it("contributes nothing when the vessel has no catalog entry", () => {
     expect(computeVesselStatus("v1", undefined, 1_000)).toEqual([]);
   });
 
-  it("contributes nothing while the vessel is nominal", () => {
-    expect(computeVesselStatus("v1", { state: "Nominal" }, 1_000)).toEqual([]);
+  it("contributes nothing while the centre is in contact", () => {
+    expect(
+      computeVesselStatus("v1", { contact: CatalogContact.InContact }, 1_000),
+    ).toEqual([]);
   });
 
   it("contributes an info entry while a silent vessel is not yet due back", () => {
@@ -36,26 +39,26 @@ describe("computeVesselStatus", () => {
     // 43,200 s is two 6h KSP days, so "12h" would mean the wall-clock ladder.
     const [entry] = computeVesselStatus(
       "v1",
-      silent({ deadlineUt: 100_000, predictedReacquisitionUt: 44_200 }),
+      silent({
+        expectedReturnUt: value("ut", 44_200),
+        overdueAfterUt: value("ut", 44_200),
+      }),
       1_000,
     );
     expect(entry.label).toBe("Reacquire expected in ~2d");
   });
 
-  it("contributes an info entry with no countdown when silent with no prediction", () => {
+  it("contributes an info entry with no countdown when silent with no expected return", () => {
     const [entry] = computeVesselStatus(
       "v1",
-      silent({
-        deadlineBasis: "no-occultation",
-        predictedReacquisitionUt: null,
-      }),
+      silent({ expectedReturnUt: null, overdueAfterUt: null }),
       999_999,
     );
     expect(entry).toMatchObject({ target: "v1", tone: "info" });
     expect(entry.label).toMatch(/no contact/i);
   });
 
-  it("contributes a warning entry once the predicted emergence has passed", () => {
+  it("contributes a warning entry once the expected return has passed", () => {
     const [entry] = computeVesselStatus("v1", silent(), 2_500);
     expect(entry).toMatchObject({
       target: "v1",
@@ -65,8 +68,12 @@ describe("computeVesselStatus", () => {
     expect(entry.label).toBe("Overdue by 8min 20s");
   });
 
-  it("contributes a critical entry once officially lost", () => {
-    const [entry] = computeVesselStatus("v1", silent({ state: "Lost" }), 2_500);
+  it("contributes a critical entry once home's declaration of loss has arrived", () => {
+    const [entry] = computeVesselStatus(
+      "v1",
+      silent({ contact: CatalogContact.Lost }),
+      2_500,
+    );
     expect(entry).toMatchObject({
       target: "v1",
       tone: "nogo",
@@ -78,7 +85,7 @@ describe("computeVesselStatus", () => {
   it("stamps every entry's target with the vessel id it decorates", () => {
     const [entry] = computeVesselStatus(
       "vessel-xyz",
-      silent({ state: "Lost" }),
+      silent({ contact: CatalogContact.Lost }),
       0,
     );
     expect(entry.target).toBe("vessel-xyz");

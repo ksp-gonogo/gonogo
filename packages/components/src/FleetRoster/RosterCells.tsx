@@ -25,6 +25,11 @@ export function LinkDot({
   );
 }
 
+/** Empty space the width of a {@link LinkDot}, so a line under a vessel's name starts where the name does. */
+export function LinkDotSpacer() {
+  return <span aria-hidden="true" style={{ flex: "0 0 auto", width: 8 }} />;
+}
+
 /** Outline chip: border and text both read the tone colour, unlike the filled `Badge` pill. */
 export function CommsTag({
   tone,

@@ -1,5 +1,8 @@
 import { clearAugments, DashboardItemContext } from "@ksp-gonogo/core";
-import { RosterCommsControlSource } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CatalogContact,
+  RosterCommsControlSource,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -9,7 +12,7 @@ import { FleetRosterComponent } from "./index";
 /** A held Link term in the signal panel says it is the last known, as the Delay row does. */
 
 const CRAFT = {
-  vessels: [
+  entries: [
     {
       vesselId: "v-probe",
       name: "Explorer",
@@ -19,6 +22,7 @@ const CRAFT = {
       crewCount: 0,
       crewCapacity: 0,
       commsControlSource: RosterCommsControlSource.Full,
+      contact: CatalogContact.InContact,
     },
   ],
 };
@@ -45,13 +49,12 @@ async function mountLinked() {
     </fixture.Provider>,
   );
   act(() => {
-    fixture.emit("system.vessels", CRAFT);
+    fixture.emit("trackingStation.catalog", CRAFT);
   });
   const trigger = await screen.findByRole("button", {
     name: /Explorer signal/i,
   });
   act(() => {
-    fixture.emit("fleet.v-probe.contact", { connected: true });
     fixture.emit("fleet.v-probe.delay", {
       oneWaySeconds: 4.5,
       connected: true,
@@ -115,7 +118,7 @@ describe("FleetRoster header badge", () => {
   it("marks the rollup held once the roster stops arriving", async () => {
     const { fixture, container } = mountEmpty();
     act(() => {
-      fixture.emit("system.vessels", CRAFT);
+      fixture.emit("trackingStation.catalog", CRAFT);
     });
     await waitFor(() => expect(visibleText(container)).toContain("All Linked"));
 

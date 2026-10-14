@@ -41,7 +41,7 @@ public class CommsNextLoss
     /// What <see cref="Ut"/> rests on. One of <c>predicted-loss</c> (the plan
     /// closes the last open route at <see cref="Ut"/>), <c>no-loss-in-window</c>
     /// (in contact through <see cref="CoveredToUt"/>), <c>out-of-contact</c> (no
-    /// route is open now; <c>fleet.silence</c> says when it returns),
+    /// route is open now; the craft's <c>trackingStation.catalog</c> entry says when it is expected back),
     /// <c>not-planned</c> (the centre holds no plan that includes the craft) or
     /// <c>no-craft</c> (there is no active craft).
     /// </summary>

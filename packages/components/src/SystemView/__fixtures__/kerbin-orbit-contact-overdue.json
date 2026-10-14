@@ -1,11 +1,11 @@
 {
   "_meta": {
-    "shows": "A craft 240 seconds late reacquiring contact but still inside its grace window: its marker is amber and the change is announced as a status.",
+    "shows": "A craft 240 seconds past the instant the centre expected to hear it again: its marker is amber and the change is announced as a status.",
     "capturedAt": "2026-08-16",
     "vessel": "Tester (Mk1 pod)",
     "body": "Kerbin",
     "situation": "Orbiting ~100km",
-    "notes": "The predicted reacquisition has passed and the craft is still dark: 240 s late, inside its grace window. Amber, announced role=\"status\" because it is a change the operator should notice without being interrupted. Derived from kerbin-orbit-no-target.json by adding the silence.<guid>.state channel; geometry is identical so the renders differ only in contact treatment."
+    "notes": "The expected return, allowance included, has passed and the craft is still dark: 240 s late, overdue but not declared lost. Amber, announced role=\"status\" because it is a change the operator should notice without being interrupted. Derived from kerbin-orbit-no-target.json by adding the craft's entry to the trackingStation.catalog channel; geometry is identical so the renders differ only in contact treatment."
   },
   "_stream": {
     "pinnedUt": 0,
@@ -140,13 +140,22 @@
         }
       },
       {
-        "channel": "silence.Tester.state",
+        "channel": "trackingStation.catalog",
         "value": {
-          "state": "Silent",
-          "silenceSinceUt": -1019.0,
-          "deadlineUt": 605.8,
-          "deadlineBasis": "predicted-reacquisition",
-          "predictedReacquisitionUt": -240.0
+          "entries": [
+            {
+              "vesselId": "Tester",
+              "name": "Tester",
+              "vesselType": 0,
+              "situation": 3,
+              "bodyIndex": 1,
+              "contact": 2,
+              "lastContactUt": -1019.0,
+              "expectedReturnUt": -240.0,
+              "overdueAfterUt": -240.0,
+              "declaredLostUt": null
+            }
+          ]
         }
       }
     ]

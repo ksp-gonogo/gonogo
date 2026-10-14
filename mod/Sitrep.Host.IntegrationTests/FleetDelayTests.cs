@@ -26,11 +26,9 @@ namespace Sitrep.Host.IntegrationTests
         [InlineData("fleet.abc-123.orbit", "fleet.abc-123")] // per-vessel topic -> its own node
         [InlineData("fleet.abc-123.comms", "fleet.abc-123")] // any field under a vessel shares the node
         [InlineData("vessel.orbit", "system")]               // active-vessel topics stay on the single node
-        [InlineData("system.vessels", "system")]             // system topics unchanged
+        [InlineData("trackingStation.catalog", "system")]    // other topics unchanged
         [InlineData("comms.delay", "system")]
         [InlineData("fleet.abc-123", "system")]              // no field segment -> not a per-vessel topic
-        [InlineData("silence.abc-123.state", "fleet.abc-123")] // comms-owned reckoning shares the vessel's node
-        [InlineData("silence.abc-123", "system")]              // no field segment -> not a per-vessel topic
         [InlineData("extension.abc-123.field", "fleet.abc-123")] // an Uplink's own declared namespace, same node
         public void NodeForTopicRoutesFleetTopicsToPerVesselNodes(string topic, string expectedNode)
         {
@@ -353,101 +351,10 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The officially-lost feature publishes <c>fleet.&lt;guid&gt;.contact</c>
-        /// while the craft is dark: that is the only time it has anything to
-        /// say. On the ordinary Delayed path every one of those samples takes an
-        /// infinite reveal horizon and is then dropped on reconnect, so the
-        /// operator would be told nothing at all about the vessel that went
-        /// quiet, the exact opposite of the point. The channel is freeze-exempt
-        /// (the treatment <c>comms.link</c> already carries) and this pins both
-        /// halves: the report gets through, and it gets through no earlier than
-        /// the vessel's last-known signal delay allows.
-        /// </summary>
-        [Fact]
-        public async Task AContactReportPublishedWhileTheVesselIsDarkStillReachesTheClient()
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new FleetDelayTestUplink());
-            engine.Start();
-            try
-            {
-                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                var contactTopic = "fleet.q" + ChannelEngine.ContactMetaSuffix;
-                var silenceTopic = "silence.q.state";
-                await SubscribeAsync(client, "fleet.q.orbit", Timeout);
-                await SubscribeAsync(client, contactTopic, Timeout);
-                await SubscribeAsync(client, silenceTopic, Timeout);
-
-                // q is 3 light-seconds out while its link is up.
-                engine.TickAndWait(0.0, ContactFixture(0.0, connected: true), Timeout);
-                engine.TickAndWait(1.0, ContactFixture(1.0, connected: true), Timeout);
-                await DrainAllStreamDataAsync(client, Quiet);
-
-                // Dark from UT 2. Its routed light-time collapses to 0 in the same
-                // tick (no path left to measure), as the live CommNet read does.
-                for (var ut = 2.0; ut <= 4.0; ut += 1.0)
-                {
-                    engine.TickAndWait(ut, ContactFixture(ut, connected: false), Timeout);
-                }
-                var duringOutage = await DrainAllStreamDataAsync(client, Quiet);
-                // The exemption is not a free pass: the UT-2 report still waits
-                // out the vessel's last-known 3-second light-time, so by UT 4
-                // nothing from the blackout has surfaced. KSC cannot learn of the
-                // silence ahead of the light that carries the evidence for it.
-                Assert.DoesNotContain(duringOutage, f => f.Topic == contactTopic && f.Meta.ValidAt >= 2.0);
-                Assert.DoesNotContain(duringOutage, f => f.Topic == silenceTopic && f.Meta.ValidAt >= 2.0);
-
-                // Reacquisition at UT 5: the point at which that subject's held
-                // recording is dumped, and at which the UT-2 report's horizon is
-                // finally reached.
-                engine.TickAndWait(5.0, ContactFixture(5.0, connected: true), Timeout);
-                engine.TickAndWait(6.0, ContactFixture(6.0, connected: true), Timeout);
-                engine.TickAndWait(7.0, ContactFixture(7.0, connected: true), Timeout);
-                var afterHorizon = await DrainAllStreamDataAsync(client, Quiet);
-                // The recording is sent from UT 5, when the link is back, and is
-                // three light-seconds from landing. Read apart from the reports
-                // above, which a later sample of the same topic would supersede.
-                engine.TickAndWait(8.0, ContactFixture(8.0, connected: true), Timeout);
-                var afterReplay = await DrainAllStreamDataAsync(client, Quiet);
-
-                // The reports captured WHILE the craft was dark survived the
-                // freeze and reached the client, on their own last-known horizon.
-                Assert.Contains(
-                    afterHorizon,
-                    f => f.Topic == contactTopic && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 4.0);
-                Assert.Contains(
-                    afterHorizon,
-                    f => f.Topic == silenceTopic && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 4.0);
-                // Surgical, not blanket, and the distinction is still real now
-                // that the recorder replays rather than drops. The SAME vessel's
-                // ordinary telemetry over the SAME window is FROZEN throughout
-                // the outage: it reaches nobody while the craft is dark.
-                Assert.DoesNotContain(
-                    duringOutage,
-                    f => f.Topic == "fleet.q.orbit" && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 4.0);
-                // It arrives afterwards as the craft's RECORDING, which is the
-                // difference the exemption buys: the exempt reports get out on
-                // their own light-time as the outage runs, and everything else
-                // waits for the link and arrives labelled as a replay.
-                var orbitReplay = afterHorizon.Concat(afterReplay)
-                    .Where(f => f.Topic == "fleet.q.orbit" && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 4.0)
-                    .ToList();
-                Assert.NotEmpty(orbitReplay);
-                Assert.All(orbitReplay, f => Assert.Equal(Staleness.Recorded, f.Meta.Staleness));
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        /// <summary>
-        /// Core's two blackout reports are exempt from the freeze by their exact
-        /// topics. An Uplink's own per-vessel topic that happens to end in
-        /// <c>.state</c> or <c>.contact</c> is that craft's telemetry: it says
-        /// nothing during the outage, and arrives afterwards as the craft's
-        /// recording, where an exempt topic would have crossed mid-blackout on a
-        /// clock that is not the Uplink's to use.
+        /// An Uplink's own per-vessel topic named like a report of a blackout,
+        /// ending in <c>.state</c> or <c>.contact</c>, is that craft's
+        /// telemetry: it says nothing during the outage, and arrives afterwards
+        /// as the craft's recording.
         /// </summary>
         [Fact]
         public async Task AnUplinksLikeNamedPerVesselTopicIsHeldThroughTheBlackout()
@@ -458,11 +365,9 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                var coreState = "silence.q" + ChannelEngine.SilenceStateSuffix;
-                var coreContact = "fleet.q" + ChannelEngine.ContactMetaSuffix;
-                var uplinkState = FleetDelayTestUplink.ExtensionPrefix + "q" + ChannelEngine.SilenceStateSuffix;
-                var uplinkContact = FleetDelayTestUplink.ExtensionPrefix + "q" + ChannelEngine.ContactMetaSuffix;
-                foreach (var topic in new[] { "fleet.q.orbit", coreState, coreContact, uplinkState, uplinkContact })
+                var uplinkState = FleetDelayTestUplink.ExtensionPrefix + "q.state";
+                var uplinkContact = FleetDelayTestUplink.ExtensionPrefix + "q.contact";
+                foreach (var topic in new[] { "fleet.q.orbit", uplinkState, uplinkContact })
                 {
                     await SubscribeAsync(client, topic, Timeout);
                 }
@@ -472,16 +377,14 @@ namespace Sitrep.Host.IntegrationTests
                 await DrainAllStreamDataAsync(client, Quiet);
 
                 // Dark from UT 2 to UT 8, twice the craft's 3-second light-time:
-                // long enough for a report made early in the outage to cross
-                // while the craft is still dark.
+                // long enough for anything sent early in the outage to have crossed
+                // while the craft is still dark, had it been let through.
                 for (var ut = 2.0; ut <= 8.0; ut += 1.0)
                 {
                     engine.TickAndWait(ut, ContactFixture(ut, connected: false), Timeout);
                 }
                 var duringOutage = await DrainAllStreamDataAsync(client, Quiet);
 
-                Assert.Contains(duringOutage, f => f.Topic == coreState && f.Meta.ValidAt >= 2.0);
-                Assert.Contains(duringOutage, f => f.Topic == coreContact && f.Meta.ValidAt >= 2.0);
                 Assert.DoesNotContain(duringOutage, f => f.Topic == uplinkState && f.Meta.ValidAt >= 2.0);
                 Assert.DoesNotContain(duringOutage, f => f.Topic == uplinkContact && f.Meta.ValidAt >= 2.0);
 
@@ -824,7 +727,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A dark craft whose orbit widget is closed while its silence tracker
+        /// A dark craft whose orbit widget is closed while another of its topics
         /// stays open is still watched, and keeps the light-time it was last
         /// heard at rather than the 0 a lost path reports.
         /// </summary>
@@ -838,7 +741,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 await SubscribeAsync(client, "fleet.a.orbit", Timeout);
-                await SubscribeAsync(client, "silence.a.state", Timeout);
+                await SubscribeAsync(client, FleetDelayTestUplink.ExtensionPrefix + "a.field", Timeout);
                 await SubscribeAsync(client, "fleet.b.orbit", Timeout);
                 var node = ChannelEngine.FleetNodePrefix + "a";
 

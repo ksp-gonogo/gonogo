@@ -1,6 +1,7 @@
 import {
+  CatalogContact,
   type CommsNextLoss,
-  type FleetSilence,
+  type TrackingStationCatalog,
   TransitionType,
   type Value,
   type VesselIdentity,
@@ -39,7 +40,8 @@ export interface WarpEventTarget {
 
 export interface WarpEventReadings {
   orbit: VesselOrbit | undefined;
-  silence: FleetSilence | undefined;
+  /** The centre's catalog, whose entry for the active craft says when the centre expects to hear it again. */
+  catalog: TrackingStationCatalog | undefined;
   identity: VesselIdentity | undefined;
   /** The centre's predicted loss of the whole route to the active craft. */
   loss: CommsNextLoss | undefined;
@@ -77,16 +79,17 @@ function soiTarget({ orbit, viewUt }: WarpEventReadings): WarpEventTarget {
   };
 }
 
-/** When the active craft's radio path is predicted to re-open, which only exists while it is silent. */
+/** When the centre expects to hear the active craft again, which only exists while it is silent there. */
 function contactTarget({
-  silence,
+  catalog,
   identity,
   viewUt,
 }: WarpEventReadings): WarpEventTarget {
-  const entry = silence?.vessels.find(
-    (v) => v.vesselId === identity?.vesselId && v.state === "Silent",
+  const entry = catalog?.entries.find(
+    (v) =>
+      v.vesselId === identity?.vesselId && v.contact === CatalogContact.Silent,
   );
-  const ut = finiteUt(entry?.predictedReacquisitionUt);
+  const ut = finiteUt(entry?.expectedReturnUt);
   const ahead = ut !== null && viewUt !== undefined && ut > viewUt;
   return {
     id: "contact",

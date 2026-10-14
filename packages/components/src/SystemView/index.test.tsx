@@ -1,5 +1,5 @@
 import { ContributionsProvider, WidgetMetaContext } from "@ksp-gonogo/core";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { CatalogContact, Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
@@ -136,14 +136,13 @@ describe("SystemViewComponent", () => {
   /** What each contact state may announce: a running countdown must not sit in a live region, overdue is polite, lost is assertive. */
   describe("contact state", () => {
     const SILENT = {
-      state: "Silent",
-      silenceSinceUt: 50,
-      deadlineUt: 900,
-      deadlineBasis: "predicted-reacquisition",
-      predictedReacquisitionUt: 400,
+      contact: CatalogContact.Silent,
+      lastContactUt: 50,
+      expectedReturnUt: 400,
+      overdueAfterUt: 400,
     };
 
-    async function renderWithContact(silence: Record<string, unknown>) {
+    async function renderWithContact(contact: Record<string, unknown>) {
       render(
         <fixture.Provider>
           <WithContributions>
@@ -152,17 +151,26 @@ describe("SystemViewComponent", () => {
         </fixture.Provider>,
       );
       primeStream();
-      // The transport is subscription-gated, and the silence.<guid>.state subscription exists only once identity has arrived.
       await screen.findAllByText(/Kerbin/i);
       act(() => {
-        fixture.emit("silence.v.state", silence);
+        fixture.emit("trackingStation.catalog", {
+          entries: [
+            {
+              vesselId: "v",
+              name: "V",
+              vesselType: 0,
+              situation: 3,
+              ...contact,
+            },
+          ],
+        });
       });
     }
 
-    it("counts down to a predicted reacquisition without announcing it", async () => {
+    it("counts down to the expected return without announcing it", async () => {
       await renderWithContact(SILENT);
 
-      // pinned UT 100, predicted 400 => 5 minutes out
+      // pinned UT 100, expected 400 => 5 minutes out
       const caption = await screen.findByText(/reacquire expected/i);
       expect(caption).toBeInTheDocument();
       // A per-tick clock inside a live region would be read aloud forever.
@@ -171,7 +179,12 @@ describe("SystemViewComponent", () => {
     });
 
     it("announces overdue politely, and does not call it lost", async () => {
-      await renderWithContact({ ...SILENT, predictedReacquisitionUt: 60 });
+      await renderWithContact({
+        ...SILENT,
+        contact: CatalogContact.Overdue,
+        expectedReturnUt: 60,
+        overdueAfterUt: 60,
+      });
 
       const caption = await screen.findByText(/overdue by/i);
       expect(caption.closest("[role='status']")).not.toBeNull();
@@ -179,17 +192,17 @@ describe("SystemViewComponent", () => {
     });
 
     it("announces an official loss assertively", async () => {
-      await renderWithContact({ ...SILENT, state: "Lost" });
+      await renderWithContact({ ...SILENT, contact: CatalogContact.Lost });
 
       const caption = await screen.findByText(/officially lost/i);
       expect(caption.closest("[role='alert']")).not.toBeNull();
     });
 
-    it("shows no countdown for a silence geometry cannot explain", async () => {
+    it("shows no countdown for a craft with no expected return", async () => {
       await renderWithContact({
         ...SILENT,
-        deadlineBasis: "no-occultation",
-        predictedReacquisitionUt: null,
+        expectedReturnUt: null,
+        overdueAfterUt: null,
       });
 
       expect(await screen.findByText(/no contact/i)).toBeInTheDocument();

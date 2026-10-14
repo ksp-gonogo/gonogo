@@ -42,7 +42,7 @@ function FleetRosterComponent({
 
   return (
     <Panel
-      panelTitle="Fleet"
+      panelTitle="Fleet Roster"
       panelBadges={[
         // Before the roster arrives there is nothing to roll up, which "No Vessels" would claim is an empty fleet.
         known
@@ -70,7 +70,12 @@ function FleetRosterComponent({
         </Section>,
         /* No ScrollArea: Panel's body is the scroller. */
         <Section key="roster" full>
-          <RosterTable known={known} vessels={vessels} compact={(w ?? 8) < 6} />
+          <RosterTable
+            known={known}
+            vessels={vessels}
+            compact={(w ?? 8) < 6}
+            contactHeld={reading.state === "held"}
+          />
         </Section>,
       ]}
     />

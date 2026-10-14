@@ -54,7 +54,6 @@
        tests would stay green, saying nothing. -->
   <ItemGroup>
     <Compile Include="..\Gonogo.KSP\FleetVesselLinkBuilder.cs" />
-    <Compile Include="..\Gonogo.KSP\FleetVesselContactBuilder.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyEventBuilder.cs" />
   </ItemGroup>
 

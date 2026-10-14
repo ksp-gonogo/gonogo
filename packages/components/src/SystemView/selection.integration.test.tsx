@@ -108,8 +108,8 @@ function mountScene() {
       epoch: 0,
       mu: KERBIN_MU,
     });
-    fixture.emit("system.vessels", {
-      vessels: [
+    fixture.emit("trackingStation.catalog", {
+      entries: [
         {
           vesselId: "v-active",
           name: "Active Craft",

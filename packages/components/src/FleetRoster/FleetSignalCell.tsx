@@ -1,11 +1,13 @@
+import { readingOf, useFleetVesselLink } from "@ksp-gonogo/sitrep-client";
 import {
-  readingOf,
-  useFleetVesselContact,
-  useFleetVesselLink,
-} from "@ksp-gonogo/sitrep-client";
-import { delayVisibility, stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
+  CatalogContact,
+  delayVisibility,
+  stillTrue,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { HoverCard, Unit } from "@ksp-gonogo/ui-kit";
 import type { Tone } from "./comms";
+import type { FleetContact } from "./fleet";
 import { CommsTag } from "./RosterCells";
 
 function linkStateLabel(reachable: boolean | null, held: boolean): string {
@@ -27,28 +29,32 @@ const DEFINITION_STYLE = {
 
 /**
  * The per-row Link cell: hovering or focusing the connectivity tag shows this vessel's reachability and signal delay.
- * Reachability comes only off freeze-exempt `.contact`: the last `.delay` payload before a blackout still says `connected: true`, so its `connected` is never read.
+ * Reachability comes only off the catalog's contact: the last `.delay` payload before a blackout still says `connected: true`, so its `connected` is never read.
  */
 export function FleetSignalCell({
   guid,
   vesselName,
   tone,
   label,
+  contact,
+  contactHeld,
 }: {
   guid: string;
   vesselName: string;
   tone: Tone;
   label: string;
+  contact: FleetContact;
+  /** Whether the catalog the contact came from has stopped arriving, so it is the last known. */
+  contactHeld: boolean;
 }) {
-  const contactReading = useFleetVesselContact(guid);
   const linkReading = useFleetVesselLink(guid);
-  const contact = stillTrue(contactReading, undefined);
   const link = stillTrue(linkReading, undefined);
   const oneWay = link?.oneWaySeconds ?? null;
   // One read of reachability, so the Link term and the Delay label cannot disagree.
-  const reachable = contact == null ? null : contact.connected === true;
-  // A reachability that has stopped arriving is the last one known, and says so.
-  const contactHeld = contactReading.state === "held";
+  const reachable =
+    contact.contact == null
+      ? null
+      : contact.contact === CatalogContact.InContact;
   // A light-time from before the link dropped, or one that stopped arriving, is still worth showing but is not a present reading.
   const heldOver =
     reachable === false || contactHeld || linkReading.state === "held";

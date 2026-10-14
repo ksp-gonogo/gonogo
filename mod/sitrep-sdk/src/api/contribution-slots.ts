@@ -364,7 +364,7 @@ export interface SystemEntity {
   style?: SystemEntityStyle;
   /** Rows describing the entity, shown when it is selected. */
   meta?: SystemEntityMeta;
-  /** The `vesselId` from `system.vessels` when the entity is a vessel, so the widget matches it to the vessel by identity. */
+  /** The `vesselId` from `trackingStation.catalog` when the entity is a vessel, so the widget matches it to the vessel by identity. */
   vesselId?: string;
   /** Stacking order that overrides the shape's default layer; higher is in front. Ties keep contribution order. */
   zHint?: number;

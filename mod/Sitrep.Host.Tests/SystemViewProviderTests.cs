@@ -475,7 +475,7 @@ namespace Sitrep.Host.Tests
             Assert.Single(homeFlags, v => v is true);
         }
 
-        // system.vessels -- M3 R3 roster capture-add
+        // trackingStation.catalog -- the raw roster each centre's catalog is built from
 
         [Fact]
         public void BuildTargetAvailableMapsEveryKindWithStableIdsDistanceAndIsCurrent()
@@ -557,7 +557,7 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void BuildSystemVesselsMapsEveryVesselAndResolvesMainBodyToAnIndex()
+        public void BuildCatalogMapsEveryVesselAndResolvesMainBodyToAnIndex()
         {
             var snapshot = new KspSnapshot
             {
@@ -591,10 +591,10 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+            var payload = SystemViewProvider.BuildTrackingStationCatalog(snapshot);
 
             var root = Assert.IsType<Dictionary<string, object?>>(payload);
-            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            var vessels = Assert.IsType<List<object?>>(root["entries"]);
             Assert.Equal(2, vessels.Count);
 
             var first = Assert.IsType<Dictionary<string, object?>>(vessels[0]);
@@ -609,7 +609,7 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void BuildSystemVesselsCarriesAGroundCraftsSiteAndCoordinatesAndNothingForOneInFlight()
+        public void BuildCatalogCarriesAGroundCraftsSiteAndCoordinatesAndNothingForOneInFlight()
         {
             var snapshot = new KspSnapshot
             {
@@ -645,8 +645,8 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            var root = Assert.IsType<Dictionary<string, object?>>(SystemViewProvider.BuildSystemVessels(snapshot));
-            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            var root = Assert.IsType<Dictionary<string, object?>>(SystemViewProvider.BuildTrackingStationCatalog(snapshot));
+            var vessels = Assert.IsType<List<object?>>(root["entries"]);
 
             var ground = Assert.IsType<Dictionary<string, object?>>(vessels[0]);
             Assert.Equal("Runway", ground["landedAt"]);
@@ -660,10 +660,10 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void BuildSystemVesselsMapsEachVesselsOwnOrbitViaTheSharedBuildOrbitRoutine()
+        public void BuildCatalogMapsEachVesselsOwnOrbitViaTheSharedBuildOrbitRoutine()
         {
             // The join a SystemView graph node uses to derive its position:
-            // no separate node-position field, see VesselRosterEntry.Orbit's
+            // no separate node-position field, see CatalogEntry.Orbit's
             // own doc comment. Reuses the same raw key set (and the same
             // BuildOrbit helper) BuildBody uses for BodyEntry.Orbit.
             var snapshot = new KspSnapshot
@@ -697,10 +697,10 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+            var payload = SystemViewProvider.BuildTrackingStationCatalog(snapshot);
 
             var root = Assert.IsType<Dictionary<string, object?>>(payload);
-            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            var vessels = Assert.IsType<List<object?>>(root["entries"]);
 
             var withOrbit = Assert.IsType<Dictionary<string, object?>>(vessels[0]);
             var orbit = Assert.IsType<Dictionary<string, object?>>(withOrbit["orbit"]);
@@ -717,7 +717,7 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void BuildSystemVesselsDropsAnEntryWithNoResolvableIdRatherThanFabricatingOne()
+        public void BuildCatalogDropsAnEntryWithNoResolvableIdRatherThanFabricatingOne()
         {
             var snapshot = new KspSnapshot
             {
@@ -733,17 +733,17 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+            var payload = SystemViewProvider.BuildTrackingStationCatalog(snapshot);
 
             var root = Assert.IsType<Dictionary<string, object?>>(payload);
-            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            var vessels = Assert.IsType<List<object?>>(root["entries"]);
             var entry = Assert.Single(vessels);
             var dict = Assert.IsType<Dictionary<string, object?>>(entry);
             Assert.Equal("22222222-0000-0000-0000-000000000000", dict["vesselId"]);
         }
 
         [Fact]
-        public void BuildSystemVesselsLeavesBodyIndexNullWhenMainBodyIsAbsentOrUnresolved()
+        public void BuildCatalogLeavesBodyIndexNullWhenMainBodyIsAbsentOrUnresolved()
         {
             var snapshot = new KspSnapshot
             {
@@ -762,10 +762,10 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+            var payload = SystemViewProvider.BuildTrackingStationCatalog(snapshot);
 
             var root = Assert.IsType<Dictionary<string, object?>>(payload);
-            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            var vessels = Assert.IsType<List<object?>>(root["entries"]);
             var first = Assert.IsType<Dictionary<string, object?>>(vessels[0]);
             var second = Assert.IsType<Dictionary<string, object?>>(vessels[1]);
             Assert.Null(first["bodyIndex"]);
@@ -773,33 +773,33 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void BuildSystemVesselsReturnsEmptyRosterNotNullWhenTheListIsEmpty()
+        public void BuildCatalogReturnsEmptyRosterNotNullWhenTheListIsEmpty()
         {
             // Distinguishes "no data yet" (no "vessels" key -> null payload,
             // covered above) from "FlightGlobals genuinely reports zero
-            // vessels" (key present, empty list -> {"vessels": []}).
+            // vessels" (key present, empty list -> {"entries": []}).
             var snapshot = new KspSnapshot
             {
                 Ut = 0.0,
                 Values = new Dictionary<string, object?> { ["vessels"] = new List<object?>() },
             };
 
-            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+            var payload = SystemViewProvider.BuildTrackingStationCatalog(snapshot);
 
             var root = Assert.IsType<Dictionary<string, object?>>(payload);
-            Assert.Empty(Assert.IsType<List<object?>>(root["vessels"]));
+            Assert.Empty(Assert.IsType<List<object?>>(root["entries"]));
         }
 
         [Fact]
-        public void BuildSystemVesselsReturnsNullWhenSnapshotHasNoVesselsKeyAtAll()
+        public void BuildCatalogReturnsNullWhenSnapshotHasNoVesselsKeyAtAll()
         {
             var snapshot = new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() };
 
-            Assert.Null(SystemViewProvider.BuildSystemVessels(snapshot));
+            Assert.Null(SystemViewProvider.BuildTrackingStationCatalog(snapshot));
         }
 
         [Fact]
-        public void BuildSystemVesselsMapsCrewAndCommsFieldsWhenThePresenterReadThem()
+        public void BuildCatalogMapsCrewAndCommsFieldsWhenThePresenterReadThem()
         {
             var snapshot = new KspSnapshot
             {
@@ -821,10 +821,10 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+            var payload = SystemViewProvider.BuildTrackingStationCatalog(snapshot);
 
             var root = Assert.IsType<Dictionary<string, object?>>(payload);
-            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            var vessels = Assert.IsType<List<object?>>(root["entries"]);
             var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(vessels));
 
             Assert.Equal(3, entry["crewCount"]);
@@ -834,7 +834,7 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void BuildSystemVesselsLeavesCrewAndCommsNullWhenThePresenterCouldNotReadThem()
+        public void BuildCatalogLeavesCrewAndCommsNullWhenThePresenterCouldNotReadThem()
         {
             // The producer omits crewCount/crewCapacity/commsConnected/
             // commsControlSource entirely (never a fabricated zero/false)
@@ -856,10 +856,10 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+            var payload = SystemViewProvider.BuildTrackingStationCatalog(snapshot);
 
             var root = Assert.IsType<Dictionary<string, object?>>(payload);
-            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            var vessels = Assert.IsType<List<object?>>(root["entries"]);
             var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(vessels));
 
             Assert.Null(entry["crewCount"]);
@@ -873,7 +873,7 @@ namespace Sitrep.Host.Tests
         [InlineData("Partial", RosterCommsControlSource.Partial)]
         [InlineData("Full", RosterCommsControlSource.Full)]
         [InlineData("Unknown", RosterCommsControlSource.Unknown)]
-        public void BuildSystemVesselsMapsEveryRosterControlSourceTier(string raw, RosterCommsControlSource expected)
+        public void BuildCatalogMapsEveryRosterControlSourceTier(string raw, RosterCommsControlSource expected)
         {
             var snapshot = new KspSnapshot
             {
@@ -891,9 +891,9 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            var payload = SystemViewProvider.BuildSystemVessels(snapshot);
+            var payload = SystemViewProvider.BuildTrackingStationCatalog(snapshot);
             var root = Assert.IsType<Dictionary<string, object?>>(payload);
-            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
+            var vessels = Assert.IsType<List<object?>>(root["entries"]);
             var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(vessels));
 
             Assert.Equal((int)expected, entry["commsControlSource"]);
@@ -994,8 +994,8 @@ namespace Sitrep.Host.Tests
 
         // ----------------------------------------------------------------
         // Contract-shape mirror (P0.5): the named Sitrep.Contract payload
-        // types (SystemBodies/BodyEntry/OrbitEntry, SystemVessels/
-        // VesselRosterEntry) exist so a widget resolves a real payload type
+        // types (SystemBodies/BodyEntry/OrbitEntry, TrackingStationCatalog/
+        // CatalogEntry) exist so a widget resolves a real payload type
         // instead of `unknown`. They are TYPING-ONLY, they do NOT
         // participate in serialization (JsonWriter walks the provider's live
         // value tree, not these POCOs). Nothing at compile time binds the
@@ -1067,7 +1067,7 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void SystemVesselsContractTypeMirrorsTheProviderWireShapeExactly()
+        public void CatalogContractTypeMirrorsTheProviderWireShapeExactly()
         {
             var snapshot = new KspSnapshot
             {
@@ -1092,12 +1092,12 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            var root = Assert.IsType<Dictionary<string, object?>>(SystemViewProvider.BuildSystemVessels(snapshot));
+            var root = Assert.IsType<Dictionary<string, object?>>(SystemViewProvider.BuildTrackingStationCatalog(snapshot));
 
-            Assert.Equal(WireFieldNamesOf(typeof(SystemVessels)), root.Keys.ToHashSet());
+            Assert.Equal(WireFieldNamesOf(typeof(TrackingStationCatalog)), root.Keys.ToHashSet());
 
-            var vessels = Assert.IsType<List<object?>>(root["vessels"]);
-            Assert.Equal(WireFieldNamesOf(typeof(VesselRosterEntry)), KeysOf(vessels[0]));
+            var vessels = Assert.IsType<List<object?>>(root["entries"]);
+            Assert.Equal(WireFieldNamesOf(typeof(CatalogEntry)), KeysOf(vessels[0]));
         }
     }
 }

@@ -1,6 +1,6 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
 import type { UseCommandResult } from "@ksp-gonogo/sitrep-client";
-import type { VesselRosterEntry } from "@ksp-gonogo/sitrep-sdk";
+import type { CatalogEntry } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CommandButtonHandle,
   SelectableRow,
@@ -64,7 +64,7 @@ interface PadSectionProps {
   revertEditorCmd: CommandButtonHandle;
   switchCmd: CommandButtonHandle;
   /** The fleet the operator can fly from here, none when the roster has not arrived. */
-  flyable: readonly VesselRosterEntry[];
+  flyable: readonly CatalogEntry[];
   slotContext: LaunchDirectorSlotContext;
 }
 

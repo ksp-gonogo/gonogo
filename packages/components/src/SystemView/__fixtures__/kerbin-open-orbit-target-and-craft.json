@@ -5,7 +5,7 @@
     "vessel": "Tester (Mk1 pod)",
     "body": "Kerbin",
     "situation": "In low Kerbin orbit; the target is on an escape orbit and one roster craft is inbound on an open orbit",
-    "notes": "SYNTHETIC. kerbin-orbit-no-target.json's system and craft, plus a vessel.target about Kerbin on an open orbit (sma -12 Mm, ecc 1.5, periapsis 6 Mm, 0.4 rad of mean anomaly past it) that escapes at UT 113100, where its hyperbola reaches Kerbin's 84.2 Mm sphere of influence, and a system.vessels roster of two: one inbound on an open orbit (sma -20 Mm, ecc 1.25, periapsis 5 Mm, 1.5 rad of mean anomaly short of it) and one in a closed keostationary orbit for contrast."
+    "notes": "SYNTHETIC. kerbin-orbit-no-target.json's system and craft, plus a vessel.target about Kerbin on an open orbit (sma -12 Mm, ecc 1.5, periapsis 6 Mm, 0.4 rad of mean anomaly past it) that escapes at UT 113100, where its hyperbola reaches Kerbin's 84.2 Mm sphere of influence, and a trackingStation.catalog roster of two: one inbound on an open orbit (sma -20 Mm, ecc 1.25, periapsis 5 Mm, 1.5 rad of mean anomaly short of it) and one in a closed keostationary orbit for contrast."
   },
   "_stream": {
     "pinnedUt": 0,
@@ -180,9 +180,9 @@
         }
       },
       {
-        "channel": "system.vessels",
+        "channel": "trackingStation.catalog",
         "value": {
-          "vessels": [
+          "entries": [
             {
               "vesselId": "v-eve-return",
               "name": "Eve Return",

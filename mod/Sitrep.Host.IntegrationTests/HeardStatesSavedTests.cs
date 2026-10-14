@@ -62,7 +62,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task ALoadRevealsNothingACentreHadNotHeardWhenTheGameWasSaved()
         {
             await using var world = await ReckonedVantageWorld.StartAsync();
-            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.VesselsTopic);
+            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.CatalogTopic);
             await using var seated = client;
             foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
             {
@@ -130,7 +130,7 @@ namespace Sitrep.Host.IntegrationTests
         public async Task ACraftReadAgainAfterALoadOutsideFlightStaysOnACentresList()
         {
             await using var world = await ReckonedVantageWorld.StartAsync();
-            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.VesselsTopic);
+            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.CatalogTopic);
             await using var seated = client;
             foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
             {

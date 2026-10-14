@@ -17,8 +17,8 @@ export function TrackingStationPanel({
   switchCmd: CommandButtonHandle;
 }) {
   // The roster changes on events, so the last one received still lists the fleet.
-  const roster = stillTrue(useTelemetry("system.vessels"), undefined);
-  const vessels = (roster?.vessels ?? []).filter(
+  const roster = stillTrue(useTelemetry("trackingStation.catalog"), undefined);
+  const vessels = (roster?.entries ?? []).filter(
     (v) => v.vesselType !== VesselType.SpaceObject,
   );
   return (

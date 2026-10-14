@@ -2,7 +2,7 @@
   "_meta": {
     "shows": "A craft in flight at 1x, in contact now, with its route predicted to close in about forty minutes and a sunrise and sunset ahead, for the warp-to loss of signal and light targets.",
     "scenario": "loss-and-light-ahead",
-    "notes": "comms.nextLoss gives the predicted-loss instant of the whole route; vessel.light gives the craft's next sunrise and sunset from the mod's sweep; fleet.silence lists the craft Nominal so no signal return is offered."
+    "notes": "comms.nextLoss gives the predicted-loss instant of the whole route; vessel.light gives the craft's next sunrise and sunset from the mod's sweep; trackingStation.catalog lists the craft in contact so no signal return is offered."
   },
   "kc.scene": "Flight",
   "kc.padOccupied": false,
@@ -51,12 +51,15 @@
         }
       },
       {
-        "channel": "fleet.silence",
+        "channel": "trackingStation.catalog",
         "value": {
-          "vessels": [
+          "entries": [
             {
               "vesselId": "11111111-1111-1111-1111-111111111111",
-              "state": "Nominal"
+              "name": "Craft",
+              "vesselType": 0,
+              "situation": 3,
+              "contact": 0
             }
           ]
         }

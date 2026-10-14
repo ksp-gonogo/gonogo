@@ -298,12 +298,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    */
   "mod/sitrep-sdk/src/spine/delta-v-budget.ts": 2,
   "mod/sitrep-sdk/src/spine/delay-authority.ts": 1,
-  // The one decode of a `fleet.` payload's quantities. Whether a quantity
-  // arrives wrapped depends on the TOPIC, not the type: `wrapTopicPayload` keys
-  // on the exact topic string, so `fleet.silence` delivers a Value where its
-  // per-guid sibling delivers a bare number for the same field. A reader of
-  // both has to accept either. Not arithmetic: the number is handed to the
-  // caller and never computed with here.
+  // The one decode of a quantity that may or may not arrive wrapped. Whether
+  // it does depends on the TOPIC, not the type: `wrapTopicPayload` keys on the
+  // exact topic string, so `trackingStation.catalog` delivers a Value where a
+  // per-guid topic delivers a bare number. A reader handed either has to
+  // accept either. Not arithmetic: the number is handed to the caller and
+  // never computed with here.
   "packages/sitrep-client/src/wire-magnitude.ts": 1,
   // `readWireUt`, the one read of a universal time off a raw `alarm.activeList` or
   // `alarm.scet.fired` frame, taken straight off the arrival rather than

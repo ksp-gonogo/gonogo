@@ -43,7 +43,6 @@
     <Compile Include="..\Gonogo.KSP\MakingHistoryReads.cs" />
     <Compile Include="..\Gonogo.KSP\ExpansionHealth.cs" />
     <Compile Include="..\Gonogo.KSP\RescanGate.cs" />
-    <Compile Include="..\Gonogo.KSP\LastContactBook.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyEventBuilder.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscDelay.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscDelayPolicy.cs" />
@@ -395,22 +394,15 @@
          type and was unreachable while the path came from KSPUtil. -->
     <Compile Include="..\Gonogo.KSP\Settings\ConfigNodeSettingsStore.cs" />
     <Compile Include="Settings\**\*.cs" />
-    <!-- FleetSilenceChannels.cs is CommsCoreUplink.Register's direct dependency
+    <!-- SilenceForecasts.cs is CommsCoreUplink.Register's direct dependency
          (comms registers the SilenceTracker's reckoning when elected, see that
          call site), so it has to resolve here too. It walks FlightGlobals.Vessels
          live, the same live-scene dependency as CommNetBackend.cs above, so it
          gets the same gating. -->
-    <Compile Include="..\Gonogo.KSP\SilenceTracking\FleetSilenceChannels.cs" />
+    <Compile Include="..\Gonogo.KSP\SilenceTracking\SilenceForecasts.cs" />
     <Compile Include="..\Gonogo.KSP\SilenceTracking\SilenceGeometrySink.cs" />
     <Compile Include="..\Gonogo.KSP\SilenceTracking\SilenceTrace.cs" />
     <Compile Include="..\Gonogo.KSP\SilenceTracking\SilenceTrackerSink.cs" />
-    <Compile Include="..\Gonogo.KSP\FleetVesselSilenceBuilder.cs" />
-    <!-- FleetSilenceRosterBuilder.cs builds the fleet.silence aggregate out of
-         the same per-vessel builder above, and FleetSilenceChannels.cs calls
-         it, so it has to resolve alongside them. Pure dictionary shaping with
-         no KSP types of its own; it sits under the gate only because its
-         caller does. -->
-    <Compile Include="..\Gonogo.KSP\FleetSilenceRosterBuilder.cs" />
     <!-- FleetVesselResourcesBuilder.cs is the same shape: pure dictionary
          shaping with no KSP types, compiled here because FleetChannels.cs (which
          does walk live parts) calls it. -->

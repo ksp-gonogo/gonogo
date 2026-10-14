@@ -65,7 +65,7 @@ export function alarmSubjectKey(alarm: Alarm): string | null {
  * channel, so an upward walk would light a widget for an alarm on a quantity it
  * never draws: a loud false positive traded for a silent miss.
  *
- * `declaredFamilies` are patterns such as `fleet.<vessel>.contact`; an alarm
+ * `declaredFamilies` are patterns such as `fleet.<vessel>.delay`; an alarm
  * on a member of one, or a field beneath a member, lights the widget.
  */
 export function alarmMatchesWidget(

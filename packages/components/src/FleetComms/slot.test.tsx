@@ -104,8 +104,8 @@ describe("FleetComms: actions augment on SystemView, comms drawing on the contri
         mu: KERBIN_MU,
         horizon: UNBOUNDED_HORIZON,
       });
-      fixture.emit("system.vessels", {
-        vessels: [
+      fixture.emit("trackingStation.catalog", {
+        entries: [
           {
             vesselId: "v-active",
             name: "Test Ship",

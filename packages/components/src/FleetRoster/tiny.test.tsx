@@ -26,8 +26,8 @@ describe("FleetRoster tiny mode", () => {
     }
 
     act(() => {
-      fixture.emit("system.vessels", {
-        vessels: [
+      fixture.emit("trackingStation.catalog", {
+        entries: [
           {
             vesselId: "a",
             name: "A",

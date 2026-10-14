@@ -62,10 +62,10 @@ export function LaunchDirectorComponent({
     () => awayBodyNames(bodies?.bodies ?? []),
     [bodies],
   );
-  const roster = stillTrue(useTelemetry("system.vessels"), undefined);
+  const roster = stillTrue(useTelemetry("trackingStation.catalog"), undefined);
   const flyable = useMemo(
     () =>
-      (roster?.vessels ?? []).filter(
+      (roster?.entries ?? []).filter(
         (v) => v.vesselType !== VesselType.SpaceObject,
       ),
     [roster],

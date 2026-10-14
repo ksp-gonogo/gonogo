@@ -50,7 +50,7 @@ namespace Sitrep.Host.IntegrationTests
         private static async Task<Seated> AtHomeAsync(ScriptedContactGame game)
         {
             var world = await ReckonedVantageWorld.StartAsync(game);
-            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.VesselsTopic);
+            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.CatalogTopic);
             return new Seated { World = world, Client = client, View = view };
         }
 

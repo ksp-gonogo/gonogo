@@ -109,8 +109,8 @@ describe("SystemView: comms.network relay graph as faint connection lines", () =
         epoch: 0,
         mu: KERBIN_MU,
       });
-      fixture.emit("system.vessels", {
-        vessels: [
+      fixture.emit("trackingStation.catalog", {
+        entries: [
           {
             vesselId: "v-active",
             name: "Tester",
@@ -153,7 +153,7 @@ describe("SystemView: comms.network relay graph as faint connection lines", () =
         ],
         edges: [
           { a: "home", b: "v-relay", active: true },
-          // "v-ghost" never lands on system.vessels: this edge must be omitted outright, never drawn from a fabricated position.
+          // "v-ghost" never lands on trackingStation.catalog: this edge must be omitted outright, never drawn from a fabricated position.
           { a: "v-relay", b: "v-ghost", active: true },
         ],
       });
