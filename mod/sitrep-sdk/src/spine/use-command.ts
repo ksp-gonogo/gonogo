@@ -131,8 +131,9 @@ function isModFault(code: string): boolean {
  * `system.uplink.pending` before this hook gives up tracking it, which is how
  * a command that was never delayed leaves the tracking. A delayed command's
  * entry is in the next queue snapshot whatever its own `oneWaySeconds`, so the
- * window has only to outlast one queue broadcast, never a round trip. The hook
- * counts in game UT, so the window is this many seconds times the warp rate.
+ * window has only to outlast one queue broadcast, never a round trip. Counted on
+ * the page's clock, because the mod broadcasts the queue on real time while the
+ * game is paused.
  */
 const NEVER_TRACKED_GRACE_SECONDS = 5;
 
@@ -349,9 +350,9 @@ function resolveTracked(
   cache: Map<string, PendingEntry>,
   firstSeenAt: Map<string, number>,
   nowUt: number,
+  nowWall: number,
   pathConnectedDuring: PathConnectedDuring,
   acknowledged: (id: string) => boolean,
-  graceUt: number,
 ): TrackedResolution {
   /* Matched on the requestId the queue echoes back, never on `entry.id`, which is the engine's own counter and collides with this client's. */
   const found = queue?.pending.find((entry) => entry.clientRequestId === id);
@@ -373,7 +374,10 @@ function resolveTracked(
 
   if (!entry) {
     const firstSeen = firstSeenAt.get(id);
-    if (firstSeen !== undefined && nowUt - firstSeen >= graceUt) {
+    if (
+      firstSeen !== undefined &&
+      nowWall - firstSeen >= NEVER_TRACKED_GRACE_SECONDS
+    ) {
       return { kind: "expired" };
     }
     return { kind: "waiting" };
@@ -744,11 +748,9 @@ export function useCommand(
   // the freshly-computed render-scope value.
   const nowUtRef = useRef(nowUt);
   nowUtRef.current = nowUt;
-  const graceUt =
-    NEVER_TRACKED_GRACE_SECONDS *
-    Math.max(1, store?.clock.snapshot().warpRate ?? 1);
-  const graceUtRef = useRef(graceUt);
-  graceUtRef.current = graceUt;
+  const nowWall = store?.clock.wallNow() ?? performance.now() / 1000;
+  const nowWallRef = useRef(nowWall);
+  nowWallRef.current = nowWall;
   // The clock and the command's delay, for `send` to judge arrival at the moment it is called.
   const storeRef = useRef(store);
   storeRef.current = store;
@@ -789,9 +791,9 @@ export function useCommand(
         entryCacheRef.current,
         firstSeenAtRef.current,
         nowUt,
+        nowWall,
         pathConnectedDuring,
         acknowledged,
-        graceUt,
       );
       if (resolution.kind === "classified") computed.push(resolution.item);
     }
@@ -839,9 +841,9 @@ export function useCommand(
           entryCacheRef.current,
           firstSeenAtRef.current,
           nowUtRef.current,
+          nowWallRef.current,
           pathConnectedDuring,
           acknowledged,
-          graceUtRef.current,
         );
         return (
           resolution.kind === "classified" || resolution.kind === "waiting"
@@ -1000,7 +1002,10 @@ export function useCommand(
       label: string,
     ): Promise<AnyCommandReply> => {
       setRequestId(newRequestId);
-      firstSeenAtRef.current.set(newRequestId, nowUtRef.current);
+      firstSeenAtRef.current.set(
+        newRequestId,
+        storeRef.current?.clock.wallNow() ?? performance.now() / 1000,
+      );
       setDispatchedIds((prev) => [...prev, newRequestId]);
       // Schedule the dev-only rail check on the first unverified dispatch (see the effect above).
       if (process.env.NODE_ENV !== "production" && !railVerifiedRef.current) {

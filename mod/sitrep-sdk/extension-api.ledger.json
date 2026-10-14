@@ -9431,6 +9431,10 @@
         "note": "Gains an optional replayed argument: a replayed sample anchors the estimate only when it is the newest delivery seen"
       },
       {
+        "key": "sitrep-sdk ./spine ViewClock#wallNow",
+        "note": "New: the page's own clock in seconds, which runs on while the game is paused or warping"
+      },
+      {
         "key": "sitrep-sdk ./spine commsPeerPositionAt",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
@@ -9685,6 +9689,10 @@
       {
         "key": "sitrep-sdk ./testing ViewClock#observeSample",
         "note": "Gains an optional replayed argument: a replayed sample anchors the estimate only when it is the newest delivery seen"
+      },
+      {
+        "key": "sitrep-sdk ./testing ViewClock#wallNow",
+        "note": "New: the page's own clock in seconds, which runs on while the game is paused or warping"
       },
       {
         "key": "sitrep-sdk ./testing harnessTheme",

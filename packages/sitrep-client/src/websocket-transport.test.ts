@@ -2,6 +2,7 @@ import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import {
   classifyCommandRejection,
   FaultCode,
+  PerfBudget,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { ManualClock } from "@ksp-gonogo/sitrep-server";
@@ -837,6 +838,11 @@ describe("WebSocketTransport outbound queue", () => {
 
     client.dispose();
     transport.dispose();
+    // A full queue sent in one tick is over the dispatch budget by design.
+    for (const budget of PerfBudget.getAll()) {
+      if (budget.name === "TelemetryClient command dispatch/sec")
+        budget.reset();
+    }
   });
 
   /**

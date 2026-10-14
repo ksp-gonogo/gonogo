@@ -559,14 +559,13 @@ describe("useCommand inFlight", () => {
     );
   });
 
-  it("degrades gracefully: a dispatch that never gets a queue entry drops after the never-tracked grace window", async () => {
-    const fixture = setupFixture();
+  it("stops tracking a dispatch that never gets a queue entry after five real seconds, with the game paused", async () => {
+    const fixture = setupFixture({ warpRate: 0 });
     render(
       <fixture.Provider>
         <DeployWithInFlight />
       </fixture.Provider>,
     );
-
     act(() => {
       fixture.transport.emit(
         "comms.link",
@@ -576,23 +575,43 @@ describe("useCommand inFlight", () => {
     });
 
     fireEvent.click(screen.getByText("go1"));
-    // No queue entry has arrived yet, nothing classified to show, but the dispatch is still tracked internally (within the grace window).
+    const [id] = fixture.transport.sentCommands.map((c) => c.requestId);
     expect(screen.getByText("count:0")).toBeTruthy();
 
-    // No system.uplink.pending entry ever arrives for this dispatch (a
-    // live/no-delay path): advance nowUt well past the grace window
-    // without ever emitting a matching queue entry. The dispatch drops out
-    // of tracking instead of leaking forever; observable here only as
-    // "still nothing shown, no crash, no stray entry"; see
-    // resolveTracked's "expired" branch for the internal prune.
+    // The game's clock stands still while the page's runs on past the grace, and a queue snapshot without the command arrives.
+    fixture.wall.advanceBy(10);
     act(() => {
       fixture.transport.emit(
-        "comms.link",
-        { connected: true },
-        { validAt: 10, deliveredAt: 10 },
+        "system.uplink.pending",
+        { pending: [] },
+        { validAt: 0, deliveredAt: 0 },
       );
     });
-    await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
+    await act(async () => {});
+
+    // A queue entry naming it now belongs to nothing this hook still tracks.
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        {
+          pending: [
+            {
+              id: "engine-id",
+              clientRequestId: id,
+              command: "deploy",
+              label: "",
+              topic: "t",
+              vantage: "ksc",
+              dispatchedAt: 0,
+              oneWaySeconds: 600,
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await act(async () => {});
+    expect(screen.getByText("count:0")).toBeTruthy();
   });
 });
 
@@ -617,6 +636,7 @@ describe("useCommand inFlight under time warp", () => {
     const [id] = fixture.transport.sentCommands.map((c) => c.requestId);
 
     // A third of a real second later the game's clock reads 30, and the queue snapshot that was already on its way does not hold the command yet.
+    fixture.wall.advanceBy(0.3);
     act(() => {
       fixture.transport.emit(
         "system.uplink.pending",

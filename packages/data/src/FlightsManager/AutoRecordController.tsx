@@ -19,6 +19,7 @@ import {
 } from "./autoRecordStatus";
 import {
   buildMissionRecord,
+  MISSION_PART_SECONDS,
   MISSION_PART_SIZE_LIMIT,
   withMissionPart,
 } from "./buildMissionRecord";
@@ -69,6 +70,8 @@ export interface AutoRecordControllerProps {
    * `MISSION_PART_SIZE_LIMIT`.
    */
   partSizeLimit?: number;
+  /** The page time, in seconds, after which the recording in progress is stored as a part whatever its size. Default `MISSION_PART_SECONDS`. */
+  partSeconds?: number;
 }
 
 /**
@@ -116,6 +119,7 @@ export function AutoRecordController({
   videoRecordingEnabled: _videoRecordingEnabled = false,
   scene = "Unknown",
   partSizeLimit = MISSION_PART_SIZE_LIMIT,
+  partSeconds = MISSION_PART_SECONDS,
 }: AutoRecordControllerProps = {}) {
   const recorder = useStreamRecorder({ recordAllTopics });
 
@@ -133,6 +137,8 @@ export function AutoRecordController({
   const missionRef = useRef<{ meta: MissionMeta; nextPart: number } | null>(
     null,
   );
+  /** The page time, in milliseconds, at which the part in hand began, or `null` while nothing is recording. */
+  const partStartedAtRef = useRef<number | null>(null);
   /** The mission whose part last failed to store, so that a later part of it does not clear the report. */
   const failedMissionIdRef = useRef<string | null>(null);
 
@@ -192,6 +198,7 @@ export function AutoRecordController({
       if (!r.recording) return;
       storePart(r.stop());
       missionRef.current = null;
+      partStartedAtRef.current = null;
       setAutoRecordStatus({
         recording: false,
         vesselName: null,
@@ -303,9 +310,20 @@ export function AutoRecordController({
           if (sceneRef.current !== "Flight") return;
           recorder.start();
         }
-        /* A recording that has grown to the size of one stored part is stored and carried on, so a long flight is neither held in memory whole nor written in one piece. */
-        if (recorder.bufferedSize >= partSizeLimit) {
+        /*
+         * A recording that has grown to the size of one stored part, or has
+         * run for a part's worth of page time, is stored and carried on: a long
+         * flight is neither held in memory whole nor written in one piece, and
+         * a tab that closes takes only the part in hand with it.
+         */
+        const now = performance.now();
+        partStartedAtRef.current ??= now;
+        if (
+          recorder.bufferedSize >= partSizeLimit ||
+          now - partStartedAtRef.current >= partSeconds * 1000
+        ) {
           storePart(recorder.takePart());
+          partStartedAtRef.current = now;
         }
         setAutoRecordStatus({
           recording: true,
@@ -314,7 +332,7 @@ export function AutoRecordController({
             (missionRef.current?.meta.frameCount ?? 0) + recorder.frameCount,
         });
       },
-      [recorder, partSizeLimit, storePart],
+      [recorder, partSizeLimit, partSeconds, storePart],
     ),
   );
 
