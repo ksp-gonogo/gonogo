@@ -87,6 +87,44 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public void ANullForAnArgumentThatCannotBeNullIsRefusedOnEveryPath()
+        {
+            var probe = new RemoveProbe();
+            using var engine = Started(probe);
+            try
+            {
+                var number = Malformed(engine, RemoveProbe.TypedCommand, new Dictionary<string, object?> { ["at"] = null, ["name"] = "n" });
+                Assert.Contains("argument \"at\" cannot be null", number);
+
+                var elements = Malformed(engine, RemoveProbe.TypedCommand, new Dictionary<string, object?>
+                {
+                    ["at"] = 1.0,
+                    ["name"] = "n",
+                    ["crew"] = new List<object?> { "a", null },
+                });
+                Assert.Contains("argument \"crew[1]\" cannot be null", elements);
+
+                var gate = Malformed(engine, "system.gate.check", new Dictionary<string, object?>
+                {
+                    ["command"] = RemoveProbe.TypedCommand,
+                    ["args"] = new Dictionary<string, object?> { ["name"] = null },
+                });
+                Assert.Contains("argument \"name\"", gate);
+                Assert.Equal(0, probe.Runs);
+
+                string? optional = null;
+                engine.DispatchCommandAndWait(
+                    RemoveProbe.TypedCommand,
+                    new Dictionary<string, object?> { ["at"] = 1.0, ["name"] = "n", ["note"] = null },
+                    "vantage-1",
+                    r => optional = r as string,
+                    Timeout);
+                Assert.Equal("ok", optional);
+            }
+            finally { engine.Stop(); }
+        }
+
+        [Fact]
         public void AnUnknownArgumentNestedInsideAnArgumentIsRefusedByItsPath()
         {
             var probe = new RemoveProbe();
@@ -212,6 +250,7 @@ namespace Sitrep.Host.IntegrationTests
             public const string Command = "test.removeNode";
             public const string OptionalCommand = "test.optionalArgs";
             public const string NestedCommand = "test.nestedArgs";
+            public const string TypedCommand = "test.typedArgs";
 
             private int _runs;
 
@@ -228,6 +267,7 @@ namespace Sitrep.Host.IntegrationTests
                     new CommandDeclaration { Command = Command, Delay = DelayRole.TrueNow },
                     new CommandDeclaration { Command = OptionalCommand, Delay = DelayRole.TrueNow },
                     new CommandDeclaration { Command = NestedCommand, Delay = DelayRole.TrueNow },
+                    new CommandDeclaration { Command = TypedCommand, Delay = DelayRole.TrueNow },
                 },
             };
 
@@ -239,12 +279,28 @@ namespace Sitrep.Host.IntegrationTests
                     return a.NodeId;
                 });
                 host.AddCommandHandler<OptionalArgs, string>(OptionalCommand, _ => "ok");
+                host.AddCommandHandler<TypedArgs, string>(TypedCommand, _ =>
+                {
+                    _runs++;
+                    return "ok";
+                });
                 host.AddCommandHandler<NestedArgs, string>(NestedCommand, _ =>
                 {
                     _runs++;
                     return "ok";
                 });
             }
+        }
+
+        public class TypedArgs
+        {
+            public double At { get; set; }
+
+            public string Name { get; set; } = "";
+
+            public List<string> Crew { get; set; } = new List<string>();
+
+            public string? Note { get; set; }
         }
 
         public class NestedArgs

@@ -32,10 +32,11 @@ namespace Sitrep.Host
         /// inside the elements of a list argument, are held to the same rule
         /// and named by their path (<c>steps[1].target</c>).
         ///
-        /// <para>An argument sent as an explicit null is missing when the
-        /// contract requires it. <paramref name="requireAll"/> false checks
-        /// names only, for a question about a call whose arguments are not all
-        /// chosen yet.</para>
+        /// <para>An argument sent as an explicit null is refused when its type
+        /// cannot hold null: a number, flag or enum, or a reference the contract
+        /// marks as not nullable, as a list element is too. <paramref name="requireAll"/> false leaves
+        /// out the check that every required argument is sent, for a question
+        /// about a call whose arguments are not all chosen yet.</para>
         /// </summary>
         internal static string? Violation(string command, object? args, Type argsType, bool requireAll = true)
         {
@@ -84,9 +85,13 @@ namespace Sitrep.Host
                 foreach (var prop in RequiredOf(props, type))
                 {
                     var sent = dict.FirstOrDefault(kv => string.Equals(kv.Key, prop.Name, StringComparison.OrdinalIgnoreCase));
-                    if (sent.Key == null || sent.Value == null)
+                    if (sent.Key == null)
                     {
                         return $"\"{command}\" requires argument \"{path}{WireName(prop)}\" and it was not sent";
+                    }
+                    if (sent.Value == null)
+                    {
+                        return $"\"{command}\" requires argument \"{path}{WireName(prop)}\" and it was sent as null";
                     }
                 }
             }
@@ -94,7 +99,17 @@ namespace Sitrep.Host
             foreach (var kv in dict)
             {
                 var prop = props.First(p => string.Equals(p.Name, kv.Key, StringComparison.OrdinalIgnoreCase));
-                var inner = Nested(command, path + WireName(prop), kv.Value, prop.PropertyType, requireAll);
+                if (kv.Value == null)
+                {
+                    if (CannotBeNull(prop))
+                    {
+                        return $"\"{command}\" argument \"{path}{WireName(prop)}\" cannot be null";
+                    }
+
+                    continue;
+                }
+
+                var inner = Nested(command, path + WireName(prop), kv.Value, prop.PropertyType, requireAll, ElementsCannotBeNull(prop));
                 if (inner != null)
                 {
                     return inner;
@@ -104,7 +119,7 @@ namespace Sitrep.Host
             return null;
         }
 
-        private static string? Nested(string command, string path, object? value, Type type, bool requireAll)
+        private static string? Nested(string command, string path, object? value, Type type, bool requireAll, bool elementsCannotBeNull)
         {
             if (value is IDictionary<string, object?> dict)
             {
@@ -121,7 +136,18 @@ namespace Sitrep.Host
             var index = 0;
             foreach (var item in items)
             {
-                var inner = Nested(command, $"{path}[{index}]", item, element, requireAll);
+                if (item == null)
+                {
+                    if (elementsCannotBeNull)
+                    {
+                        return $"\"{command}\" argument \"{path}[{index}]\" cannot be null";
+                    }
+
+                    index++;
+                    continue;
+                }
+
+                var inner = Nested(command, $"{path}[{index}]", item, element, requireAll, false);
                 if (inner != null)
                 {
                     return inner;
@@ -209,6 +235,58 @@ namespace Sitrep.Host
 
             var initial = prop.GetValue(defaults);
             return initial == null || (initial is string text && text.Length == 0);
+        }
+
+        private static bool CannotBeNull(PropertyInfo prop) =>
+            prop.PropertyType.IsValueType
+                ? Nullable.GetUnderlyingType(prop.PropertyType) == null
+                : IsAnnotatedNotNull(prop);
+
+        private static bool ElementsCannotBeNull(PropertyInfo prop)
+        {
+            var element = ElementTypeOf(prop.PropertyType);
+            if (element == null)
+            {
+                return false;
+            }
+
+            if (element.IsValueType)
+            {
+                return Nullable.GetUnderlyingType(element) == null;
+            }
+
+            var flags = NullableFlagsOf(prop);
+            return flags != null && (flags.Length == 1 ? flags[0] : flags.Length > 1 ? flags[1] : (byte)0) == NotNullAnnotated;
+        }
+
+        private static byte[]? NullableFlagsOf(PropertyInfo prop)
+        {
+            foreach (var attribute in prop.CustomAttributes)
+            {
+                if (attribute.AttributeType.FullName == NullableAttributeName)
+                {
+                    var argument = attribute.ConstructorArguments[0];
+                    if (argument.Value is byte single)
+                    {
+                        return new[] { single };
+                    }
+
+                    return ((IReadOnlyList<CustomAttributeTypedArgument>)argument.Value!).Select(f => (byte)f.Value!).ToArray();
+                }
+            }
+
+            for (var scope = prop.DeclaringType; scope != null; scope = scope.DeclaringType)
+            {
+                foreach (var attribute in scope.GetTypeInfo().CustomAttributes)
+                {
+                    if (attribute.AttributeType.FullName == NullableContextAttributeName)
+                    {
+                        return new[] { (byte)attribute.ConstructorArguments[0].Value! };
+                    }
+                }
+            }
+
+            return null;
         }
 
         private static bool IsAnnotatedNotNull(PropertyInfo prop)
