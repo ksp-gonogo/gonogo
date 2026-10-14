@@ -445,7 +445,18 @@ namespace Sitrep.Host
             _laneCraftNodes[craft] = node;
             var requestId = NextRequestId();
             var arriveBefore = ArriveBeforeUt(job);
-            var message = _delivery.SendCommand(lane, job.Command, job.Args, node, null, now, arriveBefore, requestId, job.ClientRequestId, ++_sendOrder);
+            CommandMessage message;
+            try
+            {
+                message = _delivery.SendCommand(lane, job.Command, job.Args, node, null, now, arriveBefore, requestId, job.ClientRequestId, ++_sendOrder);
+            }
+            catch (DuplicateMessageIdException duplicate)
+            {
+                LogHost("command \"" + job.Command + "\" was refused: " + duplicate.Message);
+                job.OnResult(CommandResult.Fail(CommandErrorCode.WrongState, "it could not be held for sending: " + duplicate.Message));
+                job.Done?.Set();
+                return true;
+            }
             job.Carried = true;
             DeliveryMessagesBudget.Record(1, now);
             _deliveryJobs[message.Id] = job;

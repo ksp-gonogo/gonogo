@@ -361,6 +361,11 @@ namespace Sitrep.Core.StoreAndForward
             {
                 lock (_gate)
                 {
+                    var messageId = id ?? MintId("cmd");
+                    if (List(_held, lane.Vantage).Any(h => string.Equals(h.Message.Id, messageId, StringComparison.Ordinal)))
+                    {
+                        throw new DuplicateMessageIdException(messageId, lane.Vantage);
+                    }
                     var deleteAt = nowUt + CommandLifetimeSeconds;
                     if (arriveBeforeUt != null)
                     {
@@ -369,7 +374,7 @@ namespace Sitrep.Core.StoreAndForward
                     var (seq, gap) = Sender(lane).Assign(nowUt, deleteAt);
                     var message = new CommandMessage
                     {
-                        Id = id ?? MintId("cmd"),
+                        Id = messageId,
                         Lane = lane,
                         LaneSeq = seq,
                         GapExpiresUt = gap,
@@ -2352,5 +2357,22 @@ namespace Sitrep.Core.StoreAndForward
         public CommandMessage Command { get; set; } = null!;
 
         public double AtUt { get; set; }
+    }
+
+    /// <summary>
+    /// A command was sent under an id a message already held at the same node has.
+    /// It is refused before it takes a lane number, because a held message of that
+    /// id would leave it never held, and every later command on its lane would
+    /// then wait behind a number that was never sent.
+    /// </summary>
+    public sealed class DuplicateMessageIdException : InvalidOperationException
+    {
+        public DuplicateMessageIdException(string messageId, string node)
+            : base("a message with id " + messageId + " is already held at " + node)
+        {
+            MessageId = messageId;
+        }
+
+        public string MessageId { get; }
     }
 }
