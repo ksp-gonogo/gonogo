@@ -62,6 +62,16 @@ describe("connectionCheck", () => {
     );
   });
 
+  it("reads a retrying socket that has gone unanswered as a failure that says it is still trying", () => {
+    expect(connectionCheck("reconnecting", "localhost:8090", true)).toEqual({
+      state: "fail",
+      text: say("connect.check.retrying", { address: "localhost:8090" }),
+    });
+    expect(connectionCheck("connected", "localhost:8090", true).state).toBe(
+      "pass",
+    );
+  });
+
   it("passes when connected and fails otherwise, naming the address", () => {
     expect(connectionCheck("connected", "10.0.0.5:8090")).toEqual({
       state: "pass",
@@ -76,6 +86,20 @@ describe("connectionCheck", () => {
 });
 
 describe("uplinksCheck", () => {
+  it("says the mod cannot list its Uplinks when the connection has failed, rather than waiting on it", () => {
+    const failed = { state: "fail", text: "x" } as const;
+    expect(uplinksCheck({ entries: [], waitingForMod: true }, failed)).toEqual({
+      state: "fail",
+      text: say("uplinks.check.noConnection"),
+    });
+    expect(
+      uplinksCheck(
+        { entries: [], waitingForMod: true },
+        { state: "checking", text: "x" },
+      ).state,
+    ).toBe("checking");
+  });
+
   it("waits for the mod rather than guessing", () => {
     expect(uplinksCheck({ entries: [], waitingForMod: true }).state).toBe(
       "checking",

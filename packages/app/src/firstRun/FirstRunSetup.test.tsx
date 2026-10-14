@@ -541,8 +541,15 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     expect(screen.getByText(say("uplinks.hint.attention"))).toBeInTheDocument();
   });
 
+  it("says the mod cannot list its Uplinks while the connection has failed, instead of waiting on it", async () => {
+    renderSetup();
+    await goToUplinks();
+    expect(screen.getByText(say("uplinks.check.noConnection"))).toBeVisible();
+    expect(screen.queryByText(say("uplinks.check.waiting"))).toBeNull();
+  });
+
   it("says it is waiting until the mod answers, never guessing a state first", async () => {
-    const { wsClients } = renderSetup();
+    const { wsClients } = renderSetup(undefined, { ksp: "reconnecting" });
     await goToUplinks();
     expect(screen.getByText(say("uplinks.check.waiting"))).toBeInTheDocument();
     expect(screen.queryByText(say("uplinks.find.label"))).toBeNull();

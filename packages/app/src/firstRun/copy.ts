@@ -67,6 +67,8 @@ export const WIZARD_COPY = {
   "connect.check.pass": "Connected to KSP at {address}",
   "connect.check.checking": "Trying to reach KSP at {address}",
   "connect.check.fail": "Not connected to KSP at {address}",
+  "connect.check.retrying":
+    "No answer from KSP at {address} yet. Still trying, and this turns green when it connects",
   "connect.hint.notRunning":
     "KSP is not running yet: start it and wait for the main menu",
   "connect.hint.notInstalled":
@@ -78,6 +80,8 @@ export const WIZARD_COPY = {
   "uplinks.advance": "Review setup",
   "uplinks.check.waiting":
     "Waiting for the mod to list its Uplinks. This needs the KSP connection.",
+  "uplinks.check.noConnection":
+    "Not connected to KSP, so the mod cannot list its Uplinks. Fix the connection on the Connect to KSP step",
   "uplinks.check.none":
     "No Uplinks installed, which is fine: they are optional",
   "uplinks.check.allWorking":

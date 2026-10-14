@@ -14,6 +14,7 @@ import { UplinkIntegrityDetail } from "../../uplinks/UplinkIntegrityDetail";
 import { uplinksCheck } from "../checks";
 import { runs, say } from "../copy";
 import { CKAN_UPLINK_FILTER } from "../setupGuide";
+import { useConnectionCheck } from "../useConnectionCheck";
 import {
   type UplinkReadinessEntry,
   useUplinkReadiness,
@@ -57,7 +58,7 @@ function summarise(entries: readonly UplinkReadinessEntry[]): string {
 export function UplinkReadinessStep() {
   const readiness = useUplinkReadiness();
   const { waitingForMod } = readiness;
-  const check = uplinksCheck(readiness);
+  const check = uplinksCheck(readiness, useConnectionCheck());
   /*
    * Uplinks inside the core mod are not something the operator installed, so
    * they get no row and no share of the count.

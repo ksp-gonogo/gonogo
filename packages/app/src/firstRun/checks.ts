@@ -24,6 +24,14 @@ export interface SetupCheck {
   text: string;
 }
 
+/**
+ * How long a connection may stay unanswered before the step stops calling it
+ * "trying". A mod on this computer or the local network answers in well under a
+ * second, and the stream's first retry is a second after a refusal, so five
+ * seconds covers a slow network and still sees two refusals.
+ */
+export const CONNECT_GRACE_MS = 5000;
+
 export function relayCheck(health: RelayHealth): SetupCheck {
   const url = relayBaseUrl();
   if (health === "checking")
@@ -36,17 +44,28 @@ export function relayCheck(health: RelayHealth): SetupCheck {
   return { state: "fail", text: say("container.check.fail", { url }) };
 }
 
+/**
+ * `gaveUp` is whether the connection has stayed unanswered past
+ * {@link CONNECT_GRACE_MS}. A refused or silent port leaves the stream
+ * "reconnecting" indefinitely, so only time separates a socket that is about to
+ * open from one that is not going to; once it has passed, a reconnecting stream
+ * is a failure whose fix the step shows, while the stream keeps retrying and
+ * the check turns to pass by itself.
+ */
 export function connectionCheck(
   status: DataSourceStatus | undefined,
   address: string,
+  gaveUp = false,
 ): SetupCheck {
   if (status === "connected")
     return { state: "pass", text: say("connect.check.pass", { address }) };
   if (status === "reconnecting")
-    return {
-      state: "checking",
-      text: say("connect.check.checking", { address }),
-    };
+    return gaveUp
+      ? { state: "fail", text: say("connect.check.retrying", { address }) }
+      : {
+          state: "checking",
+          text: say("connect.check.checking", { address }),
+        };
   return { state: "fail", text: say("connect.check.fail", { address }) };
 }
 
@@ -78,10 +97,12 @@ export function needsAttention(entry: UplinkReadinessEntry): boolean {
   return entry.state !== "loaded" && entry.state !== "loading";
 }
 
-export function uplinksCheck({
-  entries,
-  waitingForMod,
-}: UseUplinkReadinessResult): SetupCheck {
+export function uplinksCheck(
+  { entries, waitingForMod }: UseUplinkReadinessResult,
+  connection?: SetupCheck,
+): SetupCheck {
+  if (waitingForMod && connection?.state === "fail")
+    return { state: "fail", text: say("uplinks.check.noConnection") };
   if (waitingForMod)
     return {
       state: "checking",

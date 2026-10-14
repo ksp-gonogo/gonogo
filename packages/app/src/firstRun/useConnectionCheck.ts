@@ -1,5 +1,43 @@
 import { getDataSource, useDataSources } from "@ksp-gonogo/core";
-import { connectionCheck, isThisComputer, type SetupCheck } from "./checks";
+import { useEffect, useState } from "react";
+import {
+  CONNECT_GRACE_MS,
+  connectionCheck,
+  isThisComputer,
+  type SetupCheck,
+} from "./checks";
+
+/*
+ * When the connection was first seen unanswered, kept across steps so the
+ * connect and health steps agree on how long it has been. Cleared the moment a
+ * mounted step sees it connect.
+ */
+let unansweredSince: number | null = null;
+
+/** Test-only: forget how long the connection has been unanswered. */
+export function __resetConnectionClock(): void {
+  unansweredSince = null;
+}
+
+function useGaveUp(connected: boolean): boolean {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (connected) {
+      unansweredSince = null;
+      return;
+    }
+    unansweredSince ??= Date.now();
+    const left = unansweredSince + CONNECT_GRACE_MS - Date.now();
+    if (left <= 0) return;
+    const timer = setTimeout(() => tick((n) => n + 1), left);
+    return () => clearTimeout(timer);
+  }, [connected]);
+  return (
+    !connected &&
+    unansweredSince !== null &&
+    Date.now() - unansweredSince >= CONNECT_GRACE_MS
+  );
+}
 
 /**
  * The connection to the mod as a check, read off the same `sitrep` source the
@@ -9,7 +47,8 @@ import { connectionCheck, isThisComputer, type SetupCheck } from "./checks";
 export function useConnectionCheck(): SetupCheck {
   const source = useDataSources().find((s) => s.id === "sitrep");
   const { host, port } = sitrepAddress();
-  return connectionCheck(source?.status, `${host}:${port}`);
+  const gaveUp = useGaveUp(source?.status === "connected");
+  return connectionCheck(source?.status, `${host}:${port}`, gaveUp);
 }
 
 /** Whether the connection is aimed at this computer, so KSP and the dashboard share it. */

@@ -35,7 +35,7 @@ function verdict(checks: readonly SetupCheck[]): string {
 export function HealthStep() {
   const relay = relayCheck(useRelayHealth().health);
   const connection = useConnectionCheck();
-  const uplinks = uplinksCheck(useUplinkReadiness());
+  const uplinks = uplinksCheck(useUplinkReadiness(), connection);
   const rows = [
     { name: say("health.row.container"), check: relay },
     { name: say("health.row.connection"), check: connection },
