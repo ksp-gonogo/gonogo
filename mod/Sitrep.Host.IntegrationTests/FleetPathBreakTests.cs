@@ -29,7 +29,7 @@ namespace Sitrep.Host.IntegrationTests
 
         private const string Vessel = "far";
         private const string ActiveTopic = ConnectivityHorizonTestUplink.DelayedTopic;
-        private static readonly string FleetTopic = ChannelEngine.FleetNodePrefix + Vessel + ".orbit";
+        private static readonly string FleetTopic = FleetDelayTestUplink.Prefix + Vessel + ".orbit";
 
         /// <summary>
         /// Both subjects at a four-second signal delay. Each sends a sample per

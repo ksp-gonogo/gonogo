@@ -1,4 +1,4 @@
-import { useTelemetry } from "@ksp-gonogo/sitrep-sdk/spine";
+import { type SubjectDep, useTelemetry } from "@ksp-gonogo/sitrep-sdk/spine";
 import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
@@ -6,8 +6,10 @@ import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
 import { createFakeWallClock } from "./fake-wall-clock";
-import { registerCoreReckoners, registerReckoner } from "./reckoners";
+import type { TestRoute } from "./reckoner-test-topics";
+import { registerReckoner } from "./reckoners";
 import { StubTransport } from "./stub-transport";
+import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { useStream } from "./use-stream";
 import { ViewClock } from "./view-clock";
@@ -31,6 +33,15 @@ import { ViewClock } from "./view-clock";
  */
 
 const SUBJECT = "8f0d2d3c-0000-4000-8000-000000000001";
+
+/** A per-subject dep on the craft `test.route` names, as an Uplink's model would declare one. */
+const CRAFT_NAMED_BY_ROUTE: SubjectDep<
+  unknown,
+  readonly [TimelinePoint<TestRoute> | undefined]
+> = {
+  forSubject: (id) => `acme.craft.${id}.orbit`,
+  subject: (_point, [route]) => route?.payload?.to,
+};
 
 function buildFixture() {
   const wall = createFakeWallClock();
@@ -62,11 +73,6 @@ function StreamProbe({ topic }: { topic: string }) {
       ? valueReading.value
       : undefined;
   return <div data-testid="probe">{value === undefined ? "-" : "v"}</div>;
-}
-
-function CommsDelayProbe() {
-  const reading = useTelemetry("comms.delay");
-  return <div data-testid="delay">{reading.state}</div>;
 }
 
 function TelemetryProbe() {
@@ -160,65 +166,35 @@ describe("a point read holds up its reckoner's declared inputs", () => {
    */
   it("subscribes a per-subject dep's resolved topic, once the subject arrives", () => {
     const fixture = buildFixture();
-    /*
-     * Explicit, because this fixture passes its OWN store and the provider only
-     * registers core's models when it builds one itself. The other tests here
-     * never noticed: `vessel.flight`'s deps reach the wire through the derived
-     * channel's declared `inputs`, which is the other half of
-     * `subscribeTopicRead` and needs no reckoner at all.
-     */
-    registerCoreReckoners();
+    declareTestReckonable("test.relay", "acme-uplink");
+    registerReckoner("test.relay", "acme-uplink", {
+      deps: ["test.route", CRAFT_NAMED_BY_ROUTE],
+      reckon: (point) => ({
+        modelled: [{ path: "range", basis: "linear-dead-reckoning" }],
+        reckon: () => point.payload,
+      }),
+    });
 
     render(
       <fixture.Provider>
-        <CommsDelayProbe />
+        <StreamProbe topic="test.relay" />
       </fixture.Provider>,
     );
 
-    // Nothing has named a relay yet, so nothing dynamic is held.
-    expect(fixture.transport.isSubscribed(`fleet.${SUBJECT}.orbit`)).toBe(
+    // Nothing has named a subject yet, so nothing dynamic is held.
+    expect(fixture.transport.isSubscribed(`acme.craft.${SUBJECT}.orbit`)).toBe(
       false,
     );
 
     act(() => {
-      // Every FIXED dep, because the resolve loop declines on the first one
-      // missing and never reaches the subject pass. That ordering is
-      // deliberate: there is no sense holding a topic up for a model that is
-      // not going to run.
-      fixture.transport.emit("system.bodies", { bodies: [] });
-      fixture.transport.emit("commandCentre.roster", []);
-      fixture.transport.emit("vessel.orbit", {
-        referenceBodyIndex: 1,
-        sma: { magnitude: 2_000_000 },
-        ecc: { magnitude: 0 },
-        inc: { magnitude: 0 },
-        lan: { magnitude: 0 },
-        argPe: { magnitude: 0 },
-        meanAnomalyAtEpoch: { magnitude: 0 },
-        epoch: { magnitude: 0 },
-        mu: { magnitude: 3.5316e12 },
-        horizon: { kind: 1, trajectoryKind: 1 },
-      });
-      fixture.transport.emit("comms.delay", {
-        oneWaySeconds: { magnitude: 1 },
-        source: 1,
-      });
-      fixture.transport.emit("comms.path", {
-        hops: [
-          {
-            from: "craft",
-            to: SUBJECT,
-            fromIsHome: false,
-            toIsHome: false,
-            kind: 1,
-            distanceMeters: { magnitude: 1000 },
-          },
-        ],
-      });
+      fixture.transport.emit("test.route", { to: SUBJECT });
+      fixture.transport.emit("test.relay", { range: 1 });
       fixture.store.beginFrame();
     });
 
-    expect(fixture.transport.isSubscribed(`fleet.${SUBJECT}.orbit`)).toBe(true);
+    expect(fixture.transport.isSubscribed(`acme.craft.${SUBJECT}.orbit`)).toBe(
+      true,
+    );
   });
 
   it("subscribes nothing extra where the model declares no deps", () => {

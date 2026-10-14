@@ -3,7 +3,7 @@ import { useStream } from "./use-stream";
 import { wireMagnitude } from "./wire-magnitude";
 
 /**
- * One resource aboard a fleet vessel, as `fleet.<guid>.resources` delivers it.
+ * One resource aboard a craft, as `trackingStation.vessel.<guid>.resources` delivers it.
  *
  * Amounts only. There is deliberately no rate and no exhaustion time: a
  * consumption rate for an unloaded craft is background simulation, which is a
@@ -11,7 +11,7 @@ import { wireMagnitude } from "./wire-magnitude";
  * at UT X" would be core claiming a model it does not have. Whatever models the
  * draw contributes the exhaustion time on top of these amounts.
  */
-export interface FleetVesselResource {
+export interface TrackedVesselResource {
   name: string;
   current: number;
   max: number;
@@ -39,10 +39,10 @@ type WireAmount = {
  * unreadable tank and an empty one are different, and only one of them is worth
  * acting on.
  */
-export function fleetVesselResourceList(
+export function trackedVesselResourceList(
   payload: { resources?: Record<string, WireAmount> | null } | undefined,
-): readonly FleetVesselResource[] {
-  const rows: FleetVesselResource[] = [];
+): readonly TrackedVesselResource[] {
+  const rows: TrackedVesselResource[] = [];
   for (const [name, amount] of Object.entries(payload?.resources ?? {})) {
     const current = wireMagnitude(amount?.current);
     const max = wireMagnitude(amount?.max);
@@ -53,19 +53,22 @@ export function fleetVesselResourceList(
 }
 
 /**
- * What is in fleet vessel `guid`'s tanks, or undefined until the topic
+ * What is in craft `guid`'s tanks, or undefined until the topic
  * delivers. An empty array is a craft carrying nothing, which is a different
  * statement and stays distinguishable.
  */
-export function useFleetVesselResources(
+export function useTrackedVesselResources(
   guid: string,
-): readonly FleetVesselResource[] | undefined {
+): readonly TrackedVesselResource[] | undefined {
   const reading = useStream<{
     resources?: Record<string, WireAmount> | null;
-  }>(`fleet.${guid}.resources`);
+  }>(`trackingStation.vessel.${guid}.resources`);
   const raw =
     reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
-  return useMemo(() => (raw ? fleetVesselResourceList(raw) : undefined), [raw]);
+  return useMemo(
+    () => (raw ? trackedVesselResourceList(raw) : undefined),
+    [raw],
+  );
 }

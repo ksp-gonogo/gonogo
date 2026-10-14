@@ -96,7 +96,10 @@ afterEach(() => clearRegistry());
 describe("RequiresGuard: families and config channels", () => {
   describe("a missing telemetry host", () => {
     it.each([
-      ["a required family", { families: ["fleet.<vessel>.contact"] }],
+      [
+        "a required family",
+        { families: ["trackingStation.vessel.<vessel>.link"] },
+      ],
       [
         "an optional family",
         { optionalFamilies: ["vessel.partActions.<flightId>"] },
@@ -120,9 +123,11 @@ describe("RequiresGuard: families and config channels", () => {
   describe("lock claims", () => {
     it("locks the widget when a gate entry covers a required family's prefix", () => {
       connectHost("connected");
-      const { fixture } = renderGuard({ families: ["fleet.<vessel>.contact"] });
+      const { fixture } = renderGuard({
+        families: ["trackingStation.vessel.<vessel>.link"],
+      });
       expect(screen.getByText("widget content")).toBeInTheDocument();
-      lockChannel(fixture, "fleet.");
+      lockChannel(fixture, "trackingStation.vessel.");
       expect(screen.queryByText("widget content")).toBeNull();
       expect(screen.getByText("Missing tech: Flight Control")).toBeTruthy();
     });
@@ -130,7 +135,7 @@ describe("RequiresGuard: families and config channels", () => {
     it("does not claim a family that starts with a placeholder", () => {
       connectHost("connected");
       const { fixture } = renderGuard({ families: ["<domain>.available"] });
-      lockChannel(fixture, "fleet.");
+      lockChannel(fixture, "trackingStation.vessel.");
       expect(screen.getByText("widget content")).toBeInTheDocument();
     });
 
@@ -155,11 +160,13 @@ describe("RequiresGuard: families and config channels", () => {
   describe("Uplink health", () => {
     it("replaces the widget when the Uplink owning a required family's prefix is unavailable", async () => {
       connectHost("connected");
-      const { fixture } = renderGuard({ families: ["fleet.<vessel>.contact"] });
+      const { fixture } = renderGuard({
+        families: ["trackingStation.vessel.<vessel>.link"],
+      });
       act(() => {
         fixture.emit(
           "system.uplinks",
-          roster(2, "fleet link down", ["fleet."]),
+          roster(2, "fleet link down", ["trackingStation.vessel."]),
         );
       });
       expect(await screen.findByText("fleet link down")).toBeInTheDocument();
@@ -188,7 +195,7 @@ describe("RequiresGuard: families and config channels", () => {
     it("passes a required family with no owning Uplink through", async () => {
       connectHost("connected");
       const { fixture } = renderGuard(
-        { families: ["fleet.<vessel>.contact"] },
+        { families: ["trackingStation.vessel.<vessel>.link"] },
         "demo.gauge.2",
       );
       act(() => {

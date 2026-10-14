@@ -11,10 +11,10 @@ namespace Sitrep.Host.Comms
     {
         /// <summary>Contact confirmed as of the most recent sample.</summary>
         Nominal,
-        /// <summary>No contact observed; still inside the deadline, or awaiting the consecutive-sample hysteresis.</summary>
+        /// <summary>No contact observed since the last contact.</summary>
         Silent,
-        /// <summary>Officially declared lost: either destroyed, or silent past its deadline with the hysteresis satisfied.</summary>
-        Lost,
+        /// <summary>No longer in the game: destroyed, recovered or otherwise removed.</summary>
+        Gone,
     }
 
     /// <summary>
@@ -210,7 +210,7 @@ namespace Sitrep.Host.Comms
     }
 
     /// <summary>
-    /// One vessel's silence/lost bookkeeping. Mutated in place tick over
+    /// One vessel's silence bookkeeping. Mutated in place tick over
     /// tick, and carries only primitives, so it round-trips through
     /// ConfigNode cleanly on the Gonogo.KSP side without this type ever
     /// needing to know ConfigNode exists.
@@ -219,8 +219,8 @@ namespace Sitrep.Host.Comms
     {
         public string VesselId = string.Empty;
 
-        /// <summary>Whether the vessel was declared Lost because it is gone from the game, not because it fell silent.</summary>
-        public bool IsDestroyed => State == SilenceState.Lost && DeadlineBasis == SilenceDeadlineBasis.Destroyed;
+        /// <summary>Whether the vessel is gone from the game.</summary>
+        public bool IsDestroyed => State == SilenceState.Gone;
 
         public SilenceState State = SilenceState.Nominal;
 
@@ -233,7 +233,7 @@ namespace Sitrep.Host.Comms
         /// <summary>UT the current silence run began. Null while Nominal.</summary>
         public double? SilenceSinceUt;
 
-        /// <summary>UT at which this silence run becomes eligible to be declared Lost. Null while Nominal, or for a destroyed vessel.</summary>
+        /// <summary>UT past which the ground stops expecting this silence to end: the deadline the craft's forecast carries home. Null while Nominal, or for a destroyed vessel.</summary>
         public double? DeadlineUt;
 
         /// <summary>One of <see cref="SilenceDeadlineBasis"/>. Null while Nominal.</summary>
@@ -256,19 +256,6 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public double? PredictionGraceSec;
 
-        /// <summary>UT this vessel was most recently declared Lost. Null if never declared.</summary>
-        public double? DeclaredLostUt;
-
-        /// <summary>
-        /// Monotonic: incremented once per new declare-lost transition, never
-        /// on a repeat sample that is already Lost, and kept across a return
-        /// to contact. With the vessel id it names one loss: a reload that
-        /// replays the same declaration has the same pair, and a later
-        /// reconnect-then-re-lose cycle gets a fresh one. Nothing reads it
-        /// outside this tracker and its persistence.
-        /// </summary>
-        public int LostSeq;
-
         /// <summary>
         /// Whether this silence run has already spent its one deadline
         /// re-evaluation. Deliberately not persisted: a reload grants one more
@@ -284,45 +271,31 @@ namespace Sitrep.Host.Comms
         /// vessel that reappears is reported again if it is destroyed again.
         /// </summary>
         internal bool DestroyedReported;
-
-        /// <summary>
-        /// Consecutive silent samples in the current run (warp hysteresis).
-        /// Deliberately not part of what gets persisted: a reload always
-        /// resumes at 0, requiring two fresh post-reload samples before an
-        /// already-overdue vessel is (re)confirmed Lost, biasing toward not
-        /// declaring even across a save/load boundary.
-        /// </summary>
-        internal int ConsecutiveSilentSamples;
     }
 
     /// <summary>
-    /// Pure, KSP-free "is this vessel out of contact, and should it now be
-    /// declared lost" state machine, decoupled from any currency concern.
+    /// Pure, KSP-free "is this vessel out of contact, and when is it expected
+    /// back" state machine, decoupled from any currency concern.
     /// Modeled on <c>LandingPredictor</c>'s discipline (no KSP/Unity types,
     /// every input injected, fully unit-testable) but genuinely stateful:
     /// silence has to survive from one capture tick to the next, which a
     /// static pure function cannot do on its own.
     ///
-    /// <para><b>Warp hysteresis.</b> A single connected sample clears a
-    /// vessel back to <see cref="SilenceState.Nominal"/> instantly. Declaring
-    /// <see cref="SilenceState.Lost"/> is the opposite: it requires both the
-    /// UT dwell (the policy's deadline has actually passed) and at least two
-    /// consecutive silent samples, so a single stale or glitchy reading at
-    /// high warp cannot trip a declaration on its own. Every ambiguity
-    /// resolves toward not declaring.</para>
+    /// <para>A single connected sample clears a vessel back to
+    /// <see cref="SilenceState.Nominal"/>. Whether a silent craft is lost is
+    /// not decided here: the ground judges that from the forecast this
+    /// tracker's deadline feeds.</para>
     ///
     /// <para><b>Destroyed vessels never go through the deadline policy.</b>
     /// <see cref="Tick"/> reconciles its own known-vessel set against the ids
     /// present this capture: anything previously tracked but missing this
-    /// tick is gone from <c>FlightGlobals.Vessels</c> and is declared Lost
-    /// immediately, <c>deadlineBasis = destroyed</c>, no deadline, no further
+    /// tick is gone from <c>FlightGlobals.Vessels</c> and is marked
+    /// <see cref="SilenceState.Gone"/> immediately,
+    /// <c>deadlineBasis = destroyed</c>, no deadline, no further
     /// propagation.</para>
     /// </summary>
     public sealed class SilenceTracker
     {
-        /// <summary>Minimum consecutive silent samples before a Lost declaration is eligible (warp hysteresis).</summary>
-        private const int MinConsecutiveSilentSamples = 2;
-
         private readonly SilenceDeadlinePolicy _policy;
         private readonly Dictionary<string, VesselContactState> _states = new Dictionary<string, VesselContactState>(StringComparer.Ordinal);
 
@@ -336,7 +309,7 @@ namespace Sitrep.Host.Comms
 
         /// <summary>
         /// The states of vessels still in the game: <see cref="States"/> without the ones
-        /// declared Lost because they no longer exist. A destroyed vessel keeps its record
+        /// that are gone. A destroyed vessel keeps its record
         /// for good, so a view that must scale with the fleet reads this one.
         /// </summary>
         public IEnumerable<VesselContactState> LiveStates =>
@@ -348,9 +321,7 @@ namespace Sitrep.Host.Comms
         /// <summary>
         /// Restores a previously-persisted record (see the Gonogo.KSP-side
         /// ConfigNode round-trip). Replaces any live in-memory record for the
-        /// same vessel id, and always resets
-        /// <see cref="VesselContactState.ConsecutiveSilentSamples"/> to 0 -
-        /// see that field's own doc comment for why.
+        /// same vessel id.
         /// </summary>
         public void RestoreState(VesselContactState state)
         {
@@ -358,13 +329,12 @@ namespace Sitrep.Host.Comms
             {
                 return;
             }
-            state.ConsecutiveSilentSamples = 0;
             _states[state.VesselId] = state;
         }
 
         /// <summary>
-        /// Advances every vessel present this capture tick, then declares
-        /// Lost (basis <c>destroyed</c>) any vessel this tracker previously
+        /// Advances every vessel present this capture tick, then marks
+        /// <see cref="SilenceState.Gone"/> (basis <c>destroyed</c>) any vessel this tracker previously
         /// knew about but that is absent from <paramref name="presentVessels"/>
         /// - i.e. gone from <c>FlightGlobals.Vessels</c>. Returns the current
         /// state of every vessel touched this tick (present + newly
@@ -398,7 +368,7 @@ namespace Sitrep.Host.Comms
                     continue;
                 }
                 kv.Value.DestroyedReported = true;
-                touched.Add(MarkDestroyed(kv.Value, ut));
+                touched.Add(MarkDestroyed(kv.Value));
             }
 
             return touched;
@@ -430,11 +400,8 @@ namespace Sitrep.Host.Comms
                 s.DeadlineBasis = null;
                 s.PredictedReacquisitionUt = null;
                 s.PredictionGraceSec = null;
-                s.ConsecutiveSilentSamples = 0;
                 return s;
             }
-
-            s.ConsecutiveSilentSamples++;
 
             if (s.State == SilenceState.Nominal)
             {
@@ -454,11 +421,9 @@ namespace Sitrep.Host.Comms
                 return s;
             }
 
-            if (s.State == SilenceState.Lost)
+            if (s.State == SilenceState.Gone)
             {
-                // Already declared and not destroyed (a destroyed vessel
-                // never reaches here disconnected - see MarkDestroyed).
-                // Sticky until a connected sample clears it above.
+                // Stays gone until a connected sample clears it above.
                 return s;
             }
 
@@ -519,9 +484,8 @@ namespace Sitrep.Host.Comms
                     // NEVER earlier. The upgrade is evaluated from the silence
                     // ORIGIN, so its duration is measured from a UT that may be
                     // hours in the past; writing that over the armed deadline
-                    // moved the deadline BACKWARDS, and in the worst case behind
-                    // the current tick, declaring the vessel Lost in the very
-                    // call that first managed to predict its return.
+                    // would move the deadline backwards, in the worst case behind
+                    // the current tick.
                     //
                     // A prediction is allowed to explain a silence and to push
                     // the deadline out. It is never allowed to shorten a
@@ -537,15 +501,6 @@ namespace Sitrep.Host.Comms
                     s.PredictedReacquisitionUt = upgraded.PredictedReacquisitionUt;
                     s.PredictionGraceSec = upgraded.PredictionGraceSec;
                 }
-            }
-
-            // Silent, possibly resumed from a reload: declare only once BOTH
-            // the UT dwell and the consecutive-sample hysteresis agree.
-            if (s.DeadlineUt.HasValue && ut >= s.DeadlineUt.Value && s.ConsecutiveSilentSamples >= MinConsecutiveSilentSamples)
-            {
-                s.State = SilenceState.Lost;
-                s.DeclaredLostUt = ut;
-                s.LostSeq++;
             }
 
             return s;
@@ -566,20 +521,13 @@ namespace Sitrep.Host.Comms
             || basis == SilenceDeadlineBasis.GraceExceedsCeiling
             || basis == SilenceDeadlineBasis.HorizonLimited;
 
-        private static VesselContactState MarkDestroyed(VesselContactState s, double ut)
+        private static VesselContactState MarkDestroyed(VesselContactState s)
         {
-            var alreadyDestroyed = s.IsDestroyed;
             s.Connected = false;
-            if (!alreadyDestroyed)
-            {
-                s.DeclaredLostUt = ut;
-                s.LostSeq++;
-            }
-            s.State = SilenceState.Lost;
+            s.State = SilenceState.Gone;
             s.DeadlineUt = null;
             s.DeadlineBasis = SilenceDeadlineBasis.Destroyed;
             s.PredictedReacquisitionUt = null;
-            s.ConsecutiveSilentSamples = 0;
             return s;
         }
     }

@@ -39,7 +39,6 @@ import {
   trySolveAnomalies,
 } from "./kepler-reckoning";
 import { poweredFlight, poweredFlightEvidence } from "./powered-reckoning";
-import type { SubjectDep } from "./processors";
 import { CORE_RECKONER_OWNER, registerReckoner } from "./reckoners";
 import { knownCraftOrbits, knownCraftRangeAt } from "./target-range-reckoning";
 
@@ -553,49 +552,56 @@ function registerFlightReckoner(): void {
 }
 
 /**
- * A peer whose orbit nothing here can reach.
- *
- * `locateCommsPeer` joins a relay endpoint to `fleet.<guid>.orbit`, and a
- * reckoner cannot subscribe to that: a per-vessel dynamic topic is not a name a
- * `deps` array declared once at module load can carry, and a declared input is
- * the only thing the store resolves. The relay branch is refused above this,
- * naming that topic, so the callback is never consulted; it is here because
- * `locateCommsPeer` takes one and a lambda returning nothing says the true
- * thing about what this caller holds.
+ * The orbit the command centre's catalog records for the relay `vesselId`,
+ * with the gravitational parameter of the body it orbits, or `undefined` when
+ * the entry, any element the solve needs, or that body's parameter is unread.
+ * An unread element is never filled with a zero.
  */
-/**
- * Where the first hop's relay is, when the route home starts at one.
- *
- * The guid is in the route and nowhere else, so this is the input that could
- * not be declared before per-subject deps existed: `fleet.<guid>.orbit` names a
- * vessel nobody knows about until `comms.path` arrives. The selector reads it
- * off the resolved `comms.path` point sitting at index 0 of this model's deps.
- *
- * A route straight home has no relay and yields no subject, which resolves this
- * dep to `undefined` rather than declining: the direct case is the common one
- * and it wants no fleet orbit at all.
- */
-const RELAY_ORBIT: SubjectDep<
-  CommsPeerOrbit,
-  readonly [TimelinePoint<TopicPayload<"comms.path">> | undefined]
-> = {
-  forSubject: (id) => `fleet.${id}.orbit`,
-  subject: (_point, [pathPoint]) => {
-    const peer = firstHopPeer(pathPoint?.payload?.hops);
-    return peer !== null && !peer.isHome ? peer.id : undefined;
-  },
-};
+function catalogRelayOrbit(
+  catalog: TopicPayload<"trackingStation.catalog"> | null | undefined,
+  bodies: TopicPayload<"system.bodies"> | null | undefined,
+  vesselId: string,
+): CommsPeerOrbit | undefined {
+  const entry = catalog?.entries?.find((e) => e.vesselId === vesselId);
+  const orbit = entry?.orbit;
+  const bodyIndex = entry?.bodyIndex;
+  if (orbit == null || bodyIndex == null) return undefined;
+  const mu = bodies?.bodies?.find((b) => b.index === bodyIndex)?.gravParameter;
+  const { sma, ecc, inc, meanAnomalyAtEpoch, epoch } = orbit;
+  if (
+    sma == null ||
+    ecc == null ||
+    inc == null ||
+    meanAnomalyAtEpoch == null ||
+    epoch == null ||
+    mu == null
+  ) {
+    return undefined;
+  }
+  return {
+    sma,
+    ecc,
+    inc,
+    lan: orbit.lan,
+    argPe: orbit.argPe,
+    meanAnomalyAtEpoch,
+    epoch,
+    mu,
+    referenceBodyIndex: bodyIndex,
+  };
+}
 
 /**
  * `comms.delay.oneWaySeconds`, by re-measuring the first hop of the observed
  * route and carrying the rest of it forward unchanged.
  *
  * The arithmetic and the reasoning behind it are in `comms-delay-reckoning.ts`;
- * what this adds is the join from three published channels to the two positions
- * that arithmetic needs. `comms.path` names the far end of hop zero,
+ * what this adds is the join from published channels to the two positions that
+ * arithmetic needs. `comms.path` names the far end of hop zero,
  * `commandCentre.roster` says where that end is when it is a ground station
  * (body-fixed, so it also needs the body's rotation phase off `system.bodies`),
- * and `vessel.orbit` propagates the craft.
+ * `trackingStation.catalog` where it is when it is a relay, and `vessel.orbit`
+ * propagates the craft.
  *
  * ## The newest route pairs with the newest delay, and the gate is why
  *
@@ -615,18 +621,11 @@ const RELAY_ORBIT: SubjectDep<
  * arrived on. Demanding one instant would refuse the model on exactly the ticks
  * the gate is working.
  *
- * ## A relay first hop is refused, and it is not a gap in this model
+ * ## A relay first hop is placed from the catalog
  *
- * A relay's elements ride `fleet.<guid>.orbit`, keyed by a guid that is not
- * known until the route arrives. A reckoner's inputs are declared once, at
- * registration, so there is no dep that names it, and the contract's
- * `[SitrepReckonable]` input grammar cannot name it either: an input is
- * `@<topicId>`, resolved against the declared topic set, and a per-vessel
- * dynamic topic is not in it. So the model the contract can declare is the
- * direct one, and this refuses the relayed route by naming the topic that would
- * have placed the peer. Serving it needs a decision above this file: the peer's
- * elements riding `comms.path` itself, or an input grammar with a per-subject
- * form.
+ * A route whose first hop ends at a relay places the relay from its entry on
+ * `trackingStation.catalog`: the orbit the command centre last heard for that
+ * craft, about the body whose gravitational parameter `system.bodies` carries.
  */
 function registerCommsDelayReckoner(): void {
   registerReckoner("comms.delay", CORE_RECKONER_OWNER, {
@@ -635,7 +634,8 @@ function registerCommsDelayReckoner(): void {
       "vessel.orbit",
       "system.bodies",
       "commandCentre.roster",
-      RELAY_ORBIT,
+      // A reading rather than a required dep: a direct route never needs it.
+      { reading: "trackingStation.catalog" },
       { reading: "vessel.propulsion" },
       { reading: "system.uplink.pending" },
     ],
@@ -646,7 +646,7 @@ function registerCommsDelayReckoner(): void {
         orbitPoint,
         bodiesPoint,
         rosterPoint,
-        relayOrbitPoint,
+        catalog,
         thrust,
         pending,
       ],
@@ -685,23 +685,23 @@ function registerCommsDelayReckoner(): void {
           },
         };
       }
-      /*
-       * A relay's elements come from the per-subject dep, which resolved
-       * `fleet.<peer.id>.orbit` for this very peer, so the lookup answers for
-       * that id and nothing else. A station endpoint never reaches it:
-       * `locateCommsPeer` joins those to the roster by display name.
-       */
-      const relayOrbit = relayOrbitPoint?.payload ?? undefined;
       const located = locateCommsPeer(
         peer,
         rosterPoint?.payload ?? undefined,
-        (vesselId) => (vesselId === peer.id ? relayOrbit : undefined),
+        (vesselId) =>
+          catalogRelayOrbit(
+            catalog.state === "observed" || catalog.state === "held"
+              ? catalog.value
+              : undefined,
+            bodiesPoint?.payload,
+            vesselId,
+          ),
       );
       if (located === null) {
         /*
          * Which channel failed depends on which kind of endpoint it is, and
          * saying the wrong one sends a reader to the wrong place: a station is
-         * placed from the roster, a relay from its own fleet orbit.
+         * placed from the roster, a relay from its catalog entry.
          */
         return {
           declined: peer.isHome
@@ -712,8 +712,8 @@ function registerCommsDelayReckoner(): void {
               }
             : {
                 reason: "input-absent",
-                input: `@fleet.${peer.id}.orbit`,
-                note: `the route home starts at ${peer.id}, whose orbit has not arrived`,
+                input: "@trackingStation.catalog",
+                note: `the route home starts at ${peer.id}, whose orbit the catalog does not carry`,
               },
         };
       }

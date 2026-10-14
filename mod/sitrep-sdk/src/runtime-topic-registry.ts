@@ -102,7 +102,7 @@ export function subscribeRuntimeTopicRegistry(
 /**
  * The prefixes, each ending in `.`, under which Topic ids are built at runtime
  * from something such as a vessel id or a part's flight id:
- * `fleet.<guid>.orbit`. A key under one of them is read as a Topic of its
+ * `trackingStation.vessel.<guid>.link`. A key under one of them is read as a Topic of its
  * own, never as a field of a shorter Topic.
  *
  * Gonogo's own prefixes are listed here, and an Uplink adds its own with
@@ -116,11 +116,11 @@ export function subscribeRuntimeTopicRegistry(
  */
 export const DYNAMIC_WHOLE_TOPIC_PREFIXES: readonly string[] = [
   /*
-   * fleet.<guid>.orbit, fleet.<guid>.delay and fleet.<guid>.resources. One
-   * prefix carries the whole per-vessel namespace, so the store timelines each
-   * vessel's elements, link and resources as Topics of their own.
+   * trackingStation.vessel.<guid>.link and .resources. One prefix carries the
+   * whole per-craft namespace, so the store timelines each craft's link and
+   * resources as Topics of their own.
    */
-  "fleet.",
+  "trackingStation.vessel.",
   /*
    * currency.<guid>.science (+ .reputation): source-attributed currency events,
    * revealed after the signal delay from their source vessel.

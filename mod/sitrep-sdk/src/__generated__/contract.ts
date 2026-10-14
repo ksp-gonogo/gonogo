@@ -1423,7 +1423,7 @@ export interface ChannelGate
 {
 	/**
 	* The channel's topic id, or a dynamic namespace's prefix ending in `.` (such
-	* as `fleet.`), which covers every topic under it.
+	* as `trackingStation.vessel.`), which covers every topic under it.
 	*/
 	topic: string;
 	/** The verdict, in the shape `CommandGate.verdict` carries. */
@@ -2364,11 +2364,9 @@ export interface CommsDelay
 	* peer is placed from `@commandCentre.roster`, whose body-fixed latitude and
 	* longitude need the rotation phase on `@system.bodies`.
 	*
-	* This covers a route whose first hop ends at a ground station, the direct
-	* link and the common case. A first hop that ends at a relay needs that
-	* relay's orbit, on `fleet.<guid>.orbit` under a guid only the route names, so
-	* it cannot be declared as an input. A client reckoning a relayed route gets a
-	* refusal that names that channel rather than a modelled number.
+	* A first hop that ends at a relay places the relay from its entry on
+	* `@trackingStation.catalog`: the orbit the command centre last heard for it,
+	* about the body whose gravitational parameter `@system.bodies` carries.
 	*
 	* `CommsDelay.source` is an input because two of its members are a zero that
 	* does not mean "no distance": delay switched off, or a save with no comms
@@ -3375,7 +3373,7 @@ export interface ScienceCreditEvent
 {
 	/**
 	* The crediting vessel's persistent id (`ProtoVessel.vesselID`), the same guid
-	* the `fleet.` namespace keys by.
+	* the `trackingStation.vessel.` namespace keys by.
 	*/
 	vesselId: string;
 	/** The crediting vessel's display name at the moment of the credit. */
@@ -3434,7 +3432,7 @@ export interface ReputationLossEvent
 {
 	/**
 	* The vessel the loss happened aboard (`Vessel.id` as a string GUID), the same
-	* guid the `fleet.` namespace keys by.
+	* guid the `trackingStation.vessel.` namespace keys by.
 	*/
 	vesselId: string;
 	/** The vessel's display name at the moment of the loss. */
@@ -3892,10 +3890,10 @@ export interface Pong
 * One kerbal currently outside a craft, on the `eva.crew` channel.
 *
 * A kerbal on EVA is a vessel in KSP's model, with its own id, so it already
-* appears on `trackingStation.catalog` and on its own per-vessel Topics
-* (`fleet.<guid>.delay` and `fleet.<guid>.orbit`). What is here and nowhere
-* else is the suit: what it is carrying, what it can do, and whether the place
-* it is standing in would kill the wearer without it.
+* appears on `trackingStation.catalog` and on its own per-craft Topics
+* (`trackingStation.vessel.<guid>.link` and `.resources`). What is here and
+* nowhere else is the suit: what it is carrying, what it can do, and whether
+* the place it is standing in would kill the wearer without it.
 *
 * Every field is `null` when the value could not be read. Absence is never a
 * zero: a kerbal whose propellant could not be read is not a kerbal with an
@@ -3988,58 +3986,6 @@ export interface EvaCrew
 	count: Value<"count">;
 	/** One entry per kerbal on EVA. Never null; empty when nobody is outside. */
 	kerbals: EvaKerbal[];
-}
-/**
-* Per-vessel link facts on `fleet.<guid>.delay`: the one-way signal delay to
-* that vessel and whether it is currently reachable. The same numbers the mod
-* uses to delay that vessel's channels, published for display. Not a control
-* input.
-*
-* Delayed like `fleet.<guid>.orbit`, so the value itself arrives one signal
-* delay late, which is how old the space centre's knowledge of the link is.
-*
-* A vessel with no comms path carries a null `FleetVesselLink.oneWaySeconds`,
-* never a `0` that would read as a zero-delay link.
-*
-* @category Solar system and fleet
-*/
-export interface FleetVesselLink
-{
-	/**
-	* One-way signal delay to this vessel, in seconds. Null when there is no comms
-	* path to it.
-	*/
-	oneWaySeconds?: Value<"s"> | null;
-	/**
-	* Whether this vessel is currently reachable (`v.connection.IsConnected`).
-	* Null when its link could not be read.
-	*/
-	connected?: boolean | null;
-}
-/**
-* One fleet vessel's resource amounts on `fleet.<guid>.resources`: the same
-* keyed map `VesselResources` carries for the active craft, for a craft you
-* are not flying. A resource the craft has no capacity for is absent from the
-* map; one it carries but has emptied is present with a current amount of `0`.
-*
-* Amounts only: no rate and no exhaustion time. Stock KSP does not simulate
-* consumption on an unloaded vessel, so a rate or exhaustion time belongs to
-* whichever Uplink models the draw, contributed on top of this.
-*
-* Delayed like `fleet.<guid>.orbit`, so the reading arrives one signal delay
-* late. While the craft is out of contact the reading is held at its
-* last-known value.
-*
-* @category Solar system and fleet
-*/
-export interface FleetVesselResources
-{
-	/**
-	* The vessel's resources keyed by KSP resource name (for example
-	* `"LiquidFuel"`), each summed across every part that holds it. Never null;
-	* empty for a craft that carries no resources.
-	*/
-	resources: { [key:string]: ResourceAmount };
 }
 /**
 * Why a flight ended, carried on `FlightEnded`. The detail of a crash or a
@@ -8583,6 +8529,60 @@ export interface TimeCalendar
 	* session, not a craft.
 	*/
 	meta: PayloadMeta;
+}
+/**
+* One craft's link figures on `trackingStation.vessel.<guid>.link`, as the
+* command centre last heard them: the one-way signal delay between the craft
+* and the ground, and whether the craft is reachable. The same numbers the mod
+* uses to delay that craft's channels, published for display. Not a control
+* input.
+*
+* Delayed by that craft's own signal delay, so the value arrives as old as the
+* command centre's knowledge of the link.
+*
+* A craft with no comms path carries a null
+* `TrackingStationVesselLink.oneWaySeconds`, never a `0` that would read as a
+* zero-delay link.
+*
+* @category Solar system and fleet
+*/
+export interface TrackingStationVesselLink
+{
+	/**
+	* One-way signal delay to this vessel, in seconds. Null when there is no comms
+	* path to it.
+	*/
+	oneWaySeconds?: Value<"s"> | null;
+	/**
+	* Whether this vessel is currently reachable (`v.connection.IsConnected`).
+	* Null when its link could not be read.
+	*/
+	connected?: boolean | null;
+}
+/**
+* One craft's resource amounts on `trackingStation.vessel.<guid>.resources`,
+* as the command centre last heard them: the same keyed map `VesselResources`
+* carries for the active craft, for a craft you are not flying. A resource the
+* craft has no capacity for is absent from the map; one it carries but has
+* emptied is present with a current amount of `0`.
+*
+* Amounts only: no rate and no exhaustion time. Stock KSP does not simulate
+* consumption on an unloaded vessel, so a rate or exhaustion time belongs to
+* whichever Uplink models the draw, contributed on top of this.
+*
+* Delayed by that craft's own signal delay. While the craft is out of contact
+* the reading is held at its last-known value.
+*
+* @category Solar system and fleet
+*/
+export interface TrackingStationVesselResources
+{
+	/**
+	* The vessel's resources keyed by KSP resource name (for example
+	* `"LiquidFuel"`), each summed across every part that holds it. Never null;
+	* empty for a craft that carries no resources.
+	*/
+	resources: { [key:string]: ResourceAmount };
 }
 /**
 * What a command gate concluded about one precondition: passed, failed, could

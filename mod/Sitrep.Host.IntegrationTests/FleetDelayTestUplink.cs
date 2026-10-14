@@ -9,14 +9,14 @@ namespace Sitrep.Host.IntegrationTests
     /// <see cref="FreezeGateTestUplink"/> mirrors the real comms uplink. It reads
     /// the roster from <c>snapshot.Values["vessels"]</c> (a list of per-vessel
     /// dictionaries carrying <c>id</c> + an <c>orbit</c> element dict) and emits
-    /// each vessel's orbit on <c>fleet.&lt;id&gt;.orbit</c> under the
-    /// <c>fleet.</c> dynamic namespace. Per-vessel node routing (Task 2),
+    /// each vessel's orbit on <c>trackingStation.vessel.&lt;id&gt;.orbit</c>
+    /// under the production namespace. Per-vessel node routing (Task 2),
     /// per-vessel delay (Task 4) and the freeze-exempt per-vessel contact
     /// channel are exercised through this uplink.
     /// </summary>
     public sealed class FleetDelayTestUplink : ISitrepUplink
     {
-        public const string Prefix = ChannelEngine.FleetNodePrefix;
+        public const string Prefix = SystemViewProvider.VesselPrefix;
 
         /// <summary>
         /// A namespace core has never heard of, standing in for an Uplink that
@@ -48,6 +48,7 @@ namespace Sitrep.Host.IntegrationTests
                 Delivery = Delivery.LossyLatest,
                 Delay = DelayRole.Delayed,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                PerVesselNode = true,
             });
             _extensionSource = host.RegisterDynamicNamespace(ExtensionPrefix, new ChannelDeclaration
             { Kind = SampleKind.Continuous,
@@ -60,7 +61,7 @@ namespace Sitrep.Host.IntegrationTests
             // "connected" flag (default true), so each fleet vessel freezes on
             // ITS OWN link. The active vessel ("system") is not driven here
             // (stays connected). Mirrors production's split: the whole fleet
-            // capture skips the tick when no fleet.* topic is subscribed, and a
+            // capture skips the tick when none of its topics is subscribed, and a
             // second, ungated capture registered after it reports every
             // vessel's link regardless.
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, Prefix, ExtensionPrefix);
@@ -149,12 +150,12 @@ namespace Sitrep.Host.IntegrationTests
                 _extensionSource?.Publisher(id + ".contact").Publish(
                     new Dictionary<string, object?> { ["value"] = connected },
                     cap.Ut);
-                // The PRODUCTION FleetVesselLinkBuilder, compiled into
-                // this project (see the csproj), so the fleet.<id>.delay
+                // The PRODUCTION TrackingStationVesselLinkBuilder, compiled into
+                // this project (see the csproj), so the per-craft link
                 // serialize path is exercised against the shape production
                 // publishes rather than against a copy of it.
-                _orbitSource.Publisher(id + ".delay").Publish(
-                    Gonogo.KSP.FleetVesselLinkBuilder.Build(delay, connected),
+                _orbitSource.Publisher(id + ".link").Publish(
+                    Gonogo.KSP.TrackingStationVesselLinkBuilder.Build(delay, connected),
                     cap.Ut);
             }
         }

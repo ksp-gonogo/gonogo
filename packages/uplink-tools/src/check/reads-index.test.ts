@@ -145,13 +145,16 @@ describe("a client reading a published package through its index", () => {
       indexOf({
         useAltitude: entry({
           reads: ["vessel.flight"],
-          families: ["fleet.<vessel>.contact"],
+          families: ["trackingStation.vessel.<vessel>.link"],
           commands: ["vessel.control.setSas"],
         }),
       }),
     );
     const scan = clientFor(root, "useAltitude();");
-    expect(readsOf(scan)).toEqual(["fleet.<vessel>.contact", "vessel.flight"]);
+    expect(readsOf(scan)).toEqual([
+      "trackingStation.vessel.<vessel>.link",
+      "vessel.flight",
+    ]);
     expect(scan.widgets[0].commands.map((c) => c.id)).toEqual([
       "vessel.control.setSas",
     ]);
@@ -341,7 +344,7 @@ export function useSend() {
 }
 
 export function useFamily(id: string) {
-  return useStream(\`fleet.\${id}.contact\`);
+  return useStream(\`trackingStation.vessel.\${id}.link\`);
 }
 
 export function useQuiet() {
@@ -376,7 +379,9 @@ export function Panel() {
     expect(index.frameworkReads).toEqual({ useSend: ["comms.delay"] });
     expect(index.entries.useFlight.reads).toEqual(["vessel.flight"]);
     expect(index.entries.Panel.reads).toEqual(["vessel.flight"]);
-    expect(index.entries.useFamily.families).toEqual(["fleet.<id>.contact"]);
+    expect(index.entries.useFamily.families).toEqual([
+      "trackingStation.vessel.<id>.link",
+    ]);
     expect(index.entries.useQuiet).toEqual(entry());
   });
 

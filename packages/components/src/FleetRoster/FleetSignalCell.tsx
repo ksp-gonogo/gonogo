@@ -1,4 +1,4 @@
-import { readingOf, useFleetVesselLink } from "@ksp-gonogo/sitrep-client";
+import { readingOf, useTrackedVesselLink } from "@ksp-gonogo/sitrep-client";
 import {
   CatalogContact,
   delayVisibility,
@@ -29,7 +29,7 @@ const DEFINITION_STYLE = {
 
 /**
  * The per-row Link cell: hovering or focusing the connectivity tag shows this vessel's reachability and signal delay.
- * Reachability comes only off the catalog's contact: the last `.delay` payload before a blackout still says `connected: true`, so its `connected` is never read.
+ * Reachability comes only off the catalog's contact: the last `.link` payload before a blackout still says `connected: true`, so its `connected` is never read.
  */
 export function FleetSignalCell({
   guid,
@@ -47,7 +47,7 @@ export function FleetSignalCell({
   /** Whether the catalog the contact came from has stopped arriving, so it is the last known. */
   contactHeld: boolean;
 }) {
-  const linkReading = useFleetVesselLink(guid);
+  const linkReading = useTrackedVesselLink(guid);
   const link = stillTrue(linkReading, undefined);
   const oneWay = link?.oneWaySeconds ?? null;
   // One read of reachability, so the Link term and the Delay label cannot disagree.

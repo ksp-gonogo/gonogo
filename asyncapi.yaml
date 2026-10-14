@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 42.0.0
+  version: 43.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 87 telemetry
     channels a client subscribes to, and 62 commands it dispatches, with the payload
@@ -123,16 +123,17 @@ info:
 
     It cannot become one. A DYNAMIC namespace is registered at RUNTIME and
     materialises its channels per subject, so no statically declared type exists for
-    the generator to find and nothing about it appears here: `silence.<guid>.*`,
+    the generator to find and nothing about it appears here: `trackingStation.vessel.<guid>.*`,
     `currency.<guid>.<currency>`, per-vessel part actions, and each Uplink's own.
     Asking this document "is there a per-vessel X" gets a confident no about a
     channel that has been published all along. An Uplink's own channels and commands
     are likewise absent: they live in the Uplink's contract slice, not in the core
     one this document is generated from.
 
-    The prefix alone does not tell you which half a channel is in, and `fleet.` is
-    the case that proves it: `fleet.silence` is STATICALLY declared and is in this
-    document, while `fleet.<guid>.<field>` is dynamic and is not. Reading the one
+    The prefix alone does not tell you which half a channel is in, and
+    `trackingStation.` is the case that proves it: `trackingStation.catalog` is
+    STATICALLY declared and is in this document, while
+    `trackingStation.vessel.<guid>.<field>` is dynamic and is not. Reading the one
     as evidence about the other goes wrong in both directions.
 
     ## What a schema cannot say about this contract
@@ -12175,11 +12176,9 @@ components:
             peer is placed from `@commandCentre.roster`, whose body-fixed latitude and
             longitude need the rotation phase on `@system.bodies`.
 
-            This covers a route whose first hop ends at a ground station, the direct
-            link and the common case. A first hop that ends at a relay needs that
-            relay's orbit, on `fleet.<guid>.orbit` under a guid only the route names, so
-            it cannot be declared as an input. A client reckoning a relayed route gets a
-            refusal that names that channel rather than a modelled number.
+            A first hop that ends at a relay places the relay from its entry on
+            `@trackingStation.catalog`: the orbit the command centre last heard for it,
+            about the body whose gravitational parameter `@system.bodies` carries.
 
             `CommsDelay.source` is an input because two of its members are a zero that
             does not mean "no distance": delay switched off, or a save with no comms
@@ -14187,10 +14186,10 @@ components:
         One kerbal currently outside a craft, on the `eva.crew` channel.
 
         A kerbal on EVA is a vessel in KSP's model, with its own id, so it already
-        appears on `trackingStation.catalog` and on its own per-vessel Topics
-        (`fleet.<guid>.delay` and `fleet.<guid>.orbit`). What is here and nowhere
-        else is the suit: what it is carrying, what it can do, and whether the place
-        it is standing in would kill the wearer without it.
+        appears on `trackingStation.catalog` and on its own per-craft Topics
+        (`trackingStation.vessel.<guid>.link` and `.resources`). What is here and
+        nowhere else is the suit: what it is carrying, what it can do, and whether
+        the place it is standing in would kill the wearer without it.
 
         Every field is `null` when the value could not be read. Absence is never a
         zero: a kerbal whose propellant could not be read is not a kerbal with an

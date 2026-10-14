@@ -4,7 +4,7 @@ import { sdkDynamicPrefixes } from "./sdk-prefixes";
 describe("sdkDynamicPrefixes", () => {
   it("reads the prefixes the installed sdk registers", () => {
     const { prefixes } = sdkDynamicPrefixes(import.meta.dirname);
-    expect(prefixes).toContain("fleet.");
+    expect(prefixes).toContain("trackingStation.vessel.");
     expect(prefixes).toContain("vessel.partActions.");
   });
 

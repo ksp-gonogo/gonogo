@@ -8,12 +8,12 @@ using UnityEngine;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The <c>fleet.&lt;guid&gt;.*</c> dynamic namespace: each fleet-capture
-    /// tick, reads every
-    /// <c>FlightGlobals.Vessels</c> vessel's own routed signal delay
-    /// (<see cref="FleetCommsReader"/>) + orbit, sets the per-vessel node delay
-    /// via <see cref="IUplinkHost.SetVesselDelay"/>, and emits the orbit on
-    /// <c>fleet.&lt;guid&gt;.orbit</c> (delayed by that vessel's own signal delay).
+    /// The <c>trackingStation.vessel.&lt;guid&gt;.*</c> dynamic namespace: each
+    /// fleet-capture tick, reads every <c>FlightGlobals.Vessels</c> vessel's own
+    /// routed signal delay (<see cref="FleetCommsReader"/>), sets the per-vessel
+    /// node delay via <see cref="IUplinkHost.SetVesselDelay"/>, and emits the
+    /// craft's link figures on <c>.link</c> and its tanks on <c>.resources</c>,
+    /// each delayed by that craft's own signal delay.
     ///
     /// <para>This is the KSP-facing hookup of the mechanism proven engine-side by
     /// <c>FleetDelayTestUplink</c> (which is snapshot-driven; this reads live
@@ -29,16 +29,16 @@ namespace Gonogo.KSP
     /// command centre is in contact with a craft is not here: it is that
     /// centre's own knowledge, on its <c>trackingStation.catalog</c>.</para>
     ///
-    /// <para>Subscription-gated on the <c>fleet.</c> prefix: the whole fleet
-    /// read is skipped when no client subscribes to any fleet topic. Each
+    /// <para>Subscription-gated on the namespace prefix: the whole fleet
+    /// read is skipped when no client subscribes to any of its topics. Each
     /// vessel's link is the exception, read by a second, ungated capture
     /// (<see cref="CaptureLinksOnMain"/>) every tick. An outage that starts or
     /// ends with nobody watching has to be on record for the first client to
     /// subscribe, whose catch-up is graded by it; a gated read would hand that
     /// client a pre-outage sample marked fresh for a craft out of contact. It
-    /// costs one connectivity flag per vessel per tick, no path walk and no
-    /// orbit build, and the engine then keeps link state for every vessel
-    /// rather than only while a fleet topic is subscribed.</para>
+    /// costs one connectivity flag per vessel per tick and no path walk, and
+    /// the engine then keeps link state for every vessel rather than only
+    /// while one of these topics is subscribed.</para>
     ///
     /// <para><b>Not an Uplink discovered by attribute scan, deliberately.</b>
     /// It implements <see cref="ISitrepUplink"/> so <see cref="GonogoAddon"/>
@@ -51,7 +51,7 @@ namespace Gonogo.KSP
     /// </summary>
     public sealed class FleetChannels : ISitrepUplink
     {
-        /// <summary>The per-vessel topic suffix, alongside the engine's own `.contact`.</summary>
+        private const string LinkSuffix = ".link";
         private const string ResourcesSuffix = ".resources";
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace Gonogo.KSP
         private static readonly PerfBudget FleetResourceBudget = new PerfBudget(
             "FleetChannels resource rows read", threshold: 2000, windowSec: 1.0, unit: "rows");
 
-        private IDynamicChannelSource? _orbitSource;
+        private IDynamicChannelSource? _vesselSource;
         private IUplinkHost? _host;
 
         /// <summary>
@@ -91,15 +91,18 @@ namespace Gonogo.KSP
         {
             _host = host;
             _journeyWriter = host as IVesselJourneyWriter;
-            _orbitSource = host.RegisterDynamicNamespace(ChannelEngine.FleetNodePrefix, new ChannelDeclaration
+            _vesselSource = host.RegisterDynamicNamespace(SystemViewProvider.VesselPrefix, new ChannelDeclaration
             {
                 Kind = SampleKind.Continuous,
                 Requires = Requirement.None,
                 Delivery = Delivery.LossyLatest,
                 Delay = DelayRole.Delayed,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                // Keyed by the craft, so each records on that craft's own node
+                // and reveals at its light-time.
+                PerVesselNode = true,
             });
-            host.AddSampledSource(CaptureOnMain, HandleOnCourier, ChannelEngine.FleetNodePrefix);
+            host.AddSampledSource(CaptureOnMain, HandleOnCourier, SystemViewProvider.VesselPrefix);
             // Registered after the gated source, whose handle has to report a
             // link after its delay and before its publishes on a tick it runs.
             host.AddSampledSource(CaptureLinksOnMain, HandleLinksOnCourier);
@@ -107,7 +110,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// MAIN-THREAD, ungated: every vessel's connectivity, so it stays
-        /// true while nobody subscribes to a fleet topic.
+        /// true while nobody subscribes to this namespace.
         /// </summary>
         internal object? CaptureLinksOnMain(KspSnapshot? snapshot)
         {
@@ -178,7 +181,7 @@ namespace Gonogo.KSP
             }
         }
 
-        /// <summary>MAIN-THREAD capture: per vessel, its guid + routed delay + orbit-element dict.</summary>
+        /// <summary>MAIN-THREAD capture: per vessel, its guid, routed delay and, when watched, its tanks.</summary>
         internal object? CaptureOnMain(KspSnapshot? snapshot)
         {
             var all = FlightGlobals.Vessels;
@@ -198,7 +201,6 @@ namespace Gonogo.KSP
                 }
                 var (oneWay, connected) = FleetCommsReader.ReadVessel(vessel, config);
                 var journey = FleetCommsReader.ReadVesselJourney(vessel, config);
-                var orbit = vessel.orbitDriver != null ? KspHost.BuildOrbit(vessel.orbitDriver.orbit) : null;
                 var id = vessel.id.ToString();
                 captures.Add(new FleetVesselCapture
                 {
@@ -206,7 +208,6 @@ namespace Gonogo.KSP
                     OneWaySeconds = oneWay,
                     Journey = journey,
                     Connected = connected,
-                    Orbit = orbit,
                     // Gated PER VESSEL, not with the rest of the fleet read.
                     // Walking one craft's parts is cheap; walking every craft's
                     // parts every tick because something subscribed to one
@@ -224,8 +225,8 @@ namespace Gonogo.KSP
         /// watching this craft's resources.
         ///
         /// <para>The per-vessel subscription check is the point. The whole
-        /// fleet read is already gated on the <c>fleet.</c> prefix, but that
-        /// gate opens as soon as any fleet topic has a subscriber, so a tracker
+        /// fleet read is already gated on the namespace prefix, but that
+        /// gate opens as soon as any of its topics has a subscriber, so a tracker
         /// watching one probe's contact state would otherwise pay for a
         /// part-walk of every craft in the save on every tick. That is fine at
         /// four vessels and not fine at forty.</para>
@@ -236,7 +237,7 @@ namespace Gonogo.KSP
         /// </summary>
         private Dictionary<string, object?>? ReadResources(Vessel vessel, string id, double ut)
         {
-            if (_host == null || !_host.IsAnyTopicSubscribed(ChannelEngine.FleetNodePrefix + id + ResourcesSuffix))
+            if (_host == null || !_host.IsAnyTopicSubscribed(SystemViewProvider.VesselPrefix + id + ResourcesSuffix))
             {
                 return null;
             }
@@ -252,7 +253,7 @@ namespace Gonogo.KSP
                         foreach (PartResource res in part.Resources)
                         {
                             if (res == null) continue;
-                            FleetVesselResourcesBuilder.Add(resources, res.resourceName, res.amount, res.maxAmount);
+                            TrackingStationVesselResourcesBuilder.Add(resources, res.resourceName, res.amount, res.maxAmount);
                         }
                     }
                 }
@@ -267,7 +268,7 @@ namespace Gonogo.KSP
                             foreach (var res in pps.resources)
                             {
                                 if (res == null) continue;
-                                FleetVesselResourcesBuilder.Add(resources, res.resourceName, res.amount, res.maxAmount);
+                                TrackingStationVesselResourcesBuilder.Add(resources, res.resourceName, res.amount, res.maxAmount);
                             }
                         }
                     }
@@ -282,13 +283,13 @@ namespace Gonogo.KSP
             }
 
             FleetResourceBudget.Record(resources.Count, ut);
-            return FleetVesselResourcesBuilder.Build(resources);
+            return TrackingStationVesselResourcesBuilder.Build(resources);
         }
 
-        /// <summary>COURIER-THREAD handle: set each vessel's node delay + emit its orbit/delay/contact.</summary>
+        /// <summary>COURIER-THREAD handle: set each vessel's node delay and emit its link and tanks.</summary>
         internal void HandleOnCourier(object? captured)
         {
-            if (captured is not FleetCapture cap || _orbitSource == null)
+            if (captured is not FleetCapture cap || _vesselSource == null)
             {
                 return;
             }
@@ -311,21 +312,14 @@ namespace Gonogo.KSP
                 // connected light-time is kept, and before the publishes, so they
                 // freeze.
                 ReportLink(v.Id, v.Connected);
-                if (v.Orbit != null)
-                {
-                    _orbitSource.Publisher(v.Id + ".orbit").Publish(v.Orbit, cap.Ut);
-                }
-                // Surface the per-vessel delay + connectivity the capture
-                // already holds as a display-only fleet.<guid>.delay field (same
-                // Delayed namespace as .orbit, so it too arrives light-time-late).
-                _orbitSource.Publisher(v.Id + ".delay")
-                    .Publish(FleetVesselLinkBuilder.Build(v.OneWaySeconds, v.Connected), cap.Ut);
+                _vesselSource.Publisher(v.Id + LinkSuffix)
+                    .Publish(TrackingStationVesselLinkBuilder.Build(v.OneWaySeconds, v.Connected), cap.Ut);
                 // Null means nobody asked for this craft's tanks this tick (see
                 // ReadResources), which is different from a craft with none: that
                 // is an empty map and still publishes.
                 if (v.Resources != null)
                 {
-                    _orbitSource.Publisher(v.Id + ResourcesSuffix).Publish(v.Resources, cap.Ut);
+                    _vesselSource.Publisher(v.Id + ResourcesSuffix).Publish(v.Resources, cap.Ut);
                 }
             }
         }
@@ -348,7 +342,6 @@ namespace Gonogo.KSP
             public double? OneWaySeconds { get; set; }
             public Journey? Journey { get; set; }
             public bool? Connected { get; set; }
-            public object? Orbit { get; set; }
             public Dictionary<string, object?>? Resources { get; set; }
         }
     }

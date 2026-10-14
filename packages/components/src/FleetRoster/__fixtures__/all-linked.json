@@ -69,21 +69,21 @@
         }
       },
       {
-        "channel": "fleet.v-station-1.delay",
+        "channel": "trackingStation.vessel.v-station-1.link",
         "value": {
           "connected": true,
           "oneWaySeconds": 1.2
         }
       },
       {
-        "channel": "fleet.v-comsat-1.delay",
+        "channel": "trackingStation.vessel.v-comsat-1.link",
         "value": {
           "connected": true,
           "oneWaySeconds": 2.5
         }
       },
       {
-        "channel": "fleet.v-transfer-1.delay",
+        "channel": "trackingStation.vessel.v-transfer-1.link",
         "value": {
           "connected": true,
           "oneWaySeconds": 2.5

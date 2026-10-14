@@ -376,7 +376,7 @@ describe("FleetRoster: the `contact == null` absence gate", () => {
     });
     await screen.findByRole("button", { name: /Explorer signal/i });
     act(() => {
-      fixture.emit("fleet.v-probe.delay", {
+      fixture.emit("trackingStation.vessel.v-probe.link", {
         oneWaySeconds: 4.5,
         connected: true,
       });
@@ -385,7 +385,7 @@ describe("FleetRoster: the `contact == null` absence gate", () => {
     const panel = await openSignalPanel(/Explorer signal/i);
     await waitFor(() => expect(visibleText(panel)).toContain("no path"));
     expect(visibleText(panel)).not.toContain("unknown");
-    // The light-time from the separate `.delay` record IS present, and reads as what it is: the last measurement before the path closed.
+    // The light-time from the separate `.link` record IS present, and reads as what it is: the last measurement before the path closed.
     expect(visibleText(panel)).toContain("Delay (last known)");
     expect(visibleText(panel)).toMatch(/round-trip[\s~]*9\s*s/i);
   });

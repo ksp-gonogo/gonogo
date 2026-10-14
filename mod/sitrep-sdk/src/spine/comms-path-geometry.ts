@@ -47,7 +47,7 @@ import type { SystemInstant } from "./reference-frame";
 
 /**
  * The orbit elements of a relay vessel and the body they are measured about,
- * the part of a `fleet.<guid>.orbit` payload needed to place that relay. Useful
+ * as a command centre's catalog entry for that craft gives them. Useful
  * for finding where the far end of a comms hop is. Taken by `locateCommsPeer`
  * and by the `comms.delay` reckoner.
  */
@@ -168,8 +168,8 @@ export function firstHopPeer(
  * `"ground:<name>"`. Two stations sharing a name have one hop id, so they
  * cannot be told apart.
  *
- * A relay endpoint joins to `fleet.<guid>.orbit` directly, both keying on the
- * bare vessel guid.
+ * A relay endpoint is placed by `orbitOf`, called with the bare vessel guid
+ * the hop carries.
  */
 export function locateCommsPeer(
   endpoint: CommsPeerEndpoint,

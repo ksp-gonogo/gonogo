@@ -149,10 +149,8 @@ function scene(
   options: {
     source?: CommsDelaySource;
     observedAt?: number;
-    /** Publish the relay's own elements on its per-vessel dynamic topic. */
-    relayOrbit?: boolean;
-    /** Record what the store asks to be held up, and what it lets go. */
-    held?: string[];
+    /** The command centre's catalog entry for the relay: with its orbit, without one, or none at all. */
+    relayEntry?: "with-orbit" | "without-orbit";
     lightTimeSeconds?: number;
   } = {},
 ) {
@@ -180,21 +178,27 @@ function scene(
     warpRate: () => 1,
     delaySeconds: () => lightTimeSeconds,
   });
-  const store = new TimelineStore(clock, {
-    subscribeDynamicTopic: (topic) => {
-      options.held?.push(`+${topic}`);
-      return () => options.held?.push(`-${topic}`);
-    },
-  });
+  const store = new TimelineStore(clock);
   store.setTransportConnected(false);
   store.ingest("system.bodies", point(observedAt, SYSTEM));
   store.ingest("commandCentre.roster", point(observedAt, ROSTER));
   store.ingest("vessel.orbit", point(observedAt, circularOrbit(CRAFT_SMA)));
   store.ingest("comms.path", point(observedAt, { hops: [...hops] }));
-  if (options.relayOrbit) {
+  if (options.relayEntry != null) {
+    const { referenceBodyIndex, mu, horizon, ...elements } =
+      circularOrbit(RELAY_SMA);
     store.ingest(
-      `fleet.${RELAY_GUID}.orbit`,
-      point(observedAt, circularOrbit(RELAY_SMA)),
+      "trackingStation.catalog",
+      point(observedAt, {
+        entries: [
+          {
+            vesselId: RELAY_GUID,
+            name: "Relay",
+            bodyIndex: referenceBodyIndex,
+            orbit: options.relayEntry === "with-orbit" ? elements : null,
+          },
+        ],
+      }),
     );
   }
   store.ingest(
@@ -210,11 +214,6 @@ function scene(
     repeatRoute(at: number) {
       wall = at + lightTimeSeconds;
       store.ingest("comms.path", point(at, { hops: [...hops] }));
-    },
-    /** Re-route straight to the station, so the model names no subject at all. */
-    goDirect(at: number) {
-      wall = at + lightTimeSeconds;
-      store.ingest("comms.path", point(at, { hops: [...DIRECT_HOPS] }));
     },
     at(scetUt: number): TopicReading<DelaySample> {
       wall = scetUt;
@@ -308,22 +307,23 @@ describe("a direct link to a ground station", () => {
 });
 
 describe("a relayed link", () => {
-  it("withdraws when the relay's own orbit has not arrived", () => {
+  it("withdraws when the command centre's catalog does not list the relay", () => {
     const s = scene(RELAYED_HOPS);
     const reading = s.at(HALF_ORBIT);
 
-    // The relay's elements ride `fleet.<guid>.orbit`, a per-vessel dynamic
-    // topic whose guid is only known once the route arrives. The model NAMES it
-    // now (see the per-subject dep), so this is the ordinary "declared input
-    // has not arrived" refusal rather than the old "no dep can name it", and it
-    // is spelled the way the wire spells it.
-    expect(reading.reckoning.status).toBe("declined");
     expect(reading.reckoning).toMatchObject({
       status: "declined",
-      declined: {
-        reason: "input-absent",
-        input: `@fleet.${RELAY_GUID}.orbit`,
-      },
+      declined: { reason: "input-absent", input: "@trackingStation.catalog" },
+    });
+  });
+
+  it("withdraws when the catalog lists the relay with no orbit", () => {
+    const s = scene(RELAYED_HOPS, { relayEntry: "without-orbit" });
+    const reading = s.at(HALF_ORBIT);
+
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
+      declined: { reason: "input-absent", input: "@trackingStation.catalog" },
     });
   });
 
@@ -337,8 +337,8 @@ describe("a relayed link", () => {
    * Written down rather than recomputed, which is the whole point of the
    * fixture's chosen periods.
    */
-  it("re-measures the craft-to-relay hop once the relay's orbit arrives", () => {
-    const s = scene(RELAYED_HOPS, { relayOrbit: true });
+  it("re-measures the craft-to-relay hop from the relay's catalog orbit", () => {
+    const s = scene(RELAYED_HOPS, { relayEntry: "with-orbit" });
     const reading = s.at(HALF_ORBIT);
 
     const firstHopNow = Math.sqrt(CRAFT_SMA ** 2 + RELAY_SMA ** 2);
@@ -348,29 +348,5 @@ describe("a relayed link", () => {
       (firstHopNow + carried) / C,
       9,
     );
-  });
-
-  /**
-   * The half of option 1 that nothing else can do. The subject is not known at
-   * subscribe time, so the read's own set cannot contain this topic and the
-   * store is what has to hold it up; without this the model would name an input
-   * that nothing anywhere asked the wire for and decline on it for ever.
-   */
-  it("holds up the relay's orbit, and lets go when the route goes direct", () => {
-    const held: string[] = [];
-    const s = scene(RELAYED_HOPS, { relayOrbit: true, held });
-    s.at(HALF_ORBIT);
-    expect(held).toEqual([`+fleet.${RELAY_GUID}.orbit`]);
-
-    // A route straight home names no subject, so the hold is not re-asserted
-    // and the sweep drops it. Two frames: the sweep runs before a frame's
-    // reads, so the frame that stops asserting is the one that earns release.
-    s.goDirect(HALF_ORBIT);
-    s.at(HALF_ORBIT + LIGHT_TIME_SECONDS);
-    s.at(HALF_ORBIT + LIGHT_TIME_SECONDS);
-    expect(held).toEqual([
-      `+fleet.${RELAY_GUID}.orbit`,
-      `-fleet.${RELAY_GUID}.orbit`,
-    ]);
   });
 });

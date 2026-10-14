@@ -43,7 +43,7 @@ namespace Sitrep.Host
         /// <summary>
         /// The everywhere-at-once observer vantage: <c>DelayTo(MetaVantage, *)</c>
         /// is pinned to 0 so instant/exempt topics (comms.link,
-        /// fleet.&lt;guid&gt;.contact, TrueNow) are never delayed by the ledger even
+        /// craftstate.&lt;guid&gt;.link, TrueNow) are never delayed by the ledger even
         /// after the whole-network default carries the signal delay.
         /// Keeps "instant" a vantage, not a separate code path.
         /// </summary>
@@ -5888,7 +5888,7 @@ namespace Sitrep.Host
         /// <see cref="MetaVantage"/> for an instant-class one.
         ///
         /// <para>Instant-class is a <c>TrueNow</c> declaration and nothing else.
-        /// A freeze-exempt report (comms.link, fleet.&lt;guid&gt;.contact) is
+        /// A freeze-exempt report (comms.link, craftstate.&lt;guid&gt;.link) is
         /// not in it: it is observed from the selected vantage like any Delayed
         /// topic, and each sample carries that vantage's own signal delay in its
         /// stamp (see <see cref="ExemptStampFor"/>). Observed from the meta

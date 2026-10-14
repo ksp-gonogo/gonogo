@@ -16,7 +16,7 @@
 // nothing about it appears below: `currency.<guid>.<currency>`,
 // `vessel.partActions.<flightId>`, and each
 // Uplink's own. So a per-subject topic missing from this file may still be
-// published: `fleet.<guid>.orbit` is. To enumerate the dynamic half, grep
+// published: `trackingStation.vessel.<guid>.link` is. To enumerate the dynamic half, grep
 // the mod for `RegisterDynamicNamespace` instead.
 
 import type {

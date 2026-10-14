@@ -91,7 +91,7 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         }
 
         [Fact]
-        public void ACraftThatLeavesTheVesselListIsDeclaredDestroyedOnTheNextCapture()
+        public void ACraftThatLeavesTheVesselListIsGoneOnTheNextCapture()
         {
             using var ksp = new UnityStandIns(Ut, DelayOn());
             var craft = UnityStandIns.Craft(CraftId, Grounded());
@@ -103,9 +103,8 @@ namespace Gonogo.KSP.Tests.SilenceTracking
             capture.CaptureSilence(tracker, new List<Vessel> { other }, Ut + 1.0);
 
             var state = tracker.TryGetState(CraftId.ToString())!;
-            Assert.Equal(SilenceState.Lost, state.State);
+            Assert.Equal(SilenceState.Gone, state.State);
             Assert.Equal(SilenceDeadlineBasis.Destroyed, state.DeadlineBasis);
-            Assert.Equal(Ut + 1.0, state.DeclaredLostUt);
         }
 
         [Fact]

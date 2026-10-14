@@ -723,7 +723,7 @@ namespace Gonogo.KSP
         /// away are seen by something before they are lost.
         ///
         /// <para>The craft on screen is always watched. Every other craft is
-        /// watched while anything under <c>fleet.</c> is subscribed, the same
+        /// watched while anything under <c>trackingStation.vessel.</c> is subscribed, the same
         /// condition the fleet capture runs on, because a break only retires
         /// samples someone is receiving and the fleet capture reads every
         /// vessel's route on those same ticks.</para>
@@ -768,7 +768,7 @@ namespace Gonogo.KSP
                 yield return Watched(backend, active, id, ChannelEngine.NodeId, ChannelEngine.FleetNodePrefix + id);
             }
 
-            if (_host == null || !_host.IsAnyTopicSubscribed(ChannelEngine.FleetNodePrefix))
+            if (_host == null || !_host.IsAnyTopicSubscribed(SystemViewProvider.VesselPrefix))
             {
                 yield break;
             }

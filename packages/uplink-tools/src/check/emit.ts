@@ -7,7 +7,7 @@ export interface Declarations {
   commands: string[];
 }
 
-/** A family with its placeholder names dropped, so `fleet.<vessel>.delay` and `fleet.<id>.contact` are one family. */
+/** A family with its placeholder names dropped, so `trackingStation.vessel.<vessel>.link` and `trackingStation.vessel.<id>.link` are one family. */
 export const normalizeFamily = (pattern: string) =>
   pattern.replace(/<[^>]*>/g, "<>");
 

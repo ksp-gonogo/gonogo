@@ -64,7 +64,7 @@ describe("widget dataRequirements resolve to something real", () => {
 /**
  * A Topic family is a pattern whose every placeholder fills one whole dotted
  * segment, and whose literal prefix is one the store splits as a whole Topic.
- * Without the second, the store would read `fleet.abc.contact` as a field of a
+ * Without the second, the store would read `trackingStation.vessel.abc.link` as a field of a
  * Topic nobody publishes.
  */
 function familyFault(pattern: string): string | undefined {
@@ -85,9 +85,9 @@ function familyFault(pattern: string): string | undefined {
 describe("widget Topic families are well formed and registered", () => {
   it("rejects a placeholder inside a segment and an unregistered prefix", () => {
     // Positive control: a checker that accepts these reports zero faults for any tree.
-    expect(familyFault("fleet.a<x>b.contact")).toBeDefined();
+    expect(familyFault("trackingStation.vessel.a<x>b.link")).toBeDefined();
     expect(familyFault("nowhere.<id>.state")).toBeDefined();
-    expect(familyFault("fleet.<vessel>.contact")).toBeUndefined();
+    expect(familyFault("trackingStation.vessel.<vessel>.link")).toBeUndefined();
     expect(familyFault("<domain>.available")).toBeUndefined();
   });
 

@@ -392,21 +392,23 @@ describe("a widget reads only the Topics it declares", () => {
     const claimed = await plantedClaims(function PlantedFamily(
       _p: ComponentProps,
     ) {
-      useStream("fleet.abc.contact");
+      useStream("trackingStation.vessel.abc.link");
       return null;
     });
     const wrong = {
       ...noFamilies,
-      families: ["fleet.<vessel>.delay" as ChannelFamily],
+      families: ["trackingStation.vessel.<vessel>.resources" as ChannelFamily],
     };
     const right = {
       ...noFamilies,
-      families: ["fleet.<vessel>.contact" as ChannelFamily],
+      families: ["trackingStation.vessel.<vessel>.link" as ChannelFamily],
     };
     expect(undeclaredReads(claimed, wrong, [], "planted")).toEqual([
-      "fleet.abc.contact",
+      "trackingStation.vessel.abc.link",
     ]);
-    expect(unclaimedFamilies(claimed, wrong)).toEqual(["fleet.<vessel>.delay"]);
+    expect(unclaimedFamilies(claimed, wrong)).toEqual([
+      "trackingStation.vessel.<vessel>.resources",
+    ]);
     expect(undeclaredReads(claimed, right, [], "planted")).toEqual([]);
     expect(unclaimedFamilies(claimed, right)).toEqual([]);
   });

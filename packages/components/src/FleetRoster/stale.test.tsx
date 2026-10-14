@@ -55,7 +55,7 @@ async function mountLinked() {
     name: /Explorer signal/i,
   });
   act(() => {
-    fixture.emit("fleet.v-probe.delay", {
+    fixture.emit("trackingStation.vessel.v-probe.link", {
       oneWaySeconds: 4.5,
       connected: true,
     });

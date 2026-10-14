@@ -19,7 +19,7 @@ import { StubTransport } from "./stub-transport";
  *
  * - `emit` delivers only once something has subscribed, as the mod does, so a
  *   widget that shows an emitted value has really subscribed
- * - A key under a dynamic prefix, such as `fleet.<guid>.delay`, is read whole,
+ * - A key under a dynamic prefix, such as `trackingStation.vessel.<guid>.link`, is read whole,
  *   as the app reads it
  * - With a nonzero `delaySeconds`, leave `pinnedUt` unset, since a pinned
  *   clock ignores the delay. Move time with `fixture.wall.advanceBy(seconds)`

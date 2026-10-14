@@ -100,10 +100,12 @@ describe("defineTopicManifest", () => {
   it("returns the families it was given, and empty arrays when it was given none", () => {
     const withFamilies = defineTopicManifest({
       channels: ["vessel.orbit"],
-      channelFamilies: ["fleet.<vessel>.contact"],
+      channelFamilies: ["trackingStation.vessel.<vessel>.link"],
       optionalChannelFamilies: ["vessel.partActions.<flightId>"],
     });
-    expect(withFamilies.channelFamilies).toEqual(["fleet.<vessel>.contact"]);
+    expect(withFamilies.channelFamilies).toEqual([
+      "trackingStation.vessel.<vessel>.link",
+    ]);
     expect(withFamilies.optionalChannelFamilies).toEqual([
       "vessel.partActions.<flightId>",
     ]);

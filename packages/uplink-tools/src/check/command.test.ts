@@ -75,7 +75,7 @@ function client(options: { read?: string; generated?: string | null } = {}) {
   writeFileSync(join(sdk, "package.json"), '{"name":"@ksp-gonogo/sitrep-sdk"}');
   writeFileSync(
     join(sdk, "dist/runtime-topic-registry.js"),
-    'export const DYNAMIC_WHOLE_TOPIC_PREFIXES = ["fleet."];',
+    'export const DYNAMIC_WHOLE_TOPIC_PREFIXES = ["trackingStation.vessel."];',
   );
   writeFileSync(join(dir, "src/hooks.ts"), HOOKS);
   writeFileSync(join(dir, "src/twr.tsx"), WIDGET(options.read ?? ""));
@@ -164,10 +164,10 @@ describe("exit codes", () => {
 
   it("is 0 once a directive names the planted read and the generated file declares it", async () => {
     const dir = client({
-      read: "// gonogo:reads fleet.<vessel>.contact\n  useStream(props.topic);",
+      read: "// gonogo:reads trackingStation.vessel.<vessel>.link\n  useStream(props.topic);",
       generated: EXPECTED.replace(
         "optionalChannelFamilies: []",
-        'optionalChannelFamilies: ["fleet.<vessel>.contact"]',
+        'optionalChannelFamilies: ["trackingStation.vessel.<vessel>.link"]',
       ),
     });
     const { code } = await runIn(dir);

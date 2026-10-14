@@ -9,7 +9,7 @@ namespace Gonogo.KSP.Tests.SilenceTracking
     /// a number would be misleading rather than merely wrong: a tank the craft
     /// does not carry, and a tank it carries but has emptied.
     /// </summary>
-    public class FleetVesselResourcesBuilderTests
+    public class TrackingStationVesselResourcesBuilderTests
     {
         private static Dictionary<string, object?> Row(
             Dictionary<string, object?> resources,
@@ -21,7 +21,7 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         {
             var resources = new Dictionary<string, object?>();
 
-            Assert.True(FleetVesselResourcesBuilder.Add(resources, "LiquidFuel", 120.0, 400.0));
+            Assert.True(TrackingStationVesselResourcesBuilder.Add(resources, "LiquidFuel", 120.0, 400.0));
 
             var row = Row(resources, "LiquidFuel");
             Assert.Equal(120.0, row["current"]);
@@ -34,8 +34,8 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         {
             var resources = new Dictionary<string, object?>();
 
-            FleetVesselResourcesBuilder.Add(resources, "LiquidFuel", 120.0, 400.0);
-            FleetVesselResourcesBuilder.Add(resources, "LiquidFuel", 80.0, 200.0);
+            TrackingStationVesselResourcesBuilder.Add(resources, "LiquidFuel", 120.0, 400.0);
+            TrackingStationVesselResourcesBuilder.Add(resources, "LiquidFuel", 80.0, 200.0);
 
             var row = Row(resources, "LiquidFuel");
             Assert.Equal(200.0, row["current"]);
@@ -52,7 +52,7 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         {
             var resources = new Dictionary<string, object?>();
 
-            Assert.True(FleetVesselResourcesBuilder.Add(resources, "Oxidizer", 0.0, 500.0));
+            Assert.True(TrackingStationVesselResourcesBuilder.Add(resources, "Oxidizer", 0.0, 500.0));
 
             var row = Row(resources, "Oxidizer");
             Assert.Equal(0.0, row["current"]);
@@ -69,7 +69,7 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         {
             var resources = new Dictionary<string, object?>();
 
-            Assert.False(FleetVesselResourcesBuilder.Add(resources, "Ore", 0.0, 0.0));
+            Assert.False(TrackingStationVesselResourcesBuilder.Add(resources, "Ore", 0.0, 0.0));
 
             Assert.Empty(resources);
         }
@@ -79,8 +79,8 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         {
             var resources = new Dictionary<string, object?>();
 
-            Assert.False(FleetVesselResourcesBuilder.Add(resources, null, 10.0, 10.0));
-            Assert.False(FleetVesselResourcesBuilder.Add(resources, "", 10.0, 10.0));
+            Assert.False(TrackingStationVesselResourcesBuilder.Add(resources, null, 10.0, 10.0));
+            Assert.False(TrackingStationVesselResourcesBuilder.Add(resources, "", 10.0, 10.0));
 
             Assert.Empty(resources);
         }
@@ -89,9 +89,9 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         public void WrapsTheMapAsTheContractShapeDeclaresIt()
         {
             var resources = new Dictionary<string, object?>();
-            FleetVesselResourcesBuilder.Add(resources, "ElectricCharge", 40.0, 100.0);
+            TrackingStationVesselResourcesBuilder.Add(resources, "ElectricCharge", 40.0, 100.0);
 
-            var payload = FleetVesselResourcesBuilder.Build(resources);
+            var payload = TrackingStationVesselResourcesBuilder.Build(resources);
 
             var map = Assert.IsType<Dictionary<string, object?>>(payload["resources"]);
             Assert.True(map.ContainsKey("ElectricCharge"));
@@ -104,7 +104,7 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         [Fact]
         public void ACraftWithNoTanksIsAnEmptyMapRatherThanAnAbsentKey()
         {
-            var payload = FleetVesselResourcesBuilder.Build(new Dictionary<string, object?>());
+            var payload = TrackingStationVesselResourcesBuilder.Build(new Dictionary<string, object?>());
 
             Assert.True(payload.ContainsKey("resources"));
             Assert.Empty(Assert.IsType<Dictionary<string, object?>>(payload["resources"]));

@@ -15,7 +15,7 @@ beforeAll(async () => {
   ts = await loadTypeScript(import.meta.dirname);
 });
 
-const PREFIXES = ["fleet.", "silence.", "vessel.partActions."];
+const PREFIXES = ["trackingStation.vessel.", "silence.", "vessel.partActions."];
 
 /** A widget whose body and registration extras are the planted fault. */
 const run = (rule: string, body: string, registration = "", extra = "") => {
@@ -52,7 +52,7 @@ describe("required-unread", () => {
     const found = run(
       "required-unread",
       `useTelemetry("vessel.flight");`,
-      `channelFamilies: ["fleet.<vessel>.contact"]`,
+      `channelFamilies: ["trackingStation.vessel.<vessel>.link"]`,
     );
     expect(found).toHaveLength(1);
   });
@@ -60,8 +60,8 @@ describe("required-unread", () => {
   it("passes when every required entry is read, whatever the placeholder is called", () => {
     const found = run(
       "required-unread",
-      `useTelemetry("vessel.flight"); useStream(\`fleet.$${"{"}props.topic}.contact\`);`,
-      `channels: ["vessel.flight"], channelFamilies: ["fleet.<id>.contact"]`,
+      `useTelemetry("vessel.flight"); useStream(\`trackingStation.vessel.$${"{"}props.topic}.link\`);`,
+      `channels: ["vessel.flight"], channelFamilies: ["trackingStation.vessel.<id>.link"]`,
     );
     expect(found).toEqual([]);
   });
@@ -99,8 +99,8 @@ describe("field-not-read", () => {
   it("passes fields of read Topics and of read families", () => {
     const found = run(
       "field-not-read",
-      `useTelemetry("vessel.flight"); useStream(\`fleet.$${"{"}props.topic}.contact\`);`,
-      `fields: ["vessel.flight", "vessel.flight.altitude", "fleet.abc.contact.state"]`,
+      `useTelemetry("vessel.flight"); useStream(\`trackingStation.vessel.$${"{"}props.topic}.link\`);`,
+      `fields: ["vessel.flight", "vessel.flight.altitude", "trackingStation.vessel.abc.link.connected"]`,
     );
     expect(found).toEqual([]);
   });
@@ -287,7 +287,9 @@ describe("family-unregistered", () => {
   });
 
   it("passes a family under an sdk prefix", () => {
-    expect(run("family-unregistered", read("fleet."))).toEqual([]);
+    expect(run("family-unregistered", read("trackingStation.vessel."))).toEqual(
+      [],
+    );
   });
 
   it("passes a family under a prefix the client registers itself", () => {
@@ -314,7 +316,7 @@ registerComponent({ id: "w", component: Widget });
     const scan = scanFiles(ts, {
       "w.tsx": `import { registerComponent, useStream } from "./hooks";
 function Widget(props: { topic: string }) {
-  useStream(\`fleet.$${"{"}props.topic}.contact\`);
+  useStream(\`trackingStation.vessel.$${"{"}props.topic}.link\`);
   return null;
 }
 registerComponent({ id: "w", component: Widget });
@@ -338,7 +340,7 @@ registerComponent({ id: "w", component: Widget });
     const found = run(
       "family-unregistered",
       `useTelemetry("vessel.flight");`,
-      `channelFamilies: ["fleet.a<x>b.contact"]`,
+      `channelFamilies: ["trackingStation.vessel.a<x>b.link"]`,
     );
     expect(found).toHaveLength(1);
   });
@@ -358,8 +360,8 @@ describe("the emitter", () => {
     const scan = scanFiles(ts, {
       "w.tsx": `import { registerComponent, useStream } from "./hooks";
 function Widget(props: { a: string; b: string }) {
-  useStream(\`fleet.$${"{"}props.a}.contact\`);
-  useStream(\`fleet.$${"{"}props.b}.contact\`);
+  useStream(\`trackingStation.vessel.$${"{"}props.a}.link\`);
+  useStream(\`trackingStation.vessel.$${"{"}props.b}.link\`);
   return null;
 }
 registerComponent({ id: "w", component: Widget });
@@ -367,7 +369,7 @@ registerComponent({ id: "w", component: Widget });
     });
     const { optionalChannelFamilies } = declarationsFor(scan.widgets[0]);
     expect(optionalChannelFamilies.map(normalizeFamily)).toEqual([
-      "fleet.<>.contact",
+      "trackingStation.vessel.<>.link",
     ]);
   });
 
@@ -375,11 +377,11 @@ registerComponent({ id: "w", component: Widget });
     const scan = scanFiles(ts, {
       "w.tsx": `import { registerComponent, useStream } from "./hooks";
 function Widget(props: { a: string }) {
-  useStream(\`fleet.$${"{"}props.a}.contact\`);
+  useStream(\`trackingStation.vessel.$${"{"}props.a}.link\`);
   useStream(\`silence.$${"{"}props.a}.state\`);
   return null;
 }
-registerComponent({ id: "w", channelFamilies: ["fleet.<vessel>.contact"], component: Widget });
+registerComponent({ id: "w", channelFamilies: ["trackingStation.vessel.<vessel>.link"], component: Widget });
 `,
     });
     expect(declarationsFor(scan.widgets[0]).optionalChannelFamilies).toEqual([

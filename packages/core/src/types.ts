@@ -254,7 +254,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   optionalChannels?: readonly WidgetChannelId[];
   /**
    * Families of Topics this widget requires whose ids are built at runtime,
-   * written as the docs write them (`fleet.<vessel>.delay`). Claimed and
+   * written as the docs write them (`trackingStation.vessel.<vessel>.link`). Claimed and
    * health-checked like `channels` through the literal prefix before the first
    * placeholder; a family that starts with a placeholder has no prefix and is
    * neither. A family with no members is not a failure. Authored via

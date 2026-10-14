@@ -233,7 +233,7 @@ describe("GridItemContent: draggableCancel structural guard", () => {
       description: "declares families and a config-derived read",
       tags: [],
       component: StubWidget,
-      channelFamilies: ["fleet.<vessel>.contact"],
+      channelFamilies: ["trackingStation.vessel.<vessel>.link"],
       optionalChannelFamilies: ["vessel.partActions.<flightId>"],
       channelsFromConfig: (config: { key?: string }) =>
         config.key ? [config.key] : [],
@@ -255,7 +255,7 @@ describe("GridItemContent: draggableCancel structural guard", () => {
     );
 
     expect(guardCapture.last).toMatchObject({
-      families: ["fleet.<vessel>.contact"],
+      families: ["trackingStation.vessel.<vessel>.link"],
       optionalFamilies: ["vessel.partActions.<flightId>"],
       configChannels: ["vessel.flight"],
     });

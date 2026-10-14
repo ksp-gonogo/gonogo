@@ -34,11 +34,11 @@ describe("families", () => {
     expect(
       [
         ...declaredDomains({
-          channelFamilies: ["fleet.<vessel>.contact"],
+          channelFamilies: ["trackingStation.vessel.<vessel>.link"],
           optionalChannelFamilies: ["vessel.partActions.<flightId>"],
         }),
       ].sort(),
-    ).toEqual(["fleet", "vessel"]);
+    ).toEqual(["trackingStation", "vessel"]);
   });
 
   it("add no domain for a family that starts with a placeholder", () => {

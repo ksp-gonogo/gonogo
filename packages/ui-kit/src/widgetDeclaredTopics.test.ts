@@ -24,7 +24,7 @@ describe("widgetDeclaredTopics", () => {
     expect(
       widgetDeclaredTopics({
         channels: ["vessel.orbit"],
-        channelFamilies: ["fleet.<vessel>.contact"],
+        channelFamilies: ["trackingStation.vessel.<vessel>.link"],
         optionalChannelFamilies: ["vessel.partActions.<flightId>"],
       }),
     ).toEqual(["vessel.orbit"]);
@@ -67,13 +67,16 @@ describe("widgetDrawnFamilies", () => {
   it("joins both family lists without duplicates", () => {
     expect(
       widgetDrawnFamilies({
-        channelFamilies: ["fleet.<vessel>.contact"],
+        channelFamilies: ["trackingStation.vessel.<vessel>.link"],
         optionalChannelFamilies: [
-          "fleet.<vessel>.contact",
+          "trackingStation.vessel.<vessel>.link",
           "silence.<vessel>.state",
         ],
       }),
-    ).toEqual(["fleet.<vessel>.contact", "silence.<vessel>.state"]);
+    ).toEqual([
+      "trackingStation.vessel.<vessel>.link",
+      "silence.<vessel>.state",
+    ]);
   });
 
   it("is empty for an undefined definition or one with no families", () => {

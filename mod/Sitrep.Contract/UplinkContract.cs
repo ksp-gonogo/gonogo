@@ -300,7 +300,7 @@ namespace Sitrep.Contract
         /// Nothing goes missing and nothing reports an error; the value simply
         /// turns up early.</para>
         ///
-        /// <para>This is the same routing <c>fleet.</c>-prefixed telemetry gets,
+        /// <para>This is the same routing a craft's <c>trackingStation.vessel.</c> topics get,
         /// available to any Uplink that declares it. Ignored on a static channel
         /// declaration, whose one topic is not keyed by anything.</para>
         /// <internal>
@@ -1477,7 +1477,7 @@ namespace Sitrep.Contract
         void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread);
 
         /// <summary> Set the one-way routed signal delay for one vessel's
-        /// telemetry: its <c>fleet.&lt;vesselId&gt;.*</c> topics, and any
+        /// telemetry: its <c>trackingStation.vessel.&lt;vesselId&gt;.*</c> topics, and any
         /// <see cref="ChannelDeclaration.PerVesselNode"/> namespace keyed by
         /// it, are delayed by this to any command centre with no more specific
         /// delay of its own to the vessel. Call it per vessel on
@@ -1545,7 +1545,7 @@ namespace Sitrep.Contract
         void SetActiveVesselDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre);
 
         /// <summary>
-        /// Set one vessel's connectivity: its <c>fleet.&lt;vesselId&gt;.*</c>
+        /// Set one vessel's connectivity: its <c>trackingStation.vessel.&lt;vesselId&gt;.*</c>
         /// topics stop updating while its own link is down, independently of
         /// the active vessel. Call it for every vessel on every tick from the
         /// off-main-thread handler of an ungated

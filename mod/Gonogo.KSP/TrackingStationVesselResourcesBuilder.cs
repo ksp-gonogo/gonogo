@@ -3,11 +3,11 @@ using System.Collections.Generic;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// Builds the <c>fleet.&lt;guid&gt;.resources</c> wire dict: what is in one
+    /// Builds the <c>trackingStation.vessel.&lt;guid&gt;.resources</c> wire dict: what is in one
     /// fleet vessel's tanks, keyed by resource name.
     ///
     /// <para>Same self-flattening producer pattern as its siblings: camelCase
-    /// keys match <see cref="Sitrep.Contract.FleetVesselResources"/> and
+    /// keys match <see cref="Sitrep.Contract.TrackingStationVesselResources"/> and
     /// <see cref="Sitrep.Contract.ResourceAmount"/>, the TS codegen mirror. The
     /// per-resource shape is the active vessel's, unchanged, so a client reads
     /// one craft's tanks the same way whether or not it is the one being
@@ -19,7 +19,7 @@ namespace Gonogo.KSP
     /// <see cref="Sitrep.Contract.VesselResources"/> documents, and reporting it
     /// as <c>0 / 0</c> would turn a structural fact into a reading.</para>
     /// </summary>
-    public static class FleetVesselResourcesBuilder
+    public static class TrackingStationVesselResourcesBuilder
     {
         /// <summary>
         /// Folds one part's resource into the running map, summing across parts

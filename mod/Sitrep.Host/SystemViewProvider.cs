@@ -92,6 +92,9 @@ namespace Sitrep.Host
         /// <summary>The tracking station's catalog, every object a command centre knows of: see <see cref="BuildTrackingStationCatalog"/>.</summary>
         public const string CatalogTopic = "trackingStation.catalog";
 
+        /// <summary>The namespace of each craft's own Topics as a command centre last heard them: <c>trackingStation.vessel.&lt;guid&gt;.link</c> and <c>.resources</c>.</summary>
+        public const string VesselPrefix = "trackingStation.vessel.";
+
         /// <summary>The <c>target.available</c> channel: see <see cref="BuildTargetAvailable"/>.</summary>
         public const string TargetAvailableTopic = "target.available";
 

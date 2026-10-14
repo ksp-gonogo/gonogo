@@ -248,7 +248,7 @@ defineTopicManifest({
 
 const familyManifest = defineTopicManifest({
   channels: ["vessel.orbit"],
-  channelFamilies: ["fleet.<vessel>.contact"],
+  channelFamilies: ["trackingStation.vessel.<vessel>.link"],
   optionalChannelFamilies: ["vessel.partActions.<flightId>"],
 });
 
@@ -260,5 +260,5 @@ export const _optionalFamiliesAssignable: ComponentDefinition["optionalChannelFa
 defineTopicManifest({
   channels: ["vessel.orbit"],
   // @ts-expect-error a family needs a placeholder
-  channelFamilies: ["fleet.abc.contact"],
+  channelFamilies: ["trackingStation.vessel.abc.link"],
 });

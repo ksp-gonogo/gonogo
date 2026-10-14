@@ -19,7 +19,7 @@ import { useStream } from "./use-stream";
  * this is the shape a client actually receives.
  */
 export interface ScienceCreditEvent {
-  /** The crediting vessel's guid, the same key the `fleet.` namespace uses. */
+  /** The crediting vessel's guid, the same key the `trackingStation.vessel.` namespace uses. */
   vesselId: string;
   /** The crediting vessel's display name at the moment of the credit. */
   vesselName: string;

@@ -12,16 +12,6 @@ namespace Gonogo.KSP.SilenceTracking
     /// so <see cref="SilenceTrackerScenario"/> can bind the tracker onto
     /// <see cref="SilenceTrackerSink"/> in OnAwake and have OnLoad fill in
     /// that same instance.
-    ///
-    /// <para>Persists the full record, not just <c>silenceSinceUt</c>/
-    /// <c>deadlineUt</c>/<c>lostSeq</c>: <c>state</c>, <c>connected</c> and
-    /// <c>declaredLostUt</c> ride along too, because a reload has to be able
-    /// to tell "already Lost" from "still Silent" without re-running the
-    /// warp-hysteresis two-sample requirement against a vessel that was
-    /// legitimately declared before the save - otherwise a reload could
-    /// either resurrect an already-lost vessel for one tick, or silently
-    /// re-increment <c>lostSeq</c> a second time for the same occurrence,
-    /// so one loss would carry two numbers.</para>
     /// </summary>
     public static class SilenceTrackerPersistence
     {
@@ -39,7 +29,6 @@ namespace Gonogo.KSP.SilenceTracking
                 vesselNode.AddValue("vesselId", state.VesselId);
                 vesselNode.AddValue("state", state.State.ToString());
                 vesselNode.AddValue("connected", state.Connected);
-                vesselNode.AddValue("lostSeq", state.LostSeq);
 
                 if (state.LastContactUt.HasValue) vesselNode.AddValue("lastContactUt", state.LastContactUt.Value);
                 if (state.SilenceSinceUt.HasValue) vesselNode.AddValue("silenceSinceUt", state.SilenceSinceUt.Value);
@@ -47,7 +36,6 @@ namespace Gonogo.KSP.SilenceTracking
                 if (state.DeadlineBasis != null) vesselNode.AddValue("deadlineBasis", state.DeadlineBasis);
                 if (state.PredictedReacquisitionUt.HasValue) vesselNode.AddValue("predictedReacquisitionUt", state.PredictedReacquisitionUt.Value);
                 if (state.PredictionGraceSec.HasValue) vesselNode.AddValue("predictionGraceSec", state.PredictionGraceSec.Value);
-                if (state.DeclaredLostUt.HasValue) vesselNode.AddValue("declaredLostUt", state.DeclaredLostUt.Value);
             }
         }
 
@@ -82,22 +70,17 @@ namespace Gonogo.KSP.SilenceTracking
                 var connected = false;
                 vesselNode.TryGetValue("connected", ref connected);
 
-                var lostSeq = 0;
-                vesselNode.TryGetValue("lostSeq", ref lostSeq);
-
                 var restored = new VesselContactState
                 {
                     VesselId = vesselId,
                     State = state,
                     Connected = connected,
-                    LostSeq = lostSeq,
                     LastContactUt = ReadNullableDouble(vesselNode, "lastContactUt"),
                     SilenceSinceUt = ReadNullableDouble(vesselNode, "silenceSinceUt"),
                     DeadlineUt = ReadNullableDouble(vesselNode, "deadlineUt"),
                     DeadlineBasis = vesselNode.HasValue("deadlineBasis") ? vesselNode.GetValue("deadlineBasis") : null,
                     PredictedReacquisitionUt = ReadNullableDouble(vesselNode, "predictedReacquisitionUt"),
                     PredictionGraceSec = ReadNullableDouble(vesselNode, "predictionGraceSec"),
-                    DeclaredLostUt = ReadNullableDouble(vesselNode, "declaredLostUt"),
                 };
 
                 target.RestoreState(restored);

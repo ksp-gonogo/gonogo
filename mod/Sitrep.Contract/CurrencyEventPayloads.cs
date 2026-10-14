@@ -67,7 +67,7 @@ public static class CurrencyEventTopics
 public class ScienceCreditEvent
 {
     /// <summary>The crediting vessel's persistent id
-    /// (<c>ProtoVessel.vesselID</c>), the same guid the <c>fleet.</c> namespace
+    /// (<c>ProtoVessel.vesselID</c>), the same guid the <c>trackingStation.vessel.</c> namespace
     /// keys by.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = string.Empty;
@@ -138,7 +138,7 @@ public class ScienceCreditEvent
 public class ReputationLossEvent
 {
     /// <summary>The vessel the loss happened aboard (<c>Vessel.id</c> as a
-    /// string GUID), the same guid the <c>fleet.</c> namespace keys
+    /// string GUID), the same guid the <c>trackingStation.vessel.</c> namespace keys
     /// by.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = string.Empty;

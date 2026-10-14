@@ -690,10 +690,6 @@
     "FireCrewArgs": {
       "kerbalName": "id"
     },
-    "FleetVesselLink": {
-      "connected": "flag",
-      "oneWaySeconds": "s"
-    },
     "FlightCurrent": {
       "flightId": "id",
       "phase": "enum",
@@ -1379,6 +1375,10 @@
       "kerbinTime": "flag",
       "minuteSeconds": "s",
       "yearSeconds": "s"
+    },
+    "TrackingStationVesselLink": {
+      "connected": "flag",
+      "oneWaySeconds": "s"
     },
     "UnlockTechArgs": {
       "techId": "id"
@@ -2442,9 +2442,6 @@
     "EventMsg": {
       "meta": "Meta"
     },
-    "FleetVesselResources": {
-      "resources": "*ResourceAmount"
-    },
     "GateVerdict": {
       "breach": "LimitBreach",
       "missing": "MissingUnlock[]"
@@ -2554,6 +2551,9 @@
     },
     "TrackingStationCatalog": {
       "entries": "CatalogEntry[]"
+    },
+    "TrackingStationVesselResources": {
+      "resources": "*ResourceAmount"
     },
     "UplinkHealth": {
       "facts": "UplinkHealthFact[]"

@@ -54,6 +54,16 @@ export interface TestPrefixed {
   relativePositionError: number;
 }
 
+/** A route naming the craft a per-subject dep is about. */
+export interface TestRoute {
+  to: string;
+}
+
+/** A model whose per-subject dep follows the craft `test.route` names. */
+export interface TestRelay {
+  range: number;
+}
+
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "test.temperature": number;
@@ -61,5 +71,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "test.target": TestTarget;
     "test.contact": TestContact;
     "test.dock": TestPrefixed;
+    "test.route": TestRoute;
+    "test.relay": TestRelay;
   }
 }

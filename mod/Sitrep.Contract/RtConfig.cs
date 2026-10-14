@@ -168,14 +168,13 @@ public static class RtConfig
                 // comms.commandCentre: which centre the active vessel's own
                 // ControlPath currently terminates at (see CommsCommandCentre)
                 typeof(CommsCommandCentre),
-                // fleet.<guid>.* per-vessel dynamic channels: the
-                // display-only delay/connectivity carried on fleet.<guid>.delay
-                // (fleet.<guid>.orbit reuses VesselOrbit, already listed above).
-                typeof(FleetVesselLink),
-                // fleet.<guid>.resources: what is in one fleet vessel's tanks,
+                // trackingStation.vessel.<guid>.* per-craft dynamic channels:
+                // the display-only delay/connectivity carried on .link
+                typeof(TrackingStationVesselLink),
+                // trackingStation.vessel.<guid>.resources: what is in one craft's tanks,
                 // reusing ResourceAmount so a client reads a craft's resources
                 // the same way whether or not it is the one being flown.
-                typeof(FleetVesselResources),
+                typeof(TrackingStationVesselResources),
                 // currency.<guid>.* source-attributed currency events: a discrete
                 // per-vessel delta revealed at its SOURCE vessel's light-time, so an
                 // operator cannot infer a distant event from the instant career total.
@@ -1587,7 +1586,7 @@ public static class RtConfig
         sb.Append("// nothing about it appears below: `currency.<guid>.<currency>`,\n");
         sb.Append("// `vessel.partActions.<flightId>`, and each\n");
         sb.Append("// Uplink's own. So a per-subject topic missing from this file may still be\n");
-        sb.Append("// published: `fleet.<guid>.orbit` is. To enumerate the dynamic half, grep\n");
+        sb.Append("// published: `trackingStation.vessel.<guid>.link` is. To enumerate the dynamic half, grep\n");
         sb.Append("// the mod for `RegisterDynamicNamespace` instead.\n\n");
 
         sb.Append("import type {\n");

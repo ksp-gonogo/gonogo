@@ -209,7 +209,7 @@ namespace Sitrep.Contract
     {
         /// <summary>
         /// The channel's topic id, or a dynamic namespace's prefix ending in
-        /// <c>.</c> (such as <c>fleet.</c>), which covers every topic under it.
+        /// <c>.</c> (such as <c>trackingStation.vessel.</c>), which covers every topic under it.
         /// </summary>
         [SitrepUnit(Units.Id)]
         public string Topic { get; set; } = "";

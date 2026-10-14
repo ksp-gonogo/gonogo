@@ -180,7 +180,7 @@ namespace Sitrep.Core.Tests
             new object[] { nameof(PartsPower), "PartsViewProvider", "BuildPower" },
             new object[] { nameof(SystemBodies), "SystemViewProvider", "BuildSystemBodies" },
             // Owner prefix alone, the method being just `Build`.
-            new object[] { nameof(FleetVesselLink), "FleetVesselLinkBuilder", "Build" },
+            new object[] { nameof(TrackingStationVesselLink), "TrackingStationVesselLinkBuilder", "Build" },
             // Method stem alone, inside a wire-producing class.
             new object[] { nameof(ArchiveEntry), "ScienceViewProvider", "BuildArchiveEntry" },
         };
@@ -260,7 +260,7 @@ namespace Sitrep.Core.Tests
 
             // Subject from a WIRE-PRODUCING owner class rather than a parameter,
             // the way CareerViewProvider.BuildBalances and
-            // FleetVesselLinkBuilder.Build are found.
+            // TrackingStationVesselLinkBuilder.Build are found.
             var byOwner = Scan(
                 @"namespace P { static class PlantedPayloadBuilder {
                     public static Dictionary<string, object?> Build(int id) => new Dictionary<string, object?>
@@ -324,7 +324,7 @@ namespace Sitrep.Core.Tests
             new object[] { nameof(CareerStrategies), "BuildStrategies", "BuildStrategyList" },
             new object[] { nameof(CareerTech), "BuildTech", "BuildTechNodes" },
             // Not called by Build at all: the class-name rule.
-            new object[] { nameof(FleetVesselResources), "Build", "Add" },
+            new object[] { nameof(TrackingStationVesselResources), "Build", "Add" },
         };
 
         [Theory]

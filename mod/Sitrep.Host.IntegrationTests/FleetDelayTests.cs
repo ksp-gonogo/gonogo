@@ -30,6 +30,7 @@ namespace Sitrep.Host.IntegrationTests
         [InlineData("comms.delay", "system")]
         [InlineData("fleet.abc-123", "system")]              // no field segment -> not a per-vessel topic
         [InlineData("extension.abc-123.field", "fleet.abc-123")] // an Uplink's own declared namespace, same node
+        [InlineData("trackingStation.vessel.abc-123.link", "fleet.abc-123")] // the tracking station's per-craft namespace, same node
         public void NodeForTopicRoutesFleetTopicsToPerVesselNodes(string topic, string expectedNode)
         {
             // Through a REGISTERED engine: every namespace except core's own
@@ -79,16 +80,16 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, "fleet.near.orbit", Timeout);
-                await SubscribeAsync(client, "fleet.far.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.near.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.far.orbit", Timeout);
 
                 engine.TickAndWait(0.0, FleetFixture(0.0, ("near", 0.0), ("far", 0.0)), Timeout);
                 engine.TickAndWait(1.0, FleetFixture(1.0, ("near", 0.0), ("far", 0.0)), Timeout);
 
                 var frames = await DrainAllStreamDataAsync(client, Quiet);
                 // Both vessels materialize their own fleet.<id>.orbit topic and deliver.
-                Assert.Contains(frames, f => f.Topic == "fleet.near.orbit");
-                Assert.Contains(frames, f => f.Topic == "fleet.far.orbit");
+                Assert.Contains(frames, f => f.Topic == "trackingStation.vessel.near.orbit");
+                Assert.Contains(frames, f => f.Topic == "trackingStation.vessel.far.orbit");
             }
             finally
             {
@@ -99,7 +100,7 @@ namespace Sitrep.Host.IntegrationTests
         [Fact]
         public async Task FleetVesselDelayTopicEmitsAndSerializesEndToEnd()
         {
-            // fleet.<id>.delay carries FleetVesselLink (oneWaySeconds +
+            // The per-craft link carries TrackingStationVesselLink (oneWaySeconds +
             // connected), emitted as a self-flattened dict. This proves it
             // serializes through the JsonWriter/WS boundary and arrives with its
             // values intact -- the coverage the .orbit-only tests missed, which
@@ -111,7 +112,7 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, "fleet.probe.delay", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.probe.link", Timeout);
 
                 // Every tick carries the same one-way delay (4.5), so whichever
                 // sample LossyLatest delivers past the horizon carries it.
@@ -121,8 +122,8 @@ namespace Sitrep.Host.IntegrationTests
                 }
 
                 var frames = await DrainAllStreamDataAsync(client, Quiet);
-                var delayFrame = frames.FirstOrDefault(f => f.Topic == "fleet.probe.delay");
-                // Arriving at all proves FleetVesselLink serialized end-to-end
+                var delayFrame = frames.FirstOrDefault(f => f.Topic == "trackingStation.vessel.probe.link");
+                // Arriving at all proves TrackingStationVesselLink serialized end-to-end
                 // (no NotSupportedException at the JsonWriter boundary).
                 Assert.NotNull(delayFrame);
                 var payload = Assert.IsType<Dictionary<string, object?>>(delayFrame!.Payload);
@@ -144,8 +145,8 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, "fleet.near.orbit", Timeout);
-                await SubscribeAsync(client, "fleet.far.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.near.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.far.orbit", Timeout);
 
                 // near light-time 2 s, far light-time 6 s. Emit from UT 0; the
                 // capture calls SetVesselDelay per vessel, so each fleet.<id>
@@ -166,8 +167,8 @@ namespace Sitrep.Host.IntegrationTests
                 }
 
                 var byNearLightTime = await DrainAllStreamDataAsync(client, Quiet);
-                Assert.Contains(byNearLightTime, f => f.Topic == "fleet.near.orbit");
-                Assert.DoesNotContain(byNearLightTime, f => f.Topic == "fleet.far.orbit");
+                Assert.Contains(byNearLightTime, f => f.Topic == "trackingStation.vessel.near.orbit");
+                Assert.DoesNotContain(byNearLightTime, f => f.Topic == "trackingStation.vessel.far.orbit");
 
                 for (var ut = 3.0; ut <= 6.0; ut += 1.0)
                 {
@@ -175,7 +176,7 @@ namespace Sitrep.Host.IntegrationTests
                 }
 
                 var byFarLightTime = await DrainAllStreamDataAsync(client, Quiet);
-                Assert.Contains(byFarLightTime, f => f.Topic == "fleet.far.orbit");
+                Assert.Contains(byFarLightTime, f => f.Topic == "trackingStation.vessel.far.orbit");
             }
             finally
             {
@@ -239,15 +240,15 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, "fleet.a.orbit", Timeout);
-                await SubscribeAsync(client, "fleet.b.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.a.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.b.orbit", Timeout);
 
                 // Both connected: both stream.
                 engine.TickAndWait(0.0, ConnFixture(0.0, ("a", true), ("b", true)), Timeout);
                 engine.TickAndWait(1.0, ConnFixture(1.0, ("a", true), ("b", true)), Timeout);
                 var warm = await DrainAllStreamDataAsync(client, Quiet);
-                Assert.Contains(warm, f => f.Topic == "fleet.a.orbit");
-                Assert.Contains(warm, f => f.Topic == "fleet.b.orbit");
+                Assert.Contains(warm, f => f.Topic == "trackingStation.vessel.a.orbit");
+                Assert.Contains(warm, f => f.Topic == "trackingStation.vessel.b.orbit");
 
                 // Disconnect ONLY a. b stays connected. Per-subject freeze: a's
                 // in-blackout samples (validAt >= 2) are withheld; b keeps streaming.
@@ -256,15 +257,15 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(4.0, ConnFixture(4.0, ("a", false), ("b", true)), Timeout);
                 var outage = await DrainAllStreamDataAsync(client, Quiet);
                 // a: no sample captured during its blackout reaches the client.
-                Assert.DoesNotContain(outage, f => f.Topic == "fleet.a.orbit" && f.Meta.ValidAt >= 2.0);
+                Assert.DoesNotContain(outage, f => f.Topic == "trackingStation.vessel.a.orbit" && f.Meta.ValidAt >= 2.0);
                 // b: keeps streaming its own fresh samples (validAt >= 2 delivered).
-                Assert.Contains(outage, f => f.Topic == "fleet.b.orbit" && f.Meta.ValidAt >= 2.0);
+                Assert.Contains(outage, f => f.Topic == "trackingStation.vessel.b.orbit" && f.Meta.ValidAt >= 2.0);
 
                 // a reconnects: it resumes; b was never interrupted.
                 engine.TickAndWait(5.0, ConnFixture(5.0, ("a", true), ("b", true)), Timeout);
                 engine.TickAndWait(6.0, ConnFixture(6.0, ("a", true), ("b", true)), Timeout);
                 var resumed = await DrainAllStreamDataAsync(client, Quiet);
-                Assert.Contains(resumed, f => f.Topic == "fleet.a.orbit" && f.Meta.ValidAt >= 5.0);
+                Assert.Contains(resumed, f => f.Topic == "trackingStation.vessel.a.orbit" && f.Meta.ValidAt >= 5.0);
             }
             finally
             {
@@ -281,7 +282,7 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, "fleet.v.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.v.orbit", Timeout);
 
                 // v has light-time 3. Emit while CONNECTED at UT 0 and 1 (these are
                 // in flight, scheduled to reveal at UT 3 and 4).
@@ -296,7 +297,7 @@ namespace Sitrep.Host.IntegrationTests
                 }
 
                 var frames = await DrainAllStreamDataAsync(client, Quiet);
-                var v = frames.Where(f => f.Topic == "fleet.v.orbit").ToList();
+                var v = frames.Where(f => f.Topic == "trackingStation.vessel.v.orbit").ToList();
                 // The pre-outage tail drained (a connected sample, validAt < 2, revealed).
                 Assert.Contains(v, f => f.Meta.ValidAt < 2.0);
                 // No in-blackout sample (validAt >= 2) ever reached the client: frozen.
@@ -324,7 +325,7 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, "fleet.v.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.v.orbit", Timeout);
 
                 engine.TickAndWait(0.0, TailFixture(0.0, connected: true), Timeout);
                 engine.TickAndWait(1.0, TailFixture(1.0, connected: true), Timeout);
@@ -338,7 +339,7 @@ namespace Sitrep.Host.IntegrationTests
                 }
 
                 var frames = await DrainAllStreamDataAsync(client, Quiet);
-                var recorded = frames.Where(f => f.Topic == "fleet.v.orbit" && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 5.0).ToList();
+                var recorded = frames.Where(f => f.Topic == "trackingStation.vessel.v.orbit" && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 5.0).ToList();
                 Assert.NotEmpty(recorded);
                 Assert.All(recorded, f => Assert.True(
                     f.Meta.DeliveredAt >= 9.0,
@@ -367,7 +368,7 @@ namespace Sitrep.Host.IntegrationTests
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 var uplinkState = FleetDelayTestUplink.ExtensionPrefix + "q.state";
                 var uplinkContact = FleetDelayTestUplink.ExtensionPrefix + "q.contact";
-                foreach (var topic in new[] { "fleet.q.orbit", uplinkState, uplinkContact })
+                foreach (var topic in new[] { "trackingStation.vessel.q.orbit", uplinkState, uplinkContact })
                 {
                     await SubscribeAsync(client, topic, Timeout);
                 }
@@ -452,7 +453,7 @@ namespace Sitrep.Host.IntegrationTests
                 // then leaves, so nothing under fleet. is subscribed.
                 await using (var seed = await TestClient.ConnectAsync(engine.BoundPort, Timeout))
                 {
-                    await SubscribeAsync(seed, "fleet.v.orbit", Timeout);
+                    await SubscribeAsync(seed, "trackingStation.vessel.v.orbit", Timeout);
                     engine.TickAndWait(0.0, ConnFixture(0.0, ("v", true)), Timeout);
                     engine.TickAndWait(1.0, ConnFixture(1.0, ("v", true)), Timeout);
                     await DrainAllStreamDataAsync(seed, Quiet);
@@ -465,9 +466,9 @@ namespace Sitrep.Host.IntegrationTests
 
                 await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 await late.SendAsync(Sitrep.Contract.Serialization.EnvelopeCodec.WriteSubscribe(
-                    new Subscribe { Topic = "fleet.v.orbit" }));
+                    new Subscribe { Topic = "trackingStation.vessel.v.orbit" }));
                 var catchUp = (await DrainAllStreamDataAsync(late, Quiet))
-                    .Where(f => f.Topic == "fleet.v.orbit" && f.Payload != null)
+                    .Where(f => f.Topic == "trackingStation.vessel.v.orbit" && f.Payload != null)
                     .ToList();
 
                 var served = Assert.Single(catchUp);
@@ -500,7 +501,7 @@ namespace Sitrep.Host.IntegrationTests
                 // Watched into the outage, then abandoned while v is still dark.
                 await using (var seed = await TestClient.ConnectAsync(engine.BoundPort, Timeout))
                 {
-                    await SubscribeAsync(seed, "fleet.v.orbit", Timeout);
+                    await SubscribeAsync(seed, "trackingStation.vessel.v.orbit", Timeout);
                     engine.TickAndWait(0.0, ConnFixture(0.0, ("v", true)), Timeout);
                     engine.TickAndWait(1.0, ConnFixture(1.0, ("v", true)), Timeout);
                     engine.TickAndWait(2.0, ConnFixture(2.0, ("v", false)), Timeout);
@@ -514,9 +515,9 @@ namespace Sitrep.Host.IntegrationTests
 
                 await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 await late.SendAsync(Sitrep.Contract.Serialization.EnvelopeCodec.WriteSubscribe(
-                    new Subscribe { Topic = "fleet.v.orbit" }));
+                    new Subscribe { Topic = "trackingStation.vessel.v.orbit" }));
                 var catchUp = (await DrainAllStreamDataAsync(late, Quiet))
-                    .Where(f => f.Topic == "fleet.v.orbit" && f.Payload != null)
+                    .Where(f => f.Topic == "trackingStation.vessel.v.orbit" && f.Payload != null)
                     .ToList();
 
                 Assert.NotEmpty(catchUp);
@@ -571,8 +572,8 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, "fleet.lost.orbit", Timeout);
-                await SubscribeAsync(client, "fleet.home.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.lost.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.home.orbit", Timeout);
 
                 // Both in contact. "home" exists throughout and is the control:
                 // it keeps the roster non-empty after "lost" goes away, and its
@@ -602,10 +603,10 @@ namespace Sitrep.Host.IntegrationTests
                 // reaches the operator.
                 Assert.DoesNotContain(
                     after,
-                    f => f.Topic == "fleet.lost.orbit" && f.Meta.ValidAt >= 2.0);
+                    f => f.Topic == "trackingStation.vessel.lost.orbit" && f.Meta.ValidAt >= 2.0);
                 // The surviving craft is untouched by the sweep and still streams.
                 Assert.True(engine.HasFreezeStateForSubject("fleet.home"));
-                Assert.Contains(after, f => f.Topic == "fleet.home.orbit");
+                Assert.Contains(after, f => f.Topic == "trackingStation.vessel.home.orbit");
             }
             finally
             {
@@ -628,7 +629,7 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, "fleet.quiet.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.quiet.orbit", Timeout);
 
                 engine.TickAndWait(0.0, ConnFixture(0.0, ("quiet", true)), Timeout);
                 engine.TickAndWait(1.0, ConnFixture(1.0, ("quiet", false)), Timeout);
@@ -664,8 +665,8 @@ namespace Sitrep.Host.IntegrationTests
             {
                 var clientA = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 await using var clientB = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(clientA, "fleet.a.orbit", Timeout);
-                await SubscribeAsync(clientB, "fleet.b.orbit", Timeout);
+                await SubscribeAsync(clientA, "trackingStation.vessel.a.orbit", Timeout);
+                await SubscribeAsync(clientB, "trackingStation.vessel.b.orbit", Timeout);
 
                 engine.TickAndWait(0.0, ConnFixture(0.0, ("a", true), ("b", true)), Timeout);
                 engine.TickAndWait(1.0, ConnFixture(1.0, ("a", true), ("b", true)), Timeout);
@@ -675,7 +676,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 await clientA.DisposeAsync();
                 var deadline = DateTime.UtcNow + Timeout;
-                while (engine.IsAnyTopicSubscribed("fleet.a.") && DateTime.UtcNow < deadline)
+                while (engine.IsAnyTopicSubscribed("trackingStation.vessel.a.") && DateTime.UtcNow < deadline)
                 {
                     await Task.Delay(20);
                 }
@@ -706,19 +707,19 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, "fleet.b.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.b.orbit", Timeout);
 
                 engine.TickAndWait(0.0, Fixture(0.0, ("a", 5.0, true), ("b", 1.0, true)), Timeout);
                 engine.TickAndWait(1.0, Fixture(1.0, ("a", 5.0, true), ("b", 1.0, true)), Timeout);
-                Assert.NotNull(engine.DeclarationOf("fleet.a.orbit"));
+                Assert.NotNull(engine.DeclarationOf("trackingStation.vessel.a.orbit"));
 
                 engine.TickAndWait(2.0, Fixture(2.0, ("b", 1.0, true)), Timeout);
                 engine.TickAndWait(4.0, Fixture(4.0, ("b", 1.0, true)), Timeout);
-                Assert.NotNull(engine.DeclarationOf("fleet.a.orbit"));
+                Assert.NotNull(engine.DeclarationOf("trackingStation.vessel.a.orbit"));
 
                 engine.TickAndWait(12.0, Fixture(12.0, ("b", 1.0, true)), Timeout);
-                Assert.Null(engine.DeclarationOf("fleet.a.orbit"));
-                Assert.NotNull(engine.DeclarationOf("fleet.b.orbit"));
+                Assert.Null(engine.DeclarationOf("trackingStation.vessel.a.orbit"));
+                Assert.NotNull(engine.DeclarationOf("trackingStation.vessel.b.orbit"));
             }
             finally
             {
@@ -740,18 +741,18 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, "fleet.a.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.a.orbit", Timeout);
                 await SubscribeAsync(client, FleetDelayTestUplink.ExtensionPrefix + "a.field", Timeout);
-                await SubscribeAsync(client, "fleet.b.orbit", Timeout);
+                await SubscribeAsync(client, "trackingStation.vessel.b.orbit", Timeout);
                 var node = ChannelEngine.FleetNodePrefix + "a";
 
                 engine.TickAndWait(0.0, Fixture(0.0, ("a", 5.0, true), ("b", 1.0, true)), Timeout);
                 engine.TickAndWait(1.0, Fixture(1.0, ("a", 0.0, false), ("b", 1.0, true)), Timeout);
                 Assert.Equal(5.0, engine.LedgerDelayFor("KSC", node));
 
-                await client.SendAsync(EnvelopeCodec.WriteUnsubscribe(new Unsubscribe { Topic = "fleet.a.orbit" }));
+                await client.SendAsync(EnvelopeCodec.WriteUnsubscribe(new Unsubscribe { Topic = "trackingStation.vessel.a.orbit" }));
                 var deadline = DateTime.UtcNow + Timeout;
-                while (engine.IsAnyTopicSubscribed("fleet.a.") && DateTime.UtcNow < deadline)
+                while (engine.IsAnyTopicSubscribed("trackingStation.vessel.a.") && DateTime.UtcNow < deadline)
                 {
                     await Task.Delay(20);
                 }

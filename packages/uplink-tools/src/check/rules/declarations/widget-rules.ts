@@ -266,7 +266,7 @@ export const familyUnregisteredRule: Rule = {
         out.push(
           finding(
             `${owner} names the family "${pattern}", which is not one placeholder per whole segment.`,
-            "Write it as dotted segments with each <name> filling a whole segment, such as fleet.<vessel>.delay.",
+            "Write it as dotted segments with each <name> filling a whole segment, such as trackingStation.vessel.<vessel>.link.",
           ),
         );
         return;

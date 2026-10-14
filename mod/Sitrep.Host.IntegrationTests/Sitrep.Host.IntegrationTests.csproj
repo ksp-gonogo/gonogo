@@ -53,7 +53,7 @@
        against the test's own copy: production could change its keys and the
        tests would stay green, saying nothing. -->
   <ItemGroup>
-    <Compile Include="..\Gonogo.KSP\FleetVesselLinkBuilder.cs" />
+    <Compile Include="..\Gonogo.KSP\TrackingStationVesselLinkBuilder.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyEventBuilder.cs" />
   </ItemGroup>
 

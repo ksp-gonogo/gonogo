@@ -4,7 +4,7 @@
  * Whether a quantity arrives wrapped depends on the topic, not on the type:
  * `wrapTopicPayload` keys on the exact topic string, so a static topic like
  * `trackingStation.catalog` delivers `Value<...>` while a per-guid topic such
- * as `fleet.<guid>.resources` delivers a bare number. A reader that may be
+ * as `trackingStation.vessel.<guid>.resources` delivers a bare number. A reader that may be
  * handed either has to accept either form.
  *
  * This is a decode, not arithmetic: the number is handed straight to a caller

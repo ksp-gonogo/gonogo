@@ -226,7 +226,7 @@ export function TelemetryProvider({
   );
   // The same seam for a reckoner's PER-SUBJECT dep, and it has to be here for
   // the same reason: the subject is not known when a read subscribes, so
-  // `subscribeTopicRead`'s set cannot contain `fleet.<guid>.orbit` and only the
+  // `subscribeTopicRead`'s set cannot contain a per-craft Topic and only the
   // store, which resolved the subject, can hold it up. Without this wiring the
   // model names an input nothing asked the wire for and declines on it for
   // ever.

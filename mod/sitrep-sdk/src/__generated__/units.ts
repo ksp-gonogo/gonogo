@@ -730,10 +730,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "FireCrewArgs": {
     kerbalName: "id",
   },
-  "FleetVesselLink": {
-    connected: "flag",
-    oneWaySeconds: "s",
-  },
   "FlightCurrent": {
     flightId: "id",
     phase: "enum",
@@ -1419,6 +1415,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     kerbinTime: "flag",
     minuteSeconds: "s",
     yearSeconds: "s",
+  },
+  "TrackingStationVesselLink": {
+    connected: "flag",
+    oneWaySeconds: "s",
   },
   "UnlockTechArgs": {
     techId: "id",
@@ -2516,9 +2516,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "EventMsg": {
     meta: "Meta",
   },
-  "FleetVesselResources": {
-    resources: "*ResourceAmount",
-  },
   "GateVerdict": {
     breach: "LimitBreach",
     missing: "MissingUnlock[]",
@@ -2628,6 +2625,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "TrackingStationCatalog": {
     entries: "CatalogEntry[]",
+  },
+  "TrackingStationVesselResources": {
+    resources: "*ResourceAmount",
   },
   "UplinkHealth": {
     facts: "UplinkHealthFact[]",
@@ -3542,7 +3542,7 @@ export const GENERATED_CONTRACT_TAGS = {
     },
   },
   reckonable: [
-    { topic: "comms.delay", field: "oneWaySeconds", basis: "kepler-propagation", inputs: [ { topic: "", path: "source" }, { topic: "comms.path", path: "" }, { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" }, { topic: "commandCentre.roster", path: "" } ] },
+    { topic: "comms.delay", field: "oneWaySeconds", basis: "kepler-propagation", inputs: [ { topic: "", path: "source" }, { topic: "comms.path", path: "" }, { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" }, { topic: "commandCentre.roster", path: "" }, { topic: "trackingStation.catalog", path: "" } ] },
     { topic: "science.lab", field: "*.storedScience", basis: "rate-integration", inputs: [ { topic: "", path: "scienceRate" }, { topic: "", path: "scienceCap" } ] },
     { topic: "target.available", field: "entries", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" } ] },
     { topic: "vessel.dock", field: "distance", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativePosition" }, { topic: "", path: "relativeVelocity" } ] },

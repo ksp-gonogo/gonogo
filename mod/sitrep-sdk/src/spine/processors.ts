@@ -103,7 +103,7 @@ export interface SubjectDep<
   Payload = unknown,
   Fixed extends readonly unknown[] = readonly unknown[],
 > {
-  /** The topic to read, given the subject id: `` (id) => `fleet.${id}.orbit` ``. */
+  /** The topic to read, given the subject id: `` (id) => `trackingStation.vessel.${id}.resources` ``. */
   forSubject(subjectId: string): string;
   /**
    * Which subject this reckon is about, read from the point and the fixed deps

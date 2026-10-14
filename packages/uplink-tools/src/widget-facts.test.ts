@@ -47,9 +47,11 @@ describe("widgetFactsOf", () => {
 
   it("keeps a family pattern's angle brackets inside its code span", () => {
     expect(
-      rowOf(record({ channelFamilies: ["fleet.<vessel>.contact"] }), "reads")
-        ?.value,
-    ).toBe("`fleet.<vessel>.contact`");
+      rowOf(
+        record({ channelFamilies: ["trackingStation.vessel.<vessel>.link"] }),
+        "reads",
+      )?.value,
+    ).toBe("`trackingStation.vessel.<vessel>.link`");
   });
 
   it("states the commands, the settings-chosen Topics and both sizes", () => {

@@ -431,7 +431,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   optionalChannels?: readonly WidgetChannelId[];
   /**
    * Families of Topics the widget needs whose ids are built at runtime, such as
-   * `"fleet.<guid>.delay"`. They are treated like `channels`: the
+   * `"trackingStation.vessel.<guid>.link"`. They are treated like `channels`: the
    * dashboard draws the serving Uplink's reason in place of the widget while
    * that Uplink is degraded or unavailable. The Uplink is found by the literal
    * prefix before the first placeholder, so a family that starts with a

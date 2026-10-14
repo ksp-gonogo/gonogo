@@ -20,7 +20,7 @@ namespace Gonogo.KSP
     /// that gap by carrying each delta on its source vessel's clock, additively:
     /// nothing about <c>career.status.balances</c> changes.</para>
     ///
-    /// <para><b>How the reveal is routed.</b> <c>ChannelEngine.NodeForTopic</c> maps a
+    /// <para><b>How the reveal is routed.</b> <c>ChannelEngine.NodeFor</c> maps a
     /// <c>currency.&lt;guid&gt;.*</c> topic to the per-vessel Courier node
     /// <c>fleet.&lt;guid&gt;</c>, the same node that vessel's telemetry records under,
     /// so the ledger applies <c>DelayTo(vantage, thatVessel)</c> per subscriber
@@ -575,7 +575,7 @@ namespace Gonogo.KSP
         /// whole-network default.
         ///
         /// <para><see cref="FleetChannels"/> normally arms every vessel node each
-        /// capture tick, but that capture is subscription-gated on the <c>fleet.</c>
+        /// capture tick, but that capture is subscription-gated on the <c>trackingStation.vessel.</c>
         /// prefix and can be idle when a client subscribes only a <c>currency.</c>
         /// topic. Arming it here makes the event self-contained.</para>
         ///

@@ -148,16 +148,17 @@ is absent means the declaration did not state it.
 
 It cannot become one. A DYNAMIC namespace is registered at RUNTIME and
 materialises its channels per subject, so no statically declared type exists for
-the generator to find and nothing about it appears here: \`silence.<guid>.*\`,
+the generator to find and nothing about it appears here: \`trackingStation.vessel.<guid>.*\`,
 \`currency.<guid>.<currency>\`, per-vessel part actions, and each Uplink's own.
 Asking this document "is there a per-vessel X" gets a confident no about a
 channel that has been published all along. An Uplink's own channels and commands
 are likewise absent: they live in the Uplink's contract slice, not in the core
 one this document is generated from.
 
-The prefix alone does not tell you which half a channel is in, and \`fleet.\` is
-the case that proves it: \`fleet.silence\` is STATICALLY declared and is in this
-document, while \`fleet.<guid>.<field>\` is dynamic and is not. Reading the one
+The prefix alone does not tell you which half a channel is in, and
+\`trackingStation.\` is the case that proves it: \`trackingStation.catalog\` is
+STATICALLY declared and is in this document, while
+\`trackingStation.vessel.<guid>.<field>\` is dynamic and is not. Reading the one
 as evidence about the other goes wrong in both directions.
 
 ## What a schema cannot say about this contract

@@ -96,7 +96,7 @@ import { FIXTURE_CONTRACT_DRIFT } from "./widget-fixture-conformance.debt";
  * <ul>
  * <li><b>A topic the generated maps do not declare is ungraded, not a
  *   failure.</b> Whole dynamic namespaces are registered at runtime
- *   (`fleet.<guid>.*`, `currency.*`, per-vessel part actions) and
+ *   (`trackingStation.vessel.<guid>.*`, `currency.*`, per-vessel part actions) and
  *   no `[SitrepTopic]` type exists for them, and every legacy `DataSource` key
  *   that is not a topic at all (`a.physicsMode`, a centralised-script compute
  *   key, a bare numeric id) lands here too. 543 distinct ids at the seed, against
@@ -587,7 +587,7 @@ describe("the widget-fixture check can fail", () => {
 
   it("classifies an ungraded id by why it cannot be graded", () => {
     const declared = new Set(["vessel.flight", "career.status"]);
-    const prefixes = ["silence.", "fleet."];
+    const prefixes = ["silence.", "trackingStation.vessel."];
     expect(classifyUngradedTopic("silence.abc.state", declared, prefixes)).toBe(
       "dynamic-namespace",
     );

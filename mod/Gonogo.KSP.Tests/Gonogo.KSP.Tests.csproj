@@ -403,10 +403,10 @@
     <Compile Include="..\Gonogo.KSP\SilenceTracking\SilenceGeometrySink.cs" />
     <Compile Include="..\Gonogo.KSP\SilenceTracking\SilenceTrace.cs" />
     <Compile Include="..\Gonogo.KSP\SilenceTracking\SilenceTrackerSink.cs" />
-    <!-- FleetVesselResourcesBuilder.cs is the same shape: pure dictionary
+    <!-- TrackingStationVesselResourcesBuilder.cs is the same shape: pure dictionary
          shaping with no KSP types, compiled here because FleetChannels.cs (which
          does walk live parts) calls it. -->
-    <Compile Include="..\Gonogo.KSP\FleetVesselResourcesBuilder.cs" />
+    <Compile Include="..\Gonogo.KSP\TrackingStationVesselResourcesBuilder.cs" />
     <Compile Include="..\Gonogo.KSP\CommandCentres\KspCommandCentre.cs" />
     <!-- SurfaceCoordinates.cs turns a centre's world position into the body-fixed
          lat/long the roster publishes. It needs CelestialBody, so it sits under this

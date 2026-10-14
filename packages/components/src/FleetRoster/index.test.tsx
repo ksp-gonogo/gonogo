@@ -504,7 +504,7 @@ describe("FleetRosterComponent", () => {
       suspendFrames: true,
     });
     renderRoster(fixture);
-    // The row and its `.delay` subscription mount only once trackingStation.catalog arrives, so the delay is emitted after the row renders.
+    // The row and its `.link` subscription mount only once trackingStation.catalog arrives, so the delay is emitted after the row renders.
     act(() => {
       fixture.emit("trackingStation.catalog", ONE_PROBE);
     });
@@ -514,7 +514,7 @@ describe("FleetRosterComponent", () => {
     expect(trigger).not.toHaveAttribute("aria-describedby");
 
     act(() => {
-      fixture.emit("fleet.v-probe.delay", {
+      fixture.emit("trackingStation.vessel.v-probe.link", {
         oneWaySeconds: 4.5,
         connected: true,
       });
@@ -545,7 +545,10 @@ describe("FleetRosterComponent", () => {
         name: /Explorer signal/i,
       });
       act(() => {
-        fixture.emit("fleet.v-probe.delay", { ...delay, connected: true });
+        fixture.emit("trackingStation.vessel.v-probe.link", {
+          ...delay,
+          connected: true,
+        });
       });
       act(() => {
         trigger.focus();
@@ -584,7 +587,7 @@ describe("FleetRosterComponent", () => {
     });
   });
 
-  /** The last `.delay` payload before a blackout still claims `connected: true`; the Link row must read the catalog's contact. */
+  /** The last `.link` payload before a blackout still claims `connected: true`; the Link row must read the catalog's contact. */
   const BLACKED_OUT_PROBE = {
     entries: [
       {
@@ -627,7 +630,7 @@ describe("FleetRosterComponent", () => {
     });
     // The frozen pre-blackout .delay frame: what a real client is still holding, claiming a live link.
     act(() => {
-      fixture.emit("fleet.v-probe.delay", {
+      fixture.emit("trackingStation.vessel.v-probe.link", {
         oneWaySeconds: 4.5,
         connected: true,
       });
@@ -679,7 +682,7 @@ describe("FleetRosterComponent", () => {
       name: /Explorer signal/i,
     });
     act(() => {
-      fixture.emit("fleet.v-probe.delay", {
+      fixture.emit("trackingStation.vessel.v-probe.link", {
         oneWaySeconds: 4.5,
         connected: true,
       });
@@ -690,7 +693,7 @@ describe("FleetRosterComponent", () => {
     await waitFor(() => {
       expect(visibleText(openSignalCard(trigger))).toMatch(/round-trip/i);
     });
-    // `.delay`'s own `connected` is the field the freeze makes unreliable, so it is never the source of the Link row, not even as a fallback.
+    // `.link`'s own `connected` is the field the freeze makes unreliable, so it is never the source of the Link row, not even as a fallback.
     expect(definitionFor(openSignalCard(trigger), /^Link$/)).toBe("unknown");
   });
 
@@ -706,7 +709,7 @@ describe("FleetRosterComponent", () => {
       name: /Explorer signal/i,
     });
     act(() => {
-      fixture.emit("fleet.v-probe.delay", {
+      fixture.emit("trackingStation.vessel.v-probe.link", {
         oneWaySeconds: 4.5,
         connected: true,
       });

@@ -100,9 +100,9 @@ describe("alarmMatchesWidget with families", () => {
     "c",
     "CONTACT",
     "firing",
-    threshold("fleet.abc.contact"),
+    threshold("trackingStation.vessel.abc.link"),
   );
-  const families = ["fleet.<vessel>.contact"];
+  const families = ["trackingStation.vessel.<vessel>.link"];
 
   it("matches an alarm on a member of a declared family", () => {
     expect(alarmMatchesWidget(contact, [], families)).toBe(true);
@@ -113,7 +113,7 @@ describe("alarmMatchesWidget with families", () => {
       "f",
       "LINKED",
       "firing",
-      threshold("fleet.abc.contact.linked"),
+      threshold("trackingStation.vessel.abc.link.connected"),
     );
     expect(alarmMatchesWidget(field, [], families)).toBe(true);
   });
@@ -123,9 +123,14 @@ describe("alarmMatchesWidget with families", () => {
       "d",
       "DELAY",
       "firing",
-      threshold("fleet.abc.delay"),
+      threshold("trackingStation.vessel.abc.resources"),
     );
-    const bare = makeAlarm("b", "BARE", "firing", threshold("fleet.abc"));
+    const bare = makeAlarm(
+      "b",
+      "BARE",
+      "firing",
+      threshold("trackingStation.vessel.abc"),
+    );
     expect(alarmMatchesWidget(delay, [], families)).toBe(false);
     expect(alarmMatchesWidget(bare, [], families)).toBe(false);
     expect(alarmMatchesWidget(contact, [], undefined)).toBe(false);

@@ -462,7 +462,7 @@ describe("fixtures become scenes", () => {
       ...INVENTORY,
       widgets: INVENTORY.widgets.map((w) => ({
         ...w,
-        channelFamilies: ["fleet.<vessel>.contact"],
+        channelFamilies: ["trackingStation.vessel.<vessel>.link"],
         optionalChannelFamilies: ["<domain>.available"],
       })),
     };
@@ -470,7 +470,7 @@ describe("fixtures become scenes", () => {
     expect(scene.declaredTopics).toEqual([
       "<domain>.available",
       "example.reactor",
-      "fleet.<vessel>.contact",
+      "trackingStation.vessel.<vessel>.link",
     ]);
   });
 
@@ -1053,12 +1053,12 @@ describe("the widget section of the page", () => {
 
   it("lists the families a widget reads and the ones it uses if present, as patterns", () => {
     const readme = readmeWith({
-      channelFamilies: ["fleet.<vessel>.contact"],
+      channelFamilies: ["trackingStation.vessel.<vessel>.link"],
       optionalChannelFamilies: ["<domain>.available"],
       optionalChannels: ["example.extra"],
     });
     expect(readme).toContain("`example.reactor`");
-    expect(readme).toContain("`fleet.<vessel>.contact`");
+    expect(readme).toContain("`trackingStation.vessel.<vessel>.link`");
     expect(readme).toMatch(
       /Also reads, if the mod publishes them.*`example\.extra`.*`<domain>\.available`/,
     );

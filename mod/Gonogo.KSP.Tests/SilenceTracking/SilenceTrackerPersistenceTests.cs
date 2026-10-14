@@ -13,12 +13,11 @@ public class SilenceTrackerPersistenceTests
         // A bool/double ConfigNode round-trip is easy to get wrong,
         // so this pins BOTH explicitly rather than trusting the shape alone.
         var source = NewTracker();
-        source.Tick(new[] { new SilenceSample("vessel-lost", true, null, false) }, ut: 0);
-        source.Tick(new[] { new SilenceSample("vessel-lost", false, null, false) }, ut: 10);
-        source.Tick(new[] { new SilenceSample("vessel-lost", false, null, false) }, ut: 700);
+        source.Tick(new[] { new SilenceSample("vessel-silent", true, null, false) }, ut: 0);
+        source.Tick(new[] { new SilenceSample("vessel-silent", false, null, false) }, ut: 10);
 
-        var before = source.TryGetState("vessel-lost")!;
-        Assert.Equal(SilenceState.Lost, before.State);
+        var before = source.TryGetState("vessel-silent")!;
+        Assert.Equal(SilenceState.Silent, before.State);
         Assert.False(before.Connected);
 
         var node = new ConfigNode("SCENARIO");
@@ -27,14 +26,12 @@ public class SilenceTrackerPersistenceTests
         var target = NewTracker();
         SilenceTrackerPersistence.Load(target, node);
 
-        var after = target.TryGetState("vessel-lost")!;
+        var after = target.TryGetState("vessel-silent")!;
         Assert.Equal(before.State, after.State);
         Assert.Equal(before.Connected, after.Connected);
         Assert.Equal(before.SilenceSinceUt, after.SilenceSinceUt);
         Assert.Equal(before.DeadlineUt, after.DeadlineUt);
         Assert.Equal(before.DeadlineBasis, after.DeadlineBasis);
-        Assert.Equal(before.DeclaredLostUt, after.DeclaredLostUt);
-        Assert.Equal(before.LostSeq, after.LostSeq);
         Assert.Equal(before.LastContactUt, after.LastContactUt);
     }
 
@@ -94,7 +91,6 @@ public class SilenceTrackerPersistenceTests
         Assert.Null(after.SilenceSinceUt);
         Assert.Null(after.DeadlineUt);
         Assert.Null(after.DeadlineBasis);
-        Assert.Null(after.DeclaredLostUt);
     }
 
     [Fact]
@@ -129,30 +125,6 @@ public class SilenceTrackerPersistenceTests
         SilenceTrackerPersistence.Load(target, node);
 
         Assert.NotNull(target.TryGetState("kept"));
-    }
-
-    [Fact]
-    public void RestoredSilentStateStillRequiresFreshHysteresisAfterLoad()
-    {
-        // End-to-end: a vessel Silent with an already-passed deadline at
-        // save time must NOT be instantly Lost after Load - see
-        // SilenceTracker.RestoreState's own doc comment.
-        var source = NewTracker();
-        source.Tick(new[] { new SilenceSample("vessel-silent", false, null, false) }, ut: 0);
-        Assert.Equal(SilenceState.Silent, source.TryGetState("vessel-silent")!.State);
-
-        var node = new ConfigNode("SCENARIO");
-        SilenceTrackerPersistence.Save(source, node);
-
-        var target = NewTracker();
-        SilenceTrackerPersistence.Load(target, node);
-
-        // "Now" is already well past the deadline that was persisted.
-        target.Tick(new[] { new SilenceSample("vessel-silent", false, null, false) }, ut: 10_000);
-        Assert.Equal(SilenceState.Silent, target.TryGetState("vessel-silent")!.State);
-
-        target.Tick(new[] { new SilenceSample("vessel-silent", false, null, false) }, ut: 10_001);
-        Assert.Equal(SilenceState.Lost, target.TryGetState("vessel-silent")!.State);
     }
 
     [Fact]

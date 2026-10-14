@@ -75,10 +75,10 @@ describe("resolution order", () => {
   it("turns a concatenation into a family", () => {
     const { w } = only({
       "w.tsx": widget(
-        `const vessel = props.topic; useStream("fleet." + vessel + ".contact");`,
+        `const vessel = props.topic; useStream("trackingStation.vessel." + vessel + ".link");`,
       ),
     });
-    expect(ids(w.reads)).toEqual(["fleet.<vessel>.contact"]);
+    expect(ids(w.reads)).toEqual(["trackingStation.vessel.<vessel>.link"]);
   });
 
   it("substitutes a literal inside a template rather than making it a family", () => {
@@ -226,13 +226,13 @@ describe("registration", () => {
       "w.tsx": widget(
         `useTelemetry("vessel.flight");`,
         "",
-        `, channels: ["vessel.flight"], channelFamilies: ["fleet.<vessel>.contact"]`,
+        `, channels: ["vessel.flight"], channelFamilies: ["trackingStation.vessel.<vessel>.link"]`,
       ),
     });
     expect(w.registration).toMatchObject({
       id: "w",
       channels: ["vessel.flight"],
-      channelFamilies: ["fleet.<vessel>.contact"],
+      channelFamilies: ["trackingStation.vessel.<vessel>.link"],
     });
     expect(w.registration.opaque).toBeUndefined();
   });
@@ -274,12 +274,12 @@ describe("gonogo:reads directives", () => {
   it("names what an unresolvable call reads", () => {
     const { scan, w } = only({
       "w.tsx": widget(
-        "  // gonogo:reads fleet.<vessel>.contact\n  useStream(props.topic);",
+        "  // gonogo:reads trackingStation.vessel.<vessel>.link\n  useStream(props.topic);",
       ),
     });
     expect(w.unresolved).toEqual([]);
     expect(w.reads).toMatchObject([
-      { family: "fleet.<vessel>.contact", directive: true },
+      { family: "trackingStation.vessel.<vessel>.link", directive: true },
     ]);
     expect(scan.directives).toMatchObject([{ needed: true, attached: true }]);
   });

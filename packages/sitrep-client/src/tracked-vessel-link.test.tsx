@@ -2,11 +2,11 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
-import { useFleetVesselLink } from "./fleet-link";
 import { StubTransport } from "./stub-transport";
+import { useTrackedVesselLink } from "./tracked-vessel-link";
 
 function LinkProbe({ guid }: { guid: string }) {
-  const reading = useFleetVesselLink(guid);
+  const reading = useTrackedVesselLink(guid);
   const link = reading.state === "observed" ? reading.value : undefined;
   const text = link
     ? `${link.oneWaySeconds ?? "none"}/${link.connected}`
@@ -14,8 +14,8 @@ function LinkProbe({ guid }: { guid: string }) {
   return <div>{`link:${text}`}</div>;
 }
 
-describe("useFleetVesselLink", () => {
-  it("reads bare oneWaySeconds + connected off the raw dynamic fleet.<guid>.delay topic", async () => {
+describe("useTrackedVesselLink", () => {
+  it("reads bare oneWaySeconds + connected off the raw dynamic trackingStation.vessel.<guid>.link topic", async () => {
     const t = new StubTransport();
     const client = new TelemetryClient(t);
     render(
@@ -27,7 +27,10 @@ describe("useFleetVesselLink", () => {
 
     // A dynamic topic: StubTransport (like production) can't unit-wrap it, so it arrives raw, oneWaySeconds is the bare number 4.5, not { magnitude: 4.5 }.
     act(() => {
-      t.emit("fleet.g1.delay", { oneWaySeconds: 4.5, connected: true });
+      t.emit("trackingStation.vessel.g1.link", {
+        oneWaySeconds: 4.5,
+        connected: true,
+      });
     });
     await waitFor(() => expect(screen.getByText("link:4.5/true")).toBeTruthy());
   });
@@ -41,7 +44,10 @@ describe("useFleetVesselLink", () => {
       </TelemetryProvider>,
     );
     act(() => {
-      t.emit("fleet.g2.delay", { oneWaySeconds: null, connected: false });
+      t.emit("trackingStation.vessel.g2.link", {
+        oneWaySeconds: null,
+        connected: false,
+      });
     });
     await waitFor(() =>
       expect(screen.getByText("link:none/false")).toBeTruthy(),

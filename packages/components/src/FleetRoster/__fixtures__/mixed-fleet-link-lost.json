@@ -97,21 +97,21 @@
         }
       },
       {
-        "channel": "fleet.v-station-1.delay",
+        "channel": "trackingStation.vessel.v-station-1.link",
         "value": {
           "connected": true,
           "oneWaySeconds": 1.2
         }
       },
       {
-        "channel": "fleet.v-probe-mun.delay",
+        "channel": "trackingStation.vessel.v-probe-mun.link",
         "value": {
           "connected": true,
           "oneWaySeconds": 0.8
         }
       },
       {
-        "channel": "fleet.v-lander-duna.delay",
+        "channel": "trackingStation.vessel.v-lander-duna.link",
         "value": {
           "connected": true,
           "oneWaySeconds": 620.0

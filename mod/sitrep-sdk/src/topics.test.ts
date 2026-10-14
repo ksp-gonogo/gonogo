@@ -200,7 +200,9 @@ describe("typed Topic registry", () => {
 
 describe("channel families", () => {
   it("takes the literal text before the first placeholder as the prefix", () => {
-    expect(familyPrefix("fleet.<vessel>.contact")).toBe("fleet.");
+    expect(familyPrefix("trackingStation.vessel.<vessel>.link")).toBe(
+      "trackingStation.vessel.",
+    );
     expect(familyPrefix("vessel.partActions.<flightId>")).toBe(
       "vessel.partActions.",
     );
@@ -209,7 +211,10 @@ describe("channel families", () => {
 
   it("matches a member with one segment in each placeholder", () => {
     expect(
-      topicMatchesFamily("fleet.abc.contact", "fleet.<vessel>.contact"),
+      topicMatchesFamily(
+        "trackingStation.vessel.abc.link",
+        "trackingStation.vessel.<vessel>.link",
+      ),
     ).toBe(true);
     expect(
       topicMatchesFamily(
@@ -224,19 +229,34 @@ describe("channel families", () => {
 
   it("refuses a different literal, a missing, extra or empty segment", () => {
     expect(
-      topicMatchesFamily("fleet.abc.delay", "fleet.<vessel>.contact"),
+      topicMatchesFamily(
+        "trackingStation.vessel.abc.resources",
+        "trackingStation.vessel.<vessel>.link",
+      ),
     ).toBe(false);
-    expect(topicMatchesFamily("fleet.contact", "fleet.<vessel>.contact")).toBe(
-      false,
-    );
     expect(
-      topicMatchesFamily("fleet.a.b.contact", "fleet.<vessel>.contact"),
+      topicMatchesFamily(
+        "trackingStation.vessel.link",
+        "trackingStation.vessel.<vessel>.link",
+      ),
     ).toBe(false);
-    expect(topicMatchesFamily("fleet..contact", "fleet.<vessel>.contact")).toBe(
-      false,
-    );
     expect(
-      topicMatchesFamily("fleet.abc.contact.x", "fleet.<vessel>.contact"),
+      topicMatchesFamily(
+        "trackingStation.vessel.a.b.link",
+        "trackingStation.vessel.<vessel>.link",
+      ),
+    ).toBe(false);
+    expect(
+      topicMatchesFamily(
+        "trackingStation.vessel..link",
+        "trackingStation.vessel.<vessel>.link",
+      ),
+    ).toBe(false);
+    expect(
+      topicMatchesFamily(
+        "trackingStation.vessel.abc.link.x",
+        "trackingStation.vessel.<vessel>.link",
+      ),
     ).toBe(false);
   });
 });

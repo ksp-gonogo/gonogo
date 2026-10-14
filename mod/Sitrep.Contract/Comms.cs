@@ -643,12 +643,10 @@ public class CommsDelay
     /// <c>@commandCentre.roster</c>, whose body-fixed latitude and longitude
     /// need the rotation phase on <c>@system.bodies</c>.</para>
     ///
-    /// <para>This covers a route whose first hop ends at a ground station,
-    /// the direct link and the common case. A first hop that ends at a relay
-    /// needs that relay's orbit, on <c>fleet.&lt;guid&gt;.orbit</c> under a
-    /// guid only the route names, so it cannot be declared as an input. A
-    /// client reckoning a relayed route gets a refusal that names that channel
-    /// rather than a modelled number.</para>
+    /// <para>A first hop that ends at a relay places the relay from its entry
+    /// on <c>@trackingStation.catalog</c>: the orbit the command centre last
+    /// heard for it, about the body whose gravitational parameter
+    /// <c>@system.bodies</c> carries.</para>
     ///
     /// <para><see cref="Source"/> is an input because two of its members are a
     /// zero that does not mean "no distance": delay switched off, or a save
@@ -670,7 +668,8 @@ public class CommsDelay
         "@comms.path",
         "@vessel.orbit",
         "@system.bodies",
-        "@commandCentre.roster")]
+        "@commandCentre.roster",
+        "@trackingStation.catalog")]
     public double? OneWaySeconds { get; set; }
 
     /// <summary>Why <see cref="OneWaySeconds"/> has the value it has; see <see cref="CommsDelaySource"/>.</summary>

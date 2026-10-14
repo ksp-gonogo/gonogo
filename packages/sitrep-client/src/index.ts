@@ -212,15 +212,6 @@ export {
   dvCurrentStageResourceChannel,
   dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
-export {
-  type FleetVesselLink,
-  useFleetVesselLink,
-} from "./fleet-link";
-export {
-  type FleetVesselResource,
-  fleetVesselResourceList,
-  useFleetVesselResources,
-} from "./fleet-resources";
 export { buildFullHistoryStore, InstantClock } from "./full-history-replay";
 export type { HeartbeatTrackerOptions } from "./heartbeat-tracker";
 export {
@@ -449,6 +440,15 @@ export {
   lerpPayload,
   TimelineStore,
 } from "./timeline-store";
+export {
+  type TrackedVesselLink,
+  useTrackedVesselLink,
+} from "./tracked-vessel-link";
+export {
+  type TrackedVesselResource,
+  trackedVesselResourceList,
+  useTrackedVesselResources,
+} from "./tracked-vessel-resources";
 export type {
   LostCommand,
   Transport,

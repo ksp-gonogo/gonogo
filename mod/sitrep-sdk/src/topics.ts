@@ -514,7 +514,7 @@ export function isWidgetChannelId(value: string): value is WidgetChannelId {
 
 /**
  * A family of Topics whose id is built at runtime, written the way the docs
- * write it: `vessel.partActions.<flightId>`, `fleet.<guid>.delay`,
+ * write it: `vessel.partActions.<flightId>`, `trackingStation.vessel.<guid>.link`,
  * `<domain>.available`. Each `<name>` stands for exactly one dotted segment and
  * must fill a whole segment. A widget lists them in `channelFamilies` and
  * `optionalChannelFamilies`. Useful for declaring that a widget mounts on a
@@ -526,7 +526,7 @@ export type ChannelFamily = `${string}<${string}>${string}`;
 
 /**
  * The literal text before the first placeholder of a family, such as
- * `"fleet."` for `fleet.<guid>.delay`. It is empty when the pattern starts
+ * `"trackingStation.vessel."` for `trackingStation.vessel.<guid>.link`. It is empty when the pattern starts
  * with a placeholder, as `<domain>.available` does. Useful for narrowing which
  * Topics could belong to a family before matching each one. Used when working out
  * which Topics a widget's declared families cover.

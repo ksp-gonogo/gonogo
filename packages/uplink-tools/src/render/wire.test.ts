@@ -157,7 +157,7 @@ describe("readWireSurface", () => {
       slice({
         "units.json": JSON.stringify({ topics: {} }),
         "topic-map.ts":
-          '// asking this file about "fleet.<guid>.orbit" gets a no\n',
+          '// asking this file about "trackingStation.vessel.<guid>.link" gets a no\n',
       }),
     );
     expect(surface.channels).toEqual([]);

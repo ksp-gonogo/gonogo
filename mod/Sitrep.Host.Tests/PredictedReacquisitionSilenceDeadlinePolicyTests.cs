@@ -575,7 +575,6 @@ namespace Sitrep.Host.Tests
             Assert.True(
                 state.DeadlineUt!.Value > 107_261.0,
                 $"deadline {state.DeadlineUt.Value} is already behind the tick");
-            Assert.NotEqual(SilenceState.Lost, state.State);
         }
 
         /// <summary>

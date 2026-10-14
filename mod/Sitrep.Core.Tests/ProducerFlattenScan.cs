@@ -110,7 +110,7 @@ namespace Sitrep.Core.Tests
     /// convention <c>scripts/wire-payload-coverage.mjs</c> uses.</item>
     /// <item>it sits in a WIRE-PRODUCING class and names one:
     /// <c>CareerViewProvider.BuildBalances</c> (owner prefix + method stem),
-    /// <c>FleetVesselLinkBuilder.Build</c> (owner prefix alone),
+    /// <c>TrackingStationVesselLinkBuilder.Build</c> (owner prefix alone),
     /// <c>ScienceViewProvider.BuildArchiveEntry</c> (method stem).</item>
     /// </list>
     ///
@@ -318,7 +318,7 @@ namespace Sitrep.Core.Tests
         /// <c>ToWire</c> leaves that payload to be graded where it is
         /// written.</para>
         ///
-        /// <para>A producer the class name speaks for (<c>FleetVesselResourcesBuilder.Build</c>)
+        /// <para>A producer the class name speaks for (<c>TrackingStationVesselResourcesBuilder.Build</c>)
         /// starts from every method of its class rather than from its own calls.
         /// Such a class exists to flatten that one type, and its callers drive
         /// the parts: <c>FleetChannels</c> calls <c>Add</c> once per tank to
@@ -394,7 +394,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// Whether <paramref name="subject"/> was read off the class name alone,
-        /// the method being a bare verb: <c>FleetVesselLinkBuilder.Build</c>.
+        /// the method being a bare verb: <c>TrackingStationVesselLinkBuilder.Build</c>.
         /// </summary>
         private static bool ClassNameSpeaksFor(ScannedMethod method, string subject) =>
             method.Owner != null
@@ -576,10 +576,10 @@ namespace Sitrep.Core.Tests
                     }
                     var prefix = method.Owner.Substring(0, method.Owner.Length - suffix.Length);
                     // The class's own name speaks for a method that is the whole
-                    // flatten and nothing else: `FleetVesselLinkBuilder.Build`.
+                    // flatten and nothing else: `TrackingStationVesselLinkBuilder.Build`.
                     // A method with a name of its own inside the same class is
                     // doing a PART of the job, and grading it against the whole
-                    // type fails it for the rest: `FleetVesselResourcesBuilder`
+                    // type fails it for the rest: `TrackingStationVesselResourcesBuilder`
                     // has an `Add` that folds one part's tanks into the running
                     // map, and it was read as owing the payload's `resources`
                     // key, which its sibling `Build` writes.
