@@ -1,4 +1,9 @@
-import { type CommsHop, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CommsHop,
+  delayVisibility,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 
 export type { CommSignalHopRateEntry } from "@ksp-gonogo/sitrep-sdk";
 
@@ -82,8 +87,9 @@ export function commsRouteRelayCount(hops: readonly CommsHop[]): number {
  * hop's share of the route distance. The legs sum to the total delay and the
  * save's light speed cancels out, so it never has to be known.
  *
- * `undefined` when the hop or any hop of the route has no distance, or the total delay is not
- * positive: a route that carries no delay gets no signal delay annotation.
+ * `undefined` when the hop or any hop of the route has no distance, or the total delay or the leg's
+ * share of it is too short to read as more than zero: a route that carries no delay gets no signal
+ * delay annotation.
  */
 export function commsLegTime(
   hop: CommsHop,
@@ -93,7 +99,7 @@ export function commsLegTime(
   const hopDistance = hop.distanceMeters;
   // Loose equality: an unmeasured hop arrives as an explicit null.
   if (hopDistance == null) return undefined;
-  if (!pathDelay?.greaterThan(0)) return undefined;
+  if (!pathDelay || delayVisibility(pathDelay) !== "shown") return undefined;
   // One unmeasured hop leaves the total distance unknown, so every leg is, rather than the measured ones carrying the whole delay.
   if (hops.some((h) => h.distanceMeters == null)) return undefined;
   const totalDistance = hops.reduce(
@@ -101,5 +107,7 @@ export function commsLegTime(
     value("m", 0),
   );
   if (!totalDistance.greaterThan(0)) return undefined;
-  return pathDelay.times(hopDistance.per(totalDistance));
+  const leg = pathDelay.times(hopDistance.per(totalDistance));
+  // A leg too short to print as more than zero is left out with the delay of zero it would read as.
+  return delayVisibility(leg) === "shown" ? leg : undefined;
 }

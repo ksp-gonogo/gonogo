@@ -50,7 +50,8 @@ describe("CommSignal: full readout off the stream", () => {
     await waitFor(() => expect(visibleText()).toContain("87 %"));
     expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
     expect(screen.getByText("Full")).toBeTruthy();
-    expect(visibleText()).toContain("0 ms");
+    // A delay under half a millisecond leaves the row out rather than printing "0 ms".
+    expect(screen.queryByText("Delay")).toBeNull();
     expect(screen.getByText("Signal to KSC")).toBeTruthy();
     expect(container.textContent).not.toContain(NULL_DISPLAY);
   });

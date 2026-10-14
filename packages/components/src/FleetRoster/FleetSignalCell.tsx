@@ -3,7 +3,7 @@ import {
   useFleetVesselContact,
   useFleetVesselLink,
 } from "@ksp-gonogo/sitrep-client";
-import { stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
+import { delayVisibility, stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
 import { HoverCard, Unit } from "@ksp-gonogo/ui-kit";
 import type { Tone } from "./comms";
 import { CommsTag } from "./RosterCells";
@@ -79,7 +79,7 @@ export function FleetSignalCell({
             {linkStateLabel(reachable, contactHeld)}
           </dd>
         </div>
-        {oneWay != null && (
+        {delayVisibility(oneWay) === "shown" && (
           <div>
             <dt style={TERM_STYLE}>
               {heldOver ? "Delay (last known)" : "Delay"}

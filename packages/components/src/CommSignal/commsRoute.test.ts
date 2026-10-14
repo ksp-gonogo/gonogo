@@ -126,6 +126,19 @@ describe("commsLegTime", () => {
     }
   });
 
+  it("leaves out a leg for a delay of zero, inside the dead zone, or for a leg inside it", () => {
+    const hops = [
+      hopWithDistance("Active Vessel", "Relay Sat 1", 1_000_000),
+      hopWithDistance("Relay Sat 1", "home", 1_000_000),
+    ];
+
+    expect(commsLegTime(hops[0], hops, value("s", 0))).toBeUndefined();
+    expect(commsLegTime(hops[0], hops, value("s", 0.0004))).toBeUndefined();
+    // The total is above the dead zone and each half of it is not.
+    expect(commsLegTime(hops[0], hops, value("s", 0.0008))).toBeUndefined();
+    expect(commsLegTime(hops[0], hops, value("s", 0.002))).toBeDefined();
+  });
+
   it("apportions without being told the save's light speed", () => {
     const hops = [
       hopWithDistance("Active Vessel", "Relay Sat 1", 299_792_458),

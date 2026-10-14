@@ -24,7 +24,4 @@
  * `primitive-reading-feed.test.ts` grades each widget directory's total against
  * the ratchet base for that reason (see `debt-split-guard.ts`).
  */
-export const DERIVED_FEED_DEBT: Record<string, number> = {
-  // A comms figure nulls when the link stops arriving rather than drawing held, so these read the observation alone.
-  "packages/components/src/CommSignal/CommSignalView.tsx": 1,
-};
+export const DERIVED_FEED_DEBT: Record<string, number> = {};

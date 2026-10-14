@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   classifyRetained,
   currentMode,
+  delayVisibility,
   deriveInFlight,
   deriveRailEntry,
   latchForward,
   pendingCrossing,
   type RailCrossing,
+  ZERO_DELAY_DEAD_ZONE_SECONDS,
 } from "./command-delay";
 import { railTagsForTelemetry } from "./rail-tags";
 import { value } from "./unit-system/value";
@@ -284,5 +286,30 @@ describe("a command sent with no route known", () => {
       acknowledged: false,
     });
     expect(c?.predictedPhase).toBe("in-transit");
+  });
+});
+
+describe("delayVisibility", () => {
+  it("hides a delay of zero, which is what delay switched off reads", () => {
+    expect(delayVisibility(0)).toBe("hidden");
+    expect(delayVisibility(value("s", 0))).toBe("hidden");
+  });
+
+  it("hides a delay inside the dead zone and shows one just above it", () => {
+    expect(delayVisibility(ZERO_DELAY_DEAD_ZONE_SECONDS)).toBe("hidden");
+    expect(delayVisibility(ZERO_DELAY_DEAD_ZONE_SECONDS * 2)).toBe("shown");
+    expect(delayVisibility(value("s", 0.02))).toBe("shown");
+  });
+
+  it("shows a delay at the live threshold, since live control still has a figure", () => {
+    expect(delayVisibility(1)).toBe("shown");
+    expect(delayVisibility(187.4)).toBe("shown");
+  });
+
+  it("reads no route and no reading as no path, never as zero", () => {
+    expect(delayVisibility(null)).toBe("no-path");
+    expect(delayVisibility(undefined)).toBe("no-path");
+    expect(delayVisibility(Number.NaN)).toBe("no-path");
+    expect(delayVisibility(Number.POSITIVE_INFINITY)).toBe("no-path");
   });
 });

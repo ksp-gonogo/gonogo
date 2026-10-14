@@ -1,3 +1,4 @@
+import { delayVisibility, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { Countdown, NULL_DISPLAY, Text } from "@ksp-gonogo/ui-kit";
 import type { ControlDescription } from "./signalVerdict";
 import { CAPTION_LABEL_STYLE, TONE_TEXT_COLOR } from "./tones";
@@ -10,7 +11,7 @@ export function CommSignalDetailRows({
   quantity,
 }: {
   control: ControlDescription;
-  delay: Parameters<typeof Countdown>[0]["value"];
+  delay: Value<"s"> | null | undefined;
   /** Withholds the control row, which is read off the held `vessel.comms`. */
   noSignal?: boolean;
   /** What the strength measures; the row is left out where the headline figure already says it. */
@@ -37,12 +38,16 @@ export function CommSignalDetailRows({
       >
         {noSignal ? NULL_DISPLAY : control.label}
       </Text>
-      <Text level="muted" size="xs" style={CAPTION_LABEL_STYLE}>
-        Delay
-      </Text>
-      <Text size="sm">
-        {delay == null ? NULL_DISPLAY : <Countdown value={delay} precise />}
-      </Text>
+      {delayVisibility(delay) !== "hidden" && (
+        <>
+          <Text level="muted" size="xs" style={CAPTION_LABEL_STYLE}>
+            Delay
+          </Text>
+          <Text size="sm">
+            {delay == null ? NULL_DISPLAY : <Countdown value={delay} precise />}
+          </Text>
+        </>
+      )}
     </>
   );
 }
