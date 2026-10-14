@@ -92,7 +92,7 @@ test.describe("widget DOM mirror: FuelStatus", () => {
     await expect(pair.main.getByText(/S1/)).toBeVisible();
     await expect(pair.main.getByText(/S0/)).toBeVisible();
     await expectVisibleText(pair.main, "3min 30s · TWR 1.43");
-    await expectVisibleText(pair.main, "0s · TWR 0.00");
+    await expectVisibleText(pair.main, "\u2014 · TWR 0.00");
 
     // Station: chrome only (known station-telemetry gap, see module doc).
     for (const page of [pair.main, pair.station]) {

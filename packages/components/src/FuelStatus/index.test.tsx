@@ -212,7 +212,7 @@ describe("FuelStatusComponent", () => {
       fixture.emit("dv.summary", { stageCount: 3 });
       fixture.emit("dv.stages", [
         makeStage(2, 8000),
-        makeStage(1, 4400),
+        { ...makeStage(1, 4400), dvActual: 900 },
         makeStage(0, 1200),
       ]);
     });
@@ -224,6 +224,33 @@ describe("FuelStatusComponent", () => {
         .filter((name) => name !== null && /S\d$/.test(name));
       expect(stages).toEqual(["S2", "▶ S1", "S0"]);
     });
+  });
+
+  it("marks no stage active and shows no burn time once the craft is out of ΔV", async () => {
+    const fixture = makeFixture();
+    const { container } = renderFuel(fixture);
+
+    act(() => {
+      fixture.emit("vessel.structure", { currentStage: 1 });
+      fixture.emit("dv.summary", {
+        stageCount: 1,
+        totalDvActual: 0,
+        totalBurnTime: 5,
+      });
+      fixture.emit("dv.stages", [
+        { ...makeStage(1, 0), dvActual: 0, burnTime: 5 },
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Total burn")).toBeInTheDocument();
+    });
+    const stages = screen
+      .queryAllByRole("meter")
+      .map((el) => el.getAttribute("aria-label"))
+      .filter((name) => name !== null && /S\d$/.test(name));
+    expect(stages).toEqual(["S1"]);
+    expect(visibleText(container)).not.toContain("5 s");
   });
 
   it("survives a stage row with non-numeric TWR / ΔV", async () => {

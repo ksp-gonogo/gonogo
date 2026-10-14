@@ -21,7 +21,13 @@ import {
   type DeltaVMode,
   type FuelStatusConfig,
 } from "./config";
-import { budgetFigure, maxStageDeltaV, NO_STAGES, pickTotal } from "./deltaV";
+import {
+  budgetFigure,
+  maxStageDeltaV,
+  NO_STAGES,
+  pickBurnTime,
+  pickTotal,
+} from "./deltaV";
 import { FuelStatusConfigForm } from "./FuelStatusConfigForm";
 import read from "./fuel-status.declarations.g";
 import { ResourceListSection } from "./ResourceListSection";
@@ -51,7 +57,7 @@ function useFuelEssentials({
       value: dated(pickTotal(budget, mode)),
       decimals: 0,
     },
-    { label: "Burn", value: dated(budget?.totalBurnTime) },
+    { label: "Burn", value: dated(pickBurnTime(budget, mode)) },
   ];
 }
 
@@ -88,7 +94,7 @@ function FuelStatusComponent({
     budgetReading === undefined ? figure : budgetFigure(budgetReading, figure);
   const totalDv = magnitudeOf(pickTotal(budget, mode)) ?? undefined;
   // `null` when the sim reported no figure, so it still goes through `Unit` rather than the bare-string branch.
-  const totalBurnTime = budget?.totalBurnTime;
+  const totalBurnTime = pickBurnTime(budget, mode);
 
   const dryMass = useTelemetry("vessel.propulsion").dryMass;
 
