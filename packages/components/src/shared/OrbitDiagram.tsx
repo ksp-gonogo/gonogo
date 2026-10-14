@@ -120,7 +120,7 @@ export interface OrbitDiagramProps {
     rotationDeg?: number;
   } | null;
   maneuverHandles?: ManeuverHandleProps | null;
-  /** Body rotation in degrees, drawn as a pole marker circling the centre. */
+  /** Body rotation in degrees, drawn as a line through the body's centre with a dot on one end, turning once per rotation period and named "Spin" while labels show. */
   rotationAngleDeg?: number | null;
   /** Atmosphere depth in `bodyRadius` units, drawn as a band above the surface. */
   atmosphereDepthM?: number | null;
@@ -692,6 +692,31 @@ export function OrbitDiagram({
             </Rotated>
           ))}
 
+          {/* Half way along the line, so the marker is named without meeting the apsis labels at the disc's rim. */}
+          {rotationAngleDeg !== null &&
+            variant === "full" &&
+            cfg.showLabels &&
+            bodyDisc / vbPerPx >= SPIN_LABEL_MIN_DISC_PX && (
+              <g pointerEvents="none">
+                <ApsisLabel
+                  x={
+                    bodyDisc *
+                    0.5 *
+                    Math.cos((rotationAngleDeg * Math.PI) / 180)
+                  }
+                  y={
+                    -bodyDisc *
+                    0.5 *
+                    Math.sin((rotationAngleDeg * Math.PI) / 180)
+                  }
+                  fill="rgba(255, 255, 255, 0.85)"
+                  fontSizePx={labelPxSize}
+                  vbPerPx={vbPerPx}
+                  text="Spin"
+                />
+              </g>
+            )}
+
           {/* Outside the rotation group so the labels always read horizontally. */}
           {showMarkers && (cfg.showLabels || hoveredMarker !== null) && (
             <g pointerEvents="none">
@@ -732,6 +757,9 @@ export function OrbitDiagram({
     </DiagramFrame>
   );
 }
+
+/** The body's disc must be this many pixels across its radius before its spin marker is named, so the word has room beside the dot. */
+const SPIN_LABEL_MIN_DISC_PX = 36;
 
 /** The spread arc is drawn this many line widths thick, so it reads as a band about the orbit line. */
 const SPREAD_STROKE_SCALE = 3;
