@@ -88,7 +88,8 @@ public class TimeCalendar
     /// real calendar holds an anchor date, as a planet-pack mod's does
     /// does; the stock formatter holds none.</para>
     ///
-    /// <para><c>null</c> is the normal value, and it is not zero. Stock KSP has
+    /// <para><c>null</c> means the game has no real-world calendar, which is the
+    /// normal case and is not the same as an epoch of zero. Stock KSP has
     /// no real calendar: its own UI prints Year 1, Day 1, and so should every
     /// consumer. A planet pack that changes the day length without installing a
     /// date-based formatter has no anchor either. Do not render a default

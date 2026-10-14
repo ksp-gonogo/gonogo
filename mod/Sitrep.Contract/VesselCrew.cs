@@ -61,7 +61,7 @@ public class CrewMember
     [SitrepUnit(Units.Count)]
     public int? Slots { get; set; }
 
-    /// <summary>Their packed-volume limit, stock default 40 in KSP's own cargo-volume unit. With a repair kit at 5, this is what actually bounds how many they can carry.</summary>
+    /// <summary>Their packed-volume limit, stock default 40, in KSP's own cargo-volume unit: a number with no physical dimension. A repair kit takes 5 of it, so this is what actually bounds how many kits they can carry.</summary>
     [SitrepUnit(Units.Dimensionless)]
     public double? PackedVolumeLimit { get; set; }
 

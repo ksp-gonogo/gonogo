@@ -21,8 +21,8 @@ import type { Meta } from "./__generated__/contract";
  * operator from what the vessel last sent. A reckoner (the model that carries a
  * Topic forward between samples, registered with
  * {@link UplinkClientHandle.registerReckoner}) and a derived channel
- * ({@link DerivedChannelDefinition}) receive these, and the plotted data hooks
- * read them.
+ * ({@link DerivedChannelDefinition}) receive these, and the app's hooks that
+ * read a series of samples for a plot read them.
  *
  * @typeParam Payload - The Topic's payload type, as the reader expects it.
  *
@@ -95,6 +95,9 @@ export type DerivedGet = <Payload = unknown>(
  *     return { descending: flight.payload.verticalSpeed.isNegative() };
  *   },
  * });
+ *
+ * // A widget then reads it by id:
+ * // useStream<{ descending: boolean }>("descent.state")
  * ```
  *
  * @category Processors
@@ -102,7 +105,12 @@ export type DerivedGet = <Payload = unknown>(
 export interface DerivedChannelDefinition<Payload> {
   /** The topic this channel registers as, e.g. `"system.state"`. */
   topic: string;
-  /** The Topics `derive` reads. Listing them does not subscribe to them. */
+  /**
+   * Every Topic `derive` reads through `get`. The channel is delayed as little
+   * as the least current of them allows, its status is the worst of theirs, and
+   * its history is built from theirs, so list all of them. Listing a Topic here
+   * does not subscribe to it.
+   */
   inputs: string[];
   /**
    * Computes the channel's value at `viewUt`, the game time the screen is

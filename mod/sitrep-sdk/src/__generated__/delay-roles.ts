@@ -36,7 +36,8 @@ export const GENERATED_TRUENOW_TOPICS = [
 ] as const;
 
 /**
- * A Topic the mod declares `TrueNow`: read with no signal delay.
+ * A Topic the mod declares `TrueNow`: read with no signal delay. The same type as
+ * {@link TrueNowTopic}, which is the name to import.
  *
  * @category Delay and vantage
  */
@@ -63,6 +64,7 @@ export const GENERATED_HELD_AT_HOME_TOPICS = [
 
 /**
  * A Topic the mod declares `HeldAtHome`: delivered after the delay to the home command centre.
+ * The same type as {@link HeldAtHomeTopic}, which is the name to import.
  *
  * @category Delay and vantage
  */

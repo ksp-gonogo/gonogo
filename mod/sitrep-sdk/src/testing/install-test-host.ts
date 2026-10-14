@@ -8,6 +8,20 @@ import { __setGonogoHost, type GonogoHost } from "../api/host";
  *
  * @param host - The members of {@link GonogoHost} the code under test calls.
  *
+ * @example
+ * ```ts
+ * import { value } from "@ksp-gonogo/sitrep-sdk";
+ * import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
+ * import { afterEach, beforeEach } from "vitest";
+ *
+ * let uninstall: () => void;
+ * beforeEach(() => {
+ *   // Only `useViewUt` is called by the code under test, so only it is supplied.
+ *   uninstall = installTestHost({ useViewUt: () => value("ut", 5000) });
+ * });
+ * afterEach(() => uninstall());
+ * ```
+ *
  * @category Test hosts
  * @categoryDescription Test hosts
  * Installing the app host a widget expects, stubbed or real, before a test

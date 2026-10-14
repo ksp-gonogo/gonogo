@@ -323,8 +323,9 @@ export type TopicPayload<Topic extends TopicId> = TopicPayloadMap[Topic];
  * id is built at runtime, such as one per celestial body,
  * `vessel.partActions.<flightId>` or an Uplink's own `settings.<uplink id>`, are
  * in neither, and are read with {@link useStream}. Nor are the derived channels
- * in {@link DERIVED_CHANNEL_IDS}, such as `system.uplinkHealth`, which the app
- * works out from Topics, or the binary Topic `commcast.radio`, which carries
+ * in {@link DERIVED_CHANNEL_IDS}, such as `system.uplinkHealth` and
+ * `spaceCenter.state`, which the app works out from Topics and a widget reads
+ * by id with {@link useTelemetry} like a Topic, or the binary Topic `commcast.radio`, which carries
  * audio rather than a typed payload.
  *
  * @category Reading telemetry

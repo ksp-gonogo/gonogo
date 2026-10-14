@@ -94,7 +94,7 @@ export const HEALTH_STATE_NAMES = [
  * An Uplink's health, as a widget reads it: `"healthy"`, `"degraded"` (running
  * with a problem its `detail` names) or `"unavailable"` (not running, with a
  * reason). Useful for showing the operator whether an Uplink is working. Used by
- * the Uplink status in the settings panel.
+ * the Uplink status in the Settings window.
  *
  * @category Host and runtime
  */
@@ -132,7 +132,7 @@ export interface ContractVersionReading {
 /**
  * One Uplink's report on its own health, as a widget reads it. Useful for
  * showing the operator whether an Uplink is working and why not. Used by the
- * Uplink status and Uplinks settings in the settings panel and by the first-run
+ * Uplink status and Uplinks settings in the Settings window and by the first-run
  * Uplink readiness check.
  *
  * @category Host and runtime
@@ -184,7 +184,7 @@ export interface UplinkHealthEntry {
 
 /**
  * Every Uplink's health: the value of `system.uplinkHealth`. Useful for listing
- * which Uplinks are working. Used by the Uplinks settings in the settings panel.
+ * which Uplinks are working. Used by the Uplinks settings in the Settings window.
  * It is a derived channel, one of {@link DERIVED_CHANNEL_IDS}, which the app works
  * out from the `system.uplinks` Topic, so it is not in the list of Topics. Read it
  * with `useStream("system.uplinkHealth")`.

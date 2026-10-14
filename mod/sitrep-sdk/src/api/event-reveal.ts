@@ -23,7 +23,8 @@ export interface RevealedEventSourceDefinition {
    * example from {@link EventTimeline.revealed}. Alarms call it often, so
    * return what the source already holds rather than computing anything.
    *
-   * `viewUt` is `null` or `undefined` when the screen has no view time yet.
+   * `viewUt` is the view time as a plain number of seconds, as
+   * {@link useUtNow} returns it. It is `null` or `undefined` when the screen has no view time yet.
    * Return an empty array then, since anything returned would show early.
    */
   revealedEvents(viewUt: number | null | undefined): readonly EventOccurrence[];
@@ -90,7 +91,8 @@ export function clearRevealedEventSources(): void {
  * Returns the event occurrences every source for `topic` reveals at `viewUt`,
  * in the order the sources were registered. Useful for showing the operator
  * only the events that have reached the command centre by the view time. Where
- * two Uplinks feed one Topic, both are included.
+ * two Uplinks feed one Topic, both are included. `viewUt` is the view time as a
+ * plain number of seconds, which {@link useUtNow} returns.
  *
  * @category Delay and vantage
  */

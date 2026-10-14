@@ -39,7 +39,9 @@ namespace Sitrep.Contract
     /// <para><b>Order.</b> The numbering is the reading order: sorted by value, a
     /// crew list reads free to fly, then committed, then off the books. The SDK's
     /// <c>CREW_STANDING_ORDER</c> is derived from it. A new member is inserted at
-    /// its place in that order rather than appended.</para>
+    /// its place in that order rather than appended, so a member's number can
+    /// change between versions: never store or compare a raw number, compare
+    /// members by name through the generated enum.</para>
     /// <internal>
     /// A numbering mirror of KspRosterStatus would tie growth here to Squad
     /// shipping a new roster status, and Applicant and Resting already have no
@@ -55,7 +57,7 @@ namespace Sitrep.Contract
     {
         /// <summary>
         /// No backend could say. Distinct from every member below, and never a
-        /// stand-in for one: a capture that read no roster status at all reports
+        /// stand-in for one: a roster entry for which the game reported no roster status at all gets
         /// this rather than guessing at Available.
         /// </summary>
         Unknown = 0,
@@ -72,7 +74,7 @@ namespace Sitrep.Contract
         /// <summary>
         /// On the books, standing down after a flight, and not assignable until
         /// the rest period ends.
-        /// <see cref="CrewStandingReading.StandingEndsAtUt"/> carries its end.
+        /// <see cref="CrewRosterEntry.StandingEndsAtUt"/> carries its end.
         ///
         /// <para>Derived from KSP's own <c>ProtoCrewMember.inactive</c>, so the
         /// stock backend reports it and every install gets it.</para>

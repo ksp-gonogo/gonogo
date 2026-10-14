@@ -1060,7 +1060,7 @@ describe("the widget section of the page", () => {
     expect(readme).toContain("`example.reactor`");
     expect(readme).toContain("`fleet.<vessel>.contact`");
     expect(readme).toMatch(
-      /Also reads, if published.*`example\.extra`.*`<domain>\.available`/,
+      /Also reads, if the mod publishes them.*`example\.extra`.*`<domain>\.available`/,
     );
   });
 
