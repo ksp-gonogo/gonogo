@@ -64,7 +64,7 @@ function stalenessToStreamStatus(
  * sample came from.
  *
  * A consumer names these runs, it does not grade them: every sample here is
- * one the craft measured, so `LineChart` draws them exactly as it draws live
+ * one the craft measured, so `Graph` draws them exactly as it draws live
  * ones. See `SeriesStatusSpan`, which carries the reasoning.
  */
 function buildSpans(

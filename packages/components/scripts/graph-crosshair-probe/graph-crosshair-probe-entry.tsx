@@ -1,13 +1,14 @@
 /**
- * Mounts `LineChart` with the crosshair on (or off, for the before shots) over a
+ * Mounts `Graph` with the crosshair on (or off, for the before shots) over a
  * fixed ascent: altitude and speed on two axes, a hole in the speed trace, a
  * modelled tail on the altitude trace, and an altitude ceiling.
  */
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   type ChartSeries,
-  LineChart,
-  type ThresholdRule,
-} from "@ksp-gonogo/ui";
+  Graph,
+  type GraphThreshold,
+} from "@ksp-gonogo/ui-kit";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
@@ -49,13 +50,13 @@ const series: ChartSeries[] = [
   },
 ];
 
-const thresholds: ThresholdRule[] = [
+const thresholds: GraphThreshold[] = [
   {
     id: "ceiling",
     kind: "limit",
     bad: "above",
-    value: 60_000,
-    label: "Altitude ceiling: 60 km",
+    value: value("m", 60_000),
+    label: "Altitude ceiling",
   },
 ];
 
@@ -70,14 +71,14 @@ async function render(payload: Payload): Promise<void> {
   root.innerHTML = "";
   activeRoot = createRoot(root);
   activeRoot.render(
-    createElement(LineChart, {
+    createElement(Graph, {
+      chrome: "bare",
       series,
       thresholds,
       xDomain: [0, 300],
       xTickFormat: (v: number) => `T+${v}s`,
       crosshair: payload.crosshair,
       "aria-label": "Ascent",
-      width: payload.pxW,
       height: payload.pxH,
     }),
   );

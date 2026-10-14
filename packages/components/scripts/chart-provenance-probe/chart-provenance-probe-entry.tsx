@@ -2,18 +2,21 @@
  * Standalone probe for the three states a trace can be in: observed (live or
  * replayed), gone, and reckoned.
  *
- * Mounts `LineChart` directly with explicit props rather than going through a
+ * Mounts `Graph` directly with explicit props rather than going through a
  * widget + telemetry fixture, for two reasons. The chart is presentational
  * (arrays in, SVG out, no data hooks), and the reckoned state has no producer
  * on the stream, so no telemetry fixture can drive it. Feeding the chart by
  * hand is the honest way to show a presentation that is waiting for one.
  */
-import { LineChart, type LineChartProps } from "@ksp-gonogo/ui";
+import { Graph, type GraphProps } from "@ksp-gonogo/ui-kit";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
 interface ChartProvenanceProbePayload {
-  props: LineChartProps;
+  props: Omit<GraphProps, "chrome" | "height"> & {
+    width: number;
+    height: number;
+  };
   pxW: number;
   pxH: number;
 }
@@ -33,7 +36,10 @@ async function renderChartProvenance(
   root.style.height = `${payload.pxH}px`;
   root.innerHTML = "";
   activeRoot = createRoot(root);
-  activeRoot.render(createElement(LineChart, payload.props));
+  const { width: _width, height, ...graphProps } = payload.props;
+  activeRoot.render(
+    createElement(Graph, { ...graphProps, chrome: "bare", height }),
+  );
 
   // Two raf ticks so layout settles before the screenshot. The chart has no
   // animation of its own to wait out.
@@ -52,4 +58,4 @@ declare global {
 window.__renderChartProvenance = renderChartProvenance;
 
 // Re-export so fixture authors' types stay in sync with the component.
-export type { LineChartProps };
+export type { GraphProps };

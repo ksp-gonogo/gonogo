@@ -105,7 +105,7 @@ export type SeriesType = "line" | "step" | "scatter" | "band";
 /**
  * One line on a graph: its samples, colour, label and the axis it is read against. Useful for
  * showing the operator how one reading has moved, or one curve a widget computed. Passed in the
- * `series` prop of {@link LineChart}, which the graph widget fills from the readings it plots.
+ * `series` prop of {@link Graph}, which the graph widget fills from the readings it plots.
  *
  * @category Graph
  */
@@ -137,7 +137,7 @@ export interface ChartSeries {
 /**
  * What a threshold line on a graph is for, which decides how it is drawn. Useful for telling the
  * operator whether a line is a limit to stay inside, a figure to reach or the place something is
- * now. Set in the `kind` of a {@link ThresholdRule}.
+ * now. Set in the `kind` of a {@link GraphThreshold}.
  *
  * - `limit`: a figure not to pass, with the side that is past it declared. Dashed and quiet until a trace on its axis stands at or past it, then in the warning tone, and each place a trace went past it carries a warning mark
  * - `target`: a figure to reach. Dashed and quiet until a trace on its axis has reached it, then in the go tone
@@ -165,7 +165,7 @@ interface ThresholdRuleBase {
 /**
  * A horizontal reference line on a graph at one figure on its axis, with an optional label at the
  * right. Useful for showing the operator how far a trace is from the figure that matters. Passed in
- * the `thresholds` prop of {@link LineChart}. Its tone comes from `kind` and the plotted data, never
+ * the `thresholds` prop of {@link Graph}. Its tone comes from `kind` and the plotted data, never
  * from the caller.
  *
  * @category Graph
@@ -218,7 +218,7 @@ function thresholdTone(
 /**
  * How a y axis maps a figure to a position: evenly (`"linear"`) or by its power of ten (`"log"`).
  * Useful for a reading that spans orders of magnitude, such as pressure up through the atmosphere.
- * Set in the `yScalePrimary` and `yScaleSecondary` props of {@link LineChart}.
+ * Set in the `yScalePrimary` and `yScaleSecondary` props of {@link Graph}.
  *
  * @category Graph
  */
@@ -233,7 +233,7 @@ export const timeXTickFormat = (
 /**
  * Writes an x tick of a graph whose x axis is universal time in seconds, as elapsed time from the
  * left edge. Useful for labelling a time axis in the game's own clock. Passed as the `xTickFormat`
- * of {@link LineChart}; pick it by the basis the producer declared, never by the size of the numbers.
+ * of {@link Graph}; pick it by the basis the producer declared, never by the size of the numbers.
  *
  * @category Graph
  */
@@ -244,8 +244,8 @@ export const utXTickFormat = (
   formatTimeLabel((value - domain[0]) * 1000, (domain[1] - domain[0]) * 1000);
 
 /**
- * Props for {@link LineChart}. Useful for giving the operator a drawn chart of one or more series
- * with its axes, reference lines and readout. Taken by {@link LineChart}.
+ * Props for {@link Graph}. Useful for giving the operator a drawn chart of one or more series
+ * with its axes, reference lines and readout. Taken by {@link Graph}.
  *
  * @category Graph
  */
@@ -476,9 +476,6 @@ function readoutColumnWidth({
  * wants it to fill a region measures the region itself.
  *
  * @category Graph
- * @categoryDescription Graph
- * A value over time or against another value: the chart with its series, reference lines,
- * crosshair and layers, and the types a caller builds them from.
  */
 export function LineChart({
   series,

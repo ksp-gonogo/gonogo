@@ -3,12 +3,9 @@ export {
   type ChartSeries,
   type ChartSeriesData,
   type LimitSide,
-  LineChart,
-  type LineChartProps,
   plotLayerExtent,
   type SeriesType,
   type ThresholdKind,
-  type ThresholdRule,
   utXTickFormat,
 } from "@ksp-gonogo/ui-kit";
 export { axisTitle } from "./axisTitle";

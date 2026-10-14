@@ -351,11 +351,8 @@ export {
   type ChartSeries,
   type ChartSeriesData,
   type LimitSide,
-  LineChart,
-  type LineChartProps,
   type SeriesType,
   type ThresholdKind,
-  type ThresholdRule,
   utXTickFormat,
 } from "./graph/LineChart";
 export { plotLayerExtent } from "./graph/plotLayers";

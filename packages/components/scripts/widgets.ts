@@ -1573,7 +1573,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     // BLACKOUT showcase: what a chart does with a span it has no readings
     // for. Same widget, a dedicated fixtures dir, and the only surface in
     // the tree that turns `Meta.GapSinceUt` into something an operator can
-    // see (`useDataSeries` -> `SeriesRange.breaks` -> `LineChart`).
+    // see (`useDataSeries` -> `SeriesRange.breaks` -> `Graph`).
     //
     // The three scenes differ by ONE field between them, deliberately: the
     // first states the hole and the second does not, off byte-identical
@@ -1587,7 +1587,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     // `sampleDerivedRange`, where that meta does not survive.
     //
     // The X TICK LABELS in these renders are wrong and are not the scene's
-    // doing: `LineChart`'s default time formatter reads its domain as unix
+    // doing: `Graph`'s default time formatter reads its domain as unix
     // milliseconds, and `useDataSeries` hands back UT
     // seconds, so a twenty-minute descent is labelled "0:01". The domain
     // itself is fixed; the labels need the basis

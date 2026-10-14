@@ -28,7 +28,7 @@ describe("OrbitalAscentComponent", () => {
   beforeEach(() => {
     clearBodies();
     registerStockBodies();
-    // LineChart draws no paths until its ResizeObserver reports a size.
+    // Graph draws no paths until its ResizeObserver reports a size.
     restoreResizeObserver = installFixedSizeResizeObserver({
       width: 400,
       height: 300,

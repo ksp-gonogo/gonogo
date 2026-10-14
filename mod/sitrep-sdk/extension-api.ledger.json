@@ -15109,6 +15109,10 @@
         "note": "member of GraphProps, new with it"
       },
       {
+        "key": "ui-kit . GraphProps#legend?",
+        "note": "member of GraphProps, new with it"
+      },
+      {
         "key": "ui-kit . GraphProps#notice?",
         "note": "member of GraphProps, new with it"
       },
@@ -15323,114 +15327,6 @@
       {
         "key": "ui-kit . LimitSide",
         "note": "which side of a limit line is out of bounds, moved here unchanged"
-      },
-      {
-        "key": "ui-kit . LineChart",
-        "note": "the chart the graph widget draws with, moved here from the private ui package unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps",
-        "note": "props of the moved LineChart, unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#\"aria-label\"?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#card?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#cardForms?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#crosshair?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#gridScale?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#height",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#hideXAxis?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#layers?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#legend?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#series",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#spatial?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#thresholds?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#width",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#xAxisLabel?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#xDomain",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#xKind?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#xReadFormat?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#xTickFormat?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#yAxisLabel?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#yDomainPrimary?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#yDomainSecondary?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#yScalePrimary?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#yScaleSecondary?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#ySecondaryAxisLabel?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . LineChartProps#yTickFormat?",
-        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
       },
       {
         "key": "ui-kit . LineGraphProps#\"aria-label\"?",
@@ -15761,10 +15657,6 @@
         "note": "what a threshold line is for, moved here unchanged"
       },
       {
-        "key": "ui-kit . ThresholdRule",
-        "note": "a horizontal reference line on a chart, moved here unchanged"
-      },
-      {
         "key": "ui-kit . TinyEssentialsProps#equalRows?",
         "note": "TinyEssentialsProps takes an optional equalRows, which draws every figure as an equal row; omitted, the first figure is drawn largest as before"
       },
@@ -16039,34 +15931,6 @@
       {
         "key": "ui-kit . ~SlotEntry",
         "note": "Helper type of Contribution, referenced by its props"
-      },
-      {
-        "key": "ui-kit . ~ThresholdRuleBase",
-        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . ~ThresholdRuleBase#axis?",
-        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . ~ThresholdRuleBase#id",
-        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . ~ThresholdRuleBase#label?",
-        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . ~ThresholdRuleBase#reading?",
-        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . ~ThresholdRuleBase#spokenLabel?",
-        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
-      },
-      {
-        "key": "ui-kit . ~ThresholdRuleBase#value",
-        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
       }
     ]
   }

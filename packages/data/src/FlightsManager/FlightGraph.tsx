@@ -1,7 +1,8 @@
 import { getDataSource } from "@ksp-gonogo/core";
 import type { ChartSeries, KeyOption } from "@ksp-gonogo/ui";
-import { axisTitle, DataKeyMultiPicker, LineChart } from "@ksp-gonogo/ui";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { axisTitle, DataKeyMultiPicker } from "@ksp-gonogo/ui";
+import { Graph } from "@ksp-gonogo/ui-kit";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { plotValue } from "../hooks/useDataSeries";
 import { useNumericFields } from "../hooks/useTopicFields";
@@ -12,11 +13,11 @@ import type { MissionHistorySource } from "./MissionHistorySource";
  * Post-flight graph view: pick telemetry keys, pull their samples for one
  * recorded Mission via `queryRange` (replayed through
  * `buildFullHistoryStore`, see `MissionHistorySource`), render a
- * `LineChart`. Lives alongside the flight list so users can inspect any
+ * `Graph`. Lives alongside the flight list so users can inspect any
  * recorded flight without needing the live dashboard.
  *
  * Unit note: Missions are UT-**seconds**-based (`fromUt`/
- * `toUt`), but `LineChart`'s default `xTickFormat`
+ * `toUt`), but `Graph`'s default `xTickFormat`
  * (`timeXTickFormat`/`formatTimeLabel`) hard-assumes **milliseconds**: see
  * `packages/ui-kit/src/graph/lineChartMath.ts`. So `xDomain` and every series' x-values
  * here are **elapsed milliseconds since `fromUt`**, converted once at
@@ -69,22 +70,6 @@ export function FlightGraph({ missionId, fromUt, toUt }: FlightGraphProps) {
       getSource()?.evictFullHistoryStore(missionId);
     };
   }, [missionId]);
-
-  // Measure the container so the SVG chart picks a width without requiring the caller to hardcode one.
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(600);
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const w = entry.contentRect.width;
-        if (w > 0) setWidth(Math.floor(w));
-      }
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   // Only a number can be plotted: the same fields a live graph axis offers.
   const options: KeyOption[] = useMemo(
@@ -147,7 +132,7 @@ export function FlightGraph({ missionId, fromUt, toUt }: FlightGraphProps) {
     };
   }, [selected, missionId, fromUt, toUt, numericFields]);
 
-  // LineChart wants a non-empty x-domain, in elapsed ms since fromUt
+  // Graph wants a non-empty x-domain, in elapsed ms since fromUt
   // (0-based: see the unit note above). Fall back to a 1-minute placeholder
   // window if the mission has zero duration so we never divide by zero.
   const durationMs = Math.max(0, (toUt - fromUt) * 1000);
@@ -195,7 +180,7 @@ export function FlightGraph({ missionId, fromUt, toUt }: FlightGraphProps) {
           Pick one or more numeric telemetry keys above to plot them.
         </Placeholder>
       ) : (
-        <ChartWrap ref={wrapRef}>
+        <ChartWrap>
           {loading && <LoadingBadge>Loading...</LoadingBadge>}
           {!loading && !anyData && (
             <Placeholder>
@@ -203,12 +188,12 @@ export function FlightGraph({ missionId, fromUt, toUt }: FlightGraphProps) {
             </Placeholder>
           )}
           {anyData && (
-            <LineChart
+            <Graph
+              chrome="bare"
               series={series}
               xDomain={xDomain}
               xAxisLabel="Mission time"
               yAxisLabel={yAxisLabel}
-              width={width}
               height={260}
             />
           )}

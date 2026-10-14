@@ -8,7 +8,7 @@
  * UT 900, so the dashed tail exists only because
  * `TimelineStore.sampleReckonedTail` asked `vessel.flight`'s reckoner across
  * the silence and `useDataSeries` joined it on. That is the difference between
- * this and `render-chart-provenance.ts`, which hand-feeds `LineChart`.
+ * this and `render-chart-provenance.ts`, which hand-feeds `Graph`.
  *
  * Two scenes one field apart: the second adds `VesselOrbit.encounter`, an SOI
  * transition before the view time, so the tail runs to the transition and

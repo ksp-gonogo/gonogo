@@ -6,7 +6,7 @@
  *
  * Uses a dedicated probe rather than the widget-fixture harness, for a reason
  * that is the point of the renders: the reckoned state has no producer on the
- * stream, so no telemetry fixture can drive it. `LineChart` is presentational
+ * stream, so no telemetry fixture can drive it. `Graph` is presentational
  * (arrays in, SVG out), so it mounts here with explicit props and the picture
  * shows the presentation the moment a model exists to fill it.
  */

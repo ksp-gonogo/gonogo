@@ -174,6 +174,8 @@ export interface GraphProps {
   spatial?: boolean;
   /** Scales the pitch of a spatial plot's dot lattice, 0.5 to 2. */
   gridScale?: number;
+  /** `"overlay"` (the default) stamps the series labels top-left on backing chips; `"none"` leaves them off. */
+  legend?: "overlay" | "none";
   /** Reads every series at one x on pointer hover and from the keyboard. On unless `hideXAxis` is set. */
   crosshair?: boolean;
   /** What the graph cannot show, such as "plotting trace only". Placed over an empty plot with room, beside a wide short one, below the rest. */
@@ -292,6 +294,9 @@ const CHART_AREA: CSSProperties = {
  * when `height` is absent.
  *
  * @category Graph
+ * @categoryDescription Graph
+ * A value over time or against another value: the chart with its series, reference lines,
+ * crosshair and layers, and the types a caller builds them from.
  */
 export function Graph({
   series,
@@ -317,6 +322,7 @@ export function Graph({
   spatial,
   gridScale,
   crosshair,
+  legend,
   notice,
   emptyState,
   footer,
@@ -337,7 +343,7 @@ export function Graph({
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
+    if (!el || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
       setSize({ w: Math.floor(width), h: Math.floor(height) });
@@ -348,7 +354,7 @@ export function Graph({
 
   useEffect(() => {
     const el = areaRef.current;
-    if (!el) return;
+    if (!el || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
       setArea({ w: Math.floor(width), h: Math.floor(height) });
@@ -362,7 +368,7 @@ export function Graph({
   );
   const [asideEl, setAsideEl] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (!asideEl) return;
+    if (!asideEl || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(() =>
       setAsideSize({
         w: asideEl.offsetWidth + ASIDE_CHROME_PX,
@@ -501,6 +507,7 @@ export function Graph({
               spatial={spatial}
               gridScale={gridScale}
               aria-label={ariaLabel}
+              legend={legend}
               crosshair={crosshair ?? !hideXAxis}
               xKind={xKind}
               xAxisLabel={spatial ? undefined : xAxisLabel}

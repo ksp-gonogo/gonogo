@@ -53,7 +53,7 @@ export function buildLiveSeries(
       const highData = xIsTime
         ? { x: rawHigh.t, y: rawHigh.v as number[] }
         : alignXY(rawHigh as SeriesRange<number>, xData);
-      // Paired by index; LineChart's band builder clamps mismatched lengths to the shortest.
+      // Paired by index; the chart's band builder clamps mismatched lengths to the shortest.
       data = {
         x: baseData.x,
         y: baseData.y,

@@ -7,7 +7,6 @@ import type {
   Dial,
   Graph,
   IconButton,
-  LineChart,
   LineGraph,
   MissionDate,
   ReadOnlyField,
@@ -217,48 +216,6 @@ export const UI_KIT_PRESETS = {
       },
     },
   ] satisfies Presets<ComponentProps<typeof Graph>>,
-  LineChart: [
-    {
-      name: "Two series with a limit",
-      args: {
-        series: [
-          {
-            id: "alt",
-            label: "Altitude",
-            axis: "primary",
-            color: "var(--color-go-text)",
-            data: {
-              x: [0, 1, 2, 3, 4, 5, 6],
-              y: [0, 1, 4, 9, 16, 25, 36],
-            },
-          },
-          {
-            id: "vs",
-            label: "Vertical speed",
-            axis: "secondary",
-            color: "var(--color-info-text)",
-            data: {
-              x: [0, 1, 2, 3, 4, 5, 6],
-              y: [12, 11, 10, 9, 8, 7, 6],
-            },
-          },
-        ],
-        xDomain: [0, 6],
-        thresholds: [
-          {
-            id: "ceiling",
-            kind: "limit",
-            bad: "above",
-            value: 30,
-            label: "Ceiling",
-          },
-        ],
-        crosshair: true,
-        width: 440,
-        height: 220,
-      },
-    },
-  ] satisfies Presets<ComponentProps<typeof LineChart>>,
   LineGraph: [
     {
       name: "Two series",
