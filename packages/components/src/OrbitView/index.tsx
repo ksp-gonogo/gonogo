@@ -250,19 +250,22 @@ function OrbitViewComponent({
     />
   ) : null;
 
-  const overlay: OrbitOverlayContext | null = hasOrbit
-    ? overlayContext({
-        sma: sma.magnitude,
-        ecc: eccentricity.magnitude,
-        escaping,
-        apoapsis: apoapsisR,
-        periapsis: periapsisR,
-        argPe: argPe.magnitude,
-        trueAnomaly: craft?.current ?? craft?.held ?? craft?.modelled ?? 0,
-        bodyRadius: body?.radius,
-        held: orbitReading,
-      })
-    : null;
+  // An overlay is handed a place on the orbit only where the diagram has one to draw; there is no zero to hand over in its stead.
+  const overlayAnomaly = craft?.current ?? craft?.held ?? craft?.modelled;
+  const overlay: OrbitOverlayContext | null =
+    hasOrbit && overlayAnomaly != null
+      ? overlayContext({
+          sma: sma.magnitude,
+          ecc: eccentricity.magnitude,
+          escaping,
+          apoapsis: apoapsisR,
+          periapsis: periapsisR,
+          argPe: argPe.magnitude,
+          trueAnomaly: overlayAnomaly,
+          bodyRadius: body?.radius,
+          held: orbitReading,
+        })
+      : null;
 
   return (
     <OrbitViewPanel

@@ -125,6 +125,8 @@ function registry(): AugmentRegistry {
 export const RETIRED_SLOT_IDS: Readonly<Record<string, string>> = {
   "distance-to-target.camera": "rendezvous.camera",
   "distance-to-target.overlay": "rendezvous.overlay",
+  "targeting.camera": "rendezvous.camera",
+  "targeting.overlay": "rendezvous.overlay",
   "astronaut-complex.training": "astronaut-complex.tab",
 };
 

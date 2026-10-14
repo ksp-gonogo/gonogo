@@ -38,6 +38,8 @@ const PRODUCTION_PATHSPECS = [
   ":!*.test.tsx",
   ":!*.test-d.ts",
   ":!*/dist/*",
+  // Maps retired widget slot ids to their replacements. A slot id is dotted like an address but is no Topic, and nothing reads a Topic through it.
+  ":!packages/ui-kit/src/augments.ts",
 ];
 
 /** Lines matching `pattern` under `pathspecs`, run from `cwd`. */

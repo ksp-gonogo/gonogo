@@ -27,7 +27,7 @@ import { magnitudeOf } from "../shared/magnitude";
 import { AppliedInput } from "./AppliedInput";
 import { AttitudeIndicator } from "./AttitudeIndicator";
 import { AttitudeReadout } from "./AttitudeReadout";
-import { ControlSurface } from "./ControlSurface";
+import { ControlSurface, FBW_VIEW } from "./ControlSurface";
 import { ControlToggles } from "./ControlToggles";
 import { type NavballConfig, navballActions } from "./config";
 import { useAxisStreams, useThrottleCommand } from "./controlStreams";
@@ -216,10 +216,26 @@ function useNavball({
 function useNavballEssentials(
   props: Readonly<ComponentProps<NavballConfig>>,
 ): readonly TinyEssential[] {
-  const { heading, pitch, roll, attitudeReading } = useNavball(props);
+  const { heading, pitch, roll, attitudeReading, fbwState, disarmFbw } =
+    useNavball(props);
   const degrees = (angle: number | null) =>
     angle === null ? null : readingOf(attitudeReading, () => value("°", angle));
+  const fbw = FBW_VIEW[fbwState];
   return [
+    ...(fbwState === "off"
+      ? []
+      : [
+          {
+            label: "FBW",
+            control: {
+              label: fbw.label,
+              active: fbwState === "armed",
+              title: "Disarm fly-by-wire",
+              hint: `${fbw.hint}. Press to disarm`,
+              onPress: disarmFbw,
+            },
+          },
+        ]),
     { label: "HDG", value: degrees(heading), decimals: 0 },
     { label: "PCH", value: degrees(pitch), decimals: 0, signed: true },
     { label: "RLL", value: degrees(roll), decimals: 0, signed: true },
