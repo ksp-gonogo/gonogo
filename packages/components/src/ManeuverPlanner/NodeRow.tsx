@@ -6,7 +6,13 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { CloseIcon, PencilIcon } from "@ksp-gonogo/ui";
-import { Button, Countdown, IconButton, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  Button,
+  Countdown,
+  IconButton,
+  Tooltip,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import { useState } from "react";
 import { NodeEditor } from "./NodeEditor";
@@ -53,8 +59,10 @@ export function NodeRow({
   const dated = <UnitSymbol extends string>(
     figure: ReturnType<typeof value<UnitSymbol>>,
   ) => (from === undefined ? figure : datedFrom(from, figure));
+  const phase = completed ? "ahead" : phaseOf(node, currentUT);
+  // A burn already flown has no shortfall to report, and the figure is its planned size either way.
   const feasible =
-    completed || availableDv === null
+    completed || phase === "passed" || availableDv === null
       ? null
       : availableDv >= node.deltaVMagnitude;
   return (
@@ -76,10 +84,36 @@ export function NodeRow({
           {feasible === false && (
             <FeasibilityChip $ok={false}>SHORT</FeasibilityChip>
           )}
+          {phase === "passed" && (
+            <Tooltip
+              text="The node's time has passed; this is the size it was planned at"
+              focusable
+            >
+              <span style={PHASE_CHIP_STYLE}>PASSED</span>
+            </Tooltip>
+          )}
+          {phase === "underway" && (
+            <Tooltip
+              text="Burn under way; this is the size it was planned at, not what remains"
+              focusable
+            >
+              <span style={PHASE_CHIP_STYLE}>BURNING</span>
+            </Tooltip>
+          )}
         </div>
         <div style={NODE_META_STYLE}>
           {completed ? (
             "Removing in 10 s"
+          ) : phase === "underway" && node.cutoffUt !== null ? (
+            <>
+              burn ends in{" "}
+              <Countdown
+                value={
+                  currentUT &&
+                  dated(value("ut", node.cutoffUt).minus(currentUT))
+                }
+              />
+            </>
           ) : timeTo?.isNegative() ? (
             // A burn stopped short keeps its node past its own instant; Countdown is unsigned, so the tense carries it.
             <>
@@ -131,6 +165,33 @@ export function NodeRow({
     </li>
   );
 }
+
+/** Where a node stands against the view clock: still to come, in its burn window, or behind the craft. */
+function phaseOf(
+  node: ParsedManeuverNode,
+  currentUT: Value<"ut"> | undefined,
+): "ahead" | "underway" | "passed" {
+  if (currentUT === undefined) return "ahead";
+  if (currentUT.greaterThan(value("ut", node.cutoffUt ?? node.UT))) {
+    return "passed";
+  }
+  if (
+    node.ignitionUt !== null &&
+    currentUT.greaterThanOrEqual(value("ut", node.ignitionUt))
+  ) {
+    return "underway";
+  }
+  return "ahead";
+}
+
+const PHASE_CHIP_STYLE: CSSProperties = {
+  fontSize: "var(--font-size-caption)",
+  padding: "var(--inset-chip)",
+  borderRadius: "var(--radius-pill)",
+  letterSpacing: "0.08em",
+  border: "1px solid var(--color-border-subtle)",
+  color: "var(--color-text-dim)",
+};
 
 const NODE_LI_BASE: CSSProperties = {
   display: "grid",
