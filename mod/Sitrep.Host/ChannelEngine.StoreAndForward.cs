@@ -361,9 +361,10 @@ namespace Sitrep.Host
 
         private readonly Dictionary<string, string> _journeyVantage = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        /// <summary>What an operator is told when an order for the active craft is pressed with no craft loaded.</summary>
+        /// <summary>What an operator is told when an order would reuse the number of one already waiting to be sent.</summary>
         internal const string OrderAlreadyWaitingDetail = "Another order with the same number is already waiting to be sent, so this one was not sent.";
 
+        /// <summary>What an operator is told when an order for the active craft is pressed with no craft loaded.</summary>
         internal const string NoActiveCraftDetail = "The game is not in flight, so no craft is the active vessel to receive this order.";
 
         /// <summary>
