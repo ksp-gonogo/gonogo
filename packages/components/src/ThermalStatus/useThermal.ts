@@ -26,7 +26,7 @@ export interface ThermalState {
   engineOverheat: boolean | null | undefined;
   hottest: MeterRow & { name: string | undefined };
   engine: MeterRow;
-  /** True when the hottest engine reads the same temperature, limit and band as the hottest part, so the part row already shows it. */
+  /** True when the hottest engine reads the same internal temperature, limit and band as the hottest part, so the part row already shows it. */
   engineIsHottestPart: boolean;
   /** Absent when the record carries neither heat shield figure. */
   shield:
@@ -123,13 +123,17 @@ export function useThermal(): ThermalState {
     shieldTempK === undefined &&
     shieldFluxKw === undefined;
 
+  // Both sides are internal temperature and its limit; the part row's skin figures are a different quantity.
+  const hottestInternalK = thermal?.hottestPart?.internalTemp;
+  const hottestInternalMaxK = thermal?.hottestPart?.maxTemp;
   const engineIsHottestPart =
-    hottestTempK != null &&
+    !hottestSentinel &&
     engineTempK != null &&
-    rawHottestMaxK != null &&
     rawEngineMaxK != null &&
-    hottestTempK.equals(engineTempK) &&
-    rawHottestMaxK.equals(rawEngineMaxK) &&
+    hottestInternalK != null &&
+    hottestInternalMaxK != null &&
+    hottestInternalK.equals(engineTempK) &&
+    hottestInternalMaxK.equals(rawEngineMaxK) &&
     hottestBand === engineBand;
 
   return {

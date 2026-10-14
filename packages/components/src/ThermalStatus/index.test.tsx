@@ -74,8 +74,10 @@ describe("ThermalStatusComponent", () => {
       fixture.emit("vessel.thermal", {
         hottestPart: {
           name: "LV-T30 'Reliant'",
-          skinTemp: 850,
-          skinMaxTemp: 2273,
+          internalTemp: 850,
+          maxTemp: 2273,
+          skinTemp: 700,
+          skinMaxTemp: 1200,
         },
         maxInternalTempRatio: 0.37,
         hottestEngineTemp: 850,
@@ -88,6 +90,33 @@ describe("ThermalStatusComponent", () => {
     await waitFor(() => expect(visibleText()).toContain("LV-T30 'Reliant'"));
     expect(screen.getByText("Hottest part")).toBeInTheDocument();
     expect(screen.queryByText("Hottest engine")).toBeNull();
+  });
+
+  it("keeps the engine row when its internal temperature differs from the hottest part's, though the skin figures match it", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    renderThermal(fixture);
+    act(() => {
+      fixture.emit("vessel.thermal", {
+        hottestPart: {
+          name: "Heat Shield (2.5m)",
+          internalTemp: 1000,
+          maxTemp: 2273,
+          skinTemp: 850,
+          skinMaxTemp: 2273,
+        },
+        maxInternalTempRatio: 0.44,
+        hottestEngineTemp: 850,
+        hottestEngineMaxTemp: 2273,
+        hottestEngineTempRatio: 0.37,
+        anyEnginesOverheating: false,
+      });
+    });
+
+    await waitFor(() => expect(visibleText()).toContain("Heat Shield (2.5m)"));
+    expect(screen.getByText("Hottest engine")).toBeInTheDocument();
   });
 
   it("announces an engine flagged overheating as critical", async () => {
