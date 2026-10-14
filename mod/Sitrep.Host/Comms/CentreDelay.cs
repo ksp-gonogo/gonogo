@@ -26,11 +26,18 @@ namespace Sitrep.Host.Comms
                 path,
                 source);
 
-        /// <summary>The zero that is applied, not measured: delay is switched off, or the save has no comms network to cross.</summary>
-        public static CommsDelay NotMeasured(bool networkModelled, string source) =>
-            SignalDelay.Compute(
+        /// <summary>
+        /// The zero that is applied, not measured: delay is switched off, or the
+        /// save has no comms network to cross. Where delay is switched off and
+        /// the centre believes there is no path, none, the same as with delay on.
+        /// </summary>
+        /// <param name="networkModelled">Whether the save models a comms network at all.</param>
+        /// <param name="path">The path the centre is sent for the active craft, or null when there is none.</param>
+        /// <param name="source">The craft the path is from, or <c>"game"</c>.</param>
+        public static CommsDelay NotMeasured(bool networkModelled, CommsPath? path, string source) =>
+            SignalDelay.ComputeForCraft(
                 new SignalDelayConfig { Enabled = false, CutForNoCommsModel = !networkModelled },
-                null,
+                path,
                 source);
     }
 }

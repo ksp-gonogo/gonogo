@@ -44,16 +44,35 @@ namespace Sitrep.Host.Tests.Comms
         [Fact]
         public void ADelayThatIsSwitchedOffIsAZeroThatSaysSo()
         {
-            var delay = CentreDelay.NotMeasured(networkModelled: true, "vessel:a");
+            var delay = CentreDelay.NotMeasured(networkModelled: true, Path(1000.0), "vessel:a");
 
             Assert.Equal(0.0, delay.OneWaySeconds);
             Assert.Equal(CommsDelaySource.None, delay.Source);
         }
 
+        /// <summary>
+        /// A craft the centre believes has no path reads as no path with delay
+        /// off, as it does with delay on, whether the path is empty, absent or
+        /// has a hop of unknown length.
+        /// </summary>
+        [Fact]
+        public void ADelaySwitchedOffStillReadsNoPathForACraftWithNone()
+        {
+            foreach (var path in new[] { null, new CommsPath(), Path(1000.0, null) })
+            {
+                var off = CentreDelay.NotMeasured(networkModelled: true, path, "vessel:a");
+
+                Assert.Null(off.OneWaySeconds);
+                Assert.Equal(CommsDelaySource.None, off.Source);
+            }
+
+            Assert.Null(CentreDelay.Over(new CommsPath(), 1.0, "vessel:a").OneWaySeconds);
+        }
+
         [Fact]
         public void ASaveWithNoCommsNetworkIsAZeroThatNamesItsReason()
         {
-            var delay = CentreDelay.NotMeasured(networkModelled: false, "game");
+            var delay = CentreDelay.NotMeasured(networkModelled: false, null, "game");
 
             Assert.Equal(0.0, delay.OneWaySeconds);
             Assert.Equal(CommsDelaySource.NoCommsModel, delay.Source);
