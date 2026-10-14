@@ -339,6 +339,14 @@ export {
 } from "./GraphNotice";
 export { Grid, type GridAlign, type GridProps } from "./Grid";
 export {
+  Graph,
+  type GraphProps,
+  type GraphThreshold,
+  type PresentPoint,
+  type ReadoutRoom,
+  type ReferenceCurve,
+} from "./graph/Graph";
+export {
   type AxisScale,
   type ChartSeries,
   type ChartSeriesData,

@@ -4,6 +4,7 @@ export type {
   SeriesType,
   ThresholdKind,
 } from "@ksp-gonogo/ui";
+export type { GraphThreshold } from "@ksp-gonogo/ui-kit";
 
 import type {
   DataKeyMeta,
@@ -16,7 +17,6 @@ import type {
   SeriesType,
   ThresholdKind,
 } from "@ksp-gonogo/ui";
-import type { UnitValue } from "@ksp-gonogo/ui-kit";
 
 /** Sentinel `xKey` value meaning "plot against wall-clock time". */
 export const TIME_AXIS = "$time";
@@ -59,30 +59,6 @@ export interface ComputedSeries {
   meta: DataKeyMeta;
   data: ReadingSeriesRange<number>;
 }
-
-/**
- * A horizontal line across a `GraphView`, at a quantity in its axis's unit.
- *
- * The chart places it, writes the quantity after `label`, and picks its tone
- * from `kind` and the plotted data. Pass the whole reading where the figure
- * came from one: the line then stands at the model's figure where a model
- * carried it, and its label is marked held or modelled as the reading is.
- */
-export type GraphThreshold = {
-  /** Defaults to the line's position in the list. */
-  id?: string;
-  value: UnitValue;
-  label?: string;
-  /** `"primary"` when omitted. */
-  axis?: "primary" | "secondary";
-} & (
-  | {
-      kind: "limit";
-      /** The side a figure must not be on: `above` for a ceiling, `below` for a floor. */
-      bad: LimitSide;
-    }
-  | { kind: Exclude<ThresholdKind, "limit"> }
-);
 
 /** A threshold line as the Graph widget saves it: a bare number, read in the unit of the axis it is drawn against. */
 export interface GraphThresholdConfig {
