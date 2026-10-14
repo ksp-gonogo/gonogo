@@ -215,6 +215,38 @@ export const UI_KIT_PRESETS = {
         notice: "No reference data: plotting trace only.",
       },
     },
+    {
+      name: "Compact trend",
+      args: {
+        chrome: "bare",
+        density: "compact",
+        height: 96,
+        hideXAxis: true,
+        xDomain: [0, 6],
+        yDomainPrimary: [0, 1],
+        series: [
+          {
+            id: "dose",
+            label: "Dose rate",
+            axis: "primary",
+            color: "var(--color-info-mark)",
+            data: {
+              x: [0, 1, 2, 4, 5, 6],
+              y: [0.2, 0.4, 0.7, 0.5, 0.3, 0.45],
+              breaks: [3],
+            },
+          },
+        ],
+        thresholds: [
+          {
+            id: "safe",
+            kind: "marker",
+            label: "Safe threshold",
+            value: value("1", 0.5),
+          },
+        ],
+      },
+    },
   ] satisfies Presets<ComponentProps<typeof Graph>>,
   LineGraph: [
     {

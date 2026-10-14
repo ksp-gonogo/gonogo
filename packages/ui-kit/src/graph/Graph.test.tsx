@@ -131,4 +131,128 @@ describe("Graph", () => {
     );
     await expectNoA11yViolations(container);
   });
+
+  describe("compact density", () => {
+    const BROKEN: ChartSeries = {
+      id: "dose",
+      label: "Dose",
+      axis: "primary",
+      color: "var(--color-info-mark)",
+      data: { x: [0, 1, 2, 5, 6, 7], y: [1, 2, 3, 2, 1, 2], breaks: [3] },
+    };
+
+    function compact(extra: Partial<Parameters<typeof Graph>[0]> = {}) {
+      return render(
+        <Graph
+          chrome="bare"
+          density="compact"
+          height={96}
+          hideXAxis
+          series={[BROKEN]}
+          xDomain={[0, 7]}
+          yDomainPrimary={[0, 4]}
+          {...extra}
+        />,
+      ).container;
+    }
+
+    it("draws no tick labels, gridlines, legend or crosshair", () => {
+      const full = render(
+        <Graph
+          chrome="bare"
+          height={96}
+          series={[BROKEN]}
+          xDomain={[0, 7]}
+          xKind="value"
+          crosshair
+        />,
+      ).container;
+      expect(full.querySelectorAll("text").length).toBeGreaterThan(0);
+      expect(full.querySelector('svg[role="group"]')).not.toBeNull();
+      const container = compact({ crosshair: true });
+      expect(container.querySelectorAll("text")).toHaveLength(0);
+      expect(container.querySelector('svg[role="group"]')).toBeNull();
+    });
+
+    it("shades each run under its trace and leaves the break unshaded", () => {
+      const container = compact();
+      const shaded = [...container.querySelectorAll("path")].filter(
+        (p) => p.getAttribute("fill-opacity") === "0.12",
+      );
+      expect(shaded).toHaveLength(1);
+      const runs = (shaded[0].getAttribute("d") ?? "").match(/Z/g) ?? [];
+      expect(runs).toHaveLength(2);
+    });
+
+    it("draws a marker threshold as a short tick with its label", () => {
+      const container = compact({
+        thresholds: [
+          {
+            id: "safe",
+            kind: "marker",
+            label: "Safe threshold",
+            value: value("m", 2),
+          },
+        ],
+      });
+      const tick = container.querySelector('[data-threshold-kind="marker"]');
+      const x1 = Number(tick?.getAttribute("x1"));
+      const x2 = Number(tick?.getAttribute("x2"));
+      expect(x2 - x1).toBe(24);
+      expect(container.textContent).toContain("Safe threshold: 2.00 m");
+    });
+
+    it("keeps a limit threshold as a rule across the plot", () => {
+      const container = compact({
+        thresholds: [
+          {
+            id: "ceiling",
+            kind: "limit",
+            bad: "above",
+            value: value("m", 3),
+            label: "Ceiling",
+          },
+        ],
+      });
+      const rule = container.querySelector('[data-threshold-kind="limit"]');
+      expect(
+        Number(rule?.getAttribute("x2")) - Number(rule?.getAttribute("x1")),
+      ).toBeGreaterThan(100);
+    });
+
+    it("lays the notice over a compact plot with nothing to draw", () => {
+      render(
+        <Graph
+          chrome="bare"
+          density="compact"
+          height={96}
+          series={[]}
+          xDomain={[0, 1]}
+          notice="Collecting history..."
+        />,
+      );
+      expect(screen.getByText("Collecting history...")).toBeTruthy();
+    });
+
+    it("draws the plot without the frame's styled box", () => {
+      const frameOf = (container: HTMLElement) =>
+        container.querySelector("svg")?.parentElement?.parentElement;
+      const full = render(
+        <Graph
+          chrome="bare"
+          height={96}
+          series={[BROKEN]}
+          xDomain={[0, 7]}
+          xKind="value"
+        />,
+      ).container;
+      expect(frameOf(full)?.className).not.toBe("");
+      expect(frameOf(compact())?.className).toBe("");
+    });
+
+    it("has no accessibility violations", async () => {
+      const container = compact({ "aria-label": "Dose rate trend" });
+      await expectNoA11yViolations(container);
+    });
+  });
 });

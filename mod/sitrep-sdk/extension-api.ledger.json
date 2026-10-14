@@ -15081,6 +15081,10 @@
         "note": "member of GraphProps, new with it"
       },
       {
+        "key": "ui-kit . GraphProps#density?",
+        "note": "member of GraphProps, new with it: a trend glance with no frame, ticks or legend"
+      },
+      {
         "key": "ui-kit . GraphProps#emptyState?",
         "note": "member of GraphProps, new with it"
       },

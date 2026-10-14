@@ -174,6 +174,8 @@ export interface GraphProps {
   spatial?: boolean;
   /** Scales the pitch of a spatial plot's dot lattice, 0.5 to 2. */
   gridScale?: number;
+  /** `"compact"` draws a trend glance with no frame, gutters, tick ladders, legend or crosshair, each trace shaded down to the bottom edge and a marker threshold as a short tick with its label; `"chart"` (the default) draws the full chart. */
+  density?: "chart" | "compact";
   /** `"overlay"` (the default) stamps the series labels top-left on backing chips; `"none"` leaves them off. */
   legend?: "overlay" | "none";
   /** Reads every series at one x on pointer hover and from the keyboard. On unless `hideXAxis` is set. */
@@ -284,6 +286,22 @@ const CHART_AREA: CSSProperties = {
   minWidth: 0,
 };
 
+/** The compact density's stand-in for the frame: the same box, drawn with no edge. */
+function PlainFrame({
+  style,
+  children,
+}: {
+  style?: CSSProperties;
+  footer?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div style={{ ...style, display: "flex", flexDirection: "column" }}>
+      {children}
+    </div>
+  );
+}
+
 /**
  * A chart that measures the region it is given: a plot with tick ladders, one
  * or two y axes, reference lines and curves, a crosshair that reads every
@@ -323,6 +341,7 @@ export function Graph({
   gridScale,
   crosshair,
   legend,
+  density = "chart",
   notice,
   emptyState,
   footer,
@@ -479,6 +498,9 @@ export function Graph({
     area.w - (asideSize?.w ?? ASIDE_GUESS_PX) >= ASIDE_PLOT_KEEPS_PX &&
     area.h >= (asideSize?.h ?? 0);
 
+  // A compact graph sits in a line of text or a small card, which already frames it.
+  const Frame = density === "compact" ? PlainFrame : FramedDisplay;
+
   const chartBody = (
     <div
       ref={areaRef}
@@ -488,7 +510,7 @@ export function Graph({
         flexDirection: noticePlacement === "beside" ? "row" : "column",
       }}
     >
-      <FramedDisplay style={CHART_FRAME} footer={footer}>
+      <Frame style={CHART_FRAME} footer={footer}>
         <div ref={containerRef} style={CHART_AREA}>
           {size && (
             <LineChart
@@ -508,6 +530,7 @@ export function Graph({
               gridScale={gridScale}
               aria-label={ariaLabel}
               legend={legend}
+              density={density}
               crosshair={crosshair ?? !hideXAxis}
               xKind={xKind}
               xAxisLabel={spatial ? undefined : xAxisLabel}
@@ -544,7 +567,7 @@ export function Graph({
         )}
         {/* Draws nothing, so it rides inside the frame and leaves it the chart's only content when there's no notice beside it. */}
         {children}
-      </FramedDisplay>
+      </Frame>
       {notices.length > 0 && noticePlacement !== "center" && noticeNode}
     </div>
   );

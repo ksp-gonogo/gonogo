@@ -276,6 +276,8 @@ export interface LineChartProps {
   legend?: "overlay" | "none";
   /** Drop the X tick ladder and its gridlines, for a one-dimensional plot; layers are still placed against the domain. */
   hideXAxis?: boolean;
+  /** `"compact"` draws a trend glance: no gutters, tick ladders, gridlines, legend or crosshair, each trace shaded down to the frame's bottom edge, and a marker threshold as a short tick with its label. `"chart"` (the default) draws the full chart. */
+  density?: "chart" | "compact";
   /** A view of a place rather than a chart: no tick ladders, content to the frame edges, and equal scale on both axes. */
   spatial?: boolean;
   /** Scales the pitch of a spatial plot's dot lattice from its usual gap, clamped to 0.5 to 2, so the lattice can carry the zoom. */
@@ -366,6 +368,22 @@ function fitTitle(text: string, px: number): string {
     return `${text.slice(0, room)}...${text.slice(unitAt)}`;
   }
   return chars < 4 ? "" : `${text.slice(0, chars - 3)}...`;
+}
+
+/** The closed regions between each stroked run of a path and `floorY`, for shading under a trace; a break in the path leaves a gap in the shading. */
+function areaUnder(d: string, floorY: number): string | null {
+  const runs = d.split(/(?=M)/).filter((run) => run.length > 0);
+  const regions: string[] = [];
+  for (const run of runs) {
+    const points = [...run.matchAll(/[ML](-?[\d.]+),(-?[\d.]+)/g)];
+    if (points.length < 2) continue;
+    const first = points[0];
+    const last = points[points.length - 1];
+    regions.push(
+      `${run.trim()} L${last[1]},${floorY} L${first[1]},${floorY} Z`,
+    );
+  }
+  return regions.length > 0 ? regions.join(" ") : null;
 }
 
 /** Inset half a pitch so no dot sits on the frame's own edge. */
@@ -487,9 +505,10 @@ export function LineChart({
   yScalePrimary = "linear",
   yScaleSecondary = "linear",
   thresholds,
-  legend = "overlay",
+  legend: legendProp = "overlay",
   hideXAxis = false,
-  spatial = false,
+  density = "chart",
+  spatial: spatialProp = false,
   gridScale = 1,
   layers,
   "aria-label": ariaLabel,
@@ -505,9 +524,13 @@ export function LineChart({
   height,
 }: Readonly<LineChartProps>) {
   const uid = useId();
+  const compact = density === "compact";
+  const legend = compact ? "none" : legendProp;
+  const spatial = spatialProp;
+  const bare = spatial || compact;
   // With nothing plotted there is nothing to read, so the chart takes no tab stop.
   const crosshairOn =
-    crosshair && !spatial && series.some((s) => s.data.x.length > 0);
+    crosshair && !bare && series.some((s) => s.data.x.length > 0);
   const [cursor, setCursor] = useState<{
     at: number;
     source: "pointer" | "keys";
@@ -562,11 +585,11 @@ export function LineChart({
   );
   const hasSecondary = secondarySeries.length > 0;
 
-  const titledX = !spatial && !hideXAxis && !!xAxisLabel;
-  const titledY = !spatial && !!yAxisLabel;
-  const titledSecondary = !spatial && hasSecondary && !!ySecondaryAxisLabel;
+  const titledX = !bare && !hideXAxis && !!xAxisLabel;
+  const titledY = !bare && !!yAxisLabel;
+  const titledSecondary = !bare && hasSecondary && !!ySecondaryAxisLabel;
   // One pixel of inset keeps the outermost stroke from being clipped by the frame.
-  const base = spatial
+  const base = bare
     ? { top: 1, right: 1, bottom: 1, left: 1 }
     : fitMargins(w, h, hasSecondary);
   const fitted = {
@@ -676,7 +699,7 @@ export function LineChart({
               Y_LABEL_INSET,
           ),
         );
-  const margin = spatial
+  const margin = bare
     ? fitted
     : {
         ...fitted,
@@ -696,7 +719,7 @@ export function LineChart({
     (legend !== "none" && series.length > 0) ||
     (thresholds ?? []).some((t) => t.label);
   const readouts =
-    spatial || !hasReadouts
+    bare || !hasReadouts
       ? ({ placement: "overlay" } as const)
       : placePlotReadouts({
           width: w,
@@ -1012,7 +1035,7 @@ export function LineChart({
 
   // The card is placed before the threshold labels, which then yield to it: a label is short and can move, a card cannot.
   const cardBox: PixelBox | undefined = (() => {
-    if (!hasCard || cardSize === null || spatial) return undefined;
+    if (!hasCard || cardSize === null || bare) return undefined;
     const half = LIMIT_MARK_SIZE / 2;
     const traces = [
       ...series
@@ -1246,7 +1269,7 @@ export function LineChart({
   // The next form is tried once this one is measured and has no clear corner.
   const needsNextForm =
     hasCard &&
-    !spatial &&
+    !bare &&
     cardSize !== null &&
     // A card that measures nothing (not laid out) says nothing about which form fits.
     cardSize.w > 0 &&
@@ -1467,7 +1490,7 @@ export function LineChart({
       )}
 
       {/* Keyed by index: niceTicks repeats ticks on a zero-span domain. */}
-      {!spatial &&
+      {!bare &&
         yTicksPrimary.map((tick, idx) => {
           const y = scaleYPrimary(tick);
           return (
@@ -1497,7 +1520,7 @@ export function LineChart({
           );
         })}
 
-      {!spatial &&
+      {!bare &&
         yTicksSecondary.map((tick, idx) =>
           yKeepSecondary.has(idx) ? (
             <text
@@ -1516,7 +1539,7 @@ export function LineChart({
         )}
 
       {!hideXAxis &&
-        !spatial &&
+        !bare &&
         xTicks.map((tick, idx) => (
           <line
             // biome-ignore lint/suspicious/noArrayIndexKey: tick position IS identity; niceTicks may emit duplicate values for zero-span domains
@@ -1531,7 +1554,7 @@ export function LineChart({
         ))}
 
       {!hideXAxis &&
-        !spatial &&
+        !bare &&
         xTickLabels.map((lbl, idx) => (
           <text
             // biome-ignore lint/suspicious/noArrayIndexKey: label position IS identity
@@ -1602,7 +1625,7 @@ export function LineChart({
             />
           ))}
 
-      {!spatial && (
+      {!bare && (
         <>
           <line
             x1={plotX0}
@@ -1678,28 +1701,39 @@ export function LineChart({
         )
         .flatMap((d) =>
           d.segments.map((seg, i) => (
-            <path
-              // biome-ignore lint/suspicious/noArrayIndexKey: a run has no identity beyond its position in the series
-              key={`${d.id}-${i}`}
-              d={seg.d}
-              data-stream-status={seg.status}
-              data-reckoning-basis={seg.basis}
-              stroke={d.color}
-              strokeWidth={1.5}
-              fill="none"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              strokeOpacity={
-                seg.basis !== undefined ? RECKONED_STROKE_OPACITY : undefined
-              }
-              strokeDasharray={
-                seg.basis !== undefined
-                  ? RECKONED_DASHARRAY
-                  : d.dashed
-                    ? "4 3"
-                    : undefined
-              }
-            />
+            // biome-ignore lint/suspicious/noArrayIndexKey: a run has no identity beyond its position in the series
+            <React.Fragment key={`${d.id}-${i}`}>
+              {compact &&
+                seg.basis === undefined &&
+                areaUnder(seg.d, plotY1) && (
+                  <path
+                    d={areaUnder(seg.d, plotY1) ?? undefined}
+                    fill={d.color}
+                    fillOpacity={0.12}
+                    stroke="none"
+                  />
+                )}
+              <path
+                d={seg.d}
+                data-stream-status={seg.status}
+                data-reckoning-basis={seg.basis}
+                stroke={d.color}
+                strokeWidth={1.5}
+                fill="none"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                strokeOpacity={
+                  seg.basis !== undefined ? RECKONED_STROKE_OPACITY : undefined
+                }
+                strokeDasharray={
+                  seg.basis !== undefined
+                    ? RECKONED_DASHARRAY
+                    : d.dashed
+                      ? "4 3"
+                      : undefined
+                }
+              />
+            </React.Fragment>
           )),
         )}
 
@@ -1811,7 +1845,7 @@ export function LineChart({
           <line
             x1={plotX0}
             y1={t.y}
-            x2={plotX1}
+            x2={compact && t.kind === "marker" ? plotX0 + 24 : plotX1}
             y2={t.y}
             stroke={t.tone.line}
             strokeWidth={1}
@@ -1820,7 +1854,18 @@ export function LineChart({
             data-threshold-passed={t.passed || undefined}
           />
           {/* The card carries every limit and target as a row, so its column does not write the same reading twice. */}
-          {t.label &&
+          {compact && t.kind === "marker" && t.label && (
+            <text
+              x={plotX0 + 28}
+              y={t.y + 3.5}
+              fill={t.tone.label}
+              fontSize={10}
+            >
+              {t.label}
+            </text>
+          )}
+          {!(compact && t.kind === "marker") &&
+            t.label &&
             labelPlaces.get(t.id) &&
             !(column !== undefined && cardShown && t.kind !== "marker") && (
               <text
