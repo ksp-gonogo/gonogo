@@ -31,17 +31,16 @@ export function computeUnitsLabel(
   return `${against}${sides.join(" x ")}`;
 }
 
-/** The header of an unconfigured graph: the names of the series it plots, each once. */
+/** The header of an unconfigured graph: the names of the series it plots, each once. A series with no label of its own or in the catalog is left out, rather than named by its raw key. */
 export function computeFullTitle(
   series: readonly GraphSeries[],
   metaMap: Map<string, DataKeyMeta>,
 ): string | undefined {
-  const names = new Set(
-    series.map((cfg) => {
-      const key = seriesKeyOf(cfg.source);
-      return cfg.label ?? metaMap.get(key)?.label ?? key;
-    }),
-  );
+  const names = new Set<string>();
+  for (const cfg of series) {
+    const label = cfg.label ?? metaMap.get(seriesKeyOf(cfg.source))?.label;
+    if (label) names.add(label);
+  }
   return [...names].join(" / ") || undefined;
 }
 
