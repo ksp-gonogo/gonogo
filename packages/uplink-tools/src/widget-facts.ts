@@ -124,12 +124,12 @@ export function widgetFactsOf(
     },
     {
       id: "drawsOnly",
-      label: "Fields it draws, of the Topics it reads or also reads",
+      label: "Fields it draws, of the Topics it reads",
       items: codes(record.fields),
     },
     {
       id: "alsoReads",
-      label: "Also reads, if the mod publishes them",
+      label: "Also reads, if published",
       items: codes([
         ...record.optionalChannels,
         ...record.optionalChannelFamilies,
@@ -157,7 +157,7 @@ export function widgetFactsOf(
         ...(a.description ? { description: a.description } : {}),
       })),
     },
-    { id: "slots", label: "Slots of its own", items: codes(slots) },
+    { id: "slots", label: "Slots", items: codes(slots) },
     {
       id: "needs",
       label: "Needs",
@@ -174,14 +174,14 @@ export function widgetFactsOf(
     },
     {
       id: "defaultSize",
-      label: "Default size, in grid units",
+      label: "Default size",
       items: record.defaultSize
         ? [{ prose: `${record.defaultSize.w} × ${record.defaultSize.h}` }]
         : [],
     },
     {
       id: "minSize",
-      label: "Smallest size, in grid units",
+      label: "Smallest size",
       items: record.minSize
         ? [{ prose: smallestSizeOf(record, record.minSize) }]
         : [],

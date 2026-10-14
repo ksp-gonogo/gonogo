@@ -22,12 +22,12 @@ import type { TopicReading } from "./client-reading";
  * shared by several widgets. Pass it to {@link useProcessor}, or list it in a
  * contribution's `deps`. Its type carries the processor's result type.
  *
- * @typeParam Result - The type of the value the processor's `compute` returns.
- * @typeParam ProcessorId - The literal type of its id, `"<uplink id>:<name>"`.
+ * @typeParam Result - What the processor computes.
+ * @typeParam ProcessorId - Its id.
  * @typeParam Carried - Whether the processor returns a `Reading` rather than a
- * bare value. It does when any of its dependencies is a reading: the result is
- * then a {@link Reading} whose `state` says how current it is, dated by those
- * inputs. See {@link useProcessor}.
+ * bare value. It does when any of its dependencies is a reading: the result then
+ * says how current it is (observed, held or modelled), dated by those inputs. See
+ * {@link useProcessor}.
  *
  * @category Processors
  */
@@ -69,7 +69,7 @@ export type CarriesCurrency<Deps extends readonly Dep[]> =
  *
  * `{ reading: "vessel.resources" }` resolves to the Topic's {@link TopicReading}
  * in the processor's `compute`. A processor with a reading among its deps returns
- * a {@link Reading} of its own, whose `state` follows from those inputs (see
+ * a `Reading` of its own, observed, held or modelled by those inputs (see
  * {@link CarriesCurrency}). Return a plain value, not the reading, when the result
  * combines several Topics: it is no single Topic's currency.
  *
@@ -129,9 +129,10 @@ export interface SubjectDep<
  * what a processor or reckoner computes from. Listed in the `deps` of a
  * processor, a reckoner and a contribution.
  *
- * The last, a {@link SubjectDep}, is for a reckoner to declare. A processor that
- * declares one throws an error when it first runs: a processor has no point to
- * take a subject from, and resolving it to `undefined` there would be
+ * The last is a reckoner's to declare. It is in this union because a reckoner's
+ * inputs are the same kind of thing a processor's are. A processor that declares
+ * one throws an error when it first runs: a processor has no point to take a
+ * subject from, and resolving it to `undefined` there would be
  * indistinguishable from an absent input.
  *
  * @category Processors

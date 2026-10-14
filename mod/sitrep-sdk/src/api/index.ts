@@ -506,13 +506,8 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
  * @category Settings
  * @categoryDescription Settings
  * Settings a client keeps: declaring one, reading and writing it from a widget,
- * and the tab it is shown on. There are three routes for a setting, by who
- * owns the value. A preference of your client's own is a `client-pref` row,
- * saved in this browser and read with {@link useSetting}. A value your Uplink
- * publishes on a Topic, which the Settings window only shows, is a
- * `stream-backed` row. Gonogo's own settings arrive as a {@link SettingsModel}
- * row, and the settings of a game mod an Uplink wraps are read with
- * {@link useModSettings}.
+ * and the tab it is shown on. A setting the mod holds arrives on the stream
+ * instead, as a {@link SettingsModel} row.
  */
 export function registerSetting<
   ValueType extends SettingKind = SettingKind.Bool,
@@ -926,7 +921,7 @@ export function useStream<Payload>(topic: string): TopicReading<Payload> {
 /**
  * Reads the settings of one Uplink's mod, as that mod reports them. Useful for
  * showing the operator the values the game's mod is running with. Used by the
- * mod settings section of the Settings window. Change a
+ * mod settings section of the settings modal. Change a
  * writable setting with the `settings.mod.write` command (listed in
  * {@link CommandArgsMap}), then read the change here rather than from the
  * command's reply.
@@ -1043,8 +1038,6 @@ export function useViewClock(): ViewClockLike {
  * Pass a new handler object on every render if you like: the latest handlers
  * are always the ones called, and nothing is registered again.
  *
- * The example needs `npm install @ksp-gonogo/sitrep-sdk @ksp-gonogo/ui-kit`.
- *
  * @example
  * ```tsx
  * import {
@@ -1056,7 +1049,6 @@ export function useViewClock(): ViewClockLike {
  * import { Text } from "@ksp-gonogo/ui-kit";
  * import { useState } from "react";
  *
- * // All four fields are required.
  * const MY_UPLINK = defineUplinkClient({
  *   id: "my-uplink",
  *   version: "1.0.0",
@@ -1066,17 +1058,11 @@ export function useViewClock(): ViewClockLike {
  *
  * const actions = [
  *   { id: "toggle", label: "Toggle", accepts: ["button"] },
- *   // An axis, such as a joystick or a slider, gives a value from -1 to 1.
- *   { id: "dim", label: "Dim", accepts: ["analog"] },
  * ] as const satisfies readonly ActionDefinition[];
  *
  * function LightSwitch() {
  *   const [on, setOn] = useState(false);
- *   const [level, setLevel] = useState(1);
  *   useActionInput<typeof actions>({
- *     dim: ({ value }) => {
- *       if (typeof value === "number") setLevel((value + 1) / 2);
- *     },
  *     toggle: ({ value }) => {
  *       // A button fires twice, `true` on press and `false` on release.
  *       // Act on the press only, or one tap toggles twice.
@@ -1086,7 +1072,7 @@ export function useViewClock(): ViewClockLike {
  *       return { LIGHT: on ? "OFF" : "ON" };
  *     },
  *   });
- *   return <Text>{on ? "Light on at " + Math.round(level * 100) + "%" : "Light off"}</Text>;
+ *   return <Text>{on ? "Light on" : "Light off"}</Text>;
  * }
  *
  * registerComponent({
@@ -1176,9 +1162,7 @@ export function useLateTelemetrySubscribe(): LateTelemetrySubscribe {
 
 /**
  * Returns the instant the screen is showing, in UT seconds as a plain number,
- * and re-renders on each frame. Despite the name it is the view time, which
- * trails the game's present by the signal delay, not the vessel's present
- * moment; {@link computeUtNowEstimate} estimates that. Useful for stamping or ageing events on the
+ * and re-renders on each frame. Useful for stamping or ageing events on the
  * view time. Used by the radio transmission detector, which notices when another
  * command centre starts speaking. `undefined` when no
  * telemetry stream is mounted. {@link useViewUt} returns the same instant as a
@@ -1370,9 +1354,7 @@ export function AugmentSlot<Slot extends string>(props: {
  * ```ts
  * import { createPerfBudget } from "@ksp-gonogo/sitrep-sdk";
  *
- * // Made once, when the client loads; `windowMs` defaults to one second. This
- * // source delivers about 400 samples a second, so 1500 is nearly four times
- * // normal.
+ * // Made once, when the client loads; `windowMs` defaults to one second.
  * const SAMPLES_IN = createPerfBudget({
  *   name: "MySource samples in/sec",
  *   threshold: 1500,

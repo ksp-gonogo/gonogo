@@ -214,7 +214,7 @@ registerComponent<OrbitalAscentConfig>({
   id: "orbital-ascent",
   name: "Orbital Ascent",
   description:
-    "Your horizontal speed, worked out from orbital and vertical speed, plotted against altitude as a trace, beside a curve of the speed of a circular orbit at each altitude. When the trace reaches the curve, you are in orbit at that altitude.",
+    "Your horizontal speed, worked out from orbital and vertical speed, plotted against altitude, beside the speed of a circular orbit. When your trace reaches the curve, you are in orbit at that altitude.",
   tags: ["telemetry", "graph"],
   defaultSize: { w: 10, h: 8 },
   minSize: { w: 5, h: 4 },

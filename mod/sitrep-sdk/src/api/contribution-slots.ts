@@ -679,9 +679,8 @@ export interface SpaceCenterFacilityEntry {
 declare module "./plots" {
   interface PlotSubjectRegistry {
     /** LandingStatus's velocity-height descent corridor: speed across, height
-     *  above ground up. A contribution that adds the band of the last burn that
-     *  can stop the vessel, or a better terminal-velocity model, names this
-     *  subject to draw onto the same plot. */
+     *  above ground up. The suicide-burn band and any better terminal-velocity
+     *  model belong on this one rather than beside it. */
     "descent-envelope": true;
     /** The terrain slice along the ground track through the predicted site. */
     "landing-cross-section": true;

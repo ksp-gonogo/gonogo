@@ -2,9 +2,9 @@ import type { ComponentType } from "react";
 import type { Screen } from "./screen";
 
 /**
- * A whole custom tab of the Settings window. Useful for an Uplink that needs a
+ * A whole custom tab of the settings panel. Useful for an Uplink that needs a
  * settings interface a declarative row cannot express. Taken by
- * {@link registerSettingsTab}, and drawn by the Settings window with no knowledge
+ * {@link registerSettingsTab}, and drawn by the settings panel with no knowledge
  * of which Uplink supplied it.
  *
  * Prefer {@link registerSetting}: declarative rows render and persist with no
@@ -14,7 +14,7 @@ import type { Screen } from "./screen";
 export interface SettingsTabDefinition {
   /** Stable id: React key and tab id. */
   id: string;
-  /** Tab label shown in the Settings window's tab strip. */
+  /** Tab label shown in the Settings modal's tab strip. */
   label: string;
   /** The tab's content, rendered with no props. */
   component: ComponentType;
@@ -32,7 +32,7 @@ export interface SettingsTabDefinition {
 const tabs = new Map<string, SettingsTabDefinition>();
 
 /**
- * Registers (or replaces) a Settings window tab. Useful for an Uplink to put a
+ * Registers (or replaces) a settings panel tab. Useful for an Uplink to put a
  * whole tab of its own settings in front of the operator, next to the code that
  * owns it. Used by the app's Uplink host. The last registration for an id wins.
  */
@@ -51,7 +51,7 @@ export function getSettingsTabs(): SettingsTabDefinition[] {
 /**
  * The settings tabs that apply to `screen`; a tab with no `screens` applies to
  * both. Useful for showing the operator only the tabs that make sense on the
- * screen they are using. Used by the Settings window.
+ * screen they are using. Used by the settings panel.
  */
 export function getSettingsTabsForScreen(
   screen: Screen,

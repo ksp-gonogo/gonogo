@@ -30,7 +30,7 @@ public enum MissionObjectiveState
     /// <summary>The mission has not reached this objective yet.</summary>
     Pending,
 
-    /// <summary>The mission is on this objective now and is still running. Once the mission ends, the objective it ended on is <see cref="Reached"/> or <see cref="Failed"/> instead.</summary>
+    /// <summary>The mission is on this objective now: it is the step the mission is on now and the mission is still running.</summary>
     Active,
 
     /// <summary>The mission reached this objective and has moved past it, or ended successfully on it.</summary>
@@ -73,10 +73,8 @@ public class MissionObjectiveEntry
 /// The <c>missions.active</c> Topic payload: the Making History mission
 /// that is running, or has just ended, in the current game. The whole payload
 /// is <c>null</c> when there is no mission game, when no mission has been set
-/// up, or when the expansion is not installed. The <c>game.dlc</c> Topic
-/// (<see cref="GameDlc"/>) says only whether the expansion is installed; with it
-/// installed, a <c>null</c> payload is one of the other two, and nothing on the
-/// stream says which. A <c>null</c>
+/// up, or when the expansion is not installed; read the <c>game.dlc</c> Topic
+/// (<see cref="GameDlc"/>) to tell the last from the others. A <c>null</c>
 /// payload reaches a widget as a reading whose <c>state</c> is <c>"absent"</c>
 /// and which carries no value, so test the state rather than the value for
 /// <c>null</c>.

@@ -285,7 +285,7 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.Text)]
         public string? Failure { get; set; }
 
-        /// <summary>The payload's provenance. Its <c>source</c> is always <c>"game"</c>: these settings describe the game install, never a craft, and like the rest of this Topic they are always current and never delayed. Gonogo's own <c>settings.gonogo</c> payload, <see cref="SettingsModel"/>, has no such field.</summary>
+        /// <summary>The payload's provenance. Its <c>source</c> is always <c>"game"</c>: these settings describe the game install, never a craft, and like the rest of this Topic they are always current and never delayed.</summary>
         public PayloadMeta Meta { get; set; } = new();
     }
 
@@ -309,11 +309,11 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.Text)]
         public string Description { get; set; } = "";
 
-        /// <summary>What the value may be: a switch, a line of text or a number (<see cref="SettingKind"/>).</summary>
+        /// <summary>What the value may be.</summary>
         [SitrepUnit(Units.Enumeration)]
         public SettingKind Kind { get; set; }
 
-        /// <summary>The id of the unit a number is in, from the unit ids the units and values page lists, or null for a count or a setting that is not a number.</summary>
+        /// <summary>The unit token a number is in, or null for a count or a setting that is not a number.</summary>
         [SitrepUnit(Units.Id)]
         public string? Unit { get; set; }
 
@@ -321,7 +321,7 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.Text)]
         public string Group { get; set; } = "";
 
-        /// <summary>Where in the game an operator changes it, such as "Difficulty settings". Empty when nowhere.</summary>
+        /// <summary>Where in the game an operator changes it. Empty when nowhere.</summary>
         [SitrepUnit(Units.Text)]
         public string SetIn { get; set; } = "";
 

@@ -93,9 +93,9 @@ export interface DeclaredDelayRoles {
   /** Prefixes under which every Topic is read with no signal delay. */
   readonly trueNowPrefixes: readonly string[];
   /**
-   * Addressed Topics: those whose values are each sent to one particular
-   * command centre, such as that centre's own contact plan. The mod delivers
-   * each value after its own delay, so it is read as received.
+   * Topics whose values are each sent to a particular command centre, such as
+   * that centre's own contact plan. The mod delivers each value after its own
+   * delay, so it is read as received.
    */
   readonly addressed: ReadonlySet<string>;
 }

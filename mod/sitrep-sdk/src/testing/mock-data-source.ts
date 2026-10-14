@@ -16,7 +16,7 @@ export interface MockDataSourceOptions {
   id?: string;
   /** The source's display name. Absent, `"Mock"`. */
   name?: string;
-  /** The keys `schema()` reports, each with a key and a description. Absent, none. */
+  /** The keys `schema()` reports. Absent, none. */
   keys?: DataKey[];
   /**
    * Whether the app drops this source's values while the vessel has
@@ -130,7 +130,7 @@ export class MockDataSource implements DataSource {
     });
   }
 
-  /** Sets `status` to any status, such as `"reconnecting"` or `"error"`, which `connect()` and `disconnect()` cannot set, and tells every status subscriber. */
+  /** Push a status change without toggling connect/disconnect state. */
   setStatus(status: DataSourceStatus): void {
     this.status = status;
     this.statusSubs.forEach((cb) => {

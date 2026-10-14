@@ -42,10 +42,7 @@ import type { Screen } from "./screen";
  */
 
 /**
- * The value each {@link SettingKind} carries, keyed by the kind's ordinal:
- * {@link SettingKind.Text} is 0, {@link SettingKind.Bool} is 1 and
- * {@link SettingKind.Number} is 2, which is why the rows below are named by
- * number and not in that order. A {@link SettingKind.Number} row
+ * The value each {@link SettingKind} carries. A {@link SettingKind.Number} row
  * may hold a `Value`, such as `value("m", 1)`, so it is drawn with its unit.
  * Useful for showing the operator a setting in the control that suits its kind:
  * a switch, a line of text or a number.
@@ -71,7 +68,7 @@ export type SettingValue = SettingValueByType[SettingKind];
 
 /**
  * What every registered settings row carries, whatever its backing and type.
- * Useful for giving every row of the Settings window the same label, description
+ * Useful for giving every row of the settings panel the same label, description
  * and place.
  *
  * @category Settings
@@ -103,10 +100,9 @@ export interface SettingDefinitionBase {
   uplink?: string;
   /**
    * The operator cannot change this row: it is drawn as a labelled value, not as
-   * a disabled control. Set it on a `client-pref` setting, one your client
-   * stores, that the operator must not change. A `stream-backed` setting, read
-   * from a Topic, is read-only whether or not this is set, so there it changes
-   * nothing.
+   * a disabled control. Set it on a setting your client stores and the
+   * operator must not change. A setting read from a Topic is read-only
+   * whether or not this is set, so there it changes nothing.
    */
   readOnly?: boolean;
   /**
@@ -173,7 +169,7 @@ export interface StreamBackedSettingOf<
  * same fields as {@link StreamBackedSettingOf}, with `topic` a plain string and
  * `select` taking a payload of unknown type, since the registry holds rows for
  * every Topic at once. Write rows with {@link StreamBackedSettingOf}; this is
- * what reading them back gives. Useful for listing, in the Settings window, the
+ * what reading them back gives. Useful for listing, in the settings panel, the
  * rows whose value the mod reports.
  *
  * @category Settings
@@ -199,7 +195,7 @@ export interface StoredStreamBackedSettingOf<ValueType extends SettingKind>
  * it.
  *
  * Reading the rows back gives a {@link SettingDefinition}, which covers every
- * type. Useful for declaring one row of the Settings window that the operator
+ * type. Useful for declaring one row of the settings panel that the operator
  * sees.
  *
  * @category Settings
@@ -212,7 +208,7 @@ export type SettingDefinitionOf<
 /**
  * A setting stored in this browser, of any value type. Useful for listing, in
  * the settings panel, the settings that the operator's browser remembers. Used
- * by the Settings window.
+ * by the app's settings panel.
  *
  * @category Settings
  */
@@ -224,7 +220,7 @@ export type ClientPrefSetting =
 /**
  * A setting the mod owns, of any value type, read from a Topic. The row shows
  * its value and cannot change it. Useful for showing the operator a mod's own
- * configuration in the Settings window. Used by the app's settings rows.
+ * configuration in the settings panel. Used by the app's settings rows.
  *
  * @category Settings
  */
@@ -235,7 +231,7 @@ export type StreamBackedSetting =
 
 /**
  * Any registered row, whatever its backing and whatever its type. Useful for
- * listing every row of the Settings window that the operator sees. Used by the
+ * listing every row of the settings panel that the operator sees. Used by the
  * app's settings panel.
  *
  * @category Settings

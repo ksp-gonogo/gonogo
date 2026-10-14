@@ -83,20 +83,15 @@ export const TARGET_KIND_NAMES = namesOf(TargetKind);
 export const CONTROL_STATE_NAMES = namesOf(ControlState);
 
 /**
- * Every name table for an enum Gonogo defines itself ({@link SITUATION_NAMES},
- * {@link SAS_MODE_NAMES}, {@link TARGET_KIND_NAMES} and
- * {@link CONTROL_STATE_NAMES}), each with the enum it names. Useful for code
+ * Every name table in this group, each with the enum it names. Useful for code
  * that checks or lists all the tables at once.
  *
  * @category Enum names
  */
 // enum-name-tables.test.ts checks each table still matches its enum.
 export const ENUM_NAME_TABLES: ReadonlyArray<{
-  /** The table's exported name, such as `"SITUATION_NAMES"`. */
   label: string;
-  /** The enum the table is built from, such as `Situation`. */
   members: object;
-  /** The table itself: the name of each member, indexed by its value. */
   names: readonly string[];
 }> = [
   { label: "SITUATION_NAMES", members: Situation, names: SITUATION_NAMES },

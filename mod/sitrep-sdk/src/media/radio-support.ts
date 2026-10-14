@@ -153,20 +153,17 @@ export function radioSupportStatus(): RadioSupport {
  * @categoryDescription Radio
  * Whether this browser can carry live push-to-talk radio, and the audio
  * settings the radio encodes and decodes with. The radio is part of Commcast,
- * the core mod's group messaging and radio between command centres. This
- * package does not send or play audio itself: it tells a client whether it may
- * and what to encode with.
+ * the core mod's group messaging and radio between command centres. This package does not send or
+ * play audio itself: it tells a client whether it may and what to encode with.
  *
- * To speak, cut microphone audio into chunks of {@link RADIO_CHUNK_FRAMES}
- * samples (20 ms), encode them as Opus with an `AudioEncoder` configured with
- * {@link RADIO_ENCODER_CONFIG}, and send about 200 ms of packets at a time with
- * the `commcast.radio.transmit` command, whose arguments are
- * {@link CommcastRadioTransmitArgs}; send it as any command is sent, with
- * {@link useCommand}. To listen, read the `commcast.radio` Topic. A typed Topic
- * is one with a `TopicId` and a payload type in the Topics list, which
- * `useTelemetry` reads; this one has neither, because it arrives as binary
- * frames, read with {@link decodeBinaryFrame}, and the first segment of each is
- * a {@link CommcastRadioBatch} describing who is speaking, followed by the Opus
+ * To speak, encode microphone audio as Opus packets of 20 ms with
+ * {@link RADIO_ENCODER_CONFIG} and send about 200 ms of them at a time with the
+ * `commcast.radio.transmit` command, whose arguments are
+ * {@link CommcastRadioTransmitArgs}. To listen, read the `commcast.radio`
+ * Topic. It is not a typed Topic, so it has no `TopicId` and is not in the
+ * Topics list: it arrives as binary frames, read with
+ * {@link decodeBinaryFrame}, and the first segment of each is a
+ * {@link CommcastRadioBatch} describing who is speaking, followed by the Opus
  * packets to decode with {@link RADIO_DECODER_CONFIG}.
  */
 export function isRadioSupported(): boolean {

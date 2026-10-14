@@ -200,7 +200,7 @@ registerComponent<TwrConfig>({
   id: "twr",
   name: "TWR",
   description:
-    "The vessel's thrust-to-weight ratio right now: its current thrust over its weight at standard gravity (9.81 m/s²), whatever body you are at, not the local gravity. It is a dial running 0 to 3 that pins at 3, with a small line chart (a sparkline) of the last minute. The dial is red below 1, where thrust is less than the vessel's weight at standard gravity, amber from 1 to 1.5, and green above.",
+    "The vessel's thrust-to-weight ratio right now, its current thrust over its weight at standard gravity (9.81 m/s², whatever body you are at, not the local gravity), as a dial running 0 to 3 that pins at 3: red below 1 (cannot lift off), amber from 1 to 1.5, green above, with a line showing the last minute.",
   tags: ["telemetry", "stages"],
   defaultSize: { w: 4, h: 5 },
   // Below four columns or four rows the dial and its trend stop fitting, and the tile draws the ratio as a figure over a gauge.
