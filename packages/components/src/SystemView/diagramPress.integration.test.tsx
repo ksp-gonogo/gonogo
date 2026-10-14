@@ -34,6 +34,14 @@ function orbit(sma: number) {
   };
 }
 
+/** Holds the frame clock for one test, so the eased zoom Focus vessel starts never ticks outside `act`. */
+function holdFrames() {
+  const spy = vi
+    .spyOn(window, "requestAnimationFrame")
+    .mockImplementation(() => 0);
+  onTestFinished(() => spy.mockRestore());
+}
+
 function mountScene() {
   const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
   const view = render(
@@ -215,6 +223,7 @@ describe("SystemView: pressing the diagram", () => {
   });
 
   it("offers a focus-on-vessel control that centres the view on the craft", async () => {
+    holdFrames();
     const { container } = mountScene();
     const before = (
       await waitFor(() => {
@@ -237,6 +246,7 @@ describe("SystemView: pressing the diagram", () => {
   });
 
   it("keeps following the craft until the view is reset", async () => {
+    holdFrames();
     mountScene();
     const focus = await screen.findByRole("button", { name: "Focus vessel" });
     expect(focus).toHaveAttribute("aria-pressed", "false");

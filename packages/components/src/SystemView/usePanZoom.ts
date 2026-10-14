@@ -14,7 +14,7 @@ import {
 import { EDGE_POINTER_INSET } from "./diagramMarks";
 
 const MIN_ZOOM = 0.3;
-const MAX_ZOOM = 25;
+export const MAX_ZOOM = 25;
 
 /** How much further than the parent body the widest view reaches, as a ratio of its distance. */
 const PARENT_MARGIN = 1.15;
