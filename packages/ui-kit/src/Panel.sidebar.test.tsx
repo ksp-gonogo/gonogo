@@ -145,7 +145,7 @@ describe("Panel sidebar, auto axis", () => {
     expect(getComputedStyle(box).gridTemplateColumns).toBe("minmax(0, 1fr)");
     // The block default is a fixed number of grid rows, so no widget's content decides how much of the tile the frame loses.
     expect(getComputedStyle(box).gridTemplateRows).toBe(
-      "minmax(0, 1fr) minmax(0, min(157px, 45%))",
+      "minmax(0, 1fr) minmax(0, min(145px, 45%))",
     );
   });
 

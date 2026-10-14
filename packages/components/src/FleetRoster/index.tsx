@@ -91,8 +91,8 @@ registerComponent<FleetRosterConfig>({
   /* Declared, not merely rendered: the picker and search tags find extending Uplinks by walking this list. */
   augmentSlots: ["fleet-roster.updates"],
   defaultSize: { w: 8, h: 10 },
-  // The roster needs five columns and six rows.
-  minSize: { w: 5, h: 6 },
+  // The roster needs six columns and six rows.
+  minSize: { w: 6, h: 6 },
   component: FleetRosterComponent,
   tiny: {
     title: "FLEET",

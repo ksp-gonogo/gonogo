@@ -12,14 +12,14 @@ describe("resolveTile", () => {
     const tile = resolveTile(MODE, 14, undefined);
     expect(tile.w).toBe(14);
     expect(tile.h).toBe(10);
-    expect(tile.pxW).toBe(14 * 32 + 13 * 8);
+    expect(tile.pxW).toBe(14 * 21 + 13 * 20);
   });
 
   it("resizes when only the height control has moved, keeping the mode's width", () => {
     const tile = resolveTile(MODE, undefined, 4);
     expect(tile.w).toBe(6);
     expect(tile.h).toBe(4);
-    expect(tile.pxH).toBe(4 * 25 + 3 * 8);
+    expect(tile.pxH).toBe(4 * 13 + 3 * 20);
   });
 
   it("takes both controls when both are set", () => {

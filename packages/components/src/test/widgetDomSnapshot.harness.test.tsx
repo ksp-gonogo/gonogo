@@ -162,8 +162,8 @@ describe("widget DOM harness feeds the widget", () => {
       fixture: {},
       mode: MODE,
     });
-    // 8 * 32 + 7 * 8, the playwright harness's grid arithmetic, asserted exactly so a constant fails.
-    expect(html).toContain("width=312");
+    // 8 * 21 + 7 * 20, the playwright harness's grid arithmetic, asserted exactly so a constant fails.
+    expect(html).toContain("width=308");
   });
 
   it("applies the widget's registered defaultConfig", async () => {

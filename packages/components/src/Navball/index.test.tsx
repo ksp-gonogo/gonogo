@@ -30,7 +30,7 @@ import { NavballComponent } from "./index";
 const KEYS: DataKey[] = [{ key: "n.heading" }];
 
 // Large enough to clear the control surface's size gate.
-const CONTROL_SIZE = { w: 9, h: 20 };
+const CONTROL_SIZE = { w: 9, h: 21 };
 
 interface EmitState {
   attitude?: Record<string, number>;
