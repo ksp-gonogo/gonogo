@@ -1819,6 +1819,23 @@ namespace Sitrep.Host.Comms
             && a.CoveredToUt == b.CoveredToUt;
 
         /// <summary>
+        /// The path a centre is told its delay over while delay is switched off.
+        /// With no network modelled there is none. Between one plan and the next,
+        /// with the craft not routed by the game, it is the path the centre last
+        /// believed, as its signal reading is; otherwise it is worked out from the
+        /// game's route or the plan.
+        /// </summary>
+        internal static CommsPath? DelayOffPath(bool modelled, bool betweenPlans, CommsPath? believed, Func<CommsPath?> worked)
+        {
+            if (!modelled)
+            {
+                return null;
+            }
+
+            return betweenPlans ? believed : worked();
+        }
+
+        /// <summary>
         /// Sends each planning centre the active craft's path: every centre once a second, and at once a centre where a session
         /// has just sat down. The hop lengths move with the craft, so the path is
         /// sent each time; the network and the terminus are sent when the path
@@ -1859,11 +1876,13 @@ namespace Sitrep.Host.Comms
                 if (!measured && _host!.IsAnyTopicSubscribed(DelayTopic) && (looked.RoutesDue || _pathsAsked[DelayTopic].Contains(centre)))
                 {
                     var offHeard = _hearing!.HeardAt(centre);
-                    var offPath = !modelled
-                        ? null
-                        : (gameRoute != null
-                            ? CentrePath.Taken(gameRoute, looked.ActiveCraft!, _stations, id => NameOf(offHeard, id), looked.Ut)
-                            : CentrePath.For(plan, looked.ActiveCraft, centre, centre == home, _stations, id => NameOf(offHeard, id), looked.Ut, lightFactor)).Path;
+                    var offPath = DelayOffPath(
+                        modelled,
+                        plan == null && looked.ActiveCraft != null && gameRoute == null,
+                        _believed.Of(centre, source)?.Path,
+                        () => gameRoute != null
+                            ? CentrePath.Taken(gameRoute, looked.ActiveCraft!, _stations, id => NameOf(offHeard, id), looked.Ut).Path
+                            : CentrePath.For(plan, looked.ActiveCraft, centre, centre == home, _stations, id => NameOf(offHeard, id), looked.Ut, lightFactor).Path);
                     _streams!.PublishAddressedTo(DelayTopic, CentreDelay.NotMeasured(modelled, offPath, source), looked.Ut, ToItself(centre));
                     frames++;
                 }

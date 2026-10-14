@@ -51,6 +51,26 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         /// <summary>
+        /// With delay off, a craft between one plan and the next is told the delay
+        /// of the path its centre last believed, not no path.
+        /// </summary>
+        [Fact]
+        public void ADelaySwitchedOffBetweenPlansKeepsTheBelievedPath()
+        {
+            var believed = new BelievedPaths();
+            believed.Keep("ground:ksc", "vessel:a", new CentrePathView(Path(1000.0), new CommsNetwork(), new CommsCommandCentre()));
+
+            var path = ContactPlanSource.DelayOffPath(
+                modelled: true,
+                betweenPlans: true,
+                believed.Of("ground:ksc", "vessel:a")?.Path,
+                () => Path());
+
+            var delay = CentreDelay.NotMeasured(networkModelled: true, path, "vessel:a");
+            Assert.Equal(0.0, delay.OneWaySeconds);
+        }
+
+        /// <summary>
         /// A craft the centre believes has no path reads as no path with delay
         /// off, as it does with delay on, whether the path is empty, absent or
         /// has a hop of unknown length.
