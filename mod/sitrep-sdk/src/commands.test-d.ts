@@ -143,3 +143,8 @@ export type _TypedHandleStillFitsTheBareOne = AssertTrue<
     ? true
     : false
 >;
+
+// A handle always says whether the command rail holds it: one that left it out would read as unrailed and speak every outcome a second time beside the rail.
+export type _RailedIsRequired = AssertTrue<
+  Equal<Pick<UseCommandResult, "railed">, { railed: boolean }>
+>;

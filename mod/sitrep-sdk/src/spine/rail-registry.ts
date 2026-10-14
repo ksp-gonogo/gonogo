@@ -6,7 +6,10 @@ import type { UseCommandResult } from "./use-command";
  * registering hook's life. Useful for drawing a command's outcome without the
  * widget wiring anything. Held by {@link RailRegistry}.
  */
-export type RailedCommand = Omit<UseCommandResult, "send" | "gateFor"> & {
+export type RailedCommand = Omit<
+  UseCommandResult,
+  "send" | "gateFor" | "railed"
+> & {
   id: string;
 };
 

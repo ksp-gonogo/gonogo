@@ -1465,14 +1465,16 @@ export class TelemetryClient {
   ): void {
     this.noteObservedVantage(meta.vantage);
     this.noteGameUt(meta, replayed);
-    if (topic === "time.warp" && !replayed) this.notePaused(payload);
+    const newest = this.isNewestRaw(topic, meta);
+    /* A replay included: whether the game is paused is a state, and a station's link back to the main screen hands over the current one as replayed history. */
+    if (topic === "time.warp" && newest) this.notePaused(payload, meta);
     const point = {
       validAt: meta.validAt,
       payload,
       meta,
       epoch: meta.timelineEpoch,
     };
-    if (this.isNewestRaw(topic, meta)) {
+    if (newest) {
       this.lastValues.set(topic, payload);
       if (this.subscribers.has(topic)) this.lastPoints.set(topic, point);
       const subs = this.subscribers.get(topic);
@@ -1584,11 +1586,41 @@ export class TelemetryClient {
     return anchor.ut + (this.clock.now() - anchor.at);
   }
 
-  /** Reads the pause flag off a `time.warp` record; a record that does not carry one leaves it as it was. */
-  private notePaused(payload: unknown): void {
+  /**
+   * Reads the pause flag off a `time.warp` record; a record that does not carry
+   * one leaves it as it was. The game's UT is re-anchored where the flag
+   * changes, so neither the stretch before a pause nor the pause itself is
+   * counted as game time: a pause starts at the record's own UT, and a game
+   * that runs again starts from where it stopped.
+   */
+  private notePaused(payload: unknown, meta: Meta): void {
     if (typeof payload !== "object" || payload === null) return;
     const paused: unknown = Reflect.get(payload, "paused");
-    if (typeof paused === "boolean") this.gamePaused = paused;
+    if (typeof paused !== "boolean" || paused === this.gamePaused) return;
+    const anchor = this.gameClock;
+    const epoch = meta.timelineEpoch ?? 0;
+    if (anchor && epoch >= anchor.epoch) {
+      this.gameClock = {
+        ut: paused
+          ? this.pausedAtUt(anchor, meta, epoch)
+          : (this.gameUtNow() ?? anchor.ut),
+        at: this.clock.now(),
+        epoch,
+      };
+    }
+    this.gamePaused = paused;
+  }
+
+  /** The UT a pause began at: the record's own, never earlier than the estimate on the same timeline. */
+  private pausedAtUt(
+    anchor: { ut: number; epoch: number },
+    meta: Meta,
+    epoch: number,
+  ): number {
+    const ut = meta.deliveredAt;
+    if (!Number.isFinite(ut)) return anchor.ut;
+    if (epoch > anchor.epoch) return ut;
+    return Math.max(anchor.ut, ut);
   }
 
   /** The game UT that a reading of the client's clock falls on, or `undefined` until a frame has arrived. */
@@ -1615,6 +1647,8 @@ export class TelemetryClient {
     const prior = this.gameClock;
     if (prior && epoch < prior.epoch) return;
     if (prior && epoch === prior.epoch && ut < prior.ut) return;
+    /* A new timeline has its own pause state, which its own `time.warp` will say. */
+    if (prior && epoch > prior.epoch) this.gamePaused = false;
     this.gameClock = { ut, at: this.clock.now(), epoch };
     if (prior) return;
     let placed = false;

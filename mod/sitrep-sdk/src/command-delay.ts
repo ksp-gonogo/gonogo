@@ -187,9 +187,11 @@ export const ZERO_DELAY_DEAD_ZONE_SECONDS = 0.0005;
 
 /**
  * Whether a delay readout is drawn, left out, or replaced by the no-path
- * state: `"shown"` for a one-way delay above the dead zone, `"hidden"` for a
- * delay of zero (delay switched off), and `"no-path"` when there is no route or
- * no reading. Useful for deciding in one
+ * state: `"shown"` for a one-way delay above the dead zone, `"hidden"` for one
+ * at or inside it, and `"no-path"` when there is no route or no reading. A
+ * delay switched off reads zero, and a measured delay inside the dead zone (a
+ * craft on the pad beside its command centre) would print as zero too, so
+ * both are hidden alike, whatever the delay's source. Useful for deciding in one
  * place whether the operator sees a delay figure, so no surface prints a bare
  * "0 s" for a craft that has no delay to report. Used by the delay readouts of
  * the dashboard header, the command rail and the fleet roster.

@@ -234,7 +234,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * or with no rail above it. A control that would otherwise stay quiet beside
    * a rail reads it, so an outcome is never left with nobody to say it.
    */
-  railed?: boolean;
+  railed: boolean;
   /** Dispatches the game refused, newest last, each with its reason. */
   refusals: CommandRefusal[];
   /**

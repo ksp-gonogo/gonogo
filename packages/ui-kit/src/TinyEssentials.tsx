@@ -251,6 +251,17 @@ function EssentialFigure({ essential }: { essential: TinyEssential }) {
   );
 }
 
+/** A figure that rounds to zero drawn as zero, without its sign. A held or modelled reading keeps its own kind and words: only its figure is replaced. */
+function asZero(
+  value: TinyEssential["value"],
+  shown: NonNullable<ReturnType<typeof resolveCurrency>["shown"]>,
+): TinyEssential["value"] {
+  if (typeof value === "object" && value !== null && "state" in value) {
+    return { ...value, value: shown.abs() };
+  }
+  return shown.abs();
+}
+
 /**
  * The figure, with the mark the widget states for it. The Reading goes to
  * `<Unit>` whole, so a held or modelled one keeps its own kind and words, and
@@ -259,7 +270,7 @@ function EssentialFigure({ essential }: { essential: TinyEssential }) {
  */
 function MarkedFigure({ essential }: { essential: TinyEssential }) {
   const { mark, value, decimals } = essential;
-  const { held, shown, mark: currencyMark } = resolveCurrency(value);
+  const { held, shown } = resolveCurrency(value);
   // Only a signed figure is read for its sign, so a figure handed over bare is drawn as it came.
   const finite = essential.signed === true && shown?.isFinite() === true;
   // A figure that rounds to zero draws as zero, so "-0" never sits beside "+0".
@@ -268,8 +279,7 @@ function MarkedFigure({ essential }: { essential: TinyEssential }) {
     decimals !== undefined &&
     Math.abs(shown.valueOf()) < 0.5 * 10 ** -decimals;
   const plus = finite && (roundsToZero || !shown.isNegative()) ? "+" : "";
-  const drawn =
-    roundsToZero && !held && currencyMark === null ? shown.abs() : value;
+  const drawn = roundsToZero ? asZero(value, shown) : value;
   const figure = (
     <>
       {plus}

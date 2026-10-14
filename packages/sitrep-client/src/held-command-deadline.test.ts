@@ -1,4 +1,4 @@
-import type { CommandStatus } from "@ksp-gonogo/sitrep-sdk";
+import type { CommandStatus, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { ManualClock } from "@ksp-gonogo/sitrep-server";
 import { describe, expect, it } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
@@ -16,6 +16,30 @@ const SAVE_UT = 5_000_000;
 
 class ClaimingTransport extends StubTransport {
   readonly claimsAnswers = true;
+}
+
+type Listener = (
+  message: ServerMessage,
+  delivery?: { replayed: boolean },
+) => void;
+
+/** A transport that can also hand over frames marked as replayed, as a station's link to the main screen does after it reconnects. */
+class ReplayingTransport extends ClaimingTransport {
+  private readonly listeners = new Set<Listener>();
+
+  override onMessage(listener: Listener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  override emitRaw(message: ServerMessage): void {
+    for (const listener of this.listeners) listener(message);
+  }
+
+  replay(message: ServerMessage): void {
+    for (const listener of this.listeners)
+      listener(message, { replayed: true });
+  }
 }
 
 function memoryStorage() {
@@ -49,6 +73,16 @@ function gameAt(transport: StubTransport, ut: number): void {
 }
 
 /** A `time.warp` frame carrying the fields given, at a game UT. */
+function warpFrame(ut: number, payload: { paused: boolean }): ServerMessage {
+  return {
+    type: "stream-data",
+    topic: "time.warp",
+    payload,
+    meta: makeMeta({ validAt: ut, deliveredAt: ut }),
+  };
+}
+
+/** Emits {@link warpFrame}. */
 function warpAt(
   transport: StubTransport,
   ut: number,
@@ -181,6 +215,78 @@ describe("a held command's deadline, given in game UT", () => {
     clock.advanceTo(300 + 30 + LOSS_MARGIN - 0.001);
     expect(client.getCommand(requestId)?.phase).toBe("in-flight");
     clock.advanceTo(300 + 30 + LOSS_MARGIN);
+    expect(client.getCommand(requestId)?.phase).toBe("lost");
+  });
+
+  it("waits out a pause it hears of only in a replay, after its link came back", () => {
+    const transport = new ReplayingTransport();
+    transport.holdCommands();
+    const clock = new ManualClock(0);
+    const client = new TelemetryClient(transport, clock);
+    gameAt(transport, SAVE_UT);
+    const { requestId } = send(client);
+    transport.emitRaw({
+      type: "command-accepted",
+      requestId,
+      predictedReplyUt: SAVE_UT + 60,
+    });
+
+    // The game stopped at +30 while the link was down; the pause arrives with the history replayed on reconnect.
+    clock.advanceTo(40);
+    transport.replay(warpFrame(SAVE_UT + 30, { paused: true }));
+    clock.advanceTo(300);
+    expect(client.getCommand(requestId)?.phase).toBe("in-flight");
+
+    transport.emitRaw(warpFrame(SAVE_UT + 30, { paused: false }));
+    clock.advanceTo(300 + 30 + LOSS_MARGIN - 0.001);
+    expect(client.getCommand(requestId)?.phase).toBe("in-flight");
+    clock.advanceTo(300 + 30 + LOSS_MARGIN);
+    expect(client.getCommand(requestId)?.phase).toBe("lost");
+  });
+
+  it("runs again on an unpause it hears of only in a replay", () => {
+    const transport = new ReplayingTransport();
+    transport.holdCommands();
+    const clock = new ManualClock(0);
+    const client = new TelemetryClient(transport, clock);
+    gameAt(transport, SAVE_UT);
+    const { requestId } = send(client);
+    transport.emitRaw({
+      type: "command-accepted",
+      requestId,
+      predictedReplyUt: SAVE_UT + 60,
+    });
+    transport.emitRaw(warpFrame(SAVE_UT, { paused: true }));
+
+    clock.advanceTo(100);
+    transport.replay(warpFrame(SAVE_UT, { paused: false }));
+    clock.advanceTo(100 + 60 + LOSS_MARGIN);
+    expect(client.getCommand(requestId)?.phase).toBe("lost");
+  });
+
+  it("forgets a pause when the game moves to a new timeline", () => {
+    const { transport, clock, client } = heldClient();
+    gameAt(transport, SAVE_UT);
+    transport.emitRaw(warpFrame(SAVE_UT, { paused: true }));
+
+    // A quickload: a new timeline, and a frame of it that says nothing of pausing.
+    transport.emitRaw({
+      type: "stream-data",
+      topic: "vessel.altitude",
+      payload: 1,
+      meta: makeMeta({
+        validAt: SAVE_UT - 100,
+        deliveredAt: SAVE_UT - 100,
+        timelineEpoch: 1,
+      }),
+    });
+    const { requestId } = send(client);
+    transport.emitRaw({
+      type: "command-accepted",
+      requestId,
+      predictedReplyUt: SAVE_UT - 100 + 60,
+    });
+    clock.advanceTo(60 + LOSS_MARGIN);
     expect(client.getCommand(requestId)?.phase).toBe("lost");
   });
 

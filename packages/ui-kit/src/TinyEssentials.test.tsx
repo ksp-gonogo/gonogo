@@ -609,6 +609,31 @@ describe("TinyEssentials equal rows", () => {
     expect(heading).toMatch(/\+\s*0/);
   });
 
+  it("never draws a plus beside a minus for a held figure that rounds to zero", () => {
+    const heldRoll: Reading<Value<"°">> = {
+      state: "held",
+      reckoning: { status: "none" },
+      value: value("°", -0.2),
+      asOfUt: value("ut", 100),
+      grade: "held",
+    };
+    render(
+      <TinyEssentials
+        title="NAV"
+        equalRows
+        essentials={[
+          { label: "RLL", value: heldRoll, decimals: 0, signed: true },
+        ]}
+      />,
+    );
+    const [roll] = [...document.querySelectorAll("[data-tiny-essential]")].map(
+      (r) => r.textContent ?? "",
+    );
+    expect(roll).not.toMatch(/[-−]/);
+    expect(roll).toMatch(/\+\s*0/);
+    expect(roll).toContain("HELD");
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = render(
       <TinyEssentials title="NAV" essentials={ANGLES} equalRows />,

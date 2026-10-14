@@ -8599,6 +8599,10 @@
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
       },
       {
+        "key": "sitrep-sdk . UseCommandResult#railed",
+        "note": "whether the panel's command rail holds the handle and speaks its outcomes; required, so a hand-built handle must say it"
+      },
+      {
         "key": "sitrep-sdk . UseCommandResult#sendStatus",
         "note": "what an order sent now would do, from the sending centre's comms.route and comms.nextLoss; required, so a hand-built handle must now carry it (undefined when nothing is known)"
       },
@@ -9255,6 +9259,10 @@
         "note": "The entry's sample kind: continuous is drawn as a ribbon along the rail, discrete and event as a dot travelling it"
       },
       {
+        "key": "sitrep-sdk ./spine RailedCommand",
+        "note": "a rail entry no longer carries railed, which only the handle a widget holds needs"
+      },
+      {
         "key": "sitrep-sdk ./spine ReckoningDecline#reason",
         "note": "Follows ReckoningDecline#reason"
       },
@@ -9417,6 +9425,10 @@
       {
         "key": "sitrep-sdk ./spine UseCommandResult#failures",
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
+      },
+      {
+        "key": "sitrep-sdk ./spine UseCommandResult#railed",
+        "note": "required where it was optional, so a hand-built handle that left it out no longer reads as unrailed"
       },
       {
         "key": "sitrep-sdk ./spine UseCommandResult#sendStatus",
@@ -10149,6 +10161,10 @@
       {
         "key": "sitrep-sdk ./testing ~UseCommandResult#failures",
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UseCommandResult#railed",
+        "note": "Follows UseCommandResult#railed"
       },
       {
         "key": "sitrep-sdk ./testing ~UseCommandResult#sendStatus",
@@ -13591,10 +13607,6 @@
       {
         "key": "sitrep-sdk ./spine UseCommandResult#check?",
         "note": "Asks the mod what a command's gate says about a call with these arguments from this centre, debounced; the answer lands in gateFor for the same arguments"
-      },
-      {
-        "key": "sitrep-sdk ./spine UseCommandResult#railed?",
-        "note": "Optional: whether the handle is registered with the panel rail, so a control beside a rail can tell if the rail will speak for it"
       },
       {
         "key": "sitrep-sdk ./spine UsePatchChainInput",
