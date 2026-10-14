@@ -1,6 +1,5 @@
 import {
   type CommandButtonHandle,
-  EmptyState,
   Panel,
   Section,
   Tooltip,
@@ -65,6 +64,12 @@ export function SpaceCenterStatusView({
   return (
     <Panel
       panelTitle="SPACE CENTER"
+      // An Uplink that draws the tiers itself answers the absence, so the panel is off only when it has nothing to present and nothing is contributed.
+      inactive={
+        answeredFacilities.length === 0 && !contributed
+          ? "No facility tiers"
+          : undefined
+      }
       sections={
         <Section>
           <Body>
@@ -87,10 +92,6 @@ export function SpaceCenterStatusView({
                     </Tooltip>
                   )}
               </PadStatusLine>
-            )}
-            {/* An Uplink that draws the tiers itself answers the absence; the pad line and funds stay either way. */}
-            {answeredFacilities.length === 0 && !contributed && (
-              <EmptyState>No facility tiers</EmptyState>
             )}
             {tierSpecsFit && answeredFacilities.length > 0 && !anyTierText && (
               /* Said once for the grid, and not at all when no facility answered. */

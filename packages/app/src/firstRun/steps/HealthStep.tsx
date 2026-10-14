@@ -19,9 +19,7 @@ const SETTLED_BAD: readonly CheckState[] = ["fail", "attention"];
 function verdict(checks: readonly SetupCheck[]): string {
   if (checks.some((check) => check.state === "checking"))
     return say("health.verdict.checking");
-  const bad = checks.filter(
-    (check) => SETTLED_BAD.includes(check.state) && !check.derived,
-  );
+  const bad = checks.filter((check) => SETTLED_BAD.includes(check.state));
   if (bad.length === 0) return say("health.verdict.allWorking");
   return say("health.verdict.needLook", {
     bad: bad.length,

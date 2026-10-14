@@ -37,14 +37,7 @@ export function WarpControlConfigForm({
     value: candidate,
     saved: config ?? {},
   });
-  if (noDelay)
-    return (
-      <ConfigForm>
-        <FieldHint>
-          No signal delay on this craft, so warp needs no alarm setting
-        </FieldHint>
-      </ConfigForm>
-    );
+  if (noDelay) return <ConfigForm>{null}</ConfigForm>;
   return (
     <ConfigForm>
       <Field>

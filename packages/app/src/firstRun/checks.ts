@@ -22,8 +22,6 @@ export type CheckState = "checking" | "pass" | "attention" | "fail";
 export interface SetupCheck {
   state: CheckState;
   text: string;
-  /** Set when the check fails only because another check did, so a tally counts the cause once. */
-  derived?: true;
 }
 
 /**
@@ -104,11 +102,7 @@ export function uplinksCheck(
   connection?: SetupCheck,
 ): SetupCheck {
   if (waitingForMod && connection?.state === "fail")
-    return {
-      state: "fail",
-      text: say("uplinks.check.noConnection"),
-      derived: true,
-    };
+    return { state: "fail", text: say("uplinks.check.noConnection") };
   if (waitingForMod)
     return {
       state: "checking",

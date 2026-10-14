@@ -1,7 +1,7 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { registerAugment } from "@ksp-gonogo/ui-kit";
-import { getByTip, visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -148,18 +148,6 @@ describe("SpaceCenterStatus: facilities that reported no tier", () => {
     expect(visibleText(fixture.container)).not.toContain("this telemetry");
     expect(screen.queryByText("Launch Pad")).toBeNull();
     expect(screen.queryByLabelText("Launch Pad tier unknown")).toBeNull();
-  });
-
-  /** The funds balance sits beside the upgrade control, so a silent grid must not take it away. */
-  it("keeps the funds readout when no facility reported a tier", async () => {
-    const fixture = mount();
-
-    emitFacilities(fixture, NINE_SILENT);
-
-    await waitFor(() =>
-      expect(visibleText(fixture.container)).toContain("No facility tiers"),
-    );
-    expect(getByTip(document.body, "Available funds")).toBeTruthy();
   });
 
   /** Descriptions of tiers that never arrived are not a second missing thing. */

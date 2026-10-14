@@ -86,7 +86,6 @@ export function NoteRow({
   const submit = async () => {
     if (!open.current) return;
     if (gone || hold === "deleted") {
-      if (!draft.trim()) return discard();
       const outcome = await actions.addNote(draft);
       if (outcome.status === "ok") close();
       else setHold(outcome.status === "offline" ? "offline" : "refused");
