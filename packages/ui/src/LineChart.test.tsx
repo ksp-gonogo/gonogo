@@ -1,7 +1,7 @@
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
-import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import { unannouncedHeldMarks } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { unannouncedHeldMarks } from "../testing";
 import type { ChartSeries } from "./LineChart";
 import { LineChart } from "./LineChart";
 import {

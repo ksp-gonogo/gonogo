@@ -11,7 +11,7 @@
  *
  * It cannot name the model, and no render of this widget can: `LandingStatus`
  * never tells an operator which of the two carried the number, and the only
- * `ReckoningBasis` prose in the tree (`packages/ui-kit/src/graph/LineChart.tsx`) reaches
+ * `ReckoningBasis` prose in the tree (`packages/ui/src/LineChart.tsx`) reaches
  * a chart's accessible name and nothing else.
  *
  * So the attribution is pinned by `handover-basis.test.tsx`, which asks the

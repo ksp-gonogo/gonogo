@@ -142,7 +142,7 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "GAP: MM:SS / HH:MM:SS replay position, same missing notation",
   },
-  "packages/ui-kit/src/graph/lineChartMath.ts": {
+  "packages/ui/src/lineChartMath.ts": {
     count: 1,
     why: "GAP: axis time labels on a padded clock, same missing notation",
   },
@@ -194,7 +194,7 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "not a quantity: maps a stream status enum to a word",
   },
-  "packages/ui-kit/src/graph/LineChart.tsx": {
+  "packages/ui/src/LineChart.tsx": {
     count: 1,
     why: "not a quantity: an unlabelled y-axis tick on a caller-supplied series",
   },

@@ -3,6 +3,20 @@ import type {
   SeriesBridge,
   SeriesStatusSpan,
 } from "@ksp-gonogo/sitrep-sdk";
+import {
+  InstrumentHeldMark,
+  PlotCrosshair,
+  type PlotCrosshairRow,
+  placePlotReadouts,
+  plotCrosshairCardBox,
+  plotCrosshairShowsCard,
+  ReckoningMarkSvg,
+  reckoningBasisPhrase,
+  resolveCurrency,
+  sayHeld,
+  type UnitValue,
+  VisuallyHidden,
+} from "@ksp-gonogo/ui-kit";
 import React, {
   type ReactNode,
   useId,
@@ -10,18 +24,6 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { InstrumentHeldMark, sayHeld } from "../instrumentCurrency";
-import {
-  PlotCrosshair,
-  type PlotCrosshairRow,
-  plotCrosshairCardBox,
-  plotCrosshairShowsCard,
-} from "../PlotCrosshair";
-import { placePlotReadouts } from "../plotReadoutPlacement";
-import { resolveCurrency, type UnitValue } from "../readingCurrency";
-import { reckoningBasisPhrase } from "../reckoningBasisPhrase";
-import { ReckoningMarkSvg } from "../reckoningMarkDraw";
-import { VisuallyHidden } from "../VisuallyHidden";
 import { boxAsTrace, type PixelBox, placeCard } from "./cardPlacement";
 import {
   orderedByX,
@@ -55,29 +57,20 @@ import {
 import { placeThresholdLabels } from "./thresholdLabels";
 
 /**
- * The samples of one line on a graph, as parallel `x` and `y` arrays; `x` is unix ms on a time chart
- * and `y2` is the upper bound of a `band` series. Useful for giving the operator a trace of one
- * reading over time or against another reading. Held in the `data` of a {@link ChartSeries}.
+ * Parallel `x` and `y` arrays to plot; `x` is unix ms on a time chart. `y2` is the upper bound of a
+ * `band` series.
  *
  * `breaks` names indices that open a real hole: `line` and `step` start a fresh subpath there.
  * `spans` records runs that did not arrive live, and they are drawn exactly like live data, because a
  * replayed sample is still a measured one. `reckoned` runs, which a model carried forward, are muted
  * and dashed, and may carry a shaded uncertainty band behind the stroke.
- *
- * @category Graph
  */
 export interface ChartSeriesData {
-  /** The x of each sample, ascending. */
   x: number[];
-  /** The y of each sample, the lower bound of a `band` series. */
   y: number[];
-  /** The upper bound of each sample of a `band` series, the same length as `y`. */
   y2?: number[];
-  /** Indices into `x` at which a known hole comes before the sample. */
   breaks?: number[];
-  /** Runs of samples carrying a server-stamped status other than live. */
   spans?: readonly SeriesStatusSpan[];
-  /** Runs of samples a model carried forward rather than measured. */
   reckoned?: readonly SeriesReckonedSpan[];
   /** A model's path through an unobserved gap; drawn instead of the chord when the chord departs from it by more than a pixel. */
   bridges?: readonly SeriesBridge[];
@@ -89,34 +82,18 @@ const HEAD_MARK_RADIUS = 4;
 const OBSERVED_MARK_RADIUS = 2.5;
 
 /**
- * How one line of a graph is drawn between its samples. Useful for showing a reading that changes
- * continuously as a line, a state that holds until it changes as steps, separate occurrences as
- * points and an envelope as a filled band. Set in the `type` of a {@link ChartSeries}.
- *
+ * Render type for a single series
  * - `line`: straight segments through every sample (default)
  * - `step`: step-after, for discrete-state telemetry where interpolating between transitions misleads
  * - `scatter`: discrete points, no joining
  * - `band`: filled envelope between `y` (lower) and `y2` (upper), which must be the same length
- *
- * @category Graph
  */
 export type SeriesType = "line" | "step" | "scatter" | "band";
 
-/**
- * One line on a graph: its samples, colour, label and the axis it is read against. Useful for
- * showing the operator how one reading has moved, or one curve a widget computed. Passed in the
- * `series` prop of {@link LineChart}, which the graph widget fills from the readings it plots.
- *
- * @category Graph
- */
 export interface ChartSeries {
-  /** Unique within the chart; the line's React key. */
   id: string;
-  /** Names the line in the legend and in the chart's accessible name. */
   label: string;
-  /** The y axis the line is read against. */
   axis: "primary" | "secondary";
-  /** CSS colour of the stroke, such as `var(--color-nogo-mark)`. */
   color: string;
   /** Defaults to `"line"` when omitted. */
   type?: SeriesType;
@@ -130,20 +107,15 @@ export interface ChartSeries {
   headMark?: "dot" | "ring";
   /** A curve with one figure at every x: the crosshair reads it between its samples, not at the nearest one. */
   readBetween?: boolean;
-  /** The line's samples. */
   data: ChartSeriesData;
 }
 
 /**
- * What a threshold line on a graph is for, which decides how it is drawn. Useful for telling the
- * operator whether a line is a limit to stay inside, a figure to reach or the place something is
- * now. Set in the `kind` of a {@link ThresholdRule}.
+ * What a threshold line is for, which decides how it is drawn.
  *
  * - `limit`: a figure not to pass, with the side that is past it declared. Dashed and quiet until a trace on its axis stands at or past it, then in the warning tone, and each place a trace went past it carries a warning mark
  * - `target`: a figure to reach. Dashed and quiet until a trace on its axis has reached it, then in the go tone
  * - `marker`: where something is now. Solid, and never changes tone
- *
- * @category Graph
  */
 export type ThresholdKind = "limit" | "target" | "marker";
 
@@ -162,26 +134,11 @@ interface ThresholdRuleBase {
   reading?: UnitValue;
 }
 
-/**
- * A horizontal reference line on a graph at one figure on its axis, with an optional label at the
- * right. Useful for showing the operator how far a trace is from the figure that matters. Passed in
- * the `thresholds` prop of {@link LineChart}. Its tone comes from `kind` and the plotted data, never
- * from the caller.
- *
- * @category Graph
- */
+/** Horizontal reference line at a constant Y, with an optional right-anchored label. Its tone comes from `kind` and the plotted data, never from the caller. */
 export type ThresholdRule = ThresholdRuleBase &
   (
-    | {
-        /** A figure not to pass. */
-        kind: "limit";
-        /** The side of the line that is out of bounds. */
-        bad: LimitSide;
-      }
-    | {
-        /** A figure to reach, or the place something is now. */
-        kind: Exclude<ThresholdKind, "limit">;
-      }
+    | { kind: "limit"; bad: LimitSide }
+    | { kind: Exclude<ThresholdKind, "limit"> }
   );
 
 /** A trace has reached a line when its newest figure is on it, or on the other side of it from its oldest. */
@@ -215,13 +172,6 @@ function thresholdTone(
     : { line: "var(--color-go-mark)", label: "var(--color-go-text)" };
 }
 
-/**
- * How a y axis maps a figure to a position: evenly (`"linear"`) or by its power of ten (`"log"`).
- * Useful for a reading that spans orders of magnitude, such as pressure up through the atmosphere.
- * Set in the `yScalePrimary` and `yScaleSecondary` props of {@link LineChart}.
- *
- * @category Graph
- */
 export type AxisScale = "linear" | "log";
 
 /** Default tick formatter for an x-axis representing wall-clock time (unix ms). */
@@ -230,33 +180,18 @@ export const timeXTickFormat = (
   domain: readonly [number, number],
 ): string => formatTimeLabel(value - domain[0], domain[1] - domain[0]);
 
-/**
- * Writes an x tick of a graph whose x axis is universal time in seconds, as elapsed time from the
- * left edge. Useful for labelling a time axis in the game's own clock. Passed as the `xTickFormat`
- * of {@link LineChart}; pick it by the basis the producer declared, never by the size of the numbers.
- *
- * @category Graph
- */
+/** Tick formatter for an x-axis in UT seconds; pick it by the basis the producer declared, never by the size of the numbers. */
 export const utXTickFormat = (
   value: number,
   domain: readonly [number, number],
 ): string =>
   formatTimeLabel((value - domain[0]) * 1000, (domain[1] - domain[0]) * 1000);
 
-/**
- * Props for {@link LineChart}. Useful for giving the operator a drawn chart of one or more series
- * with its axes, reference lines and readout. Taken by {@link LineChart}.
- *
- * @category Graph
- */
 export interface LineChartProps {
-  /** The lines to draw. */
   series: ChartSeries[];
   /** x-domain. Interpretation depends on `xTickFormat`: defaults to unix ms. */
   xDomain: [number, number];
-  /** Pins the primary y domain; derived from the series and thresholds when absent. */
   yDomainPrimary?: [number, number];
-  /** Pins the secondary y domain; derived from the series and thresholds when absent. */
   yDomainSecondary?: [number, number];
   /** Tick label formatter for the x-axis. Defaults to elapsed mm:ss / HH:mm:ss. Writing a tick, it is handed the axis's every tick too, so it can give them the decimals that tell them apart. */
   xTickFormat?: (
@@ -268,7 +203,6 @@ export interface LineChartProps {
   yTickFormat?: (value: number, ticks?: readonly number[]) => string;
   /** Linear (default) or log10 scale on each Y axis. */
   yScalePrimary?: AxisScale;
-  /** Linear or log10 scale of the secondary y axis; linear when absent. */
   yScaleSecondary?: AxisScale;
   /** Horizontal reference lines drawn across the plot. */
   thresholds?: ReadonlyArray<ThresholdRule>;
@@ -319,9 +253,7 @@ export interface LineChartProps {
     | ((room: { width: number; height: number; form: number }) => ReactNode);
   /** How many forms `card` can draw, the most spread out first. 1 when omitted. */
   cardForms?: number;
-  /** Chart width in pixels. */
   width: number;
-  /** Chart height in pixels. */
   height: number;
 }
 
@@ -468,18 +400,6 @@ function readoutColumnWidth({
   return Math.max(0, ...widths) + COLUMN_SLACK_PX;
 }
 
-/**
- * A chart drawn at the pixel size it is given: a plot with tick ladders, one or two y axes, reference
- * lines, an optional crosshair that reads every series at one x, and the cards and notices a widget
- * lays over it. Useful for showing the operator how readings move over time or against one another.
- * Used by the graph widget and the flight history list. Width and height are required; a caller that
- * wants it to fill a region measures the region itself.
- *
- * @category Graph
- * @categoryDescription Graph
- * A value over time or against another value: the chart with its series, reference lines,
- * crosshair and layers, and the types a caller builds them from.
- */
 export function LineChart({
   series,
   xDomain,

@@ -1,16 +1,3 @@
-export {
-  type AxisScale,
-  type ChartSeries,
-  type ChartSeriesData,
-  type LimitSide,
-  LineChart,
-  type LineChartProps,
-  plotLayerExtent,
-  type SeriesType,
-  type ThresholdKind,
-  type ThresholdRule,
-  utXTickFormat,
-} from "@ksp-gonogo/ui-kit";
 export { axisTitle } from "./axisTitle";
 export * from "./Badge";
 export * from "./BannerPill";
@@ -31,9 +18,12 @@ export * from "./FilterList";
 export * from "./Form";
 export * from "./FramedDisplay";
 export * from "./Icons";
+export * from "./LineChart";
+export * from "./lineChartMath";
 export * from "./Meter";
 export * from "./Modal";
 export * from "./Panel";
+export * from "./plotLayers";
 export * from "./Readout";
 export * from "./SignalLossBanner";
 export * from "./SourceOfflineBanner";

@@ -1,4 +1,4 @@
-import { Tooltip } from "../Tooltip";
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 
 interface Props {
   x: number;

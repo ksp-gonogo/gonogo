@@ -18,7 +18,7 @@ import type { MissionHistorySource } from "./MissionHistorySource";
  * Unit note: Missions are UT-**seconds**-based (`fromUt`/
  * `toUt`), but `LineChart`'s default `xTickFormat`
  * (`timeXTickFormat`/`formatTimeLabel`) hard-assumes **milliseconds**: see
- * `packages/ui-kit/src/graph/lineChartMath.ts`. So `xDomain` and every series' x-values
+ * `packages/ui/src/lineChartMath.ts`. So `xDomain` and every series' x-values
  * here are **elapsed milliseconds since `fromUt`**, converted once at
  * the query-response boundary (`(validAtUt - fromUt) * 1000`), the
  * same anchor and unit `ChaptersEditor`'s `startMs`/`endMs` already use, so

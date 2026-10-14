@@ -1,5 +1,5 @@
 import type { PlotLayer } from "@ksp-gonogo/sitrep-sdk";
-import { render } from "@ksp-gonogo/sitrep-sdk/testing";
+import { render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { LineChart } from "./LineChart";
 import { closeHalfPlane, type PlotLayerFrame } from "./plotLayers";

@@ -339,19 +339,6 @@ export {
 } from "./GraphNotice";
 export { Grid, type GridAlign, type GridProps } from "./Grid";
 export {
-  type AxisScale,
-  type ChartSeries,
-  type ChartSeriesData,
-  type LimitSide,
-  LineChart,
-  type LineChartProps,
-  type SeriesType,
-  type ThresholdKind,
-  type ThresholdRule,
-  utXTickFormat,
-} from "./graph/LineChart";
-export { plotLayerExtent } from "./graph/plotLayers";
-export {
   COL_WIDTH,
   GRID_MARGIN,
   gridToPixels,

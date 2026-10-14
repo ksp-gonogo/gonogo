@@ -15,7 +15,6 @@ import { Button } from "./Button";
 import { ControlDelayStream } from "./CommandDelay/ControlDelayStream";
 import { Countdown } from "./Countdown";
 import { Dial } from "./Dial";
-import { LineChart } from "./graph/LineChart";
 import { HeldFigure, HeldHost, HeldMark } from "./HeldMark";
 import { unannouncedHeldMarks } from "./heldMarkAnnouncement";
 import { InstrumentHeldMark } from "./instrumentCurrency";
@@ -156,24 +155,6 @@ const PAINTERS: Record<string, (grade: HeldGrade | undefined) => ReactElement> =
         SAS ON
       </Button>
     ),
-    "LineChart, held threshold": (grade) => (
-      <LineChart
-        series={[]}
-        xDomain={[0, 10]}
-        yDomainPrimary={[0, 10]}
-        thresholds={[
-          {
-            id: "limit",
-            kind: "marker",
-            value: 5,
-            label: "Limit",
-            reading: held(value("m", 5), grade),
-          },
-        ]}
-        width={400}
-        height={200}
-      />
-    ),
     ControlDelayStream: (grade) => (
       <ControlDelayStream
         streams={[
@@ -237,7 +218,6 @@ const DRAWN_BY: Record<string, readonly string[]> = {
   "./Tape.tsx": ["Tape"],
   "./StatContributions.tsx": ["StatFigure, text"],
   "./CommandDelay/ControlDelayStream.tsx": ["ControlDelayStream"],
-  "./graph/LineChart.tsx": ["LineChart, held threshold"],
 };
 
 describe("the census of held-mark painters", () => {

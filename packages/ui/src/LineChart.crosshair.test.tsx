@@ -1,6 +1,6 @@
-import { act, fireEvent, render } from "@ksp-gonogo/sitrep-sdk/testing";
+import { act, fireEvent, render } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { expectNoA11yViolations } from "../testing";
 import { sampleNearest, sampleTimes, stepTime } from "./crosshairMath";
 import { type ChartSeries, LineChart } from "./LineChart";
 

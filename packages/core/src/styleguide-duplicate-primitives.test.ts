@@ -29,7 +29,7 @@ import { describe, expect, it } from "vitest";
  * The fix in both cases is the same and is cheap: `packages/ui/src/X.tsx`
  * becomes a re-export from ui-kit. Thirteen of ui's files already are.
  *
- * What this does not forbid: a genuinely app-only primitive in ui (Sparkline
+ * What this does not forbid: a genuinely app-only primitive in ui (LineChart
  * and the rest are fine, they have no ui-kit twin), or ui re-exporting a
  * ui-kit name. Only a second implementation.
  *
