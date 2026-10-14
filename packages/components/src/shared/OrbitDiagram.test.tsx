@@ -225,6 +225,15 @@ describe("OrbitDiagram projected overlay", () => {
     expect(rotationLine).toBeTruthy();
   });
 
+  it("names the rotation marker on the full diagram and only then", () => {
+    const named = render(
+      <OrbitDiagram {...BASE} bodyRadius={600_000} rotationAngleDeg={45} />,
+    );
+    expect(named.container.textContent).toContain("Spin");
+    const unmarked = render(<OrbitDiagram {...BASE} bodyRadius={600_000} />);
+    expect(unmarked.container.textContent).not.toContain("Spin");
+  });
+
   it("draws the atmosphere band only when atmosphereDepthM is supplied", () => {
     const without = render(<OrbitDiagram {...BASE} bodyRadius={600_000} />);
     const withBand = render(
