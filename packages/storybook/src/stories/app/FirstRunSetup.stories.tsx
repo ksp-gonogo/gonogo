@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, userEvent, within } from "storybook/test";
+import { say } from "../../../../app/src/firstRun/copy";
 import { FirstRunScene, RunSetupAgainScene } from "../../firstRunScenes";
 import { withGonogoFrame } from "../../frame";
 
@@ -100,11 +102,25 @@ export const HealthChecking: Story = {
 export const UplinksNoneInstalled: Story = {
   name: "Uplinks: none installed",
   args: { step: "uplinks", world: "no-uplinks" },
+  play: async ({ canvasElement }) => {
+    const find = await within(canvasElement).findByRole("button", {
+      name: say("uplinks.find.label"),
+    });
+    await userEvent.click(find);
+    await expect(
+      await within(canvasElement).findByText(say("uplinks.find.search")),
+    ).toBeVisible();
+  },
 };
 
 export const UplinksNeedsAttention: Story = {
   name: "Uplinks: needs attention",
   args: { step: "uplinks", world: "needs-attention" },
+};
+
+export const ConnectGaveUp: Story = {
+  name: "Connect: KSP still not answering",
+  args: { step: "connect", world: "gave-up" },
 };
 
 export const HealthNeedsAttention: Story = {

@@ -32,6 +32,11 @@ export function __resetConnectionClock(): void {
   unansweredSince = null;
 }
 
+/** Test-only: set when the connection was first seen unanswered, so a scene can start past the grace period. */
+export function __setUnansweredSince(at: number | null): void {
+  unansweredSince = at;
+}
+
 function useGaveUp(connected: boolean): boolean {
   const [, tick] = useState(0);
   useEffect(() => {

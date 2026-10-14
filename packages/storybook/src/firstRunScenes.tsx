@@ -10,11 +10,16 @@ import {
   registerDataSource,
 } from "@ksp-gonogo/core";
 import { type ReactNode, useEffect, useState } from "react";
+import { CONNECT_GRACE_MS } from "../../app/src/firstRun/checks";
 import { say } from "../../app/src/firstRun/copy";
 import {
   FirstRunSetup,
   type SetupStep,
 } from "../../app/src/firstRun/FirstRunSetup";
+import {
+  __resetConnectionClock,
+  __setUnansweredSince,
+} from "../../app/src/firstRun/useConnectionCheck";
 import { relayBaseUrl } from "../../app/src/peer/iceServers";
 import { RunSetupAgain } from "../../app/src/settings/SettingsModal";
 import {
@@ -28,22 +33,28 @@ import { type FixtureEmit, FixtureStream } from "./FixtureStream";
  * What is running around the wizard. `no-uplinks` has the container and KSP
  * answering and a mod with no Uplink installed; `needs-attention` has the same
  * two answering and an Uplink of every kind the Uplinks step can report.
+ * `gave-up` has KSP unanswered for longer than the setup keeps waiting.
  */
 export type SetupWorld =
   | "nothing-running"
   | "all-answering"
   | "checking"
+  | "gave-up"
   | "no-uplinks"
   | "needs-attention";
 
 const ROSTER_TOPIC = "system.uplinks";
 const HEALTHY = { state: 0, detail: null };
 
+/** An add-on Uplink: it names its author and repository and ships a client, so the setup counts it. */
 function installed(id: string, name: string, more: object = {}) {
   return {
     id,
     name,
     version: "1.2.0",
+    author: "Example Author",
+    repo: "example/addon",
+    expectedClientHash: "client-hash",
     available: true,
     reason: null,
     contractMajor: 4,
@@ -70,6 +81,7 @@ const WORKING = [
 const EMITS: Record<SetupWorld, FixtureEmit[]> = {
   "nothing-running": [],
   checking: [],
+  "gave-up": [],
   "all-answering": roster(WORKING),
   "no-uplinks": roster([]),
   "needs-attention": roster([
@@ -83,7 +95,8 @@ const EMITS: Record<SetupWorld, FixtureEmit[]> = {
     }),
     installed("science", "Science lab"),
     installed("resources", "Resource scanner"),
-    installed("radar", "Ground radar", { expectedClientHash: "client-hash" }),
+    installed("radar", "Ground radar"),
+    installed("logbook", "Flight logbook", { expectedClientHash: null }),
   ]),
 };
 
@@ -95,6 +108,7 @@ const LOADED: UplinkLoadOutcome[] = [
 const OUTCOMES: Record<SetupWorld, UplinkLoadOutcome[]> = {
   "nothing-running": [],
   checking: [],
+  "gave-up": [],
   "all-answering": LOADED,
   "no-uplinks": [],
   "needs-attention": [
@@ -119,6 +133,7 @@ const OUTCOMES: Record<SetupWorld, UplinkLoadOutcome[]> = {
 const KSP: Record<SetupWorld, DataSourceStatus> = {
   "nothing-running": "disconnected",
   checking: "reconnecting",
+  "gave-up": "reconnecting",
   "all-answering": "connected",
   "no-uplinks": "connected",
   "needs-attention": "connected",
@@ -216,6 +231,10 @@ export function FirstRunScene({
   const [restoreFetch] = useState(() => {
     registerDataSource(sitrepSource(KSP[world]));
     __resetUplinkOutcomes();
+    __resetConnectionClock();
+    if (world === "gave-up") {
+      __setUnansweredSince(Date.now() - CONNECT_GRACE_MS - 1000);
+    }
     for (const outcome of OUTCOMES[world]) setUplinkOutcome(outcome);
     const restoreAgent = os === "windows" ? reportWindows() : () => {};
     const restoreRelay = answerRelay(world);
