@@ -149,8 +149,9 @@ export interface UplinkDeclaration {
    */
   codegen?: UplinkCodegenDeclaration;
   /**
-   * Where the client lives. Absent for an Uplink with no client, whose plugin
-   * then tells the app it has none to load.
+   * The address the released client bundle is published at, as `client.url`,
+   * which `release` refuses when it is not this release's. Absent for an Uplink
+   * with no client, whose plugin then tells the app it has none to load.
    *
    * @readBy bake, check, release
    */

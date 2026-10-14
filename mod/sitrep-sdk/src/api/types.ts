@@ -551,8 +551,9 @@ export interface ThemeDefinition {
  * A widget that owns a slot declares it here by declaration merging, so an
  * augment of a misspelled slot does not typecheck. The two standard segments
  * every widget's panel carries, `<widget-id>.sections` and
- * `<widget-id>.actions`, are typed by ui-kit's `AugmentSegmentRegistry`
- * instead, though a widget may also name its own here.
+ * `<widget-id>.actions`, are typed by ui-kit's `AugmentSegmentRegistry` for any
+ * widget that does not list them here. Several widgets list them here as well
+ * to give the slot props of its own, and those rows take precedence.
  *
  * @category Extensions
  */
@@ -857,10 +858,11 @@ export type Contributed<Entry> = Entry & {
  * each. Useful for stating which Topics, mod settings and processors an entry
  * is computed from. Listed in the `deps` of a {@link ContributionDefinition}.
  *
- * A processor handle is accepted only when its result carries currency, which
- * it does when one of its own deps is a `{ reading: topicId }`: a bare result
- * computed from Topics would reach the contribution with nothing saying
- * whether those Topics were held.
+ * A processor is a calculation an Uplink registers once that turns Topics into
+ * one derived value. A processor handle is accepted only when its result says
+ * how current it is, which it does when one of its own deps is a
+ * `{ reading: topicId }`: a bare result computed from Topics would reach the
+ * contribution with nothing saying whether those Topics were held.
  *
  * @category Extensions
  */
@@ -875,7 +877,8 @@ export type ContributionDep =
     };
 
 /**
- * The settings each Uplink's host mod declares, keyed by Uplink id: the type a
+ * The settings of the game mod an Uplink wraps (its host mod), keyed by Uplink
+ * id: the type a
  * contribution's {@link ModSettingDep} is checked against. An Uplink adds its
  * own entry by declaration merging, naming each setting with the type its
  * value parses to. Useful for reading a setting the operator changed in the
