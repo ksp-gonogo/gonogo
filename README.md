@@ -15,6 +15,8 @@ A telemetry mod system and mission control dashboard for [Kerbal Space Program](
 
 ## Real Light Delay
 
+<img src="docs/assets/light-delay-rail.gif" alt="The delay rail on a Throttle panel: a throttle pulse crosses from left to right through three zones, outgoing to the craft, the echo coming back, and confirmed at the command centre" />
+
 Gonogo features an _optional_ realistic light delay option, on by default. Signals in the game gets modelled under a real propagation system; it takes longer to get flight data from vessels further away, and vessels occluded behind planets and out of range won't be able to communicate. Signals get routed through available relay nodes to command centres, via a model heavily inspired by [NASA's Contact Graph Routing](https://ntrs.nasa.gov/citations/20120006508) system.
 
 ## Uplinks
@@ -70,7 +72,7 @@ Use **Settings > Connection > Run setup again**.
 ## More
 
 - [Uplink developer docs](https://ksp-gonogo.github.io/uplink-dev-docs/)
-- [AsyncAPI reference](asyncapi.yaml) (open it in [AsyncAPI Studio](https://studio.asyncapi.com/) to browse it)
+- [AsyncAPI reference](asyncapi.yaml) (open it in [AsyncAPI Studio](https://studio.asyncapi.com/?url=https://raw.githubusercontent.com/ksp-gonogo/gonogo/main/asyncapi.yaml&readOnly) to browse it)
 - [KSP setup](docs/KSP-SETUP.md) and [networking](docs/NETWORKING.md)
 - [Contributing](CONTRIBUTING.md)
 - [Licence](LICENSE)
