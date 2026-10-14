@@ -89,7 +89,7 @@ export const WIZARD_COPY = {
   "uplinks.check.attention":
     "{installed} {installed?Uplink|Uplinks} installed, {attention} {attention?needs|need} attention",
   "uplinks.summary":
-    "{loaded} of {installed} installed {installed?Uplink has|Uplinks have} a loaded client",
+    "Client loaded for {loaded} of {installed} {installed?Uplink|Uplinks} that {installed?has|have} one",
   "uplinks.summaryRefused":
     "{summary}; {refused} refused for a contract mismatch",
   "uplinks.find.label": "Find Uplinks",

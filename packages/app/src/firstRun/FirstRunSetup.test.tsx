@@ -37,6 +37,7 @@ import {
   runCommandFor,
   SETUP_LINKS,
 } from "./setupGuide";
+import { __resetConnectionClock } from "./useConnectionCheck";
 
 function stepHeading(index: number, heading: string): string {
   return say("shell.stepHeading", { index, total: 6, heading });
@@ -62,6 +63,7 @@ const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
 beforeEach(() => {
   __resetUplinkOutcomes();
+  __resetConnectionClock();
   /*
    * Cleared here, not in `afterEach`. RTL's auto-cleanup runs AFTER a user
    * `afterEach`, so a clear written there fires while the previous test's tree
@@ -487,6 +489,16 @@ describe("FirstRunSetup: the health check", () => {
     ).toHaveAttribute("href", SETUP_LINKS.networking);
   });
 
+  it("counts a refused connection once, not again as the Uplinks row it blocks", async () => {
+    renderSetup();
+    await goToHealth();
+
+    await screen.findByText(
+      say("health.verdict.needLook", { bad: 1, total: 3 }),
+    );
+    expect(screen.getByText(say("uplinks.check.noConnection"))).toBeVisible();
+  });
+
   it("sends an Uplink problem back to the Uplinks step, not to the container log", async () => {
     const { wsClients } = renderSetup(undefined, { ksp: "connected" });
     await goToHealth();
@@ -523,6 +535,22 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     expect(
       screen.queryByText(say("uplinks.row.noClient")),
     ).not.toBeInTheDocument();
+  });
+
+  it("words the loaded count over the Uplinks that have a client, so it agrees with the installed count beside it", async () => {
+    setUplinkOutcome({ id: "widget-loaded", name: "Loaded", status: "loaded" });
+    const { wsClients } = renderSetup();
+    await goToUplinks();
+    await emitRoster(wsClients, [
+      rosterEntry({ id: "widget-loaded" }),
+      rosterEntry({ id: "widget-noclient" }),
+      rosterEntry({ id: "data-only", expectedClientHash: null }),
+    ]);
+
+    await screen.findByText("3 Uplinks installed, 1 needs attention");
+    expect(
+      screen.getByText("Client loaded for 1 of 2 Uplinks that have one"),
+    ).toBeInTheDocument();
   });
 
   it("counts the loaded clients when an Uplink needs a look, leaving mod-only capabilities out", async () => {
