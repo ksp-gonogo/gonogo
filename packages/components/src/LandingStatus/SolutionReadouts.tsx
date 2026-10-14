@@ -57,7 +57,6 @@ export function SolutionReadouts({
     flight,
     solution,
     availableDv,
-    availableDvBasis,
     requiredDv,
     noLandingVector,
     affordable,
@@ -77,7 +76,7 @@ export function SolutionReadouts({
             <Mps v={model.touchdownSpeed ?? undefined} from={solveCurrency} />
           }
         </StackedField>
-        <StackedField label={`Remaining dV (${availableDvBasis})`}>
+        <StackedField label="Remaining dV">
           {<Dv v={availableDv} from={solveCurrency} />}
         </StackedField>
       </Grid>
@@ -106,7 +105,7 @@ export function SolutionReadouts({
             />
           )}
         </StackedField>
-        <StackedField label={`Available dV (${availableDvBasis})`}>
+        <StackedField label="Available dV">
           {<Dv v={availableDv} from={solveCurrency} />}
         </StackedField>
         <StackedField label="Affordable">

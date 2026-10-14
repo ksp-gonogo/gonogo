@@ -18,12 +18,9 @@ import { budgetFigure, pickDeltaV, pickTWR } from "./deltaV";
 function burnLabel(
   budgetReading: Reading<DeltaVBudget>,
   burnTime: number,
-  deltaV: number,
 ): ReactNode {
   // NaN is a burn time the wire did not carry, not a stage that burns for no time.
   if (!Number.isFinite(burnTime)) return NULL_DISPLAY;
-  // A spent stage has nothing left to burn, whatever time its tanks would still sum to.
-  if (deltaV === 0) return NULL_DISPLAY;
   return <Unit value={budgetFigure(budgetReading, value("s", burnTime))} />;
 }
 
@@ -74,8 +71,7 @@ export function StageStackSection({
           const dv = Number.isFinite(figure)
             ? budgetFigure(budgetReading, value("m/s", figure))
             : null;
-          // A stage with no ΔV left is finished, so it is not the one burning.
-          const active = s.stage === currentStage && figure !== 0;
+          const active = s.stage === currentStage;
           return (
             <MeterRowGroup key={s.stage}>
               <Meter
@@ -103,7 +99,7 @@ export function StageStackSection({
                     : "var(--color-text-faint)",
                 }}
               >
-                {burnLabel(budgetReading, s.burnTime, figure)} · TWR{" "}
+                {burnLabel(budgetReading, s.burnTime)} · TWR{" "}
                 {twrLabel(budgetReading, pickTWR(s, mode))}
               </Text>
             </MeterRowGroup>

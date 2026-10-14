@@ -17,7 +17,6 @@ import {
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useComputedSeries } from "../shared/useComputedSeries";
 import { useStreamBody } from "../shared/useStreamBody";
-import { useTrajectoryKind } from "../shared/useTrajectoryKind";
 import read from "./kepler-period.declarations.g";
 
 const topics = defineTopicManifest({
@@ -157,13 +156,8 @@ function KeplerPeriodComponent({
     orbitReading.state === "observed" || orbitReading.state === "held";
   const escaping = orbitKnown && orbitReading.value.sma.isNegative();
 
-  const kind = useTrajectoryKind();
-  const offOrbit = kind === "landed" || kind === "suborbital";
-
   const notice =
     (!orbitKnown && "No orbit reported: nothing to plot yet.") ||
-    (kind === "landed" && "Landed: no orbit.") ||
-    (kind === "suborbital" && "Suborbital: periapsis below the surface.") ||
     (escaping && "On an escape trajectory: no orbital period.") ||
     (showNoGmNotice &&
       body &&
@@ -181,8 +175,7 @@ function KeplerPeriodComponent({
       notice={notice}
       plotReadout={(room) => {
         const { present } = room;
-        // A period is the orbit's, and a craft that rests on a body or meets its surface has none to read.
-        if (!present || offOrbit) return undefined;
+        if (!present) return undefined;
         /* The figures keep the orbit reading's currency and are the plot's own newest sample, so a period is never shown for an orbit the plot has no sample of. */
         const period = deriveReading(
           orbitTelemetry,

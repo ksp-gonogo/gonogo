@@ -22,26 +22,13 @@ export function useLiveParts() {
     }
     return Array.from(set).sort();
   }, [liveByFlightId]);
-  const resourcesPresent = useMemo(() => {
-    const set = new Set<string>();
-    for (const slice of liveByFlightId.values()) {
-      if (!slice.resources) continue;
-      for (const [name, row] of Object.entries(slice.resources)) {
-        if (row) set.add(name);
-      }
-    }
-    return Array.from(set).sort();
-  }, [liveByFlightId]);
-  return { topology, liveByFlightId, resourcesWithFlow, resourcesPresent };
+  return { topology, liveByFlightId, resourcesWithFlow };
 }
 
-/**
- * The focused resource: seeded from config, picked by the operator, and auto-jumped only while never picked and only when the craft carries none of it. A resource that is stored with no flow yet (a battery before anything draws) stays focused.
- */
+/** The focused resource: seeded from config, picked by the operator, and auto-jumped only while never picked. */
 export function useResourcePick(
   defaultResource: string,
   resourcesWithFlow: readonly string[],
-  resourcesPresent: readonly string[],
 ) {
   const [resource, setResource] = useState(defaultResource);
   // An explicit pick is sticky through a transient flow dropout; only a never-picked default auto-jumps.
@@ -53,13 +40,10 @@ export function useResourcePick(
   useEffect(() => {
     if (userPicked) return;
     if (resourcesWithFlow.length === 0) return;
-    if (
-      !resourcesWithFlow.includes(resource) &&
-      !resourcesPresent.includes(resource)
-    ) {
+    if (!resourcesWithFlow.includes(resource)) {
       setResource(resourcesWithFlow[0]);
     }
-  }, [resourcesWithFlow, resourcesPresent, resource, userPicked]);
+  }, [resourcesWithFlow, resource, userPicked]);
 
   // The current pick stays in the options even when its flow has vanished, so the select keeps showing it.
   const pickerResources = useMemo(

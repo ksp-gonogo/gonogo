@@ -25,13 +25,11 @@ function resourceLabel(resource: string): string {
 export function usePowerSystemsEssentials({
   config,
 }: Readonly<ComponentProps<PowerSystemsConfig>>): readonly TinyEssential[] {
-  const { topology, liveByFlightId, resourcesWithFlow, resourcesPresent } =
-    useLiveParts();
+  const { topology, liveByFlightId, resourcesWithFlow } = useLiveParts();
   const partsReading = useTelemetry("vessel.parts");
   const { resource, pick } = useResourcePick(
     config?.defaultResource ?? "ElectricCharge",
     resourcesWithFlow,
-    resourcesPresent,
   );
   useCycleResourceAction(resourcesWithFlow, resource, pick);
   const { net, unratedCount } = useResourceBreakdown(

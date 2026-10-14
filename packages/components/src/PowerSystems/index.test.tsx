@@ -119,25 +119,6 @@ describe("PowerSystems: states + resource pick", () => {
     expect(screen.getByText(/Deploy a solar panel/)).toBeTruthy();
   });
 
-  it("stays on ElectricCharge when it is stored but only another resource flows", async () => {
-    const { fixture } = renderWidget("ps-ec-idle");
-    act(() =>
-      fixture.emit("vessel.parts", {
-        parts: [
-          part("1", "Battery", {
-            ElectricCharge: { amount: 50, maxAmount: 100 },
-          }),
-          part("2", "Booster", {
-            SolidFuel: { amount: 200, maxAmount: 400, flow: -2 },
-          }),
-        ],
-      }),
-    );
-    await waitFor(() => expect(screen.getByLabelText("Resource")).toBeTruthy());
-    const select = screen.getByLabelText("Resource") as HTMLSelectElement;
-    expect(select.value).toBe("ElectricCharge");
-  });
-
   it("cycles the focused resource via the cycleResource action", async () => {
     const { fixture } = renderWidget("ps-cycle");
     act(() => fixture.emit("vessel.parts", TWO_RESOURCE_WIRE));

@@ -58,17 +58,6 @@ export function pickTotal(
   }
 }
 
-/** The vessel's total burn time, `null` when the chosen total ΔV is 0: a spent craft has nothing to burn, whatever time its tanks would still sum to. */
-export function pickBurnTime(
-  budget: DeltaVBudget | undefined,
-  mode: DeltaVMode,
-): Value<"s"> | null | undefined {
-  if (budget === undefined) return undefined;
-  return pickTotal(budget, mode)?.isZero() === true
-    ? null
-    : budget.totalBurnTime;
-}
-
 /** The largest finite stage ΔV, floored above zero so a stack of spent stages still has an axis. */
 export function maxStageDeltaV(
   stages: readonly DeltaVStage[],

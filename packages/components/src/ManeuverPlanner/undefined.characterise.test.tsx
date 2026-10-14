@@ -281,7 +281,7 @@ describe("ManeuverPlanner: dv.stages absent is coerced to zero", () => {
       emitOrbitReady(fixture);
     });
     expect(await screen.findByText("Preview")).toBeInTheDocument();
-    expect(screen.getByText("Available (VAC)")).toBeInTheDocument();
+    expect(screen.getByText("Available")).toBeInTheDocument();
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
     expect(screen.queryByText("OK")).not.toBeInTheDocument();
     expect(screen.queryByText("SHORT")).not.toBeInTheDocument();
