@@ -13,6 +13,7 @@ import {
   BINDABLE_SCENES,
   type BindableScene,
   type MissionProfile,
+  SCENE_LABELS,
 } from "./MissionProfilesService";
 
 interface MissionProfilesModalProps {
@@ -46,6 +47,7 @@ export function MissionProfilesModal({
   const [pendingDelete, setPendingDelete] = useState<MissionProfile | null>(
     null,
   );
+  const [editingScenesId, setEditingScenesId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
 
@@ -220,12 +222,12 @@ export function MissionProfilesModal({
           </Button>
         </SaveRow>
         <BindingsField>
-          <BindingsLabel>Auto-prompt when scene is</BindingsLabel>
+          <BindingsLabel>Offer this layout when entering</BindingsLabel>
           <BindingsRow>
             {BINDABLE_SCENES.map((scene) => (
               <FilterChip
                 key={scene}
-                label={scene}
+                label={SCENE_LABELS[scene]}
                 selected={newBindings.includes(scene)}
                 onToggle={() =>
                   setNewBindings((prev) =>
@@ -255,10 +257,10 @@ export function MissionProfilesModal({
           </Tooltip>
         </BindingsField>
         <Hint>
-          Captures the current widget layout. Load it back later to swap the
-          whole dashboard at once. Tagged scenes show a load prompt at the
-          bottom of the screen when KSP enters that scene, or auto-load if
-          "Switch automatically" is on.
+          A layout can follow several scenes. Captures the current widget
+          layout. Load it back later to swap the whole dashboard at once. Tagged
+          scenes show a load prompt at the bottom of the screen when KSP enters
+          that scene, or auto-load if "Switch automatically" is on.
         </Hint>
       </Stack>
 
@@ -298,15 +300,32 @@ export function MissionProfilesModal({
                 </ProfileHeader>
                 <ProfileActions>{renderRowActions(p)}</ProfileActions>
                 <BindingsRow>
-                  {BINDABLE_SCENES.map((scene) => (
-                    <FilterChip
-                      key={scene}
-                      label={scene}
-                      selected={p.sceneBindings?.includes(scene) ?? false}
-                      onToggle={() => toggleBindingFor(p, scene)}
-                    />
-                  ))}
+                  <BindingsLabel>
+                    {boundScenesText(p.sceneBindings)}
+                  </BindingsLabel>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    aria-expanded={editingScenesId === p.id}
+                    onClick={() =>
+                      setEditingScenesId(editingScenesId === p.id ? null : p.id)
+                    }
+                  >
+                    {editingScenesId === p.id ? "Done" : "Change scenes"}
+                  </Button>
                 </BindingsRow>
+                {editingScenesId === p.id && (
+                  <BindingsRow>
+                    {BINDABLE_SCENES.map((scene) => (
+                      <FilterChip
+                        key={scene}
+                        label={SCENE_LABELS[scene]}
+                        selected={p.sceneBindings?.includes(scene) ?? false}
+                        onToggle={() => toggleBindingFor(p, scene)}
+                      />
+                    ))}
+                  </BindingsRow>
+                )}
                 <Tooltip
                   text={
                     (p.sceneBindings?.length ?? 0) === 0
@@ -339,6 +358,13 @@ export function MissionProfilesModal({
       </Stack>
     </Wrap>
   );
+}
+
+function boundScenesText(bindings: readonly BindableScene[] | undefined) {
+  const bound = BINDABLE_SCENES.filter((s) => bindings?.includes(s));
+  return bound.length === 0
+    ? "Not offered in any scene"
+    : `Offered in: ${bound.map((s) => SCENE_LABELS[s]).join(", ")}`;
 }
 
 /**

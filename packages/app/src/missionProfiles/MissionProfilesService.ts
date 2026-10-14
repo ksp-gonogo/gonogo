@@ -32,6 +32,22 @@ export const BINDABLE_SCENES = [
 
 export type BindableScene = (typeof BINDABLE_SCENES)[number];
 
+/** The name a player knows each bindable scene by. */
+export const SCENE_LABELS: Record<BindableScene, string> = {
+  SpaceCenter: "Space Center",
+  Editor: "Editor",
+  Flight: "Flight",
+  TrackingStation: "Tracking Station",
+};
+
+/** The scene as a phrase for a sentence ("Now in flight"). */
+export const SCENE_PHRASES: Record<BindableScene, string> = {
+  SpaceCenter: "at the Space Center",
+  Editor: "in the Editor",
+  Flight: "in flight",
+  TrackingStation: "at the Tracking Station",
+};
+
 export interface MissionProfile {
   id: string;
   name: string;

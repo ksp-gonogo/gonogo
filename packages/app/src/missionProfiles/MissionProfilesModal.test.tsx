@@ -78,4 +78,36 @@ describe("MissionProfilesModal", () => {
     expect(metaText()).toContain("1 widget");
     expect(metaText()).toContain("1min 30s");
   });
+
+  describe("scenes", () => {
+    function renderWithBound() {
+      const svc = new MissionProfilesService("main", memoryStorage());
+      svc.save("Launch", ITEMS, LAYOUTS, ["SpaceCenter", "Editor"]);
+      return render(
+        <MissionProfilesProvider service={svc}>
+          <MissionProfilesModal
+            currentItems={ITEMS}
+            currentLayouts={LAYOUTS}
+            onLoad={() => {}}
+          />
+        </MissionProfilesProvider>,
+      );
+    }
+
+    it("names scenes in player words and says a layout can follow several", () => {
+      renderWithBound();
+
+      expect(screen.getByText("Space Center")).toBeTruthy();
+      expect(screen.getByText("Tracking Station")).toBeTruthy();
+      expect(screen.queryByText("TrackingStation")).toBeNull();
+      expect(screen.getByText(/can follow several scenes/)).toBeTruthy();
+    });
+
+    it("shows a saved row's bound scenes as text, not as four chips", () => {
+      renderWithBound();
+
+      expect(screen.getByText("Offered in: Space Center, Editor")).toBeTruthy();
+      expect(screen.getAllByText("Editor")).toHaveLength(1);
+    });
+  });
 });

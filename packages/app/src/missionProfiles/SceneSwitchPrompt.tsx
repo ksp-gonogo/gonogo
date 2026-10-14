@@ -4,7 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import type { Layouts } from "react-grid-layout";
 import type { DashboardItem } from "../components/Dashboard";
 import { useMissionProfilesService } from "./MissionProfilesContext";
-import type { BindableScene, MissionProfile } from "./MissionProfilesService";
+import {
+  type BindableScene,
+  type MissionProfile,
+  SCENE_PHRASES,
+} from "./MissionProfilesService";
 
 interface SceneSwitchPromptProps {
   /** Called when the profile is loaded, either via the prompt or auto-switch. */
@@ -22,9 +26,10 @@ interface SceneSwitchPromptProps {
  * immediately and no prompt is shown.
  *
  * The model is "never switch away because of a scene change, only
- * switch *to* a profile when entering a tagged scene". Initial mount
- * is treated as a non-transition so reloading the page doesn't fire
- * a prompt for whatever scene the host happens to be in.
+ * switch *to* a profile when entering a tagged scene". The scene reads
+ * as Unknown until the first telemetry frame arrives, so the first known
+ * scene is the starting point rather than a transition: reloading the
+ * page never prompts for the scene the game is already in.
  *
  * Designed to live inside a `BannerStack`, so positioning is in-flow,
  * no `bottom` prop. The stack owns viewport placement.
@@ -41,12 +46,12 @@ export function SceneSwitchPrompt({
   } | null>(null);
 
   useEffect(() => {
+    // No telemetry yet: not a scene, so neither the start nor a change.
+    if (!scene || scene === "Unknown") return;
     const previous = previousSceneRef.current;
-    previousSceneRef.current = scene ?? null;
+    previousSceneRef.current = scene;
 
-    // Initial mount has no previous, treat it as non-transition.
     if (previous === null) return;
-    if (!scene) return;
     if (scene === previous) return;
 
     const profile = svc.findForScene(scene);
@@ -68,7 +73,7 @@ export function SceneSwitchPrompt({
 
   return (
     <FabPrompt
-      label={`Switch to ${active.profile.name}?`}
+      label={`Now ${SCENE_PHRASES[active.scene]}: switch to ${active.profile.name}?`}
       acceptLabel={`Load layout ${active.profile.name}`}
       onAccept={() => {
         onLoad(active.profile.items, active.profile.layouts);
