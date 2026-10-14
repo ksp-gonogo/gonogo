@@ -475,6 +475,43 @@ describe("AutoRecordController", () => {
     });
   });
 
+  it("stores the part in hand once a minute of page time has passed, so a closed tab loses at most that", async () => {
+    const rig = buildRig();
+    const save = vi.spyOn(rig.missionStore, "saveMissionPart");
+    let pageMs = 0;
+    const pageClock = vi
+      .spyOn(performance, "now")
+      .mockImplementation(() => pageMs);
+    try {
+      render(
+        <TelemetryProvider client={rig.client} store={rig.store}>
+          <AutoRecordController missionHistoryEnabled />
+        </TelemetryProvider>,
+      );
+
+      start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+      for (let ut = 1; ut <= 5; ut += 1) tickFrame(rig, ut, "vA", "Alpha");
+      expect(save).not.toHaveBeenCalled();
+
+      pageMs = 60_000;
+      tickFrame(rig, 6, "vA", "Alpha");
+      expect(save).toHaveBeenCalledTimes(1);
+      expect(getAutoRecordStatus().recording).toBe(true);
+
+      // The next part is timed from the one just stored.
+      pageMs = 90_000;
+      tickFrame(rig, 7, "vA", "Alpha");
+      expect(save).toHaveBeenCalledTimes(1);
+
+      await Promise.allSettled(save.mock.results.map((result) => result.value));
+      const [flight] = await rig.source.listFlights();
+      expect(flight).toMatchObject({ firstFrameUt: 1, lastFrameUt: 6 });
+    } finally {
+      pageClock.mockRestore();
+    }
+    await act(async () => {});
+  });
+
   it("does not start recording a flight that has ended when the master switch is turned back on", async () => {
     const rig = buildRig();
     const tree = (enabled: boolean) => (

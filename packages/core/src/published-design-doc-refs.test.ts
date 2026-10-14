@@ -125,7 +125,7 @@ describe("design-document references on the published comment surface", () => {
     );
     const shouldMatch = [
       "see local_docs/reports/video-worker-report.md",
-      "docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md",
+      "docs/superpowers/plans/notes.md",
       "the contribution-slots-spec.md ruling",
       "Uplink architecture spec §3.1",
       "PROPOSAL (design D-D)",
