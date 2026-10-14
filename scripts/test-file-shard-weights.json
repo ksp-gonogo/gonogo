@@ -34,7 +34,7 @@
   "packages/components/src/PowerSystems/snapshots.test.tsx": 9,
   "packages/components/src/SemiMajorAxis/snapshots.test.tsx": 28,
   "packages/components/src/SpaceCenterStatus/snapshots.test.tsx": 48,
-  "packages/components/src/SystemView/liveTickPlacementRate.integration.test.tsx": 3,
+  "packages/components/src/TrackingStation/liveTickPlacementRate.integration.test.tsx": 3,
   "packages/components/src/TargetPicker/index.test.tsx": 7,
   "packages/components/src/Rendezvous/snapshots.test.tsx": 10,
   "packages/components/src/ResearchAndDevelopment/index.test.tsx": 3,

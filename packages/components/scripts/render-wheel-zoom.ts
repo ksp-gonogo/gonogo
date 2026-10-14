@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Records real wheel input over a scrolling dashboard that holds a System View
+ * Records real wheel input over a scrolling dashboard that holds a Tracking Station
  * and a Ground Track, for the revision in the working tree and, with `--before
  * <ref>`, for the widget library as it was at a git revision, from the same
  * scene and the same input. Output goes to `--out` (default
@@ -22,7 +22,7 @@
  * starts at that limit), or `page then diagram` (the notches before the pointer
  * moves scroll the page, the ones after it zoom the diagram).
  *
- * `--widget system-view|ground-track|ship-map` and `--gesture <text in the label>`
+ * `--widget tracking-station|ground-track|ship-map` and `--gesture <text in the label>`
  * narrow the run, `--repeat <n>` repeats each gesture.
  *
  * Video is recorded for chromium only and needs ffmpeg on the path.
@@ -260,7 +260,7 @@ const GESTURES: Gesture[] = [
 
 interface Measure {
   scrollY: number;
-  /** System View: its viewBox. Ship Map: the transform of its drawing. Ground Track: hash of the base canvas pixels. */
+  /** Tracking Station: its viewBox. Ship Map: the transform of its drawing. Ground Track: hash of the base canvas pixels. */
   view: string;
 }
 
@@ -324,7 +324,7 @@ async function cursor(page: Page, x: number, y: number) {
 const TILES = [
   {
     id: "scene-system",
-    widget: "system-view",
+    widget: "tracking-station",
     ready: "#scene-system svg[viewBox]",
   },
   { id: "scene-map", widget: "ground-track", ready: "#scene-map canvas" },

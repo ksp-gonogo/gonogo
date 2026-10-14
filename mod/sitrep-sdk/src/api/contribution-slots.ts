@@ -159,19 +159,19 @@ export interface CommSignalHopRateEntry {
 }
 
 /**
- * How strongly a System View entity is drawn when its style names no tone
+ * How strongly a Tracking Station entity is drawn when its style names no tone
  * or colour: `"faint"` is dim, `"normal"` is the default, `"bright"` stands out.
  * Useful for dimming or highlighting an entity without choosing a colour. Used
- * by the System View.
+ * by the Tracking Station.
  *
  * @category Widget slots
  */
 export type SystemEntityEmphasis = "faint" | "normal" | "bright";
 
 /**
- * How a System View entity is drawn. Every field is optional.
+ * How a Tracking Station entity is drawn. Every field is optional.
  * Useful for making an entity read as quiet, important or alarming. Used by the
- * System View.
+ * Tracking Station.
  *
  * @category Widget slots
  */
@@ -188,7 +188,7 @@ export interface SystemEntityStyle {
 }
 
 /**
- * Label and value rows for a System View entity, keyed by label. They are the
+ * Label and value rows for a Tracking Station entity, keyed by label. They are the
  * entity's accessible name, joined as `label: value`, and fall back to its `id`
  * when empty.
  * Useful for telling the operator what a selected entity is. Used by the System
@@ -208,7 +208,7 @@ export type SystemEntityMeta = Readonly<
  *
  * A shape that draws only the whole orbit may leave both out, and then marks no
  * place on the ring. A point needs both, and is not drawn without them.
- * Useful for placing a vessel or a relay on its orbit in the System View.
+ * Useful for placing a vessel or a relay on its orbit in the Tracking Station.
  *
  * @category Widget slots
  */
@@ -236,7 +236,7 @@ export interface SystemEntityOrbitPosition {
 /**
  * A place given as an offset from a named body's centre, for anything that is
  * not on an orbit.
- * Useful for placing something that does not orbit in the System View.
+ * Useful for placing something that does not orbit in the Tracking Station.
  *
  * @category Widget slots
  */
@@ -259,7 +259,7 @@ export interface SystemEntityFixedPosition {
  * marks it held when the body's place is. The body need not orbit the body the
  * diagram is centred on.
  * Useful for putting a marker on a body without working out where it is. Used by
- * the System View.
+ * the Tracking Station.
  *
  * @category Widget slots
  */
@@ -276,10 +276,10 @@ export interface SystemEntitySubjectPosition {
 }
 
 /**
- * Where a System View entity is: on an orbit, at a fixed offset from a body, or
+ * Where a Tracking Station entity is: on an orbit, at a fixed offset from a body, or
  * where a named body is. An entity whose position holds a non-finite number is
  * not drawn.
- * Useful for saying where in the System View an entity goes.
+ * Useful for saying where in the Tracking Station an entity goes.
  *
  * @category Widget slots
  */
@@ -289,7 +289,7 @@ export type SystemEntityPosition =
   | SystemEntitySubjectPosition;
 
 /**
- * What a System View entity looks like, by `kind`:
+ * What a Tracking Station entity looks like, by `kind`:
  *
  * - `"point"`: a marker of `radiusPx` screen pixels, 4 when absent
  * - `"orbit-path"`: the whole ellipse of the entity's `position`, which must be an orbit
@@ -300,7 +300,7 @@ export type SystemEntityPosition =
  * Drawn back to front as orbit paths, then blobs and pulses, then lines, then
  * points, unless the entity sets `zHint`.
  * Useful for choosing whether an entity shows as a marker, an orbit, a line, a
- * disc or a moving front. Used by the System View.
+ * disc or a moving front. Used by the Tracking Station.
  *
  * @category Widget slots
  */
@@ -341,15 +341,15 @@ export type SystemEntityShape =
     };
 
 /**
- * One thing drawn on the System View diagram, contributed to
- * `system-view.entities`: a vessel's orbit, a connection line, a marker, a
+ * One thing drawn on the Tracking Station diagram, contributed to
+ * `tracking-station.entities`: a vessel's orbit, a connection line, a marker, a
  * travelling front.
  *
  * A contribution returns plain positions and shapes; the widget projects them
  * into the frame it is drawing, at its own pan and zoom. An entity whose parent
  * is not the body the diagram is centred on is not drawn.
  * Useful for showing the operator something the stock bodies and vessels do not,
- * such as a relay link or a signal front. Used by the System View.
+ * such as a relay link or a signal front. Used by the Tracking Station.
  *
  * @category Widget slots
  */
@@ -377,8 +377,8 @@ export interface SystemEntity {
 }
 
 /**
- * A contact status for one vessel on the System View diagram, contributed to
- * `system-view.vessel-status`.
+ * A contact status for one vessel on the Tracking Station diagram, contributed to
+ * `tracking-station.vessel-status`.
  *
  * The widget reads the entry whose `target` is the vessel it is plotting. It
  * restyles that vessel's marker and captions the diagram with the vessel's name
@@ -390,7 +390,7 @@ export interface SystemEntity {
  *
  * @category Widget slots
  */
-export interface SystemViewVesselStatusEntry {
+export interface TrackingStationVesselStatusEntry {
   /** The vessel this entry is about: its `vesselId` from `vessel.identity`. */
   target: string;
   /** `"info"` draws the marker as predicted, `"warn"` as overdue, `"nogo"` as lost. */
@@ -404,11 +404,11 @@ export interface SystemViewVesselStatusEntry {
 }
 
 /**
- * How big a System View projection draws, by `kind`: `"auto-fit-metres"` fits
+ * How big a Tracking Station projection draws, by `kind`: `"auto-fit-metres"` fits
  * the drawn orbits about the frame body, for coordinates in metres centred on
  * it; `"fixed-units"` holds a half-extent of `units` in the projection's own
  * coordinates.
- * Useful for fitting the System View's picture to its frame.
+ * Useful for fitting the Tracking Station's picture to its frame.
  *
  * @category Widget slots
  */
@@ -425,15 +425,15 @@ export type SystemProjectionExtent =
     };
 
 /**
- * One reference frame the System View can draw its whole picture in,
- * contributed to `system-view.projection`. The operator picks among the entries
+ * One reference frame the Tracking Station can draw its whole picture in,
+ * contributed to `tracking-station.projection`. The operator picks among the entries
  * offered for the body the diagram is centred on.
  * Useful for letting the operator view the system in a frame a mod adds. Used by
- * the System View's frame picker.
+ * the Tracking Station's frame picker.
  *
  * @category Widget slots
  */
-export interface SystemViewProjection {
+export interface TrackingStationProjection {
   /** Stable id. The operator's pinned choice is saved as this. */
   id: string;
   /** What the operator reads in the frame picker. */
@@ -715,32 +715,32 @@ declare module "./types" {
       entry: ShipMapPartMetaEntry;
     };
     /**
-     * Things drawn on the System View diagram, such as a relay's orbit, a
+     * Things drawn on the Tracking Station diagram, such as a relay's orbit, a
      * line between two vessels or a front crossing the system. The widget
      * places each entry at its own pan and zoom, and draws only those around
      * the body the diagram is centred on. Returns {@link SystemEntity}
      * entries.
      */
-    "system-view.entities": {
+    "tracking-station.entities": {
       entry: SystemEntity;
     };
     /**
-     * A contact status for the vessel the System View plots, such as that it
+     * A contact status for the vessel the Tracking Station plots, such as that it
      * has gone silent for too long. The widget restyles the vessel's marker
      * and captions the diagram from the first entry whose `target` is that
-     * vessel. Returns {@link SystemViewVesselStatusEntry} entries.
+     * vessel. Returns {@link TrackingStationVesselStatusEntry} entries.
      */
-    "system-view.vessel-status": {
-      entry: SystemViewVesselStatusEntry;
+    "tracking-station.vessel-status": {
+      entry: TrackingStationVesselStatusEntry;
     };
     /**
-     * Reference frames the System View can draw its whole picture in, offered
+     * Reference frames the Tracking Station can draw its whole picture in, offered
      * to the operator in the frame picker for the body the diagram is centred
      * on, such as a frame that rotates with a moon. Returns
-     * {@link SystemViewProjection} entries.
+     * {@link TrackingStationProjection} entries.
      */
-    "system-view.projection": {
-      entry: SystemViewProjection;
+    "tracking-station.projection": {
+      entry: TrackingStationProjection;
     };
     /**
      * Tints a whole crew row by tone; the widget picks the colour. The

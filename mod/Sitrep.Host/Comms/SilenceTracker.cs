@@ -20,7 +20,7 @@ namespace Sitrep.Host.Comms
     /// <summary>
     /// The basis a <see cref="SilenceDeadlinePolicy"/> used to produce a
     /// deadline, carried onto the wire as <c>deadlineBasis</c> so an operator
-    /// (or a future SystemView countdown) can tell "this is the vessel's own
+    /// (or a future TrackingStation countdown) can tell "this is the vessel's own
     /// orbital period" from "this is just the policy's floor/ceiling because
     /// there was nothing better to go on".
     /// </summary>
@@ -408,7 +408,7 @@ namespace Sitrep.Host.Comms
                 // First sign of silence: arm the clock and ask the policy
                 // once, up front, for a stable deadline. Recomputing it on
                 // every subsequent silent sample would make a future
-                // SystemView countdown jitter as the unloaded vessel's orbit
+                // TrackingStation countdown jitter as the unloaded vessel's orbit
                 // evolves underneath it.
                 s.State = SilenceState.Silent;
                 s.SilenceSinceUt = ut;

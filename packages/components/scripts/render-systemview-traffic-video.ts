@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Records SystemView's command-traffic decoration as mp4 video,
+ * Records TrackingStation's command-traffic decoration as mp4 video,
  * via a real live clock and Playwright's `recordVideo` context option:
  * unlike the deterministic PNG/visual-gate path, animation actually runs
  * here (see `scripts/probe/capture-entry.tsx`'s own doc comment).
@@ -40,7 +40,7 @@
  *   contributed-ring suppression (round-4 fix) now keys off both
  *   `identity.vesselId` and `vessel.orbit`, so withholding the latter no
  *   longer leaves v-active markerless, it falls through to the same faint
- *   `orbit-path` ring `system-view-vessel-orbits` already draws for
+ *   `orbit-path` ring `tracking-station-vessel-orbits` already draws for
  *   v-relay/v-other (`trackingStation.catalog`' own per-vessel `orbit` field, never
  *   filtered by this capture): every hop endpoint (home, v-relay, v-active)
  *   renders with a real marker, and the only accent-green on screen for the
@@ -257,7 +257,7 @@ function sceneEmits(): Array<{ topic: string; value: unknown }> {
  * still carries a full orbit on its roster entry (`trackingStation.catalog`, above),
  * so the traffic route's own endpoint still resolves a real position for
  * the connection-line to join, and (round-4 fix) picks up the same faint
- * `orbit-path` ring/dot `system-view-vessel-orbits` draws for every other
+ * `orbit-path` ring/dot `tracking-station-vessel-orbits` draws for every other
  * roster vessel, since the active-vessel suppression in `index.tsx` no
  * longer fires without a real `vessel.orbit` sample. v-active just doesn't
  * get its own extra dedicated bright ring on top of that.
@@ -402,7 +402,7 @@ async function captureTraffic(probeHtmlOut: string): Promise<void> {
     );
 
     await evalRenderCapture(page, {
-      widgetId: "system-view",
+      widgetId: "tracking-station",
       config: { frame: "Kerbin" },
       w: 10,
       h: 12,
@@ -497,7 +497,7 @@ async function captureOrbits(probeHtmlOut: string): Promise<void> {
     );
 
     await evalRenderCapture(page, {
-      widgetId: "system-view",
+      widgetId: "tracking-station",
       config: { frame: "Kerbin" },
       w: 10,
       h: 12,

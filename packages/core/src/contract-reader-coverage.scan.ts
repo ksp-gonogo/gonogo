@@ -879,12 +879,12 @@ export const ELEMENT_READERS: readonly {
     only: ["source"],
   },
   {
-    file: "packages/components/src/SystemView/targetOrbit.ts",
+    file: "packages/components/src/TrackingStation/targetOrbit.ts",
     topic: "vessel.orbit",
     only: ["horizon.untilUt"],
   },
   {
-    file: "packages/components/src/SystemView/targetOrbit.ts",
+    file: "packages/components/src/TrackingStation/targetOrbit.ts",
     topic: "vessel.target",
     only: ["orbit.horizon.untilUt"],
   },

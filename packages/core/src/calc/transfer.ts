@@ -21,9 +21,9 @@
 
 import type { Severity } from "@ksp-gonogo/ui-kit";
 
-// Phase-angle core, moved here from packages/components SystemView so both the
-// SystemView diagram and the Transfer Window widget share ONE implementation;
-// SystemView/transferWindow.ts now re-exports these.
+// Phase-angle core, moved here from packages/components TrackingStation so both the
+// TrackingStation diagram and the Transfer Window widget share ONE implementation;
+// TrackingStation/transferWindow.ts now re-exports these.
 
 /**
  * Ideal coplanar Hohmann departure phase angle (degrees) for a transfer from
@@ -69,7 +69,7 @@ export function transferStatus(deltaDeg: number): TransferStatus {
 }
 
 /**
- * Fold `TransferStatus` onto the canonical `Severity` scale so SystemView and
+ * Fold `TransferStatus` onto the canonical `Severity` scale so TrackingStation and
  * the Transfer Window widget can contribute their window state to a panel
  * summary and read the same colours as every other status surface. Per the spec
  * mapping table (Scale B): `go` is go, the approaching `soon` window is a

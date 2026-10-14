@@ -174,7 +174,7 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "not a quantity: renders a DIMENSION (L, M, T exponents), the thing a unit has",
   },
-  "packages/components/src/SystemView/systemEntities.ts": {
+  "packages/components/src/TrackingStation/systemEntities.ts": {
     count: 1,
     why: "not a quantity: builds an entity's accessible name from its metadata",
   },

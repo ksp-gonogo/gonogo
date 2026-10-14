@@ -18,7 +18,7 @@ import "./science-data";
 import "./ship-map";
 import "./space-center-status";
 import "./administration-building";
-import "./system-view";
+import "./tracking-station";
 import "./target-picker";
 import "./rendezvous";
 import "./research-and-development";

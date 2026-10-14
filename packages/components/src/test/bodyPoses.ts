@@ -1,5 +1,5 @@
 import type { BodyPose, SystemPoses } from "@ksp-gonogo/sitrep-client";
-import type { CelestialBody } from "../SystemView/useCelestialBodies";
+import type { CelestialBody } from "../TrackingStation/useCelestialBodies";
 
 /** Where a fixture body sits along its orbit, which a body does not carry: it is a pose's, not the catalogue's. */
 const ANOMALY_OF = new WeakMap<CelestialBody, number | null>();

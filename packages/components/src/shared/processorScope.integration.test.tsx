@@ -3,7 +3,7 @@ import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { FuelStatusComponent } from "../FuelStatus/index";
-import { SystemViewComponent } from "../SystemView/index";
+import { TrackingStationComponent } from "../TrackingStation/index";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -97,7 +97,7 @@ function mountBoth() {
   );
   const systemView = render(
     <system.Provider>
-      <SystemViewComponent config={{ frame: "Kerbin" }} id="sv-b" />
+      <TrackingStationComponent config={{ frame: "Kerbin" }} id="sv-b" />
       <DashboardItemContext.Provider value={{ instanceId: "fuel-b" }}>
         <FuelStatusComponent id="fuel-b" w={8} h={14} />
       </DashboardItemContext.Provider>

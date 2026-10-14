@@ -8179,6 +8179,30 @@
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
+        "key": "sitrep-sdk . ContributionRegistry#\"system-view.entities\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.entities\""
+      },
+      {
+        "key": "sitrep-sdk . ContributionRegistry#\"system-view.projection\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.projection\""
+      },
+      {
+        "key": "sitrep-sdk . ContributionRegistry#\"system-view.vessel-status\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.vessel-status\""
+      },
+      {
+        "key": "sitrep-sdk . ContributionRegistry#\"tracking-station.entities\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.entities\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk . ContributionRegistry#\"tracking-station.projection\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.projection\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk . ContributionRegistry#\"tracking-station.vessel-status\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.vessel-status\"; a new required member of the registry"
+      },
+      {
         "key": "sitrep-sdk . DeployedExperimentContext#held",
         "note": "DeployedExperimentContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
@@ -8423,6 +8447,14 @@
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
+        "key": "sitrep-sdk . SlotRegistry#\"system-view.actions\"",
+        "note": "System View is now the Tracking Station widget; renamed to SlotRegistry#\"tracking-station.actions\""
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"system-view.overlay\"",
+        "note": "System View is now the Tracking Station widget; renamed to SlotRegistry#\"tracking-station.overlay\""
+      },
+      {
         "key": "sitrep-sdk . SlotRegistry#\"targeting.camera\"",
         "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
       },
@@ -8433,6 +8465,14 @@
       {
         "key": "sitrep-sdk . SlotRegistry#\"tech-tree.sections\"",
         "note": "Removed with the rename of the Tech Tree widget to Research and Development; its sections slot moves to research-and-development.sections, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"tracking-station.actions\"",
+        "note": "The Tracking Station widget's slot, renamed from SlotRegistry#\"system-view.actions\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"tracking-station.overlay\"",
+        "note": "The Tracking Station widget's slot, renamed from SlotRegistry#\"system-view.overlay\"; a new required member of the registry"
       },
       {
         "key": "sitrep-sdk . StatEntry#value?",
@@ -8521,6 +8561,54 @@
       {
         "key": "sitrep-sdk . SystemOverlayContext#place",
         "note": "Lands a point in metres from the centre body where the bodies are drawn, in whatever frame the diagram turns with; the plot scale alone is right only in the plain inertial frame"
+      },
+      {
+        "key": "sitrep-sdk . SystemViewProjection",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection"
+      },
+      {
+        "key": "sitrep-sdk . SystemViewProjection#choice",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#choice"
+      },
+      {
+        "key": "sitrep-sdk . SystemViewProjection#extent",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#extent"
+      },
+      {
+        "key": "sitrep-sdk . SystemViewProjection#frameBodyIndex",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#frameBodyIndex"
+      },
+      {
+        "key": "sitrep-sdk . SystemViewProjection#id",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#id"
+      },
+      {
+        "key": "sitrep-sdk . SystemViewProjection#label",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#label"
+      },
+      {
+        "key": "sitrep-sdk . SystemViewVesselStatusEntry",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry"
+      },
+      {
+        "key": "sitrep-sdk . SystemViewVesselStatusEntry#emphasis",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#emphasis"
+      },
+      {
+        "key": "sitrep-sdk . SystemViewVesselStatusEntry#label",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#label"
+      },
+      {
+        "key": "sitrep-sdk . SystemViewVesselStatusEntry#target",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#target"
+      },
+      {
+        "key": "sitrep-sdk . SystemViewVesselStatusEntry#tone",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#tone"
+      },
+      {
+        "key": "sitrep-sdk . SystemViewVesselStatusEntry#tooltip?",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#tooltip?"
       },
       {
         "key": "sitrep-sdk . TOPIC_IDS",
@@ -9043,6 +9131,30 @@
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"system-view.entities\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.entities\""
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"system-view.projection\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.projection\""
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"system-view.vessel-status\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.vessel-status\""
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"tracking-station.entities\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.entities\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"tracking-station.projection\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.projection\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"tracking-station.vessel-status\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.vessel-status\"; a new required member of the registry"
+      },
+      {
         "key": "sitrep-sdk ./registry ~DepKey",
         "note": "Follows ContributionDep: no { reading } form to key"
       },
@@ -9141,6 +9253,54 @@
       {
         "key": "sitrep-sdk ./registry ~SystemUplinksTopicPayloadMap#\"system.uplinks\"",
         "note": "Gains the optional modSettings flag the host already sends on each entry, so a client can tell whether an Uplink has host mod settings; a reader that ignores it is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemViewProjection",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemViewProjection#choice",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#choice"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemViewProjection#extent",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#extent"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemViewProjection#frameBodyIndex",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#frameBodyIndex"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemViewProjection#id",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#id"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemViewProjection#label",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#label"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemViewVesselStatusEntry",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemViewVesselStatusEntry#emphasis",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#emphasis"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemViewVesselStatusEntry#label",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#label"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemViewVesselStatusEntry#target",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#target"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemViewVesselStatusEntry#tone",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#tone"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemViewVesselStatusEntry#tooltip?",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#tooltip?"
       },
       {
         "key": "sitrep-sdk ./registry ~ThemeDefinition#theme",
@@ -9551,6 +9711,30 @@
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"system-view.entities\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.entities\""
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"system-view.projection\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.projection\""
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"system-view.vessel-status\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.vessel-status\""
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"tracking-station.entities\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.entities\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"tracking-station.projection\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.projection\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"tracking-station.vessel-status\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.vessel-status\"; a new required member of the registry"
+      },
+      {
         "key": "sitrep-sdk ./spine ~DepKey",
         "note": "Follows ContributionDep: no { reading } form to key"
       },
@@ -9671,6 +9855,54 @@
         "note": "Gains the optional modSettings flag the host already sends on each entry, so a client can tell whether an Uplink has host mod settings; a reader that ignores it is unchanged"
       },
       {
+        "key": "sitrep-sdk ./spine ~SystemViewProjection",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemViewProjection#choice",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#choice"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemViewProjection#extent",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#extent"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemViewProjection#frameBodyIndex",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#frameBodyIndex"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemViewProjection#id",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#id"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemViewProjection#label",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#label"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemViewVesselStatusEntry",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemViewVesselStatusEntry#emphasis",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#emphasis"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemViewVesselStatusEntry#label",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#label"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemViewVesselStatusEntry#target",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#target"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemViewVesselStatusEntry#tone",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#tone"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemViewVesselStatusEntry#tooltip?",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#tooltip?"
+      },
+      {
         "key": "sitrep-sdk ./spine ~Transport#onMessage",
         "note": "Gains an optional delivery argument, so a transport can mark a message as a replay of the past; a listener that ignores it is unchanged"
       },
@@ -9757,6 +9989,30 @@
       {
         "key": "sitrep-sdk ./testing ~ContributionRegistry#\"strategies.screens\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"system-view.entities\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.entities\""
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"system-view.projection\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.projection\""
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"system-view.vessel-status\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.vessel-status\""
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"tracking-station.entities\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.entities\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"tracking-station.projection\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.projection\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"tracking-station.vessel-status\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.vessel-status\"; a new required member of the registry"
       },
       {
         "key": "sitrep-sdk ./testing ~DepKey",
@@ -9995,6 +10251,14 @@
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"system-view.actions\"",
+        "note": "System View is now the Tracking Station widget; renamed to SlotRegistry#\"tracking-station.actions\""
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"system-view.overlay\"",
+        "note": "System View is now the Tracking Station widget; renamed to SlotRegistry#\"tracking-station.overlay\""
+      },
+      {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"targeting.camera\"",
         "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
       },
@@ -10005,6 +10269,14 @@
       {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"tech-tree.sections\"",
         "note": "Removed with the rename of the Tech Tree widget to Research and Development; its sections slot moves to research-and-development.sections, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"tracking-station.actions\"",
+        "note": "The Tracking Station widget's slot, renamed from SlotRegistry#\"system-view.actions\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"tracking-station.overlay\"",
+        "note": "The Tracking Station widget's slot, renamed from SlotRegistry#\"system-view.overlay\"; a new required member of the registry"
       },
       {
         "key": "sitrep-sdk ./testing ~StatEntry#value?",
@@ -10089,6 +10361,54 @@
       {
         "key": "sitrep-sdk ./testing ~SystemUplinksTopicPayloadMap#\"system.uplinks\"",
         "note": "Gains the optional modSettings flag the host already sends on each entry, so a client can tell whether an Uplink has host mod settings; a reader that ignores it is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemViewProjection",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemViewProjection#choice",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#choice"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemViewProjection#extent",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#extent"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemViewProjection#frameBodyIndex",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#frameBodyIndex"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemViewProjection#id",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#id"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemViewProjection#label",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationProjection#label"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemViewVesselStatusEntry",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemViewVesselStatusEntry#emphasis",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#emphasis"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemViewVesselStatusEntry#label",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#label"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemViewVesselStatusEntry#target",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#target"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemViewVesselStatusEntry#tone",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#tone"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemViewVesselStatusEntry#tooltip?",
+        "note": "System View is now the Tracking Station widget; renamed to TrackingStationVesselStatusEntry#tooltip?"
       },
       {
         "key": "sitrep-sdk ./testing ~TargetingHudContext",
@@ -10265,6 +10585,30 @@
       {
         "key": "ui-kit . ContributionRegistry#\"strategies.screens\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"system-view.entities\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.entities\""
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"system-view.projection\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.projection\""
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"system-view.vessel-status\"",
+        "note": "System View is now the Tracking Station widget; renamed to ContributionRegistry#\"tracking-station.vessel-status\""
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"tracking-station.entities\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.entities\"; a new required member of the registry"
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"tracking-station.projection\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.projection\"; a new required member of the registry"
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"tracking-station.vessel-status\"",
+        "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.vessel-status\"; a new required member of the registry"
       },
       {
         "key": "ui-kit . ControlDelayStream",
@@ -10459,6 +10803,14 @@
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
+        "key": "ui-kit . SlotRegistry#\"system-view.actions\"",
+        "note": "System View is now the Tracking Station widget; renamed to SlotRegistry#\"tracking-station.actions\""
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"system-view.overlay\"",
+        "note": "System View is now the Tracking Station widget; renamed to SlotRegistry#\"tracking-station.overlay\""
+      },
+      {
         "key": "ui-kit . SlotRegistry#\"targeting.camera\"",
         "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
       },
@@ -10469,6 +10821,14 @@
       {
         "key": "ui-kit . SlotRegistry#\"tech-tree.sections\"",
         "note": "Removed with the rename of the Tech Tree widget to Research and Development; its sections slot moves to research-and-development.sections, with no alias"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"tracking-station.actions\"",
+        "note": "The Tracking Station widget's slot, renamed from SlotRegistry#\"system-view.actions\"; a new required member of the registry"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"tracking-station.overlay\"",
+        "note": "The Tracking Station widget's slot, renamed from SlotRegistry#\"system-view.overlay\"; a new required member of the registry"
       },
       {
         "key": "ui-kit . Spinner",
@@ -11627,6 +11987,54 @@
       {
         "key": "sitrep-sdk . TinyMode#equalRows?",
         "note": "Draws every essential as an equal row in shared columns with no large first figure, for a widget whose figures are peers. Optional, so a tiny mode without it is drawn as before"
+      },
+      {
+        "key": "sitrep-sdk . TrackingStationProjection",
+        "note": "The Tracking Station widget's name for SystemViewProjection"
+      },
+      {
+        "key": "sitrep-sdk . TrackingStationProjection#choice",
+        "note": "The Tracking Station widget's name for SystemViewProjection#choice"
+      },
+      {
+        "key": "sitrep-sdk . TrackingStationProjection#extent",
+        "note": "The Tracking Station widget's name for SystemViewProjection#extent"
+      },
+      {
+        "key": "sitrep-sdk . TrackingStationProjection#frameBodyIndex",
+        "note": "The Tracking Station widget's name for SystemViewProjection#frameBodyIndex"
+      },
+      {
+        "key": "sitrep-sdk . TrackingStationProjection#id",
+        "note": "The Tracking Station widget's name for SystemViewProjection#id"
+      },
+      {
+        "key": "sitrep-sdk . TrackingStationProjection#label",
+        "note": "The Tracking Station widget's name for SystemViewProjection#label"
+      },
+      {
+        "key": "sitrep-sdk . TrackingStationVesselStatusEntry",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry"
+      },
+      {
+        "key": "sitrep-sdk . TrackingStationVesselStatusEntry#emphasis",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#emphasis"
+      },
+      {
+        "key": "sitrep-sdk . TrackingStationVesselStatusEntry#label",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#label"
+      },
+      {
+        "key": "sitrep-sdk . TrackingStationVesselStatusEntry#target",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#target"
+      },
+      {
+        "key": "sitrep-sdk . TrackingStationVesselStatusEntry#tone",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#tone"
+      },
+      {
+        "key": "sitrep-sdk . TrackingStationVesselStatusEntry#tooltip?",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#tooltip?"
       },
       {
         "key": "sitrep-sdk . Transport#claimsAnswers?",
@@ -13029,16 +13437,16 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"system-view.actions\"",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"system-view.overlay\"",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
-      },
-      {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"target-picker.sections\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"tracking-station.actions\"",
+        "note": "The Tracking Station widget's slot, renamed from SlotRegistry#\"system-view.actions\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"tracking-station.overlay\"",
+        "note": "The Tracking Station widget's slot, renamed from SlotRegistry#\"system-view.overlay\"; a new required member of the registry"
       },
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"warp-control.stepper\"",
@@ -13171,6 +13579,54 @@
       {
         "key": "sitrep-sdk ./registry ~TinyMode#equalRows?",
         "note": "Draws every essential as an equal row in shared columns with no large first figure, for a widget whose figures are peers. Optional, so a tiny mode without it is drawn as before"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TrackingStationProjection",
+        "note": "The Tracking Station widget's name for SystemViewProjection"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TrackingStationProjection#choice",
+        "note": "The Tracking Station widget's name for SystemViewProjection#choice"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TrackingStationProjection#extent",
+        "note": "The Tracking Station widget's name for SystemViewProjection#extent"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TrackingStationProjection#frameBodyIndex",
+        "note": "The Tracking Station widget's name for SystemViewProjection#frameBodyIndex"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TrackingStationProjection#id",
+        "note": "The Tracking Station widget's name for SystemViewProjection#id"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TrackingStationProjection#label",
+        "note": "The Tracking Station widget's name for SystemViewProjection#label"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TrackingStationVesselStatusEntry",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TrackingStationVesselStatusEntry#emphasis",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#emphasis"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TrackingStationVesselStatusEntry#label",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#label"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TrackingStationVesselStatusEntry#target",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#target"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TrackingStationVesselStatusEntry#tone",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#tone"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TrackingStationVesselStatusEntry#tooltip?",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#tooltip?"
       },
       {
         "key": "sitrep-sdk ./registry ~UiKitTheme",
@@ -14037,6 +14493,54 @@
         "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
       },
       {
+        "key": "sitrep-sdk ./spine ~TrackingStationProjection",
+        "note": "The Tracking Station widget's name for SystemViewProjection"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~TrackingStationProjection#choice",
+        "note": "The Tracking Station widget's name for SystemViewProjection#choice"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~TrackingStationProjection#extent",
+        "note": "The Tracking Station widget's name for SystemViewProjection#extent"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~TrackingStationProjection#frameBodyIndex",
+        "note": "The Tracking Station widget's name for SystemViewProjection#frameBodyIndex"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~TrackingStationProjection#id",
+        "note": "The Tracking Station widget's name for SystemViewProjection#id"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~TrackingStationProjection#label",
+        "note": "The Tracking Station widget's name for SystemViewProjection#label"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~TrackingStationVesselStatusEntry",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~TrackingStationVesselStatusEntry#emphasis",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#emphasis"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~TrackingStationVesselStatusEntry#label",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#label"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~TrackingStationVesselStatusEntry#target",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#target"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~TrackingStationVesselStatusEntry#tone",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#tone"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~TrackingStationVesselStatusEntry#tooltip?",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#tooltip?"
+      },
+      {
         "key": "sitrep-sdk ./spine ~Transport#claimsAnswers?",
         "note": "New: a transport that is the mod's own connection says it can send a claim"
       },
@@ -14527,6 +15031,54 @@
       {
         "key": "sitrep-sdk ./testing ~TelemetryClientOptions#outstanding?",
         "note": "New option: the store a client keeps its outstanding commands in"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TrackingStationProjection",
+        "note": "The Tracking Station widget's name for SystemViewProjection"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TrackingStationProjection#choice",
+        "note": "The Tracking Station widget's name for SystemViewProjection#choice"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TrackingStationProjection#extent",
+        "note": "The Tracking Station widget's name for SystemViewProjection#extent"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TrackingStationProjection#frameBodyIndex",
+        "note": "The Tracking Station widget's name for SystemViewProjection#frameBodyIndex"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TrackingStationProjection#id",
+        "note": "The Tracking Station widget's name for SystemViewProjection#id"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TrackingStationProjection#label",
+        "note": "The Tracking Station widget's name for SystemViewProjection#label"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TrackingStationVesselStatusEntry",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TrackingStationVesselStatusEntry#emphasis",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#emphasis"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TrackingStationVesselStatusEntry#label",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#label"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TrackingStationVesselStatusEntry#target",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#target"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TrackingStationVesselStatusEntry#tone",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#tone"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TrackingStationVesselStatusEntry#tooltip?",
+        "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#tooltip?"
       },
       {
         "key": "sitrep-sdk ./testing ~Transport#claimsAnswers?",

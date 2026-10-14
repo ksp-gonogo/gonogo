@@ -1,7 +1,7 @@
 /**
  * Animation-capture probe entry: mounts a widget with a real, live-ticking
  * clock, unlike `probe-entry.tsx`'s deterministic `Date.now`-pinned mount,
- * so time-driven visuals (the SystemView command-traffic pulses) actually
+ * so time-driven visuals (the TrackingStation command-traffic pulses) actually
  * move frame to frame while a Playwright video recording runs. Kept as its
  * own bundle, entirely separate from `probe-entry.tsx`: the deterministic
  * PNG/visual-gate path never imports or depends on anything in this file.
@@ -9,7 +9,7 @@
  * A single live `TelemetryProvider` carries every topic, mirroring
  * `setupStreamFixture` (the widgets' own stream test-adapter, see
  * `selection.integration.test.tsx`/`commsTraffic.integration.test.tsx` for
- * the pattern this borrows): SystemView's `useTelemetry("vessel.orbit")`
+ * the pattern this borrows): TrackingStation's `useTelemetry("vessel.orbit")`
  * etc. are single-arg topic reads, routed through whichever
  * `TelemetryClient` is mounted, never the legacy `MockDataSource` registry.
  * The one difference from `setupStreamFixture`: this `ViewClock` uses its

@@ -238,7 +238,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * numbers and put a `Value` into `toFixed` the moment they were not.
    */
   "packages/components/src/shared/dockAngles.ts": 3,
-  "packages/components/src/SystemView/index.tsx": 7,
+  "packages/components/src/TrackingStation/index.tsx": 7,
   /*
    * TWO, and each is a boundary rather than arithmetic: a stream field that
    * arrives as a bare number, and a dot product handed to a reticle that draws
@@ -329,7 +329,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * numbers once and only here, for the perifocal rotation that is
    * trigonometry the algebra has no term for. Advancing the conic is
    * `solveConic`'s. Every patch walk (the ground track, the impact point, the
-   * SystemView arc) and the manoeuvre planner's propagation go through this
+   * TrackingStation arc) and the manoeuvre planner's propagation go through this
    * file rather than unwrapping on their own.
    */
   "mod/sitrep-sdk/src/spine/orbit-patches.ts": 5,

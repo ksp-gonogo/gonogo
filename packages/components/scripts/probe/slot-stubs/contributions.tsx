@@ -140,7 +140,7 @@ plantContribution("space-center-status.facilities", {
 /** How far from its body the stand-in entity sits: outside Kerbin, inside its SOI. */
 const ENTITY_OFFSET_M = 1_500_000;
 
-plantContribution("system-view.entities", {
+plantContribution("tracking-station.entities", {
   deps: ["trackingStation.bodies"],
   compute: (topics) =>
     stillTrue(topics["trackingStation.bodies"], null)?.bodies.flatMap((body) =>
@@ -157,14 +157,14 @@ plantContribution("system-view.entities", {
               },
               shape: { kind: "point" as const, radiusPx: 6 },
               style: { tone: "info" as const },
-              meta: { slot: "system-view.entities" },
+              meta: { slot: "tracking-station.entities" },
             },
           ]
         : [],
     ) ?? null,
 });
 
-plantContribution("system-view.vessel-status", {
+plantContribution("tracking-station.vessel-status", {
   deps: ["vessel.identity"],
   compute: (topics) => {
     const vessel = stillTrue(topics["vessel.identity"], null);
@@ -174,7 +174,7 @@ plantContribution("system-view.vessel-status", {
         target: vessel.vesselId,
         tone: "warn" as const,
         emphasis: "reckoned" as const,
-        label: "system-view.vessel-status",
+        label: "tracking-station.vessel-status",
       },
     ];
   },
@@ -185,7 +185,7 @@ plantContribution("system-view.vessel-status", {
  * stock entries never use, so a scene can pin it by id and the frame it draws
  * in is the one thing that differs from the host without it.
  */
-plantContribution("system-view.projection", {
+plantContribution("tracking-station.projection", {
   deps: ["trackingStation.bodies"],
   compute: (topics) =>
     stillTrue(topics["trackingStation.bodies"], null)?.bodies.flatMap((body) =>
@@ -193,7 +193,7 @@ plantContribution("system-view.projection", {
         ? [
             {
               id: `planted-slot-projection:${body.index}`,
-              label: "system-view.projection",
+              label: "tracking-station.projection",
               choice: {
                 kind: "parent-direction" as const,
                 bodyIndex: body.index,

@@ -1,6 +1,6 @@
 /**
  * A scrolling dashboard for recording wheel behaviour: filler blocks around a
- * System View tile and a Ground Track tile, mounted on one live provider, so a
+ * Tracking Station tile and a Ground Track tile, mounted on one live provider, so a
  * real wheel gesture can start on the page and carry over a diagram, or start
  * on a diagram. The widget library is imported by the generated entry that
  * bundles this file, so the same scene runs against any revision of it.
@@ -238,7 +238,7 @@ async function mountScene(): Promise<void> {
           <Block height={420} label="Dashboard, above the diagrams" />
           <Tile
             tileId="scene-system"
-            id="system-view"
+            id="tracking-station"
             config={{ frame: "Kerbin" }}
             w={10}
             h={7}

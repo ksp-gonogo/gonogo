@@ -119,7 +119,7 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
         "2. Does the app say it is connected? Under Connection, the Telemetry stream row reads CONNECTED once the browser has an open socket to the mod. Expect that from the main menu, before any save is loaded. DISCONNECTED, ERROR or RECONNECTING with a started mod means the problem is between the two computers: a wrong Host, or a firewall on the KSP computer. Windows and macOS both block incoming local-network connections by default.",
       ),
       text(
-        "3. Does a widget draw? Load any save, then add System View from the Add a widget button. It draws from the bodies alone, with no vessel and no flight scene. If it draws, the stream is arriving.",
+        "3. Does a widget draw? Load any save, then add Tracking Station from the Add a widget button. It draws from the bodies alone, with no vessel and no flight scene. If it draws, the stream is arriving.",
       ),
     ],
   },

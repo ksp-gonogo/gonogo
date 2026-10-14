@@ -75,7 +75,7 @@ const SCAN_ROOTS = styleguideScanRoots(
 // Current baseline. When you drop the count, lower this number in the
 // same commit: a count below the baseline fails. Goal: hold at 0.
 //
-// 1: `packages/components/src/SystemView/SystemDiagram.tsx`'s `#1a1a1a`, and it
+// 1: `packages/components/src/TrackingStation/SystemDiagram.tsx`'s `#1a1a1a`, and it
 // is PROSE rather than a colour: a doc comment quoting what
 // `--color-warn-on-status` resolves to. The scan reads a source file rather
 // than a stylesheet, so a hex it explains counts the same as one it uses.

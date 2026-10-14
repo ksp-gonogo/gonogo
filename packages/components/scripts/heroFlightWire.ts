@@ -88,7 +88,7 @@ function loadFixtureEmit(
 /** Kerbin, the Mun and Minmus under the sun, with Kerbin as the ground track's fixture states it. */
 function bodiesPayload(): unknown {
   const system = loadFixtureEmit(
-    "SystemView",
+    "TrackingStation",
     "kerbin-mun-encounter",
     "trackingStation.bodies",
   ).value as { bodies: Record<string, unknown>[] };

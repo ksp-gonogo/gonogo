@@ -5,7 +5,7 @@
     "vessel": "commsat (250 km LKO, Kerbin)",
     "body": "Kerbin",
     "provider": "principia-nbody",
-    "notes": "The same live Principia capture SystemView's partial-arc-n-body-prediction carries, pointed at the planner's own preview diagram: an integrating provider's elements with a bounded horizon, so the orbit the plan is laid over is the osculating conic sampled up to that horizon rather than a closed ellipse. No node is queued, deliberately, so nothing but the current trajectory is in the diagram. The emit carries no quality override, unlike SystemView's copy of the same capture, so it reads as a craft on rails."
+    "notes": "The same live Principia capture TrackingStation's partial-arc-n-body-prediction carries, pointed at the planner's own preview diagram: an integrating provider's elements with a bounded horizon, so the orbit the plan is laid over is the osculating conic sampled up to that horizon rather than a closed ellipse. No node is queued, deliberately, so nothing but the current trajectory is in the diagram. The emit carries no quality override, unlike TrackingStation's copy of the same capture, so it reads as a craft on rails."
   },
   "_stream": {
     "pinnedUt": 315659.495086983,

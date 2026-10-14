@@ -97,8 +97,8 @@ export type {
   SystemEntityStyle,
   SystemEntitySubjectPosition,
   SystemProjectionExtent,
-  SystemViewProjection,
-  SystemViewVesselStatusEntry,
+  TrackingStationProjection,
+  TrackingStationVesselStatusEntry,
 } from "./contribution-slots";
 export { FRAMEWORK_READS } from "./framework-reads";
 export type { GonogoHost } from "./host";

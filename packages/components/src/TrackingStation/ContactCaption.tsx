@@ -1,0 +1,46 @@
+import type { CSSProperties } from "react";
+import type { TrackingStationVesselStatusEntry } from "./vesselStatusContribution";
+
+export const FRAME_CAPTION: CSSProperties = {
+  fontSize: "var(--font-size-caption)",
+  color: "var(--color-text-muted)",
+  letterSpacing: "0.05em",
+  flex: "0 0 auto",
+};
+
+/**
+ * Renders the contributed `tracking-station.vessel-status` entry; TrackingStation only decides which severities are announced.
+ * `nogo` is assertive, `warn` polite, and `info` (often a countdown) is announced by neither, since a live region would read a ticking clock aloud forever.
+ */
+export function ContactCaption({
+  status,
+  vesselName,
+}: Readonly<{
+  status: TrackingStationVesselStatusEntry | undefined;
+  vesselName: string;
+}>) {
+  if (!status) return null;
+
+  if (status.tone === "nogo") {
+    return (
+      <div style={FRAME_CAPTION} role="alert" aria-live="assertive">
+        <span style={{ textDecoration: "line-through" }}>{vesselName}</span>{" "}
+        {status.label.toLowerCase()}
+      </div>
+    );
+  }
+
+  if (status.tone === "warn") {
+    return (
+      <div style={FRAME_CAPTION} role="status" aria-live="polite">
+        {vesselName} {status.label.toLowerCase()}
+      </div>
+    );
+  }
+
+  return (
+    <div style={FRAME_CAPTION}>
+      {vesselName} {status.label.toLowerCase()}
+    </div>
+  );
+}

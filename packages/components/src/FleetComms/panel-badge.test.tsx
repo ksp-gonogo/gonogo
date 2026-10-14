@@ -14,13 +14,13 @@ import {
 import "./badge";
 
 /**
- * The comms link badge reaches SystemView's header through the contribution
+ * The comms link badge reaches TrackingStation's header through the contribution
  * slot, wired the same chain the app's `GridItemContent` does. A stand-in
  * header replaces the real diagram, which needs fixtures irrelevant to the
  * badge.
  */
 
-function SystemViewPanelHeader() {
+function TrackingStationPanelHeader() {
   const badges = useWidgetBadges();
   return (
     <PanelBadgesProvider badges={badges}>
@@ -33,17 +33,17 @@ function renderPanel(fixture: StreamFixture) {
   return render(
     <fixture.Provider>
       <WidgetMetaContext.Provider
-        value={{ componentId: "system-view", contributionSlots: [] }}
+        value={{ componentId: "tracking-station", contributionSlots: [] }}
       >
         <ContributionsProvider>
-          <SystemViewPanelHeader />
+          <TrackingStationPanelHeader />
         </ContributionsProvider>
       </WidgetMetaContext.Provider>
     </fixture.Provider>,
   );
 }
 
-describe("SystemView panel badge (fleet-comms-badge contribution)", () => {
+describe("TrackingStation panel badge (fleet-comms-badge contribution)", () => {
   let fixture: StreamFixture;
   let unmount: (() => void) | undefined;
 

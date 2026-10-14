@@ -19,7 +19,7 @@
  * data arriving at all. Only the final segment swaps in an entry carrying
  * home's declaration of loss, which is a wire change.
  *
- * Output: `local_docs/renders/system-view-contact-timeline.mp4`
+ * Output: `local_docs/renders/tracking-station-contact-timeline.mp4`
  * Run via `pnpm --filter @ksp-gonogo/components render-contact-timeline`.
  */
 import { execFile } from "node:child_process";
@@ -36,7 +36,7 @@ const COMPONENTS_SRC = resolve(HERE, "../src");
 const LOCAL_DOCS = resolve(HERE, "../../../local_docs");
 const BASE_FIXTURE = resolve(
   COMPONENTS_SRC,
-  "SystemView/__fixtures__/kerbin-orbit-no-target.json",
+  "TrackingStation/__fixtures__/kerbin-orbit-no-target.json",
 );
 
 const FPS = 10;
@@ -142,7 +142,7 @@ async function main(): Promise<void> {
     await renderWidgets(
       [
         {
-          widgetId: "system-view",
+          widgetId: "tracking-station",
           fixturesPath: fixturesRel,
           outPath: "renders/contact-timeline-frames",
           modes: [{ name: "f", w: 10, h: 12 }],
@@ -151,7 +151,10 @@ async function main(): Promise<void> {
       { engine: "chromium" },
     );
 
-    const out = resolve(LOCAL_DOCS, "renders/system-view-contact-timeline.mp4");
+    const out = resolve(
+      LOCAL_DOCS,
+      "renders/tracking-station-contact-timeline.mp4",
+    );
     await execFileAsync("ffmpeg", [
       "-y",
       "-framerate",

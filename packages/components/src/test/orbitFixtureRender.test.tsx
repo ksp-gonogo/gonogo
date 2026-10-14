@@ -22,7 +22,7 @@ const FIXTURE_MODULES = import.meta.glob<{ default: Record<string, unknown> }>(
 const SEAM_WIDGETS = [
   "orbit-view",
   "ground-track",
-  "system-view",
+  "tracking-station",
   "maneuver-planner",
 ] as const;
 

@@ -1168,9 +1168,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "system-view",
-    fixturesPath: "SystemView/__fixtures__",
-    outPath: "renders/system-view-widget",
+    widgetId: "tracking-station",
+    fixturesPath: "TrackingStation/__fixtures__",
+    outPath: "renders/tracking-station-widget",
     modes: [
       // minSize 6×8: smallest diagram.
       { name: "min-6x8", w: 6, h: 8 },
@@ -1212,7 +1212,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         forFixtures: ["kerbin-orbit-inclined"],
         config: {
           frame: "Kerbin",
-          projection: "system-view.parent-direction.1",
+          projection: "tracking-station.parent-direction.1",
         },
       },
       // A craft about Kerbin in a frame centred on the star: the craft is drawn where Kerbin is, not left off the picture.
@@ -1249,7 +1249,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         forFixtures: ["rotating-kerbin-mun-frame"],
         config: {
           frame: "Kerbin",
-          projection: "system-view.follow-control-frame.1",
+          projection: "tracking-station.follow-control-frame.1",
         },
       },
     ],
@@ -2089,7 +2089,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     // fixtures). Mixed-fleet exercises direct/relay/no-link/unknown comms
     // plus known/unknown crew; all-linked is the quiet-day baseline; empty
     // exercises the confirmed-zero-vessels state. There is no per-vessel
-    // reliability/health signal here: SystemView owns the spatial view.
+    // reliability/health signal here: TrackingStation owns the spatial view.
     widgetId: "fleet-roster",
     fixturesPath: "FleetRoster/__fixtures__",
     outPath: "renders/fleet-roster-widget",

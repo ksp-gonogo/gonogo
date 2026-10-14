@@ -1,0 +1,33 @@
+import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
+import { type SystemBodies, stillTrue } from "@ksp-gonogo/sitrep-sdk";
+import {
+  projectionsForBody,
+  type TrackingStationProjection,
+} from "./projection";
+
+/*
+ * The host's own entries on `tracking-station.projection`: parent-centred inertial is a named frame, so the picker, resolver and placement all run on a bare stock install.
+ * Two entries per body rather than per widget, because `compute` sees Topics and the centred body is config; the host filters by `frameBodyIndex` as it does anyone's entries.
+ */
+
+function projectionEntries(
+  bodies: SystemBodies | null | undefined,
+): TrackingStationProjection[] {
+  const entries: TrackingStationProjection[] = [];
+  for (const body of bodies?.bodies ?? []) {
+    // A body listed as its own parent is the root saying so, matching the catalogue's own reading of that case.
+    const hasParent =
+      body.parentIndex != null && body.parentIndex !== body.index;
+    entries.push(...projectionsForBody(body.index, hasParent));
+  }
+  return entries;
+}
+
+CORE_UPLINK_CLIENT.registerContribution({
+  id: "tracking-station-stock-projections",
+  contributes: "tracking-station.projection",
+  deps: ["trackingStation.bodies"],
+  // The catalogue of bodies changes only with the planet pack, so a held one still lists every frame on offer.
+  compute: (topics) =>
+    projectionEntries(stillTrue(topics["trackingStation.bodies"], null)),
+});

@@ -18,7 +18,7 @@ import {
   type SystemPoses,
   solve,
 } from "@ksp-gonogo/sitrep-client";
-import type { CelestialBody } from "../SystemView/useCelestialBodies";
+import type { CelestialBody } from "../TrackingStation/useCelestialBodies";
 
 const degToRad = (deg: number): number => (deg * Math.PI) / 180;
 const wrap360 = (deg: number): number => ((deg % 360) + 360) % 360;

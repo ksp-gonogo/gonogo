@@ -93,7 +93,7 @@ const ALLOWED_WALL_CLOCK: Record<string, number> = {
   // which is the defect this floor exists to fix. Nothing here describes how
   // current a value is. The throttle itself takes the instant as an argument
   // and reads no clock, so this is the only read. 1 read.
-  "packages/components/src/SystemView/index.tsx": 1,
+  "packages/components/src/TrackingStation/index.tsx": 1,
 };
 
 function findRepoRoot(start: string): string {

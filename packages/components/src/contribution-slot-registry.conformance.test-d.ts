@@ -14,7 +14,7 @@ import type {
 import type { CommSignalHopRateEntry } from "./CommSignal/commsRoute";
 import type { ContributedInstrument } from "./Experiments/instrument";
 import type { ShipMapPartMetaEntry, ShipMapPartMeterEntry } from "./ShipMap";
-import type { SystemEntity } from "./SystemView";
+import type { SystemEntity } from "./TrackingStation";
 
 type Assignable<Left, Right> = Left extends Right ? true : false;
 type Expect<Condition extends true> = Condition;
@@ -72,25 +72,25 @@ type _ShipMapPartMetaRealBack = Expect<
   Assignable<ShipMapPartMetaEntry, SdkContributionEntry<"ship-map.part-meta">>
 >;
 
-// system-view.entities: checked both directions
+// tracking-station.entities: checked both directions
 
-type _SystemViewEntities = Expect<
+type _TrackingStationEntities = Expect<
   Assignable<
-    SdkContributionEntry<"system-view.entities">,
-    CoreContributionEntry<"system-view.entities">
+    SdkContributionEntry<"tracking-station.entities">,
+    CoreContributionEntry<"tracking-station.entities">
   >
 >;
-type _SystemViewEntitiesBack = Expect<
+type _TrackingStationEntitiesBack = Expect<
   Assignable<
-    CoreContributionEntry<"system-view.entities">,
-    SdkContributionEntry<"system-view.entities">
+    CoreContributionEntry<"tracking-station.entities">,
+    SdkContributionEntry<"tracking-station.entities">
   >
 >;
-type _SystemViewEntitiesReal = Expect<
-  Assignable<SdkContributionEntry<"system-view.entities">, SystemEntity>
+type _TrackingStationEntitiesReal = Expect<
+  Assignable<SdkContributionEntry<"tracking-station.entities">, SystemEntity>
 >;
-type _SystemViewEntitiesRealBack = Expect<
-  Assignable<SystemEntity, SdkContributionEntry<"system-view.entities">>
+type _TrackingStationEntitiesRealBack = Expect<
+  Assignable<SystemEntity, SdkContributionEntry<"tracking-station.entities">>
 >;
 
 // `comm-signal.hop-rates`, checked both directions; importing from `./CommSignal/commsRoute` loads the merge that puts the slot on core's registry.
@@ -158,10 +158,10 @@ export type _ContributionRegistryConformance = [
   _ShipMapPartMetaBack,
   _ShipMapPartMetaReal,
   _ShipMapPartMetaRealBack,
-  _SystemViewEntities,
-  _SystemViewEntitiesBack,
-  _SystemViewEntitiesReal,
-  _SystemViewEntitiesRealBack,
+  _TrackingStationEntities,
+  _TrackingStationEntitiesBack,
+  _TrackingStationEntitiesReal,
+  _TrackingStationEntitiesRealBack,
   _CommSignalHopRates,
   _CommSignalHopRatesBack,
   _CommSignalHopRatesReal,

@@ -1,5 +1,5 @@
 /**
- * A craft coasting from low Kerbin orbit to the Mun, as System View is shown it:
+ * A craft coasting from low Kerbin orbit to the Mun, as Tracking Station is shown it:
  * the Hohmann ellipse the injection burn leaves it on, the capture burn that
  * binds it to the Mun where its conic crosses the Mun's sphere of influence, and
  * the instants the playback walks the view clock through. A conic never changes
@@ -10,7 +10,7 @@
  * place a craft on, so the capture burn is taken at the sphere's edge, with the
  * craft's apoapsis there and its periapsis 250 km above the surface.
  */
-import fixture from "../src/SystemView/__fixtures__/kerbin-mun-encounter.json";
+import fixture from "../src/TrackingStation/__fixtures__/kerbin-mun-encounter.json";
 import {
   firstScene,
   type PlaybackEmit,
@@ -278,7 +278,7 @@ function clockLine(ut: number): string {
   return `Transfer clock T+${hours} h of T+${(ENCOUNTER_UT / 3600).toFixed(1)} h, played at ${TRANSFER_RATE} times speed`;
 }
 
-/** The scene System View mounts on: the craft at periapsis, the burn just done. */
+/** The scene Tracking Station mounts on: the craft at periapsis, the burn just done. */
 export function transferFirstScene(): Record<string, unknown> {
   return firstScene(
     fixture,

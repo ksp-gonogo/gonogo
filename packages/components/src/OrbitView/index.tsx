@@ -21,7 +21,6 @@ import {
   derivedMarking,
   type PanelBadge,
 } from "@ksp-gonogo/ui-kit";
-import { useBodyRotation } from "../SystemView/useBodyRotation";
 import { countdownOf } from "../shared/countdownOf";
 import { craftOnOrbit } from "../shared/craftOnOrbit";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
@@ -31,6 +30,7 @@ import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { useOrbitPlaneTrajectory } from "../shared/useOrbitPlaneTrajectory";
 import { usePastTrack } from "../shared/usePastTrack";
 import { useStreamBody } from "../shared/useStreamBody";
+import { useBodyRotation } from "../TrackingStation/useBodyRotation";
 import {
   type OrbitViewActions,
   type OrbitViewConfig,

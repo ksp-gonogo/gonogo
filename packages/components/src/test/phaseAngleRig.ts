@@ -2,7 +2,7 @@ import type { PropagationHorizonLike } from "@ksp-gonogo/sitrep-client";
 import { useLivePhaseAngles } from "@ksp-gonogo/sitrep-client";
 import { renderHook } from "@ksp-gonogo/test-utils";
 import { useMemo } from "react";
-import { useCelestialBodies } from "../SystemView/useCelestialBodies";
+import { useCelestialBodies } from "../TrackingStation/useCelestialBodies";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "./orbitHorizon";
 import { type StreamFixture, setupStreamFixture } from "./setupStreamFixture";
 

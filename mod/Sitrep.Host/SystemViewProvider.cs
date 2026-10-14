@@ -5,7 +5,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// KSP-free mapping logic for the "System View" typed stream topic
+    /// KSP-free mapping logic for the "Tracking Station" typed stream topic
     /// (<see cref="Topic"/> = <c>"trackingStation.bodies"</c>). Reads the raw body
     /// data an <see cref="IKspHost.Sample"/> snapshot carries and produces
     /// the clean, typed <c>trackingStation.bodies</c> wire payload: an explicit

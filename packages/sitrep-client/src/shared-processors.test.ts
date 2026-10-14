@@ -227,7 +227,7 @@ describe("CELESTIAL_FACTS", () => {
   it("evaluates ONCE per frame for 4 consumers: 4 activations and 5 frames, 6 evaluations", () => {
     const counter = countEvaluations();
     // Four activations stands for the four sites that each re-derived the whole
-    // catalogue every frame: SystemView's body, SystemView's config component,
+    // catalogue every frame: TrackingStation's body, TrackingStation's config component,
     // TransferWindow, and useBodyRotation (which OrbitView calls).
     const off = [1, 2, 3, 4].map(() => runtime.activate(CELESTIAL_FACTS.id));
 

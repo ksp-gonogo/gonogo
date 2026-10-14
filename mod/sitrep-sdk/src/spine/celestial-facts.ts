@@ -18,7 +18,7 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 //
 // ONCE, not once per consumer. A per-consumer memo on `[systemBodies, ut]`
 // re-runs the whole map every frame, because `ut` moves every frame, and there
-// are four consumers: SystemView's body, SystemView's config component,
+// are four consumers: TrackingStation's body, TrackingStation's config component,
 // TransferWindow, and `useBodyRotation` (which OrbitView calls precisely to
 // AVOID the catalogue cost, while its own first line would pay it).
 //

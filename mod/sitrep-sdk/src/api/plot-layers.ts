@@ -20,7 +20,7 @@
  *    pressure-altitude plot and a wall-clock trace, and it is what lets an
  *    arranger resize a plot without any mark on it moving relative to another.
  * 2. **A layer names a tone, never a colour.** The same split
- *    `SystemEntityStyle` already draws for `system-view.entities`: an author
+ *    `SystemEntityStyle` already draws for `tracking-station.entities`: an author
  *    says how alarming a thing is and the renderer resolves the token, so a
  *    palette change cannot leave a plot's marks behind. The two exceptions are
  *    `PlotFieldLayer.tint` and `PlotWaterLayer.tint`, for the reason ShipMap's

@@ -16,6 +16,7 @@ describe("component-id migration", () => {
     expect(migrateComponentId("mission-director")).toBe("contract-manager");
     expect(migrateComponentId("mission-status")).toBe("objectives");
     expect(migrateComponentId("aero-state")).toBe("aerodynamics");
+    expect(migrateComponentId("system-view")).toBe("tracking-station");
   });
 
   it("leaves the id of a renamed widget alone when no migration was written, so the dashboard treats it as unknown", () => {

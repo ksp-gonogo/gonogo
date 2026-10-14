@@ -532,7 +532,7 @@ export interface ActionGroupSlotContext {
 }
 
 /**
- * Props passed to every `system-view.overlay` augment: a layer over the System
+ * Props passed to every `tracking-station.overlay` augment: a layer over the System
  * View diagram, with the scale the diagram draws at.
  *
  * Draw in a `width` by `height` origin-centred viewBox, and put every point
@@ -543,7 +543,7 @@ export interface ActionGroupSlotContext {
  * `center`; in a frame that turns or pulsates it is not. The layer passes pointer events through to the diagram, so an
  * element that needs clicks turns them back on itself.
  * Useful for marking the system diagram with something that moves with the
- * bodies. Used by the System View.
+ * bodies. Used by the Tracking Station.
  *
  * @category Widget slots
  */
@@ -571,7 +571,7 @@ export interface SystemOverlayContext {
   frame: string;
 }
 
-// "system-view.actions" carries no props today.
+// "tracking-station.actions" carries no props today.
 
 /**
  * Props passed to every `ground-track.overlay` augment: a layer over the Ground Track widget's
@@ -1080,16 +1080,16 @@ declare module "./types" {
      */
     "action-group.subsystem": ActionGroupSlotContext;
 
-    /** The standard header segment of the System View widget: controls of your own in its panel header. Passes no props. */
-    "system-view.actions": Record<string, never>;
+    /** The standard header segment of the Tracking Station widget: controls of your own in its panel header. Passes no props. */
+    "tracking-station.actions": Record<string, never>;
     /**
-     * A layer over the System View diagram, the same size as it, for marks
-     * drawn in the diagram's own space that a `system-view.entities` entry
+     * A layer over the Tracking Station diagram, the same size as it, for marks
+     * drawn in the diagram's own space that a `tracking-station.entities` entry
      * cannot express. The layer passes pointer events through to the
      * diagram. Drawn while the diagram is shown, not in the compact view.
      * Passes a {@link SystemOverlayContext}.
      */
-    "system-view.overlay": SystemOverlayContext;
+    "tracking-station.overlay": SystemOverlayContext;
 
     /**
      * A layer over every canvas of the Ground Track widget, the same size as the map

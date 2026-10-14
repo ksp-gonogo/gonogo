@@ -140,7 +140,7 @@ function followTheCraft(scene: HTMLElement): undefined {
 /** Each notch is a 1.15 times zoom. Twelve put the craft at periapsis farther from Kerbin than the marker-crowding distance, so it sits on its orbit from the first frame. */
 const FOLLOW_ZOOM_NOTCHES = 12;
 
-/** System View following a craft from low Kerbin orbit to the Mun and into orbit about it, the Mun and the phase angle moving as the clock runs. `follow` off leaves the view as it mounts, with Focus vessel never pressed. */
+/** Tracking Station following a craft from low Kerbin orbit to the Mun and into orbit about it, the Mun and the phase angle moving as the clock runs. `follow` off leaves the view as it mounts, with Focus vessel never pressed. */
 export function SystemTransferScene({
   w = 20,
   h = 18,
@@ -152,7 +152,7 @@ export function SystemTransferScene({
   );
   return (
     <FramePlayer
-      widgetId="system-view"
+      widgetId="tracking-station"
       name={follow ? "transfer" : "transfer-unfollowed"}
       setup={follow ? followTheCraft : undefined}
       first={model.first}

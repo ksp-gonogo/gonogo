@@ -24,7 +24,7 @@ const PRIMITIVES =
   /\b(solveKepler|solveEccentricAnomaly|meanAnomalyAt|eccentricToTrueAnomaly|trueAnomalyFromEccentric)\b/;
 
 /** Files that used to carry their own perifocal rotation and now call the shared one. */
-const ROTATORS = ["packages/components/src/SystemView/orbitGeometry.ts"];
+const ROTATORS = ["packages/components/src/TrackingStation/orbitGeometry.ts"];
 
 const ROTATION_TERM = /Math\.(sin|cos)\(\s*(argPe|lan|inc)\b/;
 

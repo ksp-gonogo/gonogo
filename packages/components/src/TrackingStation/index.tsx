@@ -1,0 +1,1031 @@
+import type { ComponentProps } from "@ksp-gonogo/core";
+import {
+  AugmentSlot,
+  defineTopicManifest,
+  registerComponent,
+  useContributions,
+  useOrbitSolve,
+  useOrbitSolveReading,
+} from "@ksp-gonogo/core";
+import {
+  bodyOffsetAt,
+  CELESTIAL_FACTS,
+  CONTROL_FRAME_TOPIC,
+  controlFrameToReadFrameChoice,
+  type OrbitTrajectory,
+  type PatchChainPatch,
+  poseAtIndex,
+  type ReadFrameChoice,
+  readFrameChoicesEqual,
+  trajectoryFrameLabel,
+  useLivePhaseAngles,
+  useOrbitTrajectory,
+  usePatchChain,
+  usePhaseAngle,
+  useProcessor,
+  useStream,
+  useSystemInstant,
+  useViewUt,
+} from "@ksp-gonogo/sitrep-client";
+import type { ControlFrame, VesselOrbit } from "@ksp-gonogo/sitrep-sdk";
+import { Panel, useElementSize } from "@ksp-gonogo/ui";
+import {
+  DeclinedEmptyState,
+  FramedDisplay,
+  NULL_DISPLAY,
+  PanZoomViewport,
+  Section,
+} from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { countdownOf } from "../shared/countdownOf";
+import { craftOnOrbit } from "../shared/craftOnOrbit";
+import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
+import { useEncounterIn } from "../shared/useEncounterIn";
+import { AlmanacPanel } from "./AlmanacPanel";
+import { ContactCaption, FRAME_CAPTION } from "./ContactCaption";
+import type { TrackingStationConfig } from "./config";
+import { nameMatches } from "./diagramGeometry";
+import { encounterDirectionOf } from "./encounter";
+import { frameCaption, resolveFrame } from "./frame";
+import { useFrameHandover } from "./frameHandover";
+import { overlayGeometry, viewedGeometry } from "./overlayGeometry";
+import {
+  followControlFrameProjection,
+  INERTIAL_PLACEMENT,
+  inertialFrameFor,
+  resolveProjection,
+} from "./projection";
+import type { SystemOverlayContext } from "./slots";
+import { createUtBucketThrottle } from "./utBucketThrottle";
+// The host's own `tracking-station.projection` entries, so the picker and resolver run on a bare install.
+import "./projectionContribution";
+import { orbitFramingZoom } from "./orbitFraming";
+import { SystemDiagram } from "./SystemDiagram";
+import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
+import { CommsSourceCaption, TargetOrbitCaption } from "./TargetOrbitCaption";
+import {
+  targetEncounterOf,
+  targetHorizonOf,
+  targetParentOf,
+} from "./targetOrbit";
+import { panelHohmannFor, transferStatusesFor } from "./transferWindow";
+import {
+  type CelestialBody,
+  useCelestialBodies,
+  useCelestialHeld,
+} from "./useCelestialBodies";
+import { useCommsEntities } from "./useCommsEntities";
+import { usePanZoom } from "./usePanZoom";
+import { VesselInfoPanel } from "./VesselInfoPanel";
+import { vesselPlotStateFromStatus } from "./VesselMarker";
+// Registers the built-in vessel-orbits contribution.
+import { flownCraftEntity } from "./vesselOrbitsContribution";
+// Registers the built-in `tracking-station.vessel-status` contribution.
+import "./vesselStatusContribution";
+import "./slots";
+import { TrackingStationConfigForm } from "./TrackingStationConfigForm";
+
+// comms.network and system.uplink.pending are also read directly, for the host-side path highlight and traffic.
+const topics = defineTopicManifest({
+  channels: ["trackingStation.bodies"],
+  optionalChannels: read.optionalChannels,
+  fields: [
+    "vessel.identity.vesselId",
+    "vessel.identity.name",
+    "vessel.identity.vesselType",
+    "vessel.identity.situation",
+    "vessel.identity.parentBodyIndex",
+    "vessel.orbit.sma",
+    "vessel.orbit.ecc",
+    "vessel.orbit.inc",
+    "vessel.orbit.lan",
+    "vessel.orbit.argPe",
+    "vessel.orbit.encounter.transitionType",
+    "vessel.orbit.encounter.bodyIndex",
+    "vessel.target.name",
+    "comms.network.meta.source",
+    "vessel.target.orbit.encounter.bodyIndex",
+    "vessel.target.orbit.encounter.transitionType",
+    "vessel.target.orbit.encounter.transitionUt",
+    "vessel.target.orbit.horizon.departure",
+    "vessel.target.orbit.horizon.kind",
+    "vessel.target.orbit.meta.quality",
+  ],
+});
+
+/** The translation returns a new object per call, and the projection memos below key on it: hold the previous object while the choice draws the same picture. */
+function useHeldChoice(choice: ReadFrameChoice | null): ReadFrameChoice | null {
+  const held = useRef<ReadFrameChoice | null>(null);
+  const previous = held.current;
+  const same =
+    previous === null || choice === null
+      ? previous === choice
+      : readFrameChoicesEqual(previous, choice);
+  if (!same) held.current = choice;
+  return held.current;
+}
+
+/**
+ * The elements a diagram draws a conic from, in the plain degrees and metres its geometry works in.
+ * Null where the node or periapsis angle is unreported: an absent angle is not zero, and a ring drawn with one would stand at an orientation nothing reported.
+ */
+function conicElementsOf(orbit: VesselOrbit) {
+  const lan = orbit.lan?.magnitude;
+  const argPe = orbit.argPe?.magnitude;
+  if (lan === undefined || argPe === undefined) return null;
+  return {
+    sma: orbit.sma.magnitude,
+    ecc: orbit.ecc.magnitude,
+    lan,
+    argPe,
+    inclination: orbit.inc.magnitude,
+  };
+}
+
+const NO_PATCHES: readonly PatchChainPatch[] = [];
+
+/** The craft orbits the frame body itself, so its orbit is drawn about the origin. */
+const VESSEL_AT_FRAME_BODY: readonly [number, number, number] = [0, 0, 0];
+
+function TrackingStationComponent({
+  config,
+  w,
+  h,
+}: Readonly<ComponentProps<TrackingStationConfig>>) {
+  const frameSetting = config?.frame ?? "auto";
+  // The body the operator pressed twice to hold the view on, whichever body the craft is about; cleared by Reset view and by the Frame setting changing.
+  const [anchor, setAnchor] = useState<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the setting is the trigger, not a value read
+  useEffect(() => setAnchor(null), [frameSetting]);
+  const bodies = useCelestialBodies();
+  const catalogueHeld = useCelestialHeld();
+  const poses = useSystemInstant();
+  // The whole catalogue, for the read frame's index lookups; a held catalogue is still the catalogue.
+  const factsReading = useProcessor(CELESTIAL_FACTS);
+  const facts =
+    factsReading?.state === "observed" || factsReading?.state === "held"
+      ? factsReading.value
+      : undefined;
+  // For a `follow-control-frame` entry on the picker; the selected frame is a setting, which a quiet link does not change.
+  const controlFrameReading = useStream<ControlFrame>(CONTROL_FRAME_TOPIC);
+  const controlFrame =
+    controlFrameReading.state === "observed" ||
+    controlFrameReading.state === "held"
+      ? controlFrameReading.value
+      : undefined;
+  const controlFrameChoice = useHeldChoice(
+    controlFrameToReadFrameChoice(controlFrame, facts),
+  );
+  // The dot and orbit are markers, claims about now, so the elements come from a current reading or a model, and otherwise nothing is drawn.
+  const orbitReading = topics.useTelemetry("vessel.orbit");
+  // The observation overlaid by what the conic moved (the phase); `reckoning.value` alone is not an orbit.
+  const orbitObserved =
+    orbitReading.state === "observed" || orbitReading.state === "held"
+      ? orbitReading.value
+      : undefined;
+  const orbit =
+    orbitObserved !== undefined && orbitReading.reckoning.status === "available"
+      ? { ...orbitObserved, ...orbitReading.reckoning.value }
+      : orbitObserved;
+  // An identity does not decay: a held SOI index is still which body this craft is around, and it only decides which FRAME the dot belongs in.
+  const identityReading = topics.useTelemetry("vessel.identity");
+  const identity =
+    identityReading.state === "observed" || identityReading.state === "held"
+      ? identityReading.value
+      : undefined;
+
+  // Reckoned contact states arrive as `tracking-station.vessel-status` contributions.
+  const vesselGuid =
+    typeof identity?.vesselId === "string" ? identity.vesselId : null;
+  const vesselStatuses = useContributions("tracking-station.vessel-status");
+  const vesselStatus = vesselGuid
+    ? vesselStatuses.find((s) => s.target === vesselGuid)
+    : undefined;
+  const vesselPlotState = vesselPlotStateFromStatus(vesselStatus ?? null);
+  // A catalogue and a name, neither of which decays.
+  const bodiesReading = topics.useTelemetry("trackingStation.bodies");
+  const systemBodies =
+    bodiesReading.state === "observed" || bodiesReading.state === "held"
+      ? bodiesReading.value
+      : undefined;
+  const flownCraft = useMemo(
+    () => flownCraftEntity(identity, orbit, systemBodies),
+    [identity, orbit, systemBodies],
+  );
+  const targetReading = topics.useTelemetry("vessel.target");
+  const targetName =
+    targetReading.state === "observed" || targetReading.state === "held"
+      ? targetReading.value.name
+      : undefined;
+  // Read directly for the host-side selection path; a held relay graph still says what the topology last was.
+  const commsNetworkReading = topics.useTelemetry("comms.network");
+  const commsNetwork =
+    commsNetworkReading.state === "observed" ||
+    commsNetworkReading.state === "held"
+      ? commsNetworkReading.value
+      : undefined;
+  // Unwrapped at the read: the finiteness guards below answer no for a wrapped value and would silently stop drawing the arc.
+  const viewUt = useViewUt();
+  const universalTime = viewUt?.magnitude;
+  const commsSource = commsNetwork?.meta?.source;
+  const {
+    entities,
+    selectedVesselId,
+    selectedEntity,
+    handleEntityActivate,
+    clearSelection,
+    activeVesselEntityId,
+    decorate,
+    traffic,
+    utNow,
+  } = useCommsEntities({
+    activeVesselId: identity?.vesselId,
+    activeVesselHasOrbit: orbit != null,
+    flownCraft,
+    commsNetwork,
+  });
+
+  // Keyed by `trackingStation.bodies`' stable index, never array position.
+  const nameByIndex = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const b of systemBodies?.bodies ?? []) {
+      if (b.name != null) m.set(b.index, b.name);
+    }
+    return m;
+  }, [systemBodies]);
+
+  /*
+   * The body the elements are about, where there are elements: the craft's identity and its orbit arrive on separate channels, and across a change of sphere of influence one names the new body before the other does.
+   * Taking the orbit's own keeps the frame, the drawn orbit and the scale that fits it changing together.
+   */
+  const vesselBodyIndex =
+    orbit?.referenceBodyIndex ?? identity?.parentBodyIndex ?? null;
+  const vesselBody =
+    vesselBodyIndex === null
+      ? null
+      : (nameByIndex.get(vesselBodyIndex) ?? null);
+
+  // The orbit model's solve at the viewed instant, so a craft it refuses to advance is refused here too.
+  const derived = useOrbitSolve();
+  const derivedReading = useOrbitSolveReading();
+
+  const encounter = unlessLocked(orbit?.encounter ?? null);
+  const encounterDirection = encounterDirectionOf(encounter?.transitionType);
+  const encounterBody =
+    encounter?.bodyIndex != null
+      ? (nameByIndex.get(encounter.bodyIndex) ?? null)
+      : null;
+
+  const anchoredName =
+    anchor !== null && bodies.some((b) => b.name === anchor) ? anchor : null;
+  const parentName =
+    anchoredName ?? resolveFrame(bodies, frameSetting, vesselBody);
+
+  // The target's own conic and what happens at its sphere-of-influence boundary, from the elements the target states.
+  const targetOrbit =
+    targetReading.state === "observed" || targetReading.state === "held"
+      ? targetReading.value.orbit
+      : undefined;
+  const targetParent = targetParentOf(targetOrbit, nameByIndex);
+  const targetElements =
+    targetOrbit == null ? null : conicElementsOf(targetOrbit);
+  const targetConic =
+    targetParent === null || targetElements === null
+      ? null
+      : {
+          parentName: targetParent,
+          ...targetElements,
+          soi: bodies.find((b) => b.name === targetParent)?.soi ?? null,
+        };
+  const targetTrajectory = useOrbitTrajectory(
+    targetConic === null ? undefined : (targetOrbit ?? undefined),
+  );
+  const targetEncounter = targetEncounterOf(targetOrbit, nameByIndex);
+  const targetHorizon = targetHorizonOf(targetOrbit);
+  const drawnTarget =
+    targetConic === null
+      ? null
+      : {
+          conic: targetConic,
+          trajectory: targetTrajectory,
+          encounter: targetEncounter,
+        };
+
+  /*
+   * Asked with no read frame; the diagram lifts the answer into the projection's frame.
+   * A read frame would reframe every conic into points at animation-frame rate, past the trajectory transform budget, and would turn the conic answer the predicted SOI chain needs into an arc.
+   */
+  const vesselTrajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
+  const trajectoryWithheld =
+    vesselTrajectory !== null && vesselTrajectory.shape === "withheld"
+      ? vesselTrajectory
+      : null;
+
+  // A Hohmann window is planned from a closed orbit: an open one has no radius to depart from, and its negative semi-major axis would still give a finite angle.
+  const vSma = orbit?.ecc.lessThan(1) ? orbit.sma.magnitude : undefined;
+  // Where the craft is on that orbit: where a model carries it, else where it is now, else where it was last seen. With none of them there is no place to draw it, and periapsis is not a stand-in.
+  const craft = craftOnOrbit(orbitReading, orbitObserved, derived);
+  const vesselAt = craft?.modelled ?? craft?.current ?? craft?.held ?? null;
+  // A place a model carried the craft to is drawn as modelled even while every contact state says the craft is in touch.
+  const drawnPlotState =
+    vesselPlotState === "observed" && craft?.modelled != null
+      ? "predicted"
+      : vesselPlotState;
+  const vesselElements = orbit === undefined ? null : conicElementsOf(orbit);
+  const vesselOrbit =
+    vesselBody != null &&
+    orbit?.sma.isFinite() &&
+    vesselElements !== null &&
+    vesselAt !== null
+      ? {
+          parentName: vesselBody,
+          ...vesselElements,
+          trueAnomaly: vesselAt,
+          soi: bodies.find((b) => b.name === vesselBody)?.soi ?? null,
+        }
+      : null;
+
+  // Throttled to about one real second: a game-second bucket stops throttling at high warp (see `createUtBucketThrottle`).
+  const utBucketThrottle = useRef<ReturnType<
+    typeof createUtBucketThrottle
+  > | null>(null);
+  if (utBucketThrottle.current === null) {
+    utBucketThrottle.current = createUtBucketThrottle();
+  }
+  const utBucket = utBucketThrottle.current(
+    typeof universalTime === "number" ? universalTime : undefined,
+    performance.now(),
+  );
+  // The chain the game published, drawn only on the CONIC answer: its patches are the game's own conics, which an integrating provider contradicts, so on an arc answer the diagram draws the sampled path instead.
+  const orbitPatches = useMemo<readonly PatchChainPatch[]>(() => {
+    if (vesselTrajectory?.shape !== "conic") return NO_PATCHES;
+    return orbitObserved?.patches ?? NO_PATCHES;
+  }, [orbitObserved, vesselTrajectory]);
+  const catalogueAsOfUt = catalogueHeld?.asOfUt.valueOf() ?? null;
+  const offsetAt = useCallback(
+    (bodyName: string, ut: number) =>
+      parentName !== null && facts !== undefined
+        ? bodyOffsetAt(facts, parentName, bodyName, ut, catalogueAsOfUt)
+        : null,
+    [facts, parentName, catalogueAsOfUt],
+  );
+  const patchChain = usePatchChain({
+    patches: orbitPatches,
+    frameBodyName: parentName,
+    facts,
+    catalogueAsOfUt,
+    ut: utBucket,
+  });
+  // The craft orbits the frame body, or another body the catalogue can place against it at this instant; a body with no place leaves the craft off the picture rather than guessed at.
+  const vesselParentName = vesselOrbit?.parentName ?? null;
+  const vesselOrigin = useMemo<readonly [number, number, number] | null>(() => {
+    if (vesselParentName === null || parentName === null) return null;
+    if (nameMatches(vesselParentName, parentName)) return VESSEL_AT_FRAME_BODY;
+    if (utBucket == null) return null;
+    const offset = offsetAt(vesselParentName, utBucket);
+    return offset === null ? null : [offset.x, offset.y, offset.z];
+  }, [vesselParentName, parentName, utBucket, offsetAt]);
+
+  // Only the drawn children subscribe to phase angles, so the subscription count tracks what is on screen.
+  const children = useMemo(() => {
+    if (parentName === null) return [] as readonly CelestialBody[];
+    return bodies.filter(
+      (b) => b.referenceBody !== null && b.referenceBody === parentName,
+    );
+  }, [bodies, parentName]);
+  const phaseAngles = useLivePhaseAngles(children);
+
+  // Hohmann only applies when the rendered frame is the vessel's own parent.
+  const transferStatuses = useMemo(
+    () =>
+      parentName === vesselBody
+        ? transferStatusesFor(children, phaseAngles, vSma)
+        : new Map<number, "go" | "soon">(),
+    [children, phaseAngles, vesselBody, parentName, vSma],
+  );
+
+  const [focusedBody, setFocusedBody] = useState<CelestialBody | null>(null);
+  // Default focus to the vessel's body when nothing is hovered.
+  const vesselBodyRecord = useMemo(
+    () =>
+      typeof vesselBody === "string"
+        ? (bodies.find((b) => b.name === vesselBody) ?? null)
+        : null,
+    [bodies, vesselBody],
+  );
+  // A pressed body stays in the aside once the pointer leaves it, until it is pressed again or a vessel is selected.
+  const [pinnedBodyIndex, setPinnedBodyIndex] = useState<number | null>(null);
+  const pinnedBody = useMemo(
+    () => bodies.find((b) => b.index === pinnedBodyIndex) ?? null,
+    [bodies, pinnedBodyIndex],
+  );
+  /*
+   * A first press selects a body and shows it in the aside; a second press on the one already selected holds the view on it.
+   * Pressing the body the view is already held on does nothing more: Reset view is the way out.
+   */
+  const activateBody = useCallback(
+    (body: CelestialBody) => {
+      if (pinnedBodyIndex === body.index) {
+        if (body.name !== null && body.name !== anchor) setAnchor(body.name);
+        return;
+      }
+      clearSelection();
+      setPinnedBodyIndex(body.index);
+    },
+    [clearSelection, pinnedBodyIndex, anchor],
+  );
+  const activateEntity = useCallback(
+    (id: string) => {
+      setPinnedBodyIndex(null);
+      handleEntityActivate(id);
+    },
+    [handleEntityActivate],
+  );
+  const panelBody = focusedBody ?? pinnedBody ?? vesselBodyRecord;
+  const panelPhaseAngle =
+    panelBody && phaseAngles.has(panelBody.index)
+      ? (phaseAngles.get(panelBody.index) ?? null)
+      : null;
+  // The reading is for a drawn child; one whose pose is held has no live angle on the map but still has a figure to show, marked held.
+  const panelIsChild =
+    panelBody !== null && children.some((c) => c.index === panelBody.index);
+  const panelPhaseAngleReading = usePhaseAngle(panelIsChild ? panelBody : null);
+  const encounterIn = useEncounterIn();
+  const nextApsisIn =
+    derived?.nextApsisType === -1 || derived?.nextApsisType === 1
+      ? (countdownOf(derivedReading, (s) =>
+          s.nextApsisType === derived.nextApsisType ? s.timeToNextApsis : null,
+        ) ?? null)
+      : null;
+  const panelIsVesselParent =
+    panelBody !== null &&
+    typeof vesselBody === "string" &&
+    panelBody.name === vesselBody;
+  const panelHohmann = panelHohmannFor({
+    panelBody,
+    vesselBody,
+    parentName,
+    vSma,
+    panelPhaseAngle,
+  });
+
+  // Measures the diagram's own box, which shrinks when the almanac mounts; Panel chooses the almanac's side.
+  const { ref: wrapRef, size } = useElementSize({ w: 360, h: 280 });
+
+  // Below a size threshold the diagram collapses to a text summary with no almanac.
+  const cols = w ?? 10;
+  const rows = h ?? 12;
+  const showDiagram = rows >= 5 && cols >= 5;
+  // The almanac needs room on top of the diagram's; either axis having room is enough, since Panel picks which.
+  const showAlmanac = showDiagram && (cols >= 9 || rows >= 12);
+
+  // Every projection entry offered for the centred body; the host's own stock entries always exist, so there is always a frame.
+  const projectionEntries = useContributions("tracking-station.projection");
+  const frameBodyIndex =
+    parentName === null ? undefined : facts?.indexByName[parentName];
+  const projectionOptions = useMemo(
+    () =>
+      frameBodyIndex === undefined
+        ? []
+        : projectionEntries.filter((p) => p.frameBodyIndex === frameBodyIndex),
+    [projectionEntries, frameBodyIndex],
+  );
+  // "Follow the in-game view", appended when it would draw something the entries above do not already draw.
+  const followEntry = useMemo(
+    () =>
+      frameBodyIndex === undefined
+        ? null
+        : followControlFrameProjection(
+            frameBodyIndex,
+            projectionOptions.map((p) => p.choice),
+            controlFrameChoice,
+          ),
+    [frameBodyIndex, projectionOptions, controlFrameChoice],
+  );
+  const allProjectionOptions = useMemo(
+    () =>
+      followEntry === null
+        ? projectionOptions
+        : [...projectionOptions, followEntry],
+    [projectionOptions, followEntry],
+  );
+  const chosenProjectionEntry = useMemo(() => {
+    const pinned = allProjectionOptions.find(
+      (p) => p.id === config?.projection,
+    );
+    if (pinned !== undefined) return pinned;
+    // The host contributes the inertial entry first, so an absent or stale saved id lands on it.
+    return allProjectionOptions[0] ?? null;
+  }, [allProjectionOptions, config?.projection]);
+
+  // Resolved on the one-second UT bucket, never per render: it solves every body's parent chain and the diagram places thousands of points through it.
+  const projection = useMemo(
+    () =>
+      resolveProjection(
+        facts,
+        frameBodyIndex,
+        chosenProjectionEntry,
+        utBucket,
+        controlFrameChoice,
+      ),
+    [
+      facts,
+      frameBodyIndex,
+      chosenProjectionEntry,
+      utBucket,
+      controlFrameChoice,
+    ],
+  );
+
+  // Apart from the instant and the poses so a ring's inputs hold still while the view clock ticks.
+  const lookups = useMemo(
+    () => ({
+      muOf: (bodyName: string) =>
+        bodies.find((b) => b.name === bodyName)?.gravParameter ?? null,
+      soiOf: (bodyName: string) =>
+        bodies.find((b) => b.name === bodyName)?.soi ?? null,
+    }),
+    [bodies],
+  );
+  const places = useMemo(
+    () => ({
+      ut: universalTime,
+      ...lookups,
+      bodyPlace: (bodyIndex: number) => {
+        const body = poseAtIndex(poses, bodyIndex);
+        const frameBody = poseAtIndex(poses, frameBodyIndex);
+        if (!body?.position || !frameBody?.position) return null;
+        return {
+          offset: [
+            body.position[0] - frameBody.position[0],
+            body.position[1] - frameBody.position[1],
+            body.position[2] - frameBody.position[2],
+          ] as const,
+          currency: body.currency,
+        };
+      },
+    }),
+    [universalTime, lookups, poses, frameBodyIndex],
+  );
+  const fitGeometry = useMemo(
+    () =>
+      overlayGeometry({
+        parentName,
+        children,
+        vesselOrbit,
+        size,
+        projection,
+        places,
+      }),
+    [parentName, children, vesselOrbit, size, projection, places],
+  );
+  /*
+   * Where a body sits from the frame body as the diagram places it, for carrying the view across a change of frame.
+   * Only in a frame that draws plain metres: a frame that turns or pulsates places the two bodies by its own rule, and the view is then put back to the whole picture.
+   */
+  const placeOfBody = useCallback(
+    (bodyName: string) => {
+      if (projection !== null && projection.extent.kind !== "auto-fit-metres") {
+        return null;
+      }
+      if (utBucket == null) return null;
+      const offset = offsetAt(bodyName, utBucket);
+      if (offset === null) return null;
+      const placed = (projection ?? INERTIAL_PLACEMENT).place([
+        offset.x,
+        offset.y,
+        offset.z,
+      ]);
+      return { x: placed[0], y: placed[1] };
+    },
+    [projection, utBucket, offsetAt],
+  );
+  /*
+   * The body the frame body orbits, kept on the picture or pointed to from its edge: a moon's planet.
+   * A planet's star is left out. No craft arrives in a planet's frame from the star's by leaving the star behind, and a pointer to it on every planet's diagram would be furniture.
+   */
+  const frameParentBody =
+    parentName === null
+      ? undefined
+      : bodies.find(
+          (b) =>
+            b.name === bodies.find((f) => f.name === parentName)?.referenceBody,
+        );
+  const frameParentName =
+    frameParentBody?.referenceBody == null
+      ? null
+      : (frameParentBody.name ?? null);
+  const frameParent = useMemo(() => {
+    if (frameParentName === null || utBucket == null) return null;
+    const offset = offsetAt(frameParentName, utBucket);
+    return offset === null
+      ? null
+      : {
+          name: frameParentName,
+          at: [offset.x, offset.y, offset.z] as const,
+        };
+  }, [frameParentName, utBucket, offsetAt]);
+  const parentReach = useMemo(() => {
+    if (frameParent === null || fitGeometry === null) return null;
+    const placed = (projection ?? INERTIAL_PLACEMENT).place([
+      frameParent.at[0],
+      frameParent.at[1],
+      frameParent.at[2],
+    ]);
+    return {
+      parentAtPlotUnits:
+        Math.hypot(placed[0], placed[1]) * fitGeometry.plotScale,
+      halfPicturePlotUnits: Math.min(fitGeometry.width, fitGeometry.height) / 2,
+    };
+  }, [frameParent, fitGeometry, projection]);
+  // Owned here rather than by the diagram, so the entity layer and the overlay slot follow the same pan and zoom.
+  const panZoom = usePanZoom(
+    wrapRef,
+    parentName !== null && bodies.length > 0,
+    parentReach,
+  );
+  const leftFrame = useFrameHandover({
+    frameName: parentName,
+    craftBodyName: vesselBody,
+    plotScale: fitGeometry?.plotScale ?? null,
+    placeOf: placeOfBody,
+    anchored: anchoredName !== null,
+    view: panZoom,
+  });
+  const framing = {
+    orbit: vesselOrbit,
+    frameName: parentName,
+    // The scale only reads as metres in a frame that draws plain metres.
+    plotScale:
+      projection === null || projection.extent.kind === "auto-fit-metres"
+        ? (fitGeometry?.plotScale ?? null)
+        : null,
+    halfPicturePlotUnits: fitGeometry
+      ? Math.min(fitGeometry.width, fitGeometry.height) / 2
+      : null,
+  };
+  const orbitZoom = orbitFramingZoom(framing);
+  // Following the craft centres the picture on it, so the far side of the orbit is further from the centre than the apoapsis is from the frame body.
+  const followZoom = orbitFramingZoom({
+    ...framing,
+    centredOnCraft: vesselAt,
+  });
+  /*
+   * The picture opens on the craft's orbit rather than the whole system, once: the first instant there is an orbit to frame, unless the operator has already moved the view. Later telemetry never moves it again; only the two view buttons do.
+   */
+  const opened = useRef(false);
+  const { setView } = panZoom;
+  useLayoutEffect(() => {
+    if (opened.current || orbitZoom === null) return;
+    opened.current = true;
+    if (panZoom.zoom !== 1 || panZoom.pan.x !== 0 || panZoom.pan.y !== 0) {
+      return;
+    }
+    setView({ zoom: orbitZoom, pan: { x: 0, y: 0 } });
+  }, [orbitZoom, setView, panZoom.zoom, panZoom.pan.x, panZoom.pan.y]);
+  // Reset view lets go of an anchor as well as the zoom and the centre; Focus vessel also zooms to the craft's orbit.
+  const viewControls = useMemo(
+    () => ({
+      ...panZoom,
+      resetView: () => {
+        setAnchor(null);
+        panZoom.resetView();
+      },
+      focusVessel: () => {
+        if (panZoom.following) {
+          panZoom.setFollowing(false);
+          return;
+        }
+        panZoom.setFollowing(true);
+        if (followZoom !== null) {
+          panZoom.easeView(
+            { zoom: panZoom.zoom, pan: panZoom.pan },
+            { zoom: followZoom },
+          );
+        }
+      },
+    }),
+    [panZoom, followZoom],
+  );
+  const overlayContext = useMemo(
+    () => viewedGeometry(fitGeometry, panZoom.zoom, panZoom.pan),
+    [fitGeometry, panZoom.zoom, panZoom.pan],
+  );
+  // What an overlay augment receives: the same geometry, plus the one call that lands a point where the bodies are drawn.
+  const overlayProps = useMemo<SystemOverlayContext | null>(() => {
+    if (overlayContext === null) return null;
+    const placement = overlayContext.placement ?? INERTIAL_PLACEMENT;
+    return {
+      parentName: overlayContext.parentName,
+      width: overlayContext.width,
+      height: overlayContext.height,
+      plotScale: overlayContext.plotScale,
+      center: overlayContext.center,
+      place: (metres) => {
+        const at = placement.place([metres[0], metres[1], metres[2]]);
+        return [
+          overlayContext.center.x + at[0] * overlayContext.plotScale,
+          overlayContext.center.y + at[1] * overlayContext.plotScale,
+        ];
+      },
+      frame: trajectoryFrameLabel(
+        projection?.frame ??
+          (frameBodyIndex === undefined
+            ? undefined
+            : inertialFrameFor(frameBodyIndex)),
+        facts,
+      ),
+    };
+  }, [overlayContext, projection, frameBodyIndex, facts]);
+
+  // The selected vessel's roster fields while something is selected, else the frame body's almanac.
+  const almanac = (
+    <AlmanacPanel
+      body={panelBody}
+      held={catalogueHeld}
+      phaseAngle={panelPhaseAngleReading ?? null}
+      isVesselParent={panelIsVesselParent}
+      hohmannIdealDeg={panelHohmann?.ideal ?? null}
+      hohmannDeltaDeg={panelHohmann?.delta ?? null}
+      encounterDirection={
+        // The vessel's next SOI transition, shown on the panel body it targets.
+        encounterBody != null && panelBody?.name === encounterBody
+          ? encounterDirection
+          : null
+      }
+      encounterIn={encounterIn}
+      nextApsisType={
+        derived?.nextApsisType === -1 || derived?.nextApsisType === 1
+          ? derived.nextApsisType
+          : null
+      }
+      nextApsisIn={nextApsisIn}
+    />
+  );
+  const sidebarContent =
+    selectedEntity?.meta != null ? (
+      <VesselInfoPanel meta={selectedEntity.meta} />
+    ) : (
+      almanac
+    );
+
+  return (
+    <>
+      <Panel
+        panelTitle="Tracking Station"
+        // A second scrolling region, so reading it never scrolls the diagram off the tile.
+        panelSidebar={showAlmanac ? sidebarContent : undefined}
+        sections={[
+          <Section key="captions" full>
+            <div style={FRAME_CAPTION} role="status" aria-live="polite">
+              {frameCaption({
+                haveBodies: bodies.length > 0,
+                parentName,
+                encounterDirection,
+                encounterBody,
+                leftFrame,
+                anchored: anchoredName !== null,
+              })}
+            </div>
+            <ContactCaption
+              status={vesselStatus}
+              vesselName={
+                typeof identity?.name === "string" ? identity.name : "Vessel"
+              }
+            />
+            {/* Beside the caption rather than over the diagram: only the vessel's curve is missing. */}
+            {trajectoryWithheld && (
+              <DeclinedEmptyState declined={trajectoryWithheld.declined} />
+            )}
+            {drawnTarget !== null &&
+              targetHorizon !== null &&
+              typeof targetName === "string" && (
+                <TargetOrbitCaption
+                  targetName={targetName}
+                  horizon={targetHorizon}
+                  viewUt={viewUt}
+                  quality={targetOrbit?.meta?.quality}
+                />
+              )}
+            {targetTrajectory?.shape === "withheld" && (
+              <DeclinedEmptyState declined={targetTrajectory.declined} />
+            )}
+            {commsSource !== undefined && (
+              <CommsSourceCaption
+                source={commsSource}
+                activeVesselId={identity?.vesselId}
+                activeVesselName={
+                  typeof identity?.name === "string" ? identity.name : undefined
+                }
+              />
+            )}
+            {/* Which frame the picture is in (what the axes do), distinct from the "Frame:" body caption; passed outright because the diagram does its own framing. */}
+            <TrajectoryFrameCaption
+              frame={
+                projection?.frame ??
+                (frameBodyIndex === undefined
+                  ? null
+                  : inertialFrameFor(frameBodyIndex))
+              }
+              centreBodyName={parentName ?? undefined}
+            />
+          </Section>,
+          <Section key="diagram" fill>
+            {showDiagram ? (
+              <FramedDisplay style={DIAGRAM_FRAME}>
+                <PanZoomViewport
+                  panZoom={panZoom.panZoom}
+                  label="System diagram"
+                  style={DIAGRAM_WRAP}
+                >
+                  {parentName !== null && bodies.length > 0 && (
+                    <SystemDiagram
+                      bodies={bodies}
+                      poses={poses}
+                      bucketUt={utBucket ?? undefined}
+                      parentName={parentName}
+                      highlightNames={vesselBody ? [vesselBody] : []}
+                      targetName={
+                        typeof targetName === "string" ? targetName : null
+                      }
+                      vessel={vesselOrbit}
+                      vesselOrigin={vesselOrigin}
+                      vesselTrajectory={vesselTrajectory}
+                      vesselPlotState={drawnPlotState}
+                      target={drawnTarget}
+                      vesselPositionHeld={
+                        vesselAt !== null && vesselAt === craft?.held
+                      }
+                      phaseAngles={phaseAngles}
+                      transferStatuses={transferStatuses}
+                      onFocusBodyChange={setFocusedBody}
+                      pinnedBodyIndex={pinnedBodyIndex}
+                      onBodyActivate={activateBody}
+                      anchored={anchoredName !== null}
+                      vesselSelected={
+                        activeVesselEntityId !== null &&
+                        selectedVesselId === activeVesselEntityId
+                      }
+                      onVesselActivate={
+                        activeVesselEntityId === null
+                          ? undefined
+                          : () => activateEntity(activeVesselEntityId)
+                      }
+                      patchChain={patchChain}
+                      frameParent={frameParent}
+                      projection={projection}
+                      width={size.w}
+                      height={size.h}
+                      view={viewControls}
+                    />
+                  )}
+                  {/* Host-drawn contribution entities, on the same auto-fit projection as the overlay slot. */}
+                  {overlayContext !== null && (
+                    <SystemEntitiesLayer
+                      entities={entities}
+                      ctx={overlayContext}
+                      decorate={decorate}
+                      selectedId={selectedVesselId}
+                      onEntityActivate={activateEntity}
+                      pulses={traffic.pulses}
+                      // Real-UT bookkeeping clock: a CME's arrive and clear times are real-UT facts, not delayed telemetry.
+                      nowUt={utNow}
+                    />
+                  )}
+                  {/* Pointer-transparent, so an empty overlay slot is inert. */}
+                  {overlayProps !== null && (
+                    <div style={OVERLAY_LAYER}>
+                      <AugmentSlot
+                        name="tracking-station.overlay"
+                        props={overlayProps}
+                      />
+                    </div>
+                  )}
+                </PanZoomViewport>
+              </FramedDisplay>
+            ) : (
+              <div style={COMPACT_BODY}>
+                <div style={COMPACT_VALUE}>{parentName ?? NULL_DISPLAY}</div>
+                {typeof vesselBody === "string" &&
+                  vesselBody !== parentName && (
+                    <div style={COMPACT_SUB}>vessel · {vesselBody}</div>
+                  )}
+              </div>
+            )}
+          </Section>,
+        ]}
+      />
+    </>
+  );
+}
+
+const COMPACT_BODY: CSSProperties = {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "var(--gap-related)",
+};
+
+const COMPACT_VALUE: CSSProperties = {
+  // Off the type scale: the scale stops at --font-size-lg (16px) and this is a display-tier readout.
+  fontSize: "22px",
+  fontWeight: 700,
+  color: "var(--color-text-primary)",
+  letterSpacing: "0.04em",
+};
+
+const COMPACT_SUB: CSSProperties = {
+  fontSize: "var(--font-size-caption)",
+  color: "var(--color-text-muted)",
+  letterSpacing: "0.05em",
+};
+
+// Flush: SystemDiagram reserves its own padding inside the viewBox, and the frame's edge separates it from the sidebar.
+const DIAGRAM_FRAME: CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  minHeight: 0,
+};
+
+const DIAGRAM_WRAP: CSSProperties = {
+  position: "relative",
+  flex: 1,
+  minWidth: 0,
+  minHeight: 0,
+  display: "flex",
+  alignItems: "stretch",
+  justifyContent: "stretch",
+};
+
+const OVERLAY_LAYER: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  // Keep the diagram beneath interactive (pan/zoom/hover); an overlay augment re-enables pointer events on its own elements when it needs them.
+  pointerEvents: "none",
+};
+
+registerComponent<TrackingStationConfig>({
+  id: "tracking-station",
+  name: "Tracking Station",
+  description:
+    "Solar-system diagram of every body orbiting a chosen parent, highlighting the vessel's current body and any selected target.",
+  tags: ["telemetry", "navigation"],
+  defaultSize: { w: 10, h: 12 },
+  // Below six columns the view pills clip and the labels collide with the values.
+  minSize: { w: 6, h: 8 },
+  component: TrackingStationComponent,
+  configComponent: TrackingStationConfigForm,
+  // One augment can drive an overlay from a header control; `.actions` is Panel's universal segment, listed so authors find it here.
+  augmentSlots: ["tracking-station.actions", "tracking-station.overlay"],
+  contributionSlots: [
+    "tracking-station.vessel-status",
+    "tracking-station.entities",
+    "tracking-station.projection",
+  ],
+  // Declares the body array it walks and not `system.state.bodyCount`, which it never reads.
+  channels: topics.channels,
+  ...read,
+  fields: topics.fields,
+  defaultConfig: { frame: "auto" },
+  actions: [],
+  pushable: true,
+});
+
+export { AlmanacPanel } from "./AlmanacPanel";
+export type { ResolvedSystemEntity } from "./resolveSystemEntities";
+export { resolveSystemEntities } from "./resolveSystemEntities";
+export { SystemEntitiesLayer } from "./SystemEntitiesLayer";
+export type { SystemOverlayContext } from "./slots";
+export type {
+  SystemEntitiesContext,
+  SystemEntity,
+  SystemEntityEmphasis,
+  SystemEntityFixedPosition,
+  SystemEntityMeta,
+  SystemEntityOrbitPosition,
+  SystemEntityPosition,
+  SystemEntityShape,
+  SystemEntityStyle,
+} from "./systemEntities";
+export {
+  projectEntityPosition,
+  projectOrbitRing,
+  SYSTEM_ENTITY_DEFAULT_LAYER,
+} from "./systemEntities";
+
+import { unlessLocked } from "@ksp-gonogo/sitrep-sdk";
+import read from "./tracking-station.declarations.g";
+
+export type { CelestialBody } from "./useCelestialBodies";
+export { useCelestialBodies } from "./useCelestialBodies";
+export { TrackingStationComponent };

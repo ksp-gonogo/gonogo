@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import "../CommSignal/badge";
 import "../CrewStatus/badge";
 import "../FleetComms/badge";
-import "../SystemView/vesselOrbitsContribution";
+import "../TrackingStation/vesselOrbitsContribution";
 
 /**
  * The built-in contributions against held readings: each one draws a held
@@ -69,7 +69,7 @@ describe("the built-in contributions draw a held value as held", () => {
 
   it("the comms link badge keeps the link's last word while held and marks it held", () => {
     const [badge] =
-      compute("system-view.badges", "core:fleet-comms-badge", {
+      compute("tracking-station.badges", "core:fleet-comms-badge", {
         "comms.link": held({ connected: true }),
       }) ?? [];
     expect(badge).toMatchObject({
@@ -80,7 +80,7 @@ describe("the built-in contributions draw a held value as held", () => {
 
   it("the comms link badge waits for a link not yet heard from", () => {
     const [badge] =
-      compute("system-view.badges", "core:fleet-comms-badge", {
+      compute("tracking-station.badges", "core:fleet-comms-badge", {
         "comms.link": PENDING,
       }) ?? [];
     expect(badge).toMatchObject({ label: "COMMS AWAITING" });
@@ -114,11 +114,15 @@ describe("the built-in contributions draw a held value as held", () => {
       ],
     };
     const entities = (vessels: unknown) =>
-      compute("system-view.entities", "core:system-view-vessel-orbits", {
-        "trackingStation.catalog": vessels,
-        "trackingStation.bodies": observed(bodies),
-        "comms.network": PENDING,
-      }) ?? [];
+      compute(
+        "tracking-station.entities",
+        "core:tracking-station-vessel-orbits",
+        {
+          "trackingStation.catalog": vessels,
+          "trackingStation.bodies": observed(bodies),
+          "comms.network": PENDING,
+        },
+      ) ?? [];
     expect(entities(observed(roster))[0]?.currency).toBeUndefined();
     expect(entities(held(roster))[0]?.currency).toBe("held");
   });

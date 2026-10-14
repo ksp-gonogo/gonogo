@@ -5,7 +5,7 @@ import {
   solve,
 } from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it } from "vitest";
-import type { CelestialBody } from "../SystemView/useCelestialBodies";
+import type { CelestialBody } from "../TrackingStation/useCelestialBodies";
 import { placedAt, posesOf } from "../test/bodyPoses";
 import {
   bodyTrueLongitudeDeg,

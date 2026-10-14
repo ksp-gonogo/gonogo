@@ -53,6 +53,7 @@ export const RENAMED_COMPONENT_IDS: Record<string, string> = {
   "mission-status": "objectives",
   "deployed-base-monitor": "deployed-science",
   "aero-state": "aerodynamics",
+  "system-view": "tracking-station",
 };
 
 /** Map a single (possibly renamed) component id forward to its current id. */

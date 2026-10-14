@@ -6,7 +6,7 @@ import { FleetCommsActions } from "./index";
 import { __resetFleetCommsTogglesForTests } from "./toggles";
 
 /**
- * Two SystemView tiles on one dashboard each carry their own Commlinks and
+ * Two TrackingStation tiles on one dashboard each carry their own Commlinks and
  * Traffic controls, and pressing one tile's control leaves the other tile's
  * state alone.
  */

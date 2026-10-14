@@ -662,7 +662,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void BuildCatalogMapsEachVesselsOwnOrbitViaTheSharedBuildOrbitRoutine()
         {
-            // The join a SystemView graph node uses to derive its position:
+            // The join a TrackingStation graph node uses to derive its position:
             // no separate node-position field, see CatalogEntry.Orbit's
             // own doc comment. Reuses the same raw key set (and the same
             // BuildOrbit helper) BuildBody uses for BodyEntry.Orbit.

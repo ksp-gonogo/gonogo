@@ -35,7 +35,7 @@ export function commsLinkBadge(link: CommsLinkState | undefined): BadgeEntry[] {
 
 CORE_UPLINK_CLIENT.registerContribution({
   id: "fleet-comms-badge",
-  contributes: "system-view.badges",
+  contributes: "tracking-station.badges",
   deps: ["comms.link"],
   compute: (topics) =>
     commsLinkBadge(commsLinkState(topics["comms.link"])).map((badge) => ({

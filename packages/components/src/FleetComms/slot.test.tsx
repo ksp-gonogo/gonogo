@@ -8,9 +8,9 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
-import { SystemViewComponent } from "../SystemView";
-// Side-effect import: registers the real `system-view-vessel-orbits` contribution the toggles gate.
-import "../SystemView/vesselOrbitsContribution";
+import { TrackingStationComponent } from "../TrackingStation";
+// Side-effect import: registers the real `tracking-station-vessel-orbits` contribution the toggles gate.
+import "../TrackingStation/vesselOrbitsContribution";
 import { UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import {
   type StreamFixture,
@@ -23,16 +23,16 @@ import { __resetFleetCommsTogglesForTests } from "./toggles";
 const KERBIN_MU = 3.5316e12;
 
 const META = {
-  componentId: "system-view",
-  contributionSlots: ["system-view.entities"] as const,
+  componentId: "tracking-station",
+  contributionSlots: ["tracking-station.entities"] as const,
 };
 
 /**
  * The Fleet/Comms augment registers `.actions` and nothing else, its toggles
- * gate SystemView's own connection-line and pulse entities, and the route and
+ * gate TrackingStation's own connection-line and pulse entities, and the route and
  * pulse each render exactly once with the toggles on.
  */
-describe("FleetComms: actions augment on SystemView, comms drawing on the contribution model", () => {
+describe("FleetComms: actions augment on TrackingStation, comms drawing on the contribution model", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {
@@ -43,13 +43,13 @@ describe("FleetComms: actions augment on SystemView, comms drawing on the contri
     });
   });
 
-  /** SystemView framed on Kerbin with one active vessel linked directly home: the minimal scene a comms line can draw on. */
+  /** TrackingStation framed on Kerbin with one active vessel linked directly home: the minimal scene a comms line can draw on. */
   async function renderDiagram() {
     const result = render(
       <fixture.Provider>
         <WidgetMetaContext.Provider value={META}>
           <ContributionsProvider>
-            <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+            <TrackingStationComponent config={{ frame: "Kerbin" }} id="sv" />
           </ContributionsProvider>
         </WidgetMetaContext.Provider>
       </fixture.Provider>,
@@ -139,21 +139,21 @@ describe("FleetComms: actions augment on SystemView, comms drawing on the contri
   }
 
   it("registers the actions augment and no overlay fill: the old straight-line draw is gone", () => {
-    const overlay = getAugmentsForSlot("system-view.overlay");
-    const actions = getAugmentsForSlot("system-view.actions");
+    const overlay = getAugmentsForSlot("tracking-station.overlay");
+    const actions = getAugmentsForSlot("tracking-station.actions");
     expect(overlay.map((a) => a.id)).not.toContain("fleet-comms-overlay");
     expect(actions.map((a) => a.id)).toContain("fleet-comms-actions");
   });
 
   it("no longer registers a badges augment", () => {
-    expect(getAugmentsForSlot("system-view.badges")).toEqual([]);
+    expect(getAugmentsForSlot("tracking-station.badges")).toEqual([]);
   });
 
   // Registered by importing `./index`, which proves the badge stays wired to the augment module.
   it("registers the badge as a contribution on the same slot id", () => {
     // A contribution id is stamped with its owning client.
     expect(
-      getContributionsForSlot("system-view.badges").map((c) => c.id),
+      getContributionsForSlot("tracking-station.badges").map((c) => c.id),
     ).toContain("core:fleet-comms-badge");
   });
 

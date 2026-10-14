@@ -175,7 +175,7 @@ export const UNIT_DEFINITIONS = {
   t: { dim: { kg: 1 }, ratio: 1_000, kind: "mass", ladder: "mass" },
   // The astronomical rungs are GRAM-based symbols on a KILOGRAM base: 1 Yg is
   // 1e24 g, which is 1e21 kg. Stating the ratio in kg is not a convenience, it
-  // makes a real bug unrepresentable, and it is the bug SystemView shipped:
+  // makes a real bug unrepresentable, and it is the bug TrackingStation shipped:
   // gram thresholds applied to a kilogram value labelled Kerbin one whole
   // prefix tier too small.
   /** Kilotonnes. */

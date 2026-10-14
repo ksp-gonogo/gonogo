@@ -11,8 +11,8 @@ import {
 } from "./toggles";
 
 /**
- * The Commlinks and Traffic toggles on `SystemView`. It draws nothing into the
- * diagram: SystemView reads the toggles' store, and its `system-view.entities`
+ * The Commlinks and Traffic toggles on `TrackingStation`. It draws nothing into the
+ * diagram: TrackingStation reads the toggles' store, and its `tracking-station.entities`
  * contributions draw the comms graph.
  */
 function FleetCommsActions() {
@@ -47,7 +47,7 @@ function FleetCommsActions() {
 
 registerAugment({
   id: "fleet-comms-actions",
-  augments: "system-view.actions",
+  augments: "tracking-station.actions",
   component: FleetCommsActions,
 });
 

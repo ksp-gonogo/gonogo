@@ -54,7 +54,7 @@ export const TONES: readonly Tone[] = [
  * well, return no entry at all rather than one with a reassuring tone.
  * Useful for letting the operator see at a glance how serious a contribution's
  * report is. Used by entries such as {@link CrewRowToneEntry} and {@link
- * SystemViewVesselStatusEntry}.
+ * TrackingStationVesselStatusEntry}.
  *
  * @category Tone
  */

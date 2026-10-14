@@ -40,7 +40,7 @@ afterEach(() => {
   teardowns.length = 0;
 });
 
-/** SystemView's header badge row, wired the way the dashboard wires it. */
+/** TrackingStation's header badge row, wired the way the dashboard wires it. */
 function BadgeHeader() {
   const badges = useWidgetBadges();
   return (
@@ -54,7 +54,7 @@ function renderBadge() {
   const rendered = render(
     <fixture.Provider>
       <WidgetMetaContext.Provider
-        value={{ componentId: "system-view", contributionSlots: [] }}
+        value={{ componentId: "tracking-station", contributionSlots: [] }}
       >
         <ContributionsProvider>
           <BadgeHeader />

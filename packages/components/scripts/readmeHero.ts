@@ -49,12 +49,12 @@ export interface HeroComposition {
 
 const SYSTEM_VIEW: Tile = {
   id: "system",
-  widget: "system-view",
+  widget: "tracking-station",
   at: [26, 0, 10, 11],
 };
 
 export const HERO_COMPOSITIONS: Record<string, HeroComposition> = {
-  /** The same flight with System View and without the camera. */
+  /** The same flight with Tracking Station and without the camera. */
   systemview: {
     width: 1440,
     rows: 23,
@@ -83,7 +83,7 @@ export const HERO_COMPOSITIONS: Record<string, HeroComposition> = {
       },
     ],
   },
-  /** The smaller screen: no camera, the two action groups in their tiny form beside a small System View. */
+  /** The smaller screen: no camera, the two action groups in their tiny form beside a small Tracking Station. */
   compact: {
     width: 1280,
     rows: 21,
@@ -97,7 +97,7 @@ export const HERO_COMPOSITIONS: Record<string, HeroComposition> = {
         at: [0, 10, 14, 11],
       },
       { id: "fuel", widget: "fuel-status", at: [14, 10, 12, 11] },
-      { id: "system", widget: "system-view", at: [26, 10, 6, 11] },
+      { id: "system", widget: "tracking-station", at: [26, 10, 6, 11] },
       {
         id: "sas",
         widget: "action-group",
@@ -112,7 +112,7 @@ export const HERO_COMPOSITIONS: Record<string, HeroComposition> = {
       },
     ],
   },
-  /** The same, with System View wider above the two action groups side by side. */
+  /** The same, with Tracking Station wider above the two action groups side by side. */
   compactwide: {
     width: 1280,
     rows: 21,
@@ -126,7 +126,7 @@ export const HERO_COMPOSITIONS: Record<string, HeroComposition> = {
         at: [0, 10, 14, 11],
       },
       { id: "fuel", widget: "fuel-status", at: [14, 10, 12, 11] },
-      { id: "system", widget: "system-view", at: [26, 10, 10, 8] },
+      { id: "system", widget: "tracking-station", at: [26, 10, 10, 8] },
       {
         id: "sas",
         widget: "action-group",

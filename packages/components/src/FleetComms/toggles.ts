@@ -2,9 +2,9 @@ import { DashboardItemContext } from "@ksp-gonogo/core";
 import { useCallback, useContext, useSyncExternalStore } from "react";
 
 /**
- * The Commlinks and Traffic toggles, one pair per SystemView instance. The
+ * The Commlinks and Traffic toggles, one pair per TrackingStation instance. The
  * augment drawing them mounts in the panel chrome, out of reach of any
- * SystemView context, so the state sits in this external store keyed by
+ * TrackingStation context, so the state sits in this external store keyed by
  * `DashboardItemContext` instance id.
  */
 export interface FleetCommsToggles {
@@ -70,7 +70,7 @@ export function useFleetCommsInstanceId(): string {
   return useContext(DashboardItemContext)?.instanceId ?? NO_INSTANCE;
 }
 
-/** React binding: the actions augment and SystemView read the same instance's live snapshot. */
+/** React binding: the actions augment and TrackingStation read the same instance's live snapshot. */
 export function useFleetCommsToggles(): FleetCommsToggles {
   const instanceId = useFleetCommsInstanceId();
   const snapshot = useCallback(

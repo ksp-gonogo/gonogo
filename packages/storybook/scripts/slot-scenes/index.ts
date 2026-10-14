@@ -21,8 +21,8 @@ import { SCENES as resourceOps } from "./resource-ops";
 import { SCENES as scienceData } from "./science-data";
 import { SCENES as shipMap } from "./ship-map";
 import { SCENES as spaceCenterStatus } from "./space-center-status";
-import { SCENES as systemView } from "./system-view";
 import { SCENES as targetPicker } from "./target-picker";
+import { SCENES as systemView } from "./tracking-station";
 import { SCENES as transferWindow } from "./transfer-window";
 import { SCENES as warpControl } from "./warp-control";
 

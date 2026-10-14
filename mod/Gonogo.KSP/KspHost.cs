@@ -2017,7 +2017,7 @@ namespace Gonogo.KSP
         /// This vessel's own orbital elements, same raw key set (and same
         /// <c>SystemViewProvider.BuildOrbit</c> consumer) <see cref="BuildBodyEntry"/>
         /// uses for a body's orbit: the join key that positions a roster
-        /// vessel, and a SystemView graph node keyed to it, client-side. Keys
+        /// vessel, and a TrackingStation graph node keyed to it, client-side. Keys
         /// are omitted entirely (never emitted as explicit nulls) when
         /// <paramref name="orbit"/> is null, so <c>SystemViewProvider</c> maps
         /// the whole thing to a null <c>OrbitEntry</c> rather than an

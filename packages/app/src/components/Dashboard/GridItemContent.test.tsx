@@ -185,7 +185,7 @@ describe("GridItemContent: draggableCancel structural guard", () => {
 
   it("hands the render-gate def.channels only, never def.optionalChannels", () => {
     // optionalChannels must never gate: an unhealthy OPTIONAL uplink should not
-    // blank a widget that handles absence itself (SystemView relies on this).
+    // blank a widget that handles absence itself (TrackingStation relies on this).
     // The chrome enforces it by passing the gate def.channels alone, guard that
     // wiring so a future accidental optionalChannels pass-through is caught.
     registerComponent({
