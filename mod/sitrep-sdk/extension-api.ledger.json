@@ -13573,6 +13573,10 @@
         "note": "Asks the mod what a command's gate says about a call with these arguments from this centre, debounced; the answer lands in gateFor for the same arguments"
       },
       {
+        "key": "sitrep-sdk ./spine UseCommandResult#railed?",
+        "note": "Optional: whether the handle is registered with the panel rail, so a control beside a rail can tell if the rail will speak for it"
+      },
+      {
         "key": "sitrep-sdk ./spine UsePatchChainInput",
         "note": "New: what usePatchChain is asked"
       },
@@ -14803,6 +14807,10 @@
       {
         "key": "ui-kit . ComboboxListboxProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . CommandButtonHandle#railed?",
+        "note": "Optional: a handle from useCommand reports it; a hand-built handle without it makes the control announce its own outcomes"
       },
       {
         "key": "ui-kit . CommandButtonHandle#sendStatus?",

@@ -464,7 +464,10 @@ describe("CommandButton: outcomes are announced, not only relabelled", () => {
       const { container } = render(
         <DelayRailContext.Provider value={store}>
           {rail && <PanelDelayRail />}
-          <CommandButton handle={makeHandle(() => d.promise)} label="Go" />
+          <CommandButton
+            handle={makeHandle(() => d.promise, { railed: true })}
+            label="Go"
+          />
         </DelayRailContext.Provider>,
       );
       await user.click(screen.getByRole("button", { name: "Go" }));
@@ -474,6 +477,27 @@ describe("CommandButton: outcomes are announced, not only relabelled", () => {
       if (rail) expect(announcer(container)).toBeEmptyDOMElement();
       else expect(announcer(container)).not.toBeEmptyDOMElement();
     });
+  });
+
+  it("announces from the control when its handle is not on the rail beside it", async () => {
+    // A handle the rail does not hold is one the rail will never speak for, so the control must.
+    const user = userEvent.setup();
+    const d = deferred();
+    const store = createDelayRailStore();
+    const { container } = render(
+      <DelayRailContext.Provider value={store}>
+        <PanelDelayRail />
+        <CommandButton
+          handle={makeHandle(() => d.promise, { railed: false })}
+          label="Go"
+        />
+      </DelayRailContext.Provider>,
+    );
+    await user.click(screen.getByRole("button", { name: "Go" }));
+    await act(async () => {
+      d.reject(Object.assign(new Error("lost"), { code: "E_LOST" }));
+    });
+    expect(announcer(container)).toHaveTextContent(/no reply/i);
   });
 
   it("says a loss", async () => {
@@ -1323,6 +1347,37 @@ describe("CommandButton: a lost command that answered after all", () => {
       "data-command-phase",
       "lost",
     );
+  });
+
+  it("shows a found on every control that sent the same command, which nothing tells apart", async () => {
+    // Two rows sharing a handle that dispatch with no args and no label are one command to the wire, so a found for it is each row's.
+    const user = userEvent.setup();
+    const d = deferred();
+    const send = vi.fn(() => d.promise);
+    const pair = (handle: CommandButtonHandle) => (
+      <>
+        <CommandButton handle={handle} label="First" />
+        <CommandButton handle={handle} label="Second" />
+      </>
+    );
+    const { rerender } = render(pair(makeHandle(send)));
+    await user.click(screen.getByRole("button", { name: "First" }));
+    await user.click(screen.getByRole("button", { name: "Second" }));
+    await act(async () => {
+      d.reject(Object.assign(new Error("lost"), { code: "E_LOST" }));
+    });
+    await act(async () => {
+      rerender(
+        pair(
+          makeHandle(send, {
+            founds: [{ id: "c1", command: "x", label: "", outcome: "ran" }],
+          }),
+        ),
+      );
+    });
+    for (const button of screen.getAllByRole("button")) {
+      expect(button).toHaveAttribute("data-command-phase", "found");
+    }
   });
 
   it("clears on a press, so the operator can send again from rest", async () => {

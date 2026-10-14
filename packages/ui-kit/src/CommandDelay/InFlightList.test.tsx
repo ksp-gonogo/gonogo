@@ -1,6 +1,8 @@
 import { currentMode, value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
+import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { emittedRuleFor } from "../test/emittedRule";
 import { installTestGameClock } from "../test/gameClock";
@@ -391,5 +393,47 @@ describe("InFlightList structure for assistive tech", () => {
     expect(
       screen.getByRole("group", { name: /^In-flight commands: 3 in flight/ }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("InFlightList: focus after a dismiss", () => {
+  const LOST = (id: string): InFlightListItem => ({
+    id,
+    label: `run ${id}.ks`,
+    etaSeconds: null,
+    phase: "lost",
+    glyph: id.toUpperCase(),
+  });
+
+  function Harness() {
+    const [items, setItems] = useState([LOST("a"), LOST("b")]);
+    return (
+      <>
+        <button type="button">elsewhere</button>
+        <InFlightList
+          items={items}
+          variant="expanded"
+          onDismiss={(id) => setItems((all) => all.filter((i) => i.id !== id))}
+        />
+      </>
+    );
+  }
+
+  it("lands on the next dismiss button rather than the page", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole("button", { name: "Dismiss run a.ks" }));
+    expect(
+      screen.getByRole("button", { name: "Dismiss run b.ks" }),
+    ).toHaveFocus();
+  });
+
+  it("lands on the previous one when the last is dismissed", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole("button", { name: "Dismiss run b.ks" }));
+    expect(
+      screen.getByRole("button", { name: "Dismiss run a.ks" }),
+    ).toHaveFocus();
   });
 });

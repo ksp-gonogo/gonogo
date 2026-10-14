@@ -227,6 +227,13 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * the panel's delay rail, removes it here too.
    */
   dismiss: (id: string) => void;
+  /**
+   * Whether this handle is registered with the panel's command rail, which then
+   * speaks and draws its outcomes. `false` for a handle made with `rail: false`
+   * or with no rail above it. A control that would otherwise stay quiet beside
+   * a rail reads it, so an outcome is never left with nobody to say it.
+   */
+  railed?: boolean;
   /** Dispatches the game refused, newest last, each with its reason. */
   refusals: CommandRefusal[];
   /**
@@ -1242,7 +1249,7 @@ export function useCommand(
     rail.update(railId, outcome);
   });
 
-  return { send, gateFor, check, ...outcome };
+  return { send, gateFor, check, railed: railed && rail !== null, ...outcome };
 }
 
 /** The one-way delay off a `comms.delay` reading, with its currency; `null` where there is no finite one to draw. */

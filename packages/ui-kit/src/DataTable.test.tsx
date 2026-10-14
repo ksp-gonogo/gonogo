@@ -237,3 +237,36 @@ describe("DataTable row headers and readings", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe("DataTable column width", () => {
+  const widthOf = (name: string) =>
+    (screen.getByRole("columnheader", { name }) as HTMLElement).style.width;
+
+  it("puts a CSS length on the column's header, which is what sizes a table column", () => {
+    render(
+      <DataTable
+        caption="Widths"
+        columns={[
+          { ...COLUMNS[0], width: "100%" },
+          { ...COLUMNS[1], width: "9ch" },
+        ]}
+        rows={ROWS}
+        rowKey={key}
+      />,
+    );
+    expect(widthOf("Subject")).toBe("100%");
+    expect(widthOf("Science")).toBe("9ch");
+  });
+
+  it("gets no width from a grid unit, since a table is not a grid and `fr` is not a length", () => {
+    render(
+      <DataTable
+        caption="Widths"
+        columns={[{ ...COLUMNS[0], width: "1fr" }, COLUMNS[1]]}
+        rows={ROWS}
+        rowKey={key}
+      />,
+    );
+    expect(widthOf("Subject")).toBe("");
+  });
+});

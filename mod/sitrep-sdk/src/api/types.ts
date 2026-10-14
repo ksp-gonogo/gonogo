@@ -523,17 +523,21 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
 }
 
 /**
- * What {@link registerTheme} takes: a theme the app can mount with
+ * What {@link registerTheme} takes: a theme an app can mount with
  * `UiKitThemeProvider`, which writes its colours and type onto the kit's CSS
- * variables, so every widget follows it and a switch reaches them all. Useful
- * for restyling every widget on the operator's screen at once.
+ * variables, so every widget under that provider follows it. Useful for
+ * restyling every widget an app draws at once.
+ *
+ * A registered theme takes effect where an app mounts it. Registering one adds
+ * no picker and selects nothing: the app decides which registered theme its
+ * provider is given.
  *
  * @category Registering
  */
 export interface ThemeDefinition {
   /** Unique across every package. */
   id: string;
-  /** The theme's name in the theme picker. */
+  /** The theme's display name, for an app that lists the registered themes. */
   name: string;
   /** The theme's tokens: the colours and type the kit draws with. */
   theme: UiKitTheme;

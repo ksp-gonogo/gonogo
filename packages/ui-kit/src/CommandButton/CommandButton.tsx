@@ -143,6 +143,12 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
    * blocks the press and never changes the control's size.
    */
   sendStatus?: SendStatus | undefined;
+  /**
+   * Whether the panel's command rail holds this handle and so speaks its
+   * outcomes, as `useCommand` reports. Absent or `false`, the control says its
+   * own outcomes itself, even beside a rail.
+   */
+  railed?: boolean;
 }
 
 /**
@@ -822,8 +828,8 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
     !isFound &&
     !isShowingReason;
 
-  // A mounted rail announces every outcome of the commands it shows, so this control's own region stays quiet beside one.
-  const railed = useRailAnnounces();
+  // A mounted rail announces every outcome of the commands it holds, so this control's own region stays quiet beside one only when its handle is one of them.
+  const railed = useRailAnnounces() && handle.railed === true;
   const outcome = railed
     ? null
     : isRefused

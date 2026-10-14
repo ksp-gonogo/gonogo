@@ -16,7 +16,7 @@
  * (`text.muted`, `surface.raised`), not by hue, and each value is a CSS colour
  * that becomes the matching `--color-*` variable (`text.muted` sets
  * `--color-text-muted`). Useful for colouring text, surfaces and borders by
- * role, so every widget follows the theme the operator has chosen.
+ * role, so every widget under a `UiKitThemeProvider` takes the theme's colours.
  *
  * @category Theme
  */

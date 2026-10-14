@@ -5,6 +5,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CSSProperties,
+  type MouseEvent,
   type RefObject,
   useEffect,
   useId,
@@ -17,6 +18,7 @@ import { Tooltip } from "../Tooltip";
 import { TONE_MARK, TONE_TEXT } from "../tone";
 import { writeQuantity } from "../units";
 import { useElementSize } from "../useElementSize";
+import { focusBesideDismissed } from "./focusBesideDismissed";
 import { deriveGlyph, PHASE_PROGRESS } from "./toInFlightListItems";
 
 /**
@@ -275,7 +277,12 @@ export function useCountdown(etaSeconds: number | null): number | null {
       const { eta, ut } = seedRef.current;
       if (eta === null) return;
       const now = gameNow(clockRef.current);
-      if (ut === undefined || now === undefined) return;
+      if (now === undefined) return;
+      // The figure was taken before the clock had a time: count from the first time it gives.
+      if (ut === undefined) {
+        seedRef.current = { eta, ut: now };
+        return;
+      }
       setValue(Math.max(0, eta - (now - ut)));
     }, 1000);
     return () => clearInterval(id);
@@ -579,7 +586,7 @@ function InFlightQueue({
   const shown = willOverflow ? items.slice(0, capacity - 1) : items;
   const hidden = items.length - shown.length;
   return (
-    <InFlightQueue__Box ref={ref}>
+    <InFlightQueue__Box ref={ref} data-command-list="">
       <InFlightQueue__Inner role="list" aria-label={ariaLabel}>
         {shown.map((item) => (
           <InFlightQueueCmd key={item.id} item={item} onDismiss={onDismiss} />
@@ -628,7 +635,11 @@ function InFlightQueueCmd({
           {...(dismissable
             ? {
                 type: "button" as const,
-                onClick: () => onDismiss?.(item.id),
+                "data-dismiss": "",
+                onClick: (event: MouseEvent<HTMLElement>) => {
+                  focusBesideDismissed(event.currentTarget);
+                  onDismiss?.(item.id);
+                },
                 "aria-label": `Dismiss ${item.label}`,
               }
             : { "aria-hidden": true })}
