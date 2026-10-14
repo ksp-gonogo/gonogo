@@ -4,6 +4,7 @@ import { EmptyState, TextButton } from "@ksp-gonogo/ui";
 import { Stack } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import type { CompletedEntry } from "./BurnCompletionTracker";
+import type { ThrustObservation } from "./conformance";
 import { type NodeEditPatch, NodeRow } from "./NodeRow";
 
 interface ManeuverNodeListProps {
@@ -14,6 +15,8 @@ interface ManeuverNodeListProps {
   currentUT: Value<"ut"> | undefined;
   /** Vessel ΔV available, or null when there is no usable reading. */
   availableDv: number | null;
+  /** The propulsion latch, so a burn running past its planned cutoff reads as burning. */
+  thrust?: ThrustObservation;
   /** What the plan was last reported by. */
   from?: readonly CarriedCurrency[];
   /** Failures surface through the orchestrator's `error` state, not here. */
@@ -34,6 +37,7 @@ export function ManeuverNodeList({
   completedNodes,
   currentUT,
   availableDv,
+  thrust,
   from,
   onDelete,
   onEdit,
@@ -72,6 +76,7 @@ export function ManeuverNodeList({
               node={d.node}
               currentUT={currentUT}
               availableDv={availableDv}
+              thrust={thrust}
               from={from}
               completed={d.completed}
               onDelete={d.phantom ? undefined : () => void onDelete(d.node.id)}

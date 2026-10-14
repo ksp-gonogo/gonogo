@@ -48,4 +48,85 @@ describe("ManeuverPlanner tiny mode", () => {
     expect(screen.queryByText("PASSED")).toBeNull();
     await act(async () => {});
   });
+
+  describe("a burn running past its planned cutoff", () => {
+    async function mount(nodeFields: Record<string, unknown>) {
+      const fixture = setupStreamFixture({ pinnedUt: 98, suspendFrames: true });
+      renderWidget("maneuver-planner", {
+        w: 3,
+        h: 3,
+        wrapper: fixture.Provider,
+      });
+      act(() => {
+        fixture.emit("vessel.maneuver", { nodes: [node(nodeFields)] });
+        fixture.emit("vessel.propulsion", {
+          thrustStartedUt: 96,
+          lastThrustEndUt: null,
+        });
+      });
+      await waitFor(() => expect(visibleText()).toContain("Burn ΔV planned"));
+      return fixture;
+    }
+
+    it("stays a burn in progress from ignition before the node until the engine stops, not until the node's instant or the planned cutoff", async () => {
+      const fixture = await mount({ ut: 100, ignitionUt: 96, cutoffUt: 104 });
+      for (const ut of [102, 106, 108]) {
+        act(() => fixture.scrubTo(ut));
+        expect(visibleText()).toContain("Burn ΔV planned");
+        expect(visibleText()).not.toContain("PASSED");
+      }
+      act(() => {
+        fixture.emit("vessel.propulsion", {
+          thrustStartedUt: null,
+          lastThrustEndUt: 109,
+        });
+        fixture.scrubTo(110);
+      });
+      await waitFor(() => expect(visibleText()).toContain("PASSED"));
+      await act(async () => {});
+    });
+
+    it("stays a burn in progress when ignition came after the node's instant", async () => {
+      const fixture = setupStreamFixture({ pinnedUt: 98, suspendFrames: true });
+      renderWidget("maneuver-planner", {
+        w: 3,
+        h: 3,
+        wrapper: fixture.Provider,
+      });
+      act(() => {
+        fixture.emit("vessel.maneuver", {
+          nodes: [node({ ut: 100, ignitionUt: 103, cutoffUt: 104 })],
+        });
+        fixture.emit("vessel.propulsion", {
+          thrustStartedUt: 103,
+          lastThrustEndUt: null,
+        });
+        fixture.scrubTo(107);
+      });
+      await waitFor(() => expect(visibleText()).toContain("Burn ΔV planned"));
+      expect(visibleText()).not.toContain("PASSED");
+      await act(async () => {});
+    });
+
+    it("says PASSED for a node whose burn never happened while an engine lit long after it is running", async () => {
+      const fixture = setupStreamFixture({ pinnedUt: 98, suspendFrames: true });
+      renderWidget("maneuver-planner", {
+        w: 3,
+        h: 3,
+        wrapper: fixture.Provider,
+      });
+      act(() => {
+        fixture.emit("vessel.maneuver", {
+          nodes: [node({ ut: 100, ignitionUt: 96, cutoffUt: 104 })],
+        });
+        fixture.emit("vessel.propulsion", {
+          thrustStartedUt: 500,
+          lastThrustEndUt: null,
+        });
+        fixture.scrubTo(600);
+      });
+      await waitFor(() => expect(visibleText()).toContain("PASSED"));
+      await act(async () => {});
+    });
+  });
 });

@@ -1,10 +1,12 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   type BurnContext,
   type BurnWatch,
   burnFlown,
   burnPhase,
+  engineLitFor,
   type OrbitShape,
   orbitShape,
   shapesDiffer,
@@ -230,5 +232,29 @@ describe("burnPhase", () => {
     expect(burnPhase(watch, n, ctx({ nowUt: 995, thrust: undefined }))).toBe(
       "unknown",
     );
+  });
+});
+
+describe("engineLitFor", () => {
+  const at = (ut: number) => value("ut", ut);
+  const burn = { ut: at(100), ignitionUt: at(96), cutoffUt: at(104) };
+
+  it("takes an engine started inside the planned window, with a little slack either side", () => {
+    expect(engineLitFor(burn, at(96))).toBe(true);
+    expect(engineLitFor(burn, at(90))).toBe(true);
+    expect(engineLitFor(burn, at(112))).toBe(true);
+  });
+
+  it("refuses an engine started well before or after the window, and one not running", () => {
+    expect(engineLitFor(burn, at(80))).toBe(false);
+    expect(engineLitFor(burn, at(500))).toBe(false);
+    expect(engineLitFor(burn, null)).toBe(false);
+    expect(engineLitFor(burn, undefined)).toBe(false);
+  });
+
+  it("windows a burn with no modelled duration on the node's own instant", () => {
+    const bare = { ut: at(100), ignitionUt: null, cutoffUt: null };
+    expect(engineLitFor(bare, at(95))).toBe(true);
+    expect(engineLitFor(bare, at(200))).toBe(false);
   });
 });

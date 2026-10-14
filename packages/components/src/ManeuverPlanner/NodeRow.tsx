@@ -15,6 +15,8 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import { useState } from "react";
+import { type BurnInstants, engineLitFor } from "./burnFlown";
+import type { ThrustObservation } from "./conformance";
 import { NodeEditor } from "./NodeEditor";
 import { FeasibilityChip } from "./styles";
 
@@ -38,6 +40,8 @@ interface NodeRowProps {
   /** What the plan was last reported by, so a held plan draws held figures. */
   from?: readonly CarriedCurrency[];
   completed?: boolean;
+  /** The propulsion latch, so a burn still running past its planned cutoff is not called passed. */
+  thrust?: ThrustObservation;
   /** Omitted on phantom rows (the underlying node is already gone from KSP). */
   onDelete?: () => void;
   /** Omitted on phantom rows; omitted to hide the edit affordance entirely. */
@@ -50,6 +54,7 @@ export function NodeRow({
   availableDv,
   from,
   completed = false,
+  thrust,
   onDelete,
   onEdit,
 }: NodeRowProps) {
@@ -59,7 +64,7 @@ export function NodeRow({
   const dated = <UnitSymbol extends string>(
     figure: ReturnType<typeof value<UnitSymbol>>,
   ) => (from === undefined ? figure : datedFrom(from, figure));
-  const phase = completed ? "ahead" : phaseOf(node, currentUT);
+  const phase = completed ? "ahead" : phaseOf(node, currentUT, thrust);
   // A burn already flown or in progress has no shortfall to report: the figure is its planned size, and the available total is already being drawn down by the burn.
   const feasible =
     completed ||
@@ -107,6 +112,8 @@ export function NodeRow({
         <div style={NODE_META_STYLE}>
           {completed ? (
             "Removing in 10 s"
+          ) : phase === "underway" && pastCutoff(node, currentUT) ? (
+            "burn still running"
           ) : phase === "underway" && node.cutoffUt !== null ? (
             <>
               burn ends in{" "}
@@ -173,10 +180,13 @@ export function NodeRow({
 function phaseOf(
   node: ParsedManeuverNode,
   currentUT: Value<"ut"> | undefined,
+  thrust: ThrustObservation | undefined,
 ): "ahead" | "underway" | "passed" {
   if (currentUT === undefined) return "ahead";
-  if (currentUT.greaterThan(value("ut", node.cutoffUt ?? node.UT))) {
-    return "passed";
+  if (pastCutoff(node, currentUT)) {
+    return thrust?.thrusting && engineLitFor(instantsOf(node), thrust.startedUt)
+      ? "underway"
+      : "passed";
   }
   if (
     node.ignitionUt !== null &&
@@ -185,6 +195,24 @@ function phaseOf(
     return "underway";
   }
   return "ahead";
+}
+
+function pastCutoff(
+  node: ParsedManeuverNode,
+  currentUT: Value<"ut"> | undefined,
+): boolean {
+  return (
+    currentUT !== undefined &&
+    currentUT.greaterThan(value("ut", node.cutoffUt ?? node.UT))
+  );
+}
+
+function instantsOf(node: ParsedManeuverNode): BurnInstants {
+  return {
+    ut: value("ut", node.UT),
+    ignitionUt: node.ignitionUt === null ? null : value("ut", node.ignitionUt),
+    cutoffUt: node.cutoffUt === null ? null : value("ut", node.cutoffUt),
+  };
 }
 
 const PHASE_CHIP_STYLE: CSSProperties = {

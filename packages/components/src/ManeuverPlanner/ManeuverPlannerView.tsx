@@ -121,6 +121,7 @@ export function ManeuverPlannerComponent({
             completedNodes={completedNodes}
             currentUT={currentUT}
             availableDv={availableDeltaV}
+            thrust={telemetry.thrustLatch}
             from={planCurrency}
             onDelete={handleDelete}
             onEdit={handleEdit}

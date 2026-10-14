@@ -1,3 +1,5 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
+
 /**
  * What one burn is, as far as the readings reach. The delta-v delivered and
  * the delta-v left are not on the stream: a node's own figure is the plan and
@@ -33,4 +35,6 @@ export interface ThrustObservation {
    * meaningless.
    */
   lastThrustEndUt: number | null;
+  /** UT the current thrust began, or null while the craft is not thrusting or the start is unknown. */
+  startedUt?: Value<"ut"> | null;
 }

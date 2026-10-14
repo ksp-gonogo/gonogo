@@ -13,7 +13,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { derivedMarking } from "@ksp-gonogo/ui-kit";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
@@ -69,12 +69,23 @@ export function usePlannerTelemetry() {
   const lastThrustEndUt = propulsion
     ? magnitudeOf(propulsion.lastThrustEndUt)
     : undefined;
+  // Held by value, so a fresh frame carrying the same start does not remake the latch.
+  const startedRef = useRef<Value<"ut"> | null>(null);
+  const reading = thrusting ? (propulsion?.thrustStartedUt ?? null) : null;
+  if (
+    reading === null
+      ? startedRef.current !== null
+      : !reading.equals(startedRef.current ?? Number.NaN)
+  ) {
+    startedRef.current = reading;
+  }
+  const startedUt = startedRef.current;
   const thrustLatch = useMemo(
     () =>
       thrusting === undefined || lastThrustEndUt === undefined
         ? undefined
-        : { thrusting, lastThrustEndUt },
-    [thrusting, lastThrustEndUt],
+        : { thrusting, lastThrustEndUt, startedUt },
+    [thrusting, lastThrustEndUt, startedUt],
   );
   // The current orbit's curve is the propagation seam's answer, never a diagram's own choice.
   const currentTrajectory: OrbitTrajectory | null =

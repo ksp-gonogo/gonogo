@@ -148,6 +148,40 @@ export function burnFlown(
   return !shapesDiffer(ctx.current, watch.target);
 }
 
+/**
+ * How far an engine's start may fall outside a burn's planned window and still
+ * be the burn toward that node: a pilot lights a little early or late, and an
+ * unrelated burn long before or after is not this one.
+ */
+const BURN_ATTRIBUTION_SLACK = value("s", 10);
+
+/** The instants of one planned burn. */
+export interface BurnInstants {
+  ut: Value<"ut">;
+  ignitionUt: Value<"ut"> | null;
+  cutoffUt: Value<"ut"> | null;
+}
+
+/**
+ * Whether the engine now lit is the burn toward this node: it started within
+ * the burn's planned window, give or take the slack. Pass null for an engine
+ * that is not thrusting. The clock alone cannot say a burn is over, since the
+ * planned cutoff is recomputed from the craft as it burns and a pilot's burn
+ * runs past it, so a node counts as flown only once this is false.
+ */
+export function engineLitFor(
+  burn: BurnInstants,
+  thrustStartedUt: Value<"ut"> | null | undefined,
+): boolean {
+  if (thrustStartedUt === null || thrustStartedUt === undefined) return false;
+  const from = (burn.ignitionUt ?? burn.ut).minus(BURN_ATTRIBUTION_SLACK);
+  const to = (burn.cutoffUt ?? burn.ut).plus(BURN_ATTRIBUTION_SLACK);
+  return (
+    thrustStartedUt.greaterThanOrEqual(from) &&
+    thrustStartedUt.lessThanOrEqual(to)
+  );
+}
+
 /** Where the burn is, from the clock, the thrust latch and whether it was flown; `unknown` where the readings cannot say. */
 export function burnPhase(
   watch: BurnWatch,
