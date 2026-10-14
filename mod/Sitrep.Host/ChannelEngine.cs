@@ -5338,6 +5338,11 @@ namespace Sitrep.Host
             {
                 return null;
             }
+            var shape = CommandArgsShape.Violation(command, args, argsType);
+            if (shape != null)
+            {
+                return shape;
+            }
             try
             {
                 BindCommandArgs(args, argsType);
@@ -5590,7 +5595,15 @@ namespace Sitrep.Host
                     continue;
                 }
 
-                prop.SetValue(instance, BindCommandArgs(raw, prop.PropertyType));
+                try
+                {
+                    prop.SetValue(instance, BindCommandArgs(raw, prop.PropertyType));
+                }
+                catch (Exception ex) when (ex is InvalidCastException || ex is FormatException || ex is OverflowException)
+                {
+                    throw new InvalidCastException(
+                        $"argument \"{CommandArgsShape.WireName(prop)}\": {ex.Message}", ex);
+                }
             }
 
             return instance;
@@ -9642,8 +9655,57 @@ namespace Sitrep.Host
             return BindCommandArgs(args, argsType) ?? args;
         }
 
+        /// <summary>
+        /// Refuses a cancel, a send again or a gate check whose args cannot be
+        /// read, with the argument named. These three are answered on the
+        /// Courier thread ahead of the handler stores, so the dispatch-time
+        /// check that covers every registered command never sees them.
+        /// </summary>
+        private bool RefuseUnreadableBuiltInArgs(DispatchCommandJob job)
+        {
+            Type? argsType = job.Command switch
+            {
+                UplinkCancelCommand => typeof(UplinkCancelRequest),
+                UplinkResendCommand => typeof(UplinkResendRequest),
+                GateCheckCommand => typeof(GateCheckRequest),
+                _ => null,
+            };
+            if (argsType == null)
+            {
+                return false;
+            }
+
+            string? reason = CommandArgsShape.Violation(job.Command, job.Args, argsType);
+            if (reason == null)
+            {
+                try
+                {
+                    BindCommandArgs(job.Args, argsType);
+                }
+                catch (Exception ex)
+                {
+                    reason = $"args of \"{job.Command}\" do not bind to {argsType.Name}: {SafeExceptionMessage(ex)}";
+                }
+            }
+
+            if (reason == null)
+            {
+                return false;
+            }
+
+            if (job.OnMalformed != null) job.OnMalformed(reason);
+            else job.OnRefused?.Invoke(FaultCode.InvalidEnvelope, reason);
+            job.Done?.Set();
+            return true;
+        }
+
         private void ProcessDispatchCommand(DispatchCommandJob job)
         {
+            if (RefuseUnreadableBuiltInArgs(job))
+            {
+                return;
+            }
+
             // A cancel or a send again acts on the store-and-forward network, which
             // lives on this thread; it never runs on the game's main thread.
             if (TryHandleUplinkAction(job))
