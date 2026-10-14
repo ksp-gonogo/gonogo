@@ -67,9 +67,10 @@ export interface TapeMarker<Unit extends string = string> {
  */
 export interface TapeProps<Unit extends string = string> {
   /**
-   * Which side of the track the scale labels sit on. Default "left" (track
-   * against the right edge). "right" mirrors it, for a tape down a widget's left
-   * edge whose numbers should face the content.
+   * Which side of the track the scale numbers sit on. `"left"`, the default,
+   * puts the numbers to the left of the track and the track against the right
+   * edge. `"right"` mirrors that, for a tape down a widget's left edge whose
+   * numbers should face the content.
    */
   labelSide?: "left" | "right";
   /** Current value: the pointer position, or the whole reading it arrived in. */
@@ -163,6 +164,24 @@ function exactMarks(
  * into range, `aria-valuetext` carrying the written value). The SVG scale is
  * `aria-hidden`, so the widget using it provides a text summary of any zones or
  * markers an operator needs to hear.
+ *
+ * @example
+ * ```tsx
+ * import { useTelemetry, value } from "@ksp-gonogo/sitrep-sdk";
+ * import { Tape } from "@ksp-gonogo/ui-kit";
+ *
+ * function AltitudeTape() {
+ *   const flight = useTelemetry("vessel.flight");
+ *   return (
+ *     <Tape
+ *       value={flight.altitudeAsl}
+ *       min={value("m", 0)}
+ *       max={value("m", 20000)}
+ *       aria-label="Altitude above sea level"
+ *     />
+ *   );
+ * }
+ * ```
  *
  * @category Gauge
  */

@@ -13,9 +13,12 @@ import { Tooltip } from "./Tooltip";
  */
 export interface HeldBadgeProps {
   /**
-   * Why the reading behind this part of the widget stopped updating: `held`,
-   * `disconnected`, `last-before-blackout`, `recorded`, `loading` or `no-game`.
-   * Its word is the one {@link formatStreamStatus} gives the status of that name.
+   * Why the reading behind this part of the widget stopped updating: the
+   * `grade` of a held reading, one of `held`, `disconnected`,
+   * `last-before-blackout`, `recorded`, `loading` or `no-game`. The panel's
+   * other stream statuses, such as `resyncing` and `absent`, describe a stream
+   * and are not grades of a held reading. Its word is the one
+   * {@link formatStreamStatus} gives the status of that name.
    */
   grade: HeldGrade;
   /** What is held, in the operator's terms, for the hover text: "Contract board", a part's title. */

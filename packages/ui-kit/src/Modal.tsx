@@ -78,8 +78,11 @@ let modalSeq = 0;
  *
  * @category Modal
  * @categoryDescription Modal
- * Dialogs over the dashboard: opening one, its save bar and footer, and telling
- * whether its content has unsaved changes.
+ * Dialogs over the dashboard. A widget's settings form is one: it saves its
+ * settings through the dialog's save bar (`useModalSaveBar`), and the dialog
+ * asks before discarding edits that were not saved. This page covers opening a
+ * dialog, the save bar and footer, and telling whether the content has unsaved
+ * changes.
  */
 export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [modals, setModals] = useState<ModalEntry[]>([]);

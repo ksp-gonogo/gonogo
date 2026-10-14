@@ -99,8 +99,9 @@ export interface ModalSaveBarOptions<Draft> {
  * nothing where it is called and does nothing outside a modal.
  *
  * The form is a widget's `configComponent`: register it beside the widget with
- * `registerComponent({ ..., configComponent: NavballConfigForm })`, and the
- * dashboard opens it in a modal with the saved `config` and an `onSave`.
+ * `registerComponent({ ..., configComponent: NavballConfigForm })`, with the
+ * form the example below defines, and the dashboard opens it in a modal with
+ * the saved `config` and an `onSave`.
  *
  * @example
  * ```tsx

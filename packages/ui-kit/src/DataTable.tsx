@@ -139,11 +139,12 @@ export interface DataTableProps<Row> {
  *
  * @example
  * ```tsx
- * // `"Mit"` is the unit KSP measures science data in, and `"science"` is
- * // science points; any unit symbol `value()` accepts works the same way.
  * import { type DataTableColumn, DataTable } from "@ksp-gonogo/ui-kit";
  * import { value } from "@ksp-gonogo/sitrep-sdk";
  *
+ * // `"Mit"` is the unit KSP measures science data in, and `"science"` is
+ * // science points; any unit symbol `value()` accepts works the same way.
+ * // The name subjects stands for your own array of Subject.
  * interface Subject {
  *   subjectId: string;
  *   title: string;

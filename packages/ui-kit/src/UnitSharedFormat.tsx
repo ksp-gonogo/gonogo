@@ -412,6 +412,9 @@ interface UnitSharedFormatAnyProps extends UnitSharedFormatBaseProps, UnitPins {
  *
  * @example
  * ```tsx
+ * import { Unit, UnitSharedFormat } from "@ksp-gonogo/ui-kit";
+ *
+ * // The names currentRpm, rpmLimit, low, high and rows stand for your own values and nodes.
  * // Current over limit, one rung, symbol drawn once: "1234/2000 rpm".
  * <UnitSharedFormat>
  *   <Unit value={currentRpm} decimals={0} hideUnitInGroup />

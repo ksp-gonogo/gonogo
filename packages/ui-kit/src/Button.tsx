@@ -18,8 +18,9 @@ import { TONE_MARK, TONE_ON_STATUS, TONE_STATUS, TONE_TEXT } from "./tone";
  * control, `primary` the one commit action of a group, filled in its tone,
  * `ghost` the quiet secondary one beside it, and `text` no chrome at all, for
  * words that are themselves the control (a name that renames on click): it
- * takes its colour and type from the text around it. Set with the `variant`
- * prop of {@link Button}.
+ * takes its colour and type from the text around it. An underlined action
+ * that reads as part of a sentence is a {@link TextButton} instead. Set with
+ * the `variant` prop of {@link Button}.
  * Useful for telling the operator which control in a group is the main action
  * and which are secondary.
  *
