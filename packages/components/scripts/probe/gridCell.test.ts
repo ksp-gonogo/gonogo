@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { GRID_CELL_HEADER_PX, GRID_CELL_WRAPPER_CSS } from "./gridCell";
+import { GRID_CELL_WRAPPER_CSS } from "./gridCell";
 
 /**
  * The harness's copy of the dashboard cell is only worth anything while it
@@ -27,9 +27,9 @@ function styledBody(file: string, name: string): string {
 }
 
 describe("the harness's dashboard cell", () => {
-  it("has the drag header's height", () => {
+  it("draws the drag header outside the tile, so the widget has the whole cell", () => {
     expect(styledBody("GridItemContent.tsx", "CellHeader")).toMatch(
-      new RegExp(`\\bheight:\\s*${GRID_CELL_HEADER_PX}px;`),
+      /position:\s*absolute;/,
     );
   });
 
@@ -46,10 +46,10 @@ describe("the harness's dashboard cell", () => {
     );
   });
 
-  it("is a clipping column, as the grid cell is", () => {
+  it("is a column that lets the header show above it, as the grid cell is", () => {
     const cell = styledBody("GridDashboard.tsx", "GridCell");
     expect(cell).toMatch(/display:\s*flex;/);
     expect(cell).toMatch(/flex-direction:\s*column;/);
-    expect(cell).toMatch(/overflow:\s*hidden;/);
+    expect(cell).toMatch(/overflow:\s*visible;/);
   });
 });

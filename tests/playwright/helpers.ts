@@ -57,9 +57,11 @@ export interface DashboardLayout {
 
 /**
  * Build a dashboard config containing a single widget under `componentId`.
- * The default 8×6 footprint is large enough for any widget's rich
+ * The default 9×6 footprint is large enough for any widget's rich
  * layout (OrbitView's diagram slot etc.): use `size` to override
- * for niche cases.
+ * for niche cases. Nine columns because the 20px gap between tiles takes
+ * about ten pixels off an eight-column tile, which is the width CrewStatus's
+ * title and headcount need side by side.
  */
 export function dashboardWithWidget(
   componentId: string,
@@ -70,7 +72,7 @@ export function dashboardWithWidget(
   } = {},
 ): { items: DashboardItem[]; layouts: Record<string, DashboardLayout[]> } {
   const i = opts.i ?? `widget-${componentId}`;
-  const { w, h } = opts.size ?? { w: 8, h: 6 };
+  const { w, h } = opts.size ?? { w: 9, h: 6 };
   const layoutAt = (cw: number) => [
     { i, x: 0, y: 0, w: Math.min(w, cw), h, moved: false, static: false },
   ];

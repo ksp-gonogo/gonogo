@@ -15205,6 +15205,10 @@
         "note": "a threshold line given as a quantity or reading, which Graph places and tones"
       },
       {
+        "key": "ui-kit . GripIcon",
+        "note": "A dot-grid icon marking a handle the operator drags, used by the dashboard tile grab bar"
+      },
+      {
         "key": "ui-kit . GroundPoint",
         "note": "A latitude and longitude in degrees, the point type the wrapped-map helpers take"
       },

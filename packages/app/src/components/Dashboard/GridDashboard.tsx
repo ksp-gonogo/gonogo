@@ -13,12 +13,26 @@ import {
   BREAKPOINTS,
   COLS,
   filterLayouts,
-  ROW_HEIGHT,
 } from "./layoutNormalization";
 import { highlightStyle } from "./shared";
 import { useScrollIntoViewOnAdd } from "./useScrollIntoViewOnAdd";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
+
+/**
+ * The gap between tiles, the same on both axes so it reads the same at rest.
+ * Each tile's grab bar (18px) is drawn in the gap above it, so the gap must be
+ * at least that tall and leave the bar clear of the tile above.
+ */
+const GRID_GAP = 20;
+
+/**
+ * Row height plus gap, in px: the pitch the grid had before the gap grew. The
+ * row height is derived from it, so rows still sit 33px apart and a tile `h`
+ * rows tall is `33h - GRID_GAP` px, the gap now taken out of the tile and not
+ * added to the page.
+ */
+const ROW_PITCH = 33;
 
 // RGL's resize-handle type isn't a named export, so derive the array element type straight from the component's own prop signature instead.
 type ResizeHandles = NonNullable<
@@ -72,13 +86,13 @@ export function GridDashboard({
         layouts={filteredLayouts}
         breakpoints={BREAKPOINTS}
         cols={COLS}
-        rowHeight={ROW_HEIGHT}
-        /* The desktop dashboard gutter. This is --gutter-dashboard written as a
-           react-grid-layout JS prop, so no CSS token pass can reach it; the
-           mobile branch's MobileList gap and MobileCell half-width calc are
-           the same gutter and do use the token. Keep all three equal. */
-        margin={[8, 8]}
-        containerPadding={[0, 0]}
+        rowHeight={ROW_PITCH - GRID_GAP}
+        /* The desktop dashboard gutter, written as a react-grid-layout JS prop
+           so no CSS token pass can reach it. The mobile branch has no grab bar
+           and keeps the narrower --gutter-dashboard. The top padding is room
+           for the first row's grab bar. */
+        margin={[GRID_GAP, GRID_GAP]}
+        containerPadding={[0, GRID_GAP]}
         draggableHandle=".drag-handle"
         /* Exclude interactive chrome so touch drag-start doesn't swallow button taps. */
         draggableCancel=".widget-action-buttons"
@@ -132,6 +146,28 @@ const GridCell = styled.div`
   display: flex;
   flex-direction: column;
   background: transparent;
-  overflow: hidden;
+  overflow: visible;
   ${highlightStyle}
+
+  /* The grab bar and the resize marks show only while the tile is hovered or has focus inside it. */
+  .drag-handle,
+  && .react-resizable-handle::after {
+    opacity: 0;
+  }
+
+  /* A touch screen has no hover, so there the bar and the marks stay shown. */
+  @media (hover: none) {
+    .drag-handle,
+    && .react-resizable-handle::after {
+      opacity: 1;
+    }
+  }
+
+  &:hover,
+  &:focus-within {
+    .drag-handle,
+    && .react-resizable-handle::after {
+      opacity: 1;
+    }
+  }
 `;

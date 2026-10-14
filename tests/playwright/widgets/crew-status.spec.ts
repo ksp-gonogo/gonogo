@@ -7,7 +7,7 @@
  *   - vessel.crew.capacity = 1
  *   - vessel.crew.crew     = [{ name: "Bob Kerman" }]
  *
- * At the default 8×6 grid footprint the widget renders the roster row for
+ * At the default 9×6 grid footprint the widget renders the roster row for
  * Bob Kerman, and the panel header carries the "1/1 aboard" headcount badge
  * (`crew-status.badges`, see `CrewStatus/badge.ts`).
  *

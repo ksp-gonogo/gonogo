@@ -29,7 +29,7 @@ registerComponent<CrewStatusConfig>({
   description:
     "The kerbals aboard your active vessel and how many seats are filled, including the kerbal you are flying on EVA.",
   tags: ["telemetry", "crew"],
-  defaultSize: { w: 6, h: 8 },
+  defaultSize: { w: 7, h: 8 },
   minSize: { w: 4, h: 5 },
   component: CrewStatusComponent,
   tiny: {
