@@ -230,7 +230,7 @@ export const Tiny: Story = {
 export const Large: Story = {
   name: "Large",
   args: { fixture: sizesScene, w: ${sizes.large.w}, h: ${sizes.large.h}${mode} },
-  parameters: { docs: { description: { story: "The widget at ${sizes.large.w} by ${sizes.large.h} grid units, the largest size it is drawn in, where it shows everything it has." } } },
+  parameters: { docs: { description: { story: "The widget at ${sizes.large.w} by ${sizes.large.h} grid units, the largest of its default size and the sizes its examples are drawn at, where it shows everything it has." } } },
 };
 `,
   ];

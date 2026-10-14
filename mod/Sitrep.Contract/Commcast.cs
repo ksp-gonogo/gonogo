@@ -132,8 +132,9 @@ public class CommcastMessageSendArgs
 /// leave for. <c>commcast.message.send</c> is the command, of the core mod's
 /// Commcast group messaging and radio, that sends a text message to a group of
 /// command centres. A centre is a <c>commandCentre.roster</c> entry, a place
-/// commands are sent from. It says nothing of arrival, which only each
-/// listener's acknowledgement does.
+/// commands are sent from. It says nothing of arrival: a listener is a centre
+/// that receives the message, and arrival is known only when that listener sends
+/// <c>commcast.message.ack</c> (<see cref="CommcastMessageAckArgs"/>) back.
 /// </summary>
 /// <category>Command results</category>
 /// <categoryDescription>

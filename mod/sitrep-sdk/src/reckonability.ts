@@ -74,10 +74,10 @@ export type ReckonableFields<Topic extends TopicId> =
  *
  * @category Reckoners
  * @categoryDescription Reckoners
- * The forward models that carry a value between observations: which Topics and
- * fields can be reckoned, the inputs each model needs, and the Kepler and
- * atmospheric reckoners that work out a value for now from the last one
- * received.
+ * The forward models (reckoners) that carry a value between observations:
+ * which Topics and fields can be reckoned, the inputs each model needs, and the
+ * Kepler and atmospheric reckoners that work out a value for now from the last
+ * one received.
  */
 export function isReckonableTopic(topic: string): topic is ReckonableTopic {
   return reckonableRowsOf(topic).length > 0;

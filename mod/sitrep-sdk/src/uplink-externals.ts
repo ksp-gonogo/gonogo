@@ -16,7 +16,9 @@
 
 /**
  * Each package specifier the app resolves for a loaded Uplink, paired with the
- * name of the file the app serves it from. Used by the app to write its import
+ * name, without an extension, of the file the app serves it from, such as
+ * `ext-react`. An author never uses those names; the specifiers are what a
+ * bundle imports. Used by the app to write its import
  * map, the table in its page that tells the browser which file each package name
  * loads from, and by {@link UPLINK_EXTERNAL_SPECIFIERS}.
  *
@@ -55,7 +57,8 @@ export const UPLINK_EXTERNAL_ENTRIES = [
 
 /**
  * The specifiers an Uplink's bundle leaves to the app, as a bundler's
- * `external` option takes them. Part of {@link UPLINK_BUNDLE_EXTERNALS}. Useful
+ * `external` option takes them: the first item of each pair in
+ * {@link UPLINK_EXTERNAL_ENTRIES}. Part of {@link UPLINK_BUNDLE_EXTERNALS}. Useful
  * for building an Uplink's client so that the app supplies these packages. Used
  * by {@link UPLINK_BUNDLE_EXTERNALS} and the app's table of provided packages.
  *
@@ -66,8 +69,9 @@ export const UPLINK_EXTERNAL_SPECIFIERS: readonly string[] =
 
 /**
  * Specifiers a bundler must also leave out of an Uplink's bundle, although the
- * app serves no file of its own for them: it supplies each through the file of
- * the package it belongs to, so a bundle that imports them still resolves. They are `react-dom/client` and `react/jsx-dev-runtime`. Useful for
+ * app serves no file of its own for them. They are `react-dom/client` and
+ * `react/jsx-dev-runtime`, subpaths of `react-dom` and `react`, which the app
+ * does serve, so a bundle that imports them still resolves. Useful for
  * building an Uplink's client so that the app supplies these packages. Used by
  * {@link UPLINK_BUNDLE_EXTERNALS} and the app's table of provided packages.
  *

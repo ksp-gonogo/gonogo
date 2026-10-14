@@ -738,7 +738,8 @@ export interface TechSlotNode {
  * Props passed to every `science-data.aboard-row` augment, once for each
  * science subject on the Science Data widget's Aboard tab. The augment draws
  * under that subject's row, and reads its own data for it. A subject can have a
- * data file and a sample aboard at once.
+ * data file and a sample aboard at once; the augment is still rendered once
+ * for the subject, not once for each.
  * Useful for adding detail under a subject's row. Used by the Science Data
  * widget.
  *
@@ -1074,7 +1075,7 @@ declare module "./types" {
 
     /**
      * A section below the Action Group widget's toggle, for the state of what
-     * the group drives, such as how many lights it switches are on. Passes an
+     * the group drives, such as how many of the lights it switches are on. Passes an
      * {@link ActionGroupSlotContext}.
      */
     "action-group.subsystem": ActionGroupSlotContext;

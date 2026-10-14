@@ -64,6 +64,7 @@ interface PlotLayerBase {
   axis?: "primary" | "secondary";
   /** What state the layer shows. Layers are coloured by {@link Tone}, never by a colour of their own. */
   tone?: Tone;
+  /** How loudly the layer is drawn within its tone: `"faint"`, `"normal"` or `"bright"`. */
   emphasis?: PlotEmphasis;
   /**
    * One clause for the plot's accessible name, which the host assembles by
@@ -199,10 +200,12 @@ export interface PlotMarkerLayer extends PlotLayerBase {
     | "none";
   /**
    * How the position of a `"vessel"` mark is known, which decides its shape and
-   * fill: `"current"` is a reading of now, `"held"` the last observation kept past
-   * its time, `"modelled"` where a model carries the craft to now, and `"lost"`
-   * the last place of a craft given up on. Defaults to `"current"`; ignored for
-   * every other shape.
+   * fill: `"current"` is a reading of now (a {@link Reading} whose state is
+   * `"observed"`), `"held"` the last observation kept past its time (state
+   * `"held"`), `"modelled"` where a model carries the craft to now (a
+   * reckoning), and `"lost"` the last place of a craft given up on, which no
+   * reading state stands for. Defaults to `"current"`; ignored for every other
+   * shape.
    */
   markState?: "current" | "held" | "modelled" | "lost";
   /** Multiplier on the plot's own marker size. Defaults to 1. */
@@ -229,7 +232,7 @@ export interface PlotAnnotationLayer extends PlotLayerBase {
   kind: "annotation";
   /** Where the annotation stands. */
   at: PlotPoint;
-  /** The axis the bar runs along, which is not how a rule's `along` reads: `"x"`, the default, is a horizontal tick, and `"y"` a vertical one. */
+  /** The direction the bar is drawn in: `"x"`, the default, draws a horizontal tick and `"y"` a vertical one. A rule's `along` reads the other way: `along: "y"` draws a horizontal line at a value on the Y axis. */
   across?: "x" | "y";
   /** The words drawn beside it. */
   label?: string;
@@ -298,18 +301,15 @@ export interface PlotReliefLayer extends PlotLayerBase {
 }
 
 /**
- * Open water, drawn as a moving sea surface: a handful of waves summed on the
- * body's own gravity and shaded by the slope of the surface, so it reads as
- * liquid at every zoom and never as relief. The renderer animates it in real
- * time and draws a still frame where motion is reduced.
+ * Open water, drawn as a moving sea surface that reads as liquid at every zoom
+ * and never as relief. The renderer animates it in real time and draws a still
+ * frame where motion is reduced.
  *
  * The waves are fixed to the body, not to the plot: `origin` says where the
  * plot's own origin stands on it, so as a window follows a craft the sea slides
  * past with the ground. A plan view is shaded one flat cell at a time, on the
  * cells a relief of the same bounds is drawn on, so the sea is as coarse as the
- * land beside it. Which waves show is the renderer's choice, from how many
- * metres each cell spans, so finer waves come in as a window closes and
- * coarser ones go.
+ * land beside it.
  *
  * Useful for showing the operator where a vessel would meet the sea. One of the
  * {@link PlotLayer} kinds a {@link PlotEntry} draws.
@@ -335,7 +335,7 @@ export interface PlotWaterLayer extends PlotLayerBase {
   /** The body's surface gravity, m/s squared: it sets how fast each wave runs. */
   gravity: number;
   /**
-   * The body's own liquid colour (its `liquidColor`), a CSS colour: an
+   * The colour of the body's own liquid (the `liquidColor` of its definition), a CSS colour: an
    * identity colour, like a field's `tint`, not a status. The renderer keeps
    * its hue and draws it at the brightness of the theme's water, so the sea
    * stays as quiet as the tone's. Absent, the sea takes `tone`'s colour.
@@ -367,7 +367,7 @@ export interface PlotWaterLayer extends PlotLayerBase {
  * {@link PlotFrame}'s axes, never in pixels (apart from a marker's
  * `offsetPx`); the widget does the scaling, the
  * clipping and the drawing order. Every layer is coloured by its `tone`, never
- * by a colour, except a field's `tint`. A layer's `description` is the only
+ * by a colour, except a field's `tint` and a water layer's `tint`. A layer's `description` is the only
  * way it reaches the plot's accessible name.
  *
  * @category Plots
