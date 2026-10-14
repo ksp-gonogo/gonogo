@@ -165,4 +165,63 @@ describe("Navball dial fit", () => {
     renderAt({ w: 5, h: 20 }, emitAttitude);
     expect(dial()).toHaveAttribute("width", "108");
   });
+
+  describe("the control row beside the dial", () => {
+    /** Reports the control row's own box at one height and the attitude column at another, as a browser's layout does. */
+    function installColumnAndRowObserver(rowHeight: number) {
+      class Observer implements ResizeObserver {
+        constructor(private readonly cb: ResizeObserverCallback) {}
+        observe(el: Element): void {
+          const isRow = (el as HTMLElement).style.gap === "var(--gap-rows)";
+          observers.push({ el, cb: this.cb });
+          this.cb([entryFor(el, 158, isRow ? rowHeight : columnHeight)], this);
+        }
+        unobserve(): void {}
+        disconnect(): void {}
+      }
+      globalThis.ResizeObserver = Observer;
+    }
+    let columnHeight = 128;
+    const controls = () => screen.queryByRole("button", { name: /^SAS/ });
+
+    it("gives way to a dial that fits without it and not with it", () => {
+      // 5x8: 128 - 74 = 54 beside the row, 126 - 74 = 52 over the 80px floor without it.
+      columnHeight = 128;
+      installColumnAndRowObserver(64);
+      renderAt({ w: 5, h: 8 }, emitAttitude);
+      reportColumn(158, 128 + 64 + 8);
+      expect(dial()).toBeInTheDocument();
+      expect(controls()).not.toBeInTheDocument();
+    });
+
+    it("keeps the row where leaving it out would not free a dial", () => {
+      columnHeight = 96;
+      installColumnAndRowObserver(64);
+      renderAt({ w: 5, h: 6 }, emitAttitude);
+      reportColumn(158, 96 + 64 + 8);
+      reportColumn(158, 126);
+      expect(dial()).not.toBeInTheDocument();
+      expect(controls()).toBeInTheDocument();
+    });
+
+    it("takes the row back once the dial fits beside it", () => {
+      columnHeight = 128;
+      installColumnAndRowObserver(64);
+      renderAt({ w: 5, h: 8 }, emitAttitude);
+      reportColumn(158, 128 + 64 + 8);
+      expect(controls()).not.toBeInTheDocument();
+      reportColumn(158, 400);
+      expect(dial()).toBeInTheDocument();
+      expect(controls()).toBeInTheDocument();
+    });
+
+    function reportColumn(width: number, height: number): void {
+      act(() => {
+        for (const { el, cb } of observers) {
+          if ((el as HTMLElement).style.gap === "var(--gap-rows)") continue;
+          cb([entryFor(el, width, height)], {} as ResizeObserver);
+        }
+      });
+    }
+  });
 });

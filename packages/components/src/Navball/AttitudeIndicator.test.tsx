@@ -9,6 +9,13 @@ function texts(container: HTMLElement, selector: string): string[] {
 }
 
 describe("AttitudeIndicator", () => {
+  it("captions its three figures as the numeric readout does", () => {
+    const { container } = render(
+      <AttitudeIndicator heading={90} pitch={0} roll={0} size={200} />,
+    );
+    expect(container.textContent).toMatch(/HDG.*PCH.*RLL/);
+  });
+
   it("rules the pitch ladder on the tens and labels every thirty degrees", () => {
     const { container } = render(
       <AttitudeIndicator heading={90} pitch={0} roll={0} size={200} />,

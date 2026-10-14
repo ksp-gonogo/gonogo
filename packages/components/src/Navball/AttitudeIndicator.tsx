@@ -189,7 +189,7 @@ export function AttitudeIndicator({
               NULL_DISPLAY
             )}
           </span>
-          <span style={LAB}>PIT</span>
+          <span style={LAB}>PCH</span>
         </div>
         <div style={CELL}>
           <span style={VAL}>
@@ -199,7 +199,7 @@ export function AttitudeIndicator({
               NULL_DISPLAY
             )}
           </span>
-          <span style={LAB}>ROL</span>
+          <span style={LAB}>RLL</span>
         </div>
       </Grid>
     </div>

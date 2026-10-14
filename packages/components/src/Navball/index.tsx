@@ -282,9 +282,19 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
   const cols = w ?? 8;
   const rows = h ?? 11;
   const showControlSurface = controlMode && rows >= 18 && cols >= 7;
-  const { dialFit, readoutAcross, columnWidth, attachAttitude } = useDialFit({
+  const gridWantsDial = rows >= 6 && cols >= 4;
+  const {
+    dialFit,
+    readoutAcross,
+    columnWidth,
+    showControlRow,
+    attachAttitude,
+    attachControlRow,
+  } = useDialFit({
     reserveThrottle: cols >= 5,
     controlSurface: showControlSurface,
+    controlRowWanted: cols >= 5,
+    dialPossible: gridWantsDial && attitudeObserved,
   });
   /*
    * Grid units say whether a dial is wanted; the measured fit says whether one
@@ -292,11 +302,9 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
    * indistinguishable from a live one, and attitude cannot be reckoned forward,
    * since torque from SAS or an in-flight command changes it.
    */
-  const dialWanted = rows >= 6 && cols >= 4 && dialFit >= MIN_DIAL_PX;
+  const dialWanted = gridWantsDial && dialFit >= MIN_DIAL_PX;
   const showDial = dialWanted && attitudeObserved;
   const showThrottleColumn = showDial && cols >= 5;
-  // In the body, not the header aside, which collapses on a measured fit and would take contributed alerts with it.
-  const showControlRow = cols >= 5;
   // Armed with the control surface out of sight (control mode off, or a small tile), the override still says so and can be dropped.
   const fbwOutsideSurface = fbwState !== "off" && !showControlSurface;
   // Under the stacked readout's own floor the figures take one fixed-width line each.
@@ -357,7 +365,7 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
               <FbwBanner fbwState={fbwState} onDisarm={disarmFbw} />
             )}
             {showControlRow && (
-              <>
+              <div ref={attachControlRow} style={CONTROL_ROW}>
                 <AppliedInput
                   pitch={control?.pitch}
                   roll={control?.roll}
@@ -374,7 +382,7 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
                   onToggleSas={toggleSas}
                   onToggleRcs={toggleRcs}
                 />
-              </>
+              </div>
             )}
           </Section>
         ) : null,
@@ -419,6 +427,13 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
  * way back to a dial.
  */
 const READOUT_FLOOR: CSSProperties = { flexShrink: 0 };
+
+/** The control row's measured box: the same stack the section would have made of its children. */
+const CONTROL_ROW: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--gap-rows)",
+};
 
 /** The measured box: the same element in both the dial and readout branches. */
 const ATTITUDE_COLUMN: CSSProperties = {
