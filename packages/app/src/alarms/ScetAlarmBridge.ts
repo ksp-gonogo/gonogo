@@ -517,7 +517,7 @@ export class ScetAlarmBridge {
            before the fire withholds them rather than landing them elsewhere.
            With no craft to name they stay on this screen, which sends them from
            the ground; the alarm itself is armed either way. */
-        ...(craft ? aboard(alarm, `vessel:${craft}`) : {}),
+        ...(craft ? aboard(alarm, `vessel:${craft}`) : NO_ONBOARD_ACTIONS),
       };
     }
     if (trigger.kind === "instant") {
@@ -551,6 +551,7 @@ export class ScetAlarmBridge {
         name: alarm.name,
         vantage,
         subject: "game",
+        ...NO_ONBOARD_ACTIONS,
         condition: {
           kind: ScetAlarmConditionKind.ContractParameter,
           contractId: trigger.contractId,
@@ -704,20 +705,32 @@ function onboardAction(fx: AlarmFireAction): ScetAlarmAction | null {
 }
 
 /**
+ * What an arm states when no action runs aboard. Both fields are required by
+ * the command, so an alarm with nothing to run still sends them, empty: an
+ * empty `actsOn` resolves to the alarm's own subject.
+ */
+const NO_ONBOARD_ACTIONS: { onFire: ScetAlarmAction[]; actsOn: string } = {
+  onFire: [],
+  actsOn: "",
+};
+
+/**
  * The `onFire` and `actsOn` arm fields for an alarm whose actions run aboard,
- * or nothing. All or none: a list the craft can run only part of stays with
+ * or both empty. All or none: a list the craft can run only part of stays with
  * this screen whole, so the operator's order is never split across two places
  * a signal delay apart.
  */
 function aboard(
   alarm: Alarm,
   actsOn: string,
-): { onFire: ScetAlarmAction[]; actsOn: string } | Record<string, never> {
-  if (!alarm.onFire?.length || !actionsRunAboard(alarm.trigger)) return {};
+): { onFire: ScetAlarmAction[]; actsOn: string } {
+  if (!alarm.onFire?.length || !actionsRunAboard(alarm.trigger)) {
+    return NO_ONBOARD_ACTIONS;
+  }
   const onFire: ScetAlarmAction[] = [];
   for (const fx of alarm.onFire) {
     const action = onboardAction(fx);
-    if (action === null) return {};
+    if (action === null) return NO_ONBOARD_ACTIONS;
     onFire.push(action);
   }
   return { onFire, actsOn };

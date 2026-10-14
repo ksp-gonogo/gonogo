@@ -253,7 +253,11 @@ export class AlarmHostService {
     });
 
     this.warpPlanner = new AlarmWarpPlanner(
-      () => this.alarmsWithFollowedInstants(),
+      // An alarm the simulation refused can never fire, so a warp is never planned toward it.
+      () =>
+        this.alarmsWithFollowedInstants().filter(
+          (alarm) => !this.scetArmRefusals.has(alarm.id),
+        ),
       () => this.observedUT,
       () => this.opts.getOwltSeconds(),
     );

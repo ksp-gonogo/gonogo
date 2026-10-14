@@ -147,3 +147,47 @@ describe("AlarmBanner on a fire", () => {
     expect(container.textContent).toContain("Warp stopped.");
   });
 });
+
+describe("AlarmBanner with an alarm the simulation refused to arm", () => {
+  const refused: Alarm = {
+    id: "refused-1",
+    name: "Test RT-5",
+    trigger: {
+      kind: "contract-parameter",
+      contractId: "42",
+      parameterTitle: "Orbit the Mun",
+      targetState: "Complete",
+      sustainSeconds: 0,
+    },
+    state: "pending",
+    createdBy: "main",
+    createdAt: 0,
+  };
+  const refusal = "alarm.scet.arm requires argument actsOn and it was not sent";
+
+  it("states the refusal and shows no next alarm for it", () => {
+    renderBanner({
+      ...snapshotOf([refused], 0),
+      scetArmRefusals: { [refused.id]: refusal },
+    });
+    expect(screen.queryByText("Next alarm")).toBeNull();
+    expect(screen.getByText("Not armed")).toBeInTheDocument();
+    expect(screen.getByText(refusal)).toBeInTheDocument();
+  });
+
+  it("still shows the next alarm that was armed beside it", () => {
+    renderBanner({
+      ...snapshotOf([refused, timeAlarm(8100)], 0),
+      scetArmRefusals: { [refused.id]: refusal },
+    });
+    expect(screen.getByText("Next alarm")).toBeInTheDocument();
+    expect(screen.getByText("Node burn")).toBeInTheDocument();
+    expect(screen.getByText(refusal)).toBeInTheDocument();
+  });
+
+  it("shows an alarm with no refusal against it as the next alarm", () => {
+    renderBanner(snapshotOf([refused], 0));
+    expect(screen.getByText("Next alarm")).toBeInTheDocument();
+    expect(screen.queryByText("Not armed")).toBeNull();
+  });
+});

@@ -229,6 +229,17 @@ function startSession(owlt: number): ModStandIn {
             "command unconfirmed: no reply by the predicted time, it may still run",
         };
       }
+      /* The host's own envelope check: a required argument that was not sent
+         is refused before the arm is looked at. */
+      for (const required of ["onFire", "actsOn"]) {
+        if (!(required in bag)) {
+          return {
+            success: false,
+            errorCode: "invalidEnvelope",
+            detail: `alarm.scet.arm requires argument ${required} and it was not sent`,
+          };
+        }
+      }
       const condition = (bag.condition ?? {}) as Record<string, unknown>;
       const threshold = Number(condition.kind ?? 0) === 1;
       const contractParameter = Number(condition.kind ?? 0) === 2;
@@ -1508,6 +1519,10 @@ describe("SCET alarms", () => {
     await run(session, UT_START + 4 * DT);
     svc.dispose();
 
+    // Both are required by the command, and the harness refuses an arm without them as the host does; empty `actsOn` resolves to the alarm's own subject.
+    expect(session.armOf(alarm.id)?.actsOn).toBe("");
+    expect(session.armOf(alarm.id)?.onFire).toEqual([]);
+    expect(svc.snapshot().scetArmRefusals).toBeUndefined();
     const armed = session.armOf(alarm.id);
     expect(armed?.vantage).toBe(HOME);
     expect(armed?.subject).toBe("game");

@@ -65,6 +65,8 @@ function LocalAlarmStrip() {
   // pile of them doesn't dominate the banner. They surface together as
   // a collapsed "N completed" row instead.
   const collapsedIds = cpCollapse ? new Set(cpCollapse.ids) : null;
+  const refusals = snap.scetArmRefusals ?? {};
+  const refused = snap.alarms.filter((a) => isRefused(a, refusals));
   const nextAlarm = pickNext(
     collapsedIds
       ? { ...snap, alarms: snap.alarms.filter((a) => !collapsedIds.has(a.id)) }
@@ -103,6 +105,7 @@ function LocalAlarmStrip() {
   const isQuiet =
     snap.warp.rate <= 1.0001 &&
     nextAlarm === null &&
+    refused.length === 0 &&
     firedAlarms.length === 0 &&
     cpCollapse === null &&
     snap.warpTo === null;
@@ -192,6 +195,13 @@ function LocalAlarmStrip() {
           <Quiet>No alarms set</Quiet>
         )}
       </Cluster>
+      {refused.map((a) => (
+        <Cluster key={a.id} justify="start" align="baseline" wrap>
+          <Label>Not armed</Label>
+          <AlarmName>{a.name}</AlarmName>
+          <Quiet>{refusals[a.id]}</Quiet>
+        </Cluster>
+      ))}
     </Wrap>
   );
 }
@@ -401,6 +411,17 @@ function bannerTone(alarm: Alarm | null): Tone {
   return "set";
 }
 
+/** Whether the simulation refused to watch this alarm, which can then never fire. */
+function isRefused(
+  alarm: Alarm,
+  refusals: Readonly<Record<string, string>>,
+): boolean {
+  return (
+    (alarm.state === "pending" || alarm.state === "arming") &&
+    alarm.id in refusals
+  );
+}
+
 function pickNext(snap: AlarmSnapshot): Alarm | null {
   // Prefer firing > fired > arming > pending. Fired alarms now stay in
   // the list until the user acks, so they need to outrank pending, a
@@ -416,14 +437,17 @@ function pickNext(snap: AlarmSnapshot): Alarm | null {
     a.trigger.kind === "time"
       ? a.trigger.ut
       : (a.followedUT ?? Number.POSITIVE_INFINITY);
-  const sorted = [...snap.alarms].sort((a, b) => {
-    const p = priority[a.state] - priority[b.state];
-    if (p !== 0) return p;
-    // Time alarms sort by UT (earliest first); threshold alarms have no
-    // single firing UT, so they fall to the end of the same-priority
-    // group: surfaced only when there's nothing else competing.
-    return sortKey(a) - sortKey(b);
-  });
+  const refusals = snap.scetArmRefusals ?? {};
+  const sorted = snap.alarms
+    .filter((a) => !isRefused(a, refusals))
+    .sort((a, b) => {
+      const p = priority[a.state] - priority[b.state];
+      if (p !== 0) return p;
+      // Time alarms sort by UT (earliest first); threshold alarms have no
+      // single firing UT, so they fall to the end of the same-priority
+      // group: surfaced only when there's nothing else competing.
+      return sortKey(a) - sortKey(b);
+    });
   return sorted[0] ?? null;
 }
 
