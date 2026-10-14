@@ -10,7 +10,13 @@ import {
   useLatestValue,
   useOwnCraftVantage,
 } from "@ksp-gonogo/sitrep-sdk/spine";
-import { NULL_DISPLAY, Text, Unit, VisuallyHidden } from "@ksp-gonogo/ui-kit";
+import {
+  Countdown,
+  NULL_DISPLAY,
+  Text,
+  Unit,
+  VisuallyHidden,
+} from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useState } from "react";
 import { usePeerClient } from "../peer/PeerClientContext";
 import { useActiveCentres } from "./VantageControl";
@@ -255,20 +261,29 @@ function SignalDelayValue({
   return <>{wrap ? wrap(readout) : readout}</>;
 }
 
+/** A delay under a second in milliseconds, as Comm Signal draws it, and a longer one on the ladder of whole units. */
+function DelayFigure({ seconds }: { seconds: number }) {
+  return seconds < 1 ? (
+    <Countdown value={value("s", seconds)} precise />
+  ) : (
+    <Unit value={value("s", seconds)} />
+  );
+}
+
 function SignalDelayFigure({ state }: { state: SignalDelayState }) {
   switch (state.kind) {
     case "delay":
       return (
         <>
           <VisuallyHidden>Signal delay </VisuallyHidden>
-          <Unit value={value("s", state.seconds)} />
+          <DelayFigure seconds={state.seconds} />
         </>
       );
     case "via-home":
       return (
         <>
           <VisuallyHidden>Signal delay </VisuallyHidden>
-          <Unit value={value("s", state.seconds)} />{" "}
+          <DelayFigure seconds={state.seconds} />{" "}
           <Text level="muted" size="xs">
             {VIA_HOME_LABEL}
           </Text>

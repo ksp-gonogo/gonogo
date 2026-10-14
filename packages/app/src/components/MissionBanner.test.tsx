@@ -896,6 +896,21 @@ describe("MissionBanner delay at zero", () => {
     }
   });
 
+  it("draws a delay under a second in milliseconds, as Comm Signal does, never as a whole-second zero", async () => {
+    await flyUnder(0.0016);
+
+    await waitFor(() => expect(delayValue()?.textContent).toMatch(/2\s*ms/));
+    expect(delayValue()?.textContent).not.toMatch(/\b0\s*s\b/);
+    for (let frame = 0; frame < 4; frame++) {
+      await act(
+        () =>
+          new Promise<void>((done) => {
+            requestAnimationFrame(() => done());
+          }),
+      );
+    }
+  });
+
   it("still says disconnected where the link is down, the same as with delay on", async () => {
     await flyUnder(0, false);
 

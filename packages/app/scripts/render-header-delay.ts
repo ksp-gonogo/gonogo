@@ -154,6 +154,11 @@ const ZERO_SETTLED = process.env.ZERO_DELAY_BEFORE
   ? "DelaySignal delay 0s"
   : "CCKSCHome";
 
+/** What the header ends with in low orbit: `LEO_DELAY_BEFORE=1` expects the whole-second zero it drew before it stated milliseconds. */
+const LEO_SETTLED = process.env.LEO_DELAY_BEFORE
+  ? "DelaySignal delay 0s"
+  : "DelaySignal delay 2 ms";
+
 const NOT_REPORTED = "Signal delay from this command centre is not reported";
 
 const SCENES: Scene[] = [
@@ -278,6 +283,17 @@ const SCENES: Scene[] = [
     vantage: KSC,
     settled: { after: ZERO_SETTLED, before: ZERO_SETTLED },
     emit: [...flight(true), ["comms.delay", { oneWaySeconds: 0, source: 0 }]],
+  },
+  {
+    // A craft in low orbit: the delay is a couple of milliseconds, which the header states as such.
+    name: "delay-leo",
+    screen: "main",
+    vantage: KSC,
+    settled: { after: LEO_SETTLED, before: LEO_SETTLED },
+    emit: [
+      ...flight(true),
+      ["comms.delay", { oneWaySeconds: 0.0016, source: SIGNAL_DELAY }],
+    ],
   },
   {
     // A delay a second or so, which is still a delay.

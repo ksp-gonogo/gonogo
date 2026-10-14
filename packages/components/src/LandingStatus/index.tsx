@@ -1,6 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useHeldOpen } from "@ksp-gonogo/core";
-import { datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
+import { datedFrom, delayVisibility, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Countdown,
   NULL_DISPLAY,
@@ -105,6 +105,10 @@ function LandingStatusComponent({
   const descending = !recordOnly && !(board === "not-descending" && !landed);
   // The board stands up front whenever a vessel is reporting: the widget exists to make a landing prediction, so it is there before one exists and says what it lacks. Only a flight with nothing reporting gives way to the notice.
   const showBoard = !recordOnly && (descending || flight !== undefined);
+  // With delay switched off there is no round trip to state; out of contact the row stays, with a dash.
+  const roundTripShown =
+    clocks.roundTripSeconds == null ||
+    delayVisibility(clocks.roundTripSeconds / 2) === "shown";
 
   // Each plot keeps its place through the whole descent: before its data arrives, and after it has no more to say, its frame stays and says so.
   // With the board up the descent already keeps a row for the body, so the crash takes that row's place and nothing above the plots grows.
@@ -237,7 +241,7 @@ function LandingStatusComponent({
             {crash && !crashInContext && (
               <CrashOutcome crash={crash} record={recordOnly} />
             )}
-            {showBoard && (
+            {showBoard && roundTripShown && (
               <Text level="muted">
                 RT{" "}
                 {clocks.roundTripSeconds != null ? (

@@ -175,15 +175,35 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     await waitFor(() => expect(screen.getByText(/^RT\b/)).toBeInTheDocument());
   });
 
-  it("writes a measured zero round trip as a zero, never as the absent-value token", async () => {
+  it("leaves the round trip out when delay is switched off, rather than writing a zero", async () => {
     renderWidget({ w: 12, h: 16 });
     act(() => {
       emitMunDescent();
       stream.emit("comms.delay", { source: 0, oneWaySeconds: 0 });
     });
+    await screen.findByText(/Muna|Mun/);
+    await act(async () => {});
+    expect(screen.queryByText(/^RT\b/)).toBeNull();
+  });
+
+  it("writes a round trip just above zero in milliseconds", async () => {
+    renderWidget({ w: 12, h: 16 });
+    act(() => {
+      emitMunDescent();
+      stream.emit("comms.delay", { source: 1, oneWaySeconds: 0.0016 });
+    });
     const rt = await screen.findByText(/^RT\b/);
-    expect(rt.textContent).toMatch(/RT\s*0\s*(ms|s)/);
-    expect(rt.textContent).not.toContain("\u2014");
+    expect(rt.textContent).toMatch(/RT\s*3\s*ms/);
+  });
+
+  it("keeps the row with a dash for a craft with no path", async () => {
+    renderWidget({ w: 12, h: 16 });
+    act(() => {
+      emitMunDescent();
+      stream.emit("comms.delay", { source: 0, oneWaySeconds: null });
+    });
+    const rt = await screen.findByText(/^RT\b/);
+    expect(rt.textContent).toContain("\u2014");
   });
 
   describe("the end of a flight in a crash", () => {
