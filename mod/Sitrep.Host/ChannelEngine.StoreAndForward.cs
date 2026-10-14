@@ -362,6 +362,8 @@ namespace Sitrep.Host
         private readonly Dictionary<string, string> _journeyVantage = new Dictionary<string, string>(StringComparer.Ordinal);
 
         /// <summary>What an operator is told when an order for the active craft is pressed with no craft loaded.</summary>
+        internal const string OrderAlreadyWaitingDetail = "Another order with the same number is already waiting to be sent, so this one was not sent.";
+
         internal const string NoActiveCraftDetail = "The game is not in flight, so no craft is the active vessel to receive this order.";
 
         /// <summary>
@@ -453,7 +455,7 @@ namespace Sitrep.Host
             catch (DuplicateMessageIdException duplicate)
             {
                 LogHost("command \"" + job.Command + "\" was refused: " + duplicate.Message);
-                job.OnResult(CommandResult.Fail(CommandErrorCode.WrongState, "it could not be held for sending: " + duplicate.Message));
+                job.OnResult(CommandResult.Fail(CommandErrorCode.WrongState, OrderAlreadyWaitingDetail));
                 job.Done?.Set();
                 return true;
             }

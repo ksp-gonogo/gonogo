@@ -354,6 +354,13 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(0, world.Uplink.ActiveHandledCount);
         }
 
+        /// <summary>The refusal for a repeated order number says it in words an operator reads, with no request or node ids in it.</summary>
+        [Fact]
+        public void TheRefusalForARepeatedOrderNumberNamesNoInternalIds()
+        {
+            Assert.DoesNotMatch(@"\b[cr]\d+\b|ground:|vessel:", ChannelEngine.OrderAlreadyWaitingDetail);
+        }
+
         [Fact]
         public void EveryCommandSentAfterALoadRunsBesideTheTwoTheSaveCarried()
         {
