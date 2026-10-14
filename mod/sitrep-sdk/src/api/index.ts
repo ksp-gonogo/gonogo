@@ -942,7 +942,7 @@ export function useModSettings(
 }
 
 /**
- * A contribution dependency on one setting of an Uplink's host mod. Useful for
+ * A contribution dependency on one setting of the game mod an Uplink wraps. Useful for
  * making a contribution recompute when the operator changes that setting. Both names
  * are checked against `ModSettingsRegistry`, so an Uplink or a setting nobody
  * declared does not compile, and `compute` receives the value under
@@ -952,7 +952,7 @@ export function useModSettings(
  *
  * @example
  * ```ts
- * // Declare the host mod's settings once, in the Uplink's client:
+ * // Declare the wrapped mod's settings once, in the Uplink's client:
  * declare module "@ksp-gonogo/sitrep-sdk" {
  *   interface ModSettingsRegistry {
  *     "myuplink": { difficulty: number };
@@ -1288,9 +1288,10 @@ export function getContributionsForSlot(slot: string): AnyContribution[] {
 }
 
 /**
- * Calls `cb` whenever a contribution is registered or removed. Returns the
- * function that stops it. Useful for redrawing a slot when its contributions
- * change.
+ * Calls `cb` whenever a contribution is registered or {@link clearContributions}
+ * removes them all; an Uplink has no call that removes one contribution.
+ * Returns the function that stops it. Useful for redrawing a slot when its
+ * contributions change.
  *
  * @category Extensions
  */

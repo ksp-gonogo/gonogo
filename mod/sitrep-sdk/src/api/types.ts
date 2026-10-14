@@ -562,8 +562,8 @@ export interface SlotRegistry {}
 
 /**
  * The id of an augment slot some widget declares. Useful for checking that a
- * widget's `augmentSlots` names a real slot. The `slot` of an
- * {@link AugmentDefinition}.
+ * widget's `augmentSlots` names a real slot. The values the `augments` field
+ * of an {@link AugmentDefinition} may take.
  *
  * @category Extensions
  */
@@ -658,7 +658,11 @@ export type ContributionSlotId = keyof ContributionRegistry;
  * @category Extensions
  */
 export interface BadgeEntry {
-  /** Stable id, unique within the contributing Uplink. */
+  /**
+   * Stable id, unique within the contributing Uplink, or among the widget's
+   * own badges for one the widget passes itself. A contributed badge with the
+   * id of one of the widget's own is dropped.
+   */
   id: string;
   /** The badge's text. */
   label: string;
@@ -851,8 +855,8 @@ export type Contributed<Entry> = Entry & {
 };
 
 /**
- * One entry of a contribution's `deps`: a Topic id, a setting of an Uplink's
- * host mod from {@link modSettingDep}, or the handle
+ * One entry of a contribution's `deps`: a Topic id, a setting of the game mod
+ * an Uplink wraps from {@link modSettingDep}, or the handle
  * {@link UplinkClientHandle.registerProcessor} returned for a processor whose
  * result is a `Reading`. {@link DepTopics} says what `compute` receives for
  * each. Useful for stating which Topics, mod settings and processors an entry
@@ -877,11 +881,10 @@ export type ContributionDep =
     };
 
 /**
- * The settings of the game mod an Uplink wraps (its host mod), keyed by Uplink
- * id: the type a
- * contribution's {@link ModSettingDep} is checked against. An Uplink adds its
- * own entry by declaration merging, naming each setting with the type its
- * value parses to. Useful for reading a setting the operator changed in the
+ * The settings of the game mod an Uplink wraps, keyed by Uplink id: the type a
+ * contribution's {@link ModSettingDep} is checked against. The interface is
+ * empty here on purpose; an Uplink adds its own entry by declaration merging,
+ * naming each setting with the type its value parses to. Useful for reading a setting the operator changed in the
  * game's own settings:
  *
  * ```ts
@@ -901,7 +904,7 @@ export type ContributionDep =
 export interface ModSettingsRegistry {}
 
 /**
- * A contribution's dependency on one setting of an Uplink's host mod, built
+ * A contribution's dependency on one setting of the game mod an Uplink wraps, built
  * with `modSettingDep`. `compute` receives it under `settings.<uplink>.<key>`,
  * as the type `ModSettingsRegistry` declares, or `undefined` until the mod has
  * listed the setting with a readable value. Useful for computing an entry from
@@ -914,7 +917,7 @@ export interface ModSettingDep<
   Uplink extends keyof ModSettingsRegistry & string,
   Key extends keyof ModSettingsRegistry[Uplink] & string,
 > {
-  /** The Uplink, by its id, and the key of the host mod's setting to read, as `ModSettingsRegistry` declares them. */
+  /** The Uplink, by its id, and the key of the wrapped mod's setting to read, as `ModSettingsRegistry` declares them. */
   readonly modSetting: { readonly uplink: Uplink; readonly key: Key };
 }
 
@@ -1031,8 +1034,8 @@ export type DepTopics<Deps extends readonly ContributionDep[]> = {
  *   draws it as held rather than as current.
  * - The Topics are read at most once per animation frame. A reading stays the
  *   same object until a new sample of it is shown or its state changes, and a
- *   Topic the mod sends directly gives a new reading for every sample, even
- *   one identical to the last. When several samples arrive within one frame, `compute` sees only
+ *   Topic the mod publishes gives a new reading for every sample, even one
+ *   identical to the last. When several samples arrive within one frame, `compute` sees only
  *   the latest.
  * - `compute` runs when the widget mounts, and again whenever a value in the
  *   object changes, including a Topic that only another contribution to the
@@ -1195,7 +1198,8 @@ export interface SizeDelta {
 }
 
 /**
- * What `registerAugment` takes: a component the widget renders inside one of
+ * An Uplink's component, the slot id it draws in, the Domain it needs and the
+ * Topics it reads, registered so a widget renders the component inside one of
  * its slots. Useful for showing the operator information from your Uplink
  * inside a widget you do not own. Passed to {@link registerAugment}.
  *

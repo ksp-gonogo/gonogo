@@ -269,6 +269,9 @@ function BlockRoot({ ...props }: BlockProps): ReactNode {
  *
  * @example
  * ```tsx
+ * import { Badge, Block, Button, Text } from "@ksp-gonogo/ui-kit";
+ *
+ * // The names contract and onAccept stand for your own data and handler.
  * <Block
  *   as="li"
  *   title={contract.title}
