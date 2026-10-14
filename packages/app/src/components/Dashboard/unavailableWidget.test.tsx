@@ -1,7 +1,11 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  __resetUplinkOutcomes,
+  setUplinksSettled,
+} from "../../uplinks/loaderState";
 import { GridItemContent } from "./GridItemContent";
 import type { DashboardItem } from "./index";
 
@@ -25,6 +29,11 @@ function renderGhost(removeItem = vi.fn()) {
 }
 
 describe("a saved tile whose widget is not registered", () => {
+  beforeEach(() => {
+    __resetUplinkOutcomes();
+    setUplinksSettled();
+  });
+
   it("names the id and says the widget is not available", () => {
     renderGhost();
     expect(screen.getByText("map-view")).toBeInTheDocument();
@@ -44,5 +53,14 @@ describe("a saved tile whose widget is not registered", () => {
   it("has no accessibility violations", async () => {
     const { container } = renderGhost();
     await expectNoA11yViolations(container);
+  });
+
+  it("cannot be removed before the Uplinks have been attempted, since its widget may still arrive", async () => {
+    __resetUplinkOutcomes();
+    const user = userEvent.setup();
+    const { removeItem } = renderGhost();
+    expect(screen.getByText(/is not available/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(removeItem).not.toHaveBeenCalled();
   });
 });

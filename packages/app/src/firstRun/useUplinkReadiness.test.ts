@@ -327,4 +327,46 @@ describe("computeUplinkReadiness: Uplinks inside the core mod", () => {
       state: "contract-mismatch",
     });
   });
+
+  it("keeps an Uplink whose assembly the mod could not load visible, with no contract numbers declared", () => {
+    const entries = computeUplinkReadiness(
+      roster([{ id: "widget-a", available: false, reason: "failed to load" }]),
+      [],
+      undefined,
+      new Set(["widget-a"]),
+    );
+    expect(entries[0].bundled).toBe(false);
+  });
+
+  it("keeps an Uplink visible whose health reads unavailable", () => {
+    const entries = computeUplinkReadiness(
+      roster([
+        {
+          id: "widget-a",
+          health: { state: "unavailable", detail: "no engine", facts: [] },
+        },
+      ]),
+      [],
+      undefined,
+      new Set(["widget-a"]),
+    );
+    expect(entries[0].bundled).toBe(false);
+  });
+
+  it("keeps an Uplink visible whose client was quarantined", () => {
+    const entries = computeUplinkReadiness(
+      roster([{ id: "widget-a" }]),
+      [
+        {
+          id: "widget-a",
+          name: "Widget A",
+          status: "quarantined",
+          reason: "integrity",
+        },
+      ],
+      undefined,
+      new Set(["widget-a"]),
+    );
+    expect(entries[0].bundled).toBe(false);
+  });
 });

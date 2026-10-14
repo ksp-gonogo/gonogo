@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { readJsonObject } from "./ratchetBaseRef";
+import { AUTHOR_SUBPATHS } from "./uplink-isolation.allowlist";
 
 /**
  * Every subpath `@ksp-gonogo/sitrep-sdk` exports must be aliased in every Uplink
@@ -341,6 +342,27 @@ describe("sdk subpath aliases", () => {
         }
       }
     }
+    expect(missing).toEqual([]);
+  });
+});
+
+/**
+ * The same silent failure as an sdk subpath, for ui-kit: an author-facing
+ * subpath that a loaded client can import needs its own import-map entry, or
+ * the bundle builds and throws at `import(bundleUrl)`.
+ */
+describe("ui-kit subpath runtime resolution", () => {
+  /*
+   * Never in a shipped bundle: tests, a stylesheet the bundler inlines, and the
+   * guards, which read the filesystem with node:fs and cannot load in a browser.
+   */
+  const NOT_IN_A_BUNDLE = new Set(["testing", "guards", "tokens.css"]);
+
+  it("bakes an import-map entry for every author subpath a shipped client can import", () => {
+    const source = readFileSync(EXTERNALS_ENTRIES, "utf8");
+    const missing = Object.keys(AUTHOR_SUBPATHS["@ksp-gonogo/ui-kit"])
+      .filter((sub) => !NOT_IN_A_BUNDLE.has(sub))
+      .filter((sub) => !source.includes(`"@ksp-gonogo/ui-kit/${sub}"`));
     expect(missing).toEqual([]);
   });
 });

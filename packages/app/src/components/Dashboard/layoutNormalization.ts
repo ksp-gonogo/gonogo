@@ -42,11 +42,11 @@ export function firstFreeSlot(
  * profiles, station configs) store the old id; we map them forward on load so
  * existing placements survive a rename instead of silently disappearing.
  *
- * Migration convention (gonogo is 1.0+): whenever you change a registered
- * component `id`, add an entry here: key = the old id, value = the new id.
- * Never reuse a retired id for a different widget. This is the single source
- * of truth for widget-id renames; every place that deserialises dashboard
- * items routes through `migrateDashboardItems`.
+ * Only the renames listed here carry forward. A widget renamed or removed
+ * without an entry leaves its saved tile to the "widget unavailable" stand-in,
+ * which the operator can remove. Never reuse a retired id for a different
+ * widget. Every place that deserialises dashboard items routes through
+ * `migrateDashboardItems`.
  */
 export const RENAMED_COMPONENT_IDS: Record<string, string> = {
   "mission-director": "contract-manager",

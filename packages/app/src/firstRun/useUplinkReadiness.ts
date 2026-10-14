@@ -175,7 +175,11 @@ export function computeUplinkReadiness(
       declaredContract,
       coreContract,
       rosterEntry: rosterEntry ?? null,
-      bundled: installed && !contractRefused && (bundledIds?.has(id) ?? false),
+      bundled:
+        installed &&
+        modAvailable &&
+        outcome?.status !== "quarantined" &&
+        (bundledIds?.has(id) ?? false),
       outcome,
       state: stateOf(
         outcome,
