@@ -10527,20 +10527,20 @@
         "note": "Removed with WidgetMeters"
       },
       {
-        "key": "ui-kit . WidgetSections",
-        "note": "Removed. Panel inserts contributed sections itself, and a widget no longer places the slot by hand"
-      },
-      {
-        "key": "ui-kit . WithheldTrajectory",
-        "note": "Removed: the withheld arm of OrbitTrajectory carries a ReckoningDecline, so no type of its own is needed"
-      },
-      {
         "key": "ui-kit . WidgetScopeRegistry#\"ground-track\"",
         "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
       },
       {
         "key": "ui-kit . WidgetScopeRegistry#\"map-view\"",
         "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
+      },
+      {
+        "key": "ui-kit . WidgetSections",
+        "note": "Removed. Panel inserts contributed sections itself, and a widget no longer places the slot by hand"
+      },
+      {
+        "key": "ui-kit . WithheldTrajectory",
+        "note": "Removed: the withheld arm of OrbitTrajectory carries a ReckoningDecline, so no type of its own is needed"
       },
       {
         "key": "ui-kit . bandClaim",
@@ -14793,6 +14793,10 @@
         "note": "Places in the stack, which fix its width"
       },
       {
+        "key": "ui-kit . AxisScale",
+        "note": "linear or log y scale, moved here unchanged"
+      },
+      {
         "key": "ui-kit . ButtonProps#disabledReason?",
         "note": "New: the reason a disabled button is disabled, shown as its tip; the button becomes aria-disabled so it keeps focus"
       },
@@ -14803,6 +14807,86 @@
       {
         "key": "ui-kit . ButtonProps#predictedOutcome?",
         "note": "New: the predicted result of pressing, drawn as a dashed or dotted edge that does not change the button's size"
+      },
+      {
+        "key": "ui-kit . ChartSeries",
+        "note": "one plotted line, moved here from the private ui package unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeries#axis",
+        "note": "member of ChartSeries, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeries#color",
+        "note": "member of ChartSeries, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeries#dashed?",
+        "note": "member of ChartSeries, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeries#data",
+        "note": "member of ChartSeries, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeries#fillOpacity?",
+        "note": "member of ChartSeries, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeries#format?",
+        "note": "member of ChartSeries, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeries#headMark?",
+        "note": "member of ChartSeries, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeries#id",
+        "note": "member of ChartSeries, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeries#label",
+        "note": "member of ChartSeries, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeries#readBetween?",
+        "note": "member of ChartSeries, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeries#type?",
+        "note": "member of ChartSeries, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeriesData",
+        "note": "the samples of one plotted line, moved here unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeriesData#breaks?",
+        "note": "member of ChartSeriesData, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeriesData#bridges?",
+        "note": "member of ChartSeriesData, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeriesData#reckoned?",
+        "note": "member of ChartSeriesData, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeriesData#spans?",
+        "note": "member of ChartSeriesData, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeriesData#x",
+        "note": "member of ChartSeriesData, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeriesData#y",
+        "note": "member of ChartSeriesData, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ChartSeriesData#y2?",
+        "note": "member of ChartSeriesData, which moved here from the private ui package with its shape unchanged"
       },
       {
         "key": "ui-kit . ComboboxListboxProps#\"aria-label\"?",
@@ -15065,6 +15149,118 @@
         "note": "Exported from the kit's index because a published signature names it"
       },
       {
+        "key": "ui-kit . LimitSide",
+        "note": "which side of a limit line is out of bounds, moved here unchanged"
+      },
+      {
+        "key": "ui-kit . LineChart",
+        "note": "the chart the graph widget draws with, moved here from the private ui package unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps",
+        "note": "props of the moved LineChart, unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#\"aria-label\"?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#card?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#cardForms?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#crosshair?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#gridScale?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#height",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#hideXAxis?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#layers?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#legend?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#series",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#spatial?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#thresholds?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#width",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#xAxisLabel?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#xDomain",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#xKind?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#xReadFormat?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#xTickFormat?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#yAxisLabel?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#yDomainPrimary?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#yDomainSecondary?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#yScalePrimary?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#yScaleSecondary?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#ySecondaryAxisLabel?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . LineChartProps#yTickFormat?",
+        "note": "member of LineChartProps, which moved here from the private ui package with its shape unchanged"
+      },
+      {
         "key": "ui-kit . LineGraphProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
@@ -15285,6 +15481,10 @@
         "note": "Readout tone, as it was on the inline prop type"
       },
       {
+        "key": "ui-kit . SeriesType",
+        "note": "how a plotted line is drawn between samples, moved here unchanged"
+      },
+      {
         "key": "ui-kit . SpinnerProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
@@ -15315,6 +15515,14 @@
       {
         "key": "ui-kit . TINY_SIZE",
         "note": "The one kit-wide tiny size, 3x3, which every widget with a tiny mode shrinks to"
+      },
+      {
+        "key": "ui-kit . ThresholdKind",
+        "note": "what a threshold line is for, moved here unchanged"
+      },
+      {
+        "key": "ui-kit . ThresholdRule",
+        "note": "a horizontal reference line on a chart, moved here unchanged"
       },
       {
         "key": "ui-kit . TinyEssentialsProps#equalRows?",
@@ -15525,6 +15733,10 @@
         "note": "says whether the crosshair card has room on a plot, so a chart can hand its legend corner to the card"
       },
       {
+        "key": "ui-kit . plotLayerExtent",
+        "note": "the data range a plot layer covers, moved here unchanged so the graph widget can widen its domain"
+      },
+      {
         "key": "ui-kit . predictedOutcomeOf",
         "note": "New: the predicted outcome of a send status"
       },
@@ -15551,6 +15763,10 @@
       {
         "key": "ui-kit . useWheelGesture",
         "note": "the wheel rule alone, for a surface whose camera is not a pan and zoom of a plane, such as a canvas or a third-party viewer"
+      },
+      {
+        "key": "ui-kit . utXTickFormat",
+        "note": "x tick writer for a universal-time axis, moved here unchanged"
       },
       {
         "key": "ui-kit . wheelZoomFactor",
@@ -15583,6 +15799,34 @@
       {
         "key": "ui-kit . ~SlotEntry",
         "note": "Helper type of Contribution, referenced by its props"
+      },
+      {
+        "key": "ui-kit . ~ThresholdRuleBase",
+        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ~ThresholdRuleBase#axis?",
+        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ~ThresholdRuleBase#id",
+        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ~ThresholdRuleBase#label?",
+        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ~ThresholdRuleBase#reading?",
+        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ~ThresholdRuleBase#spokenLabel?",
+        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
+      },
+      {
+        "key": "ui-kit . ~ThresholdRuleBase#value",
+        "note": "part of ThresholdRule, which moved here from the private ui package with its shape unchanged"
       }
     ]
   }

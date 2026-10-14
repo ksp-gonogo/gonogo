@@ -1,4 +1,10 @@
-/** The side of a limit a figure must not be on: `above` for a ceiling, `below` for a floor. */
+/**
+ * The side of a limit line a figure must not be on: `above` for a ceiling, `below` for a floor.
+ * Useful for telling a graph which way a limit threshold is exceeded, so it can warn the operator
+ * on the right side. Set in the `bad` of a {@link ThresholdRule} of kind `limit`.
+ *
+ * @category Graph
+ */
 export type LimitSide = "above" | "below";
 
 /** Whether a figure stands at or past a limit, on the side the limit declares bad. */

@@ -1,5 +1,34 @@
 import { useId, useMemo } from "react";
-import { buildPath, makeScale } from "./lineChartMath";
+
+/** Linear scale from an input domain to an output range; a zero-width domain maps to the middle of the range. */
+function makeScale(
+  domainMin: number,
+  domainMax: number,
+  rangeMin: number,
+  rangeMax: number,
+): (v: number) => number {
+  const span = domainMax - domainMin;
+  if (span === 0) {
+    const mid = (rangeMin + rangeMax) / 2;
+    return () => mid;
+  }
+  return (v) => rangeMin + ((v - domainMin) / span) * (rangeMax - rangeMin);
+}
+
+/** SVG path through the samples, in order. */
+function buildPath(
+  ts: number[],
+  vs: number[],
+  scaleX: (v: number) => number,
+  scaleY: (v: number) => number,
+): string {
+  return ts
+    .map(
+      (t, i) =>
+        `${i === 0 ? "M" : "L"}${scaleX(t).toFixed(2)},${scaleY(vs[i]).toFixed(2)}`,
+    )
+    .join(" ");
+}
 
 /** Inline trendline with no axes or labels; `values` run oldest to newest and a flat series still draws a visible band. */
 export interface SparklineProps {
