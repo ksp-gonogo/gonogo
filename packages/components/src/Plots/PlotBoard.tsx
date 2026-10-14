@@ -30,7 +30,7 @@ export interface PlotGrid {
 }
 
 /**
- * The board's layout for `count` plots in a board `widthPx` wide with `gapPx` between them: as many across as stay at least `MIN_PLOT_PX`, all the same size, so a plot that wraps onto a row of its own is never drawn larger than the rest.
+ * The board's layout for `count` plots in a board `widthPx` wide with `gapPx` between them: the number across, up to `maxColumns` and no fewer than keeps each at least `MIN_PLOT_PX`, that gives the largest square, all the same size, so a plot that wraps onto a row of its own is never drawn larger than the rest.
  * `heightPx`, when given, is the most the whole board may take, headings included: in a short tile the plots shrink to it rather than run off the bottom, down to `MIN_PLOT_PX`.
  */
 export function plotGrid(
@@ -40,21 +40,36 @@ export function plotGrid(
   heightPx?: number,
   maxColumns = Number.POSITIVE_INFINITY,
 ): PlotGrid {
-  let columns = Math.max(1, Math.min(count, maxColumns));
-  while (
-    columns > 1 &&
-    (widthPx - gapPx * (columns - 1)) / columns < MIN_PLOT_PX
-  ) {
-    columns--;
+  const layout = (columns: number): PlotGrid => {
+    const across = (widthPx - gapPx * (columns - 1)) / columns;
+    const rows = Math.ceil(count / columns);
+    const tall =
+      heightPx == null
+        ? Number.POSITIVE_INFINITY
+        : (heightPx - gapPx * (rows - 1)) / rows - PLOT_HEADING_PX;
+    const side = Math.min(across, Math.max(MIN_PLOT_PX, tall));
+    return { columns, side: Math.max(0, Math.floor(side)) };
+  };
+  const most = Math.max(1, Math.min(count, maxColumns));
+  // With no height to answer to, the squares only grow by taking fewer across, so the board sits as many across as it is allowed.
+  if (heightPx == null) {
+    let columns = most;
+    while (
+      columns > 1 &&
+      (widthPx - gapPx * (columns - 1)) / columns < MIN_PLOT_PX
+    ) {
+      columns--;
+    }
+    return layout(columns);
   }
-  const across = (widthPx - gapPx * (columns - 1)) / columns;
-  const rows = Math.ceil(count / columns);
-  const tall =
-    heightPx == null
-      ? Number.POSITIVE_INFINITY
-      : (heightPx - gapPx * (rows - 1)) / rows - PLOT_HEADING_PX;
-  const side = Math.min(across, Math.max(MIN_PLOT_PX, tall));
-  return { columns, side: Math.max(0, Math.floor(side)) };
+  let best = layout(1);
+  // A wide, short board puts more across rather than leaving its width unused; the most columns that reach the largest square win, so a tile short on height shows the plots in fewer rows.
+  for (let columns = 2; columns <= most; columns++) {
+    if ((widthPx - gapPx * (columns - 1)) / columns < MIN_PLOT_PX) break;
+    const next = layout(columns);
+    if (next.side >= best.side) best = next;
+  }
+  return best;
 }
 
 /** A place the board keeps for a plot whether or not it has anything to draw: its frame stays, and `note` is what the frame says until the plot arrives. */

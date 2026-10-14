@@ -50,7 +50,7 @@ type LandingStatusConfig = Record<string, never>;
 /** The share of the room below the link rows the plots may take, so in a short tile they shrink and the readouts under them stay in reach. */
 const PLOTS_SHARE_OF_ROOM = 0.85;
 
-/** Plots sat across: two, so each is drawn large enough to read at the default tile. */
+/** Plots sat across while the tile's height is unknown: two, so each is drawn large enough to read at the default tile. */
 const PLOT_COLUMNS = 2;
 
 function LandingStatusComponent({
@@ -137,7 +137,7 @@ function LandingStatusComponent({
   const contributedPlots = (
     // gonogo:reads none
     <PlotBoard
-      maxColumns={PLOT_COLUMNS}
+      maxColumns={railFrame.room > 0 ? undefined : PLOT_COLUMNS}
       reserve={reservedPlots}
       heightPx={
         railFrame.room > 0 ? railFrame.room * PLOTS_SHARE_OF_ROOM : undefined

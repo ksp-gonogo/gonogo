@@ -414,10 +414,9 @@ CORE_UPLINK_CLIENT.registerContribution({
         subject: "descent-envelope",
         title: "Descent envelope",
         frame: {
+          kind: "spatial",
           xDomain: frame.xDomain,
-          xUnit: "m/s",
           yDomain: frame.yDomain,
-          yUnit: "m",
         },
         layers: buildDescentLayers(inputs),
         held: drawnFrom([

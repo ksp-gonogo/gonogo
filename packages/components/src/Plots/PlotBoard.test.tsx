@@ -253,6 +253,17 @@ describe("the board's layout", () => {
     expect(plotGrid(3, 900, GAP, 40).side).toBe(MIN_PLOT_PX);
   });
 
+  it("puts more across in a wide, short board than the column limit it would otherwise keep", () => {
+    expect(plotGrid(4, 1400, GAP, 200).columns).toBe(4);
+    expect(plotGrid(4, 1400, GAP, undefined, 2).columns).toBe(2);
+  });
+
+  it("keeps the plots in fewer rows when no column count makes them larger", () => {
+    const grid = plotGrid(4, 1400, GAP, 40);
+    expect(grid.side).toBe(MIN_PLOT_PX);
+    expect(grid.columns).toBe(4);
+  });
+
   it("never draws a plot wider than the board itself", () => {
     expect(plotGrid(1, 90, GAP).side).toBeLessThanOrEqual(90);
   });
