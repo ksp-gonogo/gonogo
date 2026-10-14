@@ -125,6 +125,53 @@ describe("TwrComponent off the stream", () => {
   });
 });
 
+describe("TwrComponent while nothing is firing", () => {
+  /** A coasting craft whose stage 1 makes 200 kN at 10 t: 2.04 at standard gravity, 12.3 at the Mun's surface gravity, which is what the game's own ratio is. */
+  function emitCoasting(fixture: ReturnType<typeof setupStreamFixture>) {
+    fixture.emit("vessel.propulsion", {
+      totalMass: 10,
+      dryMass: 0,
+      currentThrust: 0,
+      availableThrust: 200,
+    });
+    fixture.emit("vessel.structure", { currentStage: 1 });
+    fixture.emit("dv.stages", [
+      { stage: 1, thrustActual: 200, startMass: 10, twrActual: 12.27 },
+    ]);
+  }
+
+  function renderWide(fixture: ReturnType<typeof setupStreamFixture>) {
+    return render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "twr-test" }}>
+          <TwrComponent config={{}} id="twr-test" w={6} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+  }
+
+  it("draws the next stage's ratio at standard gravity, the basis the firing figure uses", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+    renderWide(fixture);
+    act(() => {
+      emitCoasting(fixture);
+    });
+    await waitFor(() => expect(visibleText()).toContain("2.04"));
+    expect(visibleText()).not.toContain("12.27");
+  });
+
+  it("captions the next stage's figure as that stage at ignition and draws no trend of the live ratio", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+    renderWide(fixture);
+    act(() => {
+      emitCoasting(fixture);
+    });
+    await waitFor(() => expect(visibleText()).toContain("Stage 1 at ignition"));
+    expect(visibleText()).not.toContain("Current stage");
+    expect(screen.queryByLabelText("TWR trend")).toBeNull();
+  });
+});
+
 describe("TwrComponent frame", () => {
   it("draws the gauge and its trend inside one frame, with no sidebar", async () => {
     const fixture = setupStreamFixture({

@@ -46,10 +46,11 @@ interface NextStageTwr {
 }
 
 /**
- * Thrust over weight: the wire carries thrust and mass, not their ratio. While
- * the craft is making no thrust the active stage's ratio is a known zero, so the
- * figure is the next stage that has thrust, from the stage list, and `stage`
- * names which one it is.
+ * Thrust over weight at standard gravity: the wire carries thrust and mass, not
+ * their ratio. While the craft is making no thrust the active stage's ratio is a
+ * known zero, so the figure is the next stage that has thrust, from the stage
+ * list at its ignition mass and on the same gravity basis, and `stage` names
+ * which one it is.
  */
 function useTwrReading(): { reading: Reading<Value<"1">>; stage?: number } {
   const propulsionReading = useTelemetry("vessel.propulsion");
@@ -86,7 +87,7 @@ function useTwrReading(): { reading: Reading<Value<"1">>; stage?: number } {
 /** The highest stage at or below the current one that makes thrust: the one the next ignition lights. */
 function nextStageWithThrust(
   stages:
-    | ReadonlyArray<{ stage: number; thrustActual: number; TWRActual: number }>
+    | ReadonlyArray<{ stage: number; thrustActual: number; startMass: number }>
     | undefined,
   currentStage: number | undefined,
 ): NextStageTwr | undefined {
@@ -94,9 +95,10 @@ function nextStageWithThrust(
   for (const s of stages ?? []) {
     if (currentStage !== undefined && s.stage > currentStage) continue;
     if (!Number.isFinite(s.thrustActual) || s.thrustActual <= 0) continue;
-    if (!Number.isFinite(s.TWRActual)) continue;
+    const twr = twrOf(s.thrustActual, s.startMass);
+    if (twr === null || !Number.isFinite(twr)) continue;
     if (best === undefined || s.stage > best.stage) {
-      best = { stage: s.stage, twr: s.TWRActual };
+      best = { stage: s.stage, twr };
     }
   }
   return best;
@@ -177,22 +179,26 @@ function TwrComponent({ w }: Readonly<ComponentProps<TwrConfig>>) {
             padded
             style={FRAME_STYLE}
             caption={
-              showCaption
-                ? `Current stage · last ${writeQuantity(value("s", SPARK_WINDOW_SEC))}`
-                : undefined
+              !showCaption
+                ? undefined
+                : stage === undefined
+                  ? `Current stage · last ${writeQuantity(value("s", SPARK_WINDOW_SEC))}`
+                  : `Stage ${stage} at ignition`
             }
             strip={
-              <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
-                <div style={SPARK_PLOT_STYLE}>
-                  <Sparkline
-                    values={sparkValues}
-                    width={sparkSize.w + SPARK_OVERDRAW_PX}
-                    height={sparkSize.h + SPARK_OVERDRAW_PX}
-                    color={toneColorFor(twr)}
-                    aria-label="TWR trend"
-                  />
+              stage === undefined ? (
+                <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
+                  <div style={SPARK_PLOT_STYLE}>
+                    <Sparkline
+                      values={sparkValues}
+                      width={sparkSize.w + SPARK_OVERDRAW_PX}
+                      height={sparkSize.h + SPARK_OVERDRAW_PX}
+                      color={toneColorFor(twr)}
+                      aria-label="TWR trend"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : undefined
             }
           >
             <div
