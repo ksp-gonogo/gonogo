@@ -12,7 +12,6 @@ import {
   Text,
   Unit,
   WidgetScopeProvider,
-  WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { heldGrade } from "../shared/heldGrade";
@@ -195,7 +194,6 @@ export function PowerSystemsComponent({
       <Panel
         panelTitle="POWER SYSTEMS"
         compactTitle={["POWER"]}
-        panelSections={false}
         panelBadges={
           partsHeld === undefined
             ? undefined
@@ -274,8 +272,6 @@ export function PowerSystemsComponent({
                 landscape={isLandscape}
                 currency={partsReading}
               />
-              {/* Augment sections mount inside the breakdown's scroller, not at Panel's default end-of-body seam. */}
-              <WidgetSections />
             </SectionsScroll>
           </Section>,
         ]}

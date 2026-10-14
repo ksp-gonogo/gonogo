@@ -128,8 +128,8 @@ describe("SpaceCenterStatus: a ladder read at the space centre", () => {
       expect(screen.getByLabelText(/^Launch Pad tier 2 of 3/)).toBeTruthy(),
     );
     expect(screen.getByLabelText(/^VAB tier 1 of 3/)).toBeTruthy();
-    // `AutoEmptyState` keeps its fallback mounted and hidden, so only visibility says which state this is.
-    expect(screen.getByText("No facility tiers")).not.toBeVisible();
+    // Tiers answered, so the panel is handed no empty state to draw.
+    expect(screen.queryByText("No facility tiers")).toBeNull();
   });
 
   it("marks the tiers it is no longer reading through Unit, and says so in each tier's name", async () => {

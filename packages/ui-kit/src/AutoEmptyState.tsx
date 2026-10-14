@@ -28,7 +28,7 @@ export interface AutoEmptyStateProps extends HTMLAttributes<HTMLDivElement> {
  * once the column has rendered anything. Useful where a frame owns the empty
  * message but its content comes from augments or other children it cannot
  * inspect, so the operator sees the message only when there is nothing else.
- * Used by the space centre status and objectives widgets. It never scrolls on
+ * Used by the objectives widget. It never scrolls on
  * its own; the panel body it sits in scrolls.
  *
  * @example

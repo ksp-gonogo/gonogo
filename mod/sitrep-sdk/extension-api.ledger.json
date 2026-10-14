@@ -10319,6 +10319,10 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . PanelProps#panelSections?",
+        "note": "Removed with WidgetSections. Panel always places the sections an Uplink adds, as ordinary sections, so no widget places the slot or turns the default off"
+      },
+      {
         "key": "ui-kit . PanelSplitProps",
         "note": "removed: the type of a component that is not exported and not a Panel part"
       },
@@ -10505,6 +10509,26 @@
       {
         "key": "ui-kit . VesselMarkState",
         "note": "The union widens with \"lost\", a craft nothing vouches for any more. Callers that pass a state are unaffected; one that switches exhaustively over the union needs a case for it"
+      },
+      {
+        "key": "ui-kit . WidgetMeters",
+        "note": "Removed. The meters slot is entries typed as Meter props; a widget that offers it maps them to Meter itself, with useContributions"
+      },
+      {
+        "key": "ui-kit . WidgetMetersProps",
+        "note": "Removed with WidgetMeters"
+      },
+      {
+        "key": "ui-kit . WidgetMetersProps#row?",
+        "note": "Removed with WidgetMeters"
+      },
+      {
+        "key": "ui-kit . WidgetMetersProps#style?",
+        "note": "Removed with WidgetMeters"
+      },
+      {
+        "key": "ui-kit . WidgetSections",
+        "note": "Removed. Panel inserts contributed sections itself, and a widget no longer places the slot by hand"
       },
       {
         "key": "ui-kit . WithheldTrajectory",
@@ -14805,6 +14829,34 @@
         "note": "the fault code, which commandFailedSentence says in the code's own words"
       },
       {
+        "key": "ui-kit . ContributedEntries",
+        "note": "New: the props a component takes to draw a slot, the slot's entries"
+      },
+      {
+        "key": "ui-kit . ContributedEntries#entries",
+        "note": "The contributed entries, after the filter, never empty"
+      },
+      {
+        "key": "ui-kit . Contribution",
+        "note": "New: hands the entries contributed to a slot to the component that draws them, replacing WidgetMeters with nothing meter-specific"
+      },
+      {
+        "key": "ui-kit . ContributionProps",
+        "note": "New: the props of Contribution"
+      },
+      {
+        "key": "ui-kit . ContributionProps#component",
+        "note": "The component that draws the slot, typed from the slot's entries"
+      },
+      {
+        "key": "ui-kit . ContributionProps#filter?",
+        "note": "Optional filter over the entries, such as one row"
+      },
+      {
+        "key": "ui-kit . ContributionProps#slot",
+        "note": "The slot to draw, a segment or a declared slot id"
+      },
+      {
         "key": "ui-kit . ControlDelayStreamProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
@@ -15513,8 +15565,16 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . ~ContributedSlot",
+        "note": "Helper type of Contribution, referenced by its props"
+      },
+      {
         "key": "ui-kit . ~SizedWidget",
         "note": "Parameter shape of sizeDeltaFor, the slice of a widget definition it reads"
+      },
+      {
+        "key": "ui-kit . ~SlotEntry",
+        "note": "Helper type of Contribution, referenced by its props"
       }
     ]
   }

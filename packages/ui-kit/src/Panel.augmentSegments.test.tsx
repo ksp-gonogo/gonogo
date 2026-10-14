@@ -1,7 +1,8 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearAugments, registerAugment } from "./augments";
-import { Panel, WidgetSections } from "./Panel";
+import { Panel } from "./Panel";
+import { Section } from "./Section";
 import { WidgetMetaContext } from "./WidgetMetaContext";
 
 beforeEach(() => clearAugments());
@@ -53,38 +54,20 @@ describe("Panel: the universal `sections` augment segment", () => {
     expect(screen.queryByText("wrong host")).not.toBeInTheDocument();
   });
 
-  it("renders once, not twice, when the widget places its own `WidgetSections`", () => {
+  it("renders each bound augment once", () => {
     registerAugment({
-      id: "sections-aug-dedupe",
+      id: "sections-aug-once",
       augments: "host-widget.sections",
       component: () => <div>appended section</div>,
     });
 
     render(
-      <HostWidget panelSections={false}>
+      <HostWidget sections={<Section>own section</Section>}>
         <div>body</div>
-        <WidgetSections />
       </HostWidget>,
     );
 
     expect(screen.getAllByText("appended section")).toHaveLength(1);
-  });
-
-  it("renders TWICE when a widget places its own and forgets to turn the default off, which is why the prop exists", () => {
-    registerAugment({
-      id: "sections-aug-double",
-      augments: "host-widget.sections",
-      component: () => <div>appended section</div>,
-    });
-
-    render(
-      <HostWidget>
-        <div>body</div>
-        <WidgetSections />
-      </HostWidget>,
-    );
-
-    expect(screen.getAllByText("appended section")).toHaveLength(2);
   });
 
   it("reaches a headerless panel too", () => {

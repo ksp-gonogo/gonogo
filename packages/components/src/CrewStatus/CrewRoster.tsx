@@ -2,12 +2,15 @@ import { AugmentSlot } from "@ksp-gonogo/core";
 import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import {
   Card,
+  type ContributedEntries,
+  Contribution,
   EmptyState,
   FramedDisplay,
   Inline,
+  Meter,
+  MeterStack,
   Stack,
   Truncate,
-  WidgetMeters,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 
@@ -125,7 +128,11 @@ export function renderRoster({
               ) : undefined
             }
           >
-            <WidgetMeters row={name} style={CREW_METERS_STYLE} />
+            <Contribution
+              slot="meters"
+              component={CrewMeters}
+              filter={(entry) => entry.row === name}
+            />
           </Card>
         );
       })}
@@ -141,6 +148,23 @@ const AVATAR_LAYER_STYLE = {
   alignItems: "center",
   justifyContent: "center",
 } as const;
+
+/** The meters Uplinks addressed to one kerbal, as a stack under the kerbal's name. */
+function CrewMeters({ entries }: ContributedEntries<"meters">) {
+  return (
+    <MeterStack style={CREW_METERS_STYLE} role="group" aria-label="meters">
+      {entries.map((entry) => (
+        <Meter
+          key={entry.id}
+          label={entry.label}
+          value={entry.value}
+          tone={entry.tone}
+          valueLabel={entry.valueLabel}
+        />
+      ))}
+    </MeterStack>
+  );
+}
 
 /** Indents a row's contributed meters under the kerbal's name, and keeps a gap
  *  before the next roster row. Carried on the stack itself rather than on a

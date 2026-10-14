@@ -242,6 +242,11 @@ export {
   ContainerBreak,
   type ContainerBreakProps,
 } from "./ContainerBreak";
+export {
+  type ContributedEntries,
+  Contribution,
+  type ContributionProps,
+} from "./Contribution";
 export { Countdown, type CountdownProps } from "./Countdown";
 export { configEqual } from "./configEqual";
 // The contribution type surface, read hooks, per-widget store and per-frame aggregation; registration lives on the sdk.
@@ -499,7 +504,6 @@ export {
   type PanelSidebarSide,
   type PanelTitleProps,
   ScrollArea,
-  WidgetSections,
 } from "./Panel";
 export { type BadgeEntry, PanelBadgesProvider } from "./PanelBadges";
 export { PanZoomViewport } from "./PanZoomViewport";
@@ -771,7 +775,6 @@ export {
   type VesselPositions,
 } from "./vesselMark";
 export * from "./WidgetMetaContext";
-export { WidgetMeters, type WidgetMetersProps } from "./WidgetMeters";
 export {
   useWidgetScope,
   type WidgetScope,

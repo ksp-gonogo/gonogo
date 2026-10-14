@@ -212,6 +212,11 @@ describe("SpaceCenterStatus when career telemetry is held", () => {
       suspendFrames: true,
     });
     const container = mount(fixture, "scs-stale-cold", 6, 7);
+    act(() => {
+      fixture.emit("career.facilities", {
+        facilities: { LaunchPad: { currentTier: 0, maxTier: 2 } },
+      });
+    });
 
     await waitFor(() => expect(screen.getByText("SPACE CENTER")).toBeTruthy());
     expect(container.querySelector("[data-held]")).toBeNull();

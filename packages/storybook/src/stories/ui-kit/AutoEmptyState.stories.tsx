@@ -4,7 +4,6 @@ import {
   createDomainAvailabilityStore,
   DomainAvailabilityContext,
   EmptyState,
-  Panel,
   Row,
   registerAugment,
   WidgetMetaContext,
@@ -89,15 +88,9 @@ type Story = StoryObj<typeof meta>;
 export const AugmentsRendered: Story = {
   render: (args) => (
     <Present domains={["surveymod", "dmagic"]}>
-      <Panel
-        panelTitle="Science archive"
-        panelSections={false}
-        sections={
-          <AutoEmptyState {...args}>
-            <AugmentSlot segment="sections" props={NO_PROPS} />
-          </AutoEmptyState>
-        }
-      />
+      <AutoEmptyState {...args}>
+        <AugmentSlot segment="sections" props={NO_PROPS} />
+      </AutoEmptyState>
     </Present>
   ),
 };
@@ -106,15 +99,9 @@ export const AugmentsRendered: Story = {
 export const EveryAugmentEmpty: Story = {
   render: (args) => (
     <Present domains={[]}>
-      <Panel
-        panelTitle="Science archive"
-        panelSections={false}
-        sections={
-          <AutoEmptyState {...args}>
-            <AugmentSlot segment="sections" props={NO_PROPS} />
-          </AutoEmptyState>
-        }
-      />
+      <AutoEmptyState {...args}>
+        <AugmentSlot segment="sections" props={NO_PROPS} />
+      </AutoEmptyState>
     </Present>
   ),
 };
@@ -123,15 +110,9 @@ export const EveryAugmentEmpty: Story = {
 export const OneOfTwo: Story = {
   render: (args) => (
     <Present domains={["surveymod"]}>
-      <Panel
-        panelTitle="Science archive"
-        panelSections={false}
-        sections={
-          <AutoEmptyState {...args}>
-            <AugmentSlot segment="sections" props={NO_PROPS} />
-          </AutoEmptyState>
-        }
-      />
+      <AutoEmptyState {...args}>
+        <AugmentSlot segment="sections" props={NO_PROPS} />
+      </AutoEmptyState>
     </Present>
   ),
 };

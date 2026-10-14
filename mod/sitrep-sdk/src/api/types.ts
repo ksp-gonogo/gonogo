@@ -766,8 +766,8 @@ export interface ComponentSlotRegistry {
   /** A badge on the widget's panel header. Every widget carries the slot, and a contribution to it returns as many badges as it has to show. */
   badges: BadgeEntry;
   /**
-   * One labelled bar, drawn by a widget that renders `WidgetMeters`, optionally
-   * beside one row of its list.
+   * One labelled bar, drawn by the widget as a `Meter`, optionally beside one
+   * row of its list.
    */
   meters: MeterEntry;
 }

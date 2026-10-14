@@ -85,14 +85,6 @@ export const MapOuter = styled.div`
   overflow: hidden;
 `;
 
-/** Host for the `ground-track.sections` slot; adds no DOM when the slot is empty. */
-export const MapSections = styled.div`
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-`;
-
 /** The map's frame; the width and height come inline in px so the canvas is exactly 2:1 whichever dimension binds. */
 export const CANVAS_CONTAINER: CSSProperties = {
   flexShrink: 0,

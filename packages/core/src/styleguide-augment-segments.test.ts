@@ -24,8 +24,7 @@ import { describe, expect, it } from "vitest";
  * named for what it addresses (`deployed-science.experiment`,
  * `experiments.instrument`, `crew-status.row-badges`), never for a segment. A
  * slot that genuinely is the universal seam does not need a name at all: delete
- * the render site and let `Panel` mount it, or place `<WidgetSections>` where it
- * belongs.
+ * the render site and let `Panel` mount it.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -85,9 +84,8 @@ describe("no widget renders a named slot on a framework segment", () => {
         `every widget, so each bound augment renders TWICE, the second time with\n` +
         `empty props:\n\n` +
         offenders.map((o) => `  ${o}`).join("\n") +
-        `\n\nEither delete the render site (Panel mounts the seam), place\n` +
-        `<WidgetSections> and pass panelSections={false}, or rename the slot for\n` +
-        `what it actually addresses.`,
+        `\n\nEither delete the render site (Panel mounts the seam) or rename the\n` +
+        `slot for what it actually addresses.`,
     ).toEqual([]);
   });
 

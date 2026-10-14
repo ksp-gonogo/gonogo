@@ -17,7 +17,6 @@ import {
   Section,
   Tooltip,
   WidgetScopeProvider,
-  WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo } from "react";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
@@ -39,7 +38,6 @@ import {
   MapBody,
   MapFrame,
   MapOuter,
-  MapSections,
   NoSignal,
   OverlayAugmentLayer,
   OverlayCanvas,
@@ -366,8 +364,6 @@ function GroundTrackComponent({
         panelTitle="GROUND TRACK"
         compactTitle={["GROUND", "TRACK"]}
         panelToolbar={toolbar}
-        /* The sections seam sits under `MapSections`'s own divider. */
-        panelSections={false}
         sections={[
           <Section key="map" fill>
             <MapBody>
@@ -466,9 +462,6 @@ function GroundTrackComponent({
             </Section>
           ) : null,
           /* No frame caption: a ground track is always body-fixed. */
-          <MapSections key="augments">
-            <WidgetSections />
-          </MapSections>,
         ]}
       />
     </WidgetScopeProvider>

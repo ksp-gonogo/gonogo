@@ -35,14 +35,14 @@ export const SUPPLIED_ATTR = "data-uplink-supplied";
  * `renderWidget`'s `WidgetBadges`, so a badge lands in a stand-in exactly as it
  * lands in the real widget. Other segments are drawn by a widget's own body:
  * a hostless `ship-map.part-meters` scene renders a blank frame, and `meters`
- * and `filters` are placed by the widget (`<WidgetMeters>`, `<FilterList>`),
+ * and `filters` are placed by the widget (a `<Meter>` per entry, `<FilterList>`),
  * not by the framework.
  */
 export const HOST_DRAWN_CONTRIBUTION_SEGMENTS = ["badges"] as const;
 
 /**
  * The segments the framework aggregates for every widget on top of the slots it
- * declares, so a widget that places `<FilterList>` or `<WidgetMeters>` in its
+ * declares, so a widget that places `<FilterList>` or draws the meters in its
  * body receives `<id>.filters` / `<id>.meters` contributions without listing
  * the slot. A scene naming such a host is buildable although the host's
  * `contributionSlots` does not carry the slot.

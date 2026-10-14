@@ -8,7 +8,6 @@ import {
   Section,
   Stack,
   Text,
-  WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import { PlotBoard, type PlotSlot } from "../Plots/PlotBoard";
 import { AltitudeRail } from "./AltitudeRail";
@@ -193,7 +192,6 @@ function LandingStatusComponent({
       {comDatumNote}
       {heightEl}
       {divertEl}
-      <WidgetSections />
     </Stack>
   );
 
@@ -229,8 +227,6 @@ function LandingStatusComponent({
       }
       // No vessel reporting and no crash on record: the panel has nothing to present, so it gives its body over to the reason.
       inactive={!showBoard && !crash ? "No landing in progress" : undefined}
-      // Planted sections go beside the altitude rail, in the readouts column, never under it.
-      panelSections={false}
       // Host-derived: the panel watches every topic this widget declares.
       sections={[
         // The link state, first and full width: a delayed descent is flown by these countdowns, so a narrow tile must not fold them away.
@@ -280,7 +276,6 @@ function LandingStatusComponent({
                   {contributedPlots}
                 </div>
               )}
-              <WidgetSections />
             </Stack>
           ) : (
             // Rail and content sit inside the panel's own body, which owns the single inset.
@@ -349,7 +344,6 @@ function LandingStatusComponent({
                       {carriedAltitudeEl}
                       {comDatumNote}
                       {divertEl}
-                      <WidgetSections />
                     </div>
                   </div>
                 ) : (

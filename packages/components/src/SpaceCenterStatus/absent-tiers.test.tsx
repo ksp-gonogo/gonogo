@@ -162,7 +162,7 @@ describe("SpaceCenterStatus: facilities that reported no tier", () => {
     expect(visibleText(fixture.container)).not.toContain("No tier detail");
   });
 
-  /** The marker is keyed on whether the facilities area drew anything, so an Uplink section that answered takes it off screen. */
+  /** The marker waits on whether an Uplink has a section to put in the body, so one that answered takes it off screen. */
   it("takes the marker off screen when an Uplink section draws tiers instead", async () => {
     registerAugment({
       id: "test-facility-tiers",
@@ -176,6 +176,6 @@ describe("SpaceCenterStatus: facilities that reported no tier", () => {
     await waitFor(() =>
       expect(screen.getByText("Launch Pad · TIER 2")).toBeVisible(),
     );
-    expect(screen.getByText("No facility tiers")).not.toBeVisible();
+    expect(screen.queryByText("No facility tiers")).toBeNull();
   });
 });

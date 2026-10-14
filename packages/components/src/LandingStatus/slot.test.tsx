@@ -85,7 +85,7 @@ describe("LandingStatus: the sections slot", () => {
     });
   }
 
-  it("mounts a planted section in the row that holds the altitude rail, beside it", async () => {
+  it("leaves a planted section to the panel, after the altitude rail and its readouts", async () => {
     registerAugment({
       id: "test-landing-sections",
       augments: "landing-status.sections",
@@ -109,8 +109,13 @@ describe("LandingStatus: the sections slot", () => {
     const planted = screen.getByTestId("planted");
     const row = rail.closest("[style*='align-items: stretch']");
     expect(row).not.toBeNull();
-    expect(row?.contains(planted)).toBe(true);
-    expect(rail.parentElement?.parentElement?.contains(planted)).toBe(false);
+    // An ordinary section of the panel: once, and after the row that holds the rail, not inside it.
+    expect(screen.getAllByTestId("planted")).toHaveLength(1);
+    expect(row?.contains(planted)).toBe(false);
+    expect(
+      row?.compareDocumentPosition(planted) ===
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(true);
     await act(async () => {});
   });
 });

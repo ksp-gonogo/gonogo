@@ -588,7 +588,7 @@ describe("CrewStatusComponent, decoupled from the survival backend", () => {
   });
 });
 
-/** Per-row survival meters: each roster row draws `WidgetMeters` for the `crew-status.meters` segment, addressed at that kerbal by `row`. */
+/** Per-row survival meters: each roster row draws a `Meter` per entry of the `crew-status.meters` segment, addressed at that kerbal by `row`. */
 describe("CrewStatusComponent, per-row survival meters", () => {
   it("renders nothing extra per row when nothing is contributed", async () => {
     const fixture = newFixture();

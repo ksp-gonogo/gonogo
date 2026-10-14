@@ -52,11 +52,22 @@ describe("SpaceCenterStatusComponent", () => {
     );
   }
 
-  it("renders the panel title and an unknown pad line before any telemetry", () => {
+  it("keeps its title and says there are no facility tiers before any telemetry", () => {
     renderWidget();
     expect(screen.getByText(/SPACE CENTER/i)).toBeInTheDocument();
-    // Nothing has said anything about the pad yet, so no claim about it.
-    expect(screen.getByText(/Pad state unknown/i)).toBeInTheDocument();
+    expect(screen.getByText("No facility tiers")).toBeInTheDocument();
+    // The panel is off, so it makes no claim about the pad either.
+    expect(screen.queryByText(/No vehicle on pad/i)).toBeNull();
+  });
+
+  it("says the pad state is unknown, not clear, once tiers are in and nothing has said anything about the pad", async () => {
+    renderWidget();
+    act(() => {
+      stream.emit("career.facilities", {
+        facilities: { LaunchPad: { currentTier: 0, maxTier: 2 } },
+      });
+    });
+    expect(await screen.findByText(/Pad state unknown/i)).toBeInTheDocument();
     expect(screen.queryByText(/No vehicle on pad/i)).toBeNull();
   });
 
@@ -86,6 +97,9 @@ describe("SpaceCenterStatusComponent", () => {
   it("shows the pad-occupied vessel name when on the pad", async () => {
     renderWidget();
     act(() => {
+      stream.emit("career.facilities", {
+        facilities: { LaunchPad: { currentTier: 0, maxTier: 2 } },
+      });
       stream.emit("spaceCenter.launchSites", [
         { name: "__pad__", padOccupied: true, padVesselTitle: "Kerbal X" },
       ]);
@@ -96,6 +110,9 @@ describe("SpaceCenterStatusComponent", () => {
   it("falls back to last launch site when not on the pad", async () => {
     renderWidget();
     act(() => {
+      stream.emit("career.facilities", {
+        facilities: { LaunchPad: { currentTier: 0, maxTier: 2 } },
+      });
       stream.emit("spaceCenter.launchSites", [
         { name: "__pad__", padOccupied: false, padVesselTitle: null },
       ]);

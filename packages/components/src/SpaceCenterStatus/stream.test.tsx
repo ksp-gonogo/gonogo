@@ -39,6 +39,9 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     expect(fixture.transport.isSubscribed("career.status")).toBe(true);
 
     act(() => {
+      fixture.emit("career.facilities", {
+        facilities: { LaunchPad: { currentTier: 0, maxTier: 2 } },
+      });
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", {
         balances: { funds: 78400.5, reputation: 200, science: 100 },
@@ -127,6 +130,9 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     );
 
     act(() => {
+      fixture.emit("career.facilities", {
+        facilities: { LaunchPad: { currentTier: 0, maxTier: 2 } },
+      });
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("spaceCenter.launchSites", [
         { padOccupied: true, padVesselTitle: "Kerbal X" },

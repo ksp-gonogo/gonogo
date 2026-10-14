@@ -66,7 +66,7 @@ export function CrewStatusComponent(
     return map;
   }, [rowToneContributions]);
 
-  // Read here as well as in `WidgetMeters` so the EVA solo-row check can see this kerbal's meters.
+  // Read here as well as in the roster's own rows so the EVA solo-row check can see this kerbal's meters.
   const meterContributions = useContributions("meters");
 
   const names = toCrewNames(crewRaw);

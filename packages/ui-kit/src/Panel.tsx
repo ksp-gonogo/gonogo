@@ -1352,10 +1352,9 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * not render.
    *
    * A widget that is wholly a drawing (a map, a globe) passes one
-   * `<Section fill>` holding it. Not to be confused with the boolean
-   * `panelSections`, which is about the augment slot. A bare boolean is a
-   * type error: for a section that is sometimes absent, pass `null` in its
-   * place, as in `cond ? <Section /> : null`.
+   * `<Section fill>` holding it. A bare boolean is a type error: for a section
+   * that is sometimes absent, pass `null` in its place, as in
+   * `cond ? <Section /> : null`.
    */
   sections?: Exclude<ReactNode, boolean> | readonly ReactNode[];
   /**
@@ -1469,16 +1468,6 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * under the body.
    */
   sidebarSize?: string;
-  /**
-   * Whether this panel mounts the standard `${componentId}.sections` augment
-   * slot at the end of its body. Defaults to true, so an Uplink can add a
-   * section to any widget without the widget declaring a slot.
-   *
-   * Set false only when the widget renders {@link WidgetSections} itself
-   * (inside a tab, a named section, a column of a sidebar); with both mounted,
-   * every bound augment renders twice.
-   */
-  panelSections?: boolean;
 }
 
 /**
@@ -1519,41 +1508,6 @@ function mergeBadges(
 export const FRAMEWORK_AUGMENT_SEGMENTS = ["sections", "actions"] as const;
 
 const NO_SEGMENT_PROPS: Record<string, never> = Object.freeze({});
-
-/**
- * Every augment bound to the current widget's standard
- * `${componentId}.sections` slot, in priority order, skipping any whose
- * `requires` Domain is not present. The augments get no props. Useful for
- * placing the sections an Uplink adds to a widget somewhere the operator
- * expects them, such as inside a tab. Used by the ground track widget and the space centre
- * status widget.
- *
- * {@link Panel} already mounts this at the end of its body, so a widget
- * renders it itself only to place the sections somewhere else (inside a tab,
- * a named section), and must then pass `panelSections={false}` to its `Panel`.
- * Outside a widget it renders nothing.
- *
- * @example
- * ```tsx
- * <Panel
- *   panelTitle="Power"
- *   panelSections={false}
- *   sections={
- *     <Tabs
- *       tabs={[
- *         { id: "bus", label: "Bus", content: <BusView /> },
- *         { id: "more", label: "More", content: <WidgetSections /> },
- *       ]}
- *     />
- *   }
- * />
- * ```
- *
- * @category Panel
- */
-export function WidgetSections(): ReactElement {
-  return <AugmentSlot segment="sections" props={NO_SEGMENT_PROPS} />;
-}
 
 /**
  * The winning status contribution, rendered as the header aside badge. It
@@ -1860,7 +1814,6 @@ function PanelRootImpl({
   panelSidebar,
   sidebarSide,
   sidebarSize,
-  panelSections = true,
   sections,
   sectionMinWidth = DEFAULT_SECTION_MIN_WIDTH,
   children,
@@ -2019,7 +1972,7 @@ function PanelRootImpl({
      fitToSize, and the one section is a filling one holding only a frame. */
   const loneFrame =
     children === undefined &&
-    !(panelSections && hasSectionAugments) &&
+    !hasSectionAugments &&
     !fitToSize &&
     sectionNodes.length === 1 &&
     holdsOnlyAFrame(sectionNodes[0]);
@@ -2040,12 +1993,10 @@ function PanelRootImpl({
     else runs.push({ fill, nodes: [node] });
   }
   /* The universal segment lands in the last grid; a body whose every section fills gets one opened for it. */
-  if (panelSections && hasSections && !runs.some((run) => !run.fill)) {
+  if (hasSections && !runs.some((run) => !run.fill)) {
     runs.push({ fill: false, nodes: [] });
   }
-  const augmentRun = panelSections
-    ? runs.reduce((last, run, i) => (run.fill ? last : i), -1)
-    : -1;
+  const augmentRun = runs.reduce((last, run, i) => (run.fill ? last : i), -1);
   /* How many sections take a column, which floors the grid's track width. */
   const flowingIn = (nodes: ReactNode[]) =>
     Math.max(
@@ -2072,7 +2023,9 @@ function PanelRootImpl({
         $columns={flowingIn(run.nodes)}
       >
         {run.nodes}
-        {index === augmentRun && <WidgetSections />}
+        {index === augmentRun && (
+          <AugmentSlot segment="sections" props={NO_SEGMENT_PROPS} />
+        )}
       </PanelSections__Grid>,
     );
   }
@@ -2109,7 +2062,9 @@ function PanelRootImpl({
       ) : (
         content
       )}
-      {panelSections && !hasSections && !isInactive && <WidgetSections />}
+      {!hasSections && !isInactive && (
+        <AugmentSlot segment="sections" props={NO_SEGMENT_PROPS} />
+      )}
     </PanelBody>
   );
 
@@ -2221,8 +2176,8 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  *   Each augment renders after everything the widget draws in its body; when
  *   the widget passes `sections`, each augment is its own item in the last
  *   section grid, so returning a {@link Section} flows it into a column
- *   beside the widget's own. Its component gets no props. A widget can move the slot with
- *   {@link WidgetSections} and `panelSections={false}`
+ *   beside the widget's own. Its component gets no props. The widget does not
+ *   place it: `Panel` does
  * - `${componentId}.actions`: an augment slot for controls in the header
  *   aside, after `panelAside` and before the badges. Its component gets no
  *   props. Nothing is reserved for it while nothing is bound

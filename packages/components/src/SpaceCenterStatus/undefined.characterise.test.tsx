@@ -84,6 +84,11 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
       suspendFrames: true,
     });
     mount(fixture, "scs-pad-cold", 6, 7);
+    act(() => {
+      fixture.emit("career.facilities", {
+        facilities: { LaunchPad: { currentTier: 0, maxTier: 2 } },
+      });
+    });
 
     await waitFor(() =>
       expect(screen.getByRole("status").textContent).toContain(
@@ -105,6 +110,9 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     mount(fixture, "scs-partial-scene", 6, 7);
 
     act(() => {
+      fixture.emit("career.facilities", {
+        facilities: { LaunchPad: { currentTier: 0, maxTier: 2 } },
+      });
       // Partial payload: the record IS here, the field within it is not.
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
     });

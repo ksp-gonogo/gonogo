@@ -1,13 +1,11 @@
 import {
-  AutoEmptyState,
   type CommandButtonHandle,
-  EmptyState,
   Panel,
   Section,
   Tooltip,
   Unit,
   type UnitValue,
-  WidgetSections,
+  useWidgetSegmentBound,
 } from "@ksp-gonogo/ui-kit";
 import { FacilityGridItem } from "./FacilityCell";
 import { FACILITIES, type FacilityLevels } from "./facilities";
@@ -60,11 +58,18 @@ export function SpaceCenterStatusView({
   const answeredFacilities = FACILITIES.filter(
     ({ key }) => facilities[key] !== undefined,
   );
+  // Whether an Uplink has a section to put in the body, counting only those whose mod is running.
+  const contributed = useWidgetSegmentBound("sections");
 
   return (
     <Panel
       panelTitle="SPACE CENTER"
-      panelSections={false}
+      // An Uplink that draws the tiers itself answers the absence, so the panel is off only when it has nothing to present and nothing is contributed.
+      inactive={
+        answeredFacilities.length === 0 && !contributed
+          ? "No facility tiers"
+          : undefined
+      }
       sections={
         <Section>
           <Body>
@@ -92,33 +97,24 @@ export function SpaceCenterStatusView({
               /* Said once for the grid, and not at all when no facility answered. */
               <AbsenceLine>No tier detail</AbsenceLine>
             )}
-            {/* ONE absence marker for the grid plus whatever an Uplink appends, so a section that answered takes it off screen. */}
-            <AutoEmptyState
-              gap="related-comfortable"
-              fallback={<EmptyState>No facility tiers</EmptyState>}
-            >
-              {answeredFacilities.length > 0 && (
-                <FacilityGrid $compact={compactGrid}>
-                  {answeredFacilities.map(({ key, label }) => (
-                    <FacilityGridItem
-                      key={key}
-                      facilityKey={key}
-                      label={label}
-                      f={facilities[key]}
-                      tierSpecsFit={tierSpecsFit}
-                      anyTierText={anyTierText}
-                      careerFunds={careerFunds}
-                      tiersHeldSince={facilities[key]?.heldSince ?? null}
-                      upgradeBlocked={upgradeBlocked}
-                      upgradeCmd={upgradeCmd}
-                    />
-                  ))}
-                </FacilityGrid>
-              )}
-
-              {/* Inside the marker's content area, so a section that draws tiers answers the absence. */}
-              <WidgetSections />
-            </AutoEmptyState>
+            {answeredFacilities.length > 0 && (
+              <FacilityGrid $compact={compactGrid}>
+                {answeredFacilities.map(({ key, label }) => (
+                  <FacilityGridItem
+                    key={key}
+                    facilityKey={key}
+                    label={label}
+                    f={facilities[key]}
+                    tierSpecsFit={tierSpecsFit}
+                    anyTierText={anyTierText}
+                    careerFunds={careerFunds}
+                    tiersHeldSince={facilities[key]?.heldSince ?? null}
+                    upgradeBlocked={upgradeBlocked}
+                    upgradeCmd={upgradeCmd}
+                  />
+                ))}
+              </FacilityGrid>
+            )}
           </Body>
         </Section>
       }
