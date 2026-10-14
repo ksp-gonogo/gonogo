@@ -355,23 +355,53 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
-        public void EveryCommandSentToTheActiveCraftRunsNotJustTheFirstTwo()
+        public void EveryCommandSentAfterALoadRunsBesideTheTwoTheSaveCarried()
         {
+            DeliverySnapshot saved;
+            using (var before = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0))
+            {
+                before.RegisterUplink(new HeldCommandTestUplink());
+                before.Start();
+                try
+                {
+                    CutRoute(before);
+                    Tick(before, 0.0);
+                    for (var i = 1; i <= 2; i++)
+                    {
+                        before.DispatchCommandAndWait(HeldCommandTestUplink.Command, "carried" + i, Centre, _ => { }, TestBudgets.Op);
+                    }
+
+                    Tick(before, 1.0);
+                    saved = before.DeliverySnapshotNow();
+                    Assert.Equal(2, saved.Held.Count);
+                }
+                finally
+                {
+                    before.Stop();
+                }
+            }
+
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            var uplink = new ActiveCraftTestUplink();
+            var uplink = new HeldCommandTestUplink();
             engine.RegisterUplink(uplink);
             engine.Start();
             try
             {
-                TickActive(engine, uplink, 0.0, loaded: true);
-                var results = new List<object?>();
-                for (var i = 1; i <= 6; i++)
+                CutRoute(engine);
+                Tick(engine, 0.0);
+                engine.NoteGameLoaded(saved);
+                Tick(engine, 2.0);
+                for (var i = 1; i <= 4; i++)
                 {
-                    engine.DispatchCommandAndWait(ActiveCraftTestUplink.Command, "x" + i, Centre, r => results.Add(r), TestBudgets.Op, seenVesselId: CraftId);
-                    TickActive(engine, uplink, i * 2.0, loaded: true);
-                    TickActive(engine, uplink, (i * 2.0) + 1.0, loaded: true);
+                    engine.DispatchCommandAndWait(HeldCommandTestUplink.Command, "after" + i, Centre, _ => { }, TestBudgets.Op);
                 }
 
+                Tick(engine, 3.0);
+                Assert.Equal(6, engine.DeliverySnapshotNow().Held.Count);
+
+                OpenRoute(engine);
+                Tick(engine, 4.0);
+                Tick(engine, 4.0 + OneWaySeconds + 1.0);
                 Assert.Equal(6, uplink.HandledCount);
             }
             finally
