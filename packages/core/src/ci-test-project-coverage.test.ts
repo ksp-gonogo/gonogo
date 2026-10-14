@@ -12,11 +12,10 @@ import { describe, expect, it } from "vitest";
  * solution cannot be tested wholesale while the KSP-linked projects reference a
  * gitignored KSP install, which is sound and documented in `ci.yml`'s own
  * scoping note. The problem is that **nothing noticed when the two drifted**,
- * and the result was not a warning but a suite that silently never ran. Four
- * projects accumulated that way over four weeks (`GonogoAvionicsUplink.Tests`
- * and `GonogoTestFlightUplink.Tests` from 2026-07-22, `GonogoMechJebUplink.Tests`
- * from 2026-08-08, `GonogoPrincipiaUplink.Tests` found the day it landed): 35
- * tests gated by nothing, costing 343ms to run.
+ * and the result is not a warning but a suite that silently never runs. Four
+ * projects (`GonogoAvionicsUplink.Tests`, `GonogoTestFlightUplink.Tests`,
+ * `GonogoMechJebUplink.Tests` and `GonogoPrincipiaUplink.Tests`) amount to 35
+ * tests that would be gated by nothing, costing 343ms to run.
  *
  * Both directions are checked, because they fail differently and both fail
  * silently:

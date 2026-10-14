@@ -1,17 +1,17 @@
 # Sitrep.Core
 
-The pure, KSP-free half of the Sitrep C# mod (M5). `netstandard2.0`, and by
+The pure, KSP-free half of the Sitrep C# mod. `netstandard2.0`, and by
 architectural rule **must never reference `UnityEngine` or
-`Assembly-CSharp`**: that's what makes the old fork's off-thread-game-state-read
-bug structurally impossible to write here. Only `Gonogo.KSP` (not yet built)
-touches Unity/KSP types.
+`Assembly-CSharp`**: that's what makes an off-thread game-state read
+structurally impossible to write here. Only `Gonogo.KSP` touches Unity/KSP
+types.
 
 This project currently holds:
 
 - `Semver.cs`: a line-for-line C# port of `mod/sitrep-kernel/src/version.ts`'s
   `compareVersions` / `satisfiesKernel` / `satisfiesModRange`. It exists to
   prove the **cross-language golden-fixture loop** described in
-  `mod/golden-fixtures/README.md`: the pattern the rest of the M5 port
+  `mod/golden-fixtures/README.md`: the pattern the rest of the C# port
   (StubNetwork, Archive, Courier, the kernel resolver) follows.
 - `Clock.cs`: `IClock` / `ManualClock` / `RealClock`, ported from
   `mod/sitrep-server/src/clock.ts`. `ManualClock` is the first **stateful**
@@ -39,9 +39,8 @@ This project currently holds:
   full archive state (all samples AND all per-(topic, vantage) cursor
   positions, including a frozen/receded cursor) to and from the plain,
   BCL-only `ArchiveState` POCO: no serialization happens inside Core.
-  Turning that POCO into a persisted blob (JSON or otherwise) is an **M5b**
-  concern, done with the generated Contract serializers / the
-  ScenarioModule, deliberately kept out of `Sitrep.Core` so this project
+  Turning that POCO into a persisted blob (JSON or otherwise) is done with the
+  generated Contract serializers / the ScenarioModule, deliberately kept out of `Sitrep.Core` so this project
   stays dependency-free. It's tested directly in
   `Sitrep.Core.Tests/ArchiveSnapshotRestoreTests.cs` as an object-level
   round trip (build → `Snapshot()` → `Restore()` → assert identical

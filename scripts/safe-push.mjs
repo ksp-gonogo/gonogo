@@ -5,8 +5,8 @@
  * The pre-push hook runs after git has already opened its connection, and on a
  * cold turbo cache it takes long enough that GitHub closes the socket first:
  * git dies with SIGPIPE (141) while the hook prints "all checks passed", so the
- * push reports success and nothing reaches the remote. That happened twice on
- * 2026-09-02 and is indistinguishable from a flake unless you read the exit code.
+ * push reports success and nothing reaches the remote. That is
+ * indistinguishable from a flake unless you read the exit code.
  *
  * Running the gate first means the connection is opened only for the seconds the
  * transfer actually needs. The hook stays in place as a backstop for anyone who

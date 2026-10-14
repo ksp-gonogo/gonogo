@@ -34,9 +34,9 @@ namespace Gonogo.KSP
     [KSPAddon(KSPAddon.Startup.Instantly, once: true)]
     public sealed class GonogoAddon : MonoBehaviour
     {
-        // TODO(config): hard-coded for this first build - a future settings
-        // surface (in-game GUI or a PluginData config file) should let the
-        // user change bind host/port without a rebuild.
+        // The bind host and port are hard-coded; a settings surface (in-game GUI
+        // or a PluginData config file) would let the user change them without
+        // a rebuild.
         //
         // Binds all interfaces (0.0.0.0) so a client on another LAN device can
         // reach it at ws://<this-machine-LAN-IP>:8090, which is the primary

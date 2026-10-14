@@ -6,7 +6,7 @@ const URL = "/uplinks/registry.local.json";
 /**
  * A real `Response`, not a shaped object. The whole subject of the two tests
  * below is what the platform does with a body that is not JSON, and a hand-
- * rolled `json: async () => { throw }` would be asserting my own guess about
+ * rolled `json: async () => { throw }` would assert a guess about
  * that rather than the behaviour the browser has.
  */
 function serve(body: string, init?: ResponseInit): void {

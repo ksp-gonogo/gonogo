@@ -27,12 +27,11 @@ interface Transport {
 command correlation are all handled above this boundary, in
 `TelemetryClient`.
 
-`StubTransport` is the only implementation in this milestone: an in-memory,
-scriptable fake for tests, with `emit(topic, payload)` to fake inbound stream
-data and `setCommandHandler(fn)` to answer `command-request`s. Real
-implementations, WebSocket and PeerJS, arrive in later milestones and plug
-into the exact same interface; nothing above the `Transport` boundary changes
-when they do.
+`StubTransport` is an in-memory, scriptable fake for tests, with
+`emit(topic, payload)` to fake inbound stream data and `setCommandHandler(fn)`
+to answer `command-request`s. Real transports (WebSocket, PeerJS) implement the
+exact same interface; nothing above the `Transport` boundary changes between
+them.
 
 ## `TelemetryClient`
 
@@ -44,7 +43,7 @@ Wraps a `Transport` and provides:
   the current value immediately, without waiting for the next sample.
 - **Command dispatch**: `dispatch(command, args)` returns a `requestId` and a
   `Promise` that resolves/rejects once the correlated `command-response` or
-  `error` arrives. Even at this milestone's zero simulated latency, a
+  `error` arrives. Even at zero simulated latency, a
   response is never delivered synchronously within the same call stack as the
   request: the `in-flight` phase is always observable, because a real
   transport never resolves in the same tick as the send.
@@ -106,12 +105,12 @@ const client = new TelemetryClient(new StubTransport());
 
 `src/integration.test.tsx` exercises exactly this shape end-to-end, through
 a real `TelemetryProvider`, `TelemetryClient`, and `StubTransport`, as the
-M2 milestone's proof: typed telemetry in, typed command out, hooks reactive,
+proof: typed telemetry in, typed command out, hooks reactive,
 no real transport.
 
-## Delayed comms (M3)
+## Delayed comms
 
-Delayed streams and delayed command round trips now work, with nothing above
+Delayed streams and delayed command round trips work, with nothing above
 the `Transport` boundary changing. `@ksp-gonogo/sitrep-server`'s `Courier` +
 `CourierTransport` implement the exact same `Transport` interface
 `StubTransport` does, swap the transport passed to `TelemetryClient` and
@@ -119,7 +118,7 @@ every hook behaves identically, just lagged by whatever network delay the
 courier's `StubNetwork` is configured with:
 
 - **`useStream`** answers `pending` until a sample's delay elapses, then
-  the delayed value: the same reading as M2, just later.
+  the delayed value: the same reading as an undelayed one, just later.
 - **`useCommand`**'s `in-flight` status now carries a real `etaConfirm`
   (`CourierTransport.predictConfirmEta()`, rather than the same-tick
   fallback `StubTransport` produces), and a command whose node goes
@@ -127,12 +126,12 @@ courier's `StubNetwork` is configured with:
   `etaConfirm + LOSS_MARGIN` (see `LOSS_MARGIN` and the `Clock` seam in
   `client.ts`/`clock.ts`: the client infers loss from a transport-predicted
   ETA, it never computes delay itself).
-- **Delay 0 collapses to M2**: an unconfigured `StubNetwork` pair (or
+- **Delay 0 collapses to instant delivery**: an unconfigured `StubNetwork` pair (or
   `setScale(0)`) makes the courier deliver immediately, matching
   `StubTransport`'s zero-latency behavior exactly.
 
-`src/delayed-integration.test.tsx` is the M3 proof: the same
-`useStream`+`useCommand` component as the M2 test, wired to a real
+`src/delayed-integration.test.tsx` is the delayed proof: the same
+`useStream`+`useCommand` component as `src/integration.test.tsx`, wired to a real
 `ManualClock` + `StubNetwork` + `Courier` + `CourierTransport` sharing one
 clock with the `TelemetryClient`: asserting a lagged stream value, an
 in-flight `etaConfirm` that resolves to `confirmed` after the full
@@ -140,15 +139,13 @@ uplink+downlink round trip, and a `lost` status when the node is
 unreachable. See `mod/sitrep-server/README.md` for the delay-engine
 internals (`Clock`/`Network`/`Archive`/`Courier`/`CourierTransport`).
 
-## What's out of scope here (M3b+)
+## What this package does not include
 
-- **Contact-plan routing** (moving relays, CGR, store-and-forward): M3b,
-  lives entirely in `@ksp-gonogo/sitrep-server`'s `Network`/`Courier`; this
+- **Contact-plan routing** (moving relays, CGR, store-and-forward) lives
+  entirely in `@ksp-gonogo/sitrep-server`'s `Network`/`Courier`; this
   package's `Transport` boundary doesn't change either way.
-- **Real transports**: WebSocket and PeerJS implementations of `Transport`,
-  replacing `StubTransport`/`CourierTransport` in real usage without any
-  change to `TelemetryClient` or the hooks.
-- **A real RemoteTech-style `[H]` signal-delay handler** wired into the
-  actual C# mod: M5. This package and `sitrep-server` are the app-side and
-  reference-engine halves of the design, not the mod itself.
-
+- **Real transports** replace `StubTransport`/`CourierTransport` in real usage
+  without any change to `TelemetryClient` or the hooks.
+- **A RemoteTech-style `[H]` signal-delay handler.** This package and
+  `sitrep-server` are the app-side and reference-engine halves of the design,
+  not the mod itself.

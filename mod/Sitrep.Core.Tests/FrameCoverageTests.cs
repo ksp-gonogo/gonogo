@@ -143,7 +143,7 @@ namespace Sitrep.Core.Tests
             typeof(CommsDelay).Assembly.GetTypes()
                 .Where(t => t.IsClass && !t.IsAbstract)
                 // IsDefined only, never GetCustomAttributesData: see
-                // UnitCoverageTests.ContractTypes for the incident behind that.
+                // UnitCoverageTests.ContractTypes for why.
                 .Where(t => t.IsDefined(typeof(SitrepContractAttribute), false));
 
         // What is declared, read out of metadata.

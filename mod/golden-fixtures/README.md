@@ -1,7 +1,7 @@
 # Cross-language golden fixtures
 
-M5 (the Sitrep C# mod) ports pure TS logic (semver gating today, then
-`Clock`/`StubNetwork`/`Archive`/`Courier` and the kernel resolver) into
+The Sitrep C# mod ports pure TS logic (semver gating, `Clock`,
+`StubNetwork`, `Archive`, `Courier` and the kernel resolver) into
 `mod/Sitrep.Core`. Every ported piece is checked against the **same JSON
 fixture** from both sides, so drift between the reference and the port is
 caught by `dotnet test`, not discovered later in a live KSP session.
@@ -201,7 +201,7 @@ C# side (`mod/Sitrep.Core.Tests/ArchiveGoldenFixtureTests.cs`) constructs a
 `readAtVantage` op's `expected` matches what the port returns at that point.
 
 **Not covered here:** `Archive.Snapshot()` / `Archive.Restore()` are a
-C#-only addition (no TS reference) for M5b quicksave, serializing full
+C#-only addition (no TS reference) for quicksave, serializing full
 archive state, including per-(topic, vantage) cursor positions, so a delayed
 archive survives save/load. That round trip is tested directly against the
 C# port in `mod/Sitrep.Core.Tests/ArchiveSnapshotRestoreTests.cs`, with no

@@ -48,7 +48,7 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <DebugType>portable</DebugType>
     <!-- Sitrep.Contract is the public Uplink surface, and MIT like the rest
-         of gonogo (see LICENSING.md). Third-party Uplinks under ANY license
+         of gonogo (see LICENSE). Third-party Uplinks under ANY license
          (GPL, proprietary, ARR, etc.) can reference the contract; MIT's only
          condition is retaining the copyright/permission notice.
          An Uplink that links a copyleft mod takes that licence, but it is a

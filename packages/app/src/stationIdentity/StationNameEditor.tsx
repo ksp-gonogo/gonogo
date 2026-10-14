@@ -18,7 +18,7 @@ import {
  * Pricing the swap: Label's 9px would take --font-size-2xs (+1px), which is
  * 11px under `@media (pointer: coarse)`, i.e. 2px of growth on a Steam Deck.
  * This chip renders inside StationScreen's position: fixed StationNameChip,
- * which has a logged incident of intercepting clicks on the widgets beneath
+ * which can intercept clicks on the widgets beneath
  * it. Growing it is not free.
  *
  * The same measurement holds the chip's inset off --inset-control. NameSpan

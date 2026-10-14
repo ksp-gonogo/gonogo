@@ -5,13 +5,15 @@
  * it or go up. Clear one by rewording the line, then lower the number.
  */
 export const PRIVATE_REFERENCE_DEBT: Record<string, number> = {
-  ".githooks/commit-msg": 3,
+  // Ignore entries for local, untracked working folders.
   ".gitignore": 2,
-  "packages/components/scripts/render-systemview-traffic-video.ts": 2,
+  "packages/core/turbo.json": 1,
+  // Gates whose messages and test data name the matched strings on purpose.
+  ".githooks/commit-msg": 3,
   "packages/core/src/commit-msg-hook.test.ts": 5,
   "packages/core/src/published-design-doc-refs.allowlist.ts": 2,
   "packages/core/src/published-design-doc-refs.test.ts": 4,
-  "packages/core/turbo.json": 1,
+  // Local-machine helpers that resolve paths under the home directory.
   "packages/storybook/scripts/ledger.ts": 1,
   "scripts/gonogo_claude_tools.sh": 5,
 };

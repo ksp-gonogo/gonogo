@@ -11,7 +11,7 @@
  * shows the presentation the moment a model exists to fill it.
  */
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
@@ -21,7 +21,9 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "graph-crosshair-probe");
 const PROBE_ENTRY = join(PROBE_DIR, "graph-crosshair-probe-entry.tsx");
 const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "graph-crosshair-probe.html");
-const OUT_DIR = join(homedir(), ".claude/inbox/gonogo/renders/graph879");
+const OUT_DIR =
+  process.env.GRAPH_CROSSHAIR_RENDER_OUT ??
+  resolve(HERE, "../../../local_docs/renders/graph-crosshair");
 /*
  * The theme package's SOURCE tokens.css: plain text, no bundler resolution,
  * and no dependency on `@ksp-gonogo/theme` having been built.

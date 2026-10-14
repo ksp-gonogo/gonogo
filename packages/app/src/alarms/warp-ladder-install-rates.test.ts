@@ -21,8 +21,8 @@ import { AlarmHostService } from "./AlarmHostService";
  * picks an index by the wrong rate. `WarpRateTable` reads the table the game
  * sends on `time.warp` instead.
  *
- * Measured on the Deck against the shipped realism-pack install on 2026-09-12 by
- * commanding each index and reading `time.warp.warpRate` back:
+ * The rates of the shipped realism-pack install, read from
+ * `time.warp.warpRate` after commanding each index:
  *
  * | index | this install | stock |
  * |-------|--------------|-------|

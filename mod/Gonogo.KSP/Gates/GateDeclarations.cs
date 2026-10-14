@@ -58,23 +58,20 @@ namespace Gonogo.KSP.Gates
             }
 
             /*
-             * No facility limit on activation, deliberately. This used to declare
-             * the Administration Building's cap, reasoning that CanBeActivated's
-             * first arm dereferences Administration.Instance and so cannot be
-             * asked off-screen. The gate was both redundant and wrong.
+             * No facility limit on activation, deliberately. CanBeActivated's
+             * first arm dereferences Administration.Instance, so the cap cannot
+             * be asked off-screen, and a declared cap would add nothing on-screen.
              *
-             * Redundant on-screen: the actuator calls CanBeActivated, which asks
-             * that arm itself and answers with the game's own reason.
+             * On-screen the actuator calls CanBeActivated, which asks that arm
+             * itself and answers with the game's own reason.
              *
-             * Wrong under RP-1, which is where a career actually runs. RP-1
-             * exempts Leaders from the stock cap entirely, zeroing the count
-             * stock compares; the limit is the PROGRAM slot budget; and a
-             * multi-slot program consumes its `slots` rather than one. So this
-             * counted what RP-1 does not and undercounted what it does, leaving
-             * the control dark on a career the game would have allowed.
+             * Under RP-1 a raw count of active strategies is also the wrong
+             * measure: RP-1 exempts Leaders from the stock cap entirely, zeroing
+             * the count stock compares; the limit is the PROGRAM slot budget; and
+             * a multi-slot program consumes its `slots` rather than one. A
+             * declared cap would darken a control the game allows.
              *
-             * Off-screen it protected nothing either, because the actuator
-             * refuses there regardless.
+             * Off-screen the actuator refuses regardless.
              */
             table[CareerCommandProvider.ActivateStrategyCommand] = new[]
             {

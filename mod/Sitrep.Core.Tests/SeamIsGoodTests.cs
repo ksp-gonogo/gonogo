@@ -45,12 +45,12 @@ namespace Sitrep.Core.Tests
     /// and the old check still applies there unchanged: see
     /// <see cref="EveryInterfaceInAPrivateAssemblyHasAProductionImplementer"/>.</para>
     ///
-    /// <para><b>How this still catches the original incident.</b>
-    /// <c>IIntegratedTrajectorySource</c> shipped with a declaration, a single
-    /// <c>is</c> check and zero implementers, so the n-body horizon reported
+    /// <para><b>What it catches.</b>
+    /// <c>IIntegratedTrajectorySource</c> with a declaration, a single
+    /// <c>is</c> check and zero implementers would report the n-body horizon as
     /// closed-form on every live frame while every test of the integrator behind it
-    /// passed, because each of those tests opened the gate by hand. The absent
-    /// implementer is now legitimate. What is not legitimate is the hand-opened
+    /// passed, because each of those tests opens the gate by hand. An absent
+    /// implementer is legitimate. What is not legitimate is the hand-opened
     /// gate: a seam passes only when there is a shared, shipped assertion that takes
     /// an implementation and says whether it is right. This repo's own tests then
     /// open the gate through that same assertion, so "the code behind the gate

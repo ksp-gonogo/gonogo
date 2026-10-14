@@ -61,9 +61,9 @@ namespace Gonogo.KSP
         /// its own command.</para>
         ///
         /// <para>The concurrent-strategy cap is not declared as a gate on this
-        /// command: it was, and it was wrong on RP-1, which exempts Leaders from
-        /// that cap and spends it on program slots, so a raw count of active
-        /// strategies darkened a control the game would have allowed. The
+        /// command: RP-1 exempts Leaders from that cap and spends it on program
+        /// slots, so a raw count of active strategies would darken a control
+        /// the game allows. The
         /// off-screen route asks it only on a career that has not patched
         /// activation, where the roster count is exactly the screen's.</para>
         ///

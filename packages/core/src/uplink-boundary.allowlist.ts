@@ -1103,11 +1103,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   /*
    * === principia: the pattern this ratchet exists to stop is core naming a
    * specific mod, and the moment that is most likely is when someone leaves a
-   * seam "ready" for a mod that has no Uplink yet. The token now has three
+   * seam "ready" for a mod that has no Uplink yet. The token has three
    * owning dirs (see MOD_OWNERSHIP in uplink-boundary.test.ts). A token keyed
-   * on mods we already integrate cannot see that case, which is exactly how
-   * TargetApproachElection acquired a public RegisterPrincipiaProvider and
-   * PrincipiaProviderId without ever being flagged.
+   * on mods already integrated cannot see that case.
    */
   principia: {
     domainDebt: [],
@@ -1123,20 +1121,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * -- UNKNOWN-CAST ratchet: the gate and its scanner both cite
        * `mod/GonogoPrincipiaUplink/client/src/planWrite.ts` as the worked
-       * example of the remedy, because the seven envelope-for-payload
-       * assertions it repaired are the defect the whole rule exists for. Naming
-       * the fix is the point of the citation, so this is a doc mention rather
-       * than coupling. `unknown-cast.test.ts` also compiles a copy of
+       * example of the remedy for envelope-for-payload assertions. This is a
+       * doc mention rather than coupling. `unknown-cast.test.ts` also compiles a copy of
        * `planWriteReceipt` as its false-positive control.
        */
       "packages/core/src/unknown-cast.test.ts",
       /*
        * -- PRODUCER FIELD PARITY gate: names Principia in its own worked
-       * example. The five burn-profile fields that reached the wire as null on
-       * every Principia plan are WHY this gate exists, so the doc comment cites
-       * the incident and `PrincipiaManeuverPlanSource` as the producer that was
-       * filling them correctly all along. Prose citing a fix to read, the same
-       * shape as the unknown-cast entry above. No import, no topic read.
+       * example, the five burn-profile fields of `vessel.maneuver` and
+       * `PrincipiaManeuverPlanSource` as the producer that fills them. Prose,
+       * the same shape as the unknown-cast entry above. No import, no topic
+       * read.
        */
       "mod/Sitrep.Core.Tests/ProducerFieldParityTests.cs",
       // The declaration-reachability ratchet's debt list: an inventory of

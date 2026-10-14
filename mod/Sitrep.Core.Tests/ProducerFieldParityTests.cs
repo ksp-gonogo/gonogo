@@ -13,18 +13,16 @@ namespace Sitrep.Core.Tests
     /// The PRODUCER-side field-parity gate: a hand-flattened producer that omits
     /// a field of the contract type it stands for.
     ///
-    /// <para><b>The bug.</b> <c>vessel.maneuver</c> carried
-    /// <c>inertiallyFixed</c>, <c>thrust</c>, <c>specificImpulse</c>,
-    /// <c>initialMass</c> and <c>finalMass</c> as null on every Principia plan
-    /// while <c>PrincipiaManeuverPlanSource</c> filled all five on every burn it
-    /// mapped. Three steps, and the middle two dropped them:
-    /// <c>Gonogo.KSP.KspHost.BuildManeuverNodes</c> hand-flattens the contract
-    /// node into the capture dictionary and wrote ten keys, none of the five;
-    /// <c>VesselViewProvider</c> maps that dictionary back to a
-    /// <see cref="ManeuverNode"/> and read the same ten;
-    /// <c>VesselViewProvider.ToWire</c> emitted all five and had since they
-    /// reached the contract. Neither end was at fault, which is why nothing was
-    /// red.</para>
+    /// <para><b>What it guards.</b> A field can be present at both ends of the
+    /// chain and still read null on the wire. <c>vessel.maneuver</c> shows the
+    /// shape: <c>PrincipiaManeuverPlanSource</c> fills <c>inertiallyFixed</c>,
+    /// <c>thrust</c>, <c>specificImpulse</c>, <c>initialMass</c> and
+    /// <c>finalMass</c>, and <c>VesselViewProvider.ToWire</c> emits all five,
+    /// but <c>Gonogo.KSP.KspHost.BuildManeuverNodes</c> hand-flattens the
+    /// contract node into the capture dictionary with ten keys, none of the
+    /// five, and <c>VesselViewProvider</c> maps that dictionary back to a
+    /// <see cref="ManeuverNode"/> reading the same ten. Neither end fails on its
+    /// own, so nothing goes red.</para>
     ///
     /// <para><b>Why the two existing gates are blind to it.</b>
     /// <c>scripts/wire-payload-coverage.mjs</c> asks whether every type that
@@ -99,7 +97,7 @@ namespace Sitrep.Core.Tests
         /// dropped five fields, and <c>VesselViewProvider.ToWire</c>, which wrote
         /// all sixteen. A union names every field and reports clean over the
         /// producer that lost the data. Measured, by planting each half of that
-        /// incident separately.</para>
+        /// failure separately.</para>
         /// </summary>
         public static IEnumerable<object[]> ProducerSites() =>
             Producers.Value

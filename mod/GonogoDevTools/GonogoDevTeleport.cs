@@ -13,8 +13,8 @@ namespace Gonogo.DevTools
     /// (<c>PluginData/teleport-request.cfg</c>, next to this assembly) and, on a
     /// new request, teleports the active vessel into a specified orbit around a
     /// specified body. This lets a headless automated test place a vessel
-    /// anywhere - something kRPC 0.5.4 cannot do (it has no set-orbit / cheat
-    /// API).
+    /// anywhere; kRPC 0.5.4 has no set-orbit / cheat
+    /// API.
     ///
     /// This mirrors KSP's own Alt+F12 "Set Ship Orbit" cheat exactly: the stock
     /// debug window (decompiled <c>Assembly-CSharp</c>) calls

@@ -12,11 +12,10 @@
  * anything at all, unchecked, so a wrong assertion compiles exactly like a right
  * one and the reader is handed a typed view of a shape the value never had.
  *
- * The instance that produced the rule: seven call sites in the Principia Uplink
- * asserted that a command envelope was the flat payload inside it. It was not,
- * so `.outcome`, `.refusal` and `.replayed` read `undefined` on every plan write
- * ever made, and the banner that says nothing was written could not fire. It
- * survived weeks behind a passing test whose fixture carried the same mistake.
+ * Example: asserting that a command envelope is the flat payload inside it
+ * compiles, and `.outcome`, `.refusal` and `.replayed` then read `undefined`
+ * for every reply. A test fixture minted through the same assertion carries
+ * the same wrong shape, so the test stays green.
  *
  * ## The four categories in this list, and what removes each
  *
@@ -37,7 +36,7 @@
  *
  * **A test fixture minted through an assertion.** 16 of the 47 are
  * in test files, which is not a lesser problem: the fixture carrying the same
- * wrong shape as the code is precisely how the Principia defect stayed green.
+ * wrong shape as the code is how a wrong assertion stays green.
  * Removed by minting the value through the generated contract type or a real
  * builder, so a fixture that drifts from the contract fails to compile.
  *

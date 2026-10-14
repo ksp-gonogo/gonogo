@@ -378,7 +378,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The other half of today's incident: two branches each bumping
+        /// Two branches each bumping
         /// 3 -&gt; 4 with different shapes. Whichever way the merge is
         /// resolved, a rule fires: take-both trips the duplicate check,
         /// take-one leaves the loser's break undeclared.

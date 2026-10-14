@@ -490,8 +490,8 @@ function writeDebt(rawMeasured) {
   // roll and carry the explanation along to the new number, leaving the file asserting
   // a maximum it no longer holds.
   //
-  // Reversing my own note in the debt file, which argued against reading intent out of
-  // comments. That holds for INFERRING a value; refusing to lower one fails closed, so
+  // The debt file argues against reading intent out of comments. That holds for
+  // INFERRING a value; refusing to lower one fails closed, so
   // the worst case is slack that a later deliberate edit removes rather than a ceiling
   // that vanishes unnoticed. One mechanism beats a hand-maintained second list.
   const measured = { ...rawMeasured };

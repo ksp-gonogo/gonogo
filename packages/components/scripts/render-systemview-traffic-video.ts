@@ -51,14 +51,14 @@
  *   the one capture that does want the active vessel's own dedicated ring
  *   and marker tracking live, so it keeps the full `sceneEmits()`.
  *
- * Output: `local_docs/inbox/systemview-traffic/*.mp4` (+ a couple of PNG
- * stills), also copied to `local_docs/inbox/systemview-contributions/`.
+ * Output: `local_docs/renders/systemview-traffic/*.mp4` (+ a couple of PNG
+ * stills); SYSTEMVIEW_TRAFFIC_RENDER_OUT overrides the folder.
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-systemview-traffic-video`.
  * Requires ffmpeg on path (webm -> mp4; some viewers cannot play webm).
  */
 import { execFile } from "node:child_process";
-import { copyFile, mkdir, readdir, rm } from "node:fs/promises";
+import { mkdir, readdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
@@ -69,14 +69,9 @@ const execFileAsync = promisify(execFile);
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "probe");
-// Absolute main-repo paths (not derived from this file's own location via
-// `HERE`): a worktree-isolated run's `HERE` resolves to the WORKTREE's own
-// copy of this script, so a relative `../../..` would land the artifact in
-// a directory that gets torn down with the worktree.
-const OUT_DIRS = [
-  "/Users/jon.pepler/personal/gonogo/local_docs/inbox/systemview-traffic",
-  "/Users/jon.pepler/personal/gonogo/local_docs/inbox/systemview-contributions",
-];
+const OUT_DIR =
+  process.env.SYSTEMVIEW_TRAFFIC_RENDER_OUT ??
+  resolve(HERE, "../../../local_docs/renders/systemview-traffic");
 
 const KERBOL_MU = 1.1723328e18;
 const KERBIN_MU = 3.5316e12;
@@ -385,7 +380,7 @@ async function convertToMp4(webmPath: string, mp4Path: string): Promise<void> {
 async function captureTraffic(probeHtmlOut: string): Promise<void> {
   console.log("\n── traffic capture (warpRate=1) ──");
   const browser = await chromium.launch();
-  const videoDir = join(OUT_DIRS[0], "_video-tmp-traffic");
+  const videoDir = join(OUT_DIR, "_video-tmp-traffic");
   await mkdir(videoDir, { recursive: true });
   try {
     const context = await browser.newContext({
@@ -433,7 +428,7 @@ async function captureTraffic(probeHtmlOut: string): Promise<void> {
     });
 
     await page.screenshot({
-      path: join(OUT_DIRS[0], "systemview-traffic-pulsing.png"),
+      path: join(OUT_DIR, "systemview-traffic-pulsing.png"),
     });
 
     // Midway through: select the OTHER vessel (not the one traffic is
@@ -444,7 +439,7 @@ async function captureTraffic(probeHtmlOut: string): Promise<void> {
     await page.waitForTimeout(500);
 
     await page.screenshot({
-      path: join(OUT_DIRS[0], "systemview-traffic-with-selection.png"),
+      path: join(OUT_DIR, "systemview-traffic-with-selection.png"),
     });
 
     // Deselect: this still-image is the ONLY place this capture wants
@@ -480,7 +475,7 @@ async function captureTraffic(probeHtmlOut: string): Promise<void> {
 async function captureOrbits(probeHtmlOut: string): Promise<void> {
   console.log("\n── orbit-tracking capture (warpRate=400) ──");
   const browser = await chromium.launch();
-  const videoDir = join(OUT_DIRS[0], "_video-tmp-orbits");
+  const videoDir = join(OUT_DIR, "_video-tmp-orbits");
   await mkdir(videoDir, { recursive: true });
   try {
     const context = await browser.newContext({
@@ -536,7 +531,7 @@ async function captureOrbits(probeHtmlOut: string): Promise<void> {
 
     await page.waitForTimeout(500);
     await page.screenshot({
-      path: join(OUT_DIRS[0], "systemview-orbits-tracking.png"),
+      path: join(OUT_DIR, "systemview-orbits-tracking.png"),
     });
     await page.waitForTimeout(7_000);
 
@@ -552,13 +547,13 @@ async function finalizeVideo(page: Page, outName: string): Promise<void> {
   const video = page.video();
   if (!video) throw new Error("Capture: no video recorded");
   const webmPath = await video.path();
-  const mp4Path = join(OUT_DIRS[0], outName);
+  const mp4Path = join(OUT_DIR, outName);
   await convertToMp4(webmPath, mp4Path);
   console.log(`Wrote ${mp4Path}`);
 }
 
 async function main(): Promise<void> {
-  for (const dir of OUT_DIRS) await mkdir(dir, { recursive: true });
+  await mkdir(OUT_DIR, { recursive: true });
 
   const probeHtmlOut = await prepareProbePage({
     entry: join(PROBE_DIR, "capture-entry.tsx"),
@@ -571,16 +566,10 @@ async function main(): Promise<void> {
   await captureTraffic(probeHtmlOut);
   await captureOrbits(probeHtmlOut);
 
-  // Mirror every artifact this run produced into the plan's own output path.
-  const produced = (await readdir(OUT_DIRS[0])).filter(
+  const produced = (await readdir(OUT_DIR)).filter(
     (f) => f.endsWith(".mp4") || f.endsWith(".png"),
   );
-  for (const f of produced) {
-    await copyFile(join(OUT_DIRS[0], f), join(OUT_DIRS[1], f));
-  }
-  console.log(
-    `\nDone. ${produced.length} artifact(s) in both:\n  ${OUT_DIRS[0]}\n  ${OUT_DIRS[1]}`,
-  );
+  console.log(`\nDone. ${produced.length} artifact(s) in:\n  ${OUT_DIR}`);
 }
 
 main().catch((err) => {

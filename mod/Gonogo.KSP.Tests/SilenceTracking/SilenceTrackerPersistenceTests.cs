@@ -10,7 +10,7 @@ public class SilenceTrackerPersistenceTests
     [Fact]
     public void SaveThenLoadRestoresEveryFieldIncludingTheBoolAndDoubleFieldsExactly()
     {
-        // A bool/double ConfigNode round-trip has bitten this repo before,
+        // A bool/double ConfigNode round-trip is easy to get wrong,
         // so this pins BOTH explicitly rather than trusting the shape alone.
         var source = NewTracker();
         source.Tick(new[] { new SilenceSample("vessel-lost", true, null, false) }, ut: 0);

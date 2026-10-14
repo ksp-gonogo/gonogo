@@ -79,8 +79,6 @@ const STAYS_BY_DESIGN = [
   "mod/Sitrep.Host/",
   "mod/Sitrep.Host.IntegrationTests/",
   "mod/Gonogo.KSP/",
-  "LICENSING.md",
-  "THIRD-PARTY-NOTICES.md",
   "docs/",
   "scripts/depart-uplink.mjs",
 ];

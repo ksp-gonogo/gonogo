@@ -29,11 +29,10 @@
        netstandard2.0 contract and needs every type to resolve. Two projects,
        opposite requirements about the same DLL, one deliberate and documented.
 
-       The accident is what cost us a month. ControlChannelDescriptor's property
-       scan resolved Reinforced.Typings at runtime and threw where the package
-       was correctly absent, which aborted every delayed command dispatch. It
-       went unseen because the only suite exercising it had a stale copy of that
-       DLL in bin, so thirteen tests passed while asserting nothing. -->
+       Why it matters: ControlChannelDescriptor's property scan resolves
+       Reinforced.Typings at runtime and throws where the package is absent,
+       which aborts every delayed command dispatch. A stale copy of that DLL in
+       bin hides this by letting the tests pass while asserting nothing. -->
   <!-- Sitrep.Contract.TestSupport holds the reflection sweeps these [Fact]s
        assert on (UnitCoverageAssertion, ReckonabilityAssertion) and references
        nothing but Sitrep.Contract and xunit.assert, so it does not weaken the

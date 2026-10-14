@@ -6,8 +6,8 @@ import { WarpRateTable } from "./WarpRateTable";
 const STOCK = [1, 5, 10, 50, 100, 1000, 10000, 100000];
 
 /**
- * The deck's RSS/RO install, measured 2026-09-12 by commanding each rung and
- * reading `time.warp.warpRate` back. Rung 4 is 10000x here and 100x on stock.
+ * The warp rates of an RSS/RO install, read from `time.warp.warpRate` after
+ * commanding each rung. Rung 4 is 10000x here and 100x on stock.
  */
 const INSTALL = [1, 10, 100, 1000, 10000, 100000, 1000000, 6000000];
 

@@ -14,8 +14,6 @@
     `Sitrep.Contract.csproj` free of any mention of xunit: the contract
     assembly KSP loads must not carry a metadata reference to a test framework,
     and the cheapest way to guarantee that is for its csproj never to name one.
-    (The Reinforced.Typings incident in that file's own header is the same
-    lesson learned the expensive way.)
   -->
 
   <PropertyGroup>

@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, type Plugin } from "esbuild";
@@ -15,10 +15,9 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "comm-signal-badge-probe");
 const PROBE_ENTRY = join(PROBE_DIR, "comm-signal-badge-probe-entry.tsx");
 const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "comm-signal-badge-probe.html");
-const OUT_DIR = join(
-  homedir(),
-  ".claude/inbox/gonogo/renders/commsignal-badge-slot",
-);
+const OUT_DIR =
+  process.env.COMMSIGNAL_BADGE_RENDER_OUT ??
+  resolve(HERE, "../../../local_docs/renders/commsignal-badge-slot");
 const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 const FIXTURE_PATH = resolve(
   HERE,

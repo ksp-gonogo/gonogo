@@ -3,8 +3,8 @@
 `@ksp-gonogo/sitrep-*` is the Gonogo telemetry mod, codename Sitrep.
 
 This package is the mod's **microkernel**: the extensibility substrate the
-rest of Sitrep (and third-party extensions) build on. It is milestone **M4**
-of the roadmap: the capability/provider model everything else plugs into.
+rest of Sitrep (and third-party extensions) build on: the capability/provider
+model everything else plugs into.
 
 ## The model: nothing is sacred
 
@@ -16,7 +16,7 @@ id). A capability can declare a `vanilla` fallback factory, used when no
 provider survives selection.
 
 That's the whole idea: even the mod's own first-party pieces, the delay
-engine that was M3's headline feature, are just providers behind a
+engine, are just providers behind a
 capability, with the exact same registration API a third-party extension
 would use. Nothing is hard-wired; the kernel would boot identically whether
 the winning `comms` provider was written in-house or dropped in by a
@@ -57,20 +57,20 @@ One call, three phases, always in this order:
 `resolve()` returns `{ notices: ResolutionNotice[] }`: every supersede,
 version-exclusion, and vanilla-fallback that happened, each naming the
 capability and (where relevant) the losing/excluded provider id. Nothing
-about this list is only-for-debugging: it's the audit trail a future
-user-choice UI (see below) would render.
+about this list is only-for-debugging: it's the audit trail a
+user-choice UI would render.
 
 ## The courier-as-comms proof
 
-`src/proof/` is the milestone's headline demonstration, not a hidden
-implementation detail: the entire M3 delay engine
+`src/proof/` is the headline demonstration, not a hidden
+implementation detail: the entire delay engine
 (`Courier`/`StubNetwork`/`ManualClock`, unmodified, imported from
 `@ksp-gonogo/sitrep-server`) is wired up as nothing more than one `comms`
 provider (`courier-provider.ts`) behind an exclusive capability, with a
 same-shape zero-delay `vanilla-comms.ts` as the fallback. `proof/comms.test.ts`
 proves the switch is observable through the kernel alone, same capability
 id, same `CommsCapability` interface, opposite delay behavior depending
-purely on whether the courier provider is registered. If M3's own delay
+purely on whether the courier provider is registered. Because the delay
 engine is just a swappable provider with no special status, the kernel
 model is real, not aspirational.
 
@@ -87,25 +87,19 @@ fail-loud paths (dependency cycle, ambiguous exclusive tie, spine-critical
 unsatisfiable, and the two-`isDefault`-unequal-priority edge case) each as
 their own throwing `resolve()`.
 
-## What this package is not (yet)
+## What this package does not include
 
-Scoped out of M4, deferred to **M4b**:
-
-- **User-choice UI**: M4 only has the programmatic `preferences` hook on
-  `ResolveOptions`; there's no in-game surface for a player to pick a
-  provider or see conflict notices rendered.
-- **Conflict-notice UX**: `ResolutionNotice[]` exists and is fully
-  populated, but nothing displays it yet.
-- **Hot-reload**: M4's kernel does one load-time `resolve()`; there's no
-  runtime add/remove of providers or re-resolution after boot.
-- **Distribution**: the Obsidian-model track (a provider registry,
-  download flow, hash-pinning, install consent) doesn't exist. Providers are
-  registered in-process by whatever code imports this package.
-- **Provenance-invariant enforcement**: nothing currently verifies where a
-  provider came from or that it hasn't been tampered with.
-
-**Cut, not deferred:** a control-authority lease (gating who's allowed to
-issue commands through a given provider) was scoped for M4 and then cut,
-commands pass through ungated, exactly as they already did in M2/M3. If this
-comes back, it's a fresh design, not a resumption of shelved work.
-
+- **User-choice UI**: there is only the programmatic `preferences` hook on
+  `ResolveOptions`; no in-game surface lets a player pick a provider or see
+  conflict notices.
+- **Conflict-notice display**: `ResolutionNotice[]` is fully populated, but
+  nothing displays it.
+- **Hot-reload**: the kernel does one load-time `resolve()`; providers cannot
+  be added or removed, or re-resolved, after boot.
+- **Distribution**: there is no provider registry, download flow, hash-pinning
+  or install consent. Providers are registered in-process by whatever code
+  imports this package.
+- **Provenance enforcement**: nothing verifies where a provider came from or
+  that it has not been tampered with.
+- **Control-authority lease**: commands pass through ungated; no provider can
+  restrict who may issue commands through it.

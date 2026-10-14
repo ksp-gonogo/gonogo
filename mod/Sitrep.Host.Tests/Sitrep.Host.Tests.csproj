@@ -39,7 +39,7 @@
        go green, so the leak became invisible exactly where it should have been
        loudest. Measured: with the leak present and a copy in bin, the contract
        enum tests pass 5 of 6; delete the one file and the same build fails 6
-       of 6. That is the 2026-08-20 incident's mechanism.
+       of 6.
 
        The attributes now live only in the *.Contract.Codegen twins, so nothing
        here needs the DLL. Do not add it back to make a test pass; a test that
