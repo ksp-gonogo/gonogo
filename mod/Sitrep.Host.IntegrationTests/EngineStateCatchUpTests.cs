@@ -42,6 +42,26 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /*
+         * The engine drops a subscription when its socket closes, which is after
+         * the client's disposal returns. Subscribing again before that lands
+         * leaves the subscriber count falling past the count a later wait reads
+         * as "before", so the new subscription is taken without the count ever
+         * exceeding it.
+         */
+        private static async Task NoSubscribersAsync(ChannelEngine engine, string topic)
+        {
+            var deadline = DateTime.UtcNow + Timeout;
+            while (engine.SubscriberCountFor(topic) > 0)
+            {
+                if (DateTime.UtcNow > deadline)
+                {
+                    throw new TimeoutException("The engine never dropped the subscription to " + topic);
+                }
+                await Task.Delay(5);
+            }
+        }
+
         private static string Flatten(object? value)
         {
             switch (value)
@@ -86,6 +106,7 @@ namespace Sitrep.Host.IntegrationTests
                     engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
                     before = await FirstFrameAsync(early, ChannelEngine.UplinkGatesTopic);
                 }
+                await NoSubscribersAsync(engine, ChannelEngine.UplinkGatesTopic);
                 Assert.NotNull(before);
 
                 uplink.Locked = true;
@@ -121,6 +142,7 @@ namespace Sitrep.Host.IntegrationTests
                     engine.TickAndWait(0.0, PendingUplink.Snapshot(0.0), Timeout);
                     Assert.NotNull(await FirstFrameAsync(early, ChannelEngine.UplinkPendingTopic));
                 }
+                await NoSubscribersAsync(engine, ChannelEngine.UplinkPendingTopic);
 
                 engine.DispatchCommandAndWait(PendingUplink.Command, "x", "KSC", _ => { }, TestBudgets.Op, label: "run.");
                 engine.TickAndWait(1.0, PendingUplink.Snapshot(1.0), Timeout);
@@ -162,6 +184,7 @@ namespace Sitrep.Host.IntegrationTests
                     engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
                     before = await FirstFrameAsync(early, topic);
                 }
+                await NoSubscribersAsync(engine, topic);
                 Assert.NotNull(before);
 
                 uplink.On = true;
@@ -198,6 +221,7 @@ namespace Sitrep.Host.IntegrationTests
                     engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
                     before = await FirstFrameAsync(early, ChannelEngine.ChannelsTopic);
                 }
+                await NoSubscribersAsync(engine, ChannelEngine.ChannelsTopic);
                 Assert.NotNull(before);
 
                 await using (var watcher = await TestClient.ConnectAsync(engine.BoundPort, Timeout))
