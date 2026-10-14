@@ -91,6 +91,7 @@ describe("uplinksCheck", () => {
     expect(uplinksCheck({ entries: [], waitingForMod: true }, failed)).toEqual({
       state: "fail",
       text: say("uplinks.check.noConnection"),
+      derived: true,
     });
     expect(
       uplinksCheck(

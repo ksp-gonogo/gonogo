@@ -26,6 +26,16 @@ describe("WarpControlConfigForm at zero delay", () => {
     expect(screen.queryByText(ROW)).toBeNull();
   });
 
+  it("says why the setting is missing rather than showing an empty form", () => {
+    mount({ oneWaySeconds: 0 });
+
+    expect(
+      screen.getByText(
+        "No signal delay on this craft, so warp needs no alarm setting",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("keeps the setting for a delay just above zero", () => {
     mount({ oneWaySeconds: 0.0007 });
 
