@@ -37,6 +37,7 @@
     "render-drag-horizon": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-drag-horizon.ts",
     "render-rendezvous-hud": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-rendezvous-hud.ts",
     "gen-eligibility-fixtures": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/gen-eligibility-fixtures.ts",
+    "gen-hero-flight": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/gen-hero-flight.ts",
     "gen-handover-fixtures": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/gen-handover-fixtures.ts",
     "render-eligibility-unknown": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-eligibility-unknown.ts",
     "render-atmospheric-handover": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-atmospheric-handover.ts",

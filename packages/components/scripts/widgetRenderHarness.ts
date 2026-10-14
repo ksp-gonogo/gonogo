@@ -2357,6 +2357,8 @@ export interface PreparePageOpts {
   scriptSrcPlaceholder: string;
   /** Filename slug for the tmpdir HTML. */
   slug: string;
+  /** Package specifiers bundled from another path, so a page that reaches a package by name and by source loads one copy. */
+  alias?: Record<string, string>;
 }
 
 /**
@@ -2415,6 +2417,7 @@ export async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
     write: false,
     sourcemap: "inline",
     define: { "process.env.NODE_ENV": '"production"' },
+    alias: opts.alias,
     plugins: [cssSideEffectPlugin],
   });
   const bundleJs = bundleResult.outputFiles[0].text;

@@ -10,7 +10,8 @@
  *
  *   pnpm readme-images                    write docs/assets/*
  *   pnpm readme-images --check            fail if an image the README references is missing
- *   pnpm readme-images --review <dir>     also write the H.264 twins and the hero proposals there
+ *   pnpm readme-images --review <dir>     write every composition, with and without the screen's chrome, as still, GIF and H.264 there instead
+ *   pnpm readme-images --only hero|sizes  one picture; with --hero <composition> one composition; with --stills no animations
  *
  * Committed images must come from Linux: the font rasteriser differs by
  * platform, so a macOS run is for review only.
@@ -23,8 +24,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { chromium, type Page } from "playwright";
+import type { HeroSpec } from "./probe/hero-entry";
 import type { StageSpec } from "./probe/readme-entry";
-import { HERO_STAGES, navballSizesStage } from "./readmeStages";
+import { HERO_COMPOSITIONS, heroSpec } from "./readmeHero";
+import { navballSizesStage } from "./readmeStages";
 import { installFixedClock, prepareProbePage } from "./widgetRenderHarness";
 
 const run = promisify(execFile);
@@ -33,14 +36,18 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "../../..");
 const ASSETS = resolve(REPO_ROOT, "docs/assets");
 
-/** The proposal whose render is written to the README's hero and takeoff images. */
-const README_HERO = "a";
+/** The composition and chrome whose render is written to the README's hero and takeoff images. */
+const README_HERO = { composition: "systemview", chrome: "today" } as const;
+
+/** How far into the flight a hero still is taken, from 0 to 1. */
+const HERO_STILL_AT = 0.66;
+/** Every Nth recorded frame is rendered into a hero animation. */
+const HERO_STRIDE = 1;
 
 /** Frames per second of every animation. A GIF is written at the stage's CSS width, half of what the H.264 twin keeps. */
 const FPS = 15;
 /** Every Nth model frame is rendered: frame N is at the same model instant in every instance. */
 const SIZES_STRIDE = 2;
-const LOOP_STRIDE = 3;
 /** Seconds the last frame is held before the loop restarts. */
 const HOLD_SECONDS = 1.5;
 
@@ -78,17 +85,29 @@ interface Session {
   close: () => Promise<void>;
 }
 
-async function openSession(dsf: number): Promise<Session> {
+async function openSession(
+  dsf: number,
+  kind: "stage" | "hero",
+  viewport = { width: 1600, height: 1000 },
+): Promise<Session> {
   const html = await prepareProbePage({
-    entry: join(HERE, "probe/readme-entry.tsx"),
-    htmlTemplate: join(HERE, "probe/readme.html"),
-    scriptSrcPlaceholder:
-      '<script type="module" src="./readme-entry.bundle.js"></script>',
-    slug: "readme",
+    entry: join(HERE, `probe/${kind === "hero" ? "hero" : "readme"}-entry.tsx`),
+    htmlTemplate: join(
+      HERE,
+      `probe/${kind === "hero" ? "hero" : "readme"}.html`,
+    ),
+    scriptSrcPlaceholder: `<script type="module" src="./${kind === "hero" ? "hero" : "readme"}-entry.bundle.js"></script>`,
+    slug: kind === "hero" ? "hero" : "readme",
+    alias:
+      kind === "hero"
+        ? {
+            "@ksp-gonogo/components": join(HERE, "../src/index.ts"),
+          }
+        : undefined,
   });
   const browser = await chromium.launch();
   const context = await browser.newContext({
-    viewport: { width: 1600, height: 1000 },
+    viewport,
     deviceScaleFactor: dsf,
     reducedMotion: "reduce",
   });
@@ -100,29 +119,16 @@ async function openSession(dsf: number): Promise<Session> {
   await page.goto(pathToFileURL(html).toString(), {
     waitUntil: "domcontentloaded",
   });
-  await page.waitForFunction(() => typeof window.__stage === "object");
+  await page.waitForFunction(
+    (name) => typeof (window as never)[name] === "object",
+    kind === "hero" ? "__hero" : "__stage",
+  );
   return { page, close: () => browser.close() };
 }
 
 async function mountStage(page: Page, spec: StageSpec): Promise<void> {
   await page.setViewportSize({ width: spec.width, height: spec.height });
   await page.evaluate((s) => window.__stage.mount(s), spec);
-}
-
-async function still(page: Page, spec: StageSpec, out: string): Promise<void> {
-  await mountStage(page, spec);
-  if (spec.stillAt) {
-    const indices = Object.fromEntries(
-      Object.entries(spec.stillAt).map(([k, f]) => [
-        k,
-        Math.round(f * (spec.tracks[k].length - 1)),
-      ]),
-    );
-    await page.evaluate((idx) => window.__stage.step(idx), indices);
-  }
-  await mkdir(dirname(out), { recursive: true });
-  await page.locator("#root").screenshot({ path: out });
-  console.log(`wrote ${out}`);
 }
 
 /** One screenshot per step, every track moved to the frame `indicesFor` names for that step. */
@@ -226,11 +232,61 @@ async function animate(
   }
 }
 
+async function mountHero(page: Page, spec: HeroSpec): Promise<void> {
+  await page.setViewportSize({ width: spec.width, height: spec.height });
+  await page.evaluate((s) => window.__hero.mount(s), spec);
+}
+
+/** The frame a hero still is taken at: the craft in orbit with the ascent still on the graph. */
+function stillIndex(spec: HeroSpec): number {
+  return Math.round((spec.frames.length - 1) * HERO_STILL_AT);
+}
+
+async function heroStill(
+  page: Page,
+  spec: HeroSpec,
+  out: string,
+): Promise<void> {
+  await mountHero(page, spec);
+  await page.evaluate((i) => window.__hero.seek(i), stillIndex(spec));
+  await mkdir(dirname(out), { recursive: true });
+  await page.locator("#root").screenshot({ path: out });
+  console.log(`wrote ${out}`);
+}
+
+async function heroAnimate(
+  page: Page,
+  spec: HeroSpec,
+  name: string,
+  gif: string | undefined,
+  mp4: string | undefined,
+): Promise<void> {
+  const tmp = await mkdtemp(join(tmpdir(), "readme-hero-"));
+  try {
+    await mountHero(page, spec);
+    const root = page.locator("#root");
+    const steps = Math.floor(spec.frames.length / HERO_STRIDE);
+    for (let i = 0; i < steps; i++) {
+      const index = Math.min(spec.frames.length - 1, i * HERO_STRIDE);
+      await page.evaluate((n) => window.__hero.seek(n), index);
+      await root.screenshot({
+        path: join(tmp, `f${String(i).padStart(4, "0")}.png`),
+      });
+    }
+    console.log(`${name}: ${steps} frames at ${FPS} fps`);
+    await encode(tmp, spec.width, gif, mp4);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.includes("--check")) return check();
   const onlyFlag = args.indexOf("--only");
   const only = onlyFlag === -1 ? undefined : args[onlyFlag + 1];
+  const heroFlag = args.indexOf("--hero");
+  const heroFilter = heroFlag === -1 ? undefined : args[heroFlag + 1];
   const reviewFlag = args.indexOf("--review");
   const review =
     reviewFlag === -1 ? undefined : resolve(args[reviewFlag + 1] ?? "");
@@ -243,37 +299,69 @@ async function main(): Promise<void> {
     );
   }
 
-  const session = await openSession(2);
-  try {
-    if (only === undefined || only === "sizes")
-      await animate(
-        session.page,
-        navballSizesStage(),
-        SIZES_STRIDE,
-        "navball sizes",
-        join(ASSETS, "navball-sizes.gif"),
-        review && join(review, "navball-sizes.mp4"),
-      );
-    if (only !== undefined && only !== "heroes") return;
-    for (const [letter, stage] of Object.entries(HERO_STAGES)) {
-      const spec = stage();
-      const readme = letter === README_HERO;
-      if (readme)
-        await still(session.page, spec, join(ASSETS, "hero-dashboard.png"));
-      if (review)
-        await still(session.page, spec, join(review, `hero-${letter}.png`));
-      if (Object.keys(spec.tracks).length === 0) continue;
-      await animate(
-        session.page,
-        spec,
-        LOOP_STRIDE,
-        `hero ${letter} loop`,
-        readme ? join(ASSETS, "takeoff-ascent.gif") : undefined,
-        review && join(review, `hero-${letter}-loop.mp4`),
-      );
+  if (only === undefined || only === "sizes") {
+    const session = await openSession(2, "stage");
+    try {
+      const layouts = review
+        ? (["row", "stacked"] as const)
+        : (["row"] as const);
+      for (const layout of layouts) {
+        await animate(
+          session.page,
+          navballSizesStage(layout),
+          SIZES_STRIDE,
+          `navball sizes ${layout}`,
+          review
+            ? join(review, `navball-sizes-${layout}.gif`)
+            : join(ASSETS, "navball-sizes.gif"),
+          review && join(review, `navball-sizes-${layout}.mp4`),
+        );
+      }
+    } finally {
+      await session.close();
     }
-  } finally {
-    await session.close();
+  }
+
+  if (only === undefined || only === "hero") {
+    const session = await openSession(2, "hero");
+    try {
+      if (review) {
+        const names = Object.keys(HERO_COMPOSITIONS).filter(
+          (n) => !heroFilter || n === heroFilter,
+        );
+        for (const name of names) {
+          for (const chrome of ["today", "clean"] as const) {
+            const label = `hero-${name}-${chrome}`;
+            const spec = heroSpec(name, chrome);
+            try {
+              await heroStill(session.page, spec, join(review, `${label}.png`));
+              if (!args.includes("--stills"))
+                await heroAnimate(
+                  session.page,
+                  spec,
+                  label,
+                  join(review, `${label}.gif`),
+                  join(review, `${label}.mp4`),
+                );
+            } catch (err) {
+              console.error(`${label} skipped: ${(err as Error).message}`);
+            }
+          }
+        }
+      } else {
+        const spec = heroSpec(README_HERO.composition, README_HERO.chrome);
+        await heroStill(session.page, spec, join(ASSETS, "hero-dashboard.png"));
+        await heroAnimate(
+          session.page,
+          spec,
+          "hero",
+          join(ASSETS, "takeoff-ascent.gif"),
+          undefined,
+        );
+      }
+    } finally {
+      await session.close();
+    }
   }
 }
 

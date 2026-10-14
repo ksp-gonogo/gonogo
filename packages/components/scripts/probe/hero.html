@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>README hero</title>
+    <style id="probe-theme">/* injected by widgetRenderHarness from packages/theme/src/tokens.css */</style>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--color-surface-app);
+        color: var(--color-text-primary);
+        font-family: var(--font-family-mono);
+      }
+      /* Every frame shows its own instant: nothing may still be easing from the one before. */
+      *,
+      *::before,
+      *::after {
+        transition: none !important;
+        animation: none !important;
+      }
+    </style>
+    <style id="hero-chrome"></style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./hero-entry.bundle.js"></script>
+  </body>
+</html>
