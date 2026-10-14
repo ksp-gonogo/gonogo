@@ -8,7 +8,6 @@ import type { SasModeName } from "@ksp-gonogo/sitrep-client";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   collapseControlStateLevel,
-  delayVisibility,
   enumNameOf,
   readingOf,
   SAS_MODE_NAMES,
@@ -80,10 +79,6 @@ const topics = defineTopicManifest({
  * twice one-way, and past 2s round-trip closed-loop stick flying stops working.
  */
 const FBW_DELAY_WARN_SECONDS = 1.0;
-
-/** Grid rows from which the control surface opens, and from which it opens when the delay strip is drawn under it. */
-const CONTROL_SURFACE_ROWS = 18;
-const CONTROL_SURFACE_ROWS_WITH_DELAY = 21;
 
 const TRIM_LABELS: Record<TrimField, string> = {
   pitchTrim: "Pitch trim",
@@ -283,15 +278,10 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     oneWayDelay,
   } = useNavball(props);
 
-  // The control surface needs ~350px beyond the dial, so a smaller tile degrades control mode to a plain dial. The delay strip takes three rows more, and a tile that cannot hold it falls back rather than drawing the dial over the SAS row.
+  // The control surface needs ~350px beyond the dial, so a smaller tile degrades control mode to a plain dial.
   const cols = w ?? 8;
   const rows = h ?? 11;
-  const delayStripShown =
-    delaySeconds !== null && delayVisibility(delaySeconds) === "shown";
-  const surfaceRows = delayStripShown
-    ? CONTROL_SURFACE_ROWS_WITH_DELAY
-    : CONTROL_SURFACE_ROWS;
-  const showControlSurface = controlMode && rows >= surfaceRows && cols >= 7;
+  const showControlSurface = controlMode && rows >= 18 && cols >= 7;
   const gridWantsDial = rows >= 6 && cols >= 4;
   const {
     dialFit,

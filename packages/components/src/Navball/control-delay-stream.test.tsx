@@ -10,7 +10,7 @@ import { NavballComponent } from "./index";
 /** Proves the throttle-fed control-delay graph renders once a one-way delay is known, and not at zero delay. */
 const CONTROL_MODE_CONFIG = { controlMode: true };
 // Large enough to clear the control surface's size gate.
-const CONTROL_SIZE = { w: 10, h: 21 };
+const CONTROL_SIZE = { w: 10, h: 20 };
 
 afterEach(() => {
   clearActionHandlers();

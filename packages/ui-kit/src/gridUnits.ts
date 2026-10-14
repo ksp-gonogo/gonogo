@@ -7,7 +7,7 @@
  *
  * @category Layout
  */
-export const COL_WIDTH = 21;
+export const COL_WIDTH = 32;
 
 /**
  * The height of one dashboard grid row in CSS pixels. Useful for sizing a tile
@@ -15,7 +15,7 @@ export const COL_WIDTH = 21;
  *
  * @category Layout
  */
-export const ROW_HEIGHT = 13;
+export const ROW_HEIGHT = 25;
 
 /**
  * The gap between adjacent dashboard grid cells in CSS pixels. Useful for
@@ -24,7 +24,7 @@ export const ROW_HEIGHT = 13;
  *
  * @category Layout
  */
-export const GRID_MARGIN = 20;
+export const GRID_MARGIN = 8;
 
 /**
  * The pixel box of a `w` by `h` grid-unit tile, as `{ pxW, pxH }`. The margin
