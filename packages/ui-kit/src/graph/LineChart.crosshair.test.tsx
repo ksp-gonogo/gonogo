@@ -135,7 +135,7 @@ describe("LineChart crosshair", () => {
   });
 
   it("hands the legend's corner to the card while the card is drawn", () => {
-    const { container } = render(chart());
+    const { container } = render(chart({ height: 180 }));
     const svg = container.querySelector("svg") as SVGSVGElement;
     const legendChips = () => container.querySelectorAll('rect[rx="2"]').length;
     expect(legendChips()).toBe(2);
@@ -164,6 +164,26 @@ describe("LineChart crosshair", () => {
       "[data-plot-crosshair-card] rect",
     ) as SVGRectElement;
     expect(Number(card.getAttribute("x"))).toBeGreaterThan(plotRight());
+  });
+
+  it("draws a tall or narrow chart's legend as a strip under the plot, past the x axis title", () => {
+    const { container } = render(
+      chart({ width: 400, height: 300, xAxisLabel: "Time" }),
+    );
+    const plot = container.querySelector("svg rect") as SVGRectElement;
+    const plotBottom =
+      Number(plot.getAttribute("y")) + Number(plot.getAttribute("height"));
+    const chips = [...container.querySelectorAll('rect[rx="2"]')];
+    expect(chips).toHaveLength(2);
+    const title = container.querySelector(
+      '[data-axis-title="x"]',
+    ) as SVGTextElement;
+    for (const chip of chips) {
+      expect(Number(chip.getAttribute("y"))).toBeGreaterThan(plotBottom);
+      expect(Number(chip.getAttribute("y"))).toBeGreaterThan(
+        Number(title.getAttribute("y")) - 10,
+      );
+    }
   });
 
   it("names the same instant in the column card as over the plot for the same hover", () => {

@@ -188,10 +188,10 @@ export interface GraphProps {
   footer?: ReactNode;
   /**
    * Figures the plot shows about the present, as one fixed card. Where the plot
-   * has measured room for it, the card takes a column beside the plot, inside
-   * its frame. Where it does not, the card stands over the plot in a corner no
-   * trace, line or legend chip crosses, and where no corner is clear it is not
-   * drawn.
+   * has measured room for it, the card stands in the one column beside the plot
+   * that also holds the legend, under the legend chips. Where it does not, the
+   * card stands over the plot in a corner no trace, line or legend chip
+   * crosses, and where no corner is clear it is not drawn.
    */
   plotReadout?: ReactNode | ((room: ReadoutRoom) => ReactNode);
   /** `"panel"` (the default) wraps the plot in a panel with a header; `"bare"` draws the framed plot alone, for a plot composed inside another layout. */
@@ -254,13 +254,6 @@ function thresholdRuleOf(
 /** Referentially stable, so an unlayered chart does not remount its layer renderer every render. */
 const EMPTY_LAYERS: readonly PlotLayer[] = Object.freeze([]);
 
-/** A column beside the plot is assumed this wide until it has been measured. */
-const ASIDE_GUESS_PX = 180;
-/** The column's padding and border around the readout it holds, which the measured readout does not include. */
-const ASIDE_CHROME_PX = 24;
-/** What the plot must keep, its axes included, once the column is taken. */
-const ASIDE_PLOT_KEEPS_PX = 300;
-
 const CHART_BODY: CSSProperties = {
   flex: 1,
   display: "flex",
@@ -270,14 +263,6 @@ const CHART_BODY: CSSProperties = {
 };
 
 const CHART_FRAME: CSSProperties = { flex: 1, minHeight: 0, minWidth: 0 };
-
-const PLOT_ASIDE: CSSProperties = {
-  flex: "0 0 auto",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  borderLeft: "1px solid var(--color-border-subtle)",
-};
 
 const CHART_AREA: CSSProperties = {
   flex: 1,
@@ -382,22 +367,6 @@ export function Graph({
     return () => ro.disconnect();
   }, []);
 
-  const [asideSize, setAsideSize] = useState<{ w: number; h: number } | null>(
-    null,
-  );
-  const [asideEl, setAsideEl] = useState<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!asideEl || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() =>
-      setAsideSize({
-        w: asideEl.offsetWidth + ASIDE_CHROME_PX,
-        h: asideEl.offsetHeight + ASIDE_CHROME_PX,
-      }),
-    );
-    ro.observe(asideEl);
-    return () => ro.disconnect();
-  }, [asideEl]);
-
   const thresholdRules = (thresholds ?? [])
     .map(thresholdRuleOf)
     .filter((rule): rule is ThresholdRule => rule !== null);
@@ -479,25 +448,6 @@ export function Graph({
     }
     return { x, y: lead.data.y[last], references };
   })();
-  // A readout that answers with nothing for the present state has nothing to place.
-  const columnReadout =
-    typeof plotReadout === "function"
-      ? plotReadout({
-          width: Number.POSITIVE_INFINITY,
-          height: Number.POSITIVE_INFINITY,
-          present,
-          compact: false,
-          tight: false,
-        })
-      : plotReadout;
-  const hasReadout = columnReadout !== undefined && columnReadout !== null;
-  // Beside the plot only where the plot keeps a usable width and the column fits the height; until the column has been measured it is assumed a typical width.
-  const readoutBeside =
-    hasReadout &&
-    area !== null &&
-    area.w - (asideSize?.w ?? ASIDE_GUESS_PX) >= ASIDE_PLOT_KEEPS_PX &&
-    area.h >= (asideSize?.h ?? 0);
-
   // A compact graph sits in a line of text or a small card, which already frames it.
   const Frame = density === "compact" ? PlainFrame : FramedDisplay;
 
@@ -537,18 +487,16 @@ export function Graph({
               yAxisLabel={spatial ? undefined : yAxisLabel}
               ySecondaryAxisLabel={spatial ? undefined : ySecondaryAxisLabel}
               card={
-                hasReadout && !readoutBeside
-                  ? typeof plotReadout === "function"
-                    ? (room) =>
-                        plotReadout({
-                          width: room.width,
-                          height: room.height,
-                          present,
-                          compact: room.form > 0,
-                          tight: room.form > 1,
-                        })
-                    : plotReadout
-                  : undefined
+                typeof plotReadout === "function"
+                  ? (room) =>
+                      plotReadout({
+                        width: room.width,
+                        height: room.height,
+                        present,
+                        compact: room.form > 0,
+                        tight: room.form > 1,
+                      })
+                  : plotReadout
               }
               cardForms={typeof plotReadout === "function" ? 3 : 1}
               width={size.w}
@@ -558,13 +506,6 @@ export function Graph({
           {/* Inside the frame, so a notice laid over an empty plot leaves the frame the body's only content. */}
           {notices.length > 0 && noticePlacement === "center" && noticeNode}
         </div>
-        {readoutBeside && (
-          <Box pad="surface" style={PLOT_ASIDE}>
-            <div ref={setAsideEl} data-plot-aside="">
-              {columnReadout}
-            </div>
-          </Box>
-        )}
         {/* Draws nothing, so it rides inside the frame and leaves it the chart's only content when there's no notice beside it. */}
         {children}
       </Frame>

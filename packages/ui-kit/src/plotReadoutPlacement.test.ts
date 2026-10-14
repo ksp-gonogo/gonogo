@@ -8,7 +8,11 @@ describe("placePlotReadouts", () => {
       height: 260,
       contentWidth: 170,
     });
-    expect(placed).toEqual({ placement: "beside", columnWidth: 170 });
+    expect(placed).toEqual({
+      placement: "beside",
+      columnWidth: 170,
+      legendBelow: false,
+    });
   });
 
   it("keeps a narrow or short chart's readouts over the plot", () => {

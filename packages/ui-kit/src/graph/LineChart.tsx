@@ -353,6 +353,35 @@ const MAX_GUTTER_SHARE = 0.4;
 const SPATIAL_GRID_PITCH_PX = 26;
 /** The strip an axis title takes beside or under its tick labels. */
 const AXIS_TITLE_PX = 14;
+/** The height of one legend chip row, chip and gap. */
+const LEGEND_ROW_PX = 16;
+/** Space between a legend strip and the chart's edge. */
+const LEGEND_STRIP_EDGE_PX = 4;
+/** Space between two chips on one strip row. */
+const LEGEND_STRIP_GAP_PX = 6;
+/** The legend chip's width at its 10 px type, clamped to the room it has. */
+const chipWidth = (label: string, room: number) =>
+  Math.min(label.length * 6 + 8, room);
+
+/** Where each chip stands on a strip `room` wide, filling a row before starting the next. */
+function legendStripRows(
+  widths: readonly number[],
+  room: number,
+): { rows: number; positions: { row: number; x: number }[] } {
+  const positions: { row: number; x: number }[] = [];
+  let row = 0;
+  let x = 0;
+  for (const width of widths) {
+    if (x > 0 && x + width > room) {
+      row += 1;
+      x = 0;
+    }
+    positions.push({ row, x });
+    x += width + LEGEND_STRIP_GAP_PX;
+  }
+  return { rows: widths.length === 0 ? 0 : row + 1, positions };
+}
+
 /** The card's inset from the plot's edge, as `placeCard` keeps it. */
 const CARD_EDGE_PX = 4;
 /** How far a value axis reads a trace from the line, as a share of the axis span. */
@@ -452,12 +481,15 @@ function readoutColumnWidth({
   heading,
   crosshairOn,
   yTickFormat,
+  cardWidth,
 }: {
   series: readonly ChartSeries[];
   thresholds: readonly ThresholdRule[];
   heading: readonly string[];
   crosshairOn: boolean;
   yTickFormat: (v: number) => string;
+  /** The fixed card's measured width, 0 where there is none. */
+  cardWidth: number;
 }): number {
   const px = (chars: number) => chars * LABEL_CHAR_PX;
   const widths: number[] = [];
@@ -483,6 +515,7 @@ function readoutColumnWidth({
   if (crosshairOn) {
     widths.push(Math.max(...heading.map((h) => px(h.length))) + CARD_PAD_PX);
   }
+  widths.push(cardWidth);
   return Math.max(0, ...widths) + COLUMN_SLACK_PX;
 }
 
@@ -585,6 +618,46 @@ export function LineChart({
   );
   const hasSecondary = secondarySeries.length > 0;
 
+  // The card, legend and captions share one placement: a column beside the plot when the chart has room, the plot itself otherwise.
+  // A chart with nothing to read out keeps the whole width for its plot.
+  const hasReadouts =
+    crosshairOn ||
+    hasCard ||
+    (legend !== "none" && series.length > 0) ||
+    (thresholds ?? []).some((t) => t.label);
+  const readouts =
+    bare || !hasReadouts
+      ? ({ placement: "overlay" } as const)
+      : placePlotReadouts({
+          width: w,
+          height: h,
+          contentWidth: readoutColumnWidth({
+            series,
+            thresholds: thresholds ?? [],
+            heading: [xDomain[0], xDomain[1]].map((v) =>
+              xTickFormat(v, xDomain),
+            ),
+            crosshairOn,
+            yTickFormat,
+            cardWidth: hasCard && cardSize !== null ? cardSize.w : 0,
+          }),
+          legendHeight:
+            legend === "none" ? 0 : series.length * LEGEND_ROW_PX + 6,
+          cardHeight: hasCard && cardSize !== null ? cardSize.h : 0,
+        });
+  const legendBelow =
+    legend !== "none" &&
+    (readouts.placement === "below" ||
+      (readouts.placement === "beside" && readouts.legendBelow));
+  const legendStrip = legendBelow
+    ? legendStripRows(
+        series.map((s) => chipWidth(s.label, w - 2 * LEGEND_STRIP_EDGE_PX)),
+        w - 2 * LEGEND_STRIP_EDGE_PX,
+      )
+    : { rows: 0, positions: [] as { row: number; x: number }[] };
+  const legendStripH =
+    legendStrip.rows === 0 ? 0 : legendStrip.rows * LEGEND_ROW_PX + 4;
+
   const titledX = !bare && !hideXAxis && !!xAxisLabel;
   const titledY = !bare && !!yAxisLabel;
   const titledSecondary = !bare && hasSecondary && !!ySecondaryAxisLabel;
@@ -594,7 +667,7 @@ export function LineChart({
     : fitMargins(w, h, hasSecondary);
   const fitted = {
     ...base,
-    bottom: base.bottom + (titledX ? AXIS_TITLE_PX : 0),
+    bottom: base.bottom + (titledX ? AXIS_TITLE_PX : 0) + legendStripH,
   };
   const plotY0 = fitted.top;
   const plotY1 = h - fitted.bottom;
@@ -712,28 +785,6 @@ export function LineChart({
             : fitted.right) + (titledSecondary ? AXIS_TITLE_PX : 0),
       };
   const plotX0 = margin.left;
-  // The card, legend and captions share one placement: a column beside the plot when the chart has room, the plot itself otherwise.
-  // A chart with nothing to read out keeps the whole width for its plot.
-  const hasReadouts =
-    crosshairOn ||
-    (legend !== "none" && series.length > 0) ||
-    (thresholds ?? []).some((t) => t.label);
-  const readouts =
-    bare || !hasReadouts
-      ? ({ placement: "overlay" } as const)
-      : placePlotReadouts({
-          width: w,
-          height: h,
-          contentWidth: readoutColumnWidth({
-            series,
-            thresholds: thresholds ?? [],
-            heading: [xDomain[0], xDomain[1]].map((v) =>
-              xTickFormat(v, xDomain),
-            ),
-            crosshairOn,
-            yTickFormat,
-          }),
-        });
   const columnWidth =
     readouts.placement === "beside" ? readouts.columnWidth : 0;
   const plotX1 = w - margin.right - columnWidth;
@@ -1036,6 +1087,21 @@ export function LineChart({
   // The card is placed before the threshold labels, which then yield to it: a label is short and can move, a card cannot.
   const cardBox: PixelBox | undefined = (() => {
     if (!hasCard || cardSize === null || bare) return undefined;
+    // In the column the card stands at the foot, below the legend chips and clear of the crosshair's card, which opens from the top.
+    if (column) {
+      const box = {
+        x0: column.x0,
+        y0: plotY1 - cardSize.h,
+        x1: column.x0 + cardSize.w,
+        y1: plotY1,
+      };
+      const legendFoot =
+        plotY0 +
+        (legend === "none" || legendBelow
+          ? 0
+          : series.length * LEGEND_ROW_PX + 6);
+      return box.x1 <= column.x1 && box.y0 >= legendFoot ? box : undefined;
+    }
     const half = LIMIT_MARK_SIZE / 2;
     const traces = [
       ...series
@@ -1058,7 +1124,7 @@ export function LineChart({
         x1: m.x + half,
         y1: m.y + half,
       })),
-      ...(legend === "none" || column
+      ...(legend === "none" || column || legendBelow
         ? []
         : series.map((s, i) => ({
             x0: plotX0 + 3,
@@ -1100,7 +1166,7 @@ export function LineChart({
           x1: m.x + half,
           y1: m.y + half,
         })),
-        ...(legend === "none"
+        ...(legend === "none" || legendBelow
           ? []
           : series.map((s, i) => ({
               x0: column ? column.x0 : plotX0 + 3,
@@ -1130,6 +1196,7 @@ export function LineChart({
     thresholdLines,
     crossingMarks,
     legend,
+    legendBelow,
     series,
     scaleX,
     scaleYPrimary,
@@ -1572,7 +1639,7 @@ export function LineChart({
       {titledX && (
         <text
           x={(plotX0 + plotX1) / 2}
-          y={h - 5}
+          y={h - legendStripH - 5}
           textAnchor="middle"
           fill="var(--color-text-muted)"
           fontSize={10}
@@ -1899,14 +1966,25 @@ export function LineChart({
       ))}
 
       {legend !== "none" &&
-        !cardShown &&
+        (legendBelow || !cardShown) &&
         series.map((s, i) => {
-          const rowY = plotY0 + 6 + i * 16;
-          if (rowY + 13 > plotY1) return null;
-          const chipX = column ? column.x0 : plotX0 + 3;
-          const chipRoom = column ? column.x1 - column.x0 : plotW - 6;
+          const at = legendBelow ? legendStrip.positions[i] : undefined;
+          const rowY = at
+            ? h - legendStripH + 2 + at.row * LEGEND_ROW_PX
+            : plotY0 + 6 + i * LEGEND_ROW_PX;
+          if (!legendBelow && rowY + 13 > plotY1) return null;
+          const chipX = at
+            ? LEGEND_STRIP_EDGE_PX + at.x
+            : column
+              ? column.x0
+              : plotX0 + 3;
+          const chipRoom = legendBelow
+            ? w - 2 * LEGEND_STRIP_EDGE_PX
+            : column
+              ? column.x1 - column.x0
+              : plotW - 6;
           // The SVG has no viewBox, so these pixel constants are CSS px and stay off the type scale.
-          const chipW = Math.min(s.label.length * 6 + 8, chipRoom);
+          const chipW = chipWidth(s.label, chipRoom);
           // The root keeps overflow visible, so a clamped chip needs its label ellipsised.
           const maxChars = Math.max(1, Math.floor((chipW - 8) / 6));
           const labelText =

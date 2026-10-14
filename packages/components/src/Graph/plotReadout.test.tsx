@@ -21,11 +21,10 @@ const REFERENCE_PLOT = {
   yScalePrimary: "log" as const,
 };
 
-/** The card and the column are both measured, so their sizes are stood in for here: the readout is 90 by 44 px, and the column 150 by 60. */
+/** The card is measured, so its size is stood in for here: the readout is 90 by 44 px. */
 function installReadoutSizes(): () => void {
   const sizeOf = (el: HTMLElement, axis: "w" | "h") => {
     if (el.hasAttribute("data-plot-card")) return axis === "w" ? 90 : 44;
-    if (el.hasAttribute("data-plot-aside")) return axis === "w" ? 150 : 60;
     return 0;
   };
   const width = Object.getOwnPropertyDescriptor(
@@ -81,12 +80,19 @@ describe("GraphView plotReadout", () => {
     );
   }
 
-  it("takes a column beside the plot where the plot keeps its width", async () => {
+  it("takes the column beside the plot where the plot keeps its width", async () => {
     const { container } = renderAt({ width: 900, height: 500 });
     await waitFor(() =>
-      expect(container.querySelector("[data-plot-aside]")).not.toBeNull(),
+      expect(container.querySelector("[data-plot-card]")).not.toBeNull(),
     );
-    expect(container.querySelector("[data-plot-card]")).toBeNull();
+    const card = container.querySelector("[data-plot-card]") as HTMLElement;
+    const plot = container.querySelector("svg rect") as SVGRectElement;
+    const plotRight =
+      Number(plot.getAttribute("x")) + Number(plot.getAttribute("width"));
+    await waitFor(() =>
+      expect(Number.parseFloat(card.style.left)).toBeGreaterThan(plotRight),
+    );
+    expect(card.style.visibility).toBe("visible");
   });
 
   it("stands over the plot, off the curve, where the column would take too much of it", async () => {
@@ -94,7 +100,6 @@ describe("GraphView plotReadout", () => {
     await waitFor(() =>
       expect(container.querySelector("[data-plot-card]")).not.toBeNull(),
     );
-    expect(container.querySelector("[data-plot-aside]")).toBeNull();
     const card = container.querySelector("[data-plot-card]") as HTMLElement;
     expect(card.style.visibility).toBe("visible");
     expect(card.textContent).toBe("air now");
