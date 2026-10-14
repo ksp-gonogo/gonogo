@@ -1,9 +1,13 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
-import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectLiveRegionPrimed,
+  expectNoA11yViolations,
+} from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   __resetUplinkOutcomes,
+  setUplinkOutcome,
   setUplinksSettled,
 } from "../../uplinks/loaderState";
 import { GridItemContent } from "./GridItemContent";
@@ -62,5 +66,35 @@ describe("a saved tile whose widget is not registered", () => {
     expect(screen.getByText(/is not available/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Remove" }));
     expect(removeItem).not.toHaveBeenCalled();
+  });
+
+  it("says the add-on failed to load and asks for a second press before removing the tile", async () => {
+    setUplinkOutcome({
+      id: "broken",
+      name: "Broken Add-on",
+      status: "quarantined",
+      reason: "hash mismatch",
+    });
+    const user = userEvent.setup();
+    const { removeItem } = renderGhost();
+    expect(screen.getByText(/Broken Add-on failed to load/)).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(removeItem).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole("button", { name: "Press again to remove" }),
+    );
+    expect(removeItem).toHaveBeenCalledWith("tile-1");
+  });
+
+  it("keeps the failed-add-on message in a live region that was mounted before it had anything to say", async () => {
+    const { container } = renderGhost();
+    await expectLiveRegionPrimed(container, () =>
+      setUplinkOutcome({
+        id: "broken",
+        name: "Broken Add-on",
+        status: "quarantined",
+        reason: "hash mismatch",
+      }),
+    );
   });
 });
