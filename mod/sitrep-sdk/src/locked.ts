@@ -11,7 +11,8 @@ import type { LockedValue } from "./__generated__/contract";
  * @categoryDescription Readings
  * Telling a locked field from an empty one: a field the save has not unlocked
  * arrives as a {@link LockedValue} naming what is missing, and these say which
- * of the two a widget holds.
+ * of the two a widget holds. A Topic's {@link Reading} says separately whether
+ * its value is current.
  */
 export function isLocked(value: unknown): value is LockedValue {
   return (

@@ -97,7 +97,7 @@ export class SettingsService {
 
   /**
    * Writes any pending change to storage now, instead of waiting for the short
-   * delay that batches writes. A page unloading does this itself; call it from
+   * pause that batches writes. A page unloading does this itself; call it from
    * a test between `set()` and constructing a second instance on the same
    * storage.
    */

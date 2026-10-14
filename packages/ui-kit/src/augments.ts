@@ -26,7 +26,7 @@ export type {
 
 /**
  * The standard augment segments every widget's {@link Panel} carries, each
- * mapped to the props its augments receive. A segment is bound as
+ * mapped to the props its augments receive. A segment's slot id is
  * `"<widget-id>.<segment>"`. Both pass no props (`Record<string, never>`): an
  * augment reads its own Topics, and reads what the widget is focused on
  * through {@link useWidgetScope}. Useful for typing an augment that adds
@@ -36,9 +36,9 @@ export type {
  * @category Panel
  */
 export interface AugmentSegmentRegistry {
-  /** Body content after everything the widget draws, bound as `"<widget-id>.sections"`. */
+  /** Body content after everything the widget draws, in the slot `"<widget-id>.sections"`. */
   sections: Record<string, never>;
-  /** Controls in the widget's panel header, bound as `"<widget-id>.actions"`. */
+  /** Controls in the widget's panel header, in the slot `"<widget-id>.actions"`. */
   actions: Record<string, never>;
 }
 
@@ -46,7 +46,7 @@ export interface AugmentSegmentRegistry {
  * The props an augment bound to a standard segment receives, looked up in
  * {@link AugmentSegmentRegistry}: `Record<string, never>` for `sections` and
  * `actions`, and `never` for a name that is not a standard segment. Useful for typing the
- * props of an augment bound to a widget's `sections` or `actions` segment. Used
+ * props of an augment placed in a widget's `sections` or `actions` segment. Used
  * by {@link AugmentSlot} for a slot named by `segment`.
  *
  * @category Panel

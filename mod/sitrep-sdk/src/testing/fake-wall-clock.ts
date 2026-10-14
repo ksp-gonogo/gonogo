@@ -15,7 +15,7 @@ export interface FakeWallClock {
 /**
  * A {@link FakeWallClock} that reads `start` seconds, 0 when omitted, until it
  * is advanced. Pass its `now` wherever a clock takes `nowWall`, the real time
- * in seconds: the view clock's `nowWall` option and the `tickPacing` of a
+ * in seconds: the `nowWall` option of the view clock ({@link useViewClock}) and the `tickPacing` of a
  * {@link FrameDelayPipeline} take one. Useful for testing a widget that
  * changes with time, such as a countdown or a delayed reading. Used by {@link
  * setupStreamFixture}.

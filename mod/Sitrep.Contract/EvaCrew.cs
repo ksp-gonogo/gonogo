@@ -9,7 +9,8 @@ namespace Sitrep.Contract;
 /// One kerbal currently outside a craft, on the <c>eva.crew</c> channel.
 ///
 /// <para>A kerbal on EVA is a vessel in KSP's model, with its own id, so it
-/// already appears on <c>system.vessels</c> and on its own <c>fleet.</c> topics.
+/// already appears on <c>system.vessels</c> and on its own per-vessel Topics
+/// (<c>fleet.&lt;guid&gt;.contact</c> and <c>fleet.&lt;guid&gt;.orbit</c>).
 /// What is here and nowhere else is the suit: what it is carrying, what it can
 /// do, and whether the place it is standing in would kill the wearer without
 /// it.</para>
@@ -120,12 +121,11 @@ public class EvaKerbal
 /// <summary>
 /// Every kerbal currently outside a craft.
 ///
-/// <para>A channel of its own so that a kerbal stepping out does not change
-/// what the vessel channels report: those stay with the craft they left, and
-/// this carries what is true of the kerbal.</para>
+/// <para>The vessel Topics stay with the craft the kerbal left; this Topic
+/// carries what is true of the kerbal.</para>
 ///
-/// <para>An empty list is a real reading: nobody is outside. The channel is
-/// absent only before anything has been captured.</para>
+/// <para>An empty list is a real reading: nobody is outside. The Topic has no
+/// reading only until its first sample arrives.</para>
 /// </summary>
 /// <category>Crew</category>
 [SitrepContract]

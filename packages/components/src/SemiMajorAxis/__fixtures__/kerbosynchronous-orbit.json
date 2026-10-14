@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A Kerbosynchronous orbit of Kerbin with a semi-major axis of about 3,469 km, shown as 3.5 Mm, with a sparkline of the last five minutes.",
+    "shows": "A Kerbosynchronous orbit of Kerbin, one whose period matches Kerbin's day, with a semi-major axis of about 3,469 km, shown as 3.5 Mm, with a sparkline of the last five minutes.",
     "scenario": "kerbosynchronous-orbit",
     "notes": "Kerbosynchronous orbit around Kerbin. SMA ~3468.75 km from body centre, which puts it 2868.75 km above Kerbin's 600 km surface. Period matches Kerbin's rotation, 6 hours."
   },

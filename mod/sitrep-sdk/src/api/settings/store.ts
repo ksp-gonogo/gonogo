@@ -119,7 +119,8 @@ function notify(key: string): void {
  * default is the caller's to supply. Values are strings, and it can be called
  * outside React. Useful for finding which machine to connect to. Used by the
  * app when it opens the telemetry stream. For a setting of your own, drawn in
- * a component, use {@link useSetting}.
+ * a component, use {@link useSetting}, which reads the client settings of
+ * {@link SettingsService}; the two are stored separately.
  *
  * @category Settings
  */
@@ -147,8 +148,9 @@ export function setSetting(key: string, value: string): void {
 /**
  * Sets a value used for this page load only, while nothing is saved for the
  * setting. Never saved. The app seeds the game's host this way at startup,
- * from the `KSP_HOST` address the deployment was configured with, so a fresh
- * browser starts pointed at the right machine. Used by the app at startup.
+ * from the address of the machine running KSP that the deployment was
+ * configured with (its `KSP_HOST` setting), so a fresh browser starts pointed
+ * at the right machine. Used by the app at startup.
  *
  * @category Settings
  */

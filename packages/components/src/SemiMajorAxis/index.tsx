@@ -178,7 +178,7 @@ registerComponent<SemiMajorAxisConfig>({
   id: "semi-major-axis",
   name: "Semi-major axis",
   description:
-    "The semi-major axis of your current orbit: half its longest width, measured through the body's centre. It sets the orbital period. In a pulsating reference frame, whose unit of length moves with a pair of bodies, the frame is named beneath the figure.",
+    "The semi-major axis of your current orbit: half the longest width of the orbit's ellipse, measured through the ellipse's centre, not the body's, since the body sits at one focus. It sets the orbital period, which the Kepler Period widget plots. In a pulsating reference frame, whose unit of length moves with a pair of bodies, the frame is named beneath the figure.",
   tags: ["telemetry", "orbit"],
   defaultSize: { w: 4, h: 4 },
   // Below four columns or four rows the figure shares the tile with a heading it has no room for, and the tile draws the figure alone.

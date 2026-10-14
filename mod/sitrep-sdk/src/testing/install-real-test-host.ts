@@ -36,10 +36,11 @@ import { recordAlarmRequest } from "./recorded-alarm-requests";
 
 /**
  * The four parts of a test host that come from `@ksp-gonogo/ui-kit`, which
- * {@link installRealTestHost} takes because this package cannot import them.
- * Pass them from your test setup, where ui-kit is already imported. The SDK
- * exports functions of the same names, but those only forward to a running host
- * and throw when none is installed; ui-kit's are the real registries a test
+ * {@link installRealTestHost} takes because this package does not depend on
+ * ui-kit and so cannot import them. Pass them from your test setup, where
+ * ui-kit is already imported. The SDK exports functions of the same names
+ * ({@link registerAugment}, {@link getAugmentsForSlot}, {@link clearAugments}),
+ * but those only forward to a running host and throw when none is installed; ui-kit's are the real registries a test
  * host is built from, so pass ui-kit's. Useful for testing a widget with the
  * registries the operator's app uses for augments.
  *
@@ -68,7 +69,7 @@ export interface UiKitHostPieces {
  * and `clearAugments`, one of the pieces you pass, empties it between tests.
  *
  * Install `@ksp-gonogo/ui-kit` (the pieces below come from it),
- * `@testing-library/react`, `jsdom` and `vitest` as dev dependencies,
+ * `styled-components`, `@testing-library/react`, `jsdom` and `vitest` as dev dependencies,
  * set `environment: "jsdom"` in the vitest config, and name the setup file
  * below in its `setupFiles`. Useful for testing a widget as the operator's app
  * would run it. Used by the test setup of each bundled Uplink's client.

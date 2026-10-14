@@ -74,7 +74,7 @@ registerComponent<ActionGroupConfig>({
   id: "action-group",
   name: "Action Group",
   description:
-    "Toggle one KSP action group or system: SAS, RCS, gear, brakes, lights, abort, precision control, stage or a custom group (AG1 to AG10). One widget controls one group, chosen by the `actionGroupId` setting: `SAS`, `RCS`, `Gear`, `Brakes`, `Lights`, `Abort`, `Precision Control`, `Stage` or `AG1` to `AG10`. The optional `label` setting replaces the group's name on the button.",
+    "Toggle one KSP action group or system: SAS, RCS, gear, brakes, lights, abort, stage or a custom group (AG1 to AG10), or show the state of precision control, which no command can change. One widget controls one group, chosen by the `actionGroupId` setting: `SAS`, `RCS`, `Gear`, `Brake`, `Light`, `Abort`, `Precision Control`, `Stage` or `AG1` to `AG10`. The optional `label` setting replaces the group's name on the button.",
   tags: ["control", "telemetry"],
   defaultSize: { w: 6, h: 6 },
   minSize: { w: 5, h: 4 },

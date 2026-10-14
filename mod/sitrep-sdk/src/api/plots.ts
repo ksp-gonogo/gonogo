@@ -95,7 +95,8 @@ export interface PlotFrame {
   yDomain: [number, number];
   /**
    * Unit token for the X tick ladder (`"m/s"`, `"m"`, `"s"`), written through
-   * the unit registry so a metre axis reads "30 km" rather than "30000".
+   * the SDK's unit system (see the Units and values page) so a metre axis
+   * reads "30 km" rather than "30000".
    * Omit for a bare number axis.
    */
   xUnit?: string;
@@ -125,8 +126,8 @@ export interface PlotFrame {
 /**
  * One contributed plot: its subject, its axes and the layers drawn on them.
  * Useful for showing the operator a picture of a vessel's situation, such as
- * its descent. Returned by a contribution to the `plots` slot, which the
- * landing status widget hosts.
+ * its descent. Returned by a contribution to the `plots` slot (see the Widget
+ * slots page), which the landing status widget hosts.
  *
  * A plot is contributed with `registerContribution` on your Uplink's handle
  * (see {@link ContributionDefinition}), whose `compute` returns an array of
@@ -140,9 +141,11 @@ export interface PlotFrame {
  *
  * @category Plots
  * @categoryDescription Plots
- * Contributing to a plot: the subject a plot is of, the frame its axes are
- * drawn in, and the layers (series, markers, regions, rules, relief and
- * captions) a contribution draws onto it.
+ * Contributing to a plot, by registering a contribution (a function the app
+ * runs to produce the entries a widget slot shows) for the `plots` slot: the
+ * subject a plot is of, the frame its axes are drawn in, and the layers
+ * (series, markers, regions, rules, relief and captions) a contribution draws
+ * onto it.
  */
 export interface PlotEntry {
   /**
@@ -189,8 +192,8 @@ declare module "./types" {
   interface ContributionRegistry {
     /**
      * Whole plots, each with its own axes and marks, drawn by every widget
-     * that hosts the slot. Landing Status hosts it, beside its descent
-     * readouts. Return `null` from `compute` while your plot has nothing to
+     * that hosts the slot. Landing Status is the only widget that hosts it
+     * today, and draws the plots beside its descent readouts. Return `null` from `compute` while your plot has nothing to
      * show. Two entries with the same `subject` draw as one plot, so you can
      * add layers to a plot another contribution draws. Returns
      * {@link PlotEntry} entries.
