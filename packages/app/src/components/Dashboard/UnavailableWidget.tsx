@@ -6,11 +6,24 @@ import {
   Section,
   TextButton,
 } from "@ksp-gonogo/ui-kit";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   getUplinkOutcomes,
   subscribeUplinkOutcomes,
 } from "../../uplinks/loaderState";
+
+/** How long the second press stays armed once the first has been made. */
+const CONFIRM_WINDOW_MS = 4000;
+
+/**
+ * Whether an Uplink could have supplied this widget. The loader keeps no list
+ * of widget ids for an Uplink that never loaded, so ownership is the Uplink's
+ * id as the widget id or its leading segment: an id that carries no such
+ * prefix is attributed to no Uplink.
+ */
+function ownedBy(uplinkId: string, componentId: string): boolean {
+  return componentId === uplinkId || componentId.startsWith(`${uplinkId}-`);
+}
 
 interface UnavailableWidgetProps {
   /** The saved widget id that no registered widget answers to. */
@@ -25,9 +38,12 @@ interface UnavailableWidgetProps {
  * that is not registered: it names the missing id and, once every Uplink has
  * been attempted, offers to remove the tile, so a saved layout never loses a
  * tile silently. Until then the id may still belong to an Uplink that has not
- * loaded, and removing the tile is switched off. While an add-on has failed to
- * load the tile says so, and removing it takes a second press, since a repaired
- * add-on would bring the widget and its saved configuration back.
+ * loaded, and removing the tile is switched off. While the add-on that owns the
+ * widget has failed to load the tile says so, and removing it takes a second
+ * press that lapses when the pointer or focus leaves the button or after a few
+ * seconds, since a repaired add-on would bring the widget and its saved
+ * configuration back. A tile no failed add-on owns says nothing about one and
+ * removes in a single press.
  */
 export function UnavailableWidget({
   componentId,
@@ -40,9 +56,17 @@ export function UnavailableWidget({
     getUplinkOutcomes,
   );
   const failed = outcomes
-    .filter((outcome) => outcome.status === "quarantined")
+    .filter(
+      (outcome) =>
+        outcome.status === "quarantined" && ownedBy(outcome.id, componentId),
+    )
     .map((outcome) => outcome.name);
   const [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    if (!confirming) return;
+    const timer = setTimeout(() => setConfirming(false), CONFIRM_WINDOW_MS);
+    return () => clearTimeout(timer);
+  }, [confirming]);
   return (
     <Panel
       panelTitle="WIDGET UNAVAILABLE"
@@ -59,6 +83,8 @@ export function UnavailableWidget({
           {settled ? (
             <TextButton
               type="button"
+              onPointerLeave={() => setConfirming(false)}
+              onBlur={() => setConfirming(false)}
               onClick={
                 failed.length > 0 && !confirming
                   ? () => setConfirming(true)

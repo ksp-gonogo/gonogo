@@ -4,7 +4,8 @@ import {
   expectNoA11yViolations,
 } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   __resetUplinkOutcomes,
   setUplinkOutcome,
@@ -18,10 +19,10 @@ const ghost: DashboardItem = {
   componentId: "map-view",
 };
 
-function renderGhost(removeItem = vi.fn()) {
+function renderGhost(removeItem = vi.fn(), componentId = ghost.componentId) {
   const view = render(
     <GridItemContent
-      item={ghost}
+      item={{ ...ghost, componentId }}
       w={6}
       h={6}
       updateItemConfig={vi.fn()}
@@ -68,15 +69,17 @@ describe("a saved tile whose widget is not registered", () => {
     expect(removeItem).not.toHaveBeenCalled();
   });
 
-  it("says the add-on failed to load and asks for a second press before removing the tile", async () => {
-    setUplinkOutcome({
-      id: "broken",
-      name: "Broken Add-on",
-      status: "quarantined",
-      reason: "hash mismatch",
-    });
+  const broken = {
+    id: "broken",
+    name: "Broken Add-on",
+    status: "quarantined",
+    reason: "hash mismatch",
+  } as const;
+
+  it("says the owning add-on failed to load and asks for a second press before removing the tile", async () => {
+    setUplinkOutcome(broken);
     const user = userEvent.setup();
-    const { removeItem } = renderGhost();
+    const { removeItem } = renderGhost(vi.fn(), "broken-gauge");
     expect(screen.getByText(/Broken Add-on failed to load/)).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Remove" }));
     expect(removeItem).not.toHaveBeenCalled();
@@ -86,15 +89,53 @@ describe("a saved tile whose widget is not registered", () => {
     expect(removeItem).toHaveBeenCalledWith("tile-1");
   });
 
+  it("names no add-on and removes in one press when a different add-on is the one that failed", async () => {
+    setUplinkOutcome(broken);
+    const user = userEvent.setup();
+    const { removeItem } = renderGhost(vi.fn(), "map-view");
+    expect(screen.queryByText(/failed to load/)).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(removeItem).toHaveBeenCalledWith("tile-1");
+  });
+
+  it("does not take an id that merely starts with the add-on's id for one of its widgets", () => {
+    setUplinkOutcome(broken);
+    renderGhost(vi.fn(), "brokenish-gauge");
+    expect(screen.queryByText(/failed to load/)).toBeNull();
+  });
+
+  it("drops the second press when focus leaves the button", async () => {
+    setUplinkOutcome(broken);
+    const user = userEvent.setup();
+    const { removeItem } = renderGhost(vi.fn(), "broken-gauge");
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    await user.tab();
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(removeItem).not.toHaveBeenCalled();
+  });
+
+  describe("with the clock held", () => {
+    beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+    afterEach(() => vi.useRealTimers());
+
+    it("drops the second press after a few seconds", async () => {
+      setUplinkOutcome(broken);
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const { removeItem } = renderGhost(vi.fn(), "broken-gauge");
+      await user.click(screen.getByRole("button", { name: "Remove" }));
+      expect(
+        screen.getByRole("button", { name: "Press again to remove" }),
+      ).toBeVisible();
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(screen.getByRole("button", { name: "Remove" })).toBeVisible();
+      expect(removeItem).not.toHaveBeenCalled();
+    });
+  });
+
   it("keeps the failed-add-on message in a live region that was mounted before it had anything to say", async () => {
-    const { container } = renderGhost();
-    await expectLiveRegionPrimed(container, () =>
-      setUplinkOutcome({
-        id: "broken",
-        name: "Broken Add-on",
-        status: "quarantined",
-        reason: "hash mismatch",
-      }),
-    );
+    const { container } = renderGhost(vi.fn(), "broken-gauge");
+    await expectLiveRegionPrimed(container, () => setUplinkOutcome(broken));
   });
 });
