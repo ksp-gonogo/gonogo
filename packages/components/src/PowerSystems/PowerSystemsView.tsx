@@ -59,7 +59,8 @@ export function PowerSystemsComponent({
   w,
   h,
 }: Readonly<ComponentProps<PowerSystemsConfig>>) {
-  const { topology, liveByFlightId, resourcesWithFlow } = useLiveParts();
+  const { topology, liveByFlightId, resourcesWithFlow, resourcesPresent } =
+    useLiveParts();
 
   /**
    * `parts.power.totalProductionEc` never feeds PROD/NET, which always sum the itemised rows; it is shown apart, as measured, only when it disagrees.
@@ -80,6 +81,7 @@ export function PowerSystemsComponent({
   const { resource, pickerResources, pick } = useResourcePick(
     config?.defaultResource ?? "ElectricCharge",
     resourcesWithFlow,
+    resourcesPresent,
   );
 
   useCycleResourceAction(resourcesWithFlow, resource, pick);
