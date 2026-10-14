@@ -72,7 +72,7 @@ function Widget({
     <FixtureStream subscribed={["system.uplink.gates"]} emits={gates(verdict)}>
       <Stack gap="related">
         <Section>
-          <SectionTitle>CURRENT ORBIT</SectionTitle>
+          <SectionTitle>ORBIT VIEW</SectionTitle>
           <Text>Apoapsis 82.3 km, periapsis 71.0 km</Text>
         </Section>
         <Section>

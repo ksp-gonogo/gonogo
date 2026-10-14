@@ -1,4 +1,3 @@
-import { Stack } from "@ksp-gonogo/ui-kit";
 import type { AriaRole, CSSProperties, ReactNode } from "react";
 
 export function NoData({
@@ -16,17 +15,6 @@ const NO_DATA_STYLE: CSSProperties = {
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
   padding: "var(--inset-empty-note)",
-};
-
-export function PillFill({ children }: Readonly<{ children?: ReactNode }>) {
-  return <div style={PILL_FILL_STYLE}>{children}</div>;
-}
-
-const PILL_FILL_STYLE: CSSProperties = {
-  flex: 1,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
 };
 
 export function DiagramOverlayWrap({
@@ -52,21 +40,4 @@ const OVERLAY_LAYER_STYLE: CSSProperties = {
   position: "absolute",
   inset: 0,
   pointerEvents: "none",
-};
-
-/**
- * The landscape branch's sidebar content: body name and status pill, stacked
- * and vertically centred in the narrow column `panelSidebar` reserves beside
- * the diagram.
- */
-export function LandscapeChrome({
-  children,
-}: Readonly<{ children?: ReactNode }>) {
-  return <Stack style={LANDSCAPE_CHROME_STYLE}>{children}</Stack>;
-}
-
-const LANDSCAPE_CHROME_STYLE: CSSProperties = {
-  justifyContent: "center",
-  minWidth: 0,
-  minHeight: 0,
 };

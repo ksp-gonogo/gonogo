@@ -16,7 +16,7 @@ import {
   installSizedResizeObserver,
   WidgetContributions,
 } from "../test/widgetDomSnapshot";
-import "../CurrentOrbit";
+import "../OrbitView";
 import { LandingStatusComponent } from "./index";
 
 /** A mostly-horizontal descent must not report a survivable burn-now touchdown: real physics through the stream pipeline, asserted at the DOM. */
@@ -123,9 +123,9 @@ describe("the flight gate Landing Status stands behind", () => {
     expect(getComponent("landing-status")?.heldOpenBy).toEqual([
       "crash-ending",
     ]);
-    // Current Orbit stays behind the gate, crash on record or not.
-    expect(getComponent("current-orbit")?.requires).toEqual(["flight"]);
-    expect(getComponent("current-orbit")?.heldOpenBy).toBeUndefined();
+    // Orbit View stays behind the gate, crash on record or not.
+    expect(getComponent("orbit-view")?.requires).toEqual(["flight"]);
+    expect(getComponent("orbit-view")?.heldOpenBy).toBeUndefined();
   });
 });
 

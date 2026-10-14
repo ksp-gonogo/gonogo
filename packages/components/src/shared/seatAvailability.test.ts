@@ -215,12 +215,7 @@ describe("the built-in catalogue, derived", () => {
 
   it("leaves the craft-side instruments alone", () => {
     const ids = new Set(excluded.map((e) => e.id));
-    for (const id of [
-      "navball",
-      "current-orbit",
-      "ground-track",
-      "comm-signal",
-    ]) {
+    for (const id of ["navball", "orbit-view", "ground-track", "comm-signal"]) {
       expect(ids.has(id)).toBe(false);
     }
   });

@@ -21,7 +21,6 @@ const FIXTURE_MODULES = import.meta.glob<{ default: Record<string, unknown> }>(
 /** The widgets whose drawing is authorised by `useOrbitTrajectory`. */
 const SEAM_WIDGETS = [
   "orbit-view",
-  "current-orbit",
   "ground-track",
   "system-view",
   "maneuver-planner",

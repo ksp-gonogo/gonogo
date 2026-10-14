@@ -103,7 +103,7 @@ export type ReadFrameKind = (typeof READ_FRAME_KINDS)[number];
 /**
  * A frame a widget draws in: a {@link ReadFrameKind} and the body it is built on.
  * Useful for remembering which frame the operator picked. Used by
- * {@link ReadFrameControl}, the current orbit widget and the system diagram. The
+ * {@link ReadFrameControl}, the orbit view widget and the system diagram. The
  * centred frames are centred on that body; the rotating frames turn with that
  * body and its parent, as the game's own frame selector does.
  *
