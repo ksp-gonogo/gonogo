@@ -16,6 +16,7 @@ export {
   FullscreenEnterIcon,
   FullscreenExitIcon,
   FullWidthIcon,
+  GripIcon,
   HalfHeightIcon,
   HalfWidthIcon,
   HeartIcon,

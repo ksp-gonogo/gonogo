@@ -11,6 +11,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
 import { TelemetrySubscriberLabel } from "@ksp-gonogo/sitrep-sdk/spine";
+import { GripIcon } from "@ksp-gonogo/ui";
 import {
   AugmentSettingsProvider,
   DelayRailProvider,
@@ -144,7 +145,9 @@ export const GridItemContent = memo(function GridItemContent({
     return (
       <>
         <Tooltip text="Drag to reposition" announce={false}>
-          <CellHeader className="drag-handle" />
+          <CellHeader className="drag-handle">
+            <GripIcon size={12} />
+          </CellHeader>
         </Tooltip>
         <ComponentWrapper>
           <UnavailableWidget
@@ -200,6 +203,7 @@ export const GridItemContent = memo(function GridItemContent({
         <UnvouchedDevClientBridge ownerId={def.owner?.id} />
         <Tooltip text="Drag to reposition" announce={false}>
           <CellHeader className="drag-handle">
+            <GripIcon size={12} />
             {/* widget-action-buttons: draggableCancel target so touch events don't trigger drag */}
             <ActionButtons className="widget-action-buttons">
               {(hasConfig || hasActions) && (
@@ -329,6 +333,11 @@ const CellHeader = styled.div`
      also why that inset's vertical is 1px and not 2. Grow this before
      shrinking it. */
   height: 18px;
+  /* In the gap above the tile, so it covers no widget content. */
+  position: absolute;
+  top: -18px;
+  left: 0;
+  right: 0;
   background: var(--color-surface-panel);
   cursor: grab;
   flex-shrink: 0;

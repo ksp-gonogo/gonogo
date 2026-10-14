@@ -15,6 +15,7 @@ import {
   CornerDownLeft,
   Database,
   FileText,
+  Grip,
   Heart,
   History,
   Home,
@@ -110,6 +111,13 @@ function makeIcon(
   return Wrapped;
 }
 
+/**
+ * A three-by-three grid of dots. Useful for marking a handle the operator
+ * drags to move something. Used by the dashboard's tile grab bar.
+ *
+ * @category Icons
+ */
+export const GripIcon = makeIcon(Grip);
 /**
  * A joystick on a base. Useful for marking the controls that map a game
  * controller or serial device to dashboard actions.
