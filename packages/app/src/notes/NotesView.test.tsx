@@ -242,6 +242,23 @@ describe("NotesView", () => {
       expect(actions.updateNote).not.toHaveBeenCalled();
     });
 
+    it("adds nothing when the typed text was cleared before it was added again", async () => {
+      const user = userEvent.setup();
+      const { rerender, actions } = renderNotes([note("a", "first", 0)]);
+      await user.click(screen.getByRole("button", { name: "first" }));
+      const editor = screen.getByDisplayValue("first");
+      await user.clear(editor);
+      await user.type(editor, "  ");
+      rerender(
+        <NotesView
+          snap={{ centreId: "ground:home", notes: [] }}
+          actions={actions}
+        />,
+      );
+      await user.type(editor, "{Enter}");
+      expect(actions.addNote).not.toHaveBeenCalled();
+    });
+
     it("goes when the operator drops the edit", async () => {
       const user = userEvent.setup();
       const { rerender, actions } = renderNotes([note("a", "first", 0)]);
