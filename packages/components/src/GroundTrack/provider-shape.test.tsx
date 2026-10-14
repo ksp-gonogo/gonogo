@@ -150,7 +150,10 @@ describe("GroundTrack predicts the ground track only in the shape the provider s
   it("draws no track, and says why, when the producer states reach but not shape", async () => {
     const container = await mountMap(UNBOUNDED_HORIZON);
     expect(segments(container)).toBe(0);
-    expect(visibleText(container)).toContain("NO DATA");
+    // The imaging chip prints a bare "NO DATA" too, so the words only the refusal caption carries are what is asserted.
+    expect(visibleText(container)).toContain(
+      "NO DATA: no predicted ground track",
+    );
   });
 
   it("draws no track when the provider integrates, rather than a two-body one", async () => {

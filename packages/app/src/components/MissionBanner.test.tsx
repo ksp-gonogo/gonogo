@@ -882,9 +882,10 @@ describe("MissionBanner delay at zero", () => {
   });
 
   it("draws the field for a delay just above zero", async () => {
+    const figure = unitMarkup(0.0007);
     await flyUnder(0.0007);
 
-    expect(screen.getByText("Delay")).toBeInTheDocument();
+    await waitFor(() => expect(delayValue()?.innerHTML).toContain(figure));
     // The field stays mounted with a ticking clock beside it, so the act scope is held across the frames the tree is kept for.
     for (let frame = 0; frame < 4; frame++) {
       await act(
