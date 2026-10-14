@@ -117,11 +117,12 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Shared "pull a list out of Values['science'][key]" walk. Returns
-        /// <c>null</c> (never an empty list) whenever the snapshot has no
-        /// <c>"science"</c> key at all, or the sub-group key is itself
-        /// absent (KspHost's own <c>TryBuildGroup</c> can omit an individual
-        /// sub-group on a build failure without taking out the others; see
-        /// its own doc comment).
+        /// <c>null</c> whenever the snapshot has no <c>"science"</c> key at
+        /// all, or the sub-group key is itself absent (KspHost's own
+        /// <c>TryBuildGroup</c> can omit an individual sub-group on a build
+        /// failure without taking out the others; see its own doc comment).
+        /// A sub-group present with a null value is the vessel carrying none
+        /// of it, which is a fact: it maps to an empty list.
         /// </summary>
         private static List<Entry>? BuildList<Entry>(KspSnapshot? snapshot, string key, Func<IDictionary<string, object?>, Entry> mapEntry)
         {
@@ -135,7 +136,17 @@ namespace Sitrep.Host
                 return null;
             }
 
-            if (!science.TryGetValue(key, out var rawList) || rawList is not IEnumerable<object?> list)
+            if (!science.TryGetValue(key, out var rawList))
+            {
+                return null;
+            }
+
+            if (rawList == null)
+            {
+                return new List<Entry>();
+            }
+
+            if (rawList is not IEnumerable<object?> list)
             {
                 return null;
             }

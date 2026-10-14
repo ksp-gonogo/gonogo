@@ -210,6 +210,27 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void ASubGroupPresentWithNoValueIsAnEmptyListNotAbsence()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["science"] = new Dictionary<string, object?>
+                    {
+                        ["experiments"] = null,
+                        ["instruments"] = null,
+                    },
+                },
+            };
+
+            Assert.Empty(ScienceViewProvider.BuildExperiments(snapshot)!);
+            Assert.Empty(ScienceViewProvider.BuildInstruments(snapshot)!);
+            Assert.Null(ScienceViewProvider.BuildLab(snapshot));
+        }
+
+        [Fact]
         public void BuildLabReturnsNullWhenSubGroupIsAbsentEvenThoughScienceKeyExists()
         {
             // KspHost's own TryBuildGroup can omit an individual science
