@@ -660,7 +660,7 @@ function SystemViewComponent({
     anchored: anchoredName !== null,
     view: panZoom,
   });
-  const orbitZoom = orbitFramingZoom({
+  const framing = {
     orbit: vesselOrbit,
     frameName: parentName,
     // The scale only reads as metres in a frame that draws plain metres.
@@ -671,6 +671,12 @@ function SystemViewComponent({
     halfPicturePlotUnits: fitGeometry
       ? Math.min(fitGeometry.width, fitGeometry.height) / 2
       : null,
+  };
+  const orbitZoom = orbitFramingZoom(framing);
+  // Following the craft centres the picture on it, so the far side of the orbit is further from the centre than the apoapsis is from the frame body.
+  const followZoom = orbitFramingZoom({
+    ...framing,
+    centredOnCraft: vesselAt,
   });
   /*
    * The picture opens on the craft's orbit rather than the whole system, once: the first instant there is an orbit to frame, unless the operator has already moved the view. Later telemetry never moves it again; only the two view buttons do.
@@ -699,15 +705,15 @@ function SystemViewComponent({
           return;
         }
         panZoom.setFollowing(true);
-        if (orbitZoom !== null) {
+        if (followZoom !== null) {
           panZoom.easeView(
             { zoom: panZoom.zoom, pan: panZoom.pan },
-            { zoom: orbitZoom },
+            { zoom: followZoom },
           );
         }
       },
     }),
-    [panZoom, orbitZoom],
+    [panZoom, followZoom],
   );
   const overlayContext = useMemo(
     () => viewedGeometry(fitGeometry, panZoom.zoom, panZoom.pan),

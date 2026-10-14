@@ -85,7 +85,7 @@ const SYSTEM = {
 };
 
 /** A circular orbit well inside the Mun's: the whole system is far wider than the craft's orbit. */
-const LOW_ORBIT = { sma: 900_000, ecc: 0 };
+const LOW_ORBIT = { sma: 3_000_000, ecc: 0 };
 
 function emitCraft(
   fixture: StreamFixture,
@@ -248,7 +248,8 @@ describe("SystemView opens framed on the craft's orbit", () => {
     fireEvent.click(screen.getByRole("button", { name: "Focus vessel" }));
     frames.run(1000);
     frames.run(2500);
-    expect(pictureWidth(view.container)).toBeCloseTo(framedWidth, 6);
+    // Centred on the craft, the far side of a circular orbit is a diameter away: twice the reach of the picture centred on the body.
+    expect(pictureWidth(view.container)).toBeCloseTo(framedWidth * 2, 6);
     const craft = craftOnScreen(view.container);
     expect(craft.x).toBeCloseTo(0.5, 6);
     expect(craft.y).toBeCloseTo(0.5, 6);
