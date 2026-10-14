@@ -304,7 +304,8 @@ export interface TopicModel<Payload, Projection = Payload> {
  *   for cannot be built from the bodies known so far, such as a body not yet
  *   received. Asking for another frame resolves it
  *
- * Branch on `reason`, never on `input` or `note`.
+ * Branch on `reason` and, where it matters whether waiting helps,
+ * `resolvesByWaiting`; never on `input` or `note`.
  *
  * Useful for telling the operator why a modelled figure is unavailable. Used by
  * the orbit view's empty states, by the components that show a modelled figure
@@ -324,6 +325,8 @@ export interface ReckoningDecline {
     | "frame-unavailable";
   /** The input responsible, spelled as the contract declares it, such as `"@vessel.orbit"`. Absent where the reason has none. */
   readonly input?: string;
+  /** True where the figure comes back with no change from the operator once more has been computed or received, such as an integrating provider's trajectory not computed this far ahead yet. Absent where waiting does not help. */
+  readonly resolvesByWaiting?: boolean;
   /** One sentence to show the operator. Its wording can change, so never branch on it. */
   readonly note?: string;
 }

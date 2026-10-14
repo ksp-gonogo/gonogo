@@ -152,7 +152,7 @@ describe("GroundTrack predicts the ground track only in the shape the provider s
     expect(segments(container)).toBe(0);
     // The imaging chip prints a bare "NO DATA" too, so the words only the refusal caption carries are what is asserted.
     expect(visibleText(container)).toContain(
-      "NO DATA: no predicted ground track",
+      "CANNOT MODEL: no predicted ground track",
     );
   });
 

@@ -87,7 +87,8 @@ describe("Orbit View figures names why the figures are dashes", () => {
     scene({ horizon: UNBOUNDED_HORIZON });
 
     expect(screen.getByRole("status")).toBeInTheDocument();
-    expect(screen.queryByText(/CANNOT MODEL/)).toBeNull();
+    // The withheld path's own state word is the one on screen; the readouts do not repeat it.
+    expect(screen.getAllByText(/CANNOT MODEL/)).toHaveLength(1);
   });
 
   it("says nothing when the conic advances the orbit", () => {

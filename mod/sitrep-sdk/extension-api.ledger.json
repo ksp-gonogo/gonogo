@@ -11361,6 +11361,10 @@
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
       },
       {
+        "key": "sitrep-sdk . ReckoningDecline#resolvesByWaiting?",
+        "note": "Whether a declined figure comes back by itself, such as an integrator not yet computed this far ahead"
+      },
+      {
         "key": "sitrep-sdk . RendezvousHudContext",
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
@@ -12041,6 +12045,10 @@
         "note": "ReckoningDecline now rides on the frames entry through OrbitTrajectory's withheld arm"
       },
       {
+        "key": "sitrep-sdk ./frames ~ReckoningDecline#resolvesByWaiting?",
+        "note": "Whether a declined figure comes back by itself, such as an integrator not yet computed this far ahead"
+      },
+      {
         "key": "sitrep-sdk ./frames ~TrajectoryArcAnswer",
         "note": "Reachable through arcInOrbitPlane now; the type itself is unchanged"
       },
@@ -12635,6 +12643,10 @@
       {
         "key": "sitrep-sdk ./registry ~PlotWaterLayer#view",
         "note": "Whether the sea is seen from above or from the side"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ReckoningDecline#resolvesByWaiting?",
+        "note": "Whether a declined figure comes back by itself, such as an integrator not yet computed this far ahead"
       },
       {
         "key": "sitrep-sdk ./registry ~RendezvousHudContext",
@@ -13509,6 +13521,10 @@
         "note": "A patch with lan, argPe and meanAnomalyAtEpoch present, which the propagation reads"
       },
       {
+        "key": "sitrep-sdk ./spine ReckoningDecline#resolvesByWaiting?",
+        "note": "Whether a declined figure comes back by itself, such as an integrator not yet computed this far ahead"
+      },
+      {
         "key": "sitrep-sdk ./spine SYSTEM_POSES",
         "note": "The processor behind useSystemInstant, readable by id from a contribution's deps"
       },
@@ -14375,6 +14391,10 @@
       {
         "key": "sitrep-sdk ./testing ~ReckonableFieldMap",
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ReckoningDecline#resolvesByWaiting?",
+        "note": "Whether a declined figure comes back by itself, such as an integrator not yet computed this far ahead"
       },
       {
         "key": "sitrep-sdk ./testing ~RendezvousHudContext",

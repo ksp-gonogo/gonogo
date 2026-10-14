@@ -153,7 +153,7 @@ describe("SystemView draws the vessel trajectory the provider states", () => {
   it("draws no vessel curve, and says why, when the producer states reach but not shape", async () => {
     const container = await mount(UNBOUNDED_HORIZON);
     await waitFor(() => {
-      if (!visibleText(container).includes("NO DATA")) {
+      if (!visibleText(container).includes("CANNOT MODEL")) {
         throw new Error("the refusal has not rendered yet");
       }
     });
@@ -164,7 +164,7 @@ describe("SystemView draws the vessel trajectory the provider states", () => {
     // The bodies' own per-body horizon governs them, not the vessel's provider.
     const container = await mount(UNBOUNDED_HORIZON);
     await waitFor(() => {
-      if (!visibleText(container).includes("NO DATA")) {
+      if (!visibleText(container).includes("CANNOT MODEL")) {
         throw new Error("the refusal has not rendered yet");
       }
     });
@@ -186,7 +186,7 @@ describe("SystemView draws the vessel trajectory the provider states", () => {
   it("draws no vessel curve once the view instant runs past the integrator's horizon", async () => {
     const container = await mount(integratedHorizon(PINNED_UT - 50));
     await waitFor(() => {
-      if (!visibleText(container).includes("CANNOT MODEL")) {
+      if (!visibleText(container).includes("NOT YET COMPUTED")) {
         throw new Error("the refusal has not rendered yet");
       }
     });

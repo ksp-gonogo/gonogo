@@ -164,13 +164,16 @@ export type ArcFarEnd =
  * label from `reason` where the curve would be and `note` as its explanation.
  * It is a statement about what the provider vouched for, not a missing value.
  *
- * The `reason` is `input-absent` when the provider stated no horizon or no
- * shape, `beyond-horizon` when the instant on screen is past the bound it named,
- * `model-inapplicable` when the elements cannot be sampled into an arc, and
+ * The `reason` is `model-inapplicable`, with `input` naming the horizon, when
+ * the provider stated no horizon or no shape (the orbit's own figures are
+ * there, and it is the provider's statement of how far they hold that is not),
+ * `beyond-horizon` when the instant on screen is past the bound it named,
+ * `model-inapplicable` also when the elements cannot be sampled into an arc, and
  * `frame-unavailable` when the frame asked for cannot be built from the bodies
- * known. Past an integrating provider's horizon the `note` says the path is not
- * computed that far yet, which resolves by itself; past an analytic provider's
- * it says the elements cannot be trusted that far, which does not.
+ * known. Past an integrating provider's horizon the path is not computed that
+ * far yet, which resolves by itself, and `resolvesByWaiting` is true; past an
+ * analytic provider's the elements cannot be trusted that far, which does not,
+ * and it is absent. Branch on `reason` and `resolvesByWaiting`, never on `note`.
  *
  * @category Frames of reference
  */
@@ -286,21 +289,27 @@ function refused(
 ): OrbitTrajectory {
   if (refusal.reason === "no-horizon-stated") {
     return withheld({
-      reason: "input-absent",
+      reason: "model-inapplicable",
+      input: "@vessel.orbit#horizon",
       note: "Nothing says how far ahead these orbital elements can be trusted.",
+    });
+  }
+  if (refusal.trajectoryKind === TrajectoryKindLike.Integrated) {
+    return withheld({
+      reason: "beyond-horizon",
+      resolvesByWaiting: true,
+      note: "The trajectory is not computed this far ahead yet.",
     });
   }
   return withheld({
     reason: "beyond-horizon",
-    note:
-      refusal.trajectoryKind === TrajectoryKindLike.Integrated
-        ? "The trajectory is not computed this far ahead yet."
-        : "These orbital elements cannot be trusted this far ahead.",
+    note: "These orbital elements cannot be trusted this far ahead.",
   });
 }
 
 const SHAPE_NOT_STATED: ReckoningDecline = {
-  reason: "input-absent",
+  reason: "model-inapplicable",
+  input: "@vessel.orbit#horizon",
   note: "Nothing has said whether this trajectory is a conic.",
 };
 

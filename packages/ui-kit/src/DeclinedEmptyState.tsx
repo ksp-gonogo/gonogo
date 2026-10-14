@@ -9,6 +9,10 @@ import { Tooltip } from "./Tooltip";
  * produce. Used by {@link DeclinedEmptyState} and by the widgets that show a
  * modelled figure.
  *
+ * A `beyond-horizon` decline that `resolvesByWaiting` reads `NOT YET COMPUTED`,
+ * since the figure comes back by itself, where the same reason without it reads
+ * `CANNOT MODEL`.
+ *
  * The result is `null` for `input-absent`, where a figure's dashes already say
  * the input has not arrived.
  *
@@ -17,8 +21,9 @@ import { Tooltip } from "./Tooltip";
 export function declinedState(declined: ReckoningDecline): string | null {
   const reason = declined.reason;
   switch (reason) {
-    case "under-physics":
     case "beyond-horizon":
+      return declined.resolvesByWaiting ? "NOT YET COMPUTED" : "CANNOT MODEL";
+    case "under-physics":
     case "model-inapplicable":
     case "contested":
     case "insufficient-history":

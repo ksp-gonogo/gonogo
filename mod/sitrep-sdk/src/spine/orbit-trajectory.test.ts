@@ -123,7 +123,8 @@ describe("orbitTrajectory", () => {
     ).toMatchObject({
       shape: "withheld",
       declined: {
-        reason: "input-absent",
+        reason: "model-inapplicable",
+        input: "@vessel.orbit#horizon",
         note: "Nothing has said whether this trajectory is a conic.",
       },
     });
@@ -132,7 +133,10 @@ describe("orbitTrajectory", () => {
   it("withholds when no horizon rides on the sample at all", () => {
     expect(orbitTrajectory({ orbit: lko(), viewUt: 0 })).toMatchObject({
       shape: "withheld",
-      declined: { reason: "input-absent" },
+      declined: {
+        reason: "model-inapplicable",
+        input: "@vessel.orbit#horizon",
+      },
     });
   });
 
@@ -148,6 +152,7 @@ describe("orbitTrajectory", () => {
       shape: "withheld",
       declined: {
         reason: "beyond-horizon",
+        resolvesByWaiting: true,
         note: "The trajectory is not computed this far ahead yet.",
       },
     });

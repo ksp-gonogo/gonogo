@@ -53,6 +53,13 @@ describe("declinedState", () => {
     expect(declinedState({ reason: "beyond-horizon" })).toBe("CANNOT MODEL");
   });
 
+  it("tells a figure that comes back by itself from one that never will", () => {
+    expect(
+      declinedState({ reason: "beyond-horizon", resolvesByWaiting: true }),
+    ).toBe("NOT YET COMPUTED");
+    expect(declinedState({ reason: "beyond-horizon" })).toBe("CANNOT MODEL");
+  });
+
   it("has no word for an absent input", () => {
     expect(declinedState({ reason: "input-absent" })).toBeNull();
   });
