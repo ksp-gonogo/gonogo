@@ -406,7 +406,7 @@ export function StationScreen() {
                                 <FlightsFab />
                                 <SerialPortRecoveryWatcher />
                                 <StationConnectionFab
-                                  bottom={144}
+                                  bottom={204}
                                   hostId={hostInput || null}
                                   connStatus={connStatus}
                                   onSwitchHost={(next) => {
@@ -429,10 +429,10 @@ export function StationScreen() {
                                     globalThis.location.assign("/station");
                                   }}
                                 />
-                                <FullscreenFab bottom={204} />
-                                <SettingsFab bottom={264} />
+                                <FullscreenFab bottom={264} />
+                                <SettingsFab bottom={324} />
                                 <MissionProfilesFab
-                                  bottom={324}
+                                  bottom={384}
                                   currentItems={dashboard.items}
                                   currentLayouts={dashboard.layouts}
                                   onLoad={(p) =>
@@ -440,7 +440,7 @@ export function StationScreen() {
                                   }
                                 />
                                 <AlarmsFab
-                                  bottom={384}
+                                  bottom={444}
                                   useSnapshot={useStationAlarmSnapshot}
                                   onAdd={(input) => alarmClient.addAlarm(input)}
                                   onUpdate={(id, patch) =>

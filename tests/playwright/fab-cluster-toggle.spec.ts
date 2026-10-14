@@ -44,6 +44,35 @@ test.describe("fab cluster toggle", () => {
     await context.close();
   });
 
+  test("Add component is the button nearest the toggle and follows it in tab order", async ({
+    browser,
+  }) => {
+    const { context, page } = await openMain(browser);
+    const toggle = page.getByRole("button", { name: "Dashboard controls" });
+    await expect(toggle).toBeVisible({ timeout: 30_000 });
+    await toggle.click();
+    await page.mouse.move(10, 10);
+
+    const toggleBox = await toggle.boundingBox();
+    const addBox = await page
+      .getByRole("button", { name: "Add component" })
+      .boundingBox();
+    const layoutsBox = await page
+      .getByRole("button", { name: "Dashboard layouts" })
+      .boundingBox();
+    expect(toggleBox && addBox && layoutsBox).toBeTruthy();
+    expect(addBox!.y).toBeLessThan(toggleBox!.y);
+    expect(toggleBox!.y - addBox!.y).toBeLessThan(80);
+    expect(addBox!.y).toBeGreaterThan(layoutsBox!.y);
+
+    await toggle.focus();
+    await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("button", { name: "Add component" }),
+    ).toBeFocused();
+    await context.close();
+  });
+
   test("the keyboard opens it with Enter and Escape closes it, returning focus", async ({
     browser,
   }) => {

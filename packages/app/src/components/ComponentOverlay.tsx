@@ -88,7 +88,7 @@ function useOverlay(): OverlayContextValue {
 }
 
 export function ComponentOverlay({
-  bottom = 444,
+  bottom = 84,
 }: Readonly<{ bottom?: number }>) {
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<Set<string>>(

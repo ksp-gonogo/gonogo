@@ -426,10 +426,10 @@ function MainDashboard({
             <FlightsFabWithMissionHistory />
             <SerialPortRecoveryWatcher />
             <StationLinkFab />
-            <FullscreenFab bottom={204} />
-            <SettingsFab bottom={264} />
+            <FullscreenFab bottom={264} />
+            <SettingsFab bottom={324} />
             <MissionProfilesFab
-              bottom={324}
+              bottom={384}
               currentItems={dashboard.items}
               currentLayouts={dashboard.layouts}
               onLoad={(p) => dashboard.replaceState(p.items, p.layouts)}
@@ -567,7 +567,7 @@ function MainAlarmsFab() {
   const bindings = useMainAlarmsBindings();
   return (
     <AlarmsFab
-      bottom={384}
+      bottom={444}
       useSnapshot={bindings.useSnapshot}
       onAdd={bindings.onAdd}
       onUpdate={bindings.onUpdate}

@@ -52,7 +52,7 @@ export function FlightsFab({
       // calc(24px + env(safe-area-inset-bottom, 0px)) base. Held literal with
       // the rest of that geometry chain in @ksp-gonogo/ui, which no CSS pass
       // can see from here. Exact today; it drifts only if the base moves.
-      bottom={84}
+      bottom={144}
       onClick={handleClick}
       aria-label="Flight history"
       title="Flight history"

@@ -16,7 +16,7 @@ import { stationAddresses } from "./stationAddresses";
 /**
  * Station-link FAB: shows the host's peer ID + a QR code so a station
  * screen can be pointed at this main screen. Sits above the FlightsFab
- * at bottom: 144px and opens a modal with the link details.
+ * at bottom: 204px and opens a modal with the link details.
  */
 export function StationLinkFab() {
   const { open } = useModal();
@@ -27,7 +27,7 @@ export function StationLinkFab() {
 
   return (
     <Tooltip text="Add station">
-      <Fab bottom={144} onClick={handleClick} aria-label="Add station">
+      <Fab bottom={204} onClick={handleClick} aria-label="Add station">
         <BroadcastIcon />
       </Fab>
     </Tooltip>
