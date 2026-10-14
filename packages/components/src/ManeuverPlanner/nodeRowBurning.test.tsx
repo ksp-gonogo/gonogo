@@ -60,4 +60,37 @@ describe("a planned node past its planned cutoff", () => {
     row(106);
     expect(screen.getByText("PASSED")).toBeInTheDocument();
   });
+
+  it("keeps reading BURNING on a long burn whose planned ignition has drifted past the engine's start", () => {
+    const thrust = {
+      thrusting: true,
+      lastThrustEndUt: null,
+      startedUt: value("ut", 70),
+    };
+    const long = { ...NODE, ignitionUt: 70, cutoffUt: 130 };
+    const view = render(
+      <ul>
+        <NodeRow
+          node={long}
+          currentUT={value("ut", 80)}
+          availableDv={2000}
+          thrust={thrust}
+        />
+      </ul>,
+    );
+    expect(screen.getByText("BURNING")).toBeInTheDocument();
+    // Re-planned from the lighter craft: the same node, lit later and cut off sooner.
+    view.rerender(
+      <ul>
+        <NodeRow
+          node={{ ...long, ignitionUt: 95, cutoffUt: 125 }}
+          currentUT={value("ut", 128)}
+          availableDv={2000}
+          thrust={thrust}
+        />
+      </ul>,
+    );
+    expect(screen.getByText("BURNING")).toBeInTheDocument();
+    expect(screen.queryByText("PASSED")).toBeNull();
+  });
 });
