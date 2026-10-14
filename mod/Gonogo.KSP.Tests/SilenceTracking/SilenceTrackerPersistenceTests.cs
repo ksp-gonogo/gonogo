@@ -36,6 +36,28 @@ public class SilenceTrackerPersistenceTests
     }
 
     [Fact]
+    public void ARecordWithAStateWordThisBuildDoesNotKnowRestoresAsSilentWithItsSilenceStart()
+    {
+        var node = new ConfigNode("SCENARIO");
+        var root = node.AddNode("SILENCE_TRACKER");
+        var vessel = root.AddNode("VESSEL");
+        vessel.AddValue("vesselId", "vessel-lost");
+        vessel.AddValue("state", "Lost");
+        vessel.AddValue("connected", false);
+        vessel.AddValue("lastContactUt", 100.0);
+        vessel.AddValue("silenceSinceUt", 110.0);
+        vessel.AddValue("deadlineUt", 710.0);
+
+        var target = NewTracker();
+        SilenceTrackerPersistence.Load(target, node);
+
+        var after = target.TryGetState("vessel-lost")!;
+        Assert.Equal(SilenceState.Silent, after.State);
+        target.Tick(new[] { new SilenceSample("vessel-lost", false, null, false) }, ut: 5000);
+        Assert.Equal(110.0, target.TryGetState("vessel-lost")!.SilenceSinceUt);
+    }
+
+    [Fact]
     public void APredictedReturnAndItsGraceSurviveSaveAndLoad()
     {
         var source = new SilenceTracker((sample, onsetUt) =>

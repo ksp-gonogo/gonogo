@@ -70,13 +70,20 @@ namespace Gonogo.KSP.SilenceTracking
                 var connected = false;
                 vesselNode.TryGetValue("connected", ref connected);
 
+                var silenceSinceUt = ReadNullableDouble(vesselNode, "silenceSinceUt");
+                if (state == SilenceState.Nominal && !connected && silenceSinceUt.HasValue)
+                {
+                    // A craft that is out of contact and has a silence start was silent, whatever its state text said.
+                    state = SilenceState.Silent;
+                }
+
                 var restored = new VesselContactState
                 {
                     VesselId = vesselId,
                     State = state,
                     Connected = connected,
                     LastContactUt = ReadNullableDouble(vesselNode, "lastContactUt"),
-                    SilenceSinceUt = ReadNullableDouble(vesselNode, "silenceSinceUt"),
+                    SilenceSinceUt = silenceSinceUt,
                     DeadlineUt = ReadNullableDouble(vesselNode, "deadlineUt"),
                     DeadlineBasis = vesselNode.HasValue("deadlineBasis") ? vesselNode.GetValue("deadlineBasis") : null,
                     PredictedReacquisitionUt = ReadNullableDouble(vesselNode, "predictedReacquisitionUt"),
