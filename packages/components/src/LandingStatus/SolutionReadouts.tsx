@@ -77,7 +77,7 @@ export function SolutionReadouts({
             <Mps v={model.touchdownSpeed ?? undefined} from={solveCurrency} />
           }
         </StackedField>
-        <StackedField label={`Remaining dV (${availableDvBasis})`}>
+        <StackedField label={dvLabel("Remaining dV", availableDvBasis)}>
           {<Dv v={availableDv} from={solveCurrency} />}
         </StackedField>
       </Grid>
@@ -106,7 +106,7 @@ export function SolutionReadouts({
             />
           )}
         </StackedField>
-        <StackedField label={`Available dV (${availableDvBasis})`}>
+        <StackedField label={dvLabel("Available dV", availableDvBasis)}>
           {<Dv v={availableDv} from={solveCurrency} />}
         </StackedField>
         <StackedField label="Affordable">
@@ -159,4 +159,9 @@ export function SolutionReadouts({
       </Grid>
     </div>
   );
+}
+
+/** A delta-v label with its basis in brackets, or the bare label when there is no figure to name a basis for. */
+function dvLabel(label: string, basis: "ACT" | "VAC" | undefined): string {
+  return basis === undefined ? label : `${label} (${basis})`;
 }

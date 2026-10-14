@@ -48,8 +48,8 @@ export interface LandingModel {
   /** Even the optimal burn arrives above a survivable speed. */
   noLandingVector: boolean;
   availableDv: Value<"m/s"> | undefined;
-  /** Which ΔV total `availableDv` is: the one for the air the craft is in now, or the vacuum one when the game gave no current figure. */
-  availableDvBasis: "ACT" | "VAC";
+  /** Which ΔV total `availableDv` is: the one for the air the craft is in now, or the vacuum one when the game gave no current figure. Undefined when the game gave neither. */
+  availableDvBasis: "ACT" | "VAC" | undefined;
   requiredDv: number | null;
   /** Null, never false, when either side of the comparison is missing. */
   affordable: boolean | null;
@@ -238,7 +238,12 @@ export function useLandingModel(): LandingModel {
     solution.bestSpeedAtImpact > 0.5;
 
   const availableDv = budget?.totalActual ?? budget?.totalVac ?? undefined;
-  const availableDvBasis = budget?.totalActual != null ? "ACT" : "VAC";
+  const availableDvBasis =
+    availableDv === undefined
+      ? undefined
+      : budget?.totalActual != null
+        ? "ACT"
+        : "VAC";
   const requiredDv = solution.burnDeltaV;
   const affordable =
     requiredDv != null && availableDv != null
