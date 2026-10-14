@@ -1,7 +1,7 @@
 /**
  * The FAB tower sits above the dashboard grid. Its secondaries are collapsed
  * (pointer-events: none) until the cluster is hovered, so the tower is
- * reached through the + control, and once open the topmost element at each
+ * reached through the dashboard controls toggle, and once open the topmost element at each
  * secondary's centre must be that secondary rather than a grid item.
  */
 
@@ -23,14 +23,14 @@ test.describe("fab tower over the dashboard grid", () => {
     const page = await context.newPage();
     await page.goto("/?uplinkLoaderIds=");
 
-    const add = page.getByRole("button", { name: "Add component" });
-    await expect(add).toBeVisible({ timeout: 30_000 });
+    const toggle = page.getByRole("button", { name: "Dashboard controls" });
+    await expect(toggle).toBeVisible({ timeout: 30_000 });
     await expect(page.locator(".react-grid-item").first()).toBeVisible();
 
     const station = page.getByRole("button", { name: "Add station" });
     await expect(station).toHaveCSS("pointer-events", "none");
 
-    await add.hover();
+    await toggle.hover();
     await expect(station).toHaveCSS("pointer-events", "auto");
     const topmost = await station.evaluate((el) => {
       const r = el.getBoundingClientRect();

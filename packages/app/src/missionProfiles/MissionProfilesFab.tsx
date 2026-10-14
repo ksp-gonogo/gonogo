@@ -43,7 +43,7 @@ export function MissionProfilesFab({
           />
         </ScreenProvider>
       </MissionProfilesProvider>,
-      { title: "Dashboard Layouts" },
+      { title: "Dashboard layouts" },
     );
   }
 

@@ -21,6 +21,7 @@ export * from "./DimmedOverlay";
 export * from "./EmptyState";
 export * from "./Fab";
 export * from "./FabCluster";
+export * from "./FabClusterToggle";
 export * from "./FabPrompt";
 export * from "./FileInput";
 export * from "./FilterChip";

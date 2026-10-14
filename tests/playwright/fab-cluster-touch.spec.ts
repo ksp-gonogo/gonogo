@@ -1,5 +1,5 @@
 /**
- * The names behind the + control must be readable on a touch screen, where
+ * The names behind the dashboard controls toggle must be readable on a touch screen, where
  * there is no hover to open the cluster. A mouse screen keeps them tucked away
  * until the cluster is hovered or focused.
  */
@@ -57,11 +57,11 @@ test.describe("fab cluster names", () => {
     const page = await context.newPage();
     await page.goto("/?uplinkLoaderIds=");
 
-    const add = page.getByRole("button", { name: "Add component" });
-    await expect(add).toBeVisible({ timeout: 30_000 });
+    const toggle = page.getByRole("button", { name: "Dashboard controls" });
+    await expect(toggle).toBeVisible({ timeout: 30_000 });
     await expect(settingsLabel(page)).toHaveCSS("opacity", "0");
 
-    await add.hover();
+    await toggle.hover();
     await expect(settingsLabel(page)).toHaveCSS("opacity", "1");
     await context.close();
   });

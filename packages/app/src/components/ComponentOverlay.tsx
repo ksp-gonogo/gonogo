@@ -14,9 +14,11 @@ import {
 } from "@ksp-gonogo/serial";
 import {
   CloseIcon,
+  Fab,
+  FabClusterToggle,
   FilterChip,
+  PlusIcon,
   Tag,
-  useFabCluster,
   useModal,
 } from "@ksp-gonogo/ui";
 import {
@@ -85,7 +87,9 @@ function useOverlay(): OverlayContextValue {
   return ctx;
 }
 
-export function ComponentOverlay() {
+export function ComponentOverlay({
+  bottom = 444,
+}: Readonly<{ bottom?: number }>) {
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<Set<string>>(
     () => new Set(),
@@ -294,21 +298,17 @@ export function ComponentOverlay() {
   const optionId = (id: string) => `component-overlay-option-${id}`;
   const activeDef = filtered[activeIdx];
 
-  const cluster = useFabCluster();
-
   return (
     <>
+      <FabClusterToggle />
       <Tooltip text="Add component">
-        <FAB
+        <Fab
+          bottom={bottom}
           onClick={() => setOpen(true)}
-          onMouseEnter={cluster?.onMouseEnter}
-          onMouseLeave={cluster?.onMouseLeave}
-          onFocus={cluster?.onFocus}
-          onBlur={cluster?.onBlur}
           aria-label="Add component"
         >
-          +
-        </FAB>
+          <PlusIcon />
+        </Fab>
       </Tooltip>
 
       {open && (
@@ -400,48 +400,6 @@ export function ComponentOverlay() {
 }
 
 export { useOverlay };
-
-const FAB = styled.button`
-  position: fixed;
-  /* Held literal with the rest of the FAB-geometry chain in @ksp-gonogo/ui:
-     this is the primary "+" button BannerStack's right: 88px (24 + 48 + 16),
-     FabPrompt's 72px and Fab's own right: 24px are all arithmetic on. Those
-     stay literal because a CSS pass cannot see the derived numbers, so
-     tokenising only this end would desynchronise the cluster the first time
-     the 24 moves. Do not add a safe-area wrapper here in isolation
-     either: it shifts this button relative to nothing else. */
-  bottom: 24px;
-  right: 24px;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-circle);
-  background: var(--color-accent-fg);
-  border: none;
-  color: var(--color-text-inverse);
-  /* Display tier: above --font-size-lg, which the scale stops at on purpose. */
-  font-size: 28px;
-  line-height: var(--line-height-flush);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 16px rgba(0, 204, 102, 0.3);
-  z-index: var(--z-fab);
-  /* Multi-line on purpose and on two different rungs: 0.15s is --duration-base
-     exactly, 0.1s snaps up to --duration-fast (+20ms). A line-oriented pass
-     rewrites one and leaves the other. */
-  transition:
-    background var(--duration-base),
-    transform var(--duration-fast);
-
-  &:hover {
-    background: var(--color-accent-bg);
-    transform: scale(1.05);
-  }
-  &:active {
-    transform: scale(0.97);
-  }
-`;
 
 const Backdrop = styled.div`
   position: fixed;

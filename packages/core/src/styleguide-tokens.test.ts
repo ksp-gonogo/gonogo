@@ -172,7 +172,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * owned.
    */
   fontSize: {
-    "packages/app/src/components/ComponentOverlay.tsx": 2,
+    "packages/app/src/components/ComponentOverlay.tsx": 1,
     "packages/app/src/components/StationConnectionFab.tsx": 1,
     "packages/app/src/components/StationLinkFab.tsx": 1,
     "packages/app/src/goNoGo/GoNoGoComponent.tsx": 5,
