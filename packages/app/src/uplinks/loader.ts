@@ -39,6 +39,7 @@ import {
   isClientlessUplink,
   setClientlessUplinks,
   setUplinkOutcome,
+  setUplinksSettled,
   type UplinkLoadOutcome,
 } from "./loaderState";
 import {
@@ -1139,9 +1140,12 @@ function queueLoad(
   pick: (ids: string[]) => string[],
   anyWaiting?: () => boolean,
 ): Promise<UplinkLoadOutcome[]> {
-  const run = loadQueue.then(() =>
-    anyWaiting && !anyWaiting() ? [] : loadPicked(ctx, pick),
-  );
+  const run = loadQueue
+    .then(() => (anyWaiting && !anyWaiting() ? [] : loadPicked(ctx, pick)))
+    .then((outcomes) => {
+      if (ctx.roster || ctx.override !== undefined) setUplinksSettled();
+      return outcomes;
+    });
   loadQueue = run.catch(() => undefined);
   return run;
 }

@@ -21,13 +21,15 @@ import { TagAutocomplete } from "./TagAutocomplete";
 import type { Note } from "./types";
 
 /** Why an open edit has not been saved, while the operator keeps what they typed. */
-type Hold = "changed" | "deleted" | "offline";
+type Hold = "changed" | "deleted" | "offline" | "refused";
 
 const HOLD_TIP: Record<Hold, string> = {
   changed: "Changed elsewhere. Enter keeps yours, Escape takes theirs",
   deleted: "Deleted elsewhere. Enter adds it again, Escape drops it",
   offline:
     "Not sent, not connected to the main screen. Enter tries again, Escape drops your edit",
+  refused:
+    "Not added, this screen has no command centre. Enter tries again, Escape drops your edit",
 };
 
 export function NoteRow({
@@ -38,6 +40,8 @@ export function NoteRow({
   nextNote,
   blocked,
   actions,
+  gone,
+  onUnsaved,
 }: Readonly<{
   note: Note;
   isFirst: boolean;
@@ -47,10 +51,15 @@ export function NoteRow({
   /** Edits are switched off while this is true. */
   blocked: boolean;
   actions: NotesActions;
+  /** True when the list no longer holds this note and only the open edit keeps the row. */
+  gone: boolean;
+  /** Reports the note while its open editor holds text the list does not, and null otherwise. */
+  onUnsaved: (id: string, note: Note | null) => void;
 }>) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(note.body);
-  const [hold, setHold] = useState<Hold | null>(null);
+  const [heldFor, setHold] = useState<Hold | null>(null);
+  const hold = heldFor ?? (gone ? "deleted" : null);
   const [deleteHeld, setDeleteHeld] = useState(false);
   // The editor's delayed blur can fire after it has closed; a closed editor sends nothing.
   const open = useRef(false);
@@ -58,6 +67,11 @@ export function NoteRow({
   useEffect(() => {
     if (!editing) setDraft(note.body);
   }, [note.body, editing]);
+
+  const unsaved = editing && draft !== note.body;
+  useEffect(() => {
+    onUnsaved(note.id, unsaved ? note : null);
+  }, [unsaved, note, onUnsaved]);
 
   const editorTip = useTooltip(hold ? HOLD_TIP[hold] : null);
   const deleteTip = useTooltip(
@@ -71,10 +85,10 @@ export function NoteRow({
   };
   const submit = async () => {
     if (!open.current) return;
-    if (hold === "deleted") {
+    if (gone || hold === "deleted") {
       const outcome = await actions.addNote(draft);
       if (outcome.status === "ok") close();
-      else setHold("offline");
+      else setHold(outcome.status === "offline" ? "offline" : "refused");
       return;
     }
     if (!draft.trim() || draft === note.body) {
@@ -109,7 +123,7 @@ export function NoteRow({
         <ReorderBtn
           type="button"
           aria-label="Move up"
-          disabled={isFirst || blocked}
+          disabled={isFirst || blocked || gone}
           onClick={() => {
             // Moving up lands the previous note after this one.
             if (prevNote === null) return;
@@ -121,7 +135,7 @@ export function NoteRow({
         <ReorderBtn
           type="button"
           aria-label="Move down"
-          disabled={isLast || blocked}
+          disabled={isLast || blocked || gone}
           onClick={() => {
             if (nextNote === null) return;
             void actions.reorderNote(note.id, nextNote.id, note.version);
@@ -163,7 +177,7 @@ export function NoteRow({
           type="button"
           aria-label="Delete note"
           aria-invalid={deleteHeld || undefined}
-          disabled={blocked}
+          disabled={blocked || gone}
           {...deleteTip.anchor}
           onClick={async () => {
             const outcome = await actions.deleteNote(note.id, note.version);

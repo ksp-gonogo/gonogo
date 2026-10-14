@@ -10155,6 +10155,10 @@
         "note": "what an order sent now would do, from the sending centre's comms.route and comms.nextLoss; required, so a hand-built handle must now carry it (undefined when nothing is known)"
       },
       {
+        "key": "sitrep-sdk ./uplink-externals UPLINK_EXTERNAL_ENTRIES",
+        "note": "one entry added for the ui-kit grid subpath, so a loaded client that imports it resolves it through the app's import map"
+      },
+      {
         "key": "sitrep-sdk ./uplink-manifest UplinkDeclaration#mod?",
         "note": "uplink.json's mod block is now the named UplinkWrappedMod and may be null, as the scaffold writes it for an Uplink that wraps no mod"
       },
