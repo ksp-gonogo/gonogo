@@ -436,4 +436,25 @@ describe("InFlightList: focus after a dismiss", () => {
       screen.getByRole("button", { name: "Dismiss run a.ks" }),
     ).toHaveFocus();
   });
+
+  it("lands in the body that holds the queue when the only command is dismissed outside a rail", async () => {
+    const user = userEvent.setup();
+    function Lone() {
+      const [items, setItems] = useState([LOST("a")]);
+      return (
+        <div data-panel-body>
+          <InFlightList
+            items={items}
+            variant="expanded"
+            onDismiss={(id) =>
+              setItems((all) => all.filter((i) => i.id !== id))
+            }
+          />
+        </div>
+      );
+    }
+    const { container } = render(<Lone />);
+    await user.click(screen.getByRole("button", { name: "Dismiss run a.ks" }));
+    expect(container.querySelector("[data-panel-body]")).toHaveFocus();
+  });
 });

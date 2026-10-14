@@ -533,13 +533,20 @@ function SystemViewComponent({
     ],
   );
 
-  const places = useMemo(
+  // Apart from the instant and the poses so a ring's inputs hold still while the view clock ticks.
+  const lookups = useMemo(
     () => ({
-      ut: universalTime,
       muOf: (bodyName: string) =>
         bodies.find((b) => b.name === bodyName)?.gravParameter ?? null,
       soiOf: (bodyName: string) =>
         bodies.find((b) => b.name === bodyName)?.soi ?? null,
+    }),
+    [bodies],
+  );
+  const places = useMemo(
+    () => ({
+      ut: universalTime,
+      ...lookups,
       bodyPlace: (bodyIndex: number) => {
         const body = poseAtIndex(poses, bodyIndex);
         const frameBody = poseAtIndex(poses, frameBodyIndex);
@@ -554,7 +561,7 @@ function SystemViewComponent({
         };
       },
     }),
-    [universalTime, bodies, poses, frameBodyIndex],
+    [universalTime, lookups, poses, frameBodyIndex],
   );
   const fitGeometry = useMemo(
     () =>

@@ -3,7 +3,7 @@ import {
   dispatchAction,
   PerfBudget,
 } from "@ksp-gonogo/core";
-import { act, waitFor } from "@ksp-gonogo/test-utils";
+import { act, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
@@ -95,5 +95,24 @@ describe("Navball tiny mode", () => {
       dispatchAction("nb-tiny", "toggle-sas", { kind: "button", value: true });
     });
     await waitFor(() => expect(handler).toHaveBeenCalled());
+  });
+
+  it("draws an armed fly-by-wire with a disarm control, which the tiny form would otherwise hide", async () => {
+    const { fixture } = mountTiny();
+    fixture.transport.setCommandHandler(() => ({ success: true }));
+    act(() => {
+      fixture.emit("vessel.comms", { controlState: 4 });
+    });
+    await waitFor(() => expect(essentialTexts()).toHaveLength(3));
+    expect(
+      screen.queryByRole("button", { name: "Disarm fly-by-wire" }),
+    ).toBeNull();
+    act(() => {
+      dispatchAction("nb-tiny", "arm-fbw", { kind: "button", value: true });
+    });
+    const disarm = await screen.findByRole("button", {
+      name: "Disarm fly-by-wire",
+    });
+    expect(disarm).toHaveTextContent("FBW ARMED");
   });
 });
