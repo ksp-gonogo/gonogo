@@ -123,10 +123,10 @@ describe("say and runs", () => {
   it("read a key's sentence out of the table", () => {
     expect(say("welcome.heading")).toBe(WIZARD_COPY["welcome.heading"]);
     expect(
-      runs("uplinks.find.devReleases")
+      runs("connect.hint.blocked")
         .map((run) => run.text)
         .join(""),
-    ).toBe(say("uplinks.find.devReleases"));
+    ).toBe(say("connect.hint.blocked"));
   });
 
   it("will not compile a call that leaves out a value its string asks for", () => {

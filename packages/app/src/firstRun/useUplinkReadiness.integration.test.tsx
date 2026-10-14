@@ -148,10 +148,10 @@ describe("useUplinkReadiness: hook wiring", () => {
       ).toBeInTheDocument(),
     );
     expect(
-      screen.getByText(/Built for contract 14\.5; this mod speaks 15\.0\./),
+      screen.getByText(/Built for contract 14\.5; this mod needs 15\.0\./),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/1 refused for a contract mismatch/),
+      screen.getByText(/1 refused due to a contract mismatch/),
     ).toBeInTheDocument();
   });
 

@@ -379,7 +379,7 @@ describe("FirstRunSetup: the KSP connection check", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(MOD_LOG_COMMAND.posix)).toBeInTheDocument();
-    expect(screen.getByText(/KSP is not running yet/)).toBeInTheDocument();
+    expect(screen.getByText(/KSP may not be running yet/)).toBeInTheDocument();
     expect(
       screen.getByRole("link", {
         name: linkWords(runs("connect.hint.notInstalled"), "kspSetup"),
@@ -392,19 +392,17 @@ describe("FirstRunSetup: the KSP connection check", () => {
     ).toHaveAttribute("href", SETUP_LINKS.networking);
   });
 
-  it("gives the optional background tip when KSP is on this computer, and that the port is not to be forwarded", async () => {
+  it("gives the optional background tip when KSP is on this computer", async () => {
     renderSetup(undefined, { ksp: "connected" });
     await goToConnect();
 
     expect(screen.getByText(say("connect.twoComputers"))).toBeInTheDocument();
-    expect(screen.getByText(say("connect.trust"))).toBeInTheDocument();
   });
 
   it("leaves the second computer out when KSP is already on another one", async () => {
     renderSetup(undefined, { ksp: "connected", kspHost: "192.168.1.20" });
     await goToConnect();
 
-    expect(screen.getByText(say("connect.trust"))).toBeInTheDocument();
     expect(screen.queryByText(say("connect.twoComputers"))).toBeNull();
   });
 
@@ -418,7 +416,6 @@ describe("FirstRunSetup: the KSP connection check", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(say("connect.instruction"))).toBeNull();
-    expect(screen.queryByText(say("connect.trust"))).toBeNull();
     expect(screen.queryByText(MOD_LOG_COMMAND.posix)).toBeNull();
   });
 
@@ -430,6 +427,19 @@ describe("FirstRunSetup: the KSP connection check", () => {
     for (const command of Object.values(ADDRESS_COMMAND)) {
       expect(screen.getByText(command)).toBeInTheDocument();
     }
+  });
+
+  it("gives only this system's address command when the browser says which it is", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15",
+    );
+    renderSetup();
+    await goToConnect();
+
+    expect(screen.getByText(ADDRESS_COMMAND.macos)).toBeInTheDocument();
+    expect(screen.queryByText(ADDRESS_COMMAND.windows)).toBeNull();
+    expect(screen.queryByText(ADDRESS_COMMAND.linux)).toBeNull();
+    vi.restoreAllMocks();
   });
 
   it("reads connected and drops the hints once the mod answers", async () => {
@@ -605,7 +615,6 @@ describe("FirstRunSetup: the Uplinks reading", () => {
 
     await userEvent.setup().click(trigger);
     expect(screen.getByText(CKAN_UPLINK_FILTER)).toBeInTheDocument();
-    expect(screen.getByText(/allow development releases/)).toBeInTheDocument();
   });
 
   it("gives a player one plain line for an author-facing refusal and keeps the detail behind Details", async () => {
@@ -740,11 +749,6 @@ describe("FirstRunSetup: the Uplinks reading", () => {
 
     expect(screen.getByText(CKAN_UPLINK_FILTER)).toBeInTheDocument();
     expect(screen.getByText(say("uplinks.check.none"))).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", {
-        name: linkWords(runs("uplinks.find.devReleases"), "ckanUserGuide"),
-      }),
-    ).toHaveAttribute("href", SETUP_LINKS.ckanUserGuide);
   });
 
   it("shows the declared identity of an Uplink the loader described, and nothing for one it never reached", async () => {

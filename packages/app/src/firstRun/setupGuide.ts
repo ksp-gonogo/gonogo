@@ -113,7 +113,6 @@ const DOCS = "https://github.com/ksp-gonogo/gonogo/blob/main/docs";
 export const SETUP_LINKS = {
   docker: "https://docs.docker.com/get-started/get-docker/",
   ckanInstall: "https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN",
-  ckanUserGuide: "https://github.com/KSP-CKAN/CKAN/wiki/User-guide",
   kspSetup: `${DOCS}/KSP-SETUP.md`,
   networking: `${DOCS}/NETWORKING.md`,
   relayPorts: `${DOCS}/NETWORKING.md#cross-internet-stations-cellular-remote-networks`,
@@ -124,6 +123,20 @@ export const SETUP_LINKS = {
 /** True on a Windows browser, where the log check is `findstr` rather than `grep` and a command is written for PowerShell. */
 export function isWindows(): boolean {
   return /Windows/.test(globalThis.navigator?.userAgent ?? "");
+}
+
+/**
+ * The system this browser runs on, matching a key of `ADDRESS_COMMAND`, or
+ * null when the browser does not say (a phone, a tablet, an unfamiliar
+ * system). A Steam Deck reads as Linux.
+ */
+export function browserSystem(): keyof typeof ADDRESS_COMMAND | null {
+  const agent = globalThis.navigator?.userAgent ?? "";
+  if (/Android|iPhone|iPad|iPod/.test(agent)) return null;
+  if (/Windows/.test(agent)) return "windows";
+  if (/Macintosh|Mac OS X/.test(agent)) return "macos";
+  if (/Linux|X11/.test(agent)) return "linux";
+  return null;
 }
 
 /** The shell this browser's operating system opens by default. */

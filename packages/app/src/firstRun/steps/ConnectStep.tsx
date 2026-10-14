@@ -2,7 +2,12 @@ import { CommandBlock } from "@ksp-gonogo/ui";
 import { Stack, Text } from "@ksp-gonogo/ui-kit";
 import { SitrepConnection } from "../../settings/SitrepConnection";
 import { runs, say } from "../copy";
-import { ADDRESS_COMMAND, isWindows, MOD_LOG_COMMAND } from "../setupGuide";
+import {
+  ADDRESS_COMMAND,
+  browserSystem,
+  isWindows,
+  MOD_LOG_COMMAND,
+} from "../setupGuide";
 import {
   useConnectionCheck,
   useKspOnThisComputer,
@@ -12,14 +17,23 @@ import { Hint, HintList, Prose, StepCheck } from "./StepParts";
 const ADDRESS_SYSTEMS = ["windows", "macos", "linux"] as const;
 
 /**
+ * The address command for this browser's system alone, or all three when the
+ * browser does not say which it is. The KSP computer need not be this one, so
+ * the full list is the fallback rather than a guess.
+ */
+function addressSystems(): readonly (typeof ADDRESS_SYSTEMS)[number][] {
+  const own = browserSystem();
+  return own ? [own] : ADDRESS_SYSTEMS;
+}
+
+/**
  * The connect step embeds the same host row the Settings Connection tab
  * renders (`SitrepConnection`, which lives in its own file for
  * exactly this reuse), so an operator meets one connection control, not two
  * that could drift.
  *
  * The step leads with its check. Once connected it adds only what matters
- * after the fact: the pause caveat when KSP shares this computer, and the
- * port 8090 caution. Everything for fixing a connection waits for a failure.
+ * after the fact: the pause caveat when KSP shares this computer. Everything for fixing a connection waits for a failure.
  * The host row stays through a retry because it holds a half-typed host.
  *
  * Moving on does not require a connected status. The next step reports "waiting
@@ -29,11 +43,6 @@ export function ConnectStep() {
   const check = useConnectionCheck();
   const sameComputer = useKspOnThisComputer();
   const failed = check.state === "fail";
-  const trust = (
-    <Text level="muted" size="sm">
-      {say("connect.trust")}
-    </Text>
-  );
 
   return (
     <Stack gap="related-comfortable">
@@ -43,7 +52,6 @@ export function ConnectStep() {
           {say("connect.twoComputers")}
         </Text>
       )}
-      {check.state === "pass" && trust}
       {failed && (
         <>
           <Text level="muted" size="sm">
@@ -61,7 +69,6 @@ export function ConnectStep() {
         </>
       )}
       {check.state !== "pass" && <SitrepConnection />}
-      {failed && trust}
       {failed && (
         <Hint>
           <HintList>
@@ -75,7 +82,7 @@ export function ConnectStep() {
             <li>
               <Stack gap="related">
                 <span>{say("connect.hint.address")}</span>
-                {ADDRESS_SYSTEMS.map((system) => (
+                {addressSystems().map((system) => (
                   <Stack key={system} gap="related-dense">
                     <span>{say(`connect.address.${system}`)}</span>
                     <CommandBlock

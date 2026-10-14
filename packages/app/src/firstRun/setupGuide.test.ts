@@ -35,7 +35,7 @@ describe("the run command is spelled once", () => {
   it("pulls the one image tag the wizard copy names", () => {
     expect(RUN_COMMAND.endsWith(`gonogo:${RUN_IMAGE_TAG}`)).toBe(true);
     expect(say("container.instruction", { tag: RUN_IMAGE_TAG })).toContain(
-      `this build, ${RUN_IMAGE_TAG}.`,
+      `\`${RUN_IMAGE_TAG}\``,
     );
   });
 

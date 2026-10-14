@@ -12,14 +12,14 @@ import { StatusList, UplinkHealthReport } from "../../settings/UplinkStatus";
 import { UplinkIdentityBlock } from "../../uplinks/UplinkIdentityBlock";
 import { UplinkIntegrityDetail } from "../../uplinks/UplinkIntegrityDetail";
 import { uplinksCheck } from "../checks";
-import { runs, say } from "../copy";
+import { say } from "../copy";
 import { CKAN_UPLINK_FILTER } from "../setupGuide";
 import { useConnectionCheck } from "../useConnectionCheck";
 import {
   type UplinkReadinessEntry,
   useUplinkReadiness,
 } from "../useUplinkReadiness";
-import { Hint, Prose, StepCheck } from "./StepParts";
+import { Hint, StepCheck } from "./StepParts";
 
 /**
  * The count line, the one thing here worth announcing when it changes. A
@@ -97,9 +97,6 @@ export function UplinkReadinessStep() {
               command={CKAN_UPLINK_FILTER}
               label={say("uplinks.find.searchLabel")}
             />
-            <Text level="muted" size="sm">
-              <Prose runs={runs("uplinks.find.devReleases")} />
-            </Text>
           </Stack>
         </Disclosure>
       )}

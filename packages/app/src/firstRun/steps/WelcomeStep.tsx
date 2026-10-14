@@ -17,9 +17,6 @@ export function WelcomeStep() {
       <Text level="muted" size="sm">
         {say("welcome.steps")}
       </Text>
-      <Text level="muted" size="sm">
-        {say("welcome.noBlock")}
-      </Text>
     </Stack>
   );
 }
