@@ -1,6 +1,6 @@
 # Connecting Gonogo to KSP
 
-Gonogo reads your game through mods installed in KSP. This page covers only what you do before the app is open. Everything after that is in the app itself, under **Settings, Help**: connecting from another computer, checking telemetry is arriving, what an empty widget means and Uplinks.
+Gonogo reads your game through mods installed in KSP. This page covers what you do before the app is open, and how signal delay is set. Everything after that is in the app itself, under **Settings, Help**: connecting from another computer, checking telemetry is arriving, what an empty widget means and Uplinks.
 
 ## The mods you need
 
@@ -8,9 +8,11 @@ Gonogo is built for KSP 1.12. One mod is required: the **Gonogo mod**. Everythin
 
 ## Installing the Gonogo mod
 
-The mod is not in a mod manager yet. Download `Gonogo-v<version>.zip` from the [releases page](https://github.com/ksp-gonogo/gonogo/releases), unzip it and copy the folders inside its `GameData/` into your KSP install's `GameData/`, so that `Squad/` and `Gonogo/` sit side by side. On Steam, find the install with Manage, Browse local files. Until a release carries the zip there is nothing to download.
+The easiest way is CKAN, a mod manager for KSP: [install CKAN](https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN), then search it for `Gonogo` and install it.
 
-To install an Uplink, do the same with its zip from the [Uplinks releases page](https://github.com/ksp-gonogo/gonogo-uplinks/releases), after installing the mod it connects to.
+If CKAN does not list it, download `Gonogo-v<version>.zip` from the [releases page](https://github.com/ksp-gonogo/gonogo/releases), unzip it and copy the folders inside its `GameData/` into your KSP install's `GameData/`, so that `Squad/` and `Gonogo/` sit side by side. On Steam, find the install with Manage, Browse local files. Until a release carries the zip there is nothing to download.
+
+To install an Uplink, search CKAN for `dep:GonogoCore`, or do the same by hand with its zip from the [Uplinks releases page](https://github.com/ksp-gonogo/gonogo-uplinks/releases), after installing the mod it connects to.
 
 The mod listens on port 8090 with no password, and that port accepts commands that act on your game. Keep it to a network you trust and do not forward it to the internet.
 
