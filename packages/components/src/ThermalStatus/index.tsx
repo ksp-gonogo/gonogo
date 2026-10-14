@@ -10,7 +10,8 @@ type ThermalStatusConfig = Record<string, never>;
 function ThermalStatusComponent({
   h,
 }: Readonly<ComponentProps<ThermalStatusConfig>>) {
-  const { noData, worstBand, hottest, engine, shield } = useThermal();
+  const { noData, worstBand, hottest, engine, engineIsHottestPart, shield } =
+    useThermal();
 
   // Selective rendering: the badge is always shown; rows drop from the bottom (heat shield first, then engine, then hottest-part) as height shrinks. An engine that sets the badge keeps its row, so the badge never names a cause the body does not show.
   const rows = h ?? 7;
@@ -20,7 +21,9 @@ function ThermalStatusComponent({
       noData={noData}
       worstBand={worstBand}
       hottest={rows >= 5 ? hottest : null}
-      engine={rows >= 6 || engineSetsBadge ? engine : null}
+      engine={
+        !engineIsHottestPart && (rows >= 6 || engineSetsBadge) ? engine : null
+      }
       shield={rows >= 7 && shield !== undefined ? shield : null}
     />
   );
