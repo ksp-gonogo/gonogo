@@ -583,6 +583,32 @@ describe("TinyEssentials equal rows", () => {
     expect(roll).toMatch(/[-−]\s*10/);
   });
 
+  it("draws no plus before a figure that is not finite, and a figure that rounds to zero the same as zero", () => {
+    render(
+      <TinyEssentials
+        title="NAV"
+        equalRows
+        essentials={[
+          {
+            label: "PCH",
+            value: value("°", Number.NaN),
+            decimals: 0,
+            signed: true,
+          },
+          { label: "RLL", value: value("°", -0.2), decimals: 0, signed: true },
+          { label: "HDG", value: value("°", 0), decimals: 0, signed: true },
+        ]}
+      />,
+    );
+    const [pitch, roll, heading] = [
+      ...document.querySelectorAll("[data-tiny-essential]"),
+    ].map((r) => r.textContent ?? "");
+    expect(pitch).not.toContain("+");
+    expect(roll).not.toMatch(/[-−]/);
+    expect(roll).toMatch(/\+\s*0/);
+    expect(heading).toMatch(/\+\s*0/);
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = render(
       <TinyEssentials title="NAV" essentials={ANGLES} equalRows />,

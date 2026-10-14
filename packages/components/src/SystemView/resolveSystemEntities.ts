@@ -9,6 +9,7 @@ import {
   type SystemEntity,
   type SystemEntityEmphasis,
   type SystemEntityMeta,
+  type SystemEntityOrbitPosition,
   type SystemEntityStyle,
 } from "./systemEntities";
 
@@ -103,12 +104,47 @@ const DEFAULT_POINT_RADIUS_PX = 4;
 /** A held entity keeps its colour and loses half its weight, which dashing alone would not say at a glance. */
 const HELD_OPACITY_FACTOR = 0.5;
 
+/** Projects an orbit-path's ring for a frame. */
+export type RingProjector = typeof projectOrbitRing;
+
+/**
+ * A ring projector that keeps each ring until what the ring is drawn from
+ * changes: the placement, the plot scale, the centre, the frame body and the
+ * sphere-of-influence lookup. The instant is not among them, so a ring is
+ * projected once and not on every frame the view clock moves a craft's dot.
+ * Useful for a layer that re-resolves its entities at the view clock's rate.
+ * Used by the entities layer.
+ */
+export function createRingCache(): RingProjector {
+  let inputs: readonly unknown[] = [];
+  let rings = new WeakMap<SystemEntityOrbitPosition, string | null>();
+  return (orbit, ctx) => {
+    const next = [
+      ctx.placement,
+      ctx.plotScale,
+      ctx.center.x,
+      ctx.center.y,
+      ctx.parentName,
+      ctx.soiOf,
+    ];
+    if (next.some((v, i) => v !== inputs[i])) {
+      inputs = next;
+      rings = new WeakMap();
+    }
+    if (rings.has(orbit)) return rings.get(orbit) ?? null;
+    const ring = projectOrbitRing(orbit, ctx);
+    rings.set(orbit, ring);
+    return ring;
+  };
+}
+
 /** One entity projected into plot space, or `null` when it has nowhere to draw. */
 function resolveEntity(
   entity: SystemEntity,
   ctx: SystemEntitiesContext,
   colour: string,
   opacity: number,
+  ringOf: RingProjector,
 ): ResolvedSystemEntity | null {
   if (entity.shape.kind === "point") {
     const p = projectEntityPosition(entity.position, ctx);
@@ -132,7 +168,7 @@ function resolveEntity(
       );
       return null;
     }
-    const ring = projectOrbitRing(entity.position, ctx);
+    const ring = ringOf(entity.position, ctx);
     if (!ring) return null;
     const dot = projectEntityPosition(entity.position, ctx);
     return {
@@ -210,6 +246,7 @@ export function resolveSystemEntities(
   entities: readonly SystemEntity[],
   ctx: SystemEntitiesContext,
   decorate?: (id: string) => SystemEntityStyle | undefined,
+  ringOf: RingProjector = projectOrbitRing,
 ): ResolvedSystemEntity[] {
   const layered: Array<{ z: number; resolved: ResolvedSystemEntity }> = [];
 
@@ -228,6 +265,7 @@ export function resolveSystemEntities(
       ctx,
       colour,
       held ? opacity * HELD_OPACITY_FACTOR : opacity,
+      ringOf,
     );
     if (resolved) layered.push({ z, resolved: { ...resolved, held } });
   }

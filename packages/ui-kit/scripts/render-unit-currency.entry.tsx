@@ -480,8 +480,8 @@ function Dates() {
 /**
  * The three kinds of countdown, each shown carried and each shown frozen.
  *
- * One example would not show the thing that was ruled: the difference is
- * whether a model is carrying the value, and that is invisible unless the two
+ * One example would not show the difference, which is whether a model is
+ * carrying the value, and that is invisible unless the two
  * sit next to each other with the same observation behind them.
  *
  * Every row's observation is 90 seconds. Where a model is carrying it, the
