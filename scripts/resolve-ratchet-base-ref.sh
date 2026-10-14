@@ -69,7 +69,7 @@ case "$EVENT_NAME" in
 
   push)
     if [ "$PUSH_BRANCH" = "ci-dev" ]; then
-      # ci-dev is the fold lane. Each batch is rebuilt on staging and pushed here
+      # ci-dev is the integration lane. Each batch is rebuilt on staging and pushed here
       # for the full matrix, so the branch's own previous tip is an unrelated
       # earlier batch, and batch 1's was the tip of an abandoned experiment
       # carried "as ancestry only, none of their content". github.event.before is
@@ -81,7 +81,7 @@ case "$EVENT_NAME" in
       #
       # The state already graded is staging's tip, which is what a green ci-dev
       # run fast-forwards, so that is the base.
-      log "push to the ci-dev fold lane, using the merge base with origin/staging"
+      log "push to the ci-dev lane, using the merge base with origin/staging"
       git fetch --no-tags --quiet origin staging || true
       base="$(git merge-base "$head_sha" FETCH_HEAD 2>/dev/null || true)"
       # A re-run after the forwarder carried this very commit onto staging: the

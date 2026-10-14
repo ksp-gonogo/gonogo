@@ -417,7 +417,7 @@ namespace Gonogo.KSP
         // Held the same way as _signalDelayConfig above: the command-centre registry GonogoAddon builds after uplink discovery, for the readers that have no instance of this uplink in hand.
         private static CommandCentreRegistry? _commandCentreRegistry;
 
-        /// <summary>Set the shared command-centre registry (called by GonogoAddon once Plan 3's registry is built).</summary>
+        /// <summary>Set the shared command-centre registry (called by GonogoAddon once the registry is built).</summary>
         public static void ConfigureCommandCentreRegistry(CommandCentreRegistry registry) =>
             _commandCentreRegistry = registry;
 

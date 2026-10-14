@@ -733,7 +733,7 @@ export class TelemetryClient {
   }
 
   /**
-   * The command centre this client asked to command from and observe at (Plan 3),
+   * The command centre this client asked to command from and observe at,
    * or `undefined` until {@link setVantage} asks for one.
    *
    * `undefined` is "wherever the server puts a connection that has not chosen",

@@ -166,7 +166,7 @@ namespace Sitrep.Propagation.Tests
         /// This derives the same relationship from somewhere else entirely, the swept area,
         /// so a misstated equation fails it while satisfying the residual perfectly.
         ///
-        /// <para>The brief asked for externally-published triples for this job. None could
+        /// <para>Externally-published triples were wanted for this job. None could
         /// be sourced and verified against a primary source, so this is the substitute; see
         /// <c>publishedTriplesNote</c> in the fixture.</para>
         /// </summary>

@@ -13,8 +13,7 @@ A runtime-loaded Uplink client bundle is built with these specifiers marked
 statements resolve: through the `<script type="importmap">` baked into
 `index.html` at build time: to these emitted chunks. So a loaded widget's
 module-load `registerComponent(...)` writes into the SAME registry the dashboard
-reads. This is the load-bearing singleton-preservation mechanism (design
-`docs/superpowers/specs/2026-07-17-uplink-hub-and-loader-design.md` §2.2).
+reads. This is the load-bearing singleton-preservation mechanism.
 
 Two findings from the R1 spike are baked into the file shapes here:
 

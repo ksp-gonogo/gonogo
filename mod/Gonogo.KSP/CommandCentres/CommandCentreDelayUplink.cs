@@ -16,7 +16,7 @@ namespace Gonogo.KSP.CommandCentres
 
     /// <summary>
     /// Populates the per-(authority, subject) command-delay matrix each tick and
-    /// publishes <c>commandCentre.roster</c> (Plan 3). Owns the command-centre
+    /// publishes <c>commandCentre.roster</c>. Owns the command-centre
     /// sources + registry; the same registry instance is registered on the
     /// ChannelEngine (by the addon) so set-vantage validation and this delay pass
     /// see the same centres.
@@ -305,7 +305,7 @@ namespace Gonogo.KSP.CommandCentres
         /// One-way seconds from a centre to a subject vessel. The home command, as the
         /// elected claimant names it, reuses the subject's own routed signal delay via
         /// <see cref="FleetCommsReader.ReadVessel"/>, so the explicit (home, fleet.&lt;guid&gt;)
-        /// row equals Plan 2's node-default (home parity, T13): the vessel's solved path
+        /// row equals the per-vessel node-default (home parity): the vessel's solved path
         /// home is the path to that centre, and re-solving it here could only introduce a
         /// discrepancy. Any other centre, and every centre when no home is identified,
         /// solves the graph between its own node and the subject's.

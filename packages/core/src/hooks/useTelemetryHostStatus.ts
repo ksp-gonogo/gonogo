@@ -4,7 +4,7 @@ import { useDataSources } from "./useDataSources";
  * The shared "No telemetry host" string: used identically by the widget
  * chrome (`RequiresGuard`) and the Settings Data Sources tab
  * (the uplink health list), per the uplink-health render-gating design's "same
- * string in both surfaces" rule (local_docs/uplink-health-render-gating-design.md).
+ * string in both surfaces" rule.
  */
 export const NO_TELEMETRY_HOST_MESSAGE = "No telemetry host";
 

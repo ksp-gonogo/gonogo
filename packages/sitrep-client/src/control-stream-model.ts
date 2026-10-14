@@ -2,8 +2,7 @@
  * Pure, React-free math for the continuous-control delay stream. The hook
  * (`use-control-stream.tsx`) owns the timers, rings and dispatch; the component
  * (`ControlDelayStream`) owns the pixels; everything numeric lives here so it is
- * asserted directly with no harness. See
- * `local_docs/design/specs/2026-08-02-continuous-control-delay-stream-design.md`.
+ * asserted directly with no harness.
  */
 
 export type ControlRange = "unit" | "signed";

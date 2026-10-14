@@ -5,12 +5,12 @@ using Sitrep.Contract;
 
 namespace Gonogo.KSP.CommandCentres
 {
-    // NOTE (agent-6, Plan 3): this worktree has no KspManaged reference DLLs, so
-    // the files under Gonogo.KSP/CommandCentres/ cannot be compiled locally. The
+    // NOTE: these files were written without the KspManaged reference DLLs, so
+    // the files under Gonogo.KSP/CommandCentres/ were not compiled locally. The
     // KSP member accesses (CommNetHome.comm / .isKSC / .nodeName / .body,
     // CommNode.isControlSource / .precisePosition, Vessel.connection.Comm) are
-    // written from agent-2's command-centre-sources research + the existing
-    // CommNetBackend.cs usage; verify member names at the full-sln fold.
+    // taken from the existing CommNetBackend.cs usage; verify member names
+    // against a full build.
 
     /// <summary>
     /// A concrete KSP-backed <see cref="ICommandCentre"/>. It exposes the KSP-free

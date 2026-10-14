@@ -55,7 +55,7 @@
  * stand-in's body is `() => null`. `administration-building.screens`,
  * `space-center-status.facilities` and `astronaut-complex.readouts` are each a
  * `useContributions(...)` inside the widget. Standing in for those produces a
- * blank frame that reports success, which is measured (ticket 317) rather than
+ * blank frame that reports success, which is measured rather than
  * argued, and is why the refusal in `render/scenes.ts` stays where it is.
  *
  * A real widget's own body is the only thing that draws them. That is this package.

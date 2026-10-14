@@ -113,8 +113,8 @@ function allowedEccentricAnomalyError(E: number, e: number): number {
  * E, by the radius vector from the occupied focus, integrated numerically.
  *
  * This is the check of a different kind. The residual cannot tell a correct equation
- * from a consistently-wrong one, and the brief's remedy for that was two or three
- * externally-published triples; I could not source any I would stand behind (see
+ * from a consistently-wrong one, and the usual remedy for that is two or three
+ * externally-published triples; none could be sourced and verified (see
  * `publishedTriplesNote` in the fixture). This closes the same gap without needing a
  * trusted number, by deriving the relationship from somewhere else entirely: Kepler's
  * second law says the radius sweeps equal areas in equal times, so the swept fraction

@@ -162,8 +162,7 @@ export type AlarmTrigger =
  * the operator picks a group and the host resolves it to that group's own
  * command at fire time. Lives alongside the visual fire event so the central
  * alarm pipeline (warp dewarp ramp, cross-screen acknowledge) covers the
- * action-group dispatch automatically: see
- * `project_central_alarm_pipeline.md`.
+ * action-group dispatch automatically.
  *
  * Discriminated union from the start so future trigger-style side
  * effects (kOS run, log-and-move-on, emit-peer-message etc.) can be

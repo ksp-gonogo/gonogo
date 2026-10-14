@@ -6690,7 +6690,7 @@ namespace Gonogo.KSP
             return list;
         }
 
-        // Part-tree topology capture (vessel.parts: P1b slice 2)
+        // Part-tree topology capture (vessel.parts)
 
         /// <summary>
         /// One pass over <c>vessel.parts</c> producing the raw part-tree the
@@ -7692,7 +7692,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The P1b slice 2 stage-ΔV capture: reads KSP's stock
+        /// The stage-ΔV capture: reads KSP's stock
         /// <c>VesselDeltaV</c> stage simulation (the same numbers the in-game
         /// ΔV app shows; atmosphere/ISP/crossfeed/staging all handled by the
         /// game, so this never hand-rolls the rocket equation) into the raw

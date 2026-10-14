@@ -299,14 +299,14 @@ namespace Sitrep.Core
         /// <summary>
         /// Sets the fallback one-way delay for any (vantage, node) pair without
         /// an explicit override. The host drives the whole-network signal delay
-        /// through this (Plan 1 ledger migration).
+        /// through this.
         /// </summary>
         void SetDefaultDelay(double seconds);
 
         /// <summary>
         /// Sets the one-way delay for a node, applied for that node from any
         /// vantage without a per-(vantage, node) override. The per-vessel
-        /// downlink primitive (Plan 2): each vessel node carries its own routed
+        /// downlink primitive: each vessel node carries its own routed
         /// signal delay for the single KSC observer.
         /// </summary>
         void SetNodeDelay(string node, double seconds);
@@ -341,7 +341,7 @@ namespace Sitrep.Core
         /// Sets the one-way delay for an explicit (vantage, node) pair, the
         /// highest-precedence tier of <see cref="DelayTo"/>. Overrides the
         /// <see cref="SetNodeDelay"/> node-default for that specific observer.
-        /// The per-(authority, subject) command primitive (Plan 3): a command
+        /// The per-(authority, subject) command primitive: a command
         /// centre's routed signal delay to a fleet subject, applied only when an
         /// operator selects that centre as its vantage.
         /// </summary>
@@ -555,10 +555,10 @@ namespace Sitrep.Core
         {
             // Resolution order: an explicit (vantage, node) pair overrides a
             // node-level journey or default (SetNodeJourney / SetNodeDelay),
-            // which overrides the global default (SetDefaultDelay). Plan 2
-            // uses the node-default for per-vessel downlink delay -- one KSC
+            // which overrides the global default (SetDefaultDelay). The
+            // node-default carries per-vessel downlink delay -- one KSC
             // observer, so the delay depends on the subject node, not the
-            // observer vantage. Plan 3 layers per-(vantage, node) overrides on
+            // observer vantage. Per-(vantage, node) overrides layer on
             // top for multiple command authorities: both paths are kept
             // intact. An explicit pair is still scalar-only today, so it is
             // always a single hop with no geometry or handles.
@@ -695,10 +695,10 @@ namespace Sitrep.Core
         /// Set the one-way delay for a node, applied to <see cref="DelayTo"/> for
         /// that node from any vantage that has no explicit per-(vantage, node)
         /// <see cref="SetDelay"/> override. This is the per-vessel downlink
-        /// primitive (Plan 2): the fleet capture sets each vessel node's own
+        /// primitive: the fleet capture sets each vessel node's own
         /// routed signal delay, and every KSC-observer connection reads it. NaN /
         /// infinite / negative values clamp to 0 (matching
-        /// <see cref="SetDefaultDelay"/>). Plan 3 layers per-(vantage, node)
+        /// <see cref="SetDefaultDelay"/>). Per-(vantage, node)
         /// <see cref="SetDelay"/> overrides on top of this node-default for
         /// multiple command authorities -- keep both.
         ///

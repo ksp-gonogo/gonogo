@@ -2,7 +2,7 @@
 /**
  * The shared worker's entry point: cross-browser video-delay
  * design, 2026-07-16, "one long-lived worker; each feed is a pipeline keyed
- * by id" (locked decision 2). Deliberately thin: everything it does routes
+ * by id". Deliberately thin: everything it does routes
  * straight into already-unit-tested pieces:
  * `runFrameDelayPipeline`/`DelayedPlayoutBuffer` (unchanged, F1),
  * `createWorkerDelayClock` (`worker-delay-clock.ts`), `createNowWall`
@@ -39,7 +39,7 @@
  *  - `pipelineReady`        : success; carries the transferred output track.
  *  - `pipelineError`        : construction failed (feature absent, or the
  *                               processor/generator pair threw), the
- *                               "can't delay -> no video" case (decision 5).
+ *                               "can't delay -> no video" case.
  *  - `pipelineNonFatalError`: a post-construction read/write rejection,
  *                               mirrors `runFrameDelayPipeline`'s `onError`.
  *

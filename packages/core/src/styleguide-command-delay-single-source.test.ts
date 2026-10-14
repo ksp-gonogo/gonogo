@@ -277,7 +277,7 @@ describe("the delay disposition is declared once", () => {
     expect(
       restatesDelay('[SitrepCommand("ksp.launch", Delay = DelayRole.TrueNow)]'),
     ).toBe(false);
-    expect(restatesDelay("// was Delayed = false before the ruling")).toBe(
+    expect(restatesDelay("// was Delayed = false before the change")).toBe(
       false,
     );
 

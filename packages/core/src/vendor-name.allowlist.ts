@@ -20,7 +20,7 @@
  * `mod/sitrep-sdk` clean on the day the spine moved there carrying 86 lines of
  * doc comment naming the vendor.
  *
- * Where the provenance lives now: `local_docs/design/`, every removed comment
+ * Where the provenance lives now: a local, untracked design folder, every removed comment
  * reproduced verbatim under its file and line. Deleting a mention here loses
  * nothing. What must not be lost is a comment that records a semantic
  * distinction rather than a rename: those get rewritten to state the

@@ -11,8 +11,7 @@ name: Build and publish one Uplink mod
 # KSP_MANAGED_TOKEN / SPACEDOCK_* secrets): no changes needed here.
 #
 # version/ref/channel are computed by the CALLER, not derived here, so this
-# workflow stays a pure "build+publish what I'm told" step; see
-# docs/superpowers/plans/2026-07-11-mod-release-pipeline-design.md §4c.
+# workflow stays a pure "build+publish what I'm told" step.
 
 on:
   workflow_call:
@@ -163,8 +162,7 @@ jobs:
             /p:KspManaged="${{ github.workspace }}/ksp-managed/KSP_Data/Managed" \
             /p:KspGameData="${{ github.workspace }}/ksp-managed/GameData"
 
-      # Per-mod GameData/<folder>/Plugins/ tree: see
-      # docs/superpowers/plans/2026-07-11-mod-release-pipeline-design.md §2.
+      # Per-mod GameData/<folder>/Plugins/ tree.
       # `AppendTargetFrameworkToOutputPath=false` on every KSP-facing
       # csproj means the built DLL always lands directly in bin/Release/,
       # no TFM subfolder to account for.

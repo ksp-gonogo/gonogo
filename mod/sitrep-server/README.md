@@ -65,9 +65,6 @@ know or care which one it's talking to.
   Principia propagation: all out of scope for M3, tracked in the roadmap doc
   below.
 
-See `docs/superpowers/plans/2026-07-06-telemetry-mod-roadmap.md` for the full
-milestone breakdown.
-
 ## Testing note: the cross-package integration proof lives in sitrep-client
 
 `courier-transport.test.ts` in this package has a (test-only) devDependency

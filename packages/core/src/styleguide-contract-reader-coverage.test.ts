@@ -37,7 +37,7 @@ import {
 } from "./ratchetBaseRef";
 
 /**
- * gonogo Saga task 727: does any production client read this published contract field or
+ * Does any production client read this published contract field or
  * send this contract command. Core integrated the n-body arc and published it
  * as `vessel.orbit.Arc`, plus a `vessel.trajectory.forVantage` command;
  * neither had a production reader, only tests and an sdk hook, and no
@@ -483,8 +483,8 @@ describe("the debt list only ever shrinks", () => {
       problems,
       `Debt list vs ${at.ref}. The list is shrink-only: a field or command ` +
         "lands with its reader. A key added with the operator's approval goes " +
-        "on CONTRACT_READER_ADDED_WITH_TICKET with the Saga ticket that owns " +
-        "its reader.",
+        "on CONTRACT_READER_ADDED_WITH_TICKET with a reason " +
+        "naming what owns its reader.",
     ).toEqual([]);
   });
 
@@ -522,31 +522,31 @@ describe("the debt allowance can be seen to work", () => {
     expect(problems.join("\n")).toContain("field:c.d is new debt");
   });
 
-  it("fails an allowed key whose ticket is a placeholder", () => {
+  it("fails an allowed key whose reason is blank", () => {
     const problems = debtListProblems({
       baseDebt: base,
       debt: new Set(["field:a.b", "field:c.d"]),
-      allowance: { "field:c.d": "Saga TBD-1" },
+      allowance: { "field:c.d": "   " },
       baseAllowance: undefined,
     });
-    expect(problems.join("\n")).toContain("without a ticket");
+    expect(problems.join("\n")).toContain("without a reason");
   });
 
-  it("fails an allowed key that carries no ticket", () => {
+  it("fails an allowed key that carries no reason", () => {
     const problems = debtListProblems({
       baseDebt: base,
       debt: new Set(["field:a.b", "field:c.d"]),
       allowance: { "field:c.d": "" },
       baseAllowance: undefined,
     });
-    expect(problems.join("\n")).toContain("without a ticket");
+    expect(problems.join("\n")).toContain("without a reason");
   });
 
   it("fails an allowed key that is not debt any more", () => {
     const problems = debtListProblems({
       baseDebt: base,
       debt: new Set(["field:a.b"]),
-      allowance: { "field:c.d": "Saga 1" },
+      allowance: { "field:c.d": "owed a reader" },
       baseAllowance: undefined,
     });
     expect(problems.join("\n")).toContain("not debt any more");
@@ -556,19 +556,19 @@ describe("the debt allowance can be seen to work", () => {
     const problems = debtListProblems({
       baseDebt: base,
       debt: new Set(["field:a.b", "field:c.d"]),
-      allowance: { "field:c.d": "Saga 1" },
+      allowance: { "field:c.d": "owed a reader" },
       baseAllowance: new Set(),
     });
     expect(problems.join("\n")).toContain("only shrinks");
   });
 
-  it("accepts an added key with a ticket", () => {
-    for (const ticket of ["Saga 921", "Saga 1"]) {
+  it("accepts an added key with a reason", () => {
+    for (const reason of ["owed a reader", "kept for API consumers"]) {
       expect(
         debtListProblems({
           baseDebt: base,
           debt: new Set(["field:a.b", "field:c.d"]),
-          allowance: { "field:c.d": ticket },
+          allowance: { "field:c.d": reason },
           baseAllowance: undefined,
         }),
       ).toEqual([]);

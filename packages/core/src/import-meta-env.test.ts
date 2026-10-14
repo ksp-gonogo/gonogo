@@ -12,7 +12,7 @@ import { exitStatus } from "./ratchetBaseRef";
 
 /**
  * Ban on reading `import.meta.env` through anything other than the literal
- * Vite substitutes. Saga #525: `eb6b2f744` rewrote three literal
+ * Vite substitutes. A past commit rewrote three literal
  * `import.meta.env` reads into `Reflect.get(import.meta, "env")` while
  * clearing them off the unknown-cast ratchet's debt list (`unknown-cast.test.ts`
  * in this same package), and Vite's static substitution never saw the rewritten
@@ -187,7 +187,7 @@ describe("design-system: import.meta.env is read only through the literal Vite s
           "literal text `import.meta.env` (a type cast around it is fine, TypeScript",
           "erases the cast before the bundler sees it; a runtime property lookup is",
           "not). Reflect.get, bracket indexing and destructuring all read `undefined`",
-          "in both the dev server and the bundle, silently: Saga #525 broke",
+          "in both the dev server and the bundle, silently: that is how",
           "VITE_PEER_* and VITE_SITREP_HOST this way. Spell the literal dotted read",
           "instead; see the fixed sites (`0b556aa05`) for the cast form when the",
           "package has no `ImportMetaEnv` augmentation in scope.",

@@ -182,7 +182,7 @@ const ALLOWED_TRUENOW: Record<string, number> = {
    * and delaying the rule would have a predictor computing tomorrow's blackout
    * from yesterday's assumptions.
    *
-   * Lowered from 8 to 4 (Saga 840). comms.connectivity, comms.signal,
+   * Lowered from 8 to 4. comms.connectivity, comms.signal,
    * comms.control and comms.network were here as "what KSC can establish about
    * the link from its own end". Under reckoned vantages that does not hold: a
    * centre learns whether a radio answers only when its signal arrives, and
@@ -190,7 +190,7 @@ const ALLOWED_TRUENOW: Record<string, number> = {
    * active craft's node now, the first three exempt from the freeze as
    * comms.link is, because they are how a blackout is reported.
    *
-   * Lowered from 4 to 3 (Saga 782 subtask 78). comms.commandCentre named the
+   * Lowered from 4 to 3. comms.commandCentre named the
    * centre the game's solved path ended at, which is the state of every hop
    * at this instant. Each centre is now sent the terminus of the path its own
    * contact plan has, addressed to it alone, with comms.path and comms.network

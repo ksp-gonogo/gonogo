@@ -183,7 +183,7 @@ describe("design-document references on the published comment surface", () => {
         "",
         "Rewrite the sentence so it stands on its own. Do NOT qualify the",
         "reference: telling a reader which document they cannot read leaves them",
-        "worse off than saying nothing, which is the same ruling",
+        "worse off than saying nothing, which is the same rule",
         "published-doc-reachability's predicate 5 carries.",
         "",
         "DESIGN_DOC_REF_DEBT is shrink-only. A new entry means new code just",

@@ -11,7 +11,7 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// Plan 3 vantage-seam multi-client safety: the observer vantage moved from the
+    /// Vantage-seam multi-client safety: the observer vantage moved from the
     /// per-connection <c>session.Connection.Id</c> to the shared session vantage
     /// (every client here is at the same one, never having chosen). The Archive read
     /// cursor is keyed <c>_cursors[topic][vantage]</c>, shared and monotonic, so all

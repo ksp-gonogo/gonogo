@@ -18,7 +18,7 @@
  * because this engine doesn't support transferring a `MediaStreamTrack`
  * at all. The caller treats a `null` resolution
  * exactly like the main-thread backend's `null` return, "can't delay ⇒
- * no video" (decision 5), never a live fallback.
+ * no video", never a live fallback.
  *
  * Not unit-tested (see `delay-worker.ts`'s doc for why), thin
  * message-passing glue over already-tested pieces, validated by the manual

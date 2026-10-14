@@ -91,8 +91,8 @@ const CHANNEL_FACTORY =
  * that is the answer both of them read.
  *
  * `time.warp` is the case that proves it, and it was WRONG in the published
- * document until this was added: the channel has been `DelayRole.TrueNow` since
- * the 2026-09-11 warp ruling and `x-sitrep-delay-role` said `delayed`, which is
+ * document until this was added: the channel is `DelayRole.TrueNow` and
+ * `x-sitrep-delay-role` said `delayed`, which is
  * the one fact about a channel an operator most needs the document to get right.
  */
 const LOCAL_DECLARATION = /\bvar\s+(\w+)\s*=\s*(\w+)\s*\(([^()]*)\)\s*;/g;

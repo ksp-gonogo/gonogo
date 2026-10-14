@@ -2,7 +2,7 @@ import type { TopicReading } from "./reading";
 import { useStream } from "./use-stream";
 
 /**
- * Display-only per-vessel link facts (Plan 2c), read off `fleet.<guid>.delay`.
+ * Display-only per-vessel link facts, read off `fleet.<guid>.delay`.
  *
  * `oneWaySeconds` is a bare number, not a wrapped `Value<"s">` like the generated
  * `FleetVesselLink` contract type: `fleet.<guid>.*` is a dynamic topic the decode

@@ -62,7 +62,7 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // bespoke control states on hand-rolled buttons (LaunchDirector,
 // SpaceCenterStatus, Strategies, TargetPicker, ResearchAndDevelopment, TransferWindow,
 // GroundTrack); a kit primitive that took arbitrary state CSS through props was
-// refused (#428) as an escape hatch. Deleting an ignore to tidy the list
+// refused as an escape hatch. Deleting an ignore to tidy the list
 // deletes a focus ring or a hover state, so do not lower this number without
 // migrating the file it names.
 const STYLED_COMPONENTS_IMPORT_BASELINE = 13;

@@ -1244,7 +1244,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "portrait-6x18", w: 6, h: 18 },
       { name: "landscape-18x8", w: 18, h: 8 },
       /*
-       * gonogo Saga task 728 slice 1: "Follow the in-game view", pinned against
+       * "Follow the in-game view", pinned against
        * the one fixture whose system.frame elects a RotatingPulsating Control
        * Frame no stock install ever reports. resolveReadFrame turns that into
        * the same Kerbin-Mun pulsating picture a hand-authored contribution

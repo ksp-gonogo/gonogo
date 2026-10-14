@@ -13,7 +13,7 @@ using StreamData = Sitrep.Contract.StreamData<object?>;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// Plan 2 (fleet under delay) integration tests: each fleet vessel gets its
+    /// Fleet-under-delay integration tests: each fleet vessel gets its
     /// own delayed telemetry topic. Driven by <see cref="FleetDelayTestUplink"/>
     /// over the real WS harness (the same shape as <see cref="RevealGateTests"/>).
     /// </summary>
@@ -101,7 +101,7 @@ namespace Sitrep.Host.IntegrationTests
         [Fact]
         public async Task FleetVesselDelayTopicEmitsAndSerializesEndToEnd()
         {
-            // Plan 2c: fleet.<id>.delay carries FleetVesselLink (oneWaySeconds +
+            // fleet.<id>.delay carries FleetVesselLink (oneWaySeconds +
             // connected), emitted as a self-flattened dict. This proves it
             // serializes through the JsonWriter/WS boundary and arrives with its
             // values intact -- the coverage the .orbit-only tests missed, which

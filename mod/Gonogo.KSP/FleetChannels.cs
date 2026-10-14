@@ -332,7 +332,7 @@ namespace Gonogo.KSP
                         _journeyWriter?.SetVesselJourney(v.Id, v.Journey);
                     }
                 }
-                // Per-subject freeze (Plan 2b): this vessel freezes on its own link.
+                // Per-subject freeze: this vessel freezes on its own link.
                 // Reported here as well as by HandleLinksOnCourier because the
                 // order matters on a disconnect tick: after the delay, so the last
                 // connected light-time is kept, and before the publishes, so they
@@ -342,7 +342,7 @@ namespace Gonogo.KSP
                 {
                     _orbitSource.Publisher(v.Id + ".orbit").Publish(v.Orbit, cap.Ut);
                 }
-                // Plan 2c: surface the per-vessel delay + connectivity the capture
+                // Surface the per-vessel delay + connectivity the capture
                 // already holds as a display-only fleet.<guid>.delay field (same
                 // Delayed namespace as .orbit, so it too arrives light-time-late).
                 _orbitSource.Publisher(v.Id + ".delay")

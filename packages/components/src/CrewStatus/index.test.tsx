@@ -222,7 +222,7 @@ describe("CrewStatusComponent", () => {
   });
 
   /** On EVA the active vessel is the kerbal, so the header names them above their suit meters. */
-  describe("EVA header names the kerbal (#384)", () => {
+  describe("EVA header names the kerbal", () => {
     function evaOnSuit(fixture: ReturnType<typeof newFixture>) {
       fixture.emit("vessel.crew", {
         count: 1,

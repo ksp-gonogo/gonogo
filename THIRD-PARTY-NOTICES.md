@@ -20,15 +20,13 @@ link directly against its assemblies.
 
 ## SCANsat
 
-- **Integration:** `mod/GonogoScansatUplink` (a separate `ISitrepUplink`,
-  see `.superpowers/sdd/uplink-packaging-pattern.md`) references
+- **Integration:** `mod/GonogoScansatUplink` (a separate `ISitrepUplink`) references
   `SCANsat.dll`/`SCANsat.Unity.dll` at compile time (reference-only,
   `Private="false"`; not bundled) and calls SCANsat's public API in-process
   to stream `scansat.*` channels, which gonogo's GroundTrack / Scanning widgets
   consume. It also
   replicates small public-input formulas from SCANsat's source (`getFOV`,
-  `getElevation`/`getBiomeIndex` sampling conventions: see
-  `local_docs/telemetry-mod/scansat-migration-spec.md` §0D/§0E).
+  `getElevation`/`getBiomeIndex` sampling conventions).
   `GonogoScansatUplink.dll` is **GPL-3.0-only, provisionally and on hold**:
   SCANsat's repository LICENSE.txt is 3-clause BSD (permissive) but its
   published CKAN metadata declares `restricted`, and we compile-time link the
@@ -73,14 +71,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
 Full upstream notice (including asset-specific licenses and bundled
-third-party library notices): `local_docs/reference/scansat/LICENSE.txt`.
+third-party library notices): SCANsat's own LICENSE.txt.
 
 ## RealAntennas
 
 - **Integration:** treated as a first-class comms provider alongside
-  RemoteTech in Sitrep's comms/delay model (see
-  `local_docs/telemetry-mod/spec-streaming-delay-model.md` and
-  `project_new_mod_comms_remotetech` design notes): Sitrep reads
+  RemoteTech in Sitrep's comms/delay model: Sitrep reads
   RealAntennas' link/delay state to drive signal-loss and light-delay
   telemetry. No RealAntennas code is linked into gonogo or Sitrep.
 - **License:** Creative Commons Attribution-ShareAlike 4.0 International

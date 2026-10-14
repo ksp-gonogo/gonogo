@@ -9,7 +9,7 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
  * The scan behind `styleguide-contract-reader-coverage.test.ts`: does any
  * production client read this contract field or send this contract command.
  *
- * gonogo Saga task 727. Core integrated the n-body arc and published it as
+ * Core integrated the n-body arc and published it as
  * `vessel.orbit.Arc`, plus a `vessel.trajectory.forVantage` command; neither
  * had a production reader, only tests and an sdk hook. The existing ratchets
  * (`declaration-reachability`, uplink isolation, payload test coverage,

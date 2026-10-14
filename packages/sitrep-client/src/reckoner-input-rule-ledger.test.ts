@@ -84,7 +84,7 @@ describe("the input-rule ledger", () => {
      * THREE, since 2026-09-16, and this file asked to be revisited on exactly
      * that day. It was empty for as long as nothing modelled `vessel.orbit`,
      * which is the input three of core's four models declare; giving it a conic
-     * of its own (ticket 308) made both rules live across most of the tree at once.
+     * of its own made both rules live across most of the tree at once.
      *
      * What the rule now bites on, per model:
      *

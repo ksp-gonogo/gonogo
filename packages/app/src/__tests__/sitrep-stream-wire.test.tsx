@@ -8,7 +8,7 @@ import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import type { LinkClient } from "../test/peerFakes";
 
 /**
- * Closes the untested seam from the browser-transport brief: the live
+ * Closes the untested seam of the browser transport: the live
  * `WebSocketTransport` running inside the real `<SitrepTelemetryProvider>`,
  * end-to-end over the MSW `ws` boundary, asserting a frame on the socket flows
  * all the way to a widget re-render. Nothing internal is faked, the provider

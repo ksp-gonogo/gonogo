@@ -57,7 +57,7 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.Equal(FaultCode.PayloadSerializationError, error.Code);
                 Assert.Equal(ThirdPartyPayloadUplink.Topic, error.Topic);
 
-                // (b) of the brief: the message must name the offending type
+                // The message must name the offending type
                 // AND the channel, or it does not shorten anyone's search.
                 Assert.Contains(ThirdPartyPayloadUplink.Topic, error.Message);
                 Assert.Contains(nameof(BurnPlan), error.Message);

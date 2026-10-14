@@ -14,7 +14,7 @@
  * not merely fail to draw, it drew a reputation cost of 13.97 where the shape
  * the mod actually sends produces 7.3, for months, with green tests.</p>
  *
- * <p>Seeded 2026-08-30 from a full scan of 66 fixture directories: 18 entries,
+ * <p>Seeded from a full scan of 66 fixture directories: 18 entries,
  * 501 individual occurrences. Four of the five defects that prompted the gate
  * were already fixed by hand the day before and are correctly absent; the ones
  * below are what was left, plus two nobody had found.</p>

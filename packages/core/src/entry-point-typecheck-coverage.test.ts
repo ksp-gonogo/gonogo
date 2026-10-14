@@ -17,7 +17,7 @@ import { tsconfigsRunBy } from "./typecheckScriptConfigs";
  * `typecheck-coverage.test.ts`: this asks `ts.sys` to resolve config files off
  * disk and shells out to git.
  *
- * Saga #295: three files using `Unit` or `Meter` sat in no package's tsconfig
+ * Three files using `Unit` or `Meter` sat in no package's tsconfig
  * at all (`components/tsconfig.json` and `ui-kit/tsconfig.json` covered `src`
  * only), so a fully green `pnpm typecheck` said nothing about them. Wiring
  * `ui-kit/scripts` into a project by hand, against an in-progress tree,

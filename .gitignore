@@ -27,8 +27,8 @@ local_docs/
 /test-results/
 /playwright-report/
 .playwright-mcp/
-# Superpowers process artifacts (design specs + implementation plans) stay
-# local, like .superpowers/ scratch: they're working docs, not repo history.
+# Local working docs (design specs and plans) stay untracked: they are
+# working notes, not repo history.
 docs/superpowers/
 .superpowers/
 # C# / .NET build outputs
@@ -49,10 +49,9 @@ obj/
 # Feature log: working history, not repo record. Kept on disk, untracked.
 feature_log/
 
-# Fleet-agent scaffolding: per-worktree launcher state, never repo history.
-# Untracked is not enough, the em-dash and reachability gates both scan
-# untracked files on purpose, so an agent's own log becomes a styleguide
-# offender in whichever worktree it happens to be running.
+# Per-worktree launcher state, never repo history. Untracked is not enough,
+# the em-dash and reachability gates both scan untracked files on purpose,
+# so a stray log becomes a styleguide offender in whichever worktree holds it.
 .agent.log
 .launch.sh
 .startup-prompt

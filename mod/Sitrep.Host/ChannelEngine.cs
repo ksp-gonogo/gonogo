@@ -44,18 +44,18 @@ namespace Sitrep.Host
         /// The everywhere-at-once observer vantage: <c>DelayTo(MetaVantage, *)</c>
         /// is pinned to 0 so instant/exempt topics (comms.link,
         /// fleet.&lt;guid&gt;.contact, TrueNow) are never delayed by the ledger even
-        /// after the whole-network default carries the signal delay (Plan 1).
+        /// after the whole-network default carries the signal delay.
         /// Keeps "instant" a vantage, not a separate code path.
         /// </summary>
         public const string MetaVantage = "meta";
 
         /// <summary>
-        /// Per-vessel node namespace (Plan 2): a topic "fleet.&lt;guid&gt;.&lt;field&gt;"
+        /// Per-vessel node namespace: a topic "fleet.&lt;guid&gt;.&lt;field&gt;"
         /// records under the per-vessel Courier node "fleet.&lt;guid&gt;", so
         /// <c>DelayTo(vantage, node)</c> can give each vessel its own signal delay.
         /// Every other topic uses the single <see cref="NodeId"/>. The delay per
-        /// vessel node is populated by the fleet capture; freeze stays global in
-        /// Plan 2 (the reveal gate is unchanged).
+        /// vessel node is populated by the fleet capture; freeze stays global
+        /// (the reveal gate is unchanged).
         /// </summary>
         public const string FleetNodePrefix = "fleet.";
 
@@ -161,7 +161,7 @@ namespace Sitrep.Host
         /// <see cref="NodeId"/>. An Uplink's own per-vessel namespace routes
         /// through <see cref="NodeFor"/> instead, which consults what each
         /// namespace declared; this is the fallback beneath it. Together they
-        /// are the only seam that makes the node axis per-vessel (Plan 2), the
+        /// are the only seam that makes the node axis per-vessel, the
         /// Courier/Archive already key by opaque node.
         /// </summary>
         internal static string NodeForTopic(string topic)
@@ -305,7 +305,7 @@ namespace Sitrep.Host
         private readonly Kernel _kernel = new Kernel();
 
         /// <summary>
-        /// Plan 3: the registered command-centre sources. MAIN-THREAD-ONLY: a
+        /// The registered command-centre sources. MAIN-THREAD-ONLY: a
         /// production source answers through Unity (<c>FindObjectsOfType</c>, the live
         /// vessel list), so this is enumerated solely by
         /// <see cref="CaptureCommandCentresOnMain"/>. A vantage check reads
@@ -966,7 +966,7 @@ namespace Sitrep.Host
         private bool _activeVesselSwitched;
         private string? _lastActiveVesselId;
 
-        // Per-subject last-connected delay (Plan 2b), keyed by NodeForTopic: what
+        // Per-subject last-connected delay, keyed by NodeForTopic: what
         // RefreshLedgerDelays holds a dark subject's node default at.
         private readonly Dictionary<string, double> _subjectLastConnectedDelay =
             new Dictionary<string, double>();
@@ -1054,7 +1054,7 @@ namespace Sitrep.Host
         // can never worsen today's LAN (no-comms-uplink) behaviour. Only a
         // non-null capture result flips it; a null leaves the last value.
         // Courier-thread-only, same discipline as _signalDelaySeconds.
-        // Per-subject current connectivity (Plan 2b), keyed by NodeForTopic
+        // Per-subject current connectivity, keyed by NodeForTopic
         // (fleet.<guid> or "system"). A subject absent from the map reads as
         // CONNECTED (never spuriously frozen). This is the freeze lever: a
         // disconnected subject's Delayed topics get +Inf in RevealDelayFor.
@@ -1075,7 +1075,7 @@ namespace Sitrep.Host
         // never be queried again. Courier-thread-only, same discipline as
         // _commsConnected. Seeded with the default-connected state at UT 0 so a
         // lookup before the first real transition fails soft to CONNECTED.
-        // Per-subject connectivity-interval history (Plan 2b): node ->
+        // Per-subject connectivity-interval history: node ->
         // UT-ascending transition list. FlushReveal's per-entry gate consults
         // ConnectivityAt(NodeFor(topic), entry.Ut) to decide whether a
         // buffered Delayed sample was captured while THAT subject's link was up
@@ -3271,7 +3271,7 @@ namespace Sitrep.Host
                 EnqueueJob(new CourierActionJob(() => SetVesselDelay(vesselId, oneWaySeconds)));
                 return;
             }
-            // Per-vessel downlink delay (Plan 2): the vessel's fleet.<id> node
+            // Per-vessel downlink delay: the vessel's fleet.<id> node
             // carries its own routed light-time for the single KSC observer.
             // NodeForTopic maps fleet.<id>.* topics to this node, so its
             // telemetry is delayed by DelayTo(vantage, fleet.<id>).
@@ -3878,7 +3878,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Apply a client set-vantage request (Plan 3): switch the connection's
+        /// Apply a client set-vantage request: switch the connection's
         /// vantage to a command centre. The id must name a currently-active centre,
         /// else the prior vantage is kept and an error is returned. Once chosen, the
         /// connection stays there and no longer follows home.
@@ -3904,7 +3904,7 @@ namespace Sitrep.Host
 
         public void SetVesselConnectivity(string vesselId, bool connected)
         {
-            // Per-vessel freeze (Plan 2b): the vessel's fleet.<id> subject
+            // Per-vessel freeze: the vessel's fleet.<id> subject
             // freezes on ITS OWN link. Expected from an UNGATED capture, every
             // vessel every tick, so an outage that starts or ends with nobody
             // subscribed is still on record for the first client to arrive; the
@@ -7571,7 +7571,7 @@ namespace Sitrep.Host
         /// for a <see cref="DelayRole.TrueNow"/> channel and for a freeze-exempt
         /// report, +Inf while the subject is dark, and 0 for an ordinary
         /// connected Delayed channel. The ledger applies the signal delay in every
-        /// finite case (Plan 1).
+        /// finite case.
         ///
         /// <para><c>comms.delay</c> carries no special case here and no longer
         /// needs one. It is an ordinary Delayed readout: what defines the delay
@@ -7618,7 +7618,7 @@ namespace Sitrep.Host
                 return double.PositiveInfinity;
             }
 
-            // Delay migrated to the ledger (Plan 1): a connected ordinary
+            // Delay migrated to the ledger: a connected ordinary
             // Delayed topic records straight through the gate; the Courier/
             // Archive apply the light-time via DelayTo. The gate now only
             // FREEZES (the !_commsConnected branch above returns +Inf); it no
@@ -7661,7 +7661,7 @@ namespace Sitrep.Host
                 }
                 _signalDelaySeconds = commsDelay.OneWaySeconds ?? 0.0;
 
-                // Ledger migration (Plan 1): drive the whole-network default
+                // Ledger migration: drive the whole-network default
                 // delay from the freshly-captured scalar so the Courier/Archive
                 // apply the light-time for ordinary topics. The meta-vantage is
                 // pinned to 0 (ctor), so instant/exempt topics stay instant.
@@ -7841,7 +7841,7 @@ namespace Sitrep.Host
         private void SetCommsConnected(bool connected, double ut) =>
             // Active-vessel connectivity entry point (the "system" subject),
             // unchanged semantics: RefreshConnectivityFromCapability drives it
-            // every tick. Delegates to the per-subject sink (Plan 2b).
+            // every tick. Delegates to the per-subject sink.
             SetSubjectConnected(NodeId, connected, ut);
 
         /// <summary>
@@ -8214,7 +8214,7 @@ namespace Sitrep.Host
         /// <summary>Test hook: the delay ledger's current journey for a (vantage, node) pair, legs and all.</summary>
         internal Journey LedgerJourneyFor(string vantage, string node) => _network.JourneyTo(vantage, node);
 
-        /// <summary>Test hook (Plan 2b): whether any per-node freeze map still holds this subject.</summary>
+        /// <summary>Test hook: whether any per-node freeze map still holds this subject.</summary>
         internal bool HasFreezeStateForSubject(string node) =>
             _subjectConnected.ContainsKey(node)
             || _subjectConnectivityHistory.ContainsKey(node)
@@ -8336,7 +8336,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Apply a CONNECTED/DISCONNECTED transition for one subject to the
-        /// reveal gate (Plan 2b). Other subjects are untouched.
+        /// reveal gate. Other subjects are untouched.
         ///
         /// <para>On a disconnected→connected edge (reacquisition) that subject's
         /// withheld backlog is replayed, as a recording dumped from the craft the
@@ -8469,7 +8469,7 @@ namespace Sitrep.Host
         /// <see cref="ReleaseRecorded"/>) and not in one tick. Freeze-exempt
         /// entries were never recorded and the pre-outage in-flight tail stays in
         /// the reveal buffer to mature normally, as do other subjects' buffers
-        /// (Plan 2b per-subject reacquisition).
+        ///.
         ///
         /// <para>A lump's flight time is the signal delay at the geometry of the
         /// moment it is released, which the Courier applies on
@@ -8847,7 +8847,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Prune every subject's connectivity history to the reveal window
-        /// (Plan 2b required addition 1): each per-vessel history would otherwise
+        ///: each per-vessel history would otherwise
         /// grow unbounded under connect/disconnect churn. Called each tick after
         /// FlushReveal, where the global prune was called.
         /// </summary>
@@ -9058,7 +9058,7 @@ namespace Sitrep.Host
                 // timeline too: collapse it to the current link state seeded at
                 // -Inf so a post-rewind ConnectivityAt lookup fails soft to that
                 // state rather than querying pre-rewind transitions.
-                // Per-subject (Plan 2b): collapse EVERY subject's history to its
+                // Per-subject: collapse EVERY subject's history to its
                 // current link state seeded at -Inf, dropping pre-rewind transitions.
                 foreach (var subjectNode in new List<string>(_subjectConnectivityHistory.Keys))
                 {
@@ -9808,7 +9808,7 @@ namespace Sitrep.Host
             // collapses to "reveal live"), pass null so the Courier keeps its
             // historical network-hop delay.
             // Command delay now rides the same per-(vantage, node) ledger as
-            // telemetry (Plan 1): DelayTo(vantage, node) == the whole-network
+            // telemetry: DelayTo(vantage, node) == the whole-network
             // default == the live signal delay (driven by SetDefaultDelay in
             // CaptureSignalDelay). Used for the pending-uplink prediction here
             // and, via the Courier's own DelayTo fallback below, for the actual
@@ -10699,7 +10699,7 @@ namespace Sitrep.Host
                 {
                     _subscribedTopics.TryRemove(topic, out _);
                 }
-                CleanUpSubjectIfGone(topic); // Plan 2b addition 2: drop a gone fleet subject's freeze maps.
+                CleanUpSubjectIfGone(topic); // Drop a gone fleet subject's freeze maps.
             }
         }
 
@@ -10713,7 +10713,7 @@ namespace Sitrep.Host
                 }
             }
             // After all this session's topics leave the subscribed mirror, drop
-            // any fleet subject whose last topic just went away (Plan 2b addition 2).
+            // any fleet subject whose last topic just went away.
             foreach (var topic in session.Unsubscribers.Keys)
             {
                 CleanUpSubjectIfGone(topic);

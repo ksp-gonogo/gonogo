@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
  * kept its own stale copy of the `:root` block without the new token, so
  * the app silently fell back to inherited text colour on the NOGO badge,
  * making the contrast bug the fix was supposed to correct worse (2.04:1
- * vs the original 2.61:1). It was caught by an agent eyeballing a
+ * vs the original 2.61:1). It was caught by eyeballing a
  * rendered PNG, not by any test, which is what this ratchet is for.
  *
  * Ratchet shape mirrors `packages/core/src/styleguide-emdash.test.ts`:

@@ -107,7 +107,7 @@ function trimBySpan(ring: LoggedSample[], nowUt: number, span: number): void {
  * Dispatches `value` on the channel's delayed write half (coalesced at 10 Hz
  * with a deadband) and rolls the in-transit + confirmed-readback buffer for the
  * continuous sibling of `useCommand` + `InFlightList`. The echo is intrinsic:
- * the channel already knows its own readback topic/field (Plan 1's
+ * the channel already knows its own readback topic/field (the
  * `ControlChannelHandle`), so no back-channel is wired at the call site. Returns
  * the derived stream `<ControlDelayStream>` draws. Degrades to an inert stream
  * (null delay, empty buffers) when the channel id is unknown or no provider is

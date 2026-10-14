@@ -66,7 +66,7 @@ if (process.argv.includes("--require") && !required) {
 /**
  * Uplinks whose DLL does not yet vouch for its client bundle. SHRINK ONLY.
  *
- * Seeded 2026-08-28 at NINE, which was every client-bearing Uplink in the repo,
+ * Seeded at NINE, which was every client-bearing Uplink in the repo,
  * because nothing had ever baked a hash. An Uplink carrying the `ExpectedClientHash`
  * scaffold is armed from the same bundler the app ships
  * (`packages/app/uplink-bundle.ts`) and held current by `bakedClientHash.test.ts`.

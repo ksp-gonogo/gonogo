@@ -5,7 +5,7 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// Locks the invariant the ledger migration (Plan 1) relies on: once the
+    /// Locks the invariant the ledger migration relies on: once the
     /// network default carries the signal delay, the Courier/Archive apply that
     /// delay exactly once (no double-delay, no zero-delay) for an ordinary
     /// topic recorded straight through the reveal gate.

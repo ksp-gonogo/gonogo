@@ -144,7 +144,7 @@ namespace Gonogo.KSP
         });
 
         // The torque-limit percentage maps to BaseServo.servoMotorLimit (0–100),
-        // NOT ModuleRoboticServoRotor.maxTorque: see the robotics command brief.
+        // NOT ModuleRoboticServoRotor.maxTorque.
         public CommandResult SetRotorTorqueLimit(string partId, double value) => WithRotor(partId, rotor =>
         {
             rotor.Fields["servoMotorLimit"].SetValue((float)value, rotor);

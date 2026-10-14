@@ -341,7 +341,7 @@ jobs:
         run: pnpm parity-gate
 
       # Says out loud which suites did not run. Three of them are gated on a
-      # recording generated into `local_docs/`, which is blanket-gitignored, so
+      # locally generated recording, which is gitignored, so
       # CI can never have it and they skip on every run. A skipped suite prints
       # as skipped, which is what a deliberately-skipped suite prints too, and
       # `pnpm test` says "passed" either way: the whole recorded-wire tier not
@@ -925,11 +925,10 @@ jobs:
           #
           # Four projects drifted in over four weeks that way, absent from this
           # array, so 35 tests were gated by nothing:
-          # GonogoAvionicsUplink.Tests and GonogoTestFlightUplink.Tests (both
-          # 2026-07-22), GonogoMechJebUplink.Tests (2026-08-08) and
-          # GonogoPrincipiaUplink.Tests (2026-08-20, found the same day it
-          # landed). All four cost 343ms together, so the omission bought
-          # nothing either. Added 2026-08-20.
+          # GonogoAvionicsUplink.Tests, GonogoTestFlightUplink.Tests,
+          # GonogoMechJebUplink.Tests and GonogoPrincipiaUplink.Tests (the last
+          # found the day it landed). All four cost 343ms together, so the
+          # omission bought nothing either.
           # EVERY project in that list is a hard gate. There is no exemption
           # mechanism here on purpose, and the history is why.
           #
@@ -1014,7 +1013,7 @@ jobs:
       # run and fails as BLIND if it cannot see one.
       #
       # Nothing is published here. Publishing is bound to `release.yml` by the
-      # nuget.org trusted-publishing policy and happens there (#276).
+      # nuget.org trusted-publishing policy and happens there.
       - name: Pack and gate KspGonogo.Sitrep.Contract
         run: |
           set -euo pipefail

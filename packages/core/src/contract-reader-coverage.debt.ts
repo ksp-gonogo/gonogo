@@ -5,8 +5,8 @@
  * arbitrary git ref without pulling in vitest. Same split-module shape as
  * `declaration-reachability.allowlist.ts` and `unknown-cast.debt.ts`.
  *
- * Seeded 2026-09-30, gonogo Saga task 727: the n-body arc (`vessel.orbit.Arc`) and
- * `vessel.trajectory.forVantage`, the ticket's motivating example, are gone
+ * The n-body arc (`vessel.orbit.Arc`) and
+ * `vessel.trajectory.forVantage`, the scan's motivating example, are gone
  * from the contract as of contract 25 (`CONTRACT_MAJOR` in
  * `mod/sitrep-sdk/src/compat-versions.ts`); neither name appears anywhere in
  * `mod/sitrep-sdk/src/__generated__/contract.ts` any more, so they never
@@ -28,7 +28,7 @@
  * `science.sensors.*`, `system.frame.*`, `comms.*` sub-fields beyond what
  * the comms widgets already draw).
  *
- * RE-SEEDED, gonogo Saga task 761: the scan now sees C# readers under `mod/`
+ * The scan sees C# readers under `mod/`
  * (the 8 `meta.source` entries that `ScetPayload.ReadSource` reads came off)
  * and no longer credits a widget that declares no `fields` as reading every
  * field of its Topics, which surfaced fields that were only ever mounted on.
@@ -46,7 +46,7 @@
  * `field:<topic>.<path>` or `command:<id>` -> one-line reason, SHRINK-ONLY.
  * Never add an entry: a published field or command lands with its reader, or
  * it does not land. The one exception is a key on `CONTRACT_READER_ADDED_WITH_TICKET`
- * below, added with the operator's approval and owned by a ticket. Clear one by writing the reader (delete the line) or by
+ * below, added with the operator's approval and carrying a reason. Clear one by writing the reader (delete the line) or by
  * confirming an Uplink in `gonogo-uplinks` already reads it (keep the line,
  * with an `Uplink-read: <name>` reason naming which one, checked from the
  * other side by `gonogo-uplinks/tooling/verify-contract-reader-debt.mjs`).
@@ -54,10 +54,8 @@
 export const CONTRACT_READER_DEBT: Record<string, string> = {
   "field:commcast.transmissions.topic":
     "always commcast.radio, which Commcast already subscribes to by its own constant",
-  "field:comms.commandCentre.bodyIndex":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.commandCentre.id":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
+  "field:comms.commandCentre.bodyIndex": "no reader found",
+  "field:comms.commandCentre.id": "no reader found",
   "field:comms.connectivity.connected":
     "restates comms.link and vessel.comms, which the comms widgets read",
   "field:comms.connectivity.controlSource":
@@ -68,76 +66,41 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "restates comms.link and vessel.comms, which the comms widgets read",
   "field:comms.control.reason":
     "restates comms.link and vessel.comms, which the comms widgets read",
-  "field:comms.occlusion.bodies":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.occlusion.modelId":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:comms.occlusion.modelName":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:eva.crew.count":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:eva.crew.kerbals":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:flight.current.phase":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:flight.current.vesselId":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:flight.ended.reason":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:flight.ended.vesselId":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:flight.vesselChanged.flightId":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:flight.vesselChanged.previousVesselId":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:flight.vesselChanged.ut":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:flight.vesselChanged.vesselId":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:flight.vesselChanged.vesselName":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:game.dlc.makingHistory":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:ksp.revertAvailability.canRevertToEditor":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:ksp.revertAvailability.canRevertToLaunch":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:science.sensors.active":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:science.sensors.partId":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:science.sensors.partName":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:science.sensors.readout":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:science.sensors.type":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:spaceCenter.partsAvailable.count":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:system.frame.primaryBodies":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:system.frame.secondaryBodies":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:system.frame.targetId":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:time.calendar.kerbinTime":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.control.translationX":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.control.translationY":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.control.translationZ":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.control.yaw":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.inventory.stores":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.maneuver.planner":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.physics.mode.mode":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
-  "field:vessel.thermal.maxSkinTempRatio":
-    "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
+  "field:comms.occlusion.bodies": "no reader found",
+  "field:comms.occlusion.modelId": "no reader found",
+  "field:comms.occlusion.modelName": "no reader found",
+  "field:eva.crew.count": "no reader found",
+  "field:eva.crew.kerbals": "no reader found",
+  "field:flight.current.phase": "no reader found",
+  "field:flight.current.vesselId": "no reader found",
+  "field:flight.ended.reason": "no reader found",
+  "field:flight.ended.vesselId": "no reader found",
+  "field:flight.vesselChanged.flightId": "no reader found",
+  "field:flight.vesselChanged.previousVesselId": "no reader found",
+  "field:flight.vesselChanged.ut": "no reader found",
+  "field:flight.vesselChanged.vesselId": "no reader found",
+  "field:flight.vesselChanged.vesselName": "no reader found",
+  "field:game.dlc.makingHistory": "no reader found",
+  "field:ksp.revertAvailability.canRevertToEditor": "no reader found",
+  "field:ksp.revertAvailability.canRevertToLaunch": "no reader found",
+  "field:science.sensors.active": "no reader found",
+  "field:science.sensors.partId": "no reader found",
+  "field:science.sensors.partName": "no reader found",
+  "field:science.sensors.readout": "no reader found",
+  "field:science.sensors.type": "no reader found",
+  "field:spaceCenter.partsAvailable.count": "no reader found",
+  "field:system.frame.primaryBodies": "no reader found",
+  "field:system.frame.secondaryBodies": "no reader found",
+  "field:system.frame.targetId": "no reader found",
+  "field:time.calendar.kerbinTime": "no reader found",
+  "field:vessel.control.translationX": "no reader found",
+  "field:vessel.control.translationY": "no reader found",
+  "field:vessel.control.translationZ": "no reader found",
+  "field:vessel.control.yaw": "no reader found",
+  "field:vessel.inventory.stores": "no reader found",
+  "field:vessel.maneuver.planner": "no reader found",
+  "field:vessel.physics.mode.mode": "no reader found",
+  "field:vessel.thermal.maxSkinTempRatio": "no reader found",
   "field:comms.delay.meta.source":
     "kept: names the payload's subject (vessel or game) for API consumers; the mod copies it from comms.link",
   "field:comms.link.meta.source":

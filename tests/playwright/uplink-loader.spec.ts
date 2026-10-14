@@ -3,8 +3,7 @@ import { PORTS } from "../../playwright.config";
 import { dashboardWithWidget } from "./helpers";
 
 /**
- * Smoke test for the production Uplink client loader (design
- * docs/superpowers/specs/2026-07-17-uplink-hub-and-loader-design.md), updated
+ * Smoke test for the production Uplink client loader, updated
  * for D4 step 2 (2026-07-25): the runtime loader is the only path for a
  * first-party client, there is no static-bundled fallback left and no flag
  * gating it (main.tsx always runs the loader; see that file's

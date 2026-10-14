@@ -169,7 +169,7 @@ export interface TimelineStoreOptions {
    * once when the read mounts) cannot contain it, and a model declaring a
    * per-subject input without this would decline `input-absent` for ever while
    * nothing anywhere held the topic up. That is not a hypothetical failure
-   * mode, it is #193/#195 exactly, where a declared-but-unsubscribed dep made
+   * mode: a declared-but-unsubscribed dep has made
    * one widget decline while the widget beside it reckoned fine.
    *
    * Injected rather than a client, for the same reason the processor evaluator

@@ -254,7 +254,7 @@ describe("GonogoSettings", () => {
     ).toBeInTheDocument();
   });
 
-  /** The ruling: a change with no KSP connection is refused, not queued. */
+  /** The rule: a change with no KSP connection is refused, not queued. */
   it("refuses changes while KSP is not connected", async () => {
     registerDataSource(sitrep("disconnected"));
     const { fixture } = mount();
@@ -278,7 +278,7 @@ describe("GonogoSettings", () => {
     ).toBeInTheDocument();
   });
 
-  /** The ruling: a station reads settings, and changes happen on the main screen. */
+  /** The rule: a station reads settings, and changes happen on the main screen. */
   it("only reads on a station", async () => {
     const { fixture } = mount("station");
     await publish(fixture, model());

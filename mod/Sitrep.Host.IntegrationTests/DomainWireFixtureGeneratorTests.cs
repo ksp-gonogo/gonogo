@@ -197,8 +197,7 @@ namespace Sitrep.Host.IntegrationTests
         /// fixture in this file uses. The resulting wire shape is therefore
         /// the provider's genuine mapping output, not a hand-guessed shape,
         /// only the underlying values are synthetic/invented. Real-recording
-        /// validation is deferred to the user's next Space Center capture;
-        /// see <c>.superpowers/sdd/m3-career-detail-report.md</c>.
+        /// validation is deferred to the user's next Space Center capture.
         /// </summary>
         [Fact]
         public async Task GeneratesSyntheticCareerDetailWireFixtureFromHandAuthoredRealShapeSnapshot()
@@ -787,8 +786,8 @@ namespace Sitrep.Host.IntegrationTests
         /// (DeployedScience). Sibling to
         /// <see cref="GeneratesSyntheticCareerDetailWireFixtureFromHandAuthoredRealShapeSnapshot"/>
         /// above, same rationale, different domain: the deployed-science
-        /// global-capture fix (<c>.superpowers/sdd/deployed-science-fix-report.md</c>,
-        /// <c>Gonogo.KSP.KspHost.BuildDeployedScience</c>) landed and
+        /// global-capture fix
+        /// (<c>Gonogo.KSP.KspHost.BuildDeployedScience</c>) landed and
         /// redeployed, but no recording carries deployed-science data yet
         /// (the user hasn't re-captured with a Breaking Ground cluster
         /// standing). Rather than block the DeployedScience migration on
@@ -804,8 +803,7 @@ namespace Sitrep.Host.IntegrationTests
         /// the provider's genuine mapping output, not a hand-guessed shape,
         /// only the underlying values are synthetic/invented. Real-recording
         /// validation is deferred to the user's next Space Center capture
-        /// with a deployed Breaking Ground cluster in physics range; see
-        /// <c>.superpowers/sdd/m3-deployedscience-report.md</c>.
+        /// with a deployed Breaking Ground cluster in physics range.
         /// </summary>
         [Fact]
         public async Task GeneratesSyntheticDeployedScienceWireFixtureFromHandAuthoredRealShapeSnapshot()

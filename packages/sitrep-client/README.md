@@ -152,5 +152,3 @@ internals (`Clock`/`Network`/`Archive`/`Courier`/`CourierTransport`).
   actual C# mod: M5. This package and `sitrep-server` are the app-side and
   reference-engine halves of the design, not the mod itself.
 
-See `docs/superpowers/plans/2026-07-06-telemetry-mod-roadmap.md` for the full
-milestone breakdown.

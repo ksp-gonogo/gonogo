@@ -7,7 +7,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// Headless test for the P1b slice 2 <see cref="StageDeltaVViewProvider"/>:
+    /// Headless test for the <see cref="StageDeltaVViewProvider"/>:
     /// a fake <see cref="KspSnapshot"/> carrying the raw
     /// <c>Values["vessel"]["deltaV"]</c> encoding
     /// (<c>Gonogo.KSP.KspHost.BuildDeltaV</c>'s shape: a <c>stages</c> list of

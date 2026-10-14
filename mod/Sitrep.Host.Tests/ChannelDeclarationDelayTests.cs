@@ -7,8 +7,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Round-trips <see cref="ChannelDeclaration.Delay"/>: the Minor-bump
-    /// per-channel delay disposition (see
-    /// <c>.superpowers/sdd/contract-dynamic-delay-report.md</c>). Two things
+    /// per-channel delay disposition. Two things
     /// this proves:
     ///
     /// 1. The default is <see cref="DelayRole.Delayed"/> (matching

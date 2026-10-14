@@ -402,7 +402,7 @@ jobs:
 
   # Publishes each package at the release version (or the run's RC), via npm
   # OIDC trusted publishing: no NPM_TOKEN, nothing to rotate, provenance on
-  # every publish. See local_docs/oidc-publishing-guide.md.
+  # every publish.
   #
   # Runs per package, after `release`, so a failed app release never publishes.
   # A version already on the registry is a re-run attempt (or a packages_only

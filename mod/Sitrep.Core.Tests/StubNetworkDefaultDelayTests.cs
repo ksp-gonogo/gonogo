@@ -5,7 +5,7 @@ namespace Sitrep.Core.Tests
 {
     /// <summary>
     /// Unit tests for <see cref="StubNetwork.SetDefaultDelay"/>: the host-driven
-    /// whole-network delay used by the ledger migration (Plan 1). Cross-language
+    /// whole-network delay used by the ledger migration. Cross-language
     /// parity against the TS reference is asserted separately by
     /// <see cref="StubNetworkGoldenFixtureTests"/> (the "set-default-delay-*"
     /// golden scenarios); this file locks the C#-side behaviour directly.
@@ -45,7 +45,7 @@ namespace Sitrep.Core.Tests
             // A node with no node-default falls to the global default.
             Assert.Equal(10.0, network.DelayTo("KSC", "system"));
 
-            // An explicit (vantage, node) pair overrides the node-default (Plan 3 shape).
+            // An explicit (vantage, node) pair overrides the node-default.
             network.SetDelay("KSC", "fleet.near", 99.0);
             Assert.Equal(99.0, network.DelayTo("KSC", "fleet.near"));
             Assert.Equal(2.0, network.DelayTo("other-connection", "fleet.near")); // other vantage still node-default

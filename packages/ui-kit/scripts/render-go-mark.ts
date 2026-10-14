@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Render the go-mark token sheets (Saga #551) through a real Chromium page.
+ * Render the go-mark token sheets through a real Chromium page.
  *
  * Run: `node scripts/render-go-mark.ts -- --out <dir> --tag <before|after>`
  * Output: `<dir>/<NN>-<tag>-<sheet id>.png`, one per sheet in `SHEETS`.

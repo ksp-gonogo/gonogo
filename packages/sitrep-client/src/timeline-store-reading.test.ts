@@ -38,7 +38,7 @@ function store(): TimelineStore {
  * what any of them is asking about. The decline has its own describe block.
  *
  * It was `vessel.orbit` until 2026-09-16, when that topic was marked so its
- * conic could refuse reachably (ticket 308). `system.bodies` is a better fixture than
+ * conic could refuse reachably. `system.bodies` is a better fixture than
  * "whatever is unmarked today": it is a catalogue rather than a reading of
  * anything, so there is nothing for a model to move and nothing should ever
  * mark it.

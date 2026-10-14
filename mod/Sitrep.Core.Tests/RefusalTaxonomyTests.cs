@@ -94,7 +94,7 @@ namespace Sitrep.Core.Tests
                     + "A new refusal belongs on the authority that decided it (CareerModeRequired, "
                     + "WrongScene, WrongState, NotClearToProceed, CapabilityMismatch, NoConnection, "
                     + "NotUnlocked, LimitReached, InsufficientFunds/Science), each of which names a "
-                    + "real KSP authority. See local_docs/design/2026-08-21-ksp-refusal-taxonomy.md. "
+                    + "real KSP authority. "
                     + "Offending files: " + string.Join("; ", offenders));
         }
 

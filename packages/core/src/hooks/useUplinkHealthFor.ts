@@ -8,7 +8,7 @@ import { useStream } from "@ksp-gonogo/sitrep-client";
 /**
  * Resolution of a widget's declared required `channels` against the
  * `system.uplinkHealth` roster: the Phase 2 half of the uplink-health
- * render-gating design (local_docs/uplink-health-render-gating-design.md).
+ * render-gating design.
  * `RequiresGuard` (Phase 3) blocks rendering on `"resolved"` with a
  * non-healthy `state`; every other status is a pass-through (there is
  * nothing yet to gate on, or nothing in the declared channels maps to a

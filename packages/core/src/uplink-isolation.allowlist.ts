@@ -105,7 +105,7 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
  * `dependencies` or `devDependencies`, because an outside author installing
  * from the registry gets a module-not-found rather than a working build.
  *
- * Seeded 2026-08-18 alongside the import debt, and SHRINK-ONLY for the same
+ * Seeded alongside the import debt, and SHRINK-ONLY for the same
  * reason. Without it two Uplinks kept a declared dependency on `components` for
  * weeks after the last import of it died.
  *

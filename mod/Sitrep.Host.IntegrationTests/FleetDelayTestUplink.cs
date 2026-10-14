@@ -4,7 +4,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// KSP-free test vehicle for the fleet-delay feature (Plan 2), mirroring the
+    /// KSP-free test vehicle for the fleet-delay feature, mirroring the
     /// production <c>Gonogo.KSP.FleetChannels</c> the same way
     /// <see cref="FreezeGateTestUplink"/> mirrors the real comms uplink. It reads
     /// the roster from <c>snapshot.Values["vessels"]</c> (a list of per-vessel
@@ -70,7 +70,7 @@ namespace Sitrep.Host.IntegrationTests
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 PerVesselNode = true,
             });
-            // Per-subject freeze (Plan 2b): each roster entry carries its own
+            // Per-subject freeze: each roster entry carries its own
             // "connected" flag (default true), so each fleet vessel freezes on
             // ITS OWN link. The active vessel ("system") is not driven here
             // (stays connected). Mirrors production's split: the whole fleet
@@ -185,7 +185,7 @@ namespace Sitrep.Host.IntegrationTests
                 _extensionSource?.Publisher(id + ChannelEngine.ContactMetaSuffix).Publish(
                     new Dictionary<string, object?> { ["value"] = connected },
                     cap.Ut);
-                // Plan 2c: the PRODUCTION FleetVesselLinkBuilder, compiled into
+                // The PRODUCTION FleetVesselLinkBuilder, compiled into
                 // this project (see the csproj), so the fleet.<id>.delay
                 // serialize path is exercised against the shape production
                 // publishes rather than against a copy of it.

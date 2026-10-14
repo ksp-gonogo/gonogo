@@ -5,7 +5,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// KSP-free mapping logic for the <c>vessel.parts</c> channel (P1b slice 2),
+    /// KSP-free mapping logic for the <c>vessel.parts</c> channel,
     /// the active vessel's full part-tree topology. Kept separate from
     /// <see cref="PartsViewProvider"/> (which owns the <c>parts.power</c>/
     /// <c>parts.robotics</c> raw dicts): this channel's domain is

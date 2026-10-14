@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Review renders for Saga #649 (T4): a `administration-building.screens` contribution
+ * Review renders: a `administration-building.screens` contribution
  * naming no departments must draw no strategy lists, since the sdk contract
  * already says such a screen "lists nothing and is chrome for its augments"
  * (`contribution-slots.ts`).

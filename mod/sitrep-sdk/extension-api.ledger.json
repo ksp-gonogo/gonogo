@@ -10276,7 +10276,7 @@
       },
       {
         "key": "ui-kit . HeldFigure",
-        "note": "Gains the optional elsewhere prop and its kind widens with \"current\" (decision 81). A caller that passes neither, or a kind of held or modelled alone, draws exactly as before"
+        "note": "Gains the optional elsewhere prop and its kind widens with \"current\". A caller that passes neither, or a kind of held or modelled alone, draws exactly as before"
       },
       {
         "key": "ui-kit . HeldFigureProps#kind?",
@@ -11562,7 +11562,7 @@
       },
       {
         "key": "sitrep-sdk . TinyEssential#mark?",
-        "note": "The mark a tiny essential states for its figure where its Reading cannot say it (decision 78): how current the figure is and whether it is of something other than its label names, drawn with the marks a full readout uses. Optional, so an essential without it is drawn as before"
+        "note": "The mark a tiny essential states for its figure where its Reading cannot say it: how current the figure is and whether it is of something other than its label names, drawn with the marks a full readout uses. Optional, so an essential without it is drawn as before"
       },
       {
         "key": "sitrep-sdk . TinyEssential#signed?",
@@ -13090,7 +13090,7 @@
       },
       {
         "key": "sitrep-sdk ./registry ~TinyEssential#mark?",
-        "note": "The mark a tiny essential states for its figure where its Reading cannot say it (decision 78): how current the figure is and whether it is of something other than its label names, drawn with the marks a full readout uses. Optional, so an essential without it is drawn as before"
+        "note": "The mark a tiny essential states for its figure where its Reading cannot say it: how current the figure is and whether it is of something other than its label names, drawn with the marks a full readout uses. Optional, so an essential without it is drawn as before"
       },
       {
         "key": "sitrep-sdk ./registry ~TinyEssential#signed?",
@@ -14954,7 +14954,7 @@
       },
       {
         "key": "ui-kit . HeldFigureProps#elsewhere?",
-        "note": "The figure is of something other than what its label names, so its mark is drawn hollow: a ring for a current figure, the held square or modelled triangle emptied otherwise (decision 77)"
+        "note": "The figure is of something other than what its label names, so its mark is drawn hollow: a ring for a current figure, the held square or modelled triangle emptied otherwise"
       },
       {
         "key": "ui-kit . IconButtonProps",
@@ -15350,7 +15350,7 @@
       },
       {
         "key": "ui-kit . UnitProps#elsewhere?",
-        "note": "Says in words that the figure is of something other than what its label names. The figure's mark is then drawn hollow, a ring where it is a reading of now, and the words follow what the figure already says about how current it is (decision 77)"
+        "note": "Says in words that the figure is of something other than what its label names. The figure's mark is then drawn hollow, a ring where it is a reading of now, and the words follow what the figure already says about how current it is"
       },
       {
         "key": "ui-kit . UsePanZoomOptions",

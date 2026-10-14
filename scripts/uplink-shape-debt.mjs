@@ -27,7 +27,7 @@
  *
  * An Uplink with NO entry is held to zero.
  *
- * ## Seeded 2026-08-31, cleared 2026-09-05
+ * ## Seeded, then cleared
  *
  * The seed was 154 assets across ten Uplinks, every one of them a picture that
  * had never had a shape recorded because the mechanism did not exist. All ten

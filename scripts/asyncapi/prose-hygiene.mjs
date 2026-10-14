@@ -96,7 +96,7 @@ export const FAMILIES = {
  * Declarations whose prose still carries maintainer markers, with the count of
  * markers each holds.
  *
- * SHRINK-ONLY. Seeded from the measured state on 2026-09-02 so the convention
+ * SHRINK-ONLY. Seeded from the measured state so the convention
  * could land without converting 141 blocks in one commit. A key here may only
  * fall or disappear; a key not here may not appear at all. Adding an entry means
  * writing down that the published surface explains the mod's internals to

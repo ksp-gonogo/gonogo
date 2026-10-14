@@ -5,7 +5,7 @@
     "vessel": "Munar Relay (Mk1 pod)",
     "body": "Kerbin",
     "situation": "An n-body-shaped Control Frame elected on the stream: RotatingPulsating about Kerbin/Mun, something no stock install ever reports",
-    "notes": "Saga #728 slice 1: the only fixture in this tree whose system.frame is not stock's fixed BodyCentredInertial, so it is the one place 'Follow the in-game view' has anything to offer. With config.projection pinned to the follow-control-frame entry, this renders the diagram turning with the Kerbin-Mun pair (Mun held on the first axis) through resolveReadFrame, the same picture a hand-authored rotating-pulsating contribution draws, reached by a completely different path."
+    "notes": "The only fixture in this tree whose system.frame is not stock's fixed BodyCentredInertial, so it is the one place 'Follow the in-game view' has anything to offer. With config.projection pinned to the follow-control-frame entry, this renders the diagram turning with the Kerbin-Mun pair (Mun held on the first axis) through resolveReadFrame, the same picture a hand-authored rotating-pulsating contribution draws, reached by a completely different path."
   },
   "_stream": {
     "pinnedUt": 0,

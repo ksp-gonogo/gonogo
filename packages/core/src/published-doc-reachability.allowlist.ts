@@ -264,7 +264,7 @@ export const CS_CAPABILITY_ELECTION_PATTERNS: readonly string[] = [
  * another file's regression, and a T1b instance appearing while three T2 ones
  * are fixed is the original bug coming back under cover of progress.
  *
- * Seeded 2026-08-20 from the census: 59 references across 36 files, T1a 20,
+ * Seeded from the census: 59 references across 36 files, T1a 20,
  * T1b 2, T2 37. Maximum 6 in any one file.
  *
  * T2 is empty as of 2026-09-01. All 34 that were still standing were rewritten

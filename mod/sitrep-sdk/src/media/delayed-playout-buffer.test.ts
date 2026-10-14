@@ -1,6 +1,5 @@
 /**
- * `DelayedPlayoutBuffer` scenario tests: the goal-doc list from
- * `local_docs/telemetry-mod/m2-sdk-delay-design.md` §5.5, in priority
+ * `DelayedPlayoutBuffer` scenario tests: the goal list, in priority
  * order. Courier delay-test discipline throughout: inject UT-stamped
  * frames (the "mock media stream": plain stand-in payloads, since a real
  * browser `MediaStream` can't be produced or frame-decomposed in jsdom;

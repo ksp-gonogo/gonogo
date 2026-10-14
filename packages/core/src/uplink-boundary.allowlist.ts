@@ -348,7 +348,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * citations already here.
        */
       "mod/sitrep-sdk/src/__generated__/contract.ts",
-      // -- new test (Plan 3): a kOS-terminal-SHAPED keyframe diff-stream fixture
+      // -- new test: a kOS-terminal-SHAPED keyframe diff-stream fixture
       // (the shared-vantage multi-client catch-up test). A text-only mention of
       // "kos" in a fixture comment/shape name, no code coupling to the kOS Uplink.
       "mod/Sitrep.Host.IntegrationTests/SharedVantageCatchUpTests.cs",

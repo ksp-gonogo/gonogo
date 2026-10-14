@@ -47,11 +47,11 @@ export const MATCHER_REVISION = 2;
  * just created the violation, and the rule has always been "no banner
  * comments above an obvious call".
  *
- * Seeded 2026-08-22 at 43 files / 64 banners under revision 1, and emptied on
- * 2026-09-01. RE-SEEDED 2026-09-02 at 32 files / 46 banners under revision 2:
+ * Seeded at 43 files / 64 banners under revision 1, and emptied.
+ * RE-SEEDED at 32 files / 46 banners under revision 2:
  * the list did not grow, the instrument did. `packages/` went to zero on
- * 2026-09-30 (Saga 697, first slice), and `mod/` (the last 9 entries) followed
- * in the same task's second slice.
+ * 2026-09-30, and `mod/` (the last 9 entries) followed
+ * shortly after.
  */
 export const BANNER_COMMENT_DEBT: Record<string, number> = {};
 

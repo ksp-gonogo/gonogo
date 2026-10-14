@@ -435,7 +435,7 @@ namespace Sitrep.Core.Tests
         /// is then judged.</para>
         ///
         /// <para>Planted into a temporary tree rather than into <c>mod/</c>
-        /// itself, deliberately. Several agents build this repo at once and a
+        /// itself, deliberately. Several builds can run in this repo at once and a
         /// stray <c>.cs</c> file appearing in a real project directory would land
         /// in someone else's compile.</para>
         /// </summary>

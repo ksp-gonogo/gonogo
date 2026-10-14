@@ -124,8 +124,7 @@ function areIceServersEqual(a: RTCIceServer[], b: RTCIceServer[]): boolean {
  * well above steady state, low enough to catch a regression that
  * adds an unexpected broadcast loop.
  *
- * See `local_docs/performance_review.md` finding #1: the long-term fix
- * is selective subscription, but this budget gives us an early warning
+ * The long-term fix is selective subscription, but this budget gives us an early warning
  * if anything else (a new feature, a subscription leak) starts firing
  * extra messages.
  */

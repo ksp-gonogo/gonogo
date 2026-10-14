@@ -1839,7 +1839,7 @@ describe("SCET alarms", () => {
    * Who stops the warp, and the answer is the mod's roster rather than the
    * trigger's kind.
    *
-   * The ruling is that the warp stops because the alarm came due on the back
+   * The rule is that the warp stops because the alarm came due on the back
    * end, never because the client saw a notice and sent a command back. So for
    * an alarm the mod holds this side issues none. But "the mod evaluates time
    * and threshold" is not the same set as "the mod holds this alarm": a

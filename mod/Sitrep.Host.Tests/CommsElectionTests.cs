@@ -9,7 +9,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// The comms backend election (comms-uplink-design.md §2): the sharpest
-    /// correctness risk the U2 brief flagged. Drives the real <see cref="Kernel"/>
+    /// correctness risk of the comms uplink. Drives the real <see cref="Kernel"/>
     /// (byte-for-byte the TS reference port, golden-fixture-conformed) through
     /// the three cases: RA absent ⇒ CommNet vanilla; RA present ⇒ RA wins;
     /// and the elected instance is actually queryable as an

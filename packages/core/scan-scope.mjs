@@ -41,7 +41,7 @@ export function scanScopeMode(env = process.env) {
   }
   if (env.GITHUB_ACTIONS === "true") {
     throw new Error(
-      `[scans] ${SCOPE_ENV}=changed on a GitHub Actions runner. CI runs every scan over the whole tree, by ruling (Saga #401); the changed mode is for local runs only.`,
+      `[scans] ${SCOPE_ENV}=changed on a GitHub Actions runner. CI runs every scan over the whole tree; the changed mode is for local runs only.`,
     );
   }
   return "changed";

@@ -139,7 +139,7 @@ function findFixtures(root: string): string[] {
  * Uplink that has left names `@ksp-gonogo/uplink-tools/widgets`, the package that
  * carries the app's widgets prebuilt for exactly this.
  *
- * A specifier was refused until ticket 221, on the ground that reaching a host would
+ * A specifier was once refused, on the ground that reaching a host would
  * mean a dependency the isolation rules forbid. That was true while the only
  * module was `packages/components`, which is `private: true` and unpublished.
  * It stopped being true when `@ksp-gonogo/uplink-tools/widgets` shipped: a published

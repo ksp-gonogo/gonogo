@@ -20,8 +20,7 @@
       A git worktree has no local_docs of its own (it is gitignored), so the path
       above resolves into nothing there and a C# build in a worktree cannot find
       the assemblies the main checkout plainly holds. GONOGO_DATA_ROOT names the
-      checkout that has them; `scripts/gonogo_claude_tools.sh` reads the same
-      variable, and `fleet-ephemeral.sh` exports it into every agent session.
+      checkout that has them; the deploy helper scripts read the same variable.
 
       NOT a symlink into the worktree. That was tried and reverted: it puts a
       link to the syncthing mirror and the design notes inside a directory that

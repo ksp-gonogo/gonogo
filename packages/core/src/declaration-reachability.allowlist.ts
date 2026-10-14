@@ -12,7 +12,7 @@
  * was built only on the wire. Every gate in the tree asked whether what exists is
  * correct; none asked whether it is reached.
  *
- * Seeded 2026-09-02 from a full scan: 101 declarations (44 Topics, 57 commands)
+ * Seeded from a full scan: 101 declarations (44 Topics, 57 commands)
  * across 11 Uplink clients, 20 of them unreached. Every entry here is debt and
  * the list is SHRINK-ONLY. Fix one by writing the widget or control that reads
  * it, then delete the line. Never add one: a new declaration lands with its

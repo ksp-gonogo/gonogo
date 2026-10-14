@@ -1290,8 +1290,7 @@ namespace Sitrep.Host.IntegrationTests
 
     /// <summary>
     /// Exercises <see cref="IUplinkHost.RegisterDynamicNamespace"/>: the
-    /// contract's dynamic-topic mechanism (see
-    /// <c>.superpowers/sdd/contract-dynamic-delay-report.md</c>). Registers
+    /// contract's dynamic-topic mechanism. Registers
     /// one dynamic namespace (<see cref="Prefix"/>) with a template
     /// declaration, then lets a test publish to any runtime-computed
     /// sub-topic under it via <see cref="PublishTo"/> without that sub-topic

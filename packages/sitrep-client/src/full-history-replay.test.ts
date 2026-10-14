@@ -6,8 +6,7 @@ import type { ReplayFixture } from "./replay-transport";
 import { makeMeta } from "./stub-transport";
 
 /**
- * Regression coverage for the retention finding in
- * docs/superpowers/plans/2026-07-11-flightgraph-missionstore-port.md: every
+ * Regression coverage for the retention finding: every
  * production `TimelineStore` caps at `DEFAULT_RETENTION_SECONDS` (300s), so a
  * naive replay into one of those stores would silently drop the tail of any
  * flight longer than 5 minutes. `buildFullHistoryStore` must return every

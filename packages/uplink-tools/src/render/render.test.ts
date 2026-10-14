@@ -354,7 +354,7 @@ describe("the generated browser entry", () => {
   });
 
   /**
-   * A specifier was refused outright until ticket 221, because the only host module
+   * A specifier was once refused outright, because the only host module
    * was `packages/components`, which is unpublished: naming it by specifier
    * would have meant a dependency the isolation rules forbid. Publishing
    * `@ksp-gonogo/uplink-tools/widgets` is what changed that, and it is the only way an

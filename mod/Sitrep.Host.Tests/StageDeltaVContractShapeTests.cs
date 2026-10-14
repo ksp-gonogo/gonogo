@@ -13,7 +13,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// Locks the P1b slice 2 typing for the <c>dv.*</c> channels: proves the
+    /// Locks the typing for the <c>dv.*</c> channels: proves the
     /// named <c>Sitrep.Contract</c> payload types (<see cref="StageDeltaVEntry"/>,
     /// <see cref="StageDeltaVSummary"/>) mirror: field name for field name,
     /// camelCase wire key for camelCase wire key, type for type, the exact

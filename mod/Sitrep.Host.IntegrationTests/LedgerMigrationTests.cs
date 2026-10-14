@@ -11,7 +11,7 @@ using StreamData = Sitrep.Contract.StreamData<object?>;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// Ledger-migration (Plan 1) behaviour-preservation tests: the delay moves
+    /// Ledger-migration behaviour-preservation tests: the delay moves
     /// off the reveal-gate scalar into the Courier/Archive ledger, but every
     /// observable (reveal delay, freeze-on-disconnect hold + backlog drop, the
     /// comms.link exemption, command ETA) stays identical. The

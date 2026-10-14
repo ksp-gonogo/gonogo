@@ -47,7 +47,7 @@ import {
  *
  * The rule this enforces is about decoration, not about section structure.
  *
- * The tree reached zero banners on 2026-09-30 (Saga 697): `BANNER_COMMENT_DEBT`
+ * The tree reached zero banners: `BANNER_COMMENT_DEBT`
  * is empty and the `SECTIONED_CEILINGS`/`SCHEME_MIN` exemption for long
  * sectioning tables is retired, since a count floor cannot sit above zero. The
  * instrument check for "can this scan still see a banner" is now a planted

@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
  * The package's whole contract is a side effect, so the test is that the side
  * effect happened. There is no API to assert on, which is the point.
  *
- * Held to the widgets that ticket 221 was filed about rather than to a count, for the
+ * Held to the widgets an outside Uplink reaches for rather than to a count, for the
  * reason the sdk's own command scan was rewritten the same way: a count turns
  * "a widget was deleted" and "a widget was added" into the same failure, and
  * neither is what this guards. These four are the ones an Uplink outside this
@@ -63,8 +63,8 @@ describe("@ksp-gonogo/uplink-tools/widgets", () => {
     /**
      * `standInHostWidget` synthesises `{ component: () => null, description:
      * "Stand-in host widget for a render scene.", channels: undefined }`. A slot drawn
-     * by the host's own body renders nothing against that, which is what
-     * ticket 317 measured and why this package exists rather than a second
+     * by the host's own body renders nothing against that, which is why
+     * this package exists rather than a second
      * stand-in.
      *
      * Compared on what a stand-in cannot have rather than on the component

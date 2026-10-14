@@ -55,7 +55,7 @@
  * stills), also copied to `local_docs/inbox/systemview-contributions/`.
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-systemview-traffic-video`.
- * Requires ffmpeg on path (webm -> mp4; the Claude app cannot render webm).
+ * Requires ffmpeg on path (webm -> mp4; some viewers cannot play webm).
  */
 import { execFile } from "node:child_process";
 import { copyFile, mkdir, readdir, rm } from "node:fs/promises";

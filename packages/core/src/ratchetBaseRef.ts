@@ -204,6 +204,7 @@ export const RATCHET_ALLOWLIST_PATHS = [
   "packages/core/src/fixture-shows.debt.json",
   "packages/core/src/panel-body.allowlist.ts",
   "packages/core/src/primitive-reading-feed.debt.ts",
+  "packages/core/src/private-references.debt.ts",
   "packages/core/src/published-doc-reachability.allowlist.ts",
   "packages/core/src/published-member-docs.debt.json",
   "packages/core/src/published-doc-coverage.debt.json",

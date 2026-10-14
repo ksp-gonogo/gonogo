@@ -43,14 +43,14 @@ namespace Sitrep.Host.CommandCentres
     /// </summary>
     public sealed class AuthorityMatrixPass
     {
-        /// <summary>The per-subject node id for a vessel guid, matching Plan 2's fleet namespace.</summary>
+        /// <summary>The per-subject node id for a vessel guid, matching the fleet namespace.</summary>
         public static string FleetNode(string guid) => ChannelEngine.FleetNodePrefix + guid;
 
         /// <summary>The per-subject node id for a command centre addressed as a destination.</summary>
         public static string CentreNode(string centreId) => ChannelEngine.CentreNodePrefix + centreId;
 
         /// <param name="activeCentres">The registry's currently-active centres.</param>
-        /// <param name="subjectGuids">The fleet subject vessel guids (same set Plan 2's fleet pass walks).</param>
+        /// <param name="subjectGuids">The fleet subject vessel guids (same set the fleet pass walks).</param>
         /// <param name="routeDelay">
         /// KSP-layer routing: one-way seconds from a centre to a subject guid, or null when
         /// unreachable (the pair then gets no row, and <see cref="Unroutable"/> names it).

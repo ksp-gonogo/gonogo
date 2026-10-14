@@ -186,7 +186,7 @@ namespace Gonogo.KSP
                 // capability, the same reasoning CommandCentreDelayUplink
                 // below is registered directly for.
                 _engine.RegisterUplink(new FleetChannels());
-                // Plan 3 command centres (agent-6): the stock home-node + crewed-
+                // Command centres: the stock home-node + crewed-
                 // vessel sources feed BOTH set-vantage validation (the engine's own
                 // registry) AND the per-(authority, subject) delay pass + roster
                 // (the uplink's registry). The sources are stateless enumerators, so

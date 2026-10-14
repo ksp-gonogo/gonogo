@@ -3,15 +3,12 @@
  * on planted lists as well as on the real one.
  */
 
-/** `Saga <number>`. */
-const TICKET = /^Saga \d+$/;
-
 export interface DebtCheckInput {
   /** Keys the debt list held at the ratchet base. */
   baseDebt: ReadonlySet<string>;
   /** Keys the debt list holds now. */
   debt: ReadonlySet<string>;
-  /** Added keys now, each with the ticket that owns getting it a reader. */
+  /** Added keys now, each with the reason it has no reader yet. */
   allowance: Readonly<Record<string, string>>;
   /** The allowance as it stood at the base, `undefined` when the base had none. */
   baseAllowance: ReadonlySet<string> | undefined;
@@ -27,11 +24,9 @@ export function debtListProblems(input: DebtCheckInput): string[] {
       problems.push(`${key} is new debt and is not on the allowance`);
     }
   }
-  for (const [key, ticket] of Object.entries(allowance)) {
-    if (!TICKET.test(ticket)) {
-      problems.push(
-        `${key} is on the allowance without a ticket ("${ticket}")`,
-      );
+  for (const [key, reason] of Object.entries(allowance)) {
+    if (reason.trim() === "") {
+      problems.push(`${key} is on the allowance without a reason`);
     }
     if (!debt.has(key)) {
       problems.push(`${key} is on the allowance but is not debt any more`);

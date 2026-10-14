@@ -49,8 +49,7 @@ function useSourceFlight(sourceId: string): FlightRecord | null {
 
 /**
  * Default (no-`sourceId`) variant: derives the current flight straight off
- * the mod-native flight-lifecycle stream (`flight.started`:
- * `docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md`) instead of
+ * the mod-native flight-lifecycle stream (`flight.started`) instead of
  * the retired client-side `FlightDetector` heuristic. The mod mints the
  * flight id (`Vessel.id`, the same currency `VesselIdentity.VesselId`
  * already uses) and does the revert/switch detection server-side; see

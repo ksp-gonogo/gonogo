@@ -13,7 +13,7 @@
  *      tells the story, and `Sitrep.Core.Tests/ContractEnumRenderingTests`
  *      guards the assembly). Nothing guarded the PACKAGE.
  *   2. THE TEST FRAMEWORK REACHES A KSP PLUGIN. TestSupport ships inside this
- *      one package, in the net10.0 group only (#272), and carries Sitrep.Core
+ *      one package, in the net10.0 group only, and carries Sitrep.Core
  *      with it so a Tests project can drive the real delay engine. A net48
  *      Uplink plugin resolves the net472 assets and must see neither of them
  *      and restore no xunit; get the grouping wrong and a test framework lands
@@ -92,7 +92,7 @@ const CODEGEN_TWIN = "codegen/Sitrep.Contract.dll";
 const CODEGEN_PROPS = "codegen/CodegenTwin.props";
 
 /**
- * What each target-framework group is allowed to contain, as ruled on #272.
+ * What each target-framework group is allowed to contain.
  *
  * `net472` and `netstandard2.0` are what a KSP plugin resolves; `net10.0` is
  * what a test project resolves. The asymmetry IS the design, so it is spelled

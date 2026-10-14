@@ -335,7 +335,7 @@ describe("combineReadings model", () => {
     expect(r.reckoning.basis).toBe("combination");
   });
 
-  /** A combination that deserves a band deserves a model, per #215. */
+  /** A combination that deserves a band deserves a model. */
   it("never carries a band of its own", () => {
     const r = combineReadings(
       [modelled(3, 5, 100), modelled(4, 6, 100)],

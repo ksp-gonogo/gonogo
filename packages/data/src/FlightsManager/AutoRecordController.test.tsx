@@ -17,8 +17,8 @@ import {
 import { MissionHistorySource } from "./MissionHistorySource";
 
 /**
- * Coverage for the auto-record lifecycle: post flight-lifecycle spec
- * (`docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md`), boundaries
+ * Coverage for the auto-record lifecycle: post flight-lifecycle spec,
+ * boundaries
  * are delimited by the mod's own `flight.started`/`flight.ended` events
  * rather than the retired client-side `FlightDetector` heuristic. This
  * suite drives those events directly through `StubTransport`.

@@ -280,7 +280,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 // No "delay" key at all -- _signalDelaySeconds stays at its
                 // default 0, so ProcessDispatchCommand's uplinkDelay is null
-                // ("no live delay authority"), which the brief's invariant
+                // ("no live delay authority"), which the pending-queue invariant
                 // treats the same as an explicit delay:0 -- neither enqueues.
                 engine.TickAndWait(
                     0.0,

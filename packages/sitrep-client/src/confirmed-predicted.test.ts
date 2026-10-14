@@ -420,7 +420,7 @@ describe("certainty composes with T4 status + T3 undefined/null", () => {
     expect(store.currentFrame().certainty).toBe("confirmed");
   });
 
-  it("a frame reckoning far past the horizon CAN read held (T4) alongside a genuine arrival gap, the two channels don't fight", () => {
+  it("a frame reckoning far past the horizon CAN read held alongside a genuine arrival gap, the two channels don't fight", () => {
     const wall = fakeWall();
     const clock = new ViewClock({
       nowWall: wall.now,

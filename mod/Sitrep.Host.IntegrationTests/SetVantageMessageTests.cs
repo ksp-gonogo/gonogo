@@ -13,7 +13,7 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// Plan 3 set-vantage message: a client selects its command centre (vantage).
+    /// The set-vantage message: a client selects its command centre (vantage).
     /// The id must name a currently active command centre, else the prior vantage is
     /// kept and an error returns. No id is special: where a connection stands before it
     /// chooses is covered by <see cref="FreshConnectionVantageTests"/>.

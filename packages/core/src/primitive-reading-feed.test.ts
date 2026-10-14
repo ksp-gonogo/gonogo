@@ -65,7 +65,7 @@ const SITES = SCANS.flatMap((scan) => scan.sites);
  * Not a tolerance: a written-down hole. These files are unreachable by this
  * gate and by `pnpm typecheck`, and that costs something measurable rather
  * than in theory. Wiring `ui-kit/scripts` into a project by hand, against the
- * in-progress ticket 257 part 2 tree that narrows `Unit`'s prop to the per-value
+ * in-progress tree that narrows `Unit`'s prop to the per-value
  * `Reading`, surfaced four errors in `render-unit-currency.entry.tsx` (lines
  * 197, 397, 406, 416) where that fixture still minted a `TopicReading`. On
  * this tree the file is consistent and those errors do not exist yet; they
@@ -346,8 +346,8 @@ describe("the walk covered what it claims", () => {
    * `packages/components/scripts/render-altitude-band.entry.tsx` was not seen,
    * because that package's tsconfig includes `src` and `scripts/**\/*.test.ts`
    * and nothing else, so the render entry points are in no package's project
-   * graph. That is the same shape as the defect that broke staging on ticket 257
-   * part 1: the authoring guide's examples compile under their own CI step and
+   * graph. That is the same shape as the defect that broke staging once:
+   * the authoring guide's examples compile under their own CI step and
    * are likewise in no project, so every suite and a full uncached typecheck
    * were green while the guide was broken.
    *

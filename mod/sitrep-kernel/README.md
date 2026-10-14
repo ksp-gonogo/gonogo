@@ -109,5 +109,3 @@ issue commands through a given provider) was scoped for M4 and then cut,
 commands pass through ungated, exactly as they already did in M2/M3. If this
 comes back, it's a fresh design, not a resumption of shelved work.
 
-See `docs/superpowers/plans/2026-07-06-telemetry-mod-roadmap.md` for the
-full milestone breakdown.

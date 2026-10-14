@@ -10,10 +10,9 @@
 //   2. node scripts/decode-bug-report.mjs ~/Downloads/bug-report.json [outDir]
 //      (outDir defaults to /tmp/bug-report)
 //
-// Why this exists: dropping the ~10–15 KB screenshot.base64 field into a
-// Claude Code conversation reliably triggers an SSE-stall freeze when Claude
-// tries to round-trip it into a Write tool call. Decode here, then hand
-// Claude only the resulting `.jpg` path: Read can ingest images directly.
+// Why this exists: pasting the ~10–15 KB screenshot.base64 field into a chat
+// window reliably stalls it. Decode here, then share only the resulting
+// `.jpg` path: an image file can be read directly.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";

@@ -71,7 +71,7 @@ const report = process.argv.includes("--report");
 /**
  * Uplinks with no generated page. SHRINK ONLY, and it is EMPTY.
  *
- * It was seeded 2026-08-28 at nine of ten client-bearing Uplinks, and emptied
+ * It was seeded at nine of ten client-bearing Uplinks, and emptied
  * the same day: one had a full generated page, `GonogoKerbcastUplink` had a
  * HAND-WRITTEN README (which is worse than none for this gate's purpose, since it
  * looks documented while describing registrations nothing checks), and the other

@@ -8,8 +8,7 @@ import { useFlight } from "./useFlight";
 
 /**
  * Coverage for `useFlight`'s stream-native default: post flight-lifecycle
- * spec (`docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md`),
- * `useFlight()` derives the current flight from the mod's own
+ * spec, `useFlight()` derives the current flight from the mod's own
  * `flight.started` events instead of the retired client-side
  * `FlightDetector` heuristic: the mod mints the flight id and does the
  * revert/switch detection server-side, so this hook just mirrors whatever

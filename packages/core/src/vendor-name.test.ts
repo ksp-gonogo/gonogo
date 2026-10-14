@@ -228,7 +228,7 @@ describe("vendor name", () => {
         "Up means a sweep is being undone. Before deleting a comment, check",
         "whether it records a DISTINCTION rather than a rename: those get",
         "rewritten without the name, never dropped. The full text of every",
-        "comment removed so far is under local_docs/design/.",
+        "comment removed so far is kept in a local, untracked folder.",
       ].join("\n"),
     ).toEqual([]);
   });

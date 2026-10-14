@@ -1042,7 +1042,7 @@ function registerOrbitTruthReckoner(): void {
  * one home of the OnRails/Loaded split, and the propulsion and pending-uplink
  * Readings are deps so that a loaded coast can show its evidence.
  *
- * ## PropagationCertification (#282) is already answered, not skipped
+ * ## PropagationCertification is already answered, not skipped
  *
  * That enum lets a caller choose between answering anywhere and answering only
  * across spans the provider vouches for. An operational prediction is the case

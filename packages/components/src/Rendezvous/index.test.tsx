@@ -114,7 +114,7 @@ describe("RendezvousComponent", () => {
     );
   });
 
-  it("does NOT enter the docking HUD for a Vessel target with no vessel.dock (T2)", async () => {
+  it("does NOT enter the docking HUD for a Vessel target with no vessel.dock", async () => {
     // A plain Vessel target has no dock channel, so under 100 m it stays in the approach view.
     fixture = setupStreamFixture({
       suspendFrames: true,

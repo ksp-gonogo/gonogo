@@ -8,9 +8,9 @@ using Sitrep.Contract;
 namespace Sitrep.Host.Tests.CommandCentres
 {
     /// <summary>
-    /// The Plan 3 no-regression backstop: with only KSC and Plan 2's per-vessel
+    /// The no-regression backstop: with only KSC and the per-vessel
     /// node-default in place, the delay a KSC operator sees is byte-identical to
-    /// Plan 2, because <c>DelayTo(vantage, node)</c>'s 3-tier lookup falls through
+    /// the node-default, because <c>DelayTo(vantage, node)</c>'s 3-tier lookup falls through
     /// the (absent) explicit (vantage, node) pair to the <c>SetNodeDelay</c>
     /// node-default. The authority pass's explicit rows override only the selected
     /// vantage; every other vantage keeps the node-default untouched.
@@ -23,11 +23,11 @@ namespace Sitrep.Host.Tests.CommandCentres
         public void NoAuthorityRow_KscVantage_FallsThroughToPlan2NodeDefault()
         {
             var net = new StubNetwork();
-            // Plan 2: the per-vessel downlink node-default.
+            // The per-vessel downlink node-default.
             net.SetNodeDelay(FleetNode("G"), 5.0);
 
             // No explicit ("ksc", fleet.G) pair set -> falls through to the
-            // node-default. KSC-only behaviour is exactly Plan 2.
+            // node-default. KSC-only behaviour is exactly the node-default.
             Assert.Equal(5.0, net.DelayTo("ksc", FleetNode("G")));
         }
 
@@ -35,7 +35,7 @@ namespace Sitrep.Host.Tests.CommandCentres
         public void AuthorityPass_ExplicitRow_OverridesNodeDefault_ForThatVantageOnly()
         {
             var net = new StubNetwork();
-            net.SetNodeDelay(FleetNode("G"), 5.0); // Plan 2 node-default
+            net.SetNodeDelay(FleetNode("G"), 5.0); // node-default
 
             // The authority pass writes an explicit (ksc, fleet.G) pair via the
             // same ledger path (SetAuthorityDelays -> SetDelay).
@@ -47,7 +47,7 @@ namespace Sitrep.Host.Tests.CommandCentres
 
             // ksc now sees the explicit routed delay...
             Assert.Equal(3.0, net.DelayTo("ksc", FleetNode("G")));
-            // ...but any OTHER vantage still falls through to Plan 2's node-default.
+            // ...but any OTHER vantage still falls through to the node-default.
             Assert.Equal(5.0, net.DelayTo("some-other-vantage", FleetNode("G")));
         }
 
@@ -60,7 +60,7 @@ namespace Sitrep.Host.Tests.CommandCentres
         public void CrewedCentresOwnCraftIsInstantFromItsOwnVantageOnly()
         {
             var net = new StubNetwork();
-            net.SetNodeDelay(FleetNode("G"), 5.0); // Plan 2 node-default
+            net.SetNodeDelay(FleetNode("G"), 5.0); // node-default
             net.SetNodeDelay(FleetNode("H"), 7.0);
 
             new AuthorityMatrixPass().Populate(
@@ -79,7 +79,7 @@ namespace Sitrep.Host.Tests.CommandCentres
             Assert.Equal(9.0, net.DelayTo("vessel:G", FleetNode("H")));
             // KSC on the crewed craft: the full light-time it always had.
             Assert.Equal(5.0, net.DelayTo("ksc", FleetNode("G")));
-            // Any vantage with no row of its own still falls through to Plan 2's
+            // Any vantage with no row of its own still falls through to the
             // node-default, so the zero is not reachable by anyone else.
             Assert.Equal(5.0, net.DelayTo("some-other-vantage", FleetNode("G")));
             Assert.Equal(7.0, net.DelayTo("some-other-vantage", FleetNode("H")));
@@ -89,7 +89,7 @@ namespace Sitrep.Host.Tests.CommandCentres
         public void CentrePairPass_AddsAnAddressableCentre_WithoutDisturbingAnyVesselRow()
         {
             var net = new StubNetwork();
-            net.SetNodeDelay(FleetNode("G"), 5.0); // Plan 2 node-default
+            net.SetNodeDelay(FleetNode("G"), 5.0); // node-default
 
             new AuthorityMatrixPass().PopulateCentrePairs(
                 new ICommandCentre[] { new FakeCommandCentre("ksc") },

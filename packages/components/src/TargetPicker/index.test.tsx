@@ -356,7 +356,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
   });
 
   // A modded ITargetable (TargetKind.Other) and an unrecognised kind both bucket into an "Other" section with a distance.
-  it("buckets Other / unknown-kind targetables into an 'Other' section with distance (T1)", async () => {
+  it("buckets Other / unknown-kind targetables into an 'Other' section with distance", async () => {
     renderPicker(fixture);
     emitAvailable(fixture, [
       KERBIN,

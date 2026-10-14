@@ -235,7 +235,7 @@ describe("TimelineStore", () => {
     });
   });
 
-  describe("derived channels (T3)", () => {
+  describe("derived channels", () => {
     /** A trivial derived channel: sums two raw numeric inputs at the frozen viewUt. */
     function sumChannel(spy?: () => void): DerivedChannelDefinition<{
       sum: number;

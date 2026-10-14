@@ -183,14 +183,14 @@ namespace Gonogo.KSP
                 // Absent when nothing sound can be said (no orbit, or a craft
                 // orbiting the star), which is an answer and not a gap.
                 Channel(VesselViewProvider.LightTopic, SampleKind.Discrete, absenceIsData: true),
-                // vessel.parts (P1b slice 2): the full part-tree topology
+                // vessel.parts: the full part-tree topology
                 // (VesselPartsViewProvider), sibling of vessel.structure. Same
                 // structured-vessel.* cadence/DelayRole.Delayed posture; per-
                 // part temps ride here (thermal folds in). Its raw list can be
                 // large but only changes on a staging/dock event, so the 30s
                 // keyframe + change-gate posture fits.
                 Channel(VesselPartsViewProvider.PartsTopic, SampleKind.Discrete),
-                // dv.stages / dv.summary (P1b slice 2): KSP's STOCK
+                // dv.stages / dv.summary: KSP's STOCK
                 // VesselDeltaV stage simulation (StageDeltaVViewProvider),
                 // captured off the active vessel like vessel.parts. Same
                 // structured-vessel.* cadence/DelayRole.Delayed posture; the
