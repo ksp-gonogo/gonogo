@@ -1,10 +1,10 @@
 import type { DataKeyMeta } from "@ksp-gonogo/data";
 import { seriesKeyOf } from "@ksp-gonogo/sitrep-sdk";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { GraphSeries } from "./types";
 
-/** The header names the plotted units, not the series, because units dedupe where names do not; with no known unit it stays "GRAPH". */
+/** The plotted units, as the header's tooltip: the y units per side, led by the x quantity when x is not time. */
 export function computeUnitsLabel(
   series: readonly GraphSeries[],
   metaMap: Map<string, DataKeyMeta>,
@@ -31,19 +31,18 @@ export function computeUnitsLabel(
   return `${against}${sides.join(" x ")}`;
 }
 
-/** The series names, as the header's tooltip. */
+/** The header of an unconfigured graph: the names of the series it plots, each once. */
 export function computeFullTitle(
   series: readonly GraphSeries[],
   metaMap: Map<string, DataKeyMeta>,
 ): string | undefined {
-  return (
-    series
-      .map((cfg) => {
-        const key = seriesKeyOf(cfg.source);
-        return cfg.label ?? metaMap.get(key)?.label ?? key;
-      })
-      .join(", ") || undefined
+  const names = new Set(
+    series.map((cfg) => {
+      const key = seriesKeyOf(cfg.source);
+      return cfg.label ?? metaMap.get(key)?.label ?? key;
+    }),
   );
+  return [...names].join(" / ") || undefined;
 }
 
 export function resolvePanelTitle(
@@ -52,16 +51,13 @@ export function resolvePanelTitle(
   fullTitle: string | undefined,
 ): ReactNode {
   if (title !== undefined) return title;
-  if (!units) return "GRAPH";
+  if (!fullTitle) return "GRAPH";
   return (
     <>
       GRAPH{" "}
-      <Tooltip text={fullTitle} focusable>
-        <span style={GRAPH_UNITS}>{units}</span>
+      <Tooltip text={units || undefined} focusable>
+        <span>{fullTitle}</span>
       </Tooltip>
     </>
   );
 }
-
-// Unit symbols are case-sensitive, so they opt out of the header's uppercase.
-const GRAPH_UNITS: CSSProperties = { textTransform: "none" };

@@ -297,7 +297,10 @@ describe("Graph: genuinely runs off the stream", () => {
     expect(tickText("start")).toContain("42");
     expect(tickText("end")).not.toContain("42");
     expect(tickText("start")).not.toContain("12.0k");
-    expect(container.textContent ?? "").toContain("GRAPH m x m/s");
+    expect(container.textContent ?? "").not.toContain("m x m/s");
+    expect(container.textContent ?? "").toContain(
+      "GRAPH Altitude terrain / Vertical speed",
+    );
   });
 
   it("shows the streamed latest value in the readout variant", async () => {
