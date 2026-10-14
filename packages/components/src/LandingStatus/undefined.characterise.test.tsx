@@ -384,7 +384,7 @@ describe("LandingStatus: what undefined means today", () => {
     expect(screen.queryByText("yes")).toBeNull();
     expect(screen.queryByText("insufficient dV")).toBeNull();
     // The dV readouts beside it are placeholders for the same absence.
-    expect(screen.getByText("Available dV")).toBeInTheDocument();
+    expect(screen.getByText("Available dV (VAC)")).toBeInTheDocument();
     expect(screen.getAllByText(NULL_DISPLAY).length).toBeGreaterThanOrEqual(2);
   });
 
