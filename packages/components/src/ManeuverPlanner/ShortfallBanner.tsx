@@ -39,7 +39,8 @@ export function ShortfallBanner({
           marked={marking}
           decimals={0}
         />{" "}
-        · available <Unit value={value("m/s", available)} decimals={0} /> ·{" "}
+        · available (VAC) <Unit value={value("m/s", available)} decimals={0} />{" "}
+        ·{" "}
         <Unit
           value={value("m/s", requiredDeltaV - available)}
           marked={marking}

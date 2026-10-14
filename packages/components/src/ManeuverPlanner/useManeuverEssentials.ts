@@ -32,7 +32,7 @@ export function useManeuverEssentials(): readonly TinyEssential[] {
       ),
     },
     {
-      label: "Avail",
+      label: "Avail (VAC)",
       value:
         budget === undefined
           ? undefined

@@ -60,9 +60,12 @@ export function NodeRow({
     figure: ReturnType<typeof value<UnitSymbol>>,
   ) => (from === undefined ? figure : datedFrom(from, figure));
   const phase = completed ? "ahead" : phaseOf(node, currentUT);
-  // A burn already flown has no shortfall to report, and the figure is its planned size either way.
+  // A burn already flown or in progress has no shortfall to report: the figure is its planned size, and the available total is already being drawn down by the burn.
   const feasible =
-    completed || phase === "passed" || availableDv === null
+    completed ||
+    phase === "passed" ||
+    phase === "underway" ||
+    availableDv === null
       ? null
       : availableDv >= node.deltaVMagnitude;
   return (
