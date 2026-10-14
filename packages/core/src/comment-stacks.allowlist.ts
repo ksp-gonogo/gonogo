@@ -333,8 +333,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "scripts/asyncapi/json-schema.mjs": 1,
   "scripts/asyncapi/prose-hygiene.mjs": 1,
   "scripts/decode-bug-report.mjs": 1,
-  "scripts/emdash-audit.mjs": 2,
-  "scripts/palette-audit.mjs": 1,
   "scripts/release.mjs": 2,
   "scripts/verify-package-artifact.mjs": 1,
   "tests/playwright/helpers.ts": 1,

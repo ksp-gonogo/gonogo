@@ -25,8 +25,6 @@ import {
  *      JS rather than CSS.
  *   4. Reference via `var(--color-...)` in styled-components, or
  *      `${({ theme }) => theme.colors...}` if the call site needs JS.
- *
- * Run `node scripts/palette-audit.mjs` to triage existing raw hex.
  */
 
 // Files that legitimately contain raw hex: sources of truth, fixtures,
