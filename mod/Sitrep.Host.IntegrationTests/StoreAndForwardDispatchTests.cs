@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Sitrep.Contract;
+using Sitrep.Core.StoreAndForward;
 using Sitrep.Host;
 using Sitrep.Host.CommandCentres;
 using Xunit;
@@ -351,6 +352,32 @@ namespace Sitrep.Host.IntegrationTests
             world.Tick(1010.0);
 
             Assert.Equal(0, world.Uplink.ActiveHandledCount);
+        }
+
+        [Fact]
+        public void EveryCommandSentToTheActiveCraftRunsNotJustTheFirstTwo()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new ActiveCraftTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                TickActive(engine, uplink, 0.0, loaded: true);
+                var results = new List<object?>();
+                for (var i = 1; i <= 6; i++)
+                {
+                    engine.DispatchCommandAndWait(ActiveCraftTestUplink.Command, "x" + i, Centre, r => results.Add(r), TestBudgets.Op, seenVesselId: CraftId);
+                    TickActive(engine, uplink, i * 2.0, loaded: true);
+                    TickActive(engine, uplink, (i * 2.0) + 1.0, loaded: true);
+                }
+
+                Assert.Equal(6, uplink.HandledCount);
+            }
+            finally
+            {
+                engine.Stop();
+            }
         }
 
         /// <summary>
@@ -964,6 +991,58 @@ namespace Sitrep.Host.IntegrationTests
                 Tick(engine, 4.0);
                 Tick(engine, 4.0 + OneWaySeconds + 1.0);
                 Assert.Equal(1, uplink.HandledCount);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A command sent after a load is held beside the ones the save carried, even when
+        /// this process mints the request id one of them already has. A new command that
+        /// shared an id with a carried one was never held, and every later command on its
+        /// lane then waited behind its number.
+        /// </summary>
+        [Fact]
+        public void ACommandSentAfterALoadIsHeldBesideTheOnesTheSaveCarried()
+        {
+            DeliverySnapshot saved;
+            using (var before = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0))
+            {
+                before.RegisterUplink(new HeldCommandTestUplink());
+                before.Start();
+                try
+                {
+                    CutRoute(before);
+                    Tick(before, 0.0);
+                    before.DispatchCommandAndWait(HeldCommandTestUplink.Command, "first", Centre, _ => { }, TestBudgets.Op);
+                    Tick(before, 1.0);
+                    saved = before.DeliverySnapshotNow();
+                    Assert.Single(saved.Held);
+                }
+                finally
+                {
+                    before.Stop();
+                }
+            }
+
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new HeldCommandTestUplink());
+            engine.Start();
+            try
+            {
+                CutRoute(engine);
+                Tick(engine, 0.0);
+                engine.NoteGameLoaded(saved);
+                Tick(engine, 2.0);
+                Assert.Single(engine.DeliverySnapshotNow().Held);
+
+                engine.DispatchCommandAndWait(HeldCommandTestUplink.Command, "second", Centre, _ => { }, TestBudgets.Op);
+                Tick(engine, 3.0);
+
+                Assert.Equal(2, engine.DeliverySnapshotNow().Held.Count);
+                Assert.Equal(2, engine.DeliverySnapshotNow().Held.Select(h => h.Message.Id).Distinct().Count());
             }
             finally
             {

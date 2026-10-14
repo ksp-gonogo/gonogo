@@ -494,6 +494,25 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// Moves this process's request id count past <paramref name="requestId"/> when it
+        /// is one this process could mint, so a command sent after a load never takes
+        /// the id of one the save carried.
+        /// </summary>
+        private void MoveRequestCountPast(string requestId)
+        {
+            if (requestId.Length > 1
+                && requestId[0] == RequestIdPrefix
+                && long.TryParse(requestId.Substring(1), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var seq))
+            {
+                long seen;
+                while (seq > (seen = Interlocked.Read(ref _requestSeq))
+                    && Interlocked.CompareExchange(ref _requestSeq, seq, seen) != seen)
+                {
+                }
+            }
+        }
+
+        /// <summary>
         /// Puts the live path's commands a save held back on the Courier, which
         /// has just been reset to the new timeline. The request ids they carry
         /// were minted by whichever process sent them, so this one's count moves
@@ -503,16 +522,7 @@ namespace Sitrep.Host
         {
             foreach (var command in saved.Commands)
             {
-                if (command.RequestId.Length > 1
-                    && command.RequestId[0] == RequestIdPrefix
-                    && long.TryParse(command.RequestId.Substring(1), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var seq))
-                {
-                    long seen;
-                    while (seq > (seen = Interlocked.Read(ref _requestSeq))
-                        && Interlocked.CompareExchange(ref _requestSeq, seq, seen) != seen)
-                    {
-                    }
-                }
+                MoveRequestCountPast(command.RequestId);
             }
             foreach (var command in saved.Commands)
             {

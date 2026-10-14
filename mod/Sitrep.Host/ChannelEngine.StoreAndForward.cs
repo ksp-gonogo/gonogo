@@ -1469,6 +1469,7 @@ namespace Sitrep.Host
                 foreach (var command in commands)
                 {
                     _laneCraftNodes[command.Lane.Craft] = command.ExecNode;
+                    MoveRequestCountPast(command.Id);
                 }
                 RestoreLivePath(carried.LivePath);
             }
