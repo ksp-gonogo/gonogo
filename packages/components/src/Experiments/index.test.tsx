@@ -414,3 +414,65 @@ describe("sumExperimentDataAmount", () => {
     await drained();
   });
 });
+
+describe("ExperimentsComponent with the instrument inventory locked", () => {
+  const LOCKED_GATES = {
+    gates: [],
+    channels: [
+      {
+        topic: "science.instruments",
+        verdict: {
+          outcome: 1,
+          errorCode: "notUnlocked",
+          detail: "",
+          missing: [
+            {
+              kind: 0,
+              id: "advExploration",
+              name: "Advanced Exploration",
+              scienceCost: 160,
+            },
+          ],
+        },
+      },
+    ],
+  };
+
+  it("says no instruments aboard when no part carries an experiment module", async () => {
+    const fixture = newFixture();
+    renderOfficer(fixture);
+    act(() => {
+      fixture.emit("system.uplink.gates", LOCKED_GATES);
+    });
+    act(() => {
+      fixture.emit("vessel.parts", {
+        parts: [{ id: "1", name: "pod", modules: ["ModuleCommand"] }],
+      });
+    });
+    await drained();
+    expect(screen.getByText("No instruments aboard")).toBeInTheDocument();
+    expect(screen.queryByText(/Missing tech/)).toBeNull();
+  });
+
+  it("keeps the tech notice when a part carries an experiment module it cannot read", async () => {
+    const fixture = newFixture();
+    renderOfficer(fixture);
+    act(() => {
+      fixture.emit("system.uplink.gates", LOCKED_GATES);
+    });
+    act(() => {
+      fixture.emit("vessel.parts", {
+        parts: [
+          {
+            id: "2",
+            name: "goo",
+            modules: ["ModuleScienceExperiment"],
+          },
+        ],
+      });
+    });
+    await drained();
+    expect(screen.getByText(/Missing tech/)).toBeInTheDocument();
+    expect(screen.queryByText("No instruments aboard")).toBeNull();
+  });
+});

@@ -17,6 +17,8 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
+  LockScope,
+  type LockSummary,
   Panel,
   Section,
   Stack,
@@ -75,7 +77,59 @@ const INSTRUMENT_GRID = {
   gap: "var(--gap-related)",
 } as const;
 
-function ExperimentsComponent({
+/** The modules whose parts hold an instrument row: an experiment or a container of results. */
+const INSTRUMENT_MODULES: readonly string[] = [
+  "ModuleScienceExperiment",
+  "ModuleScienceContainer",
+];
+
+/**
+ * What draws while the instrument inventory is locked: no instruments aboard
+ * where no part carries an instrument module, and the lock notice where one
+ * does or where the part list is not known.
+ */
+function InstrumentsLocked({ lock }: { lock: LockSummary }) {
+  const parts = useTelemetry("vessel.parts");
+  const known =
+    parts.state === "observed" || parts.state === "held"
+      ? parts.value.parts
+      : undefined;
+  if (
+    known !== undefined &&
+    !known.some((p) => p.modules.some((m) => INSTRUMENT_MODULES.includes(m)))
+  ) {
+    return (
+      <Panel
+        panelTitle="EXPERIMENTS"
+        compactTitle={["EXPTS"]}
+        sections={
+          <Section full>
+            <EmptyState>No instruments aboard</EmptyState>
+          </Section>
+        }
+      />
+    );
+  }
+  return (
+    <Panel
+      panelTitle="EXPERIMENTS"
+      inactive={{ reason: lock.reason, hint: lock.hint }}
+    />
+  );
+}
+
+function ExperimentsComponent(
+  props: Readonly<ComponentProps<ExperimentsConfig>>,
+) {
+  // The inventory is read under this widget's own scope, so a locked one is answered here rather than by the widget guard.
+  return (
+    <LockScope fallback={(lock) => <InstrumentsLocked lock={lock} />}>
+      <ExperimentsBody {...props} />
+    </LockScope>
+  );
+}
+
+function ExperimentsBody({
   w,
   h,
 }: Readonly<ComponentProps<ExperimentsConfig>>) {
@@ -264,7 +318,6 @@ registerComponent<ExperimentsConfig>({
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 3, h: 4 },
   component: ExperimentsComponent,
-  channels: ["science.instruments"],
   ...read,
   defaultConfig: {},
   actions: [],
