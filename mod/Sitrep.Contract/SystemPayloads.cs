@@ -585,12 +585,12 @@ public class CatalogEntry
     /// CommNet's reading (<c>Vessel.connection.IsConnected</c>), not the active
     /// vessel's <c>comms.*</c> channels, which a comms mod may provide.
     ///
-    /// <para>Null when CommNet has no connection to read for this vessel, which
-    /// means unknown, not "no link". Two causes: rarely, a scene transition;
-    /// and always, for the <c>Debris</c>, <c>SpaceObject</c> (asteroids and
-    /// comets) and <c>Unknown</c> vessel types, which CommNet never gives a
-    /// connection (<c>CommNet.CommNetVessel.OnStart</c>). A debris or asteroid
-    /// entry carries null here on every sample.</para>
+    /// <para>Null means unknown, not "no link". Three causes: the vessel's own
+    /// link report has not reached this centre yet; rarely, a scene
+    /// transition; and always, for the <c>Debris</c>, <c>SpaceObject</c>
+    /// (asteroids and comets) and <c>Unknown</c> vessel types, which CommNet
+    /// never gives a connection (<c>CommNet.CommNetVessel.OnStart</c>). A
+    /// debris or asteroid entry carries null here on every sample.</para>
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? CommsConnected { get; set; }

@@ -47,6 +47,12 @@ namespace Sitrep.Host.IntegrationTests
             return new Seated { World = world, Client = client, View = view };
         }
 
+        private static bool? Link(CentreView view, string vesselId)
+        {
+            var field = view.Vessel(vesselId)!.Value.GetProperty("commsConnected");
+            return field.ValueKind == JsonValueKind.Null ? null : field.GetBoolean();
+        }
+
         private static CatalogContact? Contact(CentreView view)
         {
             var field = view.Vessel(Relay)!.Value.GetProperty("contact");
@@ -57,6 +63,65 @@ namespace Sitrep.Host.IntegrationTests
         {
             var field = view.Vessel(Relay)!.Value.GetProperty(name);
             return field.ValueKind == JsonValueKind.Null ? null : field.GetDouble();
+        }
+
+        /// <summary>
+        /// The listing of a craft is not read again when only its link changes,
+        /// so the link it carries can be the one from the first time it was
+        /// read. Each centre lists the link the craft's own report says.
+        /// </summary>
+        [Theory]
+        [InlineData(ScriptedContactGame.Home)]
+        [InlineData(ScriptedContactGame.Far)]
+        public async Task EachCentreListsTheLinkTheCraftReportsNotAnOlderListing(string centre)
+        {
+            var world = await ReckonedVantageWorld.StartAsync();
+            world.Game.ActiveListedLink = false;
+            var (client, view) = await world.SitDownAtAsync(centre, SystemViewProvider.CatalogTopic);
+            await using var seated = new Seated { World = world, Client = client, View = view };
+            await seated.TickAsync(1, 300, 700, 701, 1000, 1001);
+
+            Assert.True(Link(seated.View, ScriptedContactGame.ActiveGuid));
+        }
+
+        /// <summary>
+        /// Until the craft's own link report has reached a centre, the centre
+        /// does not know the link, and lists it as unknown rather than as the
+        /// listing first read for the craft, which is never read again for a
+        /// link change.
+        /// </summary>
+        [Fact]
+        public async Task ACentreThatHasNotHeardTheCraftsLinkListsItAsUnknown()
+        {
+            var world = await ReckonedVantageWorld.StartAsync(new ScriptedContactGame { ActiveListedLink = false, ReportsActiveLink = false });
+            var (client, view) = await world.SitDownAtAsync(ScriptedContactGame.Home, SystemViewProvider.CatalogTopic);
+            await using var seated = new Seated { World = world, Client = client, View = view };
+            await seated.TickAsync(1, 300, 700, 701);
+
+            Assert.NotNull(seated.View.Vessel(ScriptedContactGame.ActiveGuid));
+            Assert.Null(Link(seated.View, ScriptedContactGame.ActiveGuid));
+        }
+
+        /// <summary>
+        /// A craft's link is said when it changes. One said while a centre had
+        /// no route to the craft reaches no one there, so when the centre gains
+        /// the route it is told the link as it stands, as it is told the
+        /// craft's state.
+        /// </summary>
+        [Fact]
+        public async Task ACentreThatGainsARouteToACraftHearsItsLinkAsItStands()
+        {
+            var world = await ReckonedVantageWorld.StartAsync();
+            world.Game.ActiveListedLink = false;
+            world.Game.Unroutable.Add((Far, ScriptedContactGame.ActiveGuid));
+            var (client, view) = await world.SitDownAtAsync(Far, SystemViewProvider.CatalogTopic);
+            await using var seated = new Seated { World = world, Client = client, View = view };
+            await seated.TickAsync(1, 300, 301);
+
+            world.Game.Unroutable.Clear();
+            await seated.TickAsync(700, 1000, 1001, 1300, 1301);
+
+            Assert.True(Link(seated.View, ScriptedContactGame.ActiveGuid));
         }
 
         [Fact]

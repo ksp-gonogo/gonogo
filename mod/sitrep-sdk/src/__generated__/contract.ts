@@ -8201,10 +8201,10 @@ export interface CatalogEntry
 	* (`Vessel.connection.IsConnected`), not the active vessel's `comms.*`
 	* channels, which a comms mod may provide.
 	*
-	* Null when CommNet has no connection to read for this vessel, which means
-	* unknown, not "no link". Two causes: rarely, a scene transition; and always,
-	* for the `Debris`, `SpaceObject` (asteroids and comets) and `Unknown` vessel
-	* types, which CommNet never gives a connection
+	* Null means unknown, not "no link". Three causes: the vessel's own link
+	* report has not reached this centre yet; rarely, a scene transition; and
+	* always, for the `Debris`, `SpaceObject` (asteroids and comets) and `Unknown`
+	* vessel types, which CommNet never gives a connection
 	* (`CommNet.CommNetVessel.OnStart`). A debris or asteroid entry carries null
 	* here on every sample.
 	*/

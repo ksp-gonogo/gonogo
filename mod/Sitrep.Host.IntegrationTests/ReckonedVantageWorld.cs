@@ -179,6 +179,12 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Whether the active craft has a link home.</summary>
         public bool ActiveConnected { get; set; } = true;
 
+        /// <summary>The link the game's listing of the active craft carries, which can lag its own link report; null leaves it off the listing.</summary>
+        public bool? ActiveListedLink { get; set; }
+
+        /// <summary>Whether the active craft's link is reported at all; false stands for a report that has not reached anyone yet.</summary>
+        public bool ReportsActiveLink { get; set; } = true;
+
         /// <summary>What the active craft's own telemetry topic reads, which a test moves each tick.</summary>
         public double ActiveValue { get; set; }
 
@@ -427,7 +433,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             var roster = new List<object?>
             {
-                new Dictionary<string, object?> { ["id"] = ActiveGuid, ["name"] = "Lander", ["vesselType"] = "Lander", ["situation"] = "LANDED" },
+                new Dictionary<string, object?> { ["id"] = ActiveGuid, ["name"] = "Lander", ["vesselType"] = "Lander", ["situation"] = "LANDED", ["commsConnected"] = ActiveListedLink },
             };
             lock (_gate)
             {
@@ -808,7 +814,10 @@ namespace Sitrep.Host.IntegrationTests
                 }
             }
             _engine.SetVesselDelay(ScriptedContactGame.ActiveGuid, ledger.ActiveSeconds);
-            _engine.SetVesselConnectivity(ScriptedContactGame.ActiveGuid, ledger.ActiveConnected);
+            if (ledger.ReportsActiveLink)
+            {
+                _engine.SetVesselConnectivity(ScriptedContactGame.ActiveGuid, ledger.ActiveConnected);
+            }
             var activeRows = new Dictionary<string, double> { [ScriptedContactGame.Far] = ledger.ActiveSeconds };
             foreach (var route in ledger.GameRoutes)
             {
@@ -912,6 +921,7 @@ namespace Sitrep.Host.IntegrationTests
                 ActiveConnected = game.ActiveConnected;
                 RelayExists = game.RelayExists;
                 RelayConnected = game.RelayConnected;
+                ReportsActiveLink = game.ReportsActiveLink;
                 RelayFromHomeSeconds = game.RelayFromHomeSeconds;
                 RelayFromFarSeconds = game.RelayFromFarSeconds;
                 FarLinkedToRelay = game.FarLinkedToRelay;
@@ -950,6 +960,7 @@ namespace Sitrep.Host.IntegrationTests
             public bool RelayExists { get; }
 
             public bool RelayConnected { get; }
+            public bool ReportsActiveLink { get; }
 
             public double RelayFromHomeSeconds { get; }
 

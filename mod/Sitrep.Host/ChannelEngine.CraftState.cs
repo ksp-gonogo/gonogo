@@ -434,6 +434,11 @@ namespace Sitrep.Host
             {
                 Emit(CraftStateTopic(vesselId), said, ut);
             }
+            // Its link is said only when it changes, so the centre is told it as it stands, beside the state.
+            if (gained && _craftLinkSaid.TryGetValue(vesselId, out var linked))
+            {
+                Emit(CraftLinkTopic(vesselId), linked, ut);
+            }
         }
 
         /// <summary>Whether some centre that could not be reached under <paramref name="before"/> can be under <paramref name="now"/>.</summary>

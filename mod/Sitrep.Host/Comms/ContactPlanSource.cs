@@ -1477,13 +1477,13 @@ namespace Sitrep.Host.Comms
                     {
                         entry[fact.Key] = fact.Value;
                     }
-                    // A craft cannot say its own radio has stopped answering. The
-                    // centre learns that from the silence, one light-time on.
-                    var link = _hearing.LinkAt(centre, state.Id);
-                    if (link != null)
-                    {
-                        entry["commsConnected"] = link.Value;
-                    }
+                    /*
+                     * The link is the craft's own report as it has reached this
+                     * centre, and unknown until one has. The listing's own value is
+                     * never shown: a listing is not read again for a link change,
+                     * so it holds whatever the craft first reported.
+                     */
+                    entry["commsConnected"] = NeverConnected(state.Roster) ? null : _hearing.LinkAt(centre, state.Id);
                     var place = _hearing.PlaceAt(centre, state.Id);
                     entry["placeSource"] = place.HasValue ? (int)place.Value.Source : (int?)null;
                     entry["placeAsOfUt"] = place?.AsOfUt;
@@ -1512,6 +1512,11 @@ namespace Sitrep.Host.Comms
             _vesselsAsked.Clear();
             CatalogFramesBudget.Record(sent, looked.Ut);
         }
+
+        /// <summary>Whether the listed craft is a kind CommNet never gives a connection, whose link is unknown on every sample.</summary>
+        private static bool NeverConnected(IReadOnlyDictionary<string, object?> listing) =>
+            listing.TryGetValue("vesselType", out var type) && type is int kind
+            && (kind == (int)VesselType.Debris || kind == (int)VesselType.SpaceObject || kind == (int)VesselType.Unknown);
 
         /// <summary>
         /// What <paramref name="centre"/> knows of its contact with the craft at
