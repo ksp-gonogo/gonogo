@@ -314,6 +314,22 @@ namespace Gonogo.KSP
         public CommandResult SetRcs(bool enabled) => WithActionGroups(actionGroups =>
             SetVerified(actionGroups, KSPActionGroup.RCS, "RCS", enabled));
 
+        /// <summary>
+        /// Sets KSP's precision (fine) control flag, the global
+        /// <c>FlightInputHandler.fetch.precisionMode</c> the caps-lock key toggles.
+        /// It scales the player's stick input only, so it is not gated on the craft
+        /// accepting control input.
+        /// </summary>
+        public CommandResult SetPrecisionControl(bool enabled)
+        {
+            if (ActiveVesselScope.Current == null || FlightInputHandler.fetch == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+            FlightInputHandler.fetch.precisionMode = enabled;
+            return CommandResult.Ok();
+        }
+
         public CommandResult SetGear(bool enabled) => WithActionGroups(actionGroups =>
             SetVerified(actionGroups, KSPActionGroup.Gear, "Gear", enabled));
 

@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 44.1.0
+  version: 44.2.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 87 telemetry
-    channels a client subscribes to, and 62 commands it dispatches, with the payload
+    channels a client subscribes to, and 63 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
     **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
@@ -206,7 +206,7 @@ info:
     - name: trackingStation
       description: 2 telemetry channels, 1 command
     - name: vessel
-      description: 21 telemetry channels, 18 commands
+      description: 21 telemetry channels, 19 commands
   externalDocs:
     description: "Writing an Uplink: the plugin half and the client half"
     url: https://ksp-gonogo.github.io/uplink-dev-docs/
@@ -3247,12 +3247,12 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
-      Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
-      `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
-      apply, never a toggle. Under signal delay delay a toggle that arrives after
-      unknown intervening changes would race them, so there are no toggle
-      commands.
+      Switch SAS, RCS, landing gear, brakes, lights, the abort group or precision
+      control on or off. Args shared by every plain on/off actuation command
+      (`setSas`, `setRcs`, `setGear`, `setBrakes`, `setLights`, `setAbort`,
+      `setPrecisionControl`): an absolute state to apply, never a toggle. Under
+      signal delay delay a toggle that arrives after unknown intervening changes
+      would race them, so there are no toggle commands.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -3318,12 +3318,12 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
-      Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
-      `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
-      apply, never a toggle. Under signal delay delay a toggle that arrives after
-      unknown intervening changes would race them, so there are no toggle
-      commands.
+      Switch SAS, RCS, landing gear, brakes, lights, the abort group or precision
+      control on or off. Args shared by every plain on/off actuation command
+      (`setSas`, `setRcs`, `setGear`, `setBrakes`, `setLights`, `setAbort`,
+      `setPrecisionControl`): an absolute state to apply, never a toggle. Under
+      signal delay delay a toggle that arrives after unknown intervening changes
+      would race them, so there are no toggle commands.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -3365,12 +3365,12 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
-      Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
-      `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
-      apply, never a toggle. Under signal delay delay a toggle that arrives after
-      unknown intervening changes would race them, so there are no toggle
-      commands.
+      Switch SAS, RCS, landing gear, brakes, lights, the abort group or precision
+      control on or off. Args shared by every plain on/off actuation command
+      (`setSas`, `setRcs`, `setGear`, `setBrakes`, `setLights`, `setAbort`,
+      `setPrecisionControl`): an absolute state to apply, never a toggle. Under
+      signal delay delay a toggle that arrives after unknown intervening changes
+      would race them, so there are no toggle commands.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -3386,12 +3386,12 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
-      Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
-      `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
-      apply, never a toggle. Under signal delay delay a toggle that arrives after
-      unknown intervening changes would race them, so there are no toggle
-      commands.
+      Switch SAS, RCS, landing gear, brakes, lights, the abort group or precision
+      control on or off. Args shared by every plain on/off actuation command
+      (`setSas`, `setRcs`, `setGear`, `setBrakes`, `setLights`, `setAbort`,
+      `setPrecisionControl`): an absolute state to apply, never a toggle. Under
+      signal delay delay a toggle that arrives after unknown intervening changes
+      would race them, so there are no toggle commands.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -3400,6 +3400,27 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.setLights"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.setLights"
+  vessel.control.setPrecisionControl:
+    address: vessel.control.setPrecisionControl
+    description: |-
+      Takes `SetEnabledArgs`.
+
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
+
+      Switch SAS, RCS, landing gear, brakes, lights, the abort group or precision
+      control on or off. Args shared by every plain on/off actuation command
+      (`setSas`, `setRcs`, `setGear`, `setBrakes`, `setLights`, `setAbort`,
+      `setPrecisionControl`): an absolute state to apply, never a toggle. Under
+      signal delay delay a toggle that arrives after unknown intervening changes
+      would race them, so there are no toggle commands.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: true
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.vessel.control.setPrecisionControl"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.vessel.control.setPrecisionControl"
   vessel.control.setRcs:
     address: vessel.control.setRcs
     description: |-
@@ -3407,12 +3428,12 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
-      Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
-      `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
-      apply, never a toggle. Under signal delay delay a toggle that arrives after
-      unknown intervening changes would race them, so there are no toggle
-      commands.
+      Switch SAS, RCS, landing gear, brakes, lights, the abort group or precision
+      control on or off. Args shared by every plain on/off actuation command
+      (`setSas`, `setRcs`, `setGear`, `setBrakes`, `setLights`, `setAbort`,
+      `setPrecisionControl`): an absolute state to apply, never a toggle. Under
+      signal delay delay a toggle that arrives after unknown intervening changes
+      would race them, so there are no toggle commands.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -3428,12 +3449,12 @@ channels:
 
       **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
-      Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
-      Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
-      `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
-      apply, never a toggle. Under signal delay delay a toggle that arrives after
-      unknown intervening changes would race them, so there are no toggle
-      commands.
+      Switch SAS, RCS, landing gear, brakes, lights, the abort group or precision
+      control on or off. Args shared by every plain on/off actuation command
+      (`setSas`, `setRcs`, `setGear`, `setBrakes`, `setLights`, `setAbort`,
+      `setPrecisionControl`): an absolute state to apply, never a toggle. Under
+      signal delay delay a toggle that arrives after unknown intervening changes
+      would race them, so there are no toggle commands.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -4831,6 +4852,20 @@ operations:
         $ref: "#/channels/vessel.control.setLights"
       messages:
         - $ref: "#/channels/vessel.control.setLights/messages/commandResponse"
+  dispatch:vessel.control.setPrecisionControl:
+    action: send
+    channel:
+      $ref: "#/channels/vessel.control.setPrecisionControl"
+    title: Dispatch vessel.control.setPrecisionControl
+    tags:
+      - name: vessel
+    messages:
+      - $ref: "#/channels/vessel.control.setPrecisionControl/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/vessel.control.setPrecisionControl"
+      messages:
+        - $ref: "#/channels/vessel.control.setPrecisionControl/messages/commandResponse"
   dispatch:vessel.control.setRcs:
     action: send
     channel:
@@ -6743,6 +6778,21 @@ components:
                 const: vessel.control.setLights
               args:
                 $ref: "#/components/schemas/SetEnabledArgs"
+    commandRequest.vessel.control.setPrecisionControl:
+      name: command-request
+      title: Dispatch vessel.control.setPrecisionControl
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `vessel.control.setPrecisionControl`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: vessel.control.setPrecisionControl
+              args:
+                $ref: "#/components/schemas/SetEnabledArgs"
     commandRequest.vessel.control.setRcs:
       name: command-request
       title: Dispatch vessel.control.setRcs
@@ -7579,6 +7629,19 @@ components:
         $ref: "#/components/correlationIds/requestId"
       payload:
         description: The `command-response` envelope for `vessel.control.setLights`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
+    commandResponse.vessel.control.setPrecisionControl:
+      name: command-response
+      title: Reply to vessel.control.setPrecisionControl
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `vessel.control.setPrecisionControl`, with its typed `result`.
         allOf:
           - $ref: "#/components/schemas/CommandResponse"
           - properties:
@@ -19227,12 +19290,12 @@ components:
     SetEnabledArgs:
       type: object
       description: |-
-        Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
-        Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
-        `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
-        apply, never a toggle. Under signal delay delay a toggle that arrives after
-        unknown intervening changes would race them, so there are no toggle
-        commands.
+        Switch SAS, RCS, landing gear, brakes, lights, the abort group or precision
+        control on or off. Args shared by every plain on/off actuation command
+        (`setSas`, `setRcs`, `setGear`, `setBrakes`, `setLights`, `setAbort`,
+        `setPrecisionControl`): an absolute state to apply, never a toggle. Under
+        signal delay delay a toggle that arrives after unknown intervening changes
+        would race them, so there are no toggle commands.
       required:
         - enabled
       properties:
@@ -21172,7 +21235,7 @@ components:
           description: |-
             Precision-control (fine-control / caps-lock) mode. Mirrors KSP's
             `FlightInputHandler.fetch.precisionMode`. Null when there is no active
-            flight scene.
+            flight scene. Changed with `vessel.control.setPrecisionControl`.
         flyByWire:
           type:
             - boolean

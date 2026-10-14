@@ -17,6 +17,7 @@ namespace Sitrep.Host.Tests
         public bool? LastSetSasEnabled;
         public SasMode? LastSetSasMode;
         public bool? LastSetRcsEnabled;
+        public bool? LastSetPrecisionControlEnabled;
         public bool? LastSetGearEnabled;
         public bool? LastSetBrakesEnabled;
         public bool? LastSetLightsEnabled;
@@ -83,6 +84,12 @@ namespace Sitrep.Host.Tests
         {
             LastSetRcsEnabled = enabled;
             return SetRcsResult;
+        }
+
+        public CommandResult SetPrecisionControl(bool enabled)
+        {
+            LastSetPrecisionControlEnabled = enabled;
+            return CommandResult.Ok();
         }
 
         public CommandResult SetGear(bool enabled)

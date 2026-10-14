@@ -52,6 +52,16 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void HandleSetPrecisionControlPassesEnabledThroughAsAbsoluteState()
+        {
+            var actuator = new FakeVesselActuator();
+
+            VesselCommandProvider.HandleSetPrecisionControl(actuator, new SetEnabledArgs { Enabled = true });
+
+            Assert.True(actuator.LastSetPrecisionControlEnabled);
+        }
+
+        [Fact]
         public void HandleSetRcsPassesEnabledThroughAsAbsoluteState()
         {
             var actuator = new FakeVesselActuator();

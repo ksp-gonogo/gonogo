@@ -3078,6 +3078,7 @@ namespace Sitrep.Host.IntegrationTests
 
             public CommandResult SetSasMode(SasMode mode) => CommandResult.Ok();
             public CommandResult SetRcs(bool enabled) => CommandResult.Ok();
+            public CommandResult SetPrecisionControl(bool enabled) => CommandResult.Ok();
             public CommandResult SetGear(bool enabled) => CommandResult.Ok();
             public CommandResult SetBrakes(bool enabled) => CommandResult.Ok();
             public CommandResult SetLights(bool enabled) => CommandResult.Ok();

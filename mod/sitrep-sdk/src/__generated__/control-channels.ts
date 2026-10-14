@@ -26,6 +26,7 @@ export const GENERATED_CONTROL_CHANNELS = [
   { id: "vessel.control.gear", readTopic: "vessel.control", readField: "gear", writeCommand: "vessel.control.setGear", argsType: "SetEnabledArgs", valueField: "enabled" },
   { id: "vessel.control.lights", readTopic: "vessel.control", readField: "lights", writeCommand: "vessel.control.setLights", argsType: "SetEnabledArgs", valueField: "enabled" },
   { id: "vessel.control.pitch", readTopic: "vessel.control", readField: "pitch", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "pitch" },
+  { id: "vessel.control.precisionControl", readTopic: "vessel.control", readField: "precisionControl", writeCommand: "vessel.control.setPrecisionControl", argsType: "SetEnabledArgs", valueField: "enabled" },
   { id: "vessel.control.rcs", readTopic: "vessel.control", readField: "rcs", writeCommand: "vessel.control.setRcs", argsType: "SetEnabledArgs", valueField: "enabled" },
   { id: "vessel.control.roll", readTopic: "vessel.control", readField: "roll", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "roll" },
   { id: "vessel.control.sas", readTopic: "vessel.control", readField: "sas", writeCommand: "vessel.control.setSas", argsType: "SetEnabledArgs", valueField: "enabled" },

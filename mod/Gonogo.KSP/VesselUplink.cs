@@ -226,6 +226,7 @@ namespace Gonogo.KSP
                 Command(VesselCommandProvider.SetSasCommand, VesselViewProvider.ControlTopic),
                 Command(VesselCommandProvider.SetSasModeCommand, VesselViewProvider.ControlTopic),
                 Command(VesselCommandProvider.SetRcsCommand, VesselViewProvider.ControlTopic),
+                Command(VesselCommandProvider.SetPrecisionControlCommand, VesselViewProvider.ControlTopic),
                 Command(VesselCommandProvider.SetGearCommand, VesselViewProvider.ControlTopic),
                 Command(VesselCommandProvider.SetBrakesCommand, VesselViewProvider.ControlTopic),
                 Command(VesselCommandProvider.SetLightsCommand, VesselViewProvider.ControlTopic),
@@ -355,6 +356,7 @@ namespace Gonogo.KSP
             host.AddCommandHandler<SetEnabledArgs, CommandResult>(VesselCommandProvider.SetSasCommand, args => VesselCommandProvider.HandleSetSas(_actuator, args));
             host.AddCommandHandler<SetSasModeArgs, CommandResult>(VesselCommandProvider.SetSasModeCommand, args => VesselCommandProvider.HandleSetSasMode(_actuator, args));
             host.AddCommandHandler<SetEnabledArgs, CommandResult>(VesselCommandProvider.SetRcsCommand, args => VesselCommandProvider.HandleSetRcs(_actuator, args));
+            host.AddCommandHandler<SetEnabledArgs, CommandResult>(VesselCommandProvider.SetPrecisionControlCommand, args => VesselCommandProvider.HandleSetPrecisionControl(_actuator, args));
             host.AddCommandHandler<SetEnabledArgs, CommandResult>(VesselCommandProvider.SetGearCommand, args => VesselCommandProvider.HandleSetGear(_actuator, args));
             host.AddCommandHandler<SetEnabledArgs, CommandResult>(VesselCommandProvider.SetBrakesCommand, args => VesselCommandProvider.HandleSetBrakes(_actuator, args));
             host.AddCommandHandler<SetEnabledArgs, CommandResult>(VesselCommandProvider.SetLightsCommand, args => VesselCommandProvider.HandleSetLights(_actuator, args));

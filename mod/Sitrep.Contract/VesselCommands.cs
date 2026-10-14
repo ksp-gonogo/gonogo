@@ -5,9 +5,9 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. Args shared by every plain on/off actuation command (<c>setSas</c>,
+/// Switch SAS, RCS, landing gear, brakes, lights, the abort group or precision control on or off. Args shared by every plain on/off actuation command (<c>setSas</c>,
 /// <c>setRcs</c>, <c>setGear</c>, <c>setBrakes</c>, <c>setLights</c>,
-/// <c>setAbort</c>): an absolute state to apply, never a toggle. Under
+/// <c>setAbort</c>, <c>setPrecisionControl</c>): an absolute state to apply, never a toggle. Under
 /// signal delay delay a toggle that arrives after unknown intervening changes
 /// would race them, so there are no toggle commands.
 /// </summary>
@@ -22,6 +22,7 @@ namespace Sitrep.Contract;
 [SitrepCommand("vessel.control.setBrakes", Summary = "Set the brakes on or off.")]
 [SitrepCommand("vessel.control.setLights", Summary = "Turn the lights on or off.")]
 [SitrepCommand("vessel.control.setAbort", Summary = "Set or clear the abort action group.")]
+[SitrepCommand("vessel.control.setPrecisionControl", Summary = "Turn precision control (fine control) on or off.")]
 public class SetEnabledArgs
 {
     /// <summary><c>true</c> to switch the system on (or fire abort), <c>false</c> to switch it off.</summary>

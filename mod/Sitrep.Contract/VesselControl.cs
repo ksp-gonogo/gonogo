@@ -188,8 +188,9 @@ public class VesselControl
     /// <summary>
     /// Precision-control (fine-control / caps-lock) mode. Mirrors KSP's
     /// <c>FlightInputHandler.fetch.precisionMode</c>. Null when there is no
-    /// active flight scene.
+    /// active flight scene. Changed with <c>vessel.control.setPrecisionControl</c>.
     /// </summary>
+    [SitrepControlChannel("vessel.control.precisionControl", "vessel.control.setPrecisionControl", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
     public bool? PrecisionControl { get; set; }
 

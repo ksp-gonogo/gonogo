@@ -47,7 +47,7 @@ export const navballActions = [
     label: "Toggle precision",
     accepts: ["button"],
     description:
-      "Reserved for precision control; it does nothing, as the game has no command to set it.",
+      "Turns precision control (fine control of the stick axes) on or off.",
   },
   {
     id: "kill-rotation",

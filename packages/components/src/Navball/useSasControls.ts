@@ -3,17 +3,19 @@ import type { TopicPayload } from "@ksp-gonogo/sitrep-sdk";
 import { commandOutcomes } from "@ksp-gonogo/ui-kit";
 import { SAS_MODES, type SasMode, sasModeOrdinal } from "./sasModes";
 
-/** The SAS and RCS arm toggles and the SAS mode command, off the last confirmed control state. */
+/** The SAS, RCS and precision control toggles and the SAS mode command, off the last confirmed control state. */
 export function useSasControls(
   control: TopicPayload<"vessel.control"> | undefined,
 ) {
   const sasCmd = useCommand("vessel.control.setSas");
   const rcsCmd = useCommand("vessel.control.setRcs");
+  const precisionCmd = useCommand("vessel.control.setPrecisionControl");
   const sasModeCmd = useCommand("vessel.control.setSasMode");
 
   // Uncoerced: inverting an unread arm would be a blind guess, and an unread arm is not a confirmed OFF.
   const sasRaw = control?.sas;
   const rcsRaw = control?.rcs;
+  const precisionRaw = control?.precisionControl;
 
   // Only turning SAS on is refused, so a SAS that is already on can still be switched off.
   const sasUnavailableReason =
@@ -32,6 +34,13 @@ export function useSasControls(
   const toggleRcs = () => {
     if (typeof rcsRaw !== "boolean") return;
     void rcsCmd.send({ enabled: !rcsRaw }, { label: "Toggle RCS" });
+  };
+  const togglePrecision = () => {
+    if (typeof precisionRaw !== "boolean") return;
+    void precisionCmd.send(
+      { enabled: !precisionRaw },
+      { label: "Toggle precision control" },
+    );
   };
   const setSasMode = (mode: SasMode) => {
     void sasModeCmd.send(
@@ -56,9 +65,11 @@ export function useSasControls(
     sasRaw,
     sasUnavailableReason,
     rcsRaw,
+    precisionRaw,
     toggleSas,
     engageSas,
     toggleRcs,
+    togglePrecision,
     setSasMode,
     unconfirmedSasModes,
     dismissSasUnconfirmed: sasOutcomes.dismiss,

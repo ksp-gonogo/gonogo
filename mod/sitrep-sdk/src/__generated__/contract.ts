@@ -8978,12 +8978,12 @@ export interface VesselAttitude
 	meta: PayloadMeta;
 }
 /**
-* Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
-* Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
-* `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
-* apply, never a toggle. Under signal delay delay a toggle that arrives after
-* unknown intervening changes would race them, so there are no toggle
-* commands.
+* Switch SAS, RCS, landing gear, brakes, lights, the abort group or precision
+* control on or off. Args shared by every plain on/off actuation command
+* (`setSas`, `setRcs`, `setGear`, `setBrakes`, `setLights`, `setAbort`,
+* `setPrecisionControl`): an absolute state to apply, never a toggle. Under
+* signal delay delay a toggle that arrives after unknown intervening changes
+* would race them, so there are no toggle commands.
 *
 * @category Command arguments
 */
@@ -9386,7 +9386,7 @@ export interface VesselControl
 	/**
 	* Precision-control (fine-control / caps-lock) mode. Mirrors KSP's
 	* `FlightInputHandler.fetch.precisionMode`. Null when there is no active
-	* flight scene.
+	* flight scene. Changed with `vessel.control.setPrecisionControl`.
 	*/
 	precisionControl?: boolean | null;
 	/**

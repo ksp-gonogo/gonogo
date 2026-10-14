@@ -34,6 +34,8 @@ namespace Sitrep.Host
 
         CommandResult SetRcs(bool enabled);
 
+        CommandResult SetPrecisionControl(bool enabled);
+
         CommandResult SetGear(bool enabled);
 
         CommandResult SetBrakes(bool enabled);

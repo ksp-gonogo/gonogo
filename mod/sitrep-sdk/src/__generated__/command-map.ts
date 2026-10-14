@@ -204,6 +204,8 @@ export interface GeneratedCommandArgsMap {
   "vessel.control.setGear": SetEnabledArgs;
   /** Turn the lights on or off. */
   "vessel.control.setLights": SetEnabledArgs;
+  /** Turn precision control (fine control) on or off. */
+  "vessel.control.setPrecisionControl": SetEnabledArgs;
   /** Turn RCS on or off. */
   "vessel.control.setRcs": SetEnabledArgs;
   /** Turn SAS on or off. */
@@ -331,6 +333,8 @@ export interface GeneratedCommandReplyMap {
   "vessel.control.setGear": CommandResult;
   /** Turn the lights on or off. */
   "vessel.control.setLights": CommandResult;
+  /** Turn precision control (fine control) on or off. */
+  "vessel.control.setPrecisionControl": CommandResult;
   /** Turn RCS on or off. */
   "vessel.control.setRcs": CommandResult;
   /** Turn SAS on or off. */
@@ -417,6 +421,7 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "vessel.control.setFlyByWire": "CommandResult",
   "vessel.control.setGear": "CommandResult",
   "vessel.control.setLights": "CommandResult",
+  "vessel.control.setPrecisionControl": "CommandResult",
   "vessel.control.setRcs": "CommandResult",
   "vessel.control.setSas": "CommandResult",
   "vessel.control.setSasMode": "CommandResult",
@@ -520,6 +525,7 @@ export const GENERATED_COMMAND_RAIL = {
   "vessel.control.setFlyByWire": { replies: true, delayed: true },
   "vessel.control.setGear": { replies: true, delayed: true },
   "vessel.control.setLights": { replies: true, delayed: true },
+  "vessel.control.setPrecisionControl": { replies: true, delayed: true },
   "vessel.control.setRcs": { replies: true, delayed: true },
   "vessel.control.setSas": { replies: true, delayed: true },
   "vessel.control.setSasMode": { replies: true, delayed: true },
@@ -585,6 +591,7 @@ export const GENERATED_COMMAND_IDS = [
   "vessel.control.setFlyByWire",
   "vessel.control.setGear",
   "vessel.control.setLights",
+  "vessel.control.setPrecisionControl",
   "vessel.control.setRcs",
   "vessel.control.setSas",
   "vessel.control.setSasMode",

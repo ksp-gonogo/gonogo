@@ -129,9 +129,11 @@ function useNavball({
     sasRaw,
     sasUnavailableReason,
     rcsRaw,
+    precisionRaw,
     toggleSas,
     engageSas,
     toggleRcs,
+    togglePrecision,
     setSasMode,
     unconfirmedSasModes,
     dismissSasUnconfirmed,
@@ -170,6 +172,7 @@ function useNavball({
     toggleSas,
     engageSas,
     toggleRcs,
+    togglePrecision,
     setSasMode,
     setThrottleCmd,
     throttleKnown,
@@ -198,8 +201,10 @@ function useNavball({
     sasRaw,
     sasUnavailableReason,
     rcsRaw,
+    precisionRaw,
     toggleSas,
     toggleRcs,
+    togglePrecision,
     setSasMode,
     unconfirmedSasModes,
     dismissSasUnconfirmed,
@@ -265,8 +270,10 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     sasRaw,
     sasUnavailableReason,
     rcsRaw,
+    precisionRaw,
     toggleSas,
     toggleRcs,
+    togglePrecision,
     setSasMode,
     unconfirmedSasModes,
     dismissSasUnconfirmed,
@@ -377,10 +384,11 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
                   sasBadgeMode={sasBadgeMode}
                   sasUnavailableReason={sasUnavailableReason}
                   rcs={rcsRaw}
-                  precision={control?.precisionControl}
+                  precision={precisionRaw}
                   marking={derivedMarking(controlReading)}
                   onToggleSas={toggleSas}
                   onToggleRcs={toggleRcs}
+                  onTogglePrecision={togglePrecision}
                 />
               </div>
             )}

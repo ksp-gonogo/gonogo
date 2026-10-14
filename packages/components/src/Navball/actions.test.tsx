@@ -104,17 +104,35 @@ describe("Navball take-control", () => {
 });
 
 describe("Navball toggle-precision", () => {
-  it("sends nothing on a press, since precision control has no set command", async () => {
-    const { handler } = mount("nav-act-precision");
+  const PRECISION = "vessel.control.setPrecisionControl";
+
+  it("sends the opposite of the confirmed state on a press", async () => {
+    const { fixture, handler } = mount("nav-act-precision");
+    act(() => {
+      fixture.emit("vessel.control", { precisionControl: false });
+    });
 
     dispatch("nav-act-precision", "toggle-precision", PRESS);
+
+    await waitFor(() =>
+      expect(handler).toHaveBeenCalledWith(PRECISION, { enabled: true }),
+    );
+  });
+
+  it("sends nothing before precision control has been read", async () => {
+    const { handler } = mount("nav-act-precision-unread");
+
+    dispatch("nav-act-precision-unread", "toggle-precision", PRESS);
     await letTheStreamTick();
 
     expect(handler).not.toHaveBeenCalled();
   });
 
   it("ignores the release of the button", async () => {
-    const { handler } = mount("nav-act-precision-rel");
+    const { fixture, handler } = mount("nav-act-precision-rel");
+    act(() => {
+      fixture.emit("vessel.control", { precisionControl: false });
+    });
 
     const result = dispatch(
       "nav-act-precision-rel",

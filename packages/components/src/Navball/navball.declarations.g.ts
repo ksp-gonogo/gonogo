@@ -5,6 +5,7 @@ export default {
   commands: [
     "vessel.control.setAxes",
     "vessel.control.setFlyByWire",
+    "vessel.control.setPrecisionControl",
     "vessel.control.setRcs",
     "vessel.control.setSas",
     "vessel.control.setSasMode",

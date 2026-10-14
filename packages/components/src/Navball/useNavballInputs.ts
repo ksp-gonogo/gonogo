@@ -14,6 +14,7 @@ export function useNavballInputs({
   toggleSas,
   engageSas,
   toggleRcs,
+  togglePrecision,
   setSasMode,
   setThrottleCmd,
   throttleKnown,
@@ -26,6 +27,7 @@ export function useNavballInputs({
   toggleSas: () => void;
   engageSas: () => void;
   toggleRcs: () => void;
+  togglePrecision: () => void;
   setSasMode: (mode: SasMode) => void;
   setThrottleCmd: ThrottleSetter;
   throttleKnown: boolean;
@@ -55,7 +57,7 @@ export function useNavballInputs({
     },
     "toggle-precision": (payload) => {
       if (!isButtonPress(payload)) return;
-      // A no-op: precision control has no set command, but the action keeps a mapping ready for one.
+      togglePrecision();
     },
     "kill-rotation": (payload) => {
       if (!isButtonPress(payload)) return;

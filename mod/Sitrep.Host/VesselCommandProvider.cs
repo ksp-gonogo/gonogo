@@ -29,6 +29,7 @@ namespace Sitrep.Host
         public const string SetSasCommand = "vessel.control.setSas";
         public const string SetSasModeCommand = "vessel.control.setSasMode";
         public const string SetRcsCommand = "vessel.control.setRcs";
+        public const string SetPrecisionControlCommand = "vessel.control.setPrecisionControl";
         public const string SetGearCommand = "vessel.control.setGear";
         public const string SetBrakesCommand = "vessel.control.setBrakes";
         public const string SetLightsCommand = "vessel.control.setLights";
@@ -80,6 +81,9 @@ namespace Sitrep.Host
 
         public static CommandResult HandleSetRcs(IVesselActuator actuator, SetEnabledArgs args) =>
             actuator.SetRcs(args.Enabled);
+
+        public static CommandResult HandleSetPrecisionControl(IVesselActuator actuator, SetEnabledArgs args) =>
+            actuator.SetPrecisionControl(args.Enabled);
 
         public static CommandResult HandleSetGear(IVesselActuator actuator, SetEnabledArgs args) =>
             actuator.SetGear(args.Enabled);
