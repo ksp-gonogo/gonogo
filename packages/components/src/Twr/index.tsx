@@ -1,9 +1,13 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { plotColumnsOf } from "@ksp-gonogo/data";
+import { DELTA_V_BUDGET, useProcessor } from "@ksp-gonogo/sitrep-client";
 import {
   combineReadings,
+  type Reading,
+  stillTrue,
   type TinyEssential,
+  type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Sparkline } from "@ksp-gonogo/ui";
@@ -17,6 +21,7 @@ import {
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
+import { budgetFigure } from "../FuelStatus/deltaV";
 import { magnitudeOf } from "../shared/magnitude";
 import { useComputedSeries } from "../shared/useComputedSeries";
 import {
@@ -34,10 +39,28 @@ type TwrConfig = Record<string, never>;
 
 const SPARK_WINDOW_SEC = 60;
 
-/** Thrust over weight: the wire carries thrust and mass, not their ratio. */
-function useTwrReading() {
+/** The stage whose ratio is drawn when nothing is firing, and the ratio at its ignition. */
+interface NextStageTwr {
+  stage: number;
+  twr: number;
+}
+
+/**
+ * Thrust over weight: the wire carries thrust and mass, not their ratio. While
+ * the craft is making no thrust the active stage's ratio is a known zero, so the
+ * figure is the next stage that has thrust, from the stage list, and `stage`
+ * names which one it is.
+ */
+function useTwrReading(): { reading: Reading<Value<"1">>; stage?: number } {
   const propulsionReading = useTelemetry("vessel.propulsion");
-  return combineReadings(
+  const structureReading = useTelemetry("vessel.structure");
+  const currentStage = stillTrue(structureReading, undefined)?.currentStage;
+  const budgetReading = useProcessor(DELTA_V_BUDGET);
+  const stages =
+    budgetReading?.state === "observed" || budgetReading?.state === "held"
+      ? budgetReading.value?.stages
+      : undefined;
+  const live = combineReadings(
     [propulsionReading.currentThrust, propulsionReading.totalMass],
     (currentThrust, totalMass) => {
       const thrust = magnitudeOf(currentThrust);
@@ -49,15 +72,43 @@ function useTwrReading() {
         : value("1", ratio);
     },
   );
+  const idle = live.value?.isZero() === true;
+  const next = idle ? nextStageWithThrust(stages, currentStage) : undefined;
+  if (next === undefined || budgetReading === undefined) {
+    return { reading: live };
+  }
+  return {
+    reading: budgetFigure(budgetReading, value("1", next.twr)),
+    stage: next.stage,
+  };
+}
+
+/** The highest stage at or below the current one that makes thrust: the one the next ignition lights. */
+function nextStageWithThrust(
+  stages:
+    | ReadonlyArray<{ stage: number; thrustActual: number; TWRActual: number }>
+    | undefined,
+  currentStage: number | undefined,
+): NextStageTwr | undefined {
+  let best: NextStageTwr | undefined;
+  for (const s of stages ?? []) {
+    if (currentStage !== undefined && s.stage > currentStage) continue;
+    if (!Number.isFinite(s.thrustActual) || s.thrustActual <= 0) continue;
+    if (!Number.isFinite(s.TWRActual)) continue;
+    if (best === undefined || s.stage > best.stage) {
+      best = { stage: s.stage, twr: s.TWRActual };
+    }
+  }
+  return best;
 }
 
 /** The ratio on a dial's own scale, which the tiny form draws as a figure over a gauge. */
 function useTwrEssentials(): readonly TinyEssential[] {
-  const twrReading = useTwrReading();
+  const { reading: twrReading, stage } = useTwrReading();
   const twr = twrReading.value;
   return [
     {
-      label: "TWR",
+      label: stage === undefined ? "TWR" : `TWR S${stage}`,
       value: twrReading,
       gauge: { min: GAUGE_MIN, max: GAUGE_MAX, bands: TINY_BANDS },
       tone: twr === undefined ? "neutral" : tinyToneFor(twr),
@@ -66,7 +117,7 @@ function useTwrEssentials(): readonly TinyEssential[] {
 }
 
 function TwrComponent({ w }: Readonly<ComponentProps<TwrConfig>>) {
-  const twrReading = useTwrReading();
+  const { reading: twrReading, stage } = useTwrReading();
   // A held TWR stays drawn, never blanked: the empty state means the craft has no engine.
   const twr = twrReading.value;
   const series = useComputedSeries(
@@ -108,6 +159,18 @@ function TwrComponent({ w }: Readonly<ComponentProps<TwrConfig>>) {
   return (
     <Panel
       panelTitle="TWR"
+      panelBadges={
+        stage === undefined
+          ? undefined
+          : [
+              {
+                id: "stage",
+                label: `S${stage}`,
+                tone: "neutral",
+                title: `Stage ${stage}: the next stage with thrust, drawn while nothing is firing`,
+              },
+            ]
+      }
       sections={
         <Section fill>
           <FramedDisplay
