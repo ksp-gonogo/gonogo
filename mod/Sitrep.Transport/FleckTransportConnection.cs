@@ -27,8 +27,26 @@ namespace Sitrep.Transport
         private readonly Queue<byte[]> _sendQueue = new Queue<byte[]>();
         private bool _sending;
 
+        /// <summary>
+        /// Bytes a peer may leave unwritten before it is dropped. A peer that has
+        /// stopped reading would otherwise grow the queue for as long as the
+        /// engine keeps answering it.
+        /// </summary>
+        internal const long DefaultMaxQueuedBytes = 32L * 1024 * 1024;
+
+        private const ushort OverflowCloseCode = 1013;
+
+        private readonly long _maxQueuedBytes;
+        private long _queuedBytes;
+
         public FleckTransportConnection(IWebSocketConnection socket)
+            : this(socket, DefaultMaxQueuedBytes)
         {
+        }
+
+        public FleckTransportConnection(IWebSocketConnection socket, long maxQueuedBytes)
+        {
+            _maxQueuedBytes = maxQueuedBytes;
             _socket = socket ?? throw new ArgumentNullException(nameof(socket));
             Id = socket.ConnectionInfo.Id.ToString("N");
 
@@ -176,15 +194,45 @@ namespace Sitrep.Transport
 
             var bytes = ToArray(payload);
             bool shouldStartDrain;
+            bool overflowed = false;
+            long queuedAtOverflow = 0;
 
             lock (_sendLock)
             {
-                _sendQueue.Enqueue(bytes);
-                shouldStartDrain = !_sending;
-                if (shouldStartDrain)
+                if (_sendQueue.Count > 0 && _queuedBytes + bytes.Length > _maxQueuedBytes)
                 {
-                    _sending = true;
+                    overflowed = true;
+                    queuedAtOverflow = _queuedBytes;
+                    _sendQueue.Clear();
+                    _queuedBytes = 0;
+                    shouldStartDrain = false;
                 }
+                else
+                {
+                    _queuedBytes += bytes.Length;
+                    _sendQueue.Enqueue(bytes);
+                    shouldStartDrain = !_sending;
+                    if (shouldStartDrain)
+                    {
+                        _sending = true;
+                    }
+                }
+            }
+
+            if (overflowed)
+            {
+                FleckLog.Warn(
+                    "dropping connection " + Id + ": " + queuedAtOverflow + " bytes are queued unwritten, and the peer is not reading (limit "
+                    + _maxQueuedBytes + ")");
+                try
+                {
+                    _socket.Close(OverflowCloseCode);
+                }
+                catch (Exception)
+                {
+                }
+                RaiseClosed();
+                return false;
             }
 
             // TrySend is synchronous-handoff by design (callers are not expected
@@ -218,6 +266,7 @@ namespace Sitrep.Transport
                 }
 
                 next = _sendQueue.Dequeue();
+                _queuedBytes -= next.Length;
             }
 
             Task? sendTask;
@@ -243,6 +292,7 @@ namespace Sitrep.Transport
                 lock (_sendLock)
                 {
                     _sendQueue.Clear();
+                    _queuedBytes = 0;
                     _sending = false;
                 }
 

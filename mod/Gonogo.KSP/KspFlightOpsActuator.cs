@@ -139,6 +139,11 @@ namespace Gonogo.KSP
         /// string when <c>Parameters.Flight.CanAutoSave</c> is off; stock's own
         /// <c>PauseMenu.saveAndExit</c> ignores that.</para>
         ///
+        /// <para>Refused with <see cref="CommandErrorCode.WrongScene"/> from any
+        /// scene but flight and the space centre: the editors hold an unsaved
+        /// craft that loading a scene would discard, and the Tracking Station
+        /// is already there.</para>
+        ///
         /// <para><c>SaveMode.BACKUP</c>, not the <c>OVERWRITE</c> stock's two
         /// exit buttons use: it rotates a timestamped copy of the existing
         /// <c>persistent.sfs</c> into <c>Backup/</c> first, as
@@ -148,6 +153,13 @@ namespace Gonogo.KSP
         /// </summary>
         public CommandResult ToTrackingStation()
         {
+            var scene = HighLogic.LoadedScene;
+            if (scene != GameScenes.FLIGHT && scene != GameScenes.SPACECENTER)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(scene)} scene");
+            }
+
             var game = HighLogic.CurrentGame;
             var saveFolder = HighLogic.SaveFolder;
             if (game == null || string.IsNullOrEmpty(saveFolder))

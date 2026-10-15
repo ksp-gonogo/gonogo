@@ -263,7 +263,25 @@ namespace Sitrep.Transport.Tests
             Assert.Equal(1, told);
         }
 
-        private static ITransportConnection CreateFleckTransportConnection(IWebSocketConnection socket)
+        [Fact]
+        public void TrySend_ABacklogPastTheCapDropsTheConnectionAndSaysWhy()
+        {
+            var fakeSocket = new FakeWebSocketConnection { HoldSends = true };
+            var connection = CreateFleckTransportConnection(fakeSocket, maxQueuedBytes: 100);
+            var closed = 0;
+            connection.Closed += () => closed++;
+            var frame = new ArraySegment<byte>(new byte[40]);
+
+            Assert.True(connection.TrySend(frame, SendClass.Response));
+            Assert.True(connection.TrySend(frame, SendClass.Response));
+            Assert.True(connection.TrySend(frame, SendClass.Response));
+            Assert.False(connection.TrySend(frame, SendClass.Response));
+
+            Assert.Equal(1, closed);
+            Assert.Equal(1013, fakeSocket.ClosedWith);
+        }
+
+        private static ITransportConnection CreateFleckTransportConnection(IWebSocketConnection socket, long? maxQueuedBytes = null)
         {
             var type = typeof(ITransportConnection).Assembly.GetType(
                 "Sitrep.Transport.FleckTransportConnection", throwOnError: true)!;
@@ -272,7 +290,7 @@ namespace Sitrep.Transport.Tests
                 type,
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.CreateInstance,
                 binder: null,
-                args: new object[] { socket },
+                args: maxQueuedBytes is long cap ? new object[] { socket, cap } : new object[] { socket },
                 culture: null)!;
         }
 
@@ -294,8 +312,16 @@ namespace Sitrep.Transport.Tests
 
             public Task Send(string message) => Task.CompletedTask;
 
+            public bool HoldSends { get; set; }
+            public int? ClosedWith { get; private set; }
+
             public Task Send(byte[] message)
             {
+                if (HoldSends)
+                {
+                    return new TaskCompletionSource<bool>().Task;
+                }
+
                 // Deliberately does NOT copy `message`, mirrors a downstream Send
                 // path that has no defensive-copy behaviour of its own, so the test
                 // isolates the seam's own copy-or-alias decision in TrySend/ToArray.
@@ -309,7 +335,7 @@ namespace Sitrep.Transport.Tests
 
             public void Close() { }
 
-            public void Close(int code) { }
+            public void Close(int code) { ClosedWith = code; }
         }
 
         private sealed class FakeWebSocketConnectionInfo : IWebSocketConnectionInfo

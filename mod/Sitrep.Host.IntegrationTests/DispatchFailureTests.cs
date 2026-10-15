@@ -49,15 +49,14 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(20.0, null, Timeout);
                 Assert.Equal(0, uplink.HandledCount);
 
-                // As a throwing handler does, it leaves its command refused at once from then on, rather than failing the same way at every press.
+                // One failed send does not disable the command: the next press is taken.
                 string? next = null;
                 engine.DispatchCommandAndWait(
                     DelayedTestUplink.Command, "x", "vantage-1",
                     _ => { },
                     Timeout,
                     onRefused: (_, reason) => next = reason);
-                Assert.NotNull(next);
-                Assert.Contains("the accept frame could not be written", next);
+                Assert.Null(next);
             }
             finally { engine.Stop(); }
         }

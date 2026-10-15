@@ -69,7 +69,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
-        public void TheCommandThatThrewStaysRefusedAndSaysWhy()
+        public void ACommandThatKeepsThrowingIsSuspendedAndSaysWhy()
         {
             var uplink = new FlightOpsLikeUplink();
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
@@ -77,15 +77,21 @@ namespace Sitrep.Host.IntegrationTests
             engine.Start();
             try
             {
-                Dispatch(engine, FlightOpsLikeUplink.Switch);
-                var again = Dispatch(engine, FlightOpsLikeUplink.Switch);
+                for (var press = 1; press <= 3; press++)
+                {
+                    var thrown = Dispatch(engine, FlightOpsLikeUplink.Switch);
+                    Assert.False(thrown.Resolved);
+                    Assert.Contains(FlightOpsLikeUplink.Failure, thrown.Refusal);
+                    Assert.Equal(press, uplink.SwitchRuns);
+                }
 
-                Assert.False(again.Resolved);
-                Assert.NotNull(again.Refusal);
-                Assert.Contains(FlightOpsLikeUplink.Switch, again.Refusal);
-                Assert.Contains(FlightOpsLikeUplink.Failure, again.Refusal);
-                // Not run a second time: what the first run half-did is unknown.
-                Assert.Equal(1, uplink.SwitchRuns);
+                var suspended = Dispatch(engine, FlightOpsLikeUplink.Switch);
+
+                Assert.False(suspended.Resolved);
+                Assert.Contains(FlightOpsLikeUplink.Switch, suspended.Refusal);
+                Assert.Contains("suspended", suspended.Refusal);
+                Assert.Contains(FlightOpsLikeUplink.Failure, suspended.Refusal);
+                Assert.Equal(3, uplink.SwitchRuns);
             }
             finally { engine.Stop(); }
         }

@@ -284,6 +284,9 @@ namespace Gonogo.KSP
                 _host.SetActionGroupsBackendSource(
                     () => ActionGroupsElection.Elected(engine.Kernel));
 
+                _host.SetSavedShipsDemandSource(
+                    () => engine.IsAnyTopicSubscribed(SpaceCenterViewProvider.SavedShipsTopic));
+
                 // Same late-bound install for the maneuver plan: whatever wins
                 // the election answers vessel.maneuver, and the capture never
                 // touches patchedConicSolver itself.
