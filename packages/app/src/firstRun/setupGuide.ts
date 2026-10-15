@@ -25,7 +25,7 @@ export const RUN_IMAGE_TAG = "rc";
  */
 function runCommandLinesFor(tag: string): string[] {
   return [
-    `docker run -d --name ${CONTAINER_NAME} --restart unless-stopped --pull always`,
+    `docker run -d --name ${CONTAINER_NAME} --restart unless-stopped`,
     "--add-host=host.docker.internal:host-gateway",
     "-e KSP_HOST=host.docker.internal",
     "-p 8080:8080 -p 3002:3002",

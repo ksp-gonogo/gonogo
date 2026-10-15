@@ -1,6 +1,6 @@
 # Gonogo
 
-A telemetry mod system and mission control dashboard for [Kerbal Space Program](https://www.kerbalspaceprogram.com/). The mod captures live data and makes it available through an API. The Gonogo app provides a UI for a multiplayer mission control experience, with movable widgets for all kinds of data.
+A telemetry mod system and mission control dashboard for [Kerbal Space Program](https://www.kerbalspaceprogram.com/). The mod captures live data and makes it available in an API. The Gonogo app provides a UI for a multiplayer mission control experience, with movable widgets for all kinds of data.
 
 **Quickstart:** [Gonogo Home Page](https://ksp-gonogo.github.io/)
 
@@ -12,7 +12,7 @@ A telemetry mod system and mission control dashboard for [Kerbal Space Program](
 
 <img src="docs/assets/light-delay-rail.gif" alt="The delay rail on a Throttle panel: a throttle pulse crosses from left to right through three zones, outgoing to the craft, the echo coming back, and confirmed at the command centre" />
 
-Gonogo features an _optional_ realistic light delay, on by default. Signals in the game are modelled under a real propagation system; it takes longer to get flight data from vessels further away, and vessels occluded behind planets and out of range won't be able to communicate. Signals get routed through available relay nodes to command centres, via a model heavily inspired by [NASA's Contact Graph Routing](https://ntrs.nasa.gov/citations/20120006508) system.
+Gonogo features an _optional_ realistic light delay option, on by default. Signals in the game gets modelled under a real propagation system; it takes longer to get flight data from vessels further away, and vessels occluded behind planets and out of range won't be able to communicate. Signals get routed through available relay nodes to command centres, via a model heavily inspired by [NASA's Contact Graph Routing](https://ntrs.nasa.gov/citations/20120006508) system.
 
 ## Uplinks
 
@@ -39,7 +39,7 @@ You need KSP 1.12.
 3. Paste this into a terminal (on Windows, as one line: remove the `\` and the line breaks)
 
 ```bash
-docker run -d --name gonogo --restart unless-stopped --pull always \
+docker run -d --name gonogo --restart unless-stopped \
   --add-host=host.docker.internal:host-gateway \
   -e KSP_HOST=host.docker.internal \
   -p 8080:8080 -p 3002:3002 \
@@ -55,12 +55,6 @@ The setup wizard opens by itself and checks the container, the connection to KSP
 ## Joining a friend's game
 
 Open the link from their **Add station** panel and enter the share code. Nothing to install.
-
-## Upgrading from an earlier version
-
-- **Mod:** replace the `Gonogo` folder in `GameData`, or update it through CKAN
-- **App:** run `docker rm -f gonogo`, then the `docker run` command above again ([`--pull always`](https://docs.docker.com/reference/cli/docker/container/run/) fetches the newest image)
-- **Uplinks:** update each one the same way as Gonogo. An Uplink built for another Gonogo version will refuse to run
 
 ## If something is not working
 
