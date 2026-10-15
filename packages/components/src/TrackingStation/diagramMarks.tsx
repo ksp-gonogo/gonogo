@@ -81,6 +81,9 @@ export function DepthRing({
   );
 }
 
+/** How far a route drawn from a report older than the craft's place is dimmed. */
+const HELD_ROUTE_OPACITY = 0.4;
+
 /**
  * The vessel's trajectory, drawn as the propagation seam authorised it, through the same placement as the bodies so both share one frame.
  *
@@ -99,9 +102,12 @@ export function VesselOrbitPath({
   zoom,
   origin = [0, 0, 0],
   subject = "vessel",
+  held = false,
 }: Readonly<{
   /** Whose curve this is; the target's is drawn in its own colour and keyed apart. */
   subject?: "vessel" | "target";
+  /** Drawn from a report older than what the diagram places the craft by, so it is dimmed and marked held. */
+  held?: boolean;
   trajectory: OrbitTrajectory | null;
   conicRing: string | null;
   placement: Placement;
@@ -134,7 +140,10 @@ export function VesselOrbitPath({
       : hasGradient
         ? `url(#${gradId})`
         : DEPTH_LEVEL_COLOUR;
-  const trajectoryAttr = { [`data-${subject}-trajectory`]: trajectory.shape };
+  const trajectoryAttr = {
+    [`data-${subject}-trajectory`]: trajectory.shape,
+    ...(held ? { "data-route-held": "", opacity: HELD_ROUTE_OPACITY } : {}),
+  };
   if (trajectory.shape === "conic") {
     if (conicRing === null) return null;
     return (
@@ -205,11 +214,14 @@ export function PredictedPatchArc({
   points,
   plotScale,
   zoom,
+  held = false,
 }: Readonly<{
   patch: PatchChainArc;
   points: readonly (readonly [number, number, number])[];
   plotScale: number;
   zoom: number;
+  /** The chain comes from a report older than what the diagram places the craft by, so it is dimmed, dashed and marked held. */
+  held?: boolean;
 }>) {
   if (points.length < 2) return null;
   const d = openPath(points, plotScale);
@@ -222,8 +234,11 @@ export function PredictedPatchArc({
       stroke={stroke}
       // Screen-constant stroke and dashes.
       strokeWidth={(patch.isCurrent ? 1.6 : 1.2) / zoom}
-      strokeDasharray={patch.isCurrent ? undefined : `${5 / zoom} ${4 / zoom}`}
-      opacity={patch.isCurrent ? 0.95 : 0.7}
+      strokeDasharray={
+        patch.isCurrent && !held ? undefined : `${5 / zoom} ${4 / zoom}`
+      }
+      opacity={held ? HELD_ROUTE_OPACITY : patch.isCurrent ? 0.95 : 0.7}
+      data-route-held={held ? "" : undefined}
       pointerEvents="none"
     />
   );

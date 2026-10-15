@@ -42,7 +42,13 @@ function holdFrames() {
   onTestFinished(() => spy.mockRestore());
 }
 
-function mountScene({ catalogListsCraft = true } = {}) {
+function mountScene({
+  catalogListsCraft = true,
+  recordPlacedAt,
+}: {
+  catalogListsCraft?: boolean;
+  recordPlacedAt?: number;
+} = {}) {
   const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
   const view = render(
     <fixture.Provider>
@@ -118,7 +124,12 @@ function mountScene({ catalogListsCraft = true } = {}) {
               crewCount: 2,
               crewCapacity: 3,
               commsControlSource: 2,
-              orbit: orbit(3_000_000),
+              orbit: orbit(
+                recordPlacedAt === undefined ? 3_000_000 : 5_000_000,
+              ),
+              ...(recordPlacedAt === undefined
+                ? {}
+                : { placeAsOfUt: recordPlacedAt }),
             },
           ]
         : [],
@@ -156,6 +167,27 @@ describe("TrackingStation: pressing the diagram", () => {
       ).toHaveAttribute("aria-pressed", "true"),
     );
     expect(screen.getByText("Active Craft")).toBeInTheDocument();
+  });
+
+  it("places the flown craft by its own report while the record is no newer", async () => {
+    const { container } = mountScene();
+    await screen.findByRole("button", { name: "Active vessel" });
+
+    expect(
+      container.querySelector('[data-vessel-placed-by="report"]'),
+    ).not.toBeNull();
+  });
+
+  /** A centre that has seen the craft since it last heard from it draws the craft where the record has it. */
+  it("places the flown craft by the record when the record is newer than its report", async () => {
+    const { container } = mountScene({ recordPlacedAt: 500 });
+    await screen.findByRole("button", { name: "Active vessel" });
+
+    await waitFor(() =>
+      expect(
+        container.querySelector('[data-vessel-placed-by="record"]'),
+      ).not.toBeNull(),
+    );
   });
 
   it("pins a pressed body's almanac in the aside, and holds the view on it when it is pressed again", async () => {

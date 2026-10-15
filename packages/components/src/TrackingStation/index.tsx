@@ -63,6 +63,7 @@ import {
   inertialFrameFor,
   resolveProjection,
 } from "./projection";
+import { recordedFlownCraft } from "./recordedFlownCraft";
 import type { SystemOverlayContext } from "./slots";
 import { createUtBucketThrottle } from "./utBucketThrottle";
 // The host's own `tracking-station.projection` entries, so the picker and resolver run on a bare install.
@@ -151,6 +152,9 @@ function conicElementsOf(orbit: VesselOrbit) {
 }
 
 const NO_PATCHES: readonly PatchChainPatch[] = [];
+
+/** A craft placed by its record is drawn on the record's own conic. */
+const RECORD_CONIC: OrbitTrajectory = { shape: "conic" };
 
 /** The craft orbits the frame body itself, so its orbit is drawn about the origin. */
 const VESSEL_AT_FRAME_BODY: readonly [number, number, number] = [0, 0, 0];
@@ -334,13 +338,33 @@ function TrackingStationComponent({
   // Where the craft is on that orbit: where a model carries it, else where it is now, else where it was last seen. With none of them there is no place to draw it, and periapsis is not a stand-in.
   const craft = craftOnOrbit(orbitReading, orbitObserved, derived);
   const vesselAt = craft?.modelled ?? craft?.current ?? craft?.held ?? null;
+  /*
+   * The command centre's record of the flown craft wins over the craft's own report when it is newer: a centre that has seen the craft since it last heard from it.
+   * Then the craft is placed by the record, drawn as modelled, and the report's route stays on the picture as held.
+   */
+  const catalogReading = topics.useTelemetry("trackingStation.catalog");
+  const catalog =
+    catalogReading.state === "observed" || catalogReading.state === "held"
+      ? catalogReading.value
+      : undefined;
+  const recorded = recordedFlownCraft({
+    entry:
+      vesselGuid === null
+        ? undefined
+        : catalog?.entries?.find((e) => e.vesselId === vesselGuid),
+    reportEpoch: orbitObserved?.epoch ?? undefined,
+    nameOf: (index) => nameByIndex.get(index),
+    muOf: (name) => bodies.find((b) => b.name === name)?.gravParameter ?? null,
+    ut: universalTime,
+  });
   // A place a model carried the craft to is drawn as modelled even while every contact state says the craft is in touch.
   const drawnPlotState =
-    vesselPlotState === "observed" && craft?.modelled != null
+    recorded !== null ||
+    (vesselPlotState === "observed" && craft?.modelled != null)
       ? "predicted"
       : vesselPlotState;
   const vesselElements = orbit === undefined ? null : conicElementsOf(orbit);
-  const vesselOrbit =
+  const reportedOrbit =
     vesselBody != null &&
     orbit?.sma.isFinite() &&
     vesselElements !== null &&
@@ -349,9 +373,17 @@ function TrackingStationComponent({
           parentName: vesselBody,
           ...vesselElements,
           trueAnomaly: vesselAt,
-          soi: bodies.find((b) => b.name === vesselBody)?.soi ?? null,
         }
       : null;
+  const drawnOrbit = recorded ?? reportedOrbit;
+  const vesselOrbit =
+    drawnOrbit === null
+      ? null
+      : {
+          ...drawnOrbit,
+          soi:
+            bodies.find((b) => b.name === drawnOrbit.parentName)?.soi ?? null,
+        };
 
   // Throttled to about one real second: a game-second bucket stops throttling at high warp (see `createUtBucketThrottle`).
   const utBucketThrottle = useRef<ReturnType<
@@ -858,11 +890,15 @@ function TrackingStationComponent({
                       }
                       vessel={vesselOrbit}
                       vesselOrigin={vesselOrigin}
-                      vesselTrajectory={vesselTrajectory}
+                      vesselTrajectory={
+                        recorded !== null ? RECORD_CONIC : vesselTrajectory
+                      }
                       vesselPlotState={drawnPlotState}
                       target={drawnTarget}
                       vesselPositionHeld={
-                        vesselAt !== null && vesselAt === craft?.held
+                        recorded === null &&
+                        vesselAt !== null &&
+                        vesselAt === craft?.held
                       }
                       phaseAngles={phaseAngles}
                       transferStatuses={transferStatuses}
@@ -880,6 +916,8 @@ function TrackingStationComponent({
                           : () => activateEntity(activeVesselEntityId)
                       }
                       patchChain={patchChain}
+                      vesselFromRecord={recorded !== null}
+                      heldRoute={recorded !== null ? vesselTrajectory : null}
                       frameParent={frameParent}
                       projection={projection}
                       width={size.w}

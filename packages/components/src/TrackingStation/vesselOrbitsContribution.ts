@@ -145,7 +145,7 @@ interface RingPlace {
   meanAnomalyAtEpoch: number;
 }
 
-function ringPlace(v: CatalogEntry): RingPlace | null {
+export function ringPlace(v: CatalogEntry): RingPlace | null {
   const epoch = v.orbit?.epoch;
   const meanAnomalyAtEpoch = v.orbit?.meanAnomalyAtEpoch;
   if (!epoch?.isFinite() || !meanAnomalyAtEpoch?.isFinite()) return null;
@@ -164,7 +164,7 @@ function ringPlace(v: CatalogEntry): RingPlace | null {
  * element is not a zero, and a path drawn from a guessed one is a confident
  * wrong orbit.
  */
-function conicElements(v: CatalogEntry): ConicElements | null {
+export function conicElements(v: CatalogEntry): ConicElements | null {
   const sma = magnitudeOf(v.orbit?.sma);
   const ecc = magnitudeOf(v.orbit?.ecc);
   const lan = magnitudeOf(v.orbit?.lan);

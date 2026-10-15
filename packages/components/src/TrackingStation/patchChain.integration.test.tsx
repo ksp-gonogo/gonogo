@@ -103,7 +103,7 @@ function wirePatch(
   };
 }
 
-function mount(patches: readonly unknown[]) {
+function mount(patches: readonly unknown[], recordPlacedAt?: number) {
   const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
   const view = render(
     <fixture.Provider>
@@ -125,6 +125,21 @@ function mount(patches: readonly unknown[]) {
       parentBodyIndex: 1,
     });
     fixture.emit("vessel.orbit", { ...NO_ENCOUNTER_ORBIT, patches });
+    if (recordPlacedAt !== undefined) {
+      fixture.emit("trackingStation.catalog", {
+        entries: [
+          {
+            vesselId: "v-active",
+            name: "Active Craft",
+            vesselType: 0,
+            situation: 3,
+            bodyIndex: 1,
+            placeAsOfUt: recordPlacedAt,
+            orbit: { ...NO_ENCOUNTER_ORBIT, sma: 4_000_000 },
+          },
+        ],
+      });
+    }
   });
   return view;
 }
@@ -158,6 +173,27 @@ describe("TrackingStation's predicted patch chain", () => {
     await waitFor(() => {
       expect(view.container.textContent).toContain("escape Kerbol");
     });
+    await act(async () => {});
+  });
+
+  it("draws the chain held, and none of it as live, when the record placing the craft is newer than its report", async () => {
+    const view = mount(
+      [
+        wirePatch("Kerbin", 0, ENCOUNTER_UT, 0, 3_000_000),
+        wirePatch("Mun", ENCOUNTER_UT, 60_000, 2, 400_000),
+      ],
+      500,
+    );
+    await waitFor(() => {
+      expect(
+        view.container.querySelector('[data-vessel-placed-by="record"]'),
+      ).not.toBeNull();
+    });
+    const arcs = predictedArcs(view.container);
+    expect(arcs.length).toBeGreaterThan(0);
+    for (const arc of arcs) {
+      expect(arc.closest("[data-route-held]")).not.toBeNull();
+    }
     await act(async () => {});
   });
 

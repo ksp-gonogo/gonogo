@@ -103,6 +103,13 @@ export interface SystemDiagramProps {
   } | null;
   /** The craft's predicted route about the frame body, in metres: the game's patch chain as arcs and sphere-of-influence crossings. */
   patchChain?: PatchChain | null;
+  /**
+   * The craft is placed by its command centre's record, which is newer than its own report.
+   * The report's route still draws, dimmed and marked held: `heldRoute` and the patch chain.
+   */
+  vesselFromRecord?: boolean;
+  /** The craft's own report's route, drawn held beside a craft placed by its record; absent or a conic draws nothing more. */
+  heldRoute?: OrbitTrajectory | null;
   /** The instant a body's open arc is read from, held by the host to one real second so a ring is not re-placed on every frame; absent reads each pose's own instant. */
   bucketUt?: number;
   /** The frame the whole picture is drawn in. `null` means the catalogue refused the requested frame, so the diagram draws parent-centred inertial and the caller names that frame. */
@@ -151,6 +158,8 @@ export function SystemDiagram({
   vesselOrigin,
   frameParent = null,
   patchChain,
+  vesselFromRecord = false,
+  heldRoute = null,
   bucketUt,
   projection = null,
   width,
@@ -528,6 +537,7 @@ export function SystemDiagram({
             points={points}
             plotScale={plotScale}
             zoom={zoom}
+            held={vesselFromRecord}
           />
         ))}
 
@@ -541,6 +551,20 @@ export function SystemDiagram({
             hasGradient={placed.vessel?.ringDepth != null}
             zoom={zoom}
             origin={origin ?? ZERO_METRES}
+          />
+        )}
+
+        {showVessel && heldRoute !== null && (
+          <VesselOrbitPath
+            trajectory={heldRoute}
+            conicRing={null}
+            placement={placement}
+            plotScale={plotScale}
+            gradId={`${tiltGradId}-vessel`}
+            hasGradient={false}
+            zoom={zoom}
+            origin={origin ?? ZERO_METRES}
+            held
           />
         )}
 
@@ -645,6 +669,7 @@ export function SystemDiagram({
             zoom={zoom}
             state={vesselPlotState}
             held={vesselPositionHeld}
+            fromRecord={vesselFromRecord}
             selected={vesselSelected}
             onActivate={onVesselActivate}
           />

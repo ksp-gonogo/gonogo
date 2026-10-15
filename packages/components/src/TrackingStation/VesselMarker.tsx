@@ -110,6 +110,7 @@ export function VesselMarker({
   zoom,
   state = "observed",
   held = false,
+  fromRecord = false,
   selected = false,
   onActivate,
 }: Readonly<{
@@ -119,6 +120,8 @@ export function VesselMarker({
   state?: VesselPlotState;
   /** The read this position came off is no longer arriving; see the prop on the diagram. */
   held?: boolean;
+  /** The position is the command centre's record of the craft, newer than its own report. */
+  fromRecord?: boolean;
   /** The active vessel's own info is showing in the aside. */
   selected?: boolean;
   /** Absent leaves the marker inert, as it is where no aside has anything to say about the craft. */
@@ -146,6 +149,7 @@ export function VesselMarker({
       pointerEvents="none"
       opacity={opacity}
       data-vessel-position={held ? "held" : "current"}
+      data-vessel-placed-by={fromRecord ? "record" : "report"}
     >
       {/* A <g> takes no non-interactive role, so SVG's own title names it rather than aria-label. */}
       <title>{held ? "Vessel position, held" : "Vessel position"}</title>
