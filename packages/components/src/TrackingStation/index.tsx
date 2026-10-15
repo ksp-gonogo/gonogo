@@ -804,7 +804,10 @@ function TrackingStationComponent({
   );
   const sidebarContent =
     selectedEntity?.meta != null ? (
-      <VesselInfoPanel meta={selectedEntity.meta} />
+      <VesselInfoPanel
+        meta={selectedEntity.meta}
+        vesselId={selectedEntity.vesselId ?? null}
+      />
     ) : (
       almanac
     );
