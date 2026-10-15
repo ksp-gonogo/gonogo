@@ -111,7 +111,7 @@ public class VesselOrbit
     /// hyperbolic orbit, which has no apoapsis. Never a sentinel in place of
     /// null.
     ///
-    /// <para>True at <c>validAt</c>. A reader at a later instant subtracts the
+    /// <para>True at <c>validAt</c>. A client at a later instant subtracts the
     /// elapsed time, wrapping by the period once the apsis has passed.</para>
     /// <internal>
     /// Under physics the elements are osculating and change every sample, and the
@@ -226,7 +226,7 @@ public class PropagationHorizon
     /// <summary>
     /// How far the published conic may be from the path, at most, ahead of the
     /// sample instant: a step function of knots in ascending
-    /// <see cref="PropagationDepartureKnot.UntilUt"/>. A reader at some UT takes
+    /// <see cref="PropagationDepartureKnot.UntilUt"/>. A client at some UT takes
     /// the first knot whose <c>UntilUt</c> is at or after it.
     ///
     /// <para>Null when the provider stated no error, in which case no interval is

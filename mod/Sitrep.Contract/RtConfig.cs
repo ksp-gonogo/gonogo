@@ -1042,7 +1042,7 @@ public static class RtConfig
     /// answer. <c>JsonWriter</c> never consults a C# nullable annotation, so a
     /// <c>string?</c>, a <c>T[]?</c> or a POCO reaches a client as
     /// <c>"key":null</c> exactly as a <c>double?</c> does, and a generated type
-    /// that spells the union for one and not the other tells a reader the
+    /// that spells the union for one and not the other implies the
     /// difference is meaningful when there is none.</para>
     ///
     /// <para><see cref="SitrepOmittedWhenNullAttribute"/> opts a property back
@@ -1868,7 +1868,7 @@ public static class RtConfig
     /// The assembly's value tags as the one table its client registers under its
     /// own id: each value's declared sample kind and entry key, keyed by Topic then
     /// path, and every value a declared model carries forward. Only what the
-    /// source declares is written; what a reader infers from a unit or from the
+    /// source declares is written; what a client infers from a unit or from the
     /// channel's own kind is worked out where it is read.
     /// </summary>
     private static void AppendContractTags(StringBuilder sb, Assembly assembly)

@@ -166,8 +166,7 @@ namespace Sitrep.Contract
         /// building instead of drawing an empty value.
         ///
         /// <para>State it on every declaration, <see cref="Requirement.None"/>
-        /// for a channel nothing in the game gates. Most channels are honestly
-        /// ungated, and an explicit None is what shows that was decided rather
+        /// for a channel nothing in the game gates. Most channels have no gate, and an explicit None is what shows that was decided rather
         /// than forgotten.</para>
         ///
         /// <para>A channel's requirement is evaluated with no arguments, so it
@@ -282,8 +281,8 @@ namespace Sitrep.Contract
         /// filter. Called off the main thread, so it must not read live game
         /// state. Null (the default) sends every session the same payload.</para>
         ///
-        /// <para>This makes the data flow honest, not secure: a session chooses
-        /// its own vantage.</para>
+        /// <para>This limits what each session is sent but does not secure it: a
+        /// session chooses its own vantage.</para>
         /// </summary>
         public Func<object, ViewerContext, object?>? ViewerFilter { get; set; }
 
@@ -690,7 +689,7 @@ namespace Sitrep.Contract
         /// <internal>
         /// A static [SitrepUnit] on Limit and Actual could not be right for every
         /// limit, and a wrong unit is worse than a bare readout because the
-        /// client will confidently mislabel it, so they declare NotApplicable.
+        /// client would label it with the wrong unit, so they declare NotApplicable.
         /// </internal>
         /// </summary>
         [SitrepUnit(Units.Id)]
@@ -1343,7 +1342,7 @@ namespace Sitrep.Contract
         /// is sent a keyframe. Skipping a reading that something else derives
         /// from is not: see the gated <see cref="AddSampledSource(Func{KspSnapshot?,
         /// object?}, Action{object?}, string[])"/> overload for what that looks
-        /// like to a client, which is silence or a confident wrong value, and
+        /// like to a client, which is silence or a wrong value stated as fact, and
         /// nothing in a log.</para>
         /// </summary>
         /// <param name="topicPrefix">A topic prefix, or an exact topic.</param>
@@ -1411,7 +1410,7 @@ namespace Sitrep.Contract
         /// command may declare a requirement whose evaluator registers later, or
         /// never. The pairing is therefore validated once every Uplink has
         /// registered: a declared kind with no evaluator is a startup failure,
-        /// because a gate nobody can evaluate would silently not exist.</para>
+        /// because a gate nobody can evaluate would never take effect.</para>
         /// </summary>
         /// <param name="evaluator">The evaluator, registered under its <see cref="ICommandGateEvaluator.Kind"/>.</param>
         void AddGateEvaluator(ICommandGateEvaluator evaluator);

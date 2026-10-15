@@ -23,7 +23,7 @@ namespace Sitrep.Contract;
 /// are null when KSP's value for them is undefined, as
 /// <see cref="VesselOrbit.Lan"/> and <see cref="VesselOrbit.ArgPe"/> are, and the
 /// patch is still sent. A patch with a null element cannot be propagated, so a
-/// reader that propagates one declines to rather than substituting a value.</para>
+/// client that propagates one declines to, and does not substitute a value.</para>
 /// <para>An open patch (<see cref="Ecc"/> of 1 or more) is sent like any
 /// other, with <see cref="Period"/> and <see cref="ApA"/> null. Its mean
 /// motion is <c>sqrt(Mu / |Sma|^3)</c>.</para>

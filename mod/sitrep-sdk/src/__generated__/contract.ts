@@ -118,7 +118,7 @@ export interface BodyStatesReply
 	*/
 	providerId?: string | null;
 	/**
-	* Why the request was refused, in words a reader can act on, when
+	* Why the request was refused, in words an operator can act on, when
 	* `BodyStatesReply.solved` is false; null when it is true.
 	*/
 	refusal?: string | null;
@@ -885,7 +885,7 @@ export interface CareerTechNode
 }
 /**
 * One declared channel's emission counters, plus the four facts about the
-* channel a reader needs to interpret them.
+* channel needed to interpret them.
 *
 * From outside the mod, a Topic that delivers no frames looks the same
 * whatever the cause. The counters separate the two main causes:
@@ -1236,8 +1236,8 @@ export interface CentreDelayEntry
 * **Sparse.** A centre is listed only when it has a delay of its own. The home
 * centre is never listed: its delay is `comms.delay`, which also carries the
 * hold through a loss of signal. A centre other than home that is not listed
-* has no route to the craft. Neither absence is a zero, and a reader that
-* finds a centre missing must not quote one for it.
+* has no route to the craft. Neither absence is a zero, so a client must not
+* quote a delay for a centre that is missing from the list.
 *
 * A crewed centre that is the active craft is listed at an explicit zero: a
 * craft is no distance from itself.
@@ -1291,8 +1291,8 @@ export interface CommandGate
 	*   The authority that decides could not be read, which is not a judgement
 	*   about the command. A dispatch in this state is refused (a gate that cannot
 	*   be read must not act as no gate), and that refusal names itself when it
-	*   happens; a control drawn permanently dark with a confident reason would
-	*   teach a false belief and never correct it.
+	*   happens; a control drawn permanently dark with a stated reason would teach
+	*   a false belief and never correct it.
 	*
 	* For example, while a career save is still loading and
 	* `ScenarioUpgradeableFacilities.Instance` does not exist yet, every facility
@@ -1431,8 +1431,8 @@ export interface ChannelGate
 }
 /**
 * What a field arrives as, in place of its value, while the save has not
-* unlocked what it needs: the unlocks it is missing, so a reader can say why
-* it has nothing to show rather than drawing an empty value as if there were
+* unlocked what it needs: the unlocks it is missing, so a client can say why
+* it has nothing to show instead of drawing an empty value as if there were
 * none. A field that can arrive this way has `LockedValue` among the types it
 * is declared with, and the SDK's `isLocked` tells the two apart.
 *
@@ -1935,8 +1935,8 @@ export interface CommsConnectivity
 * stock CommNet reports KSP's own signal strength for the path, which falls
 * off smoothly towards the range edge of each link and is multiplied across
 * relays, RealAntennas how far up its data-rate ladder the path's links close.
-* `CommsSignal.quantity` says which, so a reader names the figure correctly
-* and never compares two that are different quantities.
+* `CommsSignal.quantity` says which, so a client names the figure correctly
+* and does not compare two that are different quantities.
 *
 * Each command centre is sent its own, the newest reading to have reached it.
 * A reading is of the vessel's whole path at one instant, so it reaches a
@@ -1990,7 +1990,7 @@ export interface CommsSignal
 	/**
 	* The route `CommsSignal.strength` was measured on, where that is not the
 	* active route. Set whenever `CommsSignal.otherPath` is true and null
-	* otherwise, so a reader can name the route the figure belongs to beside the
+	* otherwise, so a client can name the route the figure belongs to beside the
 	* mark that says it is of another path. It is as old as the strength beside
 	* it, and names each vessel as the receiving centre last heard it named.
 	*/
@@ -3931,7 +3931,7 @@ export interface EvaKerbal
 	* is not known (the step-out was not recorded, or the craft has since gone).
 	*
 	* This is the vessel Gonogo goes on reporting as active while they are
-	* outside, so a reader that follows the active vessel sees no discontinuity
+	* outside, so a client that follows the active vessel sees no discontinuity
 	* when a kerbal steps out.
 	*/
 	parentVesselId?: string | null;
@@ -3942,7 +3942,7 @@ export interface EvaKerbal
 	/** EVA propellant remaining in the pack. */
 	propellantAmount?: Value<"units"> | null;
 	/**
-	* What the pack holds when full, so a reader can draw a fraction without
+	* What the pack holds when full, so a client can draw a fraction without
 	* knowing the model.
 	*/
 	propellantCapacity?: Value<"units"> | null;
@@ -3998,7 +3998,7 @@ export interface EvaKerbal
 export interface EvaCrew
 {
 	/**
-	* How many kerbals are outside, so a reader need not count to know whether to
+	* How many kerbals are outside, so a client need not count to know whether to
 	* draw anything.
 	*/
 	count: Value<"count">;
@@ -5094,8 +5094,8 @@ export interface NoCommandArgs
 * `OrbitPatch.lan`, `OrbitPatch.argPe` and `OrbitPatch.meanAnomalyAtEpoch` are
 * null when KSP's value for them is undefined, as `VesselOrbit.lan` and
 * `VesselOrbit.argPe` are, and the patch is still sent. A patch with a null
-* element cannot be propagated, so a reader that propagates one declines to
-* rather than substituting a value.
+* element cannot be propagated, so a client that propagates one declines to,
+* and does not substitute a value.
 *
 * An open patch (`OrbitPatch.ecc` of 1 or more) is sent like any other, with
 * `OrbitPatch.period` and `OrbitPatch.apA` null. Its mean motion is `sqrt(Mu /
@@ -5494,7 +5494,7 @@ export interface ServoEntry
 * could not be surveyed: a recording that does not carry this field, or a live
 * read where one part could not be read, since "no robotic parts" is a claim
 * about every part. `false` is the definite "this craft carries none". A
-* reader that treats null as false tells the operator there are no robotic
+* client that treats null as false tells the operator there are no robotic
 * parts on a craft that may be full of them.
 *
 * @category Parts
@@ -6221,9 +6221,9 @@ export interface ScetAlarm
 	*
 	* A time condition is always `"game"`: universal time is the game's, and a
 	* clock has no craft to belong to. A threshold names the craft, and this is
-	* what stops it silently re-aiming when the player switches vessels: the game
-	* compares this against the `meta.source` stamped on the payload it read, and
-	* a reading about somebody else's craft is ignored.
+	* what stops it re-aiming without notice when the player switches vessels: the
+	* game compares this against the `meta.source` stamped on the payload it read,
+	* and a reading about somebody else's craft is ignored.
 	*
 	* A threshold on something the save owns rather than a craft is `"game"` too,
 	* such as `career.status`, and so is one on a Topic an Uplink contributes
@@ -6364,9 +6364,9 @@ export interface ScetAlarmArmArgs
 	actsOn: string;
 }
 /**
-* `alarm.scet.disarm`'s args: forget the alarm with this id. Silently succeeds
-* for an id the host does not hold, so a client reconciling its list against
-* the roster never has to ask first.
+* `alarm.scet.disarm`'s args: forget the alarm with this id. Succeeds without
+* an error for an id the host does not hold, so a client reconciling its list
+* against the roster never has to ask first.
 *
 * Never delayed, like `alarm.scet.arm`, so removing an alarm is never slower
 * than setting one.
@@ -10415,7 +10415,7 @@ export interface VesselOrbit
 	* null. Also null on a hyperbolic orbit, which has no apoapsis. Never a
 	* sentinel in place of null.
 	*
-	* True at `validAt`. A reader at a later instant subtracts the elapsed time,
+	* True at `validAt`. A client at a later instant subtracts the elapsed time,
 	* wrapping by the period once the apsis has passed.
 	*/
 	timeToAp?: Value<"s"> | null;
@@ -10503,7 +10503,7 @@ export interface PropagationHorizon
 	/**
 	* How far the published conic may be from the path, at most, ahead of the
 	* sample instant: a step function of knots in ascending
-	* `PropagationDepartureKnot.untilUt`. A reader at some UT takes the first knot
+	* `PropagationDepartureKnot.untilUt`. A client at some UT takes the first knot
 	* whose `UntilUt` is at or after it.
 	*
 	* Null when the provider stated no error, in which case no interval is drawn
@@ -11067,7 +11067,7 @@ export interface VesselPropulsion
 	* which is a different kind of UT from a plan's `ManeuverNode.Ut` or an
 	* orbit's `epoch`, although all three carry the same unit. Subtracting this
 	* from a planned instant compiles and means nothing; measure a duration from
-	* it only against the reader's own view clock.
+	* it only against the client's own view clock.
 	*
 	* It is repeated on every frame until it changes, not sent once when thrust
 	* starts, so a client that missed a frame still sees it.

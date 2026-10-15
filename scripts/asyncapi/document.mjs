@@ -41,11 +41,24 @@ connection itself.
 
 ## Frames the mod sends
 
-The mod sends four frame types, unioned as \`components.schemas.InboundFrame\`:
-\`stream-data\`, \`command-response\`, \`event\` and \`error\`. Route on the \`type\`
-field. Each frame type fixes \`type\` to a constant, so a JSON Schema validator can
-tell them apart without the \`discriminator\` keyword. Every per-channel message
-in this document is one of these four.
+The mod sends ${FRAMES_FROM_MOD.length} frame types, unioned as
+\`components.schemas.InboundFrame\`:
+
+${frameList()}
+
+Route on the \`type\` field. Each frame type fixes \`type\` to a constant, so a
+JSON Schema validator can tell them apart without the \`discriminator\` keyword.
+Every message in this document is one of these. A client ignores a \`type\` it
+does not know.
+
+All but \`stream-binary\` are WebSocket frames holding UTF-8 JSON that starts
+with \`{\`. A \`stream-binary\` frame starts with the byte \`0x9E\` and a lane byte,
+then a two-byte header length and a JSON header, and the payload bytes follow
+the header. \`InboundFrame\` describes the JSON header. The binary lane is used
+by a channel that opts in, which today is only an Uplink's, so no channel in
+this document uses it.
+
+A client sends ${FRAMES_FROM_CLIENT.length} frame types: ${FRAMES_FROM_CLIENT.map((t) => `\`${t}\``).join(", ")}.
 
 ## Subscribing
 
@@ -146,6 +159,75 @@ A shared prefix does not put two channels in the same group:
   this document carries into each \`description\``;
 }
 
+/**
+ * Every frame type on the socket, with what it is for.
+ *
+ * The lists are checked against the contract by {@link assertFramesMatchContract}:
+ * a frame interface the contract declares that is in neither list, or a type
+ * named here that the contract does not declare, fails the build.
+ */
+const FRAMES_FROM_MOD = [
+  ["stream-data", "a subscribed topic's value"],
+  [
+    "stream-binary",
+    "a subscribed topic's value as raw bytes, for a channel that uses the binary lane",
+  ],
+  ["event", "something that happened to a subscription"],
+  ["command-response", "the result of a command"],
+  [
+    "command-accepted",
+    "the receipt for a delayed command, sent before its result",
+  ],
+  ["error", "a request the mod could not carry"],
+  ["hello", "the first frame on every connection"],
+  ["game-state", "what the game is doing: loading, ready or no game"],
+  ["pong", "the answer to a ping"],
+];
+
+const FRAMES_FROM_CLIENT = [
+  "subscribe",
+  "unsubscribe",
+  "set-vantage",
+  "claim",
+  "ping",
+  "command-request",
+  "command-group",
+];
+
+/** The frame interfaces of the contract, keyed by the constant their `type` field carries. */
+function frameInterfaces(contract) {
+  const frames = new Map();
+  for (const [name, declaration] of contract.interfaces) {
+    const type = declaration.fields.find((f) => f.name === "type");
+    if (type?.type.k === "literal") frames.set(type.type.v, name);
+  }
+  return frames;
+}
+
+/** That the two lists above name exactly the frame types the contract declares. */
+function assertFramesMatchContract(contract) {
+  const declared = new Set(frameInterfaces(contract).keys());
+  const listed = new Set([
+    ...FRAMES_FROM_MOD.map(([type]) => type),
+    ...FRAMES_FROM_CLIENT,
+  ]);
+  const unlisted = [...declared].filter((type) => !listed.has(type));
+  const unknown = [...listed].filter((type) => !declared.has(type));
+  if (unlisted.length > 0 || unknown.length > 0) {
+    throw new Error(
+      `asyncapi: the frame lists in scripts/asyncapi/document.mjs disagree with the contract. ` +
+        `Declared but not listed: ${unlisted.join(", ") || "none"}. ` +
+        `Listed but not declared: ${unknown.join(", ") || "none"}. ` +
+        "Add the frame to FRAMES_FROM_MOD or FRAMES_FROM_CLIENT, and give it a message in the document.",
+    );
+  }
+}
+
+const frameList = () =>
+  FRAMES_FROM_MOD.map(([type, purpose]) => `- \`${type}\`: ${purpose}`).join(
+    "\n",
+  );
+
 const SESSION_DESCRIPTION = `Frames that belong to the connection and not to any one channel.
 
 \`subscribe\` and \`unsubscribe\` name a topic and open or close delivery on it.
@@ -192,17 +274,17 @@ arrives as an \`error\` frame on the session channel.
 There is no \`command\` field. \`requestId\` is the only link back to the
 command, and a delayed command's answer can arrive minutes after it.`;
 
-const INBOUND_FRAME_DESCRIPTION = `Every frame the mod sends, told apart by \`type\`.
+const inboundFrameDescription =
+  () => `Every frame the mod sends, told apart by \`type\`.
 
-\`stream-data\` carries a subscribed topic's value, \`command-response\` answers a
-command, \`event\` reports something that happened to a subscription, and
-\`error\` reports a request the mod could not carry. Every per-channel message in
-this document is one of these four.
+${frameList()}
 
 Each one fixes \`type\` to a constant, so a JSON Schema validator selects the
 right one from \`type\` alone. The \`discriminator\` beside this is the AsyncAPI
 Schema keyword, a plain string naming that property. It is not OpenAPI 3's
-\`discriminator\` object, so \`propertyName\` and \`mapping\` do not apply here.`;
+\`discriminator\` object, so \`propertyName\` and \`mapping\` do not apply here.
+\`stream-binary\` is described by its JSON header; see the document description
+for the bytes that follow it.`;
 
 const CORRELATION_DESCRIPTION =
   "A command and its answer are matched on `requestId`, not on order: " +
@@ -322,6 +404,8 @@ function dispositionExtensions(disposition) {
  * do and the one thing 178 inlined copies of the same envelope never said.
  */
 function defineEnvelopes(schemas, contract) {
+  assertFramesMatchContract(contract);
+  const frames = frameInterfaces(contract);
   const field = (typeName, fieldName) =>
     schemas.fieldSchema(fieldOf(contract, typeName, fieldName), typeName);
 
@@ -409,14 +493,16 @@ function defineEnvelopes(schemas, contract) {
   });
 
   schemas.define("InboundFrame", {
-    description: INBOUND_FRAME_DESCRIPTION,
+    description: inboundFrameDescription(),
     discriminator: "type",
-    oneOf: [
-      streamData,
-      commandResponse,
-      schemas.ref("EventMsg"),
-      schemas.ref("ErrorMsg"),
-    ],
+    oneOf: FRAMES_FROM_MOD.map(([type]) => {
+      const name = frames.get(type);
+      return name === "StreamData"
+        ? streamData
+        : name === "CommandResponse"
+          ? commandResponse
+          : schemas.ref(name);
+    }),
   });
 
   /*
@@ -471,8 +557,10 @@ export function buildDocument({
       unsubscribe: { $ref: "#/components/messages/unsubscribe" },
       setVantage: { $ref: "#/components/messages/setVantage" },
       claim: { $ref: "#/components/messages/claim" },
+      commandGroup: { $ref: "#/components/messages/commandGroup" },
       ping: { $ref: "#/components/messages/ping" },
       hello: { $ref: "#/components/messages/hello" },
+      gameState: { $ref: "#/components/messages/gameState" },
       pong: { $ref: "#/components/messages/pong" },
       error: { $ref: "#/components/messages/error" },
     },
@@ -507,6 +595,28 @@ export function buildDocument({
     name: "claim",
     title: "Claim the answers to commands sent on an earlier connection",
     payload: schemas.ref("ClaimRequest"),
+  };
+  messages.commandGroup = {
+    name: "command-group",
+    title: "Send several delayed commands to one craft as a unit",
+    payload: schemas.ref("CommandGroupRequest"),
+  };
+  messages.commandAccepted = {
+    name: "command-accepted",
+    title: "The receipt for a delayed command, sent before its result",
+    payload: schemas.ref("CommandAccepted"),
+    correlationId: { $ref: "#/components/correlationIds/requestId" },
+  };
+  messages.gameState = {
+    name: "game-state",
+    title: "What the game is doing: loading, ready or no game",
+    payload: schemas.ref("GameState"),
+  };
+  messages.streamBinary = {
+    name: "stream-binary",
+    title: "A frame on a channel that uses the binary lane",
+    contentType: "application/octet-stream",
+    payload: schemas.ref("StreamBinary"),
   };
   messages.ping = {
     name: "ping",
@@ -543,20 +653,22 @@ export function buildDocument({
     action: "send",
     channel: { $ref: "#/channels/session" },
     title:
-      "Open or close delivery, change vantage, claim earlier commands' answers, or ask whether the connection is alive",
+      "Open or close delivery, change vantage, claim earlier commands' answers, send a command group, or ask whether the connection is alive",
     tags: [{ name: "session" }],
     messages: [
       { $ref: "#/channels/session/messages/subscribe" },
       { $ref: "#/channels/session/messages/unsubscribe" },
       { $ref: "#/channels/session/messages/setVantage" },
       { $ref: "#/channels/session/messages/claim" },
+      { $ref: "#/channels/session/messages/commandGroup" },
       { $ref: "#/channels/session/messages/ping" },
     ],
   };
   operations["session.notices"] = {
     action: "receive",
     channel: { $ref: "#/channels/session" },
-    title: "The greeting, the answer to a ping, and connection-scoped errors",
+    title:
+      "The greeting, the game state, the answer to a ping, and connection-scoped errors",
     description:
       "An `event` frame is not here. It names a topic and is sent only for a " +
       "topic this connection has subscribed to, so it is on the topic channels " +
@@ -564,6 +676,7 @@ export function buildDocument({
     tags: [{ name: "session" }],
     messages: [
       { $ref: "#/channels/session/messages/hello" },
+      { $ref: "#/channels/session/messages/gameState" },
       { $ref: "#/channels/session/messages/pong" },
       { $ref: "#/channels/session/messages/error" },
     ],
@@ -673,6 +786,13 @@ export function buildDocument({
       messages: {
         commandRequest: { $ref: `#/components/messages/${requestKey}` },
         commandResponse: { $ref: `#/components/messages/${responseKey}` },
+        ...(commandDispositions.get(command).delayed
+          ? {
+              commandAccepted: {
+                $ref: "#/components/messages/commandAccepted",
+              },
+            }
+          : {}),
       },
     };
     operations[`dispatch:${command}`] = {
@@ -691,6 +811,13 @@ export function buildDocument({
           {
             $ref: `#/channels/${escapeRefToken(command)}/messages/commandResponse`,
           },
+          ...(commandDispositions.get(command).delayed
+            ? [
+                {
+                  $ref: `#/channels/${escapeRefToken(command)}/messages/commandAccepted`,
+                },
+              ]
+            : []),
         ],
       },
     };

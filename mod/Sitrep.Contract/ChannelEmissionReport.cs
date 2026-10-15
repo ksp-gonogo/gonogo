@@ -7,7 +7,7 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// One declared channel's emission counters, plus the four facts about the
-/// channel a reader needs to interpret them.
+/// channel needed to interpret them.
 ///
 /// <para>From outside the mod, a Topic that delivers no frames looks the same
 /// whatever the cause. The counters separate the two main causes:</para>
