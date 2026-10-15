@@ -53,14 +53,14 @@ namespace Sitrep.Host
 
             if (args == null)
             {
-                var required = requireAll ? RequiredOf(props, argsType) : new List<PropertyInfo>();
+                var required = requireAll ? RequiredOf(props, argsType, emptyIsDefault: false) : new List<PropertyInfo>();
                 return required.Count == 0
                     ? null
                     : $"\"{command}\" was sent no arguments but requires {Names(required)}";
             }
 
             return args is IDictionary<string, object?> dict
-                ? Walk(command, "", dict, argsType, props, requireAll)
+                ? Walk(command, "", dict, argsType, props, requireAll, emptyIsDefault: false)
                 : null;
         }
 
@@ -70,7 +70,8 @@ namespace Sitrep.Host
             IDictionary<string, object?> dict,
             Type type,
             List<PropertyInfo> props,
-            bool requireAll)
+            bool requireAll,
+            bool emptyIsDefault)
         {
             foreach (var key in dict.Keys)
             {
@@ -82,7 +83,7 @@ namespace Sitrep.Host
 
             if (requireAll)
             {
-                foreach (var prop in RequiredOf(props, type))
+                foreach (var prop in RequiredOf(props, type, emptyIsDefault))
                 {
                     var sent = dict.FirstOrDefault(kv => string.Equals(kv.Key, prop.Name, StringComparison.OrdinalIgnoreCase));
                     if (sent.Key == null)
@@ -109,7 +110,7 @@ namespace Sitrep.Host
                     continue;
                 }
 
-                var inner = Nested(command, path + WireName(prop), kv.Value, prop.PropertyType, requireAll, ElementsCannotBeNull(prop));
+                var inner = Nested(command, path + WireName(prop), kv.Value, prop.PropertyType, requireAll, ElementsCannotBeNull(prop), inList: false);
                 if (inner != null)
                 {
                     return inner;
@@ -119,12 +120,12 @@ namespace Sitrep.Host
             return null;
         }
 
-        private static string? Nested(string command, string path, object? value, Type type, bool requireAll, bool elementsCannotBeNull)
+        private static string? Nested(string command, string path, object? value, Type type, bool requireAll, bool elementsCannotBeNull, bool inList)
         {
             if (value is IDictionary<string, object?> dict)
             {
                 var props = Declared(type);
-                return props.Count == 0 ? null : Walk(command, path + ".", dict, type, props, requireAll);
+                return props.Count == 0 ? null : Walk(command, path + ".", dict, type, props, requireAll, emptyIsDefault: !inList);
             }
 
             var element = ElementTypeOf(type);
@@ -147,7 +148,7 @@ namespace Sitrep.Host
                     continue;
                 }
 
-                var inner = Nested(command, $"{path}[{index}]", item, element, requireAll, false);
+                var inner = Nested(command, $"{path}[{index}]", item, element, requireAll, false, inList: true);
                 if (inner != null)
                 {
                     return inner;
@@ -178,10 +179,10 @@ namespace Sitrep.Host
                 : null;
         }
 
-        private static List<PropertyInfo> RequiredOf(List<PropertyInfo> props, Type type)
+        private static List<PropertyInfo> RequiredOf(List<PropertyInfo> props, Type type, bool emptyIsDefault)
         {
             var defaults = DefaultInstance(type);
-            return props.Where(p => IsRequired(p, defaults)).ToList();
+            return props.Where(p => IsRequired(p, defaults, emptyIsDefault)).ToList();
         }
 
         private static List<PropertyInfo> Declared(Type argsType)
@@ -225,8 +226,14 @@ namespace Sitrep.Host
          * property whose initializer names a value has a default worth taking, so
          * only a non-nullable reference argument that starts empty (an id or a name)
          * is one a call cannot do without.
+         *
+         * A record held by a property is the exception: there an empty string is a
+         * default like any other. Such a record (an alarm's condition) is one type
+         * shared by several kinds, each naming only its own fields, so a field
+         * another kind uses starts empty and is not this call's to send. A list's
+         * elements stay strict, since each is a record of its own that its id names.
          */
-        private static bool IsRequired(PropertyInfo prop, object? defaults)
+        private static bool IsRequired(PropertyInfo prop, object? defaults, bool emptyIsDefault)
         {
             if (prop.PropertyType.IsValueType || !IsAnnotatedNotNull(prop) || defaults == null)
             {
@@ -234,7 +241,7 @@ namespace Sitrep.Host
             }
 
             var initial = prop.GetValue(defaults);
-            return initial == null || (initial is string text && text.Length == 0);
+            return initial == null || (!emptyIsDefault && initial is string text && text.Length == 0);
         }
 
         private static bool CannotBeNull(PropertyInfo prop) =>
