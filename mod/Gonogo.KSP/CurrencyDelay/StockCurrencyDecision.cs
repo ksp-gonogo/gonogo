@@ -36,6 +36,9 @@ namespace Gonogo.KSP.CurrencyDelay
         ContractDecline,
         Progression,
         Mission,
+
+        /// <summary>Stock's every-reason value, which some mods charge under: Kerbalism charges its crew-death penalty with it.</summary>
+        Any,
     }
 
     /// <summary>Where a currency change should be attributed for delay purposes.</summary>
@@ -119,13 +122,16 @@ namespace Gonogo.KSP.CurrencyDelay
         /// penalty) carries no vessel of its own - its "hasVessel" comes
         /// from correlating with a separate vessel-destruction event
         /// (StockCurrencyStateMachine.PushDeathVessel/TryClaimDeathVessel),
-        /// not from anything on the reputation event itself.
+        /// not from anything on the reputation event itself. Any is
+        /// vessel-bearing in the same way, and only a crew death at the same
+        /// instant gives it a vessel (StockCurrencyStateMachine.PushCrewDeath).
         /// </summary>
         private static readonly HashSet<StockTransactionReason> AwayReasons = new HashSet<StockTransactionReason>
         {
             StockTransactionReason.ScienceTransmission,
             StockTransactionReason.VesselRecovery,
             StockTransactionReason.VesselLoss,
+            StockTransactionReason.Any,
         };
 
         /// <summary>
