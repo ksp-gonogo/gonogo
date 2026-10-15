@@ -178,6 +178,18 @@ function UtModeInputs({ api, currentUT }: UtModeInputsProps) {
   );
 }
 
+/** The target's inclination, or the null token while the target's orbit has not arrived. */
+function TargetInclination({
+  inclination,
+  marked,
+}: {
+  inclination: number | undefined;
+  marked: ReckoningMarking | null;
+}) {
+  if (inclination === undefined) return <>{NULL_DISPLAY}</>;
+  return <Unit value={value("°", inclination)} marked={marked} decimals={1} />;
+}
+
 function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
   const { inputs } = api;
   const {
@@ -196,10 +208,9 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
         {targetName ? (
           <>
             Target: {targetName} (
-            <Unit
-              value={value("°", targetInclinationLive ?? 0)}
+            <TargetInclination
+              inclination={targetInclinationLive}
               marked={targetMarking}
-              decimals={1}
             />
             )
           </>
@@ -215,10 +226,9 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
         {targetName && targetLanLive !== undefined ? (
           <>
             Target: {targetName}, i=
-            <Unit
-              value={value("°", targetInclinationLive ?? 0)}
+            <TargetInclination
+              inclination={targetInclinationLive}
               marked={targetMarking}
-              decimals={1}
             />{" "}
             Ω=
             <Unit
@@ -256,10 +266,9 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
           />
         )}
         , i=
-        <Unit
-          value={value("°", targetInclinationLive ?? 0)}
+        <TargetInclination
+          inclination={targetInclinationLive}
           marked={targetMarking}
-          decimals={1}
         />
         , Δplane=
         {planeMismatch === null ? (

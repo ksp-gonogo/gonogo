@@ -241,7 +241,7 @@ function TransferWindowComponent({
     centerDepUt: gridCenterDepUt,
   });
 
-  const windows = useMemo(
+  const solvedWindows = useMemo(
     () =>
       solution && basePorkchop
         ? upcomingWindows(solution, basePorkchop, nowUt, WINDOW_COUNT)
@@ -253,8 +253,11 @@ function TransferWindowComponent({
   const destKey = dest?.index ?? -1;
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset only on destination change, not on selection.
   useEffect(() => setSelectedWindow(0), [destKey]);
-  const selIdx = Math.min(selectedWindow, Math.max(0, windows.length - 1));
-  const selected = windows[selIdx] ?? null;
+  const selIdx = Math.min(
+    selectedWindow,
+    Math.max(0, solvedWindows.length - 1),
+  );
+  const selected = solvedWindows[selIdx] ?? null;
 
   // One game day, the finest step the reach Window column shows; the windows list keeps the exact countdown.
   const reachRecomputeUt = kspCalendar().day;
@@ -291,6 +294,20 @@ function TransferWindowComponent({
   });
   const focusedPorkchop =
     origin && dest && focusedOwnGrid ? focusedGrid : basePorkchop;
+
+  // The selected later window takes its Δv from the grid centred on its own departure; the others stay unsolved.
+  const focusedDeltaV = focusedOwnGrid
+    ? (focusedGrid?.best?.deltaV ?? null)
+    : null;
+  const windows = useMemo(
+    () =>
+      solvedWindows.map((w) =>
+        w.index === selIdx && w.deltaV === null && focusedDeltaV !== null
+          ? { ...w, deltaV: focusedDeltaV }
+          : w,
+      ),
+    [solvedWindows, selIdx, focusedDeltaV],
+  );
 
   if (!orbit || !origin) {
     return (

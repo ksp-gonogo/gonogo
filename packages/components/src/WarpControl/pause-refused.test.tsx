@@ -47,4 +47,31 @@ describe("WarpControl pause", () => {
       expect(screen.getByRole("button", { name: "Pause game" })).toBeTruthy(),
     );
   });
+
+  it("shows the game as running again when an acknowledged pause left the game unpaused", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+    fixture.transport.setCommandHandler(() => ({}));
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "warp-latch" }}>
+          <WarpControlComponent id="warp-latch" w={6} h={5} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emit("spaceCenter.scene", { scene: "Flight" });
+      fixture.emit("time.warp", {
+        warpRate: 1,
+        warpRateIndex: 0,
+        warpMode: 0,
+        paused: false,
+      });
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Pause game" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Pause game" })).toBeTruthy(),
+    );
+  });
 });

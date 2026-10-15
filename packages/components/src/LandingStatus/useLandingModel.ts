@@ -263,6 +263,15 @@ export function useLandingModel(): LandingModel {
     null,
   );
   const currentVs = verticalSpeedMps;
+  // One craft's descent is not another's: switching vessels starts the trend, the domain and the held touchdown speed over.
+  const vesselId = identity?.vesselId;
+  const [heldSpeed, setHeldSpeed] = useState<number | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the vessel changing is the whole trigger
+  useEffect(() => {
+    setDescentHistory([]);
+    setDescentDomain(null);
+    setHeldSpeed(null);
+  }, [vesselId]);
   useEffect(() => {
     if (currentVs == null || !Number.isFinite(currentVs)) return;
     setDescentDomain((d) => widenTrendDomain(d, currentVs));
@@ -279,7 +288,6 @@ export function useLandingModel(): LandingModel {
     solution.verticalSpeed != null
       ? Math.hypot(solution.verticalSpeed, solution.horizontalSpeed ?? 0)
       : null;
-  const [heldSpeed, setHeldSpeed] = useState<number | null>(null);
   useEffect(() => {
     if (!landed && speedNow != null && Number.isFinite(speedNow)) {
       setHeldSpeed(speedNow);

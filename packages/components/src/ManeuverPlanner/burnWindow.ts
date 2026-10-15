@@ -131,15 +131,15 @@ export interface BurnAxisMark {
 export interface BurnAxis {
   fromUt: number;
   toUt: number;
-  /** The view clock on the same scale; outside [0, 1] before or after the burn, where a renderer omits the marker rather than clamping it. */
-  nowFraction: number;
+  /** The view clock on the same scale, null while the view clock is unknown; outside [0, 1] before or after the burn, where a renderer omits the marker rather than clamping it. */
+  nowFraction: number | null;
   marks: readonly BurnAxisMark[];
 }
 
 /** The instants on one shared scale; null when fewer than two have a UT (the impulsive case), since one mark shows no ordering. */
 export function burnAxis(
   rows: readonly BurnInstantRow[],
-  nowUt: number,
+  nowUt: number | undefined,
 ): BurnAxis | null {
   const dated = rows.filter(
     (r): r is BurnInstantRow & { atUt: number } => r.atUt != null,
@@ -156,7 +156,7 @@ export function burnAxis(
   return {
     fromUt,
     toUt,
-    nowFraction: at(nowUt),
+    nowFraction: nowUt === undefined ? null : at(nowUt),
     marks: dated.map((r) => ({
       kind: r.kind,
       atUt: r.atUt,

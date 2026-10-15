@@ -406,6 +406,17 @@ describe("upcomingWindows", () => {
     expect(w.ejectionAngleDeg).toBe(151);
   });
 
+  it("leaves a later window's solved figures unknown rather than repeating the next window's", () => {
+    const sol = mkSolution({ departureUt: 100 * DAY });
+    const windows = upcomingWindows(sol, mkGrid(0, 5600), 0, 3);
+    for (const later of windows.slice(1)) {
+      expect(later.deltaV).toBeNull();
+      expect(later.ejectionDeltaV).toBeNull();
+      expect(later.ejectionAngleDeg).toBeNull();
+    }
+    expect(windows[1].transferTimeSec).toBe(259 * DAY);
+  });
+
   it("clamps a negative countdown to zero (window already at now)", () => {
     const windows = upcomingWindows(
       mkSolution(),

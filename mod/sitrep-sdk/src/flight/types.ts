@@ -313,6 +313,8 @@ export interface ReadingSeriesRange<Payload = unknown> {
   bridges?: SeriesBridge[];
   /** The instant the window was asked for. See {@link SeriesRange.windowEndAt}. */
   windowEndAt?: number;
+  /** What is drawn between two readings. See {@link SeriesRange.interpolation}. */
+  interpolation?: SeriesInterpolation;
 }
 
 /**
@@ -396,13 +398,12 @@ export interface FlightRecoveryOutcome {
   recoveryLocation: string;
   /** The recovery factor KSP reported, as the text it showed. */
   recoveryFactor: string;
-  /** Null in a save with no funds or no science: absent, not zero. */
-  /** Funds the recovery earned. */
+  /** Funds the recovery earned, null in a save with no funds: absent, not zero. */
   fundsEarned: number | null;
-  /** Science the recovery earned. */
+  /** Science the recovery earned, null in a save with no science: absent, not zero. */
   scienceEarned: number | null;
-  /** Reputation the recovery earned. */
-  reputationEarned: number;
+  /** Reputation the recovery earned, null when the summary carried none: absent, not zero. */
+  reputationEarned: number | null;
   /** Names of crew that were aboard at recovery. */
   crew: string[];
 }

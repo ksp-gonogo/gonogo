@@ -177,11 +177,12 @@ function GroundTrackComponent({
       lat.magnitude,
       lon.magnitude,
     );
-    setCamera({
-      zoom: followZoom(speed ?? 0, baseZoom),
+    // An unknown speed leaves the zoom where it is rather than claiming the craft is stationary.
+    setCamera((prev) => ({
+      zoom: speed === undefined ? prev.zoom : followZoom(speed, baseZoom),
       panX: wx,
       panY: wy,
-    });
+    }));
   }, [viewMode, lat, lon, speed, adjustedMap, baseZoom, setCamera]);
 
   const { predictionSegments, maneuverSegments } = useGroundTrackPrediction({

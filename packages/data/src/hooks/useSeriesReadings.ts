@@ -100,6 +100,7 @@ function readingSeriesOf(range: SeriesRange): ReadingSeriesRange {
     breaks: range.breaks,
     bridges: range.bridges,
     windowEndAt: range.windowEndAt,
+    interpolation: range.interpolation,
   };
 }
 
@@ -170,7 +171,8 @@ function advanceReckonedRun(
 
 /** A figure as the number a chart plots: a quantity's magnitude, a bare number as it is, and `NaN` for anything else. */
 export function plottedFigure(figure: unknown): number {
-  return Number(plotValue(figure));
+  const plotted = plotValue(figure);
+  return typeof plotted === "number" ? plotted : Number.NaN;
 }
 
 function plottedBand(
@@ -210,6 +212,7 @@ export function plotColumnsOf(series: ReadingSeriesRange): SeriesRange<number> {
     bridges: [],
     // An instant on the same clock as `t`, not an index, so it is carried rather than reindexed.
     windowEndAt: series.windowEndAt,
+    interpolation: series.interpolation,
   };
   const inBreaks = new Set(series.breaks ?? []);
   const bridgeAt = new Map((series.bridges ?? []).map((b) => [b.to, b]));

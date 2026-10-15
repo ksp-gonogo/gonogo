@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { countUnratedProcesses, netToneWithUnrated } from "./flow";
@@ -66,6 +67,7 @@ describe("netToneWithUnrated", () => {
 describe("PowerTotals", () => {
   const props = {
     net: 5,
+    netFigure: value("units/s", 5),
     netTone: "neutral" as const,
     totalProduced: 5,
     totalConsumed: 0,

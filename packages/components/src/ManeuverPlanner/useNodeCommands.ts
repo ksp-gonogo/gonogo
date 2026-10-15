@@ -5,7 +5,7 @@ import {
   type Reading,
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import type { BurnContext } from "./burnFlown";
 import type { NodeEditPatch } from "./NodeRow";
@@ -36,6 +36,8 @@ export function useNodeCommands(
   burnContext: BurnContext,
 ) {
   const [committing, setCommitting] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const removingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   // Node commands actuate the flight plan, so each is subject to signal delay.
@@ -101,23 +103,38 @@ export function useNodeCommands(
     }
   }
 
+  // One removal at a time: a second would address a node by an id the first is about to retire.
+  async function whileRemoving(run: () => Promise<void>): Promise<void> {
+    if (removingRef.current) return;
+    removingRef.current = true;
+    setRemoving(true);
+    try {
+      await run();
+    } finally {
+      removingRef.current = false;
+      setRemoving(false);
+    }
+  }
+
   async function handleDelete(nodeId: string) {
     if (!nodeId) {
       setError(UNADDRESSABLE);
       return;
     }
     const label = "Remove maneuver node";
-    try {
-      await removeNodeCmd.send({ nodeId }, { label });
-    } catch (err) {
-      setError(
-        describeNodeRejection(err, {
-          command: REMOVE_NODE,
-          args: { nodeId },
-          label,
-        }),
-      );
-    }
+    await whileRemoving(async () => {
+      try {
+        await removeNodeCmd.send({ nodeId }, { label });
+      } catch (err) {
+        setError(
+          describeNodeRejection(err, {
+            command: REMOVE_NODE,
+            args: { nodeId },
+            label,
+          }),
+        );
+      }
+    });
   }
 
   async function handleEdit(nodeId: string, patch: NodeEditPatch) {
@@ -144,7 +161,11 @@ export function useNodeCommands(
     }
   }
 
-  async function handleClearAll() {
+  function handleClearAll(): Promise<void> {
+    return whileRemoving(clearAllNodes);
+  }
+
+  async function clearAllNodes() {
     let notRemoved = 0;
     // Last node first, so the plan empties from the far end inward as the operator expects.
     for (let i = nodes.length - 1; i >= 0; i--) {
@@ -175,6 +196,7 @@ export function useNodeCommands(
   return {
     sendDelay,
     committing,
+    removing,
     error,
     setError,
     completedNodes,

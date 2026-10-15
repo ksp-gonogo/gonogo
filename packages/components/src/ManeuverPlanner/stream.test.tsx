@@ -4,6 +4,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { isDisabled } from "../test/isDisabled";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
@@ -159,6 +160,64 @@ describe("ManeuverPlanner: maneuver-node id round-trip", () => {
     await waitFor(() =>
       expect(visibleText()).toContain("1 of 2 nodes could not be removed."),
     );
+  });
+
+  it("holds Clear all and every Delete while a removal is in flight", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 1_000_000,
+      suspendFrames: true,
+    });
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const commandHandler = vi.fn(async () => {
+      await gate;
+      return { ok: true };
+    });
+    fixture.transport.setCommandHandler(commandHandler);
+
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "mnv-guard" }}>
+          <ManeuverPlannerComponent id="mnv-guard" config={{}} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    const node = (id: string, ut: number) => ({
+      id,
+      ut,
+      dvRadial: 0,
+      dvNormal: 0,
+      dvPrograde: 30,
+      dvTotal: 30,
+      frame: ManeuverFrame.RadialNormalPrograde,
+      patches: [],
+    });
+    act(() => {
+      emitOrbitReady(fixture);
+      fixture.emit("vessel.maneuver", {
+        nodes: [node("near-node", 1_000_120), node("far-node", 1_000_900)],
+      });
+    });
+
+    const clear = await screen.findByRole("button", { name: "Clear all" });
+    await waitForManeuverStreamFrame(fixture);
+    act(() => {
+      clear.click();
+    });
+
+    const clearNow = () => screen.getByRole("button", { name: "Clear all" });
+    await waitFor(() => expect(isDisabled(clearNow())).toBe(true));
+    for (const del of screen.getAllByRole("button", { name: "Delete node" })) {
+      expect(isDisabled(del)).toBe(true);
+    }
+    await act(async () => {
+      release();
+      await gate;
+    });
+    await waitFor(() => expect(isDisabled(clearNow())).toBe(false));
   });
 
   it("offers no Delete control when no stream is mounted", () => {

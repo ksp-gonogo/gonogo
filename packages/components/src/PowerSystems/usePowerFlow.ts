@@ -142,6 +142,13 @@ export function useResourceBreakdown(
   const totalProduced = producers.reduce((s, c) => s + c.flow, 0);
   const totalConsumed = consumers.reduce((s, c) => s + c.flow, 0);
   const net = totalProduced + totalConsumed;
+  // Totals sum measured flows only; with none measured they are unknown rather than zero.
+  const flowMeasured = useMemo(() => {
+    for (const slice of liveByFlightId.values()) {
+      if (typeof slice.resources?.[resource]?.flow === "number") return true;
+    }
+    return false;
+  }, [liveByFlightId, resource]);
   const storage = useMemo(() => {
     let amt = 0;
     let max = 0;
@@ -163,6 +170,7 @@ export function useResourceBreakdown(
     totalProduced,
     totalConsumed,
     net,
+    flowMeasured,
     unratedCount,
     storage,
   };

@@ -864,7 +864,7 @@ export class BufferedDataSource extends DataSourceWrapper {
         reputationEarned:
           typeof payload.reputationEarned === "number"
             ? payload.reputationEarned
-            : 0,
+            : null,
         crew: parseCrewNames(payload.crewBreakdown),
       };
       void this.store.upsertFlight({ ...match, outcome });

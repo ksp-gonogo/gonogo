@@ -61,7 +61,8 @@ function trackPosition(fraction: number): string {
 }
 
 /** Game seconds, on the ladder where a KSP day is 6 hours; a string so "ago"/"in" stay attached to the number. */
-function relativeToNow(atUt: number, nowUt: number): string {
+function relativeToNow(atUt: number, nowUt: number | undefined): string {
+  if (nowUt === undefined) return NULL_DISPLAY;
   const delta = atUt - nowUt;
   if (delta < 0) return `${writeQuantity(value("s", -delta))} ago`;
   return `in ${writeQuantity(value("s", delta))}`;
@@ -89,7 +90,7 @@ function InstantRow({
   from,
 }: {
   row: BurnInstantRow;
-  nowUt: number;
+  nowUt: number | undefined;
   from?: readonly CarriedCurrency[];
 }) {
   return (
@@ -183,21 +184,23 @@ function BurnAxisBar({
         }}
       />
       {/* Omitted, never clamped, when now is outside the burn. */}
-      {axis.nowFraction >= 0 && axis.nowFraction <= 1 && (
-        <Tooltip text="now" announce={false}>
-          <span
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              top: 0,
-              bottom: 0,
-              width: 1,
-              background: "var(--color-text-muted)",
-              left: trackPosition(axis.nowFraction),
-            }}
-          />
-        </Tooltip>
-      )}
+      {axis.nowFraction !== null &&
+        axis.nowFraction >= 0 &&
+        axis.nowFraction <= 1 && (
+          <Tooltip text="now" announce={false}>
+            <span
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                width: 1,
+                background: "var(--color-text-muted)",
+                left: trackPosition(axis.nowFraction),
+              }}
+            />
+          </Tooltip>
+        )}
       {axis.marks.map((mark) => (
         <span
           key={mark.kind}
@@ -230,7 +233,7 @@ export function BurnWindowRows({
   from,
 }: {
   burn: { ut: number; ignitionUt?: number | null; cutoffUt?: number | null };
-  nowUt: number;
+  nowUt: number | undefined;
   from?: readonly CarriedCurrency[];
 }) {
   const rows = burnInstantRows(burn);

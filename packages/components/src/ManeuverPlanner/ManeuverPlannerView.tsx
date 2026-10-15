@@ -62,6 +62,7 @@ export function ManeuverPlannerComponent({
   const {
     sendDelay,
     committing,
+    removing,
     error,
     setError,
     completedNodes,
@@ -126,6 +127,7 @@ export function ManeuverPlannerComponent({
             onDelete={handleDelete}
             onEdit={handleEdit}
             onClearAll={handleClearAll}
+            removing={removing}
           />
           {/* Mounted while empty, so a trigger listed later, a fired one that went wrong included, is announced. */}
           <div role="status" aria-live="polite" aria-atomic="false">

@@ -2,6 +2,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import type { EphemerisFigure } from "@ksp-gonogo/ui-kit";
 import {
   Button,
+  NULL_DISPLAY,
   type ReckoningMarking,
   SelectableRow,
   Unit,
@@ -61,10 +62,14 @@ export function WindowsList({
               >
                 <ColWait>{fmtCountdown(w.waitSeconds)}</ColWait>
                 <ColDv>
-                  <Unit
-                    value={ephemerisFigure(value("m/s", w.deltaV))}
-                    decimals={0}
-                  />
+                  {w.deltaV === null ? (
+                    NULL_DISPLAY
+                  ) : (
+                    <Unit
+                      value={ephemerisFigure(value("m/s", w.deltaV))}
+                      decimals={0}
+                    />
+                  )}
                 </ColDv>
                 <ColTof>{fmtDays(w.transferTimeSec)}</ColTof>
               </SelectableRow>
@@ -87,22 +92,32 @@ export function WindowsList({
                   <ExpRow>
                     <ExpLabel>Ejection Δv</ExpLabel>
                     <ExpValue>
-                      <Unit
-                        value={value("m/s", w.ejectionDeltaV)}
-                        marked={orbitMarking}
-                        decimals={0}
-                      />
+                      {w.ejectionDeltaV === null ? (
+                        NULL_DISPLAY
+                      ) : (
+                        <Unit
+                          value={value("m/s", w.ejectionDeltaV)}
+                          marked={orbitMarking}
+                          decimals={0}
+                        />
+                      )}
                     </ExpValue>
                   </ExpRow>
                   <ExpRow>
                     <ExpLabel>Ejection angle</ExpLabel>
                     <ExpValue>
-                      <Unit
-                        value={value("°", w.ejectionAngleDeg)}
-                        marked={orbitMarking}
-                        decimals={0}
-                      />{" "}
-                      to prograde
+                      {w.ejectionAngleDeg === null ? (
+                        NULL_DISPLAY
+                      ) : (
+                        <>
+                          <Unit
+                            value={value("°", w.ejectionAngleDeg)}
+                            marked={orbitMarking}
+                            decimals={0}
+                          />{" "}
+                          to prograde
+                        </>
+                      )}
                     </ExpValue>
                   </ExpRow>
                   {createAlarm && (

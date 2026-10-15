@@ -310,7 +310,7 @@ export function AlarmsModal({
         kind: "time",
         ut,
         leadSeconds:
-          Number.isFinite(lead) && lead > 0 ? lead : DEFAULT_LEAD_SECONDS,
+          Number.isFinite(lead) && lead >= 0 ? lead : DEFAULT_LEAD_SECONDS,
       };
     } else {
       // `addDisabled` refuses a key with no address.
@@ -502,7 +502,7 @@ export function AlarmsModal({
               <Input
                 id="alarm-lead"
                 type="number"
-                min="1"
+                min="0"
                 step="1"
                 value={leadSeconds}
                 onChange={(e) => setLeadSeconds(e.target.value)}
@@ -566,7 +566,11 @@ export function AlarmsModal({
                 </OpSelect>
               </Field>
               <Field>
-                <FieldLabel htmlFor="alarm-value">Value</FieldLabel>
+                <FieldLabel htmlFor="alarm-value">
+                  {selectedKey?.unit && selectedKey.unit !== "1"
+                    ? `Value (${selectedKey.unit})`
+                    : "Value"}
+                </FieldLabel>
                 <Input
                   id="alarm-value"
                   type="number"

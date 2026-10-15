@@ -15,7 +15,7 @@ import { Button } from "@ksp-gonogo/ui-kit";
 import { type CSSProperties, useMemo, useState } from "react";
 import { parseDomain, resolveVariantHint } from "./config";
 import { SeriesRow } from "./SeriesRow";
-import { ThresholdRow } from "./ThresholdRow";
+import { type ThresholdDraft, ThresholdRow } from "./ThresholdRow";
 import type {
   GraphConfig,
   GraphSeriesConfig,
@@ -51,7 +51,7 @@ export function GraphConfigComponent({
   const [yScaleSecondary, setYScaleSecondary] = useState(
     config?.yScaleSecondary ?? "linear",
   );
-  const [thresholds, setThresholds] = useState<GraphThresholdConfig[]>(
+  const [thresholds, setThresholds] = useState<ThresholdDraft[]>(
     config?.thresholds ?? [],
   );
   const [variant, setVariant] = useState<GraphVariant>(
@@ -87,7 +87,7 @@ export function GraphConfigComponent({
       ...prev,
       {
         id: safeRandomUuid(),
-        value: 0,
+        value: undefined,
         axis: "primary",
         label: "",
         kind: "limit",
@@ -96,10 +96,7 @@ export function GraphConfigComponent({
     ]);
   };
 
-  const updateThreshold = (
-    id: string,
-    patch: Partial<GraphThresholdConfig>,
-  ) => {
+  const updateThreshold = (id: string, patch: Partial<ThresholdDraft>) => {
     setThresholds((prev) =>
       prev.map((t) => (t.id === id ? { ...t, ...patch } : t)),
     );
@@ -121,7 +118,11 @@ export function GraphConfigComponent({
       yDomainSecondary: parseDomain(yMinSecondary, yMaxSecondary),
       yScalePrimary,
       yScaleSecondary,
-      thresholds: thresholds.filter((t) => Number.isFinite(t.value)),
+      thresholds: thresholds.flatMap((t): GraphThresholdConfig[] =>
+        t.value !== undefined && Number.isFinite(t.value)
+          ? [{ ...t, value: t.value }]
+          : [],
+      ),
       variant,
     }),
     [

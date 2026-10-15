@@ -613,6 +613,33 @@ describe("AlarmsModal recommended presets", () => {
   });
 });
 
+describe("AlarmsModal lead time", () => {
+  beforeEach(registerStubDataSource);
+
+  it("keeps a lead of zero rather than replacing it with the default", async () => {
+    const user = userEvent.setup();
+    const onAdd = vi.fn();
+    render(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={onAdd}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await user.type(screen.getByLabelText(/^name$/i), "No warning");
+    await user.clear(screen.getByLabelText(/lead time/i));
+    await user.type(screen.getByLabelText(/lead time/i), "0");
+    await user.click(screen.getByRole("button", { name: /^add alarm$/i }));
+
+    expect(onAdd.mock.calls[0][0].trigger).toMatchObject({
+      kind: "time",
+      leadSeconds: 0,
+    });
+  });
+});
+
 describe("AlarmsModal threshold trigger key picker", () => {
   // Deliberately NOT registering a mock "data" `DataSource`: the real app never has one (it's deleted).
   beforeEach(clearRegistry);
@@ -672,6 +699,30 @@ describe("AlarmsModal threshold trigger key picker", () => {
       kind: "threshold",
       dataKey: "vessel.flight.altitudeAsl",
     });
+  });
+
+  it("names the unit of the chosen key on the threshold value", async () => {
+    const user = userEvent.setup();
+    render(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await user.click(screen.getByRole("radio", { name: /at telemetry/i }));
+    await user.click(
+      screen.getByRole("checkbox", { name: /include reckoned values/i }),
+    );
+    await user.click(getDataKeyCombobox());
+    const altitudeOption = (await screen.findAllByRole("option")).find((o) =>
+      o.textContent?.includes("Altitude ASL"),
+    );
+    if (altitudeOption) await user.click(altitudeOption);
+
+    expect(screen.getByLabelText(/^value \(m\)$/i)).toBeTruthy();
   });
 
   /**

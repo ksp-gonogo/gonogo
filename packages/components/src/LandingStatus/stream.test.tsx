@@ -4,7 +4,7 @@ import {
   PerfBudget,
   registerStockBodies,
 } from "@ksp-gonogo/core";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, Situation } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { widgetDeclaredTopics } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -113,6 +113,62 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
       availableThrust: 20,
     });
   }
+
+  it("starts the descent-rate trend over when the active vessel changes", async () => {
+    const { container } = renderWidget({ w: 12, h: 16 });
+    const trend = () =>
+      container.querySelector('[aria-label="Descent-rate trend"]');
+    act(() => {
+      emitMunDescent();
+      stream.emit("vessel.identity", {
+        vesselId: "test-vessel",
+        name: "Test Vessel",
+        vesselType: 0,
+        situation: Situation.SubOrbital,
+        parentBodyIndex: MUN.index,
+        launchUt: null,
+      });
+      stream.emit("vessel.flight", {
+        latitude: 0,
+        longitude: 0,
+        altitudeAsl: 5000,
+        altitudeTerrain: 5000,
+        verticalSpeed: -50,
+        surfaceSpeed: 540,
+        orbitalSpeed: 540,
+        atmDensity: 0,
+      });
+      stream.emitFrame();
+    });
+    act(() => {
+      stream.emit("vessel.flight", {
+        latitude: 0,
+        longitude: 0,
+        altitudeAsl: 4900,
+        altitudeTerrain: 4900,
+        verticalSpeed: -55,
+        surfaceSpeed: 540,
+        orbitalSpeed: 540,
+        atmDensity: 0,
+      });
+      stream.emitFrame();
+    });
+    await waitFor(() => expect(trend()).not.toBeNull());
+
+    act(() => {
+      stream.emit("vessel.identity", {
+        vesselId: "another-vessel",
+        name: "Another Vessel",
+        vesselType: 0,
+        situation: Situation.SubOrbital,
+        parentBodyIndex: MUN.index,
+        launchUt: null,
+      });
+      stream.emitFrame();
+    });
+
+    await waitFor(() => expect(trend()).toBeNull());
+  });
 
   it("renders the Mun descent board off the streamed identity, flight and propulsion", async () => {
     const { container } = renderWidget();

@@ -2,6 +2,7 @@
 export default {
   optionalChannels: [
     "career.mode",
+    "commandCentre.roster",
     "comms.delay",
     "comms.nextLoss",
     "spaceCenter.scene",

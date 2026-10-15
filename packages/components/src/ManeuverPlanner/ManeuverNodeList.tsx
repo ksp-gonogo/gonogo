@@ -1,7 +1,7 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import type { CarriedCurrency, Value } from "@ksp-gonogo/sitrep-sdk";
-import { EmptyState, TextButton } from "@ksp-gonogo/ui";
-import { Stack } from "@ksp-gonogo/ui-kit";
+import { EmptyState } from "@ksp-gonogo/ui";
+import { Button, Stack } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import type { CompletedEntry } from "./BurnCompletionTracker";
 import type { ThrustObservation } from "./conformance";
@@ -23,6 +23,8 @@ interface ManeuverNodeListProps {
   onDelete: (nodeId: string) => Promise<void> | void;
   onEdit: (nodeId: string, patch: NodeEditPatch) => Promise<void> | void;
   onClearAll: () => Promise<void> | void;
+  /** True while a removal is in flight; the controls that remove nodes are held until it settles. */
+  removing: boolean;
 }
 
 interface DisplayedNode {
@@ -42,6 +44,7 @@ export function ManeuverNodeList({
   onDelete,
   onEdit,
   onClearAll,
+  removing,
 }: ManeuverNodeListProps) {
   // A completed node already gone from the live list stays as an inert phantom until its hold expires.
   const displayedNodes = useMemo<DisplayedNode[]>(() => {
@@ -79,6 +82,7 @@ export function ManeuverNodeList({
               thrust={thrust}
               from={from}
               completed={d.completed}
+              deleteDisabled={removing}
               onDelete={d.phantom ? undefined : () => void onDelete(d.node.id)}
               onEdit={
                 d.phantom ? undefined : (patch) => onEdit(d.node.id, patch)
@@ -89,9 +93,16 @@ export function ManeuverNodeList({
       )}
       {nodes.length > 1 && (
         <div style={CLEAR_ALL_ROW_STYLE}>
-          <TextButton type="button" onClick={() => void onClearAll()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            type="button"
+            disabled={removing}
+            disabledReason="A node is being removed"
+            onClick={() => void onClearAll()}
+          >
             Clear all
-          </TextButton>
+          </Button>
         </div>
       )}
     </>

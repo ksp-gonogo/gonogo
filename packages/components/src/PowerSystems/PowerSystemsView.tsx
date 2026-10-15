@@ -6,6 +6,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { VisuallyHidden } from "@ksp-gonogo/ui";
 import {
   getWidgetShape,
+  NULL_DISPLAY,
   Panel,
   Section,
   Select,
@@ -96,6 +97,7 @@ export function PowerSystemsComponent({
     totalProduced,
     totalConsumed,
     net,
+    flowMeasured,
     unratedCount,
     storage,
   } = useResourceBreakdown(topology, liveByFlightId, resource);
@@ -179,11 +181,17 @@ export function PowerSystemsComponent({
           <Section gap="related-dense" style={COMPACT_BODY}>
             <div style={COMPACT_RESOURCE}>{splitCamel(resource)}</div>
             <Text tone={COMPACT_NET_TONE[netTone]} style={COMPACT_NET}>
-              {net >= 0 ? "+" : ""}
-              <Unit
-                value={readingOf(partsReading, () => value("units/s", net))}
-                decimals={2}
-              />
+              {flowMeasured ? (
+                <>
+                  {net >= 0 ? "+" : ""}
+                  <Unit
+                    value={readingOf(partsReading, () => value("units/s", net))}
+                    decimals={2}
+                  />
+                </>
+              ) : (
+                NULL_DISPLAY
+              )}
             </Text>
           </Section>
         }
@@ -229,6 +237,11 @@ export function PowerSystemsComponent({
             )}
 
             <PowerTotals
+              netFigure={
+                flowMeasured
+                  ? readingOf(partsReading, () => value("units/s", net))
+                  : null
+              }
               net={net}
               netTone={netTone}
               unratedCount={unratedCount}

@@ -32,7 +32,7 @@ export function BurnWindowsSection({
               ignitionUt: burn.ignitionUt,
               cutoffUt: burn.cutoffUt,
             }}
-            nowUt={currentUT ?? 0}
+            nowUt={currentUT}
             from={from}
           />
         ))}

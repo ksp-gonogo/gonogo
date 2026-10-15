@@ -195,7 +195,7 @@ describe("GroundTrack: what undefined telemetry means today", () => {
     );
   });
 
-  it("follow mode coerces an undefined surface speed to ZERO, giving the tightest follow zoom", async () => {
+  it("follow mode keeps the current zoom while the surface speed is undefined", async () => {
     registerAugment({
       id: "characterise-overlay-zoom",
       augments: "ground-track.overlay",
@@ -205,7 +205,7 @@ describe("GroundTrack: what undefined telemetry means today", () => {
     });
 
     const { container, fixture } = renderMap({}, { w: 14, h: 14 });
-    // A position with no surfaceSpeed reaches `followZoom(speed ?? 0, baseZoom)`.
+    // A position with no surfaceSpeed leaves the zoom alone.
     act(() => {
       fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
       fixture.emit("vessel.flight", {
@@ -220,9 +220,10 @@ describe("GroundTrack: what undefined telemetry means today", () => {
     await flushFrames();
 
     const zoomWithNoSpeed = visibleText(container);
-    expect(zoomWithNoSpeed).toContain("zoom=1.1719");
+    expect(zoomWithNoSpeed).toContain("zoom=0.1465");
+    expect(zoomWithNoSpeed).not.toContain("zoom=1.1719");
 
-    // At 2 km/s it zooms out, so `?? 0` asserts "stationary" from a read that said "I do not know".
+    // Once a speed arrives the follow zoom follows it.
     act(() => {
       fixture.emit("vessel.flight", {
         latitude: 12,

@@ -15,7 +15,7 @@
  * probe the shared snapshot describes, with a small Mk1-pod stack, pod +
  * battery (EC storage, no flow) + two OX-4W solar panels (+4.20/s each) +
  * an HG-5 antenna (-0.17/s). So for the default ElectricCharge focus:
- *   PROD = +8.40   CONS = -0.17   NET = +8.23/s
+ *   PROD = +8.40   CONS = -0.17   NET = +8.23 units/s
  *   stored = pod 48.802128027849/50 + battery 400/400 = 449 / 450
  * (formatUnits rounds to whole units above 100).
  *
@@ -58,7 +58,7 @@ test.describe("widget DOM mirror: PowerSystems", () => {
     ).toHaveCount(0);
 
     // Totals row.
-    await expect(pair.main.getByText("+8.23/s", { exact: true })).toBeVisible({
+    await expect(pair.main.getByText(/^\+8\.23\s*units/)).toBeVisible({
       timeout: 15_000,
     });
     await expect(pair.main.getByText("+8.40", { exact: true })).toBeVisible();

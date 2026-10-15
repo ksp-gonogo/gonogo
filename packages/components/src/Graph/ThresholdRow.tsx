@@ -3,9 +3,14 @@ import { IconButton } from "@ksp-gonogo/ui-kit";
 import { REMOVE_BUTTON, ROW } from "./rowStyles";
 import type { GraphThresholdConfig } from "./types";
 
+/** A threshold line as the form holds it: the value is absent until a number is entered. */
+export type ThresholdDraft = Omit<GraphThresholdConfig, "value"> & {
+  value: number | undefined;
+};
+
 interface Props {
-  threshold: GraphThresholdConfig;
-  onUpdate: (id: string, patch: Partial<GraphThresholdConfig>) => void;
+  threshold: ThresholdDraft;
+  onUpdate: (id: string, patch: Partial<ThresholdDraft>) => void;
   onRemove: (id: string) => void;
 }
 
@@ -29,10 +34,18 @@ export function ThresholdRow({ threshold, onUpdate, onRemove }: Props) {
       <Input
         type="number"
         placeholder="value"
-        value={Number.isFinite(threshold.value) ? String(threshold.value) : ""}
-        onChange={(e) =>
-          onUpdate(threshold.id, { value: Number.parseFloat(e.target.value) })
+        aria-label="Value"
+        value={
+          threshold.value !== undefined && Number.isFinite(threshold.value)
+            ? String(threshold.value)
+            : ""
         }
+        onChange={(e) => {
+          const parsed = Number.parseFloat(e.target.value);
+          onUpdate(threshold.id, {
+            value: Number.isFinite(parsed) ? parsed : undefined,
+          });
+        }}
       />
       <Select
         value={threshold.axis}
@@ -60,6 +73,7 @@ export function ThresholdRow({ threshold, onUpdate, onRemove }: Props) {
       </Select>
       <IconButton
         type="button"
+        aria-label={`Remove threshold ${threshold.label || ""}`.trim()}
         onClick={() => onRemove(threshold.id)}
         style={REMOVE_BUTTON}
       >

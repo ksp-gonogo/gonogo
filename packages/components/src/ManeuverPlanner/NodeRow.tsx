@@ -44,6 +44,8 @@ interface NodeRowProps {
   thrust?: ThrustObservation;
   /** Omitted on phantom rows (the underlying node is already gone from KSP). */
   onDelete?: () => void;
+  /** Holds the delete control while another removal is in flight. */
+  deleteDisabled?: boolean;
   /** Omitted on phantom rows; omitted to hide the edit affordance entirely. */
   onEdit?: (patch: NodeEditPatch) => Promise<void> | void;
 }
@@ -56,6 +58,7 @@ export function NodeRow({
   completed = false,
   thrust,
   onDelete,
+  deleteDisabled = false,
   onEdit,
 }: NodeRowProps) {
   const [editing, setEditing] = useState(false);
@@ -148,7 +151,13 @@ export function NodeRow({
           </StepButton>
         )}
         {onDelete && (
-          <Button type="button" onClick={onDelete} aria-label="Delete node">
+          <Button
+            type="button"
+            onClick={onDelete}
+            disabled={deleteDisabled}
+            disabledReason="Another node is being removed"
+            aria-label="Delete node"
+          >
             <CloseIcon size={12} />
           </Button>
         )}

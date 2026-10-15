@@ -283,6 +283,33 @@ describe("BufferedDataSource", () => {
     expect((await buffered.getFlight(id))?.starred).toBe(false);
   });
 
+  it("records an absent recovery reputation as null rather than zero", async () => {
+    await store.upsertFlight({
+      id: "f-1",
+      vesselName: "Mun Lander",
+      launchedAt: 1000,
+      lastSampleAt: 1100,
+      lastMissionTime: 0,
+      sampleCount: 1,
+    });
+
+    buffered.subscribe("recovery.lastSummary", () => {});
+    source.emit("recovery.lastSummary", {
+      capturedAtUT: 5,
+      vesselName: "Mun Lander",
+      fundsEarned: 100,
+    });
+
+    await vi.waitFor(async () => {
+      const outcome = (await buffered.getFlight("f-1"))?.outcome;
+      expect(outcome).toMatchObject({
+        kind: "recovered",
+        fundsEarned: 100,
+        reputationEarned: null,
+      });
+    });
+  });
+
   it("pruneFlightsKeepLatest keeps the N most recent unstarred flights and evicts the rest", async () => {
     for (let i = 0; i < 5; i++) {
       await store.upsertFlight({

@@ -8215,6 +8215,10 @@
         "note": "Null for a recovery in a save with no such currency, where it was 0"
       },
       {
+        "key": "sitrep-sdk . FlightRecoveryOutcome#reputationEarned",
+        "note": "Null for a recovery whose summary carried no reputation, where it was 0"
+      },
+      {
         "key": "sitrep-sdk . FlightRecoveryOutcome#scienceEarned",
         "note": "Null for a recovery in a save with no such currency, where it was 0"
       },
@@ -11751,6 +11755,10 @@
       {
         "key": "sitrep-sdk . ReadingDep#reading",
         "note": "ReadingDep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ReadingSeriesRange#interpolation?",
+        "note": "A reading series carries how its samples are joined, as the series it came from does"
       },
       {
         "key": "sitrep-sdk . ReckonableFieldMap",

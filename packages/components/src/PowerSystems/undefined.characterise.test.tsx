@@ -5,6 +5,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { getByTip, queryByTip, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
@@ -166,7 +167,7 @@ describe("PowerSystems: what undefined means today", () => {
     await waitFor(() => expect(screen.getByText("PROD")).toBeTruthy());
     expect(fixture.transport.isSubscribed("parts.power")).toBe(true);
     expect(screen.queryByText("MEASURED")).toBeNull();
-    expect(visibleText()).toContain("+5.00/s");
+    expect(visibleText()).toContain("+5.00 units/s");
   });
 
   it("shows no MEASURED cell when parts.power arrives WITHOUT totalProductionEc", async () => {
@@ -185,7 +186,7 @@ describe("PowerSystems: what undefined means today", () => {
 
     await waitFor(() => expect(screen.getByText("PROD")).toBeTruthy());
     expect(screen.queryByText("MEASURED")).toBeNull();
-    expect(visibleText()).toContain("+5.00/s");
+    expect(visibleText()).toContain("+5.00 units/s");
   });
 
   // An unmeasured idle row is distinguishable from a panel measured at zero: no number, no percentage.
@@ -216,6 +217,28 @@ describe("PowerSystems: what undefined means today", () => {
     ).toBeTruthy();
     expect(queryByTip(document.body, /of nominal/)).toBeNull();
     // The idle row contributes nothing to the totals, so NET still reads the one real producer.
-    expect(visibleText()).toContain("+5.00/s");
+    expect(visibleText()).toContain("+5.00 units/s");
+  });
+
+  it("dashes the three totals when no part reports a measured flow", async () => {
+    const fixture = newFixture();
+    renderPower(fixture, "ps-unmeasured");
+
+    act(() => {
+      fixture.emit("vessel.parts", {
+        parts: [
+          part("1", "Z-100 Battery", { amount: 10, maxAmount: 100 }),
+          {
+            ...part("2", "Engine", { amount: 0, maxAmount: 0 }),
+            resources: { LiquidFuel: { amount: 5, maxAmount: 5, flow: -1 } },
+          },
+        ],
+      });
+    });
+
+    await waitFor(() => expect(screen.getByText("PROD")).toBeTruthy());
+    expect(screen.queryByText("0.00")).toBeNull();
+    expect(visibleText()).not.toContain("+0.00");
+    expect(visibleText()).toContain(`NET${NULL_DISPLAY}`);
   });
 });

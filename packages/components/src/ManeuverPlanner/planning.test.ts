@@ -4,8 +4,58 @@ import {
   buildCurrentOrbit,
   computeBurnTrueAnomaly,
   computeMu,
+  computePlan,
   computeRelInc,
+  type PlanInputs,
 } from "./planning";
+
+describe("computePlan with a custom burn", () => {
+  const orbit = {
+    sma: 700_000,
+    eccentricity: 0.01,
+    ApR: 707_000,
+    PeR: 693_000,
+    timeToAp: value("s", 900),
+    timeToPe: value("s", 1800),
+  };
+  const inputs = (patch: Partial<PlanInputs>): PlanInputs => ({
+    preset: "custom-apo",
+    currentOrbit: orbit,
+    currentUT: value("ut", 1000),
+    mu: 3.5e12,
+    prograde: 0,
+    normal: 0,
+    radial: 0,
+    burnInSeconds: 60,
+    utMode: "relative",
+    burnAtUT: 0,
+    trueAnomaly: 0,
+    argPe: 0,
+    inclination: 0,
+    targetInclination: 0,
+    targetInclinationLive: undefined,
+    targetLanLive: undefined,
+    lan: 0,
+    bodyRadius: 600_000,
+    targetAltitudeKm: 100,
+    targetSma: undefined,
+    targetPeA: undefined,
+    targetArgPe: undefined,
+    targetTrueAnomaly: undefined,
+    targetPeriod: undefined,
+    standoffMeters: 500,
+    ...patch,
+  });
+
+  it.each([
+    "custom-apo",
+    "custom-peri",
+    "custom-ut",
+  ] as const)("plans no node for %s until a component is entered", (preset) => {
+    expect(computePlan(inputs({ preset }))).toBeNull();
+    expect(computePlan(inputs({ preset, prograde: 10 }))).not.toBeNull();
+  });
+});
 
 describe("computeMu", () => {
   it("uses vis-viva when orbitalSpeed/radius/sma are all finite", () => {

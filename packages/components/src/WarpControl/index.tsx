@@ -12,7 +12,7 @@ import {
   type TinyEssential,
 } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useAlarmCreator,
   useAlarmsLauncher,
@@ -75,9 +75,14 @@ function useWarpControl(config: WarpControlConfig | undefined) {
   // Optimistic pause intent, so a click before the confirming push lands still sends the right state.
   const [pauseIntent, setPauseIntent] = useState<boolean | null>(null);
   const effectivePaused = pauseIntent ?? isPaused;
+  const isPausedRef = useRef(isPaused);
+  isPausedRef.current = isPaused;
+  // The intent ends when the game confirms it, and also when the game stops saying anything about pause, since no later push would end it.
   useEffect(() => {
     if (pauseIntent === null) return;
-    if (isPaused === pauseIntent) setPauseIntent(null);
+    if (isPaused === pauseIntent || isPaused === undefined) {
+      setPauseIntent(null);
+    }
   }, [pauseIntent, isPaused]);
 
   // Warp works in Flight, SpaceCenter and TrackingStation: a wider gate than the shared `flight` requirement.
@@ -127,7 +132,13 @@ function useWarpControl(config: WarpControlConfig | undefined) {
   const togglePause = () => {
     const next = !effectivePaused;
     setPauseIntent(next);
-    pauseCmd.send({ paused: next }).catch(() => setPauseIntent(null));
+    pauseCmd
+      .send({ paused: next })
+      // An acknowledged command that left the game's state unchanged did not take.
+      .then(() => {
+        if (isPausedRef.current !== next) setPauseIntent(null);
+      })
+      .catch(() => setPauseIntent(null));
   };
 
   const armEventAction = (

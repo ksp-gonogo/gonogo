@@ -251,12 +251,12 @@ export interface TransferWindowEntry {
   departureUt: number;
   /** Seconds from now until departure. */
   waitSeconds: number;
-  /** Characteristic transfer Δv (m/s): the porkchop optimum. */
-  deltaV: number;
-  /** Ejection burn Δv from the parking orbit (m/s). */
-  ejectionDeltaV: number;
-  /** Ejection angle from the parent's prograde (deg). */
-  ejectionAngleDeg: number;
+  /** Characteristic transfer Δv (m/s): the porkchop optimum. Null for a later window until a porkchop centred on its own departure has solved. */
+  deltaV: number | null;
+  /** Ejection burn Δv from the parking orbit (m/s). Null for a later window, which is solved for the next one only. */
+  ejectionDeltaV: number | null;
+  /** Ejection angle from the parent's prograde (deg). Null for a later window, which is solved for the next one only. */
+  ejectionAngleDeg: number | null;
   /** Transfer time (s). */
   transferTimeSec: number;
   /** Arrival UT. */
@@ -271,13 +271,15 @@ function makeWindow(
   solution: TransferSolution,
   nowUt: number,
 ): TransferWindowEntry {
+  // The figures were solved for the next window; a later one repeats its timing, never its figures.
+  const solved = index === 0;
   return {
     index,
     departureUt,
     waitSeconds: Math.max(0, departureUt - nowUt),
-    deltaV,
-    ejectionDeltaV: solution.ejectionDeltaV,
-    ejectionAngleDeg: solution.ejectionAngleDeg,
+    deltaV: solved ? deltaV : null,
+    ejectionDeltaV: solved ? solution.ejectionDeltaV : null,
+    ejectionAngleDeg: solved ? solution.ejectionAngleDeg : null,
     transferTimeSec,
     arrivalUt: departureUt + transferTimeSec,
   };

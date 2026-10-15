@@ -251,6 +251,20 @@ describe("plotColumnsOf", () => {
     expect(out.breaks).toEqual([1]);
   });
 
+  it("drops a null sample rather than plotting it as zero", () => {
+    const out = plotColumnsOf(
+      series([observed(1, 0), observed(null, 1), observed(3, 2)]),
+    );
+    expect(out.v).toEqual([1, 3]);
+  });
+
+  it("carries how the series is drawn between samples", () => {
+    const out = plotColumnsOf(
+      series([observed(1, 0), observed(2, 1)], { interpolation: "step" }),
+    );
+    expect(out.interpolation).toBe("step");
+  });
+
   it("keeps a bridge only where both of its samples survive side by side", () => {
     const bridge = {
       to: 2,

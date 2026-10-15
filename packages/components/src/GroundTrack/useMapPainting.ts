@@ -55,6 +55,40 @@ interface MapPaintingInputs {
 }
 
 /**
+ * The body's texture, loaded once per body and held in a ref so camera changes do not reload it. `textureReady` is true once the load has settled, with or without a picture, so the map paints either way.
+ */
+export function useBodyTexture(bodyTexture: string | undefined) {
+  const textureImageRef = useRef<HTMLImageElement | null>(null);
+  const [textureReady, setTextureReady] = useState(false);
+
+  useEffect(() => {
+    textureImageRef.current = null;
+    setTextureReady(false);
+    if (!bodyTexture) {
+      setTextureReady(true);
+      return;
+    }
+    const img = new Image();
+    // A load that finishes after the body changed must not install the old body's texture.
+    let current = true;
+    img.onload = () => {
+      if (!current) return;
+      textureImageRef.current = img;
+      setTextureReady(true);
+    };
+    img.onerror = () => {
+      if (current) setTextureReady(true);
+    };
+    img.src = bodyTexture;
+    return () => {
+      current = false;
+    };
+  }, [bodyTexture]);
+
+  return { textureImageRef, textureReady };
+}
+
+/**
  * Keeps the five stacked map canvases painted: base surface, overlay, the
  * flown trail, the forward tracks and the vessel marker, each in every repeat
  * of the world in view. Returns the refs to
@@ -88,25 +122,7 @@ export function useMapPainting({
   const persistentDataRef = useRef<HTMLCanvasElement>(null);
   const predictionRef = useRef<HTMLCanvasElement>(null);
 
-  // Cached in a ref so camera changes do not reload the texture.
-  const textureImageRef = useRef<HTMLImageElement | null>(null);
-  const [textureReady, setTextureReady] = useState(false);
-
-  useEffect(() => {
-    textureImageRef.current = null;
-    setTextureReady(false);
-    if (!bodyTexture) {
-      setTextureReady(true);
-      return;
-    }
-    const img = new Image();
-    img.onload = () => {
-      textureImageRef.current = img;
-      setTextureReady(true);
-    };
-    img.onerror = () => setTextureReady(true);
-    img.src = bodyTexture;
-  }, [bodyTexture]);
+  const { textureImageRef, textureReady } = useBodyTexture(bodyTexture);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: baseLayers.version bumps when the ground-track.base slot supplies (or withdraws) a canvas; the canvas reference is stable across mutations (tracked via a ref rather than state), so we depend on the version to trigger a redraw
   useEffect(() => {

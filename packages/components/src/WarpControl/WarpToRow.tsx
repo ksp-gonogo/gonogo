@@ -1,6 +1,7 @@
+import { useTimeContexts } from "@ksp-gonogo/core";
 import { type ParsedManeuverNode, useManeuverNodes } from "@ksp-gonogo/data";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { ToggleButton } from "@ksp-gonogo/ui";
 import {
   Button,
@@ -42,6 +43,17 @@ function nextNode(
 }
 
 /**
+ * The game instant a wait of `wait` ends at, for an operator watching a view clock that runs `owltSeconds` behind the game: the game is a one-way delay ahead of what is shown, so the wait is counted from where the game is.
+ */
+export function instantAfterWait(
+  viewUt: Value<"ut">,
+  owltSeconds: number,
+  wait: Value<"s">,
+): number {
+  return viewUt.plus(value("s", owltSeconds)).plus(wait).valueOf();
+}
+
+/**
  * The warp-to targets: an instant chosen here becomes an ordinary time alarm,
  * and the alarm pipeline's own warp-kill drops the warp when it nears.
  */
@@ -53,6 +65,7 @@ export function WarpToRow({
   events: readonly WarpEventTarget[];
 }>) {
   const viewUt = useViewUt();
+  const { owltSeconds } = useTimeContexts();
   const nodes = useManeuverNodes();
   const [target, setTarget] = useState<Target>("for");
   const [forDuration, setForDuration] = useState(value("s", 0));
@@ -68,7 +81,7 @@ export function WarpToRow({
     target === "for"
       ? viewUt === undefined || !forDuration.greaterThan(value("s", 0))
         ? null
-        : viewUt.plus(forDuration).valueOf()
+        : instantAfterWait(viewUt, owltSeconds, forDuration)
       : event !== null
         ? event.instant
         : target === "ut"
@@ -76,10 +89,13 @@ export function WarpToRow({
           : node === null
             ? null
             : node.UT - leadSeconds;
+  // A wait is counted on the game's clock, which runs ahead of the view clock the instant is measured against.
   const timeTo =
     instant === null || viewUt === undefined
       ? null
-      : value("ut", instant).minus(viewUt);
+      : value("ut", instant).minus(
+          target === "for" ? viewUt.plus(value("s", owltSeconds)) : viewUt,
+        );
   const armable = timeTo?.greaterThan(value("s", 0)) === true;
 
   const arm = () => {

@@ -53,6 +53,7 @@ export function SeriesRow({ series, numericKeys, onUpdate, onRemove }: Props) {
         </Select>
         <IconButton
           type="button"
+          aria-label={`Remove series ${series.label || series.key}`.trim()}
           onClick={() => onRemove(series.id)}
           style={REMOVE_BUTTON}
         >

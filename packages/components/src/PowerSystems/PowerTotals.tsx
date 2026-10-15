@@ -1,4 +1,5 @@
-import { Text, Tooltip } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Text, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
+import type { ComponentProps } from "react";
 import { formatUnits, type NetTone } from "./flow";
 import {
   CELL_LABEL,
@@ -20,6 +21,7 @@ import {
  * own minimum size.
  */
 export function PowerTotals({
+  netFigure,
   net,
   netTone,
   unratedCount,
@@ -29,6 +31,8 @@ export function PowerTotals({
   measuredDisagrees,
   storage,
 }: Readonly<{
+  /** The net rate as the figure the cell draws, null while no part reports a measured flow, when the three totals are unknown rather than zero. */
+  netFigure: ComponentProps<typeof Unit>["value"] | null;
   net: number;
   netTone: NetTone;
   /** Parts running a process with no published rate: their draw or yield is missing from NET. */
@@ -47,8 +51,14 @@ export function PowerTotals({
           NET
         </span>
         <Text size="sm" style={CELL_VALUE}>
-          {net >= 0 ? "+" : ""}
-          {net.toFixed(2)}/s
+          {netFigure !== null ? (
+            <>
+              {net >= 0 ? "+" : ""}
+              <Unit value={netFigure} decimals={2} />
+            </>
+          ) : (
+            NULL_DISPLAY
+          )}
         </Text>
         {unratedCount > 0 && (
           <Tooltip
@@ -62,8 +72,14 @@ export function PowerTotals({
       <div style={TOTALS_CELL}>
         <span style={CELL_LABEL}>PROD</span>
         <Text tone="go" size="sm" style={CELL_VALUE}>
-          {totalProduced > 0 ? "+" : ""}
-          {totalProduced.toFixed(2)}
+          {netFigure !== null ? (
+            <>
+              {totalProduced > 0 ? "+" : ""}
+              {totalProduced.toFixed(2)}
+            </>
+          ) : (
+            NULL_DISPLAY
+          )}
         </Text>
       </div>
       {measuredDisagrees && (
@@ -82,7 +98,7 @@ export function PowerTotals({
       <div style={TOTALS_CELL}>
         <span style={CELL_LABEL}>CONS</span>
         <Text tone="warn" size="sm" style={CELL_VALUE}>
-          {totalConsumed.toFixed(2)}
+          {netFigure !== null ? totalConsumed.toFixed(2) : NULL_DISPLAY}
         </Text>
       </div>
       {storage && storage.maxAmount > 0 && (

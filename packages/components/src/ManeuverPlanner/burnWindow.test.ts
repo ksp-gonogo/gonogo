@@ -111,6 +111,16 @@ describe("burnAxis", () => {
     expect(after.nowFraction).toBeGreaterThan(1);
   });
 
+  it("places no clock on the axis while the view clock is unknown", () => {
+    const axis = mustAxis(
+      burnAxis(
+        burnInstantRows({ ut: 1000, ignitionUt: 980, cutoffUt: 1025 }),
+        undefined,
+      ),
+    );
+    expect(axis.nowFraction).toBeNull();
+  });
+
   it("draws nothing for an impulsive plan", () => {
     expect(burnAxis(burnInstantRows({ ut: 1000 }), 900)).toBeNull();
   });

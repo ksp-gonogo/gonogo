@@ -60,6 +60,11 @@ export function isSequence(result: PlanResult): result is ManeuverSequence {
   return "burns" in result;
 }
 
+/** A custom burn with no component entered is not a burn: there is nothing to send until one is. */
+function hasNoBurn(i: PlanInputs): boolean {
+  return i.prograde === 0 && i.normal === 0 && i.radial === 0;
+}
+
 export function computePlan(i: PlanInputs): PlanResult | null {
   if (!i.currentOrbit || i.currentUT === undefined || i.mu <= 0) return null;
   switch (i.preset) {
@@ -69,6 +74,7 @@ export function computePlan(i: PlanInputs): PlanResult | null {
       return circularizeAtPeri(i.currentOrbit, i.mu, i.currentUT);
     case "custom-apo":
     case "custom-peri":
+      if (hasNoBurn(i)) return null;
       return customAtApsis(
         i.currentOrbit,
         i.mu,
@@ -79,6 +85,7 @@ export function computePlan(i: PlanInputs): PlanResult | null {
         i.radial,
       );
     case "custom-ut":
+      if (hasNoBurn(i)) return null;
       return planCustomUT(i);
     case "hohmann-to-altitude":
       return planHohmann(i);
