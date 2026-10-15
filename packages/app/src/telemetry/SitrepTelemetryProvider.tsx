@@ -20,6 +20,7 @@ import { KspCalendarObserver } from "./KspCalendarObserver";
 import {
   getSitrepHostConfig,
   getSitrepReconnectNonce,
+  reportSitrepHello,
   reportSitrepTransportStatus,
   setSitrepRetryHandler,
   subscribeSitrepHostConfig,
@@ -268,7 +269,7 @@ export function SitrepTelemetryProvider({
   useEffect(() => {
     if (!transport) return;
     let bootId: string | undefined;
-    return transport.onMessage((message) => {
+    const off = transport.onMessage((message) => {
       if (
         message.type === "error" &&
         message.code === FaultCode.UnknownVantage
@@ -276,11 +277,20 @@ export function SitrepTelemetryProvider({
         setVantageRefused(true);
       }
       if (message.type === "hello") {
+        reportSitrepHello({
+          modVersion: message.modVersion,
+          contractMajor: message.contractMajor,
+          contractMinor: message.contractMinor,
+        });
         const rebooted = bootId !== undefined && bootId !== message.bootId;
         bootId = message.bootId;
         if (rebooted) setGeneration((g) => g + 1);
       }
     });
+    return () => {
+      off();
+      reportSitrepHello(undefined);
+    };
   }, [transport]);
 
   // A transport the host drives (a station's or a relayed pilot's) never drops when the game restarts, so the host says so and the store is rebuilt on its word.

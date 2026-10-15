@@ -79,6 +79,8 @@ function generatedContracts(root: string): string[] {
  * that call), so an attribute there would be read by nothing.
  */
 const OMITTED_WHEN_NULL = new Set([
+  // EnvelopeCodec.WriteHello leaves it out for a build that carries no release label.
+  "Hello.modVersion",
   /* EnvelopeCodec.AppendMeta guards it on HasValue: a gap is rare by
      construction, so every frame would otherwise carry 17 bytes saying nothing
      happened. */

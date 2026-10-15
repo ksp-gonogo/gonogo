@@ -10803,7 +10803,7 @@ namespace Sitrep.Host
             connection.Closed += () => OnConnectionClosed(session);
             try
             {
-                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteHello(new Hello { BootId = BootId })));
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteHello(new Hello { BootId = BootId, ModVersion = CoreBuildInfo.Version, ContractMajor = ContractVersion.Major, ContractMinor = ContractVersion.Minor })));
                 GreetWithGameState(session);
             }
             catch (Exception publishEx)

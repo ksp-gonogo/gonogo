@@ -524,6 +524,29 @@ public class Hello
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string BootId { get; set; } = "";
+
+    /// <summary>
+    /// The mod's release label: <c>v1.4.0</c> for a release, <c>rc-&lt;sha&gt;</c>
+    /// for a release candidate. Absent from the frame for a build that carries no label,
+    /// such as one built from source.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? ModVersion { get; set; }
+
+    /// <summary>
+    /// The major number of the wire contract the mod speaks. A client built for
+    /// a different major cannot read this stream correctly.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public int ContractMajor { get; set; }
+
+    /// <summary>
+    /// The minor number of the wire contract the mod speaks. A client built for
+    /// an older minor misses what the mod added since; a client built for a
+    /// newer minor asks for what the mod does not yet have.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public int ContractMinor { get; set; }
 }
 
 /// <summary>

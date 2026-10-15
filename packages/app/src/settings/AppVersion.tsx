@@ -1,7 +1,7 @@
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import { CommandBlock } from "@ksp-gonogo/ui";
 import { Cluster, ReadoutCaption, Stack, Text } from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import {
   browserShell,
@@ -10,6 +10,15 @@ import {
   UPDATE_REMOVE_COMMAND,
 } from "../firstRun/setupGuide";
 import { usePeerClient } from "../peer/PeerClientContext";
+import {
+  assessModHandshake,
+  describeMinorDifference,
+} from "../telemetry/modHandshake";
+import {
+  getSitrepHello,
+  subscribeSitrepHello,
+} from "../telemetry/sitrepRuntime";
+import { hostCompat } from "../uplinks/hostCompat";
 import { VERSION } from "../version";
 import {
   checkLatestRelease,
@@ -69,7 +78,12 @@ export function AppVersion() {
     () => client?.getHostVersion() ?? null,
   );
   const latest = useLatestRelease();
-  const modVersion = useModVersion();
+  const streamModVersion = useModVersion();
+  const hello = useSyncExternalStore(subscribeSitrepHello, getSitrepHello);
+  // The hello names the mod's release label; a mod too old to send one is still reported by system.uplinks.
+  const modVersion = hello?.modVersion ?? streamModVersion;
+  const handshake = hello ? assessModHandshake(hello, hostCompat) : undefined;
+  const minorNote = handshake ? describeMinorDifference(handshake) : null;
 
   useEffect(() => {
     if (!client) return;
@@ -100,6 +114,15 @@ export function AppVersion() {
           }
         />
       )}
+      {handshake?.kind === "too-old" && (
+        <VersionLine label="Contract" version="Mod too old to say" />
+      )}
+      {hello && handshake?.kind !== "too-old" && (
+        <VersionLine
+          label="Contract"
+          version={`${hello.contractMajor}.${hello.contractMinor}`}
+        />
+      )}
       <Cluster>
         <ReadoutCaption>Latest release</ReadoutCaption>
         <Text level="muted" size="sm">
@@ -119,6 +142,11 @@ export function AppVersion() {
         <Text tone="warn" size="sm">
           The mod and this app are from different releases. Update both to the
           same one.
+        </Text>
+      )}
+      {minorNote && (
+        <Text level="muted" size="sm">
+          {minorNote}
         </Text>
       )}
       {!client && behind && known && <UpdateSteps version={known.version} />}

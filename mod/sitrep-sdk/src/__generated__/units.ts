@@ -776,6 +776,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "Hello": {
     bootId: "id",
+    contractMajor: "id",
+    contractMinor: "id",
+    modVersion: "id",
     type: "id",
   },
   "HireApplicantArgs": {
