@@ -91,7 +91,7 @@ describe("GridDashboard tile chrome", () => {
   it("hides the grab bar and the resize marks at rest without unmounting them", () => {
     mount();
     expect(document.querySelector(".drag-handle")).not.toBeNull();
-    expect(screen.getByRole("button", { name: /Remove widget/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Remove /i })).toBeTruthy();
     const hidden = styleRules().filter(
       ({ rule, media }) =>
         media === null &&

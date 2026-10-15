@@ -222,7 +222,7 @@ export const GridItemContent = memo(function GridItemContent({
                 w={w ?? 3}
                 h={h ?? 3}
               />
-              <RemoveButton onRemove={onRemove} />
+              <RemoveButton onRemove={onRemove} name={def.name} />
             </ActionButtons>
           </CellHeader>
         </Tooltip>
