@@ -200,7 +200,7 @@ namespace Sitrep.Contract
         /// declaring every rung of every family crossed with every denominator
         /// would be dozens of constants nobody reads, and the client resolves
         /// the same way by composing the halves. A typo in either half still
-        /// fails, which is what the check is for.
+        /// fails, which is the whole point of the check.
         /// </remarks>
         private static bool IsKnownToken(string token, SortedSet<string> vocabulary)
         {

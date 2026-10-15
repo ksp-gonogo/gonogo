@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Gonogo.KSP.CurrencyDelay;
-using Gonogo.KSP.Tests.Comms;
 using Sitrep.Contract;
 using Xunit;
 
@@ -15,7 +14,6 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     /// change with a balance write, a balance write fires no currency query, so the
     /// mod is never told to revisit what it derived.</para>
     /// </summary>
-    [Collection(CommsCoreUplinkStatics.Name)]
     public class DerivedCurrencyWithholdingTests : IDisposable
     {
         public DerivedCurrencyWithholdingTests()

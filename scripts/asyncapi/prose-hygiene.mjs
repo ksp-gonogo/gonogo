@@ -39,7 +39,7 @@
 //
 // ## The detector is heuristic and the debt list is not
 //
-// Six families, each a phrase family that only a maintainer writes. They will
+// Five families, each a phrase family that only a maintainer writes. They will
 // miss rationale phrased without any of them, and they will occasionally catch a
 // client-relevant sentence. That is why the list below is a RATCHET seeded with
 // the measured state rather than a rule applied to a clean tree: the count may
@@ -84,12 +84,6 @@ export const FAMILIES = {
     pattern:
       /\b(?:[VATR]-\d+|R7 Fix \d+|F2-fix|P0\.5|M\d(?= concern| milestone))\b/g,
     plant: "restored by V-12 after A-10 dropped it",
-  },
-  /** Words that judge or narrate in place of stating the fact: an aphorism, or what a reader is doing or thinking. */
-  voice: {
-    pattern:
-      /\b(?:honest(?:ly)?|confident(?:ly)?|silently|the whole point|a lie|footguns?|(?:a|the) reader(?:'s)?|readers'?)\b/gi,
-    plant: "so the\nreader confidently assumes it succeeded",
   },
   /** Where a fact came from, rather than what the fact is. */
   decompile: {

@@ -238,7 +238,7 @@ const MobileItemContent = memo(function MobileItemContent({
             w={def.defaultSize?.w ?? 3}
             h={def.defaultSize?.h ?? 3}
           />
-          <RemoveButton onRemove={onRemove} name={def.name} />
+          <RemoveButton onRemove={onRemove} />
         </MobileCellHeaderRight>
       </MobileCellHeader>
       <ComponentWrapper>

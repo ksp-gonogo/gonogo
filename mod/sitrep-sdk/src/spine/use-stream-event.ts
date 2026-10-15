@@ -63,12 +63,10 @@ export function useStreamEvent<Payload>(
 }
 
 /**
- * What makes two deliveries the same event: the timeline, the recorded sample
- * and its instant. Sample ids start again when the game restarts, on the same
- * timeline epoch, so the instant tells a new event from an old one that took
- * the same id. A frame that names no sample, which the mod never sends on a
- * stream, falls back to its instant and payload. `undefined` where the frame's
- * `Meta` is not known.
+ * What makes two deliveries the same event: the timeline and the recorded
+ * sample. A frame that names no sample, which the mod never sends on a stream,
+ * falls back to its instant and payload. `undefined` where the frame's `Meta`
+ * is not known.
  */
 function eventKey(
   payload: unknown,
@@ -76,8 +74,6 @@ function eventKey(
 ): string | undefined {
   if (meta === undefined) return undefined;
   const epoch = meta.timelineEpoch ?? 0;
-  if (meta.sampleId != null) {
-    return `${epoch}\0#${meta.sampleId}\0${meta.validAt}`;
-  }
+  if (meta.sampleId != null) return `${epoch}\0#${meta.sampleId}`;
   return `${epoch}\0${meta.validAt}\0${JSON.stringify(payload)}`;
 }

@@ -15,9 +15,9 @@ import {
 } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { VesselCatalogComponent } from "./index";
+import { FleetRosterComponent } from "./index";
 
-/** VesselCatalog runs entirely off the real stream: `trackingStation.catalog` for the roster, `trackingStation.bodies` for body names. */
+/** FleetRoster runs entirely off the real stream: `trackingStation.catalog` for the roster, `trackingStation.bodies` for body names. */
 
 const BODIES = {
   bodies: [
@@ -209,7 +209,7 @@ function renderRoster(
   const { unmount, container } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "fleet-test" }}>
-        <VesselCatalogComponent
+        <FleetRosterComponent
           config={{}}
           id="fleet-test"
           w={size.w}
@@ -228,7 +228,7 @@ afterEach(() => {
   clearAugments();
 });
 
-describe("VesselCatalogComponent", () => {
+describe("FleetRosterComponent", () => {
   it("renders a row per vessel with identity, body, crew and link", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
@@ -361,10 +361,10 @@ describe("VesselCatalogComponent", () => {
     ).toHaveAttribute("aria-valuenow", "100");
   });
 
-  it("renders a bound vessel-catalog.updates augment per vessel row, carrying identity", async () => {
-    registerAugment<"vessel-catalog.updates">({
+  it("renders a bound fleet-roster.updates augment per vessel row, carrying identity", async () => {
+    registerAugment<"fleet-roster.updates">({
       id: "test-fleet-update",
-      augments: "vessel-catalog.updates",
+      augments: "fleet-roster.updates",
       component: ({ vesselId }) => (
         <span data-testid="fleet-update" data-vessel={vesselId} />
       ),

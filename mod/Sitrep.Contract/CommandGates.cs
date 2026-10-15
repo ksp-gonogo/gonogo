@@ -55,8 +55,8 @@ namespace Sitrep.Contract
         /// could not be read, which is not a judgement about the command. A
         /// dispatch in this state is refused (a gate that cannot be read must
         /// not act as no gate), and that refusal names itself when it happens;
-        /// a control drawn permanently dark with a stated reason would teach a
-        /// false belief and never correct it.</description></item>
+        /// a control drawn permanently dark with a confident reason would teach
+        /// a false belief and never correct it.</description></item>
         /// </list>
         ///
         /// <para>For example, while a career save is still loading and
@@ -220,8 +220,8 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// What a field arrives as, in place of its value, while the save has not
-    /// unlocked what it needs: the unlocks it is missing, so a client can say
-    /// why it has nothing to show instead of drawing an empty value as if there
+    /// unlocked what it needs: the unlocks it is missing, so a reader can say
+    /// why it has nothing to show rather than drawing an empty value as if there
     /// were none. A field that can arrive this way has <c>LockedValue</c> among the
     /// types it is declared with, and the SDK's <c>isLocked</c> tells the two apart.
     /// <internal>

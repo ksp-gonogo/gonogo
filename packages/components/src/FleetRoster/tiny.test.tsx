@@ -11,10 +11,10 @@ function essentialTexts(): string[] {
   );
 }
 
-describe("VesselCatalog tiny mode", () => {
+describe("FleetRoster tiny mode", () => {
   it("counts the fleet and how much of it is linked, and counts nothing before the roster arrives", async () => {
     const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
-    renderWidget("vessel-catalog", {
+    renderWidget("fleet-roster", {
       w: 4,
       h: 4,
       wrapper: fixture.Provider,

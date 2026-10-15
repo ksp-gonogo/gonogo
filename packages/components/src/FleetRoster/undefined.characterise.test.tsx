@@ -11,9 +11,9 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { VesselCatalogComponent } from "./index";
+import { FleetRosterComponent } from "./index";
 
-/** Characterisation, not specification: what VesselCatalog renders when its telemetry reads are absent. Every assertion is an observation, not an endorsement. */
+/** Characterisation, not specification: what FleetRoster renders when its telemetry reads are absent. Every assertion is an observation, not an endorsement. */
 
 const unmounts: Array<() => void> = [];
 
@@ -34,7 +34,7 @@ function renderRoster(fixture: StreamFixture, size = { w: 8, h: 10 }) {
   const { unmount, container } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "fleet-char" }}>
-        <VesselCatalogComponent
+        <FleetRosterComponent
           config={{}}
           id="fleet-char"
           w={size.w}
@@ -65,7 +65,7 @@ const ONE_CRAFT = {
 
 const BODIES = { bodies: [{ index: 1, name: "Mun" }] };
 
-describe("VesselCatalog: nothing has arrived at all", () => {
+describe("FleetRoster: nothing has arrived at all", () => {
   it("says fleet data is not available, renders no table, and draws no comms tally", () => {
     const fixture = newFixture();
     renderRoster(fixture);
@@ -102,7 +102,7 @@ describe("VesselCatalog: nothing has arrived at all", () => {
     // Every read degrades through its optional variant, so no stream in the tree is indistinguishable from a cold one.
     const { unmount } = render(
       <DashboardItemContext.Provider value={{ instanceId: "fleet-char" }}>
-        <VesselCatalogComponent config={{}} id="fleet-char" w={8} h={10} />
+        <FleetRosterComponent config={{}} id="fleet-char" w={8} h={10} />
       </DashboardItemContext.Provider>,
     );
     unmounts.push(unmount);
@@ -116,7 +116,7 @@ describe("VesselCatalog: nothing has arrived at all", () => {
   });
 });
 
-describe("VesselCatalog: the `system !== undefined` absence gate", () => {
+describe("FleetRoster: the `system !== undefined` absence gate", () => {
   it("fires before any roster arrives and stops firing for a confirmed-empty fleet", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
@@ -176,7 +176,7 @@ describe("VesselCatalog: the `system !== undefined` absence gate", () => {
   });
 });
 
-describe("VesselCatalog: the `bodies?.bodies ?? []` absence gate", () => {
+describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
   it("renders every Body cell as the null placeholder while trackingStation.bodies has not arrived", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
@@ -244,7 +244,7 @@ describe("VesselCatalog: the `bodies?.bodies ?? []` absence gate", () => {
   });
 });
 
-describe("VesselCatalog: partial vessel records", () => {
+describe("FleetRoster: partial vessel records", () => {
   it("renders the null placeholder for crew when crewCount is absent, and a bare count when only crewCapacity is", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
@@ -346,7 +346,7 @@ async function openSignalPanel(name: RegExp): Promise<HTMLElement> {
   return panel as HTMLElement;
 }
 
-describe("VesselCatalog: the `contact == null` absence gate", () => {
+describe("FleetRoster: the `contact == null` absence gate", () => {
   it("reports the link state as `unknown` and omits the delay row entirely before any contact or delay arrives", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
@@ -422,7 +422,7 @@ function withContact(contact: Record<string, unknown>) {
   return { entries: [{ ...ONE_CRAFT.entries[0], ...contact }] };
 }
 
-describe("VesselCatalog: the `contact == null` badge gate", () => {
+describe("FleetRoster: the `contact == null` badge gate", () => {
   it("renders no contact badge of any kind before the centre has word of a route", async () => {
     const fixture = newFixture();
     renderRoster(fixture);

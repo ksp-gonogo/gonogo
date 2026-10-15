@@ -1307,32 +1307,20 @@ namespace Sitrep.Host
         private readonly Dictionary<string, Availability> _availability = new Dictionary<string, Availability>();
 
         /// <summary>
-        /// Commands whose handler has thrown, by command. Courier thread only,
-        /// the same rule as <see cref="_availability"/>.
+        /// Commands whose handler has thrown, by command, with the reason an
+        /// operator is told. Courier thread only, the same rule as
+        /// <see cref="_availability"/>.
         ///
         /// <para>Per command rather than per uplink. A throwing handler is a bug
         /// in that handler, and its siblings share no state through the engine
         /// that the throw could have corrupted, so refusing them protects nothing
-        /// and hides the cause. One throw fails that one request and the command
-        /// stays available, because the cause is as likely a single part or craft
-        /// as the handler. <see cref="CommandFailureThreshold"/> consecutive throws
-        /// suspend the command for <see cref="CommandSuspensionSeconds"/>, which
-        /// keeps a handler that throws on every call from running at the rate it
-        /// is pressed. A successful call clears the count, and a timeline reset
-        /// clears every entry.</para>
+        /// and hides the cause: an operator whose launch control goes dead cannot
+        /// tell it was an unrelated command pressed minutes earlier. The command
+        /// that threw stays refused, because what it half-did to the game is
+        /// unknown and running it again would compound it.</para>
         /// </summary>
-        private readonly Dictionary<string, CommandFailure> _failedCommands =
-            new Dictionary<string, CommandFailure>(StringComparer.Ordinal);
-
-        private const int CommandFailureThreshold = 3;
-        private const double CommandSuspensionSeconds = 30.0;
-
-        private sealed class CommandFailure
-        {
-            public int Consecutive;
-            public string Reason = "";
-            public double SuspendedUntilSec = double.NegativeInfinity;
-        }
+        private readonly Dictionary<string, string> _failedCommands =
+            new Dictionary<string, string>(StringComparer.Ordinal);
 
         /// <summary>
         /// Gate evaluations that have thrown, by command and gate kind, so a
@@ -5804,8 +5792,8 @@ namespace Sitrep.Host
         {
             if (!_commandOwner.TryGetValue(command, out var ownerId))
                 return $"command \"{command}\" is not recognised by this host";
-            if (IsUplinkAvailable(ownerId) && IsCommandSuspended(command, out var failure))
-                return $"command \"{command}\" is suspended for {Math.Ceiling(failure.SuspendedUntilSec - _nowRealSec()):F0} s after it failed {failure.Consecutive} times in a row: {failure.Reason}";
+            if (IsUplinkAvailable(ownerId) && _failedCommands.TryGetValue(command, out var failure))
+                return $"command \"{command}\" is unavailable for the rest of this session: {failure}";
             var reason = _availability.TryGetValue(ownerId, out var availability) ? availability.Reason : null;
             return string.IsNullOrWhiteSpace(reason)
                 ? $"command \"{command}\" is unavailable: its uplink \"{ownerId}\" is unavailable"
@@ -5814,25 +5802,8 @@ namespace Sitrep.Host
 
         private bool IsCommandAvailable(string command)
         {
-            if (IsCommandSuspended(command, out _)) return false;
+            if (_failedCommands.ContainsKey(command)) return false;
             return !_commandOwner.TryGetValue(command, out var ownerId) || IsUplinkAvailable(ownerId);
-        }
-
-        private void ClearCommandFailureCount(string command)
-        {
-            if (_failedCommands.TryGetValue(command, out var failure))
-            {
-                failure.Consecutive = 0;
-            }
-        }
-
-        private bool IsCommandSuspended(string command, out CommandFailure failure)
-        {
-            if (_failedCommands.TryGetValue(command, out failure!) && failure.SuspendedUntilSec > _nowRealSec())
-            {
-                return true;
-            }
-            return false;
         }
 
         private bool IsUplinkAvailable(string uplinkId)
@@ -6107,11 +6078,9 @@ namespace Sitrep.Host
             {
                 try
                 {
-                    var vantageResult = GuardRefinement(command, _executeCommandsOnMainThread && !onThisThread
+                    return GuardRefinement(command, _executeCommandsOnMainThread && !onThisThread
                         ? RunOnMainThread(a => vantageHandler(a, vantage), args)
                         : vantageHandler(args, vantage));
-                    ClearCommandFailureCount(command);
-                    return vantageResult;
                 }
                 catch (CommandFaultException fault)
                 {
@@ -6134,11 +6103,9 @@ namespace Sitrep.Host
                 // else inline on the Courier thread (headless). A marshaled
                 // throw is captured on the main thread and re-surfaced here by
                 // RunOnMainThread, so both are handled identically.
-                var result = GuardRefinement(command, _executeCommandsOnMainThread && !onThisThread
+                return GuardRefinement(command, _executeCommandsOnMainThread && !onThisThread
                     ? RunOnMainThread(handler, args)
                     : handler(args));
-                ClearCommandFailureCount(command);
-                return result;
             }
             catch (CommandFaultException fault)
             {
@@ -6329,9 +6296,8 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Fails the request that triggered it, counts the failure toward
-        /// suspending <paramref name="command"/>, and logs why, leaving every
-        /// other command its uplink owns untouched. See
+        /// Refuses <paramref name="command"/> for the rest of the session and
+        /// logs why, leaving every other command its uplink owns untouched. See
         /// <see cref="_failedCommands"/> for why the scope is the command.
         /// Returns the sentence the caller that triggered it should be refused
         /// with, which names the command.
@@ -6344,23 +6310,8 @@ namespace Sitrep.Host
         private string FailSoftCommand(string command, string what, Exception ex)
         {
             var failure = $"{what}: {SafeExceptionMessage(ex)}";
-            if (!_failedCommands.TryGetValue(command, out var record))
-            {
-                record = new CommandFailure();
-                _failedCommands[command] = record;
-            }
-            record.Consecutive++;
-            record.Reason = failure;
-            if (record.Consecutive >= CommandFailureThreshold)
-            {
-                record.SuspendedUntilSec = _nowRealSec() + CommandSuspensionSeconds;
-                record.Consecutive = 0;
-                LogHost("command \"" + command + "\" suspended for " + CommandSuspensionSeconds.ToString("F0", System.Globalization.CultureInfo.InvariantCulture) + " s after repeated failures: " + failure);
-            }
-            else
-            {
-                LogHost("command \"" + command + "\" failed: " + failure);
-            }
+            _failedCommands[command] = failure;
+            LogHost("command \"" + command + "\" marked UNAVAILABLE: " + failure);
             return $"command \"{command}\" failed: {failure}";
         }
 
@@ -9088,7 +9039,6 @@ namespace Sitrep.Host
                 _pendingDispatcher.Clear();
                 LogHost("timeline reset at UT " + tick.Ut.ToString("F2", ic) + ", " + why + ": " + ResetDelivery(tick.Ut, tick.Save, pendingBefore, dispatchersBefore));
                 RecomputeChannelBirthFromArchive();
-                _failedCommands.Clear();
                 BroadcastTimelineReset();
                 NotifyTimelineResetListeners();
             }
@@ -9215,7 +9165,7 @@ namespace Sitrep.Host
             RefreshConnectivityFromCapability(tick);
 
             // Immediately after it, because this is the first point at which the
-            // tick's whole vessel catalog is known and the last before anything is
+            // tick's whole fleet roster is known and the last before anything is
             // scheduled off it.
             ReleaseSubjectsGoneFromTheRoster();
 
@@ -10803,7 +10753,7 @@ namespace Sitrep.Host
             connection.Closed += () => OnConnectionClosed(session);
             try
             {
-                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteHello(new Hello { BootId = BootId, ModVersion = CoreBuildInfo.Version, ContractMajor = ContractVersion.Major, ContractMinor = ContractVersion.Minor })));
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteHello(new Hello { BootId = BootId })));
                 GreetWithGameState(session);
             }
             catch (Exception publishEx)

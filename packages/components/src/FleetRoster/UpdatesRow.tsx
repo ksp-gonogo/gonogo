@@ -1,7 +1,7 @@
 // biome-ignore lint/style/noRestrictedImports: the row collapses on :empty, which an inline style cannot express
 import styled from "styled-components";
 
-/** Wraps the per-vessel `vessel-catalog.updates` slot; `:empty` collapses it live when a bound augment renders nothing for this row, which a render-time check cannot see. */
+/** Wraps the per-vessel `fleet-roster.updates` slot; `:empty` collapses it live when a bound augment renders nothing for this row, which a render-time check cannot see. */
 export const UpdatesRow = styled.div`
   display: flex;
   flex-direction: column;

@@ -132,20 +132,6 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Whether any client is subscribed to the saved-craft list. While none
-        /// is, the craft folders are not walked, and an unset resolver reads as
-        /// wanted. Installed late for the same reason as
-        /// <see cref="_actionGroupsBackend"/>: the engine that answers it is
-        /// built after this host.
-        /// </summary>
-        private Func<bool>? _savedShipsWanted;
-
-        public void SetSavedShipsDemandSource(Func<bool> wanted)
-        {
-            _savedShipsWanted = wanted;
-        }
-
-        /// <summary>
         /// The elected <see cref="ICrewStandingBackend"/> resolver: what this
         /// install makes of a kerbal whose roster status alone is not the answer.
         /// Same late-bound install shape and the same reason as
@@ -578,7 +564,7 @@ namespace Gonogo.KSP
                 // inside its builder; the rest are in-memory reads.
                 AttachSpaceCenterGroup(values, "crewRoster", () => BuildCrewRoster(ut));
                 AttachSpaceCenterGroup(values, "astronautComplex", () => BuildAstronautComplex(ut));
-                AttachSpaceCenterGroup(values, "savedShips", () => BuildSavedShips(ut, _savedShipsWanted?.Invoke() ?? true));
+                AttachSpaceCenterGroup(values, "savedShips", () => BuildSavedShips(ut));
                 AttachSpaceCenterGroup(values, "partsAvailable", () => BuildPartsAvailable());
                 AttachSpaceCenterGroup(values, "contractTargets", BuildContractTargets);
             }
@@ -1835,7 +1821,7 @@ namespace Gonogo.KSP
         /// The M3 R3 <c>trackingStation.catalog</c> roster capture-add's raw per-vessel
         /// entry (primitives only, same discipline as every other Build*
         /// helper in this class): id/name/vesselType/situation/mainBody, plus
-        /// the VesselCatalog crew/comms capture-add (crewCount/crewCapacity/
+        /// the FleetRoster crew/comms capture-add (crewCount/crewCapacity/
         /// commsConnected/commsControlSource), plus the vessel's own orbital
         /// elements (see <see cref="AddRosterOrbitFields"/>).
         /// <c>mainBody</c> is the raw body name (not yet resolved to an
@@ -4252,12 +4238,11 @@ namespace Gonogo.KSP
         /// gated (the saved-ships widgets are career-facing; a sandbox has no
         /// funds affordance to spend on unlocking parts) and rate-limited to
         /// <see cref="SavedShipsRescan"/> - between scans the cached
-        /// list is returned so the disk isn't touched every tick, and no scan
-        /// runs at all while <paramref name="wanted"/> is false. Returns
+        /// list is returned so the disk isn't touched every tick. Returns
         /// <c>null</c> - the whole list - outside career or before a save folder
         /// exists, so the provider reads "no data yet."
         /// </summary>
-        private static List<object?>? BuildSavedShips(double ut, bool wanted)
+        private static List<object?>? BuildSavedShips(double ut)
         {
             var game = HighLogic.CurrentGame;
             if (game == null || game.Mode != Game.Modes.CAREER)
@@ -4271,13 +4256,6 @@ namespace Gonogo.KSP
             if (string.IsNullOrEmpty(gameName))
             {
                 return null;
-            }
-
-            // Nobody is reading the list, so the disk is left alone and the last
-            // scan stands in. A subscriber arriving finds the cache due again.
-            if (!wanted)
-            {
-                return _cachedSavedShips;
             }
 
             var wallSeconds = System.Diagnostics.Stopwatch.GetTimestamp() / (double)System.Diagnostics.Stopwatch.Frequency;

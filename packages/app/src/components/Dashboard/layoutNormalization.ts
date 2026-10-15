@@ -54,24 +54,6 @@ export const RENAMED_COMPONENT_IDS: Record<string, string> = {
   "deployed-base-monitor": "deployed-science",
   "aero-state": "aerodynamics",
   "system-view": "tracking-station",
-  "fleet-roster": "vessel-catalog",
-};
-
-/**
- * Config values a renamed widget keyed on its own old id, by the old id: the
- * key, and the prefix it carried before and after. Applied in the same pass as
- * the id, so a tile keeps its setting across the rename. Tracking Station's
- * projection ids are `<widget id>.<frame>.<body index>`.
- */
-const RENAMED_CONFIG_PREFIXES: Record<
-  string,
-  { key: string; from: string; to: string }
-> = {
-  "system-view": {
-    key: "projection",
-    from: "system-view.",
-    to: "tracking-station.",
-  },
 };
 
 /** Map a single (possibly renamed) component id forward to its current id. */
@@ -89,32 +71,9 @@ export function migrateDashboardItems(items: DashboardItem[]): DashboardItem[] {
     const componentId = migrateComponentId(it.componentId);
     if (componentId === it.componentId) return it;
     changed = true;
-    const config = migrateConfig(it.componentId, it.config);
-    return config === it.config
-      ? { ...it, componentId }
-      : { ...it, componentId, config };
+    return { ...it, componentId };
   });
   return changed ? next : items;
-}
-
-/** The config of a tile whose widget was renamed, with any value keyed on the old id moved to the new one. */
-function migrateConfig(
-  oldId: string,
-  config: Record<string, unknown> | undefined,
-): Record<string, unknown> | undefined {
-  const renamed = RENAMED_CONFIG_PREFIXES[oldId];
-  const value = config?.[renamed?.key ?? ""];
-  if (
-    renamed === undefined ||
-    typeof value !== "string" ||
-    !value.startsWith(renamed.from)
-  ) {
-    return config;
-  }
-  return {
-    ...config,
-    [renamed.key]: renamed.to + value.slice(renamed.from.length),
-  };
 }
 
 /**

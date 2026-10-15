@@ -34,14 +34,6 @@ type SemiMajorAxisConfig = Record<string, never>;
 
 const SPARK_WINDOW_SEC = 300;
 
-/** The last few minutes of the semi-major axis, for the trend under the figure. */
-function useSmaTrend(): number[] {
-  const series = useDataSeries("vessel.orbit.sma", SPARK_WINDOW_SEC);
-  return series.v.filter(
-    (v): v is number => typeof v === "number" && Number.isFinite(v),
-  );
-}
-
 /**
  * The semi-major axis as one figure. A hyperbolic orbit and a pulsating frame
  * each add a row, which a tile too short for it drops from the picture and
@@ -55,12 +47,10 @@ function useSemiMajorAxisEssentials(): readonly TinyEssential[] {
     useStream<ControlFrame>("system.frame"),
     undefined,
   );
-  const trend = useSmaTrend();
   return [
     {
       label: "SMA",
       value: readingOf(orbitReading, (orbit) => orbit.sma),
-      trend,
     },
     ...(sma?.isNegative() ? [{ label: "Orbit", word: "HYPERBOLIC" }] : []),
     ...(lengthsAreLengths(controlFrame) === "invalid"
@@ -89,7 +79,10 @@ function SemiMajorAxisComponent({
   const referenceBody = useBodyName(
     stillTrue(orbitReading, undefined)?.referenceBodyIndex,
   );
-  const sparkValues = useSmaTrend();
+  const series = useDataSeries("vessel.orbit.sma", SPARK_WINDOW_SEC);
+  const sparkValues = series.v.filter(
+    (v): v is number => typeof v === "number" && Number.isFinite(v),
+  );
   const cols = w ?? 4;
   const rows = h ?? 4;
   const showSubtitle = rows >= 5 && cols >= 4;

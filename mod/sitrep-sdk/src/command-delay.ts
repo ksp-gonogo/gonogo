@@ -200,7 +200,7 @@ export const ZERO_DELAY_DEAD_ZONE_SECONDS = 0.0005;
  * both are hidden alike, whatever the delay's source. Useful for deciding in one
  * place whether the operator sees a delay figure, so no surface prints a bare
  * "0 s" for a craft that has no delay to report. Used by the delay readouts of
- * the dashboard header, the command rail and the vessel catalog.
+ * the dashboard header, the command rail and the fleet roster.
  *
  * @category Delay and vantage
  */

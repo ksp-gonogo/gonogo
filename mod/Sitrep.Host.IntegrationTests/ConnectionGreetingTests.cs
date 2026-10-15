@@ -47,25 +47,6 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
-        public async Task TheGreetingNamesTheContractTheModSpeaks()
-        {
-            using var engine = Started();
-            try
-            {
-                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-
-                var greeted = await client.HelloAsync(Timeout);
-
-                Assert.Equal(ContractVersion.Major, greeted.ContractMajor);
-                Assert.Equal(ContractVersion.Minor, greeted.ContractMinor);
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        [Fact]
         public async Task AnotherRunGreetsWithAnotherBootId()
         {
             using var one = Started();

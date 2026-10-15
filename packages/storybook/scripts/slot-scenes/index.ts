@@ -7,6 +7,7 @@ import { SCENES as contractManager } from "./contract-manager";
 import { SCENES as crewStatus } from "./crew-status";
 import { SCENES as deployedScience } from "./deployed-science";
 import { SCENES as experiments } from "./experiments";
+import { SCENES as fleetRoster } from "./fleet-roster";
 import { SCENES as fuelStatus } from "./fuel-status";
 import { SCENES as groundTrack } from "./ground-track";
 import { SCENES as landingStatus } from "./landing-status";
@@ -23,7 +24,6 @@ import { SCENES as spaceCenterStatus } from "./space-center-status";
 import { SCENES as targetPicker } from "./target-picker";
 import { SCENES as systemView } from "./tracking-station";
 import { SCENES as transferWindow } from "./transfer-window";
-import { SCENES as vesselCatalog } from "./vessel-catalog";
 import { SCENES as warpControl } from "./warp-control";
 
 /**
@@ -39,7 +39,7 @@ export const SLOT_SCENE_OVERRIDES: readonly ExtensionScene[] = [
   ...crewStatus,
   ...deployedScience,
   ...experiments,
-  ...vesselCatalog,
+  ...fleetRoster,
   ...fuelStatus,
   ...landingStatus,
   ...launchDirector,

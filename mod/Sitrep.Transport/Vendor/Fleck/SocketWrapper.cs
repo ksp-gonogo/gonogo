@@ -68,53 +68,6 @@ namespace Sitrep.Vendor.Fleck
             {
                 SetKeepAlive(socket, KeepAliveInterval, RetryInterval);
             }
-            else
-            {
-                SetKeepAliveUnix(socket);
-            }
-        }
-
-        /*
-         * Linux and macOS take the generic switch, then the three timers by
-         * their numeric option names: SocketOptionName's own TcpKeepAlive*
-         * members are missing from the net472 and netstandard2.0 reference
-         * sets. The timers are best effort, because a runtime that does not
-         * know an option throws for it and the generic switch alone is still
-         * better than none.
-         */
-        private static void SetKeepAliveUnix(Socket socket)
-        {
-            try
-            {
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-
-                int idleName;
-                int intervalName;
-                int countName;
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    idleName = 4;
-                    intervalName = 5;
-                    countName = 6;
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    idleName = 0x10;
-                    intervalName = 0x101;
-                    countName = 0x102;
-                }
-                else
-                {
-                    return;
-                }
-
-                socket.SetSocketOption(SocketOptionLevel.Tcp, (SocketOptionName)idleName, (int)(KeepAliveInterval / 1000));
-                socket.SetSocketOption(SocketOptionLevel.Tcp, (SocketOptionName)intervalName, (int)(RetryInterval / 1000));
-                socket.SetSocketOption(SocketOptionLevel.Tcp, (SocketOptionName)countName, 3);
-            }
-            catch (Exception)
-            {
-            }
         }
 
         public Task Authenticate(X509Certificate2 certificate, SslProtocols enabledSslProtocols, Action callback, Action<Exception> error)

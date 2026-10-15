@@ -8,7 +8,7 @@
   "packages/components/src/CommSignal/snapshots.test.tsx": 24,
   "packages/components/src/ContractManager/snapshots.test.tsx": 8,
   "packages/components/src/EscapeProfile/snapshots.test.tsx": 8,
-  "packages/components/src/VesselCatalog/index.test.tsx": 3,
+  "packages/components/src/FleetRoster/index.test.tsx": 3,
   "packages/components/src/FuelStatus/snapshots.test.tsx": 17,
   "packages/components/src/KeplerPeriod/snapshots.test.tsx": 9,
   "packages/components/src/LandingStatus/carried-altitude.test.tsx": 6,

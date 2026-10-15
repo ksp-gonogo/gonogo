@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Host;
@@ -120,16 +119,7 @@ namespace Gonogo.KSP
                         : "that action is not active on this part");
             }
 
-            try
-            {
-                found.Invoke();
-            }
-            catch (Exception ex)
-            {
-                return CommandResult.Fail(
-                    CommandErrorCode.CapabilityMismatch,
-                    ThirdPartyFault.Describe("that part's action", ex));
-            }
+            found.Invoke();
             return CommandResult.Ok();
         }
 

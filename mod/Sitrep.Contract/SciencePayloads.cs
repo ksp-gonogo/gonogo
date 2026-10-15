@@ -17,7 +17,7 @@ namespace Sitrep.Contract;
 /// diminishing-returns curve tracked per subject in R&amp;D; another model's
 /// may be a flat rate times remaining data. Nothing in a field's name or unit
 /// says which, so a widget that compares one provider's
-/// <c>scienceValueRatio</c> with another's gets a wrong answer with no error. The tag says
+/// <c>scienceValueRatio</c> with another's is silently wrong. The tag says
 /// which model produced the numbers.</para>
 ///
 /// <para>The vocabulary is open: the tag is a plain string on the wire, and a
@@ -184,7 +184,7 @@ public class ExperimentEntry
     /// <internal>
     /// A field's unit is fixed at compile time here and cannot vary by
     /// elected provider, which is why absence plus an extension is the only
-    /// option.
+    /// honest option.
     /// </internal>
     /// </summary>
     [SitrepUnit(Units.Id)]

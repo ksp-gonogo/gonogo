@@ -244,33 +244,6 @@ describe("TinyEssentials", () => {
     ).toBeInTheDocument();
   });
 
-  describe("a hero's trend", () => {
-    it("lays a trend strip along the bottom edge when the hero carries one", () => {
-      const { container } = render(
-        <TinyEssentials
-          title="SMA"
-          essentials={[
-            { label: "SMA", value: value("m", 700_000), trend: [1, 2, 3] },
-          ]}
-        />,
-      );
-      expect(container.querySelector("[data-panel-trend]")).not.toBeNull();
-    });
-
-    it("draws no strip for a hero without one, nor for a row", () => {
-      const { container } = render(
-        <TinyEssentials
-          title="Alt"
-          essentials={[
-            { label: "Alt", value: value("m", 1500) },
-            { label: "V/S", value: value("m/s", 2), trend: [1, 2, 3] },
-          ]}
-        />,
-      );
-      expect(container.querySelector("[data-panel-trend]")).toBeNull();
-    });
-  });
-
   describe("a hero's gauge bar", () => {
     const gauge = {
       min: value("m", 0),

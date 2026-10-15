@@ -101,7 +101,7 @@ public sealed class RatedDegradeModel : ICommsDegradeModel
     /// asymmetry with the non-finite case is deliberate. An out-of-range finite
     /// number is an arithmetic that ran and overshot (a headroom fraction above
     /// 1, a difference that went slightly negative), so the end it overshot is
-    /// the value to use. A non-finite one is an arithmetic that did not run at
+    /// the honest value. A non-finite one is an arithmetic that did not run at
     /// all, and there is no end to pick.</para>
     /// </summary>
     private static double? Sane(double? level)

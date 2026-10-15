@@ -6,7 +6,6 @@ import {
   subscribeSetting,
 } from "@ksp-gonogo/core";
 import { LocalStorageStore } from "@ksp-gonogo/data";
-import type { ModHello } from "./modHandshake";
 
 /**
  * Runtime host/port + live status for the Sitrep telemetry stream. The host
@@ -111,26 +110,6 @@ export function onSitrepTransportStatusChange(
   return () => statusListeners.delete(cb);
 }
 
-let modHello: ModHello | undefined;
-const helloListeners = new Set<() => void>();
-
-/** Called by `SitrepTelemetryProvider` with the mod's hello on every connection, and with `undefined` when the transport goes away. */
-export function reportSitrepHello(hello: ModHello | undefined): void {
-  if (modHello === hello) return;
-  modHello = hello;
-  for (const cb of helloListeners) cb();
-}
-
-/** The last hello the live transport received, `undefined` while none has arrived. */
-export function getSitrepHello(): ModHello | undefined {
-  return modHello;
-}
-
-export function subscribeSitrepHello(cb: () => void): () => void {
-  helloListeners.add(cb);
-  return () => helloListeners.delete(cb);
-}
-
 let reconnectNonce = 0;
 const nonceListeners = new Set<() => void>();
 
@@ -180,7 +159,6 @@ export function resetSitrepRuntimeForTests(): void {
   portStore.clear();
   cachedHostConfig = computeEffectiveHostConfig();
   transportStatus = "disconnected";
-  modHello = undefined;
   reconnectNonce = 0;
   retryHandler = null;
 }

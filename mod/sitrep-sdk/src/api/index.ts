@@ -140,6 +140,7 @@ export type {
   DeployedScienceExperiment,
   ExperimentsInstrument,
   ExperimentsInstrumentSlotContext,
+  FleetRosterUpdatesContext,
   GroundTrackScope,
   LaunchDirectorPadContext,
   LaunchDirectorSlotContext,
@@ -160,7 +161,6 @@ export type {
   ShipMapPartStateModule,
   ShipMapPartType,
   SystemOverlayContext,
-  VesselCatalogUpdatesContext,
 } from "./slots";
 export type {
   ThemeColors,

@@ -14,22 +14,10 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void AHelloIsWrittenAndReadBackAsAServerMessage()
         {
-            var json = EnvelopeCodec.WriteHello(new Hello { BootId = "3f2a", ModVersion = "v1.4.0", ContractMajor = 44, ContractMinor = 2 });
+            var json = EnvelopeCodec.WriteHello(new Hello { BootId = "3f2a" });
 
-            Assert.Equal("{\"type\":\"hello\",\"bootId\":\"3f2a\",\"modVersion\":\"v1.4.0\",\"contractMajor\":44,\"contractMinor\":2}", json);
+            Assert.Equal("{\"type\":\"hello\",\"bootId\":\"3f2a\"}", json);
             Assert.Equal("3f2a", Assert.IsType<Hello>(EnvelopeCodec.ParseServerMessage(json)).BootId);
-        }
-
-        [Fact]
-        public void AHelloFromABuildWithNoLabelOmitsTheModVersion()
-        {
-            var json = EnvelopeCodec.WriteHello(new Hello { BootId = "3f2a", ContractMajor = 44, ContractMinor = 2 });
-
-            Assert.DoesNotContain("modVersion", json);
-            var read = Assert.IsType<Hello>(EnvelopeCodec.ParseServerMessage(json));
-            Assert.Null(read.ModVersion);
-            Assert.Equal(44, read.ContractMajor);
-            Assert.Equal(2, read.ContractMinor);
         }
 
         [Fact]

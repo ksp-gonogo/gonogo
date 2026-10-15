@@ -4,203 +4,209 @@ info:
   version: 44.2.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 87 telemetry
-    channels a client subscribes to and 63 commands it sends, each with its payload
-    schema and description.
+    channels a client subscribes to, and 63 commands it dispatches, with the payload
+    schema and the contract's own prose for each.
 
-    This document is generated from the contract's C# declarations and their doc
-    comments. Operations are written from the client's side: a telemetry channel is
-    `receive` and a command is `send`. The mod is the server.
+    **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
+    TypeScript contract under `mod/sitrep-sdk/src/__generated__/`, which
+    `mod/codegen.sh` in turn generates from the C# in `mod/Sitrep.Contract/`. The
+    C# is the source of truth. Do not hand-edit this file; change the C# doc comment
+    or the declaration and regenerate.
+
+    **Point of view.** Operations are written from the CLIENT's side: a telemetry
+    channel is `receive` and a command is `send`. The mod is the server.
 
     ## One socket, many channels
 
-    Every channel is multiplexed over a single WebSocket. A channel's `address` is
-    the value of the `topic` field on a `stream-data` frame, or of the `command`
-    field on a `command-request`. It is not a URL path, and there is no second
-    connection to open. The `session` channel carries the frames that belong to the
-    connection itself.
+    Every channel below is multiplexed over a single WebSocket. A channel's
+    `address` is the value of the `topic` field on a `stream-data` frame, or of
+    the `command` field on a `command-request`; it is not a URL path, and there is
+    no second connection to open. The `session` channel carries the frames that
+    belong to the connection rather than to any one channel.
 
-    ## Frames the mod sends
+    Everything the mod sends is one of four frame types, unioned as
+    `components.schemas.InboundFrame`: `stream-data`, `command-response`,
+    `event` and `error`. Write that router first: every per-channel message below
+    narrows one of its arms, and none of them adds a fifth.
 
-    The mod sends 9 frame types, unioned as
-    `components.schemas.InboundFrame`:
+    Route on the `type` field. Each arm pins it with a `const`, so a plain JSON
+    Schema validator discriminates the union without help, and the `discriminator`
+    keyword on `InboundFrame` is a label on that rather than the thing doing the
+    work. `InboundFrame` is a named union nothing `$ref`s: it exists to be read,
+    and the two arms that are frames in their own right carry their vocabularies on
+    their schemas, `EventMsg` for the two `name` values and `ErrorMsg` for the
+    three `code` values. The same prose reaches you through
+    `components.messages.event` and `components.messages.error`, which is where
+    the channels point.
 
-    - `stream-data`: a subscribed topic's value
-    - `stream-binary`: a subscribed topic's value as raw bytes, for a channel that uses the binary lane
-    - `event`: something that happened to a subscription
-    - `command-response`: the result of a command
-    - `command-accepted`: the receipt for a delayed command, sent before its result
-    - `error`: a request the mod could not carry
-    - `hello`: the first frame on every connection
-    - `game-state`: what the game is doing: loading, ready or no game
-    - `pong`: the answer to a ping
+    ## Nothing arrives before you ask for it
 
-    Route on the `type` field. Each frame type fixes `type` to a constant, so a
-    JSON Schema validator can tell them apart without the `discriminator` keyword.
-    Every message in this document is one of these. A client ignores a `type` it
-    does not know.
+    Delivery is subscription-gated. A client receives a topic only after sending
+    `subscribe` for it, and a frame the mod emits with no subscriber is DROPPED
+    rather than queued: connecting and waiting yields silence forever. This is a
+    property of the protocol and appears nowhere in a message shape, so a
+    schema-first reader will not find it.
 
-    All but `stream-binary` are WebSocket frames holding UTF-8 JSON that starts
-    with `{`. A `stream-binary` frame starts with the byte `0x9E` and a lane byte,
-    then a two-byte header length and a JSON header, and the payload bytes follow
-    the header. `InboundFrame` describes the JSON header. The binary lane is used
-    by a channel that opts in, which today is only an Uplink's, so no channel in
-    this document uses it.
-
-    A client sends 7 frame types: `subscribe`, `unsubscribe`, `set-vantage`, `claim`, `ping`, `command-request`, `command-group`.
-
-    ## Subscribing
-
-    The mod sends a topic only after the client has sent `subscribe` for it. A frame
-    emitted while nothing is subscribed is dropped, not queued, so a client that
-    connects and waits receives nothing.
-
-    ## Units
+    ## A quantity crosses as a bare number
 
     The generated TypeScript types every quantity as `Value<"m">`, an object with a
-    magnitude and a unit. The SDK builds that object after receiving the frame. On
-    the wire a quantity is a bare JSON number, and its schema names the unit in
-    `x-sitrep-unit`. A command carries bare numbers as well.
+    magnitude and a unit. That is the shape AFTER the SDK hydrates it. The wire
+    carries a bare JSON number, and the schemas here say so, with the unit token on
+    `x-sitrep-unit`. Send `{ magnitude, unit }` and the mod will not understand
+    it.
 
-    ## Enums
+    ## An enum crosses as its ordinal
 
-    An enum is sent as its ordinal, not its name. Where the members are a closed
-    set, the schema is a `oneOf` of `const` values, each with the member's name and
-    description. A `[Flags]` enum is a bitwise combination of members, so its schema is an
-    `integer` and the member table is on `x-sitrep-enum`. `x-sitrep-enum-kind`
-    says which of the two an enum is.
+    Never as its name. Where the member set is a real constraint it is a `oneOf` of
+    `const` values carrying each member's name and prose. A `[Flags]` bitmask has
+    no member set to validate against, because the wire carries an OR of members, so
+    those carry the member table on `x-sitrep-enum` and constrain only
+    `integer`. `x-sitrep-enum-kind` says which of the two an enum is.
 
     ## The `x-sitrep-*` annotations
 
-    Facts the contract states that JSON Schema and AsyncAPI have no field for. An
-    annotation that is absent was not stated by the declaration.
+    Facts the contract states that JSON Schema and AsyncAPI have no slot for. Each
+    is read off the declaration site rather than written here, so an annotation that
+    is absent means the declaration did not state it.
 
-    - `x-sitrep-unit`, on a schema: the unit the value is sent in. `text`,
-      `flag`, `id`, `enum` and `n/a` are also tokens in this vocabulary and mean
-      what they say. Absent, `n/a` and `1` are three different things
-    - `x-sitrep-enum` and `x-sitrep-enum-kind`, on an enum's schema: see Enums
-    - `x-sitrep-delivery`, on a telemetry channel: the outbox lane its samples use.
-      `lossy-latest` keeps only the newest sample per topic, so a client that falls
-      behind sees the latest state and none of the ones it missed.
-      `reliable-ordered` sends every sample, in order. The `reliable-ordered`
-      channels carry discrete occurrences such as `flight.started`, so a client
-      must not treat them as lossy
-    - `x-sitrep-delay-role`, on a telemetry channel: `delayed` means the value is
-      what the vantage knew one signal delay ago, not what is true now.
-      `true-now` means it is not delayed, which suits a ground-side fact with no
-      equivalent in flight, such as whether the SCANsat assembly is installed
+    - `x-sitrep-unit`, on a schema: the token the value crosses in, from the
+      contract's `[SitrepUnit]`. `text`, `flag`, `id`, `enum` and `n/a`
+      are tokens in this vocabulary too and mean what they say, so absent, `n/a`
+      and `1` are three different things
+    - `x-sitrep-enum` and `x-sitrep-enum-kind`, on an enum's schema: see the
+      section above
+    - `x-sitrep-delivery`, on a telemetry channel: which outbox lane its samples
+      ride. `lossy-latest` coalesces to the freshest sample per topic, so a client
+      that falls behind sees the latest state and never the ones it skipped.
+      `reliable-ordered` delivers every sample, in order, never coalesced. This is
+      not a tuning knob: the `reliable-ordered` channels are the DISCRETE
+      occurrences, and a client that treats `flight.started` as lossy misses a
+      launch whose frame a later one replaced
+    - `x-sitrep-delay-role`, on a telemetry channel: `delayed` rides the
+      light-time clock, so the value is what the vantage KNEW rather than what is
+      true now. `true-now` bypasses it, and is for a ground-side fact with no
+      analogue in flight, such as whether the SCANsat assembly is installed at all
     - `x-sitrep-sample-kind`, on a telemetry channel: how its samples relate in
-      time. `continuous` values change between samples, so a client may draw a
-      line, interpolate, or carry the value forward with a declared model.
-      `discrete` values hold until the next sample, so a client draws a step.
-      `event` is one occurrence per sample, so a client draws points. A field in
-      the payload may declare its own kind, which the generated SDK carries per field
+      time. `continuous` moves between samples, so a reader may draw a line,
+      interpolate and carry it forward with a declared model. `discrete` stands
+      until the next sample changes it, so a reader draws a step and never
+      interpolates. `event` is one occurrence per sample, so a reader draws points
+      and never a line or a step. A value inside the payload may declare its own
+      kind, which the generated SDK carries per field
     - `x-sitrep-held-at-home`, on a `delayed` telemetry channel: `true` means the
-      value is held at the home command centre (the career ledger, the space centre's
-      records) and not aboard a craft. Each vantage receives a change after its own
-      delay to home: zero on the ground network, and a crewed vessel's path home
-      otherwise. The frame a vantage holds is already as current as it can be there,
-      so a client subtracts no further signal delay
-    - `x-sitrep-keyframe-interval-ut`, on a telemetry channel: the number of UT
-      seconds after which the channel sends its value again with nothing changed.
-      A late subscriber, a quickload or a reconnect recovers from that frame without
-      waiting for a real change. The seconds are game time. UT runs up to 100000
-      times faster than wall-clock time under timewarp and stops while the game is
-      paused, so a wall-clock timer sized from this number fires early under warp
-      and never fires while paused. Measure staleness in UT by watching
-      `Meta.validAt` advance. For a wall-clock bound, convert with `warpRate` on
-      `time.warp`, and treat `paused` there as "no keyframe is due"
+      value is held at the home command (the career ledger, the space centre's
+      records) rather than aboard a craft. Each vantage receives a change after its
+      own delay to home, zero on the ground network and a crewed vessel's path home
+      otherwise, so the frame a vantage holds is already as current as it can be
+      there and a client subtracts no further light-time when reading it
+    - `x-sitrep-keyframe-interval-ut`, on a telemetry channel: the UT seconds
+      after which it re-emits unconditionally, with nothing changed. It is what
+      makes a late subscriber, a quickload and a rejoin recoverable without waiting
+      for the next real change. The seconds are GAME seconds and the two clocks are
+      not proportional: UT runs at up to 100000x wall-clock under timewarp and does
+      not advance at all while the game is paused. So this is not a wall-clock
+      duration, and a wall-clock timer sized off it fires long before the keyframe
+      under warp and never fires at all while paused. Measure staleness in the same
+      clock the number is in, by watching `Meta.validAt` advance; if you need a
+      wall-clock bound, convert with the live `warpRate` on `time.warp` and treat
+      its `paused` as "no keyframe is due"
     - `x-sitrep-absence-is-data`, on a telemetry channel: `true` means an empty
-      value is a real answer and is sent from the first tick (no target selected, no
-      crew aboard). Without it the channel sends nothing until it has had a real
-      value, so silence means "not yet" and not "none"
-    - `x-sitrep-delayed`, on a command channel: whether the command travels over
-      the uplink and takes effect after the signal delay, not when it is sent
-    - `x-sitrep-empty`, on a schema: the schema has no fields because the shape is
-      "nothing", as `NoCommandArgs` is
+      value is a real answer and arrives as a tombstone from the first tick (no
+      target selected, no crew aboard). Without it a channel is held back until it
+      has had a real value, so silence there means "not yet" rather than "none"
+    - `x-sitrep-delayed`, on a command channel: whether the write rides the
+      uplink instead of taking effect when it is pressed
+    - `x-sitrep-empty`, on a schema: the shape IS the absence of one, as
+      `NoCommandArgs` is, rather than a shape whose fields were dropped
 
-    ## Channels not listed here
+    ## This is not a list of every channel on the wire
 
-    This document lists the channels declared in the core contract. Two kinds of
-    channel are not in it:
+    It cannot become one. A DYNAMIC namespace is registered at RUNTIME and
+    materialises its channels per subject, so no statically declared type exists for
+    the generator to find and nothing about it appears here: `trackingStation.vessel.<guid>.*`,
+    `currency.<guid>.<currency>`, per-vessel part actions, and each Uplink's own.
+    Asking this document "is there a per-vessel X" gets a confident no about a
+    channel that has been published all along. An Uplink's own channels and commands
+    are likewise absent: they live in the Uplink's contract slice, not in the core
+    one this document is generated from.
 
-    - Dynamic channels, whose names contain a subject: `trackingStation.vessel.<guid>.*`,
-      `currency.<guid>.<currency>` and per-vessel part actions. The mod registers
-      them at runtime for each subject, so the generator cannot find them in the
-      contract. Read one with `useStream(topic)` in the SDK
-    - Each Uplink's own channels and commands, which are in that Uplink's contract
-      slice
+    The prefix alone does not tell you which half a channel is in, and
+    `trackingStation.` is the case that proves it: `trackingStation.catalog` is
+    STATICALLY declared and is in this document, while
+    `trackingStation.vessel.<guid>.<field>` is dynamic and is not. Reading the one
+    as evidence about the other goes wrong in both directions.
 
-    A shared prefix does not put two channels in the same group:
-    `trackingStation.catalog` is declared and listed here, and
-    `trackingStation.vessel.<guid>.<field>` is dynamic and is not.
+    ## What a schema cannot say about this contract
 
-    ## What the client adds to a frame
-
-    - A client reads absence and staleness from a state machine: never seen, not
-      ours, known absent, fresh, stale, and stale with a model. The state comes from
-      the client's timeline store and is not in any message shape
-    - A value is read relative to a vantage, a command centre, and arrives after the
-      signal delay. `validAt` and `deliveredAt` differ for that reason, a command
-      is delayed while a fact about the local station is not, and a stale value can
-      still be worth acting on
-    - The reasons behind a field's shape are in the contract's doc comments, which
-      this document carries into each `description`
+    - **Absence and staleness are a CLIENT-side projection.** A reader hook answers
+      with a state machine over never-seen, not-ours, known-absent, fresh, stale, and
+      stale-with-a-model. None of that is in a message shape: it is what the client's
+      timeline store makes of the frames it has. A schema-first author will assume a
+      payload is either present or missing, and it is neither
+    - **The delay model.** A value is relative to a VANTAGE, a command centre, and
+      arrives light-time late. That is why `validAt` and `deliveredAt` are
+      different numbers, why a command is delayed and a fact about the local station
+      is not, and why a stale value can still be worth acting on. The tokens fit in a
+      schema; what they cost an operator is a paragraph
+    - **Why a field is shaped as it is.** The reasoning behind the shapes is in the
+      contract's own doc comments, which is why this document carries every one of
+      them into a `description` rather than emitting a list of names
   license:
     name: MIT
     url: https://github.com/ksp-gonogo/gonogo/blob/main/LICENSE
   tags:
     - name: session
-      description: Frames that belong to the connection, not to a channel
+      description: Frames belonging to the connection rather than a channel
     - name: alarm
-      description: Alarms set to fire at a game time
+      description: 3 telemetry channels, 2 commands
     - name: career
-      description: Contracts, crew hiring, facilities and strategies in career mode
+      description: 3 telemetry channels, 9 commands
     - name: commandCentre
-      description: The command centres in play and the signal delay between them
+      description: 4 telemetry channels, 0 commands
     - name: commcast
-      description: Messages and groups between command centres
+      description: 2 telemetry channels, 5 commands
     - name: comms
-      description: Antenna links, contacts and what the active vessel can be commanded to do
+      description: 14 telemetry channels, 0 commands
     - name: crash
-      description: The most recent vessel crash
+      description: 2 telemetry channels, 0 commands
     - name: deployed
-      description: Deployed Breaking Ground bases
+      description: 1 telemetry channel, 0 commands
     - name: dv
-      description: Delta-v per stage and in total for the active vessel
+      description: 2 telemetry channels, 0 commands
     - name: eva
-      description: Kerbals outside a craft
+      description: 1 telemetry channel, 0 commands
     - name: flight
-      description: Flight start, end and vessel changes
+      description: 4 telemetry channels, 0 commands
     - name: game
-      description: Which expansions are installed
+      description: 1 telemetry channel, 0 commands
     - name: isru
-      description: Resource drills and converters
+      description: 2 telemetry channels, 0 commands
     - name: ksp
-      description: Launching, reverting and recovering vessels
+      description: 1 telemetry channel, 7 commands
     - name: missions
-      description: The active Making History mission
+      description: 1 telemetry channel, 0 commands
     - name: parts
-      description: Rolled-up part data for the active vessel, such as power
+      description: 1 telemetry channel, 0 commands
     - name: recovery
-      description: The most recent vessel recovery
+      description: 2 telemetry channels, 0 commands
     - name: robotics
-      description: Robotic rotors, hinges and pistons
+      description: 2 telemetry channels, 10 commands
     - name: science
-      description: Experiments, the science archive and transmission
+      description: 6 telemetry channels, 2 commands
     - name: settings
-      description: The mod's own settings and those of other mods
+      description: 1 telemetry channel, 2 commands
     - name: spaceCenter
-      description: Crew, launch sites and parts available at the space centre
+      description: 7 telemetry channels, 0 commands
     - name: system
-      description: Reference frames, command gates and the uplink queue
+      description: 1 telemetry channel, 4 commands
     - name: target
-      description: What the active vessel can target
+      description: 1 telemetry channel, 0 commands
     - name: time
-      description: Game time, warp and pause
+      description: 2 telemetry channels, 2 commands
     - name: trackingStation
-      description: Bodies and the vessel catalogue in the tracking station
+      description: 2 telemetry channels, 1 command
     - name: vessel
-      description: "The active vessel: flight state, orbit, control, staging, resources and parts"
+      description: 21 telemetry channels, 19 commands
   externalDocs:
     description: "Writing an Uplink: the plugin half and the client half"
     url: https://ksp-gonogo.github.io/uplink-dev-docs/
@@ -266,9 +272,9 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      `alarm.scet.disarm`'s args: forget the alarm with this id. Succeeds without
-      an error for an id the host does not hold, so a client reconciling its list
-      against the roster never has to ask first.
+      `alarm.scet.disarm`'s args: forget the alarm with this id. Silently succeeds
+      for an id the host does not hold, so a client reconciling its list against
+      the roster never has to ask first.
 
       Never delayed, like `alarm.scet.arm`, so removing an alarm is never slower
       than setting one.
@@ -358,8 +364,6 @@ channels:
         $ref: "#/components/messages/commandRequest.career.contract.accept"
       commandResponse:
         $ref: "#/components/messages/commandResponse.career.contract.accept"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   career.contract.cancel:
     address: career.contract.cancel
     description: |-
@@ -382,8 +386,6 @@ channels:
         $ref: "#/components/messages/commandRequest.career.contract.cancel"
       commandResponse:
         $ref: "#/components/messages/commandResponse.career.contract.cancel"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   career.contract.decline:
     address: career.contract.decline
     description: |-
@@ -406,8 +408,6 @@ channels:
         $ref: "#/components/messages/commandRequest.career.contract.decline"
       commandResponse:
         $ref: "#/components/messages/commandResponse.career.contract.decline"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   career.crew.fire:
     address: career.crew.fire
     description: |-
@@ -431,8 +431,6 @@ channels:
         $ref: "#/components/messages/commandRequest.career.crew.fire"
       commandResponse:
         $ref: "#/components/messages/commandResponse.career.crew.fire"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   career.crew.hire:
     address: career.crew.hire
     description: |-
@@ -458,8 +456,6 @@ channels:
         $ref: "#/components/messages/commandRequest.career.crew.hire"
       commandResponse:
         $ref: "#/components/messages/commandResponse.career.crew.hire"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   career.facilities:
     address: career.facilities
     description: |-
@@ -514,8 +510,6 @@ channels:
         $ref: "#/components/messages/commandRequest.career.facility.upgrade"
       commandResponse:
         $ref: "#/components/messages/commandResponse.career.facility.upgrade"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   career.mode:
     address: career.mode
     description: |-
@@ -594,8 +588,6 @@ channels:
         $ref: "#/components/messages/commandRequest.career.strategy.activate"
       commandResponse:
         $ref: "#/components/messages/commandResponse.career.strategy.activate"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   career.strategy.deactivate:
     address: career.strategy.deactivate
     description: |-
@@ -614,8 +606,6 @@ channels:
         $ref: "#/components/messages/commandRequest.career.strategy.deactivate"
       commandResponse:
         $ref: "#/components/messages/commandResponse.career.strategy.deactivate"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   career.tech.unlock:
     address: career.tech.unlock
     description: |-
@@ -634,8 +624,6 @@ channels:
         $ref: "#/components/messages/commandRequest.career.tech.unlock"
       commandResponse:
         $ref: "#/components/messages/commandResponse.career.tech.unlock"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   commandCentre.activeVesselDelay:
     address: commandCentre.activeVesselDelay
     description: |-
@@ -648,8 +636,8 @@ channels:
       **Sparse.** A centre is listed only when it has a delay of its own. The home
       centre is never listed: its delay is `comms.delay`, which also carries the
       hold through a loss of signal. A centre other than home that is not listed
-      has no route to the craft. Neither absence is a zero, so a client must not
-      quote a delay for a centre that is missing from the list.
+      has no route to the craft. Neither absence is a zero, and a reader that
+      finds a centre missing must not quote one for it.
 
       A crewed centre that is the active craft is listed at an explicit zero: a
       craft is no distance from itself.
@@ -1343,8 +1331,8 @@ channels:
       stock CommNet reports KSP's own signal strength for the path, which falls
       off smoothly towards the range edge of each link and is multiplied across
       relays, RealAntennas how far up its data-rate ladder the path's links close.
-      `CommsSignal.quantity` says which, so a client names the figure correctly
-      and does not compare two that are different quantities.
+      `CommsSignal.quantity` says which, so a reader names the figure correctly
+      and never compares two that are different quantities.
 
       Each command centre is sent its own, the newest reading to have reached it.
       A reading is of the vessel's whole path at one instant, so it reaches a
@@ -2012,7 +2000,7 @@ channels:
       could not be surveyed: a recording that does not carry this field, or a live
       read where one part could not be read, since "no robotic parts" is a claim
       about every part. `false` is the definite "this craft carries none". A
-      client that treats null as false tells the operator there are no robotic
+      reader that treats null as false tells the operator there are no robotic
       parts on a craft that may be full of them.
     servers:
       - $ref: "#/servers/mod"
@@ -2044,8 +2032,6 @@ channels:
         $ref: "#/components/messages/commandRequest.robotics.rotor.reverse"
       commandResponse:
         $ref: "#/components/messages/commandResponse.robotics.rotor.reverse"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   robotics.rotor.setBrake:
     address: robotics.rotor.setBrake
     description: |-
@@ -2064,8 +2050,6 @@ channels:
         $ref: "#/components/messages/commandRequest.robotics.rotor.setBrake"
       commandResponse:
         $ref: "#/components/messages/commandResponse.robotics.rotor.setBrake"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   robotics.rotor.setLock:
     address: robotics.rotor.setLock
     description: |-
@@ -2087,8 +2071,6 @@ channels:
         $ref: "#/components/messages/commandRequest.robotics.rotor.setLock"
       commandResponse:
         $ref: "#/components/messages/commandResponse.robotics.rotor.setLock"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   robotics.rotor.setMotor:
     address: robotics.rotor.setMotor
     description: |-
@@ -2110,8 +2092,6 @@ channels:
         $ref: "#/components/messages/commandRequest.robotics.rotor.setMotor"
       commandResponse:
         $ref: "#/components/messages/commandResponse.robotics.rotor.setMotor"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   robotics.rotor.setRpmLimit:
     address: robotics.rotor.setRpmLimit
     description: |-
@@ -2129,8 +2109,6 @@ channels:
         $ref: "#/components/messages/commandRequest.robotics.rotor.setRpmLimit"
       commandResponse:
         $ref: "#/components/messages/commandResponse.robotics.rotor.setRpmLimit"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   robotics.rotor.setTorqueLimit:
     address: robotics.rotor.setTorqueLimit
     description: |-
@@ -2149,8 +2127,6 @@ channels:
         $ref: "#/components/messages/commandRequest.robotics.rotor.setTorqueLimit"
       commandResponse:
         $ref: "#/components/messages/commandResponse.robotics.rotor.setTorqueLimit"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   robotics.servo.setAngle:
     address: robotics.servo.setAngle
     description: |-
@@ -2174,8 +2150,6 @@ channels:
         $ref: "#/components/messages/commandRequest.robotics.servo.setAngle"
       commandResponse:
         $ref: "#/components/messages/commandResponse.robotics.servo.setAngle"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   robotics.servo.setExtension:
     address: robotics.servo.setExtension
     description: |-
@@ -2196,8 +2170,6 @@ channels:
         $ref: "#/components/messages/commandRequest.robotics.servo.setExtension"
       commandResponse:
         $ref: "#/components/messages/commandResponse.robotics.servo.setExtension"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   robotics.servo.setLock:
     address: robotics.servo.setLock
     description: |-
@@ -2219,8 +2191,6 @@ channels:
         $ref: "#/components/messages/commandRequest.robotics.servo.setLock"
       commandResponse:
         $ref: "#/components/messages/commandResponse.robotics.servo.setLock"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   robotics.servo.setMotor:
     address: robotics.servo.setMotor
     description: |-
@@ -2242,8 +2212,6 @@ channels:
         $ref: "#/components/messages/commandRequest.robotics.servo.setMotor"
       commandResponse:
         $ref: "#/components/messages/commandResponse.robotics.servo.setMotor"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   robotics.servos:
     address: robotics.servos
     description: |-
@@ -2329,8 +2297,6 @@ channels:
         $ref: "#/components/messages/commandRequest.science.experiment.deploy"
       commandResponse:
         $ref: "#/components/messages/commandResponse.science.experiment.deploy"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   science.experiment.transmit:
     address: science.experiment.transmit
     description: |-
@@ -2353,8 +2319,6 @@ channels:
         $ref: "#/components/messages/commandRequest.science.experiment.transmit"
       commandResponse:
         $ref: "#/components/messages/commandResponse.science.experiment.transmit"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   science.experimentBreakdown:
     address: science.experimentBreakdown
     description: |-
@@ -2497,21 +2461,22 @@ channels:
   session:
     title: Connection session
     description: |-
-      Frames that belong to the connection and not to any one channel.
+      Frames that belong to the connection rather than to any one channel.
 
-      `subscribe` and `unsubscribe` name a topic and open or close delivery on it.
-      `set-vantage` selects the command centre this connection sends commands from
-      and observes at, which sets what it reads and how long its commands take.
-      `claim` names the commands a reconnecting client is still waiting on, so the
-      mod sends their answers to the new connection.
+      `subscribe` and `unsubscribe` name a topic and are how a client opens and
+      closes delivery on it: see the subscription gate in the document description.
+      `set-vantage` selects the command centre this connection commands from and
+      observes at, which governs both what it reads and how long its commands take.
+      `claim` names the commands a reconnecting client still waits on, so the answers
+      the mod kept for them are sent to the new connection.
       The mod opens every connection with a `hello` naming the run it has reached,
-      and answers a `ping` with a `pong` at once in any scene, even with nothing
-      subscribed. A client uses that to tell a quiet connection from a dead one.
+      and answers a `ping` with a `pong` at once, in any scene and with nothing
+      subscribed, which is how a client tells a quiet connection from a dead one.
       An `error` frame carries a code and, when it answers a dispatch, the
       `requestId` it refers to.
 
-      This channel has no `address`. Its frames are told apart by their own `type`
-      field.
+      This channel has no `address` because these frames are not routed by one: they
+      are typed by their own `type` field and belong to the socket itself.
     servers:
       - $ref: "#/servers/mod"
     messages:
@@ -2523,14 +2488,10 @@ channels:
         $ref: "#/components/messages/setVantage"
       claim:
         $ref: "#/components/messages/claim"
-      commandGroup:
-        $ref: "#/components/messages/commandGroup"
       ping:
         $ref: "#/components/messages/ping"
       hello:
         $ref: "#/components/messages/hello"
-      gameState:
-        $ref: "#/components/messages/gameState"
       pong:
         $ref: "#/components/messages/pong"
       error:
@@ -3300,8 +3261,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.setAbort"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.setAbort"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.control.setActionGroup:
     address: vessel.control.setActionGroup
     description: |-
@@ -3320,8 +3279,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.setActionGroup"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.setActionGroup"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.control.setAxes:
     address: vessel.control.setAxes
     description: |-
@@ -3354,8 +3311,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.setAxes"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.setAxes"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.control.setBrakes:
     address: vessel.control.setBrakes
     description: |-
@@ -3377,8 +3332,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.setBrakes"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.setBrakes"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.control.setFlyByWire:
     address: vessel.control.setFlyByWire
     description: |-
@@ -3405,8 +3358,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.setFlyByWire"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.setFlyByWire"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.control.setGear:
     address: vessel.control.setGear
     description: |-
@@ -3428,8 +3379,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.setGear"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.setGear"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.control.setLights:
     address: vessel.control.setLights
     description: |-
@@ -3451,8 +3400,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.setLights"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.setLights"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.control.setPrecisionControl:
     address: vessel.control.setPrecisionControl
     description: |-
@@ -3474,8 +3421,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.setPrecisionControl"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.setPrecisionControl"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.control.setRcs:
     address: vessel.control.setRcs
     description: |-
@@ -3497,8 +3442,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.setRcs"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.setRcs"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.control.setSas:
     address: vessel.control.setSas
     description: |-
@@ -3520,8 +3463,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.setSas"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.setSas"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.control.setSasMode:
     address: vessel.control.setSasMode
     description: |-
@@ -3539,8 +3480,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.setSasMode"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.setSasMode"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.control.setThrottle:
     address: vessel.control.setThrottle
     description: |-
@@ -3558,8 +3497,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.setThrottle"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.setThrottle"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.control.stage:
     address: vessel.control.stage
     description: |-
@@ -3584,8 +3521,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.control.stage"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.control.stage"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.crew:
     address: vessel.crew
     description: |-
@@ -3736,8 +3671,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.invokePartAction"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.invokePartAction"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.landing:
     address: vessel.landing
     description: |-
@@ -3845,8 +3778,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.maneuver.add"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.maneuver.add"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.maneuver.remove:
     address: vessel.maneuver.remove
     description: |-
@@ -3864,8 +3795,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.maneuver.remove"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.maneuver.remove"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.maneuver.update:
     address: vessel.maneuver.update
     description: |-
@@ -3886,8 +3815,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.maneuver.update"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.maneuver.update"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.orbit:
     address: vessel.orbit
     description: |-
@@ -4162,8 +4089,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.target.clear"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.target.clear"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.target.set:
     address: vessel.target.set
     description: |-
@@ -4188,8 +4113,6 @@ channels:
         $ref: "#/components/messages/commandRequest.vessel.target.set"
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.target.set"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.thermal:
     address: vessel.thermal
     description: |-
@@ -4257,7 +4180,6 @@ operations:
         $ref: "#/channels/career.contract.accept"
       messages:
         - $ref: "#/channels/career.contract.accept/messages/commandResponse"
-        - $ref: "#/channels/career.contract.accept/messages/commandAccepted"
   dispatch:career.contract.cancel:
     action: send
     channel:
@@ -4272,7 +4194,6 @@ operations:
         $ref: "#/channels/career.contract.cancel"
       messages:
         - $ref: "#/channels/career.contract.cancel/messages/commandResponse"
-        - $ref: "#/channels/career.contract.cancel/messages/commandAccepted"
   dispatch:career.contract.decline:
     action: send
     channel:
@@ -4287,7 +4208,6 @@ operations:
         $ref: "#/channels/career.contract.decline"
       messages:
         - $ref: "#/channels/career.contract.decline/messages/commandResponse"
-        - $ref: "#/channels/career.contract.decline/messages/commandAccepted"
   dispatch:career.crew.fire:
     action: send
     channel:
@@ -4302,7 +4222,6 @@ operations:
         $ref: "#/channels/career.crew.fire"
       messages:
         - $ref: "#/channels/career.crew.fire/messages/commandResponse"
-        - $ref: "#/channels/career.crew.fire/messages/commandAccepted"
   dispatch:career.crew.hire:
     action: send
     channel:
@@ -4317,7 +4236,6 @@ operations:
         $ref: "#/channels/career.crew.hire"
       messages:
         - $ref: "#/channels/career.crew.hire/messages/commandResponse"
-        - $ref: "#/channels/career.crew.hire/messages/commandAccepted"
   dispatch:career.facility.upgrade:
     action: send
     channel:
@@ -4332,7 +4250,6 @@ operations:
         $ref: "#/channels/career.facility.upgrade"
       messages:
         - $ref: "#/channels/career.facility.upgrade/messages/commandResponse"
-        - $ref: "#/channels/career.facility.upgrade/messages/commandAccepted"
   dispatch:career.strategy.activate:
     action: send
     channel:
@@ -4347,7 +4264,6 @@ operations:
         $ref: "#/channels/career.strategy.activate"
       messages:
         - $ref: "#/channels/career.strategy.activate/messages/commandResponse"
-        - $ref: "#/channels/career.strategy.activate/messages/commandAccepted"
   dispatch:career.strategy.deactivate:
     action: send
     channel:
@@ -4362,7 +4278,6 @@ operations:
         $ref: "#/channels/career.strategy.deactivate"
       messages:
         - $ref: "#/channels/career.strategy.deactivate/messages/commandResponse"
-        - $ref: "#/channels/career.strategy.deactivate/messages/commandAccepted"
   dispatch:career.tech.unlock:
     action: send
     channel:
@@ -4377,7 +4292,6 @@ operations:
         $ref: "#/channels/career.tech.unlock"
       messages:
         - $ref: "#/channels/career.tech.unlock/messages/commandResponse"
-        - $ref: "#/channels/career.tech.unlock/messages/commandAccepted"
   dispatch:commcast.group.add:
     action: send
     channel:
@@ -4560,7 +4474,6 @@ operations:
         $ref: "#/channels/robotics.rotor.reverse"
       messages:
         - $ref: "#/channels/robotics.rotor.reverse/messages/commandResponse"
-        - $ref: "#/channels/robotics.rotor.reverse/messages/commandAccepted"
   dispatch:robotics.rotor.setBrake:
     action: send
     channel:
@@ -4575,7 +4488,6 @@ operations:
         $ref: "#/channels/robotics.rotor.setBrake"
       messages:
         - $ref: "#/channels/robotics.rotor.setBrake/messages/commandResponse"
-        - $ref: "#/channels/robotics.rotor.setBrake/messages/commandAccepted"
   dispatch:robotics.rotor.setLock:
     action: send
     channel:
@@ -4590,7 +4502,6 @@ operations:
         $ref: "#/channels/robotics.rotor.setLock"
       messages:
         - $ref: "#/channels/robotics.rotor.setLock/messages/commandResponse"
-        - $ref: "#/channels/robotics.rotor.setLock/messages/commandAccepted"
   dispatch:robotics.rotor.setMotor:
     action: send
     channel:
@@ -4605,7 +4516,6 @@ operations:
         $ref: "#/channels/robotics.rotor.setMotor"
       messages:
         - $ref: "#/channels/robotics.rotor.setMotor/messages/commandResponse"
-        - $ref: "#/channels/robotics.rotor.setMotor/messages/commandAccepted"
   dispatch:robotics.rotor.setRpmLimit:
     action: send
     channel:
@@ -4620,7 +4530,6 @@ operations:
         $ref: "#/channels/robotics.rotor.setRpmLimit"
       messages:
         - $ref: "#/channels/robotics.rotor.setRpmLimit/messages/commandResponse"
-        - $ref: "#/channels/robotics.rotor.setRpmLimit/messages/commandAccepted"
   dispatch:robotics.rotor.setTorqueLimit:
     action: send
     channel:
@@ -4635,7 +4544,6 @@ operations:
         $ref: "#/channels/robotics.rotor.setTorqueLimit"
       messages:
         - $ref: "#/channels/robotics.rotor.setTorqueLimit/messages/commandResponse"
-        - $ref: "#/channels/robotics.rotor.setTorqueLimit/messages/commandAccepted"
   dispatch:robotics.servo.setAngle:
     action: send
     channel:
@@ -4650,7 +4558,6 @@ operations:
         $ref: "#/channels/robotics.servo.setAngle"
       messages:
         - $ref: "#/channels/robotics.servo.setAngle/messages/commandResponse"
-        - $ref: "#/channels/robotics.servo.setAngle/messages/commandAccepted"
   dispatch:robotics.servo.setExtension:
     action: send
     channel:
@@ -4665,7 +4572,6 @@ operations:
         $ref: "#/channels/robotics.servo.setExtension"
       messages:
         - $ref: "#/channels/robotics.servo.setExtension/messages/commandResponse"
-        - $ref: "#/channels/robotics.servo.setExtension/messages/commandAccepted"
   dispatch:robotics.servo.setLock:
     action: send
     channel:
@@ -4680,7 +4586,6 @@ operations:
         $ref: "#/channels/robotics.servo.setLock"
       messages:
         - $ref: "#/channels/robotics.servo.setLock/messages/commandResponse"
-        - $ref: "#/channels/robotics.servo.setLock/messages/commandAccepted"
   dispatch:robotics.servo.setMotor:
     action: send
     channel:
@@ -4695,7 +4600,6 @@ operations:
         $ref: "#/channels/robotics.servo.setMotor"
       messages:
         - $ref: "#/channels/robotics.servo.setMotor/messages/commandResponse"
-        - $ref: "#/channels/robotics.servo.setMotor/messages/commandAccepted"
   dispatch:science.experiment.deploy:
     action: send
     channel:
@@ -4710,7 +4614,6 @@ operations:
         $ref: "#/channels/science.experiment.deploy"
       messages:
         - $ref: "#/channels/science.experiment.deploy/messages/commandResponse"
-        - $ref: "#/channels/science.experiment.deploy/messages/commandAccepted"
   dispatch:science.experiment.transmit:
     action: send
     channel:
@@ -4725,7 +4628,6 @@ operations:
         $ref: "#/channels/science.experiment.transmit"
       messages:
         - $ref: "#/channels/science.experiment.transmit/messages/commandResponse"
-        - $ref: "#/channels/science.experiment.transmit/messages/commandAccepted"
   dispatch:settings.mod.write:
     action: send
     channel:
@@ -4866,7 +4768,6 @@ operations:
         $ref: "#/channels/vessel.control.setAbort"
       messages:
         - $ref: "#/channels/vessel.control.setAbort/messages/commandResponse"
-        - $ref: "#/channels/vessel.control.setAbort/messages/commandAccepted"
   dispatch:vessel.control.setActionGroup:
     action: send
     channel:
@@ -4881,7 +4782,6 @@ operations:
         $ref: "#/channels/vessel.control.setActionGroup"
       messages:
         - $ref: "#/channels/vessel.control.setActionGroup/messages/commandResponse"
-        - $ref: "#/channels/vessel.control.setActionGroup/messages/commandAccepted"
   dispatch:vessel.control.setAxes:
     action: send
     channel:
@@ -4896,7 +4796,6 @@ operations:
         $ref: "#/channels/vessel.control.setAxes"
       messages:
         - $ref: "#/channels/vessel.control.setAxes/messages/commandResponse"
-        - $ref: "#/channels/vessel.control.setAxes/messages/commandAccepted"
   dispatch:vessel.control.setBrakes:
     action: send
     channel:
@@ -4911,7 +4810,6 @@ operations:
         $ref: "#/channels/vessel.control.setBrakes"
       messages:
         - $ref: "#/channels/vessel.control.setBrakes/messages/commandResponse"
-        - $ref: "#/channels/vessel.control.setBrakes/messages/commandAccepted"
   dispatch:vessel.control.setFlyByWire:
     action: send
     channel:
@@ -4926,7 +4824,6 @@ operations:
         $ref: "#/channels/vessel.control.setFlyByWire"
       messages:
         - $ref: "#/channels/vessel.control.setFlyByWire/messages/commandResponse"
-        - $ref: "#/channels/vessel.control.setFlyByWire/messages/commandAccepted"
   dispatch:vessel.control.setGear:
     action: send
     channel:
@@ -4941,7 +4838,6 @@ operations:
         $ref: "#/channels/vessel.control.setGear"
       messages:
         - $ref: "#/channels/vessel.control.setGear/messages/commandResponse"
-        - $ref: "#/channels/vessel.control.setGear/messages/commandAccepted"
   dispatch:vessel.control.setLights:
     action: send
     channel:
@@ -4956,7 +4852,6 @@ operations:
         $ref: "#/channels/vessel.control.setLights"
       messages:
         - $ref: "#/channels/vessel.control.setLights/messages/commandResponse"
-        - $ref: "#/channels/vessel.control.setLights/messages/commandAccepted"
   dispatch:vessel.control.setPrecisionControl:
     action: send
     channel:
@@ -4971,7 +4866,6 @@ operations:
         $ref: "#/channels/vessel.control.setPrecisionControl"
       messages:
         - $ref: "#/channels/vessel.control.setPrecisionControl/messages/commandResponse"
-        - $ref: "#/channels/vessel.control.setPrecisionControl/messages/commandAccepted"
   dispatch:vessel.control.setRcs:
     action: send
     channel:
@@ -4986,7 +4880,6 @@ operations:
         $ref: "#/channels/vessel.control.setRcs"
       messages:
         - $ref: "#/channels/vessel.control.setRcs/messages/commandResponse"
-        - $ref: "#/channels/vessel.control.setRcs/messages/commandAccepted"
   dispatch:vessel.control.setSas:
     action: send
     channel:
@@ -5001,7 +4894,6 @@ operations:
         $ref: "#/channels/vessel.control.setSas"
       messages:
         - $ref: "#/channels/vessel.control.setSas/messages/commandResponse"
-        - $ref: "#/channels/vessel.control.setSas/messages/commandAccepted"
   dispatch:vessel.control.setSasMode:
     action: send
     channel:
@@ -5016,7 +4908,6 @@ operations:
         $ref: "#/channels/vessel.control.setSasMode"
       messages:
         - $ref: "#/channels/vessel.control.setSasMode/messages/commandResponse"
-        - $ref: "#/channels/vessel.control.setSasMode/messages/commandAccepted"
   dispatch:vessel.control.setThrottle:
     action: send
     channel:
@@ -5031,7 +4922,6 @@ operations:
         $ref: "#/channels/vessel.control.setThrottle"
       messages:
         - $ref: "#/channels/vessel.control.setThrottle/messages/commandResponse"
-        - $ref: "#/channels/vessel.control.setThrottle/messages/commandAccepted"
   dispatch:vessel.control.stage:
     action: send
     channel:
@@ -5046,7 +4936,6 @@ operations:
         $ref: "#/channels/vessel.control.stage"
       messages:
         - $ref: "#/channels/vessel.control.stage/messages/commandResponse"
-        - $ref: "#/channels/vessel.control.stage/messages/commandAccepted"
   dispatch:vessel.invokePartAction:
     action: send
     channel:
@@ -5061,7 +4950,6 @@ operations:
         $ref: "#/channels/vessel.invokePartAction"
       messages:
         - $ref: "#/channels/vessel.invokePartAction/messages/commandResponse"
-        - $ref: "#/channels/vessel.invokePartAction/messages/commandAccepted"
   dispatch:vessel.maneuver.add:
     action: send
     channel:
@@ -5076,7 +4964,6 @@ operations:
         $ref: "#/channels/vessel.maneuver.add"
       messages:
         - $ref: "#/channels/vessel.maneuver.add/messages/commandResponse"
-        - $ref: "#/channels/vessel.maneuver.add/messages/commandAccepted"
   dispatch:vessel.maneuver.remove:
     action: send
     channel:
@@ -5091,7 +4978,6 @@ operations:
         $ref: "#/channels/vessel.maneuver.remove"
       messages:
         - $ref: "#/channels/vessel.maneuver.remove/messages/commandResponse"
-        - $ref: "#/channels/vessel.maneuver.remove/messages/commandAccepted"
   dispatch:vessel.maneuver.update:
     action: send
     channel:
@@ -5106,7 +4992,6 @@ operations:
         $ref: "#/channels/vessel.maneuver.update"
       messages:
         - $ref: "#/channels/vessel.maneuver.update/messages/commandResponse"
-        - $ref: "#/channels/vessel.maneuver.update/messages/commandAccepted"
   dispatch:vessel.target.clear:
     action: send
     channel:
@@ -5121,7 +5006,6 @@ operations:
         $ref: "#/channels/vessel.target.clear"
       messages:
         - $ref: "#/channels/vessel.target.clear/messages/commandResponse"
-        - $ref: "#/channels/vessel.target.clear/messages/commandAccepted"
   dispatch:vessel.target.set:
     action: send
     channel:
@@ -5136,7 +5020,6 @@ operations:
         $ref: "#/channels/vessel.target.set"
       messages:
         - $ref: "#/channels/vessel.target.set/messages/commandResponse"
-        - $ref: "#/channels/vessel.target.set/messages/commandAccepted"
   read:alarm.activeList:
     action: receive
     channel:
@@ -6098,7 +5981,7 @@ operations:
     action: send
     channel:
       $ref: "#/channels/session"
-    title: Open or close delivery, change vantage, claim earlier commands' answers, send a command group, or ask whether the connection is alive
+    title: Open or close delivery, change vantage, claim earlier commands' answers, or ask whether the connection is alive
     tags:
       - name: session
     messages:
@@ -6106,25 +5989,23 @@ operations:
       - $ref: "#/channels/session/messages/unsubscribe"
       - $ref: "#/channels/session/messages/setVantage"
       - $ref: "#/channels/session/messages/claim"
-      - $ref: "#/channels/session/messages/commandGroup"
       - $ref: "#/channels/session/messages/ping"
   session.notices:
     action: receive
     channel:
       $ref: "#/channels/session"
-    title: The greeting, the game state, the answer to a ping, and connection-scoped errors
-    description: An `event` frame is not here. It names a topic and is sent only for a topic this connection has subscribed to, so it is on the topic channels beside their `stream-data`.
+    title: The greeting, the answer to a ping, and connection-scoped errors
+    description: An `event` frame is NOT here. It names a topic and is only ever emitted for one this connection has subscribed to, so it sits on the topic channels alongside their `stream-data`.
     tags:
       - name: session
     messages:
       - $ref: "#/channels/session/messages/hello"
-      - $ref: "#/channels/session/messages/gameState"
       - $ref: "#/channels/session/messages/pong"
       - $ref: "#/channels/session/messages/error"
 components:
   correlationIds:
     requestId:
-      description: "A command and its answer are matched on `requestId`, not on order: responses may arrive in a different order from the commands, and a delayed command's answer can arrive minutes after it."
+      description: "A dispatch and its answer are correlated on `requestId`, never on order: responses may arrive out of the order the requests were sent, and a delayed command's answer can be minutes behind it."
       location: $message.payload#/requestId
   messages:
     claim:
@@ -6132,18 +6013,6 @@ components:
       title: Claim the answers to commands sent on an earlier connection
       payload:
         $ref: "#/components/schemas/ClaimRequest"
-    commandAccepted:
-      name: command-accepted
-      title: The receipt for a delayed command, sent before its result
-      payload:
-        $ref: "#/components/schemas/CommandAccepted"
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-    commandGroup:
-      name: command-group
-      title: Send several delayed commands to one craft as a unit
-      payload:
-        $ref: "#/components/schemas/CommandGroupRequest"
     commandRequest.alarm.scet.arm:
       name: command-request
       title: Dispatch alarm.scet.arm
@@ -7960,11 +7829,6 @@ components:
       title: A named occurrence on a topic, carrying no payload of its own
       payload:
         $ref: "#/components/schemas/EventMsg"
-    gameState:
-      name: game-state
-      title: "What the game is doing: loading, ready or no game"
-      payload:
-        $ref: "#/components/schemas/GameState"
     hello:
       name: hello
       title: The first frame on a connection, naming the run it reached
@@ -7985,12 +7849,6 @@ components:
       title: Select this connection's command centre
       payload:
         $ref: "#/components/schemas/SetVantage"
-    streamBinary:
-      name: stream-binary
-      title: A frame on a channel that uses the binary lane
-      contentType: application/octet-stream
-      payload:
-        $ref: "#/components/schemas/StreamBinary"
     streamData.alarm.activeList:
       name: stream-data
       title: A frame on alarm.activeList
@@ -9822,7 +9680,7 @@ components:
             - "null"
           x-sitrep-unit: text
           description: |-
-            Why the request was refused, in words an operator can act on, when
+            Why the request was refused, in words a reader can act on, when
             `BodyStatesReply.solved` is false; null when it is true.
     BodyStatesRequest:
       type: object
@@ -10989,85 +10847,6 @@ components:
           type: number
           x-sitrep-unit: m
           description: Separation (metres) at `ClosestApproach.time`.
-    CommandAccepted:
-      type: object
-      description: |-
-        Sent the moment a command starts its delayed journey, carrying the one-way
-        signal delay it will actually travel. It says the command is on its way and
-        when to expect a reply, never that anything executed.
-
-        A client cannot work this out for itself. The delay depends on the node the
-        command is addressed to, which Gonogo resolves from the command's declared
-        subject, and on the command centre it was sent from. A loss deadline sized
-        from the delay a client can see (the active craft's) is wrong for a command
-        addressed to any other node.
-
-        Matched to its request by `CommandAccepted.requestId`, the client's own id
-        from its `command-request`, because this frame comes back on the connection
-        that sent the request. Entries on `system.uplink.pending` carry an id Gonogo
-        assigns instead, since two clients can choose the same request id.
-
-        Absent for a dispatch that never rides signal delay (a `TrueNow` command, or
-        a live delay resolving to zero), because there is no flight to wait out.
-        Absent also for a refusal, which sends an `ErrorMsg` instead. A client must
-        therefore treat "no acceptance yet" as ordinary rather than as an error.
-      required:
-        - type
-        - requestId
-      properties:
-        type:
-          type: string
-          const: command-accepted
-          x-sitrep-unit: id
-          description: The frame type, always `"command-accepted"`.
-        requestId:
-          type: string
-          x-sitrep-unit: id
-          description: The client's own id, echoed from its `command-request`.
-        oneWaySeconds:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: s
-          description: |-
-            One-way signal delay from the sending vantage to the node this command is
-            addressed to, as Gonogo knows it at dispatch. It is never re-sent: the
-            sender may never learn of a route change after dispatch.
-
-            For a command held and forwarded on a lane it is how long the sending
-            centre's own plan expects it to take to reach the craft, waits included, and
-            absent when that plan knows no route, as for a craft the centre has not
-            heard from yet. It is what the centre believed when it sent, and says
-            nothing of whether the craft is really listening.
-        predictedReplyUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: |-
-            When Gonogo predicts the reply will come back, from the routes at dispatch,
-            waits included. A client times its loss deadline from this when present,
-            since a command held for a window replies long after twice the one-way time.
-            Absent when no route was predicted.
-        expiresAtUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: |-
-            When the command is deleted wherever it is, if it has not run. Absent for a
-            command that is not held at all.
-        warning:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            What the operator should know about a command that was accepted anyway, as a
-            sentence to show them. Present for a continuous input, a throttle or a
-            control axis, that the sending centre's plan says would have to wait at a
-            node: it is sent, and it is dropped where it would have waited, so it is
-            likely to be lost. Absent otherwise.
     CommandCentreActiveVesselDelay:
       type: object
       description: |-
@@ -11078,8 +10857,8 @@ components:
         **Sparse.** A centre is listed only when it has a delay of its own. The home
         centre is never listed: its delay is `comms.delay`, which also carries the
         hold through a loss of signal. A centre other than home that is not listed
-        has no route to the craft. Neither absence is a zero, so a client must not
-        quote a delay for a centre that is missing from the list.
+        has no route to the craft. Neither absence is a zero, and a reader that
+        finds a centre missing must not quote one for it.
 
         A crewed centre that is the active craft is listed at an explicit zero: a
         craft is no distance from itself.
@@ -11472,129 +11251,18 @@ components:
             carry the command. A centre may be perfectly linked to the place and still
             have no authority over it.
           x-sitrep-sentence: this command centre has no authority over that place
-    CommandGroupRequest:
-      type: object
-      description: |-
-        Several commands the client sends as one message: they travel together,
-        arrive whole or not at all, are refused together, and run in order within a
-        single physics tick. Each member is an ordinary `CommandRequest` with its
-        own `requestId`, and each is answered under that id as if it had been sent
-        alone.
-
-        Every member must be a delayed command addressed to the same craft and sent
-        from the same command centre. A group that breaks either rule, or is empty,
-        is refused whole. If any member is refused for any reason, none is sent.
-      required:
-        - type
-        - groupId
-        - members
-      properties:
-        type:
-          type: string
-          const: command-group
-          x-sitrep-unit: id
-          description: The frame type, always `"command-group"`.
-        groupId:
-          type: string
-          x-sitrep-unit: id
-          description: An id the client chooses for the group as a whole.
-        members:
-          type: array
-          items:
-            type: object
-            description: |-
-              A command the client sends: the command id, its arguments, and a request id
-              that the reply carries back.
-            required:
-              - type
-              - requestId
-              - command
-              - label
-              - topic
-              - args
-              - sentAt
-            properties:
-              type:
-                type: string
-                const: command-request
-                x-sitrep-unit: id
-                description: The frame type, always `"command-request"`.
-              requestId:
-                type: string
-                x-sitrep-unit: id
-                description: An id the client chooses; the reply carries it back.
-              command:
-                type: string
-                x-sitrep-unit: id
-                description: The command id, such as `vessel.control.setThrottle`.
-              label:
-                type: string
-                x-sitrep-unit: text
-                description: |-
-                  A display label the caller chooses for this dispatch, carried verbatim into
-                  the matching `PendingUplink.label` on `system.uplink.pending`. When empty,
-                  show `CommandRequest.command` instead. The mod never reads or parses it.
-              topic:
-                type: string
-                x-sitrep-unit: id
-                description: |-
-                  A Topic the caller associates with this dispatch, carried verbatim into the
-                  matching `PendingUplink.topic` on `system.uplink.pending`. The mod never
-                  reads or parses it.
-              vantage:
-                type:
-                  - string
-                  - "null"
-                x-sitrep-unit: id
-                description: |-
-                  Per-call vantage override: the command centre id this command dispatches
-                  from, which decides its signal delay. Optional: null or empty uses the
-                  connection's own vantage (see `SetVantage`). A program-level command (tech,
-                  strategy, contract) sends `"meta"`, which carries no delay whichever centre
-                  the operator has selected. A centre that is not active is refused with an
-                  `unknownVantage` error.
-              seenVesselId:
-                type:
-                  - string
-                  - "null"
-                x-sitrep-unit: id
-                description: |-
-                  The vessel the operator was looking at when the command was pressed: the
-                  `vesselId` of the newest `vessel.identity` reading the client holds.
-                  Optional: null or empty states nothing and the command is not checked
-                  against it. A command for the active vessel is refused with `wrongState` at
-                  the press when the game's active vessel is not this one, because the
-                  operator's screen runs one signal delay behind the game and a switch inside
-                  that delay is not yet visible there. Commands that are not addressed to the
-                  active vessel ignore it.
-              args:
-                description: The command's arguments, in the command's own argument type.
-              sentAt:
-                type: number
-                x-sitrep-unit: ut
-                description: |-
-                  When the client dispatched, in UT seconds (KSP universal time), the same
-                  base as `Meta.validAt`. A bare number in the TypeScript type, like every
-                  envelope field; its unit is declared in the SDK's units map.
-
-                  Gonogo's own clients send 0. The server stamps the response's
-                  `Meta.deliveredAt` off its own clock, so a caller wanting a round-trip
-                  measures against its own view time rather than reading this back. The field
-                  is carried onto the response's `Meta.validAt`, which therefore reads 0 on a
-                  command response unless the client fills this in.
-          description: The commands, in the order they run.
     CommandRequest:
       type: object
       description: |-
         A command the client sends: the command id, its arguments, and a request id
         that the reply carries back.
 
-        The envelope every command is sent in.
+        The envelope every dispatch is sent in.
 
         `command` is the channel's `address` and `args` is that command's own args
-        type. Each command's `command-request` message fixes both. The answer comes back
-        as a `command-response` with the same `requestId`, or as an `error` frame if
-        the mod could not carry the command.
+        type; each command's `command-request` message pins both. The answer comes back
+        as a `command-response` correlated on `requestId`, or as an `error` frame if
+        the dispatch was never carried.
       required:
         - type
         - requestId
@@ -11687,15 +11355,15 @@ components:
         The server's reply to a `CommandRequest`, matched to it by
         `CommandResponse.requestId`.
 
-        The envelope every answer to a command arrives in.
+        The envelope every answer to a dispatch arrives in.
 
-        `result` is the command's own reply type, fixed by that command's
-        `command-response` message. A command that ran and was refused arrives here
-        with `success: false` and an `errorCode`. A command the mod could not carry
-        arrives as an `error` frame on the session channel.
+        `result` is the command's own reply type, pinned by that command's
+        `command-response` message. A resolved response is a command that RAN: a
+        refusal arrives here with `success: false` and an `errorCode`, and a fault
+        arrives as an `error` frame on the session channel instead.
 
         There is no `command` field. `requestId` is the only link back to the
-        command, and a delayed command's answer can arrive minutes after it.
+        dispatch, and a delayed command's answer can be minutes behind it.
       required:
         - type
         - requestId
@@ -13288,8 +12956,8 @@ components:
         stock CommNet reports KSP's own signal strength for the path, which falls
         off smoothly towards the range edge of each link and is multiplied across
         relays, RealAntennas how far up its data-rate ladder the path's links close.
-        `CommsSignal.quantity` says which, so a client names the figure correctly
-        and does not compare two that are different quantities.
+        `CommsSignal.quantity` says which, so a reader names the figure correctly
+        and never compares two that are different quantities.
 
         Each command centre is sent its own, the newest reading to have reached it.
         A reading is of the vessel's whole path at one instant, so it reaches a
@@ -13351,7 +13019,7 @@ components:
           description: |-
             The route `CommsSignal.strength` was measured on, where that is not the
             active route. Set whenever `CommsSignal.otherPath` is true and null
-            otherwise, so a client can name the route the figure belongs to beside the
+            otherwise, so a reader can name the route the figure belongs to beside the
             mark that says it is of another path. It is as old as the strength beside
             it, and names each vessel as the receiving centre last heard it named.
           anyOf:
@@ -14569,7 +14237,7 @@ components:
           type: number
           x-sitrep-unit: count
           description: |-
-            How many kerbals are outside, so a client need not count to know whether to
+            How many kerbals are outside, so a reader need not count to know whether to
             draw anything.
         kerbals:
           type: array
@@ -14609,7 +14277,7 @@ components:
             is not known (the step-out was not recorded, or the craft has since gone).
 
             This is the vessel Gonogo goes on reporting as active while they are
-            outside, so a client that follows the active vessel sees no discontinuity
+            outside, so a reader that follows the active vessel sees no discontinuity
             when a kerbal steps out.
         name:
           type:
@@ -14635,7 +14303,7 @@ components:
             - "null"
           x-sitrep-unit: units
           description: |-
-            What the pack holds when full, so a client can draw a fraction without
+            What the pack holds when full, so a reader can draw a fraction without
             knowing the model.
         hasJetpack:
           type:
@@ -15453,48 +15121,6 @@ components:
           description: |-
             Any other KSP mode (a scenario or a mission), which has no player-career
             surface.
-    GameState:
-      type: object
-      description: |-
-        Server-to-client: what the game is doing, sent on its own and not through
-        any topic. Sent straight after `Hello` on every connection that has anything
-        to learn, and again at every change.
-
-        It is not delayed by signal delay at any command centre: a load is a fact
-        about the game on the machine, not about anything in flight.
-
-        While `GameState.state` is `"loading"` or `"no-game"`, nothing the stream
-        last said is current. Readings received before the frame are still the
-        latest there are, and none of them is a live one. A `"ready"` that follows a
-        load which started a new timeline arrives after that timeline's
-        `timeline-reset`.
-
-        A client that reads no `game-state` frame (an older client, or a host that
-        never sends one) is not wrong, only unaware: it drops a frame type it does
-        not know.
-      required:
-        - type
-        - state
-        - scene
-      properties:
-        type:
-          type: string
-          const: game-state
-          x-sitrep-unit: id
-          description: The frame type, always `"game-state"`.
-        state:
-          type: string
-          x-sitrep-unit: id
-          description: |-
-            `"loading"`, `"ready"` or `"no-game"`. A client treats a value it does not
-            know as `"ready"`.
-        scene:
-          type: string
-          x-sitrep-unit: id
-          description: |-
-            The scene being loaded while `GameState.state` is `"loading"`, otherwise the
-            scene that stands: one of KSP's scene names, such as `"FLIGHT"`,
-            `"SPACECENTER"`, `"TRACKSTATION"`, `"EDITOR"` or `"MAINMENU"`.
     GateCheckRequest:
       type: object
       description: |-
@@ -15639,8 +15265,6 @@ components:
       required:
         - type
         - bootId
-        - contractMajor
-        - contractMinor
       properties:
         type:
           type: string
@@ -15653,28 +15277,6 @@ components:
           description: |-
             An opaque id made afresh each time the mod starts its stream, the same on
             every connection until it next does. Compare it for equality only.
-        modVersion:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            The mod's release label: `v1.4.0` for a release, `rc-<sha>` for a release
-            candidate. Absent from the frame for a build that carries no label, such as
-            one built from source.
-        contractMajor:
-          type: number
-          x-sitrep-unit: id
-          description: |-
-            The major number of the wire contract the mod speaks. A client built for a
-            different major cannot read this stream correctly.
-        contractMinor:
-          type: number
-          x-sitrep-unit: id
-          description: |-
-            The minor number of the wire contract the mod speaks. A client built for an
-            older minor misses what the mod added since; a client built for a newer
-            minor asks for what the mod does not yet have.
     HireApplicantArgs:
       type: object
       description: |-
@@ -15699,35 +15301,29 @@ components:
             `applicants[].name` carries it.
     InboundFrame:
       description: |-
-        Every frame the mod sends, told apart by `type`.
+        Every frame the mod sends, discriminated on `type`.
 
-        - `stream-data`: a subscribed topic's value
-        - `stream-binary`: a subscribed topic's value as raw bytes, for a channel that uses the binary lane
-        - `event`: something that happened to a subscription
-        - `command-response`: the result of a command
-        - `command-accepted`: the receipt for a delayed command, sent before its result
-        - `error`: a request the mod could not carry
-        - `hello`: the first frame on every connection
-        - `game-state`: what the game is doing: loading, ready or no game
-        - `pong`: the answer to a ping
+        The first thing a client writes is a router over these four, and they are the
+        whole of the inbound surface: `stream-data` carries a subscribed topic's value,
+        `command-response` answers a dispatch, `event` reports something that happened
+        to a subscription, and `error` reports a request that could not be carried.
+        Every per-channel message below narrows one of these; none of them adds a fifth
+        `type`.
 
-        Each one fixes `type` to a constant, so a JSON Schema validator selects the
-        right one from `type` alone. The `discriminator` beside this is the AsyncAPI
-        Schema keyword, a plain string naming that property. It is not OpenAPI 3's
-        `discriminator` object, so `propertyName` and `mapping` do not apply here.
-        `stream-binary` is described by its JSON header; see the document description
-        for the bytes that follow it.
+        Each arm pins `type` with a `const`, and that is what the discrimination is
+        made of: a plain JSON Schema validator picks the right arm from the constants
+        alone. The `discriminator` beside this is the AsyncAPI Schema keyword, a bare
+        string naming that property, and it is a LABEL on the constants rather than the
+        mechanism. Two things follow. It is not OpenAPI 3's `discriminator` object, so
+        `propertyName` and `mapping` do not belong here and the object form does not
+        validate. And a JSON Schema tool that has never heard of it loses nothing,
+        because the constants are still there.
       discriminator: type
       oneOf:
         - $ref: "#/components/schemas/StreamData"
-        - $ref: "#/components/schemas/StreamBinary"
-        - $ref: "#/components/schemas/EventMsg"
         - $ref: "#/components/schemas/CommandResponse"
-        - $ref: "#/components/schemas/CommandAccepted"
+        - $ref: "#/components/schemas/EventMsg"
         - $ref: "#/components/schemas/ErrorMsg"
-        - $ref: "#/components/schemas/Hello"
-        - $ref: "#/components/schemas/GameState"
-        - $ref: "#/components/schemas/Pong"
     InstrumentEntry:
       type: object
       description: |-
@@ -16693,8 +16289,8 @@ components:
       type: object
       description: |-
         What a field arrives as, in place of its value, while the save has not
-        unlocked what it needs: the unlocks it is missing, so a client can say why
-        it has nothing to show instead of drawing an empty value as if there were
+        unlocked what it needs: the unlocks it is missing, so a reader can say why
+        it has nothing to show rather than drawing an empty value as if there were
         none. A field that can arrive this way has `LockedValue` among the types it
         is declared with, and the SDK's `isLocked` tells the two apart.
       required:
@@ -17283,8 +16879,8 @@ components:
         `OrbitPatch.lan`, `OrbitPatch.argPe` and `OrbitPatch.meanAnomalyAtEpoch` are
         null when KSP's value for them is undefined, as `VesselOrbit.lan` and
         `VesselOrbit.argPe` are, and the patch is still sent. A patch with a null
-        element cannot be propagated, so a client that propagates one declines to,
-        and does not substitute a value.
+        element cannot be propagated, so a reader that propagates one declines to
+        rather than substituting a value.
 
         An open patch (`OrbitPatch.ecc` of 1 or more) is sent like any other, with
         `OrbitPatch.period` and `OrbitPatch.apA` null. Its mean motion is `sqrt(Mu /
@@ -17868,7 +17464,7 @@ components:
           description: |-
             How far the published conic may be from the path, at most, ahead of the
             sample instant: a step function of knots in ascending
-            `PropagationDepartureKnot.untilUt`. A client at some UT takes the first knot
+            `PropagationDepartureKnot.untilUt`. A reader at some UT takes the first knot
             whose `UntilUt` is at or after it.
 
             Null when the provider stated no error, in which case no interval is drawn
@@ -18325,7 +17921,7 @@ components:
         could not be surveyed: a recording that does not carry this field, or a live
         read where one part could not be read, since "no robotic parts" is a claim
         about every part. `false` is the definite "this craft carries none". A
-        client that treats null as false tells the operator there are no robotic
+        reader that treats null as false tells the operator there are no robotic
         parts on a craft that may be full of them.
       properties:
         available:
@@ -18701,9 +18297,9 @@ components:
 
             A time condition is always `"game"`: universal time is the game's, and a
             clock has no craft to belong to. A threshold names the craft, and this is
-            what stops it re-aiming without notice when the player switches vessels: the
-            game compares this against the `meta.source` stamped on the payload it read,
-            and a reading about somebody else's craft is ignored.
+            what stops it silently re-aiming when the player switches vessels: the game
+            compares this against the `meta.source` stamped on the payload it read, and
+            a reading about somebody else's craft is ignored.
 
             A threshold on something the save owns rather than a craft is `"game"` too,
             such as `career.status`, and so is one on a Topic an Uplink contributes
@@ -19064,9 +18660,9 @@ components:
     ScetAlarmDisarmArgs:
       type: object
       description: |-
-        `alarm.scet.disarm`'s args: forget the alarm with this id. Succeeds without
-        an error for an id the host does not hold, so a client reconciling its list
-        against the roster never has to ask first.
+        `alarm.scet.disarm`'s args: forget the alarm with this id. Silently succeeds
+        for an id the host does not hold, so a client reconciling its list against
+        the roster never has to ask first.
 
         Never delayed, like `alarm.scet.arm`, so removing an alarm is never slower
         than setting one.
@@ -20524,52 +20120,6 @@ components:
             Recovered from the subject's own recorder: taken while it was out of
             contact, replayed on reacquisition. Precisely dated and never a guess, but
             not a live reading, and never the subject's current state.
-    StreamBinary:
-      type: object
-      description: |-
-        The JSON header of a BinaryLane frame: everything about the delivery except
-        the bytes themselves.
-
-        It carries the same `StreamBinary.meta` as `StreamData`, so a binary
-        delivery is subject to the signal delay, the vantage and the timeline epoch
-        exactly as a JSON channel is, and cannot opt out of the delay. The
-        difference is that the payload is not in the JSON. `StreamBinary.segments`
-        is the length table for the bytes that follow the header.
-
-        A frame whose segment lengths do not sum to exactly the bytes remaining
-        after the header is not read: a truncated or over-long frame is dropped with
-        a named reason and never replaced by an empty payload, since zero segments
-        would read as "nothing was transmitted".
-      required:
-        - type
-        - topic
-        - segments
-        - meta
-      properties:
-        type:
-          type: string
-          const: stream-binary
-          x-sitrep-unit: id
-          description: The frame type, always `"stream-binary"`.
-        topic:
-          type: string
-          x-sitrep-unit: id
-          description: The Topic id this delivery belongs to.
-        segments:
-          type: array
-          items:
-            type: number
-            x-sitrep-unit: count
-          description: |-
-            Byte length of each segment, in the order they appear after the header. An
-            empty table is valid and means "nothing this frame"; it is told apart from a
-            broken frame because the sum still matches.
-        meta:
-          description: |-
-            When the payload was true, when it arrived, and where it was observed from,
-            as on a `stream-data` frame.
-          allOf:
-            - $ref: "#/components/schemas/Meta"
     StreamData:
       type: object
       description: |-
@@ -20580,9 +20130,10 @@ components:
         The envelope every telemetry frame arrives in.
 
         `topic` is the channel's `address` and `payload` is that channel's own
-        shape. Each channel's `stream-data` message fixes both. `meta` is stamped by
-        the mod on every frame and describes the delivery, not the value: `validAt`,
-        `deliveredAt` and staleness are there.
+        shape; each channel's `stream-data` message pins both, so this is the shape to
+        route on and that one is the shape to read. `meta` is stamped by the mod on
+        every frame and describes the DELIVERY rather than the value, which is where
+        `validAt`, `deliveredAt` and staleness live.
       required:
         - type
         - topic
@@ -22508,7 +22059,7 @@ components:
             null. Also null on a hyperbolic orbit, which has no apoapsis. Never a
             sentinel in place of null.
 
-            True at `validAt`. A client at a later instant subtracts the elapsed time,
+            True at `validAt`. A reader at a later instant subtracts the elapsed time,
             wrapping by the period once the apsis has passed.
         timeToPe:
           type:
@@ -22962,7 +22513,7 @@ components:
             which is a different kind of UT from a plan's `ManeuverNode.Ut` or an
             orbit's `epoch`, although all three carry the same unit. Subtracting this
             from a planned instant compiles and means nothing; measure a duration from
-            it only against the client's own view clock.
+            it only against the reader's own view clock.
 
             It is repeated on every frame until it changes, not sent once when thrust
             starts, so a client that missed a frame still sees it.

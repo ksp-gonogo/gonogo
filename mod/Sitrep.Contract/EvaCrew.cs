@@ -42,7 +42,7 @@ public class EvaKerbal
     /// since gone).
     ///
     /// <para>This is the vessel Gonogo goes on reporting as active while they
-    /// are outside, so a client that follows the active vessel sees no
+    /// are outside, so a reader that follows the active vessel sees no
     /// discontinuity when a kerbal steps out.</para>
     /// </summary>
     [SitrepUnit(Units.Id)]
@@ -62,7 +62,7 @@ public class EvaKerbal
     [SitrepSampleKind(SampleKind.Continuous)]
     public double? PropellantAmount { get; set; }
 
-    /// <summary>What the pack holds when full, so a client can draw a fraction
+    /// <summary>What the pack holds when full, so a reader can draw a fraction
     /// without knowing the model.</summary>
     [SitrepUnit(Units.ResourceUnits)]
     public double? PropellantCapacity { get; set; }
@@ -135,7 +135,7 @@ public class EvaKerbal
 [SitrepTopic("eva.crew")]
 public class EvaCrew
 {
-    /// <summary>How many kerbals are outside, so a client need not count to
+    /// <summary>How many kerbals are outside, so a reader need not count to
     /// know whether to draw anything.</summary>
     [SitrepUnit(Units.Count)]
     public int Count { get; set; }
