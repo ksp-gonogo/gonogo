@@ -24,6 +24,12 @@ namespace Gonogo.KSP.Tests.Comms
     /// collection after the statics rather than after either class is
     /// deliberate: the next class that writes one joins by declaring the same
     /// attribute, and the reason it must is written here once.</para>
+    ///
+    /// <para>The currency interceptor's neutralise also reaches
+    /// <c>DerivedCurrencyWithholding</c>, whose bound kernel is a process static
+    /// too. A class that binds it joins this collection as well, since a class
+    /// driving the interceptor here would otherwise call into the arms that class
+    /// bound.</para>
     /// </summary>
     [CollectionDefinition(Name)]
     public sealed class CommsCoreUplinkStatics
