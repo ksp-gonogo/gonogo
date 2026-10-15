@@ -69,6 +69,8 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "default-5x9", w: 5, h: 9 },
       // Tall: multiple bases stacked.
       { name: "tall-5x16", w: 5, h: 16 },
+      // The wide-short extreme at this widget's minSize height, where the shared 18x5 falls below it.
+      { name: "landscape-18x7", w: 18, h: 7 },
       // DLC-absent empty state.
       {
         name: "unavailable-5x9",
