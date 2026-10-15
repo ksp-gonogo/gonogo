@@ -4,17 +4,21 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { rangeForTag } from "../../../scripts/release-changelog.mjs";
 
 /**
  * The SpaceDock changelog runs from the previous stable tag to the release
  * tag. A candidate's tag is never public, so a range that started at one
  * would drop every fix that landed in it. Held against a small fixture
- * history, through the range function the changelog script itself runs. The saved
+ * history rather than the workflow text, with the workflow's own range
+ * command read back out of the file so the two cannot drift. The saved
  * cliff-output.md is git-cliff's own output for that history.
  */
 
 const ROOT = join(__dirname, "../../..");
+const BUILD = readFileSync(
+  join(ROOT, ".github/workflows/_build-uplink-mod.yml"),
+  "utf8",
+);
 
 let repo: string;
 
@@ -46,15 +50,29 @@ afterAll(() => {
   rmSync(repo, { recursive: true, force: true });
 });
 
-const range = (tag: string) => rangeForTag(tag, repo);
+function range(tag: string): string {
+  const line = BUILD.split("\n").find((l) => l.includes("--merged"));
+  const grep = BUILD.split("\n").find((l) => l.includes("grep -E '^v"));
+  expect(line).toBeTruthy();
+  const script = `TAG=${tag}\nPREV_STABLE="$(git tag --sort=-creatordate --merged "\${TAG}^" ${(
+    grep ?? ""
+  )
+    .trim()
+    .replace(/\)"$/, "")
+    .replace(/ \|\| true$/, "")} || true)"\necho "$PREV_STABLE"`;
+  return execFileSync("bash", ["-c", script], {
+    cwd: repo,
+    encoding: "utf8",
+  }).trim();
+}
 
 describe("the changelog range", () => {
   it("starts at the previous stable tag, skipping a release candidate", () => {
-    expect(range("v0.2.0")).toBe("v0.1.0..v0.2.0");
+    expect(range("v0.2.0")).toBe("v0.1.0");
   });
 
-  it("is the whole history before the first stable tag", () => {
-    expect(range("v0.1.0")).toBe("v0.1.0");
+  it("is empty before the first stable tag", () => {
+    expect(range("v0.1.0")).toBe("");
   });
 });
 

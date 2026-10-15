@@ -124,9 +124,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-        with:
-          # The release notes run from the previous stable tag to this one.
-          fetch-depth: 0
 
       - name: Verify the ref is a release tag matching package.json
         id: version
@@ -196,22 +193,17 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
-          # This repo lands by push, so GitHub's generated notes (built from pull
-          # requests) would leave the page empty: the notes are the player
-          # changelog, under the page's body limit.
-          node scripts/release-changelog.mjs --out release-notes.md --tag "$TAG" \
-            --max-bytes 100000 --link "https://github.com/${GITHUB_REPOSITORY}/commits/${TAG}"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::notice::$TAG already has a GitHub Release, replacing its site asset."
             gh release upload "$TAG" gonogo-site.tar.gz --clobber --repo "$GITHUB_REPOSITORY"
-            gh release edit "$TAG" --latest --notes-file release-notes.md --repo "$GITHUB_REPOSITORY"
+            gh release edit "$TAG" --latest --repo "$GITHUB_REPOSITORY"
           else
             gh release create "$TAG" \
               gonogo-site.tar.gz \
               --repo "$GITHUB_REPOSITORY" \
               --title "$TAG" \
               --latest \
-              --notes-file release-notes.md
+              --generate-notes
           fi
 
       # Each dispatch happens once per tag. A re-run of this job finds the run

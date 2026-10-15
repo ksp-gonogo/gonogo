@@ -341,23 +341,45 @@ jobs:
           rm -f sd-listing.json
 
       # What players read on the SpaceDock version: the Features and Bug Fixes
-      # of the conventional commits from the previous stable tag to this one,
-      # written to a file and capped, never passed through an environment
-      # variable (a whole-history changelog is far over Linux's per-string limit).
+      # of the conventional commits, from the previous STABLE tag to this one.
+      # A pre-release tag is never public, so the range that matters is
+      # stable to stable, or fixes that landed in a candidate would vanish.
+      - name: Resolve the SpaceDock changelog range
+        id: clrange
+        if: ${{ steps.sd.outputs.upload == 'true' }}
+        run: |
+          set -eu
+          TAG="${{ inputs.version }}"
+          PREV_STABLE="$(git tag --sort=-creatordate --merged "${TAG}^" \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)"
+          if [ -n "$PREV_STABLE" ]; then
+            echo "range=${PREV_STABLE}..${TAG}" >> "$GITHUB_OUTPUT"
+          else
+            echo "range=" >> "$GITHUB_OUTPUT"
+          fi
+
+      # No GITHUB_REPO: cliff.toml renders only local commit data, and setting
+      # it makes git-cliff fetch remote metadata it never uses.
+      - name: Generate the SpaceDock changelog
+        uses: orhun/git-cliff-action@v4
+        id: git-cliff
+        if: ${{ steps.sd.outputs.upload == 'true' }}
+        continue-on-error: true
+        with:
+          config: cliff.toml
+          args: ${{ steps.clrange.outputs.range != '' && steps.clrange.outputs.range || '--latest' }} --strip all
+
       - name: Write the SpaceDock player changelog
         if: ${{ steps.sd.outputs.upload == 'true' }}
         env:
-          TAG: ${{ inputs.version }}
-          RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ inputs.version }}
+          CLIFF_CHANGELOG: ${{ steps.git-cliff.outputs.content }}
         run: |
           set -eu
-          if node scripts/release-changelog.mjs --out sd-full.md --tag "$TAG" && [ -s sd-full.md ]; then
-            python3 scripts/spacedock-changelog.py < sd-full.md > sd-filtered.md
-          else
-            git log --oneline -20 > sd-filtered.md
+          CHANGELOG="${CLIFF_CHANGELOG}"
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="$(git log --oneline -20)"
           fi
-          node scripts/release-changelog.mjs --from sd-filtered.md --out sd-changelog.md --max-bytes 16000 --link "$RELEASE_URL"
-          rm -f sd-full.md sd-filtered.md
+          printf '%s\n' "$CHANGELOG" | python3 scripts/spacedock-changelog.py > sd-changelog.md
 
       - name: Publish ${{ inputs.id }} to SpaceDock
         if: ${{ steps.sd.outputs.upload == 'true' }}
