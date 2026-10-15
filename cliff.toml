@@ -14,22 +14,20 @@ footer = ""
 
 [git]
 conventional_commits = true
-filter_unconventional = false
+filter_unconventional = true
 commit_preprocessors = [
   { pattern = "<what was wrong for the add-on author> no longer happens when <situation>", replace = "a new Uplink's docs script stamps its bundle hash, and new says to rename the placeholder widget" },
 ]
 commit_parsers = [
+  { message = "^(revert|chore|test|ci|build|refactor|style)(\\(.*\\))?!?:", skip = true },
+  { message = "^[a-z]+\\((test|tests|e2e|ci|rig|fold|scripts)\\)!?:", skip = true },
   { message = "^feat",     group = "Features" },
   { message = "^fix",      group = "Bug Fixes" },
   { message = "^perf",     group = "Performance" },
-  { message = "^refactor", group = "Refactoring" },
   { message = "^docs",     group = "Documentation" },
-  { message = "^test",     group = "Tests" },
-  { message = "^chore",    group = "Chores" },
-  { message = "^ci",       group = "CI" },
   { message = ".*",        group = "Other" },
 ]
-filter_commits = false
+filter_commits = true
 tag_pattern = "v[0-9].*"
 topo_order = false
-sort_commits = "oldest"
+sort_commits = "newest"

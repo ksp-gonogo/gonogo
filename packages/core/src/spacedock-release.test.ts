@@ -118,9 +118,10 @@ describe("the upload workflow", () => {
     expect(
       BUILD.match(/- name: Write the SpaceDock player changelog/g),
     ).toHaveLength(1);
-    expect(BUILD).toMatch(/orhun\/git-cliff-action@v4/);
-    expect(BUILD).toMatch(/spacedock-changelog\.py > sd-changelog\.md/);
-    expect(BUILD).toContain("grep -E '^v[0-9]+\\.[0-9]+\\.[0-9]+$'");
+    expect(BUILD).toMatch(/release-changelog\.mjs --out sd-full\.md --tag/);
+    expect(BUILD).toMatch(
+      /spacedock-changelog\.py < sd-full\.md > sd-filtered\.md/,
+    );
     expect(BUILD).toMatch(/fetch-depth: 0/);
     expect(BUILD.match(/git log --oneline/g)).toHaveLength(1);
     const script = readFileSync(
