@@ -4,15 +4,15 @@ import {
   overdueSeconds,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { RosterPlaceSource, value } from "@ksp-gonogo/sitrep-sdk";
 import { Badge, Unit } from "@ksp-gonogo/ui-kit";
 import type { ReactElement } from "react";
 import type { FleetContact } from "./fleet";
 
 /**
- * A vessel's contact state: due back, late, or given up on.
+ * A vessel's contact state: due back, late, given up on, or destroyed.
  * `overdue` is not an early `lost`: the craft is late, not gone. A silent craft with no prediction reads "no contact" and is never overdue.
- * Only going overdue (polite) and a declared loss (assertive) are announced; the per-tick countdown states are not.
+ * Going overdue and a destruction (polite) and a declared loss (assertive) are announced; the per-tick countdown states are not.
  */
 export function FleetContactCell({
   contact,
@@ -32,8 +32,18 @@ export function useContactBadge(
   const nowUt = useViewUt();
   if (nowUt == null) return null;
   const phase = contactPhase(contact, nowUt.magnitude);
-  if (phase === "nominal" || phase === "gone" || phase === undefined) {
+  if (phase === "nominal" || phase === undefined) {
     return null;
+  }
+
+  if (phase === "gone") {
+    return (
+      <Badge size="sm" tone="nogo" live>
+        {contact.endSource === RosterPlaceSource.Seen
+          ? "seen destroyed"
+          : "destroyed"}
+      </Badge>
+    );
   }
 
   if (phase === "lost") {

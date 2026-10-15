@@ -8328,6 +8328,38 @@ export interface CatalogEntry
 	* when no word of any route to the craft has reached it.
 	*/
 	crew?: CatalogCrew | null;
+	/**
+	* How this centre learned the craft was destroyed: heard, from its last report
+	* over a link, or seen. A destroyed craft stays listed, with
+	* `CatalogEntry.contact` `CatalogContact.Gone`, until the player dismisses it
+	* with `trackingStation.catalog.dismiss`. A recovered craft, one docked into
+	* another, and debris, flags and other objects nobody flew leave the catalog
+	* when they go. Null while this centre knows of no end.
+	*/
+	endSource?: RosterPlaceSource | null;
+	/**
+	* The universal time of the report or sighting that told this centre the craft
+	* was destroyed. A centre that had no line to the craft when it went sees it
+	* gone only when its place next comes into view, so this can be later than the
+	* destruction itself. Null exactly when `CatalogEntry.endSource` is.
+	*/
+	endedUt?: Value<"ut"> | null;
+}
+/**
+* `trackingStation.catalog.dismiss`'s args: take a destroyed craft off the
+* catalog of the command centre the command is sent from. Every other centre
+* keeps listing it until it is dismissed there. A craft that centre knows of
+* no end for stays listed, so a dismissal sent before the news has arrived
+* changes nothing.
+*
+* Never delayed: the catalog is the ground's own record.
+*
+* @category Command arguments
+*/
+export interface TrackingStationDismissArgs
+{
+	/** The craft, by `CatalogEntry.vesselId`. */
+	vesselId: string;
 }
 /**
 * How the active vessel comes to know of another vessel on `target.available`,

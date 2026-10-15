@@ -1,4 +1,8 @@
-import { CatalogContact, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CatalogContact,
+  RosterPlaceSource,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   computeVesselStatus,
@@ -80,6 +84,24 @@ describe("computeVesselStatus", () => {
       emphasis: "reckoned",
       label: "Officially lost",
     });
+  });
+
+  it("contributes a critical entry for a craft the centre heard was destroyed", () => {
+    const [entry] = computeVesselStatus(
+      "v1",
+      { contact: CatalogContact.Gone, endSource: RosterPlaceSource.Heard },
+      1_000,
+    );
+    expect(entry).toMatchObject({ tone: "nogo", label: "Destroyed" });
+  });
+
+  it("says a craft the centre saw go was seen destroyed", () => {
+    const [entry] = computeVesselStatus(
+      "v1",
+      { contact: CatalogContact.Gone, endSource: RosterPlaceSource.Seen },
+      1_000,
+    );
+    expect(entry?.label).toBe("Seen destroyed");
   });
 
   it("stamps every entry's target with the vessel id it decorates", () => {

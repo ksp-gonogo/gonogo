@@ -182,8 +182,17 @@ namespace Sitrep.Host.Comms
             new CraftState(id, capturedUt, true, bodyIndex, null, surface, null, null, true, links, null, true);
 
         /// <summary>The craft is gone: destroyed, recovered, or docked into another.</summary>
-        public static CraftState Gone(string id, double capturedUt) =>
-            new CraftState(id, capturedUt, false, -1, null, null, null, null, false, NoLinks, null, true);
+        /// <param name="end">How it left the game.</param>
+        /// <param name="roster">Its entry on <c>trackingStation.catalog</c> as it last stood, or null when none was read.</param>
+        public static CraftState Gone(string id, double capturedUt, CraftEnd end = CraftEnd.Absorbed, IReadOnlyDictionary<string, object?>? roster = null)
+        {
+            var gone = new CraftState(id, capturedUt, false, -1, null, null, null, null, false, NoLinks, null, true, null, roster);
+            gone.End = end;
+            return gone;
+        }
+
+        /// <summary>How the craft left the game, or null while it is in it.</summary>
+        public CraftEnd? End { get; private set; }
 
         /// <summary>
         /// This craft still going where it was, read again at
@@ -223,14 +232,15 @@ namespace Sitrep.Host.Comms
         /// craft only while a flight is running, so a state read from the space
         /// centre, the tracking station or the editor has no entry of its own;
         /// that is the game not saying, not the craft no longer being listed.
+        /// A craft that is gone keeps the entry it last had.
         /// </summary>
         public CraftState ListedAsBefore(CraftState? before)
         {
-            if (!Exists || Roster != null || before?.Roster == null)
+            if (Roster != null || before?.Roster == null)
             {
                 return this;
             }
-            return Listed(before.Roster).AsCentre(Centre);
+            return Exists ? Listed(before.Roster).AsCentre(Centre) : Gone(Id, CapturedUt, End ?? CraftEnd.Absorbed, before.Roster);
         }
 
         /// <summary>Only where this craft is going, as a sighting carries it: no links, no name, no entry and nothing of whether it is a command centre.</summary>

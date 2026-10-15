@@ -1,0 +1,131 @@
+{
+  "_meta": {
+    "shows": "A fleet where the centre heard one craft was destroyed over its link and saw another go: both stay listed, marked destroyed and seen destroyed, each with the control that dismisses it, and neither counts toward the fleet's links.",
+    "scenario": "destroyed-craft",
+    "source": "Derived from crew-out-of-contact.json, with two entries set by hand to the state a centre's catalog carries for a destroyed craft.",
+    "notes": "A recovered craft and one docked into another leave the catalog, so neither appears here."
+  },
+  "_stream": {
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "trackingStation.bodies",
+        "value": {
+          "bodies": [
+            {
+              "index": 0,
+              "name": "Kerbin"
+            },
+            {
+              "index": 1,
+              "name": "Mun"
+            },
+            {
+              "index": 2,
+              "name": "Duna"
+            },
+            {
+              "index": 3,
+              "name": "Eve"
+            }
+          ]
+        }
+      },
+      {
+        "channel": "trackingStation.catalog",
+        "value": {
+          "entries": [
+            {
+              "vesselId": "v-station-1",
+              "name": "Kerbin Station Alpha",
+              "vesselType": 1,
+              "situation": 3,
+              "bodyIndex": 0,
+              "crewCount": 6,
+              "crewCapacity": 6,
+              "commsConnected": true,
+              "commsControlSource": 2,
+              "contact": 0,
+              "lastContactUt": 0,
+              "crew": 0
+            },
+            {
+              "vesselId": "v-probe-mun",
+              "name": "Munar Relay Probe",
+              "vesselType": 3,
+              "situation": 3,
+              "bodyIndex": 1,
+              "crewCount": 0,
+              "crewCapacity": 0,
+              "commsConnected": true,
+              "commsControlSource": 1,
+              "contact": 4,
+              "lastContactUt": 0,
+              "endSource": 0,
+              "endedUt": 0
+            },
+            {
+              "vesselId": "v-lander-duna",
+              "name": "Duna Lander Bravo",
+              "vesselType": 2,
+              "situation": 0,
+              "bodyIndex": 2,
+              "crewCount": 2,
+              "crewCapacity": 3,
+              "commsConnected": false,
+              "commsControlSource": 1,
+              "contact": 4,
+              "lastContactUt": 0,
+              "endSource": 1,
+              "endedUt": 0
+            },
+            {
+              "vesselId": "v-orbiter-eve",
+              "name": "Eve Orbiter Charlie",
+              "vesselType": 0,
+              "situation": 3,
+              "bodyIndex": 3,
+              "crewCount": 1,
+              "crewCapacity": 1,
+              "commsConnected": false,
+              "commsControlSource": 0,
+              "contact": 3,
+              "lastContactUt": 0,
+              "expectedReturnUt": 1800,
+              "overdueAfterUt": 1860,
+              "crew": 2,
+              "declaredLostUt": 5
+            },
+            {
+              "vesselId": "v-unresolved-1",
+              "name": "New Contact",
+              "vesselType": 14,
+              "situation": 2
+            }
+          ]
+        }
+      },
+      {
+        "channel": "trackingStation.vessel.v-station-1.link",
+        "value": {
+          "connected": true,
+          "oneWaySeconds": 1.2
+        }
+      },
+      {
+        "channel": "trackingStation.vessel.v-probe-mun.link",
+        "value": {
+          "connected": true,
+          "oneWaySeconds": 0.8
+        }
+      },
+      {
+        "channel": "trackingStation.vessel.v-lander-duna.link",
+        "value": {
+          "connected": true,
+          "oneWaySeconds": 620.0
+        }
+      }
+    ]
+  }
+}

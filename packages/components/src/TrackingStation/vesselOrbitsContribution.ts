@@ -1,5 +1,6 @@
 import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import {
+  CatalogContact,
   type CatalogEntry,
   CommsHopKind,
   type CommsNetwork,
@@ -183,6 +184,16 @@ export function conicElements(v: CatalogEntry): ConicElements | null {
  * A vessel's position in `bodyName`'s frame: its Keplerian elements when all are read, else a dot at the body without fabricated elements.
  * A craft on the ground is a dot at its body whatever the roster's orbit says: the game still reports an ellipse for it, one that runs through the planet.
  */
+function atBody(bodyName: string): SystemEntityPosition {
+  return {
+    kind: "fixed",
+    parentName: bodyName,
+    xMetres: 0,
+    yMetres: 0,
+    zMetres: 0,
+  };
+}
+
 function vesselPosition(
   v: CatalogEntry,
   bodyName: string,
@@ -190,13 +201,7 @@ function vesselPosition(
   const elements = isOnGround(v) ? null : conicElements(v);
   const place = ringPlace(v);
   if (!elements) {
-    return {
-      kind: "fixed",
-      parentName: bodyName,
-      xMetres: 0,
-      yMetres: 0,
-      zMetres: 0,
-    };
+    return atBody(bodyName);
   }
   return {
     kind: "orbit",
@@ -224,11 +229,13 @@ export function computeVesselOrbitEntities(
       v.bodyIndex != null ? (nameByIndex.get(v.bodyIndex) ?? null) : null;
     if (bodyName == null) continue;
 
-    const elements = isOnGround(v) ? null : conicElements(v);
+    // A destroyed craft is on no orbit: it is a dot at the body it was last known round, still selectable until the player dismisses it.
+    const ended = v.contact === CatalogContact.Gone;
+    const elements = ended || isOnGround(v) ? null : conicElements(v);
     entities.push({
       id: `vessel-orbit:${v.vesselId}`,
       vesselId: v.vesselId,
-      position: vesselPosition(v, bodyName),
+      position: ended ? atBody(bodyName) : vesselPosition(v, bodyName),
       shape: elements ? { kind: "orbit-path" } : { kind: "point", radiusPx: 3 },
       style: { emphasis: "faint" },
       meta: metaFor(v, bodyName, sharedNames),

@@ -1,6 +1,6 @@
 import { type TinyEssential, value } from "@ksp-gonogo/sitrep-sdk";
 import { commsRollup } from "./comms";
-import { useFleet } from "./fleet";
+import { hasEnded, useFleet } from "./fleet";
 
 /** The fleet's size and how much of it can be reached; a roster that has not arrived has no counts, which is not a count of zero. */
 export function useFleetEssentials(): readonly TinyEssential[] {
@@ -14,7 +14,10 @@ export function useFleetEssentials(): readonly TinyEssential[] {
   }
   const rollup = commsRollup(vessels);
   return [
-    { label: "Vessels", value: value("count", vessels.length) },
+    {
+      label: "Vessels",
+      value: value("count", vessels.filter((v) => !hasEnded(v)).length),
+    },
     { label: "Linked", value: value("count", rollup.linked) },
     {
       label: "No link",
