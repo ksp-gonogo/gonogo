@@ -84,6 +84,7 @@ namespace Gonogo.KSP.CurrencyDelay
             try
             {
                 var nowUt = Planetarium.GetUniversalTime();
+                _interceptor.NoteCrewAboard();
                 _interceptor.SettleStaleDefers(nowUt);
                 _reveal.DrainAggregator(nowUt);
                 Ledger.ReleaseHeld(nowUt, row =>

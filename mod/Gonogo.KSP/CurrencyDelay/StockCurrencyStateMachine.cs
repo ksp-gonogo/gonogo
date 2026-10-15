@@ -145,6 +145,7 @@ namespace Gonogo.KSP.CurrencyDelay
         private readonly List<PendingVessel> _recoveryVessels = new List<PendingVessel>();
         private readonly List<PendingVessel> _labVessels = new List<PendingVessel>();
         private readonly List<PendingVessel> _deathVessels = new List<PendingVessel>();
+        private readonly List<PendingVessel> _crewDeaths = new List<PendingVessel>();
         private readonly List<PendingScienceDefer> _scienceDefers = new List<PendingScienceDefer>();
         private readonly List<PendingReputationDefer> _reputationDefers = new List<PendingReputationDefer>();
 
@@ -239,6 +240,23 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
 
+        /// <summary>
+        /// Records that a kerbal aboard <paramref name="vesselId"/> died at
+        /// <paramref name="ut"/> without the craft being destroyed: a life
+        /// support or power death. Stock turns the kerbal's status Dead before it
+        /// charges VesselLoss, and a mod that charges a penalty of its own does so
+        /// after the death it is for, so every reputation loss at this instant,
+        /// whatever its reason, claims this push as it arrives; a VesselLoss
+        /// change already deferred at the same instant is claimed here, as
+        /// <see cref="PushDeathVessel"/> does.
+        /// </summary>
+        public IReadOnlyList<CurrencyChangeDecision> PushCrewDeath(string vesselId, double ut)
+        {
+            Prune(_crewDeaths, ut);
+            _crewDeaths.Add(new PendingVessel { VesselId = vesselId ?? "", PushedUt = ut });
+            return PushDeathVessel(vesselId ?? "", ut);
+        }
+
         public CurrencyChangeDecision OnFundsChanged(StockTransactionReason reason, double newTotal, double baseAmount, double ut)
         {
             var vesselId = "";
@@ -271,6 +289,12 @@ namespace Gonogo.KSP.CurrencyDelay
                 // resolves it Home once it ages past the attribution window with nothing claiming it.
                 _reputationDefers.Add(new PendingReputationDefer { BaseAmount = baseAmount, Ut = ut });
                 return CurrencyChangeDecision.Deferred();
+            }
+
+            // A loss charged at the instant of a crew death is that death's, whatever reason it was charged under.
+            if (baseAmount < 0.0 && TryClaimSameInstant(_crewDeaths, ut, out var crewDeathVesselId))
+            {
+                return CurrencyChangeDecision.Away(crewDeathVesselId, baseAmount, ShadowReputation);
             }
 
             var vesselId = "";
@@ -487,15 +511,18 @@ namespace Gonogo.KSP.CurrencyDelay
         /// which one a stray claim lands on. The entry only ever leaves via Prune's time-based
         /// expiry, never a claim.
         /// </summary>
-        private bool TryClaimDeathVessel(double ut, out string vesselId)
-        {
-            Prune(_deathVessels, ut);
+        private bool TryClaimDeathVessel(double ut, out string vesselId) => TryClaimSameInstant(_deathVessels, ut, out vesselId);
 
-            for (var i = _deathVessels.Count - 1; i >= 0; i--)
+        /// <summary>The newest of <paramref name="pushes"/> made at the same instant as <paramref name="ut"/>, left in place for the next change of that death to claim.</summary>
+        private static bool TryClaimSameInstant(List<PendingVessel> pushes, double ut, out string vesselId)
+        {
+            Prune(pushes, ut);
+
+            for (var i = pushes.Count - 1; i >= 0; i--)
             {
-                if (Math.Abs(ut - _deathVessels[i].PushedUt) <= SameDestructionUtEpsilon)
+                if (Math.Abs(ut - pushes[i].PushedUt) <= SameDestructionUtEpsilon)
                 {
-                    vesselId = _deathVessels[i].VesselId;
+                    vesselId = pushes[i].VesselId;
                     return true;
                 }
             }
