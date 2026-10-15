@@ -7,7 +7,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { FleetRosterComponent } from "./index";
+import { VesselCatalogComponent } from "./index";
 
 /** A held Link term in the signal panel says it is the last known, as the Delay row does. */
 
@@ -44,7 +44,7 @@ async function mountLinked() {
   render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "fleet-stale" }}>
-        <FleetRosterComponent config={{}} id="fleet-stale" w={8} h={10} />
+        <VesselCatalogComponent config={{}} id="fleet-stale" w={8} h={10} />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -69,7 +69,7 @@ async function mountLinked() {
   return { fixture, panel };
 }
 
-describe("FleetRoster signal panel when the fleet topics stop arriving", () => {
+describe("VesselCatalog signal panel when the fleet topics stop arriving", () => {
   it("states the link as current while it is arriving", async () => {
     const { panel } = await mountLinked();
     await waitFor(() => expect(visibleText(panel)).toContain("connected"));
@@ -94,7 +94,7 @@ describe("FleetRoster signal panel when the fleet topics stop arriving", () => {
   });
 });
 
-describe("FleetRoster header badge", () => {
+describe("VesselCatalog header badge", () => {
   function mountEmpty() {
     const fixture = setupStreamFixture({
       pinnedUt: 2_000,
@@ -103,7 +103,7 @@ describe("FleetRoster header badge", () => {
     const { container } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "fleet-badge" }}>
-          <FleetRosterComponent config={{}} id="fleet-badge" w={8} h={10} />
+          <VesselCatalogComponent config={{}} id="fleet-badge" w={8} h={10} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );

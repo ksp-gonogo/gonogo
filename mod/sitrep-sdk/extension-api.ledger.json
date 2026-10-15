@@ -8211,6 +8211,26 @@
         "note": "Its type is now `string` rather than the literal. The release freeze records the surface and then moves this number, so a literal type made every release a change to the surface it had just frozen; a caller compares it or prints it, and is unaffected"
       },
       {
+        "key": "sitrep-sdk . FleetRosterUpdatesContext",
+        "note": "Fleet Roster is now the Vessel Catalog widget; renamed to VesselCatalogUpdatesContext"
+      },
+      {
+        "key": "sitrep-sdk . FleetRosterUpdatesContext#body",
+        "note": "Fleet Roster is now the Vessel Catalog widget; renamed to VesselCatalogUpdatesContext#body"
+      },
+      {
+        "key": "sitrep-sdk . FleetRosterUpdatesContext#compact",
+        "note": "Fleet Roster is now the Vessel Catalog widget; renamed to VesselCatalogUpdatesContext#compact"
+      },
+      {
+        "key": "sitrep-sdk . FleetRosterUpdatesContext#vesselId",
+        "note": "Fleet Roster is now the Vessel Catalog widget; renamed to VesselCatalogUpdatesContext#vesselId"
+      },
+      {
+        "key": "sitrep-sdk . FleetRosterUpdatesContext#vesselName",
+        "note": "Fleet Roster is now the Vessel Catalog widget; renamed to VesselCatalogUpdatesContext#vesselName"
+      },
+      {
         "key": "sitrep-sdk . FlightRecoveryOutcome#fundsEarned",
         "note": "Null for a recovery in a save with no such currency, where it was 0"
       },
@@ -8403,6 +8423,10 @@
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
       {
+        "key": "sitrep-sdk . SlotRegistry#\"fleet-roster.updates\"",
+        "note": "Fleet Roster is now the Vessel Catalog widget; renamed to SlotRegistry#\"vessel-catalog.updates\""
+      },
+      {
         "key": "sitrep-sdk . SlotRegistry#\"ground-track.actions\"",
         "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
       },
@@ -8477,6 +8501,10 @@
       {
         "key": "sitrep-sdk . SlotRegistry#\"tracking-station.overlay\"",
         "note": "The Tracking Station widget's slot, renamed from SlotRegistry#\"system-view.overlay\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"vessel-catalog.updates\"",
+        "note": "The Vessel Catalog widget's slot, renamed from SlotRegistry#\"fleet-roster.updates\"; a new required member of the registry"
       },
       {
         "key": "sitrep-sdk . StatEntry#value?",
@@ -10031,6 +10059,26 @@
         "note": "DeployedExperimentContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
       {
+        "key": "sitrep-sdk ./testing ~FleetRosterUpdatesContext",
+        "note": "Fleet Roster is now the Vessel Catalog widget; renamed to VesselCatalogUpdatesContext"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~FleetRosterUpdatesContext#body",
+        "note": "Fleet Roster is now the Vessel Catalog widget; renamed to VesselCatalogUpdatesContext#body"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~FleetRosterUpdatesContext#compact",
+        "note": "Fleet Roster is now the Vessel Catalog widget; renamed to VesselCatalogUpdatesContext#compact"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~FleetRosterUpdatesContext#vesselId",
+        "note": "Fleet Roster is now the Vessel Catalog widget; renamed to VesselCatalogUpdatesContext#vesselId"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~FleetRosterUpdatesContext#vesselName",
+        "note": "Fleet Roster is now the Vessel Catalog widget; renamed to VesselCatalogUpdatesContext#vesselName"
+      },
+      {
         "key": "sitrep-sdk ./testing ~GonogoHost#defineUplinkClient",
         "note": "The config's description is required, matching the handle it returns"
       },
@@ -10207,6 +10255,10 @@
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
       {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"fleet-roster.updates\"",
+        "note": "Fleet Roster is now the Vessel Catalog widget; renamed to SlotRegistry#\"vessel-catalog.updates\""
+      },
+      {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"ground-track.actions\"",
         "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
       },
@@ -10281,6 +10333,10 @@
       {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"tracking-station.overlay\"",
         "note": "The Tracking Station widget's slot, renamed from SlotRegistry#\"system-view.overlay\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"vessel-catalog.updates\"",
+        "note": "The Vessel Catalog widget's slot, renamed from SlotRegistry#\"fleet-roster.updates\"; a new required member of the registry"
       },
       {
         "key": "sitrep-sdk ./testing ~StatEntry#value?",
@@ -10771,6 +10827,10 @@
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
       {
+        "key": "ui-kit . SlotRegistry#\"fleet-roster.updates\"",
+        "note": "Fleet Roster is now the Vessel Catalog widget; renamed to SlotRegistry#\"vessel-catalog.updates\""
+      },
+      {
         "key": "ui-kit . SlotRegistry#\"ground-track.actions\"",
         "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
       },
@@ -10845,6 +10905,10 @@
       {
         "key": "ui-kit . SlotRegistry#\"tracking-station.overlay\"",
         "note": "The Tracking Station widget's slot, renamed from SlotRegistry#\"system-view.overlay\"; a new required member of the registry"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"vessel-catalog.updates\"",
+        "note": "The Vessel Catalog widget's slot, renamed from SlotRegistry#\"fleet-roster.updates\"; a new required member of the registry"
       },
       {
         "key": "ui-kit . Spinner",
@@ -12165,6 +12229,26 @@
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
       {
+        "key": "sitrep-sdk . VesselCatalogUpdatesContext",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext"
+      },
+      {
+        "key": "sitrep-sdk . VesselCatalogUpdatesContext#body",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#body"
+      },
+      {
+        "key": "sitrep-sdk . VesselCatalogUpdatesContext#compact",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#compact"
+      },
+      {
+        "key": "sitrep-sdk . VesselCatalogUpdatesContext#vesselId",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#vesselId"
+      },
+      {
+        "key": "sitrep-sdk . VesselCatalogUpdatesContext#vesselName",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#vesselName"
+      },
+      {
         "key": "sitrep-sdk . ViewClockLike",
         "note": "The type useViewClock and useViewClockOptional return: DelayClockLike plus the game's present, so a countdown can follow game time"
       },
@@ -12758,26 +12842,6 @@
       },
       {
         "key": "sitrep-sdk ./registry ~ExperimentsInstrumentSlotContext#instrument",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~FleetRosterUpdatesContext",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~FleetRosterUpdatesContext#body",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~FleetRosterUpdatesContext#compact",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~FleetRosterUpdatesContext#vesselId",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~FleetRosterUpdatesContext#vesselName",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
@@ -13393,10 +13457,6 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"fleet-roster.updates\"",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
-      },
-      {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"fuel-status.sections\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
@@ -13483,6 +13543,10 @@
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"tracking-station.overlay\"",
         "note": "The Tracking Station widget's slot, renamed from SlotRegistry#\"system-view.overlay\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"vessel-catalog.updates\"",
+        "note": "The Vessel Catalog widget's slot, renamed from SlotRegistry#\"fleet-roster.updates\"; a new required member of the registry"
       },
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"warp-control.stepper\"",
@@ -13675,6 +13739,26 @@
       {
         "key": "sitrep-sdk ./registry ~UiKitTheme#typography",
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselCatalogUpdatesContext",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselCatalogUpdatesContext#body",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#body"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselCatalogUpdatesContext#compact",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#compact"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselCatalogUpdatesContext#vesselId",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#vesselId"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselCatalogUpdatesContext#vesselName",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#vesselName"
       },
       {
         "key": "sitrep-sdk ./spine Arrival",
@@ -15199,6 +15283,26 @@
       {
         "key": "sitrep-sdk ./testing ~ValueTags#kind?",
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselCatalogUpdatesContext",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselCatalogUpdatesContext#body",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#body"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselCatalogUpdatesContext#compact",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#compact"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselCatalogUpdatesContext#vesselId",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#vesselId"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselCatalogUpdatesContext#vesselName",
+        "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#vesselName"
       },
       {
         "key": "sitrep-sdk ./testing ~ViewClockLike",
