@@ -137,53 +137,6 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             Assert.Empty(ledger.Pending);
         }
 
-        /// <summary>A kerbal dies of life support or power on a craft that survives: the kerbal is taken off the craft, then marked dead, then charged.</summary>
-        private static void DiesAboard(StockCurrencyInterceptor interceptor, Vessel craft, TransactionReasons reason)
-        {
-            interceptor.NoteAboard("Jebediah Kerman", craft);
-            interceptor.NoteCrewDied("Jebediah Kerman", DeathUt);
-            Fire(interceptor, "OnReputationChanged", -10f, reason);
-        }
-
-        [Fact]
-        public void ACrewDeathOnASurvivingCraftWithNoRouteIsHeldForHomeToHearOfIt()
-        {
-            using var ksp = new UnityStandIns(DeathUt, DelayOn());
-            var ledger = new PendingCreditLedger();
-            var interceptor = Interceptor(ledger);
-
-            DiesAboard(interceptor, UnityStandIns.Craft(CraftId, UnityStandIns.Link(connected: false)), TransactionReasons.VesselLoss);
-
-            var row = Assert.Single(ledger.Pending);
-            Assert.Equal(DeathUt, row.HeldSinceUt);
-            Assert.Equal(CraftId.ToString(), row.OriginVesselId);
-        }
-
-        [Fact]
-        public void ACrewDeathOnASurvivingCraftRoutedHomeIsHeldForTheRoutesSignalDelay()
-        {
-            using var ksp = new UnityStandIns(DeathUt, DelayOn());
-            var ledger = new PendingCreditLedger();
-            var interceptor = Interceptor(ledger);
-
-            DiesAboard(interceptor, UnityStandIns.Craft(CraftId, UnityStandIns.Link(connected: true, UnityStandIns.Hop(OneLightSecond, endsAtHome: true))), TransactionReasons.VesselLoss);
-
-            Assert.Equal(DeathUt + 1.0, Assert.Single(ledger.Pending).RevealUt, 9);
-        }
-
-        /// <summary>A mod can charge a crew-death penalty of its own under any reason, and it is the craft's like stock's.</summary>
-        [Fact]
-        public void AModsOwnCrewDeathPenaltyIsTheCraftsToo()
-        {
-            using var ksp = new UnityStandIns(DeathUt, DelayOn());
-            var ledger = new PendingCreditLedger();
-            var interceptor = Interceptor(ledger);
-
-            DiesAboard(interceptor, UnityStandIns.Craft(CraftId, UnityStandIns.Link(connected: false)), TransactionReasons.Any);
-
-            Assert.Equal(DeathUt, Assert.Single(ledger.Pending).HeldSinceUt);
-        }
-
         [Fact]
         public void WithSignalDelayOffACrewDeathOnACraftWithNoRouteIsRevealedAtTheInstantItHappened()
         {

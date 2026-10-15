@@ -45,12 +45,8 @@ export function VesselInfoPanel({
   const rest = Object.keys(meta).filter((k) => k !== "name" && !known.has(k));
   const rows = [...FIELD_ORDER, ...rest]
     .filter((k) => meta[k] !== undefined)
-    // The catalog entry's Link and Crew rows say what these would, with the signal delay and what is known of the crew behind them.
-    .filter(
-      (k) =>
-        catalog === null ||
-        (k !== "comms" && (k !== "crew" || catalog.vessel.crew == null)),
-    )
+    // The catalog entry's Link row says what the comms row would, with the signal delay behind it.
+    .filter((k) => catalog === null || k !== "comms")
     .map((k) => ({ label: FIELD_LABELS[k] ?? k, value: String(meta[k]) }));
 
   return (

@@ -505,24 +505,6 @@ public enum CatalogContact
     Gone,
 }
 
-/// <summary>What a command centre knows of a craft's crew, which only a link can tell it.</summary>
-/// <category>Solar system and fleet</category>
-#if SITREP_CODEGEN
-[TsEnum]
-#endif
-[SitrepContract]
-public enum CatalogCrew
-{
-    /// <summary>The centre is in contact with the craft, so its crew is as the craft last reported it.</summary>
-    Known,
-
-    /// <summary>No link reaches the centre, so the crew it lists is the crew it last heard of, which may have changed since.</summary>
-    Unknown,
-
-    /// <summary>The home centre has declared the craft lost, and the declaration has reached this centre, so its crew is presumed lost with it.</summary>
-    PresumedLost,
-}
-
 /// <summary>
 /// One object in a <see cref="TrackingStationCatalog"/>: a craft, or a space
 /// object the tracking station follows. An object with no resolvable stable
@@ -693,13 +675,4 @@ public class CatalogEntry
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? DeclaredLostUt { get; set; }
-
-    /// <summary>
-    /// What this centre knows of the craft's crew: <see cref="CrewCount"/> is
-    /// as of <see cref="LastContactUt"/>, and is known only while the centre is
-    /// in contact. Null when the crew this centre last heard of is none or
-    /// unread, and when no word of any route to the craft has reached it.
-    /// </summary>
-    [SitrepUnit(Units.Enumeration)]
-    public CatalogCrew? Crew { get; set; }
 }

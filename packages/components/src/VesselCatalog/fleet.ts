@@ -1,5 +1,4 @@
 import {
-  type CatalogCrew,
   type CatalogEntry,
   combineReadings,
   type Reading,
@@ -55,8 +54,6 @@ export interface FleetVessel {
   crewCapacity: number | null;
   comms: CommsLink;
   contact: FleetContact;
-  /** What the centre knows of the crew, which `crewCount` is as of; null for a craft with no crew aboard. */
-  crew: CatalogCrew | null;
 }
 
 function rosterCommsLink(
@@ -132,7 +129,6 @@ export function useFleet(): {
           crewCount: magnitudeOf(v.crewCount),
           crewCapacity: magnitudeOf(v.crewCapacity),
           comms: rosterCommsLink(v.commsControlSource),
-          crew: v.crew ?? null,
           contact: {
             contact: v.contact,
             lastContactUt: v.lastContactUt,

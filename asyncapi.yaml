@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 44.3.0
+  version: 44.2.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 87 telemetry
     channels a client subscribes to and 63 commands it sends, each with its payload
@@ -10694,28 +10694,6 @@ components:
           description: |-
             The centre knows the craft is gone, from its last frame over a link or from
             seeing it go.
-    CatalogCrew:
-      type: integer
-      description: |-
-        What a command centre knows of a craft's crew, which only a link can tell
-        it.
-      x-sitrep-enum-kind: ordinal
-      oneOf:
-        - const: 0
-          title: Known
-          description: |-
-            The centre is in contact with the craft, so its crew is as the craft last
-            reported it.
-        - const: 1
-          title: Unknown
-          description: |-
-            No link reaches the centre, so the crew it lists is the crew it last heard
-            of, which may have changed since.
-        - const: 2
-          title: PresumedLost
-          description: |-
-            The home centre has declared the craft lost, and the declaration has reached
-            this centre, so its crew is presumed lost with it.
     CatalogEntry:
       type: object
       description: |-
@@ -10907,16 +10885,6 @@ components:
             declaration has reached this centre. Kept after a declaration is withdrawn,
             beside a `CatalogEntry.contact` that is no longer `CatalogContact.Lost`.
             Null when no declaration has reached this centre.
-        crew:
-          description: |-
-            What this centre knows of the craft's crew: `CatalogEntry.crewCount` is as
-            of `CatalogEntry.lastContactUt`, and is known only while the centre is in
-            contact. Null when the crew this centre last heard of is none or unread, and
-            when no word of any route to the craft has reached it.
-          anyOf:
-            - $ref: "#/components/schemas/CatalogCrew"
-              x-sitrep-unit: enum
-            - type: "null"
     CentreDelayEntry:
       type: object
       description: |-

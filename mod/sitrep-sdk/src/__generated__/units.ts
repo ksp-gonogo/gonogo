@@ -256,7 +256,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     commsConnected: "flag",
     commsControlSource: "enum",
     contact: "enum",
-    crew: "enum",
     crewCapacity: "count",
     crewCount: "count",
     declaredLostUt: "ut",
@@ -2924,7 +2923,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "CatalogEntry": {
     commsControlSource: "RosterCommsControlSource",
     contact: "CatalogContact",
-    crew: "CatalogCrew",
     placeSource: "RosterPlaceSource",
     situation: "Situation",
     vesselType: "VesselType",
@@ -3198,11 +3196,6 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     2: "Overdue",
     3: "Lost",
     4: "Gone",
-  },
-  "CatalogCrew": {
-    0: "Known",
-    1: "Unknown",
-    2: "PresumedLost",
   },
   "CommsControlSource": {
     0: "None",

@@ -191,59 +191,5 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(CatalogContact.Lost, Contact(seated.View));
             Assert.NotNull(Ut(seated.View, "declaredLostUt"));
         }
-
-        private static CatalogCrew? Crew(CentreView view)
-        {
-            var field = view.Vessel(Relay)!.Value.GetProperty("crew");
-            return field.ValueKind == JsonValueKind.Null ? null : (CatalogCrew)field.GetInt32();
-        }
-
-        private static ScriptedContactGame Crewed() => new ScriptedContactGame { RelayCrew = 2 };
-
-        [Fact]
-        public async Task ACrewedCraftInContactListsItsCrewAsKnown()
-        {
-            await using var seated = await AtFarAsync(Crewed());
-            await seated.TickAsync(1, 300, 301, 302);
-
-            Assert.Equal(CatalogCrew.Known, Crew(seated.View));
-        }
-
-        /// <summary>A craft's crew is heard only over a link: while it is silent the centre lists the crew it last heard, and does not know it.</summary>
-        [Fact]
-        public async Task ACrewedCraftGoneSilentListsItsCrewAsUnknown()
-        {
-            await using var seated = await AtFarAsync(Crewed());
-            await seated.TickAsync(1, 300, 700, 701);
-
-            seated.World.Game.RelayConnected = false;
-            await seated.TickAsync(1000, 1300, 1301);
-
-            Assert.Equal(CatalogContact.Silent, Contact(seated.View));
-            Assert.Equal(CatalogCrew.Unknown, Crew(seated.View));
-        }
-
-        [Fact]
-        public async Task ACrewedCraftDeclaredLostListsItsCrewAsPresumedLost()
-        {
-            await using var seated = await AtFarAsync(Crewed());
-            await seated.TickAsync(1, 300, 700, 701);
-
-            seated.World.Game.RelayConnected = false;
-            seated.World.Game.Forecasts[Relay] = ScriptedContactGame.Forecast(Relay, 1000.0, 1500.0);
-            await seated.TickAsync(1000, 1300, 1600, 2100, 2101, 2102);
-
-            Assert.Equal(CatalogContact.Lost, Contact(seated.View));
-            Assert.Equal(CatalogCrew.PresumedLost, Crew(seated.View));
-        }
-
-        [Fact]
-        public async Task ACraftWithNoCrewAboardListsNoCrewState()
-        {
-            await using var seated = await AtFarAsync();
-            await seated.TickAsync(1, 300, 301, 302);
-
-            Assert.Null(Crew(seated.View));
-        }
     }
 }

@@ -8167,29 +8167,6 @@ export enum CatalogContact {
 	Gone = 4
 }
 /**
-* What a command centre knows of a craft's crew, which only a link can tell
-* it.
-*
-* @category Solar system and fleet
-*/
-export enum CatalogCrew {
-	/**
-	* The centre is in contact with the craft, so its crew is as the craft last
-	* reported it.
-	*/
-	Known = 0,
-	/**
-	* No link reaches the centre, so the crew it lists is the crew it last heard
-	* of, which may have changed since.
-	*/
-	Unknown = 1,
-	/**
-	* The home centre has declared the craft lost, and the declaration has reached
-	* this centre, so its crew is presumed lost with it.
-	*/
-	PresumedLost = 2
-}
-/**
 * One object in a `TrackingStationCatalog`: a craft, or a space object the
 * tracking station follows. An object with no resolvable stable id is left out
 * rather than given a made-up one, so `CatalogEntry.vesselId` is always
@@ -8321,13 +8298,6 @@ export interface CatalogEntry
 	* Null when no declaration has reached this centre.
 	*/
 	declaredLostUt?: Value<"ut"> | null;
-	/**
-	* What this centre knows of the craft's crew: `CatalogEntry.crewCount` is as
-	* of `CatalogEntry.lastContactUt`, and is known only while the centre is in
-	* contact. Null when the crew this centre last heard of is none or unread, and
-	* when no word of any route to the craft has reached it.
-	*/
-	crew?: CatalogCrew | null;
 }
 /**
 * How the active vessel comes to know of another vessel on `target.available`,
