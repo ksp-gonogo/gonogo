@@ -69,8 +69,9 @@ namespace Gonogo.KSP.CurrencyDelay
 
         /// <summary>
         /// Settles any currency change still deferred past its attribution window,
-        /// flushes any vessel science window gone quiet past its cadence, then replays
-        /// every matured credit onto the live balances. Each step handles a UT jump past
+        /// flushes any vessel science window gone quiet past its cadence, lands each
+        /// held change home has now heard of, then replays every matured credit onto
+        /// the live balances. Each step handles a UT jump past
         /// several windows or reveals in one call, so one call per frame is enough at
         /// any warp rate.
         ///
@@ -85,6 +86,11 @@ namespace Gonogo.KSP.CurrencyDelay
                 var nowUt = Planetarium.GetUniversalTime();
                 _interceptor.SettleStaleDefers(nowUt);
                 _reveal.DrainAggregator(nowUt);
+                Ledger.ReleaseHeld(nowUt, row =>
+                {
+                    var home = HomeCraftViews.Of(row.OriginVesselId);
+                    return (HeldCreditRelease.Lands(row.HeldSinceUt!.Value, home), HeldCreditRelease.DeclarationOf(home));
+                });
                 _reveal.ApplyMatured(nowUt);
             }
             catch (Exception ex)

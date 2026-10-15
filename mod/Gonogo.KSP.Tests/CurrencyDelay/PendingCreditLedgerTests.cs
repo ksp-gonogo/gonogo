@@ -158,4 +158,84 @@ public class PendingCreditLedgerTests
 
         Assert.Empty(restored.Pending);
     }
+
+    private static PendingCreditRow HeldRow(string originVesselId, double heldSinceUt = 500) =>
+        PendingCreditRow.Held(DelayedCurrency.Reputation, -10, heldSinceUt, originVesselId, "crew lost out of contact");
+
+    [Fact]
+    public void A_held_row_never_matures_by_time_alone()
+    {
+        var ledger = new PendingCreditLedger();
+        ledger.Enqueue(HeldRow("silent"));
+
+        Assert.Empty(ledger.PopMatured(double.MaxValue));
+        Assert.Single(ledger.Pending);
+    }
+
+    [Fact]
+    public void ReleaseHeld_makes_each_landing_row_due_now_and_keeps_the_order_taken_in()
+    {
+        var ledger = new PendingCreditLedger();
+        ledger.Enqueue(HeldRow("lost"));
+        ledger.Enqueue(Row(revealUt: 900, originVesselId: "timed"));
+        ledger.Enqueue(HeldRow("still-silent"));
+        ledger.Enqueue(HeldRow("heard"));
+
+        ledger.ReleaseHeld(1000, row => (row.OriginVesselId != "still-silent", 0));
+
+        Assert.Equal(new[] { "lost", "timed", "heard" }, ledger.PopMatured(1000).ConvertAll(r => r.OriginVesselId));
+        Assert.Equal("still-silent", Assert.Single(ledger.Pending).OriginVesselId);
+    }
+
+    [Fact]
+    public void A_held_row_landing_on_a_Lost_declaration_is_recorded_with_its_number_and_saved()
+    {
+        var ledger = new PendingCreditLedger();
+        ledger.Enqueue(HeldRow("lost"));
+        ledger.Enqueue(HeldRow("heard"));
+
+        ledger.ReleaseHeld(1000, row => (true, row.OriginVesselId == "lost" ? 3 : 0));
+
+        var landed = Assert.Single(PendingCreditLedger.FromConfigNode(ledger.ToConfigNode()).LandedOnLost);
+        Assert.Equal("lost", landed.OriginVesselId);
+        Assert.Equal(3, landed.LostSeq);
+        Assert.Equal(-10, landed.BaseAmount);
+        Assert.Equal(1000, landed.LandedUt);
+    }
+
+    [Fact]
+    public void Switching_signal_delay_off_releases_a_held_row()
+    {
+        var ledger = new PendingCreditLedger();
+        ledger.Enqueue(HeldRow("silent"));
+
+        ledger.BringForward(1000, 0.0);
+
+        Assert.Single(ledger.PopMatured(1000));
+    }
+
+    [Fact]
+    public void A_shortened_signal_delay_leaves_a_held_row_held()
+    {
+        var ledger = new PendingCreditLedger();
+        ledger.Enqueue(HeldRow("silent"));
+
+        ledger.BringForward(1000, 0.5);
+
+        Assert.Empty(ledger.PopMatured(double.MaxValue));
+        Assert.Single(ledger.Pending);
+    }
+
+    [Fact]
+    public void ConfigNode_round_trip_keeps_a_held_row_held_from_the_same_instant()
+    {
+        var ledger = new PendingCreditLedger();
+        ledger.Enqueue(HeldRow("silent", heldSinceUt: 750));
+
+        var row = Assert.Single(PendingCreditLedger.FromConfigNode(ledger.ToConfigNode()).Pending);
+
+        Assert.Equal(750, row.HeldSinceUt);
+        Assert.Equal(-10, row.BaseAmount);
+        Assert.Equal("silent", row.OriginVesselId);
+    }
 }

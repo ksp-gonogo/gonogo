@@ -42,7 +42,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             Fire(interceptor, "OnReputationChanged", reputationAfter, TransactionReasons.VesselLoss);
 
         [Fact]
-        public void ACrewDeathOnACraftWithNoRouteIsHeldUntilTheSilenceDeadline()
+        public void ACrewDeathOnACraftWithNoRouteIsHeldForHomeToHearOfIt()
         {
             using var ksp = new UnityStandIns(DeathUt, DelayOn());
             var ledger = new PendingCreditLedger();
@@ -54,13 +54,14 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             var row = Assert.Single(ledger.Pending);
             Assert.Equal(DelayedCurrency.Reputation, row.Currency);
             Assert.Equal(-10.0, row.BaseAmount);
-            Assert.Equal(DeathUt + Deadline, row.RevealUt);
+            Assert.Equal(DeathUt, row.HeldSinceUt);
             Assert.Equal(CraftId.ToString(), row.OriginVesselId);
+            Assert.Empty(ledger.PopMatured(DeathUt + Deadline * 100));
             Assert.Empty(ksp.Logged);
         }
 
         [Fact]
-        public void ACrewDeathOnACraftWithNoLinkAtAllIsHeldUntilTheSilenceDeadline()
+        public void ACrewDeathOnACraftWithNoLinkAtAllIsHeldForHomeToHearOfIt()
         {
             using var ksp = new UnityStandIns(DeathUt, DelayOn());
             var ledger = new PendingCreditLedger();
@@ -69,7 +70,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             Destroy(interceptor, UnityStandIns.Craft(CraftId));
             CrewDies(interceptor, reputationAfter: -10f);
 
-            Assert.Equal(DeathUt + Deadline, Assert.Single(ledger.Pending).RevealUt);
+            Assert.Equal(DeathUt, Assert.Single(ledger.Pending).HeldSinceUt);
         }
 
         [Fact]

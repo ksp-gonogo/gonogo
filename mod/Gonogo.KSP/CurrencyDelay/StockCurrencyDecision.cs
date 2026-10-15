@@ -78,18 +78,23 @@ namespace Gonogo.KSP.CurrencyDelay
         public string OriginVesselId { get; }
         public string OriginDescription { get; }
 
+        /// <summary>For a credit held for home to hear of its craft, the instant it was charged, and <see cref="RevealUt"/> means nothing; otherwise null.</summary>
+        public double? HeldSinceUt { get; }
+
         public StockCurrencyCredit(
             CurrencyKind currency,
             double baseAmount,
             double revealUt,
             string originVesselId,
-            string originDescription)
+            string originDescription,
+            double? heldSinceUt = null)
         {
             Currency = currency;
             BaseAmount = baseAmount;
             RevealUt = revealUt;
             OriginVesselId = originVesselId ?? "";
             OriginDescription = originDescription ?? "";
+            HeldSinceUt = heldSinceUt;
         }
     }
 
@@ -155,6 +160,16 @@ namespace Gonogo.KSP.CurrencyDelay
         /// traceability in <see cref="StockCurrencyCredit.OriginDescription"/>
         /// only - it must never feed into <c>BaseAmount</c>.</para>
         /// </summary>
+        /// <summary>
+        /// Whether a change waits for home to hear of its craft rather than for a
+        /// number of seconds: a reputation change from a craft with no route
+        /// home, while delay is modelled. Home hears of the craft when contact
+        /// returns, when it knows the craft has gone, or when it declares the
+        /// craft lost.
+        /// </summary>
+        private static bool HoldsForHome(KscDelay delay, CurrencyKind currency, Sitrep.Host.Comms.SignalDelayConfig config) =>
+            KscDelayPolicy.Enabled(config) && delay.IsUnroutable && currency == CurrencyKind.Reputation;
+
         public static StockCurrencyCredit? BuildCredit(
             CurrencyKind currency,
             double baseAmount,
@@ -175,6 +190,11 @@ namespace Gonogo.KSP.CurrencyDelay
                 currency,
                 baseAmount,
                 shadowBalance);
+
+            if (HoldsForHome(delay, currency, config))
+            {
+                return new StockCurrencyCredit(currency, baseAmount, double.PositiveInfinity, originVesselId ?? "", description, heldSinceUt: nowUt);
+            }
 
             return new StockCurrencyCredit(
                 currency,

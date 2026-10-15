@@ -53,7 +53,7 @@ namespace Gonogo.KSP.CurrencyDelay
         /// state, which <c>CommsCoreUplink</c> initialises to
         /// <c>SignalDelayConfig.Off()</c>; treating it as off matches that.
         /// </summary>
-        private static bool Enabled(SignalDelayConfig config) => config != null && config.Enabled;
+        internal static bool Enabled(SignalDelayConfig config) => config != null && config.Enabled;
 
         private static double SilenceDeclarationSeconds(SignalDelayConfig config) =>
             config != null ? config.SilenceDeclarationSeconds : DefaultSilenceDeclarationSeconds;

@@ -730,6 +730,9 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>The home centre's judgement of the craft as it stands.</summary>
         public HomeVerdict? HomeVerdict(string vesselId) => _source.HomeVerdictOf(CraftStateRecorder.VesselPrefix + vesselId);
 
+        /// <summary>What the home centre knows of the craft as of its latest judgement.</summary>
+        public HomeCraftView? HomeView(string vesselId) => _source.HomeViewOf(vesselId);
+
         /// <summary>The ground's forecast for the craft as it has reached the centre.</summary>
         public CraftForecast? ForecastHeardAt(string centre, string vesselId) => _source.ForecastHeardAt(centre, CraftStateRecorder.VesselPrefix + vesselId);
 

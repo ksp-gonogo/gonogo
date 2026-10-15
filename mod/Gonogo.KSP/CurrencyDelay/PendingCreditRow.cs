@@ -11,6 +11,29 @@ namespace Gonogo.KSP.CurrencyDelay
     }
 
     /// <summary>
+    /// A held change that landed on one of home's Lost declarations: the
+    /// declaration's number with the craft names it, so a change made against a
+    /// withdrawn declaration can be found again.
+    /// </summary>
+    public sealed class LandedOnLost
+    {
+        public LandedOnLost(DelayedCurrency currency, double baseAmount, string originVesselId, int lostSeq, double landedUt)
+        {
+            Currency = currency;
+            BaseAmount = baseAmount;
+            OriginVesselId = originVesselId ?? "";
+            LostSeq = lostSeq;
+            LandedUt = landedUt;
+        }
+
+        public DelayedCurrency Currency { get; }
+        public double BaseAmount { get; }
+        public string OriginVesselId { get; }
+        public int LostSeq { get; }
+        public double LandedUt { get; }
+    }
+
+    /// <summary>
     /// A single delayed-currency credit awaiting its reveal-UT.
     ///
     /// BaseAmount is the base requested amount, pre-clamp (e.g. the value
@@ -30,22 +53,45 @@ namespace Gonogo.KSP.CurrencyDelay
     {
         public DelayedCurrency Currency { get; }
         public double BaseAmount { get; }
+        /// <summary>The instant the row is due, or positive infinity while it is held: see <see cref="HeldSinceUt"/>.</summary>
         public double RevealUt { get; }
         public string OriginVesselId { get; }
         public string OriginDescription { get; }
+
+        /// <summary>
+        /// For a row held for home to hear of its craft, the instant it was
+        /// charged; null for a row due at <see cref="RevealUt"/>. A held row
+        /// lands when the ledger releases it: see <c>PendingCreditLedger.ReleaseHeld</c>.
+        /// </summary>
+        public double? HeldSinceUt { get; }
 
         public PendingCreditRow(
             DelayedCurrency currency,
             double baseAmount,
             double revealUt,
             string originVesselId,
-            string originDescription)
+            string originDescription,
+            double? heldSinceUt = null)
         {
             Currency = currency;
             BaseAmount = baseAmount;
-            RevealUt = revealUt;
+            RevealUt = heldSinceUt == null ? revealUt : double.PositiveInfinity;
             OriginVesselId = originVesselId ?? "";
             OriginDescription = originDescription ?? "";
+            HeldSinceUt = heldSinceUt;
         }
+
+        /// <summary>A row held from <paramref name="heldSinceUt"/> until home hears of its craft.</summary>
+        public static PendingCreditRow Held(
+            DelayedCurrency currency,
+            double baseAmount,
+            double heldSinceUt,
+            string originVesselId,
+            string originDescription) =>
+            new PendingCreditRow(currency, baseAmount, double.PositiveInfinity, originVesselId, originDescription, heldSinceUt);
+
+        /// <summary>This row due at <paramref name="revealUt"/>, held or not.</summary>
+        public PendingCreditRow DueAt(double revealUt) =>
+            new PendingCreditRow(Currency, BaseAmount, revealUt, OriginVesselId, OriginDescription);
     }
 }

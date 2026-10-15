@@ -596,7 +596,8 @@ namespace Gonogo.KSP.CurrencyDelay
                 credit.Value.BaseAmount,
                 credit.Value.RevealUt,
                 credit.Value.OriginVesselId,
-                credit.Value.OriginDescription));
+                credit.Value.OriginDescription,
+                credit.Value.HeldSinceUt));
         }
 
         private static DelayedCurrency ToDelayedCurrency(CurrencyKind currency)

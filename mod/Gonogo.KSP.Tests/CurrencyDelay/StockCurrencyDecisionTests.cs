@@ -101,6 +101,38 @@ public class StockCurrencyDecisionTests
     }
 
     [Fact]
+    public void BuildCredit_holds_a_penalty_from_a_craft_with_no_route_for_home_to_hear_of_it()
+    {
+        var credit = StockCurrencyDecision.BuildCredit(
+            CurrencyKind.Reputation, baseAmount: -10.0, shadowBalance: 100.0,
+            originVesselId: "vessel-1", delay: KscDelay.Unroutable, config: new SignalDelayConfig { Enabled = true, SilenceDeclarationSeconds = 86_400.0 }, nowUt: 1000.0);
+
+        Assert.Equal(1000.0, credit!.Value.HeldSinceUt);
+    }
+
+    [Fact]
+    public void BuildCredit_gives_science_from_a_craft_with_no_route_the_silence_deadline()
+    {
+        var credit = StockCurrencyDecision.BuildCredit(
+            CurrencyKind.Science, baseAmount: 5.0, shadowBalance: 100.0,
+            originVesselId: "vessel-1", delay: KscDelay.Unroutable, config: new SignalDelayConfig { Enabled = true, SilenceDeclarationSeconds = 86_400.0 }, nowUt: 1000.0);
+
+        Assert.Null(credit!.Value.HeldSinceUt);
+        Assert.Equal(87_400.0, credit.Value.RevealUt);
+    }
+
+    [Fact]
+    public void BuildCredit_with_signal_delay_off_lands_a_penalty_from_a_craft_with_no_route_at_once()
+    {
+        var credit = StockCurrencyDecision.BuildCredit(
+            CurrencyKind.Reputation, baseAmount: -10.0, shadowBalance: 100.0,
+            originVesselId: "vessel-1", delay: KscDelay.Unroutable, config: new SignalDelayConfig { Enabled = false }, nowUt: 1000.0);
+
+        Assert.Null(credit!.Value.HeldSinceUt);
+        Assert.Equal(1000.0, credit.Value.RevealUt);
+    }
+
+    [Fact]
     public void BuildCredit_stores_the_base_amount_unmodified()
     {
         var credit = StockCurrencyDecision.BuildCredit(

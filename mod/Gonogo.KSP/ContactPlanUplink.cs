@@ -58,6 +58,7 @@ namespace Gonogo.KSP
             _host = host;
             _surface = new KspVisibilityGeometryFactory(() => host.Kernel);
             _source.Register(host);
+            CurrencyDelay.HomeCraftViews.Bind(_source.HomeViewOf);
             // Ungated: whether light that was sent lands is asked of these links
             // whether or not anyone is watching a topic.
             host.AddSampledSource(CaptureLinksOnMain, links => _inputs.SetLinks(links as LiveLinkGraph ?? LiveLinkGraph.Empty));

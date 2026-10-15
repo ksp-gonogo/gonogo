@@ -855,6 +855,9 @@ namespace Sitrep.Host.Comms
         /// </summary>
         private readonly Dictionary<string, HomeVerdict> _verdicts = new Dictionary<string, HomeVerdict>(StringComparer.Ordinal);
 
+        /// <summary>Home's view of each craft, by bare guid, written by the judgement on the courier thread and read from any thread under its own lock.</summary>
+        private readonly Dictionary<string, HomeCraftView> _homeViews = new Dictionary<string, HomeCraftView>(StringComparer.Ordinal);
+
         /// <summary>
         /// Judges every craft the home centre has word of, and sends out each
         /// judgement that changed: see <see cref="HomeJudgement"/>.
@@ -892,6 +895,10 @@ namespace Sitrep.Host.Comms
                 {
                     _craftHost.RecordHomeVerdict(vesselId, verdict, ut);
                 }
+                lock (_homeViews)
+                {
+                    _homeViews[vesselId] = new HomeCraftView(contact.Value.State, contact.Value.LastContactUt, verdict.State, verdict.LostSeq);
+                }
             }
         }
 
@@ -900,6 +907,15 @@ namespace Sitrep.Host.Comms
 
         /// <summary>The ground's forecast for the craft as it has reached <paramref name="centre"/>. Courier thread only.</summary>
         internal CraftForecast? ForecastHeardAt(string centre, string nodeId) => _hearing?.ForecastAt(centre, nodeId);
+
+        /// <summary>What the home centre knows of the craft, by bare guid, as of its latest judgement, or null when no word of it has reached home. Any thread.</summary>
+        public HomeCraftView? HomeViewOf(string vesselId)
+        {
+            lock (_homeViews)
+            {
+                return _homeViews.TryGetValue(vesselId, out var view) ? view : (HomeCraftView?)null;
+            }
+        }
 
         /// <summary>The home centre's judgement of the craft as it stands. Courier thread only.</summary>
         internal HomeVerdict? HomeVerdictOf(string nodeId) => _verdicts.TryGetValue(nodeId, out var verdict) ? verdict : null;
@@ -1020,6 +1036,10 @@ namespace Sitrep.Host.Comms
                 _reportsSaid.Clear();
                 _reportsSent.Clear();
                 _verdicts.Clear();
+                lock (_homeViews)
+                {
+                    _homeViews.Clear();
+                }
                 // The version does not move here: the first plan after the reset is judged against the
                 // one it replaces, so a load that finds the same contacts is not a change to them.
                 _offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
