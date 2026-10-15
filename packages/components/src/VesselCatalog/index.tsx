@@ -13,18 +13,18 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { commsRollup } from "./comms";
 import { useFleet } from "./fleet";
-import read from "./fleet-roster.declarations.g";
 import { RosterTable } from "./RosterTable";
-import { fleetRosterTopics } from "./topics";
+import { vesselCatalogTopics } from "./topics";
 import { useFleetEssentials } from "./useFleetEssentials";
+import read from "./vessel-catalog.declarations.g";
 
 export type { CommsLink, FleetVessel } from "./fleet";
 
-type FleetRosterConfig = Record<string, never>;
+type VesselCatalogConfig = Record<string, never>;
 
-function FleetRosterComponent({
+function VesselCatalogComponent({
   w,
-}: Readonly<ComponentProps<FleetRosterConfig>>) {
+}: Readonly<ComponentProps<VesselCatalogConfig>>) {
   const { known, reading, vessels, coverage } = useFleet();
   const rollup = commsRollup(vessels);
   // Whose light-time the delays are computed from: the selected command centre, else the one the frames name.
@@ -32,7 +32,9 @@ function FleetRosterComponent({
   const observedVantage = useObservedVantage();
   const vantage = chosenVantage ?? observedVantage;
   // Centres do not move, so a held list is still the list.
-  const centresReading = fleetRosterTopics.useTelemetry("commandCentre.roster");
+  const centresReading = vesselCatalogTopics.useTelemetry(
+    "commandCentre.roster",
+  );
   const centres =
     centresReading.state === "observed" || centresReading.state === "held"
       ? centresReading.value
@@ -42,7 +44,7 @@ function FleetRosterComponent({
 
   return (
     <Panel
-      panelTitle="Fleet Roster"
+      panelTitle="Vessel Catalog"
       panelBadges={[
         // Before the roster arrives there is nothing to roll up, which "No Vessels" would claim is an empty fleet.
         known
@@ -82,23 +84,23 @@ function FleetRosterComponent({
   );
 }
 
-registerComponent<FleetRosterConfig>({
-  id: "fleet-roster",
-  name: "Fleet Roster",
+registerComponent<VesselCatalogConfig>({
+  id: "vessel-catalog",
+  name: "Vessel Catalog",
   description:
     "Every craft you have out there, with the body it is at, its crew and its comms link (direct, relay or none), plus how much of your fleet is in contact. Debris, asteroids, comets, flags and kerbals on EVA are left out.",
   tags: ["telemetry"],
   /* Declared, not merely rendered: the picker and search tags find extending Uplinks by walking this list. */
-  augmentSlots: ["fleet-roster.updates"],
+  augmentSlots: ["vessel-catalog.updates"],
   defaultSize: { w: 8, h: 10 },
   // The roster needs five columns and six rows.
   minSize: { w: 5, h: 6 },
-  component: FleetRosterComponent,
+  component: VesselCatalogComponent,
   tiny: {
     title: "FLEET",
     useEssentials: useFleetEssentials,
   },
-  channels: fleetRosterTopics.channels,
+  channels: vesselCatalogTopics.channels,
   ...read,
   /* Mission control only by declaration: nothing read is ground-only, so derivation alone would put it on a pilot's screen. */
   seats: ["mission-control"],
@@ -107,4 +109,4 @@ registerComponent<FleetRosterConfig>({
   requires: ["flight"],
 });
 
-export { FleetRosterComponent };
+export { VesselCatalogComponent };

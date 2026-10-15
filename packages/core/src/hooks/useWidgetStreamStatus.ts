@@ -56,7 +56,7 @@ const WIDGET_WIDE_GRADES: ReadonlySet<StreamStatusValue> =
  *
  * A widget's families of runtime-built Topics are not part of this: the store
  * cannot list their members, and blackout is per craft, so one pill for a
- * family that spans every craft (the fleet roster's rows) would mark the whole
+ * family that spans every craft (the vessel catalog's rows) would mark the whole
  * widget for one dark vessel. The Topics `channelsFromConfig` names for
  * `config` are included, since a tile's series are one craft's by construction.
  */

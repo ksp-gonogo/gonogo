@@ -349,7 +349,7 @@ namespace Sitrep.Host
         /// emitted with a fabricated one (R1). The crew/comms fields carry
         /// through as typed <c>null</c> whenever the producer omitted them
         /// (an unreadable/unresolved per-vessel read); never a fabricated
-        /// zero/false (FleetRoster capture-add; see
+        /// zero/false (VesselCatalog capture-add; see
         /// <see cref="CatalogEntry"/>'s own doc comments for the
         /// loaded-vs-proto crew read and the comms read's independence from
         /// <see cref="ICommsBackend"/>). <c>orbit</c> reuses <see cref="BuildOrbit"/>,
