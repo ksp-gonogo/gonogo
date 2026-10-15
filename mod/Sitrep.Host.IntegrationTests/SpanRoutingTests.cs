@@ -267,7 +267,8 @@ namespace Sitrep.Host.IntegrationTests
 
             var lost = world.Home.LinkReports.First(r => !r.Connected);
             var regained = world.Home.LinkReports.First(r => r.Connected && r.ValidAt >= 250.0);
-            Assert.InRange(lost.ValidAt, 49.0, 51.0);
+            var received = string.Join(" ", world.Home.LinkReports.Select(r => (r.Connected ? "up@" : "down@") + r.ValidAt));
+            Assert.True(lost.ValidAt >= 49.0 && lost.ValidAt <= 51.0, "the loss reached home as " + lost.ValidAt + ", reports received in order: " + received);
             Assert.All(world.Home.LinkReports, r => Assert.Equal(r.ValidAt + 1.0, r.DeliveredAt, precision: 3));
             Assert.Equal(lost.ValidAt + 1.0, lost.DeliveredAt, precision: 3);
             Assert.Equal(regained.ValidAt + 1.0, regained.DeliveredAt, precision: 3);
