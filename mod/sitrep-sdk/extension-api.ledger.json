@@ -11969,6 +11969,10 @@
         "note": "Draws an explicit plus before a figure that is zero or above, so an angle or rate reads as signed. Optional, so an essential without it is drawn as before"
       },
       {
+        "key": "sitrep-sdk . TinyEssential#trend?",
+        "note": "Recent values of a tiny hero figure, drawn as a sparkline along the tile's bottom edge"
+      },
+      {
         "key": "sitrep-sdk . TinyEssentialMark",
         "note": "The shape of a tiny essential's stated mark: kind, elsewhere and caption"
       },
@@ -13559,6 +13563,10 @@
       {
         "key": "sitrep-sdk ./registry ~TinyEssential#signed?",
         "note": "Draws an explicit plus before a figure that is zero or above, so an angle or rate reads as signed. Optional, so an essential without it is drawn as before"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TinyEssential#trend?",
+        "note": "Recent values of a tiny hero figure, drawn as a sparkline along the tile's bottom edge"
       },
       {
         "key": "sitrep-sdk ./registry ~TinyEssentialMark",
@@ -16215,6 +16223,50 @@
       {
         "key": "ui-kit . SeriesType",
         "note": "how a plotted line is drawn between samples, moved here unchanged"
+      },
+      {
+        "key": "ui-kit . Sparkline",
+        "note": "The inline trendline moves into the published kit so a tiny form can draw one"
+      },
+      {
+        "key": "ui-kit . SparklineProps",
+        "note": "A prop of the trendline"
+      },
+      {
+        "key": "ui-kit . SparklineProps#\"aria-label\"?",
+        "note": "A prop of the trendline"
+      },
+      {
+        "key": "ui-kit . SparklineProps#background?",
+        "note": "A prop of the trendline"
+      },
+      {
+        "key": "ui-kit . SparklineProps#color?",
+        "note": "A prop of the trendline"
+      },
+      {
+        "key": "ui-kit . SparklineProps#height",
+        "note": "A prop of the trendline"
+      },
+      {
+        "key": "ui-kit . SparklineProps#showZeroBaseline?",
+        "note": "A prop of the trendline"
+      },
+      {
+        "key": "ui-kit . SparklineProps#strokeWidth?",
+        "note": "A prop of the trendline"
+      },
+      {
+        "key": "ui-kit . SparklineProps#values",
+        "note": "A prop of the trendline"
+      },
+      {
+        "key": "ui-kit . SparklineProps#width",
+        "note": "A prop of the trendline"
+      },
+      {
+        "key": "ui-kit . SparklineProps#yDomain?",
+        "note": "A prop of the trendline"
       },
       {
         "key": "ui-kit . SpinnerProps#\"aria-label\"?",
