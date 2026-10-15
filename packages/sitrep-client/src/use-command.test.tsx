@@ -276,6 +276,8 @@ describe("useCommand inFlight", () => {
       });
 
       fireEvent.click(screen.getByText("go1"));
+      // The second goes unanswered: a reply would prove it arrived, which a dropped link cannot undo.
+      fixture.transport.holdCommands();
       fireEvent.click(screen.getByText("go2"));
       expect(fixture.transport.sentCommands).toHaveLength(2);
       const [r1id, r2id] = fixture.transport.sentCommands.map(
@@ -446,6 +448,56 @@ describe("useCommand inFlight", () => {
       expect(screen.getByText("phases:overdue")).toBeTruthy(),
     );
     expect(screen.getByText("count:1")).toBeTruthy();
+  });
+
+  it("takes a command sent with no route off the rail once the game has answered it", async () => {
+    const fixture = setupFixture();
+    fixture.transport.holdCommands();
+    render(
+      <fixture.Provider>
+        <DeployWithInFlight />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "comms.link",
+        { connected: true },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+
+    fireEvent.click(screen.getByText("go1"));
+    const [id] = fixture.transport.sentCommands.map((c) => c.requestId);
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        {
+          pending: [
+            {
+              id: "engine-id",
+              clientRequestId: id,
+              command: "deploy",
+              label: "",
+              topic: "t",
+              vantage: "ksc",
+              dispatchedAt: 0,
+              oneWaySeconds: null,
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() =>
+      expect(screen.getByText("phases:in-transit")).toBeTruthy(),
+    );
+
+    await act(async () => {
+      fixture.transport.answerHeldCommands();
+    });
+    expect(fixture.client.getCommand(id).phase).toBe("confirmed");
+
+    await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
   });
 
   it("takes a command the game refused off the rail, never leaving it overdue", async () => {

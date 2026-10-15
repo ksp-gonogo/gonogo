@@ -25,14 +25,16 @@ export type AutoDispatchDecision = "wait" | "fire" | "skip-past";
  * `targetUt - delaySeconds`, so the command arrives at `targetUt` after one
  * one-way delay. If armed after the lead point but before the event, fire
  * immediately (the event is still ahead); if the event itself is already past,
- * skip (dispatching now would only arrive later still).
+ * skip (dispatching now would only arrive later still). With no known delay
+ * there is no lead point to reach, so it waits.
  */
 export function decideAutoDispatch(
   utNow: number,
   targetUt: number,
-  delaySeconds: number,
+  delaySeconds: number | null,
 ): AutoDispatchDecision {
   if (utNow > targetUt) return "skip-past";
+  if (delaySeconds === null) return "wait";
   if (utNow >= targetUt - delaySeconds) return "fire";
   return "wait";
 }
@@ -55,8 +57,8 @@ export interface AutoCommandStatus {
   fired: boolean;
   /** The event was already past when armed; nothing was dispatched. */
   skipped: boolean;
-  /** The game-UT this will dispatch at: `targetUt - current one-way delay`. */
-  dispatchUt: number;
+  /** The game-UT this will dispatch at: `targetUt - current one-way delay`; `null` while the delay is unknown. */
+  dispatchUt: number | null;
   /** The underlying command handle, registered with the panel's rail like any other. */
   command: UseCommandResult;
 }
@@ -79,8 +81,12 @@ export function useAutoCommand({
   onSkip,
 }: AutoCommandOptions): AutoCommandStatus {
   const utNow = useUtNow();
-  const delaySeconds = useLeadSeconds();
+  const leadSeconds = useLeadSeconds();
   const cmd = useCommand(command);
+  /* Before any `comms.delay` reading the clock's figure is 0, which is not a delay of zero. An instant command has no delay to wait for. */
+  const delayUnknown =
+    cmd.delayMode === null && cmd.effectiveDelaySeconds !== 0;
+  const delaySeconds = delayUnknown ? null : leadSeconds;
   const { send } = cmd;
 
   // Ref guard for the single dispatch (StrictMode-safe); `phase` mirrors it for the reactive return.
@@ -113,7 +119,7 @@ export function useAutoCommand({
   return {
     fired: phase === "fired",
     skipped: phase === "skipped",
-    dispatchUt: targetUt - delaySeconds,
+    dispatchUt: delaySeconds === null ? null : targetUt - delaySeconds,
     command: cmd,
   };
 }

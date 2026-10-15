@@ -127,8 +127,10 @@ export function TelemetryProvider({
   viewClockOptions,
 }: TelemetryProviderProps) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: viewClockOptions is deliberately read only ONCE, at construction of a store this provider owns, a caller passing a fresh inline options object every render must not tear down and rebuild the store/clock each time. `client` IS a dependency for the auto-built branch below; see that branch's own comment for why; it's listed here (rather than split into two memos) so a `providedStore` caller's `client` swap still re-triggers the (no-op, `providedStore`-returning) factory, keeping this one memo the single source of truth `store` identity is derived from.
-  const { store, delayAuthority } = useMemo(() => {
-    if (providedStore) return { store: providedStore, delayAuthority: null };
+  const { store, delayAuthority, warp } = useMemo(() => {
+    if (providedStore) {
+      return { store: providedStore, delayAuthority: null, warp: null };
+    }
     // Auto-built store must rebuild on `client` identity change, so `client`
     // has to stay in this memo's deps. It looks droppable, on the theory that
     // the store "isn't tied to a specific client instance", but an AUTO-BUILT
@@ -150,10 +152,14 @@ export function TelemetryProvider({
     // (e.g. a fixed replay delay) still wins, the authority is only the
     // default. Media (kerbcast) reads this same clock, so it aligns for free.
     const authority = new DelayAuthority();
+    const warpSlope = { rate: 1, paused: false };
     const built = new TimelineStore(
       new ViewClock({
         ...viewClockOptions,
         delaySeconds: viewClockOptions?.delaySeconds ?? authority.delaySeconds,
+        warpRate:
+          viewClockOptions?.warpRate ??
+          (() => (warpSlope.paused ? 0 : warpSlope.rate)),
       }),
       // A topic under a dynamic namespace is one whole raw topic, never a `<domain.channel>.<field>` split.
       { dynamicWholeTopicPrefixes: DYNAMIC_WHOLE_TOPIC_PREFIXES },
@@ -175,7 +181,7 @@ export function TelemetryProvider({
     for (const channel of getContributedDerivedChannels()) {
       built.registerDerivedChannel(channel);
     }
-    return { store: built, delayAuthority: authority };
+    return { store: built, delayAuthority: authority, warp: warpSlope };
   }, [providedStore, client]);
 
   // A store is built with the channels contributed so far, which on a station
@@ -290,6 +296,17 @@ export function TelemetryProvider({
    * readout still judges every other channel's staleness against it.
    */
   useEffect(() => client.subscribe("time.warp", () => {}), [client]);
+  /* The view clock extrapolates game time at the game's own rate: a pause stands it still, and warp carries it forward as fast as the game goes. */
+  useEffect(() => {
+    if (!warp) return;
+    return client.subscribe("time.warp", (payload) => {
+      if (typeof payload !== "object" || payload === null) return;
+      const paused: unknown = Reflect.get(payload, "paused");
+      if (typeof paused === "boolean") warp.paused = paused;
+      const rate = pickedKeyMagnitude(Reflect.get(payload, "warpRate"));
+      if (rate !== undefined && rate > 0) warp.rate = rate;
+    });
+  }, [client, warp]);
   useEffect(() => {
     // Coalesce to (at most) one `beginFrame()` per animation-frame tick,
     // instead of one per `stream-data` message: see

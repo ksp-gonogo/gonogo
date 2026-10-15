@@ -11665,6 +11665,10 @@
         "note": "New optional field: the request ids a group's one entry stands for"
       },
       {
+        "key": "sitrep-sdk . PendingEntry#replyOverdueUt?",
+        "note": "New optional field: when the centre first found the reply overdue, read where the client used to recompute it"
+      },
+      {
         "key": "sitrep-sdk . PlotEntry#held?",
         "note": "PlotEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
@@ -14403,6 +14407,10 @@
       {
         "key": "sitrep-sdk ./spine ~PendingEntry#members?",
         "note": "New optional field: the request ids a group's one entry stands for"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PendingEntry#replyOverdueUt?",
+        "note": "New optional field: when the centre first found the reply overdue, read where the client used to recompute it"
       },
       {
         "key": "sitrep-sdk ./spine ~PlotEntry#held?",

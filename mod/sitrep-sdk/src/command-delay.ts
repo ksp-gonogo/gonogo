@@ -82,6 +82,12 @@ export interface PendingEntry {
   predictedReplyUt?: Value<"ut"> | null;
   /** For a held command, when it is deleted wherever it is if it has not run; absent or null otherwise. */
   expiresAtUt?: Value<"ut"> | null;
+  /**
+   * When the sending centre first found the reply overdue: it was predicted
+   * home by then, no wait for a window was predicted, and nothing came. Absent
+   * or null while the reply is not yet due or is predicted to wait.
+   */
+  replyOverdueUt?: Value<"ut"> | null;
   /** For a held command, its lane number: its place in the run of delayed commands this centre sends to the craft. Absent or null for a command on no lane. */
   laneSeq?: Value<"count"> | null;
   /**
@@ -408,12 +414,23 @@ export function classifyRetained(args: {
       : entry.oneWaySeconds
         ? entry.dispatchedAt.plus(entry.oneWaySeconds.times(2))
         : null);
+  // The centre's own finding, once it has made one, stands over the local sum.
+  const centreOverdueUt = entry.replyOverdueUt;
+  if (
+    !acknowledged &&
+    centreOverdueUt != null &&
+    !value("ut", nowUt).lessThan(centreOverdueUt)
+  ) {
+    return { ...base, predictedPhase: "overdue" };
+  }
   // No reply is predicted and nothing says when it expires: there is nothing to be late against yet.
   if (replyUt === null) return base;
   // 'lost': path was not continuously up across the in-flight window. Not for
-  // a held command: a break leaves it waiting at a node, not lost.
+  // a held command: a break leaves it waiting at a node, not lost. Not for one
+  // already answered either: a reply proves it arrived.
   if (
     !held &&
+    args.acknowledged !== true &&
     !pathConnectedDuring(entry.dispatchedAt.magnitude, replyUt.magnitude)
   ) {
     return { ...base, predictedPhase: "lost" };

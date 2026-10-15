@@ -624,3 +624,41 @@ describe("sampleActiveReading: the non-hook read that carries its own currency",
     client.dispose();
   });
 });
+
+describe("the view clock's slope", () => {
+  it("follows the warp rate the stream carries, and stands still while paused", async () => {
+    let wall = 0;
+    let clock: ViewClock | undefined;
+    function Probe() {
+      clock = useTelemetryStore().clock;
+      return null;
+    }
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const { unmount } = render(
+      <TelemetryProvider
+        client={client}
+        viewClockOptions={{ nowWall: () => wall }}
+      >
+        <Probe />
+      </TelemetryProvider>,
+    );
+
+    await act(async () => {
+      transport.emit("time.warp", { warpRate: 50, paused: false });
+    });
+    clock?.observeSample(100, 100);
+    wall = 2;
+    expect(clock?.utNowEstimate()).toBeCloseTo(200);
+
+    await act(async () => {
+      transport.emit("time.warp", { warpRate: 50, paused: true });
+    });
+    clock?.observeSample(200, 200);
+    wall = 4;
+    expect(clock?.utNowEstimate()).toBeCloseTo(200);
+
+    unmount();
+    client.dispose();
+  });
+});

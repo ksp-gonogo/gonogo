@@ -400,6 +400,19 @@ function resolveTracked(
   if (acked && classified.predictedPhase === "due") {
     return { kind: "resolved" };
   }
+  /*
+   * Nothing on the rail to play through: no route was known, the entry is held
+   * at a relay whose wait the prediction can only guess, or no reply time was
+   * predicted. The answer came, so the command ran, and `due` may never come.
+   */
+  if (
+    acked &&
+    (classified.reachEtaSeconds === null ||
+      entry.laneSeq != null ||
+      classified.replyEtaSeconds === null)
+  ) {
+    return { kind: "resolved" };
+  }
   return { kind: "classified", item: classified };
 }
 

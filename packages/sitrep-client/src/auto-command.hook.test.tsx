@@ -127,6 +127,28 @@ describe("useAutoCommand", () => {
     await act(async () => {});
   });
 
+  it("waits while the delay is unknown rather than leading by zero", async () => {
+    const { transport, clock, staged, Provider } = setup();
+    render(
+      <Provider>
+        <Harness targetUt={100} />
+      </Provider>,
+    );
+    act(() => {
+      clock.observeSample(100, 100);
+      raf.flush();
+    });
+    expect(staged()).toHaveLength(0);
+
+    act(() => {
+      transport.emit("comms.delay", { oneWaySeconds: 10 });
+      raf.flush();
+    });
+    expect(staged()).toHaveLength(1);
+
+    await act(async () => {});
+  });
+
   it("skips (no dispatch) when the event is already past on arm", () => {
     const onSkip = vi.fn();
     // utNow 110 > target 100: too late to lead-compensate (independent of delay).

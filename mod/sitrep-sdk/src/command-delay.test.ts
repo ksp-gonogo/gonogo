@@ -112,6 +112,26 @@ describe("classifyRetained", () => {
     });
     expect(c?.predictedPhase).toBe("lost");
   });
+  it("an answered command is never lost, however the path behaved after", () => {
+    const c = classifyRetained({
+      entry: e,
+      nowUt: 106,
+      present: true,
+      acknowledged: true,
+      pathConnectedDuring: () => false,
+    });
+    expect(c?.predictedPhase).not.toBe("lost");
+  });
+  it("reads the centre's own overdue finding rather than waiting out the local margin", () => {
+    const c = classifyRetained({
+      entry: { ...e, replyOverdueUt: value("ut", 109) },
+      nowUt: 110,
+      present: true,
+      acknowledged: false,
+      overdueMarginSeconds: 60,
+    });
+    expect(c?.predictedPhase).toBe("overdue");
+  });
   it("past reply + margin, still nothing => overdue", () => {
     const c = classifyRetained({
       entry: e,

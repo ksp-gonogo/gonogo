@@ -115,6 +115,37 @@ function send(client: TelemetryClient) {
   return { requestId, settled };
 }
 
+describe("a command's round trip, timed on the game's UT", () => {
+  it("is not called lost on the client's clock while the game runs slower than real time", () => {
+    const { transport, clock, client } = heldClient();
+    gameAt(transport, SAVE_UT);
+    const { requestId } = send(client);
+
+    transport.emitRaw({
+      type: "command-accepted",
+      requestId,
+      oneWaySeconds: 60,
+    });
+    clock.advanceTo(100);
+    gameAt(transport, SAVE_UT + 10);
+
+    clock.advanceTo(124);
+    expect(client.getCommand(requestId)?.phase).toBe("in-flight");
+  });
+
+  it("is timed by the delay authority in game seconds, not the client's clock", () => {
+    const { transport, clock, client } = heldClient();
+    client.setDelaySource(() => 60);
+    gameAt(transport, SAVE_UT);
+    const { requestId } = send(client);
+    clock.advanceTo(100);
+    gameAt(transport, SAVE_UT + 10);
+
+    clock.advanceTo(124);
+    expect(client.getCommand(requestId)?.phase).toBe("in-flight");
+  });
+});
+
 describe("a held command's deadline, given in game UT", () => {
   it("is timed by how far ahead of the game's UT it is, late in a save", async () => {
     const { transport, clock, client } = heldClient();

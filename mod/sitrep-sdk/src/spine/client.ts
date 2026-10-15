@@ -1170,6 +1170,18 @@ export class TelemetryClient {
         ? this.clock.now() + 2 * this.delaySource()
         : undefined);
     const etaConfirm = predictedEta ?? this.clock.now();
+    /*
+     * The authority's delay is in game seconds, so once a frame has said what UT
+     * the game is at, the round trip is a game deadline. On the client's clock
+     * it would run out early whenever the game runs slower than real time.
+     */
+    const dispatchUt = this.gameUtNow();
+    const delayDeadlineUt =
+      this.transport.predictConfirmEta?.() === undefined &&
+      this.delaySource &&
+      dispatchUt !== undefined
+        ? dispatchUt + 2 * this.delaySource()
+        : undefined;
     if (predictedEta === undefined) this.warnNoLossDeadlineOnce();
     const replyDueUt =
       predictedEta === undefined ? undefined : this.gameUtAt(predictedEta);
@@ -1193,12 +1205,17 @@ export class TelemetryClient {
     this.outstandingDirty = true;
     this.dropOldestAnswered();
 
-    if (predictedEta !== undefined) {
-      const cancel = this.clock.schedule(predictedEta + LOSS_MARGIN, () =>
-        this.handleLoss(requestId),
-      );
-      const pending = this.commands.get(requestId);
-      if (pending) pending.cancelLossTimer = cancel;
+    const pendingNow = this.commands.get(requestId);
+    if (predictedEta !== undefined && pendingNow) {
+      if (delayDeadlineUt !== undefined) {
+        pendingNow.gameDeadlineUt = delayDeadlineUt;
+        this.placeGameDeadline(requestId, pendingNow);
+      } else {
+        pendingNow.cancelLossTimer = this.clock.schedule(
+          predictedEta + LOSS_MARGIN,
+          () => this.handleLoss(requestId),
+        );
+      }
     }
 
     this.notifyStore();
@@ -1528,11 +1545,15 @@ export class TelemetryClient {
      * no route yet. That is not a zero: the command is timed by its predicted
      * reply or its expiry below, and by nothing here when it has neither.
      */
-    const roundTrip =
+    const knownOneWay =
       oneWaySeconds != null &&
       Number.isFinite(oneWaySeconds) &&
       oneWaySeconds >= 0
-        ? this.clock.now() + 2 * oneWaySeconds
+        ? oneWaySeconds
+        : undefined;
+    const roundTrip =
+      knownOneWay !== undefined
+        ? this.clock.now() + 2 * knownOneWay
         : undefined;
 
     /*
@@ -1541,12 +1562,16 @@ export class TelemetryClient {
      * run up to its expiry. Both figures are game UT, so they are timed against
      * the game's clock and never handed to the client's own.
      */
+    const nowUt = this.gameUtNow();
     const gameDeadlineUt =
       predictedReplyUt != null && Number.isFinite(predictedReplyUt)
         ? predictedReplyUt
         : expiresAtUt != null && Number.isFinite(expiresAtUt)
           ? expiresAtUt
-          : undefined;
+          : /* The delay is game seconds too, so the round trip is timed on the game's UT once it is known. */
+            knownOneWay !== undefined && nowUt !== undefined
+            ? nowUt + 2 * knownOneWay
+            : undefined;
     if (warning && pending.status.phase === "in-flight") {
       pending.status = { ...pending.status, warning };
     }
