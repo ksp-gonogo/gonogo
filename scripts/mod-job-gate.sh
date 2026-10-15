@@ -115,7 +115,7 @@ fi
 # sources at BUILD time when these are missing and then pass having tested
 # nothing, which looks exactly like coverage.
 #
-# Resolution follows scripts/gonogo_claude_tools.sh: a worktree reads the main
+# Resolution follows scripts/gonogo_tools.sh: a worktree reads the main
 # checkout's synced data through --git-common-dir rather than a symlink, because
 # a symlink to 13GB of game data inside a prunable worktree puts that data one
 # `git worktree remove` away from deletion.

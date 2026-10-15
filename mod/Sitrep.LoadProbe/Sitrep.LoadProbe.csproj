@@ -12,5 +12,5 @@
        GameData and nothing in Sitrep.Host references it. It targets net10.0
        because AssemblyLoadContext is what lets it load a KSP plugin and its
        dependencies from chosen directories without the game running.
-       scripts/gonogo_claude_tools.sh runs it before a deploy copies anything. -->
+       scripts/gonogo_tools.sh runs it before a deploy copies anything. -->
 </Project>

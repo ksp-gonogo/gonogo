@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# gonogo_claude_tools.sh: purpose-scoped helpers Claude Code can invoke
-# without per-call permission prompts.
+# gonogo_tools.sh: purpose-scoped local developer tooling for the mod build and
+# KSP game data: type decompilation, member listing and mod builds.
 #
-# Allow-list the script once in your Claude Code local settings:
-#   "Bash(./scripts/gonogo_claude_tools.sh *)"
+# Allow-list the script once in your local settings so it runs without
+# per-call permission prompts:
+#   "Bash(./scripts/gonogo_tools.sh *)"
 #
 # Each subcommand does ONE thing. New functionality means adding a
 # subcommand here, not a new allow-list entry.
@@ -28,7 +29,7 @@
 #       answers "not found" no matter how present it is. Point them at the mod:
 #
 #         GONOGO_EXTRA_DLL_DIRS=local_docs/syncthing/kspdata/GameData/RP-1/Plugins \
-#           ./scripts/gonogo_claude_tools.sh findtype StrategyRP0
+#           ./scripts/gonogo_tools.sh findtype StrategyRP0
 #
 #       Colon-separated for several. Every miss now names the roots it searched,
 #       because a lookup that never looked in GameData used to report a bare
@@ -225,7 +226,7 @@ _resolve_type() {
 
 decompile() {
   if [ "$#" -lt 1 ]; then
-    echo "usage: gonogo_claude_tools.sh decompile <Type> [<Type>...]"
+    echo "usage: gonogo_tools.sh decompile <Type> [<Type>...]"
     return 2
   fi
   if [ ! -f "$DLL" ]; then
@@ -257,7 +258,7 @@ decompile() {
 
 dump() {
   if [ "$#" -lt 1 ]; then
-    echo "usage: gonogo_claude_tools.sh dump <Type> [<Type>...]"
+    echo "usage: gonogo_tools.sh dump <Type> [<Type>...]"
     return 2
   fi
   if [ ! -f "$DLL" ]; then
@@ -338,7 +339,7 @@ _resolve_type_range() {
 
 body() {
   if [ "$#" -lt 2 ]; then
-    echo "usage: gonogo_claude_tools.sh body <Type> <Method>"
+    echo "usage: gonogo_tools.sh body <Type> <Method>"
     echo "  Print one method's body from the cached disassembly. Useful"
     echo "  when you've spotted a method via 'members' and want to see"
     echo "  what it actually does (KSP's null-checks, side effects,"
@@ -417,7 +418,7 @@ body() {
 
 members() {
   if [ "$#" -lt 1 ]; then
-    echo "usage: gonogo_claude_tools.sh members <Type> [<Type>...]"
+    echo "usage: gonogo_tools.sh members <Type> [<Type>...]"
     echo "  Lists every public member (field / property / method)"
     echo "  declared inside a type, by line-range scan of the cached"
     echo "  full disassembly. Use this when 'decompile' gets truncated"
@@ -500,7 +501,7 @@ _findtype_emit() {
 
 findtype() {
   if [ "$#" -lt 1 ]; then
-    echo "usage: gonogo_claude_tools.sh findtype <Name> [<Name>...]"
+    echo "usage: gonogo_tools.sh findtype <Name> [<Name>...]"
     return 2
   fi
   if [ ! -f "$DLL" ]; then
@@ -1033,7 +1034,7 @@ case "${1:-help}" in
       gonogoscansatuplink) build_gonogoscansatuplink ;;
       devtools) build_devtools ;;
       *)
-        echo "usage: gonogo_claude_tools.sh build <target>"
+        echo "usage: gonogo_tools.sh build <target>"
         echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, devtools"
         exit 2
         ;;
