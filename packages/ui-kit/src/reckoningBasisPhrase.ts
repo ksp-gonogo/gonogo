@@ -13,7 +13,7 @@ const PHRASE: Record<ReckoningBasis, string> = {
  * How a value was reckoned (held, or carried forward by a model), in words.
  * Useful for naming a chart so a screen reader tells the operator how a line
  * was reckoned, since a dash style and a muted colour are not read out. Used
- * by {@link LineGraph} and the docking and rendezvous widgets.
+ * by {@link Graph} and the docking and rendezvous widgets.
  *
  * @category LineGraph
  */

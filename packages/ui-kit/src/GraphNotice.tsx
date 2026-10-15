@@ -126,7 +126,7 @@ const PLACEMENT_STYLES = {
  * @example Over a graph in a `position: relative` container
  * ```tsx
  * <div style={{ position: "relative" }}>
- *   <LineGraph series={series} aria-label="Altitude trend" />
+ *   <Graph series={series} xDomain={[0, 600]} aria-label="Altitude trend" />
  *   {series.length === 0 && (
  *     <GraphNotice placement="overlay">no reference data</GraphNotice>
  *   )}

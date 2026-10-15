@@ -115,7 +115,7 @@ export interface SeriesStatusSpan {
  * `Reckoning` uses.
  *
  * Useful for showing the operator which part of a trace is an estimate. Listed
- * in {@link SeriesRange.reckoned} and drawn by {@link LineGraph}.
+ * in {@link SeriesRange.reckoned} and drawn by {@link Graph}.
  *
  * This is the one kind of span a trace should set apart, since the line there
  * is a model's estimate rather than a reading. A sample in a
