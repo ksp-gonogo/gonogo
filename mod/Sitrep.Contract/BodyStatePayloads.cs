@@ -120,7 +120,7 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.Id)]
         public string? ProviderId { get; set; }
 
-        /// <summary>Why the request was refused, in words a reader can act on,
+        /// <summary>Why the request was refused, in words an operator can act on,
         /// when <see cref="Solved"/> is false; null when it is true.</summary>
         [SitrepUnit(Units.Text)]
         public string? Refusal { get; set; }

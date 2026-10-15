@@ -191,7 +191,7 @@ public class ServoEntry
 /// could not be surveyed: a recording that does not carry this field, or a
 /// live read where one part could not be read, since "no robotic parts" is a
 /// claim about every part. <c>false</c> is the definite "this craft carries
-/// none". A reader that treats null as false tells the operator there are no
+/// none". A client that treats null as false tells the operator there are no
 /// robotic parts on a craft that may be full of them.</para>
 /// <internal>
 /// Typing-only mirror of <c>Sitrep.Host.BreakingGroundViewProvider.BuildRoboticsAvailable</c>.

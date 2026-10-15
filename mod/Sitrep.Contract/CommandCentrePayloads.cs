@@ -296,8 +296,8 @@ public class CentreDelayEntry
 /// own. The home centre is never listed: its delay is
 /// <c>comms.delay</c>, which also carries the hold through a loss of signal. A
 /// centre other than home that is not listed has no route to the craft. Neither
-/// absence is a zero, and a reader that finds a centre missing must not quote
-/// one for it.</para>
+/// absence is a zero, so a client must not quote a delay for a centre that is
+/// missing from the list.</para>
 ///
 /// <para>A crewed centre that is the active craft is listed at an explicit
 /// zero: a craft is no distance from itself.</para>

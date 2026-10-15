@@ -469,7 +469,7 @@ public class ScetAlarm
     ///
     /// <para>A time condition is always <c>"game"</c>: universal time is the
     /// game's, and a clock has no craft to belong to. A threshold names the
-    /// craft, and this is what stops it silently re-aiming when the player
+    /// craft, and this is what stops it re-aiming without notice when the player
     /// switches vessels: the game compares this against the
     /// <c>meta.source</c> stamped on the payload it read, and a reading about
     /// somebody else's craft is ignored.</para>
@@ -667,8 +667,8 @@ public class ScetAlarmArmArgs
 }
 
 /// <summary>
-/// <c>alarm.scet.disarm</c>'s args: forget the alarm with this id. Silently
-/// succeeds for an id the host does not hold, so a client reconciling its list
+/// <c>alarm.scet.disarm</c>'s args: forget the alarm with this id. Succeeds
+/// without an error for an id the host does not hold, so a client reconciling its list
 /// against the roster never has to ask first.
 ///
 /// <para>Never delayed, like <c>alarm.scet.arm</c>, so removing an alarm is

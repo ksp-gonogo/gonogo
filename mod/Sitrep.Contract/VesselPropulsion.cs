@@ -69,7 +69,7 @@ public class VesselPropulsion
     /// be true, which is a different kind of UT from a plan's
     /// <c>ManeuverNode.Ut</c> or an orbit's <c>epoch</c>, although all three
     /// carry the same unit. Subtracting this from a planned instant compiles and
-    /// means nothing; measure a duration from it only against the reader's own
+    /// means nothing; measure a duration from it only against the client's own
     /// view clock.</para>
     ///
     /// <para>It is repeated on every frame until it changes, not sent once when

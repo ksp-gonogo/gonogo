@@ -638,6 +638,52 @@ describe("asyncapi.yaml", () => {
     expect(Object.keys(voice.VOICE_DEBT)).toEqual([]);
   });
 
+  it("lists every frame the mod sends in InboundFrame, from the contract's own frame types", () => {
+    type Schema = {
+      oneOf?: { $ref?: string }[];
+      properties?: { type?: { const?: string } };
+      allOf?: Schema[];
+    };
+    const schemas = document.components.schemas as Record<string, Schema>;
+    const constOf = (schema: Schema | undefined): string | undefined =>
+      schema?.properties?.type?.const;
+    const arms = (schemas.InboundFrame.oneOf ?? []).map((arm) =>
+      constOf(schemas[(arm.$ref ?? "").split("/").pop() ?? ""]),
+    );
+    expect(arms.sort()).toEqual([
+      "command-accepted",
+      "command-response",
+      "error",
+      "event",
+      "game-state",
+      "hello",
+      "pong",
+      "stream-binary",
+      "stream-data",
+    ]);
+
+    /*
+     * Every other frame the contract declares is one a client sends, so a new
+     * server frame has to be placed in InboundFrame or in the client list
+     * before the document will generate.
+     */
+    const clientFrames = [
+      "claim",
+      "command-group",
+      "command-request",
+      "ping",
+      "set-vantage",
+      "subscribe",
+      "unsubscribe",
+    ];
+    const declared = Object.values(schemas)
+      .map(constOf)
+      .filter((value): value is string => value !== undefined);
+    expect([...arms, ...clientFrames].sort()).toEqual(
+      [...new Set(declared)].sort(),
+    );
+  });
+
   it("emits the same bytes twice", () => {
     const again = generator.serialise(generator.generate().document);
     expect(again).toBe(yaml);

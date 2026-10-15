@@ -106,7 +106,7 @@ public class CommsConnectivity
 /// for the path, which falls off smoothly towards the range edge of each link
 /// and is multiplied across relays, RealAntennas how far up its data-rate
 /// ladder the path's links close. <see cref="Quantity"/> says which, so a
-/// reader names the figure correctly and never compares two that are
+/// client names the figure correctly and does not compare two that are
 /// different quantities.
 ///
 /// <para>Each command centre is sent its own, the newest reading to have
@@ -181,7 +181,7 @@ public class CommsSignal
     /// <summary>
     /// The route <see cref="Strength"/> was measured on, where that is not the
     /// active route. Set whenever
-    /// <see cref="OtherPath"/> is true and null otherwise, so a reader can
+    /// <see cref="OtherPath"/> is true and null otherwise, so a client can
     /// name the route the figure belongs to beside the mark that says it is
     /// of another path. It is as old as the strength beside it, and names
     /// each vessel as the receiving centre last heard it named.
