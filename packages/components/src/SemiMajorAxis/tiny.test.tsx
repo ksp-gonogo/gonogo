@@ -35,7 +35,8 @@ describe("SemiMajorAxis tiny mode", () => {
     await waitFor(() => expect(essentialTexts()).toHaveLength(1));
     expect(essentialTexts()[0]).toMatch(/675\.0\skm/);
     expect(visibleText()).not.toContain("Semi-major axis");
-    expect(document.querySelector("svg[aria-label='SMA trend']")).toBeNull();
+    // The trend strip is laid out along the bottom edge; jsdom measures it at nothing, so the line itself is not drawn here.
+    expect(document.querySelector("[data-panel-trend]")).not.toBeNull();
     unmount();
 
     renderWidget("semi-major-axis", {
