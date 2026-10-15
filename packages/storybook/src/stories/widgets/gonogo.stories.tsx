@@ -66,7 +66,7 @@ export const CountingDown: Story = {
   name: "Main, all GO and counting down",
   args: {
     stations: [FLIGHT, BOOSTER, GUIDANCE, EECOM],
-    w: 8,
+    w: 6,
     h: 8,
   },
 };
