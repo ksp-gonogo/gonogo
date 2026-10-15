@@ -50,14 +50,16 @@ export interface PlotCrosshairProps {
    * covers the plot. Omitted, the card is drawn over the plot where it covers no dot.
    */
   column?: { x0: number; y0: number; x1: number; y1: number };
+  /** Boxes over the plot the card keeps off while a corner without one exists, such as the legend chips. */
+  avoid?: ReadonlyArray<{ x0: number; y0: number; x1: number; y1: number }>;
   /** The traces as drawn, one pixel point per sample with a non-finite `cy` for a hole. Over the plot, the card prefers a corner none of them crosses. */
   traces?: ReadonlyArray<{ cx: readonly number[]; cy: readonly number[] }>;
 }
 
 const ROW_PX = 14;
-const PAD_PX = 5;
-const CHAR_PX = 6.2;
-const GAP_PX = 10;
+const PAD_PX = 4;
+const CHAR_PX = 6;
+const GAP_PX = 6;
 const MARK_PX = 12;
 const EDGE_PX = 6;
 const SWATCH_PX = 8;
@@ -120,7 +122,7 @@ function layoutCard(
   const text = (row: PlotCrosshairRow) => {
     const value = row.value ?? NULL_DISPLAY;
     if (stacked) return shortened(row.label, stackedChars);
-    if (full) return `${row.label}  ${value}`;
+    if (full) return `${row.label} ${value}`;
     const room =
       Math.floor((compactRoom - value.length * CHAR_PX) / CHAR_PX) -
       1 -
@@ -210,6 +212,7 @@ function resolveCard({
   heading,
   rows: allRows,
   column,
+  avoid = [],
   traces = [],
 }: PlotCrosshairProps): {
   layout: CardLayout;
@@ -243,10 +246,29 @@ function resolveCard({
   );
   const clearOfTraces = (cardX: number, cardY: number) =>
     traces.every((t) => !crossesBox(t, cardX, cardY, cardW, cardH));
+  const clearOfAvoided = (cardX: number, cardY: number) =>
+    avoid.every(
+      (b) =>
+        cardX + cardW < b.x0 ||
+        cardX > b.x1 ||
+        cardY + cardH < b.y0 ||
+        cardY > b.y1,
+    );
+  // The first corner that keeps off the dots, the traces and the avoided boxes; failing that, each in turn is given up, the traces first.
   const overPlot =
     corners.find(
+      (c) =>
+        clearOfDots(c.cardX, c.cardY) &&
+        clearOfTraces(c.cardX, c.cardY) &&
+        clearOfAvoided(c.cardX, c.cardY),
+    ) ??
+    corners.find(
+      (c) => clearOfDots(c.cardX, c.cardY) && clearOfAvoided(c.cardX, c.cardY),
+    ) ??
+    corners.find(
       (c) => clearOfDots(c.cardX, c.cardY) && clearOfTraces(c.cardX, c.cardY),
-    ) ?? corners.find((c) => clearOfDots(c.cardX, c.cardY));
+    ) ??
+    corners.find((c) => clearOfDots(c.cardX, c.cardY));
   const place = !fits
     ? undefined
     : column
@@ -268,7 +290,7 @@ function resolveCard({
 export function plotCrosshairShowsCard(
   props: Pick<
     PlotCrosshairProps,
-    "x" | "plot" | "heading" | "rows" | "column" | "traces"
+    "x" | "plot" | "heading" | "rows" | "column" | "avoid" | "traces"
   >,
 ): boolean {
   return resolveCard(props).place !== undefined;
@@ -285,7 +307,7 @@ export function plotCrosshairShowsCard(
 export function plotCrosshairCardBox(
   props: Pick<
     PlotCrosshairProps,
-    "x" | "plot" | "heading" | "rows" | "column" | "traces"
+    "x" | "plot" | "heading" | "rows" | "column" | "avoid" | "traces"
   >,
 ): { x0: number; y0: number; x1: number; y1: number } | undefined {
   const { layout, place } = resolveCard(props);
@@ -319,6 +341,7 @@ export function PlotCrosshair({
   heading,
   rows: allRows,
   column,
+  avoid,
   traces,
 }: PlotCrosshairProps) {
   const { layout, place } = resolveCard({
@@ -327,6 +350,7 @@ export function PlotCrosshair({
     heading,
     rows: allRows,
     column,
+    avoid,
     traces,
   });
   const {

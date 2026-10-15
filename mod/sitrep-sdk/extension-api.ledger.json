@@ -16077,6 +16077,10 @@
         "note": "the props of the new PlotCrosshair component"
       },
       {
+        "key": "ui-kit . PlotCrosshairProps#avoid?",
+        "note": "boxes over the plot, such as the legend chips, that the crosshair card keeps off while a corner without one exists"
+      },
+      {
         "key": "ui-kit . PlotCrosshairProps#column?",
         "note": "a column outside the plot where the card stands, so it covers nothing on the plot"
       },
