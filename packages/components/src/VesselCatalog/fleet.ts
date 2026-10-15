@@ -11,7 +11,7 @@ import {
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
-import { fleetRosterTopics } from "./topics";
+import { vesselCatalogTopics } from "./topics";
 
 // `trackingStation.catalog` is deliberately unfiltered (other consumers want asteroids and debris as targets), so this widget filters to craft client-side.
 
@@ -93,18 +93,18 @@ export function useFleet(): {
   known: boolean;
   /** The roster's own reading, so a badge drawn from it can say it is held. */
   reading: ReturnType<
-    typeof fleetRosterTopics.useTelemetry<"trackingStation.catalog">
+    typeof vesselCatalogTopics.useTelemetry<"trackingStation.catalog">
   >;
   vessels: FleetVessel[];
   coverage: Reading<Value<"ratio">>;
 } {
   // A held roster counts as known (vessels do not vanish with a missing frame), and a tombstone is a confirmed empty fleet, not a wait that never ends.
-  const systemReading = fleetRosterTopics.useTelemetry(
+  const systemReading = vesselCatalogTopics.useTelemetry(
     "trackingStation.catalog",
   );
   const system = stillTrue(systemReading, EMPTY_FLEET);
   // The body catalogue is a fact, and a tombstone for it would mean a save with no celestial bodies, which cannot happen; `undefined` is the honest answer there.
-  const bodiesReading = fleetRosterTopics.useTelemetry(
+  const bodiesReading = vesselCatalogTopics.useTelemetry(
     "trackingStation.bodies",
   );
   const bodies = stillTrue(bodiesReading, undefined);

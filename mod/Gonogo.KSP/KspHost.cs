@@ -1835,7 +1835,7 @@ namespace Gonogo.KSP
         /// The M3 R3 <c>trackingStation.catalog</c> roster capture-add's raw per-vessel
         /// entry (primitives only, same discipline as every other Build*
         /// helper in this class): id/name/vesselType/situation/mainBody, plus
-        /// the FleetRoster crew/comms capture-add (crewCount/crewCapacity/
+        /// the VesselCatalog crew/comms capture-add (crewCount/crewCapacity/
         /// commsConnected/commsControlSource), plus the vessel's own orbital
         /// elements (see <see cref="AddRosterOrbitFields"/>).
         /// <c>mainBody</c> is the raw body name (not yet resolved to an

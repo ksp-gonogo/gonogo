@@ -1,7 +1,7 @@
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The fleet roster's raw control-source string for a vessel's
+    /// The vessel catalog's raw control-source string for a vessel's
     /// <c>Vessel.ControlLevel</c>, parsed on the host by
     /// <c>SharedMappers.ParseRosterCommsControlSource</c>.
     /// <para>

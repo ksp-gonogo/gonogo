@@ -7819,7 +7819,7 @@ export interface StageDeltaVSummary
 * @category Solar system and fleet
 * @categoryDescription Solar system and fleet
 * The bodies of the solar system and every vessel in it: each body's figures,
-* atmosphere and orbit, the fleet roster, and each vessel's own link home,
+* atmosphere and orbit, the vessel catalog, and each vessel's own link home,
 * contact and silence.
 */
 export interface SystemBodies

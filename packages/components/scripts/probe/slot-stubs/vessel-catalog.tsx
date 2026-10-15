@@ -1,7 +1,7 @@
 import { plantSlot, SlotStub } from "./stub";
 
-plantSlot("fleet-roster.updates", ({ vesselName, compact }) => (
-  <SlotStub slot="fleet-roster.updates">
+plantSlot("vessel-catalog.updates", ({ vesselName, compact }) => (
+  <SlotStub slot="vessel-catalog.updates">
     {compact ? vesselName.split(" ")[0] : vesselName}
   </SlotStub>
 ));

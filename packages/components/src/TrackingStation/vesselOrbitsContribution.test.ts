@@ -296,7 +296,7 @@ describe("computeVesselOrbitEntities", () => {
     expect(entities[0].meta?.comms).toBe("unknown");
   });
 
-  it("draws every vessel on the roster, not just craft (unlike FleetRoster's isRosterCraft filter)", () => {
+  it("draws every vessel on the roster, not just craft (unlike VesselCatalog's isRosterCraft filter)", () => {
     const entities = computeVesselOrbitEntities(
       wire([
         vessel({ vesselId: "debris-1", vesselType: VesselType.Debris }),

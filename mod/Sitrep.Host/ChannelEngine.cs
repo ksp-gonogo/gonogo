@@ -9215,7 +9215,7 @@ namespace Sitrep.Host
             RefreshConnectivityFromCapability(tick);
 
             // Immediately after it, because this is the first point at which the
-            // tick's whole fleet roster is known and the last before anything is
+            // tick's whole vessel catalog is known and the last before anything is
             // scheduled off it.
             ReleaseSubjectsGoneFromTheRoster();
 
