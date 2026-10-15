@@ -68,7 +68,7 @@ describe("PowerSystems tiny mode", () => {
         parts: [part("1", EC(5)), part("2", EC(-2))],
       });
     });
-    await waitFor(() => expect(essentialTexts()[0]).toMatch(/NET\s*3\s*units/));
+    await waitFor(() => expect(essentialTexts()[0]).toMatch(/NET\s*3\s*EC\/s/));
     expect(essentialTexts()[0]).toContain("EC NET");
     await expectNoA11yViolations(container);
   });
