@@ -216,6 +216,7 @@
       "commsConnected": "flag",
       "commsControlSource": "enum",
       "contact": "enum",
+      "crew": "enum",
       "crewCapacity": "count",
       "crewCount": "count",
       "declaredLostUt": "ut",
@@ -2838,6 +2839,7 @@
     "CatalogEntry": {
       "commsControlSource": "RosterCommsControlSource",
       "contact": "CatalogContact",
+      "crew": "CatalogCrew",
       "placeSource": "RosterPlaceSource",
       "situation": "Situation",
       "vesselType": "VesselType"
@@ -3074,6 +3076,11 @@
       "2": "Overdue",
       "3": "Lost",
       "4": "Gone"
+    },
+    "CatalogCrew": {
+      "0": "Known",
+      "1": "Unknown",
+      "2": "PresumedLost"
     },
     "CommsControlSource": {
       "0": "None",

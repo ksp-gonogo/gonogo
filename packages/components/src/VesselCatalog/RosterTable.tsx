@@ -10,10 +10,11 @@ import {
   useSlotBound,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
+import { CrewFigure } from "./CrewFigure";
 import { COMMS, COMMS_TONE } from "./comms";
 import { useContactBadge } from "./FleetContactCell";
 import { FleetSignalCell } from "./FleetSignalCell";
-import { crewLabel, type FleetVessel } from "./fleet";
+import type { FleetVessel } from "./fleet";
 import { ColLabel, LinkDot, LinkDotSpacer } from "./RosterCells";
 import { UpdatesRow } from "./UpdatesRow";
 import { CatalogUpdates } from "./VesselCatalogEntry";
@@ -81,7 +82,7 @@ function RosterRow({
                       color: "var(--color-text-muted)",
                     }}
                   >
-                    {v.body ?? NULL_DISPLAY} · {crewLabel(v)}
+                    {v.body ?? NULL_DISPLAY} · <CrewFigure vessel={v} />
                   </Truncate>
                   <FleetSignalCell
                     guid={v.id}
@@ -127,7 +128,7 @@ function RosterRow({
               whiteSpace: "nowrap",
             }}
           >
-            {crewLabel(v)}
+            <CrewFigure vessel={v} />
           </Text>
         )}
         {!compact && (

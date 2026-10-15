@@ -418,6 +418,7 @@ namespace Sitrep.Host
                     ["expectedReturnUt"] = null,
                     ["overdueAfterUt"] = null,
                     ["declaredLostUt"] = null,
+                    ["crew"] = null,
                 });
             }
 

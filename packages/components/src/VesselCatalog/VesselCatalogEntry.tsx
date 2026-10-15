@@ -1,6 +1,7 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
 import { Grid, Stack } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
+import { CrewFigure } from "./CrewFigure";
 import { COMMS, COMMS_TONE } from "./comms";
 import { useContactBadge } from "./FleetContactCell";
 import { FleetSignalCell } from "./FleetSignalCell";
@@ -40,8 +41,8 @@ export function useCatalogVessel(
 
 /**
  * One craft's Vessel Catalog entry laid out as a column: its contact with the
- * command centre, its link with the signal delay behind it, and the Uplinks'
- * updates for it. Useful for showing the operator what the catalog knows of a
+ * command centre, what the centre knows of its crew, its link with the signal
+ * delay behind it, and the Uplinks' updates for it. Useful for showing the operator what the catalog knows of a
  * craft beside a picture of it. Used by the Tracking Station's side bar for the
  * selected craft.
  */
@@ -58,6 +59,14 @@ export function VesselCatalogEntry({
   return (
     <Stack gap="related">
       {badge}
+      {vessel.crew != null && (
+        <Grid cols="1fr auto" gap="label-value" align="baseline">
+          <span style={LABEL}>Crew</span>
+          <span style={VALUE}>
+            <CrewFigure vessel={vessel} />
+          </span>
+        </Grid>
+      )}
       <Grid cols="1fr auto" gap="label-value" align="baseline">
         <span style={LABEL}>Link</span>
         <FleetSignalCell
@@ -75,3 +84,8 @@ export function VesselCatalogEntry({
 }
 
 const LABEL: CSSProperties = { color: "var(--color-text-faint)" };
+
+const VALUE: CSSProperties = {
+  color: "var(--color-text-primary)",
+  fontVariantNumeric: "tabular-nums",
+};
