@@ -118,6 +118,7 @@ import {
   registerUplinkHandle,
   unregisterUplinkHandle,
 } from "@ksp-gonogo/core";
+import { approveStation } from "../test/approveStation";
 import { PeerBroadcastingDataSource } from "./PeerBroadcastingDataSource";
 import { PeerClientService } from "./PeerClientService";
 import { PeerHostService } from "./PeerHostService";
@@ -130,6 +131,7 @@ async function connectedPair() {
   const client = new PeerClientService();
   client.connect(host.peerId ?? "");
   for (let i = 0; i < 6; i++) await Promise.resolve();
+  approveStation();
 
   return { host, client };
 }

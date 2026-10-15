@@ -11,7 +11,11 @@ import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
 import { asPeerMessage } from "./protocol";
 import { RequestTracker } from "./RequestTracker";
 import { RetryPolicy } from "./RetryPolicy";
-import { getStationKey, getStationPeerId } from "./stationPeerId";
+import {
+  getStationCredential,
+  getStationKey,
+  getStationPeerId,
+} from "./stationPeerId";
 import { TypedListeners } from "./typedListeners";
 import { decodeWideNumbers } from "./wideNumbers";
 
@@ -21,6 +25,12 @@ export type ConnStatus =
   | "connected"
   | "reconnecting"
   | "disconnected";
+
+/**
+ * Where the main screen's approval of this station stands. A station that is
+ * not approved reads, and has every command refused.
+ */
+export type StationApproval = "unknown" | "pending" | "approved" | "refused";
 
 const DEFAULT_RETRY_INTERVAL_MS = 2_000;
 const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
@@ -112,6 +122,7 @@ type ClientEventMap = {
   flightListChange: [];
   hostUnavailable: [hostPeerId: string];
   superseded: [superseded: boolean];
+  approval: [approval: StationApproval];
   brokerReachable: [reachable: boolean];
   // Sitrep telemetry-stream forwarding: see protocol.ts's `sitrep-frame`/
   // `sitrep-command-*` doc comment. `sitrepFrame` carries the host-relayed
@@ -180,6 +191,7 @@ export class PeerClientService {
   private shareCode: string | null = null;
   /** True once the host has handed this station to another page with the same stationKey. */
   private superseded = false;
+  private approval: StationApproval = "unknown";
   // Host's technical-analytics consent. Stations follow the host, they
   // never read a local value. Cached so a late subscriber gets the current
   // state on subscribe. Privacy-first default: disabled until the first
@@ -254,6 +266,7 @@ export class PeerClientService {
     // id (`gonogo-host-<CODE>`) once and hold it as the reconnect target.
     this.shareCode = code;
     this.setSuperseded(false);
+    this.setApproval("unknown");
     this.hostPeerId = deriveHostPeerId(code);
     logger.setIdentity({ hostPeerId: this.hostPeerId });
     this.retryPolicy.beginConnect();
@@ -384,6 +397,11 @@ export class PeerClientService {
       logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
       this.retryPolicy.onConnected();
       this.enterStage("data");
+      // First, so the host knows whether this station is approved before any request it sends.
+      conn.send({
+        type: "station-credential",
+        credential: getStationCredential(),
+      } satisfies PeerMessage);
       // Opt into selective broadcast immediately. The host's default
       // is broadcast-all so v1 stations still work; v2 stations switch
       // here. Following peer-data-subscribe messages from
@@ -1019,6 +1037,30 @@ export class PeerClientService {
     return this.events.on("superseded", cb);
   }
 
+  private setApproval(value: StationApproval) {
+    if (this.approval === value) return;
+    this.approval = value;
+    this.events.emit("approval", value);
+  }
+
+  /**
+   * Where the main screen's approval of this station stands. "unknown" until
+   * the host first says, which it does once it has this station's name.
+   */
+  getApproval(): StationApproval {
+    return this.approval;
+  }
+
+  onApprovalChange(cb: (approval: StationApproval) => void) {
+    return this.events.on("approval", cb);
+  }
+
+  /** Connect again after the main screen refused this station, asking it again. Does nothing unless refused. */
+  askAgain(): void {
+    if (this.approval !== "refused" || !this.shareCode) return;
+    this.connect(this.shareCode);
+  }
+
   /**
    * Connect again after another page took this station over. That page is
    * then the one told it has been superseded. Does nothing unless superseded.
@@ -1216,6 +1258,17 @@ export class PeerClientService {
       this.rejectPendingQueries("station taken over by another page");
       this.emitConnStatus("disconnected");
       this.setSuperseded(true);
+    },
+    "station-approval": (msg) => {
+      if (msg.state === "refused") {
+        logger.info("[PeerClient] the main screen refused this station");
+        // No retry: reconnecting would ask the main screen again unbidden.
+        this.retryPolicy.cancel();
+        this.tearDownPeer();
+        this.rejectPendingQueries("the main screen refused this station");
+        this.emitConnStatus("disconnected");
+      }
+      this.setApproval(msg.state);
     },
     "gonogo-countdown-start": (msg) => {
       this.lastCountdownT0Ms = msg.t0Ms;

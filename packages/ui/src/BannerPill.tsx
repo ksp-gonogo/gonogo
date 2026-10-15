@@ -47,6 +47,7 @@ export function BannerPill({
         $top={top}
         $zIndex={zIndex}
         $glow={glow}
+        $interactive={interactive}
         role={role}
         aria-live={liveValue}
       >
@@ -78,6 +79,7 @@ const FixedPill = styled.div<{
   $top: number;
   $zIndex: number;
   $glow: string | undefined;
+  $interactive: boolean;
 }>`
   position: fixed;
   top: ${(p) => p.$top}px;
@@ -95,7 +97,7 @@ const FixedPill = styled.div<{
   color: ${(p) => p.$accent};
   font-size: var(--font-size-compact);
   letter-spacing: 0.12em;
-  pointer-events: none;
+  pointer-events: ${(p) => (p.$interactive ? "auto" : "none")};
   ${(p) => (p.$glow ? css`box-shadow: ${p.$glow};` : "")}
 `;
 

@@ -124,6 +124,7 @@ import {
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
+import { approveStation } from "../test/approveStation";
 
 describe("kOS execute tunnel (station → host → kos, via uplink-relay)", () => {
   afterEach(() => {
@@ -169,6 +170,7 @@ describe("kOS execute tunnel (station → host → kos, via uplink-relay)", () =
     client.connect(host.peerId ?? "");
     // Flush microtasks so the station's conn + host's conn both fire "open".
     for (let i = 0; i < 6; i++) await Promise.resolve();
+    approveStation();
 
     const source = new PeerClientDataSource("kos", "kOS", client);
 
@@ -195,6 +197,7 @@ describe("kOS execute tunnel (station → host → kos, via uplink-relay)", () =
     const client = new PeerClientService();
     client.connect(host.peerId ?? "");
     for (let i = 0; i < 6; i++) await Promise.resolve();
+    approveStation();
 
     const source = new PeerClientDataSource("kos", "kOS", client);
     await expect(
@@ -222,6 +225,7 @@ describe("kOS execute tunnel (station → host → kos, via uplink-relay)", () =
     const client = new PeerClientService();
     client.connect(host.peerId ?? "");
     for (let i = 0; i < 6; i++) await Promise.resolve();
+    approveStation();
 
     const source = new PeerClientDataSource("kos", "kOS", client);
     const err = await source
@@ -242,6 +246,7 @@ describe("kOS execute tunnel (station → host → kos, via uplink-relay)", () =
     const client = new PeerClientService();
     client.connect(host.peerId ?? "");
     for (let i = 0; i < 6; i++) await Promise.resolve();
+    approveStation();
 
     const source = new PeerClientDataSource("kos", "kOS", client);
     await expect(

@@ -55,7 +55,8 @@ const TRANSIENT_KEYS = new Set<string>([
 const TRANSIENT_PREFIXES = ["gonogo.sitrep.outstandingCommands."];
 
 /**
- * Per-device-instance identity: the station's stable key. Restoring it onto
+ * Per-device-instance identity: the station's stable key and the credential
+ * its host approval is remembered against. Restoring them onto
  * another device clones the instance identity, which
  * is usually wrong, so they're excluded unless the operator opts in via the
  * "Include device identity" checkbox. `gonogo.station.name` is deliberately not
@@ -64,7 +65,10 @@ const TRANSIENT_PREFIXES = ["gonogo.sitrep.outstandingCommands."];
  * preserved on restore, not per-device identity, so it backs up like any other
  * config key.
  */
-const IDENTITY_KEYS = new Set<string>(["gonogo.station.key"]);
+const IDENTITY_KEYS = new Set<string>([
+  "gonogo.station.key",
+  "gonogo.station.credential",
+]);
 
 export interface BuildBackupOptions {
   /**
