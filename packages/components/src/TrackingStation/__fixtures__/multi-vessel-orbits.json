@@ -144,7 +144,9 @@
                 "argPe": 0,
                 "meanAnomalyAtEpoch": 0,
                 "epoch": 0
-              }
+              },
+              "contact": 0,
+              "crew": 0
             },
             {
               "vesselId": "v-munar-transfer",

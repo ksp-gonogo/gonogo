@@ -1513,6 +1513,7 @@ namespace Sitrep.Host.Comms
                     entry["expectedReturnUt"] = contact.ExpectedReturnUt;
                     entry["overdueAfterUt"] = contact.OverdueAfterUt;
                     entry["declaredLostUt"] = contact.DeclaredLostUt;
+                    entry["crew"] = CrewOf(contact.State, entry.TryGetValue("crewCount", out var crewCount) ? crewCount : null);
                     if (contact.State == CatalogContact.Silent && contact.OverdueAfterUt is double overdueAt
                         && (!_catalogDueAt.TryGetValue(centre, out var soonest) || overdueAt < soonest))
                     {
@@ -1531,6 +1532,22 @@ namespace Sitrep.Host.Comms
             }
             _vesselsAsked.Clear();
             CatalogFramesBudget.Record(sent, looked.Ut);
+        }
+
+        /// <summary>What a centre with <paramref name="contact"/> knows of a craft's crew of <paramref name="crewCount"/>: see <see cref="CatalogEntry.Crew"/>.</summary>
+        private static int? CrewOf(CatalogContact? contact, object? crewCount)
+        {
+            if (!(crewCount is int aboard) || aboard <= 0 || contact == null)
+            {
+                return null;
+            }
+            var crew = contact switch
+            {
+                CatalogContact.InContact => CatalogCrew.Known,
+                CatalogContact.Lost => CatalogCrew.PresumedLost,
+                _ => CatalogCrew.Unknown,
+            };
+            return (int)crew;
         }
 
         /// <summary>Whether the listed craft is a kind CommNet never gives a connection, whose link is unknown on every sample.</summary>

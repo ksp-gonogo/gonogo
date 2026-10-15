@@ -5,6 +5,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   CatalogContact,
+  CatalogCrew,
   RosterCommsControlSource,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -84,10 +85,11 @@ function mountScene() {
           vesselType: 6,
           situation: 3,
           bodyIndex: 1,
-          crewCount: 0,
-          crewCapacity: 0,
+          crewCount: 2,
+          crewCapacity: 3,
           commsControlSource: RosterCommsControlSource.Full,
           contact: CatalogContact.Silent,
+          crew: CatalogCrew.Unknown,
           orbit: orbit(1_200_000),
         },
       ],
@@ -115,6 +117,8 @@ describe("TrackingStation: the selected craft's catalog entry", () => {
 
     expect(within(sideBar).getByText("no contact")).toBeInTheDocument();
     expect(within(sideBar).getByText("DIRECT")).toBeInTheDocument();
+    expect(within(sideBar).getByText(/as last heard/)).toBeInTheDocument();
+    expect(within(sideBar).getAllByText("Crew")).toHaveLength(1);
     await expectNoA11yViolations(container);
   });
 
