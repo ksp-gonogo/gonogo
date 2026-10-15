@@ -69,11 +69,10 @@ function readExportedNumberConst(filePath: string, exportName: string): number {
 //     API-surface gate. Single-sourced from the same constant hostCompat.ts
 //     gates on, so the two can never drift. NOT sitrep-sdk's package.json
 //     version, which is unrelated to that gate's numbering.
-//   • contractMajor / contractMinor: mirror the C# `ContractVersion.Major`/
-//     `.Minor` stamp (Sitrep.Contract's `ContractVersion`, currently 4.7).
-//     Held as hand-maintained app constants (the C# contract owns bumping
-//     them, not this dedupe); both the host `define`s and the registry
-//     fixture read them, so host and descriptor still agree.
+//   • contractMajor / contractMinor: the C# `ContractVersion.Major`/`.Minor`
+//     stamp (Sitrep.Contract's `ContractVersion`), read from the sdk's
+//     `compat-versions.ts`. Both the host `define`s and the registry fixture
+//     read them, so host and descriptor still agree.
 const SDK_COMPAT_VERSIONS = resolve(
   __dirname,
   "../../mod/sitrep-sdk/src/compat-versions.ts",
@@ -82,13 +81,7 @@ const HOST_API_VERSION = readExportedStringConst(
   SDK_COMPAT_VERSIONS,
   "EXTENSION_API_VERSION",
 );
-// Read from the sdk rather than typed here. Held as two local constants, this
-// pair went stale: it said 5.0 (with a comment saying 4.7) while
-// `mod/Sitrep.Contract/ContractVersion.cs` had reached 12.22, so the app
-// advertised a contract it was not built against and would have refused every
-// correctly generated manifest. The sdk's copy is what an Uplink's build writes
-// into `gonogo-uplink.json`, and `contract-version-parity.test.ts` holds it to
-// the C# stamp, so neither side can drift alone now.
+// Read from the sdk, whose copy `contract-version-parity.test.ts` holds to the C# stamp.
 const HOST_CONTRACT_MAJOR = readExportedNumberConst(
   SDK_COMPAT_VERSIONS,
   "CONTRACT_MAJOR",

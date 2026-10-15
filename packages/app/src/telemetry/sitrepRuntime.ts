@@ -149,8 +149,7 @@ export function subscribeSitrepReconnectNonce(cb: () => void): () => void {
 
 /**
  * Clears the local port store, status and nonce back to build defaults. This
- * module is a set of singletons (mirrors `portStore`'s own module-level
- * pattern in `dataSources/kos.ts`), so tests that touch it must reset
+ * module is a set of module-level singletons, so tests that touch it must reset
  * between runs to avoid leaking state across `it()`s in the same file.
  *
  * Does not clear the core `gameHost` setting, tests that need a clean host

@@ -34,6 +34,17 @@ export const PRIVATE_REFERENCE_ANY = Object.values(PRIVATE_REFERENCE_PATTERNS)
   .map((p) => `(?:${p})`)
   .join("|");
 
+/**
+ * Files whose subject is the private address ranges themselves (the relay's
+ * peer-relay deny list and the network candidate classifier), so naming them is
+ * the point.
+ */
+const PRIVATE_ADDRESS_SUBJECT_PATHS = new Set([
+  "packages/relay/src/coturnManager.ts",
+  "packages/relay/src/__tests__/coturnManager.test.ts",
+  "packages/app/src/__tests__/ice-liveness.test.ts",
+]);
+
 /** A tracked path the scan never reads: this scan's own files, and generated output. */
 export function isExemptPath(path: string): boolean {
   return (
@@ -41,6 +52,7 @@ export function isExemptPath(path: string): boolean {
     path === "CLAUDE.md" ||
     path === ".mcp.json" ||
     path.endsWith(".snap") ||
+    PRIVATE_ADDRESS_SUBJECT_PATHS.has(path) ||
     path.startsWith("packages/core/src/private-references.")
   );
 }

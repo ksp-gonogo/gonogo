@@ -18,7 +18,12 @@ import { defineConfig, devices } from "@playwright/test";
  * multi-minute session is tens of megabytes; without the prune the directory is
  * a slow leak nobody notices until a disk fills.</p>
  */
-const RIG_HOST = process.env.RIG_HOST ?? "192.168.86.33";
+const RIG_HOST = process.env.RIG_HOST;
+if (!RIG_HOST) {
+  throw new Error(
+    "RIG_HOST is not set: give the address of the machine running the game, e.g. RIG_HOST=<address> pnpm rig",
+  );
+}
 const RIG_SITREP_PORT = process.env.RIG_SITREP_PORT ?? "8090";
 const APP_PORT = 5273;
 // Newline-separated Uplink directories, the same list `pnpm dev --uplink` takes.

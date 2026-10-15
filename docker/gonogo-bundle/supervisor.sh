@@ -37,7 +37,7 @@ serve -s /app/www -l "tcp://0.0.0.0:${APP_PORT}" &
 pids="$pids $!"
 
 echo "[supervisor] starting relay on :${RELAY_PORT:-3002}"
-( cd /app/relay && node dist/index.js ) &
+( cd /app/relay && PORT="${RELAY_PORT:-3002}" node dist/index.js ) &
 pids="$pids $!"
 
 # Block until the first child exits, then tear the rest down so the

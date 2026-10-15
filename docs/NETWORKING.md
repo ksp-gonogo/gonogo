@@ -48,7 +48,7 @@ Consumer routers like Google Wi-Fi require one forward entry per port, so that's
 
 Two things deliberately **not** in that table:
 
-- The relay's HTTP port (`3002`). Only the main screen's own browser reads `/ice-config`, over loopback. A station never fetches it: the host's relay candidates reach the station through the broker's signalling channel, which is enough for one-side TURN
+- The relay's HTTP port (`3002`). Only the main screen's own browser reads `/ice-config`, over loopback. A station never fetches it: the main screen sends the TURN address and credentials to each station over their data channel once it connects, and again whenever the relay restarts and rotates the secret. The main screen's own connection to a station starts without TURN and adds it only when a connection has not opened within a few seconds
 - The app's port (`8080`). A remote station loads the app from the public build, not from your machine
 
 Point the forwards at a **fixed** LAN address for that machine. A DHCP lease change silently breaks every forward, which looks exactly like a relay that stopped working; a DHCP reservation on the router, or a static address, avoids it.

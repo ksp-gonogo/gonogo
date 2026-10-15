@@ -11,10 +11,10 @@ describe("bootstrap-config route (fastify.inject)", () => {
   }
 
   it("returns the configured KSP host", async () => {
-    const app = await buildApp("192.168.1.50");
+    const app = await buildApp("192.0.2.50");
     const res = await app.inject({ method: "GET", url: "/bootstrap-config" });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ kspHost: "192.168.1.50" });
+    expect(res.json()).toEqual({ kspHost: "192.0.2.50" });
     await app.close();
   });
 

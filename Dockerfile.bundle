@@ -80,8 +80,8 @@ ARG GONOGO_BUILD_TIME
 ENV GONOGO_VERSION=${GONOGO_VERSION}
 ENV GONOGO_BUILD_TIME=${GONOGO_BUILD_TIME}
 
-# In-container service ports. The relay defaults to these; pinned here for
-# clarity and so the supervisor + healthcheck agree.
+# In-container service ports. The supervisor hands RELAY_PORT to the relay as
+# its PORT.
 ENV APP_PORT=8080
 ENV RELAY_PORT=3002
 # Where KSP is, as seen from this container. The relay republishes it at
@@ -92,14 +92,12 @@ ENV RELAY_PORT=3002
 # or point it at the KSP computer's LAN IP.
 ENV KSP_HOST=host.containers.internal
 
-# app SPA, relay http, TURN signalling (udp+tcp), TURN relay range. Host
-# port-forwards must mirror these; see run-gonogo.sh and the README's TURN
-# section.
+# The app and relay HTTP ports. The TURN ports (3478 for signalling over UDP and
+# TCP, 49160-49170/udp for relay sessions by default) follow TURN_PORT,
+# TURN_MIN_PORT and TURN_MAX_PORT, so they are published with -p rather than
+# declared here; see scripts/run-gonogo.sh and docs/NETWORKING.md.
 EXPOSE 8080
 EXPOSE 3002
-EXPOSE 3478/udp
-EXPOSE 3478/tcp
-EXPOSE 49160-49170/udp
 
 # tini as PID 1 → clean signal forwarding + orphan reaping.
 ENTRYPOINT ["/usr/bin/tini", "--"]

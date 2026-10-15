@@ -31,8 +31,8 @@ afterEach(() => {
 
 describe("sitrepRuntime host = core gameHost", () => {
   it("reads host from core gameHost, port from its own default", () => {
-    seedSetting("gameHost", "10.0.0.9");
-    expect(getSitrepHostConfig().host).toBe("10.0.0.9");
+    seedSetting("gameHost", "192.0.2.9");
+    expect(getSitrepHostConfig().host).toBe("192.0.2.9");
     expect(getSitrepHostConfig().port).toBe(8090);
   });
 

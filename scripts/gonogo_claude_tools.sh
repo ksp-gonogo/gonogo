@@ -2,7 +2,7 @@
 # gonogo_claude_tools.sh: purpose-scoped helpers Claude Code can invoke
 # without per-call permission prompts.
 #
-# Allow-list once in .claude/settings.local.json:
+# Allow-list the script once in your Claude Code local settings:
 #   "Bash(./scripts/gonogo_claude_tools.sh *)"
 #
 # Each subcommand does ONE thing. New functionality means adding a
@@ -59,15 +59,15 @@
 #       level (ilspycmd output is consistently formatted).
 #
 #   build ocisly [--baseline]
-#       Build the OCISLY fork at ~/personal/OfCourseIStillLoveYou/
+#       Build the OCISLY fork checkout
 #       and copy OfCourseIStillLoveYou.dll into the synced
 #       kspdata GameData/OfCourseIStillLoveYou/Plugins/ directory.
 #       With --baseline, defines KERBCAST_BASELINE to enable per-frame
 #       capture-timing CSV output + KSP-timestamp piggybacked on the
-#       Altitude metadata field. See local_docs/kerbcast/baseline_harness_plan.md.
+#       Altitude metadata field.
 #
 #   build kerbcast
-#       Build the kerbcast KSP plugin at ~/personal/kerbcast/Plugin/,
+#       Build the kerbcast KSP plugin from its Plugin/ folder,
 #       install it into the synced kspdata at GameData/Kerbcast/Plugins/,
 #       seed libAsyncGPUReadbackPlugin.so + settings.cfg on first
 #       install, and (best-effort) pull the latest CI-built sidecar
@@ -524,7 +524,7 @@ findtype() {
 
 build_ocisly() {
   # The Mac-friendly SDK-style csproj lives in the syncthing fork dir;
-  # source-of-truth .cs files live in ~/personal/OfCourseIStillLoveYou/.
+  # source-of-truth .cs files live in the OCISLY fork checkout.
   # The .Mac.csproj points <Compile Include> at those .cs files via $ForkRoot.
   local mac_proj_dir="$DATA_ROOT/local_docs/syncthing/ocisly-fork"
   local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/OfCourseIStillLoveYou/Plugins"
@@ -946,8 +946,7 @@ build_gonogoscansatuplink() {
   # the default, so `dotnet build` DOES copy it into $out_dir, unlike the
   # references below). Sitrep.Contract.dll (provided by GonogoCore) and
   # SCANsat.dll/SCANsat.Unity.dll (provided by the user's SCANsat install) are
-  # reference-only (Private="false") and must NOT be copied here - see
-  # .superpowers/sdd/uplink-packaging-pattern.md. Every Uplink with a contract
+  # reference-only (Private="false") and must NOT be copied here. Every Uplink with a contract
   # slice of its own needs both copies: a single-DLL copy here
   # would silently drop the Contract.dll from the
   # deployed GameData folder and break the mod at KSP load.

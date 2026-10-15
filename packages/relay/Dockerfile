@@ -62,12 +62,10 @@ ARG GONOGO_BUILD_TIME
 ENV GONOGO_VERSION=${GONOGO_VERSION}
 ENV GONOGO_BUILD_TIME=${GONOGO_BUILD_TIME}
 
-# Relay HTTP, TURN signalling (UDP+TCP), TURN relay range. Port forwards
-# on the user's home router must mirror these. See docker-compose.yml +
-# the README's TURN section.
+# The relay HTTP port. The TURN ports (3478 for signalling over UDP and TCP,
+# 49160-49170/udp for relay sessions by default) follow TURN_PORT, TURN_MIN_PORT
+# and TURN_MAX_PORT, so they are published with -p rather than declared here;
+# see docker-compose.yml and docs/NETWORKING.md.
 EXPOSE 3002
-EXPOSE 3478/udp
-EXPOSE 3478/tcp
-EXPOSE 49160-49170/udp
 
 CMD ["node", "dist/index.js"]

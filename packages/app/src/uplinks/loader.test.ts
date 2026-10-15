@@ -1431,7 +1431,7 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     });
 
     it.each([
-      "http://192.168.1.20:5173/widget-y.client.js",
+      "http://192.0.2.20:5173/widget-y.client.js",
       "https://dev.example/widget-y.client.js",
       "http://localhost.example/widget-y.client.js",
     ])("refuses a dev path on another machine (%s) before any fetch, and says why", async (devPath) => {
@@ -1566,7 +1566,7 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       ["http://[::1]:8080/x.js", undefined, true],
       ["http://127.0.0.2/x.js", undefined, false],
       ["http://localhost.evil.example/x.js", undefined, false],
-      ["http://10.0.0.5:5173/x.js", undefined, false],
+      ["http://192.0.2.5:5173/x.js", undefined, false],
       // A path with no origin is wherever the app itself is served from.
       ["/uplinks/x.js", "http://localhost:5173/", true],
       ["/uplinks/x.js", "https://ksp-gonogo.github.io/app/", false],

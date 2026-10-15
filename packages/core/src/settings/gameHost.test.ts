@@ -13,8 +13,8 @@ describe("getGameHost", () => {
   });
 
   it("returns a seeded host", () => {
-    seedSetting("gameHost", "192.168.1.50");
-    expect(getGameHost()).toBe("192.168.1.50");
+    seedSetting("gameHost", "192.0.2.50");
+    expect(getGameHost()).toBe("192.0.2.50");
   });
 
   it("returns a saved host over a seed", () => {

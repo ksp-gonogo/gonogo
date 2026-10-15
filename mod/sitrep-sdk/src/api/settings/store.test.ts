@@ -23,10 +23,10 @@ describe("shared settings store", () => {
   });
 
   it("setSetting persists to localStorage and wins on read", () => {
-    setSetting("gameHost", "10.0.0.5");
-    expect(getSetting("gameHost")).toBe("10.0.0.5");
+    setSetting("gameHost", "192.0.2.5");
+    expect(getSetting("gameHost")).toBe("192.0.2.5");
     const raw = JSON.parse(localStorage.getItem("gonogo.settings") as string);
-    expect(raw).toEqual({ version: 1, values: { gameHost: "10.0.0.5" } });
+    expect(raw).toEqual({ version: 1, values: { gameHost: "192.0.2.5" } });
   });
 
   it("seedSetting is in-memory only and does not persist", () => {

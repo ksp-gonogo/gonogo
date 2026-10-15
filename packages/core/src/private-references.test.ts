@@ -20,7 +20,7 @@ import {
 
 /**
  * Private working references in tracked files: tracker numbers, agent and plan
- * labels, pointers at gitignored design notes, and home-directory paths. They
+ * labels, pointers at gitignored design notes, home-directory paths and private network addresses. They
  * mean nothing to a reader of the public tree and say something about the
  * machine and the process that wrote it.
  *
@@ -42,6 +42,7 @@ const PLANTED: Record<string, string> = {
   "agent-id": `// written by ${"ag"}${"ent"}-6`,
   "slice-label": `// ${"P1b"} ${"sl"}${"ice"} 2`,
   "private-doc": `// see ${"docs/super"}${"powers/plans/x.md"}`,
+  "private-lan-address": `const host = "${"192.168"}.${"86.33"}";`,
   "home-path": `const p = "${"/Us"}${"ers/someone/x"}";`,
 };
 
@@ -52,6 +53,10 @@ const NEGATIVES = [
   "// a ticket price of 4",
   "// a decision tree",
   "const user = '/usr/local/bin';",
+  "const documented = '192.0.2.50';",
+  "const dns = '8.8.8.8';",
+  "const version = '10.2.3';",
+  "const longer = '110.1.2.3';",
 ];
 
 describe("private references", () => {

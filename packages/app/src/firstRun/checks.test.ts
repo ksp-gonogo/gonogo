@@ -73,9 +73,9 @@ describe("connectionCheck", () => {
   });
 
   it("passes when connected and fails otherwise, naming the address", () => {
-    expect(connectionCheck("connected", "10.0.0.5:8090")).toEqual({
+    expect(connectionCheck("connected", "192.0.2.5:8090")).toEqual({
       state: "pass",
-      text: say("connect.check.pass", { address: "10.0.0.5:8090" }),
+      text: say("connect.check.pass", { address: "192.0.2.5:8090" }),
     });
     for (const status of ["disconnected", "error", undefined] as const)
       expect(connectionCheck(status, "localhost:8090")).toEqual({
@@ -182,8 +182,8 @@ describe("isThisComputer", () => {
 
   it("is false for an address on the network", () => {
     for (const host of [
-      "192.168.1.20",
-      "10.0.0.4",
+      "192.0.2.20",
+      "192.0.2.4",
       "deck.local",
       "1270.0.0.1",
     ]) {

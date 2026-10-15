@@ -144,7 +144,7 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       barrel.subscribeSetting("gameHost", onHost);
       barrel.subscribeSetting("somethingElse", onOther);
 
-      barrel.seedSetting("gameHost", "10.0.0.5");
+      barrel.seedSetting("gameHost", "192.0.2.5");
       expect(onHost).toHaveBeenCalledTimes(1);
       expect(onOther).not.toHaveBeenCalled();
       barrel.resetSettingsForTests();

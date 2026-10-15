@@ -109,7 +109,13 @@ async function main() {
   }
   const scenario = (await import(pathToFileURL(resolve(scenarioPath)).href))
     .default;
-  const host = flags.host ?? process.env.RIG_HOST ?? "192.168.86.33";
+  const host = flags.host ?? process.env.RIG_HOST;
+  if (!host) {
+    console.error(
+      "no game host: pass --host <address> or set RIG_HOST to the address of the machine running the game",
+    );
+    process.exit(2);
+  }
   const port = Number(process.env.RIG_SITREP_PORT ?? 8090);
   const appUrl =
     flags.app === false ? null : (flags.app ?? "http://localhost:5273/");

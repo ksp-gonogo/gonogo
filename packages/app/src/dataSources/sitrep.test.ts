@@ -35,9 +35,9 @@ describe("SitrepStreamDataSource", () => {
 
     expect(source.getConfig()).toEqual({ host: "localhost", port: 8090 });
 
-    source.configure({ host: "192.168.1.50", port: 9000 });
-    expect(source.getConfig()).toEqual({ host: "192.168.1.50", port: 9000 });
-    expect(getSitrepHostConfig()).toEqual({ host: "192.168.1.50", port: 9000 });
+    source.configure({ host: "192.0.2.50", port: 9000 });
+    expect(source.getConfig()).toEqual({ host: "192.0.2.50", port: 9000 });
+    expect(getSitrepHostConfig()).toEqual({ host: "192.0.2.50", port: 9000 });
   });
 
   it("configure() falls back to the current value for a blank/invalid field", () => {
@@ -45,9 +45,9 @@ describe("SitrepStreamDataSource", () => {
     expect(source).toBeDefined();
     if (!source) return;
 
-    source.configure({ host: "192.168.1.50", port: 9000 });
+    source.configure({ host: "192.0.2.50", port: 9000 });
     source.configure({ host: "", port: Number.NaN });
-    expect(source.getConfig()).toEqual({ host: "192.168.1.50", port: 9000 });
+    expect(source.getConfig()).toEqual({ host: "192.0.2.50", port: 9000 });
   });
 
   it("connect() only bumps the reconnect nonce once the stream has actually given up", async () => {

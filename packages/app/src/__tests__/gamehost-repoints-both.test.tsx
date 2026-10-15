@@ -17,8 +17,8 @@ afterEach(() => {
 
 describe("editing the shared gameHost repoints every Uplink", () => {
   it("moves the telemetry stream host", () => {
-    setSetting("gameHost", "192.168.9.9");
-    expect(getSitrepHostConfig().host).toBe("192.168.9.9");
+    setSetting("gameHost", "192.0.2.99");
+    expect(getSitrepHostConfig().host).toBe("192.0.2.99");
     expect(getSitrepHostConfig().port).toBe(8090); // port unchanged
   });
 

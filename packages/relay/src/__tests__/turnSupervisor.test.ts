@@ -65,12 +65,12 @@ describe("TurnSupervisor", () => {
       getPendingReason: () => sup.pendingReason,
       turnExpected: true,
     });
-    registerBootstrapConfigRoutes(app, { kspHost: "192.168.1.50" });
+    registerBootstrapConfigRoutes(app, { kspHost: "192.0.2.50" });
     await app.ready();
 
     const boot = await app.inject({ method: "GET", url: "/bootstrap-config" });
     expect(boot.statusCode).toBe(200);
-    expect(boot.json()).toEqual({ kspHost: "192.168.1.50" });
+    expect(boot.json()).toEqual({ kspHost: "192.0.2.50" });
 
     const ice = await app.inject({ method: "GET", url: "/ice-config" });
     expect(ice.statusCode).toBe(503);

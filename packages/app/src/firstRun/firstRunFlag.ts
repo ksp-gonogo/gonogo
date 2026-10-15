@@ -1,15 +1,14 @@
-// First-run tracking for the setup auto-open host (`FirstRunSetupHost`). A
-// single localStorage flag, mirroring the existing boot-modal precedent
-// (`AnalyticsConsentHost`'s "answered" check): except there is no yes/no answer
-// to persist here, so the flag is written the moment the host opens the modal.
-// That keeps the "never re-opens once dismissed" guarantee trivially true:
-// closing the modal immediately still counts as seen, same as an operator who
-// reads it and connects.
-//
-// The key still says `uplinkHubWizard` because it is the same flag an operator
-// may already have set. Renaming it would re-open the modal for everyone who
-// has already dismissed this flow under either of its earlier names, which is
-// the one thing the flag exists to prevent.
+/**
+ * First-run tracking for the setup auto-open host (`FirstRunSetupHost`): a
+ * single localStorage flag, written the moment the host opens the modal. The
+ * host opens it only once the analytics consent question has been answered, so
+ * the flag records that the setup was shown, not that it was completed. That
+ * keeps "never re-opens once dismissed" true: closing the modal immediately
+ * still counts as seen.
+ *
+ * The key says `uplinkHubWizard` because browsers that already hold it must not
+ * see the setup again, which renaming the key would cause.
+ */
 
 const STORAGE_KEY = "gonogo.uplinkHubWizard.firstRunSeen";
 

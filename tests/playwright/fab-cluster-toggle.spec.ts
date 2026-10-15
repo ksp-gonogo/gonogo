@@ -14,7 +14,7 @@ async function openMain(browser: import("@playwright/test").Browser) {
   await seedContext(
     context,
     "gonogo:dashboard:main",
-    dashboardWithWidget("current-orbit"),
+    dashboardWithWidget("orbit-view"),
   );
   const page = await context.newPage();
   await page.goto("/?uplinkLoaderIds=");

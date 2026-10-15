@@ -50,7 +50,7 @@ describe("CommandBlock", () => {
 
   it("keeps a long command on one line in a scroll region the keyboard can reach", () => {
     const long =
-      "docker run --rm -e KSP_HOST=192.168.1.20 -p 3000:3000 ghcr.io/ksp-gonogo/gonogo:latest";
+      "docker run --rm -e KSP_HOST=192.0.2.20 -p 3000:3000 ghcr.io/ksp-gonogo/gonogo:latest";
     render(<CommandBlock command={long} label="run command" />);
 
     const region = screen.getByRole("group", { name: "run command" });

@@ -157,7 +157,7 @@ describe("uplink-tools bake", () => {
       expect(said(here)).toContain("unvouched development client");
       expect(said(here)).not.toContain("refuses");
     }
-    const elsewhere = said("http://192.168.1.20:5173/x.client.js");
+    const elsewhere = said("http://192.0.2.20:5173/x.client.js");
     expect(elsewhere).toContain("The app refuses this client");
     expect(elsewhere).not.toContain("unvouched development client");
   });
@@ -422,7 +422,7 @@ describe("the version in a client URL", () => {
     ],
     ["https://cdn.example.test/x/x.client.js", []],
     ["http://127.0.0.1:5173/x.client.js", []],
-    ["http://10.0.0.12/builds/2.0.0/x.client.js", ["2.0.0"]],
+    ["http://192.0.2.12/builds/2.0.0/x.client.js", ["2.0.0"]],
   ])("%s holds %j", (url, versions) => {
     expect(versionsInUrlPath(url)).toEqual(versions);
   });

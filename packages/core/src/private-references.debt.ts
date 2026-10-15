@@ -15,5 +15,4 @@ export const PRIVATE_REFERENCE_DEBT: Record<string, number> = {
   "packages/core/src/published-design-doc-refs.test.ts": 4,
   // Local-machine helpers that resolve paths under the home directory.
   "packages/storybook/scripts/ledger.ts": 1,
-  "scripts/gonogo_claude_tools.sh": 5,
 };

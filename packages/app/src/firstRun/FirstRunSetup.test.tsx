@@ -400,7 +400,7 @@ describe("FirstRunSetup: the KSP connection check", () => {
   });
 
   it("leaves the second computer out when KSP is already on another one", async () => {
-    renderSetup(undefined, { ksp: "connected", kspHost: "192.168.1.20" });
+    renderSetup(undefined, { ksp: "connected", kspHost: "192.0.2.20" });
     await goToConnect();
 
     expect(screen.queryByText(say("connect.twoComputers"))).toBeNull();

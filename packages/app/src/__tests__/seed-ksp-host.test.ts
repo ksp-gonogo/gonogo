@@ -25,9 +25,9 @@ function bootstrapHandler(kspHost: string | null) {
 
 describe("seedKspHostDefaults", () => {
   it("seeds the shared gameHost from a LAN KSP_HOST", async () => {
-    server.use(bootstrapHandler("192.168.1.50"));
+    server.use(bootstrapHandler("192.0.2.50"));
     await seedKspHostDefaults();
-    expect(getGameHost()).toBe("192.168.1.50");
+    expect(getGameHost()).toBe("192.0.2.50");
     // in-memory seed only: nothing persisted
     expect(localStorage.getItem("gonogo.settings")).toBeNull();
   });
@@ -40,7 +40,7 @@ describe("seedKspHostDefaults", () => {
 
   it("never overrides a user-saved gameHost", async () => {
     setSetting("gameHost", "my-ksp-box");
-    server.use(bootstrapHandler("192.168.1.50"));
+    server.use(bootstrapHandler("192.0.2.50"));
     await seedKspHostDefaults();
     expect(getGameHost()).toBe("my-ksp-box");
   });

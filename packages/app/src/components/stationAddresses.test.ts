@@ -7,14 +7,14 @@ describe("stationAddresses", () => {
   it("points a self-hosted LAN origin at its own station page and encodes that in the QR", () => {
     const { addresses, qr } = stationAddresses({
       ...BASE,
-      origin: "http://192.168.1.20:8080",
+      origin: "http://192.0.2.20:8080",
     });
 
     expect(addresses.map((a) => a.url)).toEqual([
-      "http://192.168.1.20:8080/station?host=AB3K",
+      "http://192.0.2.20:8080/station?host=AB3K",
       `${PUBLIC_STATION_URL}?host=AB3K`,
     ]);
-    expect(qr.url).toBe("http://192.168.1.20:8080/station?host=AB3K");
+    expect(qr.url).toBe("http://192.0.2.20:8080/station?host=AB3K");
   });
 
   it("encodes the public build in the QR when the page is on localhost, which no phone can reach", () => {

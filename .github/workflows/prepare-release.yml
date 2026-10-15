@@ -5,7 +5,7 @@ name: prepare-release
 # every version the release carries, commits `release: vX.Y.Z`, tags, pushes,
 # and dispatches release.yml on the new tag: same model as kerbcast's
 # prepare-release. The version is the single release number for the whole
-# deploy surface: the Pages site, all three GHCR images, the peer hello
+# deploy surface: the Pages site, both GHCR images, the peer hello
 # handshake, the mod zips, and every published package (sitrep-sdk, ui-kit,
 # uplink-tools on npm, KspGonogo.Sitrep.Contract on nuget.org). It is refused
 # unless it sorts above every version any of those packages has published and
