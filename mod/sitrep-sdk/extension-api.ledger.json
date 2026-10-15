@@ -10763,8 +10763,96 @@
         "note": "its label prop is now aria-label"
       },
       {
+        "key": "ui-kit . LineGraphProps",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
         "key": "ui-kit . LineGraphProps#ariaLabel?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . LineGraphProps#className?",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphProps#height?",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphProps#series",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphProps#thresholdStyle?",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphProps#thresholds?",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphProps#variant?",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphProps#yDomain?",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphSeries",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphSeries#breaks?",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphSeries#color",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphSeries#id",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphSeries#label?",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphSeries#points",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphSeries#reckoned?",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphThreshold",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphThreshold#color?",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphThreshold#id",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphThreshold#label?",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphThreshold#value",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphThreshold#valueText?",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
+      },
+      {
+        "key": "ui-kit . LineGraphThresholdStyle",
+        "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
       },
       {
         "key": "ui-kit . PanelProps#panelSections?",
@@ -16067,14 +16155,6 @@
       {
         "key": "ui-kit . LimitSide",
         "note": "which side of a limit line is out of bounds, moved here unchanged"
-      },
-      {
-        "key": "ui-kit . LineGraphProps#\"aria-label\"?",
-        "note": "the label prop is aria-label everywhere; Dial and Tape require it"
-      },
-      {
-        "key": "ui-kit . LineGraphSeries#interpolation?",
-        "note": "Draws a series as a line, a step or separate marks, from the plotted value's sample kind"
       },
       {
         "key": "ui-kit . MarkKind",
