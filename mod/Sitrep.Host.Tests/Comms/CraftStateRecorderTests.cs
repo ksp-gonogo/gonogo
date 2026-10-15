@@ -96,6 +96,62 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(new[] { "a" }, batch.Present);
         }
 
+        private sealed class TurnableBackend : ICommsBackend, ICommsRetargetBackend
+        {
+            public string AimLabel = "Relay";
+
+            public string ProviderId => "turnable";
+            public CommsConnectivity Connectivity() => new CommsConnectivity();
+            public CommsSignal Signal() => new CommsSignal();
+            public CommsControl ControlState() => new CommsControl();
+            public CommsPath Path(object? vessel) => new CommsPath();
+            public CommsNetwork Network(object? vessel) => new CommsNetwork();
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to) => null;
+            public ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => CommsReachModels.Unknown;
+            public CommsNodeHandle? ControlPathTerminus(object? vessel) => null;
+            public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
+            public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
+            public bool? StillCarriesTo(object? vessel, string nodeId) => null;
+
+            public IRetargetModel? RetargetModel(CommsNodeHandle? node, double ut) => new Dish(AimLabel);
+            public bool AutoRetargetAllowed(string nodeId) => true;
+            public bool PeerCanReceive(string peerId, string nodeId, double ut) => true;
+            public string? TurnDish(string nodeId, string dishId, string peerId, double ut) => null;
+            public bool RestoreDish(string recordId, double ut) => true;
+        }
+
+        private sealed class Dish : IRetargetModel
+        {
+            private readonly string _label;
+
+            public Dish(string label) => _label = label;
+
+            public bool AutoRetargetAllowed(string nodeId) => true;
+            public IReadOnlyList<DishAim> DishesOf(string nodeId) => new[] { new DishAim("dish", _label) };
+            public double MarginIfAimedAt(string dishId, string peerId, double ut, Vector3d dish, Vector3d peer, IContactPositions positions) => 1.0;
+            public double PeerReceiveMargin(string peerId, string nodeId, double ut, Vector3d peer, Vector3d node, IContactPositions positions) => 1.0;
+        }
+
+        [Fact]
+        public void ACraftThatHasNotMovedButTurnedADishIsReadAgainOnTheNextPass()
+        {
+            var backend = new TurnableBackend();
+            var kernel = new Kernel();
+            CommsElection.RegisterCapability(kernel, _ => backend);
+            kernel.Resolve(new ResolveOptions { KernelVersion = "2.2.0" });
+            var radio = CommsNodeHandle.Of(new object());
+            var recorder = new CraftStateRecorder();
+            var look = Look(ContactGameNode.OrbitingCraft("vessel:a", Kerbin, Orbit(700_000.0), radio));
+
+            Assert.Single(recorder.Capture(look, 0.0, kernel).States);
+            Assert.Empty(recorder.Capture(look, 10.0, kernel).States);
+
+            backend.AimLabel = "Sun";
+
+            Assert.Single(recorder.Capture(look, 20.0, kernel).States);
+            Assert.Empty(recorder.Capture(look, 30.0, kernel).States);
+        }
+
         [Fact]
         public void ABurnIsReadOnceTheDriftIntervalHasPassed()
         {

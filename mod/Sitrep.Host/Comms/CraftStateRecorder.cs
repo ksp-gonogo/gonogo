@@ -566,12 +566,13 @@ namespace Sitrep.Host.Comms
             var timeHasCome = itsTurn && TimeHasComeFor(last, Moved(last, node, ut), ut);
             if (!timeHasCome && !LacksALinkToANodeHere(last.State, look))
             {
-                if (!ListedDifferently(last.State.Roster, listed))
+                if (!ListedDifferently(last.State.Roster, listed) && !Retargeted(last.State, node, ut, kernel))
                 {
                     return null;
                 }
-                // Its crew, its situation or its name changed and its orbit did
-                // not: the same craft going the same way, listed as it is now.
+                // Its crew, its situation, its name or where a dish is aimed
+                // changed and its orbit did not: the same craft going the same
+                // way, listed and linked as it is now.
                 var fresh = StateOf(node, look, ut, kernel);
                 var relisted = last.State.ReadAgain(ut, fresh.ValidUntilUt, fresh.Plannable, fresh.Links).WithRetarget(fresh.Retarget).Named(fresh.Name).Listed(listed);
                 if (!last.State.Settled)
@@ -589,6 +590,32 @@ namespace Sitrep.Host.Comms
                 .Listed(listed);
             _read[node.Id] = new Read(afresh ? node : last.Node, again);
             return again;
+        }
+
+        /// <summary>
+        /// Whether a dish of the craft is aimed somewhere other than where the last
+        /// read left it. A plan holds the aims its links were read with, so a craft
+        /// that has turned a dish and not moved would otherwise keep the route it
+        /// had until its next refresh.
+        /// </summary>
+        private static bool Retargeted(CraftState last, ContactGameNode node, double ut, Kernel? kernel) =>
+            !string.Equals(
+                AimsOf(last.Retarget, node.Id),
+                AimsOf(CommsElection.RetargetModel(kernel, node.Radio, ut), node.Id),
+                StringComparison.Ordinal);
+
+        private static string AimsOf(IRetargetModel? model, string nodeId)
+        {
+            if (model == null)
+            {
+                return "";
+            }
+            var aims = new List<string>();
+            foreach (var dish in model.DishesOf(nodeId))
+            {
+                aims.Add(dish.DishId + "=" + dish.AimLabel);
+            }
+            return string.Join("|", aims);
         }
 
         /// <summary>
