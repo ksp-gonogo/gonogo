@@ -75,7 +75,7 @@ const STACKED_ROW = {
 
 const LABEL_STYLE = {
   color: "var(--color-text-faint)",
-  letterSpacing: "0.08em",
+  letterSpacing: "0.04em",
   textTransform: "uppercase",
   fontSize: "var(--font-size-caption)",
 } as const;
