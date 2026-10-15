@@ -84,9 +84,10 @@ export function HostedLanding() {
             </StepText>
             <CommandBlock command={CKAN_UPLINK_FILTER} label="CKAN search" />
             <StepText>
-              If CKAN does not list Gonogo yet, the{" "}
-              <a href={SETUP_LINKS.kspSetup}>KSP setup guide</a> shows how to
-              install it by hand.
+              If CKAN does not list Gonogo, download the zip from the{" "}
+              <a href={`${SETUP_LINKS.source}/releases`}>releases page</a>; the{" "}
+              <a href={SETUP_LINKS.kspSetup}>KSP setup guide</a> shows where it
+              goes.
             </StepText>
           </Step>
           <Step>
@@ -94,9 +95,9 @@ export function HostedLanding() {
             <StepText>
               Start KSP, then open <a href={LOCAL_APP_URL}>{LOCAL_APP_URL}</a>{" "}
               on the computer you ran the command on. A short setup opens by
-              itself and checks each part for you: the container, the connection
-              to KSP, and any Uplinks. If KSP is on a different computer, it
-              asks for that computer's address. The rest of the instructions are
+              itself and checks each part for you: the app, the connection to
+              KSP, and any Uplinks. If KSP is on a different computer, it asks
+              for that computer's address. The rest of the instructions are
               there.
             </StepText>
           </Step>

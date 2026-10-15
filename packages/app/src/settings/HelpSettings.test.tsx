@@ -17,13 +17,16 @@ describe("HelpSettings", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("opens the install topic onto the manual route and no mod-manager step", async () => {
+  it("opens the install topic onto CKAN first and the release zip as the fallback", async () => {
     const user = userEvent.setup();
     render(<HelpSettings />);
     await user.click(
       screen.getByRole("button", { name: "Installing the Gonogo mod" }),
     );
-    expect(screen.getByText(/not in a mod manager yet/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/search it for Gonogo and install it/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/If CKAN does not list it/)).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Gonogo releases page" }),
     ).toHaveAttribute("href", expect.stringContaining("/releases"));
@@ -64,10 +67,9 @@ describe("HelpSettings", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("never prints the engineering codename, an em-dash or a CKAN step", () => {
+  it("never prints the engineering codename or an em-dash", () => {
     const all = JSON.stringify(HELP_TOPICS);
     expect(all).not.toMatch(/sitrep/i);
     expect(all).not.toContain(String.fromCodePoint(0x2014));
-    expect(all).not.toMatch(/ckan/i);
   });
 });

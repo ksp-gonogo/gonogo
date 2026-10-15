@@ -14,7 +14,7 @@ pnpm build
 pnpm --filter @ksp-gonogo/app dev
 ```
 
-[docs/KSP-SETUP.md](docs/KSP-SETUP.md) covers connecting the app to the game.
+`pnpm --filter @ksp-gonogo/app dev` starts the app without the relay, so the first setup step reports no answer from the app until you run the relay too (`pnpm dev` starts both). [docs/KSP-SETUP.md](docs/KSP-SETUP.md) covers connecting the app to the game.
 
 ## Making a change
 

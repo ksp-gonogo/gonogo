@@ -22,9 +22,8 @@ const text = (value: string): HelpBlock => ({ kind: "text", text: value });
 const list = (...items: string[]): HelpBlock => ({ kind: "list", items });
 
 /*
- * The mod is not published to a mod manager yet, so the install topic describes
- * the zip from the releases page and no other route. When a listing exists this
- * is the one place that gains the mod-manager step.
+ * The install topic leads with CKAN and gives the zip from the releases page as
+ * the fallback for a mod CKAN does not list.
  */
 export const HELP_TOPICS: readonly HelpTopic[] = [
   {
@@ -44,16 +43,17 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
         "Mods go in the GameData folder of your KSP install. On Steam, right-click Kerbal Space Program in your library, then Manage, then Browse local files. Inside you will see GameData with Squad already in it.",
       ),
       text(
-        "Download the Gonogo zip from the releases page, unzip it and copy the folders inside its GameData into your own GameData, so that Squad and Gonogo sit side by side. You never replace your GameData folder. To reinstall or update a mod, delete its folder first and copy the new one in, rather than copying over the old one.",
+        "The easiest way to install the Gonogo mod is CKAN, a mod manager for KSP: install CKAN by following its own guide, then search it for Gonogo and install it.",
+      ),
+      text(
+        "If CKAN does not list it, download the Gonogo zip from the releases page, unzip it and copy the folders inside its GameData into your own GameData, so that Squad and Gonogo sit side by side. You never replace your GameData folder. To reinstall or update a mod, delete its folder first and copy the new one in, rather than copying over the old one.",
       ),
       {
         kind: "link",
         label: "Gonogo releases page",
         href: `${SETUP_LINKS.source}/releases`,
       },
-      text(
-        "The mod is not in a mod manager yet, so the zip is the only route, and until a release carries it there is nothing to download.",
-      ),
+      text("Until a release carries the zip there is nothing to download."),
       text(
         "The mod loads before the main menu and stays loaded across scene changes, so a dashboard can connect from the main menu. Data starts flowing once a save is loaded. It listens on every network interface at port 8090, with no password, and that port accepts commands that act on your game. Keep it to a network you trust and do not forward it to the internet. A friend elsewhere joins with the share code from Add station instead.",
       ),
@@ -67,7 +67,7 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
         "The browser you opened this screen in connects to the game directly, so the address you give it must be reachable from this computer, and the firewall that matters is the one on the KSP computer. It must accept incoming connections on port 8090.",
       ),
       text(
-        "KSP pauses when its window is not in front, so with both on one computer the dashboard stops getting data whenever you switch to it. A second computer avoids that.",
+        "By default, KSP will not run when minimised, so with both on one computer the dashboard can stop getting data. Either set SIMULATE_IN_BACKGROUND = True in settings.cfg in the KSP install folder, with KSP closed, or use a second computer.",
       ),
       text(
         "Set the address under Connection, Game host: press the gear on the Telemetry stream row, set Host to the KSP computer's address and press Save. It takes effect at once. To find the KSP computer's address, run the command for its system on that computer:",
@@ -88,7 +88,7 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
         label: "Linux address command",
       },
       text(
-        "The address usually starts 192.168. or 10. Station screens need none of this: a station gets everything from the main screen and never talks to KSP.",
+        "The macOS command is for Wi-Fi. On Ethernet, use System Settings, Network. The address usually starts 192.168. or 10. Station screens need none of this: a station gets everything from the main screen and never talks to KSP.",
       ),
     ],
   },
@@ -225,7 +225,7 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
     title: "Running the app",
     blocks: [
       text(
-        `The app is served by the Gonogo container at ${LOCAL_APP_URL}. Settings, Connection, Run setup again re-opens the first-run checks for the container and the KSP connection.`,
+        `The app is served by the Gonogo container at ${LOCAL_APP_URL}. Settings, Connection, Run setup again re-opens the first-run checks for the app and the KSP connection.`,
       ),
     ],
   },

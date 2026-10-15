@@ -7,21 +7,21 @@ Two computers are involved in a gonogo session:
 
 It is the browser, not the container, that opens that connection: it dials the Gonogo mod on port 8090 of the KSP computer directly (and kerbcast on 8088 for cameras). The container serves the app and the relay and never contacts the game. For a firewall this means the rule belongs on the KSP computer, which has to accept incoming connections on those ports from the main screen computer; nothing about the container's published ports matters for it.
 
-Running both on one machine works but is awkward, because KSP pauses when it isn't the focused window, so the dashboard stops getting data the moment you switch to it. Two computers avoids that.
+Running both on one machine works but is awkward, because by default KSP will not run when minimised, so the dashboard can stop getting data. Either set `SIMULATE_IN_BACKGROUND = True` in settings.cfg in the KSP install folder (with KSP closed), or use two computers.
 
 Station screens are different again. A station is any browser that joins the session: a tablet, a phone, a second laptop. A station never talks to KSP, and never needs to know your KSP computer's address or ports. It gets everything through the main screen's browser tab, so a station works only while that tab stays open and awake: close it, or let the computer sleep, and every station loses its data until it is back. On its first load a station also shows **Before you start** with a row per Uplink, answered separately from the main screen's. It needs two things: the share code from the main screen, and an internet connection (under **Settings, Help**, **Adding a station screen**: the two ends meet on a broker that lives on the internet).
 
-Most of this page assumes you run gonogo the way the [README](../README.md#how-to-run-it) describes: the `ghcr.io/ksp-gonogo/gonogo` container (`:latest` after the first release, `:rc` before it), which serves the app on `:8080` and the relay on `:3002`. Where a setting differs between that and a source checkout running `pnpm dev`, both are given.
+Most of this page assumes you run gonogo the way the [README](../README.md#host-it-yourself) describes: the `ghcr.io/ksp-gonogo/gonogo` container (`:latest` after the first release, `:rc` before it), which serves the app on `:8080` and the relay on `:3002`. Where a setting differs between that and a source checkout running `pnpm dev`, both are given.
 
 ## Pointing the main screen at KSP
 
 The main screen needs the KSP computer's address on your network. Find it on the KSP computer:
 
 - **Windows**: run `ipconfig`, look for "IPv4 Address"
-- **macOS**: System Settings, Network, Wi-Fi, Details, TCP/IP
+- **macOS**: System Settings, Network, Wi-Fi, Details, TCP/IP (or `ipconfig getifaddr en0`, which covers Wi-Fi only)
 - **Linux / SteamOS / Steam Deck**: run `ip addr show`, look for an `inet` address on your active connection
 
-It usually looks like `192.168.x.x` or `10.x.x.x`. Give it to the main screen in **Settings → Connection → Telemetry stream** (the gear in the bottom-right **+** menu), or seed it once with `KSP_HOST=<address>` on the container. On a first run, the setup that opens by itself has a **Connect to KSP** step with the same row: that is where a player whose game is on a second computer types the KSP computer's address. [KSP-SETUP.md](KSP-SETUP.md#connecting-the-dashboard-to-ksp) covers both.
+It usually looks like `192.168.x.x` or `10.x.x.x`. Give it to the main screen in **Settings → Connection → Telemetry stream** (the gear in the bottom-right **+** menu), or seed it once with `KSP_HOST=<address>` on the container. On a first run, the setup that opens by itself has a **Connect to KSP** step with the same row: that is where a player whose game is on a second computer types the KSP computer's address. **Settings, Help, Connecting to KSP on another computer** covers both.
 
 If the main screen can't reach the KSP computer on the same WiFi, a firewall on the KSP computer is the usual cause (it must allow incoming connections on port 8090, and 8088 for cameras); Windows and macOS often block local network traffic by default. The check is made by the browser on the main screen computer, so that computer's own network is the other half. This is a main-screen-to-KSP problem only. Stations never contact the KSP computer, so no firewall or port on that machine can stop a station connecting.
 
@@ -95,6 +95,8 @@ podman run -d --name gonogo-relay \
   -e RELAY_PUBLIC=1 \
   ghcr.io/ksp-gonogo/gonogo-relay:latest
 ```
+
+Until the first release the image exists only as `:rc`, so end the command with `:rc` instead.
 
 On a box where the TURN ports are directly reachable, the relay finds its public IP by itself and nothing needs forwarding at home; leave `TURN_EXTERNAL_IP` out unless discovery gets it wrong.
 
