@@ -41,13 +41,13 @@
 
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { dirname, join, posix, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** The two generated files this writes, relative to a client directory. */
-const PAGE_FILES = ["README.md", "gonogo-uplink.json"];
+/** The two generated files this writes, relative to a client directory: the README sits at the Uplink's root, above it. */
+const PAGE_FILES = ["../README.md", "gonogo-uplink.json"];
 
 /**
  * The call that makes a test file the page's gate, matched the way
@@ -153,7 +153,8 @@ for (const leg of legs) {
   // writer printed is invisible from here.
   const after = pageContents(clientDir);
   for (const [i, [name, content]] of after.entries()) {
-    if (content !== before[i][1]) moved.push(`${leg.id}/client/${name}`);
+    if (content !== before[i][1])
+      moved.push(posix.normalize(`${leg.id}/client/${name}`));
   }
   console.log(`  ${leg.id}`);
 }

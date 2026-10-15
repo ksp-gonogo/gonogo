@@ -746,11 +746,11 @@ if (
 ) {
   fail("the seed's empty command map imports nothing from ./contract.js");
 }
-if (!existsSync(join(client, "README.md"))) {
-  fail("the generated page, client/README.md, was not written");
+if (!existsSync(join(uplink, "README.md"))) {
+  fail("the generated page, README.md at the Uplink root, was not written");
 }
 // The page of a fresh scaffold is the first thing its author reads back, so every part of it has to say something.
-const pageText = readFileSync(join(client, "README.md"), "utf8");
+const pageText = readFileSync(join(uplink, "README.md"), "utf8");
 const widgetRecords = JSON.parse(
   readFileSync(join(client, "docs/widgets.json"), "utf8"),
 ).widgets;
@@ -765,6 +765,18 @@ for (const widget of widgetRecords) {
   if (!widget.description?.trim() || !pageText.includes(widget.description)) {
     fail(`the generated page does not carry a description of ${widget.id}`);
   }
+}
+const { gamedata } = JSON.parse(
+  readFileSync(join(uplink, "uplink.json"), "utf8"),
+);
+if (
+  !pageText.includes("## Install") ||
+  !pageText.includes(`GameData/${gamedata}`) ||
+  !pageText.includes("/releases")
+) {
+  fail(
+    "the generated page has no Install section naming the GameData folder and the releases",
+  );
 }
 if (/undefined|\bnull\b/.test(pageText)) {
   fail("the generated page prints an undefined or null where a value belongs");
@@ -798,7 +810,7 @@ must("npm test, with the pictures drawn", "npm", ["test"], { cwd: client });
 {
   const widget = readFileSync(widgetFile, "utf8");
   const manifestFile = join(client, "gonogo-uplink.json");
-  const readme = () => readFileSync(join(client, "README.md"), "utf8");
+  const readme = () => readFileSync(join(uplink, "README.md"), "utf8");
 
   // A changed widget makes the page stale and, as often as not, breaks one of its own tests in the same edit. `page` has to write the page anyway.
   const brokenTest = join(client, "src/Heartbeat/broken.test.ts");

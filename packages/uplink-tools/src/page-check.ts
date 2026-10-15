@@ -11,6 +11,7 @@ import {
   buildManifest,
   buildReadme,
   linkedAssets,
+  pageRoot,
   widgetRecordsOf,
 } from "./render/docs";
 import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
@@ -115,7 +116,7 @@ function generatePage(options: PageCheckOptions): GeneratedPage {
   const manifestPath = join(pkg.dir, "gonogo-uplink.json");
 
   return {
-    readmePath: join(pkg.dir, "README.md"),
+    readmePath: join(pageRoot(pkg.dir), "README.md"),
     readme,
     manifestPath,
     // `buildManifest` carries the committed integrity through when no bundle is named, which is what lets the writer below rewrite a released manifest without blanking the hash the release stamped into it.

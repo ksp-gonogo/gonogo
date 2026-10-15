@@ -152,7 +152,9 @@ export function missingPageReasons(clientDir) {
   ) {
     reasons.push("no test calls expectUplinkPageCurrent()");
   }
-  const readmeReason = missingReadmeReason(join(clientDir, "README.md"));
+  const readmeReason = missingReadmeReason(
+    join(dirname(clientDir), "README.md"),
+  );
   if (readmeReason) reasons.push(readmeReason);
 
   if (!existsSync(join(clientDir, "gonogo-uplink.json"))) {
@@ -182,8 +184,9 @@ export function missingPageReasons(clientDir) {
 function selfCheck() {
   const dir = makeTempDir("uplink-docs-gate-");
   try {
+    // A file named "../README.md" lands at the Uplink's root, above the client.
     const tree = (name, files) => {
-      const at = join(dir, name);
+      const at = join(dir, name, "client");
       mkdirSync(at, { recursive: true });
       for (const [file, body] of Object.entries(files)) {
         const full = join(at, file);
@@ -193,7 +196,7 @@ function selfCheck() {
       return at;
     };
     const page = {
-      "README.md": `${GENERATED_BANNER} -->\n\n# Some Uplink\n`,
+      "../README.md": `${GENERATED_BANNER} -->\n\n# Some Uplink\n`,
       "gonogo-uplink.json": "{}\n",
     };
     const gate = { "src/uplink-page.test.ts": "expectUplinkPageCurrent();\n" };
@@ -202,7 +205,7 @@ function selfCheck() {
     const handWritten = missingPageReasons(
       tree("hand-written", {
         ...gate,
-        "README.md": "# Some Uplink\n\nWritten by a person.\n",
+        "../README.md": "# Some Uplink\n\nWritten by a person.\n",
         "gonogo-uplink.json": "{}\n",
       }),
     );
