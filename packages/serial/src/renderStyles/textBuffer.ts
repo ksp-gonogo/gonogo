@@ -63,12 +63,7 @@ export const textBuffer: DeviceRenderStyle = {
   },
 };
 
-/**
- * Backward-compat alias for the original 21×8 style id, any DeviceType
- * saved with `renderStyleId: "text-buffer-168"` continues to render at
- * 21×8 without needing a migration. New code should reference "text-buffer"
- * with a `{ w, h }` config instead.
- */
+/** The text-buffer style fixed at 21×8, the size the seeded Virtual Controller uses. */
 export const textBuffer168: DeviceRenderStyle = {
   id: "text-buffer-168",
   name: "Text Buffer (21×8)",

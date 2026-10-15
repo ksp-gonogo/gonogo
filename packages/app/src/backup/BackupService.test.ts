@@ -165,7 +165,7 @@ describe("applyBackup (replace mode)", () => {
   });
 
   it("leaves keys absent from the backup untouched (per-key, not wipe)", () => {
-    localStorage.setItem("gonogo.notes.v1", "keep-me");
+    localStorage.setItem("gonogo.notes.v2", "keep-me");
     const backup = {
       metadata: { version: 1, exportedAt: "x" },
       data: { "gonogo.settings": "{new}" },
@@ -173,7 +173,7 @@ describe("applyBackup (replace mode)", () => {
 
     applyBackup(backup);
 
-    expect(localStorage.getItem("gonogo.notes.v1")).toBe("keep-me");
+    expect(localStorage.getItem("gonogo.notes.v2")).toBe("keep-me");
     expect(localStorage.getItem("gonogo.settings")).toBe("{new}");
   });
 });

@@ -3,7 +3,6 @@ import { logger } from "@ksp-gonogo/logger";
 import { EMPTY_NOTES_SNAPSHOT, type Note, type NotesSnapshot } from "./types";
 
 const STORAGE_KEY = "gonogo.notes.v2";
-const LEGACY_STORAGE_KEY = "gonogo.notes.v1";
 
 type Listener = (snap: NotesSnapshot) => void;
 
@@ -22,8 +21,6 @@ export type NoteResult = { ok: true } | { ok: false; current: Note | null };
  */
 export class NotesHostService {
   private centres = new Map<string, Note[]>();
-  /** The pre-centre list, held until a centre exists to give it to. */
-  private legacy: Note[] | null = null;
   private listeners = new Set<Listener>();
   private nowFn: () => number;
 
@@ -41,7 +38,6 @@ export class NotesHostService {
         this.centres.set(centreId, [...notes]);
       }
     }
-    if (!opts.load) this.legacy = this.loadLegacy();
   }
 
   snapshot(centreId: string | null): NotesSnapshot {
@@ -52,21 +48,6 @@ export class NotesHostService {
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
-  }
-
-  /**
-   * Gives the list from before notes were kept per centre to `centreId`, once.
-   * Called with the first centre a screen resolves; until then the list waits
-   * in storage, never in a centre of its own.
-   */
-  adoptLegacy(centreId: string): void {
-    if (this.legacy === null) return;
-    const adopted = this.legacy;
-    this.legacy = null;
-    const existing = this.centres.get(centreId) ?? [];
-    this.centres.set(centreId, [...existing, ...adopted]);
-    this.persistAndEmit(centreId);
-    this.dropLegacy();
   }
 
   addNote(centreId: string, input: { body: string; createdBy?: string }): Note {
@@ -208,29 +189,6 @@ export class NotesHostService {
         error: err instanceof Error ? err.message : String(err),
       });
       return null;
-    }
-  }
-
-  private loadLegacy(): Note[] | null {
-    if (typeof localStorage === "undefined") return null;
-    try {
-      const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
-      if (!raw) return null;
-      const parsed: unknown = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return null;
-      const notes = validNotes(parsed);
-      return notes.length > 0 ? notes : null;
-    } catch {
-      return null;
-    }
-  }
-
-  private dropLegacy(): void {
-    if (typeof localStorage === "undefined") return;
-    try {
-      localStorage.removeItem(LEGACY_STORAGE_KEY);
-    } catch {
-      /* storage refused; the list is already in its centre */
     }
   }
 }

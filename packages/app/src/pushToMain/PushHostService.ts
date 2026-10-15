@@ -1,4 +1,3 @@
-import { migrateComponentId } from "../components/Dashboard/layoutNormalization";
 import type { PeerHostService } from "../peer/PeerHostService";
 
 /**
@@ -71,8 +70,7 @@ export class PushHostService {
         this.entries.set(key(peerId, msg.widgetInstanceId), {
           peerId,
           widgetInstanceId: msg.widgetInstanceId,
-          // A station on an older bundle may push a pre-rename id; migrate so the host renders the widget instead of a "not registered" stub.
-          componentId: migrateComponentId(msg.componentId),
+          componentId: msg.componentId,
           config: msg.config,
           width: msg.width,
           height: msg.height,

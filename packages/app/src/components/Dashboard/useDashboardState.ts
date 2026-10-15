@@ -2,12 +2,7 @@ import type { InputMappings } from "@ksp-gonogo/serial";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Layout, Layouts } from "react-grid-layout";
 import type { DashboardConfig, DashboardItem } from "./index";
-import {
-  BREAKPOINTS,
-  COLS,
-  firstFreeSlot,
-  migrateDashboardItems,
-} from "./layoutNormalization";
+import { BREAKPOINTS, COLS, firstFreeSlot } from "./layoutNormalization";
 
 // Derived from the single source of truth in layoutNormalization.ts, RGL warns at runtime if a key here isn't a valid breakpoint.
 const COLS_KEYS = Object.keys(BREAKPOINTS);
@@ -51,10 +46,9 @@ function loadState(key: string): PersistedState | null {
             typeof it.componentId === "string",
         )
       : [];
-    // Forward-map any renamed widget ids so old placements survive a rename.
     return {
       ...state,
-      items: migrateDashboardItems(items),
+      items,
       layouts:
         typeof state.layouts === "object" && state.layouts !== null
           ? state.layouts
@@ -336,8 +330,7 @@ export function useDashboardState(
       if (storageKeyRef.current !== activeKeyRef.current) {
         replacedForKeyRef.current = storageKeyRef.current;
       }
-      // Mission-profile / peer-config loads also carry persisted ids, migrate.
-      setItemsInner(migrateDashboardItems(nextItems));
+      setItemsInner(nextItems);
       setLayouts(nextLayouts);
       setCurrentLayouts(nextLayouts);
     },

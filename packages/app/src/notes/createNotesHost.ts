@@ -7,9 +7,6 @@ import { NotesPeerBridge } from "./NotesPeerBridge";
  * through the public mutator API and each change reaches the stations at the
  * centre it belongs to. Returns the service so the caller can hand it to
  * <NotesHostProvider>. The bridge has no public API after construction.
- *
- * The list kept from before notes were per centre is given to the first
- * centre this screen resolves.
  */
 export function createNotesHost(
   host: PeerHostService | null,
@@ -25,13 +22,5 @@ export function createNotesHost(
       service.reorderNote(centreId, id, afterId, v),
   });
   service.subscribe((snap) => bridge.broadcastSnapshot(snap));
-  if (host) {
-    const adopt = () => {
-      const centreId = host.getCommandCentre();
-      if (centreId !== null) service.adoptLegacy(centreId);
-    };
-    host.onCentresChanged(adopt);
-    adopt();
-  }
   return service;
 }

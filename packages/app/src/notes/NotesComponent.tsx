@@ -29,9 +29,6 @@ function MainView() {
   const host = useNotesHostOptional();
   const centreId = useNotesCentre();
   const snap = useNotesHostSnapshot(host, centreId);
-  useEffect(() => {
-    if (host && centreId !== null) host.adoptLegacy(centreId);
-  }, [host, centreId]);
   if (!host) return <Empty>Notes host unavailable</Empty>;
   const actions: NotesActions = {
     addNote: (body) => {

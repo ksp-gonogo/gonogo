@@ -254,28 +254,4 @@ describe("notes per command centre", () => {
     expect(service.snapshot(HOME).notes).toEqual([]);
     host.stop();
   });
-
-  it("holds the old single list until the host has a centre, then gives it to that one", async () => {
-    store.set(
-      "gonogo.notes.v1",
-      JSON.stringify([
-        { id: "o1", body: "old note", order: 0, createdAt: 0, updatedAt: 0 },
-      ]),
-    );
-    const host = await startedHost();
-    const service = createNotesHost(host);
-    const atCrew = await connectStation(host, "station-crew");
-    send(atCrew, { type: "sitrep-set-vantage", vantage: CREW });
-    expect(lastBodies(atCrew)).toEqual([]);
-    expect(store.has("gonogo.notes.v1")).toBe(true);
-
-    host.setCommandCentre(HOME);
-
-    expect(service.snapshot(HOME).notes.map((n) => n.body)).toEqual([
-      "old note",
-    ]);
-    expect(lastBodies(atCrew)).toEqual([]);
-    expect(store.has("gonogo.notes.v1")).toBe(false);
-    host.stop();
-  });
 });

@@ -19,7 +19,7 @@ function rowsOf(out: string, width: number): string[] {
   return rows;
 }
 
-describe("text-buffer-168 render style (backward-compat alias)", () => {
+describe("text-buffer-168 render style", () => {
   it("returns a flat 8×21 buffer", () => {
     const out = textBuffer168.render({});
     expect(typeof out).toBe("string");

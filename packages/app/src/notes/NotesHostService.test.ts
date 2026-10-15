@@ -1,17 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { NotesHostService } from "./NotesHostService";
-import type { Note } from "./types";
 
 const HOME = "ground:home";
 const CREW = "vessel:abc";
-
-const legacyNote = (id: string, body: string, order: number) => ({
-  id,
-  body,
-  order,
-  createdAt: 0,
-  updatedAt: 0,
-});
 
 describe("NotesHostService", () => {
   beforeEach(() => {
@@ -148,42 +139,5 @@ describe("NotesHostService", () => {
     expect(svc2.snapshot(CREW).notes.map((n) => n.body)).toEqual([
       "also stays",
     ]);
-  });
-
-  describe("the list kept from before notes were per centre", () => {
-    const seed = () =>
-      localStorage.setItem(
-        "gonogo.notes.v1",
-        JSON.stringify([legacyNote("o1", "old note", 0)]),
-      );
-
-    it("belongs to no centre until one is resolved", () => {
-      seed();
-      const svc = new NotesHostService();
-      expect(svc.snapshot(HOME).notes).toEqual([]);
-      expect(svc.snapshot(CREW).notes).toEqual([]);
-      expect(localStorage.getItem("gonogo.notes.v1")).not.toBeNull();
-    });
-
-    it("moves whole to the first centre resolved, with a first version, and is then gone from storage", () => {
-      seed();
-      const svc = new NotesHostService();
-      svc.adoptLegacy(HOME);
-      const [adopted]: readonly Note[] = svc.snapshot(HOME).notes;
-      expect(adopted).toMatchObject({ id: "o1", body: "old note", version: 1 });
-      expect(localStorage.getItem("gonogo.notes.v1")).toBeNull();
-      svc.adoptLegacy(CREW);
-      expect(svc.snapshot(CREW).notes).toEqual([]);
-    });
-
-    it("survives a reload that happens before any centre is resolved", () => {
-      seed();
-      new NotesHostService();
-      const reloaded = new NotesHostService();
-      reloaded.adoptLegacy(HOME);
-      expect(reloaded.snapshot(HOME).notes.map((n) => n.body)).toEqual([
-        "old note",
-      ]);
-    });
   });
 });
