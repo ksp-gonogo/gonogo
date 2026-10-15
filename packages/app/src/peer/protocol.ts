@@ -83,15 +83,6 @@ export type PeerMessage =
      One station identity holds one live connection, so the page told this
      stops reconnecting until its operator takes the station back. */
   | { type: "station-superseded" }
-  /* Station → host, the first message on every connection: the station's
-     secret, which the host remembers its approval against. A station that
-     sends none reads but is never approved. */
-  | { type: "station-credential"; credential: string }
-  /* Host → one station: where the main screen's approval of it stands. Sent
-     after each `station-info`, and as "refused" just before the host closes
-     the connection, so the page stops reconnecting until its operator asks
-     again. A pending or refused station reads but has every command refused. */
-  | { type: "station-approval"; state: "pending" | "approved" | "refused" }
   // Host → stations: the relay's TURN credentials, the payload the host
   // fetched from /ice-config, which a station cannot fetch itself because
   // that address is the host's loopback. Sent on connect and on every

@@ -185,7 +185,6 @@ import { PeerHostService } from "../peer/PeerHostService";
 import { PeerTransport } from "../telemetry/PeerTransport";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
-import { approveStation } from "../test/approveStation";
 
 /**
  * Every `TelemetryProvider` this file mounts builds its own `ViewClock`, whose
@@ -369,7 +368,6 @@ async function connectStationService(
   const clientSvc = new PeerClientService();
   act(() => clientSvc.connect(peerHost.shareCode));
   await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
-  approveStation();
   return clientSvc;
 }
 
@@ -381,7 +379,6 @@ async function connectStation(
   render(<StationApp clientSvc={clientSvc} extraTopic={extraTopic} />);
   act(() => clientSvc.connect(peerHost.shareCode));
   await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
-  approveStation();
   return clientSvc;
 }
 
@@ -928,7 +925,6 @@ describe("an Uplink's own methods, called from a station", () => {
         onAnswer={(value) => answers.push(value)}
       />,
     );
-    approveStation();
     act(() => clientSvc.connect(peerHost.shareCode));
     await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
 
@@ -957,7 +953,6 @@ describe("an Uplink's own methods, called from a station", () => {
         onAnswer={(value) => answers.push(value)}
       />,
     );
-    approveStation();
     act(() => clientSvc.connect(peerHost.shareCode));
     await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
 

@@ -16,7 +16,6 @@ import { LiveRegion } from "./LiveRegion";
 import { Panel } from "./Panel";
 import { resolveCurrency } from "./readingCurrency";
 import { Section } from "./Section";
-import { Sparkline } from "./Sparkline";
 import { ToggleButton } from "./ToggleButton";
 import { Tooltip } from "./Tooltip";
 import { TONE_MARK, TONE_TEXT } from "./tone";
@@ -79,18 +78,6 @@ export function TinyEssentials({
       panelTitle={title}
       fitToSize
       hoverTitle
-      panelTrend={
-        hero?.trend === undefined
-          ? undefined
-          : ({ w, h }) => (
-              <Sparkline
-                values={hero.trend ?? []}
-                width={w}
-                height={h}
-                aria-label={`${hero.label} trend`}
-              />
-            )
-      }
       sections={
         <Section full>
           <LiveRegion visuallyHidden>

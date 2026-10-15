@@ -142,7 +142,6 @@ import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
 import { PeerTransport } from "../telemetry/PeerTransport";
-import { approveStation } from "../test/approveStation";
 
 /** Drain the queued-microtask chain the fake channel and the stub both hop on. */
 async function settleWire(): Promise<void> {
@@ -187,7 +186,6 @@ async function refusedRoundTrip() {
   const peerClient = new PeerClientService();
   peerClient.connect(host.peerId ?? "");
   await settleWire();
-  approveStation();
 
   const errorFrames: Array<{ code: string; message: string }> = [];
   peerClient.onSitrepCommandError((_requestId, code, message) => {
@@ -303,7 +301,6 @@ describe("a refused command crossing the peer boundary", () => {
     const peerClient = new PeerClientService();
     peerClient.connect(host.peerId ?? "");
     await settleWire();
-    approveStation();
 
     const transport = new PeerTransport(peerClient);
     const stationClient = new TelemetryClient(transport);

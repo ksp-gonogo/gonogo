@@ -125,7 +125,6 @@ vi.stubGlobal("localStorage", localStorageMock);
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
-import { approveStation } from "../test/approveStation";
 
 /**
  * A dispatch as an older station sends it: the wire message carries no
@@ -169,7 +168,6 @@ describe("sitrep-command-request label/topic tunnel (station → host)", () => {
     const client = new PeerClientService();
     client.connect(host.peerId ?? "");
     for (let i = 0; i < 6; i++) await Promise.resolve();
-    approveStation();
 
     client.sendSitrepCommand(
       "c0",
@@ -204,7 +202,6 @@ describe("sitrep-command-request label/topic tunnel (station → host)", () => {
     const client = new PeerClientService();
     client.connect(host.peerId ?? "");
     for (let i = 0; i < 6; i++) await Promise.resolve();
-    approveStation();
 
     // Simulate an older station's wire message: no label/topic fields at all.
     sendWithoutLabelOrTopic(client, "c1", "kos.run", { script: "boot.ks" });

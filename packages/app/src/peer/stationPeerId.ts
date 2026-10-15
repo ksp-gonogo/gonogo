@@ -67,24 +67,3 @@ export function clearStationKey(
 ): void {
   storage.removeItem(STATION_KEY_STORAGE);
 }
-
-const STATION_CREDENTIAL_STORAGE = "gonogo.station.credential";
-
-/**
- * This station's secret, sent only to the host over the encrypted data
- * channel and never shown to another peer. The host remembers an approval
- * against it, so unlike `stationKey`, which travels in the broker peer id, it
- * cannot be presented by another station. Minted on first use.
- */
-export function getStationCredential(
-  storage: Storage = globalThis.localStorage,
-): string {
-  const existing = storage.getItem(STATION_CREDENTIAL_STORAGE);
-  if (existing?.trim()) return existing.trim();
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  const credential = Array.from(bytes, (b) =>
-    b.toString(16).padStart(2, "0"),
-  ).join("");
-  storage.setItem(STATION_CREDENTIAL_STORAGE, credential);
-  return credential;
-}

@@ -7,7 +7,6 @@ import { StationSupersededNotice } from "../components/StationSupersededNotice";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientService } from "../peer/PeerClientService";
 import { StationInfoBroadcaster } from "../peer/StationInfoBroadcaster";
-import { StationApprovalNotice } from "../stationApproval/StationApprovalNotice";
 import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { PeerTransport } from "../telemetry/PeerTransport";
 import { MainScreen } from "./MainScreen";
@@ -163,7 +162,6 @@ export function PilotScreen() {
          */}
         <StationInfoBroadcaster client={client} seat="pilot" />
         <StationSupersededNotice client={client} />
-        <StationApprovalNotice client={client} />
         {!connected && !dismissed && (
           <PilotScreen__CommsBanner role="status" aria-live="polite">
             <Text size="xs" tone="warn">

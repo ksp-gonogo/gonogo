@@ -17,7 +17,6 @@ import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { BackupManager } from "../backup/BackupManager";
 import { say } from "../firstRun/copy";
 import { LogsManager } from "../logs/LogsManager";
-import { ApprovedStations } from "../stationApproval/ApprovedStations";
 import { AppVersion } from "./AppVersion";
 import { ControlFrameSettings } from "./ControlFrameSettings";
 import { GonogoSettings } from "./GonogoSettings";
@@ -122,12 +121,7 @@ export function SettingsModal({
     tabs.push({
       id: "connection",
       label: "Connection",
-      content: (
-        <ConnectionPanel
-          onRunSetupAgain={onRunSetupAgain}
-          hostsStations={screen === "main"}
-        />
-      ),
+      content: <ConnectionPanel onRunSetupAgain={onRunSetupAgain} />,
       indicator: connectionIssue,
     });
   }
@@ -193,14 +187,12 @@ export function SettingsModal({
 }
 
 /**
- * The Connection tab: the game host this screen streams from, whether the
- * stream is up, and on the main screen the stations it has approved. Each
- * Uplink's own health is on its page under Uplinks.
+ * The Connection tab: the game host this screen streams from, and whether the
+ * stream is up. Each Uplink's own health is on its page under Uplinks.
  */
 function ConnectionPanel({
   onRunSetupAgain,
-  hostsStations,
-}: Readonly<{ onRunSetupAgain?: () => void; hostsStations: boolean }>) {
+}: Readonly<{ onRunSetupAgain?: () => void }>) {
   return (
     <SectionStack>
       <Stack as="section" gap="related-comfortable">
@@ -209,14 +201,6 @@ function ConnectionPanel({
         </SectionTitle>
         <SitrepConnection />
       </Stack>
-      {hostsStations && (
-        <Stack as="section" gap="related-comfortable">
-          <SectionTitle as="h3" $rule>
-            Approved stations
-          </SectionTitle>
-          <ApprovedStations />
-        </Stack>
-      )}
       {onRunSetupAgain && <RunSetupAgain onRunSetupAgain={onRunSetupAgain} />}
     </SectionStack>
   );

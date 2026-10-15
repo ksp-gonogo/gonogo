@@ -102,12 +102,10 @@ export async function seedContext(
       sitrepCfg,
       dashboardKey,
       dashboard,
-      stationCredential,
     }: {
       sitrepCfg: string;
       dashboardKey: string;
       dashboard: string;
-      stationCredential: string;
     }) => {
       try {
         localStorage.setItem("gonogo.datasource.sitrep", sitrepCfg);
@@ -118,14 +116,6 @@ export async function seedContext(
         localStorage.setItem("gonogo.analytics.consent", "disabled");
         // Mark the first-run setup auto-open as seen so it doesn't pop the Settings modal over the dashboard on a fresh boot.
         localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
-        // Every seeded station carries one credential and every seeded main screen has approved it, so a spec's station is served without a click on the approval prompt.
-        localStorage.setItem("gonogo.station.credential", stationCredential);
-        localStorage.setItem(
-          "gonogo.host.approvedStations",
-          JSON.stringify([
-            { credential: stationCredential, name: "E2E", approvedAt: 0 },
-          ]),
-        );
       } catch {
         /* private mode / quota: ignore; the seed just won't apply */
       }
@@ -134,7 +124,6 @@ export async function seedContext(
       sitrepCfg: sitrepConfig(sitrepPort),
       dashboardKey,
       dashboard: dashboardJson,
-      stationCredential: "e2e0station0credential0000000000",
     },
   );
 }
@@ -145,7 +134,7 @@ export async function seedContext(
  * `gonogo-host-<code>` from this and connects directly: the broker-directory
  * resolve hop (and the host's id-rotation it worked around) are gone, so a
  * plain wait-for-open + return-the-code is all that's needed. The share code
- * is a 6-char `[A-Z0-9]` token; the host's peer id is the derived form.
+ * is a 4-char `[A-Z0-9]` token; the host's peer id is the derived form.
  */
 export async function getHostPeerId(page: Page): Promise<string> {
   return await page
