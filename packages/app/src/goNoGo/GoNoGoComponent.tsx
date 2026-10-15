@@ -354,7 +354,7 @@ function MainView({
 
   // Selective rendering: chrome (the auto-stage warning) drops at small widths so the GO/NO-GO grid stays the focus.
   const cols = w ?? 4;
-  const showWarnChip = cols >= 6;
+  const showWarnChip = cols >= 8;
 
   return (
     <MainLayout>
@@ -576,6 +576,8 @@ const AbortNotice = styled.span`
 `;
 
 const MainLayout = styled.div`
+  /* The countdown sizes itself against this box, so it fits the tile it is in. */
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
@@ -596,6 +598,7 @@ const HeaderLabel = styled.span`
   letter-spacing: 0.15em;
   color: var(--color-text-muted);
   text-transform: uppercase;
+  white-space: nowrap;
 `;
 
 const HeaderRight = styled.div`
@@ -616,10 +619,11 @@ const WarnChip = styled.span`
 
 const CountdownBanner = styled.div`
   text-align: center;
-  font-size: clamp(24px, 6vw, 56px);
+  font-size: clamp(20px, 11cqw, 56px);
   font-weight: 700;
   color: var(--color-warn-text);
   letter-spacing: 0.1em;
+  white-space: nowrap;
 `;
 
 const AbortBanner = styled.div`
@@ -635,7 +639,7 @@ const AbortBanner = styled.div`
 
 // The auto-fill track and the gap come from the kit; filling the panel and packing rows to the top are this board's own.
 const StationBoard = styled(Grid).attrs({
-  minColWidth: "140px",
+  minColWidth: "88px",
   gap: "related-comfortable" as const,
 })`
   flex: 1;
