@@ -842,7 +842,7 @@ textarea {
   --inset-table-narrow-header: var(--space-6) var(--space-4);
   /* A reach table's cells. */
   --inset-reach-cell: var(--space-2) var(--space-4);
-  /* A vessel catalog cell, and the contributed lines hung under its row. */
+  /* A fleet roster cell, and the contributed lines hung under its row. */
   --gutter-roster-cell: var(--space-6);
   --inset-roster-cell: 0 var(--gutter-roster-cell);
   /* A transfer window row and the expander under it, sharing one gutter. */

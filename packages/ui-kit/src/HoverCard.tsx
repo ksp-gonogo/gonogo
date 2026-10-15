@@ -40,7 +40,7 @@ const CLOSE_DELAY_MS = 120;
  * so no panel clips it. The card sits above the trigger so the rows beneath it
  * stay in view and reachable; it drops below the trigger only where there is
  * no room above. Useful for giving the operator detail on an item
- * without leaving the list. Used by the vessel catalog's signal cell and the
+ * without leaving the list. Used by the fleet roster's signal cell and the
  * commcast message rows. The trigger renders as an unstyled `button`. Escape
  * dismisses the card; the pointer can move onto the card without closing it.
  * The card is the trigger's description, so a screen reader hears it on focus.

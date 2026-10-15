@@ -919,8 +919,8 @@ export interface PowerSystemsScope {
 }
 
 /**
- * Props passed to every `vessel-catalog.updates` augment, once for each craft in
- * the Vessel Catalog. The augment draws a line under the craft's name, for
+ * Props passed to every `fleet-roster.updates` augment, once for each craft in
+ * the Fleet Roster. The augment draws a line under the craft's name, for
  * something such as a health or alarm note, and the line takes no room when it
  * draws nothing.
  * Useful for noting something about a craft in the roster. Used by the Fleet
@@ -928,7 +928,7 @@ export interface PowerSystemsScope {
  *
  * @category Widget slots
  */
-export interface VesselCatalogUpdatesContext {
+export interface FleetRosterUpdatesContext {
   /** The craft's vessel id, as `trackingStation.catalog` carries it. */
   vesselId: string;
   /** The craft's name. */
@@ -1163,12 +1163,12 @@ declare module "./types" {
     "power-systems.sections": Record<string, never>;
 
     /**
-     * A line under each craft's name in the Vessel Catalog, for a note about
+     * A line under each craft's name in the Fleet Roster, for a note about
      * that craft such as a health warning or an alarm. The line takes no room
      * when the augment draws nothing; draw only a `Badge` while
-     * {@link VesselCatalogUpdatesContext.compact} is true. Passes a {@link VesselCatalogUpdatesContext}.
+     * {@link FleetRosterUpdatesContext.compact} is true. Passes a {@link FleetRosterUpdatesContext}.
      */
-    "vessel-catalog.updates": VesselCatalogUpdatesContext;
+    "fleet-roster.updates": FleetRosterUpdatesContext;
 
     /**
      * The body of one screen of the Administration Building widget,

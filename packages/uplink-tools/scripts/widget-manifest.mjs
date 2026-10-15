@@ -45,7 +45,7 @@ const PAGE_SCENES = {
   "crew-status": "valentina-solo-orbit",
   "orbit-view": "lko-circular",
   experiments: "instruments-holding-data",
-  "vessel-catalog": "mixed-fleet",
+  "fleet-roster": "mixed-fleet",
   "fuel-status": "asparagus-multi-stage",
   "ground-track": "kerbin-lko-equator",
   navball: "gravity-turn-east",

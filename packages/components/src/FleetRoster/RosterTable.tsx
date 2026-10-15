@@ -152,7 +152,7 @@ function RosterRow({
       {showUpdates && (
         <UpdatesRow>
           <AugmentSlot
-            name="vessel-catalog.updates"
+            name="fleet-roster.updates"
             props={{
               vesselId: v.id,
               vesselName: v.name,
@@ -181,7 +181,7 @@ export function RosterTable({
   contactHeld: boolean;
 }) {
   // Not gated on `compact`: the augment sheds detail at narrow widths itself, so a critical alarm never vanishes.
-  const showUpdates = useSlotBound("vessel-catalog.updates");
+  const showUpdates = useSlotBound("fleet-roster.updates");
   if (vessels.length === 0) {
     return (
       <EmptyState>

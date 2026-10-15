@@ -5,7 +5,7 @@ import "./comm-signal";
 import "./crew-status";
 import "./deployed-science";
 import "./experiments";
-import "./vessel-catalog";
+import "./fleet-roster";
 import "./fuel-status";
 import "./landing-status";
 import "./launch-director";

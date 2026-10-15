@@ -135,14 +135,14 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * that are computed halves rather than rungs (`margin: -1px` sr-only
    * clips, MapPoiLayer's -5px centring, Strategies' -5px, ui-kit `Tabs`'
    * indicator overlap), off-ladder values held with an arithmetic comment
-   * (VesselCatalog's 7px and 21px, Navball's 10px in a 42px reserve, Twr's
+   * (FleetRoster's 7px and 21px, Navball's 10px in a 42px reserve, Twr's
    * 20px, ThermalStatus' 5px/10px pill), and the `components/src/shared/`
    * files plus a few mod widgets that no migration slice owned.
    */
   spacing: {
     "packages/app/src/styles/global.css": 1,
-    "packages/components/src/VesselCatalog/RosterTable.tsx": 1,
-    "packages/components/src/VesselCatalog/UpdatesRow.tsx": 1,
+    "packages/components/src/FleetRoster/RosterTable.tsx": 1,
+    "packages/components/src/FleetRoster/UpdatesRow.tsx": 1,
     "packages/components/src/GroundTrack/MapPoiLayer.styles.tsx": 2,
     "packages/components/src/Navball/index.tsx": 1,
     "packages/ui/src/StationConnectView/StationConnectView.styles.ts": 19,

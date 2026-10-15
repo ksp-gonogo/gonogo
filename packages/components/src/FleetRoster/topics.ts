@@ -1,6 +1,6 @@
 import { defineTopicManifest } from "@ksp-gonogo/core";
 
-export const vesselCatalogTopics = defineTopicManifest({
+export const fleetRosterTopics = defineTopicManifest({
   channels: [
     "trackingStation.catalog",
     "trackingStation.bodies",

@@ -57,7 +57,7 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // permanent: SVG focus rings drawn as a stroke on a shape (OrbitDiagram,
 // ShipPartGroup, SystemEntitiesLayer) and the ServerStyleSheet that folds one
 // into the standalone SVG export (ShipMap/render), a ScrollArea-internals
-// selector (PowerSystems), an :empty collapse (VesselCatalog/UpdatesRow), and a
+// selector (PowerSystems), an :empty collapse (FleetRoster/UpdatesRow), and a
 // page route that is not a widget (StationConnectView). The other seven hold
 // bespoke control states on hand-rolled buttons (LaunchDirector,
 // SpaceCenterStatus, Strategies, TargetPicker, ResearchAndDevelopment, TransferWindow,

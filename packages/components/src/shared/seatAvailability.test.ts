@@ -163,6 +163,13 @@ describe("the built-in catalogue, derived", () => {
           "id": "contract-manager",
         },
         {
+          "declared": [
+            "mission-control",
+          ],
+          "domains": [],
+          "id": "fleet-roster",
+        },
+        {
           "domains": [
             "career",
             "spaceCenter",
@@ -195,13 +202,6 @@ describe("the built-in catalogue, derived", () => {
             "spaceCenter",
           ],
           "id": "space-center-status",
-        },
-        {
-          "declared": [
-            "mission-control",
-          ],
-          "domains": [],
-          "id": "vessel-catalog",
         },
       ]
     `);

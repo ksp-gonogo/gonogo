@@ -1,3 +1,4 @@
+import type { TinyEssentialTone } from "@ksp-gonogo/sitrep-sdk";
 import { STANDARD_GRAVITY, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import type { DialZone } from "@ksp-gonogo/ui-kit";
 
@@ -41,6 +42,23 @@ function toneFor(twr: Value<"1">): Tone {
   if (twr.lessThan(1.5)) return "warn";
   return "ok";
 }
+
+/** The tone the tiny form draws a thrust-to-weight ratio in: red below 1, amber to 1.5, green above. */
+export function tinyToneFor(twr: Value<"1">): TinyEssentialTone {
+  const tone = toneFor(twr);
+  return tone === "lost" ? "nogo" : tone === "warn" ? "warn" : "go";
+}
+
+/** The dial's zones as the tiny gauge's bands. */
+export const TINY_BANDS = [
+  { from: value("1", 0), to: value("1", 1), tone: "nogo" },
+  { from: value("1", 1), to: value("1", 1.5), tone: "warn" },
+  { from: value("1", 1.5), to: value("1", 3), tone: "go" },
+] as const satisfies readonly {
+  from: Value<"1">;
+  to: Value<"1">;
+  tone: TinyEssentialTone;
+}[];
 
 export function toneColorFor(twr: Value<"1">): string {
   return TONE_COLOR[toneFor(twr)];

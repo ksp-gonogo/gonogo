@@ -66,7 +66,7 @@ function renderGuard(
   const fixture = setupStreamFixture();
   const view = render(
     <fixture.Provider>
-      <RequiresGuard title="Vessel Catalog" {...props}>
+      <RequiresGuard title="Fleet Roster" {...props}>
         <p>widget content</p>
       </RequiresGuard>
       {control && (

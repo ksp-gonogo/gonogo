@@ -22,7 +22,7 @@ namespace Sitrep.Contract;
 /// <category>Solar system and fleet</category>
 /// <categoryDescription>
 /// The bodies of the solar system and every vessel in it: each body's figures,
-/// atmosphere and orbit, the vessel catalog, and each vessel's own link home, contact
+/// atmosphere and orbit, the fleet roster, and each vessel's own link home, contact
 /// and silence.
 /// </categoryDescription>
 [SitrepContract]

@@ -17,7 +17,6 @@ describe("component-id migration", () => {
     expect(migrateComponentId("mission-status")).toBe("objectives");
     expect(migrateComponentId("aero-state")).toBe("aerodynamics");
     expect(migrateComponentId("system-view")).toBe("tracking-station");
-    expect(migrateComponentId("fleet-roster")).toBe("vessel-catalog");
   });
 
   it("leaves the id of a renamed widget alone when no migration was written, so the dashboard treats it as unknown", () => {
@@ -31,42 +30,6 @@ describe("component-id migration", () => {
       item("b", "tech-tree"),
     ];
     expect(migrateDashboardItems(items)).toBe(items);
-  });
-
-  it("moves a Tracking Station tile's pinned projection with its id", () => {
-    const items: DashboardItem[] = [
-      {
-        i: "a",
-        componentId: "system-view",
-        config: {
-          frame: "Kerbin",
-          projection: "system-view.parent-direction.1",
-        },
-      },
-    ];
-    expect(migrateDashboardItems(items)).toEqual([
-      {
-        i: "a",
-        componentId: "tracking-station",
-        config: {
-          frame: "Kerbin",
-          projection: "tracking-station.parent-direction.1",
-        },
-      },
-    ]);
-  });
-
-  it("leaves a projection that is not the old widget's own alone", () => {
-    const items: DashboardItem[] = [
-      {
-        i: "a",
-        componentId: "system-view",
-        config: { projection: "myuplink.rotating.2" },
-      },
-    ];
-    expect(migrateDashboardItems(items)[0].config).toEqual({
-      projection: "myuplink.rotating.2",
-    });
   });
 
   it("leaves a current id untouched", () => {

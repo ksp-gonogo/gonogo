@@ -171,7 +171,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * halves of the pair, written by `<Meter>`.
    */
   "packages/components/src/CrewStatus/suitResources.tsx": 1,
-  "packages/components/src/VesselCatalog/FleetContactCell.tsx": 3,
+  "packages/components/src/FleetRoster/FleetContactCell.tsx": 3,
   // 16: every plot on this widget is a contribution, and each reads its own Topics.
   //
   // The three entries below are where the plot reads live. That is the cost of
