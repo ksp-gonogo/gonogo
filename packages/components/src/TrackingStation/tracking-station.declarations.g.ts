@@ -9,6 +9,6 @@ export default {
     "vessel.orbit",
     "vessel.target",
   ],
-  optionalChannelFamilies: ["trackingStation.vessel.<guid>.link"],
+  optionalChannelFamilies: [],
   commands: [],
 } as const;

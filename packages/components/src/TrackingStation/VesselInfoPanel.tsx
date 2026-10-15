@@ -1,12 +1,8 @@
 import { Grid } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
-import {
-  useCatalogVessel,
-  VesselCatalogEntry,
-} from "../VesselCatalog/VesselCatalogEntry";
 import type { SystemEntityMeta } from "./systemEntities";
 
-// Swaps into AlmanacPanel's sidebar slot while a vessel is selected, rendering the fields `metaFor` carries on each vessel entity and, for a craft the Vessel Catalog lists, its catalog entry.
+// Swaps into AlmanacPanel's sidebar slot while a vessel is selected, rendering the roster fields `metaFor` already carries on each vessel entity.
 
 const FIELD_LABELS: Readonly<Record<string, string>> = {
   type: "Type",
@@ -31,26 +27,18 @@ const FIELD_ORDER = [
 
 export interface VesselInfoPanelProps {
   meta: SystemEntityMeta;
-  /** The selected craft's id, which finds its Vessel Catalog entry; absent shows the meta alone. */
-  vesselId?: string | null;
 }
 
-export function VesselInfoPanel({
-  meta,
-  vesselId = null,
-}: VesselInfoPanelProps) {
-  const catalog = useCatalogVessel(vesselId);
+export function VesselInfoPanel({ meta }: VesselInfoPanelProps) {
   const title = typeof meta.name === "string" ? meta.name : "(unnamed)";
   const known = new Set(FIELD_ORDER);
   const rest = Object.keys(meta).filter((k) => k !== "name" && !known.has(k));
   const rows = [...FIELD_ORDER, ...rest]
     .filter((k) => meta[k] !== undefined)
-    // The catalog entry's Link row says what the comms row would, with the signal delay behind it.
-    .filter((k) => catalog === null || k !== "comms")
     .map((k) => ({ label: FIELD_LABELS[k] ?? k, value: String(meta[k]) }));
 
   return (
-    <Wrap label={title}>
+    <Wrap>
       <div style={TITLE}>{title}</div>
       <div style={ROWS}>
         {rows.map((row) => (
@@ -65,22 +53,12 @@ export function VesselInfoPanel({
           </Grid>
         ))}
       </div>
-      {catalog !== null && (
-        <VesselCatalogEntry
-          vessel={catalog.vessel}
-          contactHeld={catalog.contactHeld}
-        />
-      )}
     </Wrap>
   );
 }
 
-function Wrap({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <aside style={WRAP} aria-label={label}>
-      {children}
-    </aside>
-  );
+function Wrap({ children }: { children: ReactNode }) {
+  return <aside style={WRAP}>{children}</aside>;
 }
 
 const WRAP: CSSProperties = {

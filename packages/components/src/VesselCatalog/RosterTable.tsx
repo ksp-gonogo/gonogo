@@ -1,3 +1,4 @@
+import { AugmentSlot } from "@ksp-gonogo/core";
 import {
   Cluster,
   EmptyState,
@@ -16,7 +17,6 @@ import { FleetSignalCell } from "./FleetSignalCell";
 import { crewLabel, type FleetVessel } from "./fleet";
 import { ColLabel, LinkDot, LinkDotSpacer } from "./RosterCells";
 import { UpdatesRow } from "./UpdatesRow";
-import { CatalogUpdates } from "./VesselCatalogEntry";
 
 const ROW_HEIGHT = 25;
 const GRID_FULL = "minmax(0, 1fr) auto 48px 66px";
@@ -151,7 +151,15 @@ function RosterRow({
       <ContactLine vessel={v} />
       {showUpdates && (
         <UpdatesRow>
-          <CatalogUpdates vessel={v} compact={compact} />
+          <AugmentSlot
+            name="vessel-catalog.updates"
+            props={{
+              vesselId: v.id,
+              vesselName: v.name,
+              body: v.body ?? "",
+              compact,
+            }}
+          />
         </UpdatesRow>
       )}
     </>
