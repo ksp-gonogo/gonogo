@@ -265,7 +265,7 @@ describe("TrackingStation selection: brighten, CommNet path colour, info panel",
     });
     fireEvent.click(marker);
 
-    // Both hops are active, but v-relayed's own control source is Partial, so the path draws the degraded tone the info panel's "relay" row implies, not green.
+    // Both hops are active, but v-relayed's own control source is Partial, so the path draws the degraded tone the side bar's RELAY link implies, not green.
     await waitFor(() => {
       const homeToRelay = container.querySelector(
         '[data-entity-id="comms-edge:home:v-relay"]',
@@ -280,7 +280,7 @@ describe("TrackingStation selection: brighten, CommNet path colour, info panel",
         "var(--color-warn-mark)",
       );
     });
-    expect(screen.getByText("relay")).toBeInTheDocument();
+    expect(screen.getByText("RELAY")).toBeInTheDocument();
 
     // The UNRELATED direct edge stays faint, not swept up in the highlight.
     const unrelated = container.querySelector(
@@ -310,7 +310,7 @@ describe("TrackingStation selection: brighten, CommNet path colour, info panel",
       return el as SVGLineElement;
     });
     expect(edge.getAttribute("stroke")).toBe("var(--color-go-mark)");
-    expect(screen.getByText("connected")).toBeInTheDocument();
+    expect(screen.getByText("DIRECT")).toBeInTheDocument();
   });
 
   it("selects a vessel with no CommNet route without highlighting any edge", async () => {

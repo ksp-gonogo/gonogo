@@ -141,6 +141,11 @@ const UNOBSERVED_FAMILIES: readonly {
     reason: "read only once a part's action menu is open",
   },
   {
+    widgetId: "tracking-station",
+    pattern: "trackingStation.vessel.<guid>.link",
+    reason: "read only once a craft is selected and its side bar shows",
+  },
+  {
     widgetId: "ground-track",
     pattern: "<domain>.available",
     reason: "one per registered map point-of-interest provider",
