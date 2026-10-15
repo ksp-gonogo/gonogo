@@ -776,18 +776,48 @@ namespace Sitrep.Contract.Serialization
         /// <summary>Serializes a <c>hello</c> envelope.</summary>
         /// <param name="msg">The envelope to write.</param>
         /// <returns>The JSON text of the envelope.</returns>
-        public static string WriteHello(Hello msg) => WriteTypeAndString(msg.Type, "bootId", msg.BootId);
+        public static string WriteHello(Hello msg)
+        {
+            var sb = new StringBuilder();
+            sb.Append('{');
+            AppendField(sb, "type", first: true);
+            JsonWriter.AppendString(sb, msg.Type);
+
+            AppendField(sb, "bootId");
+            JsonWriter.AppendString(sb, msg.BootId);
+
+            if (msg.ModVersion != null)
+            {
+                AppendField(sb, "modVersion");
+                JsonWriter.AppendString(sb, msg.ModVersion);
+            }
+
+            AppendField(sb, "contractMajor");
+            JsonWriter.AppendInteger(sb, msg.ContractMajor);
+
+            AppendField(sb, "contractMinor");
+            JsonWriter.AppendInteger(sb, msg.ContractMinor);
+            sb.Append('}');
+            return sb.ToString();
+        }
 
         /// <summary>Parses a <c>hello</c> envelope.</summary>
         /// <param name="json">The JSON text of the envelope.</param>
         /// <returns>The parsed envelope.</returns>
         /// <exception cref="FormatException">The text is not a <c>hello</c>
-        /// envelope, or <c>bootId</c> is missing or not a string.</exception>
+        /// envelope, or <c>bootId</c>, <c>contractMajor</c> or <c>contractMinor</c> is missing or of the wrong type.</exception>
         public static Hello ParseHello(string json)
         {
             var raw = ExpectObject(JsonReader.Parse(json));
             RequireType(raw, "hello");
-            return new Hello { Type = "hello", BootId = RequireString(raw, "bootId") };
+            return new Hello
+            {
+                Type = "hello",
+                BootId = RequireString(raw, "bootId"),
+                ModVersion = TryGetString(raw, "modVersion"),
+                ContractMajor = (int)RequireDouble(raw, "contractMajor"),
+                ContractMinor = (int)RequireDouble(raw, "contractMinor"),
+            };
         }
 
         /// <summary>Serializes a <c>game-state</c> envelope.</summary>

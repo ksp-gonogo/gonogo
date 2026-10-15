@@ -14,7 +14,12 @@ import {
 } from "vitest";
 import { UPDATE_PULL_COMMAND } from "../firstRun/setupGuide";
 import { PeerClientProvider } from "../peer/PeerClientContext";
+import {
+  reportSitrepHello,
+  resetSitrepRuntimeForTests,
+} from "../telemetry/sitrepRuntime";
 import { idlePeerClient } from "../test/peerFakes";
+import { hostCompat } from "../uplinks/hostCompat";
 import { VERSION } from "../version";
 import { AppVersion } from "./AppVersion";
 import { __resetLatestRelease, LATEST_RELEASE_URL } from "./releaseCheck";
@@ -201,5 +206,34 @@ describe("AppVersion", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/different releases/)).toBeNull();
     await screen.findByText("Could not check");
+  });
+
+  describe("the mod's hello", () => {
+    afterEach(() => resetSitrepRuntimeForTests());
+
+    it("shows the mod version from the hello and a quiet note for a newer minor", async () => {
+      render(<AppVersion />);
+      await act(async () =>
+        reportSitrepHello({
+          modVersion: "v9.9.9",
+          contractMajor: hostCompat.contractMajor,
+          contractMinor: hostCompat.contractMinor + 1,
+        }),
+      );
+
+      expect(screen.getByText("9.9.9")).toBeInTheDocument();
+      expect(
+        screen.getByText(/newer contract revision than this app/),
+      ).toBeInTheDocument();
+      await screen.findByText("Could not check");
+    });
+
+    it("says a mod sending no contract is too old to say", async () => {
+      render(<AppVersion />);
+      await act(async () => reportSitrepHello({}));
+
+      expect(screen.getByText("Mod too old to say")).toBeInTheDocument();
+      await screen.findByText("Could not check");
+    });
   });
 });

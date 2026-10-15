@@ -736,6 +736,9 @@
     },
     "Hello": {
       "bootId": "id",
+      "contractMajor": "id",
+      "contractMinor": "id",
+      "modVersion": "id",
       "type": "id"
     },
     "HireApplicantArgs": {

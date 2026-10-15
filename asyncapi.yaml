@@ -15639,6 +15639,8 @@ components:
       required:
         - type
         - bootId
+        - contractMajor
+        - contractMinor
       properties:
         type:
           type: string
@@ -15651,6 +15653,28 @@ components:
           description: |-
             An opaque id made afresh each time the mod starts its stream, the same on
             every connection until it next does. Compare it for equality only.
+        modVersion:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The mod's release label: `v1.4.0` for a release, `rc-<sha>` for a release
+            candidate. Absent from the frame for a build that carries no label, such as
+            one built from source.
+        contractMajor:
+          type: number
+          x-sitrep-unit: id
+          description: |-
+            The major number of the wire contract the mod speaks. A client built for a
+            different major cannot read this stream correctly.
+        contractMinor:
+          type: number
+          x-sitrep-unit: id
+          description: |-
+            The minor number of the wire contract the mod speaks. A client built for an
+            older minor misses what the mod added since; a client built for a newer
+            minor asks for what the mod does not yet have.
     HireApplicantArgs:
       type: object
       description: |-

@@ -3818,6 +3818,23 @@ export interface Hello
 	* every connection until it next does. Compare it for equality only.
 	*/
 	bootId: string;
+	/**
+	* The mod's release label: `v1.4.0` for a release, `rc-<sha>` for a release
+	* candidate. Absent from the frame for a build that carries no label, such as
+	* one built from source.
+	*/
+	modVersion?: string;
+	/**
+	* The major number of the wire contract the mod speaks. A client built for a
+	* different major cannot read this stream correctly.
+	*/
+	contractMajor: number;
+	/**
+	* The minor number of the wire contract the mod speaks. A client built for an
+	* older minor misses what the mod added since; a client built for a newer
+	* minor asks for what the mod does not yet have.
+	*/
+	contractMinor: number;
 }
 /**
 * Server-to-client: what the game is doing, sent on its own and not through
