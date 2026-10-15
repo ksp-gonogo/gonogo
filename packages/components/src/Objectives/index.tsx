@@ -63,7 +63,7 @@ registerComponent<ObjectivesConfig>({
     "Everything you are working towards right now, such as the goals of each active contract. A bell on each pending goal sets an alarm that rings when it is met. Accept and manage contracts in the Contract Manager widget.",
   tags: ["contracts", "career"],
   defaultSize: { w: 5, h: 8 },
-  minSize: { w: 4, h: 3 },
+  minSize: { w: 4, h: 4 },
   component: ObjectivesComponent,
   augmentSlots: ["objectives.source"],
   channels: contractsTopics.channels,
