@@ -591,60 +591,6 @@ public class StockCurrencyStateMachineTests
         Assert.Equal("vessel-dead", second.OriginVesselId);
     }
 
-    // A kerbal dying aboard a craft that survives: its status turns Dead
-    // before stock charges VesselLoss and before Kerbalism charges its own
-    // penalty under the every-reason value, all at one instant.
-    [Fact]
-    public void a_crew_death_on_a_surviving_craft_attributes_the_stock_penalty_to_that_craft()
-    {
-        var state = Seeded(reputation: 100.0);
-        state.PushCrewDeath("vessel-silent", ut: 5.0);
-
-        var decision = state.OnReputationChanged(StockTransactionReason.VesselLoss, newTotal: 90.0, baseAmount: -10.0, ut: 5.0);
-
-        Assert.True(decision.IsAway);
-        Assert.Equal("vessel-silent", decision.OriginVesselId);
-        Assert.Equal(100.0, decision.ShadowToRestore);
-    }
-
-    [Fact]
-    public void a_crew_death_on_a_surviving_craft_attributes_a_penalty_charged_under_every_reason_to_that_craft()
-    {
-        var state = Seeded(reputation: 100.0);
-        state.PushCrewDeath("vessel-silent", ut: 5.0);
-
-        var decision = state.OnReputationChanged(StockTransactionReason.Any, newTotal: 85.0, baseAmount: -15.0, ut: 5.0);
-
-        Assert.True(decision.IsAway);
-        Assert.Equal("vessel-silent", decision.OriginVesselId);
-        Assert.Equal(-15.0, decision.BaseAmount);
-    }
-
-    [Fact]
-    public void a_change_under_every_reason_with_no_crew_death_at_that_instant_is_Home()
-    {
-        var state = Seeded(reputation: 100.0);
-        state.PushCrewDeath("vessel-silent", ut: 5.0);
-
-        var decision = state.OnReputationChanged(StockTransactionReason.Any, newTotal: 95.0, baseAmount: -5.0, ut: 6.0);
-
-        Assert.Equal(CurrencyChangeOutcome.Home, decision.Outcome);
-        Assert.Equal(95.0, state.ShadowReputation);
-    }
-
-    // A destruction is not a crew death of its own: a change under every reason
-    // at the instant of a destruction is not the craft's.
-    [Fact]
-    public void a_change_under_every_reason_at_the_instant_of_a_destruction_is_Home()
-    {
-        var state = Seeded(reputation: 100.0);
-        state.PushDeathVessel("vessel-dead", ut: 5.0);
-
-        var decision = state.OnReputationChanged(StockTransactionReason.Any, newTotal: 95.0, baseAmount: -5.0, ut: 5.0);
-
-        Assert.Equal(CurrencyChangeOutcome.Home, decision.Outcome);
-    }
-
     // No destroyed vessel ever shows up (a debug/cheat kill, or a death path
     // outside the two decompile-confirmed ones): the deferred change settles
     // Home once it ages past the attribution window, same as science.

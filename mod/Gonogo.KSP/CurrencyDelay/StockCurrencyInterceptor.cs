@@ -34,12 +34,8 @@ namespace Gonogo.KSP.CurrencyDelay
     /// <c>ProtoCrewMember.Die()</c> fires it with a null origin) - it is
     /// attributed instead by correlating with <c>onVesselWillDestroy</c>,
     /// which always fires at the start of the dying vessel's <c>Die()</c>
-    /// call with the vessel still fully intact, or, for a kerbal who dies on a
-    /// craft that survives, with <c>onKerbalStatusChange</c> to Dead and the
-    /// craft the kerbal was last seen aboard. Kerbalism's own crew-death
-    /// penalty, charged under <c>TransactionReasons.Any</c>, is attributed the
-    /// same way. Everything else reveals instantly - see
-    /// <see cref="StockCurrencyDecision"/>.
+    /// call with the vessel still fully intact. Everything else reveals
+    /// instantly - see <see cref="StockCurrencyDecision"/>.
     ///
     /// All shadow-balance tracking, deferred-science/deferred-reputation
     /// bookkeeping, and recovery/lab/death vessel correlation lives in
@@ -113,22 +109,6 @@ namespace Gonogo.KSP.CurrencyDelay
         // can. Never pruned, same reasoning as the dictionary above.
         private readonly Dictionary<string, KscDelay> _deathLightTimesById = new Dictionary<string, KscDelay>();
 
-        /// <summary>
-        /// The craft each kerbal was last seen aboard, by name. A death that
-        /// leaves the craft standing is announced only after the kerbal has been
-        /// taken off it (Kerbalism removes the kerbal, then marks it dead), so
-        /// the craft has to be known from before.
-        /// </summary>
-        private readonly Dictionary<string, Vessel> _craftOfKerbal = new Dictionary<string, Vessel>(StringComparer.Ordinal);
-
-        /// <summary>Every craft whose destruction has begun: its crew's deaths are its destruction's, read while the craft was whole.</summary>
-        private readonly HashSet<string> _destroyedIds = new HashSet<string>(StringComparer.Ordinal);
-
-        private float _crewNotedAt = float.NegativeInfinity;
-
-        /// <summary>How often, in real seconds, <see cref="NoteCrewAboard"/> reads every craft's crew again.</summary>
-        private const float CrewNoteIntervalSeconds = 1f;
-
         public StockCurrencyInterceptor(PendingCreditLedger ledger, VesselScienceAggregator scienceAggregator, CurrencyDelayGuard guard)
         {
             _ledger = ledger ?? throw new ArgumentNullException(nameof(ledger));
@@ -150,7 +130,6 @@ namespace Gonogo.KSP.CurrencyDelay
             GameEvents.onVesselRecoveryProcessing.Add(OnVesselRecoveryProcessing);
             GameEvents.OnTriggeredDataTransmission.Add(OnTriggeredDataTransmission);
             GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);
-            GameEvents.onKerbalStatusChange.Add(OnKerbalStatusChange);
             GameEvents.Modifiers.OnCurrencyModifierQuery.Add(OnCurrencyModifierQuery);
             GameEvents.OnFundsChanged.Add(OnFundsChanged);
             GameEvents.OnScienceChanged.Add(OnScienceChanged);
@@ -169,7 +148,6 @@ namespace Gonogo.KSP.CurrencyDelay
             GameEvents.onVesselRecoveryProcessing.Remove(OnVesselRecoveryProcessing);
             GameEvents.OnTriggeredDataTransmission.Remove(OnTriggeredDataTransmission);
             GameEvents.onVesselWillDestroy.Remove(OnVesselWillDestroy);
-            GameEvents.onKerbalStatusChange.Remove(OnKerbalStatusChange);
             GameEvents.Modifiers.OnCurrencyModifierQuery.Remove(OnCurrencyModifierQuery);
             GameEvents.OnFundsChanged.Remove(OnFundsChanged);
             GameEvents.OnScienceChanged.Remove(OnScienceChanged);
@@ -311,7 +289,6 @@ namespace Gonogo.KSP.CurrencyDelay
             try
             {
                 var vesselId = vessel.id.ToString();
-                _destroyedIds.Add(vesselId);
                 _deathLightTimesById[vesselId] = KscLightTime.ForVessel(vessel, CommsCoreUplink.SignalDelayConfig);
 
                 var ut = Planetarium.GetUniversalTime();
@@ -556,97 +533,6 @@ namespace Gonogo.KSP.CurrencyDelay
             catch (Exception ex)
             {
                 Debug.LogWarning("[Gonogo] StockCurrencyInterceptor.OnReputationChanged failed: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Reads which craft every kerbal is aboard, at most once each
-        /// <see cref="CrewNoteIntervalSeconds"/>. Called from the books' tick.
-        /// </summary>
-        internal void NoteCrewAboard()
-        {
-            try
-            {
-                var now = Time.realtimeSinceStartup;
-                if (now - _crewNotedAt < CrewNoteIntervalSeconds)
-                {
-                    return;
-                }
-                _crewNotedAt = now;
-
-                var vessels = FlightGlobals.Vessels;
-                if (vessels == null)
-                {
-                    return;
-                }
-                foreach (var vessel in vessels)
-                {
-                    if (vessel == null)
-                    {
-                        continue;
-                    }
-                    foreach (var kerbal in vessel.GetVesselCrew())
-                    {
-                        if (kerbal?.name != null)
-                        {
-                            NoteAboard(kerbal.name, vessel);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[Gonogo] StockCurrencyInterceptor.NoteCrewAboard failed: " + ex.Message);
-            }
-        }
-
-        internal void NoteAboard(string kerbalName, Vessel craft) => _craftOfKerbal[kerbalName] = craft;
-
-        private void OnKerbalStatusChange(ProtoCrewMember kerbal, ProtoCrewMember.RosterStatus from, ProtoCrewMember.RosterStatus to)
-        {
-            if (kerbal == null || to != ProtoCrewMember.RosterStatus.Dead || from == ProtoCrewMember.RosterStatus.Dead)
-            {
-                return;
-            }
-
-            try
-            {
-                NoteCrewDied(kerbal.name, Planetarium.GetUniversalTime());
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[Gonogo] StockCurrencyInterceptor.OnKerbalStatusChange failed: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// A kerbal died at <paramref name="ut"/>: ties the penalty about to be
-        /// charged for it to the craft it was last seen aboard, at that craft's
-        /// route as it stands now. A craft no longer in the game is left to its
-        /// own destruction, which <see cref="OnVesselWillDestroy"/> has already
-        /// tied.
-        /// </summary>
-        internal void NoteCrewDied(string kerbalName, double ut)
-        {
-            if (kerbalName == null || !_craftOfKerbal.TryGetValue(kerbalName, out var craft))
-            {
-                return;
-            }
-            _craftOfKerbal.Remove(kerbalName);
-            if (craft == null)
-            {
-                return;
-            }
-
-            var vesselId = craft.id.ToString();
-            if (_destroyedIds.Contains(vesselId))
-            {
-                return;
-            }
-            _deathLightTimesById[vesselId] = KscLightTime.ForVessel(craft, CommsCoreUplink.SignalDelayConfig);
-            foreach (var decision in _state.PushCrewDeath(vesselId, ut))
-            {
-                ResolveReputationAway(decision, ut);
             }
         }
 

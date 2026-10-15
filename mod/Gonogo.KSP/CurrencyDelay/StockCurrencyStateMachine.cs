@@ -145,7 +145,6 @@ namespace Gonogo.KSP.CurrencyDelay
         private readonly List<PendingVessel> _recoveryVessels = new List<PendingVessel>();
         private readonly List<PendingVessel> _labVessels = new List<PendingVessel>();
         private readonly List<PendingVessel> _deathVessels = new List<PendingVessel>();
-        private readonly List<PendingVessel> _crewDeaths = new List<PendingVessel>();
         private readonly List<PendingScienceDefer> _scienceDefers = new List<PendingScienceDefer>();
         private readonly List<PendingReputationDefer> _reputationDefers = new List<PendingReputationDefer>();
 
@@ -240,22 +239,6 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
 
-        /// <summary>
-        /// Records that a kerbal aboard <paramref name="vesselId"/> died at
-        /// <paramref name="ut"/> without the craft being destroyed: a life
-        /// support or power death. Stock turns the kerbal's status Dead before it
-        /// charges VesselLoss, and Kerbalism before it charges its own penalty
-        /// under <see cref="StockTransactionReason.Any"/>, so both claim this
-        /// push as they arrive; a VesselLoss change already deferred at the same
-        /// instant is claimed here, as <see cref="PushDeathVessel"/> does.
-        /// </summary>
-        public IReadOnlyList<CurrencyChangeDecision> PushCrewDeath(string vesselId, double ut)
-        {
-            Prune(_crewDeaths, ut);
-            _crewDeaths.Add(new PendingVessel { VesselId = vesselId ?? "", PushedUt = ut });
-            return PushDeathVessel(vesselId ?? "", ut);
-        }
-
         public CurrencyChangeDecision OnFundsChanged(StockTransactionReason reason, double newTotal, double baseAmount, double ut)
         {
             var vesselId = "";
@@ -291,12 +274,8 @@ namespace Gonogo.KSP.CurrencyDelay
             }
 
             var vesselId = "";
-            var hasVessel = reason switch
-            {
-                StockTransactionReason.VesselRecovery => TryClaimRecoveryVessel(CurrencyKind.Reputation, ut, out vesselId),
-                StockTransactionReason.Any => TryClaimSameInstant(_crewDeaths, ut, out vesselId),
-                _ => false,
-            };
+            var hasVessel = reason == StockTransactionReason.VesselRecovery
+                && TryClaimRecoveryVessel(CurrencyKind.Reputation, ut, out vesselId);
 
             if (StockCurrencyDecision.ClassifyOrigin(reason, hasVessel) != CurrencyOrigin.Away)
             {
@@ -508,18 +487,15 @@ namespace Gonogo.KSP.CurrencyDelay
         /// which one a stray claim lands on. The entry only ever leaves via Prune's time-based
         /// expiry, never a claim.
         /// </summary>
-        private bool TryClaimDeathVessel(double ut, out string vesselId) => TryClaimSameInstant(_deathVessels, ut, out vesselId);
-
-        /// <summary>The newest of <paramref name="pushes"/> made at the same instant as <paramref name="ut"/>, left in place for the next change of that death to claim.</summary>
-        private static bool TryClaimSameInstant(List<PendingVessel> pushes, double ut, out string vesselId)
+        private bool TryClaimDeathVessel(double ut, out string vesselId)
         {
-            Prune(pushes, ut);
+            Prune(_deathVessels, ut);
 
-            for (var i = pushes.Count - 1; i >= 0; i--)
+            for (var i = _deathVessels.Count - 1; i >= 0; i--)
             {
-                if (Math.Abs(ut - pushes[i].PushedUt) <= SameDestructionUtEpsilon)
+                if (Math.Abs(ut - _deathVessels[i].PushedUt) <= SameDestructionUtEpsilon)
                 {
-                    vesselId = pushes[i].VesselId;
+                    vesselId = _deathVessels[i].VesselId;
                     return true;
                 }
             }
