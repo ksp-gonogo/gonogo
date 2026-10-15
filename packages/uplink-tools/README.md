@@ -124,8 +124,10 @@ Every command takes `--help`, and refuses a flag it does not read.
 
 You will not usually import the first of these: the command line runs it.
 
-`uplink-tools docs` writes `README.md`, `gonogo-uplink.json` and
-`docs/widgets.json`, the record of each widget you register. The README's widget
+`uplink-tools docs` writes `README.md` at the Uplink's root, beside
+`uplink.json`, where a visitor to the Uplink's folder reads it, with an Install
+section (CKAN, then the release zip) and a link to the Uplink's releases. It
+writes `gonogo-uplink.json` and `docs/widgets.json` in the client, the record of each widget you register. The README's widget
 sections are rendered from those records. `docs/spec.json` is the spec sheet: the
 whole Uplink as data (Topics with delivery and delay, commands, widgets, the
 slots it fills, models, error codes and the contract it was built against), for

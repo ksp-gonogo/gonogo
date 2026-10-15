@@ -57,7 +57,7 @@ const incomingIsOnlyDocsBot = (branch) => {
   return (
     files.length > 0 &&
     files.every((f) =>
-      /^mod\/[^/]+\/client\/(docs\/|README\.md|gonogo-uplink\.json)/.test(f),
+      /^mod\/[^/]+\/(client\/(docs\/|gonogo-uplink\.json)|README\.md)/.test(f),
     )
   );
 };
