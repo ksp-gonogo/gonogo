@@ -52,6 +52,7 @@ import {
   EXAMPLE_COMMAND,
   EXAMPLE_TOPIC,
 } from "./asyncapi/document.mjs";
+import { assertDocumentVoice } from "./asyncapi/document-voice.mjs";
 import { SchemaBuilder } from "./asyncapi/json-schema.mjs";
 import {
   assertProseHygiene,
@@ -203,6 +204,7 @@ export function generate() {
   assertUnitsSurvived(document, units);
   assertExamplesMatchTheirSchemas(document);
   const hygiene = assertProseHygiene(contract);
+  assertDocumentVoice(document);
 
   return { document, contract, topics, commandArgs, units, hygiene };
 }
