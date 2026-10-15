@@ -311,11 +311,39 @@ export interface PendingStation {
 }
 
 /**
- * What a station that is not approved is told when it sends a command, a
- * flight request or an Uplink call.
+ * What a station that is not approved is told when it acts: a command, a
+ * flight request, an Uplink call, a vote, an alarm, a note or a pushed widget.
  */
 export const AWAITING_APPROVAL =
   "waiting for the main screen to approve this station";
+
+/**
+ * Every message by which a station acts rather than reads. A station the main
+ * screen has not approved has each of these refused, on the reply channel the
+ * message has where it has one.
+ */
+const STATION_WRITES: ReadonlySet<PeerMessage["type"]> = new Set([
+  "sitrep-command-request",
+  "sitrep-command-group",
+  "flight-rpc-request",
+  "uplink-relay-request",
+  "trigger-arm",
+  "trigger-cancel",
+  "gonogo-vote",
+  "gonogo-abort",
+  "widget-push",
+  "widget-recall",
+  "alarm-add",
+  "alarm-update",
+  "alarm-delete",
+  "alarm-acknowledge",
+  "alarm-ack-unscheduled-warp",
+  "alarm-warp-intent",
+  "note-add",
+  "note-update",
+  "note-delete",
+  "note-reorder",
+]);
 
 /** `meta` for a command reply the host writes itself rather than relays. */
 const HOST_REPLY_META = {
@@ -1591,41 +1619,15 @@ export class PeerHostService {
       void this.handleQueryRangeRequest(msg, conn);
     },
     "uplink-relay-request": (msg, conn) => {
-      if (!this.isApproved(conn)) {
-        conn.send({
-          type: "uplink-relay-response",
-          requestId: msg.requestId,
-          error: AWAITING_APPROVAL,
-        } satisfies PeerMessage);
-        return;
-      }
       void this.handleUplinkRelay(msg, conn);
     },
     "flight-rpc-request": (msg, conn) => {
-      if (!this.isApproved(conn)) {
-        conn.send({
-          type: "flight-rpc-response",
-          requestId: msg.requestId,
-          error: AWAITING_APPROVAL,
-        } satisfies PeerMessage);
-        return;
-      }
       void this.handleFlightRpcRequest(msg, conn);
     },
     "sitrep-command-request": (msg, conn) => {
-      if (!this.isApproved(conn)) {
-        this.refuseCommand(conn, msg.requestId);
-        return;
-      }
       void this.handleSitrepCommand(msg, conn);
     },
     "sitrep-command-group": (msg, conn) => {
-      if (!this.isApproved(conn)) {
-        for (const member of msg.members) {
-          this.refuseCommand(conn, member.requestId);
-        }
-        return;
-      }
       void this.handleSitrepCommandGroup(msg, conn);
     },
     "sitrep-subscribe": (msg, conn) => {
@@ -1707,12 +1709,6 @@ export class PeerHostService {
       this.events.emit("alarmWarpIntent", conn.peer, msg.index);
     },
     "trigger-arm": (msg, conn) => {
-      if (!this.isApproved(conn)) {
-        logger.info(
-          `[PeerHost] trigger from ${conn.peer} not armed: ${AWAITING_APPROVAL}`,
-        );
-        return;
-      }
       this.events.emit("triggerArm", conn.peer, msg);
     },
     "trigger-cancel": (msg, conn) => {
@@ -1793,6 +1789,10 @@ export class PeerHostService {
       peer: conn.peer,
       sessionId: "sessionId" in msg ? msg.sessionId : undefined,
     });
+    if (STATION_WRITES.has(msg.type) && !this.isApproved(conn)) {
+      this.refuseWrite(msg, conn);
+      return;
+    }
     this.dispatcher.dispatch(msg, conn);
   }
 
@@ -1820,6 +1820,50 @@ export class PeerHostService {
       },
       meta: HOST_REPLY_META,
     } satisfies PeerMessage);
+  }
+
+  private refuseWrite(msg: PeerMessage, conn: DataConnection): void {
+    switch (msg.type) {
+      case "sitrep-command-request":
+        this.refuseCommand(conn, msg.requestId);
+        return;
+      case "sitrep-command-group":
+        for (const member of msg.members) {
+          this.refuseCommand(conn, member.requestId);
+        }
+        return;
+      case "flight-rpc-request":
+        conn.send({
+          type: "flight-rpc-response",
+          requestId: msg.requestId,
+          error: AWAITING_APPROVAL,
+        } satisfies PeerMessage);
+        return;
+      case "uplink-relay-request":
+        conn.send({
+          type: "uplink-relay-response",
+          requestId: msg.requestId,
+          error: AWAITING_APPROVAL,
+        } satisfies PeerMessage);
+        return;
+      case "note-add":
+      case "note-update":
+      case "note-delete":
+      case "note-reorder":
+        conn.send({
+          type: "note-result",
+          ref: msg.ref,
+          ok: false,
+          awaitingApproval: true,
+        } satisfies PeerMessage);
+        return;
+      default:
+        conn.send({
+          type: "station-write-refused",
+          refused: msg.type,
+          reason: AWAITING_APPROVAL,
+        } satisfies PeerMessage);
+    }
   }
 
   /**

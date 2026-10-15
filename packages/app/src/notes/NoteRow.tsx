@@ -21,7 +21,7 @@ import { TagAutocomplete } from "./TagAutocomplete";
 import type { Note } from "./types";
 
 /** Why an open edit has not been saved, while the operator keeps what they typed. */
-type Hold = "changed" | "deleted" | "offline" | "refused";
+type Hold = "changed" | "deleted" | "offline" | "refused" | "unapproved";
 
 const HOLD_TIP: Record<Hold, string> = {
   changed: "Changed elsewhere. Enter keeps yours, Escape takes theirs",
@@ -30,6 +30,8 @@ const HOLD_TIP: Record<Hold, string> = {
     "Not sent, not connected to the main screen. Enter tries again, Escape drops your edit",
   refused:
     "Not added, this screen has no command centre. Enter tries again, Escape drops your edit",
+  unapproved:
+    "Not sent, waiting for the main screen to approve this station. Enter tries again, Escape drops your edit",
 };
 
 export function NoteRow({
@@ -89,7 +91,7 @@ export function NoteRow({
       if (!draft.trim()) return discard();
       const outcome = await actions.addNote(draft);
       if (outcome.status === "ok") close();
-      else setHold(outcome.status === "offline" ? "offline" : "refused");
+      else setHold(outcome.status);
       return;
     }
     if (!draft.trim() || draft === note.body) {
@@ -99,7 +101,9 @@ export function NoteRow({
     }
     const outcome = await actions.updateNote(note.id, draft, note.version);
     if (outcome.status === "ok") return close();
-    if (outcome.status === "offline") return setHold("offline");
+    if (outcome.status === "offline" || outcome.status === "unapproved") {
+      return setHold(outcome.status);
+    }
     setHold(outcome.current === null ? "deleted" : "changed");
   };
   const discard = () => {

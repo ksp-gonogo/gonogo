@@ -39,9 +39,11 @@ export const EMPTY_NOTES_SNAPSHOT: NotesSnapshot = {
 /**
  * What became of a note change. `refused` carries the note as the list now
  * holds it, or null when it was deleted; `offline` means it never left this
- * device.
+ * device; `unapproved` means the main screen has not approved this station
+ * yet, so nothing changed.
  */
 export type NoteOutcome =
   | { status: "ok" }
   | { status: "refused"; current: Note | null }
-  | { status: "offline" };
+  | { status: "offline" }
+  | { status: "unapproved" };

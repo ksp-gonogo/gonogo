@@ -113,6 +113,23 @@ describe("a station's notes link", () => {
   });
 });
 
+describe("a station the main screen has not approved", () => {
+  it("settles a note change as unapproved, not as a conflict or a deletion", async () => {
+    const link = stationLink("connected");
+    const service = new NotesClientService(link.client);
+
+    const outcome = service.updateNote("a", "x", 1);
+    link.answer({
+      type: "note-result",
+      ref: "n0",
+      ok: false,
+      awaitingApproval: true,
+    });
+
+    await expect(outcome).resolves.toEqual({ status: "unapproved" });
+  });
+});
+
 describe("NotesComponent on a station", () => {
   const station = (link: ReturnType<typeof stationLink>) =>
     render(

@@ -10,6 +10,7 @@
  * inject a test data source per page, TODO in a follow-up.
  */
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
+import { seedApprovedStation } from "./helpers";
 
 const MAIN_URL = "/";
 const STATION_URL = "/station";
@@ -30,6 +31,7 @@ async function seedBootGates(context: BrowserContext): Promise<void> {
       /* private mode / quota: ignore; the seed just won't apply */
     }
   });
+  await seedApprovedStation(context);
 }
 
 /**

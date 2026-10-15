@@ -102,12 +102,10 @@ export async function seedContext(
       sitrepCfg,
       dashboardKey,
       dashboard,
-      stationCredential,
     }: {
       sitrepCfg: string;
       dashboardKey: string;
       dashboard: string;
-      stationCredential: string;
     }) => {
       try {
         localStorage.setItem("gonogo.datasource.sitrep", sitrepCfg);
@@ -118,14 +116,6 @@ export async function seedContext(
         localStorage.setItem("gonogo.analytics.consent", "disabled");
         // Mark the first-run setup auto-open as seen so it doesn't pop the Settings modal over the dashboard on a fresh boot.
         localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
-        // Every seeded station carries one credential and every seeded main screen has approved it, so a spec's station is served without a click on the approval prompt.
-        localStorage.setItem("gonogo.station.credential", stationCredential);
-        localStorage.setItem(
-          "gonogo.host.approvedStations",
-          JSON.stringify([
-            { credential: stationCredential, name: "E2E", approvedAt: 0 },
-          ]),
-        );
       } catch {
         /* private mode / quota: ignore; the seed just won't apply */
       }
@@ -134,9 +124,30 @@ export async function seedContext(
       sitrepCfg: sitrepConfig(sitrepPort),
       dashboardKey,
       dashboard: dashboardJson,
-      stationCredential: "e2e0station0credential0000000000",
     },
   );
+  await seedApprovedStation(context);
+}
+
+/**
+ * Give a context the one station credential every seeded main screen has
+ * approved, so a spec's station is served without a click on the approval
+ * prompt. Seeds both halves, so it serves a main screen and a station alike.
+ */
+export async function seedApprovedStation(
+  context: BrowserContext,
+): Promise<void> {
+  await context.addInitScript((credential: string) => {
+    try {
+      localStorage.setItem("gonogo.station.credential", credential);
+      localStorage.setItem(
+        "gonogo.host.approvedStations",
+        JSON.stringify([{ credential, name: "E2E", approvedAt: 0 }]),
+      );
+    } catch {
+      /* private mode / quota: ignore; the seed just won't apply */
+    }
+  }, "e2e0station0credential0000000000");
 }
 
 /**

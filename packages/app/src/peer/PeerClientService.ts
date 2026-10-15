@@ -123,6 +123,7 @@ type ClientEventMap = {
   hostUnavailable: [hostPeerId: string];
   superseded: [superseded: boolean];
   approval: [approval: StationApproval];
+  writeRefused: [refused: string];
   brokerReachable: [reachable: boolean];
   // Sitrep telemetry-stream forwarding: see protocol.ts's `sitrep-frame`/
   // `sitrep-command-*` doc comment. `sitrepFrame` carries the host-relayed
@@ -1055,6 +1056,15 @@ export class PeerClientService {
     return this.events.on("approval", cb);
   }
 
+  /**
+   * Fires when the host refuses a write that has no reply of its own (a vote,
+   * an abort, an alarm change, a widget push) because the main screen has not
+   * approved this station. Carries the refused message's type.
+   */
+  onWriteRefused(cb: (refused: string) => void) {
+    return this.events.on("writeRefused", cb);
+  }
+
   /** Connect again after the main screen refused this station, asking it again. Does nothing unless refused. */
   askAgain(): void {
     if (this.approval !== "refused" || !this.shareCode) return;
@@ -1269,6 +1279,10 @@ export class PeerClientService {
         this.emitConnStatus("disconnected");
       }
       this.setApproval(msg.state);
+    },
+    "station-write-refused": (msg) => {
+      logger.info(`[PeerClient] ${msg.refused} refused: ${msg.reason}`);
+      this.events.emit("writeRefused", msg.refused);
     },
     "gonogo-countdown-start": (msg) => {
       this.lastCountdownT0Ms = msg.t0Ms;

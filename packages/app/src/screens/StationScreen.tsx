@@ -66,6 +66,7 @@ import {
   useStationWakeLock,
 } from "../settings";
 import { StationApprovalNotice } from "../stationApproval/StationApprovalNotice";
+import { useApprovalEpoch } from "../stationApproval/useApprovalEpoch";
 import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { PeerTransport } from "../telemetry/PeerTransport";
@@ -96,6 +97,7 @@ export function StationScreen() {
     localStorage.getItem(HOST_ID_KEY) ?? "",
   );
   const [client] = useState(() => new PeerClientService());
+  const approvalEpoch = useApprovalEpoch(client);
   const bundleFetch = useMemo(() => createPeerBundleFetcher(client), [client]);
   // Build the `PeerTransport` INSIDE an effect rather than as a stable
   // `useState` singleton. `PeerTransport` subscribes to `client.onSitrepFrame`
@@ -372,7 +374,11 @@ export function StationScreen() {
                                   fetchBytes={bundleFetch}
                                   bundlesFromHost
                                 />
-                                <RootProviders screen="station">
+                                {/* Remounted when this station is approved after waiting, so a widget's one-shot call refused while it waited runs again. */}
+                                <RootProviders
+                                  screen="station"
+                                  key={approvalEpoch}
+                                >
                                   <Dashboard
                                     items={dashboard.items}
                                     layouts={dashboard.layouts}

@@ -8,6 +8,7 @@ import { stationApprovals } from "../peer/stationApprovals";
 import { ApprovedStations } from "./ApprovedStations";
 import { StationApprovalNotice } from "./StationApprovalNotice";
 import { StationApprovalPrompt } from "./StationApprovalPrompt";
+import { useApprovalEpoch } from "./useApprovalEpoch";
 
 class FakeHost {
   pending: readonly PendingStation[] = [];
@@ -56,6 +57,18 @@ class FakeClient {
   askAgain = () => {
     this.asked++;
   };
+  private refusals = new Set<(refused: string) => void>();
+  onWriteRefused = (cb: (refused: string) => void) => {
+    this.refusals.add(cb);
+    return () => {
+      this.refusals.delete(cb);
+    };
+  };
+  refuse(refused: string) {
+    act(() => {
+      for (const cb of this.refusals) cb(refused);
+    });
+  }
   set(next: StationApproval) {
     this.approval = next;
     act(() => {
@@ -126,6 +139,8 @@ describe("StationApprovalNotice", () => {
     expect(
       screen.getByText("Waiting for the main screen to approve this station"),
     ).toBeVisible();
+    client.refuse("gonogo-vote");
+    expect(screen.getByText("GO/NO-GO vote not sent")).toBeVisible();
     client.set("refused");
     expect(
       screen.getByText("The main screen refused this station"),
@@ -135,5 +150,24 @@ describe("StationApprovalNotice", () => {
     expect(client.asked).toBe(1);
     client.set("approved");
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("useApprovalEpoch", () => {
+  function Epoch({ client }: { client: FakeClient }) {
+    return <output>{useApprovalEpoch(client)}</output>;
+  }
+
+  it("moves when a station that waited is approved, and only then", () => {
+    const client = new FakeClient();
+    render(<Epoch client={client} />);
+    client.set("approved");
+    expect(screen.getByRole("status")).toHaveTextContent("0");
+    client.set("pending");
+    client.set("approved");
+    expect(screen.getByRole("status")).toHaveTextContent("1");
+    client.set("unknown");
+    client.set("approved");
+    expect(screen.getByRole("status")).toHaveTextContent("1");
   });
 });

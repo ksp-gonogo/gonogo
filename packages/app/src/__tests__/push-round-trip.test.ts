@@ -81,6 +81,7 @@ vi.mock("peerjs", () => ({ default: FakePeer }));
 import { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 import { PushHostService } from "../pushToMain/PushHostService";
+import { approveConnection } from "../test/approveStation";
 
 describe("push-to-main round trip", () => {
   afterEach(() => {
@@ -97,6 +98,7 @@ describe("push-to-main round trip", () => {
 
     // Simulate a station peer showing up, same path the real host takes.
     const conn = FakePeer.lastPeer.simulateIncomingStation();
+    approveConnection(conn);
 
     // Now the station "sends" a widget-push: on the host side this arrives as a `data` event on the DataConnection carrying a PeerMessage.
     const stationConfig = {
@@ -133,6 +135,7 @@ describe("push-to-main round trip", () => {
     const pushHost = new PushHostService(host);
 
     const conn = FakePeer.lastPeer.simulateIncomingStation();
+    approveConnection(conn);
 
     conn.emit("data", {
       type: "widget-push",

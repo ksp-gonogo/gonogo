@@ -1,4 +1,5 @@
 import type { PeerClient } from "../peer/PeerClientContext";
+import type { PeerMessage } from "../peer/protocol";
 import {
   EMPTY_NOTES_SNAPSHOT,
   type NoteOutcome,
@@ -6,6 +7,14 @@ import {
 } from "./types";
 
 type Listener = (snap: NotesSnapshot) => void;
+
+function outcomeOf(
+  msg: Extract<PeerMessage, { type: "note-result" }>,
+): NoteOutcome {
+  if (msg.ok) return { status: "ok" };
+  if (msg.awaitingApproval) return { status: "unapproved" };
+  return { status: "refused", current: msg.current ?? null };
+}
 type Pending = (outcome: NoteOutcome) => void;
 
 /**
@@ -31,11 +40,7 @@ export class NotesClientService {
       const settle = this.pending.get(msg.ref);
       if (!settle) return;
       this.pending.delete(msg.ref);
-      settle(
-        msg.ok
-          ? { status: "ok" }
-          : { status: "refused", current: msg.current ?? null },
-      );
+      settle(outcomeOf(msg));
     });
     // A change in flight when the link drops will never be answered.
     this.client.onConnectionStatus((status) => {

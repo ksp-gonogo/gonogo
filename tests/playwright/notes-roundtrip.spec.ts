@@ -16,6 +16,7 @@
  */
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import { PORTS } from "../../playwright.config";
+import { seedApprovedStation } from "./helpers";
 
 const MAIN_URL = "/";
 const STATION_URL = "/station";
@@ -76,6 +77,7 @@ async function seedContext(
     },
     { sitrepCfg: SITREP_CONFIG, dashboardKey, dashboard },
   );
+  await seedApprovedStation(context);
 }
 
 // Wait for the host peer to open, then return its share code, the station

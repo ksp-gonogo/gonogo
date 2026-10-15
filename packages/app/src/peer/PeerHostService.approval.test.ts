@@ -345,3 +345,87 @@ describe("a station the main screen approves", () => {
     host.stop();
   });
 });
+
+/** One of each write with no command reply, as a station sends it. */
+const WRITES = [
+  { type: "gonogo-vote", status: "go" },
+  { type: "gonogo-abort" },
+  {
+    type: "widget-push",
+    widgetInstanceId: "w",
+    componentId: "c",
+    config: {},
+    width: 1,
+    height: 1,
+  },
+  { type: "alarm-add", name: "Burn", trigger: { kind: "time", ut: 1 } },
+  { type: "alarm-update", id: "a", patch: { name: "Burn" } },
+  { type: "alarm-delete", id: "a" },
+] as const;
+
+const NOTES = [
+  { type: "note-add", ref: "n1", body: "x" },
+  { type: "note-update", ref: "n2", id: "a", body: "x", baseVersion: 1 },
+  { type: "note-delete", ref: "n3", id: "a", baseVersion: 1 },
+  { type: "note-reorder", ref: "n4", id: "a", afterId: null, baseVersion: 1 },
+] as const;
+
+/** Which host events a station's writes reached. */
+function heard(host: PeerHostService): string[] {
+  const got: string[] = [];
+  host.onGonogoVote(() => got.push("gonogo-vote"));
+  host.onGonogoAbort(() => got.push("gonogo-abort"));
+  host.onWidgetPush(() => got.push("widget-push"));
+  host.onAlarmAdd(() => got.push("alarm-add"));
+  host.onAlarmUpdate(() => got.push("alarm-update"));
+  host.onAlarmDelete(() => got.push("alarm-delete"));
+  host.onNoteAdd(() => got.push("note-add"));
+  host.onNoteUpdate(() => got.push("note-update"));
+  host.onNoteDelete(() => got.push("note-delete"));
+  host.onNoteReorder(() => got.push("note-reorder"));
+  return got;
+}
+
+describe("every other write from a station", () => {
+  afterEach(() => {
+    FakeHub.reset();
+    localStorageMock.clear();
+  });
+
+  it("is refused with the reason before approval, and nothing reaches the main screen", async () => {
+    const host = await startedHost();
+    const got = heard(host);
+    const station = await join(host, "station-a", "cred-a");
+    for (const msg of [...WRITES, ...NOTES]) station.conn.emit("data", msg);
+    expect(got).toEqual([]);
+    for (const msg of WRITES) {
+      expect(station.told).toContainEqual({
+        type: "station-write-refused",
+        refused: msg.type,
+        reason: AWAITING_APPROVAL,
+      });
+    }
+    for (const msg of NOTES) {
+      expect(station.told).toContainEqual({
+        type: "note-result",
+        ref: msg.ref,
+        ok: false,
+        awaitingApproval: true,
+      });
+    }
+    host.stop();
+  });
+
+  it("reaches the main screen once the station is approved", async () => {
+    const host = await startedHost();
+    const got = heard(host);
+    const station = await join(host, "station-a", "cred-a");
+    host.approveStation("station-a");
+    for (const msg of [...WRITES, ...NOTES]) station.conn.emit("data", msg);
+    expect(got).toEqual([...WRITES, ...NOTES].map((m) => m.type));
+    expect(
+      station.told.filter((m) => m.type === "station-write-refused"),
+    ).toEqual([]);
+    host.stop();
+  });
+});

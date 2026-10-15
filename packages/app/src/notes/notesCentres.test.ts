@@ -84,6 +84,7 @@ vi.stubGlobal("localStorage", {
 
 import { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
+import { approveConnection } from "../test/approveStation";
 import { createNotesHost } from "./createNotesHost";
 import type { NotesSnapshot } from "./types";
 
@@ -109,6 +110,7 @@ async function connectStation(
   peer.emit("connection", conn);
   conn.emit("open");
   await Promise.resolve();
+  approveConnection(conn, `credential-${peerId}`);
   return conn;
 }
 

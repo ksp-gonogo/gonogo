@@ -92,6 +92,12 @@ export type PeerMessage =
      the connection, so the page stops reconnecting until its operator asks
      again. A pending or refused station reads but has every command refused. */
   | { type: "station-approval"; state: "pending" | "approved" | "refused" }
+  /* Host → one station: a message by which it acted was refused, because the
+     main screen has not approved it. For the writes with no reply of their
+     own (a vote, an abort, an alarm change, a widget push); a command, a
+     flight request, an Uplink call and a note are refused on their own
+     reply. `refused` is the refused message's `type`. */
+  | { type: "station-write-refused"; refused: string; reason: string }
   // Host → stations: the relay's TURN credentials, the payload the host
   // fetched from /ice-config, which a station cannot fetch itself because
   // that address is the host's loopback. Sent on connect and on every
@@ -345,6 +351,8 @@ export type PeerMessage =
       ref: string;
       ok: boolean;
       current?: import("../notes/types").Note | null;
+      /** Refused because the main screen has not approved this station yet. */
+      awaitingApproval?: true;
     }
 
   // ──────────────────────────────────────────────────────────────────────
