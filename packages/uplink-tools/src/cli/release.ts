@@ -9,6 +9,7 @@
  * enforces; this is the order.
  */
 
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { bakeUplink, describeBake, findUplinkDir } from "./bake";
@@ -186,6 +187,27 @@ export async function release(
   if (wrongTag) throw new Error(wrongTag);
 
   const step = (label: string) => console.log(`\n== ${label}`);
+  const tsconfig = join(clientDir, "tsconfig.json");
+  if (existsSync(tsconfig)) {
+    step("typecheck the client");
+    const tsc = join(clientDir, "node_modules", ".bin", "tsc");
+    if (!existsSync(tsc)) {
+      throw new Error(
+        `${tsconfig} exists and ${tsc} does not. Run npm install in ${clientDir}, so the client can be typechecked before it is released.`,
+      );
+    }
+    const typed = spawnSync(tsc, ["--noEmit", "-p", tsconfig], {
+      cwd: clientDir,
+      encoding: "utf8",
+    });
+    if (typed.status !== 0) {
+      process.stdout.write(typed.stdout ?? "");
+      process.stderr.write(typed.stderr ?? "");
+      throw new Error(
+        "the client does not typecheck, so it is not released. Fix the errors above, or run npm run typecheck to see them again.",
+      );
+    }
+  }
   let bundlePath: string | undefined;
   if (url) {
     step("bundle the client");

@@ -5,6 +5,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -364,6 +365,48 @@ describe("uplink-tools release", () => {
     expect(code).toBe(1);
     expect(out).toContain("still the placeholder");
     expect(existsSync(join(dir, "mod", "Provenance.g.cs"))).toBe(false);
+  });
+
+  const typecheckedUplink = () => {
+    const dir = uplinkDir({
+      gamedata: "GonogoXUplink",
+      dll: "GonogoXUplink.dll",
+      client: {
+        url: "https://cdn.jsdelivr.net/gh/o/r@releases/releases/x/1.4.0/x.client.js",
+      },
+    });
+    writeFileSync(join(dir, "mod", "GonogoXUplink.csproj"), "<Project />");
+    writeFileSync(
+      join(dir, "client", "tsconfig.json"),
+      JSON.stringify({ include: ["src"], compilerOptions: { strict: true } }),
+    );
+    return dir;
+  };
+
+  it("refuses a client that does not typecheck, before building anything", () => {
+    const dir = typecheckedUplink();
+    mkdirSync(join(dir, "client", "node_modules", ".bin"), { recursive: true });
+    symlinkSync(
+      join(process.cwd(), "node_modules", ".bin", "tsc"),
+      join(dir, "client", "node_modules", ".bin", "tsc"),
+    );
+    writeFileSync(
+      join(dir, "client", "src", "index.ts"),
+      "export const n: number = 'not a number';\n",
+    );
+
+    const { code, out } = runBin(["release"], dir);
+
+    expect(code).toBe(1);
+    expect(out).toContain("does not typecheck");
+    expect(existsSync(join(dir, "mod", "Provenance.g.cs"))).toBe(false);
+  });
+
+  it("refuses when the client has a tsconfig and no compiler installed", () => {
+    const { code, out } = runBin(["release"], typecheckedUplink());
+
+    expect(code).toBe(1);
+    expect(out).toContain("Run npm install");
   });
 });
 

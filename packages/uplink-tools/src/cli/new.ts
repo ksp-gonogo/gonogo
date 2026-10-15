@@ -1514,7 +1514,7 @@ ksp.local.props
 const SINGLE_REPO_BUILD_PROPS = `<Project>
   <!-- Where your KSP install is, for a plugin that references the game's own
        assemblies (Assembly-CSharp, UnityEngine and the rest). The scaffold's
-       heartbeat references none, so none of this is read until you add one:
+       plugin references none, so none of this is read until you add one:
 
          <Reference Include="Assembly-CSharp" Private="false">
            <HintPath>$(KspManaged)/Assembly-CSharp.dll</HintPath>
