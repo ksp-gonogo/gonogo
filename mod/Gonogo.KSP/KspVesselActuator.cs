@@ -612,11 +612,20 @@ namespace Gonogo.KSP
                 return CommandResult<int>.Fail(refusal.Value.Code, refusal.Value.Detail);
             }
 
-            if (StageRule.AdvancesTheStack(vessel!.ActionControlBlocked(KSPActionGroup.Stage)))
+            try
             {
-                StageManager.ActivateNextStage();
+                if (StageRule.AdvancesTheStack(vessel!.ActionControlBlocked(KSPActionGroup.Stage)))
+                {
+                    StageManager.ActivateNextStage();
+                }
+                vessel.ActionGroups?.ToggleGroup(KSPActionGroup.Stage);
             }
-            vessel.ActionGroups?.ToggleGroup(KSPActionGroup.Stage);
+            catch (Exception ex)
+            {
+                return CommandResult<int>.Fail(
+                    CommandErrorCode.ModeUnavailable,
+                    ThirdPartyFault.Describe("staging", ex));
+            }
             return CommandResult<int>.Ok(vessel.currentStage);
         }
 
@@ -650,9 +659,18 @@ namespace Gonogo.KSP
                     CommandErrorCode.CapabilityMismatch,
                     "no action-group provider is elected");
             }
-            return backend.SetGroup(group, state)
-                ? CommandResult.Ok()
-                : CommandResult.Fail(CommandErrorCode.Range);
+            try
+            {
+                return backend.SetGroup(group, state)
+                    ? CommandResult.Ok()
+                    : CommandResult.Fail(CommandErrorCode.Range);
+            }
+            catch (Exception ex)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.ModeUnavailable,
+                    ThirdPartyFault.Describe("the action-group provider", ex));
+            }
         }
 
         /// <summary>
@@ -954,9 +972,24 @@ namespace Gonogo.KSP
                 ?? CommandResult.Ok();
         }
 
-        /// <summary>Sim-meta, not vessel-scoped -- <c>FlightDriver.SetPause</c> is a static call.</summary>
+        /// <summary>
+        /// Sim-meta, not vessel-scoped -- <c>FlightDriver.SetPause</c> is a static call.
+        ///
+        /// <para>Pausing is refused outside the flight scene with
+        /// <see cref="CommandErrorCode.WrongScene"/>: it freezes
+        /// <c>Time.timeScale</c> and locks every control but the pause menu's,
+        /// and only the flight scene's own pause menu gives the operator a way
+        /// back. Unpausing is allowed from any scene, so a pause left behind by
+        /// a scene change can still be undone.</para>
+        /// </summary>
         public CommandResult SetPause(bool paused)
         {
+            if (paused && HighLogic.LoadedScene != GameScenes.FLIGHT)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.WrongScene,
+                    $"the game is in the {GameWords.Phrase(HighLogic.LoadedScene)} scene");
+            }
             FlightDriver.SetPause(paused);
             return CommandResult.Ok();
         }
