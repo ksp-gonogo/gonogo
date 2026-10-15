@@ -7,6 +7,7 @@ import type {
   Dial,
   Graph,
   IconButton,
+  LineGraph,
   MissionDate,
   ReadOnlyField,
   Readout,
@@ -247,6 +248,28 @@ export const UI_KIT_PRESETS = {
       },
     },
   ] satisfies Presets<ComponentProps<typeof Graph>>,
+  LineGraph: [
+    {
+      name: "Two series",
+      args: {
+        series: [
+          {
+            id: "alt",
+            label: "Altitude",
+            color: "var(--color-go-text)",
+            points: [0, 1, 2, 3, 4, 5, 6].map((x) => ({ x, y: x * x })),
+          },
+          {
+            id: "vs",
+            label: "Vertical speed",
+            color: "var(--color-info-text)",
+            points: [0, 1, 2, 3, 4, 5, 6].map((x) => ({ x, y: 12 - x })),
+          },
+        ],
+        height: 160,
+      },
+    },
+  ] satisfies Presets<ComponentProps<typeof LineGraph>>,
   ReadOnlyField: [
     {
       name: "Quantity",

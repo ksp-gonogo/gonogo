@@ -1,0 +1,575 @@
+import type {
+  ReckoningBasis,
+  SeriesReckonedSpan,
+} from "@ksp-gonogo/sitrep-sdk";
+import styled from "styled-components";
+import { reckoningBasisPhrase } from "./reckoningBasisPhrase";
+
+/**
+ * One line on a graph: its points, colour and label. Useful for showing the
+ * operator how one reading has moved over time. Passed in the `series` prop of
+ * {@link LineGraph}.
+ *
+ * @category LineGraph
+ */
+export interface LineGraphSeries {
+  /** Unique within the graph; used as the line's React key. */
+  id: string;
+  /** Names this line in the chart's accessible name when part of it is reckoned. Not drawn; falls back to `id`. */
+  label?: string;
+  /** CSS colour for the stroke, e.g. `var(--color-nogo-mark)`. */
+  color: string;
+  /**
+   * The line's points, ascending by `x`. Fewer than two renders no line for
+   * this series. `x` and `y` are bare numbers in whatever unit the caller
+   * chose, the same for every series: the chart scales each axis linearly
+   * across the range it is given and labels neither. For a trend over time
+   * pass seconds as `x`, a UT or seconds ago.
+   */
+  points: ReadonlyArray<{ x: number; y: number }>;
+  /**
+   * Indices into `points` that open a known hole: no data between the previous
+   * point and that one (a comms blackout, a recording that overran). The stroke
+   * and the sparkline fill break there, since a line through a span with no
+   * readings would look like data.
+   */
+  breaks?: readonly number[];
+  /**
+   * Runs of `points` that a model carried forward rather than measured, by
+   * index (`from` and `to` inclusive). Each is drawn muted and dashed in the
+   * series' own colour, never recoloured, and the chart's accessible name says
+   * how it was reckoned. A run carrying `bandLo`, `bandHi` and `bandKind` also
+   * shades the region between its bounds, with no edge line, and the y domain
+   * grows to include the bounds.
+   */
+  reckoned?: readonly SeriesReckonedSpan[];
+  /**
+   * How to draw between two points, from the plotted value's sample kind:
+   * `"linear"` (the default) joins them with a line, `"step"` holds each value
+   * until the next point and then steps, for a value that stands until it
+   * changes, and `"none"` marks each point on its own and joins nothing, for a
+   * series of separate occurrences.
+   */
+  interpolation?: "linear" | "step" | "none";
+}
+
+/**
+ * A horizontal reference level on a graph, such as a safe limit. Useful for
+ * showing the operator how far a reading is from the level that matters. Passed
+ * in the `thresholds` prop of {@link LineGraph}.
+ *
+ * @category LineGraph
+ */
+export interface LineGraphThreshold {
+  /** Unique within the graph; used as the threshold's React key. */
+  id: string;
+  /** Name of the level, for the caller's own bookkeeping. Not rendered; `valueText` is the drawn annotation. */
+  label?: string;
+  /** The y value the threshold is drawn at, in the same terms as the series' `y`. */
+  value: number;
+  /** Defaults to a muted warning colour, distinct from the data series. */
+  color?: string;
+  /**
+   * Short text drawn beside a `"marker"`-style threshold (e.g. `"0.5"`),
+   * naming the level the tick sits at. Without it the marker is a bare tick.
+   * Ignored by the `"full"` rule, which is its own annotation.
+   */
+  valueText?: string;
+}
+
+/**
+ * How a graph draws its thresholds: `"full"` is a dashed rule across the frame,
+ * `"marker"` a short tick at the left edge. Useful for choosing a tick where a
+ * rule would crowd a small graph. The `thresholdStyle` prop of
+ * {@link LineGraph} takes it.
+ *
+ * @category LineGraph
+ */
+export type LineGraphThresholdStyle = "full" | "marker";
+
+/**
+ * Props for {@link LineGraph}. Useful for giving the operator the series and
+ * reference lines of a trend. Taken by {@link LineGraph}.
+ *
+ * @category LineGraph
+ */
+export interface LineGraphProps {
+  /** The lines to draw, all against one shared x and y domain. */
+  series: readonly LineGraphSeries[];
+  /** Horizontal reference levels. */
+  thresholds?: readonly LineGraphThreshold[];
+  /** Pins the Y domain; otherwise derived from every series' + threshold's values. */
+  yDomain?: readonly [number, number];
+  /** Chart height in pixels. Width always fills the parent. */
+  height?: number;
+  /**
+   * Accessible name for the whole chart (`role="img"`). Omit when the trend is
+   * decorative beside a readout that already carries the reading, and the chart
+   * renders `aria-hidden`.
+   */
+  "aria-label"?: string;
+  /** Placed on the chart's root element, for a caller's own sizing or layout. */
+  className?: string;
+  /**
+   * `"chart"` (default): quarter gridlines and bare strokes. `"sparkline"`: no
+   * gridlines, and each series area-shaded down to the frame's bottom edge, for
+   * a compact glance trend.
+   */
+  variant?: "chart" | "sparkline";
+  /**
+   * How a threshold draws at its y-height. `"full"` (default) is a dashed rule
+   * spanning the frame. `"marker"` is a fixed ~24px tick at the left edge with
+   * the threshold's `valueText` beside it, for a threshold that is context
+   * rather than the subject of the chart.
+   */
+  thresholdStyle?: LineGraphThresholdStyle;
+}
+
+const VIEW_W = 100;
+const VIEW_H = 40;
+
+function computeDomain(
+  series: readonly LineGraphSeries[],
+  thresholds: readonly LineGraphThreshold[],
+): [number, number] {
+  const ys: number[] = [];
+  for (const s of series)
+    for (const p of s.points) if (Number.isFinite(p.y)) ys.push(p.y);
+  for (const s of series)
+    for (const run of s.reckoned ?? [])
+      for (const y of [...(run.bandLo ?? []), ...(run.bandHi ?? [])])
+        if (Number.isFinite(y)) ys.push(y);
+  for (const t of thresholds) if (Number.isFinite(t.value)) ys.push(t.value);
+  if (ys.length === 0) return [0, 1];
+  let min = ys[0];
+  let max = ys[0];
+  for (const y of ys) {
+    if (y < min) min = y;
+    if (y > max) max = y;
+  }
+  if (min === max) {
+    // A flat/single-value read still needs headroom to draw a visible line rather than one hugging an edge.
+    const pad = min === 0 ? 1 : Math.abs(min) * 0.5;
+    return [min - pad, max + pad];
+  }
+  // 8% headroom top and bottom so a peak/trough never touches the frame.
+  const span = max - min;
+  return [min - span * 0.08, max + span * 0.08];
+}
+
+/** A reckoned run is muted, never recoloured; 0.6 keeps series colours above 3:1 against the surface. */
+const RECKONED_STROKE_OPACITY = 0.6;
+const RECKONED_DASHARRAY = "5 3";
+/** A band takes its series' colour on a chart, as an uncertainty region does on `LineChart`. */
+const BAND_OPACITY = 0.15;
+/** The sparkline's own area fill is the series colour at 0.12, so a band in that colour would vanish into it: a neutral token reads apart. */
+const BAND_FILL_ON_AREA = "var(--color-text-primary)";
+const BAND_OPACITY_ON_AREA = 0.22;
+
+type TaggedPoint = { x: number; y: number; basis?: ReckoningBasis };
+
+/** The run's band as a closed polygon's corner list, else null: all three band fields must be present, and a point with no finite x or bound ends the region short of it. */
+function bandCorners(
+  s: LineGraphSeries,
+  run: SeriesReckonedSpan,
+  toX: (x: number) => number,
+  toY: (y: number) => number,
+): string | null {
+  const { bandLo, bandHi, bandKind } = run;
+  if (!bandLo || !bandHi || bandKind === undefined) return null;
+  const upper: string[] = [];
+  const lower: string[] = [];
+  for (let i = run.from; i <= run.to; i++) {
+    const p = s.points[i];
+    const lo = bandLo[i - run.from];
+    const hi = bandHi[i - run.from];
+    if (
+      !p ||
+      !Number.isFinite(p.x) ||
+      !Number.isFinite(lo) ||
+      !Number.isFinite(hi)
+    )
+      break;
+    upper.push(`${toX(p.x)},${toY(hi)}`);
+    lower.unshift(`${toX(p.x)},${toY(lo)}`);
+  }
+  return upper.length < 2 ? null : [...upper, ...lower].join(" ");
+}
+
+/** Each point's reckoning basis, absent for a measured one. Runs may name indices a trimmed window no longer has, so they are clamped. */
+function tagPoints(s: LineGraphSeries): TaggedPoint[] {
+  const basisAt: Array<ReckoningBasis | undefined> = new Array(s.points.length);
+  for (const run of s.reckoned ?? []) {
+    const last = Math.min(s.points.length - 1, run.to);
+    for (let i = Math.max(0, run.from); i <= last; i++) basisAt[i] = run.basis;
+  }
+  return s.points.map((p, i) => ({ x: p.x, y: p.y, basis: basisAt[i] }));
+}
+
+/**
+ * One unbroken run cut again where the reckoning basis changes, each piece
+ * taking the previous piece's last point so the stroke stays joined.
+ */
+function splitAtBasis(
+  run: ReadonlyArray<TaggedPoint>,
+): Array<{ basis?: ReckoningBasis; points: ReadonlyArray<TaggedPoint> }> {
+  const out: Array<{
+    basis?: ReckoningBasis;
+    points: ReadonlyArray<TaggedPoint>;
+  }> = [];
+  let start = 0;
+  for (let i = 1; i <= run.length; i++) {
+    if (i === run.length || run[i].basis !== run[start].basis) {
+      const from = start > 0 ? start - 1 : start;
+      out.push({ basis: run[start].basis, points: run.slice(from, i) });
+      start = i;
+    }
+  }
+  return out;
+}
+
+/**
+ * One series' points cut into unbroken runs at its `breaks` indices.
+ */
+function splitAtBreaks<Point extends { x: number; y: number }>(
+  points: ReadonlyArray<Point>,
+  breaks: readonly number[] | undefined,
+): Array<ReadonlyArray<Point>> {
+  // A sample that is not a finite number is a hole, the same as a stated break.
+  const holes = points.flatMap((p, i) =>
+    Number.isFinite(p.x) && Number.isFinite(p.y) ? [] : [i],
+  );
+  if (holes.length > 0) {
+    const finite = points.filter(
+      (p) => Number.isFinite(p.x) && Number.isFinite(p.y),
+    );
+    const shifted = [...(breaks ?? []), ...holes]
+      .map((cut) => cut - holes.filter((h) => h < cut).length)
+      .filter((cut, i, all) => all.indexOf(cut) === i);
+    return splitAtBreaks(finite, shifted);
+  }
+  if (!breaks || breaks.length === 0) return [points];
+  const runs: Array<ReadonlyArray<Point>> = [];
+  const cuts = [...new Set(breaks)]
+    .filter((i) => i > 0 && i < points.length)
+    .sort((a, b) => a - b);
+  let start = 0;
+  for (const cut of cuts) {
+    runs.push(points.slice(start, cut));
+    start = cut;
+  }
+  runs.push(points.slice(start));
+  return runs;
+}
+
+/**
+ * A run's points with a corner inserted before each one, so a line through
+ * them holds the previous value until the next point and then steps.
+ */
+function stepped<Point extends { x: number; y: number }>(
+  run: readonly Point[],
+): Point[] {
+  const out: Point[] = [];
+  for (const [i, point] of run.entries()) {
+    if (i > 0) out.push({ ...point, y: run[i - 1].y });
+    out.push(point);
+  }
+  return out;
+}
+
+function computeXDomain(series: readonly LineGraphSeries[]): [number, number] {
+  const xs: number[] = [];
+  for (const s of series)
+    for (const p of s.points) if (Number.isFinite(p.x)) xs.push(p.x);
+  if (xs.length === 0) return [0, 1];
+  let min = xs[0];
+  let max = xs[0];
+  for (const x of xs) {
+    if (x < min) min = x;
+    if (x > max) max = x;
+  }
+  return min === max ? [min - 1, max + 1] : [min, max];
+}
+
+/**
+ * A minimal multi-series time-trend chart: coloured lines against a shared
+ * domain, plus optional reference lines. Useful for showing the operator how a
+ * reading has moved over time; pair it with a {@link Unit} readout for the
+ * value.
+ *
+ * It has no axis ticks, no legend and no interaction. Gridlines are fixed
+ * quarter-marks.
+ * Width fills the parent and strokes keep a constant width however the chart
+ * is stretched. The y domain is derived from every series and threshold, with
+ * headroom, unless `yDomain` pins it.
+ *
+ * @example A compact dose-rate trend with a safe limit marked
+ * ```tsx
+ * <LineGraph
+ *   variant="sparkline"
+ *   height={96}
+ *   aria-label="Radiation dose rate, last 10 minutes"
+ *   series={[
+ *     {
+ *       id: "ambient",
+ *       label: "Ambient",
+ *       color: "var(--color-nogo-mark)",
+ *       points: samples.map((s) => ({ x: s.ut, y: s.radPerHour })),
+ *     },
+ *   ]}
+ *   thresholds={[{ id: "safe", label: "Safe threshold", value: 0.5 }]}
+ *   thresholdStyle="marker"
+ * />
+ * ```
+ *
+ * @category LineGraph
+ * @categoryDescription LineGraph
+ * A value over time: a line graph with series and thresholds, and the notice a
+ * graph shows when it has nothing, or not enough, to draw.
+ */
+export function LineGraph({
+  series,
+  thresholds = [],
+  yDomain,
+  height = 120,
+  "aria-label": ariaLabel,
+  className,
+  variant = "chart",
+  thresholdStyle = "full",
+}: LineGraphProps) {
+  const [yMin, yMax] = yDomain ?? computeDomain(series, thresholds);
+  const [xMin, xMax] = computeXDomain(series);
+  const ySpan = yMax - yMin || 1;
+  const xSpan = xMax - xMin || 1;
+  const isSparkline = variant === "sparkline";
+  const tagged = series.map(tagPoints);
+
+  const toX = (x: number) => ((x - xMin) / xSpan) * VIEW_W;
+  const toY = (y: number) => VIEW_H - ((y - yMin) / ySpan) * VIEW_H;
+
+  const chartLabel = ariaLabel
+    ? [
+        ariaLabel,
+        ...series.flatMap((s) => {
+          const name = s.label ?? s.id;
+          const runs = s.reckoned ?? [];
+          return [
+            ...[...new Set(runs.map((run) => run.basis))].map(
+              (basis) =>
+                `${name}: part of this trace is reckoned, ${reckoningBasisPhrase(basis)}, not measured`,
+            ),
+            ...(runs.some((run) => run.bandLo && run.bandHi)
+              ? [`${name}: the value is inside the shaded region`]
+              : []),
+          ];
+        }),
+      ].join("; ")
+    : undefined;
+
+  return (
+    <LineGraph__Root className={className} style={{ height }}>
+      <svg
+        viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+        preserveAspectRatio="none"
+        width="100%"
+        height="100%"
+        role={ariaLabel ? "img" : undefined}
+        aria-label={chartLabel}
+        aria-hidden={ariaLabel ? undefined : "true"}
+      >
+        {!isSparkline &&
+          [0.25, 0.5, 0.75].map((f) => (
+            <line
+              key={f}
+              x1={0}
+              x2={VIEW_W}
+              y1={VIEW_H * f}
+              y2={VIEW_H * f}
+              stroke="var(--color-border-subtle)"
+              strokeWidth={0.4}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+
+        {isSparkline &&
+          series.map((s, si) => {
+            // Fewer than two points draws nothing, as for the stroke, and separate occurrences have no area under them.
+            if (s.points.length < 2 || s.interpolation === "none") return null;
+            // One polygon per unbroken run, so a hole leaves unshaded ground.
+            return splitAtBreaks(tagged[si], s.breaks).map((unstepped) => {
+              const run =
+                s.interpolation === "step" ? stepped(unstepped) : unstepped;
+              if (run.length < 2) return null;
+              const first = run[0];
+              const last = run[run.length - 1];
+              const areaPoints = [
+                ...run.map((p) => `${toX(p.x)},${toY(p.y)}`),
+                `${toX(last.x)},${VIEW_H}`,
+                `${toX(first.x)},${VIEW_H}`,
+              ].join(" ");
+              return (
+                <polygon
+                  key={`${s.id}-area-${first.x}`}
+                  points={areaPoints}
+                  fill={s.color}
+                  fillOpacity={0.12}
+                  stroke="none"
+                />
+              );
+            });
+          })}
+
+        {series.flatMap((s) =>
+          (s.reckoned ?? []).map((run, ri) => {
+            const corners = bandCorners(s, run, toX, toY);
+            if (corners === null) return null;
+            return (
+              <polygon
+                // biome-ignore lint/suspicious/noArrayIndexKey: a band has no identity beyond its run's position
+                key={`${s.id}-band-${ri}`}
+                points={corners}
+                data-band-kind={run.bandKind}
+                fill={isSparkline ? BAND_FILL_ON_AREA : s.color}
+                fillOpacity={isSparkline ? BAND_OPACITY_ON_AREA : BAND_OPACITY}
+                stroke="none"
+              />
+            );
+          }),
+        )}
+
+        {thresholdStyle === "full" &&
+          thresholds.map((t) => (
+            <line
+              key={t.id}
+              x1={0}
+              x2={VIEW_W}
+              y1={toY(t.value)}
+              y2={toY(t.value)}
+              stroke={t.color ?? "var(--color-warn-text)"}
+              strokeWidth={0.6}
+              strokeDasharray="2 1.5"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+
+        {series.map((s) => {
+          if (s.interpolation !== "none") return null;
+          /*
+           * Each occurrence its own mark and nothing between: a zero-length
+           * line with a round cap, so the mark stays round however far the
+           * chart is stretched.
+           */
+          return s.points.map((p) => (
+            <line
+              key={`${s.id}-mark-${p.x}`}
+              x1={toX(p.x)}
+              x2={toX(p.x)}
+              y1={toY(p.y)}
+              y2={toY(p.y)}
+              stroke={s.color}
+              strokeWidth={isSparkline ? 3 : 4}
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          ));
+        })}
+
+        {series.map((s, si) => {
+          if (s.points.length < 2 || s.interpolation === "none") return null;
+          /*
+           * One polyline per unbroken run and per basis within it, keyed on its
+           * own first x, since run boundaries move as data slides through the window.
+           */
+          return splitAtBreaks(tagged[si], s.breaks).flatMap((run) =>
+            splitAtBasis(run).map((piece) => {
+              if (piece.points.length < 2) return null;
+              const drawn =
+                s.interpolation === "step"
+                  ? stepped(piece.points)
+                  : piece.points;
+              const points = drawn
+                .map((p) => `${toX(p.x)},${toY(p.y)}`)
+                .join(" ");
+              return (
+                <polyline
+                  key={`${s.id}-${piece.points[0].x}`}
+                  points={points}
+                  data-reckoning-basis={piece.basis}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={isSparkline ? 1 : 1.4}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeOpacity={
+                    piece.basis !== undefined
+                      ? RECKONED_STROKE_OPACITY
+                      : undefined
+                  }
+                  strokeDasharray={
+                    piece.basis !== undefined ? RECKONED_DASHARRAY : undefined
+                  }
+                  vectorEffect="non-scaling-stroke"
+                />
+              );
+            }),
+          );
+        })}
+      </svg>
+
+      {/* "marker" thresholds are an HTML overlay outside the stretched viewBox, so their size stays fixed on screen. */}
+      {thresholdStyle === "marker" &&
+        thresholds.map((t) => {
+          const topPct = ((yMax - t.value) / ySpan) * 100;
+          // A threshold outside the pinned domain is skipped rather than pinned to an edge it is not at.
+          if (topPct < 0 || topPct > 100) return null;
+          return (
+            <LineGraph__ThresholdMarker
+              key={t.id}
+              aria-hidden="true"
+              data-threshold-marker={t.id}
+              style={{
+                top: `${topPct}%`,
+                color: t.color ?? "var(--color-warn-text)",
+              }}
+            >
+              <LineGraph__ThresholdTick />
+              {t.valueText !== undefined && <span>{t.valueText}</span>}
+            </LineGraph__ThresholdMarker>
+          );
+        })}
+    </LineGraph__Root>
+  );
+}
+
+const LineGraph__ThresholdMarker = styled.div`
+  position: absolute;
+  left: 0;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-glyph);
+  pointer-events: none;
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+  /* Single-glyph chrome text centring against a 2px tick: the flush rung. */
+  line-height: var(--line-height-flush);
+`;
+
+/** The fixed ~24px tick, the length `Card`'s identity tab uses for a mark rather than a rule. */
+const LineGraph__ThresholdTick = styled.span`
+  display: inline-block;
+  width: var(--size-mark);
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+`;
+
+const LineGraph__Root = styled.div`
+  position: relative;
+  width: 100%;
+  min-height: 0;
+
+  svg {
+    display: block;
+  }
+`;
