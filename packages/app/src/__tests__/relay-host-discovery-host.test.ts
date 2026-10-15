@@ -138,21 +138,24 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     mathRandom.mockRestore();
   });
 
-  it("keeps a shorter code a host minted before the length grew", async () => {
-    /*
-     * Raising the length must not strand a host that already has a code: its
-     * stations have that code written down, and the derived peer id has to go
-     * on matching it until the operator regenerates.
-     */
-    localStorage.setItem("gonogo-host-share-code", "AB3K");
+  it.each([
+    ["shorter", "AB3K"],
+    ["outside the alphabet", "AB0O1I"],
+  ])("replaces a stored code that is %s on load", async (_why, stored) => {
+    localStorage.setItem("gonogo-host-share-code", stored);
     const { PeerHostService } = await import("../peer/PeerHostService");
 
     const service = new PeerHostService();
     await service.start();
     await flush();
 
-    expect(service.shareCode).toBe("AB3K");
-    expect(FakePeer.last?.id).toBe("gonogo-host-AB3K");
+    expect(service.shareCode).toMatch(
+      /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/,
+    );
+    expect(localStorage.getItem("gonogo-host-share-code")).toBe(
+      service.shareCode,
+    );
+    expect(FakePeer.last?.id).toBe(`gonogo-host-${service.shareCode}`);
     service.stop();
   });
 

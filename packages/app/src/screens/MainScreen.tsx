@@ -90,6 +90,7 @@ import {
   useMissionHistorySettings,
 } from "../settings";
 import { initSoundSettings } from "../sound";
+import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
 import { ScopedStationIdentity } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { PilotVantage } from "../telemetry/PilotVantage";
@@ -460,6 +461,7 @@ function MainDashboard({
             <HomeFallbackNotice />
             <ModVersionBanner />
             <StationBuildMismatchNotice host={peerHostService} />
+            <StationApprovalPrompt host={peerHostService} />
             <SceneSwitchPrompt
               onLoad={(items, layouts) =>
                 dashboard.replaceState(items, layouts)

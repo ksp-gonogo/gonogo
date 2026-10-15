@@ -125,6 +125,7 @@ import {
   createTestTelemetryClient,
   StubTransport,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { approveConnection } from "../test/approveStation";
 import { PeerHostService } from "./PeerHostService";
 
 const TOPIC = "thirdparty.readout";
@@ -159,6 +160,7 @@ async function connectStation(
   peer.emit("connection", conn);
   conn.emit("open");
   await Promise.resolve();
+  approveConnection(conn);
   return conn;
 }
 

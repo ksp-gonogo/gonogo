@@ -310,6 +310,51 @@ describe("PeerClientService", () => {
     }
   });
 
+  it("stops reconnecting once the main screen refuses the station, until it asks again", () => {
+    vi.useFakeTimers();
+    try {
+      const svc = new PeerClientService();
+      const { conn } = connectToFakeHost(svc);
+      const seen: string[] = [];
+      svc.onApprovalChange((value) => seen.push(value));
+      const peers = FakePeer.instances.length;
+
+      conn.emit("data", { type: "station-approval", state: "pending" });
+      conn.emit("data", { type: "station-approval", state: "refused" });
+      conn.emit("close");
+      vi.advanceTimersByTime(10 * 60_000);
+      expect(svc.getApproval()).toBe("refused");
+      expect(FakePeer.instances.length).toBe(peers);
+
+      svc.askAgain();
+      expect(svc.getApproval()).toBe("unknown");
+      expect(FakePeer.instances.length).toBe(peers + 1);
+      expect(seen).toEqual(["pending", "refused", "unknown"]);
+      svc.disconnect();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("sends its credential as the first message on every connection", () => {
+    const svc = new PeerClientService();
+    svc.connect("HOST");
+    const peer = FakePeer.instances[FakePeer.instances.length - 1];
+    peer.emit("open");
+    const conn = peer._lastConn;
+    if (!conn) throw new Error("expected an active peer connection");
+    const sent: unknown[] = [];
+    conn.send = (msg: unknown) => {
+      sent.push(msg);
+    };
+    conn.emit("open");
+    expect(sent[0]).toEqual({
+      type: "station-credential",
+      credential: expect.stringMatching(/^[0-9a-f]{32}$/),
+    });
+    svc.disconnect();
+  });
+
   it("fires onHostRestart only when the host's sessionToken changes between hellos", () => {
     const svc = new PeerClientService();
     const host = fromHost(svc);

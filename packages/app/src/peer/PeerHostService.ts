@@ -8,6 +8,7 @@ import type {
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
 import {
+  CommandErrorCode,
   classifyCommandRejection,
   FaultCode,
   Quality,
@@ -25,6 +26,7 @@ import { peerBrokerOptions } from "./peerOptions";
 import type { PeerMessage } from "./protocol";
 import { asPeerMessage } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
+import { stationApprovals } from "./stationApprovals";
 import { TypedListeners } from "./typedListeners";
 import { encodeWideNumbers } from "./wideNumbers";
 
@@ -159,10 +161,11 @@ const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous 0/O/1/I/L
  * `hostPeerId.ts`), so the public PeerJS broker will answer whether a guessed
  * code is live, and the broker has no rate limiting to slow that down. Four
  * characters behind an online oracle like that is a speed bump; six is a gate.
- * Stations still accept a shorter code, because a host that minted one keeps
- * it until it regenerates.
  */
 const SHARE_CODE_LENGTH = 6;
+
+/** A share code this build would mint: six characters of {@link CHARS}. */
+const SHARE_CODE_FORM = new RegExp(`^[${CHARS}]{${SHARE_CODE_LENGTH}}$`);
 
 /**
  * A fresh share code, drawn from the platform CSPRNG.
@@ -192,13 +195,13 @@ function generateShortId(): string {
  * *same* derived id, so the operator's code stays valid and stations
  * reconnect transparently. Only `regenerateShareCode()` changes it.
  *
- * A stored code is returned as it was stored, whatever its length: a host
- * that minted a four-character code before `SHARE_CODE_LENGTH` grew keeps
- * it, and its stations keep joining, until the operator regenerates.
+ * A stored code not of the form this build mints is replaced, so a code drawn
+ * from a weaker source or a shorter alphabet never outlives the build that
+ * minted it.
  */
 function getOrCreateShareCode(): string {
   const saved = localStorage.getItem(SHARE_CODE_KEY);
-  if (saved) return saved;
+  if (saved && SHARE_CODE_FORM.test(saved)) return saved;
   const code = generateShortId();
   localStorage.setItem(SHARE_CODE_KEY, code);
   return code;
@@ -300,6 +303,33 @@ type NoteReorderListener = (
   msg: Extract<PeerMessage, { type: "note-reorder" }>,
 ) => void;
 
+/** A station that has joined and is waiting for the main screen to approve it. */
+export interface PendingStation {
+  peerId: string;
+  /** The name the station reported. */
+  name: string;
+}
+
+/**
+ * What a station that is not approved is told when it sends a command, a
+ * flight request or an Uplink call.
+ */
+export const AWAITING_APPROVAL =
+  "waiting for the main screen to approve this station";
+
+/** `meta` for a command reply the host writes itself rather than relays. */
+const HOST_REPLY_META = {
+  source: "sitrep-command-rpc",
+  validAt: 0,
+  seq: 0,
+  deliveredAt: 0,
+  vantage: "peer-relay",
+  quality: Quality.OnRails,
+  active: false,
+  staleness: Staleness.Fresh,
+  timelineEpoch: 0,
+};
+
 /**
  * Argument-tuple map for the host's `TypedListeners` registry. Each key's tuple
  * is the argument list its dispatcher handler derives and fires
@@ -333,6 +363,7 @@ type HostEventMap = {
   noteDelete: Parameters<NoteDeleteListener>;
   noteReorder: Parameters<NoteReorderListener>;
   centresChanged: [];
+  pendingStations: [readonly PendingStation[]];
 };
 
 export class PeerHostService {
@@ -391,6 +422,10 @@ export class PeerHostService {
   // fresh peerId: without this the GO/NO-GO list shows the same station
   // twice for ~60 s while the broker times out the old conn.
   private peerIdToStationKey = new Map<string, string>();
+  /** Each connection's credential, from its `station-info`. */
+  private readonly connCredential = new Map<DataConnection, string>();
+  /** Stations waiting on the main screen, in the order they asked. */
+  private pending: readonly PendingStation[] = [];
 
   // Download-once cache for Uplink bundle bytes, keyed by bundleUrl.
   // See handleUplinkBundleRequest and BundleFetchCache's own doc comment.
@@ -1054,6 +1089,8 @@ export class PeerHostService {
     }
     this.connections.delete(conn);
     this.peerIdToStationKey.delete(conn.peer);
+    this.connCredential.delete(conn);
+    this.setPending(this.pending.filter((p) => p.peerId !== conn.peer));
     // Release any demand-only upstream subscribes held on behalf
     // of this peer. WeakMap-keyed by `conn`, so we must read it
     // before the conn drops out of scope. Without this, leaving
@@ -1554,15 +1591,41 @@ export class PeerHostService {
       void this.handleQueryRangeRequest(msg, conn);
     },
     "uplink-relay-request": (msg, conn) => {
+      if (!this.isApproved(conn)) {
+        conn.send({
+          type: "uplink-relay-response",
+          requestId: msg.requestId,
+          error: AWAITING_APPROVAL,
+        } satisfies PeerMessage);
+        return;
+      }
       void this.handleUplinkRelay(msg, conn);
     },
     "flight-rpc-request": (msg, conn) => {
+      if (!this.isApproved(conn)) {
+        conn.send({
+          type: "flight-rpc-response",
+          requestId: msg.requestId,
+          error: AWAITING_APPROVAL,
+        } satisfies PeerMessage);
+        return;
+      }
       void this.handleFlightRpcRequest(msg, conn);
     },
     "sitrep-command-request": (msg, conn) => {
+      if (!this.isApproved(conn)) {
+        this.refuseCommand(conn, msg.requestId);
+        return;
+      }
       void this.handleSitrepCommand(msg, conn);
     },
     "sitrep-command-group": (msg, conn) => {
+      if (!this.isApproved(conn)) {
+        for (const member of msg.members) {
+          this.refuseCommand(conn, member.requestId);
+        }
+        return;
+      }
       void this.handleSitrepCommandGroup(msg, conn);
     },
     "sitrep-subscribe": (msg, conn) => {
@@ -1600,6 +1663,7 @@ export class PeerHostService {
         }
         this.peerIdToStationKey.set(conn.peer, msg.stationKey);
       }
+      this.raiseIfUnapproved(conn, msg.name);
       this.events.emit("stationInfo", conn.peer, {
         name: msg.name,
         version: msg.version,
@@ -1607,6 +1671,10 @@ export class PeerHostService {
         stationKey: msg.stationKey,
         seat: msg.seat,
       });
+    },
+    "station-credential": (msg, conn) => {
+      if (this.connCredential.has(conn)) return;
+      this.connCredential.set(conn, msg.credential);
     },
     "gonogo-vote": (msg, conn) => {
       this.events.emit("gonogoVote", conn.peer, msg.status);
@@ -1639,6 +1707,12 @@ export class PeerHostService {
       this.events.emit("alarmWarpIntent", conn.peer, msg.index);
     },
     "trigger-arm": (msg, conn) => {
+      if (!this.isApproved(conn)) {
+        logger.info(
+          `[PeerHost] trigger from ${conn.peer} not armed: ${AWAITING_APPROVAL}`,
+        );
+        return;
+      }
       this.events.emit("triggerArm", conn.peer, msg);
     },
     "trigger-cancel": (msg, conn) => {
@@ -1724,6 +1798,130 @@ export class PeerHostService {
 
   // GO/NO-GO + peer lifecycle subscriptions. Kept as plain pub/sub so the
   // GoNoGoHostService can aggregate without this class knowing the semantics.
+  /** Whether the main screen has approved the station on this connection. */
+  private isApproved(conn: DataConnection): boolean {
+    const credential = this.connCredential.get(conn);
+    return credential !== undefined && stationApprovals.isApproved(credential);
+  }
+
+  /**
+   * Refused on the response channel, the one the mod refuses on, so the
+   * station's command status shows the reason as it would a refusal from the
+   * game.
+   */
+  private refuseCommand(conn: DataConnection, requestId: string): void {
+    conn.send({
+      type: "sitrep-command-response",
+      requestId,
+      result: {
+        success: false,
+        errorCode: CommandErrorCode.NotClearToProceed,
+        reason: AWAITING_APPROVAL,
+      },
+      meta: HOST_REPLY_META,
+    } satisfies PeerMessage);
+  }
+
+  /**
+   * Tell a station where its approval stands, keeping an approved station's
+   * remembered name current, and raise one not yet approved on the main
+   * screen. A station that sent no credential is never approvable, so it is
+   * told it is pending but not raised.
+   */
+  private raiseIfUnapproved(conn: DataConnection, name: string): void {
+    const credential = this.connCredential.get(conn);
+    const approved = stationApprovals
+      .list()
+      .find((s) => s.credential === credential);
+    if (approved) {
+      if (approved.name !== name) {
+        stationApprovals.approve(approved.credential, name);
+      }
+      this.setPending(this.pending.filter((p) => p.peerId !== conn.peer));
+      conn.send({
+        type: "station-approval",
+        state: "approved",
+      } satisfies PeerMessage);
+      return;
+    }
+    if (credential !== undefined) {
+      const entry = { peerId: conn.peer, name };
+      const known = this.pending.some((p) => p.peerId === conn.peer);
+      this.setPending(
+        known
+          ? this.pending.map((p) => (p.peerId === conn.peer ? entry : p))
+          : [...this.pending, entry],
+      );
+    }
+    conn.send({
+      type: "station-approval",
+      state: "pending",
+    } satisfies PeerMessage);
+  }
+
+  private setPending(next: readonly PendingStation[]): void {
+    if (
+      next.length === this.pending.length &&
+      next.every((p, i) => p === this.pending[i])
+    ) {
+      return;
+    }
+    this.pending = next;
+    this.events.emit("pendingStations", next);
+  }
+
+  /** Stations waiting for the main screen to approve them, in the order they asked. */
+  pendingStations(): readonly PendingStation[] {
+    return this.pending;
+  }
+
+  onPendingStationsChange(cb: (pending: readonly PendingStation[]) => void) {
+    return this.events.on("pendingStations", cb);
+  }
+
+  /** Approve a waiting station and remember it, so it is served whenever it rejoins. */
+  approveStation(peerId: string): void {
+    const entry = this.pending.find((p) => p.peerId === peerId);
+    const conn = this.findConnByPeerId(peerId);
+    const credential = conn ? this.connCredential.get(conn) : undefined;
+    this.setPending(this.pending.filter((p) => p.peerId !== peerId));
+    if (!conn || !credential) return;
+    stationApprovals.approve(credential, entry?.name ?? peerId);
+    conn.send({
+      type: "station-approval",
+      state: "approved",
+    } satisfies PeerMessage);
+  }
+
+  /** Refuse a waiting station and disconnect it. Nothing is remembered. */
+  refuseStation(peerId: string): void {
+    this.setPending(this.pending.filter((p) => p.peerId !== peerId));
+    const conn = this.findConnByPeerId(peerId);
+    if (conn) this.disconnectRefused(conn);
+  }
+
+  /** Forget an approved station and disconnect it if it is here. */
+  removeApprovedStation(credential: string): void {
+    stationApprovals.remove(credential);
+    for (const [conn, held] of [...this.connCredential]) {
+      if (held === credential) this.disconnectRefused(conn);
+    }
+  }
+
+  private disconnectRefused(conn: DataConnection): void {
+    try {
+      conn.send({
+        type: "station-approval",
+        state: "refused",
+      } satisfies PeerMessage);
+    } catch {
+      /* a page that is already gone cannot be told */
+    }
+    conn.close({ flush: true });
+    // Dropped here too, so a page that ignores the close is let go regardless.
+    this.dropConnection(conn, "refused");
+  }
+
   onStationInfo(cb: StationInfoListener): () => void {
     return this.events.on("stationInfo", cb);
   }
@@ -2174,24 +2372,13 @@ export class PeerHostService {
       } satisfies PeerMessage);
       return;
     }
-    const placeholderMeta = {
-      source: "sitrep-command-rpc",
-      validAt: 0,
-      seq: 0,
-      deliveredAt: 0,
-      vantage: "peer-relay",
-      quality: Quality.OnRails,
-      active: false,
-      staleness: Staleness.Fresh,
-      timelineEpoch: 0,
-    };
     try {
       const value = await start(client);
       conn.send({
         type: "sitrep-command-response",
         requestId: msg.requestId,
         result: value,
-        meta: placeholderMeta,
+        meta: HOST_REPLY_META,
       } satisfies PeerMessage);
     } catch (err) {
       const rejection = classifyCommandRejection(err);
@@ -2226,7 +2413,7 @@ export class PeerHostService {
             breach: rejection.breach,
             detail: rejection.detail,
           },
-          meta: placeholderMeta,
+          meta: HOST_REPLY_META,
         } satisfies PeerMessage);
         return;
       }

@@ -65,6 +65,7 @@ import {
   SettingsService,
   useStationWakeLock,
 } from "../settings";
+import { StationApprovalNotice } from "../stationApproval/StationApprovalNotice";
 import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { PeerTransport } from "../telemetry/PeerTransport";
@@ -306,6 +307,7 @@ export function StationScreen() {
           <MissionProfilesProvider service={missionProfiles}>
             <ScopedStationIdentity>
               <StationSupersededNotice client={client} />
+              <StationApprovalNotice client={client} />
               <StationConnectView
                 hostInput={hostInput}
                 connStatus={connStatus}
@@ -341,6 +343,7 @@ export function StationScreen() {
           <ScopedStationIdentity>
             <StationInfoBroadcaster client={client} seat="mission-control" />
             <StationSupersededNotice client={client} />
+            <StationApprovalNotice client={client} />
             <PeerClientProvider client={client}>
               <SitrepTelemetryProvider transport={peerTransport}>
                 <AugmentAvailabilityFeeder />

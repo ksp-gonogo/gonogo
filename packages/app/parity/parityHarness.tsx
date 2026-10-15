@@ -41,6 +41,7 @@ import { PeerClientService } from "../src/peer/PeerClientService";
 import { PeerHostService } from "../src/peer/PeerHostService";
 import { PeerTransport } from "../src/telemetry/PeerTransport";
 import { SitrepPeerRelay } from "../src/telemetry/SitrepPeerRelay";
+import { approveStation } from "../src/test/approveStation";
 
 interface StreamEmit {
   channel: string;
@@ -337,6 +338,8 @@ export async function renderScene(scene: ParityScene): Promise<SceneRenders> {
 
     const client = new PeerClientService();
     stationClient = client;
+    // An unapproved station has its commands refused, which the station would draw and the main screen would not.
+    approveStation();
     act(() => client.connect(peerHost.shareCode));
     await waitForConnected(client);
     stationTransport = new PeerTransport(client);
