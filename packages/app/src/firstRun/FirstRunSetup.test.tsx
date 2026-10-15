@@ -429,7 +429,7 @@ describe("FirstRunSetup: the KSP connection check", () => {
     }
   });
 
-  it("leads with this system's address command and keeps the other two behind a disclosure", async () => {
+  it("gives only this system's address command when the browser says which it is", async () => {
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15",
     );
@@ -439,14 +439,6 @@ describe("FirstRunSetup: the KSP connection check", () => {
     expect(screen.getByText(ADDRESS_COMMAND.macos)).toBeInTheDocument();
     expect(screen.queryByText(ADDRESS_COMMAND.windows)).toBeNull();
     expect(screen.queryByText(ADDRESS_COMMAND.linux)).toBeNull();
-
-    await userEvent
-      .setup()
-      .click(
-        screen.getByRole("button", { name: say("connect.address.other") }),
-      );
-    expect(screen.getByText(ADDRESS_COMMAND.windows)).toBeInTheDocument();
-    expect(screen.getByText(ADDRESS_COMMAND.linux)).toBeInTheDocument();
     vi.restoreAllMocks();
   });
 

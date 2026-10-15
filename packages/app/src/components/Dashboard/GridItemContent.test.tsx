@@ -139,7 +139,7 @@ describe("GridItemContent: draggableCancel structural guard", () => {
       />,
     );
 
-    const removeBtn = screen.getByRole("button", { name: /^Remove /i });
+    const removeBtn = screen.getByRole("button", { name: /Remove widget/i });
     const configureBtn = screen.getByRole("button", { name: /Configure/i });
     const cancelTarget = document.querySelector(".widget-action-buttons");
 
@@ -176,7 +176,7 @@ describe("GridItemContent: draggableCancel structural guard", () => {
       />,
     );
 
-    const removeBtn = screen.getByRole("button", { name: /^Remove /i });
+    const removeBtn = screen.getByRole("button", { name: /Remove widget/i });
     const cancelTarget = document.querySelector(".widget-action-buttons");
 
     expect(cancelTarget).not.toBeNull();

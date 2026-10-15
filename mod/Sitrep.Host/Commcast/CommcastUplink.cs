@@ -188,25 +188,11 @@ namespace Sitrep.Host.Commcast
 
             _streams.OnAddressedSubscribed(TrafficTopic, SayGroupsKnownAt);
 
-            /* Groups, messages and keyings are stamped with the UT they were said
-               at, so a rewound or replaced timeline leaves them describing
-               speech that has not happened. */
-            (host as Sitrep.Host.Comms.ICraftStateHost)?.OnTimelineReset(ForgetTheTimeline);
-
             host.AddVantageCommandHandler<CommcastGroupOpenArgs, CommandResult>(OpenCommand, HandleOpen);
             host.AddVantageCommandHandler<CommcastGroupAddArgs, CommandResult>(AddCommand, HandleAdd);
             host.AddVantageCommandHandler<CommcastMessageSendArgs, CommandResult>(SendCommand, HandleSend);
             host.AddVantageCommandHandler<CommcastMessageAckArgs, CommandResult>(AckCommand, HandleAck);
             host.AddVantageCommandHandler<CommcastRadioTransmitArgs, CommandResult>(TransmitCommand, HandleTransmit);
-        }
-
-        private void ForgetTheTimeline()
-        {
-            _groups.Clear();
-            _messages.Clear();
-            _messageOrder.Clear();
-            _transmissions.Clear();
-            _transmissionOrder.Clear();
         }
 
         private double Now() => _host!.NowUt();

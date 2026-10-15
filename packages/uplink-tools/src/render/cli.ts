@@ -22,7 +22,6 @@ import {
   buildReadme,
   type DocsInputs,
   linkedAssets,
-  pageRoot,
   README_GENERATED_MARKER,
   scenesAssertingNothing,
   widgetRecordsOf,
@@ -351,7 +350,7 @@ async function docs(
   const recordsJson = widgetRecordsJson(widgetRecordsOf(result.inventory));
   const specJson = specJsonOf(pkg, result.inventory);
 
-  const readmePath = join(pageRoot(pkg.dir), "README.md");
+  const readmePath = join(pkg.dir, "README.md");
   const manifestPath = join(pkg.dir, "gonogo-uplink.json");
   const recordsPath = join(pkg.dir, WIDGET_RECORDS_FILE);
   const specPath = join(pkg.dir, SPEC_FILE);
@@ -479,7 +478,7 @@ async function writeProseOnly(pkg: UplinkPackage, args: Args): Promise<void> {
   };
   const { manifest, warning } = buildManifest(inputs);
   if (warning) console.warn(`\n  warning: ${warning}`);
-  const readmePath = join(pageRoot(pkg.dir), "README.md");
+  const readmePath = join(pkg.dir, "README.md");
   const manifestPath = join(pkg.dir, "gonogo-uplink.json");
   await refuseToClobberHandWrittenReadme(pkg.dir, readmePath);
   await writeFile(readmePath, buildReadme(inputs, manifest), "utf8");

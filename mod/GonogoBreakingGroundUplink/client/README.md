@@ -11,10 +11,6 @@ Drives Breaking Ground robotic joints and rotors from the console, and reports d
 | Version | `0.0.1` |
 | Built against | contract 44.2, extension API 6.0.0 |
 
-## Install
-
-The Breaking Ground Uplink comes with Gonogo, so there is nothing separate to install. Installing Gonogo installs it.
-
 ## Widgets
 
 ### Deployed Science
@@ -30,7 +26,7 @@ Power balance and per-experiment science progress for Breaking Ground deployed s
 | Smallest size, in grid units | 5 × 7 |
 | Scenes | 4 |
 
-![A powered Mun base with two experiments collecting, above a Minmus base that has lost power overnight](client/docs/assets/mun-and-minmus-bases--default.png)
+![A powered Mun base with two experiments collecting, above a Minmus base that has lost power overnight](docs/assets/mun-and-minmus-bases--default.png)
 
 ### Robotics Console
 
@@ -46,7 +42,7 @@ Current-vs-target position, at-target state and motor/lock controls for Breaking
 | Smallest size, in grid units | 4 × 4 |
 | Scenes | 3 |
 
-![A hinge driving towards its target, a piston already at one, and a locked rotor the console leaves to the tachometer](client/docs/assets/servos--default.png)
+![A hinge driving towards its target, a piston already at one, and a locked rotor the console leaves to the tachometer](docs/assets/servos--default.png)
 
 ### Rotor Tachometer
 
@@ -62,5 +58,5 @@ Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, 
 | Smallest size, in grid units | 4 × 4 |
 | Scenes | 3 |
 
-![Main rotor turning near its commanded cap, tail rotor stopped with the brake full on and the servo locked](client/docs/assets/rotors--default.png)
+![Main rotor turning near its commanded cap, tail rotor stopped with the brake full on and the servo locked](docs/assets/rotors--default.png)
 

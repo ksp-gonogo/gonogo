@@ -592,7 +592,6 @@ export {
   predictedOutcomeOf,
 } from "./SendStatus/predictedOutcome";
 export { Slider, type SliderProps } from "./Slider";
-export { Sparkline, type SparklineProps } from "./Sparkline";
 export { Spinner, type SpinnerProps } from "./Spinner";
 export { Stack, type StackProps } from "./Stack";
 export { Stat, type StatProps } from "./Stat";

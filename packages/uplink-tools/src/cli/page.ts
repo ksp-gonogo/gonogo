@@ -22,14 +22,13 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { PAGE_WRITE_ENV } from "../page-write-env";
-import { pageRoot } from "../render/docs";
 import { findUplinkDir } from "./bake";
 import { parseFlags } from "./flags";
 
 export const PAGE_USAGE = `uplink-tools page [options]
 
-  Write this Uplink's generated page (README.md at the Uplink's root, then
-  gonogo-uplink.json, docs/widgets.json and docs/spec.json in the client) from what the client registers, with no browser. It runs
+  Write this Uplink's generated page (README.md, gonogo-uplink.json,
+  docs/widgets.json and docs/spec.json) from what the client registers, with no browser. It runs
   the test that holds the page check, and only that one, with the check writing
   the page instead of comparing it, so the client's dependencies must be
   installed and the rest of the client's tests may be failing. It says which
@@ -84,8 +83,7 @@ export function page(
     const path = join(clientDir, file);
     return existsSync(path) ? readFileSync(path, "utf8") : undefined;
   };
-  const pageFiles = pageFilesOf(clientDir);
-  const before = new Map(pageFiles.map((file) => [file, read(file)]));
+  const before = new Map(PAGE_FILES.map((file) => [file, read(file)]));
 
   const result = spawnSync(
     "npx",
@@ -119,24 +117,22 @@ export function page(
         "so nothing else is in the way.",
     );
   }
-  const wrote = pageFiles.filter((file) => read(file) !== before.get(file));
+  const wrote = PAGE_FILES.filter((file) => read(file) !== before.get(file));
   console.log(
     wrote.length > 0
       ? `page: wrote ${wrote.join(", ")}`
-      : "page: the README, gonogo-uplink.json, docs/widgets.json and docs/spec.json already match what the client registers. Nothing written.",
+      : "page: README.md, gonogo-uplink.json, docs/widgets.json and docs/spec.json already match what the client registers. Nothing written.",
   );
   return 0;
 }
 
-/** The files the page check writes, relative to the client. The README sits at the Uplink's root, above it. */
-function pageFilesOf(clientDir: string): string[] {
-  return [
-    relative(clientDir, join(pageRoot(clientDir), "README.md")),
-    "gonogo-uplink.json",
-    "docs/widgets.json",
-    "docs/spec.json",
-  ];
-}
+/** The files the page check writes, relative to the client. */
+export const PAGE_FILES = [
+  "README.md",
+  "gonogo-uplink.json",
+  "docs/widgets.json",
+  "docs/spec.json",
+];
 
 /** The test files under `dir` that call the page check, which are the only ones `page` runs. */
 export function pageCheckFiles(dir: string): string[] {

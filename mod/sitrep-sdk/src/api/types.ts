@@ -280,13 +280,6 @@ export interface TinyEssential {
    */
   gauge?: TinyGauge;
   /**
-   * Recent values of the figure, oldest to newest, drawn as a sparkline along
-   * the bottom edge of the tile so the operator sees which way it has been
-   * moving. Only the hero draws one; on a row it is ignored. Fewer than two
-   * finite values draw nothing.
-   */
-  trend?: readonly number[];
-  /**
    * A button drawn in the figure's place, for the one command the tile exists
    * to give. The widget builds it with the same hooks its body uses
    * (`useCommand`, `useActionInput`), so it and the serial binding behave at

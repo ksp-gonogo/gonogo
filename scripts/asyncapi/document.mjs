@@ -20,147 +20,180 @@
 const SERVER_KEY = "mod";
 
 /**
- * The document-level prose: the protocol facts a message schema has no slot for.
+ * The document-level prose.
+ *
+ * Everything here is a property of the PROTOCOL rather than of a message shape,
+ * which is exactly the set a schema has no slot for. It is written down because
+ * a reader who takes a schema catalogue as the whole contract gets four things
+ * wrong, and every one of them is a runtime failure rather than a type error.
  */
 function infoDescription(counts) {
   return `The wire contract of the Gonogo mod's telemetry socket: ${counts.topics} telemetry
-channels a client subscribes to and ${counts.commands} commands it sends, each with its payload
-schema and description.
+channels a client subscribes to, and ${counts.commands} commands it dispatches, with the payload
+schema and the contract's own prose for each.
 
-This document is generated from the contract's C# declarations and their doc
-comments. Operations are written from the client's side: a telemetry channel is
-\`receive\` and a command is \`send\`. The mod is the server.
+**Generated.** Emitted by \`scripts/asyncapi-doc.mjs\` from the committed
+TypeScript contract under \`mod/sitrep-sdk/src/__generated__/\`, which
+\`mod/codegen.sh\` in turn generates from the C# in \`mod/Sitrep.Contract/\`. The
+C# is the source of truth. Do not hand-edit this file; change the C# doc comment
+or the declaration and regenerate.
+
+**Point of view.** Operations are written from the CLIENT's side: a telemetry
+channel is \`receive\` and a command is \`send\`. The mod is the server.
 
 ## One socket, many channels
 
-Every channel is multiplexed over a single WebSocket. A channel's \`address\` is
-the value of the \`topic\` field on a \`stream-data\` frame, or of the \`command\`
-field on a \`command-request\`. It is not a URL path, and there is no second
-connection to open. The \`session\` channel carries the frames that belong to the
-connection itself.
+Every channel below is multiplexed over a single WebSocket. A channel's
+\`address\` is the value of the \`topic\` field on a \`stream-data\` frame, or of
+the \`command\` field on a \`command-request\`; it is not a URL path, and there is
+no second connection to open. The \`session\` channel carries the frames that
+belong to the connection rather than to any one channel.
 
-## Frames the mod sends
+Everything the mod sends is one of four frame types, unioned as
+\`components.schemas.InboundFrame\`: \`stream-data\`, \`command-response\`,
+\`event\` and \`error\`. Write that router first: every per-channel message below
+narrows one of its arms, and none of them adds a fifth.
 
-The mod sends four frame types, unioned as \`components.schemas.InboundFrame\`:
-\`stream-data\`, \`command-response\`, \`event\` and \`error\`. Route on the \`type\`
-field. Each frame type fixes \`type\` to a constant, so a JSON Schema validator can
-tell them apart without the \`discriminator\` keyword. Every per-channel message
-in this document is one of these four.
+Route on the \`type\` field. Each arm pins it with a \`const\`, so a plain JSON
+Schema validator discriminates the union without help, and the \`discriminator\`
+keyword on \`InboundFrame\` is a label on that rather than the thing doing the
+work. \`InboundFrame\` is a named union nothing \`$ref\`s: it exists to be read,
+and the two arms that are frames in their own right carry their vocabularies on
+their schemas, \`EventMsg\` for the two \`name\` values and \`ErrorMsg\` for the
+three \`code\` values. The same prose reaches you through
+\`components.messages.event\` and \`components.messages.error\`, which is where
+the channels point.
 
-## Subscribing
+## Nothing arrives before you ask for it
 
-The mod sends a topic only after the client has sent \`subscribe\` for it. A frame
-emitted while nothing is subscribed is dropped, not queued, so a client that
-connects and waits receives nothing.
+Delivery is subscription-gated. A client receives a topic only after sending
+\`subscribe\` for it, and a frame the mod emits with no subscriber is DROPPED
+rather than queued: connecting and waiting yields silence forever. This is a
+property of the protocol and appears nowhere in a message shape, so a
+schema-first reader will not find it.
 
-## Units
+## A quantity crosses as a bare number
 
 The generated TypeScript types every quantity as \`Value<"m">\`, an object with a
-magnitude and a unit. The SDK builds that object after receiving the frame. On
-the wire a quantity is a bare JSON number, and its schema names the unit in
-\`x-sitrep-unit\`. A command carries bare numbers as well.
+magnitude and a unit. That is the shape AFTER the SDK hydrates it. The wire
+carries a bare JSON number, and the schemas here say so, with the unit token on
+\`x-sitrep-unit\`. Send \`{ magnitude, unit }\` and the mod will not understand
+it.
 
-## Enums
+## An enum crosses as its ordinal
 
-An enum is sent as its ordinal, not its name. Where the members are a closed
-set, the schema is a \`oneOf\` of \`const\` values, each with the member's name and
-description. A \`[Flags]\` enum is a bitwise combination of members, so its schema is an
-\`integer\` and the member table is on \`x-sitrep-enum\`. \`x-sitrep-enum-kind\`
-says which of the two an enum is.
+Never as its name. Where the member set is a real constraint it is a \`oneOf\` of
+\`const\` values carrying each member's name and prose. A \`[Flags]\` bitmask has
+no member set to validate against, because the wire carries an OR of members, so
+those carry the member table on \`x-sitrep-enum\` and constrain only
+\`integer\`. \`x-sitrep-enum-kind\` says which of the two an enum is.
 
 ## The \`x-sitrep-*\` annotations
 
-Facts the contract states that JSON Schema and AsyncAPI have no field for. An
-annotation that is absent was not stated by the declaration.
+Facts the contract states that JSON Schema and AsyncAPI have no slot for. Each
+is read off the declaration site rather than written here, so an annotation that
+is absent means the declaration did not state it.
 
-- \`x-sitrep-unit\`, on a schema: the unit the value is sent in. \`text\`,
-  \`flag\`, \`id\`, \`enum\` and \`n/a\` are also tokens in this vocabulary and mean
-  what they say. Absent, \`n/a\` and \`1\` are three different things
-- \`x-sitrep-enum\` and \`x-sitrep-enum-kind\`, on an enum's schema: see Enums
-- \`x-sitrep-delivery\`, on a telemetry channel: the outbox lane its samples use.
-  \`lossy-latest\` keeps only the newest sample per topic, so a client that falls
-  behind sees the latest state and none of the ones it missed.
-  \`reliable-ordered\` sends every sample, in order. The \`reliable-ordered\`
-  channels carry discrete occurrences such as \`flight.started\`, so a client
-  must not treat them as lossy
-- \`x-sitrep-delay-role\`, on a telemetry channel: \`delayed\` means the value is
-  what the vantage knew one signal delay ago, not what is true now.
-  \`true-now\` means it is not delayed, which suits a ground-side fact with no
-  equivalent in flight, such as whether the SCANsat assembly is installed
+- \`x-sitrep-unit\`, on a schema: the token the value crosses in, from the
+  contract's \`[SitrepUnit]\`. \`text\`, \`flag\`, \`id\`, \`enum\` and \`n/a\`
+  are tokens in this vocabulary too and mean what they say, so absent, \`n/a\`
+  and \`1\` are three different things
+- \`x-sitrep-enum\` and \`x-sitrep-enum-kind\`, on an enum's schema: see the
+  section above
+- \`x-sitrep-delivery\`, on a telemetry channel: which outbox lane its samples
+  ride. \`lossy-latest\` coalesces to the freshest sample per topic, so a client
+  that falls behind sees the latest state and never the ones it skipped.
+  \`reliable-ordered\` delivers every sample, in order, never coalesced. This is
+  not a tuning knob: the \`reliable-ordered\` channels are the DISCRETE
+  occurrences, and a client that treats \`flight.started\` as lossy misses a
+  launch whose frame a later one replaced
+- \`x-sitrep-delay-role\`, on a telemetry channel: \`delayed\` rides the
+  light-time clock, so the value is what the vantage KNEW rather than what is
+  true now. \`true-now\` bypasses it, and is for a ground-side fact with no
+  analogue in flight, such as whether the SCANsat assembly is installed at all
 - \`x-sitrep-sample-kind\`, on a telemetry channel: how its samples relate in
-  time. \`continuous\` values change between samples, so a client may draw a
-  line, interpolate, or carry the value forward with a declared model.
-  \`discrete\` values hold until the next sample, so a client draws a step.
-  \`event\` is one occurrence per sample, so a client draws points. A field in
-  the payload may declare its own kind, which the generated SDK carries per field
+  time. \`continuous\` moves between samples, so a reader may draw a line,
+  interpolate and carry it forward with a declared model. \`discrete\` stands
+  until the next sample changes it, so a reader draws a step and never
+  interpolates. \`event\` is one occurrence per sample, so a reader draws points
+  and never a line or a step. A value inside the payload may declare its own
+  kind, which the generated SDK carries per field
 - \`x-sitrep-held-at-home\`, on a \`delayed\` telemetry channel: \`true\` means the
-  value is held at the home command centre (the career ledger, the space centre's
-  records) and not aboard a craft. Each vantage receives a change after its own
-  delay to home: zero on the ground network, and a crewed vessel's path home
-  otherwise. The frame a vantage holds is already as current as it can be there,
-  so a client subtracts no further signal delay
-- \`x-sitrep-keyframe-interval-ut\`, on a telemetry channel: the number of UT
-  seconds after which the channel sends its value again with nothing changed.
-  A late subscriber, a quickload or a reconnect recovers from that frame without
-  waiting for a real change. The seconds are game time. UT runs up to 100000
-  times faster than wall-clock time under timewarp and stops while the game is
-  paused, so a wall-clock timer sized from this number fires early under warp
-  and never fires while paused. Measure staleness in UT by watching
-  \`Meta.validAt\` advance. For a wall-clock bound, convert with \`warpRate\` on
-  \`time.warp\`, and treat \`paused\` there as "no keyframe is due"
+  value is held at the home command (the career ledger, the space centre's
+  records) rather than aboard a craft. Each vantage receives a change after its
+  own delay to home, zero on the ground network and a crewed vessel's path home
+  otherwise, so the frame a vantage holds is already as current as it can be
+  there and a client subtracts no further light-time when reading it
+- \`x-sitrep-keyframe-interval-ut\`, on a telemetry channel: the UT seconds
+  after which it re-emits unconditionally, with nothing changed. It is what
+  makes a late subscriber, a quickload and a rejoin recoverable without waiting
+  for the next real change. The seconds are GAME seconds and the two clocks are
+  not proportional: UT runs at up to 100000x wall-clock under timewarp and does
+  not advance at all while the game is paused. So this is not a wall-clock
+  duration, and a wall-clock timer sized off it fires long before the keyframe
+  under warp and never fires at all while paused. Measure staleness in the same
+  clock the number is in, by watching \`Meta.validAt\` advance; if you need a
+  wall-clock bound, convert with the live \`warpRate\` on \`time.warp\` and treat
+  its \`paused\` as "no keyframe is due"
 - \`x-sitrep-absence-is-data\`, on a telemetry channel: \`true\` means an empty
-  value is a real answer and is sent from the first tick (no target selected, no
-  crew aboard). Without it the channel sends nothing until it has had a real
-  value, so silence means "not yet" and not "none"
-- \`x-sitrep-delayed\`, on a command channel: whether the command travels over
-  the uplink and takes effect after the signal delay, not when it is sent
-- \`x-sitrep-empty\`, on a schema: the schema has no fields because the shape is
-  "nothing", as \`NoCommandArgs\` is
+  value is a real answer and arrives as a tombstone from the first tick (no
+  target selected, no crew aboard). Without it a channel is held back until it
+  has had a real value, so silence there means "not yet" rather than "none"
+- \`x-sitrep-delayed\`, on a command channel: whether the write rides the
+  uplink instead of taking effect when it is pressed
+- \`x-sitrep-empty\`, on a schema: the shape IS the absence of one, as
+  \`NoCommandArgs\` is, rather than a shape whose fields were dropped
 
-## Channels not listed here
+## This is not a list of every channel on the wire
 
-This document lists the channels declared in the core contract. Two kinds of
-channel are not in it:
+It cannot become one. A DYNAMIC namespace is registered at RUNTIME and
+materialises its channels per subject, so no statically declared type exists for
+the generator to find and nothing about it appears here: \`trackingStation.vessel.<guid>.*\`,
+\`currency.<guid>.<currency>\`, per-vessel part actions, and each Uplink's own.
+Asking this document "is there a per-vessel X" gets a confident no about a
+channel that has been published all along. An Uplink's own channels and commands
+are likewise absent: they live in the Uplink's contract slice, not in the core
+one this document is generated from.
 
-- Dynamic channels, whose names contain a subject: \`trackingStation.vessel.<guid>.*\`,
-  \`currency.<guid>.<currency>\` and per-vessel part actions. The mod registers
-  them at runtime for each subject, so the generator cannot find them in the
-  contract. Read one with \`useStream(topic)\` in the SDK
-- Each Uplink's own channels and commands, which are in that Uplink's contract
-  slice
+The prefix alone does not tell you which half a channel is in, and
+\`trackingStation.\` is the case that proves it: \`trackingStation.catalog\` is
+STATICALLY declared and is in this document, while
+\`trackingStation.vessel.<guid>.<field>\` is dynamic and is not. Reading the one
+as evidence about the other goes wrong in both directions.
 
-A shared prefix does not put two channels in the same group:
-\`trackingStation.catalog\` is declared and listed here, and
-\`trackingStation.vessel.<guid>.<field>\` is dynamic and is not.
+## What a schema cannot say about this contract
 
-## What the client adds to a frame
-
-- A client reads absence and staleness from a state machine: never seen, not
-  ours, known absent, fresh, stale, and stale with a model. The state comes from
-  the client's timeline store and is not in any message shape
-- A value is read relative to a vantage, a command centre, and arrives after the
-  signal delay. \`validAt\` and \`deliveredAt\` differ for that reason, a command
-  is delayed while a fact about the local station is not, and a stale value can
-  still be worth acting on
-- The reasons behind a field's shape are in the contract's doc comments, which
-  this document carries into each \`description\``;
+- **Absence and staleness are a CLIENT-side projection.** A reader hook answers
+  with a state machine over never-seen, not-ours, known-absent, fresh, stale, and
+  stale-with-a-model. None of that is in a message shape: it is what the client's
+  timeline store makes of the frames it has. A schema-first author will assume a
+  payload is either present or missing, and it is neither
+- **The delay model.** A value is relative to a VANTAGE, a command centre, and
+  arrives light-time late. That is why \`validAt\` and \`deliveredAt\` are
+  different numbers, why a command is delayed and a fact about the local station
+  is not, and why a stale value can still be worth acting on. The tokens fit in a
+  schema; what they cost an operator is a paragraph
+- **Why a field is shaped as it is.** The reasoning behind the shapes is in the
+  contract's own doc comments, which is why this document carries every one of
+  them into a \`description\` rather than emitting a list of names`;
 }
 
-const SESSION_DESCRIPTION = `Frames that belong to the connection and not to any one channel.
+const SESSION_DESCRIPTION = `Frames that belong to the connection rather than to any one channel.
 
-\`subscribe\` and \`unsubscribe\` name a topic and open or close delivery on it.
-\`set-vantage\` selects the command centre this connection sends commands from
-and observes at, which sets what it reads and how long its commands take.
-\`claim\` names the commands a reconnecting client is still waiting on, so the
-mod sends their answers to the new connection.
+\`subscribe\` and \`unsubscribe\` name a topic and are how a client opens and
+closes delivery on it: see the subscription gate in the document description.
+\`set-vantage\` selects the command centre this connection commands from and
+observes at, which governs both what it reads and how long its commands take.
+\`claim\` names the commands a reconnecting client still waits on, so the answers
+the mod kept for them are sent to the new connection.
 The mod opens every connection with a \`hello\` naming the run it has reached,
-and answers a \`ping\` with a \`pong\` at once in any scene, even with nothing
-subscribed. A client uses that to tell a quiet connection from a dead one.
+and answers a \`ping\` with a \`pong\` at once, in any scene and with nothing
+subscribed, which is how a client tells a quiet connection from a dead one.
 An \`error\` frame carries a code and, when it answers a dispatch, the
 \`requestId\` it refers to.
 
-This channel has no \`address\`. Its frames are told apart by their own \`type\`
-field.`;
+This channel has no \`address\` because these frames are not routed by one: they
+are typed by their own \`type\` field and belong to the socket itself.`;
 
 /** The contract's own summary for an envelope, followed by the protocol detail written here. */
 function withContractProse(contract, name, detail) {
@@ -171,43 +204,50 @@ function withContractProse(contract, name, detail) {
 const STREAM_DATA_DESCRIPTION = `The envelope every telemetry frame arrives in.
 
 \`topic\` is the channel's \`address\` and \`payload\` is that channel's own
-shape. Each channel's \`stream-data\` message fixes both. \`meta\` is stamped by
-the mod on every frame and describes the delivery, not the value: \`validAt\`,
-\`deliveredAt\` and staleness are there.`;
+shape; each channel's \`stream-data\` message pins both, so this is the shape to
+route on and that one is the shape to read. \`meta\` is stamped by the mod on
+every frame and describes the DELIVERY rather than the value, which is where
+\`validAt\`, \`deliveredAt\` and staleness live.`;
 
-const COMMAND_REQUEST_DESCRIPTION = `The envelope every command is sent in.
+const COMMAND_REQUEST_DESCRIPTION = `The envelope every dispatch is sent in.
 
 \`command\` is the channel's \`address\` and \`args\` is that command's own args
-type. Each command's \`command-request\` message fixes both. The answer comes back
-as a \`command-response\` with the same \`requestId\`, or as an \`error\` frame if
-the mod could not carry the command.`;
+type; each command's \`command-request\` message pins both. The answer comes back
+as a \`command-response\` correlated on \`requestId\`, or as an \`error\` frame if
+the dispatch was never carried.`;
 
-const COMMAND_RESPONSE_DESCRIPTION = `The envelope every answer to a command arrives in.
+const COMMAND_RESPONSE_DESCRIPTION = `The envelope every answer to a dispatch arrives in.
 
-\`result\` is the command's own reply type, fixed by that command's
-\`command-response\` message. A command that ran and was refused arrives here
-with \`success: false\` and an \`errorCode\`. A command the mod could not carry
-arrives as an \`error\` frame on the session channel.
+\`result\` is the command's own reply type, pinned by that command's
+\`command-response\` message. A resolved response is a command that RAN: a
+refusal arrives here with \`success: false\` and an \`errorCode\`, and a fault
+arrives as an \`error\` frame on the session channel instead.
 
 There is no \`command\` field. \`requestId\` is the only link back to the
-command, and a delayed command's answer can arrive minutes after it.`;
+dispatch, and a delayed command's answer can be minutes behind it.`;
 
-const INBOUND_FRAME_DESCRIPTION = `Every frame the mod sends, told apart by \`type\`.
+const INBOUND_FRAME_DESCRIPTION = `Every frame the mod sends, discriminated on \`type\`.
 
-\`stream-data\` carries a subscribed topic's value, \`command-response\` answers a
-command, \`event\` reports something that happened to a subscription, and
-\`error\` reports a request the mod could not carry. Every per-channel message in
-this document is one of these four.
+The first thing a client writes is a router over these four, and they are the
+whole of the inbound surface: \`stream-data\` carries a subscribed topic's value,
+\`command-response\` answers a dispatch, \`event\` reports something that happened
+to a subscription, and \`error\` reports a request that could not be carried.
+Every per-channel message below narrows one of these; none of them adds a fifth
+\`type\`.
 
-Each one fixes \`type\` to a constant, so a JSON Schema validator selects the
-right one from \`type\` alone. The \`discriminator\` beside this is the AsyncAPI
-Schema keyword, a plain string naming that property. It is not OpenAPI 3's
-\`discriminator\` object, so \`propertyName\` and \`mapping\` do not apply here.`;
+Each arm pins \`type\` with a \`const\`, and that is what the discrimination is
+made of: a plain JSON Schema validator picks the right arm from the constants
+alone. The \`discriminator\` beside this is the AsyncAPI Schema keyword, a bare
+string naming that property, and it is a LABEL on the constants rather than the
+mechanism. Two things follow. It is not OpenAPI 3's \`discriminator\` object, so
+\`propertyName\` and \`mapping\` do not belong here and the object form does not
+validate. And a JSON Schema tool that has never heard of it loses nothing,
+because the constants are still there.`;
 
 const CORRELATION_DESCRIPTION =
-  "A command and its answer are matched on `requestId`, not on order: " +
-  "responses may arrive in a different order from the commands, and a " +
-  "delayed command's answer can arrive minutes after it.";
+  "A dispatch and its answer are correlated on `requestId`, never on order: " +
+  "responses may arrive out of the order the requests were sent, and a " +
+  "delayed command's answer can be minutes behind it.";
 
 /** A `Meta` the examples share, so all three read as one frame's worth of traffic. */
 const EXAMPLE_META = {
@@ -558,9 +598,9 @@ export function buildDocument({
     channel: { $ref: "#/channels/session" },
     title: "The greeting, the answer to a ping, and connection-scoped errors",
     description:
-      "An `event` frame is not here. It names a topic and is sent only for a " +
-      "topic this connection has subscribed to, so it is on the topic channels " +
-      "beside their `stream-data`.",
+      "An `event` frame is NOT here. It names a topic and is only ever emitted " +
+      "for one this connection has subscribed to, so it sits on the topic " +
+      "channels alongside their `stream-data`.",
     tags: [{ name: "session" }],
     messages: [
       { $ref: "#/channels/session/messages/hello" },
@@ -712,7 +752,8 @@ export function buildDocument({
       tags: [
         {
           name: "session",
-          description: "Frames that belong to the connection, not to a channel",
+          description:
+            "Frames belonging to the connection rather than a channel",
         },
         ...namespaceTags(topics, commandArgs),
       ],
@@ -762,62 +803,31 @@ function namespaceOf(subject) {
   return dot === -1 ? subject : subject.slice(0, dot);
 }
 
-/** One plain sentence per namespace: what its channels and commands are about. */
-const NAMESPACE_SUMMARIES = {
-  alarm: "Alarms set to fire at a game time",
-  career: "Contracts, crew hiring, facilities and strategies in career mode",
-  commandCentre:
-    "The command centres in play and the signal delay between them",
-  commcast: "Messages and groups between command centres",
-  comms:
-    "Antenna links, contacts and what the active vessel can be commanded to do",
-  crash: "The most recent vessel crash",
-  deployed: "Deployed Breaking Ground bases",
-  dv: "Delta-v per stage and in total for the active vessel",
-  eva: "Kerbals outside a craft",
-  flight: "Flight start, end and vessel changes",
-  game: "Which expansions are installed",
-  isru: "Resource drills and converters",
-  ksp: "Launching, reverting and recovering vessels",
-  missions: "The active Making History mission",
-  parts: "Rolled-up part data for the active vessel, such as power",
-  recovery: "The most recent vessel recovery",
-  robotics: "Robotic rotors, hinges and pistons",
-  science: "Experiments, the science archive and transmission",
-  settings: "The mod's own settings and those of other mods",
-  spaceCenter: "Crew, launch sites and parts available at the space centre",
-  system: "Reference frames, command gates and the uplink queue",
-  target: "What the active vessel can target",
-  time: "Game time, warp and pause",
-  trackingStation: "Bodies and the vessel catalogue in the tracking station",
-  vessel:
-    "The active vessel: flight state, orbit, control, staging, resources and parts",
-};
-
 /**
- * The tag list: one entry per namespace, with its sentence from
- * {@link NAMESPACE_SUMMARIES}. A namespace with no sentence fails the build, so
- * a new namespace cannot ship without one.
+ * The tag list, each carrying its own size.
+ *
+ * A count rather than a sentence about what the namespace is for: the count is a
+ * fact off the same maps the channels came from, and a hand-written gloss on
+ * twenty-five namespaces would be prose this generator invented.
  */
 function namespaceTags(topics, commandArgs) {
-  const names = new Set(
-    [...topics, ...commandArgs].map(({ key }) => namespaceOf(key)),
-  );
-  const missing = [...names].filter((name) => !(name in NAMESPACE_SUMMARIES));
-  if (missing.length > 0) {
-    throw new Error(
-      `asyncapi: no tag description for namespace ${missing.join(", ")}. Add one to NAMESPACE_SUMMARIES in scripts/asyncapi/document.mjs.`,
-    );
-  }
-  const stale = Object.keys(NAMESPACE_SUMMARIES).filter((n) => !names.has(n));
-  if (stale.length > 0) {
-    throw new Error(
-      `asyncapi: NAMESPACE_SUMMARIES names ${stale.join(", ")}, which no channel uses.`,
-    );
-  }
-  return [...names]
-    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-    .map((name) => ({ name, description: NAMESPACE_SUMMARIES[name] }));
+  const counts = new Map();
+  const bump = (subject, kind) => {
+    const name = namespaceOf(subject);
+    const entry = counts.get(name) ?? { channels: 0, commands: 0 };
+    entry[kind]++;
+    counts.set(name, entry);
+  };
+  for (const { key } of topics) bump(key, "channels");
+  for (const { key } of commandArgs) bump(key, "commands");
+
+  const plural = (n, noun) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+  return [...counts.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([name, { channels, commands }]) => ({
+      name,
+      description: `${plural(channels, "telemetry channel")}, ${plural(commands, "command")}`,
+    }));
 }
 
 /** A `$ref` JSON-Pointer token: `/` and `~` are the two characters that must escape. */

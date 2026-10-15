@@ -30,7 +30,7 @@ export const WIZARD_COPY = {
   "container.heading": "Start the app",
   "container.advance": "Connect to KSP",
   "container.instruction":
-    "In a terminal, start the Gonogo container. It serves this app and the relay that lets other screens join yours. You can change {tag} to a specific version if you want.",
+    "In a terminal, start the Gonogo container. It serves this app and the relay that lets other screens join yours. You can change `{tag}` to a specific version if you want.",
   "container.runCommandLabel": "run command",
   "container.powershellNote":
     "Written for PowerShell. If you're using Command Prompt, type ^ in place of the ` that ends each line.",
@@ -54,11 +54,9 @@ export const WIZARD_COPY = {
     'To confirm the mod started, run this in your KSP install folder. It prints a line beginning "[Gonogo] Started". If nothing appears, try the previous step again.',
   "connect.logCommandLabel": "mod log command",
   "connect.hint.address":
-    "To find the KSP computer's address, run the command on that computer:",
-  "connect.address.other": "KSP on a different system?",
+    "To find the KSP computer's address, run the command:",
   "connect.address.windows": "On Windows, look for IPv4 Address:",
-  "connect.address.macos":
-    "On macOS, for Wi-Fi (on Ethernet, use System Settings, Network):",
+  "connect.address.macos": "On macOS:",
   "connect.address.linux": "On Linux, look for inet on your active connection:",
   "connect.addressCommandLabel": "address command",
   "connect.check.pass": "Connected to KSP at {address}",

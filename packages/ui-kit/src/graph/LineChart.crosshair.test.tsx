@@ -134,13 +134,7 @@ describe("LineChart crosshair", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("sizes the legend column to its chips, not to the crosshair card", () => {
-    const { container } = render(chart({ width: 760, height: 260 }));
-    const chip = container.querySelector('rect[rx="2"]') as SVGRectElement;
-    expect(Number(chip.getAttribute("x"))).toBeGreaterThan(760 - 140);
-  });
-
-  it("keeps the legend up while the crosshair card is drawn, and stands the card off it", () => {
+  it("hands the legend's corner to the card while the card is drawn", () => {
     const { container } = render(chart({ height: 180 }));
     const svg = container.querySelector("svg") as SVGSVGElement;
     const legendChips = () => container.querySelectorAll('rect[rx="2"]').length;
@@ -149,22 +143,12 @@ describe("LineChart crosshair", () => {
     expect(
       container.querySelector("[data-plot-crosshair-card]"),
     ).not.toBeNull();
-    expect(legendChips()).toBe(2);
-    const chip = container.querySelector('rect[rx="2"]') as SVGRectElement;
-    const card = container.querySelector(
-      "[data-plot-crosshair-card] rect",
-    ) as SVGRectElement;
-    const apart =
-      Number(card.getAttribute("x")) >
-        Number(chip.getAttribute("x")) + Number(chip.getAttribute("width")) ||
-      Number(card.getAttribute("y")) >
-        Number(chip.getAttribute("y")) + Number(chip.getAttribute("height"));
-    expect(apart).toBe(true);
+    expect(legendChips()).toBe(0);
     fireEvent.keyDown(svg, { key: "Escape" });
     expect(legendChips()).toBe(2);
   });
 
-  it("gives a roomy chart a column past the plot for its legend, and the card stays over the plot", () => {
+  it("gives a roomy chart a column past the plot for its legend and card", () => {
     const { container } = render(chart({ width: 700, height: 260 }));
     const svg = container.querySelector("svg") as SVGSVGElement;
     const plotRight = () => {
@@ -179,7 +163,7 @@ describe("LineChart crosshair", () => {
     const card = container.querySelector(
       "[data-plot-crosshair-card] rect",
     ) as SVGRectElement;
-    expect(Number(card.getAttribute("x"))).toBeLessThan(plotRight());
+    expect(Number(card.getAttribute("x"))).toBeGreaterThan(plotRight());
   });
 
   it("draws a tall or narrow chart's legend as a strip under the plot, past the x axis title", () => {
@@ -237,7 +221,7 @@ describe("LineChart crosshair", () => {
     expect(card?.textContent).not.toContain("\u2026");
   });
 
-  it("writes a limit as a caption, and the crosshair card carries it as a row as well", () => {
+  it("writes a limit once while the column card carries it, and as a caption otherwise", () => {
     const limit = [
       {
         id: "ceiling",
@@ -258,7 +242,7 @@ describe("LineChart crosshair", () => {
     expect(mentions()).toBe(1);
     const svg = container.querySelector("svg") as SVGSVGElement;
     act(() => svg.focus());
-    expect(mentions()).toBe(2);
+    expect(mentions()).toBe(1);
     expect(
       container.querySelector("[data-plot-crosshair-card]")?.textContent,
     ).toContain("Ceiling 450");

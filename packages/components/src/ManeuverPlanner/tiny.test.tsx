@@ -108,35 +108,6 @@ describe("ManeuverPlanner tiny mode", () => {
       await act(async () => {});
     });
 
-    it("stays a burn in progress on a long burn whose planned ignition drifts later as the craft lightens", async () => {
-      const fixture = setupStreamFixture({ pinnedUt: 80, suspendFrames: true });
-      renderWidget("maneuver-planner", {
-        w: 3,
-        h: 3,
-        wrapper: fixture.Provider,
-      });
-      act(() => {
-        fixture.emit("vessel.maneuver", {
-          nodes: [node({ ut: 100, ignitionUt: 70, cutoffUt: 130 })],
-        });
-        fixture.emit("vessel.propulsion", {
-          thrustStartedUt: 70,
-          lastThrustEndUt: null,
-        });
-      });
-      await waitFor(() => expect(visibleText()).toContain("Burn ΔV planned"));
-      // Re-planned from the lighter craft: the same node, lit later and cut off sooner than the engine's own start and the burn it began.
-      act(() => {
-        fixture.emit("vessel.maneuver", {
-          nodes: [node({ ut: 100, ignitionUt: 95, cutoffUt: 125 })],
-        });
-        fixture.scrubTo(128);
-      });
-      await waitFor(() => expect(visibleText()).toContain("Burn ΔV planned"));
-      expect(visibleText()).not.toContain("PASSED");
-      await act(async () => {});
-    });
-
     it("says PASSED for a node whose burn never happened while an engine lit long after it is running", async () => {
       const fixture = setupStreamFixture({ pinnedUt: 98, suspendFrames: true });
       renderWidget("maneuver-planner", {

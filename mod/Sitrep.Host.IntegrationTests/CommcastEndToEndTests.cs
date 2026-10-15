@@ -79,19 +79,6 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
-        public async Task ARewoundTimelineForgetsTheGroupsOpenedOnTheOldOne()
-        {
-            await using var scene = await Scene.StartAsync();
-            scene.Tick(100);
-            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B));
-            Assert.False((await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B))).Success);
-
-            scene.Tick(10);
-
-            Assert.True((await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B))).Success);
-        }
-
-        [Fact]
         public async Task ANonMemberCannotSpeakToAGroup()
         {
             await using var scene = await Scene.StartAsync();

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import {
   buildUplinkManifest,
   NO_BUNDLE_INTEGRITY_WARNING,
@@ -209,72 +209,6 @@ export function buildManifest(inputs: DocsInputs): {
 }
 
 /**
- * The folder the Uplink's page is written in: the one holding `uplink.json`, or
- * for a client with none (an Uplink bundled in the app's own repository) the
- * folder that holds its `client/`. Useful for putting the README where a
- * visitor to the Uplink's folder sees it. Used by `docs`, `page` and the page
- * check.
- */
-export function pageRoot(clientDir: string): string {
-  const declaration = readUplinkDeclaration(clientDir);
-  if (declaration) return dirname(declaration.path);
-  return basename(clientDir) === "client" ? dirname(clientDir) : clientDir;
-}
-
-/**
- * The page's Install section: how a player gets this Uplink into the game, and
- * where its releases are.
- *
- * The CKAN identifier is the folder the plugin installs into, which is also the
- * identifier of the netkan `uplink-tools new` writes. An Uplink bundled in the
- * app's own repository has no `uplink.json` and installs with Gonogo itself.
- */
-function installSection(inputs: DocsInputs): string[] {
-  const { inventory } = inputs;
-  const declared = readUplinkDeclaration(inputs.pkg.dir)?.declared;
-  const label = `${inventory.name} Uplink`;
-  if (!declared) {
-    return [
-      "## Install",
-      "",
-      `The ${label} comes with Gonogo, so there is nothing separate to install. Installing Gonogo installs it.`,
-      "",
-    ];
-  }
-  const gamedata = declared.gamedata;
-  if (!gamedata) {
-    throw new Error(
-      "uplink-tools docs: uplink.json declares no `gamedata`, and the page's Install " +
-        "section names the CKAN entry and the zip after it. Add the name of the folder " +
-        'the plugin installs into under GameData, such as "GonogoExampleUplink".',
-    );
-  }
-  const lines = [
-    "## Install",
-    "",
-    `Install the ${label} with CKAN: search for \`${gamedata}\`, tick it and apply. CKAN also installs Gonogo itself${declared.mod?.name ? ` and ${declared.mod.name}` : ""}.`,
-    "",
-    `Without CKAN, download \`${gamedata}.zip\` from the releases page, unpack it into your Kerbal Space Program folder so that it lands in \`GameData/${gamedata}\`, and install Gonogo the same way.`,
-    "",
-  ];
-  const releases = releasesUrl(declared.repo, inventory.id);
-  if (releases) lines.push(`Releases: ${releases}`, "");
-  return lines;
-}
-
-/** The releases page of the Uplink's repository, narrowed to this Uplink's tags (`<id>-v<version>`) on GitHub. */
-function releasesUrl(repo: string | undefined, id: string): string | undefined {
-  if (!repo) return undefined;
-  const base = repo.replace(/\/+$/, "").replace(/\.git$/, "");
-  try {
-    if (new URL(base).hostname !== "github.com") return `${base}/releases`;
-  } catch {
-    return undefined;
-  }
-  return `${base}/releases?q=${encodeURIComponent(`${id}-v`)}`;
-}
-
-/**
  * The first line of every generated `README.md`, and the thing `docs` and `page`
  * look for before they overwrite one. It names both because either writes it.
  * It tells a generated README, which may be overwritten, from one an author
@@ -333,12 +267,10 @@ export function imageLinks(
   assets: readonly PageAsset[],
 ): string[] {
   const out: string[] = [];
-  const fromPage = relative(pageRoot(pkgDir), pkgDir).split("\\").join("/");
   for (const asset of assets) {
     const path = `${assetDir}/${asset.file}`;
     if (!existsSync(join(pkgDir, path))) continue;
-    const link = fromPage === "" ? path : `${fromPage}/${path}`;
-    out.push("", `![${altFor(asset)}](${link})`);
+    out.push("", `![${altFor(asset)}](${path})`);
   }
   return out;
 }
@@ -637,7 +569,6 @@ export function buildReadme(
         `contract ${manifest.contractMajor}.${manifest.contractMinor}, extension API ${manifest.apiVersion}`,
       ],
     ]),
-    ...installSection(inputs),
     ...wireSection(wire),
     ...commandSection(wire),
   ];

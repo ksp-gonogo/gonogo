@@ -11,15 +11,11 @@ Lists the running Making History mission's objectives in the Objectives widget, 
 | Version | `0.0.1` |
 | Built against | contract 44.2, extension API 6.0.0 |
 
-## Install
-
-The Making History Uplink comes with Gonogo, so there is nothing separate to install. Installing Gonogo installs it.
-
 ## Augments
 
 | Augment | Into | Reads | Presence | Scenes | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `objectives-making-history` | `objectives.source` | `missions.active` |  | 1 |  |
 
-![A Making History mission part way through, its objectives listed in the Objectives widget with the phase and score above them](client/docs/assets/mission-part-way--default.png)
+![A Making History mission part way through, its objectives listed in the Objectives widget with the phase and score above them](docs/assets/mission-part-way--default.png)
 

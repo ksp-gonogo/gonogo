@@ -2237,7 +2237,6 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.NotNull(refusal);
                 Assert.Contains(MessageGetterThrowsCommandTestUplink.Command, refusal);
 
-                // One throw fails that request only; the command is still offered.
                 string? again = null;
                 engine.DispatchCommandAndWait(
                     MessageGetterThrowsCommandTestUplink.Command, null, "vantage-1",
@@ -2245,7 +2244,7 @@ namespace Sitrep.Host.IntegrationTests
                     TestBudgets.Op,
                     onRefused: (_, reason) => again = reason);
                 Assert.NotNull(again);
-                Assert.Contains("its handler threw", again);
+                Assert.Contains("for the rest of this session", again);
             }
             finally
             {
@@ -2950,128 +2949,6 @@ namespace Sitrep.Host.IntegrationTests
         private sealed class MessageThrowsException : Exception
         {
             public override string Message => throw new InvalidOperationException("boom -- Message getter itself throws");
-        }
-
-        private static string? DispatchFlaky(ChannelEngine engine, object? args, out bool resolved)
-        {
-            var ok = false;
-            string? refusal = null;
-            engine.DispatchCommandAndWait(
-                FlakyCommandTestUplink.Command, args, "vantage-1",
-                _ => ok = true,
-                TestBudgets.Op,
-                onRefused: (_, reason) => refusal = reason);
-            resolved = ok;
-            return refusal;
-        }
-
-        [Fact]
-        public void OneThrowFromACommandHandlerFailsThatRequestAndLeavesTheCommandAvailable()
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new FlakyCommandTestUplink());
-            engine.Start();
-            try
-            {
-                var refusal = DispatchFlaky(engine, "boom", out var resolved);
-                Assert.False(resolved);
-                Assert.Contains("its handler threw: flaky handler", refusal);
-
-                Assert.Null(DispatchFlaky(engine, "fine", out resolved));
-                Assert.True(resolved);
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        [Fact]
-        public void ARepeatedlyThrowingCommandHandlerIsSuspendedUntilTheSuspensionPasses()
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            var now = 0.0;
-            engine.SetRealClockForTests(() => System.Threading.Volatile.Read(ref now));
-            var uplink = new FlakyCommandTestUplink();
-            engine.RegisterUplink(uplink);
-            engine.Start();
-            try
-            {
-                for (var i = 0; i < 3; i++)
-                {
-                    DispatchFlaky(engine, "boom", out _);
-                }
-                Assert.Equal(3, uplink.Calls);
-
-                var refusal = DispatchFlaky(engine, "fine", out var resolved);
-                Assert.False(resolved);
-                Assert.Contains("suspended", refusal);
-                Assert.Equal(3, uplink.Calls);
-
-                System.Threading.Volatile.Write(ref now, 31.0);
-                Assert.Null(DispatchFlaky(engine, "fine", out resolved));
-                Assert.True(resolved);
-                Assert.Equal(4, uplink.Calls);
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        [Fact]
-        public void ATimelineResetClearsASuspendedCommand()
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new FlakyCommandTestUplink());
-            engine.Start();
-            try
-            {
-                var snapshot = new KspSnapshot { Values = new Dictionary<string, object?>() };
-                engine.TickAndWait(10.0, snapshot, Timeout);
-                for (var i = 0; i < 3; i++)
-                {
-                    DispatchFlaky(engine, "boom", out _);
-                }
-                Assert.Contains("suspended", DispatchFlaky(engine, "fine", out _));
-
-                engine.TickAndWait(1.0, snapshot, Timeout);
-
-                Assert.Null(DispatchFlaky(engine, "fine", out var resolved));
-                Assert.True(resolved);
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        private sealed class FlakyCommandTestUplink : ISitrepUplink
-        {
-            public UplinkHealth Health() => UplinkHealth.Healthy;
-
-            public const string Command = "flaky.command";
-            public int Calls;
-
-            public UplinkManifest Manifest { get; } = new UplinkManifest
-            {
-                Id = "test-flaky-command",
-                Version = "1.0.0",
-                Commands = new List<CommandDeclaration>
-                {
-                    new CommandDeclaration { Command = Command, Delay = DelayRole.TrueNow },
-                },
-            };
-
-            public void Register(IUplinkHost host)
-            {
-                host.AddCommandHandler<object?, object?>(Command, args =>
-                {
-                    Calls++;
-                    if (args as string == "boom") throw new InvalidOperationException("flaky handler");
-                    return "ok";
-                });
-            }
         }
 
         private sealed class MessageGetterThrowsCommandTestUplink : ISitrepUplink

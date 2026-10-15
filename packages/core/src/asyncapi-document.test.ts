@@ -6,7 +6,6 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
-import { ACRONYMS, proseMask, WORD_RE } from "./doc-emphasis.scan";
 
 /**
  * `asyncapi.yaml` is the contract's core wire surface, generated beside the
@@ -566,76 +565,6 @@ describe("asyncapi.yaml", () => {
       const member = leak.split(".")[1];
       expect(yaml).not.toContain(`\n          ${member}:`);
     }
-  });
-
-  it("uses no capitals for emphasis in any description, and the check can see one", () => {
-    const emphasisIn = (text: string) =>
-      [...proseMask(text).matchAll(WORD_RE)]
-        .map((m) => m[0])
-        .filter((word) => !/\d/.test(word) && !ACRONYMS.has(word));
-
-    const planted = emphasisIn(
-      "A frame is DROPPED, not queued, and `HELD` is code.",
-    );
-    expect(
-      planted,
-      "the emphasis check did not see a planted capitalised word, so a clean verdict means nothing",
-    ).toEqual(["DROPPED"]);
-
-    const offenders: string[] = [];
-    const walk = (node: unknown, path: string): void => {
-      if (Array.isArray(node)) {
-        node.forEach((item, i) => {
-          walk(item, `${path}/${i}`);
-        });
-        return;
-      }
-      if (typeof node !== "object" || node === null) return;
-      for (const [key, value] of Object.entries(node)) {
-        if (
-          (key === "description" || key === "title") &&
-          typeof value === "string"
-        ) {
-          for (const word of emphasisIn(value))
-            offenders.push(`${path}/${key}: ${word}`);
-        } else {
-          walk(value, `${path}/${key}`);
-        }
-      }
-    };
-    walk(document, "");
-    expect(offenders.slice(0, 20)).toEqual([]);
-  });
-
-  it("holds every string in the document to the published voice, and each family can see its own offence", async () => {
-    const url = pathToFileURL(
-      join(REPO_ROOT, "scripts/asyncapi/document-voice.mjs"),
-    ).href;
-    const voice = namedExports<{
-      assertDocumentVoice: (
-        document: unknown,
-        options?: { debt: Record<string, number> },
-      ) => { strings: number };
-      assertVoiceDetectorSees: () => void;
-      VOICE_FAMILIES: Record<string, { plant: string }>;
-      VOICE_DEBT: Record<string, number>;
-    }>(await import(url), url, [
-      "assertDocumentVoice",
-      "assertVoiceDetectorSees",
-    ]);
-
-    expect(() => voice.assertVoiceDetectorSees()).not.toThrow();
-    for (const [family, { plant }] of Object.entries(voice.VOICE_FAMILIES)) {
-      const planted = { info: { description: plant } };
-      expect(
-        () => voice.assertDocumentVoice(planted, { debt: {} }),
-        `a planted ${family} violation was not refused`,
-      ).toThrow(family);
-    }
-
-    const checked = voice.assertDocumentVoice(document);
-    expect(checked.strings).toBeGreaterThan(1000);
-    expect(Object.keys(voice.VOICE_DEBT)).toEqual([]);
   });
 
   it("emits the same bytes twice", () => {

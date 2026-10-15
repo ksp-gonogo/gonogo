@@ -6,89 +6,45 @@ import { usePushClient } from "../../pushToMain/PushClientContext";
 import type { DashboardItem } from "./index";
 import { handleMouseDown } from "./mouseHandlers";
 
-/**
- * Removes a widget from the dashboard. Pressing it swaps the control for a
- * labelled "Remove <name>?" prompt with Remove and Cancel buttons; Escape
- * cancels, and focus moves to Cancel on open and back to the remove button
- * on cancel.
- */
-export function RemoveButton({
-  onRemove,
-  name = "widget",
-}: Readonly<{ onRemove: () => void; name?: string }>) {
-  const [confirming, setConfirming] = useState(false);
-  const removeRef = useRef<HTMLButtonElement>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
-  const restoreFocus = useRef(false);
+// Two-click confirm pattern so a stray click in the drag header doesn't vaporise the widget.
+const CONFIRM_WINDOW_MS = 3_000;
 
-  useEffect(() => {
+export function RemoveButton({ onRemove }: Readonly<{ onRemove: () => void }>) {
+  const [confirming, setConfirming] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    },
+    [],
+  );
+
+  function handleClick(e: React.MouseEvent) {
+    e.stopPropagation();
     if (confirming) {
-      cancelRef.current?.focus();
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+      timerRef.current = null;
+      onRemove();
       return;
     }
-    if (restoreFocus.current) {
-      restoreFocus.current = false;
-      removeRef.current?.focus();
-    }
-  }, [confirming]);
-
-  function cancel() {
-    restoreFocus.current = true;
-    setConfirming(false);
-  }
-
-  if (confirming) {
-    return (
-      // biome-ignore lint/a11y/useSemanticElements: a group of two buttons, not a fieldset
-      <ConfirmGroup
-        role="group"
-        aria-label={`Remove ${name}?`}
-        onMouseDown={handleMouseDown}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.stopPropagation();
-            cancel();
-          }
-        }}
-      >
-        <ConfirmText>Remove {name}?</ConfirmText>
-        <ConfirmBtn
-          type="button"
-          $danger
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-        >
-          Remove
-        </ConfirmBtn>
-        <ConfirmBtn
-          type="button"
-          ref={cancelRef}
-          onClick={(e) => {
-            e.stopPropagation();
-            cancel();
-          }}
-        >
-          Cancel
-        </ConfirmBtn>
-      </ConfirmGroup>
-    );
+    setConfirming(true);
+    timerRef.current = setTimeout(() => {
+      setConfirming(false);
+      timerRef.current = null;
+    }, CONFIRM_WINDOW_MS);
   }
 
   return (
-    <Tooltip text={`Remove ${name}`}>
+    <Tooltip text={confirming ? "Click again to confirm" : "Remove widget"}>
       <RemoveBtn
-        ref={removeRef}
-        type="button"
         onMouseDown={handleMouseDown}
-        onClick={(e) => {
-          e.stopPropagation();
-          setConfirming(true);
-        }}
-        aria-label={`Remove ${name}`}
+        onClick={handleClick}
+        aria-label={confirming ? "Confirm remove" : "Remove widget"}
+        $confirming={confirming}
       >
         <CloseIcon size={12} />
+        {confirming ? "?" : null}
       </RemoveBtn>
     </Tooltip>
   );
@@ -221,11 +177,11 @@ export const ComponentWrapper = styled.div`
  * these should be real targets; the tray in MobileDashboard follows this for
  * the same reason.
  */
-const RemoveBtn = styled.button`
+const RemoveBtn = styled.button<{ $confirming: boolean }>`
   pointer-events: all;
   background: none;
   border: none;
-  color: var(--color-text-faint);
+  color: ${({ $confirming }) => ($confirming ? "var(--color-tag-red-fg)" : "var(--color-text-faint)")};
   cursor: pointer;
   font-size: var(--font-size-xs);
   line-height: var(--line-height-flush);
@@ -234,41 +190,6 @@ const RemoveBtn = styled.button`
 
   &:hover {
     color: var(--color-nogo-text);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-`;
-
-const ConfirmGroup = styled.span`
-  pointer-events: all;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--gap-glyph-tray);
-  margin-left: var(--gap-glyph-tray);
-  font-size: var(--font-size-xs);
-  white-space: nowrap;
-`;
-
-const ConfirmText = styled.span`
-  color: var(--color-text-faint);
-`;
-
-const ConfirmBtn = styled.button<{ $danger?: boolean }>`
-  background: none;
-  border: 1px solid currentColor;
-  border-radius: var(--radius-regular);
-  color: ${({ $danger }) => ($danger ? "var(--color-tag-red-fg)" : "var(--color-text-faint)")};
-  cursor: pointer;
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-flush);
-  padding: var(--inset-control-compact);
-
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
   }
 `;
 

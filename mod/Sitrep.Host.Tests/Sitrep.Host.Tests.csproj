@@ -27,7 +27,6 @@
        against a planted model instead. -->
   <ItemGroup>
     <Compile Include="../Gonogo.KSP/CommNetOcclusion.cs" />
-    <Compile Include="../Gonogo.KSP/ThirdPartyFault.cs" />
   </ItemGroup>
   <!-- NO Reinforced.Typings reference. There was one, added so this test host
        could resolve the [TsEnum]/[TsInterface] attributes the shipped contract

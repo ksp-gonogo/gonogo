@@ -15,6 +15,7 @@ import {
   PlotCrosshair,
   type PlotCrosshairRow,
   plotCrosshairCardBox,
+  plotCrosshairShowsCard,
 } from "../PlotCrosshair";
 import { placePlotReadouts } from "../plotReadoutPlacement";
 import { resolveCurrency, type UnitValue } from "../readingCurrency";
@@ -473,24 +474,48 @@ function seriesYValues(s: ChartSeries): number[] {
   return s.data.y;
 }
 
-/** The width the column beside the plot needs to hold its widest line whole: the legend chips and the limit and target captions. */
+/** The width the column beside the plot needs to hold its widest line whole: the legend chips, the captions and the card's rows. */
 function readoutColumnWidth({
   series,
   thresholds,
+  heading,
+  crosshairOn,
   yTickFormat,
+  cardWidth,
 }: {
   series: readonly ChartSeries[];
   thresholds: readonly ThresholdRule[];
+  heading: readonly string[];
+  crosshairOn: boolean;
   yTickFormat: (v: number) => string;
+  /** The fixed card's measured width, 0 where there is none. */
+  cardWidth: number;
 }): number {
   const px = (chars: number) => chars * LABEL_CHAR_PX;
   const widths: number[] = [];
-  for (const s of series) widths.push(px(s.label.length) + 8);
+  for (const s of series) {
+    widths.push(px(s.label.length) + 8);
+    if (crosshairOn) {
+      widths.push(
+        Math.max(
+          px(s.label.length),
+          px(CARD_FIGURE_CHARS + CARD_CURRENCY_CHARS),
+        ) + CARD_PAD_PX,
+      );
+    }
+  }
   for (const t of thresholds) {
     if (t.kind === "marker") continue;
     const figure = t.label ?? yTickFormat(t.value);
     widths.push(px(figure.length) + LABEL_MARK_PX + 8);
+    if (crosshairOn) {
+      widths.push(Math.max(px(t.kind.length), px(figure.length)) + CARD_PAD_PX);
+    }
   }
+  if (crosshairOn) {
+    widths.push(Math.max(...heading.map((h) => px(h.length))) + CARD_PAD_PX);
+  }
+  widths.push(cardWidth);
   return Math.max(0, ...widths) + COLUMN_SLACK_PX;
 }
 
@@ -596,28 +621,29 @@ export function LineChart({
   // The card, legend and captions share one placement: a column beside the plot when the chart has room, the plot itself otherwise.
   // A chart with nothing to read out keeps the whole width for its plot.
   const hasReadouts =
+    crosshairOn ||
+    hasCard ||
     (legend !== "none" && series.length > 0) ||
     (thresholds ?? []).some((t) => t.label);
-  const chipsWidth = readoutColumnWidth({
-    series,
-    thresholds: thresholds ?? [],
-    yTickFormat,
-  });
-  // The fixed card shares the column only where the column, sized to the legend, is already as wide as the card.
-  const cardInColumn =
-    hasCard &&
-    cardSize !== null &&
-    cardSize.w + COLUMN_GAP <= Math.max(112, Math.ceil(chipsWidth));
   const readouts =
     bare || !hasReadouts
       ? ({ placement: "overlay" } as const)
       : placePlotReadouts({
           width: w,
           height: h,
-          contentWidth: chipsWidth,
+          contentWidth: readoutColumnWidth({
+            series,
+            thresholds: thresholds ?? [],
+            heading: [xDomain[0], xDomain[1]].map((v) =>
+              xTickFormat(v, xDomain),
+            ),
+            crosshairOn,
+            yTickFormat,
+            cardWidth: hasCard && cardSize !== null ? cardSize.w : 0,
+          }),
           legendHeight:
             legend === "none" ? 0 : series.length * LEGEND_ROW_PX + 6,
-          cardHeight: cardInColumn && cardSize !== null ? cardSize.h : 0,
+          cardHeight: hasCard && cardSize !== null ? cardSize.h : 0,
         });
   const legendBelow =
     legend !== "none" &&
@@ -775,16 +801,6 @@ export function LineChart({
           y1: plotY1,
         }
       : undefined;
-  // Chips standing over the plot are somewhere the crosshair's card keeps off.
-  const legendBoxes =
-    legend === "none" || column || legendBelow
-      ? []
-      : series.map((s, i) => ({
-          x0: plotX0 + 3,
-          y0: plotY0 + 6 + i * LEGEND_ROW_PX,
-          x1: plotX0 + 3 + chipWidth(s.label, plotW - 6),
-          y1: plotY0 + 6 + i * LEGEND_ROW_PX + 13,
-        }));
   const scaleX = makeScale(xDomain[0], xDomain[1], plotX0, plotX1);
   const xTickCount = Math.max(
     2,
@@ -1071,8 +1087,8 @@ export function LineChart({
   // The card is placed before the threshold labels, which then yield to it: a label is short and can move, a card cannot.
   const cardBox: PixelBox | undefined = (() => {
     if (!hasCard || cardSize === null || bare) return undefined;
-    // In the column the card stands at the foot, below the legend chips.
-    if (column && cardInColumn) {
+    // In the column the card stands at the foot, below the legend chips and clear of the crosshair's card, which opens from the top.
+    if (column) {
       const box = {
         x0: column.x0,
         y0: plotY1 - cardSize.h,
@@ -1348,6 +1364,18 @@ export function LineChart({
       ? snapped(cursor.at)
       : null;
   const crosshairReading = cursorAt === null ? null : readAt(cursorAt);
+  // The card names every series in its colour, so the legend gives its corner up while the card is drawn.
+  const cardShown =
+    crosshairReading !== null &&
+    plotCrosshairShowsCard({
+      x: cursorAt === null ? 0 : scaleX(cursorAt),
+      plot: { x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 },
+      heading: crosshairReading.heading,
+      rows: crosshairReading.rows,
+      column,
+      traces: cardTraces,
+    });
+
   /*
    * The readout takes a corner clear of the fixed card when one exists. Where
    * the one it takes lands on the card, the card gives way for as long as the
@@ -1360,7 +1388,7 @@ export function LineChart({
           plot: { x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 },
           heading: crosshairReading.heading,
           rows: crosshairReading.rows,
-          avoid: legendBoxes,
+          column,
           traces: cardTraces,
         })
       : undefined;
@@ -1905,7 +1933,8 @@ export function LineChart({
           )}
           {!(compact && t.kind === "marker") &&
             t.label &&
-            labelPlaces.get(t.id) && (
+            labelPlaces.get(t.id) &&
+            !(column !== undefined && cardShown && t.kind !== "marker") && (
               <text
                 x={labelPlaces.get(t.id)?.x}
                 y={labelPlaces.get(t.id)?.y}
@@ -1937,6 +1966,7 @@ export function LineChart({
       ))}
 
       {legend !== "none" &&
+        (legendBelow || !cardShown) &&
         series.map((s, i) => {
           const at = legendBelow ? legendStrip.positions[i] : undefined;
           const rowY = at
@@ -1989,7 +2019,7 @@ export function LineChart({
           plot={{ x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 }}
           heading={crosshairReading.heading}
           rows={crosshairReading.rows}
-          avoid={legendBoxes}
+          column={column}
           traces={cardTraces}
         />
       )}
