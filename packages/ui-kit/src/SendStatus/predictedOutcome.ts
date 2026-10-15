@@ -9,7 +9,7 @@ import type { SendStatus } from "@ksp-gonogo/sitrep-sdk";
  * {@link CommandButton}, and by {@link Button} through its `predictedOutcome`
  * prop.
  *
- * @category Commands
+ * @category CommandButton
  */
 export type PredictedOutcome = "held" | "at-risk";
 
@@ -19,7 +19,7 @@ export type PredictedOutcome = "held" | "at-risk";
  * and `undefined` for an order that goes at once or when nothing is known.
  * Used by {@link CommandButton}.
  *
- * @category Commands
+ * @category CommandButton
  */
 export function predictedOutcomeOf(
   status: SendStatus | undefined,

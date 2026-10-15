@@ -36,7 +36,7 @@ const WORDS = {
  * arrive). Written for a tooltip or an accessible name. Used by
  * {@link CommandButton} for its tooltip.
  *
- * @category Commands
+ * @category CommandButton
  */
 export function describeSendStatus(status: SendStatus): string {
   const { contact } = status;

@@ -12,7 +12,7 @@
  */
 
 /**
- * The colour half of a {@link UiKitTheme}. Tokens are named by role
+ * The colour half of a `UiKitTheme`. Tokens are named by role
  * (`text.muted`, `surface.raised`), not by hue, and each value is a CSS colour
  * that becomes the matching `--color-*` variable (`text.muted` sets
  * `--color-text-muted`). Useful for colouring text, surfaces and borders by
@@ -57,7 +57,7 @@ export interface ThemeColors {
 }
 
 /**
- * The type half of a {@link UiKitTheme}: the font family and a size scale. Each
+ * The type half of a `UiKitTheme`: the font family and a size scale. Each
  * value is a CSS value that becomes the matching `--font-family-*` or
  * `--font-size-*` variable. Useful for setting type in every widget from one
  * scale.

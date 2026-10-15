@@ -2,7 +2,7 @@ import type { UiKitTheme } from "./theme";
 
 /**
  * `default-dark`: the built-in mission-control theme, and the one the app
- * mounts. It is a {@link UiKitTheme}, which lists the colour and type roles a
+ * mounts. It is a `UiKitTheme`, which lists the colour and type roles a
  * component can read. Every value is the CSS variable it names (`text.primary` is
  * `var(--color-text-primary)`), so mounting it changes nothing: the values come
  * from `@ksp-gonogo/ui-kit/tokens.css`, which has to be imported once for any
