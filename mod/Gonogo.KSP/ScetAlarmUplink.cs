@@ -610,7 +610,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                GonogoLog.Error("SCET alarm evaluation failed", ex);
+                GonogoLog.ErrorLimited("SCET alarm evaluation failed", ex);
                 return null;
             }
         }
@@ -696,7 +696,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                GonogoLog.Error("SCET alarm publish failed", ex);
+                GonogoLog.ErrorLimited("SCET alarm publish failed", ex);
             }
         }
 

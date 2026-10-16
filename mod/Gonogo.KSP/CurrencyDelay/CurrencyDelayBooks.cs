@@ -98,7 +98,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
             catch (Exception ex)
             {
-                GonogoLog.Error("CurrencyDelayScenario tick failed", ex);
+                GonogoLog.ErrorLimited("CurrencyDelayScenario tick failed", ex);
             }
         }
 
