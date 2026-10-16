@@ -46,7 +46,7 @@ test.describe("widget DOM mirror: FuelStatus", () => {
   }) => {
     const pair = await bootstrapPair(browser, "fuel-status", {
       sitrepPort: PORTS.sitrepReplayTopology,
-      widget: { size: { w: 8, h: 14 } },
+      widget: { size: { w: 8, h: 18 } },
       waitForMain: async (page) => {
         await expect(page.getByText("FUEL · ΔV", { exact: true })).toBeVisible({
           timeout: 30_000,
