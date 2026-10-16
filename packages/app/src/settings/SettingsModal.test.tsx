@@ -991,21 +991,22 @@ describe("SettingsModal: an Uplink page's loaded-client identity", () => {
 });
 
 describe("SettingsModal: an Uplink page's client status", () => {
-  it("shows a quarantined client with its reason, marks the page, and offers to reconsider a declined consent", async () => {
+  it("shows a skipped client as a choice, not a fault, and offers to reconsider it", async () => {
     setUplinkOutcome({
       id: "widget-d",
       name: "Widget D",
       version: "1.0.0",
       status: "quarantined",
       reason: "consent declined",
+      skippedByOperator: true,
     });
     const { container } = renderModal("main");
     const uplinksTab = screen.getByRole("tab", { name: /^Uplinks/ });
-    expect(uplinksTab).toHaveAccessibleDescription(/attention/i);
+    expect(uplinksTab).not.toHaveAccessibleDescription(/attention/i);
     await openUplinkPage("Widget D");
 
     expect(screen.getByText("Client")).toBeInTheDocument();
-    expect(screen.getByText("quarantined")).toBeInTheDocument();
+    expect(screen.getByText("skipped by you")).toBeInTheDocument();
     expect(screen.getByText("consent declined")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Reconsider" }),
