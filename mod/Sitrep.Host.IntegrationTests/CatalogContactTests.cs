@@ -192,6 +192,36 @@ namespace Sitrep.Host.IntegrationTests
             Assert.NotNull(Ut(seated.View, "declaredLostUt"));
         }
 
+        /// <summary>
+        /// An object with no radio can never be in contact, so a centre that
+        /// only sees it lists no contact state and nothing that follows from one,
+        /// on every sample, whatever the hearing's verdict is for a silent craft.
+        /// </summary>
+        [Theory]
+        [InlineData(ScriptedContactGame.Home)]
+        [InlineData(ScriptedContactGame.Far)]
+        public async Task AnObjectWithNoRadioListsNoContactStateOnAnySample(string centre)
+        {
+            var world = await ReckonedVantageWorld.StartAsync();
+            var (client, view) = await world.SitDownAtAsync(centre, SystemViewProvider.CatalogTopic);
+            await using var seated = new Seated { World = world, Client = client, View = view };
+
+            foreach (var ut in new[] { 1.0, 300, 700, 701, 1000, 1600, 2100, 2101, 2102 })
+            {
+                await seated.TickAsync(ut);
+                var debris = seated.View.Vessel(ScriptedContactGame.DebrisGuid);
+                if (debris == null)
+                {
+                    continue;
+                }
+                foreach (var name in new[] { "contact", "lastContactUt", "expectedReturnUt", "overdueAfterUt", "declaredLostUt", "crew" })
+                {
+                    Assert.Equal(JsonValueKind.Null, debris.Value.GetProperty(name).ValueKind);
+                }
+            }
+            Assert.NotNull(seated.View.Vessel(ScriptedContactGame.DebrisGuid));
+        }
+
         private static CatalogCrew? Crew(CentreView view)
         {
             var field = view.Vessel(Relay)!.Value.GetProperty("crew");

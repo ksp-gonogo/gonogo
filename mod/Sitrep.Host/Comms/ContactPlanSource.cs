@@ -1528,13 +1528,15 @@ namespace Sitrep.Host.Comms
                     var place = _hearing.PlaceAt(centre, state.Id);
                     entry["placeSource"] = place.HasValue ? (int)place.Value.Source : (int?)null;
                     entry["placeAsOfUt"] = place?.AsOfUt;
-                    var contact = CatalogContactOf(centre, state.Id, looked.Ut);
+                    var noRadio = NeverConnected(state.Roster);
+                    (CatalogContact? State, double? LastContactUt, double? ExpectedReturnUt, double? OverdueAfterUt, double? DeclaredLostUt) contact =
+                        noRadio ? default : CatalogContactOf(centre, state.Id, looked.Ut);
                     entry["contact"] = contact.State.HasValue ? (int)contact.State.Value : (int?)null;
                     entry["lastContactUt"] = contact.LastContactUt;
                     entry["expectedReturnUt"] = contact.ExpectedReturnUt;
                     entry["overdueAfterUt"] = contact.OverdueAfterUt;
                     entry["declaredLostUt"] = contact.DeclaredLostUt;
-                    entry["crew"] = CrewOf(contact.State, end?.Source, entry.TryGetValue("crewCount", out var crewCount) ? crewCount : null);
+                    entry["crew"] = noRadio ? null : CrewOf(contact.State, end?.Source, entry.TryGetValue("crewCount", out var crewCount) ? crewCount : null);
                     entry["endSource"] = end.HasValue ? (int)end.Value.Source : (int?)null;
                     entry["endedUt"] = end?.Ut;
                     if (contact.State == CatalogContact.Silent && contact.OverdueAfterUt is double overdueAt
