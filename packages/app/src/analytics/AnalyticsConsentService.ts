@@ -1,14 +1,15 @@
 /**
  * Host-owned technical-analytics consent.
  *
- * A single global, tri-state value persisted in its own localStorage slot
+ * A single global value persisted in its own localStorage slot
  * (`gonogo.analytics.consent`): deliberately separate from the
  * `gonogo.settings` store so the privacy-critical bit can't be tangled up
  * with unrelated preference writes. Values:
  *
- *   - `"enabled"` : operator opted in; ship technical logs to Axiom.
- *   - `"disabled"`: operator declined.
- *   - `undefined` : not yet answered (boot modal should ask).
+ *   - `"enabled"` : operator switched analytics on in Settings; ship
+ *     technical logs to Axiom.
+ *   - `"disabled"`: operator switched it back off.
+ *   - `undefined` : never touched, which counts as off.
  *
  * Privacy-first: nothing reaches Axiom until this reads `"enabled"`. The
  * main screen owns this value; stations never read it (they follow the
@@ -29,7 +30,7 @@ export class AnalyticsConsentService {
     this.storage = storage;
   }
 
-  /** Current consent, or `undefined` when the operator hasn't answered. */
+  /** Current consent, or `undefined` when the operator has never set it. */
   get(): ConsentValue | undefined {
     try {
       const raw = this.storage?.getItem(ANALYTICS_CONSENT_KEY);
@@ -37,11 +38,6 @@ export class AnalyticsConsentService {
     } catch {
       return undefined;
     }
-  }
-
-  /** Convenience: has the operator answered the consent question yet? */
-  hasAnswered(): boolean {
-    return this.get() !== undefined;
   }
 
   /** True only when consent is explicitly `"enabled"`. The gate every

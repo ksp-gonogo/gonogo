@@ -159,7 +159,7 @@ async function renderScene(scene: Scene): Promise<void> {
     root.render(
       <ThemeProvider theme={harnessTheme}>
         {asked.length > 0 ? (
-          <FirstLoadPage uplinks={asked} askLogs={false} onDone={() => {}} />
+          <FirstLoadPage uplinks={asked} onDone={() => {}} />
         ) : (
           <p>No first-load page</p>
         )}

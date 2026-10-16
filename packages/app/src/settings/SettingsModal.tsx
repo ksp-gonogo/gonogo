@@ -281,12 +281,11 @@ function GeneralSettings({
 }
 
 /**
- * Re-toggle for the technical-analytics consent the boot modal first
- * asked about. Bound directly to `analyticsConsentService` (its own
- * localStorage slot) rather than the settings registry, the boot modal,
- * the browser Axiom gate, and the peer/relay propagation all read that
- * same service, so routing this through the registry's `gonogo.settings`
- * store would split the source of truth.
+ * The switch for technical analytics, off until the operator turns it on.
+ * Bound directly to `analyticsConsentService` (its own localStorage slot)
+ * rather than the settings registry: the browser Axiom gate and the
+ * peer/relay propagation read that same service, so routing this through the
+ * registry's `gonogo.settings` store would split the source of truth.
  */
 function AnalyticsConsentRow() {
   const enabled = useSyncExternalStore(

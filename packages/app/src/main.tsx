@@ -19,9 +19,8 @@ import "./commcast/CommcastComponent"; // app-level component: registers on impo
 import "./goNoGo/GoNoGoComponent"; // app-level component: registers on import
 import "./notes/NotesComponent"; // app-level component: registers on import
 import App from "./App";
-import { analyticsConsentService } from "./analytics/AnalyticsConsentService";
 import { kspHostSeeded } from "./dataSources"; // importing it triggers all data source self-registration
-import { bootsWithoutDirectMod, currentRoute } from "./screens/isStationRoute";
+import { bootsWithoutDirectMod } from "./screens/isStationRoute";
 import { setConsentBatchPrompt } from "./uplinks/consent";
 import { promptForConsents } from "./uplinks/consentModal";
 import { loaderBootIdsOverride } from "./uplinks/flag";
@@ -34,8 +33,8 @@ import { BUILD_TIME, VERSION } from "./version";
 setAppVersion(VERSION, BUILD_TIME);
 
 // The Axiom transport is opt-in and consent-gated, it is NOT installed
-// here. The main screen installs/removes it via AnalyticsConsentHost once
-// the operator answers the boot consent ask; stations install/remove it
+// here. The main screen installs/removes it via AnalyticsConsentHost while
+// the operator has analytics switched on in Settings; stations install/remove it
 // when the host broadcasts its consent over PeerJS (see StationScreen).
 // Console + ring-buffer logging is always on, unaffected by consent.
 logger.info(`gonogo v${VERSION} (build ${BUILD_TIME})`);
@@ -105,16 +104,8 @@ async function bootUplinksAndRender(): Promise<void> {
   // "deny" until this is set). Renders in the app's active theme so it matches
   // the app it is about to extend. Needed on BOTH screens: a station's deferred
   // `StationUplinkLoader` run still gates its first load on this same consent
-  // seam. Only the main screen adds the anonymous-logs question, and only while
-  // it is unanswered; a station follows the main screen's answer.
-  setConsentBatchPrompt((infos) =>
-    promptForConsents(infos, activeThemeValue, {
-      logs:
-        currentRoute() === "main" && !analyticsConsentService.hasAnswered()
-          ? analyticsConsentService
-          : undefined,
-    }),
-  );
+  // seam.
+  setConsentBatchPrompt((infos) => promptForConsents(infos, activeThemeValue));
 
   if (bootsWithoutDirectMod()) {
     // No roster probe, no fetch-based loader here; see the doc comment

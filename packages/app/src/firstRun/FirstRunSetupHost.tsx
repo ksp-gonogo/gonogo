@@ -1,6 +1,5 @@
 import { useModal } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef } from "react";
-import type { AnalyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { ModalTelemetryBridge } from "../telemetry/ModalTelemetryBridge";
 import { say } from "./copy";
 import { FirstRunSetup } from "./FirstRunSetup";
@@ -21,19 +20,7 @@ import { onFirstRunSetupRequested } from "./firstRunRequest";
  * reopens it after the first auto-open is spent. The requester closes its own
  * dialog first, so two `aria-modal="true"` dialogs are never up at once.
  *
- * Renders nothing itself, it is a pure side-effect component, same shape as
- * `AnalyticsConsentHost` minus that component's own modal (this one goes
- * through `useModal().open`, `AnalyticsConsentHost` renders its modal inline).
- *
- * Held behind the analytics consent gate. Both auto-open on the same first
- * boot, and before this they did so simultaneously: two `aria-modal="true"`
- * dialogs reachable at once, which the WCAG dialog pattern rules out and which
- * left a keyboard operator tabbing through a flow stacked under a blocking ask
- * they could not reach. Deferring this half is the right one to move, because
- * consent is the gate the app will not proceed past. It also saves the one
- * auto-open the operator ever gets: the first-run flag is written the instant
- * the modal opens, so opening behind a backdrop would have spent it on a flow
- * they never saw.
+ * Renders nothing itself, it is a pure side-effect component.
  *
  * The modal portal renders as a sibling of `<App/>` under `ModalProvider`
  * (mounted above `MainScreen` in `main.tsx`), not nested inside this
@@ -42,9 +29,7 @@ import { onFirstRunSetupRequested } from "./firstRunRequest";
  * the portal does not inherit it. That bridge is what lets the Uplinks and
  * health steps read the live `system.uplinkHealth` stream.
  */
-export function FirstRunSetupHost({
-  analyticsConsent,
-}: Readonly<{ analyticsConsent: AnalyticsConsentService }>) {
+export function FirstRunSetupHost() {
   const { open, close } = useModal();
   const openedRef = useRef(false);
 
@@ -61,7 +46,6 @@ export function FirstRunSetupHost({
 
     const openIfClear = () => {
       if (openedRef.current) return;
-      if (!analyticsConsent.hasAnswered()) return;
       if (hasSeenFirstRunSetup()) return;
       openedRef.current = true;
       markFirstRunSetupSeen();
@@ -69,14 +53,11 @@ export function FirstRunSetupHost({
     };
 
     openIfClear();
-    // The operator answering the consent ask is what clears the way, so watch for it rather than leaving this unopened for the whole session.
-    const stopWatchingConsent = analyticsConsent.subscribe(openIfClear);
     const stopWatchingRequests = onFirstRunSetupRequested(openSetup);
     return () => {
-      stopWatchingConsent();
       stopWatchingRequests();
     };
-  }, [open, close, analyticsConsent]);
+  }, [open, close]);
 
   return null;
 }

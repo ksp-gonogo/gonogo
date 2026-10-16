@@ -13,16 +13,12 @@ import { UplinkIdentityBlock } from "./UplinkIdentityBlock";
 export interface FirstLoadAnswers {
   /** One answer per Uplink, in the order they were given: true to load. */
   uplinks: boolean[];
-  /** The anonymous-logs answer, absent when the page did not ask it. */
-  logs?: boolean;
 }
 
 export interface FirstLoadChoicesProps {
   uplinks: readonly ConsentInfo[];
-  /** Whether to ask the anonymous-logs question too. Only the main screen does, and only while it is unanswered. */
-  askLogs?: boolean;
   /** Answers already given, for a page that opens part answered. */
-  initial?: { uplinks?: readonly (boolean | undefined)[]; logs?: boolean };
+  initial?: { uplinks?: readonly (boolean | undefined)[] };
   onDone: (answers: FirstLoadAnswers) => void;
 }
 
@@ -48,8 +44,7 @@ function builtFor(info: ConsentInfo): string | undefined {
 
 /**
  * Every question a brand new browser has to answer before the dashboard opens,
- * on one page: one row per Uplink that asks for consent, and the anonymous-logs
- * question. Each row needs its own answer, so loading an Uplink stays a choice
+ * on one page: one row per Uplink that asks for consent. Each row needs its own answer, so loading an Uplink stays a choice
  * made about that Uplink. Escape answers whatever is still open with Skip and
  * Decline, so every way out leaves an answer behind.
  *
@@ -59,34 +54,29 @@ function builtFor(info: ConsentInfo): string | undefined {
  */
 export function FirstLoadChoices({
   uplinks,
-  askLogs = false,
   initial,
   onDone,
 }: Readonly<FirstLoadChoicesProps>) {
   const [answers, setAnswers] = useState<(boolean | undefined)[]>(() =>
     uplinks.map((_, n) => initial?.uplinks?.[n]),
   );
-  const [logs, setLogs] = useState<boolean | undefined>(initial?.logs);
 
   const notice = uplinks.length > 0 && uplinks.every((info) => info.onStation);
-  const open =
-    (notice ? 0 : answers.filter((answer) => answer === undefined).length) +
-    (askLogs && logs === undefined ? 1 : 0);
-  const questions = !notice || askLogs;
+  const open = notice
+    ? 0
+    : answers.filter((answer) => answer === undefined).length;
+  const questions = !notice;
 
   // Escape answers what is still open and leaves what was chosen alone.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
       e.stopPropagation();
-      onDone({
-        uplinks: answers.map((value) => notice || value === true),
-        logs: askLogs ? logs === true : undefined,
-      });
+      onDone({ uplinks: answers.map((value) => notice || value === true) });
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [answers, logs, askLogs, notice, onDone]);
+  }, [answers, notice, onDone]);
 
   const answer = (n: number, granted: boolean) =>
     setAnswers((current) =>
@@ -159,34 +149,6 @@ export function FirstLoadChoices({
         </Stack>
       )}
 
-      {askLogs && (
-        <Stack as="section" gap="related-comfortable">
-          <SectionHeading>Anonymous logs</SectionHeading>
-          <ChoiceRow>
-            <Text size="sm">
-              Send anonymous errors and logs to the developer.
-            </Text>
-            <ButtonGroup role="group" aria-label="Send anonymous logs?">
-              <ToggleButton
-                size="sm"
-                tone="warn"
-                pressed={logs === false}
-                onClick={() => setLogs(false)}
-              >
-                Decline
-              </ToggleButton>
-              <ToggleButton
-                size="sm"
-                pressed={logs === true}
-                onClick={() => setLogs(true)}
-              >
-                Enable
-              </ToggleButton>
-            </ButtonGroup>
-          </ChoiceRow>
-        </Stack>
-      )}
-
       <Footer>
         <Text level="muted" size="sm" aria-live="polite">
           {questions &&
@@ -199,7 +161,6 @@ export function FirstLoadChoices({
           onClick={() =>
             onDone({
               uplinks: answers.map((value) => notice || value === true),
-              logs: askLogs ? logs === true : undefined,
             })
           }
         >

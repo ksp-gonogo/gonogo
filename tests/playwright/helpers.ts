@@ -110,10 +110,6 @@ export async function seedContext(
       try {
         localStorage.setItem("gonogo.datasource.sitrep", sitrepCfg);
         localStorage.setItem(dashboardKey, dashboard);
-        // Pre-answer the analytics consent so the main-screen boot modal
-        // (blocking until answered) doesn't sit over the dashboard and
-        // intercept clicks. "disabled" = answered + Axiom off.
-        localStorage.setItem("gonogo.analytics.consent", "disabled");
         // Mark the first-run setup auto-open as seen so it doesn't pop the Settings modal over the dashboard on a fresh boot.
         localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
       } catch {

@@ -4,10 +4,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
-import { useEffect, useState } from "react";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { AnalyticsConsentModal } from "../analytics/AnalyticsConsentModal";
-import { AnalyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { say } from "./copy";
 import { FirstRunSetupHost } from "./FirstRunSetupHost";
 import {
@@ -28,32 +25,12 @@ function stepHeading(index: number, heading: string): string {
  * its Welcome step, which reads nothing.
  */
 
-function memoryStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    length: m.size,
-    clear: () => m.clear(),
-    key: () => null,
-    getItem: (k) => m.get(k) ?? null,
-    setItem: (k, v) => m.set(k, String(v)),
-    removeItem: (k) => m.delete(k),
-  } as Storage;
-}
-
-function renderHost(analyticsConsent?: AnalyticsConsentService) {
-  // Answered by default: these cases are about the first-run flag, not the consent gate, and an unanswered gate deliberately holds the auto-open.
-  const consent = analyticsConsent ?? answeredConsent();
+function renderHost() {
   return render(
     <ModalProvider>
-      <FirstRunSetupHost analyticsConsent={consent} />
+      <FirstRunSetupHost />
     </ModalProvider>,
   );
-}
-
-function answeredConsent(): AnalyticsConsentService {
-  const svc = new AnalyticsConsentService(memoryStorage());
-  svc.set("disabled");
-  return svc;
 }
 
 // The container step asks the relay for its health; answer at the network boundary rather than leave it to a refused connection.
@@ -145,29 +122,6 @@ describe("FirstRunSetupHost", () => {
     await expectNoA11yViolations(document.body);
   });
 
-  it("holds the auto-open while the analytics consent gate is unanswered", async () => {
-    const consent = new AnalyticsConsentService(memoryStorage());
-    renderHost(consent);
-    // Nothing opens, and crucially the one first-run auto-open is not spent on a modal the operator never got to see.
-    await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
-    );
-    expect(hasSeenFirstRunSetup()).toBe(false);
-  });
-
-  it("opens as soon as the operator answers the consent gate", async () => {
-    const consent = new AnalyticsConsentService(memoryStorage());
-    renderHost(consent);
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-
-    await act(async () => {
-      consent.set("disabled");
-    });
-
-    expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(hasSeenFirstRunSetup()).toBe(true);
-  });
-
   it("opens again on request after the first-run flag is spent", async () => {
     markFirstRunSetupSeen();
     renderHost();
@@ -185,7 +139,7 @@ describe("FirstRunSetupHost", () => {
     markFirstRunSetupSeen();
     render(
       <ModalProvider>
-        <FirstRunSetupHost analyticsConsent={answeredConsent()} />
+        <FirstRunSetupHost />
         <SettingsOpener />
       </ModalProvider>,
     );
@@ -201,59 +155,7 @@ describe("FirstRunSetupHost", () => {
     expect(screen.queryByRole("dialog", { name: "Settings" })).toBeNull();
     expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1);
   });
-
-  it("never leaves two aria-modal dialogs reachable at once on first boot", async () => {
-    const consent = new AnalyticsConsentService(memoryStorage());
-    const { container } = render(<ConsentThenSetup consent={consent} />);
-    expect(container).toBeTruthy();
-
-    // Boot: the consent gate is the only modal in the tree.
-    await screen.findByRole("dialog", { name: /improve gonogo/i });
-    expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1);
-
-    await userEvent
-      .setup()
-      .click(screen.getByRole("button", { name: "Decline" }));
-
-    // Consent answered: the setup flow takes its place, still exactly one.
-    await waitFor(() =>
-      expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1),
-    );
-    expect(
-      screen.getByText(stepHeading(1, say("welcome.heading"))),
-    ).toBeInTheDocument();
-  });
 });
-
-/**
- * The first-boot pairing as `MainScreen` mounts it: the analytics gate and the
- * setup host as siblings, both live at once. `AnalyticsConsentHost` itself
- * needs a `PeerHostService`, which has nothing to do with the modal ordering
- * under test, so this stands in with the modal and the same "render while
- * unanswered" rule.
- */
-function ConsentThenSetup({
-  consent,
-}: Readonly<{ consent: AnalyticsConsentService }>) {
-  return (
-    <ModalProvider>
-      <ConsentGate service={consent} />
-      <FirstRunSetupHost analyticsConsent={consent} />
-    </ModalProvider>
-  );
-}
-
-function ConsentGate({
-  service,
-}: Readonly<{ service: AnalyticsConsentService }>) {
-  const [answered, setAnswered] = useState(() => service.hasAnswered());
-  useEffect(
-    () => service.subscribe(() => setAnswered(service.hasAnswered())),
-    [service],
-  );
-  if (answered) return null;
-  return <AnalyticsConsentModal service={service} />;
-}
 
 /** Opens a stand-in settings dialog that hands off to the setup the way the Settings button does. */
 function SettingsOpener() {
