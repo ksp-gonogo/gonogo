@@ -180,21 +180,27 @@ export interface FirstRunSceneProps {
   step: SetupStep;
   world: SetupWorld;
   /** The browser's operating system, which picks the shell the run command is written for. */
-  os?: "other" | "windows";
+  os?: "other" | "windows" | "unknown";
 }
 
-/** Makes the browser report Windows for as long as the scene is up, returning the undo. */
-function reportWindows(): () => void {
+/** Makes the browser report the given user agent for as long as the scene is up, returning the undo. */
+function reportAgent(agent: string): () => void {
   const own = Object.getOwnPropertyDescriptor(navigator, "userAgent");
   Object.defineProperty(navigator, "userAgent", {
     configurable: true,
-    value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    value: agent,
   });
   return () => {
     if (own) Object.defineProperty(navigator, "userAgent", own);
     else Reflect.deleteProperty(navigator, "userAgent");
   };
 }
+
+const AGENTS: Record<NonNullable<FirstRunSceneProps["os"]>, string> = {
+  other: "",
+  windows: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+  unknown: "Mozilla/5.0 (Android 14; Mobile)",
+};
 
 /** The Settings Connection tab's offer to run the setup again. */
 export function RunSetupAgainScene() {
@@ -236,7 +242,7 @@ export function FirstRunScene({
       __setUnansweredSince(Date.now() - CONNECT_GRACE_MS - 1000);
     }
     for (const outcome of OUTCOMES[world]) setUplinkOutcome(outcome);
-    const restoreAgent = os === "windows" ? reportWindows() : () => {};
+    const restoreAgent = AGENTS[os] ? reportAgent(AGENTS[os]) : () => {};
     const restoreRelay = answerRelay(world);
     return () => {
       restoreRelay();

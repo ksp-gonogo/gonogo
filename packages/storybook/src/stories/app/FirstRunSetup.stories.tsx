@@ -133,6 +133,19 @@ export const ContainerOnWindows: Story = {
   args: { step: "container", world: "nothing-running", os: "windows" },
 };
 
+export const ConnectOnUnknownSystem: Story = {
+  name: "Connect: address command for every system",
+  args: { step: "connect", world: "nothing-running", os: "unknown" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const system of ["windows", "macos", "linux"] as const) {
+      await expect(
+        await canvas.findByText(say(`connect.address.${system}`)),
+      ).toBeVisible();
+    }
+  },
+};
+
 export const SettingsRunSetupAgain: Story = {
   name: "Settings: run setup again",
   args: { step: "welcome", world: "nothing-running" },
