@@ -57,6 +57,38 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task SeveralEventsHeldInARowAreLoggedAsOneLine()
+        {
+            var log = new List<string>();
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.SetDiagnosticLog(line => { lock (log) { log.Add(line); } });
+            var up = new Up();
+            engine.RegisterUplink(up);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, Topic, Timeout);
+                engine.TickAndWait(1.0, Tick(1.0, connected: true), Timeout);
+                engine.TickAndWait(2.0, Tick(2.0, connected: false), Timeout);
+
+                up.Event!.Publish(new Dictionary<string, object?> { ["what"] = "end" }, 2.5);
+                up.Event!.Publish(new Dictionary<string, object?> { ["what"] = "crash" }, 2.6);
+                up.Event!.Publish(new Dictionary<string, object?> { ["what"] = "split" }, 2.7);
+                engine.TickAndWait(3.0, Tick(3.0, connected: false), Timeout);
+
+                lock (log)
+                {
+                    Assert.Single(log, line => line.Contains("held " + Topic));
+                }
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public async Task AnEventPublishedWhileTheCraftHasALinkIsNotLoggedAsHeld()
         {
             var log = new List<string>();

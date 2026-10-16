@@ -76,7 +76,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                failure = type.Name + "." + name + ": read threw: " + ex;
+                failure = type.Name + "." + name + ": read threw: " + Sitrep.Host.ExceptionLine.Describe(ex);
                 return false;
             }
         }

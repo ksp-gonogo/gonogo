@@ -168,7 +168,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] recovery capture failed: " + ex);
+                GonogoLog.Error("recovery capture failed", ex);
             }
         }
 
@@ -239,7 +239,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] recovery capture failed: " + ex);
+                GonogoLog.Error("recovery capture failed", ex);
             }
         }
 

@@ -52,7 +52,7 @@ namespace Gonogo.KSP.CurrencyDelay
                 // Fail toward silence: a route read that threw is not evidence
                 // of a reachable craft, so the event blocks rather than
                 // revealing on a fabricated zero.
-                Debug.LogWarning("[Gonogo] KscLightTime.ForVessel failed (treating as unroutable): " + ex.Message);
+                GonogoLog.WarnLimited("KscLightTime.ForVessel failed (treating as unroutable)", ex);
                 return KscDelay.Unroutable;
             }
         }
@@ -103,7 +103,7 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 // Fail toward silence, same as ForVessel above: a roster read that
                 // threw is not evidence of a reachable craft.
-                Debug.LogWarning("[Gonogo] KscLightTime.ForVesselId failed (treating as unroutable): " + ex.Message);
+                GonogoLog.WarnLimited("KscLightTime.ForVesselId failed (treating as unroutable)", ex);
                 return KscDelay.Unroutable;
             }
         }

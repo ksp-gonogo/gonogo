@@ -219,7 +219,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] crash impact read failed: " + ex);
+                GonogoLog.Error("crash impact read failed", ex);
             }
         }
 
@@ -249,8 +249,6 @@ namespace Gonogo.KSP
 
                 var vesselType = vessel.vesselType.ToString();
                 var active = ActiveVesselScope.Current;
-                Debug.Log("[Gonogo] crash: " + eventName + " vessel " + vessel.id
-                    + " type " + vesselType + " active " + (active != null && active.id == vessel.id));
                 if (!CrashPayload.ShouldPublish(vesselType))
                 {
                     _tracker.Forget(vessel.id.ToString());
@@ -258,11 +256,18 @@ namespace Gonogo.KSP
                 }
 
                 var ut = Planetarium.GetUniversalTime();
-                _deaths.Death(vessel.id.ToString(), BuildCapture(vessel, vesselType, ut), ut);
+                // One line per vessel that dies: the debris a crash breaks into
+                // and the second event the game raises for the same vessel
+                // write nothing.
+                if (_deaths.Death(vessel.id.ToString(), BuildCapture(vessel, vesselType, ut), ut))
+                {
+                    Debug.Log("[Gonogo] crash: " + eventName + " vessel " + vessel.id
+                        + " type " + vesselType + " active " + (active != null && active.id == vessel.id));
+                }
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] crash capture failed: " + ex);
+                GonogoLog.Error("crash capture failed", ex);
             }
         }
 
@@ -294,7 +299,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError("[Gonogo] crash publish failed: " + ex);
+                    GonogoLog.Error("crash publish failed", ex);
                 }
             }
         }

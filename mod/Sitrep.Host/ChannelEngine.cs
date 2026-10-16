@@ -2747,6 +2747,9 @@ namespace Sitrep.Host
                 }
             }
 
+            var loaded = accepted.Count(u => IsUplinkAvailable(u.Manifest.Id));
+            LogHost($"uplinks: {loaded} loaded, {all.Count - accepted.Count} refused, {accepted.Count - loaded} unavailable");
+
             _settingsPublisher?.Rebuild();
         }
 
@@ -3041,6 +3044,7 @@ namespace Sitrep.Host
                 var refusedId = string.IsNullOrEmpty(declaredId) ? uplink?.Manifest.Id ?? "(unnamed Uplink)" : declaredId!;
                 _availability[refusedId] = Availability.Unavailable(refusal);
                 _contractRefusals[refusedId] = new ContractRefusal(refusedId, contractMajor, contractMinor, refusal);
+                LogHost($"uplink \"{refusedId}\" refused: {refusal}");
                 return false;
             }
 
@@ -3466,7 +3470,7 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    LogHost("an addressed-subscribe listener for \"" + topic + "\" threw: " + ex);
+                    LogHost("an addressed-subscribe listener for \"" + topic + "\" threw: " + ExceptionLine.Describe(ex));
                 }
             }
         }
@@ -6704,6 +6708,21 @@ namespace Sitrep.Host
         public void SetDiagnosticLog(Action<string> log) => _diagnosticLog = log;
         private Action<string>? _diagnosticLog;
 
+        private readonly LogLimiter _perTopicLog = new LogLimiter();
+
+        /// <summary>
+        /// Logs the first held or dropped message of a topic in full, then one
+        /// line a minute for that topic saying how many more there were, so a
+        /// craft that stays out of contact does not write a line per event.
+        /// </summary>
+        private void LogLimitedPerTopic(string kind, string topic, string message)
+        {
+            if (_perTopicLog.ShouldLog(kind + topic, out int heldBack))
+            {
+                LogHost(LogLimiter.Compose(message, heldBack));
+            }
+        }
+
         /// <summary>Log to Console.Error (always) + the optional Deck-visible sink. Never lets a logging failure break the engine.</summary>
         private void LogHost(string message)
         {
@@ -7349,19 +7368,19 @@ namespace Sitrep.Host
         {
             if (job is DispatchCommandJob dispatch)
             {
-                LogHost("dispatch of \"" + dispatch.Command + "\" threw: " + ex);
+                LogHost("dispatch of \"" + dispatch.Command + "\" threw: " + ExceptionLine.Describe(ex));
                 FailDispatch(dispatch, ex);
                 return;
             }
             if (job is DispatchGroupJob group)
             {
-                LogHost("dispatch of group \"" + group.GroupId + "\" threw: " + ex);
+                LogHost("dispatch of group \"" + group.GroupId + "\" threw: " + ExceptionLine.Describe(ex));
                 FailGroup(group, ex);
                 return;
             }
             if (++_courierJobThrows == 1 || _courierJobThrows % 300 == 0)
             {
-                LogHost("Courier job " + job.GetType().Name + " threw (" + _courierJobThrows + " so far): " + ex);
+                LogHost("Courier job " + job.GetType().Name + " threw (" + _courierJobThrows + " so far): " + ExceptionLine.Describe(ex));
             }
         }
 
@@ -7425,7 +7444,7 @@ namespace Sitrep.Host
 
                 if (_channelDeclarations.TryGetValue(topic, out var held) && held.Kind == SampleKind.Event)
                 {
-                    LogHost("held " + topic + " at UT " + ut.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
+                    LogLimitedPerTopic("held ", topic, "held " + topic + " at UT " + ut.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
                         + ": " + NodeFor(topic) + " is out of contact, so it reaches no centre until a link returns");
                 }
                 Hold(topic, value, ut);
@@ -7500,7 +7519,7 @@ namespace Sitrep.Host
             var stamp = CraftSaysUnder(vesselId);
             if (stamp == null)
             {
-                LogHost("dropped " + topic + " said by " + vesselId + " at UT " + ut.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
+                LogLimitedPerTopic("dropped ", topic, "dropped " + topic + " said by " + vesselId + " at UT " + ut.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
                     + ": the craft had no route to any centre when it said it");
                 return;
             }
@@ -8196,7 +8215,7 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    LogHost("a craft-released listener threw: " + ex);
+                    LogHost("a craft-released listener threw: " + ExceptionLine.Describe(ex));
                 }
             }
         }
@@ -10837,6 +10856,7 @@ namespace Sitrep.Host
         {
             var session = new ClientSession(connection);
             _sessions[connection.Id] = session;
+            LogHost("client " + ShortSessionId(connection) + " connected (" + _sessions.Count + " connected)");
 
             // Messages first: a close that came before this is raised as soon as
             // the handler attaches, and the frames buffered ahead of it have to be
@@ -11046,9 +11066,22 @@ namespace Sitrep.Host
             }
         }
 
+        private static string ShortSessionId(ITransportConnection connection)
+        {
+            var id = connection.Id;
+            return id.Length > 8 ? id.Substring(0, 8) : id;
+        }
+
         private void OnConnectionClosed(ClientSession session)
         {
-            _sessions.TryRemove(session.Connection.Id, out _);
+            if (_sessions.TryRemove(session.Connection.Id, out _))
+            {
+                var vantage = session.ChosenVantage;
+                LogHost("client " + ShortSessionId(session.Connection) + " disconnected ("
+                    + (vantage == null ? "default vantage" : "vantage " + vantage) + ", "
+                    + _sessions.Count + " still connected)");
+            }
+
             EnqueueJob(new DisconnectJob(session));
             session.Outbox.Stop();
         }

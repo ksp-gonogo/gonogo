@@ -270,7 +270,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] recording an EVA egress failed: " + ex);
+                GonogoLog.Warn("recording an EVA egress failed", ex);
             }
         }
 
@@ -297,7 +297,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] clearing an EVA relation on boarding failed: " + ex);
+                GonogoLog.Warn("clearing an EVA relation on boarding failed", ex);
             }
         }
 
@@ -321,7 +321,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] clearing an EVA relation on vessel destruction failed: " + ex);
+                GonogoLog.Warn("clearing an EVA relation on vessel destruction failed", ex);
             }
         }
 

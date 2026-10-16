@@ -179,7 +179,7 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    Log("failed to scan assembly \"" + assembly.FullName + "\": " + ex);
+                    Log("failed to scan assembly \"" + assembly.FullName + "\": " + ExceptionLine.Describe(ex));
                     continue;
                 }
 
@@ -234,7 +234,7 @@ namespace Sitrep.Host
                     }
                     catch (Exception ex)
                     {
-                        Log("failed to inspect/instantiate \"" + type.FullName + "\": " + ex);
+                        Log("failed to inspect/instantiate \"" + type.FullName + "\": " + ExceptionLine.Describe(ex));
                     }
                 }
             }

@@ -37,7 +37,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] EvaParentageScenario.OnLoad failed: " + ex);
+                GonogoLog.Error("EvaParentageScenario.OnLoad failed", ex);
             }
         }
 
@@ -50,7 +50,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] EvaParentageScenario.OnSave failed: " + ex);
+                GonogoLog.Error("EvaParentageScenario.OnSave failed", ex);
             }
         }
     }

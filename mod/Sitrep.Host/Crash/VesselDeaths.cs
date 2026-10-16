@@ -54,16 +54,17 @@ namespace Sitrep.Host.Crash
 
         /// <summary>The vessel died. Held for <see cref="Drain"/>; a second death of the
         /// same vessel while one is held, or within the window of the last one published,
-        /// is the same death and is dropped.</summary>
-        public void Death(string vesselId, TRecord record, double ut)
+        /// is the same death and is dropped. Returns true when this death was kept and false
+        /// when it was dropped as a repeat.</summary>
+        public bool Death(string vesselId, TRecord record, double ut)
         {
             if (_held.ContainsKey(vesselId))
             {
-                return;
+                return false;
             }
             if (_publishedUt.TryGetValue(vesselId, out var published) && Math.Abs(ut - published) <= _windowUt)
             {
-                return;
+                return false;
             }
 
             TImpact? cause = null;
@@ -78,6 +79,7 @@ namespace Sitrep.Host.Crash
 
             _held[vesselId] = new Held(record, ut) { Impact = cause };
             _heldOrder.Add(vesselId);
+            return true;
         }
 
         /// <summary>The vessel's flight ended some other way, such as a recovery, which the

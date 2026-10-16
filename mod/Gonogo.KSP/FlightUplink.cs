@@ -102,7 +102,7 @@ namespace Gonogo.KSP
                 // already in the air when someone opens the dashboard has to be
                 // announced to them. See FlightLifecycleSampler's doc comment.
                 () => host.IsAnyTopicSubscribed(FlightTopics.StartedTopic),
-                message => Debug.LogWarning("[Gonogo] " + message));
+                GonogoLog.Sink);
             host.AddSampler(_sampler);
             host.AddSampledSource(SignalDeaths, _ => { });
 
@@ -144,7 +144,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] flight impact read failed: " + ex);
+                GonogoLog.Error("flight impact read failed", ex);
             }
         }
 
@@ -153,7 +153,7 @@ namespace Gonogo.KSP
         /// until the next tick so an impact that caused it names the end Crashed rather
         /// than Destroyed. Debris, flags and unknown vessels never end a flight.
         /// </summary>
-        private void OnVesselWillDestroy(Vessel vessel) => NoteDeath(vessel, "onVesselWillDestroy");
+        private void OnVesselWillDestroy(Vessel vessel) => NoteDeath(vessel);
 
         /// <summary>
         /// MAIN-THREAD: the ground is about to destroy the vessel, raised at the
@@ -161,9 +161,9 @@ namespace Gonogo.KSP
         /// is decoupled. The same death <see cref="OnVesselWillDestroy"/> reports
         /// when <c>Vessel.Die</c> runs, and the only report when it does not.
         /// </summary>
-        private void OnVesselExplodeGroundCollision(Vessel vessel) => NoteDeath(vessel, "onVesselExplodeGroundCollision");
+        private void OnVesselExplodeGroundCollision(Vessel vessel) => NoteDeath(vessel);
 
-        private void NoteDeath(Vessel vessel, string eventName)
+        private void NoteDeath(Vessel vessel)
         {
             try
             {
@@ -172,9 +172,6 @@ namespace Gonogo.KSP
                     return;
                 }
                 var type = vessel.vesselType.ToString();
-                var active = ActiveVesselScope.Current;
-                Debug.Log("[Gonogo] flight: " + eventName + " vessel " + vessel.id
-                    + " type " + type + " active " + (active != null && active.id == vessel.id));
                 if (!CrashPayload.ShouldPublish(type))
                 {
                     return;
@@ -183,7 +180,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] flight destruction capture failed: " + ex);
+                GonogoLog.Error("flight destruction capture failed", ex);
             }
         }
 
@@ -236,7 +233,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] flight recovery capture failed: " + ex);
+                GonogoLog.Error("flight recovery capture failed", ex);
             }
         }
     }

@@ -54,7 +54,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] bringing held credits forward failed: " + ex);
+                GonogoLog.Error("bringing held credits forward failed", ex);
             }
         }
 
@@ -98,7 +98,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] CurrencyDelayScenario tick failed: " + ex);
+                GonogoLog.Error("CurrencyDelayScenario tick failed", ex);
             }
         }
 

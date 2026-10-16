@@ -210,8 +210,8 @@ namespace Gonogo.KSP
 
             return StrategyRelease.Deactivate(
                 new LiveRelease(strategy),
-                ex => UnityEngine.Debug.LogWarning(
-                    "[Gonogo] strategy " + strategyId + " was deactivated but its deactivation threw afterwards: " + ex));
+                ex => GonogoLog.Warn(
+                    "strategy " + strategyId + " was deactivated but its deactivation threw afterwards", ex));
         }
 
         /// <summary>The real <c>Strategies.Strategy</c> behind <see cref="IStrategyReleaseTarget"/>.</summary>

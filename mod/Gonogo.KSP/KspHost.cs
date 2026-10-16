@@ -406,7 +406,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] time snapshot build failed, omitting: " + ex);
+                    GonogoLog.WarnLimited("time snapshot build failed, omitting", ex);
                 }
 
                 // Career/KSC state (funds/reputation/science, facility
@@ -427,7 +427,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] career snapshot build failed, omitting: " + ex);
+                    GonogoLog.WarnLimited("career snapshot build failed, omitting", ex);
                 }
 
                 // Whole-career R&D archive - global ground-side truth like
@@ -467,7 +467,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] game-mode snapshot build failed, omitting: " + ex);
+                    GonogoLog.WarnLimited("game-mode snapshot build failed, omitting", ex);
                 }
 
                 // Installed-DLC capability (game.dlc) is a ground-side,
@@ -483,7 +483,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] dlc snapshot build failed, omitting: " + ex);
+                    GonogoLog.WarnLimited("dlc snapshot build failed, omitting", ex);
                 }
 
                 // The running Making History mission (missions.active) is a
@@ -501,7 +501,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] missions snapshot build failed, omitting: " + ex);
+                    GonogoLog.WarnLimited("missions snapshot build failed, omitting", ex);
                 }
 
                 // Revert-availability (ksp.revertAvailability) is a flight-scene
@@ -522,7 +522,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] revert-availability snapshot build failed, omitting: " + ex);
+                    GonogoLog.WarnLimited("revert-availability snapshot build failed, omitting", ex);
                 }
 
                 // Current scene (spaceCenter.scene) is a global game fact -
@@ -544,7 +544,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] scene snapshot build failed, omitting: " + ex);
+                    GonogoLog.WarnLimited("scene snapshot build failed, omitting", ex);
                 }
 
                 // Launch sites (spaceCenter.launchSites) are the PSystemSetup
@@ -566,7 +566,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] space-center snapshot build failed, omitting: " + ex);
+                    GonogoLog.WarnLimited("space-center snapshot build failed, omitting", ex);
                 }
 
                 // Crew roster, saved ships and the buildable-part count share the
@@ -584,7 +584,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] Sample() failed, returning a degraded snapshot: " + ex);
+                GonogoLog.WarnLimited("Sample() failed, returning a degraded snapshot", ex);
             }
 
             return new KspSnapshot { Ut = ut, Values = values };
@@ -699,7 +699,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] vessel." + key + " build failed, omitting: " + ex);
+                GonogoLog.WarnLimited("vessel." + key + " build failed, omitting", ex);
             }
         }
 
@@ -2005,7 +2005,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] roster place read failed for vessel " + vessel.id + ", omitting: " + ex.Message);
+                GonogoLog.WarnLimited("roster place read failed for vessel " + vessel.id + ", omitting", ex);
                 entry.Remove("latitude");
                 entry.Remove("longitude");
                 entry.Remove("landedAt");
@@ -2106,7 +2106,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] roster crew read failed for vessel " + vessel.id + ", omitting: " + ex.Message);
+                GonogoLog.WarnLimited("roster crew read failed for vessel " + vessel.id + ", omitting", ex);
                 crewCount = null;
                 crewCapacity = null;
             }
@@ -2160,7 +2160,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] roster comms read failed for vessel " + vessel.id + ", omitting: " + ex.Message);
+                GonogoLog.WarnLimited("roster comms read failed for vessel " + vessel.id + ", omitting", ex);
                 connected = null;
                 controlSource = null;
             }
@@ -2488,7 +2488,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] lowest-point height read failed, omitting: " + ex);
+                GonogoLog.WarnLimited("lowest-point height read failed, omitting", ex);
                 return null;
             }
         }
@@ -4038,7 +4038,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] space-center " + key + " snapshot build failed, omitting: " + ex);
+                GonogoLog.WarnLimited("space-center " + key + " snapshot build failed, omitting", ex);
             }
         }
 
@@ -4092,7 +4092,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] crew-standing backend threw for " + query.KerbalName + ", falling back to the roster status: " + ex);
+                GonogoLog.WarnLimited("crew-standing backend threw for " + query.KerbalName + ", falling back to the roster status", ex);
                 reading = null;
             }
 
@@ -4296,7 +4296,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] saved-ships path lookup failed for " + facility + ", skipping: " + ex);
+                    GonogoLog.Warn("saved-ships path lookup failed for " + facility + ", skipping", ex);
                     continue;
                 }
 
@@ -4343,7 +4343,7 @@ namespace Gonogo.KSP
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogWarning("[Gonogo] saved-ship parse failed for " + file + ", skipping: " + ex);
+                        GonogoLog.Warn("saved-ship parse failed for " + file + ", skipping", ex);
                     }
                 }
             }
@@ -5860,7 +5860,7 @@ namespace Gonogo.KSP
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogWarning("[Gonogo] science.lab rate read failed on \"" + partName + "\", omitting: " + ex);
+                        GonogoLog.WarnLimited("science.lab rate read failed on \"" + partName + "\", omitting", ex);
                     }
 
                     var scientistCount = 0;
@@ -5990,8 +5990,8 @@ namespace Gonogo.KSP
                             type, module, "ScienceClusterData", out var cluster, out var clusterFailure);
                         if (!clusterRead)
                         {
-                            Debug.LogWarning(
-                                "[Gonogo] deployed-science cluster unread, reporting power and controllerConnected as null: "
+                            GonogoLog.WarnLimited(
+                                "deployed-science cluster unread, reporting power and controllerConnected as null: "
                                 + clusterFailure);
                         }
                         var clusterType = cluster?.GetType();
@@ -6086,7 +6086,7 @@ namespace Gonogo.KSP
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogWarning("[Gonogo] deployed-science read of an unloaded experiment failed, skipping: " + ex);
+                        GonogoLog.WarnLimited("deployed-science read of an unloaded experiment failed, skipping", ex);
                     }
                 }
             }
@@ -6490,7 +6490,7 @@ namespace Gonogo.KSP
                 catch (Exception ex)
                 {
                     anyPartUnreadable = true;
-                    Debug.LogWarning("[Gonogo] robotics.available read failed on a part, skipping: " + ex);
+                    GonogoLog.WarnLimited("robotics.available read failed on a part, skipping", ex);
                 }
             }
 
@@ -6551,7 +6551,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] parts.power solar read failed on \"" + partName + "\", skipping: " + ex);
+                    GonogoLog.WarnLimited("parts.power solar read failed on \"" + partName + "\", skipping", ex);
                     anyPartUnreadable = true;
                     productionUnreadable = true;
                 }
@@ -6570,7 +6570,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] parts.power battery read failed on \"" + partName + "\", skipping: " + ex);
+                    GonogoLog.WarnLimited("parts.power battery read failed on \"" + partName + "\", skipping", ex);
                     anyPartUnreadable = true;
                 }
 
@@ -6603,7 +6603,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] parts.power fuel cell read failed on \"" + partName + "\", skipping: " + ex);
+                    GonogoLog.WarnLimited("parts.power fuel cell read failed on \"" + partName + "\", skipping", ex);
                     anyPartUnreadable = true;
                 }
 
@@ -6625,7 +6625,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] parts.power alternator read failed on \"" + partName + "\", skipping: " + ex);
+                    GonogoLog.WarnLimited("parts.power alternator read failed on \"" + partName + "\", skipping", ex);
                     anyPartUnreadable = true;
                     productionUnreadable = true;
                 }
@@ -6705,7 +6705,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] parts.robotics read failed on \"" + partName + "\", skipping: " + ex);
+                    GonogoLog.WarnLimited("parts.robotics read failed on \"" + partName + "\", skipping", ex);
                 }
             }
 
@@ -6750,7 +6750,7 @@ namespace Gonogo.KSP
                 catch (Exception ex)
                 {
                     var name = part.partInfo != null ? part.partInfo.name : part.name;
-                    Debug.LogWarning("[Gonogo] vessel.parts topology read failed on \"" + name + "\", skipping: " + ex);
+                    GonogoLog.WarnLimited("vessel.parts topology read failed on \"" + name + "\", skipping", ex);
                 }
             }
 
@@ -7007,7 +7007,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] vessel.parts resources solar read failed, skipping: " + ex);
+                    GonogoLog.WarnLimited("vessel.parts resources solar read failed, skipping", ex);
                 }
 
                 try
@@ -7027,7 +7027,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] vessel.parts resources alternator read failed, skipping: " + ex);
+                    GonogoLog.WarnLimited("vessel.parts resources alternator read failed, skipping", ex);
                 }
 
                 try
@@ -7054,7 +7054,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] vessel.parts resources engine read failed, skipping: " + ex);
+                    GonogoLog.WarnLimited("vessel.parts resources engine read failed, skipping", ex);
                 }
 
                 try
@@ -7082,7 +7082,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] vessel.parts resources reaction wheel read failed, skipping: " + ex);
+                    GonogoLog.WarnLimited("vessel.parts resources reaction wheel read failed, skipping", ex);
                 }
 
                 try
@@ -7109,7 +7109,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] vessel.parts resources light read failed, skipping: " + ex);
+                    GonogoLog.WarnLimited("vessel.parts resources light read failed, skipping", ex);
                 }
 
                 try
@@ -7138,7 +7138,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] vessel.parts resources command read failed, skipping: " + ex);
+                    GonogoLog.WarnLimited("vessel.parts resources command read failed, skipping", ex);
                 }
 
                 try
@@ -7167,7 +7167,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] vessel.parts resources transmitter read failed, skipping: " + ex);
+                    GonogoLog.WarnLimited("vessel.parts resources transmitter read failed, skipping", ex);
                 }
 
                 try
@@ -7211,7 +7211,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] vessel.parts resources converter read failed, skipping: " + ex);
+                    GonogoLog.WarnLimited("vessel.parts resources converter read failed, skipping", ex);
                 }
 
                 try
@@ -7238,7 +7238,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] vessel.parts resources generator read failed, skipping: " + ex);
+                    GonogoLog.WarnLimited("vessel.parts resources generator read failed, skipping", ex);
                 }
             }
 
@@ -7424,7 +7424,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] vessel.parts moduleStates solar read failed, skipping: " + ex);
+                GonogoLog.WarnLimited("vessel.parts moduleStates solar read failed, skipping", ex);
             }
 
             try
@@ -7444,7 +7444,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] vessel.parts moduleStates radiator read failed, skipping: " + ex);
+                GonogoLog.WarnLimited("vessel.parts moduleStates radiator read failed, skipping", ex);
             }
 
             try
@@ -7464,7 +7464,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] vessel.parts moduleStates antenna read failed, skipping: " + ex);
+                GonogoLog.WarnLimited("vessel.parts moduleStates antenna read failed, skipping", ex);
             }
 
             try
@@ -7484,7 +7484,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] vessel.parts moduleStates parachute read failed, skipping: " + ex);
+                GonogoLog.WarnLimited("vessel.parts moduleStates parachute read failed, skipping", ex);
             }
 
             try
@@ -7527,7 +7527,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] vessel.parts moduleStates RealChute read failed, skipping: " + ex);
+                GonogoLog.WarnLimited("vessel.parts moduleStates RealChute read failed, skipping", ex);
             }
 
             try
@@ -7550,7 +7550,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] vessel.parts moduleStates engine read failed, skipping: " + ex);
+                GonogoLog.WarnLimited("vessel.parts moduleStates engine read failed, skipping", ex);
             }
 
             try
@@ -7570,7 +7570,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] vessel.parts moduleStates drill read failed, skipping: " + ex);
+                GonogoLog.WarnLimited("vessel.parts moduleStates drill read failed, skipping", ex);
             }
 
             try
@@ -7590,7 +7590,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] vessel.parts moduleStates landing gear read failed, skipping: " + ex);
+                GonogoLog.WarnLimited("vessel.parts moduleStates landing gear read failed, skipping", ex);
             }
 
             return result;
@@ -7993,7 +7993,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] Lifecycle handler for \"" + kind + "\" threw: " + ex);
+                GonogoLog.Warn("Lifecycle handler for \"" + kind + "\" threw", ex);
             }
         }
     }

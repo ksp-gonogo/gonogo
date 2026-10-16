@@ -80,7 +80,7 @@ namespace Gonogo.KSP.Settings
                     return;
                 }
 
-                UnityEngine.Debug.LogWarning("[Gonogo] " + message);
+                GonogoLog.Sink(message);
             }
             catch (Exception)
             {

@@ -65,7 +65,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] missions objectives build failed, omitting: " + ex);
+                GonogoLog.Warn("missions objectives build failed, omitting", ex);
             }
 
             return entry;

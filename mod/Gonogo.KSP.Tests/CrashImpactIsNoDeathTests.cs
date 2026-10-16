@@ -44,7 +44,7 @@ namespace Gonogo.KSP.Tests
             Assert.Contains("GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);", source, StringComparison.Ordinal);
             Assert.Contains("GameEvents.onVesselExplodeGroundCollision.Add(OnVesselExplodeGroundCollision);", source, StringComparison.Ordinal);
 
-            var death = CurrencyDelaySourceText.MethodBody(source, "private void NoteDeath(Vessel vessel, string eventName)");
+            var death = CurrencyDelaySourceText.MethodBody(source, "private void NoteDeath(Vessel vessel");
             Assert.Contains("_deaths.Death(", death, StringComparison.Ordinal);
         }
     }

@@ -76,7 +76,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] CommandDeliveryScenario.OnLoad failed: " + ex);
+                GonogoLog.Error("CommandDeliveryScenario.OnLoad failed", ex);
             }
         }
 
@@ -104,7 +104,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] CommandDeliveryScenario.OnSave failed: " + ex);
+                GonogoLog.Error("CommandDeliveryScenario.OnSave failed", ex);
             }
         }
     }

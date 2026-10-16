@@ -332,6 +332,9 @@
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
+    <!-- GonogoLog.cs is the plugin's one writer to KSP.log; every gated source
+         below that reports a fault calls it, so it has to resolve here. -->
+    <Compile Include="..\Gonogo.KSP\GonogoLog.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\PendingCreditLedger.cs" />
     <!-- CurrencyDelayLedgerPersistence.cs merges a loaded ledger's rows into an existing
          instance (see CurrencyDelayScenario's OnLoad) - same ConfigNode/PendingCreditLedger-only

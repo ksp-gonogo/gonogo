@@ -22,6 +22,14 @@ namespace Gonogo.KSP.SilenceTracking
     {
         private const string Prefix = "[Gonogo] silence: ";
 
+        /// <summary>
+        /// Whether the frame-fit working lines are written: the self-check
+        /// failure and the two residual decompositions. Each prints whenever a
+        /// residual moves by a tenth of a percent, which a craft in motion does
+        /// every few ticks, so they are off unless the development capture is on.
+        /// </summary>
+        internal static volatile bool Diagnostics;
+
         private static bool _warnedNoTracker;
         private static int _lastCaptureCount = -1;
 
@@ -65,6 +73,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// </summary>
         public static void FrameCheckFailed(double liveMeters, double predictedMeters, double residualMeters)
         {
+            if (!Diagnostics) return;
             var line = "frame self-check failed: live=" + liveMeters.ToString("F0")
                 + "m predicted=" + predictedMeters.ToString("F0")
                 + "m residual=" + residualMeters.ToString("F0") + "m";
@@ -145,6 +154,7 @@ namespace Gonogo.KSP.SilenceTracking
             double liveVessel, double predictedVessel, double liveLink, double predictedLink,
             double liveStation, double predictedStation)
         {
+            if (!Diagnostics) return;
             var line = "decompose: vesselAboutParent live=" + (long)liveVessel + " pred=" + (long)predictedVessel
                 + " | link0 live=" + (long)liveLink + " pred=" + (long)predictedLink
                 + " | stationBodyAboutParent live=" + (long)liveStation + " pred=" + (long)predictedStation;
@@ -184,6 +194,7 @@ namespace Gonogo.KSP.SilenceTracking
             string bodyName, bool inverseRotation, double inverseRotAngleDeg,
             double rotationAngleDeg, double directRotAngleDeg, double? frameYawDeg)
         {
+            if (!Diagnostics) return;
             var line = "decompose: centreToVessel live=" + (long)liveCentreToVessel + " pred=" + (long)predictedCentreToVessel
                 + " | stationTowardVessel live=" + (long)liveToward + " pred=" + (long)predictedToward
                 + " | stationRadius live=" + (long)liveStationRadius + " pred=" + (long)predictedStationRadius

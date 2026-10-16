@@ -339,7 +339,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] science credit capture failed: " + ex);
+                GonogoLog.Error("science credit capture failed", ex);
             }
         }
 
@@ -407,7 +407,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] reputation change capture failed: " + ex);
+                GonogoLog.Error("reputation change capture failed", ex);
             }
         }
 
@@ -465,7 +465,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] crew loss capture failed: " + ex);
+                GonogoLog.Error("crew loss capture failed", ex);
             }
         }
 
@@ -552,7 +552,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] reputation loss publish failed: " + ex);
+                GonogoLog.Error("reputation loss publish failed", ex);
             }
             return null;
         }

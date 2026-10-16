@@ -84,7 +84,7 @@ namespace Gonogo.KSP.SilenceTracking
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] SilenceTrackerScenario.OnLoad failed: " + ex);
+                GonogoLog.Error("SilenceTrackerScenario.OnLoad failed", ex);
             }
         }
 
@@ -97,7 +97,7 @@ namespace Gonogo.KSP.SilenceTracking
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] SilenceTrackerScenario.OnSave failed: " + ex);
+                GonogoLog.Error("SilenceTrackerScenario.OnSave failed", ex);
             }
         }
 

@@ -177,6 +177,30 @@ namespace Sitrep.Host.Tests
             }
         }
 
+        [Fact]
+        public void SummarisesHowManyUplinksLoadedAndHowManyWereRefused()
+        {
+            var lines = new List<string>();
+            using var engine = new ChannelEngine("ws://127.0.0.1:0");
+            engine.SetDiagnosticLog(lines.Add);
+
+            engine.RegisterDiscoveredUplinks(new List<UplinkDiscovery.DiscoveredUplink>
+            {
+                new UplinkDiscovery.DiscoveredUplink(new LoadedLineUplink(), ContractVersion.Major, ContractVersion.Minor),
+                new UplinkDiscovery.DiscoveredUplink(new NormalDiscoverableUplink(), ContractVersion.Major + 1, 0),
+            });
+
+            engine.Start();
+            try
+            {
+                Assert.Single(lines, l => l == "[ChannelEngine] uplinks: 1 loaded, 1 refused, 0 unavailable");
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         public sealed class LoadedLineUplink : ISitrepUplink
         {
             public UplinkHealth Health() => UplinkHealth.Healthy;
@@ -384,6 +408,19 @@ namespace Sitrep.Host.Tests
             var availability = engine.AvailabilityOf(uplink.Manifest.Id);
             Assert.False(availability.IsAvailable);
             Assert.Contains("major mismatch", availability.Reason);
+        }
+
+        [Fact]
+        public void AnUplinkRefusedForItsContractIsLoggedWithTheReason()
+        {
+            var lines = new List<string>();
+            var engine = new ChannelEngine("ws://127.0.0.1:0");
+            engine.SetDiagnosticLog(lines.Add);
+            var uplink = new NormalDiscoverableUplink();
+
+            engine.RegisterDiscoveredUplink(uplink, contractMajor: ContractVersion.Major + 1, contractMinor: 0);
+
+            Assert.Single(lines, l => l.Contains("\"discovery-test-normal\" refused") && l.Contains("major mismatch"));
         }
 
         [Fact]

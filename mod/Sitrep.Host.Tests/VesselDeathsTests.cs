@@ -39,6 +39,15 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void a_second_death_of_the_same_vessel_reports_that_it_was_dropped()
+        {
+            var deaths = Deaths();
+
+            Assert.True(deaths.Death(Craft, "burn-up", 100));
+            Assert.False(deaths.Death(Craft, "burn-up again", 100));
+        }
+
+        [Fact]
         public void an_impact_reported_after_the_death_on_the_same_stack_names_it()
         {
             var deaths = Deaths();

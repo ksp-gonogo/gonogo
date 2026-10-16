@@ -88,6 +88,7 @@ namespace Gonogo.KSP.Tests
             {
                 Assert.True(
                     addon.Contains("RegisterUplink(new " + name + "(")
+                        || addon.Contains("RegisterCoreUplink(_engine, new " + name + "(")
                         || addon.Contains("." + name + "("),
                     name + " is listed as hand-registered but GonogoAddon never constructs it.");
             }

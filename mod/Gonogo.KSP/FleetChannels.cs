@@ -278,7 +278,7 @@ namespace Gonogo.KSP
             {
                 // Fail soft and report NOTHING rather than a partial tank list:
                 // half a craft's resources read as a craft with half the fuel.
-                Debug.LogWarning("[Gonogo] fleet resource read failed for vessel " + id + ", omitting: " + ex.Message);
+                GonogoLog.WarnLimited("fleet resource read failed for vessel " + id + ", omitting", ex);
                 return null;
             }
 

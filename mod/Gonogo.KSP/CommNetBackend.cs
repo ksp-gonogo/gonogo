@@ -193,7 +193,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] CommNetBackend.RouteBetween failed (treating as no route): " + ex.Message);
+                GonogoLog.WarnLimited("CommNetBackend.RouteBetween failed (treating as no route)", ex);
                 return null;
             }
         }
@@ -264,7 +264,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] CommNetBackend.ReachModel failed (declaring no reach rule): " + ex.Message);
+                GonogoLog.WarnLimited("CommNetBackend.ReachModel failed (declaring no reach rule)", ex);
                 return CommsReachModels.Unknown;
             }
         }
@@ -312,7 +312,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] CommNetBackend.OcclusionModel read failed (using stock defaults): " + ex.Message);
+                GonogoLog.WarnLimited("CommNetBackend.OcclusionModel read failed (using stock defaults)", ex);
                 return CommNetOcclusion.StockDefaults();
             }
         }

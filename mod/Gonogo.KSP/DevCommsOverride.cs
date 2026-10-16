@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Sitrep.Host;
 using UnityEngine;
 
 namespace Gonogo.KSP
@@ -105,14 +106,14 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning(LogPrefix + "failed enumerating loaded assemblies (treating as not-dev-tools): " + ex.Message);
+                Debug.LogWarning(LogPrefix + "failed enumerating loaded assemblies (treating as not-dev-tools): " + PathRedactor.Redact(ex.Message));
                 found = false;
             }
 
             _devToolsLoaded = found;
             if (found)
             {
-                Debug.Log(LogPrefix + "GonogoDevTools assembly detected; force-comms override armed, polling " + RequestPath);
+                Debug.Log(LogPrefix + "GonogoDevTools assembly detected; force-comms override armed, polling " + PathRedactor.Redact(RequestPath));
             }
             return found;
         }
@@ -141,13 +142,13 @@ namespace Gonogo.KSP
                     resolved = ModeOf(mode, out var recognised);
                     if (!recognised)
                     {
-                        Debug.LogWarning(LogPrefix + "unrecognized mode '" + mode + "' in " + RequestPath + "; treating as 'auto'");
+                        Debug.LogWarning(LogPrefix + "unrecognized mode '" + mode + "' in " + PathRedactor.Redact(RequestPath) + "; treating as 'auto'");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogWarning(LogPrefix + "failed reading " + RequestPath + " (treating as 'auto'): " + ex.Message);
+                Debug.LogWarning(LogPrefix + "failed reading " + PathRedactor.Redact(RequestPath) + " (treating as 'auto'): " + PathRedactor.Redact(ex.Message));
                 resolved = null;
             }
 
@@ -155,7 +156,7 @@ namespace Gonogo.KSP
             {
                 if (resolved == false)
                 {
-                    Debug.LogWarning(LogPrefix + "mode -> " + DescribeMode(resolved) + ", from " + RequestPath + "; every craft reads out of contact until the request is set to restore");
+                    Debug.LogWarning(LogPrefix + "mode -> " + DescribeMode(resolved) + ", from " + PathRedactor.Redact(RequestPath) + "; every craft reads out of contact until the request is set to restore");
                 }
                 else
                 {

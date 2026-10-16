@@ -293,7 +293,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] releasing a loaded craft part failed: " + ex);
+                    GonogoLog.Warn("releasing a loaded craft part failed", ex);
                 }
             }
             construct.parts.Clear();
@@ -309,7 +309,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] craft path lookup failed for " + facility + ", skipping: " + ex);
+                GonogoLog.Warn("craft path lookup failed for " + facility + ", skipping", ex);
                 return new string[0];
             }
 
@@ -324,7 +324,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] craft folder walk failed for " + facility + ", skipping: " + ex);
+                GonogoLog.Warn("craft folder walk failed for " + facility + ", skipping", ex);
                 return new string[0];
             }
         }
@@ -396,7 +396,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] craft measurement failed for " + path + ", skipping: " + ex);
+                GonogoLog.Warn("craft measurement failed for " + path + ", skipping", ex);
                 return null;
             }
         }

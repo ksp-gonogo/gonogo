@@ -70,7 +70,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] FleetCommsReader.ReadVessel failed (link unread): " + ex.Message);
+                GonogoLog.WarnLimited("FleetCommsReader.ReadVessel failed (link unread)", ex);
                 return (null, null);
             }
         }
@@ -111,7 +111,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] FleetCommsReader.ReadVesselJourney failed (treating as no path): " + ex.Message);
+                GonogoLog.WarnLimited("FleetCommsReader.ReadVesselJourney failed (treating as no path)", ex);
                 return null;
             }
         }
@@ -136,7 +136,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] FleetCommsReader.ReadVesselRoute failed (treating as no route): " + ex.Message);
+                GonogoLog.WarnLimited("FleetCommsReader.ReadVesselRoute failed (treating as no route)", ex);
                 return null;
             }
         }
@@ -164,7 +164,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] FleetCommsReader.ReadConnected failed (link unread): " + ex.Message);
+                GonogoLog.WarnLimited("FleetCommsReader.ReadConnected failed (link unread)", ex);
                 return null;
             }
         }
@@ -220,7 +220,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] FleetCommsReader.ReachesGround failed (treating as unknown): " + ex.Message);
+                GonogoLog.WarnLimited("FleetCommsReader.ReachesGround failed (treating as unknown)", ex);
                 return null;
             }
         }
@@ -325,7 +325,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] FleetCommsReader.ReadNodePath failed (treating as no path): " + ex.Message);
+                GonogoLog.WarnLimited("FleetCommsReader.ReadNodePath failed (treating as no path)", ex);
                 return (null, null);
             }
         }

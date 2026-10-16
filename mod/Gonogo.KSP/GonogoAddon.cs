@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Gonogo.KSP.CommandCentres;
+using Gonogo.KSP.SilenceTracking;
 using Sitrep.Host;
 using Sitrep.Host.Comms;
 using Sitrep.Host.Crew;
@@ -106,6 +107,10 @@ namespace Gonogo.KSP
         private void Awake()
         {
             DontDestroyOnLoad(gameObject);
+            PathRedactor.AddRoot(KSPUtil.ApplicationRootPath, "<KSP>");
+            PathRedactor.AddRoot(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "<home>");
+            LogBanner();
+            FleckLogBridge.Install();
 
             try
             {
@@ -128,7 +133,7 @@ namespace Gonogo.KSP
                 // NOT capture: so a disabled/unavailable uplink or a retrying
                 // capture-throw would be invisible in the live log; this sink
                 // makes the whole fail-soft class visible at [WRN] level.
-                _engine.SetDiagnosticLog(msg => Debug.LogWarning("[Gonogo] " + msg));
+                _engine.SetDiagnosticLog(GonogoLog.Sink);
                 _engine.SetSpaceCentre(SpaceCentreSite.Current);
                 _engine.SetHomeReadable(() => !VesselListWatch.Shared.Settling);
 
@@ -138,7 +143,7 @@ namespace Gonogo.KSP
                 // untagged command falls back to delayed, and a delayed command
                 // is indistinguishable from one that was meant to be. Without
                 // this the only symptom is a countdown nobody ordered.
-                CommandDelayCatalog.SetDiagnosticLog(msg => Debug.LogWarning("[Gonogo] " + msg));
+                CommandDelayCatalog.SetDiagnosticLog(GonogoLog.Sink);
 
                 // [SitrepUplink] assembly-scan discovery is what registers
                 // Uplinks: see Sitrep.Host.UplinkDiscovery's doc comment. The bundled
@@ -158,24 +163,29 @@ namespace Gonogo.KSP
                 var settings = new SettingsStore(
                     new Settings.ConfigNodeSettingsStore(
                         Settings.ConfigNodeSettingsStore.LivePath,
-                        msg => Debug.LogWarning("[Gonogo] " + msg)))
+                        GonogoLog.Sink))
                 {
-                    DiagnosticLog = msg => Debug.LogWarning("[Gonogo] " + msg),
+                    DiagnosticLog = GonogoLog.Sink,
                 };
                 _settings = settings;
                 _engine.Settings = settings;
 
                 // The signal delay choice lives in the save, not in the file; a
                 // block left over from the file is named once so nobody hunts for it.
-                CommsCoreUplink.NoteLegacySettings(settings, msg => Debug.LogWarning("[Gonogo] " + msg));
+                CommsCoreUplink.NoteLegacySettings(settings, GonogoLog.Sink);
 
                 // The dev-capture recorder's own row. Off unless the file says
                 // otherwise, unlike signal delay: recording costs disk and log
                 // on every launch and is wanted only while capturing a fixture.
                 settings.Declare(SettingsRow.Bool(RecordingEnabledRow, false, "Record a development capture of this session, which costs disk and log"));
+                SilenceTrace.Diagnostics = settings.Bool(RecordingEnabledRow);
                 settings.OnChanged(
                     RecordingEnabledRow,
-                    _ => _recordingEnabled = settings.Bool(RecordingEnabledRow));
+                    _ =>
+                    {
+                        _recordingEnabled = settings.Bool(RecordingEnabledRow);
+                        SilenceTrace.Diagnostics = _recordingEnabled;
+                    });
                 Debug.Log("[Gonogo] Recording enabled=" + _recordingEnabled);
                 Sitrep.Host.Settings.ConsoleSettings.Declare(settings);
                 // The trackingStation.vessel.<guid>.* namespace: core vessel-network-presence
@@ -185,7 +195,7 @@ namespace Gonogo.KSP
                 // discovery: it is a scope, not a separately-installable
                 // capability, the same reasoning CommandCentreDelayUplink
                 // below is registered directly for.
-                _engine.RegisterUplink(new FleetChannels());
+                RegisterCoreUplink(_engine, new FleetChannels());
                 // Command centres: the stock home-node + crewed-
                 // vessel sources feed BOTH set-vantage validation (the engine's own
                 // registry) AND the per-(authority, subject) delay pass + roster
@@ -203,29 +213,29 @@ namespace Gonogo.KSP
                 // Only this registry announces an id collision. The engine's own copy
                 // enumerates the same sources, so a second sink would log each one twice.
                 var ccRegistry = new Sitrep.Host.CommandCentres.CommandCentreRegistry(
-                    msg => Debug.LogWarning("[Gonogo] " + msg));
+                    GonogoLog.Sink);
                 foreach (var src in ccSources)
                 {
                     _engine.RegisterCommandCentreSource(src);
                     ccRegistry.RegisterSource(src);
                 }
                 var homeEngine = _engine;
-                _engine.RegisterUplink(new CommandCentres.CommandCentreDelayUplink(ccRegistry, () => homeEngine.CurrentHomeCommand));
+                RegisterCoreUplink(_engine, new CommandCentres.CommandCentreDelayUplink(ccRegistry, () => homeEngine.CurrentHomeCommand));
                 // One shared hand-off: the planner and the link capture write it,
                 // store-and-forward delivery reads it.
                 var deliveryInputs = new Sitrep.Host.Comms.DeliveryInputs();
                 _engine.SetDeliveryInputs(deliveryInputs);
-                _engine.RegisterUplink(new ContactPlanUplink(ccRegistry, deliveryInputs, () => homeEngine.CurrentHomeCommand));
+                RegisterCoreUplink(_engine, new ContactPlanUplink(ccRegistry, deliveryInputs, () => homeEngine.CurrentHomeCommand));
                 // Messages and radio between centres, timed by the centre-to-centre
                 // rows the pass above writes.
-                _engine.RegisterUplink(new Sitrep.Host.Commcast.CommcastUplink());
+                RegisterCoreUplink(_engine, new Sitrep.Host.Commcast.CommcastUplink());
                 // Same sink as SetDiagnosticLog above, for the same reason: the
                 // scan's three rejection paths (unscannable assembly, no public
                 // parameterless constructor, a throwing constructor) went only to
                 // Console.Error, so a third-party Uplink the scan refused looked
                 // exactly like one that loaded and had not published yet.
                 _engine.RegisterDiscoveredUplinks(
-                    UplinkDiscovery.Discover(msg => Debug.LogWarning("[Gonogo] " + msg)));
+                    UplinkDiscovery.Discover(GonogoLog.Sink));
 
                 // comms.commandCentre: give
                 // CommsCoreUplink the SAME registry instance so it resolves the
@@ -339,12 +349,45 @@ namespace Gonogo.KSP
                 _lastFlushRealtime = Time.realtimeSinceStartup;
 
                 Debug.Log("[Gonogo] Started - serving " + SystemViewProvider.Topic + " + " +
-                    VesselViewProvider.Topics.Count + " vessel.* channels on " + BindUri);
+                    VesselViewProvider.Topics.Count + " vessel.* channels on port " + _engine.BoundPort);
                 LogBuildIdentity();
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] Failed to start: " + ex);
+                GonogoLog.Error("Failed to start", ex);
+            }
+        }
+
+        /// <summary>
+        /// Registers an Uplink the plugin ships inside itself and says in
+        /// KSP.log that it loaded, as the discovery pass does for the rest.
+        /// </summary>
+        private static void RegisterCoreUplink(ChannelEngine engine, ISitrepUplink uplink)
+        {
+            engine.RegisterUplink(uplink);
+            var manifest = uplink.Manifest;
+            if (engine.IsUplinkRunning(manifest.Id))
+            {
+                Debug.Log("[Gonogo] uplink \"" + manifest.Id + "\" " + manifest.Version + " loaded");
+            }
+        }
+
+        /// <summary>
+        /// The release, the wire contract and the game it runs on, in one line
+        /// at startup, so a pasted KSP.log says which release it came from.
+        /// </summary>
+        private static void LogBanner()
+        {
+            try
+            {
+                Debug.Log("[Gonogo] Gonogo " + (CoreBuildInfo.Version ?? "unreleased build")
+                    + " (contract " + ContractVersion.Major + "." + ContractVersion.Minor
+                    + ") on KSP " + Versioning.GetVersionString()
+                    + ", " + Application.platform);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] could not read the version banner: " + ex.Message);
             }
         }
 
@@ -580,7 +623,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] FixedUpdate sampling failed: " + ex);
+                GonogoLog.ErrorLimited("FixedUpdate sampling failed", ex);
             }
         }
 
@@ -612,7 +655,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] Error stopping server: " + ex);
+                GonogoLog.Error("Error stopping server", ex);
             }
 
             // The final save is just the LAST flush, to the same fixed path
@@ -625,7 +668,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] Error unhooking GameEvents: " + ex);
+                GonogoLog.Error("Error unhooking GameEvents", ex);
             }
         }
 
@@ -660,7 +703,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogError("[Gonogo] recording FLUSH FAILED: " + ex);
+                GonogoLog.Error("recording FLUSH FAILED", ex);
             }
         }
     }
