@@ -44,11 +44,7 @@ import {
 import type { TargetConic, TargetEncounter } from "./targetOrbit";
 import type { CelestialBody } from "./useCelestialBodies";
 import type { PanZoom } from "./usePanZoom";
-import {
-  nearestCrowdAnchor,
-  VesselMarker,
-  type VesselPlotState,
-} from "./VesselMarker";
+import { VesselMarker, type VesselPlotState } from "./VesselMarker";
 
 export type { VesselOrbit } from "./diagramGeometry";
 
@@ -669,11 +665,7 @@ export function SystemDiagram({
         {placed.vessel && (
           <VesselMarker
             at={placed.vessel}
-            crowdAnchor={nearestCrowdAnchor(
-              placed.vessel,
-              placed.parent,
-              placed.bodies,
-            )}
+            crowdAnchor={placed.parent}
             zoom={zoom}
             state={vesselPlotState}
             held={vesselPositionHeld}

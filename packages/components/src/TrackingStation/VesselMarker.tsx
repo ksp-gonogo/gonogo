@@ -104,27 +104,6 @@ export function resolveVesselMarkerPlacement(
   };
 }
 
-/**
- * The drawn body a vessel marker is pushed away from when it crowds it: the one nearest the craft's true position, the frame body or any child.
- * A craft orbiting a child body of the frame sits on that body's dot, so crowding is measured against it and not only against the frame body.
- */
-export function nearestCrowdAnchor(
-  pos: { x: number; y: number },
-  frameBody: PlacedPoint,
-  children: readonly { x: number; y: number }[],
-): PlacedPoint {
-  let nearest = frameBody;
-  let best = Math.hypot(pos.x - frameBody.x, pos.y - frameBody.y);
-  for (const child of children) {
-    const d = Math.hypot(pos.x - child.x, pos.y - child.y);
-    if (d < best) {
-      best = d;
-      nearest = { ...frameBody, x: child.x, y: child.y };
-    }
-  }
-  return nearest;
-}
-
 export function VesselMarker({
   at,
   crowdAnchor,

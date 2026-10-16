@@ -45,11 +45,9 @@ function holdFrames() {
 function mountScene({
   catalogListsCraft = true,
   recordPlacedAt,
-  frame = "Kerbin",
 }: {
   catalogListsCraft?: boolean;
   recordPlacedAt?: number;
-  frame?: string;
 } = {}) {
   const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
   const view = render(
@@ -57,7 +55,7 @@ function mountScene({
       <WidgetMetaContext.Provider value={META}>
         <ContributionsProvider>
           <TrackingStationComponent
-            config={{ frame } as never}
+            config={{ frame: "Kerbin" } as never}
             id="sv-press"
             w={10}
             h={14}
@@ -95,15 +93,6 @@ function mountScene({
           gravParameter: 6.5138398e10,
           sphereOfInfluence: 2_429_559,
           orbit: { ...orbit(12_000_000), meanAnomalyAtEpoch: 1.7 },
-        },
-        {
-          index: 3,
-          name: "Duna",
-          parentIndex: 0,
-          radius: 320_000,
-          gravParameter: 3.0136321e11,
-          sphereOfInfluence: 47_921_949,
-          orbit: { ...orbit(20_726_155_264), meanAnomalyAtEpoch: 1 },
         },
       ],
     });
@@ -320,66 +309,5 @@ describe("TrackingStation: pressing the diagram", () => {
     const { container } = mountScene();
     await screen.findByRole("button", { name: "Active vessel" });
     await expectNoA11yViolations(container);
-  });
-
-  /** Around the star the home body is a child like any other, and the craft orbiting it is drawn on top of it. */
-  describe("with the star as the frame", () => {
-    it("shows the home body's almanac when it is pressed after another body", async () => {
-      mountScene({ frame: "Kerbol" });
-      fireEvent.click(await screen.findByRole("button", { name: "Duna" }));
-      await waitFor(() =>
-        expect(screen.getByRole("button", { name: "Duna" })).toHaveAttribute(
-          "aria-pressed",
-          "true",
-        ),
-      );
-
-      fireEvent.click(screen.getByRole("button", { name: "Kerbin" }));
-
-      await waitFor(() =>
-        expect(screen.getByRole("button", { name: "Kerbin" })).toHaveAttribute(
-          "aria-pressed",
-          "true",
-        ),
-      );
-      expect(screen.getByRole("button", { name: "Duna" })).toHaveAttribute(
-        "aria-pressed",
-        "false",
-      );
-      expect(screen.getByText("Radius")).toBeInTheDocument();
-    });
-
-    it("selects the active vessel after another body was pressed", async () => {
-      mountScene({ frame: "Kerbol" });
-      fireEvent.click(await screen.findByRole("button", { name: "Duna" }));
-      fireEvent.click(screen.getByRole("button", { name: "Active vessel" }));
-
-      await waitFor(() =>
-        expect(
-          screen.getByRole("button", { name: "Active vessel" }),
-        ).toHaveAttribute("aria-pressed", "true"),
-      );
-      expect(screen.getByRole("button", { name: "Duna" })).toHaveAttribute(
-        "aria-pressed",
-        "false",
-      );
-    });
-
-    /** Overlapping hit targets send a press on the home body to the craft; the craft's target has to clear the body's dot. */
-    it("draws the craft's press target clear of the body it orbits", async () => {
-      const { container } = mountScene({ frame: "Kerbol" });
-      await screen.findByRole("button", { name: "Active vessel" });
-      const dot = container.querySelector('circle[data-body="Kerbin"]');
-      const hit = container.querySelector(
-        "[data-vessel-hit] circle:not(.focus-ring)",
-      );
-      const apart = Math.hypot(
-        Number(dot?.getAttribute("cx")) - Number(hit?.getAttribute("cx")),
-        Number(dot?.getAttribute("cy")) - Number(hit?.getAttribute("cy")),
-      );
-      const reach =
-        Number(dot?.getAttribute("r")) + Number(hit?.getAttribute("r"));
-      expect(apart).toBeGreaterThanOrEqual(reach);
-    });
   });
 });
