@@ -72,4 +72,20 @@ public class ScienceChunkCreditTests
         Assert.Equal(0.5, row.BaseAmount, 9);
         Assert.Equal("vessel-mun", row.OriginVesselId);
     }
+
+    [Fact]
+    public void A_recovered_science_credit_is_due_the_moment_it_was_earned()
+    {
+        // Out of range of any ground station the sink's route measurement would hold a credit
+        // for the silence deadline; a recovery never measures one, so the row matures at its own UT.
+        const double ut = 98765.0;
+
+        var row = ScienceChunkCredit.ToRecoveredRow("vessel-splashdown", 18.0, ut, "recovery");
+
+        Assert.Equal(DelayedCurrency.Science, row.Currency);
+        Assert.Equal(ut, row.RevealUt);
+        Assert.Equal(18.0, row.BaseAmount);
+        Assert.Equal("vessel-splashdown", row.OriginVesselId);
+        Assert.Equal("recovery", row.OriginDescription);
+    }
 }

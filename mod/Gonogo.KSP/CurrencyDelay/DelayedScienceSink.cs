@@ -78,6 +78,24 @@ namespace Gonogo.KSP.CurrencyDelay
             }
         }
 
+
+        /// <summary>
+        /// Records science credited when a vessel is recovered. It skips the aggregator and the
+        /// route measurement, so it is due at <paramref name="ut"/> whether or not the landing
+        /// site was in range of a ground station. No-op while unbound, or for a non-positive
+        /// amount.
+        /// </summary>
+        public static void RecordRecoveredScience(
+            string vesselId, double amount, double ut, string originDescription = "")
+        {
+            var ledger = _ledger;
+            if (_aggregator == null || ledger == null || amount <= 0.0 || string.IsNullOrEmpty(vesselId))
+            {
+                return;
+            }
+
+            ledger.Enqueue(ScienceChunkCredit.ToRecoveredRow(vesselId, amount, ut, originDescription));
+        }
     }
 
     /// <summary>
@@ -97,6 +115,12 @@ namespace Gonogo.KSP.CurrencyDelay
             string vesselId, double amount, double ut, string originDescription)
         {
             DelayedScienceSink.RecordDelayedScienceIncrement(vesselId, amount, ut, originDescription);
+        }
+
+        public void RecordRecoveredScience(
+            string vesselId, double amount, double ut, string originDescription)
+        {
+            DelayedScienceSink.RecordRecoveredScience(vesselId, amount, ut, originDescription);
         }
     }
 }

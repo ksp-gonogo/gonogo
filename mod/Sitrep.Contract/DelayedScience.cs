@@ -31,6 +31,20 @@ public interface IDelayedScienceSink : ISitrepProvider
     /// <param name="ut">The universal time it was earned at.</param>
     /// <param name="originDescription">An opaque label shown on the pending-credit row.</param>
     void RecordDelayedScienceIncrement(string vesselId, double amount, double ut, string originDescription);
+
+    /// <summary>
+    /// Records science a mod credits when a vessel is recovered at the Space Center, as one amount
+    /// with no signal delay and no wait, since the craft is already home. Useful for a mod that
+    /// credits recovered science through its own path, so the operator sees it at once rather than
+    /// after a delay that only applies to a craft still in flight. Used by a life-support mod's
+    /// science hook when it sees a recovery. Does nothing, rather than throwing, for a
+    /// non-positive amount, an empty id, or when no game is loaded.
+    /// </summary>
+    /// <param name="vesselId">The recovered vessel, as KSP's <c>Vessel.id</c> GUID string.</param>
+    /// <param name="amount">The raw science amount earned.</param>
+    /// <param name="ut">The universal time it was earned at.</param>
+    /// <param name="originDescription">An opaque label shown on the credit row.</param>
+    void RecordRecoveredScience(string vesselId, double amount, double ut, string originDescription);
 }
 
 /// <summary>

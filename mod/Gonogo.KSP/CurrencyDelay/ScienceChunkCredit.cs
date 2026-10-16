@@ -22,5 +22,16 @@ namespace Gonogo.KSP.CurrencyDelay
                 originDescription,
                 chunk.HeldSinceUt);
         }
+
+        /// <summary>
+        /// The row for science credited on recovery: due at the moment it was earned, so the next
+        /// settle pass applies it. A recovered craft is at the Space Center, so no route home is
+        /// measured and nothing is held.
+        /// </summary>
+        public static PendingCreditRow ToRecoveredRow(
+            string vesselId, double amount, double ut, string originDescription = "")
+        {
+            return new PendingCreditRow(DelayedCurrency.Science, amount, ut, vesselId, originDescription);
+        }
     }
 }
