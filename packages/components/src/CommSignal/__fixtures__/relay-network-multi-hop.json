@@ -108,7 +108,7 @@
           "vesselId": "v2",
           "name": "Explorer II",
           "vesselType": 0,
-          "situation": 1,
+          "situation": 3,
           "parentBodyIndex": 1,
           "launchUt": 0
         }

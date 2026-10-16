@@ -15,7 +15,7 @@
         "value": {
           "referenceBodyIndex": 1,
           "sma": 5050000,
-          "ecc": 0.876,
+          "ecc": 0.8614,
           "inc": 0,
           "lan": 0,
           "argPe": 0,
@@ -34,7 +34,7 @@
           "vesselId": "v1",
           "name": "Active Vessel",
           "vesselType": 0,
-          "situation": 1,
+          "situation": 3,
           "parentBodyIndex": 1,
           "launchUt": 0
         }

@@ -1,6 +1,6 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import type { PropagationHorizonLike } from "@ksp-gonogo/sitrep-client";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, Situation } from "@ksp-gonogo/sitrep-sdk";
 import { act, render } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "./orbitHorizon";
@@ -46,6 +46,8 @@ export interface OrbitScenario {
    * it to render a sample from an integrating provider.
    */
   horizon?: PropagationHorizonLike;
+  /** The `Situation` the craft is in. Defaults to `Situation.Orbiting`: a scenario describes a craft in an orbit, and any other situation (on the ground, on the water) is a refusal for the widgets that read it. */
+  situation?: Situation;
 }
 
 registerStockBodies();
@@ -75,7 +77,7 @@ export function emitScenario(fixture: StreamFixture, s: OrbitScenario): void {
         vesselId: "v1",
         name: "Test Vessel",
         vesselType: 0,
-        situation: 1,
+        situation: s.situation ?? Situation.Orbiting,
         parentBodyIndex: bodyIndex,
         launchUt: 0,
       });

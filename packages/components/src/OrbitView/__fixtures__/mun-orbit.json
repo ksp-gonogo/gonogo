@@ -40,7 +40,7 @@
           "vesselId": "v1",
           "name": "Active Vessel",
           "vesselType": 0,
-          "situation": 1,
+          "situation": 3,
           "parentBodyIndex": 1,
           "launchUt": 0
         }
