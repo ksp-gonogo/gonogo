@@ -333,3 +333,16 @@ describe("delayVisibility", () => {
     expect(delayVisibility(Number.POSITIVE_INFINITY)).toBe("no-path");
   });
 });
+
+describe("classifyRetained after an answer", () => {
+  it("does not call an answered command lost when the link drops afterwards", () => {
+    const row = classifyRetained({
+      entry: entry(),
+      nowUt: 120,
+      present: false,
+      acknowledged: true,
+      pathConnectedDuring: () => false,
+    });
+    expect(row?.predictedPhase).toBe("due");
+  });
+});
