@@ -8184,10 +8184,16 @@ export enum CatalogCrew {
 	*/
 	Unknown = 1,
 	/**
-	* The home centre has declared the craft lost, and the declaration has reached
-	* this centre, so its crew is presumed lost with it.
+	* The home centre has declared the craft lost and the declaration has reached
+	* this centre, or the centre saw the craft destroyed with no link to say more,
+	* so its crew is presumed lost with it.
 	*/
-	PresumedLost = 2
+	PresumedLost = 2,
+	/**
+	* The craft's last report over a link says it was destroyed with its crew
+	* aboard.
+	*/
+	Lost = 3
 }
 /**
 * One object in a `TrackingStationCatalog`: a craft, or a space object the
@@ -8324,8 +8330,10 @@ export interface CatalogEntry
 	/**
 	* What this centre knows of the craft's crew: `CatalogEntry.crewCount` is as
 	* of `CatalogEntry.lastContactUt`, and is known only while the centre is in
-	* contact. Null when the crew this centre last heard of is none or unread, and
-	* when no word of any route to the craft has reached it.
+	* contact. For a destroyed craft it is lost when the centre heard the end over
+	* a link and presumed lost when it only saw it. Null when the crew this centre
+	* last heard of is none or unread, and when no word of any route to the craft
+	* has reached it.
 	*/
 	crew?: CatalogCrew | null;
 	/**

@@ -519,8 +519,15 @@ public enum CatalogCrew
     /// <summary>No link reaches the centre, so the crew it lists is the crew it last heard of, which may have changed since.</summary>
     Unknown,
 
-    /// <summary>The home centre has declared the craft lost, and the declaration has reached this centre, so its crew is presumed lost with it.</summary>
+    /// <summary>
+    /// The home centre has declared the craft lost and the declaration has
+    /// reached this centre, or the centre saw the craft destroyed with no link
+    /// to say more, so its crew is presumed lost with it.
+    /// </summary>
     PresumedLost,
+
+    /// <summary>The craft's last report over a link says it was destroyed with its crew aboard.</summary>
+    Lost,
 }
 
 /// <summary>
@@ -697,8 +704,10 @@ public class CatalogEntry
     /// <summary>
     /// What this centre knows of the craft's crew: <see cref="CrewCount"/> is
     /// as of <see cref="LastContactUt"/>, and is known only while the centre is
-    /// in contact. Null when the crew this centre last heard of is none or
-    /// unread, and when no word of any route to the craft has reached it.
+    /// in contact. For a destroyed craft it is lost when the centre heard the
+    /// end over a link and presumed lost when it only saw it. Null when the
+    /// crew this centre last heard of is none or unread, and when no word of
+    /// any route to the craft has reached it.
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public CatalogCrew? Crew { get; set; }

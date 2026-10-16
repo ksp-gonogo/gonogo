@@ -1534,7 +1534,7 @@ namespace Sitrep.Host.Comms
                     entry["expectedReturnUt"] = contact.ExpectedReturnUt;
                     entry["overdueAfterUt"] = contact.OverdueAfterUt;
                     entry["declaredLostUt"] = contact.DeclaredLostUt;
-                    entry["crew"] = CrewOf(contact.State, entry.TryGetValue("crewCount", out var crewCount) ? crewCount : null);
+                    entry["crew"] = CrewOf(contact.State, end?.Source, entry.TryGetValue("crewCount", out var crewCount) ? crewCount : null);
                     entry["endSource"] = end.HasValue ? (int)end.Value.Source : (int?)null;
                     entry["endedUt"] = end?.Ut;
                     if (contact.State == CatalogContact.Silent && contact.OverdueAfterUt is double overdueAt
@@ -1557,8 +1557,8 @@ namespace Sitrep.Host.Comms
             CatalogFramesBudget.Record(sent, looked.Ut);
         }
 
-        /// <summary>What a centre with <paramref name="contact"/> knows of a craft's crew of <paramref name="crewCount"/>: see <see cref="CatalogEntry.Crew"/>.</summary>
-        private static int? CrewOf(CatalogContact? contact, object? crewCount)
+        /// <summary>What a centre with <paramref name="contact"/> knows of a craft's crew of <paramref name="crewCount"/>, and of a destroyed one's crew by how it learned of the end: see <see cref="CatalogEntry.Crew"/>.</summary>
+        private static int? CrewOf(CatalogContact? contact, RosterPlaceSource? endSource, object? crewCount)
         {
             if (!(crewCount is int aboard) || aboard <= 0 || contact == null)
             {
@@ -1568,6 +1568,7 @@ namespace Sitrep.Host.Comms
             {
                 CatalogContact.InContact => CatalogCrew.Known,
                 CatalogContact.Lost => CatalogCrew.PresumedLost,
+                CatalogContact.Gone => endSource == RosterPlaceSource.Heard ? CatalogCrew.Lost : CatalogCrew.PresumedLost,
                 _ => CatalogCrew.Unknown,
             };
             return (int)crew;

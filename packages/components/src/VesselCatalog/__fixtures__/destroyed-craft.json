@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A fleet where the centre heard one craft was destroyed over its link and saw another go: both stay listed, marked destroyed and seen destroyed, each with the control that dismisses it, and neither counts toward the fleet's links.",
+    "shows": "A fleet where the centre heard one craft was destroyed over its link and saw another go: both stay listed, marked destroyed and seen destroyed, each with the control that dismisses it, and neither counts toward the fleet's links. The crew of the craft only seen destroyed is presumed lost.",
     "scenario": "destroyed-craft",
     "source": "Derived from crew-out-of-contact.json, with two entries set by hand to the state a centre's catalog carries for a destroyed craft.",
     "notes": "A recovered craft and one docked into another leave the catalog, so neither appears here."
@@ -77,7 +77,8 @@
               "contact": 4,
               "lastContactUt": 0,
               "endSource": 1,
-              "endedUt": 0
+              "endedUt": 0,
+              "crew": 2
             },
             {
               "vesselId": "v-orbiter-eve",

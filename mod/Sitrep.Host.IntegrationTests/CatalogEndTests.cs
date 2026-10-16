@@ -48,9 +48,9 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private static async Task<Seated> SeatedAsync()
+        private static async Task<Seated> SeatedAsync(int crew = 0)
         {
-            var world = await ReckonedVantageWorld.StartAsync(new ScriptedContactGame { RelaySeenFromHomeSeconds = 900.0 });
+            var world = await ReckonedVantageWorld.StartAsync(new ScriptedContactGame { RelaySeenFromHomeSeconds = 900.0, RelayCrew = crew });
             var (farClient, farView) = await world.SitDownAtAsync(Far, SystemViewProvider.CatalogTopic);
             var (homeClient, homeView) = await world.SitDownAtAsync(Home, SystemViewProvider.CatalogTopic);
             var seated = new Seated { World = world, FarClient = farClient, FarView = farView, HomeClient = homeClient, HomeView = homeView };
@@ -141,5 +141,35 @@ namespace Sitrep.Host.IntegrationTests
 
             Assert.Equal(RosterPlaceSource.Heard, EndSource(seated.HomeView));
         }
-    }
+
+        private static CatalogCrew? Crew(CentreView view)
+        {
+            var field = view.Vessel(Relay)!.Value.GetProperty("crew");
+            return field.ValueKind == JsonValueKind.Null ? null : (CatalogCrew)field.GetInt32();
+        }
+
+        [Fact]
+        public async Task ACrewedCraftHeardDestroyedListsItsCrewAsLost()
+        {
+            await using var seated = await SeatedAsync(crew: 2);
+            seated.World.Game.DestroyRelay();
+            await seated.TickAsync(T0, T0 + 2, T0 + 303, T0 + 304, T0 + 305);
+
+            Assert.Equal(CatalogCrew.Lost, Crew(seated.FarView));
+        }
+
+        /// <summary>A sighting says nothing of the crew, so a craft only seen destroyed has its crew presumed lost.</summary>
+        [Fact]
+        public async Task ACrewedCraftSeenDestroyedListsItsCrewAsPresumedLost()
+        {
+            await using var seated = await SeatedAsync(crew: 2);
+            seated.World.Game.RelayConnected = false;
+            await seated.TickAsync(980, 982);
+            seated.World.Game.DestroyRelay();
+            await seated.TickAsync(T0, T0 + 2, T0 + 303, T0 + 304, T0 + 305);
+
+            Assert.Equal(RosterPlaceSource.Seen, EndSource(seated.FarView));
+            Assert.Equal(CatalogCrew.PresumedLost, Crew(seated.FarView));
+        }
+}
 }

@@ -7,12 +7,14 @@ const KNOWN_AS: Record<CatalogCrew, string> = {
   [CatalogCrew.Known]: "known",
   [CatalogCrew.Unknown]: "unknown",
   [CatalogCrew.PresumedLost]: "presumed-lost",
+  [CatalogCrew.Lost]: "lost",
 };
 
 /**
  * A craft's crew as the centre last heard it: the count as it is while the
  * centre is in contact, marked "?" and spoken as last heard while it is not,
- * and struck through once the craft is declared lost.
+ * and struck through once the craft is declared lost or destroyed, spoken as
+ * lost when its last report said so and as presumed lost otherwise.
  */
 export function CrewFigure({ vessel }: { vessel: FleetVessel }) {
   const label = crewLabel(vessel);
@@ -35,7 +37,9 @@ export function CrewFigure({ vessel }: { vessel: FleetVessel }) {
   return (
     <span data-crew-known={KNOWN_AS[crew]} style={{ color: TONE_TEXT.nogo }}>
       <span style={{ textDecoration: "line-through" }}>{label}</span>
-      <VisuallyHidden> crew presumed lost</VisuallyHidden>
+      <VisuallyHidden>
+        {crew === CatalogCrew.Lost ? " crew lost" : " crew presumed lost"}
+      </VisuallyHidden>
     </span>
   );
 }

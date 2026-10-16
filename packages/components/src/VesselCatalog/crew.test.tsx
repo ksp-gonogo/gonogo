@@ -83,4 +83,15 @@ describe("VesselCatalog: what a centre knows of a craft's crew", () => {
     );
     expect(screen.getByText(/presumed lost/)).toBeInTheDocument();
   });
+
+  it("marks the crew of a craft heard destroyed as lost", async () => {
+    const { container } = mount(craft(CatalogCrew.Lost, CatalogContact.Gone));
+
+    await waitFor(() =>
+      expect(
+        container.querySelector('[data-crew-known="lost"]'),
+      ).toHaveTextContent("2/3"),
+    );
+    expect(screen.getByText(/crew lost/)).toBeInTheDocument();
+  });
 });

@@ -3209,6 +3209,7 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     0: "Known",
     1: "Unknown",
     2: "PresumedLost",
+    3: "Lost",
   },
   "CommsControlSource": {
     0: "None",
