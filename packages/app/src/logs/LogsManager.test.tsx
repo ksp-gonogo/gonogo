@@ -1,11 +1,11 @@
-import { logger } from "@ksp-gonogo/logger";
+import { logger, tagRegistry } from "@ksp-gonogo/logger";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LogsManager } from "./LogsManager";
 
-// Most of the rest of the modal (Snapshot, Active tags, Log buffer) reads
+// Most of the rest of the modal (Verbose logging, Log buffer) reads
 // global state and renders with no providers in scope, so the smoke test
 // just renders the component inside a ModalProvider in case any nested
 // hook-of-hook ever needs it. The interesting assertions are on the
@@ -58,6 +58,37 @@ function bugReport(entry: { context?: Record<string, unknown> }): {
     reportedAt: string;
   };
 }
+
+describe("LogsManager: Verbose logging", () => {
+  afterEach(() => {
+    localStorage.removeItem("LOG_TAGS");
+    tagRegistry.clearOverride();
+  });
+
+  it("turns debug lines on for every subsystem and persists the choice", async () => {
+    const user = userEvent.setup();
+    renderManager();
+    const toggle = screen.getByRole("checkbox", { name: /verbose logging/i });
+    expect(toggle).not.toBeChecked();
+
+    await user.click(toggle);
+    expect(toggle).toBeChecked();
+    expect(tagRegistry.isVerbose()).toBe(true);
+    expect(localStorage.getItem("LOG_TAGS")).toBe("*");
+
+    await user.click(toggle);
+    expect(tagRegistry.isVerbose()).toBe(false);
+    expect(localStorage.getItem("LOG_TAGS")).toBeNull();
+  });
+
+  it("ignores a stored tag list from an older version", () => {
+    localStorage.setItem("LOG_TAGS", "peer,camera");
+    renderManager();
+    expect(
+      screen.getByRole("checkbox", { name: /verbose logging/i }),
+    ).not.toBeChecked();
+  });
+});
 
 describe("LogsManager: Feedback", () => {
   it("emits a bug-report tagged entry with the description and recent-logs slice on submit", async () => {

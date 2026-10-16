@@ -8,7 +8,7 @@ describe("debugFlight", () => {
     resetTestHost();
   });
 
-  it("logs on the host logger's flight tag, so LOG_TAGS is the one switch", () => {
+  it("logs on the host logger's flight tag, so verbose logging is the one switch", () => {
     const tagged: TaggedLogger = {
       debug: vi.fn(),
       info: vi.fn(),

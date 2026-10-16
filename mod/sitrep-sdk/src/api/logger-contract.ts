@@ -18,10 +18,9 @@ export interface LogContext {
 
 /**
  * A logger whose entries carry a tag, returned by `tag` on a {@link Logger}.
- * Its `debug` entries reach the console only while the tag is switched on,
- * which an operator does in the browser with
- * `localStorage.LOG_TAGS = "peer,camera"` (or `"*"` for every tag) and a
- * reload. Its `info`, `warn` and `error` entries always print. Every entry,
+ * Its `debug` entries reach the console only while verbose logging is on,
+ * which an operator switches on in Settings under Diagnostics, or in the
+ * browser with `localStorage.LOG_TAGS = "*"` and a reload. Its `info`, `warn` and `error` entries always print. Every entry,
  * tagged or not, is kept in the log buffer and sent on either way. Useful for
  * tracing too chatty to print by default.
  *

@@ -10,8 +10,8 @@ import type { Logger } from "./logger-contract";
  * reporting a problem. Throws when used with no app or test host installed.
  *
  * A tagged logger's `debug` entries are kept in the buffer and sent either
- * way, but reach the browser console only when the operator lists the tag in
- * `localStorage.LOG_TAGS` and reloads; its other levels always print.
+ * way, but reach the browser console only while the operator has verbose
+ * logging on in Settings under Diagnostics; its other levels always print.
  *
  * @example
  * ```ts
