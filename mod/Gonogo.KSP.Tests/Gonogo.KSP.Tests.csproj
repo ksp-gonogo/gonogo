@@ -485,6 +485,7 @@
          (UnityStandIns.cs), never through a GameEvents firing. The scenario itself
          stays out: a ScenarioModule in this assembly hangs xunit's discovery. -->
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\StockCurrencyInterceptor.cs" />
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\CrewDeathTies.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\CurrencyDelayBooks.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\RevealApplier.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\DelayedScienceSink.cs" />

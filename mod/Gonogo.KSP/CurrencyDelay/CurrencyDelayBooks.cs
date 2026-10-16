@@ -105,6 +105,7 @@ namespace Gonogo.KSP.CurrencyDelay
             CommsCoreUplink.DelayShortened -= BringForward;
             _interceptor.Unsubscribe();
             DelayedScienceSink.Unbind();
+            CrewDeathTies.Clear();
         }
     }
 }

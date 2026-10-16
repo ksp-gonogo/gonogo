@@ -643,6 +643,7 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 return;
             }
+            CrewDeathTies.Tie(kerbalName, craft);
             _deathLightTimesById[vesselId] = KscLightTime.ForVessel(craft, CommsCoreUplink.SignalDelayConfig);
             foreach (var decision in _state.PushCrewDeath(vesselId, ut))
             {

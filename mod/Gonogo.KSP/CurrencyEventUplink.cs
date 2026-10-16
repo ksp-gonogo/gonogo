@@ -422,7 +422,7 @@ namespace Gonogo.KSP
         {
             try
             {
-                var vessel = report?.origin?.vessel ?? AttributableVessel();
+                var vessel = report?.origin?.vessel ?? CurrencyDelay.CrewDeathTies.Take(report?.sender) ?? AttributableVessel();
                 if (vessel == null)
                 {
                     return;
@@ -477,9 +477,9 @@ namespace Gonogo.KSP
             {
                 return _lastDestroyed;
             }
-            // A death with no destruction behind it (an EVA kerbal, or a crew member lost
-            // aboard a vessel that survives) belongs to the vessel being flown. An EVA
-            // kerbal is itself a Vessel in KSP, so this resolves a real position either way.
+            // A death with no destruction behind it that the books tied to no craft
+            // (an EVA kerbal) belongs to the vessel being flown. An EVA kerbal is
+            // itself a Vessel in KSP, so this resolves a real position either way.
             //
             // Deliberately NOT ActiveVesselScope: this names the thing that DIED, not
             // the thing being reported. A kerbal who dies outside their ship died out
