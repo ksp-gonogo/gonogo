@@ -635,6 +635,14 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>A telemetry topic of the active craft: Delayed, recordable, and read off the game's <see cref="ScriptedContactGame.ActiveValue"/>.</summary>
         public const string ActiveTelemetryTopic = "reckoned.active.value";
 
+        /// <summary>An event a craft says of itself over its own link, as a lost craft reports its end.</summary>
+        public const string CraftReportTopic = "reckoned.craft.report";
+
+        private IChannelPublisher? _craftReport;
+
+        /// <summary>Publishes <paramref name="payload"/> as said by the relay at <paramref name="ut"/>.</summary>
+        public void RelaySays(object payload, double ut) => ((ICraftSaidPublisher)_craftReport!).PublishSaidBy(ScriptedContactGame.RelayGuid, payload, ut);
+
         /// <summary>A control-channel write, a throttle, whose subject here is the relay.</summary>
         public const string ThrottleCommand = "vessel.control.setThrottle";
 
@@ -694,6 +702,14 @@ namespace Sitrep.Host.IntegrationTests
                 Emission = new EmissionPolicy(keyframeIntervalUt: 100000, quantum: EmissionQuantum.Absolute(0)),
                 Delay = DelayRole.Delayed,
                 Recordable = true,
+            });
+            channels.Add(new ChannelDeclaration
+            {
+                Kind = SampleKind.Event,
+                Topic = CraftReportTopic,
+                Delivery = Delivery.ReliableOrdered,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
+                Delay = DelayRole.Delayed,
             });
             channels.Add(new ChannelDeclaration
             { Kind = SampleKind.Continuous,
@@ -770,6 +786,7 @@ namespace Sitrep.Host.IntegrationTests
             host.AddSampledSource(_ => new Ledger(_game), captured => Apply((Ledger)captured!));
             _source.Register(host);
             host.AddChannelSource(RelayStateTopic, _ => null);
+            _craftReport = host.Publisher(CraftReportTopic);
             host.AddChannelSource(ActiveTelemetryTopic, snapshot => snapshot != null && snapshot.Values.TryGetValue("activeValue", out var value) ? value : null);
             host.AddChannelSource(ChannelEngine.ConnectivityMetaTopic, _ => new CommsLink { Connected = _game.ActiveConnected });
             host.AddCommandHandler<string, string>(RelayCommand, args =>

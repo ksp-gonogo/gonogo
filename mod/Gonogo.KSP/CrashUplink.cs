@@ -288,14 +288,25 @@ namespace Gonogo.KSP
                     }
                     capture.Events.Add(CrashLine(capture.VesselName, capture.EventKind));
 
-                    _lastCrash?.Publish(CrashPayload.Build(capture), death.Ut);
-                    _hasRecent?.Publish(CrashPayload.ToWire(new CrashRecent { Recent = true }), death.Ut);
+                    // The crash is the lost craft's own report, sent over its own link.
+                    SayFrom(_lastCrash, capture.VesselId, CrashPayload.Build(capture), death.Ut);
+                    SayFrom(_hasRecent, capture.VesselId, CrashPayload.ToWire(new CrashRecent { Recent = true }), death.Ut);
                 }
                 catch (Exception ex)
                 {
                     Debug.LogError("[Gonogo] crash publish failed: " + ex);
                 }
             }
+        }
+
+        private static void SayFrom(IChannelPublisher? publisher, string vesselId, object payload, double ut)
+        {
+            if (publisher is Sitrep.Host.ICraftSaidPublisher said)
+            {
+                said.PublishSaidBy(vesselId, payload, ut);
+                return;
+            }
+            publisher?.Publish(payload, ut);
         }
 
         private CrashCapture BuildCapture(Vessel vessel, string vesselType, double ut)

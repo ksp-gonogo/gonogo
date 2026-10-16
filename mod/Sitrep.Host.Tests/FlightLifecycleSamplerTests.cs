@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Sitrep.Contract;
+using Sitrep.Host;
 using Sitrep.Host.Flight;
 using Xunit;
 
@@ -18,10 +19,24 @@ namespace Sitrep.Host.Tests
         private const string VesselA = "aaaaaaaa-0000-0000-0000-000000000000";
         private const string VesselB = "bbbbbbbb-0000-0000-0000-000000000000";
 
-        private sealed class FakePublisher : IChannelPublisher
+        private sealed class FakePublisher : ICraftSaidPublisher
         {
             public readonly List<(object? Payload, double Ut)> Calls = new();
-            public void Publish(object? payload, double ut) => Calls.Add((payload, ut));
+
+            /// <summary>For each call, the craft it was said by, or null for one published as the flown craft.</summary>
+            public readonly List<string?> SaidBy = new();
+
+            public void Publish(object? payload, double ut)
+            {
+                Calls.Add((payload, ut));
+                SaidBy.Add(null);
+            }
+
+            public void PublishSaidBy(string vesselId, object? payload, double ut)
+            {
+                Calls.Add((payload, ut));
+                SaidBy.Add(vesselId);
+            }
         }
 
         private sealed class Rig
@@ -147,6 +162,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(FlightEndReason.Crashed, payload.Reason);
             Assert.Equal(5.0, payload.Ut);
             Assert.Equal(5.0, ended.Ut);
+            Assert.Equal(VesselA, Assert.Single(rig.Ended.SaidBy));
         }
 
         [Fact]
@@ -160,6 +176,7 @@ namespace Sitrep.Host.Tests
 
             var ended = Assert.Single(rig.Ended.Calls);
             Assert.Equal(FlightEndReason.Recovered, Assert.IsType<FlightEnded>(ended.Payload).Reason);
+            Assert.Null(Assert.Single(rig.Ended.SaidBy));
         }
 
         [Fact]

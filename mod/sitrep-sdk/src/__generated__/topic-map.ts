@@ -162,7 +162,7 @@ export interface GeneratedTopicPayloadMap {
   "comms.route": CommsRoutes;
   /** The `comms.signal` payload: the active vessel's own reading of its link, from the comms backend in use (stock CommNet, or a replacement an Uplink provides). */
   "comms.signal": CommsSignal;
-  /** The payload for the `crash.hasRecent` channel: one flag saying a notable crash is on record for the current save, published beside `CrashReport` on `crash.lastCrash`. */
+  /** The payload for the `crash.hasRecent` channel: one flag saying a notable crash is on record for the current save, published beside `CrashReport` on `crash.lastCrash` and reaching each command centre with it. */
   "crash.hasRecent": CrashRecent;
   /** The last notable crash of the current save. */
   "crash.lastCrash": CrashReport;

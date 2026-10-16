@@ -10,6 +10,12 @@ namespace Sitrep.Contract;
 /// still receives the most recent record, since it is delivered as an ordered,
 /// reliable event (<see cref="Delivery.ReliableOrdered"/>). Every field is
 /// captured from the crashed vessel at the moment of the crash.
+/// <para>It is the crashed craft's own report, so it reaches each command
+/// centre at the signal delay of that craft's link as of its last contact,
+/// whichever craft is being flown. A centre that had no route to the craft
+/// when it crashed is sent nothing; if it saw the craft go, its
+/// <c>trackingStation.catalog</c> lists the end, with when and how it learned
+/// of it, and nothing of the crew or the parts.</para>
 /// <internal>
 /// Typing-only: Gonogo.KSP.CrashUplink flattens the live crash into a
 /// dictionary via Sitrep.Host.Crash.CrashPayload.Build, so JsonWriter never
@@ -205,8 +211,9 @@ public class CrashFlightStats
 /// <summary>
 /// The payload for the <c>crash.hasRecent</c> channel: one flag saying a
 /// notable crash is on record for the current save, published beside
-/// <see cref="CrashReport"/> on <c>crash.lastCrash</c>. It is true from the
-/// first crash a flight records and is not published before one.
+/// <see cref="CrashReport"/> on <c>crash.lastCrash</c> and reaching each
+/// command centre with it. It is true from the first crash a flight records
+/// and is not published before one.
 /// <internal>
 /// Typing-only: Sitrep.Host.Crash.CrashPayload.ToWire flattens it to a
 /// dictionary, so JsonWriter never sees this POCO.

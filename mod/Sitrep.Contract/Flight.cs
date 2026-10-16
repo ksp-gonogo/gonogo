@@ -130,6 +130,11 @@ public class FlightStarted
 /// crashed, destroyed or reverted. It shares the delay class of
 /// <c>crash.lastCrash</c> and <c>recovery.lastSummary</c>, so an end that a
 /// rewind discards before its signal delay has elapsed is never revealed.
+/// <para>A crash or a destruction is the lost craft's own report: it reaches
+/// each command centre at the signal delay of that craft's link as of its last
+/// contact, whichever craft is being flown, and a centre that had no route to
+/// it is sent nothing. A centre that saw the craft go has the end in its
+/// <c>trackingStation.catalog</c>.</para>
 /// <para>Debris, flags and vessels of unknown type never end a flight.</para>
 /// </summary>
 /// <category>Flights</category>

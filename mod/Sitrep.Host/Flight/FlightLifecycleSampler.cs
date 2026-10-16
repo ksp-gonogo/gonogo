@@ -376,16 +376,27 @@ namespace Sitrep.Host.Flight
             }, snapshot.Ut);
         }
 
+        /// <summary>
+        /// A craft lost to a crash or a destruction says so over its own link,
+        /// so the end reaches each centre at that craft's delay and none that had
+        /// no route to it. A recovery and a rewind are the ground's own news.
+        /// </summary>
         private void PublishEnded(string vesselId, string vesselName, FlightEndReason reason, double ut)
         {
-            _ended.Publish(new FlightEnded
+            var ended = new FlightEnded
             {
                 FlightId = vesselId,
                 VesselId = vesselId,
                 VesselName = vesselName,
                 Reason = reason,
                 Ut = ut,
-            }, ut);
+            };
+            if ((reason == FlightEndReason.Crashed || reason == FlightEndReason.Destroyed) && _ended is ICraftSaidPublisher said)
+            {
+                said.PublishSaidBy(vesselId, ended, ut);
+                return;
+            }
+            _ended.Publish(ended, ut);
         }
 
         private void PublishCurrent(KspSnapshot snapshot, string? vesselId)

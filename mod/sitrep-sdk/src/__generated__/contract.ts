@@ -3150,6 +3150,13 @@ export interface SetControlFrameArgs
 * reliable event (Delivery.ReliableOrdered). Every field is captured from the
 * crashed vessel at the moment of the crash.
 *
+* It is the crashed craft's own report, so it reaches each command centre at
+* the signal delay of that craft's link as of its last contact, whichever
+* craft is being flown. A centre that had no route to the craft when it
+* crashed is sent nothing; if it saw the craft go, its
+* `trackingStation.catalog` lists the end, with when and how it learned of it,
+* and nothing of the crew or the parts.
+*
 * @category Flights
 */
 export interface CrashReport
@@ -3283,8 +3290,8 @@ export interface CrashFlightStats
 /**
 * The payload for the `crash.hasRecent` channel: one flag saying a notable
 * crash is on record for the current save, published beside `CrashReport` on
-* `crash.lastCrash`. It is true from the first crash a flight records and is
-* not published before one.
+* `crash.lastCrash` and reaching each command centre with it. It is true from
+* the first crash a flight records and is not published before one.
 *
 * @category Flights
 */
@@ -4110,6 +4117,12 @@ export interface FlightStarted
 * crashed, destroyed or reverted. It shares the delay class of
 * `crash.lastCrash` and `recovery.lastSummary`, so an end that a rewind
 * discards before its signal delay has elapsed is never revealed.
+*
+* A crash or a destruction is the lost craft's own report: it reaches each
+* command centre at the signal delay of that craft's link as of its last
+* contact, whichever craft is being flown, and a centre that had no route to
+* it is sent nothing. A centre that saw the craft go has the end in its
+* `trackingStation.catalog`.
 *
 * Debris, flags and vessels of unknown type never end a flight.
 *

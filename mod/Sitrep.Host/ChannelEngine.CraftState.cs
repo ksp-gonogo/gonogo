@@ -29,6 +29,22 @@ namespace Sitrep.Host
         /// </summary>
         private readonly Dictionary<string, DelayStamp> _craftStateStamps = new Dictionary<string, DelayStamp>(StringComparer.Ordinal);
 
+        /// <summary>
+        /// Each craft that went while in contact, with the delays it went under,
+        /// so what it said as it went is sent under them too. Kept until the
+        /// timeline resets.
+        /// </summary>
+        private readonly Dictionary<string, DelayStamp> _goneCraftStamps = new Dictionary<string, DelayStamp>(StringComparer.Ordinal);
+
+        /// <summary>Every craft whose delays have been measured since the timeline began, present or gone.</summary>
+        private readonly HashSet<string> _craftMeasured = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>The delays a craft's own word is sent under: as of its last pass in contact, or as it went. Null for a craft with no route then, or no radio.</summary>
+        private DelayStamp? CraftSaysUnder(string vesselId) =>
+            _craftStateStamps.TryGetValue(vesselId, out var present) ? present
+            : _goneCraftStamps.TryGetValue(vesselId, out var gone) ? gone
+            : null;
+
         private readonly List<Action> _timelineResetListeners = new List<Action>();
 
         /// <summary>The topic one craft's states are recorded under. A craft state is telemetry, held through a blackout like the rest of it.</summary>
@@ -415,6 +431,7 @@ namespace Sitrep.Host
 
         public void NoteCraftPresent(string vesselId, double ut)
         {
+            _craftMeasured.Add(vesselId);
             var node = FleetNodePrefix + vesselId;
             if (!SubjectConnected(node))
             {
@@ -472,6 +489,7 @@ namespace Sitrep.Host
                 return;
             }
             _craftStateStamps.Remove(vesselId);
+            _goneCraftStamps[vesselId] = stamp;
             var topic = CraftStateTopic(vesselId);
             _lastRecordedUt[topic] = ut;
             _courier.Record(NodeFor(topic), topic, CraftState.Gone("vessel:" + vesselId, ut, end, said?.Roster), ut, sentUnder: stamp);
@@ -562,6 +580,8 @@ namespace Sitrep.Host
         private void NotifyTimelineResetListeners()
         {
             _craftStateStamps.Clear();
+            _goneCraftStamps.Clear();
+            _craftMeasured.Clear();
             _craftStateSaid.Clear();
             _craftLinkSaid.Clear();
             _craftRadioStamps.Clear();

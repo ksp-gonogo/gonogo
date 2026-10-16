@@ -7129,9 +7129,13 @@ namespace Sitrep.Host
         /// <see cref="Tick"/>'s pull-style mapping. Goes through the same
         /// per-channel Decide/Record processing as a Tick-driven channel.
         /// </summary>
-        internal void Publish(string topic, object? payload, double ut)
+        internal void Publish(string topic, object? payload, double ut) => Publish(new PublishJob(topic, payload, ut));
+
+        /// <summary>As <see cref="Publish(string, object?, double)"/>, said by the craft <paramref name="vesselId"/> over its own link: see <see cref="ICraftSaidPublisher"/>.</summary>
+        internal void PublishSaidBy(string topic, string vesselId, object? payload, double ut) => Publish(new PublishJob(topic, payload, ut, vesselId));
+
+        private void Publish(PublishJob job)
         {
-            var job = new PublishJob(topic, payload, ut);
             if (_handlePublishes != null && Thread.CurrentThread == _courierThread)
             {
                 _handlePublishes.Add(job);
@@ -7468,6 +7472,31 @@ namespace Sitrep.Host
             {
                 _unmeasuredSinceUt = tick.Ut;
             }
+        }
+
+        /// <summary>
+        /// Records a sample a craft said over its own link, under the delays
+        /// that link last had to each centre, whatever the flown craft's link is
+        /// doing. A craft that had no route when it said it reaches no centre,
+        /// and since it may never have one again the sample is not held for it.
+        /// A craft whose link this host has never measured (it carries no radio,
+        /// or nothing here records craft) says it as the flown craft would.
+        /// </summary>
+        private void EmitSaidBy(string topic, string vesselId, object? value, double ut, bool stampedAtPublish)
+        {
+            if (!_craftMeasured.Contains(vesselId))
+            {
+                Emit(topic, value, ut, stampedAtPublish);
+                return;
+            }
+            var stamp = CraftSaysUnder(vesselId);
+            if (stamp == null)
+            {
+                LogHost("dropped " + topic + " said by " + vesselId + " at UT " + ut.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
+                    + ": the craft had no route to any centre when it said it");
+                return;
+            }
+            RecordThrough(topic, value, ut, stamp);
         }
 
         /// <summary>
@@ -9535,6 +9564,11 @@ namespace Sitrep.Host
                 FailSoftChannel(publish.Topic, ex);
                 return;
             }
+            if (decision.ShouldEmit && publish.SaidBy != null)
+            {
+                EmitSaidBy(publish.Topic, publish.SaidBy, decision.Value, ut, stampedAtPublish: publish.Ut < nowUt);
+                return;
+            }
             if (decision.ShouldEmit)
             {
                 // Event-driven publish rides the SAME reveal gate as a
@@ -11316,11 +11350,13 @@ namespace Sitrep.Host
             public readonly string Topic;
             public readonly object? Payload;
             public readonly double Ut;
-            public PublishJob(string topic, object? payload, double ut)
+            public readonly string? SaidBy;
+            public PublishJob(string topic, object? payload, double ut, string? saidBy = null)
             {
                 Topic = topic;
                 Payload = payload;
                 Ut = ut;
+                SaidBy = saidBy;
             }
         }
 
@@ -11582,7 +11618,7 @@ namespace Sitrep.Host
             }
         }
 
-        private sealed class ChannelPublisher : IChannelPublisher
+        private sealed class ChannelPublisher : ICraftSaidPublisher
         {
             private readonly ChannelEngine _engine;
             private readonly string _topic;
@@ -11594,6 +11630,8 @@ namespace Sitrep.Host
             }
 
             public void Publish(object? payload, double ut) => _engine.Publish(_topic, payload, ut);
+
+            public void PublishSaidBy(string vesselId, object? payload, double ut) => _engine.PublishSaidBy(_topic, vesselId, payload, ut);
         }
 
         private sealed class DynamicChannelSource : IDynamicChannelSource
