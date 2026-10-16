@@ -11075,6 +11075,10 @@
         "note": "The union widens with \"lost\", a craft nothing vouches for any more. Callers that pass a state are unaffected; one that switches exhaustively over the union needs a case for it"
       },
       {
+        "key": "ui-kit . WidgetBody",
+        "note": "Removed from the public surface. The host draws a widget at its tile size with its own switch"
+      },
+      {
         "key": "ui-kit . WidgetMeters",
         "note": "Removed. The meters slot is entries typed as Meter props; a widget that offers it maps them to Meter itself, with useContributions"
       },

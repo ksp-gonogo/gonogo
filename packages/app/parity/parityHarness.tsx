@@ -24,7 +24,7 @@ import {
   StubTransport,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render } from "@ksp-gonogo/test-utils";
-import { WidgetBody } from "@ksp-gonogo/ui-kit";
+import { WidgetAtTileSize } from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
 import { listWidgets } from "../../components/scripts/widgets";
 import {
@@ -181,7 +181,7 @@ function WidgetMount({
           manager={{ find: () => null, remove: () => {} }}
           pending={scene.alarms}
         >
-          <WidgetBody
+          <WidgetAtTileSize
             def={def}
             id="parity"
             config={config}

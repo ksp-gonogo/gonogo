@@ -663,7 +663,6 @@ export {
   showsTiny,
   TinyEssentials,
   type TinyEssentialsProps,
-  WidgetBody,
 } from "./TinyEssentials";
 // A row of alternatives is a ToggleButton; a single labelled setting is a Switch.
 export {

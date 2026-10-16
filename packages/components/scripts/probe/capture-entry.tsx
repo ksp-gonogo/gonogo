@@ -35,7 +35,8 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
-import { defaultDarkTheme, WidgetBody } from "@ksp-gonogo/ui-kit";
+import { WidgetAtTileSize } from "@ksp-gonogo/ui";
+import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
@@ -153,7 +154,7 @@ async function renderCapture(payload: CapturePayload): Promise<void> {
             {createElement(
               DashboardItemContext.Provider,
               { value: { instanceId: "capture" } },
-              createElement(WidgetBody, {
+              createElement(WidgetAtTileSize, {
                 def,
                 config: payload.config ?? def.defaultConfig ?? {},
                 id: "capture",

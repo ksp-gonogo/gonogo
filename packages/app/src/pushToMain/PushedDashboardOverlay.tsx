@@ -4,8 +4,8 @@ import {
   ErrorBoundary,
   getComponent,
 } from "@ksp-gonogo/core";
-import { CloseIcon } from "@ksp-gonogo/ui";
-import { Box, Tooltip, WidgetBody } from "@ksp-gonogo/ui-kit";
+import { CloseIcon, WidgetAtTileSize } from "@ksp-gonogo/ui";
+import { Box, Tooltip } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePushedWidgets, usePushHost } from "./PushHostContext";
@@ -193,7 +193,7 @@ function PushedItem({
                   )}
                   title={def.name}
                 >
-                  <WidgetBody
+                  <WidgetAtTileSize
                     def={def}
                     id={placement.widget.widgetInstanceId}
                     config={placement.widget.config}

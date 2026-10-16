@@ -19,7 +19,8 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
-import { defaultDarkTheme, WidgetBody } from "@ksp-gonogo/ui-kit";
+import { WidgetAtTileSize } from "@ksp-gonogo/ui";
+import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
@@ -198,7 +199,7 @@ function Tile({
         {createElement(
           DashboardItemContext.Provider,
           { value: { instanceId: tileId } },
-          createElement(WidgetBody, { def, config, id: tileId, w, h }),
+          createElement(WidgetAtTileSize, { def, config, id: tileId, w, h }),
         )}
       </AlarmsLauncherProvider>,
     ),

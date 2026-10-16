@@ -34,6 +34,7 @@ import {
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { type Meta, splitRawFieldSubtopic } from "@ksp-gonogo/sitrep-sdk";
 import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
+import { WidgetAtTileSize } from "@ksp-gonogo/ui";
 import {
   type BadgeEntry,
   DelayRailProvider,
@@ -43,7 +44,6 @@ import {
   PanelBadgesProvider,
   PanelStatusStoreProvider,
   showsTiny,
-  WidgetBody,
 } from "@ksp-gonogo/ui-kit";
 import { createElement, Fragment } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -558,7 +558,7 @@ async function mountInto(
                 guarded(
                   payload,
                   def,
-                  createElement(WidgetBody, {
+                  createElement(WidgetAtTileSize, {
                     def,
                     config: payload.config ?? def.defaultConfig ?? {},
                     id: instanceId,

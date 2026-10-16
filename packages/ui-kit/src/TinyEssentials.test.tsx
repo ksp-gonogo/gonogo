@@ -9,12 +9,7 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
-import {
-  gridFloor,
-  showsTiny,
-  TinyEssentials,
-  WidgetBody,
-} from "./TinyEssentials";
+import { gridFloor, showsTiny, TinyEssentials } from "./TinyEssentials";
 import { TINY_SIZE } from "./widgetSize";
 
 const held: Reading<Value<"m">> = {
@@ -41,33 +36,11 @@ function widget(tiny?: ComponentDefinition["tiny"]): ComponentDefinition {
   };
 }
 
-describe("WidgetBody", () => {
+describe("showsTiny", () => {
   const tiny = {
     title: "TEST",
     useEssentials: () => ESSENTIALS,
   };
-
-  it("draws the kit's tiny form in the tiny bucket and the body above it", () => {
-    const { unmount } = render(
-      <WidgetBody def={widget(tiny)} id="t" w={4} h={6} />,
-    );
-    expect(screen.getByText("TEST")).toBeInTheDocument();
-    expect(screen.queryByText("the body")).toBeNull();
-    unmount();
-
-    render(<WidgetBody def={widget(tiny)} id="t" w={5} h={4} />);
-    expect(screen.getByText("the body")).toBeInTheDocument();
-  });
-
-  it("draws the body at every size when the widget declares no tiny mode", () => {
-    render(<WidgetBody def={widget()} id="t" w={2} h={2} />);
-    expect(screen.getByText("the body")).toBeInTheDocument();
-  });
-
-  it("draws the body before the grid has measured", () => {
-    render(<WidgetBody def={widget(tiny)} id="t" />);
-    expect(screen.getByText("the body")).toBeInTheDocument();
-  });
 
   it("switches at the widget's minSize, where its own body stops fitting", () => {
     const sized = widget(tiny);
@@ -76,9 +49,6 @@ describe("WidgetBody", () => {
     expect(showsTiny(sized, 3, 5)).toBe(true);
     expect(showsTiny(sized, 6, 4)).toBe(true);
     expect(showsTiny(sized, 4, 5)).toBe(false);
-    render(<WidgetBody def={sized} id="t" w={3} h={3} />);
-    expect(screen.getByText("TEST")).toBeInTheDocument();
-    expect(screen.queryByText("the body")).toBeNull();
   });
 
   it("switches at the tiny bucket's edge when the widget sets no minSize", () => {

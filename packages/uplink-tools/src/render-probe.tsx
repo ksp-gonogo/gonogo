@@ -2,6 +2,8 @@ import type {
   AugmentSettingField,
   ChannelFamily,
   ComponentDefinition,
+  ComponentProps,
+  TinyMode,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   CONTRACT_MAJOR,
@@ -47,8 +49,9 @@ import {
   registerAugment,
   Section,
   setQuantityLocale,
+  showsTiny,
+  TinyEssentials,
   useDomainAvailabilityStore,
-  WidgetBody,
 } from "@ksp-gonogo/ui-kit";
 import { WidgetHost, WidgetHostFor } from "@ksp-gonogo/ui-kit/testing";
 import {
@@ -1375,6 +1378,28 @@ function emitOnto(
   );
 }
 
+/* The widget's tiny form below its minSize, its own component otherwise. */
+function TileContent({
+  def,
+  ...props
+}: ComponentProps & { def: ComponentDefinition }) {
+  if (def.tiny !== undefined && showsTiny(def, props.w, props.h)) {
+    return <TinyForm tiny={def.tiny} props={props} />;
+  }
+  const Widget = def.component;
+  return <Widget {...props} />;
+}
+
+function TinyForm({ tiny, props }: { tiny: TinyMode; props: ComponentProps }) {
+  return (
+    <TinyEssentials
+      title={tiny.title}
+      essentials={tiny.useEssentials(props)}
+      equalRows={tiny.equalRows}
+    />
+  );
+}
+
 function mountWidget(id: string, scene: ScenePayload): ReactNode {
   const def = getComponent(id);
   if (!def) {
@@ -1388,7 +1413,7 @@ function mountWidget(id: string, scene: ScenePayload): ReactNode {
   }
   return (
     <WidgetHost widgetId={def.id} instanceId="probe">
-      <WidgetBody
+      <TileContent
         def={def}
         id="probe"
         config={{ ...(def.defaultConfig ?? {}), ...scene.config }}

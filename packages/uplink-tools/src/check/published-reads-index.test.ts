@@ -154,7 +154,7 @@ describe("what the sdk's index says about its own hooks", () => {
 
   it("leaves the framework's own reads out of the kit's components", () => {
     const { entries } = indexOf("@ksp-gonogo/ui-kit");
-    for (const component of ["Section", "LockScope", "WidgetBody"]) {
+    for (const component of ["Section", "LockScope"]) {
       expect(entries[component].reads).toEqual([]);
     }
   });

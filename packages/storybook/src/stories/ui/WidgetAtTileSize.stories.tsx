@@ -1,12 +1,6 @@
 import type { ComponentDefinition, TinyMode } from "@ksp-gonogo/sitrep-sdk";
-import {
-  Panel,
-  Row,
-  RowName,
-  Section,
-  Unit,
-  WidgetBody,
-} from "@ksp-gonogo/ui-kit";
+import { WidgetAtTileSize } from "@ksp-gonogo/ui";
+import { Panel, Row, RowName, Section, Unit } from "@ksp-gonogo/ui-kit";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
 import { withGonogoFrame } from "../../frame";
@@ -95,16 +89,16 @@ function Tile({
 }
 
 const meta = {
-  title: "ui-kit/WidgetBody",
-  component: WidgetBody,
+  title: "ui/WidgetAtTileSize",
+  component: WidgetAtTileSize,
   decorators: [withGonogoFrame],
   args: { def: DESCENT, id: "descent-1", w: 10, h: 8 },
   render: (args) => (
     <Tile w={args.w ?? 10} h={args.h ?? 8}>
-      <WidgetBody {...args} />
+      <WidgetAtTileSize {...args} />
     </Tile>
   ),
-} satisfies Meta<typeof WidgetBody>;
+} satisfies Meta<typeof WidgetAtTileSize>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

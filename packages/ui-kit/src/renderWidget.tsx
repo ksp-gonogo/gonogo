@@ -1,4 +1,7 @@
-import type { ComponentDefinition } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ComponentDefinition,
+  ComponentProps,
+} from "@ksp-gonogo/sitrep-sdk";
 import { getComponent } from "@ksp-gonogo/sitrep-sdk";
 import { getComponents } from "@ksp-gonogo/sitrep-sdk/registry";
 import {
@@ -14,7 +17,7 @@ import { DelayRailProvider } from "./CommandDelay/DelayRailContext";
 import { ContributionsProvider } from "./contributionsRuntime";
 import { PanelBadgesProvider } from "./PanelBadges";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
-import { WidgetBody } from "./TinyEssentials";
+import { showsTiny, TinyEssentials } from "./TinyEssentials";
 import { useWidgetBadges } from "./useWidgetBadges";
 import { WidgetMetaContext } from "./WidgetMetaContext";
 
@@ -178,6 +181,35 @@ function requireComponent(widgetId: string): ComponentDefinition {
 
 const NOOP = () => {};
 
+/* The widget's tiny form below its minSize, its own component otherwise. */
+function TileContent({
+  def,
+  ...props
+}: ComponentProps & { def: ComponentDefinition }) {
+  if (def.tiny !== undefined && showsTiny(def, props.w, props.h)) {
+    return <TinyForm tiny={def.tiny} props={props} />;
+  }
+  const Widget = def.component;
+  return <Widget {...props} />;
+}
+
+function TinyForm({
+  tiny,
+  props,
+}: {
+  tiny: NonNullable<ComponentDefinition["tiny"]>;
+  props: ComponentProps;
+}) {
+  const essentials = tiny.useEssentials(props);
+  return (
+    <TinyEssentials
+      title={tiny.title}
+      essentials={essentials}
+      equalRows={tiny.equalRows}
+    />
+  );
+}
+
 /**
  * Renders a widget the way the dashboard does: by its registered id, inside the
  * provider stack the dashboard puts around one ({@link WidgetHost}). Useful for
@@ -227,7 +259,7 @@ export function renderWidget(
   } = options;
   return render(
     <WidgetHost widgetId={widgetId} instanceId={instanceId}>
-      <WidgetBody
+      <TileContent
         def={def}
         id={instanceId}
         config={config}

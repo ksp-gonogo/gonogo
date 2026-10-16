@@ -1,9 +1,7 @@
 import type {
   ComponentDefinition,
-  ComponentProps,
   TinyEssential,
   TinyGauge,
-  TinyMode,
   Tone,
   Value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -45,10 +43,10 @@ export interface TinyEssentialsProps {
  * {@link Panel} with `hoverTitle` and `fitToSize`: its short heading over its
  * essential values, the first drawn large and the rest as label and figure
  * rows under it. Useful for keeping the operator's most important figures
- * readable in the smallest tile. Used by {@link WidgetBody}, which shows it in
- * place of a widget's own body when the tile is tiny. A state word stands in a figure's place and
- * is announced through the tile's one polite live region, or, while its
- * essential declares it urgent, through an assertive one that interrupts.
+ * readable in the smallest tile. Used by the dashboard grid in place of a
+ * widget's own body when the tile is tiny. A state word stands in a figure's
+ * place and is announced through the tile's one polite live region, or, while
+ * its essential declares it urgent, through an assertive one that interrupts.
  *
  * Rows are drawn in order while they fit the tile and the ones that do not
  * are dropped from the end, so every figure the tile shows is whole. A dropped
@@ -397,25 +395,6 @@ function urgentWords(essentials: readonly TinyEssential[]): string[] {
 }
 
 /**
- * A registered widget's content at its current size: the kit's tiny form where
- * the widget declares one and the tile is tiny, its own component otherwise.
- * Useful for showing the operator what the dashboard grid shows at a given
- * size. Used by the dashboard grid and the pushed dashboard overlay. The phone layout decides by the phone's width instead of grid units.
- *
- * @category TinyEssentials
- */
-export function WidgetBody({
-  def,
-  ...props
-}: ComponentProps & { def: ComponentDefinition }) {
-  if (def.tiny !== undefined && showsTiny(def, props.w, props.h)) {
-    return <TinyBody tiny={def.tiny} props={props} />;
-  }
-  const Widget = def.component;
-  return <Widget {...props} />;
-}
-
-/**
  * Whether a widget shows its tiny form in a `w` by `h` tile (in grid units):
  * true for a widget with a tiny mode when the tile is narrower or shorter than
  * its `minSize`, where its own body stops fitting, or than {@link TINY_BELOW}
@@ -451,17 +430,6 @@ export function gridFloor(
   def: Pick<ComponentDefinition, "tiny" | "minSize">,
 ): { w: number; h: number } | undefined {
   return def.tiny !== undefined ? TINY_SIZE : def.minSize;
-}
-
-function TinyBody({ tiny, props }: { tiny: TinyMode; props: ComponentProps }) {
-  const essentials = tiny.useEssentials(props);
-  return (
-    <TinyEssentials
-      title={tiny.title}
-      essentials={essentials}
-      equalRows={tiny.equalRows}
-    />
-  );
 }
 
 /* The label comes first for the reader and sits under the figure for the eye. */

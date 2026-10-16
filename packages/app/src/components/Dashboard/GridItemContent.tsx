@@ -11,7 +11,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
 import { TelemetrySubscriberLabel } from "@ksp-gonogo/sitrep-sdk/spine";
-import { GripIcon } from "@ksp-gonogo/ui";
+import { GripIcon, WidgetAtTileSize } from "@ksp-gonogo/ui";
 import {
   AugmentSettingsProvider,
   DelayRailProvider,
@@ -20,7 +20,6 @@ import {
   showsTiny,
   Tooltip,
   useSizeDeltaFor,
-  WidgetBody,
   widgetDrawnFamilies,
   widgetDrawnFields,
   withSizeDelta,
@@ -253,7 +252,7 @@ export const GridItemContent = memo(function GridItemContent({
                             : undefined
                         }
                       >
-                        <WidgetBody
+                        <WidgetAtTileSize
                           def={sizedDef}
                           id={item.i}
                           config={item.config}

@@ -9,7 +9,7 @@ import {
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import type { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render } from "@ksp-gonogo/test-utils";
-import { WidgetBody } from "@ksp-gonogo/ui-kit";
+import { WidgetAtTileSize } from "@ksp-gonogo/ui";
 import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import type React from "react";
 import { Fragment } from "react";
@@ -254,7 +254,7 @@ function SnapshotBody<Config>({
 } & ComponentProps<Config>) {
   const def = getComponents().find((d) => d.component === Widget);
   if (!def) return <Widget {...props} />;
-  return <WidgetBody def={def} {...(props as ComponentProps)} />;
+  return <WidgetAtTileSize def={def} {...(props as ComponentProps)} />;
 }
 
 /** Built once per snapshot render; see {@link buildStreamWrap}. */

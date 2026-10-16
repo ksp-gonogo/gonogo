@@ -6,11 +6,11 @@ import {
   useWidgetBadges,
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
+import { WidgetAtTileSize } from "@ksp-gonogo/ui";
 import {
   defaultDarkTheme,
   PanelBadgesProvider,
   PanelStatusStoreProvider,
-  WidgetBody,
 } from "@ksp-gonogo/ui-kit";
 import { createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -126,7 +126,7 @@ async function renderCommSignalBadgeProbe(
                 createElement(
                   DashboardItemContext.Provider,
                   { value: { instanceId: "probe" } },
-                  createElement(WidgetBody, {
+                  createElement(WidgetAtTileSize, {
                     def,
                     config: def.defaultConfig ?? {},
                     id: "probe",
