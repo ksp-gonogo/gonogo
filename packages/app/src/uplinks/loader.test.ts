@@ -478,7 +478,6 @@ describe("loadEnabledUplinks", () => {
     );
     expect(outcomes[0].status).toBe("quarantined");
     expect(outcomes[0].reason).toMatch(/consent declined/);
-    expect(outcomes[0].skippedByOperator).toBe(true);
     expect(fetchBytes).not.toHaveBeenCalled();
     expect(importBundle).not.toHaveBeenCalled();
   });

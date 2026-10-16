@@ -152,31 +152,6 @@ describe("uplinksCheck", () => {
   });
 });
 
-describe("uplinksCheck: Uplinks the operator skipped", () => {
-  it("passes, naming the skip, when the only unloaded Uplinks were skipped", () => {
-    const entries = [
-      entry({}),
-      entry({ id: "a", state: "skipped" }),
-      entry({ id: "b", state: "skipped" }),
-    ];
-    expect(uplinksCheck({ entries, waitingForMod: false })).toEqual({
-      state: "pass",
-      text: say("uplinks.check.skipped", { installed: 3, skipped: 2 }),
-    });
-  });
-
-  it("still asks for attention when a real failure sits beside a skip", () => {
-    const entries = [
-      entry({ id: "a", state: "skipped" }),
-      entry({ id: "b", state: "quarantined" }),
-    ];
-    expect(uplinksCheck({ entries, waitingForMod: false })).toEqual({
-      state: "attention",
-      text: say("uplinks.check.attention", { installed: 2, attention: 1 }),
-    });
-  });
-});
-
 describe("uplinksCheck: Uplinks that ship no client", () => {
   it("counts a mod-only Uplink as installed but never as needing attention", () => {
     const entries = [

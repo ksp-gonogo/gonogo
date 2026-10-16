@@ -191,8 +191,6 @@ export interface LoaderContext {
 /** A refusal: the loader stops here and quarantines with this reason. */
 class LoadRefusal extends Error {}
 
-const CONSENT_DECLINED = "consent declined";
-
 function refuse(reason: string): never {
   throw new LoadRefusal(reason);
 }
@@ -202,9 +200,6 @@ function refuse(reason: string): never {
  * unlike every other refusal it can be undone by the mod's next roster.
  */
 class HealthRefusal extends LoadRefusal {}
-
-/** The operator answered Skip or Decline at the consent prompt: a choice, not a fault. */
-class ConsentRefusal extends LoadRefusal {}
 
 /**
  * A refusal that is a hash disagreement, carrying the machine-readable record
@@ -935,7 +930,7 @@ async function loadOne(
       const consented = slot
         ? await slot.consent.ask(info)
         : await resolveConsents(ctx)([info]).then(([granted]) => granted);
-      if (!consented) throw new ConsentRefusal(CONSENT_DECLINED);
+      if (!consented) refuse("consent declined");
     }
     // Loads run side by side only as far as consent; from here they take turns, in roster order.
     await slot?.turn;
@@ -1074,7 +1069,6 @@ async function loadOne(
       reason,
       integrity: err instanceof IntegrityRefusal ? err.failure : undefined,
       refusedOnHealth: err instanceof HealthRefusal ? true : undefined,
-      skippedByOperator: err instanceof ConsentRefusal ? true : undefined,
     };
     setUplinkOutcome(outcome);
     logger.warn(`[uplink-loader] ${descriptor.id} quarantined: ${reason}`);
