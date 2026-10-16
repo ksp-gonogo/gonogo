@@ -18,9 +18,10 @@ import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
 import { BundleFetchCache } from "./BundleFetchCache";
+import { type ConnectionPath, readConnectionPath } from "./connectionPath";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
-import { fetchHostIceServers } from "./iceServers";
+import { fetchHostIceServers, STUN_SERVERS, withStun } from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { PeerMessage } from "./protocol";
@@ -381,6 +382,7 @@ type HostEventMap = {
   shareCode: [string];
   reclaiming: [boolean];
   stationInfo: Parameters<StationInfoListener>;
+  stationPaths: [];
   gonogoVote: Parameters<GonogoVoteListener>;
   gonogoAbort: Parameters<GonogoAbortListener>;
   peerConnect: Parameters<PeerLifecycleListener>;
@@ -510,6 +512,14 @@ export class PeerHostService {
    * reads the host's, which is what every connection did before this existed.
    */
   private readonly connVantage = new Map<DataConnection, string>();
+  /**
+   * How each open station connection is carried, read from `getStats()` once
+   * it opens. `path` is null until the browser reports a selected pair.
+   */
+  private readonly stationPaths = new Map<
+    string,
+    { name: string | null; path: ConnectionPath | null }
+  >();
   /** Connections already torn down, so a `close` after an ICE death is a no-op. */
   private readonly droppedConnections = new WeakSet<DataConnection>();
   /**
@@ -677,14 +687,13 @@ export class PeerHostService {
     // to stations for their camera channel: we just don't put it into the
     // host's own data-channel RTCPeerConnection unless escalation has proven
     // the network needs it.
-    const pcConfig: RTCConfiguration = {};
-    if (this.turnEscalated && this.iceServers.length > 0) {
-      pcConfig.iceServers = this.iceServers;
-    }
-    this.peer = new Peer(peerId, {
-      ...peerBrokerOptions(),
-      ...(Object.keys(pcConfig).length > 0 ? { config: pcConfig } : {}),
-    });
+    const pcConfig: RTCConfiguration = {
+      iceServers:
+        this.turnEscalated && this.iceServers.length > 0
+          ? withStun(this.iceServers)
+          : STUN_SERVERS,
+    };
+    this.peer = new Peer(peerId, { ...peerBrokerOptions(), config: pcConfig });
 
     this.peer.on("open", (id) => {
       this.peerId = id;
@@ -748,6 +757,7 @@ export class PeerHostService {
         // pointed at the same teardown `close` runs. Attached here rather than
         // on the `connection` event because the underlying peer connection is
         // only reliably readable once the connection is open.
+        this.trackStationPath(conn);
         attachIceDiagnostics(conn, () => {
           this.dropConnection(conn, "ICE dead");
           // Closed as well as forgotten: a link whose ICE recovers would otherwise keep delivering messages from a station the host has already let go.
@@ -892,7 +902,7 @@ export class PeerHostService {
     if (!this.peer || this.iceServers.length === 0) return;
     const opts: unknown = Reflect.get(this.peer, "_options");
     if (typeof opts === "object" && opts !== null) {
-      Reflect.set(opts, "config", { iceServers: this.iceServers });
+      Reflect.set(opts, "config", { iceServers: withStun(this.iceServers) });
     }
   }
 
@@ -1169,6 +1179,7 @@ export class PeerHostService {
     }
     const wasServed = this.connections.delete(conn);
     this.waiting.delete(conn);
+    if (this.stationPaths.delete(conn.peer)) this.events.emit("stationPaths");
     this.peerIdToStationKey.delete(conn.peer);
     this.connCredential.delete(conn);
     this.setPending(this.pending.filter((p) => p.peerId !== conn.peer));
@@ -1731,6 +1742,11 @@ export class PeerHostService {
         this.peerIdToStationKey.set(conn.peer, msg.stationKey);
       }
       this.raiseIfUnapproved(conn, msg.name);
+      const tracked = this.stationPaths.get(conn.peer);
+      if (tracked && tracked.name !== msg.name) {
+        tracked.name = msg.name;
+        this.events.emit("stationPaths");
+      }
       this.events.emit("stationInfo", conn.peer, {
         name: msg.name,
         version: msg.version,
@@ -2055,6 +2071,36 @@ export class PeerHostService {
     conn.close({ flush: true });
     // Dropped here too, so a page that ignores the close is let go regardless.
     this.dropConnection(conn, "refused");
+  }
+
+  /** Every open station connection with the path it is carried over. */
+  getStationPaths(): Array<{
+    peerId: string;
+    name: string | null;
+    path: ConnectionPath | null;
+  }> {
+    return [...this.stationPaths].map(([peerId, v]) => ({ peerId, ...v }));
+  }
+
+  onStationPathsChange(cb: () => void): () => void {
+    return this.events.on("stationPaths", cb);
+  }
+
+  private trackStationPath(conn: DataConnection): void {
+    const pc = (conn as DataConnection & { peerConnection?: RTCPeerConnection })
+      .peerConnection;
+    this.stationPaths.set(conn.peer, {
+      name: this.stationPaths.get(conn.peer)?.name ?? null,
+      path: null,
+    });
+    this.events.emit("stationPaths");
+    if (!pc) return;
+    void readConnectionPath(pc).then((path) => {
+      const entry = this.stationPaths.get(conn.peer);
+      if (!entry || path === null || this.droppedConnections.has(conn)) return;
+      entry.path = path;
+      this.events.emit("stationPaths");
+    });
   }
 
   onStationInfo(cb: StationInfoListener): () => void {

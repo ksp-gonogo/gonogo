@@ -8,17 +8,31 @@ import { logger } from "@ksp-gonogo/logger";
  * screen) fetches `/ice-config` once on boot to learn the credentials
  * and the public IP coturn is advertising.
  *
- * Stations don't fetch this themselves: their host's relay candidates
- * propagate via the broker's signalling channel, which is enough for
- * one-side turn to bridge any difficult network. We deliberately
- * construct station Peers with no `iceServers` config so a stale or
- * absent local default can't sabotage that path: a default of
- * `turn:localhost:3478` means the phone itself when read on a phone, which
- * costs four useless STUN/TURN timeouts per attempt.
+ * Stations don't fetch this themselves: a station is handed the relay's
+ * server entries by the host once connected. A station Peer starts with the
+ * STUN list alone, never a relay default: `turn:localhost:3478` means the phone
+ * itself when read on a phone, which costs four useless STUN/TURN timeouts
+ * per attempt.
  */
 
 export interface IceConfig {
   iceServers: RTCIceServer[];
+}
+
+/**
+ * Two independent public STUN providers, so one being down does not take the
+ * direct path with it. A STUN server sees each device's public address and
+ * port at join time and carries no other traffic. Peers set this explicitly
+ * because passing any `config` to PeerJS replaces its built-in list.
+ */
+export const STUN_SERVERS: RTCIceServer[] = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun.cloudflare.com:3478" },
+];
+
+/** The STUN list followed by the relay server's entries, STUN never dropped. */
+export function withStun(turnServers: RTCIceServer[]): RTCIceServer[] {
+  return [...STUN_SERVERS, ...turnServers];
 }
 
 const DEFAULT_RELAY_URL = "http://localhost:3002";

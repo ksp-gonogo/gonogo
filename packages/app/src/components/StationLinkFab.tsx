@@ -9,6 +9,10 @@ import { Cluster, Tooltip } from "@ksp-gonogo/ui-kit";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
+import {
+  CONNECTION_PATH_LABEL,
+  type ConnectionPath,
+} from "../peer/connectionPath";
 import { peerHostService } from "../peer/PeerHostService";
 import { probeTurn, type TurnProbeResult } from "../peer/probeTurn";
 import { VERSION } from "../version";
@@ -105,6 +109,7 @@ function StationLinkPanel() {
       </QrRow>
       {addresses.length > 1 && <UrlWhen>The QR code opens {qr.label}</UrlWhen>}
       <TurnStatus />
+      <StationPaths />
       <Hint>
         Scan to open <code>/station</code> on another device, it&apos;ll
         auto-connect to this host. Or copy the link above.
@@ -171,7 +176,37 @@ function RegenerateRow() {
 }
 
 /**
- * Turn reachability badge. Probes the relay's iceServers for a `relay`
+ * One row per connected station with the path its connection actually took
+ * (direct on the same network, direct over the internet, or relayed), read
+ * from the browser's selected candidate pair.
+ */
+function StationPaths() {
+  const [rows, setRows] = useState(() => peerHostService.getStationPaths());
+  useEffect(
+    () =>
+      peerHostService.onStationPathsChange(() =>
+        setRows(peerHostService.getStationPaths()),
+      ),
+    [],
+  );
+  if (rows.length === 0) return null;
+  return (
+    <PathList aria-label="Station connection paths">
+      {rows.map((row) => (
+        <li key={row.peerId}>
+          {row.name ?? row.peerId}: {pathText(row.path)}
+        </li>
+      ))}
+    </PathList>
+  );
+}
+
+function pathText(path: ConnectionPath | null): string {
+  return path ? CONNECTION_PATH_LABEL[path] : "path unknown";
+}
+
+/**
+ * Relay probe badge. Probes the relay's iceServers for a `relay`
  * candidate; surfaces ✅ / 🟡 / ❌ so the operator can tell *before*
  * trying to share the link with a friend whether their relay is
  * actually reachable from outside their network.
@@ -209,9 +244,9 @@ function TurnStatus() {
     state.kind === "ok" ? "go" : state.kind === "fail" ? "nogo" : "info";
   return (
     <StatusIndicator tone={tone} live>
-      {state.kind === "probing" && "Checking TURN reachability..."}
+      {state.kind === "probing" && "Checking relay..."}
       {state.kind === "ok" &&
-        `TURN reachable (${state.result.relayCandidates} relay candidate${
+        `Relay answers on this network (${state.result.relayCandidates} relay candidate${
           state.result.relayCandidates === 1 ? "" : "s"
         })`}
       {state.kind === "fail" && describeProbeFailure(state.result)}
@@ -223,7 +258,7 @@ function describeProbeFailure(
   r: Extract<TurnProbeResult, { ok: false }>,
 ): string {
   if (r.reason === "no-ice-servers") {
-    return "No TURN configured: off-network stations won't be able to connect.";
+    return "No relay configured. Stations connect directly or not at all.";
   }
   if (r.reason === "errored") {
     return "TURN probe errored: see logs (peer:turn-probe).";
@@ -235,6 +270,14 @@ function describeProbeFailure(
   }
   return "TURN unreachable: relay never returned a relay candidate. Check router port-forward for 3478 (TCP and UDP) and UDP 49160-49170.";
 }
+
+const PathList = styled.ul`
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-compact);
+  color: var(--color-text-muted);
+`;
 
 const Wrap = styled.div`
   display: flex;

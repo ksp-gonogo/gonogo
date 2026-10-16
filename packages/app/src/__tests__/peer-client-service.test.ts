@@ -32,7 +32,11 @@ const { FakePeer } = vi.hoisted(() => {
     _lastConnectTarget: string | null = null;
     _options: { config?: { iceServers: RTCIceServer[] } } = {};
 
-    constructor() {
+    constructor(
+      _id?: string,
+      options?: { config?: { iceServers: RTCIceServer[] } },
+    ) {
+      this._options = { config: options?.config };
       FakePeer.instances.push(this);
     }
 
@@ -65,6 +69,7 @@ vi.mock("peerjs", () => ({ default: FakePeer }));
 
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
+import { STUN_SERVERS } from "../peer/iceServers";
 import type { ConnStatus } from "../peer/PeerClientService";
 import { PeerClientService } from "../peer/PeerClientService";
 import type { PeerMessage } from "../peer/protocol";
@@ -1085,7 +1090,7 @@ describe("PeerClientService.sendFlightRpc", () => {
 
 // ---------------------------------------------------------------------------
 // relay-ice-servers: applying iceServers to the station's Peer. The station's
-// Peer has empty iceServers (deliberate, see iceServers.ts) and cannot reach
+// Peer starts on the STUN list alone (see iceServers.ts) and cannot reach
 // the relay's container-bridge ICE candidates on its own, so the host sends
 // its iceServers, and the station mutates its Peer's _options.config so a
 // fresh peer.connect() uses them.
@@ -1109,7 +1114,15 @@ describe("PeerClientService: relay-ice-servers application", () => {
     });
 
     expect(peer._options.config).toBeDefined();
-    expect(peer._options.config?.iceServers).toEqual(turn);
+    expect(peer._options.config?.iceServers).toEqual([
+      ...STUN_SERVERS,
+      ...turn,
+    ]);
+  });
+
+  it("starts on the STUN list with no TURN entry", () => {
+    const { peer } = connectedSvc();
+    expect(peer._options.config?.iceServers).toEqual(STUN_SERVERS);
   });
 
   it("drops iceServers that arrive on a connection the station has torn down", () => {

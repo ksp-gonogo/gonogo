@@ -5,6 +5,7 @@ import type { ConnectProgress } from "@ksp-gonogo/ui";
 import Peer, { type DataConnection } from "peerjs";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
+import { STUN_SERVERS, withStun } from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
@@ -302,18 +303,18 @@ export class PeerClientService {
       entered: { broker: Date.now() },
     };
     this.events.emit("connectProgress", this.connectProgress);
-    // Stations construct their Peer with no ICE config. The host's
-    // relay candidates flow in via the broker as part of the offer's
-    // ICE-candidate exchange: that's enough for one-side TURN to
-    // bridge difficult networks. Configuring local TURN here would
-    // require the station to know the relay's URL, which it doesn't,
-    // and previous defaults (`turn:localhost:3478`) actively broke
-    // mobile clients.
+    // Stations start on the public STUN list alone. TURN is never
+    // configured here: the station does not know the relay's URL, and a
+    // `turn:localhost:3478` default means the phone itself. The host's TURN
+    // entries arrive later as `relay-ice-servers`.
     //
     // `key: "gonogo"` puts the station in our private namespace on the
     // public broker. MUST match PeerHostService, a station with a different
     // key is invisible to the host on the broker even if the ids match.
-    const peer = new Peer(this.stationPeerId, peerBrokerOptions());
+    const peer = new Peer(this.stationPeerId, {
+      ...peerBrokerOptions(),
+      config: { iceServers: STUN_SERVERS },
+    });
     this.peer = peer;
     peer.on("open", () => {
       if (this.peer !== peer) return;
@@ -1373,7 +1374,7 @@ export class PeerClientService {
     if (!this.peer) return;
     const opts: unknown = Reflect.get(this.peer, "_options");
     if (typeof opts === "object" && opts !== null) {
-      Reflect.set(opts, "config", { iceServers });
+      Reflect.set(opts, "config", { iceServers: withStun(iceServers) });
       logger.info(
         `[PeerClient] applied ${iceServers.length} iceServer(s) from the host, future connections on this Peer can now use TURN`,
       );
