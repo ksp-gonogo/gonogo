@@ -26,6 +26,7 @@ import type {
 import type { Reading, ReckonableReading, TopicReading } from "../reading";
 import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { CommandGroupHandle } from "../spine/command-group";
+import { warnIfSlotUnknown } from "../spine/slot-ids";
 import type { UplinkClientConfig } from "../spine/uplink-clients";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
@@ -384,7 +385,13 @@ export const clearAugments = (): void => {
  */
 export const registerAugment = <Slot extends string>(
   def: AugmentDefinition<Slot>,
-): void => getHost().registerAugment(def);
+): void => {
+  const host = getHost();
+  warnIfSlotUnknown("augment", def, def.augments, (message) =>
+    host.logger.warn(message),
+  );
+  host.registerAugment(def);
+};
 
 // Registries that are NOT shims: they live in this package. None of them named
 // anything above this leaf (provider definitions, opaque handles, one payload

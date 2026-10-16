@@ -1,3 +1,4 @@
+import { unknownSlotUses } from "../../slots";
 import type {
   CheckContext,
   ClientScan,
@@ -301,5 +302,23 @@ export const familyUnregisteredRule: Rule = {
       }
     }
     return out;
+  },
+};
+
+export const slotUnknownRule: Rule = {
+  id: "declarations/slot-unknown",
+  group: "declarations",
+  check({ scan }: CheckContext): FixableFinding[] {
+    return unknownSlotUses(scan.slotUses, scan.knownSlots).map(
+      ({ use, message }) => ({
+        rule: "declarations/slot-unknown",
+        severity: "error",
+        file: use.file,
+        line: use.line,
+        message,
+        fixable: false,
+        fix: "Name a slot the installed sdk declares, or declare the slot on the widget that draws it.",
+      }),
+    );
   },
 };

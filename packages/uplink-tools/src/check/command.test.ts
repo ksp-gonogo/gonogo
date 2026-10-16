@@ -278,6 +278,8 @@ describe("runCheck", () => {
     indexMissing: [],
     directives: [],
     augments: [],
+    slotUses: [],
+    knownSlots: [],
     typeErrors: 0,
     sourceFiles: 1,
   };

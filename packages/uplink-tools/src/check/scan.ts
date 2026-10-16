@@ -14,6 +14,7 @@ import {
   type Resolution,
   type Resolver,
 } from "./resolve";
+import { declaredSlots, slotUsesIn } from "./slots";
 import type {
   AugmentReadsMarker,
   AugmentRegistration,
@@ -21,6 +22,7 @@ import type {
   DirectiveRecord,
   IndexMissingRecord,
   Registration,
+  SlotUse,
   WidgetScan,
 } from "./types";
 
@@ -1227,8 +1229,22 @@ export function createScanner(
         .filter((d) => d.category === ts.DiagnosticCategory.Error).length;
     }
 
+    const slotUses: SlotUse[] = [];
+    const clientDeclared: string[] = [];
+    for (const file of program.getSourceFiles()) {
+      if (!isOwnSource(file)) continue;
+      const found = slotUsesIn(ts, file);
+      slotUses.push(...found.uses);
+      clientDeclared.push(...found.declared);
+    }
+    const sdkSlots = declaredSlots(ts, program);
+    const knownSlots =
+      sdkSlots.length > 0 ? [...new Set([...sdkSlots, ...clientDeclared])] : [];
+
     return {
       widgets,
+      slotUses,
+      knownSlots,
       registeredPrefixes,
       indexMissing,
       directives: [...directives.values()].filter(isJudged),

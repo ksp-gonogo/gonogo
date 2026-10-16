@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { UPLINK_BUNDLE_EXTERNALS } from "@ksp-gonogo/sitrep-sdk/uplink-externals";
 import { bakeUplink, findUplinkDir } from "../../../cli/bake";
 import { CheckUnableError } from "../../program";
+import { slotUsesIn, unknownSlotUses } from "../../slots";
 import type { CheckContext, FixableFinding, Rule } from "../../types";
 
 const GROUP = "bake";
@@ -258,4 +259,45 @@ export function bakeRule(build: BuildClient = buildClient): Rule {
   };
 }
 
-export const bakeRules: readonly Rule[] = [bakeRule()];
+/**
+ * Reads the slot ids the built bundle names, which is what the app loads, so a
+ * stale bundle or a slot assembled by the build is judged as well as the source.
+ */
+export function bundleSlotRule(build: BuildClient = buildClient): Rule {
+  return {
+    id: "bake/bundle-slot-unknown",
+    group: GROUP,
+    check({ clientDir, scan, ts }: CheckContext): FixableFinding[] {
+      if (!ts || scan.knownSlots.length === 0) return [];
+      const scratch = mkdtempSync(join(tmpdir(), "uplink-slot-check-"));
+      try {
+        const outFile = join(scratch, "bundle.js");
+        const built = build(clientDir, outFile);
+        // bake/bundle-failed already reports a client that does not build
+        if (!built.ok) return [];
+        const text = readFileSync(outFile, "utf8");
+        const file = ts.createSourceFile(
+          outFile,
+          text,
+          ts.ScriptTarget.Latest,
+          true,
+        );
+        const bundled = slotUsesIn(ts, file);
+        const known = [...scan.knownSlots, ...bundled.declared];
+        return unknownSlotUses(bundled.uses, known).map(({ use, message }) => ({
+          rule: "bake/bundle-slot-unknown",
+          severity: "error",
+          file: join(clientDir, "src", "index.ts"),
+          line: 1,
+          message: `The bundle: ${message}`,
+          fixable: false,
+          fix: "Name a slot the installed sdk declares, rebuild with `uplink-tools bundle`, then run check again.",
+        }));
+      } finally {
+        rmSync(scratch, { recursive: true, force: true });
+      }
+    },
+  };
+}
+
+export const bakeRules: readonly Rule[] = [bakeRule(), bundleSlotRule()];

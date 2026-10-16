@@ -49,6 +49,8 @@ const NO_CLIENT_SCAN: ClientScan = {
   indexMissing: [],
   directives: [],
   augments: [],
+  slotUses: [],
+  knownSlots: [],
   typeErrors: 0,
   sourceFiles: 0,
 };
@@ -134,6 +136,7 @@ export async function check(
         rules: clientless ? RULES.filter((rule) => rule.clientless) : RULES,
         groups: GROUPS,
         clientDir,
+        ts,
         dynamicPrefixes: sdkPrefixes.prefixes,
         dynamicPrefixesProblem: sdkPrefixes.problem,
         scan: () => {

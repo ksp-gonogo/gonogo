@@ -6,6 +6,7 @@ import type {
   NamespacedAugmentSettings,
 } from "../api/types";
 import { assertSizeDelta } from "./size-delta";
+import { warnIfSlotUnknown } from "./slot-ids";
 
 /**
  * The contribution registration seam: the
@@ -70,6 +71,9 @@ export function onContributionsChange(cb: () => void): () => void {
  * the operator needs to see for a vessel. Used by the widgets that fill a slot
  * of their own, such as the space centre facilities and the comm signal badge.
  *
+ * A slot id that no widget draws warns in development, naming the Uplink and
+ * the slots close to it.
+ *
  * An id collision throws at this call, unless the identical definition is
  * registering again, which is ignored.
  */
@@ -105,6 +109,9 @@ export function registerContribution<
     getHost().logger.info(
       `REGISTERED contribution ${def.id} -> ${def.contributes}`,
     );
+  warnIfSlotUnknown("contribution", def, def.contributes, (message) =>
+    hasHost() ? getHost().logger.warn(message) : console.warn(message),
+  );
   s.entries.set(def.id, {
     def: def as unknown as AnyContribution,
     order: s.counter++,

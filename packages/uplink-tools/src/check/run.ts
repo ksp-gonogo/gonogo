@@ -1,5 +1,5 @@
 import { relative } from "node:path";
-import { CheckUnableError } from "./program";
+import { CheckUnableError, type TypeScript } from "./program";
 import type { ClientScan, FixableFinding, Rule } from "./types";
 
 export interface RunOptions {
@@ -7,6 +7,8 @@ export interface RunOptions {
   /** Every group `check` knows, so one with no rule can be reported as unchecked. */
   groups: readonly string[];
   clientDir: string;
+  /** The TypeScript the client is read with. */
+  ts?: TypeScript;
   /** The dynamic prefixes the installed sdk registers by itself. */
   dynamicPrefixes?: readonly string[];
   /** Why `dynamicPrefixes` is empty when it could not be read. */
@@ -73,6 +75,7 @@ export function runCheck(options: RunOptions): RunResult {
       rule.check({
         clientDir: options.clientDir,
         scan,
+        ts: options.ts,
         dynamicPrefixes: options.dynamicPrefixes ?? [],
         dynamicPrefixesProblem: options.dynamicPrefixesProblem,
       }),

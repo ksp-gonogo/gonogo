@@ -15,6 +15,7 @@ import {
   legacyDeclarationRule,
   registrationOpaqueRule,
   requiredUnreadRule,
+  slotUnknownRule,
 } from "./widget-rules";
 
 const GROUP = "declarations";
@@ -119,4 +120,5 @@ export const declarationRules: Rule[] = [
   configReadUndeclaredRule,
   directiveStaleRule,
   familyUnregisteredRule,
+  slotUnknownRule,
 ];

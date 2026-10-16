@@ -1,3 +1,5 @@
+import type { TypeScript } from "./program";
+
 export type Severity = "error" | "warning";
 
 /** One thing a rule found, in the shape `--json` prints. */
@@ -16,6 +18,8 @@ export interface CheckContext {
   /** The client package directory, absolute. */
   clientDir: string;
   scan: ClientScan;
+  /** The TypeScript the client was read with; absent for an Uplink with no client. */
+  ts?: TypeScript;
   /** The dynamic prefixes the installed sdk registers by itself. */
   dynamicPrefixes: readonly string[];
   /** Why `dynamicPrefixes` is empty when the installed sdk's could not be read. */
@@ -102,6 +106,16 @@ export interface AugmentRegistration {
   line: number;
 }
 
+/** A literal slot id a `registerContribution` or `registerAugment` call names. */
+export interface SlotUse {
+  kind: "contribution" | "augment";
+  slot: string;
+  /** The contribution's or augment's id, when it is a literal. */
+  id?: string;
+  file: string;
+  line: number;
+}
+
 export interface WidgetScan {
   registration: Registration;
   reads: ReadRecord[];
@@ -126,6 +140,14 @@ export interface ClientScan {
   indexMissing: IndexMissingRecord[];
   directives: DirectiveRecord[];
   augments: AugmentRegistration[];
+  /** The literal slot ids the client's own source binds. */
+  slotUses: SlotUse[];
+  /**
+   * Every slot id a registration can name: those the sdk declares, those the
+   * client declares for its own widgets, in full. Empty when the sdk's types
+   * could not be read, in which case no slot is judged.
+   */
+  knownSlots: string[];
   /** Type errors in the program, which can hide a read. */
   typeErrors: number;
   /** How many of the client's own source files the scan read. None means it looked in the wrong place. */
