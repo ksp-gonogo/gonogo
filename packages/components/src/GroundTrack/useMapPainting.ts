@@ -55,29 +55,30 @@ interface MapPaintingInputs {
 }
 
 /**
- * The body's texture, loaded once per body and held in a ref so camera changes do not reload it. `textureReady` is true once the load has settled, with or without a picture, so the map paints either way.
+ * The body's texture, loaded once per body so camera changes do not reload it. `textureReady` is true once the load has settled, with or without a picture, so the map paints either way; `textureImage` is the picture, or null when there is none.
  */
 export function useBodyTexture(bodyTexture: string | undefined) {
-  const textureImageRef = useRef<HTMLImageElement | null>(null);
-  const [textureReady, setTextureReady] = useState(false);
+  const [settled, setSettled] = useState<{
+    src: string;
+    image: HTMLImageElement | null;
+  } | null>(null);
 
+  /*
+   * The settled load is one state value naming its own source, never a flag
+   * reset by the effect and set again by `onload`: an image already cached can
+   * settle before React commits the reset, the two updates batch to "no
+   * change", and the map is never repainted with the picture.
+   */
   useEffect(() => {
-    textureImageRef.current = null;
-    setTextureReady(false);
-    if (!bodyTexture) {
-      setTextureReady(true);
-      return;
-    }
+    if (!bodyTexture) return;
     const img = new Image();
     // A load that finishes after the body changed must not install the old body's texture.
     let current = true;
     img.onload = () => {
-      if (!current) return;
-      textureImageRef.current = img;
-      setTextureReady(true);
+      if (current) setSettled({ src: bodyTexture, image: img });
     };
     img.onerror = () => {
-      if (current) setTextureReady(true);
+      if (current) setSettled({ src: bodyTexture, image: null });
     };
     img.src = bodyTexture;
     return () => {
@@ -85,7 +86,12 @@ export function useBodyTexture(bodyTexture: string | undefined) {
     };
   }, [bodyTexture]);
 
-  return { textureImageRef, textureReady };
+  if (!bodyTexture) return { textureImage: null, textureReady: true };
+  const ready = settled?.src === bodyTexture;
+  return {
+    textureImage: ready ? settled.image : null,
+    textureReady: ready,
+  };
 }
 
 /**
@@ -122,7 +128,7 @@ export function useMapPainting({
   const persistentDataRef = useRef<HTMLCanvasElement>(null);
   const predictionRef = useRef<HTMLCanvasElement>(null);
 
-  const { textureImageRef, textureReady } = useBodyTexture(bodyTexture);
+  const { textureImage, textureReady } = useBodyTexture(bodyTexture);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: baseLayers.version bumps when the ground-track.base slot supplies (or withdraws) a canvas; the canvas reference is stable across mutations (tracked via a ref rather than state), so we depend on the version to trigger a redraw
   useEffect(() => {
@@ -150,12 +156,19 @@ export function useMapPainting({
       w,
       h,
       camera,
-      textureImage: textureImageRef.current,
+      textureImage,
       bodyColor,
       suppressVanilla,
       layers,
     });
-  }, [containerSize, camera, textureReady, bodyColor, baseLayers.version]);
+  }, [
+    containerSize,
+    camera,
+    textureReady,
+    textureImage,
+    bodyColor,
+    baseLayers.version,
+  ]);
 
   // The overlay canvas is cleared only: coverage is a paint gate handed to base augments, not a drawn overlay.
   useEffect(() => {

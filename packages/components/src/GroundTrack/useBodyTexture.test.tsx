@@ -6,7 +6,16 @@ class FakeImage {
   static all: FakeImage[] = [];
   onload: (() => void) | null = null;
   onerror: (() => void) | null = null;
-  src = "";
+  /** Settles inside the `src` assignment, as a cached image can before React commits. */
+  static settlesAtOnce = false;
+  #src = "";
+  get src() {
+    return this.#src;
+  }
+  set src(value: string) {
+    this.#src = value;
+    if (FakeImage.settlesAtOnce) this.onload?.();
+  }
   constructor() {
     FakeImage.all.push(this);
   }
@@ -15,6 +24,7 @@ class FakeImage {
 describe("useBodyTexture", () => {
   beforeEach(() => {
     FakeImage.all = [];
+    FakeImage.settlesAtOnce = false;
     vi.stubGlobal("Image", FakeImage);
   });
   afterEach(() => vi.unstubAllGlobals());
@@ -29,12 +39,26 @@ describe("useBodyTexture", () => {
     rerender({ texture: "mun.png" });
     act(() => kerbin.onload?.());
 
-    expect(result.current.textureImageRef.current).toBeNull();
+    expect(result.current.textureImage).toBeNull();
     expect(result.current.textureReady).toBe(false);
 
     const mun = FakeImage.all[1];
     act(() => mun.onload?.());
-    expect(result.current.textureImageRef.current).toBe(mun);
+    expect(result.current.textureImage).toBe(mun);
+    expect(result.current.textureReady).toBe(true);
+  });
+
+  it("paints a texture that loads before the body's own render commits", () => {
+    const { result, rerender } = renderHook(
+      ({ texture }) => useBodyTexture(texture),
+      { initialProps: { texture: undefined as string | undefined } },
+    );
+    expect(result.current.textureReady).toBe(true);
+
+    FakeImage.settlesAtOnce = true;
+    rerender({ texture: "kerbin.png" });
+
+    expect(result.current.textureImage).toBe(FakeImage.all[0]);
     expect(result.current.textureReady).toBe(true);
   });
 });

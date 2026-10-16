@@ -713,18 +713,34 @@ function TrackingStationComponent({
     centredOnCraft: vesselAt,
   });
   /*
-   * The picture opens on the craft's orbit rather than the whole system, once: the first instant there is an orbit to frame, unless the operator has already moved the view. Later telemetry never moves it again; only the two view buttons do.
+   * The picture opens on the craft's orbit rather than the whole system: the first instant there is an orbit to frame, unless the operator has already moved the view. Later telemetry never moves it again; only the two view buttons do.
+   * Until the operator moves it, a change of the diagram's box frames the orbit again. The box is still settling when the first orbit can arrive, and the framing zoom depends on the box, so a zoom kept from a box the diagram no longer has frames the orbit wrongly.
    */
-  const opened = useRef(false);
+  const opening = useRef<{ zoom: number; w: number; h: number } | "closed">();
   const { setView } = panZoom;
   useLayoutEffect(() => {
-    if (opened.current || orbitZoom === null) return;
-    opened.current = true;
-    if (panZoom.zoom !== 1 || panZoom.pan.x !== 0 || panZoom.pan.y !== 0) {
+    const was = opening.current;
+    if (was === "closed" || orbitZoom === null) return;
+    const untouched =
+      panZoom.zoom === (was?.zoom ?? 1) &&
+      panZoom.pan.x === 0 &&
+      panZoom.pan.y === 0;
+    if (!untouched) {
+      opening.current = "closed";
       return;
     }
+    if (was !== undefined && was.w === size.w && was.h === size.h) return;
+    opening.current = { zoom: orbitZoom, w: size.w, h: size.h };
     setView({ zoom: orbitZoom, pan: { x: 0, y: 0 } });
-  }, [orbitZoom, setView, panZoom.zoom, panZoom.pan.x, panZoom.pan.y]);
+  }, [
+    orbitZoom,
+    setView,
+    panZoom.zoom,
+    panZoom.pan.x,
+    panZoom.pan.y,
+    size.w,
+    size.h,
+  ]);
   // Reset view lets go of an anchor as well as the zoom and the centre; Focus vessel also zooms to the craft's orbit.
   const viewControls = useMemo(
     () => ({

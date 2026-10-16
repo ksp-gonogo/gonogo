@@ -191,6 +191,46 @@ function craftOnScreen(container: HTMLElement) {
 
 const resetView = () => screen.queryByRole("button", { name: "Reset view" });
 
+/**
+ * Takes element measuring over for one test: no box is reported until `settle` reports one, to every element being measured, so a test chooses whether the box arrives before or after the orbit.
+ */
+function holdBoxes(): { settle: (w: number, h: number) => void } {
+  const observers: { callback: ResizeObserverCallback; targets: Element[] }[] =
+    [];
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      readonly targets: Element[] = [];
+      constructor(callback: ResizeObserverCallback) {
+        observers.push({ callback, targets: this.targets });
+      }
+      observe(target: Element) {
+        this.targets.push(target);
+      }
+      unobserve() {}
+      disconnect() {
+        this.targets.length = 0;
+      }
+    },
+  );
+  onTestFinished(() => {
+    vi.unstubAllGlobals();
+  });
+  return {
+    settle(w, h) {
+      act(() => {
+        for (const { callback, targets } of observers) {
+          const entries = targets.map(
+            (target) =>
+              ({ target, contentRect: { width: w, height: h } }) as never,
+          );
+          if (entries.length > 0) callback(entries, {} as ResizeObserver);
+        }
+      });
+    },
+  };
+}
+
 describe("TrackingStation opens framed on the craft's orbit", () => {
   it("opens on the craft's orbit when a craft orbits the frame body", async () => {
     const whole = mount({ craft: false });
@@ -254,6 +294,23 @@ describe("TrackingStation opens framed on the craft's orbit", () => {
     expect(craft.x).toBeCloseTo(0.5, 6);
     expect(craft.y).toBeCloseTo(0.5, 6);
     await act(async () => {});
+  });
+
+  it("frames the orbit for the box the diagram settles at, whether the box or the orbit arrives first", async () => {
+    const boxFirst = holdBoxes();
+    const first = mount({ craft: false });
+    boxFirst.settle(160, 120);
+    emitCraft(first.fixture, { index: KERBIN_INDEX, mu: KERBIN_MU }, LOW_ORBIT);
+    await waitFor(() => expect(resetView()).not.toBeNull());
+    const framedForBox = pictureWidth(first.view.container);
+    first.view.unmount();
+
+    const orbitFirst = holdBoxes();
+    const second = mount();
+    await waitFor(() => expect(resetView()).not.toBeNull());
+    orbitFirst.settle(160, 120);
+    await act(async () => {});
+    expect(pictureWidth(second.view.container)).toBeCloseTo(framedForBox, 6);
   });
 
   it("does not move a view the operator has moved when the orbit arrives later", async () => {
