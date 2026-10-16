@@ -162,13 +162,13 @@ namespace Gonogo.KSP.CurrencyDelay
         /// </summary>
         /// <summary>
         /// Whether a change waits for home to hear of its craft rather than for a
-        /// number of seconds: a reputation change from a craft with no route
+        /// number of seconds: a reputation or funds change from a craft with no route
         /// home, while delay is modelled. Home hears of the craft when contact
         /// returns, when it knows the craft has gone, or when it declares the
         /// craft lost.
         /// </summary>
         private static bool HoldsForHome(KscDelay delay, CurrencyKind currency, Sitrep.Host.Comms.SignalDelayConfig config) =>
-            KscDelayPolicy.Enabled(config) && delay.IsUnroutable && currency == CurrencyKind.Reputation;
+            KscDelayPolicy.Enabled(config) && delay.IsUnroutable && (currency == CurrencyKind.Reputation || currency == CurrencyKind.Funds);
 
         /// <param name="heldSinceUt">For a credit already held until home hears of its craft (science earned with no route home), the instant it is held since.</param>
         public static StockCurrencyCredit? BuildCredit(
