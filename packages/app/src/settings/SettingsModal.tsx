@@ -11,9 +11,9 @@ import {
 import { SettingsPersistenceState } from "@ksp-gonogo/sitrep-sdk";
 import { Switch, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
 import { Button, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import styled from "styled-components";
-import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
+import { useAnalyticsConsent } from "../analytics/useAnalyticsConsent";
 import { BackupManager } from "../backup/BackupManager";
 import { say } from "../firstRun/copy";
 import { LogsManager } from "../logs/LogsManager";
@@ -288,10 +288,7 @@ function GeneralSettings({
  * registry's `gonogo.settings` store would split the source of truth.
  */
 function AnalyticsConsentRow() {
-  const enabled = useSyncExternalStore(
-    (cb) => analyticsConsentService.subscribe(cb),
-    () => analyticsConsentService.isEnabled(),
-  );
+  const [enabled, setEnabled] = useAnalyticsConsent();
   return (
     <SettingLine>
       <RowText>
@@ -303,9 +300,7 @@ function AnalyticsConsentRow() {
       </RowText>
       <Switch
         checked={enabled}
-        onChange={(next) =>
-          analyticsConsentService.set(next ? "enabled" : "disabled")
-        }
+        onChange={setEnabled}
         aria-label="Send technical analytics"
       />
     </SettingLine>
