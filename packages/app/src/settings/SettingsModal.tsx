@@ -317,10 +317,11 @@ const Wrap = styled.div`
   display: flex;
   flex-direction: column;
   /* Give the tab system a workable box: wide enough for the embedded
-     Connection / Devices / Diagnostics panels, and a height so a tall
-     panel scrolls within the modal rather than stretching it unbounded. */
+     Connection / Devices / Diagnostics panels, and a minimum height so
+     tabs of different length do not resize the modal. The wrapper grows
+     with a tall tab and the modal body scrolls, which keeps the body's
+     bottom padding under the last element of every tab. */
   min-width: 460px;
   max-width: 80vw;
-  height: min(70vh, 640px);
-  min-height: 0;
+  min-height: min(70vh, 640px);
 `;
