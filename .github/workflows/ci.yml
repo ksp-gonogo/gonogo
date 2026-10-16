@@ -1166,23 +1166,10 @@ jobs:
   # packages/components/visual-baselines/<engine>/. Its own matrix job with no
   # `needs`, so all three legs run concurrently with `test` and `e2e`, wall
   # time stays ≈ one engine's run. Baselines are Linux-generated (see the
-  # update-baselines workflow); on drift the baseline/actual/diff PNGs upload
-  # as an artifact.
+  # update-baselines workflow); on drift the job fails and the
+  # baseline/actual/diff PNGs upload as an artifact.
   visual:
     runs-on: ubuntu-latest
-    # DISABLED: this job does not run. Delete the `if` below to restore it
-    # before merging to main: the baselines are the only check on cross-engine
-    # rasterisation, and merging without them ships whole-suite drift nobody
-    # reviewed. A job that stays red pending a re-baseline trains readers to
-    # skim the job list and assume a red run is the known red.
-    if: false
-    # AMBER, not silenced. The gate is red pending a whole-suite re-baseline,
-    # and while that red counted towards the run conclusion it made every other
-    # job's red invisible. `continue-on-error`
-    # keeps the job running and its findings readable while letting a real
-    # failure elsewhere decide the run. "Baselines drifted" is amber here;
-    # "the harness cannot render at all" is red in `test`, from probe-render-smoke.
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
