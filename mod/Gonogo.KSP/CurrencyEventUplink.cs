@@ -212,8 +212,8 @@ namespace Gonogo.KSP
                 return;
             }
 
-            CurrencyDelay.DerivedCurrencyWithholding.Report = message => Debug.LogWarning(message);
-            CurrencyDelay.DerivedCurrencyWithholding.Note = message => Debug.Log(message);
+            CurrencyDelay.DerivedCurrencyWithholding.Report = message => GonogoLog.Warn("derived-currency", message);
+            CurrencyDelay.DerivedCurrencyWithholding.Note = message => GonogoLog.Info("derived-currency", message);
             CurrencyDelay.DerivedCurrencyWithholding.Bind(host.Kernel, reason);
         }
 

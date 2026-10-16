@@ -210,7 +210,7 @@ namespace Gonogo.KSP
             {
                 _listStood = stands;
                 // Each change is logged, so a list that stays unread shows in the log with the counts that kept it so.
-                Debug.Log("[Gonogo] vessel list " + (stands ? "stands" : "not standing") + " in " + HighLogic.LoadedScene
+                GonogoLog.Info("contact-plan", "vessel list " + (stands ? "stands" : "not standing") + " in " + HighLogic.LoadedScene
                     + ": lists " + vessels.Count + ", the game's own state holds " + (inGameState?.ToString() ?? "none")
                     + ", flight ready " + FlightGlobals.ready);
             }
