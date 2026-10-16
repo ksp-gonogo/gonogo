@@ -86,12 +86,11 @@ public class Meta
     /// <summary>
     /// When the payload was true in the game, in seconds of KSP universal time,
     /// the same base every <c>*Ut</c> field on every payload uses. This is the
-    /// instant a reading is "as of", and the one a client compares against its
-    /// view time to decide currency.
-    ///
-    /// <para>A plain number in the TypeScript type, not a <c>Value</c> wrapper;
-    /// its unit is still <c>"ut"</c>.</para>
+    /// instant a reading is "as of", and the one a client compares against the
+    /// current UT to decide currency.
     /// <internal>
+    /// A plain number in the TypeScript type, not a <c>Value</c> wrapper; its
+    /// unit is still <c>"ut"</c>.
     /// The unit reaches a client through <c>units.json</c> rather than the
     /// emitted type: the <c>Value&lt;"ut"&gt;</c> retyping pass runs over wire
     /// payload types only, so this stays a bare number in <c>contract.ts</c>, as
@@ -111,8 +110,10 @@ public class Meta
     /// When the mod handed the message to the transport, in the same universal
     /// time seconds as <see cref="ValidAt"/>. The two differ by the signal delay
     /// the vantage is under, so subtracting one from the other is how old the
-    /// payload was when it arrived, and they are equal on a zero-delay link. A
-    /// plain number in the TypeScript type, as <see cref="ValidAt"/> is.
+    /// payload was when it arrived, and they are equal on a zero-delay link.
+    /// <internal>
+    /// A plain number in the TypeScript type, as <see cref="ValidAt"/> is.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double DeliveredAt { get; set; }

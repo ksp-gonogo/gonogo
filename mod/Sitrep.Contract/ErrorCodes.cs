@@ -140,10 +140,10 @@ public enum FaultOrigin
 /// faults.</para>
 ///
 /// <para>A command that was sent and never answered is neither a refusal nor
-/// one of these: its <c>send</c> rejects with the client's own <c>E_LOST</c>
-/// marker, which the SDK's <c>classifyCommandRejection</c> function reports as
-/// <c>lost</c>.</para>
+/// one of these: no answer ever comes.</para>
 /// <internal>
+/// In the SDK its <c>send</c> rejects with the client's own <c>E_LOST</c>
+/// marker, which <c>classifyCommandRejection</c> reports as <c>lost</c>.
 /// A handler that throws becomes <see cref="CommandUnavailable"/>, and one that
 /// throws a <see cref="CommandFaultException"/> raises a specific fault and
 /// leaves its command available.

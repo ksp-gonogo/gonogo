@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>trackingStation.bodies</c> Topic payload: every celestial body in the
+/// Every celestial body in the
 /// game, as a tree, wrapped as <c>{ "bodies": [ ... ] }</c>. The whole payload
 /// is <c>null</c>, not an empty list, when no sample has been taken yet, so
 /// "no data yet" and "zero bodies" stay distinct.
@@ -372,7 +372,7 @@ public class OrbitEntry
 }
 
 /// <summary>
-/// The <c>trackingStation.catalog</c> Topic payload: every object the
+/// Every object the
 /// receiving command centre knows of, craft and tracked space objects alike,
 /// one entry each, wrapped as <c>{ "entries": [ ... ] }</c>. Like
 /// <see cref="SystemBodies"/>, it carries no per-payload <c>Meta</c>: that
@@ -388,8 +388,9 @@ public class OrbitEntry
 /// at light speed, through no relay, so a burn far away shows here after the
 /// distance between the craft and this centre and no sooner. An object with
 /// no radio at all (debris, an asteroid, a flag, a crewed craft with no
-/// antenna) is known this way only: it is listed once its light has arrived,
-/// with its name and kind, and leaves when the light of its going has.</para>
+/// antenna) is known this way only: it is listed, with its name and kind, once
+/// light from it has had time to reach this centre, and removed the same delay
+/// after it is gone.</para>
 ///
 /// <para><b>By radio: everything else.</b> A craft's crew and its link are its
 /// own to say, and arrive over its radio's route at that route's signal delay.
@@ -559,7 +560,7 @@ public class CatalogEntry
     [SitrepUnit(Units.Enumeration)]
     public Situation Situation { get; set; }
 
-    /// <summary>Index into <see cref="SystemBodies"/> of this vessel's main body; null when absent or unresolved.</summary>
+    /// <summary>Index of this vessel's main body among the bodies <c>trackingStation.bodies</c> lists; null when absent or unresolved.</summary>
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 
@@ -662,6 +663,12 @@ public class CatalogEntry
     /// Whether this centre is in contact with the craft, as this centre knows
     /// it. Null where no word of any route to the craft has ever reached this
     /// centre, which is always the case for an object with no radio.
+    ///
+    /// <para>This is the field that answers "is this centre in contact":
+    /// <c>InContact</c> means the craft's signal reaches this centre now.
+    /// <see cref="CommsConnected"/> answers a different question, whether the
+    /// craft has a control link home at all, which it can have while this
+    /// centre is out of its reach.</para>
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public CatalogContact? Contact { get; set; }
@@ -736,7 +743,7 @@ public class CatalogEntry
 }
 
 /// <summary>
-/// <c>trackingStation.catalog.dismiss</c>'s args: take a destroyed craft off
+/// Take a destroyed craft off
 /// the catalog of the command centre the command is sent from. Every other
 /// centre keeps listing it until it is dismissed there. A craft that centre
 /// knows of no end for stays listed, so a dismissal sent before the news has

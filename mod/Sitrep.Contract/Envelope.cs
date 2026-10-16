@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One Topic sample as the server sends it: the Topic id, its payload, and
+/// One Topic sample as the mod sends it: the Topic id, its payload, and
 /// the envelope <see cref="Meta"/> saying when the payload was true and when
 /// it arrived.
 /// </summary>
@@ -42,9 +42,9 @@ public class StreamData<T>
 /// <list type="bullet">
 /// <item><c>subscribed</c> confirms a <c>subscribe</c>, once per subscribe. Wait
 /// for it rather than for the first <c>stream-data</c>: a channel with nothing to
-/// say yet sends the confirmation and then nothing. A <c>subscribe</c> naming a
-/// Topic nothing owns gets no reply at all, not an error, so a missing
-/// confirmation is how a client learns the Topic is unowned</item>
+/// say yet sends the confirmation and then nothing. A <c>subscribe</c> to a
+/// channel nothing declares is answered with an <c>error</c> frame carrying
+/// <c>unknownTopic</c> and the topic instead</item>
 /// <item><c>timeline-reset</c> says the game quickloaded and time went backwards.
 /// It is sent for every Topic the connection holds, and anything built from
 /// frames before it should be discarded</item>
@@ -111,18 +111,18 @@ public class CommandRequest<TArgs>
     public string Command { get; set; } = "";
 
     /// <summary>
-    /// A display label the caller chooses for this dispatch, carried verbatim
-    /// into the matching <see cref="PendingUplink.Label"/> on
-    /// <c>system.uplink.pending</c>. When empty, show <see cref="Command"/>
-    /// instead. The mod never reads or parses it.
+    /// Any text: the mod shows it back, unchanged, beside this command on
+    /// <c>system.uplink.pending</c>, and never reads it otherwise. Send the
+    /// command id if there is nothing better. When empty, show
+    /// <see cref="Command"/> instead.
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string Label { get; set; } = "";
 
     /// <summary>
-    /// A Topic the caller associates with this dispatch, carried verbatim into
-    /// the matching <see cref="PendingUplink.Topic"/> on
-    /// <c>system.uplink.pending</c>. The mod never reads or parses it.
+    /// A channel to show beside this command on <c>system.uplink.pending</c>,
+    /// unchanged; the mod never reads it otherwise. Send <c>""</c> if there is
+    /// none.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
@@ -158,14 +158,13 @@ public class CommandRequest<TArgs>
     public TArgs Args { get; set; } = default!;
 
     /// <summary>
-    /// When the client dispatched, in UT seconds (KSP universal time), the same
-    /// base as <see cref="Meta.ValidAt"/>. A bare number in the TypeScript type,
-    /// like every envelope field; its unit is declared in the SDK's units map.
+    /// When the client sent the command, in UT seconds (KSP universal time), the
+    /// same base as <see cref="Meta.ValidAt"/>. Send 0 if you do not need it.
     ///
-    /// <para>Gonogo's own clients send 0. The server stamps the response's
-    /// <see cref="Meta.DeliveredAt"/> off its own clock, so a caller wanting a
-    /// round-trip measures against its own view time rather than reading this
-    /// back. The field is carried onto the response's
+    /// <para>The mod stamps the response's
+    /// <see cref="Meta.DeliveredAt"/> off its own clock, so a caller timing a
+    /// round trip measures against its own clock rather than reading this back.
+    /// The field is carried onto the response's
     /// <see cref="Meta.ValidAt"/>, which therefore reads 0 on a command response
     /// unless the client fills this in.</para>
     /// <internal>
@@ -251,7 +250,7 @@ public class ClaimRequest
 }
 
 /// <summary>
-/// The server's reply to a <see cref="CommandRequest{TArgs}"/>, matched to it
+/// The mod's reply to a <see cref="CommandRequest{TArgs}"/>, matched to it
 /// by <see cref="RequestId"/>.
 /// </summary>
 /// <category>Stream messages</category>
@@ -286,8 +285,8 @@ public class CommandResponse<TResult>
 /// when to expect a reply, never that anything executed.
 ///
 /// <para>A client cannot work this out for itself. The delay depends on the
-/// node the command is addressed to, which Gonogo resolves from the command's
-/// declared subject, and on the command centre it was sent from. A loss
+/// craft or place the command is for, and on the command centre it was sent
+/// from. A loss
 /// deadline sized from the delay a client can see (the active craft's) is
 /// wrong for a command addressed to any other node.</para>
 ///
@@ -297,8 +296,8 @@ public class CommandResponse<TResult>
 /// <c>system.uplink.pending</c> carry an id Gonogo assigns instead, since two
 /// clients can choose the same request id.</para>
 ///
-/// <para>Absent for a dispatch that never rides signal delay (a
-/// <c>TrueNow</c> command, or a live delay resolving to zero), because there is
+/// <para>Absent for a command that never waits on the signal delay (one that
+/// takes effect when sent, or one whose delay is zero), because there is
 /// no flight to wait out. Absent also for a refusal, which sends an
 /// <see cref="ErrorMsg"/> instead. A client must therefore treat "no acceptance
 /// yet" as ordinary rather than as an error.</para>
@@ -412,7 +411,7 @@ public class ErrorMsg
 }
 
 /// <summary>
-/// Asks the server to start sending a Topic to this connection.
+/// Asks the mod to start sending a Topic to this connection.
 /// </summary>
 /// <category>Stream messages</category>
 [SitrepContract]
@@ -433,7 +432,7 @@ public class Subscribe
 }
 
 /// <summary>
-/// Asks the server to stop sending a Topic to this connection.
+/// Asks the mod to stop sending a Topic to this connection.
 /// </summary>
 /// <category>Stream messages</category>
 [SitrepContract]
@@ -454,13 +453,12 @@ public class Unsubscribe
 }
 
 /// <summary>
-/// Client-to-server: select the command centre this connection commands from and
-/// observes at. It sets both where the connection's telemetry is observed from
+/// Selects the command centre this connection commands from and observes at. It sets both where the connection's telemetry is observed from
 /// and where its commands are sent from. The id must name a currently-active command
 /// centre, or the request is refused with an <c>unknownVantage</c> error and the
 /// connection keeps the vantage it had.
 ///
-/// <para>A connection that has never sent one observes at the home command (the
+/// <para>A connection that has never sent one observes at the home command centre (the
 /// roster entry whose <c>isHome</c> is true), and follows it if home moves. When
 /// no home is identified it observes at the first ground station in ordinal id
 /// order, and while no command centre is active at all (the main menu) at none,
@@ -488,15 +486,14 @@ public class SetVantage
 }
 
 /// <summary>
-/// Server-to-client: the first frame on every connection, sent before
-/// anything is asked for. <see cref="BootId"/> names the run of the mod the
+/// The first frame on every connection, sent before anything is asked for. <see cref="BootId"/> names the run of the mod the
 /// connection has reached.
 ///
 /// <para>A client that reconnects and reads the id it read before has reached
 /// the same run: every <c>meta.timelineEpoch</c> it remembers still counts on
 /// from where it was, and only the connection's own state has to be set up
 /// again, which is each subscription and, where one was chosen, the vantage
-/// (see <see cref="SetVantage"/>: a new connection starts at the home command
+/// (see <see cref="SetVantage"/>: a new connection starts at the home command centre
 /// whatever the last one chose). A different id is another run, whose epochs
 /// count from zero, so nothing remembered of the old one can be compared with
 /// it.</para>
@@ -552,8 +549,7 @@ public class Hello
 }
 
 /// <summary>
-/// Server-to-client: what the game is doing, sent on its own and not through
-/// any topic. Sent straight after <see cref="Hello"/> on every connection that
+/// What the game is doing, sent on its own and not through any topic. Sent straight after <see cref="Hello"/> on every connection that
 /// has anything to learn, and again at every change.
 ///
 /// <para>It is not delayed by signal delay at any command centre: a load is a
@@ -617,8 +613,8 @@ public class GameState
 }
 
 /// <summary>
-/// Client-to-server: asks for a <see cref="Pong"/>, to tell a connection that
-/// is quiet from one that is dead. A subscribed connection can be silent for
+/// Asks for a <see cref="Pong"/>, to tell a connection that is quiet from one
+/// that is dead. A subscribed connection can be silent for
 /// as long as nothing it subscribed to changes, so silence alone says nothing;
 /// a ping that goes unanswered does. It is replied to at once and in every
 /// scene, changes nothing, and needs no subscription.
@@ -646,7 +642,7 @@ public class Ping
     public string Nonce { get; set; } = "";
 }
 
-/// <summary>Server-to-client: the answer to a <see cref="Ping"/>.</summary>
+/// <summary>The answer to a <see cref="Ping"/>.</summary>
 /// <category>Stream messages</category>
 [SitrepContract]
 #if SITREP_CODEGEN

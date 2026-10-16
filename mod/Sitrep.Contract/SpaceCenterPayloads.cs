@@ -50,7 +50,7 @@ public class LaunchSiteEntry
     [SitrepUnit(Units.Text)]
     public string? EditorFacility { get; set; }
 
-    /// <summary>Index into <see cref="SystemBodies"/> of the body this site sits on; null when absent or unresolved (never a sentinel like -1).</summary>
+    /// <summary>Index of the body this site sits on among the bodies <c>trackingStation.bodies</c> lists; null when absent or unresolved (never a sentinel like -1).</summary>
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 
@@ -76,7 +76,7 @@ public class LaunchSiteEntry
 }
 
 /// <summary>
-/// The <c>spaceCenter.scene</c> Topic payload: the single current KSP game
+/// The single current KSP game
 /// scene. <see cref="Scene"/> carries exactly one of the six strings
 /// <c>{"Flight","SpaceCenter","Editor","TrackingStation","MainMenu","Other"}</c>:
 /// KSP's <c>GameScenes</c> enum folded onto that fixed set, with any scene
@@ -86,7 +86,7 @@ public class LaunchSiteEntry
 /// <para>An object holding the scene and, in the editor, the launch site
 /// picked there. The whole payload is <c>null</c> when no sample has arrived
 /// yet. Its <c>meta</c> is on the
-/// envelope. Never delayed (<see cref="DelayRole.TrueNow"/>): it is a fact
+/// envelope. Never delayed: it is a fact
 /// about the game, not a craft.</para>
 /// <internal>
 /// Produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildScene</c>;
@@ -207,7 +207,7 @@ public class CrewRosterEntry
 
     /// <summary>
     /// When the kerbal's unavailability lapses, as universal time: the rest
-    /// period's end for <c>Resting</c>, or whatever end the elected backend
+    /// period's end for <c>Resting</c>, or whatever end the crew mod in use
     /// quotes. Absent when there is no scheduled end, which is most of the
     /// time.
     ///
@@ -376,7 +376,7 @@ public class SavedShipEntry
 }
 
 /// <summary>
-/// The <c>spaceCenter.partsAvailable</c> Topic payload: a wrapper carrying
+/// A wrapper carrying
 /// the count of parts the player can place right now (tech-unlocked and
 /// purchased in career; the full <c>PartLoader</c> catalogue in sandbox).
 ///
@@ -402,7 +402,7 @@ public class SpaceCenterPartsAvailable
 }
 
 /// <summary>
-/// The <c>spaceCenter.astronautComplex</c> Topic payload: the Astronaut
+/// The Astronaut
 /// Complex hire tab, the rolling pool of applicants the operator can recruit,
 /// plus the roster-cap context a hire is gated on.
 ///
@@ -483,7 +483,7 @@ public class SpaceCenterPoiEntry
     [SitrepUnit(Units.Id)]
     public string? Kind { get; set; }
 
-    /// <summary>Index into <see cref="SystemBodies"/>; null when absent or unresolved (never a sentinel like -1).</summary>
+    /// <summary>Index of the body among the bodies <c>trackingStation.bodies</c> lists; null when absent or unresolved (never a sentinel like -1).</summary>
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 

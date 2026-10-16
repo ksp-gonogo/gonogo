@@ -70,7 +70,7 @@ public class MissionObjectiveEntry
 }
 
 /// <summary>
-/// The <c>missions.active</c> Topic payload: the Making History mission
+/// The Making History mission
 /// that is running, or has just ended, in the current game. The whole payload
 /// is <c>null</c> when there is no mission game, when no mission has been set
 /// up, or when the expansion is not installed. The <c>game.dlc</c> Topic

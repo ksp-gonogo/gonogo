@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.flight</c> Topic payload: quantities the game measures,
+/// Quantities the game measures,
 /// either because they cannot be derived from orbital elements (terrain
 /// height, aerodynamic state) or because they are the measured value to check
 /// a prediction against (speeds). One field per quantity.
@@ -63,11 +63,19 @@ public class VesselFlight
     [SitrepUnit(Units.MetresPerSecond)]
     public double VerticalSpeed { get; set; }
 
-    /// <summary>Speed relative to the surface, metres per second (KSP's <c>Vessel.srfSpeed</c>).</summary>
+    /// <summary>
+    /// Speed relative to the ground beneath the vessel, which turns with the
+    /// body, metres per second (KSP's <c>Vessel.srfSpeed</c>). It can be higher
+    /// than <see cref="OrbitalSpeed"/>: far above the synchronous altitude a
+    /// craft in a prograde orbit moves more slowly than the ground below it turns.
+    /// </summary>
     [SitrepUnit(Units.MetresPerSecond)]
     public double SurfaceSpeed { get; set; }
 
-    /// <summary>Speed relative to the parent body's inertial frame, metres per second (KSP's <c>Vessel.obt_speed</c>).</summary>
+    /// <summary>
+    /// Speed relative to the parent body's centre, ignoring its rotation, metres
+    /// per second (KSP's <c>Vessel.obt_speed</c>). This is the speed of the orbit.
+    /// </summary>
     [SitrepUnit(Units.MetresPerSecond)]
     // The vis-viva speed falls out of the elements and mu alone. No body radius, so trackingStation.bodies
     // is NOT declared: an input a model does not use is a false promise the gate cannot catch.

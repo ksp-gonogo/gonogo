@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.structure</c> Topic payload: the active vessel's stage
+/// The active vessel's stage
 /// and part counts. Absent when there is no active vessel.
 ///
 /// <para><see cref="CurrentStage"/> uses KSP's own staging numbering

@@ -7,8 +7,8 @@ namespace Sitrep.Contract;
 /// <summary>
 /// Deploy or transmit a science experiment on a part. Args shared by every science-experiment actuation command
 /// (<c>science.experiment.deploy</c> and <c>science.experiment.transmit</c>):
-/// the experiment is named by <see cref="PartId"/>, the part's
-/// <c>flightID.ToString()</c>, the same id <c>science.instruments</c> carries
+/// the experiment is named by <see cref="PartId"/>, the part's flight id as a
+/// string, the same id <c>science.instruments</c> carries
 /// on each experiment entry. It is looked up among the active vessel's parts,
 /// never by array index. An empty or unknown <see cref="PartId"/> fails with
 /// <see cref="CommandErrorCode.NotFound"/>.
@@ -23,7 +23,7 @@ namespace Sitrep.Contract;
 public class ExperimentActionArgs
 {
     /// <summary>
-    /// The experiment's part, as <c>Part.flightID.ToString()</c>: the same id
+    /// The experiment's part, as its flight id in a string: the same id
     /// <c>science.instruments</c> keys its entries by. Resolved against the
     /// active vessel's parts; empty or unknown yields
     /// <see cref="CommandErrorCode.NotFound"/>.

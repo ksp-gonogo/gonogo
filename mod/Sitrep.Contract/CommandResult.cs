@@ -325,10 +325,13 @@ public static class CommandErrorCode
 public class CommandResult
 {
     /// <summary>
-    /// Whether the command ran. False means the game refused it. Code that sends
-    /// through the SDK's <c>useCommand</c> never sees false: the client turns a
-    /// refusal into a rejected <c>send</c>, so it writes a <c>catch</c> rather
-    /// than checking this.
+    /// Whether the command ran. False means the game refused it, and
+    /// <see cref="ErrorCode"/> says why.
+    /// <internal>
+    /// Code that sends through the SDK's <c>useCommand</c> never sees false: the
+    /// client turns a refusal into a rejected <c>send</c>, so it writes a
+    /// <c>catch</c> rather than checking this.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool Success { get; set; } = true;
@@ -346,8 +349,8 @@ public class CommandResult
     public RefusalCode? ErrorCode { get; set; }
 
     /// <summary>
-    /// The refinement's id, when the refusal is more specific than its root:
-    /// <c>example.notManaging</c> under <c>careerModeRequired</c>. Absent when the
+    /// The id of the more specific refusal, when there is one, such as
+    /// <c>example.notManaging</c>, a kind of <c>careerModeRequired</c>. Absent when the
     /// refusal is a root. An id this client does not know is still a refusal
     /// of kind <see cref="ErrorCode"/>.
     /// </summary>
@@ -360,8 +363,8 @@ public class CommandResult
     /// count, the tier and the top tier, the price and the balance. Null on
     /// success and on every refusal that is not a comparison.
     ///
-    /// <para><see cref="ErrorCode"/> picks the sentence and this fills in its
-    /// numbers, as in "16 of 16 active crew".</para>
+    /// <para><see cref="ErrorCode"/> says which refusal it is and this holds
+    /// its numbers, as in "16 of 16 active crew".</para>
     ///
     /// <para>The same <see cref="LimitBreach"/> shape a declared gate carries on
     /// <see cref="GateVerdict.Breach"/>, so a refusal reads the same whether it

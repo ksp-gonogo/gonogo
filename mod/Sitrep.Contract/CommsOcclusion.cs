@@ -153,7 +153,7 @@ public static class CommsOcclusionModels
 }
 
 /// <summary>
-/// One body's occlusion geometry, as resolved by the elected model.
+/// One body's occlusion geometry, as the comms model in use resolves it.
 /// <see cref="Index"/> matches <c>BodyEntry.Index</c> on <c>trackingStation.bodies</c>
 /// (both are <c>CelestialBody.flightGlobalsIndex</c>), so a consumer joins the
 /// two without name-matching.
@@ -197,7 +197,7 @@ public class CommsOcclusionBody
     [SitrepUnit(Units.Flag)]
     public bool HasAtmosphere { get; set; }
 
-    /// <summary>What the elected backend treats as blocking a radio path through this body.</summary>
+    /// <summary>What the comms model in use treats as blocking a radio path through this body.</summary>
     [SitrepUnit(Units.Metres)]
     public double OccludingRadiusMeters { get; set; }
 }
@@ -208,8 +208,8 @@ public class CommsOcclusionBody
 /// radius. Always present, and read from the comms mod in force.
 ///
 /// <para>Not delayed by signal delay: it is not an observation of the vessel
-/// but the solar system's geometry and the rule the elected backend applies to
-/// it.</para>
+/// but the solar system's geometry and the rule the comms model in use applies
+/// to it.</para>
 ///
 /// <para>Effectively static within a session: the body set does not change and
 /// the multipliers change only if the player edits the difficulty settings. An
@@ -230,11 +230,11 @@ public class CommsOcclusionBody
 [SitrepTopic("comms.occlusion")]
 public class CommsOcclusion
 {
-    /// <summary>The elected model's <see cref="ICommsOcclusionModel.ModelId"/>; <c>"unknown"</c> when no backend is elected.</summary>
+    /// <summary>The id of the occlusion model in use; <c>"unknown"</c> when no comms model is in use.</summary>
     [SitrepUnit(Units.Id)]
     public string ModelId { get; set; } = "";
 
-    /// <summary>The elected model's display name, so a UI can say which geometry is in play.</summary>
+    /// <summary>The occlusion model's display name, so a UI can say which geometry is in play.</summary>
     [SitrepUnit(Units.Text)]
     public string ModelName { get; set; } = "";
 

@@ -113,7 +113,7 @@ public class PartActionEntry
 #endif
 public class PartActions
 {
-    /// <summary><c>Part.flightID</c> stringified: the same join key <see
+    /// <summary>The part's flight id, as a string: the same join key <see
     /// cref="VesselPart.Id"/>, <c>parts.power</c> and <c>robotics.servos</c>
     /// use, repeated so the payload identifies its part without the topic
     /// string.</summary>

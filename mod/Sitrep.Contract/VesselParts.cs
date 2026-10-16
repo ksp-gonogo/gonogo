@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.parts</c> Topic payload: the active vessel's full part
+/// The active vessel's full part
 /// tree, with each part's position, mass, temperatures, resources, module
 /// states and action-group bindings. A single object, or <c>null</c> when
 /// there is no active vessel.
@@ -176,7 +176,7 @@ public class VesselPart
     [SitrepUnit(Units.Flag)]
     public bool IsPowerRelated { get; set; }
 
-    /// <summary>For a fuel-line part, the stringified <c>flightID</c> of the
+    /// <summary>For a fuel-line part, the flight id, as a string, of the
     /// part it feeds; <c>null</c> otherwise.</summary>
     [SitrepUnit(Units.Id)]
     public string? FuelLineTargetId { get; set; }

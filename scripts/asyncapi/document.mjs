@@ -23,140 +23,133 @@ const SERVER_KEY = "mod";
  * The document-level prose: the protocol facts a message schema has no slot for.
  */
 function infoDescription(counts) {
-  return `The wire contract of the Gonogo mod's telemetry socket: ${counts.topics} telemetry
-channels a client subscribes to and ${counts.commands} commands it sends, each with its payload
-schema and description.
-
-This document is generated from the contract's C# declarations and their doc
-comments. Operations are written from the client's side: a telemetry channel is
-\`receive\` and a command is \`send\`. The mod is the server.
-
-## One socket, many channels
-
-Every channel is multiplexed over a single WebSocket. A channel's \`address\` is
-the value of the \`topic\` field on a \`stream-data\` frame, or of the \`command\`
-field on a \`command-request\`. It is not a URL path, and there is no second
-connection to open. The \`session\` channel carries the frames that belong to the
-connection itself.
+  return `The WebSocket API of the Gonogo mod: ${counts.topics} telemetry channels a client
+subscribes to and ${counts.commands} commands it sends, each with its payload and what it
+means, all over one socket.
 
 ## Frames the mod sends
 
-The mod sends ${FRAMES_FROM_MOD.length} frame types, unioned as
-\`components.schemas.InboundFrame\`:
+${frameList(FRAMES_FROM_MOD)}
 
-${frameList()}
-
-Route on the \`type\` field. Each frame type fixes \`type\` to a constant, so a
-JSON Schema validator can tell them apart without the \`discriminator\` keyword.
-Every message in this document is one of these. A client ignores a \`type\` it
-does not know.
+Route on the \`type\` field: each frame type fixes it to a constant. A client
+ignores a \`type\` it does not know.
 
 All but \`stream-binary\` are WebSocket frames holding UTF-8 JSON that starts
 with \`{\`. A \`stream-binary\` frame starts with the byte \`0x9E\` and a lane byte,
-then a two-byte header length and a JSON header, and the payload bytes follow
-the header. \`InboundFrame\` describes the JSON header. The binary lane is used
-by a channel that opts in, which today is only an Uplink's, so no channel in
-this document uses it.
+then a two-byte big-endian header length and a JSON header, and the payload
+bytes follow the header. The \`stream-binary\` frame type describes that header.
+Only \`commcast.radio\` and the channels of an installed Uplink use binary
+frames, and neither is listed here.
 
-A client sends ${FRAMES_FROM_CLIENT.length} frame types: ${FRAMES_FROM_CLIENT.map((t) => `\`${t}\``).join(", ")}.
+## Frames a client sends
+
+${frameList(FRAMES_FROM_CLIENT)}
 
 ## Subscribing
 
-The mod sends a topic only after the client has sent \`subscribe\` for it. A frame
-emitted while nothing is subscribed is dropped, not queued, so a client that
-connects and waits receives nothing.
+A channel's name is the \`topic\` of its frames, or the \`command\` of a
+\`command-request\`. The mod sends a channel only after the client has sent
+\`subscribe\` for it, and answers the subscribe with an \`event\` named
+\`subscribed\` on that channel. A subscribe to a channel nothing declares is
+answered with an \`error\` frame carrying \`unknownTopic\` and the topic instead.
+A frame emitted while nothing is subscribed is dropped, not queued, so a client
+that connects and waits receives nothing.
+
+The first \`stream-data\` after \`subscribed\` can be the channel's last value
+sent again, with a \`meta.validAt\` older than the \`subscribed\` event's. Order
+frames by \`meta.validAt\`, not by when they arrive.
+
+## Game time
+
+No channel carries the current game time (UT). It is the \`meta.validAt\` of the
+newest frame, and there is no clock channel. In flight, \`vessel.flight\` sends a
+frame about once a second, so its frames keep a clock current. Where nothing
+changes, as at the Space Center, frames come only on a change or at each
+channel's Repeats interval: between frames, advance the newest \`validAt\` by
+\`warpRate\` from \`time.warp\` for each real second, and not at all while its
+\`paused\` is true.
+
+## Commands
+
+A \`command-response\` says the command ran, or why it did not. It is not the
+change itself: that arrives on the affected channel's next frame, for
+\`time.setPaused\` the next \`time.warp\` frame.
 
 ## Units
 
-The generated TypeScript types every quantity as \`Value<"m">\`, an object with a
-magnitude and a unit. The SDK builds that object after receiving the frame. On
-the wire a quantity is a bare JSON number, and its schema names the unit in
-\`x-sitrep-unit\`. A command carries bare numbers as well.
+On the wire a quantity is a bare JSON number in the unit its field lists, in
+commands as well as in telemetry. A unit of \`1\` is a plain ratio, and \`count\` is
+a number of things.
+A field that is not a quantity lists what kind of value it holds instead:
+\`text\` is words for a person to read, \`id\` is an identifier to match and not
+to show, \`flag\` is a boolean and \`enum\` is an enum's ordinal. A field with no
+unit listed did not declare one. Each schema carries its unit as
+\`x-sitrep-unit\`.
 
 ## Enums
 
-An enum is sent as its ordinal, not its name. Where the members are a closed
-set, the schema is a \`oneOf\` of \`const\` values, each with the member's name and
-description. A \`[Flags]\` enum is a bitwise combination of members, so its schema is an
-\`integer\` and the member table is on \`x-sitrep-enum\`. \`x-sitrep-enum-kind\`
-says which of the two an enum is.
+Most enums are sent as their integer ordinal. A few, such as \`errorCode\`, are
+sent as a string. Each enum's table shows the value sent, beside the member's
+name and description. An enum whose members combine as bit flags is an \`integer\`, with
+its members listed on the schema.
 
-## The \`x-sitrep-*\` annotations
+## Channel properties
 
-Facts the contract states that JSON Schema and AsyncAPI have no field for. An
-annotation that is absent was not stated by the declaration.
+Each channel card shows some of these properties, which JSON Schema has no
+field for. The key in brackets is the one the AsyncAPI document carries. A
+property that is absent was not stated.
 
-- \`x-sitrep-unit\`, on a schema: the unit the value is sent in. \`text\`,
-  \`flag\`, \`id\`, \`enum\` and \`n/a\` are also tokens in this vocabulary and mean
-  what they say. Absent, \`n/a\` and \`1\` are three different things
-- \`x-sitrep-enum\` and \`x-sitrep-enum-kind\`, on an enum's schema: see Enums
-- \`x-sitrep-delivery\`, on a telemetry channel: the outbox lane its samples use.
-  \`lossy-latest\` keeps only the newest sample per topic, so a client that falls
-  behind sees the latest state and none of the ones it missed.
-  \`reliable-ordered\` sends every sample, in order. The \`reliable-ordered\`
-  channels carry discrete occurrences such as \`flight.started\`, so a client
-  must not treat them as lossy
-- \`x-sitrep-delay-role\`, on a telemetry channel: \`delayed\` means the value is
-  what the vantage knew one signal delay ago, not what is true now.
-  \`true-now\` means it is not delayed, which suits a ground-side fact with no
-  equivalent in flight, such as whether the SCANsat assembly is installed
-- \`x-sitrep-sample-kind\`, on a telemetry channel: how its samples relate in
-  time. \`continuous\` values change between samples, so a client may draw a
-  line, interpolate, or carry the value forward with a declared model.
-  \`discrete\` values hold until the next sample, so a client draws a step.
-  \`event\` is one occurrence per sample, so a client draws points. A field in
-  the payload may declare its own kind, which the generated SDK carries per field
-- \`x-sitrep-held-at-home\`, on a \`delayed\` telemetry channel: \`true\` means the
-  value is held at the home command centre (the career ledger, the space centre's
-  records) and not aboard a craft. Each vantage receives a change after its own
-  delay to home: zero on the ground network, and a crewed vessel's path home
-  otherwise. The frame a vantage holds is already as current as it can be there,
-  so a client subtracts no further signal delay
-- \`x-sitrep-keyframe-interval-ut\`, on a telemetry channel: the number of UT
-  seconds after which the channel sends its value again with nothing changed.
-  A late subscriber, a quickload or a reconnect recovers from that frame without
-  waiting for a real change. The seconds are game time. UT runs up to 100000
-  times faster than wall-clock time under timewarp and stops while the game is
-  paused, so a wall-clock timer sized from this number fires early under warp
-  and never fires while paused. Measure staleness in UT by watching
-  \`Meta.validAt\` advance. For a wall-clock bound, convert with \`warpRate\` on
-  \`time.warp\`, and treat \`paused\` there as "no keyframe is due"
-- \`x-sitrep-absence-is-data\`, on a telemetry channel: \`true\` means an empty
-  value is a real answer and is sent from the first tick (no target selected, no
-  crew aboard). Without it the channel sends nothing until it has had a real
-  value, so silence means "not yet" and not "none"
-- \`x-sitrep-delayed\`, on a command channel: whether the command travels over
-  the uplink and takes effect after the signal delay, not when it is sent
-- \`x-sitrep-empty\`, on a schema: the schema has no fields because the shape is
-  "nothing", as \`NoCommandArgs\` is
+- Delivery (\`x-sitrep-delivery\`), on a telemetry channel. "Latest value only"
+  (\`lossy-latest\`) keeps only the newest value, so a client that falls behind
+  sees the latest state and none of the ones it missed. "Every value, in order"
+  (\`reliable-ordered\`) sends every value, in order, and carries occurrences
+  such as \`flight.started\` that a client must not drop
+- Delay (\`x-sitrep-delay-role\`), on a telemetry channel. "After signal delay"
+  (\`delayed\`) means the value is what this connection's command centre knew one
+  signal delay ago (see \`set-vantage\`). "Live" (\`true-now\`) means it is not
+  delayed, as for a fact on the ground such as whether the SCANsat assembly is
+  installed
+- Held at home (\`x-sitrep-held-at-home\`), on a delayed telemetry channel: the
+  value is held at the home command centre (the career ledger, the space
+  centre's records) and not aboard a craft. Each command centre receives a change
+  after its own delay to home, so the value it holds is already as current as
+  it can be there, and a client subtracts no further signal delay
+- Samples (\`x-sitrep-sample-kind\`), on a telemetry channel. "Continuous"
+  (\`continuous\`) values change between samples, so a client may draw a line or
+  interpolate. "Holds until changed" (\`discrete\`) values hold until the next
+  sample, so a client draws a step. "One per event" (\`event\`) is one occurrence
+  per sample, so a client draws points
+- Repeats (\`x-sitrep-keyframe-interval-ut\`), on a telemetry channel: the
+  seconds of game time after which the channel sends its value again with
+  nothing changed, so a late subscriber or a reconnect recovers without waiting
+  for a change. Game time runs up to 100000 times faster than real time under
+  time warp and stops while the game is paused, so measure staleness by
+  \`meta.validAt\` and not by a real-time timer
+- Empty is an answer (\`x-sitrep-absence-is-data\`), on a telemetry channel: an
+  empty value is a real answer and is sent from the first tick (no target
+  selected, no crew aboard). Without it the channel sends nothing until it has
+  had a real value, so silence means "not yet" and not "none"
+- Takes effect (\`x-sitrep-delayed\`), on a command: "when sent", or "after the
+  signal delay" for a command that travels from the command centre before it
+  runs. The card's description says where it goes
+- Receipt, on a delayed command: when its signal delay is more than zero, a
+  \`command-accepted\` frame arrives as the command leaves, and the
+  \`command-response\` arrives once it has run
+- No fields (\`x-sitrep-empty\`), on a schema: the payload is an empty object,
+  as for a command that takes no arguments
 
 ## Channels not listed here
 
-This document lists the channels declared in the core contract. Two kinds of
-channel are not in it:
-
-- Dynamic channels, whose names contain a subject: \`trackingStation.vessel.<guid>.*\`,
-  \`currency.<guid>.<currency>\` and per-vessel part actions. The mod registers
-  them at runtime for each subject, so the generator cannot find them in the
-  contract. Read one with \`useStream(topic)\` in the SDK
-- Each Uplink's own channels and commands, which are in that Uplink's contract
-  slice
+- Channels named per subject, such as \`trackingStation.vessel.<id>.<field>\`,
+  \`currency.<id>.<currency>\` and per-vessel part actions. The mod creates them
+  while the game runs, one set per subject, so they cannot be listed here.
+  Subscribe to one by its full name, with the subject's id filled in
+- Each installed Uplink's own channels and commands, which that Uplink
+  documents
 
 A shared prefix does not put two channels in the same group:
-\`trackingStation.catalog\` is declared and listed here, and
-\`trackingStation.vessel.<guid>.<field>\` is dynamic and is not.
-
-## What the client adds to a frame
-
-- A client reads absence and staleness from a state machine: never seen, not
-  ours, known absent, fresh, stale, and stale with a model. The state comes from
-  the client's timeline store and is not in any message shape
-- A value is read relative to a vantage, a command centre, and arrives after the
-  signal delay. \`validAt\` and \`deliveredAt\` differ for that reason, a command
-  is delayed while a fact about the local station is not, and a stale value can
-  still be worth acting on
-- The reasons behind a field's shape are in the contract's doc comments, which
-  this document carries into each \`description\``;
+\`trackingStation.catalog\` is listed here, and
+\`trackingStation.vessel.<id>.<field>\` is named per subject and is not.`;
 }
 
 /**
@@ -178,20 +171,23 @@ const FRAMES_FROM_MOD = [
     "command-accepted",
     "the receipt for a delayed command, sent before its result",
   ],
-  ["error", "a request the mod could not carry"],
+  ["error", "a request the mod refused or could not read"],
   ["hello", "the first frame on every connection"],
   ["game-state", "what the game is doing: loading, ready or no game"],
   ["pong", "the answer to a ping"],
 ];
 
 const FRAMES_FROM_CLIENT = [
-  "subscribe",
-  "unsubscribe",
-  "set-vantage",
-  "claim",
-  "ping",
-  "command-request",
-  "command-group",
+  ["subscribe", "start receiving a channel"],
+  ["unsubscribe", "stop receiving a channel"],
+  [
+    "set-vantage",
+    "choose the command centre this connection observes from and commands from",
+  ],
+  ["claim", "ask for the answers to commands sent on an earlier connection"],
+  ["ping", "ask whether the connection is alive"],
+  ["command-request", "send one command"],
+  ["command-group", "send several delayed commands to one craft as a unit"],
 ];
 
 /** The frame interfaces of the contract, keyed by the constant their `type` field carries. */
@@ -209,7 +205,7 @@ function assertFramesMatchContract(contract) {
   const declared = new Set(frameInterfaces(contract).keys());
   const listed = new Set([
     ...FRAMES_FROM_MOD.map(([type]) => type),
-    ...FRAMES_FROM_CLIENT,
+    ...FRAMES_FROM_CLIENT.map(([type]) => type),
   ]);
   const unlisted = [...declared].filter((type) => !listed.has(type));
   const unknown = [...listed].filter((type) => !declared.has(type));
@@ -223,10 +219,8 @@ function assertFramesMatchContract(contract) {
   }
 }
 
-const frameList = () =>
-  FRAMES_FROM_MOD.map(([type, purpose]) => `- \`${type}\`: ${purpose}`).join(
-    "\n",
-  );
+const frameList = (frames) =>
+  frames.map(([type, purpose]) => `- \`${type}\`: ${purpose}`).join("\n");
 
 const SESSION_DESCRIPTION = `Frames that belong to the connection and not to any one channel.
 
@@ -250,26 +244,21 @@ function withContractProse(contract, name, detail) {
   return declared ? `${declared}\n\n${detail}` : detail;
 }
 
-const STREAM_DATA_DESCRIPTION = `The envelope every telemetry frame arrives in.
-
-\`topic\` is the channel's \`address\` and \`payload\` is that channel's own
+const STREAM_DATA_DESCRIPTION = `\`topic\` is the channel's \`address\` and \`payload\` is that channel's own
 shape. Each channel's \`stream-data\` message fixes both. \`meta\` is stamped by
 the mod on every frame and describes the delivery, not the value: \`validAt\`,
 \`deliveredAt\` and staleness are there.`;
 
-const COMMAND_REQUEST_DESCRIPTION = `The envelope every command is sent in.
-
-\`command\` is the channel's \`address\` and \`args\` is that command's own args
+const COMMAND_REQUEST_DESCRIPTION = `\`command\` is the channel's \`address\` and \`args\` is that command's own args
 type. Each command's \`command-request\` message fixes both. The answer comes back
 as a \`command-response\` with the same \`requestId\`, or as an \`error\` frame if
-the mod could not carry the command.`;
+the mod refused it or could not read it. \`label\` and \`topic\` are required but
+free, and \`sentAt\` may be 0.`;
 
-const COMMAND_RESPONSE_DESCRIPTION = `The envelope every answer to a command arrives in.
-
-\`result\` is the command's own reply type, fixed by that command's
+const COMMAND_RESPONSE_DESCRIPTION = `\`result\` is the command's own reply type, fixed by that command's
 \`command-response\` message. A command that ran and was refused arrives here
-with \`success: false\` and an \`errorCode\`. A command the mod could not carry
-arrives as an \`error\` frame on the session channel.
+with \`success: false\` and an \`errorCode\`. A command the mod could not read
+is answered with an \`error\` frame instead.
 
 There is no \`command\` field. \`requestId\` is the only link back to the
 command, and a delayed command's answer can arrive minutes after it.`;
@@ -277,7 +266,7 @@ command, and a delayed command's answer can arrive minutes after it.`;
 const inboundFrameDescription =
   () => `Every frame the mod sends, told apart by \`type\`.
 
-${frameList()}
+${frameList(FRAMES_FROM_MOD)}
 
 Each one fixes \`type\` to a constant, so a JSON Schema validator selects the
 right one from \`type\` alone. The \`discriminator\` beside this is the AsyncAPI
@@ -293,14 +282,16 @@ const CORRELATION_DESCRIPTION =
 
 /** A `Meta` the examples share, so all three read as one frame's worth of traffic. */
 const EXAMPLE_META = {
-  source: "gonogo",
+  source: "system",
   validAt: 1_842_006.5,
   seq: 918,
   deliveredAt: 1_842_006.5,
   vantage: "ground:Kerbal Space Center",
+  quality: 1,
   active: true,
   staleness: 0,
   timelineEpoch: 3,
+  sampleId: 4127,
 };
 
 /*
@@ -487,7 +478,13 @@ function defineEnvelopes(schemas, contract) {
         type: "command-response",
         requestId: "0f3c9a12",
         result: { success: true },
-        meta: EXAMPLE_META,
+        /* The mod carries the request's `sentAt` onto the reply's `validAt`. */
+        meta: {
+          ...EXAMPLE_META,
+          validAt: EXAMPLE_COMMAND_REQUEST.sentAt,
+          seq: EXAMPLE_META.seq + 1,
+          deliveredAt: EXAMPLE_META.deliveredAt + 0.4,
+        },
       },
     ],
   });
@@ -535,6 +532,7 @@ export function buildDocument({
   commandReplies,
   dispositions,
   commandDispositions,
+  commandSummaries,
   schemas,
   version,
 }) {
@@ -722,6 +720,7 @@ export function buildDocument({
     };
   }
 
+  const sharedArgs = sharedArgsCommands(commandArgs, commandSummaries);
   for (const { key: command, type: argsType } of commandArgs) {
     const replyType = replyOf.get(command);
     if (!replyType) {
@@ -779,7 +778,7 @@ export function buildDocument({
         contract,
         argsType,
         command,
-        commandDispositions.get(command).delayed,
+        sharedArgs,
       ),
       servers: [{ $ref: `#/servers/${SERVER_KEY}` }],
       "x-sitrep-delayed": commandDispositions.get(command).delayed,
@@ -826,7 +825,7 @@ export function buildDocument({
   return {
     asyncapi: "3.0.0",
     info: {
-      title: "Gonogo Sitrep contract",
+      title: "Gonogo WebSocket API",
       version: `${version.major}.${version.minor}.0`,
       description: infoDescription({
         topics: topics.length,
@@ -844,7 +843,7 @@ export function buildDocument({
         ...namespaceTags(topics, commandArgs),
       ],
       externalDocs: {
-        description: "Writing an Uplink: the plugin half and the client half",
+        description: "Building a widget or an Uplink? Use the SDK instead",
         url: "https://ksp-gonogo.github.io/uplink-dev-docs/",
       },
     },
@@ -855,10 +854,9 @@ export function buildDocument({
         protocol: "ws",
         title: "The Gonogo mod's telemetry socket",
         description:
-          "Served by the mod inside the running game. The host and port are " +
-          "configurable per install; `localhost:8090` is the default the client " +
-          "falls back to when nothing else is configured. There is no path: the " +
-          "URL is `ws://<host>:<port>`.",
+          "Served by the mod inside the running game, by default at " +
+          "`localhost:8090`; the host and port can be changed per install. " +
+          "Connect to `ws://<host>:<port>`.",
       },
     },
     channels: sortKeys(channels),
@@ -980,42 +978,57 @@ function fieldOf(contract, typeName, fieldName) {
 function channelDescription(contract, type, topic) {
   const named = namedTypeOf(type);
   const declaration = named ? contract.interfaces.get(named) : undefined;
-  const plural = type.k === "array";
-  const shape = named
-    ? `Carries ${plural ? `an array of \`${named}\`` : `a \`${named}\``}.`
-    : "";
-  if (declaration?.description) {
-    return `${shape}\n\n${declaration.description}`.trim();
-  }
+  if (declaration?.description) return declaration.description;
   return (
-    `${shape}\n\nThe contract carries no doc comment for \`${topic}\`'s payload type. ` +
+    `The contract carries no doc comment for \`${topic}\`'s payload type. ` +
     "Add a `<summary>` to the C# and it will appear here."
-  ).trim();
+  );
 }
 
 /**
- * A command channel's prose: its args type's doc comment, plus what its
- * declaration says about light-time.
- *
- * The delay sentence is spelled out rather than left to `x-sitrep-delayed`,
- * because it is the fact most likely to surprise: a delayed write does not take
- * effect when it is pressed, and an operator who does not know that is
- * committing to something minutes away.
+ * The commands whose argument type another command also uses, each with its
+ * own summary. A shared type's doc comment describes the type, so it cannot
+ * also say what one of its commands does; such a command must carry a
+ * `[SitrepCommand(Summary = ...)]`, and the build fails if one does not.
  */
-function commandChannelDescription(contract, argsType, command, delayed) {
+function sharedArgsCommands(commandArgs, summaries) {
+  const byType = new Map();
+  for (const { key, type } of commandArgs) {
+    const named = namedTypeOf(type);
+    if (!named) continue;
+    byType.set(named, [...(byType.get(named) ?? []), key]);
+  }
+  const shared = new Map();
+  const missing = [];
+  for (const keys of byType.values()) {
+    if (keys.length < 2) continue;
+    for (const key of keys) {
+      if (summaries.has(key)) shared.set(key, summaries.get(key));
+      else missing.push(key);
+    }
+  }
+  if (missing.length)
+    throw new Error(
+      `asyncapi: ${missing.join(", ")} share an args type and carry no summary. ` +
+        "Give each its own [SitrepCommand(Summary = ...)] in the contract.",
+    );
+  return shared;
+}
+
+/**
+ * A command channel's prose: its args type's doc comment, or for a command
+ * that shares its args type, its own summary. Whether it is delayed is
+ * `x-sitrep-delayed` on the channel.
+ */
+function commandChannelDescription(contract, argsType, command, shared) {
+  if (shared.has(command)) return shared.get(command);
   const named = namedTypeOf(argsType);
   const declaration = named ? contract.interfaces.get(named) : undefined;
-  const shape = named ? `Takes \`${named}\`.` : "";
-  const timing = delayed
-    ? "**Delayed.** This command rides the uplink: it takes effect at UT plus " +
-      "light-time to the craft, not when it is sent."
-    : "**Not delayed.** This command takes effect immediately, because it is " +
-      "ground-side bookkeeping rather than a signal to a craft.";
-  const prose =
+  return (
     declaration?.description ??
     `The contract carries no doc comment for \`${command}\`'s args type. ` +
-      "Add a `<summary>` to the C# and it will appear here.";
-  return `${shape}\n\n${timing}\n\n${prose}`.trim();
+      "Add a `<summary>` to the C# and it will appear here."
+  );
 }
 
 function namedTypeOf(type) {

@@ -35,13 +35,13 @@ public class ThermalHottestPart
     [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 
-    /// <summary><c>Part.flightID</c> stringified, the same join key as <see cref="Sitrep.Contract.VesselPart.Id"/>, so a client can tell which part is hottest where several share <see cref="Name"/> (a symmetric craft). <c>null</c> when the part has no live flight id yet.</summary>
+    /// <summary>The part's flight id, as a string: the same join key as <see cref="Sitrep.Contract.VesselPart.Id"/>, so a client can tell which part is hottest where several share <see cref="Name"/> (a symmetric craft). <c>null</c> when the part has no live flight id yet.</summary>
     [SitrepUnit(Units.Id)]
     public string? Id { get; set; }
 }
 
 /// <summary>
-/// The <c>vessel.thermal</c> Topic payload: the active vessel's thermal
+/// The active vessel's thermal
 /// rollup, its hottest part, heat shield and engine. Each ratio is null when
 /// no part had a valid maximum temperature this tick, never 0, so "no valid
 /// part" and "coldest possible part" stay distinct.

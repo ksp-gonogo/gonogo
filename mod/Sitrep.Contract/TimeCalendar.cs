@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>time.calendar</c> Topic payload: how long a minute, hour, day and
+/// How long a minute, hour, day and
 /// year are, and what real-world instant UT 0 is (when the game has one), as
 /// the running game defines them.
 ///
@@ -85,7 +85,7 @@ public class TimeCalendar
     /// <c>Y3 D122</c>.</para>
     ///
     /// <para>It is read from the date formatter itself. A formatter that models a
-    /// real calendar holds an anchor date, as a planet-pack mod's does
+    /// real calendar holds an anchor date, as a planet-pack mod's
     /// does; the stock formatter holds none.</para>
     ///
     /// <para><c>null</c> means the game has no real-world calendar, which is the

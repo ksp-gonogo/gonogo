@@ -51,8 +51,8 @@ public enum PhysicsMode
 }
 
 /// <summary>
-/// The <c>vessel.physics.mode</c> Topic payload: the active vessel's physics
-/// regime (<see cref="PhysicsMode"/>). Delayed (<see cref="DelayRole"/>) like
+/// The active vessel's physics
+/// regime (<see cref="PhysicsMode"/>). Delayed like
 /// every other vessel-derived channel: it describes the vessel itself, so the
 /// ground learns about it at UT+delay, not as a ground-side fact. Absent when
 /// there is no active vessel.

@@ -62,6 +62,7 @@ import {
 import {
   readChannelDispositions,
   readCommandDispositions,
+  readCommandSummaries,
   readContractVersion,
   readUnitMap,
   SOURCES,
@@ -196,6 +197,7 @@ export function generate() {
     commandReplies,
     dispositions,
     commandDispositions,
+    commandSummaries: readCommandSummaries(ROOT),
     schemas,
     version: readContractVersion(ROOT),
   });

@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>parts.power</c> Topic payload: the active vessel's rolled-up
+/// The active vessel's rolled-up
 /// electric-charge production. A single object, or <c>null</c> when there is
 /// no active vessel or it carries no solar panel, battery, electric-charge
 /// converter or alternator. The parts themselves are itemised on
@@ -175,7 +175,7 @@ public class ServoEntry
 }
 
 /// <summary>
-/// The <c>robotics.available</c> Topic payload: a single object (or
+/// A single object (or
 /// <c>null</c> when there is no active vessel) whose one field states whether
 /// the active vessel carries any Breaking Ground robotic servo. It is its own
 /// Topic because the <c>robotics.servos</c> array is <c>null</c> both when

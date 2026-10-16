@@ -8,7 +8,9 @@ name: Deploy to GitHub Pages
 #   /README.md       one link to this repository, written once release channel
 #   /app/            the latest RELEASE app                   release channel
 #   /gonogo/         redirects from the old project-page URLs release channel, rc until /app/ exists
+#   /gonogo/api/     the API page, written with the redirects release channel, rc until /app/ exists
 #   /rc/             the release-candidate app                rc channel
+#   /rc/api/         the API page of the RC's contract        rc channel
 #
 # The Uplink developer docs at /uplink-dev-docs/ are not in that repository at
 # all: GitHub serves that path from the uplink-dev-docs repository's own Pages,
@@ -24,6 +26,10 @@ name: Deploy to GitHub Pages
 #   release  the newest GitHub Release's site asset (built by release.yml with
 #            base /app/), plus the landing page and the redirects from the ref
 #            this runs on, so neither can drift from a release.
+#
+# Each channel also generates the API page (scripts/api-page.mjs) from the
+# asyncapi.yaml of the ref it publishes, so the page describes the contract of
+# the app beside it.
 #
 # Nothing triggers this on a push. rc.yml calls it with channel=rc, and
 # release.yml dispatches it with channel=release right after uploading a new
@@ -107,24 +113,20 @@ jobs:
           node-version: '24'
 
       - uses: pnpm/action-setup@v6
-        if: inputs.channel == 'rc'
         with:
           run_install: false
 
       - name: Get pnpm store path
-        if: inputs.channel == 'rc'
         id: pnpm-cache
         run: echo "store=$(pnpm store path)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v5
-        if: inputs.channel == 'rc'
         with:
           path: ${{ steps.pnpm-cache.outputs.store }}
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-pnpm-
 
       - name: pnpm install
-        if: inputs.channel == 'rc'
         run: pnpm install --frozen-lockfile
 
       - name: Confirm Axiom token presence
@@ -176,10 +178,13 @@ jobs:
           token: ${{ secrets.PAGES_DEPLOY_TOKEN }}
           path: _site
 
+      - name: Generate the API page
+        run: node scripts/api-page.mjs "$RUNNER_TEMP/api-page"
+
       - name: Compose this channel's paths
         env:
           CHANNEL: ${{ inputs.channel }}
-        run: node scripts/pages-compose.mjs "$CHANNEL" packages/app/dist _site
+        run: node scripts/pages-compose.mjs "$CHANNEL" packages/app/dist "$RUNNER_TEMP/api-page" _site
 
       - name: Commit and push this channel's paths only
         working-directory: _site

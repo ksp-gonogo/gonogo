@@ -36,7 +36,7 @@ namespace Sitrep.Contract;
 [SitrepTopic("isru.drills", isArray: true)]
 public class IsruDrillEntry
 {
-    /// <summary>Part.flightID stringified: the same join key vessel.parts/parts.power use.</summary>
+    /// <summary>The part's flight id, as a string: the same join key <c>vessel.parts</c> and <c>parts.power</c> use.</summary>
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
@@ -82,9 +82,8 @@ public class IsruDrillEntry
     public double? Rate { get; set; }
 
     /// <summary>
-    /// The provider-namespaced extension bag: how an ISRU backend carries a
-    /// per-drill field this shared shape does not declare. See <see cref="ProviderExtensionBagAttribute"/> for the whole
-    /// mechanism. Null for the vanilla backend, which has nothing stock does not
+    /// Per-drill facts the ISRU mod in use reports beyond this shape, keyed by
+    /// that mod's name. Null for the vanilla backend, which has nothing stock does not
     /// already say. A blocking-reason string, an EC draw, an asteroid's remaining
     /// mass: all of those belong here rather than as nullable members above.
     /// </summary>
@@ -135,7 +134,7 @@ public class IsruResourceFlow
 [SitrepTopic("isru.converters", isArray: true)]
 public class IsruConverterEntry
 {
-    /// <summary>Part.flightID stringified: the same join key as
+    /// <summary>The part's flight id, as a string: the same join key as
     /// <see cref="IsruDrillEntry.PartId"/>.</summary>
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }

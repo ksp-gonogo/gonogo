@@ -5,13 +5,12 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Args for <c>vessel.invokePartAction</c>: fire one button of one part's
+/// Fire one button of one part's
 /// right-click Part Action Window, the remote-control equivalent of the player
 /// clicking it in-game.
 ///
-/// <para>It acts on a part aboard the craft, so it is delayed by signal delay
-/// (<see cref="DelayRole.Delayed"/>), like <c>vessel.control.*</c> and the
-/// robotics commands.</para>
+/// <para>It acts on a part aboard the craft, so it waits on the signal delay,
+/// like <c>vessel.control.*</c> and the robotics commands.</para>
 ///
 /// <para>It has no state field, unlike the other actuation commands (see
 /// <see cref="ServoSetEnabledArgs"/>). KSP models these as buttons with no
@@ -29,7 +28,7 @@ namespace Sitrep.Contract;
 public class InvokePartActionArgs
 {
     /// <summary>
-    /// The part's <c>flightID.ToString()</c>: the same id
+    /// The part's flight id, as a string: the same id
     /// <see cref="PartActions.PartId"/> and <see cref="VesselPart.Id"/> carry,
     /// so a widget sends back the id it already holds. An id that no longer
     /// resolves (the part was staged away or undocked, or the vessel unloaded)

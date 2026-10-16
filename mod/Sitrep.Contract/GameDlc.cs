@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>game.dlc</c> Topic payload: which KSP expansions ("DLC") are
+/// Which KSP expansions ("DLC") are
 /// installed. A fact about the install, independent of scene, so a widget can
 /// tell "the player has no DLC" from "the DLC is present but nothing is
 /// deployed yet" (deployed science, for instance, needs Breaking Ground).
@@ -14,8 +14,7 @@ namespace Sitrep.Contract;
 /// sample has been taken yet, so "no data yet" and "DLC absent" stay
 /// distinct. A widget sees that <c>null</c> as a reading whose <c>state</c> is
 /// <c>"absent"</c> and which carries no value. This is a fact about the
-/// ground, so it is never delayed by any vessel's comms link (its delay role is
-/// <c>TrueNow</c>; see the delay and vantage page).</para>
+/// ground, so it is never delayed by any vessel's comms link.</para>
 /// <internal>
 /// Typing-only mirror of Sitrep.Host.SystemViewProvider.BuildGameDlc's shape;
 /// the provider emits the value tree JsonWriter walks.

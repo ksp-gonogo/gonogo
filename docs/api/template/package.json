@@ -1,0 +1,14 @@
+{
+  "name": "gonogo-api-page",
+  "description": "AsyncAPI generator template for the Gonogo API page",
+  "private": true,
+  "license": "MIT",
+  "generator": {
+    "renderer": "react",
+    "apiVersion": "v3",
+    "generator": ">=3.4.1 <4.0.0",
+    "supportedProtocols": [
+      "ws"
+    ]
+  }
+}

@@ -56,7 +56,7 @@ public class CommandCentreEntry
     [SitrepUnit(Units.Text)]
     public string? Kind { get; set; }
 
-    /// <summary>Index into <see cref="SystemBodies"/> of the body this centre sits on; null when unknown or not surface-anchored.</summary>
+    /// <summary>Index of the body this centre sits on among the bodies <c>trackingStation.bodies</c> lists; null when unknown or not surface-anchored.</summary>
     [SitrepUnit(Units.Id)]
     public int? BodyIndex { get; set; }
 
@@ -88,10 +88,10 @@ public class CommandCentreEntry
     public bool Active { get; set; }
 
     /// <summary>
-    /// Whether this centre is the home command: the one centre that holds the
-    /// career ledger, as the mod's home-command claimant identifies it.
+    /// Whether this centre is the home command centre: the one that holds the
+    /// career ledger.
     ///
-    /// <para>At most one entry carries it. When the claimant cannot say which
+    /// <para>At most one entry carries it. When the game cannot say which
     /// centre is home, as on an install whose ground stations all look alike to
     /// it, the first active ground station in ordinal id order carries it in
     /// home's place, with <see cref="IsHomeFallback"/> set: the same centre a

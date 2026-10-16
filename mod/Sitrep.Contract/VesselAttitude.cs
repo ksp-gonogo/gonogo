@@ -5,13 +5,13 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.attitude</c> Topic payload: pitch, heading and roll of the
+/// Pitch, heading and roll of the
 /// vessel's control reference, the orientation the pilot steers by, against the
 /// local surface up and north, in two named frames.
 ///
 /// <para><see cref="Pitch"/>, <see cref="Heading"/> and <see cref="Roll"/> are
-/// the primary frame, with up and north measured at <c>Vessel.CoM</c> (MechJeb's
-/// construction). <see cref="PitchRootFrame"/>, <see cref="HeadingRootFrame"/>
+/// the primary frame, with up and north measured at the vessel's centre of
+/// mass. <see cref="PitchRootFrame"/>, <see cref="HeadingRootFrame"/>
 /// and <see cref="RollRootFrame"/> measure up and north at the root part's
 /// position instead. The orientation is the same in both; the two differ only
 /// when the root part sits away from the centre of mass. Without a root part

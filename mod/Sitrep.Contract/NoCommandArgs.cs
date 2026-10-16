@@ -11,10 +11,12 @@ namespace Sitrep.Contract;
 /// <c>ksp.revertToLaunch</c>, <c>ksp.toTrackingStation</c> and
 /// <c>ksp.toSpaceCenter</c>.
 ///
-/// <para><b>Send no <c>args</c> at all for these six.</b> The SDK's
-/// <c>send()</c> takes no second argument for a command typed this way, and
-/// anything you do put on the wire is read and discarded. Every other command
-/// requires its args.</para>
+/// <para>Takes no arguments: send <c>args: {}</c>. Anything sent in
+/// <c>args</c> is ignored.</para>
+/// <internal>
+/// The SDK's <c>send()</c> takes no second argument for a command typed this
+/// way.
+/// </internal>
 ///
 /// <internal>
 /// <para>Each of the six is tagged onto this class with

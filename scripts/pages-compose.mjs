@@ -3,21 +3,26 @@
  * Writes one channel's files into a checkout of the organisation site,
  * ksp-gonogo/ksp-gonogo.github.io, which serves https://ksp-gonogo.github.io/.
  *
- *   node scripts/pages-compose.mjs rc      <app dist> <site checkout>
- *   node scripts/pages-compose.mjs release <app dist> <site checkout>
+ *   node scripts/pages-compose.mjs rc      <app dist> <api page> <site checkout>
+ *   node scripts/pages-compose.mjs release <app dist> <api page> <site checkout>
+ *
+ * `<api page>` is the folder scripts/api-page.mjs wrote, generated from the
+ * same tree's asyncapi.yaml.
  *
  * The site holds several tenants, and each run owns only its own paths:
  *
  *   rc       /rc/                              the RC app
+ *            /rc/api/                          the API page of the RC's contract
  *   release  /app/                             the release app
  *            /index.html /404.html             the landing page
  *            /README.md                        one link to this repository, written once
  *            /gonogo/                          redirects from the old URLs
+ *            /gonogo/api/                      the API page, written with the redirects
  *   both     /.nojekyll                        an empty marker, see below
  *
  * Before the first release there is no /app/, so the rc channel also writes
- * the root paths (landing page, 404 page, /gonogo/ redirects) with every app
- * link pointing at /rc/. Once /app/ exists the rc channel leaves them alone and
+ * the root paths (landing page, 404 page, /gonogo/ redirects and the API page
+ * beside them, from the RC's contract) with every app link pointing at /rc/. Once /app/ exists the rc channel leaves them alone and
  * the release channel is their only writer, so a path never has two writers
  * at once (deploy.yml runs the channels one at a time).
  *
@@ -64,6 +69,15 @@ export const OWNED_PATHS = {
  * route is written out as a real file or a direct hit on it never boots the app.
  */
 export const SPA_ROUTES = ["station", "pilot"];
+
+/**
+ * Where the API page goes, relative to the site root. `root` is written with
+ * the root paths, by whichever channel writes those. Neither clashes with a
+ * redirect: a redirect page is written only at the old app routes (`/gonogo/`,
+ * `/gonogo/rc/` and their client-side routes), and Pages serves a real file
+ * before it falls back to the root 404.
+ */
+export const API_PAGE_PATHS = { rc: "rc/api", root: "gonogo/api" };
 
 /** Old project-page URL to new URL for an app served at `appBase`, longest first so the redirect script matches the most specific. */
 export function redirectsTo(appBase) {
@@ -152,8 +166,16 @@ function writeRedirects(site, redirects) {
 
 const LANDING_APP_LINK = "https://ksp-gonogo.github.io/app/";
 
-/** The landing page, its app links pointing at `appBase`. */
-function writeRoot(site, appBase) {
+function writeApiPage(apiPage, to) {
+  if (!existsSync(join(apiPage, "index.html")))
+    throw new Error(
+      `no API page at ${apiPage}: run scripts/api-page.mjs first`,
+    );
+  replaceDir(apiPage, to);
+}
+
+/** The landing page, its app links pointing at `appBase`, with the redirects and the API page beside them. */
+function writeRoot(site, appBase, apiPage) {
   const landing = readFileSync(
     join(REPO_ROOT, "docs/homepage/index.html"),
     "utf8",
@@ -171,34 +193,37 @@ function writeRoot(site, appBase) {
     redirectPage("/", "Nothing is at this address.", redirectsTo(appBase)),
   );
   writeRedirects(site, redirectsTo(appBase));
+  writeApiPage(apiPage, join(site, API_PAGE_PATHS.root));
 }
 
-export function compose(channel, dist, site) {
+export function compose(channel, dist, apiPage, site) {
   if (channel !== "rc" && channel !== "release")
     throw new Error(`unknown channel "${channel}"`);
   writeFileSync(join(site, ".nojekyll"), "");
   if (channel === "rc") {
     writeApp(dist, join(site, "rc"));
-    if (!existsSync(join(site, "app", "index.html"))) writeRoot(site, "/rc/");
+    writeApiPage(apiPage, join(site, API_PAGE_PATHS.rc));
+    if (!existsSync(join(site, "app", "index.html")))
+      writeRoot(site, "/rc/", apiPage);
     return;
   }
 
   writeApp(dist, join(site, "app"));
-  writeRoot(site, "/app/");
+  writeRoot(site, "/app/", apiPage);
   // Written once and then kept: a release never rewrites or removes it.
   if (!existsSync(join(site, "README.md")))
     writeFileSync(join(site, "README.md"), README);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const [channel, dist, site] = process.argv.slice(2);
-  if (!channel || !dist || !site) {
+  const [channel, dist, apiPage, site] = process.argv.slice(2);
+  if (!channel || !dist || !apiPage || !site) {
     console.error(
-      "usage: pages-compose.mjs <rc|release> <app dist> <site checkout>",
+      "usage: pages-compose.mjs <rc|release> <app dist> <api page> <site checkout>",
     );
     process.exit(2);
   }
-  compose(channel, resolve(dist), resolve(site));
+  compose(channel, resolve(dist), resolve(apiPage), resolve(site));
   console.log(
     `${channel}: wrote ${OWNED_PATHS[channel].join(", ")} in ${resolve(site)}`,
   );

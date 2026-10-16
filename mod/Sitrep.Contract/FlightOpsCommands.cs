@@ -6,8 +6,8 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Revert the flight back into the VAB or SPH. <c>ksp.revertToEditor</c>'s args, which editor the flight reverts back
-/// into. <see cref="Editor"/> is a small opaque string (<c>"vab"</c> or
+/// Revert the flight back into the VAB or SPH. Takes the editor the flight
+/// reverts back into. <see cref="Editor"/> is a small opaque string (<c>"vab"</c> or
 /// <c>"sph"</c>, case-insensitive) rather than the KSP <c>EditorFacility</c>
 /// enum; an unrecognised value fails with <see cref="CommandErrorCode.Range"/>
 /// before the game is ever touched.
@@ -30,7 +30,7 @@ public class RevertToEditorArgs
 }
 
 /// <summary>
-/// Switch the flight to another tracked vessel. <c>ksp.switchVessel</c>'s args: the stable vessel id
+/// Switch the flight to another tracked vessel. Takes the stable vessel id
 /// (<c>vessel.id.ToString()</c>, the same id <see cref="SetTargetArgs.VesselId"/>
 /// uses), never a roster array index. An empty id fails with
 /// <see cref="CommandErrorCode.NotFound"/> before the game is ever touched.
@@ -56,7 +56,7 @@ public class SwitchVesselArgs
 }
 
 /// <summary>
-/// <c>ksp.launch</c>'s args: load a saved craft onto a launch site. The craft
+/// Load a saved craft onto a launch site. The craft
 /// is identified by <see cref="ShipName"/> plus the <see cref="Facility"/> it
 /// was saved from (<c>"VAB"</c> or <c>"SPH"</c>, case-insensitive); Gonogo
 /// finds the <c>.craft</c> file itself, so a client never sends a file path.

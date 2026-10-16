@@ -233,8 +233,8 @@ public class ScetAlarmCondition
     /// <see cref="FieldPath"/> is published in.
     ///
     /// <para>It has no unit of its own: the same field is metres for one alarm
-    /// and kilonewtons for the next. To render it, read the unit of the field
-    /// the alarm addresses with the SDK's <c>unitOf(topic, fieldPath)</c>.</para>
+    /// and kilonewtons for the next. To render it, use the unit of the field it
+    /// names, from that channel's schema.</para>
     /// </summary>
     [SitrepUnit(Units.NotApplicable)]
     public double Threshold { get; set; }
@@ -376,8 +376,7 @@ public class ScetAlarmAction
 /// <categoryDescription>
 /// Alarms that stop time warp when a time arrives or a value crosses a threshold.
 /// A SCET alarm (spacecraft event time) is judged by the game on the craft's own
-/// clock, not on the time a command centre reads after signal delay. A widget
-/// asks for one with <c>useAlarmRequest</c> and the <c>Uplink*</c> types; the
+/// clock, not on the time a command centre reads after signal delay. The
 /// <c>Scet*</c> types here are what the game holds and publishes once it is set:
 /// what each alarm watches for, what the craft does when it fires, how far it
 /// has got, and which Topics a threshold may be set against.
@@ -409,7 +408,8 @@ public class ScetAlarm
     /// <para>Who asked for the alarm, never where it is read: that is
     /// <see cref="Vantage"/>. A screen at a different vantage gets this field
     /// in full, unlike the condition and target, which would tell it about a
-    /// craft faster than light carries the news (see <see cref="Withheld"/>).</para>
+    /// craft before the signal delay from that craft has passed (see
+    /// <see cref="Withheld"/>).</para>
     /// <internal>
     /// Resolved by the engine from where the command entered
     /// (<c>AddVantageCommandHandler</c>) rather than taken from the command's
@@ -437,10 +437,11 @@ public class ScetAlarm
     /// <para>A vantage that is the subject reads the craft's true state, so the
     /// alarm comes due at the instant the condition is met. Any other vantage
     /// reads what that place has been told, which is a signal delay old and
-    /// different everywhere, so the same condition comes due there when the
-    /// light carrying it lands. The vantage decides when, never whether.</para>
+    /// different everywhere, so the same condition comes due there after that
+    /// place's signal delay. Every vantage sees the alarm come due; only the
+    /// time differs.</para>
     ///
-    /// <para><b>Not the sender.</b> <see cref="ArmedBy"/> says where the
+    /// <para>This is not the sender: <see cref="ArmedBy"/> says where the
     /// command came from and nothing else. An operator at one centre may ask
     /// when another centre will know, which where the command entered cannot
     /// express.</para>
@@ -449,10 +450,11 @@ public class ScetAlarm
     /// command centre share its knowledge and its result.</para>
     ///
     /// <para>This empty-means-subject default belongs to the
-    /// <c>alarm.scet.arm</c> command. A request made through the SDK's
-    /// <c>useAlarmRequest</c> that names no vantage is judged on the command
-    /// centre's, as the SDK's <c>UplinkAlarmVantage</c> describes.</para>
+    /// <c>alarm.scet.arm</c> command.</para>
     /// <internal>
+    /// A request made through the SDK's <c>useAlarmRequest</c> that names no
+    /// vantage is judged on the command centre's, as the SDK's
+    /// <c>UplinkAlarmVantage</c> describes.
     /// Taken from the command's arguments rather than resolved from where the
     /// command entered, which is the opposite of <see cref="ArmedBy"/>.
     /// <c>Sitrep.Host.Alarms.ScetAlarmVantage</c> holds the rule, and
@@ -606,7 +608,7 @@ public class ScetAlarmFired
 }
 
 /// <summary>
-/// <c>alarm.scet.arm</c>'s args: register an alarm with the game, or replace
+/// Register an alarm with the game, or replace
 /// one already registered under the same <see cref="Id"/>.
 ///
 /// <para>Never delayed by signal delay: setting an alarm changes nothing aboard
@@ -667,7 +669,7 @@ public class ScetAlarmArmArgs
 }
 
 /// <summary>
-/// <c>alarm.scet.disarm</c>'s args: forget the alarm with this id. Succeeds
+/// Forget the alarm with this id. Succeeds
 /// without an error for an id the host does not hold, so a client reconciling its list
 /// against the roster never has to ask first.
 ///

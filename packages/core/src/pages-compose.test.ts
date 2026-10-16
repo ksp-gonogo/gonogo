@@ -13,6 +13,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  API_PAGE_PATHS,
   compose,
   OWNED_PATHS,
   redirectPage,
@@ -28,12 +29,16 @@ import {
 
 let work: string;
 let dist: string;
+let api: string;
 let site: string;
 
 beforeEach(() => {
   work = mkdtempSync(join(tmpdir(), "pages-compose-"));
   dist = join(work, "dist");
+  api = join(work, "api");
   site = join(work, "site");
+  mkdirSync(api);
+  writeFileSync(join(api, "index.html"), "<html>API PAGE</html>");
   mkdirSync(join(dist, "assets"), { recursive: true });
   writeFileSync(join(dist, "index.html"), "<html>NEW APP</html>");
   writeFileSync(join(dist, "assets", "_chunk.js"), "new");
@@ -60,7 +65,7 @@ function read(...path: string[]): string {
 
 describe("the rc channel", () => {
   it("replaces /rc/ whole, with each client-side route as a real file", () => {
-    compose("rc", dist, site);
+    compose("rc", dist, api, site);
 
     expect(read("rc", "index.html")).toBe("<html>NEW APP</html>");
     expect(read("rc", "station", "index.html")).toBe("<html>NEW APP</html>");
@@ -69,8 +74,16 @@ describe("the rc channel", () => {
     expect(existsSync(join(site, "rc", "assets", "stale.js"))).toBe(false);
   });
 
+  it("puts the API page of its own contract at /rc/api/", () => {
+    compose("rc", dist, api, site);
+
+    expect(API_PAGE_PATHS.rc).toBe("rc/api");
+    expect(read("rc", "api", "index.html")).toBe("<html>API PAGE</html>");
+    expect(existsSync(join(site, "gonogo", "api"))).toBe(false);
+  });
+
   it("touches nothing outside /rc/ but the empty Jekyll marker", () => {
-    compose("rc", dist, site);
+    compose("rc", dist, api, site);
 
     expect(read("app", "index.html")).toBe("OLD APP");
     expect(read("app", "assets", "stale.js")).toBe("old");
@@ -90,7 +103,7 @@ describe("the rc channel before the first release", () => {
   });
 
   it("shows the landing page at the root with its app link pointing at /rc/", () => {
-    compose("rc", dist, site);
+    compose("rc", dist, api, site);
 
     expect(read("index.html")).toContain('<code id="run-command">');
     expect(read("index.html")).toContain("ksp-gonogo.github.io/rc/station");
@@ -98,7 +111,7 @@ describe("the rc channel before the first release", () => {
   });
 
   it("sends the old /gonogo/ URLs to /rc/, keeping the station routes", () => {
-    compose("rc", dist, site);
+    compose("rc", dist, api, site);
 
     expect(read("gonogo", "index.html")).toContain('href="/rc/"');
     expect(read("gonogo", "station", "index.html")).toContain(
@@ -110,25 +123,32 @@ describe("the rc channel before the first release", () => {
   });
 
   it("writes only the paths it says it owns, which is the list deploy.yml stages", () => {
-    compose("rc", dist, site);
+    compose("rc", dist, api, site);
 
     expect(readdirSync(site).sort()).toEqual(
       [...OWNED_PATHS.rc, "other"].sort(),
     );
+  });
+
+  it("puts the API page at /gonogo/api/ beside the redirects it writes", () => {
+    compose("rc", dist, api, site);
+
+    expect(read("gonogo", "api", "index.html")).toBe("<html>API PAGE</html>");
+    expect(read("rc", "api", "index.html")).toBe("<html>API PAGE</html>");
   });
 });
 
 describe("the rc channel once a release exists", () => {
   it("leaves the landing page, the 404 page and /gonogo/ to the release channel", () => {
     writeFileSync(join(site, "404.html"), "RELEASE 404");
-    compose("release", dist, site);
+    compose("release", dist, api, site);
     const before = [
       read("index.html"),
       read("404.html"),
       read("gonogo", "index.html"),
     ];
 
-    compose("rc", dist, site);
+    compose("rc", dist, api, site);
 
     expect([
       read("index.html"),
@@ -142,7 +162,7 @@ describe("the rc channel once a release exists", () => {
 
 describe("the release channel", () => {
   it("writes the app to /app/, the landing page to the root, and the README beside it", () => {
-    compose("release", dist, site);
+    compose("release", dist, api, site);
 
     expect(read("app", "index.html")).toBe("<html>NEW APP</html>");
     expect(read("app", "station", "index.html")).toBe("<html>NEW APP</html>");
@@ -155,15 +175,29 @@ describe("the release channel", () => {
     );
   });
 
+  it("puts the API page at /gonogo/api/ beside the redirects, which still answer the old app routes", () => {
+    compose("release", dist, api, site);
+
+    expect(API_PAGE_PATHS.root).toBe("gonogo/api");
+    expect(read("gonogo", "api", "index.html")).toBe("<html>API PAGE</html>");
+    expect(read("gonogo", "index.html")).toContain("location.replace");
+    expect(read("rc", "index.html")).toBe("OLD RC");
+  });
+
+  it("refuses to publish without an API page", () => {
+    rmSync(join(api, "index.html"));
+    expect(() => compose("release", dist, api, site)).toThrow(/api-page/);
+  });
+
   it("keeps a README that is already there, so it is written once", () => {
     writeFileSync(join(site, "README.md"), "KEPT");
-    compose("release", dist, site);
+    compose("release", dist, api, site);
 
     expect(read("README.md")).toBe("KEPT");
   });
 
   it("never deletes or changes /rc/ or a path it does not own", () => {
-    compose("release", dist, site);
+    compose("release", dist, api, site);
 
     expect(read("rc", "index.html")).toBe("OLD RC");
     expect(read("rc", "assets", "stale.js")).toBe("old");
@@ -171,7 +205,7 @@ describe("the release channel", () => {
   });
 
   it("writes only the paths it says it owns, which is the list deploy.yml stages", () => {
-    compose("release", dist, site);
+    compose("release", dist, api, site);
 
     const untouched = ["rc", "other"];
     expect(readdirSync(site).sort()).toEqual(
@@ -180,7 +214,7 @@ describe("the release channel", () => {
   });
 
   it("puts a redirect at every old URL and clears what the old site left under /gonogo/", () => {
-    compose("release", dist, site);
+    compose("release", dist, api, site);
 
     for (const old of [
       ["gonogo"],

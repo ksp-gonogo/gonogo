@@ -7,8 +7,8 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// The last notable crash of the current save. A subscriber that joins late
-/// still receives the most recent record, since it is delivered as an ordered,
-/// reliable event (<see cref="Delivery.ReliableOrdered"/>). Every field is
+/// still receives the most recent record, since every value is delivered, in
+/// order. Every field is
 /// captured from the crashed vessel at the moment of the crash.
 /// <para>It is the crashed craft's own report, so it reaches each command
 /// centre at the signal delay of that craft's link as of its last contact,

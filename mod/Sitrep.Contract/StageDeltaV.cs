@@ -120,7 +120,7 @@ public class StageDeltaVEntry
 }
 
 /// <summary>
-/// The <c>dv.summary</c> Topic payload: the whole-vessel ΔV rollup the
+/// The whole-vessel ΔV rollup the
 /// game's own ΔV simulation (<c>VesselDeltaV</c>) exposes alongside the per-stage
 /// <see cref="StageDeltaVEntry"/> list: the ΔV-producing stage count plus the
 /// vacuum, sea-level and current totals and total burn time. A single object,

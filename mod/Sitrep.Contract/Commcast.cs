@@ -34,10 +34,10 @@ public class CommcastAuthor
 }
 
 /// <summary>
-/// <c>commcast.group.open</c>'s args: start a group, a set of command centres
+/// Start a group, a set of command centres
 /// sharing one thread for messages and radio. A centre is a command centre, as
-/// listed on <c>commandCentre.roster</c>. The speaker, the screen sending, is
-/// always a member through its own centre, named here or not.
+/// listed on <c>commandCentre.roster</c>. The command centre sending this is
+/// always a member, named here or not.
 ///
 /// <para>Never delayed on the way up. What is said crosses once, from the
 /// speaker to each listener at that pair's signal delay, and the mod times that
@@ -65,7 +65,7 @@ public class CommcastGroupOpenArgs
 }
 
 /// <summary>
-/// <c>commcast.group.add</c>'s args: bring more centres into a group. Anyone the
+/// Bring more centres into a group. Anyone the
 /// speaker can see is a member may add; nobody is ever removed. Refused unless
 /// the speaker is a member as its own vantage currently knows the group.
 /// </summary>
@@ -90,7 +90,7 @@ public class CommcastGroupAddArgs
 }
 
 /// <summary>
-/// <c>commcast.message.send</c>'s args: say something to a group in text.
+/// Say something to a group in text.
 /// Refused unless the speaker is a member as its own vantage knows the group.
 /// </summary>
 /// <category>Command arguments</category>
@@ -162,9 +162,9 @@ public class CommcastSendReceipt
 }
 
 /// <summary>
-/// <c>commcast.message.ack</c>'s args: tell a message's author it arrived. The
-/// acknowledgement crosses back to the author at their pair's signal delay, so the
-/// author learns it was read one crossing after it was.
+/// Tell a message's author it arrived. The
+/// acknowledgement travels back to the author over the signal delay between the
+/// two centres, so the author learns of it one signal delay after it was read.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -183,7 +183,7 @@ public class CommcastMessageAckArgs
 }
 
 /// <summary>
-/// <c>commcast.radio.transmit</c>'s args: one batch of live push-to-talk audio,
+/// One batch of live push-to-talk audio,
 /// spoken to a group.
 ///
 /// <para>Each chunk is one raw Opus packet of 20 ms, base64-encoded. Send about

@@ -100,7 +100,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// The JSON header of a <see cref="BinaryLane"/> frame: everything about
+    /// The JSON header of a binary frame: everything about
     /// the delivery except the bytes themselves.
     ///
     /// <para>It carries the same <see cref="Meta"/> as

@@ -27,12 +27,12 @@ public enum WarpMode
 }
 
 /// <summary>
-/// The <c>time.warp</c> Topic payload: the game's time-warp and pause state,
+/// The game's time-warp and pause state,
 /// as separate typed fields.
 ///
 /// <para>Current UT is not a field here, nor on any other Topic of the wire
 /// contract: <c>meta.validAt</c> stamps every sample with the UT it describes,
-/// and a client asks what time it is with the SDK's <c>useViewUt</c>.</para>
+/// so the current UT is the <c>meta.validAt</c> of the newest frame.</para>
 ///
 /// <para>Warp and pause are game-wide state, not a craft's: the payload's
 /// <c>meta.source</c> is <c>"game"</c> rather than <c>"vessel:&lt;guid&gt;"</c>,

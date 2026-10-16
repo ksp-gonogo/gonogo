@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.light</c> Topic payload: whether the active craft is in
+/// Whether the active craft is in
 /// sunlight now, and the next two instants at which that changes, for a
 /// widget that warps to sunrise or sunset or plans around a night pass.
 ///

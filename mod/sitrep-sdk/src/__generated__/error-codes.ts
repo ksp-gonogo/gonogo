@@ -252,8 +252,7 @@ export type CommandErrorCode = (typeof CommandErrorCode)[keyof typeof CommandErr
  * refinements of a `CommandErrorCode` root, never faults.
  *
  * A command that was sent and never answered is neither a refusal nor one of
- * these: its `send` rejects with the client's own `E_LOST` marker, which the
- * SDK's `classifyCommandRejection` function reports as `lost`.
+ * these: no answer ever comes.
  *
  * @category Error codes
  */

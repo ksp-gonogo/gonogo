@@ -8,8 +8,8 @@ namespace Sitrep.Contract;
 /// <summary>
 /// The payload for the <c>recovery.lastSummary</c> channel: the most recent
 /// vessel recovery in the current save, as KSP's mission recovery dialog
-/// reports it. Delivered on the <see cref="Delivery.ReliableOrdered"/> lane,
-/// so a late subscriber is sent the last recovery. The recovery-side
+/// reports it. Every value is delivered, in order, so a late subscriber is
+/// sent the last recovery. The recovery-side
 /// counterpart of <see cref="CrashReport"/>.
 ///
 /// <para>Published only for a real craft: recovering debris, a flag or a

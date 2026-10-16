@@ -6,12 +6,16 @@ using System.Collections.Generic;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.orbit</c> Topic payload: the active vessel's orbital
+/// The active vessel's orbital
 /// elements. Elements are the cause; every kinematic quantity (position,
 /// velocity, apsides, anomalies, period) is derived by the consumer at its
 /// view UT through the propagation capability, and is not streamed here. The
 /// one exception is the pair of apsis countdowns under physics,
 /// <see cref="TimeToAp"/> and <see cref="TimeToPe"/>.
+///
+/// <para>The apoapsis and periapsis altitudes are on the current patch,
+/// <c>patches[0].apA</c> and <c>patches[0].peA</c>, in metres above the body's
+/// mean radius.</para>
 ///
 /// <para>Units: <see cref="Sma"/> in metres; <see cref="Inc"/>,
 /// <see cref="Lan"/> and <see cref="ArgPe"/> in degrees; and

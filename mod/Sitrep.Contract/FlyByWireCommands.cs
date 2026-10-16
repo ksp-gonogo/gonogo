@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// <c>vessel.control.setFlyByWire</c>'s args: turn the fly-by-wire override on
+/// Turn the fly-by-wire override on
 /// or off. Unlike the other <c>vessel.control.*</c> commands this is not a
 /// one-shot actuation: KSP resets the raw control axes every physics frame, so
 /// while the override is on the mod re-applies the held axes and trims (set
@@ -35,7 +35,7 @@ public class SetFlyByWireArgs
 }
 
 /// <summary>
-/// Drive the held control axes of the fly-by-wire override. <c>vessel.control.setAxes</c>'s args: a partial update of the held
+/// Drive the held control axes of the fly-by-wire override. Takes a partial update of the held
 /// fly-by-wire override. Every field is nullable, and only the fields you set
 /// change their held value, so one axis can be driven on its own without
 /// disturbing the others.

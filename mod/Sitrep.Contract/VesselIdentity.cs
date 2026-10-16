@@ -5,12 +5,12 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.identity</c> Topic payload: who the active vessel is, what
+/// Who the active vessel is, what
 /// kind of craft it is, and where it is.
 ///
 /// <para>There is no mission time field. <see cref="LaunchUt"/> is fixed after
-/// liftoff, so mission elapsed time is <c>viewUt - launchUt</c>, computed by the
-/// client.</para>
+/// liftoff, so mission elapsed time is the current UT (the <c>meta.validAt</c>
+/// of the newest frame) minus <c>launchUt</c>, computed by the client.</para>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]

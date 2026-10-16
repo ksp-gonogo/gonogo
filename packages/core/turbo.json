@@ -59,6 +59,7 @@
         "$TURBO_ROOT$/docker/**",
         "$TURBO_ROOT$/docs/**",
         "!$TURBO_ROOT$/docs/superpowers/**",
+        "!$TURBO_ROOT$/docs/api/template/__transpiled/**",
         "$TURBO_ROOT$/local_docs/**",
         "$TURBO_ROOT$/scripts/**",
         "$TURBO_ROOT$/test/**",

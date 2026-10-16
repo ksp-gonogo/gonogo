@@ -116,11 +116,11 @@ export interface GeneratedTopicPayloadMap {
   "alarm.scet.fired": ScetAlarmFired;
   /** One Topic a SCET (spacecraft event time) threshold alarm may be armed against: a row of the `alarm.scet.topics` channel. */
   "alarm.scet.topics": ScetAddressableTopic[];
-  /** The `career.facilities` Topic payload: the space centre's buildings, each with the level it stands at and the full run of levels it can be upgraded through (its tier count and what each upgrade costs). */
+  /** The space centre's buildings, each with the level it stands at and the full run of levels it can be upgraded through (its tier count and what each upgrade costs). */
   "career.facilities": CareerFacilities;
-  /** The `career.mode` Topic payload: the active save's `GameMode`, as `{ "mode": <int> }`. */
+  /** The active save's `GameMode`, as `{ "mode": <int> }`. */
   "career.mode": CareerMode;
-  /** The `career.status` Topic payload: the KSC and career-mode snapshot, in four groups (balances, contracts, strategies, tech). */
+  /** The KSC and career-mode snapshot, in four groups (balances, contracts, strategies, tech). */
   "career.status": CareerStatus;
   /** How far each command centre is from the active craft, one-way, along its own routed path: the delay every ordinary channel reaches that centre at, and the delay a command from it takes to arrive. */
   "commandCentre.activeVesselDelay": CommandCentreActiveVesselDelay;
@@ -170,35 +170,35 @@ export interface GeneratedTopicPayloadMap {
   "deployed.bases": DeployedEntry[];
   /** One ΔV-producing stage of the active vessel, from the game's own stage simulation: the same numbers the in-game ΔV app shows, with atmosphere, ISP, crossfeed and staging all handled by the game. */
   "dv.stages": StageDeltaVEntry[];
-  /** The `dv.summary` Topic payload: the whole-vessel ΔV rollup the game's own ΔV simulation (`VesselDeltaV`) exposes alongside the per-stage `StageDeltaVEntry` list: the ΔV-producing stage count plus the vacuum, sea-level and current totals and total burn time. */
+  /** The whole-vessel ΔV rollup the game's own ΔV simulation (`VesselDeltaV`) exposes alongside the per-stage `StageDeltaVEntry` list: the ΔV-producing stage count plus the vacuum, sea-level and current totals and total burn time. */
   "dv.summary": StageDeltaVSummary;
   /** Every kerbal currently outside a craft. */
   "eva.crew": EvaCrew;
   /** Which flight is active and what phase it is in, for the vessel gonogo is reporting as active. */
   "flight.current": FlightCurrent;
-  /** The `flight.ended` Topic payload: an event that is always delivered, in the order it happened, and held back by the signal delay like any value about a craft, sent once per flight when it stops being trackable: recovered, crashed, destroyed or reverted. */
+  /** An event that is always delivered, in the order it happened, and held back by the signal delay like any value about a craft, sent once per flight when it stops being trackable: recovered, crashed, destroyed or reverted. */
   "flight.ended": FlightEnded;
-  /** The `flight.started` Topic payload: an event that is always delivered, in the order it happened, and held back by the signal delay like any value about a craft, sent when a new flight begins. */
+  /** An event that is always delivered, in the order it happened, and held back by the signal delay like any value about a craft, sent when a new flight begins. */
   "flight.started": FlightStarted;
-  /** The `flight.vesselChanged` Topic payload: an event that is always delivered, in the order it happened, and held back by the signal delay like any value about a craft, sent whenever the active vessel changes after the first observation of the session (docking, undocking, a tracking-station reselect). */
+  /** An event that is always delivered, in the order it happened, and held back by the signal delay like any value about a craft, sent whenever the active vessel changes after the first observation of the session (docking, undocking, a tracking-station reselect). */
   "flight.vesselChanged": FlightVesselChanged;
-  /** The `game.dlc` Topic payload: which KSP expansions ("DLC") are installed. */
+  /** Which KSP expansions ("DLC") are installed. */
   "game.dlc": GameDlc;
   /** One chemical converter on the active vessel. */
   "isru.converters": IsruConverterEntry[];
   /** One drill (resource harvester) on the active vessel. */
   "isru.drills": IsruDrillEntry[];
-  /** The `ksp.revertAvailability` Topic payload: whether the two stock in-flight revert actions are available right now, so a widget can enable its Revert to Launch and Revert to Editor controls exactly when KSP's own pause menu shows them. */
+  /** Whether the two stock in-flight revert actions are available right now, so a widget can enable its Revert to Launch and Revert to Editor controls exactly when KSP's own pause menu shows them. */
   "ksp.revertAvailability": RevertAvailability;
-  /** The `missions.active` Topic payload: the Making History mission that is running, or has just ended, in the current game. */
+  /** The Making History mission that is running, or has just ended, in the current game. */
   "missions.active": MissionStatus;
-  /** The `parts.power` Topic payload: the active vessel's rolled-up electric-charge production. */
+  /** The active vessel's rolled-up electric-charge production. */
   "parts.power": PartsPower;
   /** The payload for the `recovery.hasRecent` channel: one flag saying a vessel recovery is on record for the current save, published beside `RecoveryReport` on `recovery.lastSummary`. */
   "recovery.hasRecent": RecoveryRecent;
   /** The payload for the `recovery.lastSummary` channel: the most recent vessel recovery in the current save, as KSP's mission recovery dialog reports it. */
   "recovery.lastSummary": RecoveryReport;
-  /** The `robotics.available` Topic payload: a single object (or `null` when there is no active vessel) whose one field states whether the active vessel carries any Breaking Ground robotic servo. */
+  /** A single object (or `null` when there is no active vessel) whose one field states whether the active vessel carries any Breaking Ground robotic servo. */
   "robotics.available": RoboticsAvailability;
   /** One entry in the `robotics.servos` Topic payload, a single Breaking Ground robotic servo on the active vessel. */
   "robotics.servos": ServoEntry[];
@@ -214,75 +214,75 @@ export interface GeneratedTopicPayloadMap {
   "science.lab": LabEntry[];
   /** One entry in the `science.sensors` Topic payload: a single environmental-sensor module (`ModuleEnviroSensor`: thermometer, barometer, gravioli detector, accelerometer, and any modded sensor sharing the module) on the active vessel. */
   "science.sensors": SensorEntry[];
-  /** The `settings.gonogo` Topic payload: every setting the mod and its Uplinks declared, what each holds now, and whether the settings file on the KSP machine holds the same. */
+  /** Every setting the mod and its Uplinks declared, what each holds now, and whether the settings file on the KSP machine holds the same. */
   "settings.gonogo": SettingsModel;
-  /** The `spaceCenter.astronautComplex` Topic payload: the Astronaut Complex hire tab, the rolling pool of applicants the operator can recruit, plus the roster-cap context a hire is gated on. */
+  /** The Astronaut Complex hire tab, the rolling pool of applicants the operator can recruit, plus the roster-cap context a hire is gated on. */
   "spaceCenter.astronautComplex": AstronautComplexInfo;
   /** One kerbal in the `spaceCenter.crewRoster` channel (the hired-crew roster: KSP's `KerbalRoster.Crew`, owned crew that is either available or currently assigned to a mission), and the same shape for every entry in `AstronautComplexInfo.applicants`: one shape for a kerbal whether hired or still a candidate. */
   "spaceCenter.crewRoster": CrewRosterEntry[];
   /** One launch site in the `spaceCenter.launchSites` channel: the stock KSC pad and runway, any Making History sites, and any Kerbal Konstructs sites, which is every launch site the game has registered. */
   "spaceCenter.launchSites": LaunchSiteEntry[];
-  /** The `spaceCenter.partsAvailable` Topic payload: a wrapper carrying the count of parts the player can place right now (tech-unlocked and purchased in career; the full `PartLoader` catalogue in sandbox). */
+  /** A wrapper carrying the count of parts the player can place right now (tech-unlocked and purchased in career; the full `PartLoader` catalogue in sandbox). */
   "spaceCenter.partsAvailable": SpaceCenterPartsAvailable;
   /** One point of interest in the `spaceCenter.pois` channel: the union of every launch site (`ksc`/`launchSite` kinds, the same sites as `LaunchSiteEntry`, limited to sites with a set spawn-point coordinate) and every surface contract waypoint whose contract is Active or Offered (`contractTarget` kind, from `FinePrint.WaypointManager`). */
   "spaceCenter.pois": SpaceCenterPoiEntry[];
   /** One craft file in the `spaceCenter.savedShips` channel, a saved VAB or SPH design the player can launch, read from the save's craft folders via the stock `CraftProfileInfo` metadata loader. */
   "spaceCenter.savedShips": SavedShipEntry[];
-  /** The `spaceCenter.scene` Topic payload: the single current KSP game scene. */
+  /** The single current KSP game scene. */
   "spaceCenter.scene": SpaceCenterScene;
   /** The frame the game's own navigation view is expressed in, which is what the player is looking at. */
   "system.frame": ControlFrame;
-  /** The `target.available` Topic payload: the list of everything targetable from the active vessel, as the active vessel knows it. */
+  /** The list of everything targetable from the active vessel, as the active vessel knows it. */
   "target.available": TargetAvailable;
-  /** The `time.calendar` Topic payload: how long a minute, hour, day and year are, and what real-world instant UT 0 is (when the game has one), as the running game defines them. */
+  /** How long a minute, hour, day and year are, and what real-world instant UT 0 is (when the game has one), as the running game defines them. */
   "time.calendar": TimeCalendar;
-  /** The `time.warp` Topic payload: the game's time-warp and pause state, as separate typed fields. */
+  /** The game's time-warp and pause state, as separate typed fields. */
   "time.warp": WarpState;
-  /** The `trackingStation.bodies` Topic payload: every celestial body in the game, as a tree, wrapped as `{ "bodies": [ ... ] }`. */
+  /** Every celestial body in the game, as a tree, wrapped as `{ "bodies": [ ... ] }`. */
   "trackingStation.bodies": SystemBodies;
-  /** The `trackingStation.catalog` Topic payload: every object the receiving command centre knows of, craft and tracked space objects alike, one entry each, wrapped as `{ "entries": [ ... ] }`. */
+  /** Every object the receiving command centre knows of, craft and tracked space objects alike, one entry each, wrapped as `{ "entries": [ ... ] }`. */
   "trackingStation.catalog": TrackingStationCatalog;
-  /** The `vessel.attitude` Topic payload: pitch, heading and roll of the vessel's control reference, the orientation the pilot steers by, against the local surface up and north, in two named frames. */
+  /** Pitch, heading and roll of the vessel's control reference, the orientation the pilot steers by, against the local surface up and north, in two named frames. */
   "vessel.attitude": VesselAttitude;
-  /** The `vessel.comms` Topic payload: the active vessel's own CommNet connection, from KSP's `vessel.connection`. */
+  /** The active vessel's own CommNet connection, from KSP's `vessel.connection`. */
   "vessel.comms": VesselComms;
-  /** The `vessel.control` Topic payload: the active vessel's control state (the stock toggles, SAS mode, throttle, the commanded fly-by-wire axes and the custom action groups). */
+  /** The active vessel's control state (the stock toggles, SAS mode, throttle, the commanded fly-by-wire axes and the custom action groups). */
   "vessel.control": VesselControl;
   /** The `vessel.crew` payload: who is aboard the active vessel and how many seats it has. */
   "vessel.crew": VesselCrew;
-  /** The `vessel.dock` Topic payload: the relative position, velocity and coarse orientation between the active vessel's nearest free (undocked) docking port and the targeted docking port, for docking-alignment widgets. */
+  /** The relative position, velocity and coarse orientation between the active vessel's nearest free (undocked) docking port and the targeted docking port, for docking-alignment widgets. */
   "vessel.dock": DockAlignment;
-  /** The `vessel.flight` Topic payload: quantities the game measures, either because they cannot be derived from orbital elements (terrain height, aerodynamic state) or because they are the measured value to check a prediction against (speeds). */
+  /** Quantities the game measures, either because they cannot be derived from orbital elements (terrain height, aerodynamic state) or because they are the measured value to check a prediction against (speeds). */
   "vessel.flight": VesselFlight;
-  /** The `vessel.identity` Topic payload: who the active vessel is, what kind of craft it is, and where it is. */
+  /** Who the active vessel is, what kind of craft it is, and where it is. */
   "vessel.identity": VesselIdentity;
   /** The stock cargo a vessel's parts are carrying: what is aboard, and in which part. */
   "vessel.inventory": VesselInventory;
-  /** The `vessel.landing` Topic payload: landing data for the active vessel that needs the terrain map of the body below (slope, roughness and elevation at the touchdown site), plus an atmosphere-aware descent estimate built from the vessel's measured drag. */
+  /** Landing data for the active vessel that needs the terrain map of the body below (slope, roughness and elevation at the touchdown site), plus an atmosphere-aware descent estimate built from the vessel's measured drag. */
   "vessel.landing": VesselLanding;
-  /** The `vessel.light` Topic payload: whether the active craft is in sunlight now, and the next two instants at which that changes, for a widget that warps to sunrise or sunset or plans around a night pass. */
+  /** Whether the active craft is in sunlight now, and the next two instants at which that changes, for a widget that warps to sunrise or sunset or plans around a night pass. */
   "vessel.light": VesselLight;
-  /** The `vessel.maneuver` Topic payload: the active vessel's planned burns. */
+  /** The active vessel's planned burns. */
   "vessel.maneuver": VesselManeuver;
-  /** The `vessel.orbit` Topic payload: the active vessel's orbital elements. */
+  /** The active vessel's orbital elements. */
   "vessel.orbit": VesselOrbit;
-  /** The `vessel.orbit.truth` Topic payload: KSP's own maintained state vector for the active vessel (`Orbit.pos` and `Orbit.vel`), relative to the body it orbits. */
+  /** KSP's own maintained state vector for the active vessel (`Orbit.pos` and `Orbit.vel`), relative to the body it orbits. */
   "vessel.orbit.truth": VesselOrbitTruth;
-  /** The `vessel.parts` Topic payload: the active vessel's full part tree, with each part's position, mass, temperatures, resources, module states and action-group bindings. */
+  /** The active vessel's full part tree, with each part's position, mass, temperatures, resources, module states and action-group bindings. */
   "vessel.parts": VesselParts;
-  /** The `vessel.physics.mode` Topic payload: the active vessel's physics regime (`PhysicsMode`). */
+  /** The active vessel's physics regime (`PhysicsMode`). */
   "vessel.physics.mode": VesselPhysicsMode;
-  /** The `vessel.propulsion` Topic payload: the active vessel's mass and thrust, the inputs to thrust-to-weight and burn-time figures. */
+  /** The active vessel's mass and thrust, the inputs to thrust-to-weight and burn-time figures. */
   "vessel.propulsion": VesselPropulsion;
   /** What the active vessel carries, keyed by resource name, each with its current amount and capacity. */
   "vessel.resources": VesselResources;
-  /** The `vessel.structure` Topic payload: the active vessel's stage and part counts. */
+  /** The active vessel's stage and part counts. */
   "vessel.structure": VesselStructure;
-  /** The `vessel.surface` Topic payload: surface data a landing widget needs that `vessel.flight` doesn't already carry. */
+  /** Surface data a landing widget needs that `vessel.flight` doesn't already carry. */
   "vessel.surface": VesselSurface;
-  /** The `vessel.target` Topic payload: the active vessel's current target only. */
+  /** The active vessel's current target only. */
   "vessel.target": VesselTarget;
-  /** The `vessel.thermal` Topic payload: the active vessel's thermal rollup, its hottest part, heat shield and engine. */
+  /** The active vessel's thermal rollup, its hottest part, heat shield and engine. */
   "vessel.thermal": VesselThermal;
 }
 

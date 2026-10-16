@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>ksp.revertAvailability</c> Topic payload: whether the two stock
+/// Whether the two stock
 /// in-flight revert actions are available right now, so a widget can enable
 /// its Revert to Launch and Revert to Editor controls exactly when KSP's own
 /// pause menu shows them.
@@ -16,7 +16,7 @@ namespace Sitrep.Contract;
 ///
 /// <para>Not delayed by signal delay: it is a fact about the game, not vessel
 /// telemetry, and carries no per-payload <c>Meta</c> of its own (the
-/// envelope's applies). Its delay role is <see cref="DelayRole.TrueNow"/>.</para>
+/// envelope's applies).</para>
 /// <internal>
 /// Read from the two static FlightDriver flags KSP reads when
 /// PauseMenu.drawStockRevertOptions draws those buttons. "Revert to Launch"
@@ -27,7 +27,7 @@ namespace Sitrep.Contract;
 /// names read backwards to their button labels. Outside flight the statics
 /// carry leftover values from the previous flight, which is why the payload is
 /// null there. Produced by Sitrep.Host.SystemViewProvider.BuildRevertAvailability,
-/// on the same convention as SystemBodies.
+/// on the same convention as <c>trackingStation.bodies</c>.
 /// </internal>
 /// </summary>
 /// <category>Flights</category>

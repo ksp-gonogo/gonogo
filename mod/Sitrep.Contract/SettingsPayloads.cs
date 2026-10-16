@@ -6,7 +6,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>settings.gonogo</c> Topic payload: every setting the mod and its
+/// Every setting the mod and its
 /// Uplinks declared, what each holds now, and whether the settings file on the
 /// KSP machine holds the same.
 ///

@@ -385,6 +385,22 @@ export function readCommandDispositions(root) {
 }
 
 /**
+ * Each command's one-line summary, off the doc comment the codegen writes above
+ * its entry in the generated command map: the command's own
+ * `[SitrepCommand(Summary = ...)]` where it has one, otherwise the first
+ * sentence of its args type's doc comment.
+ */
+export function readCommandSummaries(root) {
+  const source = readFileSync(join(root, SOURCES.commandMap), "utf8");
+  const found = new Map();
+  for (const row of source.matchAll(
+    /\/\*\* ([^\n]*?) \*\/\n\s*"([^"]+)": [\w<>]+;/g,
+  ))
+    found.set(row[2], row[1]);
+  return found;
+}
+
+/**
  * The contract version the document describes, off the SDK's compat constants.
  *
  * Read rather than imported because this is a `.mjs` script and those constants

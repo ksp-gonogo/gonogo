@@ -11,8 +11,9 @@ namespace Sitrep.Contract;
 /// for instance). A more specific kind may be added later; treat an
 /// unrecognised value as <see cref="Other"/>.
 ///
-/// <para>Member order is wire-significant, so members are only ever
-/// appended.</para>
+/// <internal>
+/// Member order is wire-significant, so members are only ever appended.
+/// </internal>
 ///
 /// <para><see cref="Position"/> is used only as an input to
 /// <c>vessel.target.set</c> (see <see cref="SetTargetArgs.Latitude"/> and
@@ -54,9 +55,8 @@ public enum TargetKind
 
 /// <summary>
 /// Next closest approach between the active vessel and its current target,
-/// computed by the mod's elected <see cref="IPropagationProvider"/> (stock
-/// two-body Kepler by default, an n-body provider when one is elected over
-/// it), so an n-body physics mod can supply the true encounter rather than a
+/// computed by the orbit model in use (stock two-body Kepler by default, an
+/// n-body physics mod's when one is installed), so an n-body physics mod can supply the true encounter rather than a
 /// Kepler approximation.
 ///
 /// <para>Because it comes from the same provider as the trajectory, the
@@ -82,14 +82,13 @@ public class ClosestApproach
 }
 
 /// <summary>
-/// The <c>vessel.target</c> Topic payload: the active vessel's current
+/// The active vessel's current
 /// target only. <see cref="RelativePosition"/>/<see cref="RelativeVelocity"/>
 /// both use the one <see cref="Vec3"/> shape.
 ///
 /// <para><see cref="Orbit"/> reuses <see cref="VesselOrbit"/> itself (not a
-/// separate "target orbit" shape), so the SDK propagates a target with the same
-/// code path as the active vessel and both are evaluated at the same view
-/// time. Its nested <see cref="Meta"/> is stamped with the same subject (the
+/// separate "target orbit" shape), so a client propagates a target the same
+/// way as the active vessel, at the same time. Its nested <see cref="Meta"/> is stamped with the same subject (the
 /// active vessel producing this sample), not the target's; <see cref="VesselId"/>
 /// and <see cref="BodyIndex"/> carry the target's own identity.</para>
 ///
@@ -164,7 +163,7 @@ public class VesselTarget
     /// <summary>The target's orbit. Null when the target has no orbit (it is landed, say, or its orbit could not be resolved this tick).</summary>
     public VesselOrbit? Orbit { get; set; }
 
-    /// <summary>Next closest approach, from the mod's elected propagation provider. Null when there is no encounter to report; see <see cref="Sitrep.Contract.ClosestApproach"/>.</summary>
+    /// <summary>Next closest approach, from the orbit model in use. Null when there is no encounter to report; see <see cref="Sitrep.Contract.ClosestApproach"/>.</summary>
     public ClosestApproach? ClosestApproach { get; set; }
 
     /// <summary>The payload's provenance, stamped with the active vessel (<c>"vessel:&lt;guid&gt;"</c>).</summary>

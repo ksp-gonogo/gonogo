@@ -400,9 +400,8 @@ public class CommsHop
     public SignalQuantity? Quantity { get; set; }
 
     /// <summary>
-    /// The provider-namespaced extension bag: how the comms backend in force
-    /// carries per-hop facts this shared shape does not declare (see
-    /// <see cref="ProviderExtensionBagAttribute"/> for the whole mechanism).
+    /// Per-hop facts the comms mod in use reports beyond this shape, keyed by
+    /// that mod's name.
     /// A RealAntennas install fills <c>Extensions["realantennas"]</c> with
     /// band, tech level, modulation, encoder, required Eb/N0, beamwidth, EC
     /// draw and the reverse-direction rate, typed by the RealAntennas client's
@@ -592,7 +591,7 @@ public enum CommsDelaySource
 /// null.</description></item>
 /// <item><description>a real number: <see cref="Source"/> is
 /// <see cref="CommsDelaySource.SignalDelay"/>, a signal delay computed over
-/// the elected backend's hop geometry.</description></item>
+/// the hop geometry of the comms model in use.</description></item>
 /// </list>
 /// One zero names its own reason instead of sharing
 /// <see cref="CommsDelaySource.None"/>:

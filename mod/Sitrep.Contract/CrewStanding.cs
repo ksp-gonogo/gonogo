@@ -37,8 +37,7 @@ namespace Sitrep.Contract
     /// for what the raw KSP ordinal beside it is still good for.</para>
     ///
     /// <para><b>Order.</b> The numbering is the reading order: sorted by value, a
-    /// crew list reads free to fly, then committed, then off the books. The SDK's
-    /// <c>CREW_STANDING_ORDER</c> is derived from it. A new member is inserted at
+    /// crew list reads free to fly, then committed, then off the books. A new member is inserted at
     /// its place in that order rather than appended, so a member's number can
     /// change between versions: never store or compare a raw number, compare
     /// members by name through the generated enum.</para>

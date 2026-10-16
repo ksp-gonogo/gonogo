@@ -790,16 +790,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   mechjeb: {
     domainDebt: [],
     permanent: [
-      /*
-       * -- CARRIED CONTRACT PROSE: the generated contract now
-       * carries the C# doc comments it is generated from, and a wire type
-       * describes what an ELECTED backend puts in it. Here, a centre-of-mass
-       * note attributes the `Vessel.CoM` construction it describes to MechJeb.
-       * Text only, in a generated file, and naming the backend IS the fact
-       * being stated rather than a dependency on it, so this is the same class
-       * as the doc-mention citations already here.
-       */
-      "mod/sitrep-sdk/src/__generated__/contract.ts",
       /**
        * The panel-body ratchet's own inventory: a path-keyed debt list over every
        * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
@@ -842,7 +832,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * zero coupling --
        */
       "mod/Gonogo.KSP/KspHost.cs",
-      "mod/Sitrep.Contract/VesselAttitude.cs",
 
       /*
        * SitrepUnitAttribute.cs's Kilometres doc-comment explains why that

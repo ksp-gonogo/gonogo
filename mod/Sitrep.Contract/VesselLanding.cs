@@ -5,7 +5,7 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.landing</c> Topic payload: landing data for the active
+/// Landing data for the active
 /// vessel that needs the terrain map of the body below (slope, roughness and
 /// elevation at the touchdown site), plus an atmosphere-aware descent estimate
 /// built from the vessel's measured drag. The vacuum ballistic figures (which

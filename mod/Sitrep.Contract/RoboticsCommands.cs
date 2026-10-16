@@ -21,7 +21,7 @@ namespace Sitrep.Contract;
 [SitrepCommand("robotics.servo.setAngle")]
 public class ServoSetAngleArgs
 {
-    /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    /// <summary>The part's flight id, as a string: the id each <c>parts.robotics</c> entry carries.</summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
@@ -45,7 +45,7 @@ public class ServoSetAngleArgs
 [SitrepCommand("robotics.servo.setExtension")]
 public class ServoSetExtensionArgs
 {
-    /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    /// <summary>The part's flight id, as a string: the id each <c>parts.robotics</c> entry carries.</summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
@@ -73,7 +73,7 @@ public class ServoSetExtensionArgs
 [SitrepCommand("robotics.rotor.setLock", Summary = "Lock or unlock a rotor.")]
 public class ServoSetEnabledArgs
 {
-    /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    /// <summary>The part's flight id, as a string: the id each <c>parts.robotics</c> entry carries.</summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
@@ -94,7 +94,7 @@ public class ServoSetEnabledArgs
 [SitrepCommand("robotics.rotor.setRpmLimit")]
 public class RotorSetRpmLimitArgs
 {
-    /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    /// <summary>The part's flight id, as a string: the id each <c>parts.robotics</c> entry carries.</summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
@@ -116,7 +116,7 @@ public class RotorSetRpmLimitArgs
 [SitrepCommand("robotics.rotor.setTorqueLimit")]
 public class RotorSetTorqueLimitArgs
 {
-    /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    /// <summary>The part's flight id, as a string: the id each <c>parts.robotics</c> entry carries.</summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
@@ -138,7 +138,7 @@ public class RotorSetTorqueLimitArgs
 [SitrepCommand("robotics.rotor.setBrake")]
 public class RotorSetBrakeArgs
 {
-    /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    /// <summary>The part's flight id, as a string: the id each <c>parts.robotics</c> entry carries.</summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 
@@ -161,7 +161,7 @@ public class RotorSetBrakeArgs
 [SitrepCommand("robotics.rotor.reverse")]
 public class RotorReverseArgs
 {
-    /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
+    /// <summary>The part's flight id, as a string: the id each <c>parts.robotics</c> entry carries.</summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
 }

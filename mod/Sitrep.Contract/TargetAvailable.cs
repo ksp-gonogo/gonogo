@@ -173,7 +173,7 @@ public class TargetListEntry
 }
 
 /// <summary>
-/// The <c>target.available</c> Topic payload: the list of everything
+/// The list of everything
 /// targetable from the active vessel, as the active vessel knows it. Wrapper
 /// object <c>{ "entries": [ ... ] }</c>, like <c>trackingStation.catalog</c>.
 ///

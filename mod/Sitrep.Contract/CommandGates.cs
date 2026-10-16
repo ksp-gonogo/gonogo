@@ -223,8 +223,9 @@ namespace Sitrep.Contract
     /// unlocked what it needs: the unlocks it is missing, so a client can say
     /// why it has nothing to show instead of drawing an empty value as if there
     /// were none. A field that can arrive this way has <c>LockedValue</c> among the
-    /// types it is declared with, and the SDK's <c>isLocked</c> tells the two apart.
+    /// types it is declared with.
     /// <internal>
+    /// The SDK's <c>isLocked</c> tells the two apart.
     /// A mod's C# marks such a field with <see cref="SitrepRequiresAttribute"/>;
     /// a client only reads the result.
     /// </internal>

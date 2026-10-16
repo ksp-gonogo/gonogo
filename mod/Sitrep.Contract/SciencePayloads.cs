@@ -191,9 +191,8 @@ public class ExperimentEntry
     public string? ValueModel { get; set; }
 
     /// <summary>
-    /// The provider-namespaced extension bag: how a science provider carries a
-    /// per-experiment field this shared shape does not declare. See
-    /// <see cref="ProviderExtensionBagAttribute"/> for the mechanism.
+    /// Per-experiment facts the science mod in use reports beyond this shape,
+    /// keyed by that mod's name.
     ///
     /// <para>Everything a richer science model knows that stock has no concept
     /// of belongs here: storage capacity, file-vs-sample, transmit rate,

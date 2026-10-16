@@ -45,7 +45,7 @@ public class VesselInventory
 #endif
 public class InventoryStore
 {
-    /// <summary><c>Part.flightID</c> stringified, so a store id-joins to
+    /// <summary>The part's flight id, as a string, so a store id-joins to
     /// <c>vessel.parts</c> and the other per-part channels.</summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";

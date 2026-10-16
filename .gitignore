@@ -68,3 +68,6 @@ asyncapi.yaml.actual
 
 # What scripts/scaffold-probe.mjs has the app import, removed after each run
 packages/app/.scaffold-probe/
+
+# The AsyncAPI generator transpiles the API page template here on every run.
+docs/api/template/__transpiled/

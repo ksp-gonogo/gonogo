@@ -86,7 +86,7 @@ public class FlightCurrent
 }
 
 /// <summary>
-/// The <c>flight.started</c> Topic payload: an event that is always delivered,
+/// An event that is always delivered,
 /// in the order it happened, and held back by the signal delay like any value
 /// about a craft, sent when a new flight begins. A flight is new when its vessel id
 /// has not been started before in this game session (a launch, or a first
@@ -124,7 +124,7 @@ public class FlightStarted
 }
 
 /// <summary>
-/// The <c>flight.ended</c> Topic payload: an event that is always delivered,
+/// An event that is always delivered,
 /// in the order it happened, and held back by the signal delay like any value
 /// about a craft, sent once per flight when it stops being trackable: recovered,
 /// crashed, destroyed or reverted. It shares the delay class of
@@ -167,7 +167,7 @@ public class FlightEnded
 }
 
 /// <summary>
-/// The <c>flight.vesselChanged</c> Topic payload: an event that is always delivered,
+/// An event that is always delivered,
 /// in the order it happened, and held back by the signal delay like any value
 /// about a craft, sent whenever the active vessel changes after the first
 /// observation of the session (docking, undocking, a tracking-station

@@ -5,11 +5,14 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.orbit.truth</c> Topic payload: KSP's own maintained state
+/// KSP's own maintained state
 /// vector for the active vessel (<c>Orbit.pos</c> and <c>Orbit.vel</c>),
-/// relative to the body it orbits. A development channel for checking
-/// element-to-position math against KSP's own state, not a source of altitude
-/// or velocity for a widget: read <c>vessel.orbit</c> for those. Absent when
+/// relative to the body it orbits. Read <c>vessel.orbit</c> for altitude and
+/// velocity.
+/// <internal>
+/// A development channel for checking element-to-position math against KSP's
+/// own state.
+/// </internal> Absent when
 /// the state vector or the frame flag could not be read.
 ///
 /// <para><see cref="FrameRotating"/> says which frame the vectors are in, and

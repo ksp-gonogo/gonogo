@@ -8,7 +8,7 @@ namespace Sitrep.Contract;
 /// Switch SAS, RCS, landing gear, brakes, lights, the abort group or precision control on or off. Args shared by every plain on/off actuation command (<c>setSas</c>,
 /// <c>setRcs</c>, <c>setGear</c>, <c>setBrakes</c>, <c>setLights</c>,
 /// <c>setAbort</c>, <c>setPrecisionControl</c>): an absolute state to apply, never a toggle. Under
-/// signal delay delay a toggle that arrives after unknown intervening changes
+/// signal delay a toggle that arrives after unknown intervening changes
 /// would race them, so there are no toggle commands.
 /// </summary>
 /// <category>Command arguments</category>
@@ -31,7 +31,7 @@ public class SetEnabledArgs
 }
 
 /// <summary>
-/// Set the SAS mode to hold. <c>vessel.control.setSasMode</c>'s arguments: the SAS mode to hold.
+/// Set the SAS mode to hold. Takes the SAS mode to hold.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -47,7 +47,7 @@ public class SetSasModeArgs
 }
 
 /// <summary>
-/// Set the main throttle. <c>vessel.control.setThrottle</c>'s arguments: the main throttle setting.
+/// Set the main throttle. Takes the main throttle setting.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -65,7 +65,7 @@ public class SetThrottleArgs
 // vessel.control.stage takes no args; its CommandResult<int> carries the new current stage index in Payload.
 
 /// <summary>
-/// <c>vessel.control.setActionGroup</c>'s args: set a numbered custom action
+/// Set a numbered custom action
 /// group on or off. Gear, brakes, lights and abort are not set through this:
 /// each has its own command (<see cref="SetEnabledArgs"/>).
 /// </summary>
@@ -92,7 +92,7 @@ public class SetActionGroupArgs
 }
 
 /// <summary>
-/// Add a manoeuvre node. <c>vessel.maneuver.add</c>'s args: a new manoeuvre node's time and its
+/// Add a manoeuvre node. Takes a new manoeuvre node's time and its
 /// delta-v as named components in the node's own prograde, normal and
 /// radial-out frame, the same shape as <see cref="ManeuverNode"/>.
 ///
@@ -133,7 +133,7 @@ public class AddManeuverNodeArgs
 }
 
 /// <summary>
-/// <c>vessel.maneuver.update</c>'s args: replace an existing node's time and
+/// Replace an existing node's time and
 /// delta-v. The node is named by its opaque <see cref="NodeId"/>, never a
 /// positional index, so adding or removing another node never changes which
 /// node an update reaches. A client will not send the command if it would
@@ -173,7 +173,7 @@ public class UpdateManeuverNodeArgs
 }
 
 /// <summary>
-/// Delete a manoeuvre node. <c>vessel.maneuver.remove</c>'s arguments: the manoeuvre node to delete.
+/// Delete a manoeuvre node. Takes the manoeuvre node to delete.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -189,7 +189,7 @@ public class RemoveManeuverNodeArgs
 }
 
 /// <summary>
-/// Set the active vessel's target. <c>vessel.target.set</c>'s args: a discriminated union, written as
+/// Set the active vessel's target. Takes a discriminated union, written as
 /// <see cref="Kind"/> plus the fields that kind uses. <see cref="VesselId"/>
 /// is the stable vessel id, never an array index, and a vessel id and a body
 /// index travel in separate fields so they cannot be confused.
@@ -239,7 +239,7 @@ public class SetTargetArgs
 }
 
 /// <summary>
-/// <c>time.setWarpIndex</c>'s args: select a time-warp rate. This is a
+/// Select a time-warp rate. This is a
 /// control of the simulation, not of a craft, so it is never delayed by
 /// signal delay.
 /// </summary>
@@ -261,7 +261,7 @@ public class SetWarpIndexArgs
 }
 
 /// <summary>
-/// Pause or resume the game. <c>time.setPaused</c>'s arguments: whether the game is paused.
+/// Pause or resume the game. Takes whether the game is paused.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
