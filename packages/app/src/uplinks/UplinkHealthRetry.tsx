@@ -4,11 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { VERSION } from "../version";
 import { loaderBootIdsOverride } from "./flag";
 import { hostCompat } from "./hostCompat";
-import {
-  type LoaderContext,
-  loadFromLiveRoster,
-  type RosterEntry,
-} from "./loader";
+import { loadFromLiveRoster, type RosterEntry } from "./loader";
 import { localRegistrySource } from "./registry";
 import { decodeRosterPayload } from "./rosterProbe";
 
@@ -19,17 +15,10 @@ import { decodeRosterPayload } from "./rosterProbe";
  * until KSP has filled its expansion list. Each roster this reads loads the
  * clients startup never attempted and the ones whose health refusal has lifted.
  *
- * Renders nothing. Mount inside the telemetry provider, and on a station below
- * `StationUplinkLoader`, passing the peer conduit's `fetchBytes` and
- * `bundlesFromHost`.
+ * Renders nothing. Mount inside the main screen's telemetry provider. A station
+ * follows its main screen's set instead, through `StationUplinkLoader`.
  */
-export function UplinkHealthRetry({
-  fetchBytes,
-  bundlesFromHost,
-}: {
-  fetchBytes?: LoaderContext["fetchBytes"];
-  bundlesFromHost?: boolean;
-}) {
+export function UplinkHealthRetry() {
   const reading = useStream<unknown>("system.uplinks");
   const roster = useMemo(
     () =>
@@ -57,8 +46,6 @@ export function UplinkHealthRetry({
         hostCompat,
         appVersion: VERSION,
         roster: next,
-        fetchBytes,
-        bundlesFromHost: bundlesFromHost ? true : undefined,
       })
         .catch((err) => {
           logger.error(
@@ -74,7 +61,7 @@ export function UplinkHealthRetry({
         });
     };
     run(roster);
-  }, [roster, fetchBytes, bundlesFromHost]);
+  }, [roster]);
 
   return null;
 }

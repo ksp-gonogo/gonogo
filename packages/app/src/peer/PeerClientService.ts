@@ -3,6 +3,7 @@ import type { FlightRecord } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import type { ConnectProgress } from "@ksp-gonogo/ui";
 import Peer, { type DataConnection } from "peerjs";
+import type { RunningUplink } from "../uplinks/loaderState";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import { STUN_SERVERS, withStun } from "./iceServers";
@@ -120,6 +121,7 @@ type ClientEventMap = {
   analyticsConsent: [enabled: boolean];
   flightChange: [flight: FlightRecord | null];
   hostCommandCentre: [centreId: string | null];
+  hostUplinks: [uplinks: RunningUplink[] | null];
   flightListChange: [];
   hostUnavailable: [hostPeerId: string];
   superseded: [superseded: boolean];
@@ -203,6 +205,7 @@ export class PeerClientService {
   // Kept through a lost link: a pilot cut off from mission control still
   // knows where mission control was.
   private hostCommandCentre: string | null = null;
+  private hostUplinks: RunningUplink[] | null = null;
 
   private pendingQueries = new RequestTracker<{
     t: number[];
@@ -977,6 +980,18 @@ export class PeerClientService {
     return remove;
   }
 
+  /**
+   * Notified whenever the set of Uplinks the main screen runs changes. Fires
+   * immediately with the cached set, `null` before the main screen has said.
+   */
+  onHostUplinksChange(
+    cb: (uplinks: RunningUplink[] | null) => void,
+  ): () => void {
+    const remove = this.events.on("hostUplinks", cb);
+    cb(this.hostUplinks);
+    return remove;
+  }
+
   /** Latest flight snapshot pushed by the host. Synchronous. */
   getCurrentFlight(): FlightRecord | null {
     return this.currentFlight;
@@ -1314,6 +1329,10 @@ export class PeerClientService {
     },
     "trigger-snapshot": (msg) => {
       this.events.emit("triggerSnapshot", msg.snapshot);
+    },
+    "host-uplinks": (msg) => {
+      this.hostUplinks = msg.uplinks;
+      this.events.emit("hostUplinks", msg.uplinks);
     },
     "host-command-centre": (msg) => {
       this.hostCommandCentre = msg.centreId;

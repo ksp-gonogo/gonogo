@@ -5,6 +5,7 @@ import type {
   FlightRecord,
 } from "@ksp-gonogo/data";
 import type { AlarmSnapshot } from "../alarms/types";
+import type { RunningUplink } from "../uplinks/loaderState";
 
 /**
  * Flight-history RPC ops. The host owns the canonical FlightRecord store
@@ -150,6 +151,10 @@ export type PeerMessage =
   // the host's frames, so this is the only way it learns which centre its
   // words are timed against. `null` until the host's session has been placed.
   | { type: "host-command-centre"; centreId: string | null }
+  // Host -> peer: the Uplinks the main screen runs, sent on connect and
+  // whenever the set changes. A station loads exactly this set. `null` until
+  // the main screen's loader has settled.
+  | { type: "host-uplinks"; uplinks: RunningUplink[] | null }
   // Station → host on connect and whenever the user renames the station.
   // Host keys peer id → name for grid attribution and abort reporting.
   // `version` + `buildTime` are optional so a pre-versioned station still

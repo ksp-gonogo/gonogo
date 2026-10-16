@@ -174,6 +174,7 @@ class ScenePeerClient implements PeerClient {
   onHostRestart = () => () => {};
   getHostCommandCentre = () => null;
   onHostCommandCentreChange = () => () => {};
+  onHostUplinksChange = () => () => {};
   getRelayIceServers = () => [];
   onRelayIceServersChange = () => () => {};
   sendGonogoVote = () => {};

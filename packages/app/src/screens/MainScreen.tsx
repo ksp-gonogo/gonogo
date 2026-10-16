@@ -97,6 +97,7 @@ import { PilotVantage } from "../telemetry/PilotVantage";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { SitrepVantageSessions } from "../telemetry/SitrepVantageSessions";
+import { HostUplinksAnnouncer } from "../uplinks/HostUplinksAnnouncer";
 import { UplinkHealthRetry } from "../uplinks/UplinkHealthRetry";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { dashboardKeyForScene } from "./dashboardKey";
@@ -293,7 +294,10 @@ export function MainScreen({
        */}
       {hostsThePeerMesh && <SitrepVantageSessions peerHost={peerHostService} />}
       {hostsThePeerMesh && (
-        <HostCommandCentreAnnouncer host={peerHostService} />
+        <>
+          <HostCommandCentreAnnouncer host={peerHostService} />
+          <HostUplinksAnnouncer host={peerHostService} />
+        </>
       )}
       <AugmentAvailabilityFeeder />
       {screen !== "pilot" && <UplinkHealthRetry />}

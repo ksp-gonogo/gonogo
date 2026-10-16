@@ -65,6 +65,24 @@ export interface UplinkLoadOutcome {
  * The quarantines that are integrity failures. Every other quarantine means an
  * Uplink did not load; these mean the bytes were not what was vouched for.
  */
+/** One Uplink client a screen has loaded, by id and the version it loaded. */
+export interface RunningUplink {
+  id: string;
+  version: string;
+}
+
+/**
+ * The Uplinks loaded on this screen, sorted by id, or `null` until a load pass
+ * has settled against a roster.
+ */
+export function runningUplinks(): RunningUplink[] | null {
+  if (!settled) return null;
+  return snapshot
+    .filter((o) => o.status === "loaded" && o.version !== undefined)
+    .map((o) => ({ id: o.id, version: o.version as string }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
+
 export function integrityFailures(
   outcomes: readonly UplinkLoadOutcome[],
 ): UplinkLoadOutcome[] {

@@ -37,6 +37,7 @@ import type { UplinkIntegrityFailure, UplinkIntegrityParty } from "./integrity";
 import {
   getUplinkOutcomes,
   isClientlessUplink,
+  type RunningUplink,
   setClientlessUplinks,
   setUplinkOutcome,
   setUplinksSettled,
@@ -105,6 +106,12 @@ export interface LoaderContext {
    * to a station and is refused here in those words.
    */
   bundlesFromHost?: true;
+  /**
+   * Set on a station: the Uplinks its main screen runs, by id and version.
+   * Exactly these are attempted, whatever the roster lists, and one whose
+   * version here differs from the main screen's is refused.
+   */
+  hostUplinks?: readonly RunningUplink[];
   /**
    * The explicit `?uplinkLoaderIds=` override, if the param is present. Takes
    * precedence over the roster: a deliberate override is intent, so it must win
@@ -889,6 +896,15 @@ async function loadOne(
     if (!version) refuse("no versions listed in the registry");
     base.version = version.version;
 
+    const hostVersion = ctx.hostUplinks?.find(
+      (u) => u.id === descriptor.id,
+    )?.version;
+    if (hostVersion !== undefined && hostVersion !== version.version) {
+      refuse(
+        `the main screen runs version ${hostVersion} and this station has ${version.version}`,
+      );
+    }
+
     const roster = ctx.roster?.find((r) => r.id === descriptor.id);
 
     // Gate BEFORE fetch (design §5 step 3).
@@ -1089,6 +1105,7 @@ function deriveEnabledIds(
   roster: RosterEntry[] | undefined,
   index: RegistryIndex,
   override?: readonly string[],
+  hostUplinks?: readonly RunningUplink[],
 ): string[] {
   // An EXPLICIT `?uplinkLoaderIds=` override is a deliberate intent and wins
   // outright over the roster. `[]` (empty `?uplinkLoaderIds=`) is a meaningful
@@ -1098,6 +1115,7 @@ function deriveEnabledIds(
   // Naming a build with `--uplink` is intent, so neither the roster nor an override drops it.
   const withLocal = (ids: string[]) => [...new Set([...ids, ...local])];
   if (override !== undefined) return withLocal([...override]);
+  if (hostUplinks) return withLocal(hostUplinks.map((u) => u.id));
   if (!roster) return withLocal([]);
   const indexed = new Set(index.uplinks.map((descriptor) => descriptor.id));
   return withLocal(
@@ -1177,7 +1195,12 @@ async function loadPicked(
     });
   }
 
-  const enabledIds = deriveEnabledIds(ctx.roster, index, ctx.override);
+  const enabledIds = deriveEnabledIds(
+    ctx.roster,
+    index,
+    ctx.override,
+    ctx.hostUplinks,
+  );
   const enabled = new Set(enabledIds);
   setClientlessUplinks(
     (ctx.roster ?? []).map((r) => r.id).filter((id) => !enabled.has(id)),
@@ -1226,6 +1249,26 @@ async function loadById(
   };
   setUplinkOutcome(outcome);
   return outcome;
+}
+
+/**
+ * Load the Uplinks in `ctx.hostUplinks` that no load on this screen has
+ * attempted yet: what a station does when its main screen starts running one
+ * more. Returns the outcomes of the loads it made.
+ */
+export async function loadHostAdditions(
+  ctx: LoaderContext & { hostUplinks: readonly RunningUplink[] },
+): Promise<UplinkLoadOutcome[]> {
+  const unattempted = (ids: string[]) => {
+    const known = new Map(getUplinkOutcomes().map((o) => [o.id, o]));
+    return ids.filter((id) => {
+      const outcome = known.get(id);
+      return !outcome || outcome.registryUnavailable === true;
+    });
+  };
+  return queueLoad(ctx, unattempted, () =>
+    ctx.hostUplinks.some((u) => unattempted([u.id]).length > 0),
+  );
 }
 
 /**

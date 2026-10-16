@@ -70,10 +70,8 @@ import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { PeerTransport } from "../telemetry/PeerTransport";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
-import { createPeerBundleFetcher } from "../uplinks/peerBundleFetch";
 import { StationUplinkLoader } from "../uplinks/StationUplinkLoader";
 import { attachStationBrokers } from "../uplinks/stationBrokers";
-import { UplinkHealthRetry } from "../uplinks/UplinkHealthRetry";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
@@ -101,7 +99,6 @@ export function StationScreen() {
     setApproval(client.getApproval());
     return client.onApprovalChange(setApproval);
   }, [client]);
-  const bundleFetch = useMemo(() => createPeerBundleFetcher(client), [client]);
   // Build the `PeerTransport` INSIDE an effect rather than as a stable
   // `useState` singleton. `PeerTransport` subscribes to `client.onSitrepFrame`
   // in its constructor, so its lifecycle must be tied to the effect that owns
@@ -390,10 +387,6 @@ export function StationScreen() {
                               <UplinkIntegrityBanner />
                               <MissionBanner />
                               <StationUplinkLoader>
-                                <UplinkHealthRetry
-                                  fetchBytes={bundleFetch}
-                                  bundlesFromHost
-                                />
                                 <RootProviders screen="station">
                                   <Dashboard
                                     items={dashboard.items}

@@ -25,11 +25,16 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
+import type { PeerClientService } from "../peer/PeerClientService";
 import { VERSION } from "../version";
 import { loaderBootIdsOverride } from "./flag";
 import { hostCompat } from "./hostCompat";
-import { loadEnabledUplinks } from "./loader";
-import type { UplinkLoadOutcome } from "./loaderState";
+import { loadEnabledUplinks, loadHostAdditions } from "./loader";
+import {
+  getUplinkOutcomes,
+  type RunningUplink,
+  type UplinkLoadOutcome,
+} from "./loaderState";
 import {
   type BundleFetchConduit,
   createPeerBundleFetcher,
@@ -37,43 +42,17 @@ import {
 import { localRegistrySource } from "./registry";
 import { readRosterFromTelemetryClient } from "./rosterProbe";
 
-/**
- * Run the station's equivalent of `main.tsx`'s boot-time loader sequence,
- * but sourced entirely through the peer conduit instead of direct network
- * calls: read `system.uplinks` off the ALREADY-CONNECTED peer
- * `TelemetryClient` (never a new transport: see
- * `readRosterFromTelemetryClient`'s own doc comment), then load the
- * first-party Uplink set with `fetchBytes` routed through
- * `createPeerBundleFetcher` (the host verifies + relays bundle bytes,
- * `PeerHostService.handleUplinkBundleRequest`) instead of a direct `fetch`.
- *
- * Pure orchestration, no React: `StationUplinkLoader` below is the only
- * caller in production, but keeping this a plain async function makes the
- * wiring itself (roster read -> loadEnabledUplinks -> conduit fetchBytes)
- * unit-testable with fakes and no component tree.
- */
-export async function runStationUplinkLoad(
-  telemetryClient: TelemetryClient,
+/** The slice of the station's peer link the loader reads: the bundle conduit and the main screen's Uplink set. */
+export type StationUplinkConduit = BundleFetchConduit &
+  Pick<PeerClientService, "onHostUplinksChange">;
+
+function loaderContext(
+  roster: Awaited<ReturnType<typeof readRosterFromTelemetryClient>>,
   bundleFetchConduit: BundleFetchConduit,
-  rosterTimeoutMs?: number,
-  /**
-   * Overrides `LoaderContext.importBundle`, same seam and same default.
-   *
-   * A test has to supply one. The default builds a blob URL from the verified
-   * bytes and imports that, which is what a browser does and what jsdom cannot
-   * do, so a test reaching the default gets a quarantined outcome for a reason
-   * that has nothing to do with what it is asserting. Before the loader stopped
-   * re-fetching by URL these tests reached the default and passed, because
-   * vitest's module runner resolved the fixture URL: that was never the
-   * browser's behaviour and the pass was measuring the test runner.
-   */
+  hostUplinks: readonly RunningUplink[],
   importBundle?: (bytes: ArrayBuffer, url: string) => Promise<unknown>,
-): Promise<UplinkLoadOutcome[]> {
-  const roster = await readRosterFromTelemetryClient(
-    telemetryClient,
-    rosterTimeoutMs,
-  );
-  return loadEnabledUplinks({
+) {
+  return {
     registrySource: localRegistrySource(),
     // Explicit `?uplinkLoaderIds=` override wins over the roster (same precedence rule as the main-screen boot call).
     override: loaderBootIdsOverride(),
@@ -82,72 +61,175 @@ export async function runStationUplinkLoad(
     roster,
     // The D6 conduit: a station has no route to verify a bundle against an
     // author host directly, so the HOST does that verification and relays
-    // the already-checked bytes back. This is the one line that makes this
-    // whole function station-safe: no direct `fetch` for bundle bytes ever
-    // happens here.
+    // the already-checked bytes back. No direct `fetch` for bundle bytes ever
+    // happens on a station.
     fetchBytes: createPeerBundleFetcher(bundleFetchConduit),
-    bundlesFromHost: true,
+    bundlesFromHost: true as const,
+    hostUplinks,
     importBundle,
+  };
+}
+
+/**
+ * Run the station's equivalent of `main.tsx`'s boot-time loader sequence,
+ * sourced entirely through the peer conduit instead of direct network calls:
+ * read `system.uplinks` off the ALREADY-CONNECTED peer `TelemetryClient`
+ * (never a new transport: see `readRosterFromTelemetryClient`'s own doc
+ * comment), then load exactly `hostUplinks`, the set the main screen runs,
+ * with `fetchBytes` routed through `createPeerBundleFetcher` (the host
+ * verifies + relays bundle bytes, `PeerHostService.handleUplinkBundleRequest`).
+ *
+ * Pure orchestration, no React, so the wiring is unit-testable with fakes.
+ */
+export async function runStationUplinkLoad(
+  telemetryClient: TelemetryClient,
+  bundleFetchConduit: BundleFetchConduit,
+  hostUplinks: readonly RunningUplink[],
+  rosterTimeoutMs?: number,
+  /**
+   * Overrides `LoaderContext.importBundle`, same seam and same default.
+   *
+   * A test has to supply one. The default builds a blob URL from the verified
+   * bytes and imports that, which is what a browser does and what jsdom cannot
+   * do, so a test reaching the default gets a quarantined outcome for a reason
+   * that has nothing to do with what it is asserting.
+   */
+  importBundle?: (bytes: ArrayBuffer, url: string) => Promise<unknown>,
+): Promise<UplinkLoadOutcome[]> {
+  const roster = await readRosterFromTelemetryClient(
+    telemetryClient,
+    rosterTimeoutMs,
+  );
+  return loadEnabledUplinks(
+    loaderContext(roster, bundleFetchConduit, hostUplinks, importBundle),
+  );
+}
+
+/**
+ * Bring a running station in line with a new set from its main screen. An
+ * Uplink this station loaded that the main screen no longer runs, or runs at
+ * another version, cannot be unloaded, so the station reloads and starts again
+ * from the new set; otherwise it loads what the set adds.
+ */
+export async function followHostUplinks(
+  telemetryClient: TelemetryClient,
+  bundleFetchConduit: BundleFetchConduit,
+  hostUplinks: readonly RunningUplink[],
+  reload: () => void,
+  rosterTimeoutMs?: number,
+  importBundle?: (bytes: ArrayBuffer, url: string) => Promise<unknown>,
+): Promise<UplinkLoadOutcome[]> {
+  const wanted = new Set(hostUplinks.map((u) => `${u.id}@${u.version}`));
+  const stale = getUplinkOutcomes().some(
+    (o) => o.status === "loaded" && !wanted.has(`${o.id}@${o.version}`),
+  );
+  if (stale) {
+    reload();
+    return [];
+  }
+  const roster = await readRosterFromTelemetryClient(
+    telemetryClient,
+    rosterTimeoutMs,
+  );
+  return loadHostAdditions(
+    loaderContext(roster, bundleFetchConduit, hostUplinks, importBundle),
+  );
+}
+
+/** The main screen's first settled Uplink set, or `null` if it has not said within `timeoutMs`. */
+function firstHostUplinks(
+  conduit: StationUplinkConduit,
+  timeoutMs: number,
+): Promise<RunningUplink[] | null> {
+  return new Promise((resolve) => {
+    let done = false;
+    let off: (() => void) | undefined;
+    const finish = (set: RunningUplink[] | null) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      off?.();
+      resolve(set);
+    };
+    const timer = setTimeout(() => finish(null), timeoutMs);
+    off = conduit.onHostUplinksChange((set) => {
+      if (set) finish(set);
+    });
+    if (done) off();
   });
 }
 
 export interface StationUplinkLoaderProps {
   children: ReactNode;
-  /** Test seam: overrides the default 3000ms roster-read timeout. */
+  /** Test seam: overrides the default 3000ms wait for the roster and for the main screen's Uplink set. */
   rosterTimeoutMs?: number;
+  /** Test seam: what the station does when it must start again from a new set. Reloads the page. */
+  reload?: () => void;
 }
 
 /**
- * Gates `children` on the station's `runStationUplinkLoad` run completing,
- * mirrors `main.tsx` running its loader before `renderApp()`, since the
- * component registry doesn't notify on a late `registerComponent()` call.
+ * Gates `children` on the station's first load completing, mirroring
+ * `main.tsx` running its loader before `renderApp()`.
  *
- * Waits for both `useTelemetryClientOptional()` (the peer `TelemetryClient`,
- * built in `SitrepTelemetryProvider`'s own mount effect: undefined for a
- * render or two after this component itself mounts) and `usePeerClient()`
- * (the `PeerClientService`, provided synchronously by `PeerClientProvider`
- * in practice, but read defensively the same way) before starting the load.
+ * Waits for the peer `TelemetryClient` and the `PeerClientService`, then for
+ * the main screen to say which Uplinks it runs, and loads exactly that set.
+ * If the main screen has not said within the timeout, the children render
+ * with nothing loaded. From then on every set the main screen sends is
+ * followed with {@link followHostUplinks}, one at a time.
  *
- * Runs the load exactly once per mounted instance: `startedRef` latches
- * before the async work begins, so a React StrictMode dev double-invoke of
- * this effect (mount -> cleanup -> mount, same component instance, same
- * ref) never fires the loader twice: the guard is a ref, not state, so it
- * survives the simulated remount untouched. It does not re-run merely
- * because `telemetryClient`/`peerClient` change identity after the first
- * successful start; both are effectively stable for the lifetime of a
- * connected station session (see `StationScreen`), so this is a one-shot by
- * design, not an oversight.
- *
- * On roster read timeout, `roster` is `undefined` and the loader still runs,
- * same degraded-boot rule as the main screen's `LoaderContext.roster`
- * doc comment: so this can never block forever waiting on a mod that isn't
- * talking (dev/offline/no-CPU station-only sessions still get the default
- * client set). A per-widget load failure quarantines that one Uplink
- * (existing loader behaviour); it never prevents the other Uplinks (or the
- * gate itself) from completing.
+ * Starts exactly once per mounted instance: `startedRef` latches before the
+ * async work begins, so a React StrictMode double-invoke never loads twice.
  */
 export function StationUplinkLoader({
   children,
   rosterTimeoutMs,
+  reload = () => window.location.reload(),
 }: StationUplinkLoaderProps) {
   const telemetryClient = useTelemetryClientOptional();
   const peerClient = usePeerClient();
   const [ready, setReady] = useState(false);
   const startedRef = useRef(false);
+  const reloadRef = useRef(reload);
+  reloadRef.current = reload;
 
   useEffect(() => {
     if (startedRef.current) return;
     if (!telemetryClient || !peerClient) return;
     startedRef.current = true;
 
-    void runStationUplinkLoad(telemetryClient, peerClient, rosterTimeoutMs)
-      .catch((err) => {
-        logger.error(
-          "[uplink-loader] station loader path threw",
-          err instanceof Error ? err : new Error(String(err)),
-        );
-      })
-      .finally(() => setReady(true));
+    const fail = (err: unknown) => {
+      logger.error(
+        "[uplink-loader] station loader path threw",
+        err instanceof Error ? err : new Error(String(err)),
+      );
+    };
+    let chain: Promise<unknown> = Promise.resolve();
+    void (async () => {
+      const first = await firstHostUplinks(peerClient, rosterTimeoutMs ?? 3000);
+      if (first) {
+        await runStationUplinkLoad(
+          telemetryClient,
+          peerClient,
+          first,
+          rosterTimeoutMs,
+        ).catch(fail);
+      }
+      setReady(true);
+      peerClient.onHostUplinksChange((set) => {
+        if (!set) return;
+        chain = chain
+          .then(() =>
+            followHostUplinks(
+              telemetryClient,
+              peerClient,
+              set,
+              () => reloadRef.current(),
+              rosterTimeoutMs,
+            ),
+          )
+          .catch(fail);
+      });
+    })();
   }, [telemetryClient, peerClient, rosterTimeoutMs]);
 
   if (!ready) {

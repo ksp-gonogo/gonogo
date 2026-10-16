@@ -26,16 +26,22 @@
 import { clearRegistry } from "@ksp-gonogo/core";
 import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
-import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type PeerClient, PeerClientProvider } from "../peer/PeerClientContext";
 import { idlePeerClient } from "../test/peerFakes";
 import { setConsentPrompt } from "./consent";
 import { hostCompat } from "./hostCompat";
-import { __resetUplinkOutcomes, getUplinkOutcomes } from "./loaderState";
+import {
+  __resetUplinkOutcomes,
+  getUplinkOutcomes,
+  type RunningUplink,
+  setUplinkOutcome,
+} from "./loaderState";
 import type { RegistryIndex } from "./registry";
 import {
+  followHostUplinks,
   runStationUplinkLoad,
   StationUplinkLoader,
 } from "./StationUplinkLoader";
@@ -57,30 +63,28 @@ async function sha256Of(bytes: ArrayBuffer): Promise<string> {
   return `sha256-${hex}`;
 }
 
-/** A single generic ("alpha") Uplink descriptor, gated compatible with the real app hostCompat. */
+/** Generic ("alpha", "beta") Uplink descriptors, gated compatible with the real app hostCompat. */
 function registryWith(integrity: string): RegistryIndex {
   return {
-    uplinks: [
-      {
-        id: "alpha",
-        name: "Alpha",
-        author: "test-fixture",
-        repo: "",
-        versions: [
-          {
-            version: "1.0.0",
-            minAppVersion: "0.0.0",
-            // Read off the real `hostCompat` this module imports rather than typed here, so a test cannot pass or fail on a number neither side chose; the contract pair stays 0 because no `__GONOGO_CONTRACT_*__` define exists outside the real Vite build.
-            apiVersion: hostCompat.apiVersion,
-            contractMajor: hostCompat.contractMajor,
-            contractMinor: hostCompat.contractMinor,
-            bundleUrl: BUNDLE_URL,
-            integrity,
-            expectedClientHash: null,
-          },
-        ],
-      },
-    ],
+    uplinks: ["alpha", "beta"].map((id) => ({
+      id,
+      name: id,
+      author: "test-fixture",
+      repo: "",
+      versions: [
+        {
+          version: "1.0.0",
+          minAppVersion: "0.0.0",
+          // Read off the real `hostCompat` this module imports rather than typed here, so a test cannot pass or fail on a number neither side chose; the contract pair stays 0 because no `__GONOGO_CONTRACT_*__` define exists outside the real Vite build.
+          apiVersion: hostCompat.apiVersion,
+          contractMajor: hostCompat.contractMajor,
+          contractMinor: hostCompat.contractMinor,
+          bundleUrl: BUNDLE_URL,
+          integrity,
+          expectedClientHash: null,
+        },
+      ],
+    })),
   };
 }
 
@@ -104,6 +108,8 @@ function stubFetch(index: RegistryIndex): string[] {
 
 let goodHash: string;
 
+const ALPHA_RUNS = [{ id: "alpha", version: "1.0.0" }];
+
 beforeEach(async () => {
   __resetUplinkOutcomes();
   clearRegistry();
@@ -118,16 +124,34 @@ afterEach(() => {
   setConsentPrompt(async () => false);
 });
 
-/** A station peer link whose bundle conduit is the one under test. */
+/**
+ * A station peer link whose bundle conduit is the one under test, and whose
+ * main screen says it runs `runs` (nothing said when absent). `announce` sends
+ * a later set.
+ */
 function peerClientWith(
   sendBundleFetch: PeerClient["sendBundleFetch"],
-): PeerClient {
-  return { ...idlePeerClient(), sendBundleFetch };
+  runs?: RunningUplink[],
+): PeerClient & { announce: (set: RunningUplink[]) => void } {
+  let current: RunningUplink[] | null = runs ?? null;
+  const listeners = new Set<(set: RunningUplink[] | null) => void>();
+  return {
+    ...idlePeerClient(),
+    sendBundleFetch,
+    onHostUplinksChange: (cb) => {
+      listeners.add(cb);
+      cb(current);
+      return () => listeners.delete(cb);
+    },
+    announce: (set) => {
+      current = set;
+      for (const cb of listeners) cb(set);
+    },
+  };
 }
 
 describe("runStationUplinkLoad", () => {
-  it("with no roster sample (timeout), attempts nothing and never makes a direct bundle fetch", async () => {
-    // The station's host never told it what is installed, so there is nothing to attempt: no shipped id list stands behind an absent roster.
+  it("with an empty set from the main screen, attempts nothing and never makes a direct bundle fetch", async () => {
     const directBundleFetches = stubFetch(registryWith(goodHash));
     const stub = new StubTransport();
     const client = new TelemetryClient(stub);
@@ -136,6 +160,7 @@ describe("runStationUplinkLoad", () => {
     const outcomes = await runStationUplinkLoad(
       client,
       { sendBundleFetch },
+      [],
       20,
     );
 
@@ -154,6 +179,7 @@ describe("runStationUplinkLoad", () => {
     const pending = runStationUplinkLoad(
       client,
       { sendBundleFetch },
+      ALPHA_RUNS,
       1000,
       async () => ({}),
     );
@@ -180,6 +206,7 @@ describe("runStationUplinkLoad", () => {
     const pending = runStationUplinkLoad(
       client,
       { sendBundleFetch },
+      ALPHA_RUNS,
       1000,
       async () => ({}),
     );
@@ -213,6 +240,7 @@ describe("runStationUplinkLoad", () => {
     const pending = runStationUplinkLoad(
       client,
       { sendBundleFetch },
+      ALPHA_RUNS,
       1000,
       async () => ({}),
     );
@@ -232,6 +260,99 @@ describe("runStationUplinkLoad", () => {
     const alpha = outcomes.find((o) => o.id === "alpha");
     expect(alpha?.status).toBe("loaded");
     expect(sendBundleFetch).toHaveBeenCalledWith(BUNDLE_URL, goodHash);
+  });
+});
+
+describe("a station loads exactly what its main screen runs", () => {
+  const roster = {
+    uplinks: ["alpha", "beta"].map((id) => ({
+      id,
+      version: "1.0.0",
+      available: true,
+      reason: null,
+    })),
+  };
+
+  it("leaves out an installed Uplink the main screen does not run", async () => {
+    stubFetch(registryWith(goodHash));
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
+
+    const pending = runStationUplinkLoad(
+      client,
+      { sendBundleFetch },
+      ALPHA_RUNS,
+      1000,
+      async () => ({}),
+    );
+    stub.emit("system.uplinks", roster);
+
+    const outcomes = await pending;
+    expect(outcomes.map((o) => [o.id, o.status])).toEqual([
+      ["alpha", "loaded"],
+    ]);
+    expect(sendBundleFetch).toHaveBeenCalledOnce();
+  });
+
+  it("refuses an Uplink the main screen runs at another version", async () => {
+    stubFetch(registryWith(goodHash));
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
+
+    const pending = runStationUplinkLoad(
+      client,
+      { sendBundleFetch },
+      [{ id: "alpha", version: "2.0.0" }],
+      1000,
+      async () => ({}),
+    );
+    stub.emit("system.uplinks", roster);
+
+    const [alpha] = await pending;
+    expect(alpha.status).toBe("quarantined");
+    expect(alpha.reason).toBe(
+      "the main screen runs version 2.0.0 and this station has 1.0.0",
+    );
+    expect(sendBundleFetch).not.toHaveBeenCalled();
+  });
+
+  it("loads what a new set adds, and reloads when the set drops one it loaded", async () => {
+    stubFetch(registryWith(goodHash));
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    stub.emit("system.uplinks", roster);
+    const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
+    const reload = vi.fn();
+    const both = [...ALPHA_RUNS, { id: "beta", version: "1.0.0" }];
+
+    await runStationUplinkLoad(
+      client,
+      { sendBundleFetch },
+      ALPHA_RUNS,
+      1000,
+      async () => ({}),
+    );
+    const added = await followHostUplinks(
+      client,
+      { sendBundleFetch },
+      both,
+      reload,
+      1000,
+      async () => ({}),
+    );
+    expect(added.map((o) => [o.id, o.status])).toEqual([["beta", "loaded"]]);
+    expect(reload).not.toHaveBeenCalled();
+
+    await followHostUplinks(
+      client,
+      { sendBundleFetch },
+      ALPHA_RUNS,
+      reload,
+      1000,
+    );
+    expect(reload).toHaveBeenCalledOnce();
   });
 });
 
@@ -281,7 +402,7 @@ describe("StationUplinkLoader", () => {
     const stub = new StubTransport();
     const client = new TelemetryClient(stub);
     const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
-    const peerClient = peerClientWith(sendBundleFetch);
+    const peerClient = peerClientWith(sendBundleFetch, ALPHA_RUNS);
 
     render(
       <StrictMode>
@@ -313,6 +434,47 @@ describe("StationUplinkLoader", () => {
     // including that the executed buffer is the verified one.
     const outcome = getUplinkOutcomes().find((o) => o.id === "alpha");
     expect(outcome).toBeDefined();
+  });
+
+  it("reloads when the main screen stops running an Uplink this station loaded", async () => {
+    stubFetch(registryWith(goodHash));
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    const peerClient = peerClientWith(
+      vi.fn(async () => BUNDLE_BYTES),
+      ALPHA_RUNS,
+    );
+    const reload = vi.fn();
+    stub.emit("system.uplinks", {
+      uplinks: [
+        { id: "alpha", version: "1.0.0", available: true, reason: null },
+      ],
+    });
+    render(
+      <TelemetryProvider client={client}>
+        <PeerClientProvider client={peerClient}>
+          <StationUplinkLoader rosterTimeoutMs={200} reload={reload}>
+            <div data-testid="dashboard-widgets">widgets rendered</div>
+          </StationUplinkLoader>
+        </PeerClientProvider>
+      </TelemetryProvider>,
+    );
+    await screen.findByTestId("dashboard-widgets");
+    await waitFor(() =>
+      expect(getUplinkOutcomes().find((o) => o.id === "alpha")).toBeDefined(),
+    );
+    // The default importBundle cannot run in jsdom, so mark the load as it would read in a browser.
+    setUplinkOutcome({
+      id: "alpha",
+      name: "alpha",
+      version: "1.0.0",
+      status: "loaded",
+    });
+
+    await act(async () => {
+      peerClient.announce([]);
+    });
+    await waitFor(() => expect(reload).toHaveBeenCalledOnce());
   });
 
   it("stays gated (never renders children) while telemetryClient/peerClient aren't both available yet", () => {

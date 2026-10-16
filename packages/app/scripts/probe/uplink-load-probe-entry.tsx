@@ -145,7 +145,13 @@ async function renderScene(scene: Scene): Promise<void> {
     roster: rosterOf(integrity),
     fetchBytes: async () => BYTES,
     importBundle: async () => ({}),
-    bundlesFromHost: scene.screen === "station" ? true : undefined,
+    ...(scene.screen === "station"
+      ? {
+          bundlesFromHost: true as const,
+          // The main screen loaded all three: a station follows it, so the notice names the one that is not bundled.
+          hostUplinks: UPLINKS.map((u) => ({ id: u.id, version: "1.0.0" })),
+        }
+      : {}),
   });
 
   root = createRoot(host);
