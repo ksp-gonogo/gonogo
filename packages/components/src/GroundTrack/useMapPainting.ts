@@ -133,7 +133,10 @@ export function useMapPainting({
   // biome-ignore lint/correctness/useExhaustiveDependencies: baseLayers.version bumps when the ground-track.base slot supplies (or withdraws) a canvas; the canvas reference is stable across mutations (tracked via a ref rather than state), so we depend on the version to trigger a redraw
   useEffect(() => {
     const canvas = baseRef.current;
-    if (!canvas || !containerSize || !textureReady) return;
+    if (!canvas) return;
+    // The attribute names the paint the canvas shows; a body whose picture is still loading has not been drawn yet.
+    if (!textureReady) canvas.dataset.mapBase = "pending";
+    if (!containerSize || !textureReady) return;
     const { w, h } = containerSize;
     const ctx = sizedContext(canvas, w, h);
     if (!ctx) return;
@@ -161,6 +164,7 @@ export function useMapPainting({
       suppressVanilla,
       layers,
     });
+    canvas.dataset.mapBase = textureImage ? "textured" : "plain";
   }, [
     containerSize,
     camera,

@@ -67,6 +67,7 @@ import {
 } from "../../src/test/setupStreamFixture";
 import { type CommandAnswers, installCommandAnswers } from "./commandAnswers";
 import { mountGridCell } from "./gridCell";
+import { mapBaseSettled } from "./mapBaseSettled";
 import type { ProbePayload, ProbeSeriesSample } from "./payload";
 /*
  * The planted Uplink's contributions into built-in widgets. Each requires the
@@ -678,6 +679,7 @@ async function mountInto(
   // Two more frames: the first lets React commit the value-driven re-render, the second lets the ResizeObserver-driven dialFit land and re-render.
   await rafTick();
   await rafTick();
+  await mapBaseSettled(root);
   // CSS transitions on transform / opacity can keep moving for a few
   // frames after the React render commits (the heading-strip ticker has
   // `transition: transform 80ms linear`). Without a settle delay the

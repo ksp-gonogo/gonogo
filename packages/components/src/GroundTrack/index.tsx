@@ -383,6 +383,7 @@ function GroundTrackComponent({
                     <BaseCanvas
                       ref={baseRef}
                       data-testid="ground-track-base-canvas"
+                      data-map-base="pending"
                     />
                     <OverlayCanvas ref={overlayRef} />
                     <PersistentDataCanvas ref={persistentDataRef} />

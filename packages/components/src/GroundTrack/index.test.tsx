@@ -226,6 +226,34 @@ describe("GroundTrackComponent", () => {
     });
   }
 
+  it("marks the base canvas pending until the body's picture is drawn", async () => {
+    const images: Array<{ onload: (() => void) | null }> = [];
+    vi.stubGlobal(
+      "Image",
+      class {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        src = "";
+        constructor() {
+          images.push(this);
+        }
+      },
+    );
+    const noop = new Proxy({} as CanvasRenderingContext2D, {
+      get: (_target, key) => (key === "canvas" ? undefined : () => undefined),
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(noop);
+    const { fixture } = renderMap();
+    await emitVessel(fixture, { body: "Kerbin" });
+
+    const canvas = screen.getByTestId("ground-track-base-canvas");
+    expect(images.length).toBeGreaterThan(0);
+    expect(canvas.dataset.mapBase).toBe("pending");
+
+    act(() => images.at(-1)?.onload?.());
+    expect(canvas.dataset.mapBase).toBe("textured");
+  });
+
   it("renders without crashing with no data", () => {
     renderMap();
     expect(screen.getByTestId("ground-track-base-canvas")).toBeInTheDocument();
