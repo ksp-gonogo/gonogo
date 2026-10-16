@@ -85,7 +85,25 @@ jobs:
             # resulting commit) and the pre-push test run was flaky enough to
             # block the baseline push outright. Skip the hooks; let CI gate.
             git commit --no-verify -m "chore: update visual baselines (${WIDGET:-all widgets})"
-            git push --no-verify origin HEAD:${{ github.ref_name }}
+            # The render takes long enough for the branch to move meanwhile, so
+            # a rejected push is rebased onto the new tip and retried.
+            pushed=false
+            for attempt in 1 2 3 4 5; do
+              if git push --no-verify origin HEAD:${{ github.ref_name }}; then
+                pushed=true
+                break
+              fi
+              echo "Push rejected (attempt $attempt of 5), rebasing onto origin/${{ github.ref_name }}."
+              if ! git pull --rebase origin ${{ github.ref_name }}; then
+                git rebase --abort || true
+                echo "::error::Rebase conflict: another commit changed the same baseline files while this job rendered. Re-run the workflow on the updated branch."
+                exit 1
+              fi
+            done
+            if [ "$pushed" != true ]; then
+              echo "::error::Baseline push still rejected after 5 attempts; the branch kept moving."
+              exit 1
+            fi
           fi
         env:
           WIDGET: ${{ inputs.widget }}
