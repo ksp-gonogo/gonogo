@@ -1,9 +1,8 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
-import { Cluster, Grid, Stack } from "@ksp-gonogo/ui-kit";
+import { Grid, Stack } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { CrewFigure } from "./CrewFigure";
 import { COMMS, COMMS_TONE } from "./comms";
-import { DismissEnded } from "./DismissEnded";
 import { useContactBadge } from "./FleetContactCell";
 import { FleetSignalCell } from "./FleetSignalCell";
 import { type FleetVessel, useFleet } from "./fleet";
@@ -42,8 +41,7 @@ export function useCatalogVessel(
 
 /**
  * One craft's Vessel Catalog entry laid out as a column: its contact with the
- * command centre, or how it learned the craft was destroyed with the control
- * that dismisses it, what the centre knows of its crew, its link with the signal
+ * command centre, what the centre knows of its crew, its link with the signal
  * delay behind it, and the Uplinks' updates for it. Useful for showing the operator what the catalog knows of a
  * craft beside a picture of it. Used by the Tracking Station's side bar for the
  * selected craft.
@@ -60,12 +58,7 @@ export function VesselCatalogEntry({
   const comms = COMMS[vessel.comms];
   return (
     <Stack gap="related">
-      {badge && (
-        <Cluster justify="start" align="center">
-          {badge}
-          <DismissEnded vessel={vessel} />
-        </Cluster>
-      )}
+      {badge}
       {vessel.crew != null && (
         <Grid cols="1fr auto" gap="label-value" align="baseline">
           <span style={LABEL}>Crew</span>

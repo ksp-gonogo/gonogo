@@ -45,7 +45,7 @@ namespace Sitrep.Host.Tests.Comms
             {
             }
 
-            public void RecordCraftGone(string vesselId, double ut, CraftEnd end)
+            public void RecordCraftGone(string vesselId, double ut)
             {
             }
 
@@ -367,62 +367,5 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Empty(hearing.HeardAt(Home));
             Assert.Empty(hearing.Snapshot().Centres.Where(c => c.States.Count > 0));
         }
-    
-        private static readonly IReadOnlyDictionary<string, object?> ProbeListed =
-            new Dictionary<string, object?> { ["vesselId"] = "probe", ["name"] = "Probe", ["vesselType"] = (int)VesselType.Probe };
-
-        private static CraftState Flying(double ut) =>
-            CraftState.Orbiting(Probe, ut, Kerbin, Orbit, null, null, true, new Dictionary<string, CraftLink>()).Listed(ProbeListed);
-
-        private static CentreHearing HomeHeard(IReadOnlyList<CraftState> states, IReadOnlyList<CraftSighting>? sightings = null, IReadOnlyList<string>? dismissed = null)
-        {
-            var hearing = new CentreHearing(new Silent());
-            hearing.Restore(new HeardSnapshot(new[]
-            {
-                new HeardAtCentre(Home, states, new Dictionary<string, bool>(), sightings: sightings, dismissed: dismissed),
-            }));
-            hearing.Listen(new[] { Home }, new string[0]);
-            return hearing;
-        }
-
-        [Fact]
-        public void ACraftWhoseLastWordIsThatItIsGoneEndedAsHeardAndKeepsItsEntry()
-        {
-            var hearing = HomeHeard(new[] { CraftState.Gone(Probe, 10.0, CraftEnd.Destroyed, ProbeListed) });
-
-            Assert.Equal((RosterPlaceSource.Heard, 10.0, CraftEnd.Destroyed), hearing.EndAt(Home, Probe));
-            Assert.Equal("Probe", hearing.HeardAt(Home).Single().Roster!["name"]);
-        }
-
-        [Fact]
-        public void ACraftLastHeardFlyingAndSinceSeenGoneEndedAsSeenWithTheEntryItWasHeardBy()
-        {
-            var hearing = HomeHeard(new[] { Flying(5.0) }, new[] { CraftSighting.Gone(Probe, 10.0, CraftEnd.Destroyed) });
-
-            Assert.Equal((RosterPlaceSource.Seen, 10.0, CraftEnd.Destroyed), hearing.EndAt(Home, Probe));
-            Assert.Equal("Probe", hearing.HeardAt(Home).Single().Roster!["name"]);
-        }
-
-        [Fact]
-        public void ACraftStillFlyingHasNoEndAndCannotBeDismissed()
-        {
-            var hearing = HomeHeard(new[] { Flying(5.0) });
-
-            Assert.Null(hearing.EndAt(Home, Probe));
-            Assert.False(hearing.Dismiss(Home, Probe));
-            Assert.False(hearing.DismissedAt(Home, Probe));
-        }
-
-        [Fact]
-        public void ADismissalIsKeptInTheSave()
-        {
-            var hearing = HomeHeard(new[] { CraftState.Gone(Probe, 10.0, CraftEnd.Destroyed, ProbeListed) });
-            Assert.True(hearing.Dismiss(Home, Probe));
-
-            var saved = hearing.Snapshot().Centres.Single(c => c.Centre == Home);
-            var restored = HomeHeard(saved.States, saved.Sightings, saved.Dismissed);
-
-            Assert.True(restored.DismissedAt(Home, Probe));
-        }
-}
+    }
 }

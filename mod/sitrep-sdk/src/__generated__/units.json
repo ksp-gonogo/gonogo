@@ -220,8 +220,6 @@
       "crewCapacity": "count",
       "crewCount": "count",
       "declaredLostUt": "ut",
-      "endSource": "enum",
-      "endedUt": "ut",
       "expectedReturnUt": "ut",
       "landedAt": "text",
       "lastContactUt": "ut",
@@ -1382,9 +1380,6 @@
       "kerbinTime": "flag",
       "minuteSeconds": "s",
       "yearSeconds": "s"
-    },
-    "TrackingStationDismissArgs": {
-      "vesselId": "id"
     },
     "TrackingStationVesselLink": {
       "connected": "flag",
@@ -2845,7 +2840,6 @@
       "commsControlSource": "RosterCommsControlSource",
       "contact": "CatalogContact",
       "crew": "CatalogCrew",
-      "endSource": "RosterPlaceSource",
       "placeSource": "RosterPlaceSource",
       "situation": "Situation",
       "vesselType": "VesselType"

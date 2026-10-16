@@ -1,5 +1,5 @@
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { type CommsLink, type FleetVessel, hasEnded, isLinked } from "./fleet";
+import { type CommsLink, type FleetVessel, isLinked } from "./fleet";
 
 export type Tone = "go" | "info" | "warn" | "nogo" | "neutral";
 
@@ -50,15 +50,14 @@ function rollupVerdict(
   return { badgeLabel: `${none} Not Linked`, tone: "warn" };
 }
 
-/** Fleet-wide comms rollup for the header badge and footer meter, worded around link: the widget has no data for a health verdict. A destroyed craft still listed is not counted. */
-export function commsRollup(listed: FleetVessel[]): {
+/** Fleet-wide comms rollup for the header badge and footer meter, worded around link: the widget has no data for a health verdict. */
+export function commsRollup(vessels: FleetVessel[]): {
   linked: number;
   none: number;
   unknown: number;
   badgeLabel: string;
   tone: Tone;
 } {
-  const vessels = listed.filter((v) => !hasEnded(v));
   const linked = vessels.filter((v) => isLinked(v.comms)).length;
   const none = vessels.filter((v) => v.comms === "none").length;
   const unknown = vessels.filter((v) => v.comms === "unknown").length;

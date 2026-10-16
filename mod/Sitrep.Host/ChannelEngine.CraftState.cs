@@ -463,9 +463,8 @@ namespace Sitrep.Host
             return false;
         }
 
-        public void RecordCraftGone(string vesselId, double ut, CraftEnd end)
+        public void RecordCraftGone(string vesselId, double ut)
         {
-            _craftStateSaid.TryGetValue(vesselId, out var said);
             _craftStateSaid.Remove(vesselId);
             if (!_craftStateStamps.TryGetValue(vesselId, out var stamp))
             {
@@ -474,7 +473,7 @@ namespace Sitrep.Host
             _craftStateStamps.Remove(vesselId);
             var topic = CraftStateTopic(vesselId);
             _lastRecordedUt[topic] = ut;
-            _courier.Record(NodeFor(topic), topic, CraftState.Gone("vessel:" + vesselId, ut, end, said?.Roster), ut, sentUnder: stamp);
+            _courier.Record(NodeFor(topic), topic, CraftState.Gone("vessel:" + vesselId, ut), ut, sentUnder: stamp);
         }
 
         public Action HearCraftState(string vesselId, string centre, Action<CraftState> heard)

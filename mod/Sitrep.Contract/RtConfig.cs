@@ -210,7 +210,6 @@ public static class RtConfig
                 typeof(ScetAddressableTopic),
                 typeof(ScetAlarmArmArgs),
                 typeof(ScetAlarmDisarmArgs),
-                typeof(TrackingStationDismissArgs),
                 // commcast command args
                 typeof(CommcastGroupOpenArgs),
                 typeof(CommcastGroupAddArgs),

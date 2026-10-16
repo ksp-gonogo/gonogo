@@ -12,7 +12,6 @@ import {
 import { Fragment } from "react";
 import { CrewFigure } from "./CrewFigure";
 import { COMMS, COMMS_TONE } from "./comms";
-import { DismissEnded } from "./DismissEnded";
 import { useContactBadge } from "./FleetContactCell";
 import { FleetSignalCell } from "./FleetSignalCell";
 import type { FleetVessel } from "./fleet";
@@ -25,7 +24,7 @@ const GRID_FULL = "minmax(0, 1fr) auto 48px 66px";
 const GRID_COMPACT = "minmax(0, 1fr)";
 const NAME_CELL_STYLE = { gap: "7px", padding: "var(--inset-roster-cell)" };
 
-/** A vessel's contact badge on its own line, indented past the link dot so it starts under the name, with the control that dismisses a destroyed craft; renders nothing while there is no badge. */
+/** A vessel's contact badge on its own line, indented past the link dot so it starts under the name; renders nothing while there is no badge. */
 function ContactLine({ vessel: v }: { vessel: FleetVessel }) {
   const badge = useContactBadge(v.contact, v.name);
   if (badge == null) return null;
@@ -40,7 +39,6 @@ function ContactLine({ vessel: v }: { vessel: FleetVessel }) {
     >
       <LinkDotSpacer />
       {badge}
-      <DismissEnded vessel={v} />
     </Cluster>
   );
 }

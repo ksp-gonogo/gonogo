@@ -164,27 +164,13 @@ namespace Sitrep.Host.IntegrationTests
             Reckoned.True(control.Home.Path != burned.Home.Path, "home's path had not taken a burn it had seen");
         }
 
-        /// <summary>How home learned the relay ended, or null while it knows of no end.</summary>
-        private static RosterPlaceSource? EndSource(CentreView view)
-        {
-            var field = view.Vessel(Relay)!.Value.GetProperty("endSource");
-            return field.ValueKind == JsonValueKind.Null ? null : (RosterPlaceSource)field.GetInt32();
-        }
-
-        private static void ListedEnded(CentreView view, RosterPlaceSource how, double endedUt)
-        {
-            Assert.Equal(how, EndSource(view));
-            Assert.Equal(endedUt, view.Vessel(Relay)!.Value.GetProperty("endedUt").GetDouble());
-            Assert.Equal(CatalogContact.Gone, (CatalogContact)view.Vessel(Relay)!.Value.GetProperty("contact").GetInt32());
-        }
-
         /// <summary>
         /// The relay's light takes nine hundred seconds to reach home and its
-        /// radio six hundred. Destroyed in contact, home lists it as destroyed
-        /// when its radio's word of its going arrives, before its light could.
+        /// radio six hundred. Destroyed in contact, it leaves home's list when
+        /// its radio's word of its going arrives, before its light could.
         /// </summary>
         [Fact]
-        public async Task ACraftDestroyedInContactIsListedEndedByItsRadioBeforeItsSlowerLightArrives()
+        public async Task ACraftDestroyedInContactLeavesTheListByItsRadioBeforeItsSlowerLightArrives()
         {
             await using var seated = await AtHomeAsync(new ScriptedContactGame { RelaySeenFromHomeSeconds = 900.0 });
             await seated.TickAsync(1, 2, 700, 702, 950, 952);
@@ -192,19 +178,19 @@ namespace Sitrep.Host.IntegrationTests
 
             seated.World.Game.DestroyRelay();
             await seated.TickAsync(T0, T0 + 2, T0 + 599);
-            Reckoned.True(EndSource(seated.View) == null, "home listed a craft destroyed before any word of its going could arrive");
+            Reckoned.True(seated.View.Vessel(Relay) != null, "home dropped a destroyed craft before any word of its going could arrive");
 
             await seated.TickAsync(T0 + 603, T0 + 604, T0 + 605);
-            ListedEnded(seated.View, RosterPlaceSource.Heard, T0);
+            Assert.Null(seated.View.Vessel(Relay));
         }
 
         /// <summary>
         /// The relay's light takes a hundred seconds to reach home and its
-        /// radio six hundred. Destroyed out of contact it says nothing, so home
-        /// lists it as seen destroyed when the light of its going arrives.
+        /// radio six hundred. Destroyed out of contact it says nothing, so it
+        /// leaves home's list when the light of its going arrives.
         /// </summary>
         [Fact]
-        public async Task ACraftDestroyedOutOfContactIsListedEndedWhenTheLightOfItsGoingArrives()
+        public async Task ACraftDestroyedOutOfContactLeavesTheListWhenTheLightOfItsGoingArrives()
         {
             await using var seated = await AtHomeAsync(new ScriptedContactGame { RelaySeenFromHomeSeconds = 100.0 });
             await seated.TickAsync(1, 2, 700, 702);
@@ -213,20 +199,20 @@ namespace Sitrep.Host.IntegrationTests
             await seated.TickAsync(800, 802);
             seated.World.Game.DestroyRelay();
             await seated.TickAsync(T0, T0 + 2, T0 + 99);
-            Reckoned.True(EndSource(seated.View) == null, "home listed a craft destroyed before the light of its going could arrive");
+            Reckoned.True(seated.View.Vessel(Relay) != null, "home dropped a destroyed craft before the light of its going could arrive");
 
             await seated.TickAsync(T0 + 103, T0 + 104, T0 + 105);
-            ListedEnded(seated.View, RosterPlaceSource.Seen, T0);
+            Assert.Null(seated.View.Vessel(Relay));
         }
 
         /// <summary>
         /// The relay's light takes nine hundred seconds to reach home and its
         /// radio six hundred. Destroyed out of contact it says nothing, and
-        /// home lists it as seen destroyed when the light of its going arrives,
-        /// long after its radio's delay has passed.
+        /// leaves home's list when the light of its going arrives, long after
+        /// its radio's delay has passed.
         /// </summary>
         [Fact]
-        public async Task ACraftDestroyedOutOfContactWhoseLightIsSlowerThanItsRadioIsListedEndedWhenItsLightArrives()
+        public async Task ACraftDestroyedOutOfContactWhoseLightIsSlowerThanItsRadioLeavesTheListWhenItsLightArrives()
         {
             await using var seated = await AtHomeAsync(new ScriptedContactGame { RelaySeenFromHomeSeconds = 900.0 });
             await seated.TickAsync(1, 2, 700, 702, 950, 952);
@@ -235,10 +221,10 @@ namespace Sitrep.Host.IntegrationTests
             await seated.TickAsync(980, 982);
             seated.World.Game.DestroyRelay();
             await seated.TickAsync(T0, T0 + 2, T0 + 599, T0 + 603, T0 + 899);
-            Reckoned.True(EndSource(seated.View) == null, "home listed a craft destroyed before the light of its going could arrive");
+            Reckoned.True(seated.View.Vessel(Relay) != null, "home dropped a destroyed craft before the light of its going could arrive");
 
             await seated.TickAsync(T0 + 903, T0 + 904, T0 + 905);
-            ListedEnded(seated.View, RosterPlaceSource.Seen, T0);
+            Assert.Null(seated.View.Vessel(Relay));
         }
 
         /// <summary>
@@ -284,14 +270,14 @@ namespace Sitrep.Host.IntegrationTests
             await seated.TickAsync(800, 802);
             seated.World.Game.DestroyRelay();
             await seated.TickAsync(T0, T0 + 2, T0 + 103, T0 + 104, T0 + 1500, T0 + 1502);
-            Reckoned.True(EndSource(seated.View) == null, "home saw a craft go that a body hid from it");
+            Reckoned.True(seated.View.Vessel(Relay) != null, "home saw a craft go that a body hid from it");
 
             seated.World.Game.RelayGoneInViewOf.Add(ScriptedContactGame.Home);
             await seated.TickAsync(T0 + 2000, T0 + 2002, T0 + 2099);
-            Reckoned.True(EndSource(seated.View) == null, "home saw an empty place before light from it could arrive");
+            Reckoned.True(seated.View.Vessel(Relay) != null, "home saw an empty place before light from it could arrive");
 
             await seated.TickAsync(T0 + 2103, T0 + 2104, T0 + 2105);
-            ListedEnded(seated.View, RosterPlaceSource.Seen, T0 + 2000);
+            Assert.Null(seated.View.Vessel(Relay));
         }
 
         private static int PlaceSource(CentreView view) => view.Vessel(Relay)!.Value.GetProperty("placeSource").GetInt32();

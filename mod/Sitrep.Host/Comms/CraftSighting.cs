@@ -33,9 +33,8 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public const double GoneSightHorizonSeconds = Sitrep.Core.GameDayDefaults.StockDaySeconds;
 
-        private CraftSighting(string id, double capturedUt, bool exists, IReadOnlyDictionary<string, object?>? listed, CraftState? place, CraftEnd? end = null)
+        private CraftSighting(string id, double capturedUt, bool exists, IReadOnlyDictionary<string, object?>? listed, CraftState? place)
         {
-            End = end;
             Id = id;
             CapturedUt = capturedUt;
             Exists = exists;
@@ -64,18 +63,8 @@ namespace Sitrep.Host.Comms
         public static CraftSighting Of(string id, double capturedUt, IReadOnlyDictionary<string, object?>? listed, CraftState? place = null) =>
             new CraftSighting(id, capturedUt, true, Seen(listed), place);
 
-        /// <summary>How the object was seen to leave, for the last sighting of it; null for one seen there.</summary>
-        public CraftEnd? End { get; }
-
         /// <summary>The object is no longer there.</summary>
-        /// <param name="end">How it was seen to leave.</param>
-        /// <param name="listed">What was seen of it before it went, as <see cref="Listed"/> carries it, or null.</param>
-        public static CraftSighting Gone(string id, double capturedUt, CraftEnd end = CraftEnd.Absorbed, IReadOnlyDictionary<string, object?>? listed = null) =>
-            new CraftSighting(id, capturedUt, false, listed, null, end);
-
-        /// <summary>This last sighting, listed with what was seen of the object before it went, where it carries nothing of its own.</summary>
-        public CraftSighting ListedAsBefore(CraftSighting? before) =>
-            Exists || Listed != null || before?.Listed == null ? this : Gone(Id, CapturedUt, End ?? CraftEnd.Absorbed, before.Listed);
+        public static CraftSighting Gone(string id, double capturedUt) => new CraftSighting(id, capturedUt, false, null, null);
 
         /// <summary>What of an entry a telescope can tell: where the object is, and what it is tracked as.</summary>
         private static IReadOnlyDictionary<string, object?>? Seen(IReadOnlyDictionary<string, object?>? listed)
@@ -121,8 +110,7 @@ namespace Sitrep.Host.Comms
             }
             if (!seen.Exists)
             {
-                var listed = Relisted(heard?.Roster, seen.Listed) ?? (seen.Listed == null ? null : SeenOnly(seen.Listed));
-                return CraftState.Gone(seen.Id, seen.CapturedUt, seen.End ?? CraftEnd.Absorbed, listed);
+                return CraftState.Gone(seen.Id, seen.CapturedUt);
             }
             if (heard == null || !heard.Exists)
             {

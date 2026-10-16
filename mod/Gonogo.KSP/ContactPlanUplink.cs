@@ -26,10 +26,6 @@ namespace Gonogo.KSP
         private KspVisibilityGeometryFactory? _surface;
         private bool? _listStood;
 
-        /// <summary>How each vessel the game has said is leaving left, since the last look, by bare guid. Main thread.</summary>
-        private Dictionary<string, CraftEnd> _ends = new Dictionary<string, CraftEnd>();
-        private bool _endsHooked;
-
         /// <summary>The links as they were last read from a vessel list that stood, or null before any was.</summary>
         private LiveLinkGraph? _linksLastRead;
         private IUplinkHost? _host;
@@ -55,7 +51,6 @@ namespace Gonogo.KSP
             Id = "comms-contacts",
             Version = "1.0.0",
             Channels = ContactPlanSource.Channels(),
-            Commands = ContactPlanSource.Commands(),
         };
 
         public void Register(IUplinkHost host)
@@ -64,7 +59,6 @@ namespace Gonogo.KSP
             _surface = new KspVisibilityGeometryFactory(() => host.Kernel);
             _source.Register(host);
             CurrencyDelay.HomeCraftViews.Bind(_source.HomeViewOf);
-            HookEnds();
             // Ungated: whether light that was sent lands is asked of these links
             // whether or not anyone is watching a topic.
             host.AddSampledSource(CaptureLinksOnMain, links => _inputs.SetLinks(links as LiveLinkGraph ?? LiveLinkGraph.Empty));
@@ -141,47 +135,6 @@ namespace Gonogo.KSP
             }
             _linksLastRead = new LiveLinkGraph(links);
             return _linksLastRead;
-        }
-
-        /// <summary>
-        /// Listens for how vessels leave the game, for the whole process: a
-        /// vessel can be destroyed or recovered in any scene. Docking raises
-        /// neither, so a docked vessel is one that left with no word.
-        /// </summary>
-        private void HookEnds()
-        {
-            if (_endsHooked)
-            {
-                return;
-            }
-            _endsHooked = true;
-            GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);
-            GameEvents.onVesselRecovered.Add(OnVesselRecovered);
-        }
-
-        private void OnVesselWillDestroy(Vessel vessel)
-        {
-            if (vessel != null && !_ends.ContainsKey(vessel.id.ToString()))
-            {
-                _ends[vessel.id.ToString()] = CraftEnd.Destroyed;
-            }
-        }
-
-        /// <summary>Stock raises this before it removes the vessel, which it then reports destroyed too.</summary>
-        private void OnVesselRecovered(ProtoVessel vessel, bool quick)
-        {
-            if (vessel != null)
-            {
-                _ends[vessel.vesselID.ToString()] = CraftEnd.Recovered;
-            }
-        }
-
-        /// <summary>The ends said since the last look, handed over once.</summary>
-        private IReadOnlyDictionary<string, CraftEnd> TakeEnds()
-        {
-            var said = _ends;
-            _ends = new Dictionary<string, CraftEnd>();
-            return said;
         }
 
         public IReadOnlyList<string> Centres()
@@ -298,7 +251,6 @@ namespace Gonogo.KSP
                 Sight = stands ? SightOf(vessels, active, roster, SightBodies(bodies)) : null,
                 Vessels = stands ? listed : null,
                 VesselsUnread = !stands,
-                Ends = TakeEnds(),
             };
         }
 

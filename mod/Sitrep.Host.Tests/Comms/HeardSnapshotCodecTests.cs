@@ -52,43 +52,6 @@ namespace Sitrep.Host.Tests.Comms
 
         /// <summary>Which centres can hear each craft, as each centre last heard it, survives a save, so a centre's contact is what it was before the load.</summary>
         [Fact]
-        public void HowAGoneCraftEndedItsLastEntryAndItsDismissalComeBack()
-        {
-            var listed = new Dictionary<string, object?> { ["vesselId"] = "a", ["name"] = "Probe", ["vesselType"] = 3 };
-            var encoded = HeardSnapshotCodec.Encode(new HeardSnapshot(new[]
-            {
-                new HeardAtCentre(
-                    "ground:ksc",
-                    new[] { CraftState.Gone("vessel:a", 300.0, CraftEnd.Destroyed, listed) },
-                    new Dictionary<string, bool>(),
-                    sightings: new[] { CraftSighting.Gone("vessel:b", 310.0, CraftEnd.Recovered, listed) },
-                    dismissed: new[] { "vessel:a" }),
-            }));
-
-            var back = HeardSnapshotCodec.Decode(encoded)!.Centres.Single();
-
-            var state = Assert.Single(back.States);
-            Assert.Equal(CraftEnd.Destroyed, state.End);
-            Assert.Equal("Probe", state.Roster!["name"]);
-            var sighting = Assert.Single(back.Sightings);
-            Assert.Equal(CraftEnd.Recovered, sighting.End);
-            Assert.Equal("Probe", sighting.Listed!["name"]);
-            Assert.Equal(new[] { "vessel:a" }, back.Dismissed);
-        }
-
-        /// <summary>A save that does not say how a craft ended is one that never learned, and so lists none.</summary>
-        [Fact]
-        public void AGoneCraftSavedWithNoEndReadsAsLeavingWithNoWordOfHow()
-        {
-            var encoded = HeardSnapshotCodec.Encode(new HeardSnapshot(new[]
-            {
-                new HeardAtCentre("ground:ksc", new[] { CraftState.Gone("vessel:a", 300.0) }, new Dictionary<string, bool>()),
-            }));
-
-            Assert.Equal(CraftEnd.Absorbed, HeardSnapshotCodec.Decode(encoded)!.Centres.Single().States.Single().End);
-        }
-
-        [Fact]
         public void WhoCanHearEachCraftComesBackAsTheCentreLastHeardIt()
         {
             var reach = new CraftReach("vessel:a", 300.0, new Dictionary<string, double> { ["ground:ksc"] = 300.0, ["ground:far"] = 120.0 });

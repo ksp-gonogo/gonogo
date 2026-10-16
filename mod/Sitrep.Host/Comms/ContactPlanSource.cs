@@ -124,15 +124,6 @@ namespace Sitrep.Host.Comms
         public IReadOnlyCollection<string>? Vessels { get; set; }
 
         /// <summary>
-        /// How each vessel the game has said is leaving left it, by bare guid,
-        /// as the game reported it since the last look: destroyed or recovered.
-        /// A vessel that leaves with no word here was docked into another, or
-        /// removed some way the game gave no sign of. Null from a game that
-        /// cannot say.
-        /// </summary>
-        public IReadOnlyDictionary<string, CraftEnd>? Ends { get; set; }
-
-        /// <summary>
         /// Whether the game's vessel list could not be read on this look: it
         /// was still being filled, or the scene does not fill it. The look then
         /// holds the ground stations and the centres the game can still name,
@@ -531,15 +522,6 @@ namespace Sitrep.Host.Comms
             Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
         };
 
-        /// <summary>Takes an ended craft off the catalog of the centre that sends it.</summary>
-        public const string DismissCommand = "trackingStation.catalog.dismiss";
-
-        /// <summary>The commands, for the manifest of the Uplink that registers this.</summary>
-        public static List<CommandDeclaration> Commands() => new List<CommandDeclaration>
-        {
-            new CommandDeclaration { Command = DismissCommand, Delay = DelayRole.TrueNow },
-        };
-
         /// <summary>The channels, for the manifest of the Uplink that registers this.</summary>
         public static List<ChannelDeclaration> Channels() => new List<ChannelDeclaration>
         {
@@ -676,7 +658,6 @@ namespace Sitrep.Host.Comms
                 _streams.OnAddressedSubscribed(topic, centre => asked.Add(centre));
             }
             _hearing = new CentreHearing(_craftHost, plans == null ? (Action<string, string>?)null : plans.NoteHeard);
-            host.AddVantageCommandHandler<TrackingStationDismissArgs, CommandResult>(DismissCommand, Dismiss);
             _craftHost.OnTimelineReset(() =>
             {
                 _craft.ReadAllAgain();
@@ -1484,7 +1465,6 @@ namespace Sitrep.Host.Comms
         /// </summary>
         private void PublishCatalogs(Looked looked, IReadOnlyCollection<string> planning)
         {
-            TakeDismissals();
             if (!_host!.IsAnyTopicSubscribed(CatalogTopic))
             {
                 _vesselsAsked.Clear();
@@ -1508,8 +1488,7 @@ namespace Sitrep.Host.Comms
                 var entries = new List<object?>(heard.Count);
                 foreach (var state in heard)
                 {
-                    var end = state.Exists ? null : _hearing.EndAt(centre, state.Id);
-                    if (state.Roster == null || (!state.Exists && !ListedAsEnded(centre, state, end)))
+                    if (!state.Exists || state.Roster == null)
                     {
                         continue;
                     }
@@ -1535,8 +1514,6 @@ namespace Sitrep.Host.Comms
                     entry["overdueAfterUt"] = contact.OverdueAfterUt;
                     entry["declaredLostUt"] = contact.DeclaredLostUt;
                     entry["crew"] = CrewOf(contact.State, entry.TryGetValue("crewCount", out var crewCount) ? crewCount : null);
-                    entry["endSource"] = end.HasValue ? (int)end.Value.Source : (int?)null;
-                    entry["endedUt"] = end?.Ut;
                     if (contact.State == CatalogContact.Silent && contact.OverdueAfterUt is double overdueAt
                         && (!_catalogDueAt.TryGetValue(centre, out var soonest) || overdueAt < soonest))
                     {
@@ -1571,52 +1548,6 @@ namespace Sitrep.Host.Comms
                 _ => CatalogCrew.Unknown,
             };
             return (int)crew;
-        }
-
-        /// <summary>The kinds of object a centre lists after their end: craft someone flew. Debris, flags, asteroids, kerbals on EVA and deployed science leave when they go.</summary>
-        private static readonly HashSet<int> ListedAfterTheirEnd = new HashSet<int>
-        {
-            (int)VesselType.Ship, (int)VesselType.Station, (int)VesselType.Lander, (int)VesselType.Probe,
-            (int)VesselType.Rover, (int)VesselType.Base, (int)VesselType.Relay,
-        };
-
-        /// <summary>
-        /// Whether a craft <paramref name="centre"/> knows has gone stays in its
-        /// catalog: one destroyed, of a kind someone flew, until the player
-        /// dismisses it. A recovered craft and one docked into another leave.
-        /// </summary>
-        private bool ListedAsEnded(string centre, CraftState state, (RosterPlaceSource Source, double Ut, CraftEnd End)? end) =>
-            end?.End == CraftEnd.Destroyed
-            && state.Roster != null
-            && state.Roster.TryGetValue("vesselType", out var type) && type is int kind && ListedAfterTheirEnd.Contains(kind)
-            && !_hearing!.DismissedAt(centre, state.Id);
-
-        /// <summary>Dismissals sent since the catalogs were last published, each a centre and a craft's node id. Any thread.</summary>
-        private readonly System.Collections.Concurrent.ConcurrentQueue<(string Centre, string NodeId)> _dismissals =
-            new System.Collections.Concurrent.ConcurrentQueue<(string, string)>();
-
-        /// <summary>
-        /// Takes the ended craft off the catalog of the centre the command came
-        /// from, on the next pass: see <see cref="TrackingStationDismissArgs"/>.
-        /// Any thread.
-        /// </summary>
-        public CommandResult Dismiss(TrackingStationDismissArgs? args, string vantage)
-        {
-            if (args == null || string.IsNullOrEmpty(args.VesselId))
-            {
-                return CommandResult.Fail(CommandErrorCode.Range, "name the craft to dismiss");
-            }
-            _dismissals.Enqueue((vantage, CraftStateRecorder.VesselPrefix + args.VesselId));
-            return CommandResult.Ok();
-        }
-
-        /// <summary>Applies each dismissal sent since the last pass. One for a craft the centre knows no end of changes nothing. Courier thread.</summary>
-        private void TakeDismissals()
-        {
-            while (_dismissals.TryDequeue(out var dismissal))
-            {
-                _hearing?.Dismiss(dismissal.Centre, dismissal.NodeId);
-            }
         }
 
         /// <summary>Whether the listed craft is a kind CommNet never gives a connection, whose link is unknown on every sample.</summary>

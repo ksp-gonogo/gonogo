@@ -702,48 +702,4 @@ public class CatalogEntry
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public CatalogCrew? Crew { get; set; }
-
-    /// <summary>
-    /// How this centre learned the craft was destroyed: heard, from its last
-    /// report over a link, or seen. A destroyed craft stays listed, with
-    /// <see cref="Contact"/> <see cref="CatalogContact.Gone"/>, until the
-    /// player dismisses it with <c>trackingStation.catalog.dismiss</c>. A
-    /// recovered craft, one docked into another, and debris, flags and other
-    /// objects nobody flew leave the catalog when they go. Null while this
-    /// centre knows of no end.
-    /// </summary>
-    [SitrepUnit(Units.Enumeration)]
-    public RosterPlaceSource? EndSource { get; set; }
-
-    /// <summary>
-    /// The universal time of the report or sighting that told this centre the
-    /// craft was destroyed. A centre that had no line to the craft when it went
-    /// sees it gone only when its place next comes into view, so this can be
-    /// later than the destruction itself. Null exactly when
-    /// <see cref="EndSource"/> is.
-    /// </summary>
-    [SitrepUnit(Units.UniversalTime)]
-    public double? EndedUt { get; set; }
-}
-
-/// <summary>
-/// <c>trackingStation.catalog.dismiss</c>'s args: take a destroyed craft off
-/// the catalog of the command centre the command is sent from. Every other
-/// centre keeps listing it until it is dismissed there. A craft that centre
-/// knows of no end for stays listed, so a dismissal sent before the news has
-/// arrived changes nothing.
-///
-/// <para>Never delayed: the catalog is the ground's own record.</para>
-/// </summary>
-/// <category>Command arguments</category>
-[SitrepContract]
-#if SITREP_CODEGEN
-[TsInterface]
-#endif
-[SitrepCommand("trackingStation.catalog.dismiss", Delay = DelayRole.TrueNow)]
-public class TrackingStationDismissArgs
-{
-    /// <summary>The craft, by <see cref="CatalogEntry.VesselId"/>.</summary>
-    [SitrepUnit(Units.Id)]
-    public string VesselId { get; set; } = "";
 }

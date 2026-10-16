@@ -21,10 +21,8 @@ namespace Sitrep.Host.Comms
             IReadOnlyList<CraftReach>? reaches = null,
             IReadOnlyList<CentreReport>? reports = null,
             IReadOnlyList<CraftForecast>? forecasts = null,
-            IReadOnlyList<HomeVerdict>? verdicts = null,
-            IReadOnlyList<string>? dismissed = null)
+            IReadOnlyList<HomeVerdict>? verdicts = null)
         {
-            Dismissed = dismissed ?? new string[0];
             Centre = centre;
             States = states;
             Links = links;
@@ -41,9 +39,6 @@ namespace Sitrep.Host.Comms
 
         /// <summary>The newest home judgement of each craft to have reached the centre.</summary>
         public IReadOnlyList<HomeVerdict> Verdicts { get; }
-
-        /// <summary>The ended craft the player has taken off the centre's catalog, by node id.</summary>
-        public IReadOnlyList<string> Dismissed { get; }
 
         private static readonly IReadOnlyList<CentreReport> NoReports = new CentreReport[0];
 
@@ -194,7 +189,6 @@ namespace Sitrep.Host.Comms
                         ["id"] = sighting.Id,
                         ["capturedUt"] = sighting.CapturedUt,
                         ["exists"] = sighting.Exists,
-                        ["end"] = sighting.End?.ToString(),
                         ["listed"] = sighting.Listed == null ? null : new Dictionary<string, object?>(Copy(sighting.Listed)),
                     });
                 }
@@ -251,7 +245,6 @@ namespace Sitrep.Host.Comms
                 {
                     ["centre"] = centre.Centre, ["states"] = states, ["links"] = links, ["radios"] = radios, ["sightings"] = sightings, ["reaches"] = reaches,
                     ["reports"] = reports, ["forecasts"] = forecasts, ["verdicts"] = verdicts,
-                    ["dismissed"] = new List<object?>(centre.Dismissed),
                 });
             }
             var root = new Dictionary<string, object?> { ["version"] = (double)FormatVersion, ["centres"] = centres };
@@ -311,10 +304,9 @@ namespace Sitrep.Host.Comms
                         var seenId = (string)seen["id"]!;
                         var seenUt = (double)seen["capturedUt"]!;
                         // Where the craft was going is not saved with a sighting: the heard state's own orbit stands until it is seen again.
-                        var seenListed = Get(seen, "listed") is Dictionary<string, object?> listing ? Listed(listing) : null;
                         sightings.Add(Get(seen, "exists") is bool there && there
-                            ? CraftSighting.Of(seenId, seenUt, seenListed)
-                            : CraftSighting.Gone(seenId, seenUt, EndOf(seen), seenListed));
+                            ? CraftSighting.Of(seenId, seenUt, Get(seen, "listed") is Dictionary<string, object?> listing ? Listed(listing) : null)
+                            : CraftSighting.Gone(seenId, seenUt));
                     }
                     var reaches = new List<CraftReach>();
                     foreach (var item3 in List(centre, "reaches"))
@@ -382,15 +374,7 @@ namespace Sitrep.Host.Comms
                             WithdrawnUt = Get(verdict, "withdrawnUt") as double?,
                         });
                     }
-                    var dismissed = new List<string>();
-                    foreach (var item7 in List(centre, "dismissed"))
-                    {
-                        if (item7 is string nodeId)
-                        {
-                            dismissed.Add(nodeId);
-                        }
-                    }
-                    centres.Add(new HeardAtCentre((string)centre["centre"]!, states, links, radios, sightings, reaches, reports, forecasts, verdicts, dismissed));
+                    centres.Add(new HeardAtCentre((string)centre["centre"]!, states, links, radios, sightings, reaches, reports, forecasts, verdicts));
                 }
                 return new HeardSnapshot(centres);
             }
@@ -445,7 +429,6 @@ namespace Sitrep.Host.Comms
                 ["id"] = state.Id,
                 ["capturedUt"] = state.CapturedUt,
                 ["exists"] = state.Exists,
-                ["end"] = state.End?.ToString(),
                 ["bodyIndex"] = (double)state.BodyIndex,
                 ["orbit"] = state.Orbit == null ? null : Orbit(state.Orbit.Value),
                 ["surface"] = state.Surface == null ? null : Surface(state.Surface.Value),
@@ -467,7 +450,7 @@ namespace Sitrep.Host.Comms
             var capturedUt = (double)map["capturedUt"]!;
             if (!(Get(map, "exists") is bool exists) || !exists)
             {
-                return CraftState.Gone(id, capturedUt, EndOf(map), Get(map, "roster") is Dictionary<string, object?> lastListed ? Listed(lastListed) : null);
+                return CraftState.Gone(id, capturedUt);
             }
             var links = new Dictionary<string, CraftLink>(StringComparer.Ordinal);
             if (Get(map, "links") is Dictionary<string, object?> heard)
@@ -486,10 +469,6 @@ namespace Sitrep.Host.Comms
             var centre = Get(map, "centre") is Dictionary<string, object?> entry ? CentreFrom(entry) : null;
             return Moving(map, id, capturedUt, bodyIndex, plannable, settled, links, roster).Named(name).Listed(roster).AsCentre(centre);
         }
-
-        /// <summary>How a gone craft left the game, as saved; a save that does not say is one that never learned.</summary>
-        private static CraftEnd EndOf(Dictionary<string, object?> map) =>
-            Get(map, "end") is string named && Enum.TryParse<CraftEnd>(named, out var end) ? end : CraftEnd.Absorbed;
 
         /// <summary>A radio reading as the save keeps it. A save's own layout, not the wire's.</summary>
         private static Dictionary<string, object?> RadioOf(ContactRadio radio)

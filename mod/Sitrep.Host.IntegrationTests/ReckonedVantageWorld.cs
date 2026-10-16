@@ -243,17 +243,14 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        /// <summary>The relay is gone from the game, as the game says: destroyed unless told otherwise, or recovered, or with no word at all as when docked into another craft.</summary>
-        public void DestroyRelay(CraftEnd? how = CraftEnd.Destroyed)
+        /// <summary>The relay is gone from the game: crashed, or recovered.</summary>
+        public void DestroyRelay()
         {
             lock (_gate)
             {
                 _relayExists = false;
-                _relayEnd = how;
             }
         }
-
-        private CraftEnd? _relayEnd;
 
         public IReadOnlyList<string> Centres() => RelayIsEngineCentre && RelayExists ? new[] { Home, Far, Relay } : new[] { Home, Far };
 
@@ -528,22 +525,8 @@ namespace Sitrep.Host.IntegrationTests
             }
             return new ContactGameLook(nodes, Bodies, Kerbin, (_, index) => index == Kerbin ? KerbinRadius : 0.0)
             {
-                Radio = Radio, Roster = roster, Sight = Sight(), GoneSight = GoneSight(), Vessels = vessels, Ends = TakeEnds(),
+                Radio = Radio, Roster = roster, Sight = Sight(), GoneSight = GoneSight(), Vessels = vessels,
             };
-        }
-
-        private IReadOnlyDictionary<string, CraftEnd>? TakeEnds()
-        {
-            lock (_gate)
-            {
-                if (_relayEnd == null)
-                {
-                    return null;
-                }
-                var ends = new Dictionary<string, CraftEnd> { [RelayGuid] = _relayEnd.Value };
-                _relayEnd = null;
-                return ends;
-            }
         }
 
         private static RotatingGroundStation Surface(double longitudeDeg) =>
@@ -715,7 +698,6 @@ namespace Sitrep.Host.IntegrationTests
                     new CommandDeclaration { Command = ActiveCommand, Delay = DelayRole.Delayed, Subject = ChannelEngine.ConnectivityMetaTopic },
                     // The axes fly the ACTIVE craft, which reaches the ground through the relay.
                     new CommandDeclaration { Command = AxesCommand, Delay = DelayRole.Delayed, Subject = ChannelEngine.ConnectivityMetaTopic },
-                    new CommandDeclaration { Command = ContactPlanSource.DismissCommand, Delay = DelayRole.TrueNow },
                 },
             };
         }

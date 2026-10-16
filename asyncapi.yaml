@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 44.4.0
+  version: 44.3.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 87 telemetry
-    channels a client subscribes to and 64 commands it sends, each with its payload
+    channels a client subscribes to and 63 commands it sends, each with its payload
     schema and description.
 
     This document is generated from the contract's C# declarations and their doc
@@ -3195,28 +3195,6 @@ channels:
         $ref: "#/components/messages/streamData.trackingStation.catalog"
       event:
         $ref: "#/components/messages/event"
-  trackingStation.catalog.dismiss:
-    address: trackingStation.catalog.dismiss
-    description: |-
-      Takes `TrackingStationDismissArgs`.
-
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
-
-      `trackingStation.catalog.dismiss`'s args: take a destroyed craft off the
-      catalog of the command centre the command is sent from. Every other centre
-      keeps listing it until it is dismissed there. A craft that centre knows of
-      no end for stays listed, so a dismissal sent before the news has arrived
-      changes nothing.
-
-      Never delayed: the catalog is the ground's own record.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.trackingStation.catalog.dismiss"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.trackingStation.catalog.dismiss"
   vessel.attitude:
     address: vessel.attitude
     description: |-
@@ -4874,20 +4852,6 @@ operations:
         $ref: "#/channels/trackingStation.bodies.statesAt"
       messages:
         - $ref: "#/channels/trackingStation.bodies.statesAt/messages/commandResponse"
-  dispatch:trackingStation.catalog.dismiss:
-    action: send
-    channel:
-      $ref: "#/channels/trackingStation.catalog.dismiss"
-    title: Dispatch trackingStation.catalog.dismiss
-    tags:
-      - name: trackingStation
-    messages:
-      - $ref: "#/channels/trackingStation.catalog.dismiss/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/trackingStation.catalog.dismiss"
-      messages:
-        - $ref: "#/channels/trackingStation.catalog.dismiss/messages/commandResponse"
   dispatch:vessel.control.setAbort:
     action: send
     channel:
@@ -6840,21 +6804,6 @@ components:
                 const: trackingStation.bodies.statesAt
               args:
                 $ref: "#/components/schemas/BodyStatesRequest"
-    commandRequest.trackingStation.catalog.dismiss:
-      name: command-request
-      title: Dispatch trackingStation.catalog.dismiss
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `trackingStation.catalog.dismiss`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: trackingStation.catalog.dismiss
-              args:
-                $ref: "#/components/schemas/TrackingStationDismissArgs"
     commandRequest.vessel.control.setAbort:
       name: command-request
       title: Dispatch vessel.control.setAbort
@@ -7725,19 +7674,6 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/BodyStatesReply"
-    commandResponse.trackingStation.catalog.dismiss:
-      name: command-response
-      title: Reply to trackingStation.catalog.dismiss
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `trackingStation.catalog.dismiss`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                $ref: "#/components/schemas/CommandResult"
     commandResponse.vessel.control.setAbort:
       name: command-response
       title: Reply to vessel.control.setAbort
@@ -10981,28 +10917,6 @@ components:
             - $ref: "#/components/schemas/CatalogCrew"
               x-sitrep-unit: enum
             - type: "null"
-        endSource:
-          description: |-
-            How this centre learned the craft was destroyed: heard, from its last report
-            over a link, or seen. A destroyed craft stays listed, with
-            `CatalogEntry.contact` `CatalogContact.Gone`, until the player dismisses it
-            with `trackingStation.catalog.dismiss`. A recovered craft, one docked into
-            another, and debris, flags and other objects nobody flew leave the catalog
-            when they go. Null while this centre knows of no end.
-          anyOf:
-            - $ref: "#/components/schemas/RosterPlaceSource"
-              x-sitrep-unit: enum
-            - type: "null"
-        endedUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: |-
-            The universal time of the report or sighting that told this centre the craft
-            was destroyed. A centre that had no line to the craft when it went sees it
-            gone only when its place next comes into view, so this can be later than the
-            destruction itself. Null exactly when `CatalogEntry.endSource` is.
     CentreDelayEntry:
       type: object
       description: |-
@@ -21253,23 +21167,6 @@ components:
           description: |-
             Every object this centre knows of, loaded or not, in id order. Debris and
             asteroids are included.
-    TrackingStationDismissArgs:
-      type: object
-      description: |-
-        `trackingStation.catalog.dismiss`'s args: take a destroyed craft off the
-        catalog of the command centre the command is sent from. Every other centre
-        keeps listing it until it is dismissed there. A craft that centre knows of
-        no end for stays listed, so a dismissal sent before the news has arrived
-        changes nothing.
-
-        Never delayed: the catalog is the ground's own record.
-      required:
-        - vesselId
-      properties:
-        vesselId:
-          type: string
-          x-sitrep-unit: id
-          description: The craft, by `CatalogEntry.vesselId`.
     TrajectoryKind:
       type: integer
       description: |-

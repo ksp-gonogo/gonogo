@@ -46,9 +46,6 @@ namespace Sitrep.Host.Comms
             /// <summary>The newest home judgement of each craft to have arrived here, by node id.</summary>
             public Dictionary<string, HomeVerdict> Verdicts { get; } = new Dictionary<string, HomeVerdict>(StringComparer.Ordinal);
 
-            /// <summary>The ended craft the player has taken off this centre's catalog, by node id.</summary>
-            public HashSet<string> Dismissed { get; } = new HashSet<string>(StringComparer.Ordinal);
-
             /// <summary>A count that moves each time what this centre knows of its contact with some craft may have changed.</summary>
             public long Contacts { get; set; }
 
@@ -274,46 +271,6 @@ namespace Sitrep.Host.Comms
             return contacts;
         }
 
-        /// <summary>
-        /// How <paramref name="centre"/> learned the craft left the game, or
-        /// null while it knows of no end: heard, from the craft's last state over
-        /// a link, or seen. Where both have reached it, the craft's own word is
-        /// what it knows. The instant is the one that word or sighting is of.
-        /// </summary>
-        public (RosterPlaceSource Source, double Ut, CraftEnd End)? EndAt(string centre, string nodeId)
-        {
-            if (!_ears.TryGetValue(centre, out var ear) || !ear.Known.TryGetValue(nodeId, out var known) || known.Exists)
-            {
-                return null;
-            }
-            ear.Heard.TryGetValue(nodeId, out var heard);
-            var source = heard != null && !heard.Exists && heard.CapturedUt >= known.CapturedUt ? RosterPlaceSource.Heard : RosterPlaceSource.Seen;
-            return (source, known.CapturedUt, known.End ?? CraftEnd.Absorbed);
-        }
-
-        /// <summary>
-        /// Takes a craft <paramref name="centre"/> knows has ended off its
-        /// catalog. Returns false, and takes nothing off, when the centre knows
-        /// of no end for it.
-        /// </summary>
-        public bool Dismiss(string centre, string nodeId)
-        {
-            if (EndAt(centre, nodeId) == null)
-            {
-                return false;
-            }
-            var ear = _ears[centre];
-            if (ear.Dismissed.Add(nodeId))
-            {
-                ear.News++;
-            }
-            return true;
-        }
-
-        /// <summary>Whether the player has taken the ended craft off <paramref name="centre"/>'s catalog.</summary>
-        public bool DismissedAt(string centre, string nodeId) =>
-            _ears.TryGetValue(centre, out var ear) && ear.Dismissed.Contains(nodeId);
-
         /// <summary>The newest forecast for the craft to have reached <paramref name="centre"/>, or null when none has.</summary>
         public CraftForecast? ForecastAt(string centre, string nodeId) =>
             _ears.TryGetValue(centre, out var ear) && ear.Forecasts.TryGetValue(nodeId, out var forecast) ? forecast : null;
@@ -431,8 +388,7 @@ namespace Sitrep.Host.Comms
                     new List<CraftReach>(ear.Value.Reach.Values),
                     new List<CentreReport>(ear.Value.Reports.Values),
                     new List<CraftForecast>(ear.Value.Forecasts.Values),
-                    new List<HomeVerdict>(ear.Value.Verdicts.Values),
-                    new List<string>(ear.Value.Dismissed)));
+                    new List<HomeVerdict>(ear.Value.Verdicts.Values)));
             }
             return new HeardSnapshot(centres);
         }
@@ -488,7 +444,6 @@ namespace Sitrep.Host.Comms
                 {
                     ear.Verdicts[verdict.Id] = verdict;
                 }
-                ear.Dismissed.UnionWith(centre.Dismissed);
                 ear.News++;
                 ear.Readings++;
             }
@@ -572,7 +527,7 @@ namespace Sitrep.Host.Comms
             {
                 return false;
             }
-            ear.Seen[sighting.Id] = sighting.ListedAsBefore(held);
+            ear.Seen[sighting.Id] = sighting;
             Know(ear, sighting.Id);
             ear.News++;
             return true;

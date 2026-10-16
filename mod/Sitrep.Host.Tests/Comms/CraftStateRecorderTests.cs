@@ -465,60 +465,6 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
-        public void ACraftTheGameSaidWasDestroyedIsRecordedGoneAsDestroyed()
-        {
-            var recorder = new CraftStateRecorder();
-            recorder.Capture(Look(Craft("a", Orbit(700_000.0)), Craft("b", Orbit(800_000.0))), 0.0, null);
-            var dying = Look(Craft("a", Orbit(700_000.0)), Craft("b", Orbit(800_000.0)));
-            dying.Ends = new Dictionary<string, CraftEnd> { ["b"] = CraftEnd.Destroyed };
-            recorder.Capture(dying, 1.0, null);
-            var host = new RecordingHost();
-
-            CraftStateRecorder.Record(recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 2.0, null), host);
-
-            Assert.Contains("gone b@2 Destroyed", host.Calls);
-        }
-
-        /// <summary>The game removes a recovered craft after recovering it, and reports that removal as its destruction.</summary>
-        [Fact]
-        public void ARecoveryIsNotOverwrittenByTheDestructionThatFollowsIt()
-        {
-            var recorder = new CraftStateRecorder();
-            recorder.Capture(Look(Craft("a", Orbit(700_000.0)), Craft("b", Orbit(800_000.0))), 0.0, null);
-            var recovered = Look(Craft("a", Orbit(700_000.0)), Craft("b", Orbit(800_000.0)));
-            recovered.Ends = new Dictionary<string, CraftEnd> { ["b"] = CraftEnd.Recovered };
-            recorder.Capture(recovered, 1.0, null);
-            var removed = Look(Craft("a", Orbit(700_000.0)));
-            removed.Ends = new Dictionary<string, CraftEnd> { ["b"] = CraftEnd.Destroyed };
-
-            var batch = recorder.Capture(removed, 2.0, null);
-
-            Assert.Equal(CraftEnd.Recovered, batch.EndOf("b"));
-        }
-
-        [Fact]
-        public void ACraftThatLeavesWithNoWordOfHowIsAbsorbed()
-        {
-            var recorder = new CraftStateRecorder();
-            recorder.Capture(Look(Craft("a", Orbit(700_000.0)), Craft("b", Orbit(800_000.0))), 0.0, null);
-
-            Assert.Equal(CraftEnd.Absorbed, recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 1.0, null).EndOf("b"));
-        }
-
-        [Fact]
-        public void AnObjectSeenGoneCarriesHowItLeft()
-        {
-            var recorder = new CraftStateRecorder();
-            recorder.Capture(InViewOf(true, BothSee), 0.0, null, Roster(("a", 0), ("junk", 0)));
-            var went = InViewOf(false, BothSee);
-            went.Ends = new Dictionary<string, CraftEnd> { ["junk"] = CraftEnd.Destroyed };
-
-            var batch = recorder.Capture(went, 1.0, null, Roster(("a", 0)));
-
-            Assert.Equal(CraftEnd.Destroyed, batch.Sightings.Single(s => s.Sighting.Id == "vessel:junk").Sighting.End);
-        }
-
-        [Fact]
         public void AGoneStatePlansNothingAndAnOrbitingOnePlansItsOrbit()
         {
             Assert.Null(CraftState.Gone("vessel:a", 0.0).ToPlanNode());
@@ -800,7 +746,7 @@ namespace Sitrep.Host.Tests.Comms
 
             public void NoteCraftPresent(string vesselId, double ut) => Calls.Add("present " + vesselId);
 
-            public void RecordCraftGone(string vesselId, double ut, CraftEnd end) => Calls.Add("gone " + vesselId + "@" + ut + (end == CraftEnd.Absorbed ? "" : " " + end));
+            public void RecordCraftGone(string vesselId, double ut) => Calls.Add("gone " + vesselId + "@" + ut);
 
             public System.Action HearCraftState(string vesselId, string centre, System.Action<CraftState> heard) => () => { };
 

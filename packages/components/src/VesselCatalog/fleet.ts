@@ -1,5 +1,4 @@
 import {
-  CatalogContact,
   type CatalogCrew,
   type CatalogEntry,
   combineReadings,
@@ -41,18 +40,8 @@ export type CommsLink = "connected" | "relay" | "none" | "unknown";
 /** What the centre knows of its contact with a craft, as its catalog entry carries it. */
 export type FleetContact = Pick<
   CatalogEntry,
-  | "contact"
-  | "lastContactUt"
-  | "expectedReturnUt"
-  | "overdueAfterUt"
-  | "endSource"
-  | "endedUt"
+  "contact" | "lastContactUt" | "expectedReturnUt" | "overdueAfterUt"
 >;
-
-/** A craft this centre knows was destroyed, which stays listed until the player dismisses it and is no longer part of the fleet. */
-export function hasEnded(v: FleetVessel): boolean {
-  return v.contact.contact === CatalogContact.Gone;
-}
 
 export interface FleetVessel {
   /** Stable vessel id, the row key and the line-updates slot correlation key. */
@@ -142,19 +131,13 @@ export function useFleet(): {
             v.bodyIndex != null ? (nameByIndex.get(v.bodyIndex) ?? null) : null,
           crewCount: magnitudeOf(v.crewCount),
           crewCapacity: magnitudeOf(v.crewCapacity),
-          // A destroyed craft has no link, whatever it last reported.
-          comms:
-            v.contact === CatalogContact.Gone
-              ? "none"
-              : rosterCommsLink(v.commsControlSource),
+          comms: rosterCommsLink(v.commsControlSource),
           crew: v.crew ?? null,
           contact: {
             contact: v.contact,
             lastContactUt: v.lastContactUt,
             expectedReturnUt: v.expectedReturnUt,
             overdueAfterUt: v.overdueAfterUt,
-            endSource: v.endSource,
-            endedUt: v.endedUt,
           },
         })),
     [system, nameByIndex],
@@ -166,10 +149,7 @@ export function useFleet(): {
       combineReadings([systemReading.entries], (entries) => {
         // A craft whose link nobody has reported is neither covered nor uncovered, so it stays out of the count.
         const known = (entries ?? [])
-          .filter(
-            (v) =>
-              isRosterCraft(v.vesselType) && v.contact !== CatalogContact.Gone,
-          )
+          .filter((v) => isRosterCraft(v.vesselType))
           .map((v) => rosterCommsLink(v.commsControlSource))
           .filter((link) => link !== "unknown");
         const linked = known.filter(isLinked).length;

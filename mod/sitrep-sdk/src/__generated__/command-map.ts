@@ -92,7 +92,6 @@ import type {
   SetThrottleArgs,
   SetWarpIndexArgs,
   SwitchVesselArgs,
-  TrackingStationDismissArgs,
   UnlockTechArgs,
   UpdateManeuverNodeArgs,
   UpgradeFacilityArgs,
@@ -191,8 +190,6 @@ export interface GeneratedCommandArgsMap {
   "time.setWarpIndex": SetWarpIndexArgs;
   /** Ask where a body is at each of a list of instants. */
   "trackingStation.bodies.statesAt": BodyStatesRequest;
-  /** Take a destroyed craft off the catalog of the command centre the command is sent from. */
-  "trackingStation.catalog.dismiss": TrackingStationDismissArgs;
   /** Set or clear the abort action group. */
   "vessel.control.setAbort": SetEnabledArgs;
   /** Set a numbered custom action group on or off. */
@@ -322,8 +319,6 @@ export interface GeneratedCommandReplyMap {
   "time.setWarpIndex": CommandResult;
   /** Ask where a body is at each of a list of instants. */
   "trackingStation.bodies.statesAt": BodyStatesReply;
-  /** Take a destroyed craft off the catalog of the command centre the command is sent from. */
-  "trackingStation.catalog.dismiss": CommandResult;
   /** Set or clear the abort action group. */
   "vessel.control.setAbort": CommandResult;
   /** Set a numbered custom action group on or off. */
@@ -419,7 +414,6 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "time.setPaused": "CommandResult",
   "time.setWarpIndex": "CommandResult",
   "trackingStation.bodies.statesAt": "BodyStatesReply",
-  "trackingStation.catalog.dismiss": "CommandResult",
   "vessel.control.setAbort": "CommandResult",
   "vessel.control.setActionGroup": "CommandResult",
   "vessel.control.setAxes": "CommandResult",
@@ -524,7 +518,6 @@ export const GENERATED_COMMAND_RAIL = {
   "time.setPaused": { replies: true, delayed: false },
   "time.setWarpIndex": { replies: true, delayed: false },
   "trackingStation.bodies.statesAt": { replies: true, delayed: false },
-  "trackingStation.catalog.dismiss": { replies: true, delayed: false },
   "vessel.control.setAbort": { replies: true, delayed: true },
   "vessel.control.setActionGroup": { replies: true, delayed: true },
   "vessel.control.setAxes": { replies: true, delayed: true },
@@ -591,7 +584,6 @@ export const GENERATED_COMMAND_IDS = [
   "time.setPaused",
   "time.setWarpIndex",
   "trackingStation.bodies.statesAt",
-  "trackingStation.catalog.dismiss",
   "vessel.control.setAbort",
   "vessel.control.setActionGroup",
   "vessel.control.setAxes",
