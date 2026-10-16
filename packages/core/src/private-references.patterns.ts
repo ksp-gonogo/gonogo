@@ -21,6 +21,9 @@ export const PRIVATE_REFERENCE_PATTERNS: Record<string, string> = {
     String.raw`\.super` +
     String.raw`powers/|docs/super` +
     String.raw`powers/|local_docs/[\w./-]+\.md|\bproject_[a-z]+_[a-z_]+(\.md)?\b`,
+  "private-lan-address":
+    String.raw`\b(?:10\.\d{1,3}|192\.168|172\.(?:1[6-9]|2\d|3[01]))` +
+    String.raw`\.\d{1,3}\.\d{1,3}\b`,
   "home-path":
     String.raw`/Us` +
     String.raw`ers/[a-z]|~/pers` +
