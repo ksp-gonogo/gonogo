@@ -23,8 +23,9 @@ namespace Sitrep.Contract.TestSupport
         /// <param name="to">The other end.</param>
         /// <param name="ut">The instant the antennas are read at.</param>
         /// <param name="farthestMeters">The greatest separation to evaluate the returned model at; greater than zero.</param>
+        /// <param name="geometry">Where the pair's ends are, to hold a returned <see cref="IPointedLinkStrength"/> to its own contract; null to leave that unchecked.</param>
         public static void AssertPathStrengthContract(
-            ICommsPathStrength backend, CommsNodeHandle? from, CommsNodeHandle? to, double ut, double farthestMeters)
+            ICommsPathStrength backend, CommsNodeHandle? from, CommsNodeHandle? to, double ut, double farthestMeters, ContactHopGeometry? geometry = null)
         {
             Assert.NotNull(backend);
             var name = backend.GetType().Name;
@@ -49,6 +50,10 @@ namespace Sitrep.Contract.TestSupport
             if (link != null)
             {
                 AssertLinkStrengthContract(link, ut, farthestMeters);
+                if (link is IPointedLinkStrength pointed && geometry != null)
+                {
+                    AssertPointedLinkStrengthContract(pointed, geometry.Value, ut, farthestMeters);
+                }
             }
 
             foreach (var hops in new[] { new[] { 1.0 }, new[] { 0.5 }, new[] { 0.9, 0.4 }, new[] { 0.0, 1.0 }, new[] { 0.3, 0.3, 0.3 } })
@@ -104,6 +109,49 @@ namespace Sitrep.Contract.TestSupport
                     again.Equals(first[i]),
                     name + ".FactsAt(" + separation + " m) gave " + first[i] + " and then " + again + ". A link "
                     + "strength is pure: it is asked from any thread, in any order and many times over.");
+            }
+        }
+
+        /// <summary>
+        /// Asserts a link strength that weighs pointing is a pure function with a
+        /// strength from 0 to 1 at every separation out to
+        /// <paramref name="farthestMeters"/>, and that pointing only ever costs
+        /// strength: with the ends placed it is never stronger than the same hop
+        /// asked on separation alone.
+        /// </summary>
+        /// <param name="link">The strength model under test.</param>
+        /// <param name="geometry">Where the hop's two ends are, and every node and body a dish may be aimed at.</param>
+        /// <param name="ut">The instant to evaluate at.</param>
+        /// <param name="farthestMeters">The greatest separation to evaluate at; greater than zero.</param>
+        public static void AssertPointedLinkStrengthContract(IPointedLinkStrength link, ContactHopGeometry geometry, double ut, double farthestMeters)
+        {
+            Assert.NotNull(link);
+            Assert.True(farthestMeters > 0.0, "the farthest separation to evaluate at must be greater than zero");
+            var name = link.GetType().Name;
+
+            const int samples = 16;
+            var first = new double[samples + 1];
+            for (var i = 0; i <= samples; i++)
+            {
+                var separation = farthestMeters * i / samples;
+                first[i] = link.FactsAt(ut, separation, geometry).HopStrength;
+                Assert.True(
+                    first[i] >= 0.0 && first[i] <= 1.0,
+                    name + ".FactsAt(" + separation + " m, geometry) has strength " + first[i] + ". A strength runs from 0 to 1.");
+                var unpointed = link.FactsAt(ut, separation).HopStrength;
+                Assert.True(
+                    first[i] <= unpointed + 1e-12,
+                    name + ".FactsAt(" + separation + " m, geometry) is " + first[i] + ", stronger than " + unpointed
+                    + " with no geometry. Pointing loss only takes strength away: a dish off its aim never carries more.");
+            }
+
+            for (var i = samples; i >= 0; i--)
+            {
+                var separation = farthestMeters * i / samples;
+                var again = link.FactsAt(ut, separation, geometry).HopStrength;
+                Assert.True(
+                    again.Equals(first[i]),
+                    name + ".FactsAt(" + separation + " m, geometry) gave " + first[i] + " and then " + again + ". A link strength is pure.");
             }
         }
     }

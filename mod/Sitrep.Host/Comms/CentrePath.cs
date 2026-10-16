@@ -124,7 +124,7 @@ namespace Sitrep.Host.Comms
                 var toHome = ground.ContainsKey(hop.To);
                 var from = WireId(hop.From, ground);
                 var to = WireId(hop.To, ground);
-                var facts = strengths?.FactsOf(hop.From, hop.To, ut, hop.DistanceMeters);
+                var facts = strengths?.FactsOf(hop.From, hop.To, ut, hop.DistanceMeters, plan.HopGeometry(hop.From, hop.To, hop.DepartUt));
                 hops.Add(new CommsHop
                 {
                     From = from,
@@ -243,7 +243,7 @@ namespace Sitrep.Host.Comms
             PathStrengths strengths)
         {
             var best = earliest;
-            var bestStrength = StrengthOf(earliest, ut, strengths);
+            var bestStrength = StrengthOf(plan, earliest, ut, strengths);
             var latest = earliest.ArrivalUt + (ContactPlanSchedule.EdgeToleranceSeconds * Math.Max(lightFactor, 0.0));
             foreach (var station in stations)
             {
@@ -257,7 +257,7 @@ namespace Sitrep.Host.Comms
                 {
                     continue;
                 }
-                var strength = StrengthOf(route, ut, strengths);
+                var strength = StrengthOf(plan, route, ut, strengths);
                 if (strength != null && (bestStrength == null || strength.Value > bestStrength.Value))
                 {
                     best = route;
@@ -267,12 +267,12 @@ namespace Sitrep.Host.Comms
             return best;
         }
 
-        private static double? StrengthOf(ContactRoute route, double ut, PathStrengths strengths)
+        private static double? StrengthOf(ContactPlan plan, ContactRoute route, double ut, PathStrengths strengths)
         {
             var hops = new List<double?>(route.Hops.Count);
             foreach (var hop in route.Hops)
             {
-                hops.Add(strengths.FactsOf(hop.From, hop.To, ut, hop.DistanceMeters)?.HopStrength);
+                hops.Add(strengths.FactsOf(hop.From, hop.To, ut, hop.DistanceMeters, plan.HopGeometry(hop.From, hop.To, hop.DepartUt))?.HopStrength);
             }
             return strengths.Of(hops);
         }

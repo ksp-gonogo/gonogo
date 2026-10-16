@@ -2498,6 +2498,10 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommsSignal": {
     measuredPath: "CommsMeasuredPath",
   },
+  "ContactHopGeometry": {
+    from: "Vector3d",
+    to: "Vector3d",
+  },
   "ControlFrame": {
     settableFrames: "ControlFrameOption[]",
   },

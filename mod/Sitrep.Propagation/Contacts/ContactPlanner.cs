@@ -175,7 +175,9 @@ namespace Sitrep.Propagation.Contacts
         private readonly double _fromUt;
         private readonly double _stepSeconds;
         private readonly double[] _separation;
+        private readonly IContactPositions? _positions;
 
+        /// <param name="positions">Where the plan's nodes and bodies are, for placing a hop, or null for a pair planned without them.</param>
         /// <param name="separationMeters">
         /// The pair's separation at each grid point from <paramref name="fromUt"/>,
         /// <paramref name="stepSeconds"/> apart, which is what a signal delay is read
@@ -189,8 +191,10 @@ namespace Sitrep.Propagation.Contacts
             double fromUt = 0.0,
             double stepSeconds = 0.0,
             double[]? separationMeters = null,
-            IReadOnlyList<RetargetWindow>? retargetWindows = null)
+            IReadOnlyList<RetargetWindow>? retargetWindows = null,
+            IContactPositions? positions = null)
         {
+            _positions = positions;
             A = a;
             B = b;
             HorizonUt = horizonUt;
@@ -227,7 +231,24 @@ namespace Sitrep.Propagation.Contacts
 
         /// <summary>This plan with <paramref name="retargets"/> as its retarget windows.</summary>
         internal PairPlan WithRetargetWindows(IReadOnlyList<RetargetWindow> retargets) =>
-            new PairPlan(A, B, HorizonUt, Windows, _fromUt, _stepSeconds, _separation, retargets);
+            new PairPlan(A, B, HorizonUt, Windows, _fromUt, _stepSeconds, _separation, retargets, _positions);
+
+        /// <summary>
+        /// Where the two ends of a hop between this pair are at <paramref name="ut"/>,
+        /// the end named <paramref name="from"/> first, or null for a pair planned
+        /// without positions or a node the plan does not place.
+        /// </summary>
+        public ContactHopGeometry? GeometryAt(string from, double ut)
+        {
+            if (_positions == null)
+            {
+                return null;
+            }
+            var to = string.Equals(from, A, StringComparison.Ordinal) ? B : A;
+            var fromAt = _positions.NodeAt(from, ut);
+            var toAt = _positions.NodeAt(to, ut);
+            return fromAt == null || toAt == null ? (ContactHopGeometry?)null : new ContactHopGeometry(fromAt.Value, toAt.Value, _positions);
+        }
 
         public string A { get; }
 
@@ -267,6 +288,24 @@ namespace Sitrep.Propagation.Contacts
         public double StepSeconds { get; }
 
         public IReadOnlyList<PairPlan> Pairs { get; }
+
+        /// <summary>
+        /// Where the two ends of a hop from <paramref name="from"/> to <paramref name="to"/>
+        /// are at <paramref name="ut"/>, or null when the plan holds no positions for the pair.
+        /// </summary>
+        public ContactHopGeometry? HopGeometry(string from, string to, double ut)
+        {
+            foreach (var pair in Pairs)
+            {
+                var forward = string.Equals(pair.A, from, StringComparison.Ordinal) && string.Equals(pair.B, to, StringComparison.Ordinal);
+                var reverse = string.Equals(pair.A, to, StringComparison.Ordinal) && string.Equals(pair.B, from, StringComparison.Ordinal);
+                if (forward || reverse)
+                {
+                    return pair.GeometryAt(from, ut);
+                }
+            }
+            return null;
+        }
 
         /// <summary>
         /// Whether <paramref name="other"/> predicts the same contacts as this plan
@@ -542,6 +581,7 @@ namespace Sitrep.Propagation.Contacts
                 gridCount,
                 remembered != null && remembered.Fits(frameBodyIndex, fromUt, stepSeconds) ? remembered : null);
 
+            var kept = new LockedPositions(cache);
             var plans = new List<PairPlan>();
             var geometries = new Dictionary<PlanPair, PairGeometry>();
             foreach (var pair in pairs)
@@ -576,7 +616,7 @@ namespace Sitrep.Propagation.Contacts
                 {
                     windows = Attributed(windows, attributed, cache, pair, fromUt, sweepEnd, stepSeconds);
                 }
-                plans.Add(new PairPlan(pair.A, pair.B, sweepEnd, windows, fromUt, stepSeconds, separation));
+                plans.Add(new PairPlan(pair.A, pair.B, sweepEnd, windows, fromUt, stepSeconds, separation, null, kept));
                 geometries[pair] = geometry;
             }
 
@@ -818,6 +858,33 @@ namespace Sitrep.Propagation.Contacts
             }
 
             public double SeparationAt(double ut) => _pair.SeparationAt(ut);
+        }
+
+        /// <summary>
+        /// The planner's positions as the finished plan keeps them, taken one
+        /// caller at a time because the cache fills as it is asked.
+        /// </summary>
+        private sealed class LockedPositions : IContactPositions
+        {
+            private readonly PositionCache _cache;
+
+            public LockedPositions(PositionCache cache) => _cache = cache;
+
+            public Vector3d? NodeAt(string nodeId, double ut)
+            {
+                lock (_cache)
+                {
+                    return ((IContactPositions)_cache).NodeAt(nodeId, ut);
+                }
+            }
+
+            public Vector3d BodyAt(int bodyIndex, double ut)
+            {
+                lock (_cache)
+                {
+                    return _cache.BodyAt(bodyIndex, ut);
+                }
+            }
         }
 
         /// <summary>

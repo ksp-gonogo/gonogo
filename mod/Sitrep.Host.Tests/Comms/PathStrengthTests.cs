@@ -40,6 +40,27 @@ namespace Sitrep.Host.Tests.Comms
             }
         }
 
+        /// <summary>A pointed model that says where it was placed, and loses a tenth of its strength for being placed at all.</summary>
+        private sealed class Pointed : IPointedLinkStrength
+        {
+            public ContactHopGeometry? Placed { get; private set; }
+
+            public ContactHopFacts FactsAt(double ut, double separationMeters) => new ContactHopFacts(0.8, SignalQuantity.DataRateHeadroom);
+
+            public ContactHopFacts FactsAt(double ut, double separationMeters, ContactHopGeometry geometry)
+            {
+                Placed = geometry;
+                return new ContactHopFacts(0.7, SignalQuantity.DataRateHeadroom);
+            }
+        }
+
+        private sealed class NoPositions : IContactPositions
+        {
+            public Vector3d? NodeAt(string nodeId, double ut) => null;
+
+            public Vector3d BodyAt(int bodyIndex, double ut) => new Vector3d(0.0, 0.0, 0.0);
+        }
+
         private static CraftState Craft(string id, params (string To, IContactLinkStrength? Strength)[] links) =>
             CraftState.Orbiting(
                 id, 0.0, Kerbin, Orbit, null, null, true,
@@ -83,6 +104,51 @@ namespace Sitrep.Host.Tests.Comms
 
             // A ground station says nothing of its own, so the hop is read from the craft's end whichever way it is asked.
             Assert.Equal(0.7, strengths.FactsOf("ground:ksc", "vessel:probe", 5.0, 9.0)!.Value.HopStrength);
+        }
+
+        [Fact]
+        public void AModelThatWeighsPointingIsGivenWhereTheEndsAreAndOneThatDoesNotIsAskedOnSeparationAlone()
+        {
+            var pointed = new Pointed();
+            var plain = new Fixed(0.4);
+            var strengths = new PathStrengths(new[] { Craft("vessel:probe", ("ground:ksc", pointed), ("vessel:relay", plain)) }, null);
+            var place = new ContactHopGeometry(new Vector3d(1.0, 2.0, 3.0), new Vector3d(4.0, 5.0, 6.0), new NoPositions());
+
+            Assert.Equal(0.7, strengths.FactsOf("vessel:probe", "ground:ksc", 5.0, 123.0, place)!.Value.HopStrength);
+            Assert.Equal(1.0, pointed.Placed!.Value.From.X);
+
+            Assert.Equal(0.8, strengths.FactsOf("vessel:probe", "ground:ksc", 5.0, 123.0)!.Value.HopStrength);
+            Assert.Equal(0.4, strengths.FactsOf("vessel:probe", "vessel:relay", 5.0, 123.0, place)!.Value.HopStrength);
+        }
+
+        [Fact]
+        public void AModelHeldByTheFarEndIsGivenTheEndsInItsOwnOrder()
+        {
+            var pointed = new Pointed();
+            var strengths = new PathStrengths(new[] { Craft("vessel:probe", ("ground:ksc", pointed)) }, null);
+            var place = new ContactHopGeometry(new Vector3d(1.0, 0.0, 0.0), new Vector3d(9.0, 0.0, 0.0), new NoPositions());
+
+            strengths.FactsOf("ground:ksc", "vessel:probe", 5.0, 123.0, place);
+
+            Assert.Equal(9.0, pointed.Placed!.Value.From.X);
+            Assert.Equal(1.0, pointed.Placed!.Value.To.X);
+        }
+
+        [Fact]
+        public void APointedStrengthKeepsItsContractAndOneThatGainsFromPointingBreaksIt()
+        {
+            var place = new ContactHopGeometry(new Vector3d(0.0, 0.0, 0.0), new Vector3d(1.0, 0.0, 0.0), new NoPositions());
+
+            Sitrep.Contract.TestSupport.PathStrengthConformance.AssertPointedLinkStrengthContract(new Pointed(), place, 0.0, 100.0);
+            Assert.ThrowsAny<Xunit.Sdk.XunitException>(
+                () => Sitrep.Contract.TestSupport.PathStrengthConformance.AssertPointedLinkStrengthContract(new Gaining(), place, 0.0, 100.0));
+        }
+
+        private sealed class Gaining : IPointedLinkStrength
+        {
+            public ContactHopFacts FactsAt(double ut, double separationMeters) => new ContactHopFacts(0.5, SignalQuantity.DataRateHeadroom);
+
+            public ContactHopFacts FactsAt(double ut, double separationMeters, ContactHopGeometry geometry) => new ContactHopFacts(0.9, SignalQuantity.DataRateHeadroom);
         }
 
         [Fact]

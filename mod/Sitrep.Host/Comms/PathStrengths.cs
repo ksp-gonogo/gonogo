@@ -45,16 +45,29 @@ namespace Sitrep.Host.Comms
         /// <summary>
         /// The backend's facts for the hop between two nodes at a separation,
         /// from the model either end's craft was last heard with, or null when
-        /// the centre has heard of no model for the pair.
+        /// the centre has heard of no model for the pair. A model that weighs
+        /// pointing is given <paramref name="geometry"/> when there is one; without
+        /// it, or from a model that does not, the hop is worked out on separation alone.
         /// </summary>
-        public ContactHopFacts? FactsOf(string fromId, string toId, double ut, double separationMeters)
+        public ContactHopFacts? FactsOf(string fromId, string toId, double ut, double separationMeters, ContactHopGeometry? geometry = null)
         {
-            var model = ModelOf(fromId, toId) ?? ModelOf(toId, fromId);
+            var model = ModelOf(fromId, toId);
+            if (model == null)
+            {
+                // The model is held by the other end and names its own end first.
+                model = ModelOf(toId, fromId);
+                if (model != null && geometry != null)
+                {
+                    geometry = new ContactHopGeometry(geometry.Value.To, geometry.Value.From, geometry.Value.Positions);
+                }
+            }
             if (model == null || double.IsNaN(separationMeters))
             {
                 return null;
             }
-            var facts = model.FactsAt(ut, separationMeters);
+            var facts = geometry != null && model is IPointedLinkStrength pointed
+                ? pointed.FactsAt(ut, separationMeters, geometry.Value)
+                : model.FactsAt(ut, separationMeters);
             if (double.IsNaN(facts.HopStrength) || double.IsInfinity(facts.HopStrength))
             {
                 // Not a strength at all: the hop has none, where a clamp would call an overflow full strength.

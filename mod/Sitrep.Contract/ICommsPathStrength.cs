@@ -65,6 +65,56 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// A link strength that also takes where the hop's two ends are, so it can
+    /// weigh how far off its aim each end's dish sees the other, as a steered
+    /// dish's gain falls away from the centre of its beam.
+    ///
+    /// <para>The geometry is the plan's: the same positions the pair's
+    /// <see cref="IContactLinkModel"/> was judged on. A hop the plan cannot place
+    /// (one the game solved itself) is asked through
+    /// <see cref="IContactLinkStrength.FactsAt"/> alone, so an implementation
+    /// answers that with no pointing loss.</para>
+    /// </summary>
+    /// <category>Comms models</category>
+    public interface IPointedLinkStrength : IContactLinkStrength
+    {
+        /// <summary>The link's strength and the backend's facts about the hop, with both ends placed.</summary>
+        /// <param name="ut">The universal time to evaluate at.</param>
+        /// <param name="separationMeters">How far apart the two ends are, in metres.</param>
+        /// <param name="geometry">Where the hop's two ends are at <paramref name="ut"/>, and every other node and body.</param>
+        /// <returns>The hop's facts at that separation and pointing.</returns>
+        ContactHopFacts FactsAt(double ut, double separationMeters, ContactHopGeometry geometry);
+    }
+
+    /// <summary>
+    /// Where the two ends of one hop are, in the contact planner's inertial
+    /// frame, with the lookup for every other node and body a dish may be aimed at.
+    /// </summary>
+    /// <category>Comms models</category>
+    public readonly struct ContactHopGeometry
+    {
+        /// <summary>Places a hop.</summary>
+        /// <param name="from">Where the end the hop leaves is, in metres.</param>
+        /// <param name="to">Where the end it arrives at is, in the same frame.</param>
+        /// <param name="positions">Where every other node and body is at the same instant.</param>
+        public ContactHopGeometry(Vector3d from, Vector3d to, IContactPositions positions)
+        {
+            From = from;
+            To = to;
+            Positions = positions;
+        }
+
+        /// <summary>Where the end the hop leaves is, in metres.</summary>
+        public Vector3d From { get; }
+
+        /// <summary>Where the end the hop arrives at is, in metres.</summary>
+        public Vector3d To { get; }
+
+        /// <summary>Where every other node and body is at the same instant, for resolving where each dish is aimed.</summary>
+        public IContactPositions Positions { get; }
+    }
+
+    /// <summary>
     /// What a backend says of one hop at one separation: how strong the link
     /// is, which quantity that strength is, and whatever else it knows of the hop.
     /// </summary>
