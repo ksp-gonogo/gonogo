@@ -93,7 +93,7 @@ export const WIZARD_COPY = {
     "Uplinks are add-ons that integrate Gonogo with other mods. In CKAN, search for:",
   "uplinks.find.searchLabel": "CKAN search",
   "uplinks.hint.attention":
-    "Open each Uplink marked as needing attention and follow the reason it gives.",
+    "Each Uplink that needs attention lists its reason under its name. Everything else in Gonogo keeps working.",
   "uplinks.row.version": "v{version}",
   "uplinks.row.contractMismatch":
     "Built for contract {declared}; this mod needs {core}. The mod refused it, so none of its channels or commands are running.",
