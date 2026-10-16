@@ -74,7 +74,8 @@ namespace Gonogo.KSP.CurrencyDelay
                         row.BaseAmount,
                         nowUt + ((row.RevealUt - nowUt) * factor),
                         row.OriginVesselId,
-                        row.OriginDescription);
+                        row.OriginDescription,
+                        lostSeq: row.LostSeq);
                 }
             }
         }
@@ -110,7 +111,7 @@ namespace Gonogo.KSP.CurrencyDelay
                 {
                     continue;
                 }
-                _rows[i] = row.DueAt(nowUt);
+                _rows[i] = row.DueAt(nowUt).OnDeclaration(lostSeq);
                 if (lostSeq != 0)
                 {
                     _landedOnLost.Add(new LandedOnLost(row.Currency, row.BaseAmount, row.OriginVesselId, lostSeq, nowUt));
@@ -144,6 +145,58 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         public void RecordForfeited(ForfeitedScience forfeited) => _forfeited.Add(forfeited ?? throw new ArgumentNullException(nameof(forfeited)));
+
+        /// <summary>
+        /// Records what the balance took when <paramref name="row"/>, a row that landed on a Lost
+        /// declaration, was replayed, so a refund reverses that and not the base amount.
+        /// </summary>
+        public void NoteApplied(PendingCreditRow row, double appliedDelta)
+        {
+            if (row.LostSeq == 0)
+            {
+                return;
+            }
+            foreach (var landed in _landedOnLost)
+            {
+                if (landed.AppliedDelta == null
+                    && landed.Currency == row.Currency
+                    && landed.LostSeq == row.LostSeq
+                    && landed.BaseAmount == row.BaseAmount
+                    && landed.OriginVesselId == row.OriginVesselId)
+                {
+                    landed.AppliedDelta = appliedDelta;
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Settles each change that landed on a Lost declaration: one <paramref name="fate"/>
+        /// restores, and that has been replayed, is removed and returned for the caller to
+        /// reverse; one it discards is removed; one it keeps, or restores before it was replayed,
+        /// stays.
+        /// </summary>
+        public List<LandedOnLost> SettleLanded(Func<LandedOnLost, ForfeitFate> fate)
+        {
+            var refunds = new List<LandedOnLost>();
+            for (var i = 0; i < _landedOnLost.Count; i++)
+            {
+                var landed = _landedOnLost[i];
+                var decided = fate(landed);
+                if (decided == ForfeitFate.Discard)
+                {
+                    _landedOnLost.RemoveAt(i);
+                    i--;
+                }
+                else if (decided == ForfeitFate.Restore && landed.AppliedDelta != null)
+                {
+                    _landedOnLost.RemoveAt(i);
+                    i--;
+                    refunds.Add(landed);
+                }
+            }
+            return refunds;
+        }
 
         public void RecordLandedOnLost(LandedOnLost landed) => _landedOnLost.Add(landed ?? throw new ArgumentNullException(nameof(landed)));
 
@@ -200,6 +253,10 @@ namespace Gonogo.KSP.CurrencyDelay
                 }
                 rowNode.AddValue("originVesselId", row.OriginVesselId);
                 rowNode.AddValue("originDescription", row.OriginDescription);
+                if (row.LostSeq != 0)
+                {
+                    rowNode.AddValue("lostSeq", row.LostSeq);
+                }
             }
             foreach (var landed in _landedOnLost)
             {
@@ -209,6 +266,10 @@ namespace Gonogo.KSP.CurrencyDelay
                 landedNode.AddValue("originVesselId", landed.OriginVesselId);
                 landedNode.AddValue("lostSeq", landed.LostSeq);
                 landedNode.AddValue("landedUt", landed.LandedUt);
+                if (landed.AppliedDelta is double applied)
+                {
+                    landedNode.AddValue("appliedDelta", applied);
+                }
             }
             foreach (var forfeited in _forfeited)
             {
@@ -242,10 +303,12 @@ namespace Gonogo.KSP.CurrencyDelay
                 var originDescription = rowNode.GetValue("originDescription") ?? "";
                 double heldSinceUt = 0;
                 var held = rowNode.TryGetValue("heldSinceUt", ref heldSinceUt);
+                var rowLostSeq = 0;
+                rowNode.TryGetValue("lostSeq", ref rowLostSeq);
 
                 ledger.Enqueue(held
                     ? PendingCreditRow.Held(currency, baseAmount, heldSinceUt, originVesselId, originDescription)
-                    : new PendingCreditRow(currency, baseAmount, revealUt, originVesselId, originDescription));
+                    : new PendingCreditRow(currency, baseAmount, revealUt, originVesselId, originDescription, lostSeq: rowLostSeq));
             }
 
             foreach (var landedNode in node.GetNodes(LandedOnLostNodeName))
@@ -261,7 +324,10 @@ namespace Gonogo.KSP.CurrencyDelay
                 landedNode.TryGetValue("baseAmount", ref baseAmount);
                 landedNode.TryGetValue("lostSeq", ref lostSeq);
                 landedNode.TryGetValue("landedUt", ref landedUt);
-                ledger.RecordLandedOnLost(new LandedOnLost(currency, baseAmount, landedNode.GetValue("originVesselId") ?? "", lostSeq, landedUt));
+                double appliedDelta = 0;
+                var applied = landedNode.TryGetValue("appliedDelta", ref appliedDelta);
+                ledger.RecordLandedOnLost(new LandedOnLost(
+                    currency, baseAmount, landedNode.GetValue("originVesselId") ?? "", lostSeq, landedUt, applied ? appliedDelta : (double?)null));
             }
 
             foreach (var forfeitedNode in node.GetNodes(ForfeitedNodeName))

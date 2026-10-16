@@ -95,8 +95,10 @@ namespace Gonogo.KSP.CurrencyDelay
                     var numbered = row.Currency != DelayedCurrency.Science || outcome == HeldOutcome.Forfeits;
                     return (outcome, numbered ? HeldCreditRelease.DeclarationOf(home) : 0);
                 });
+                _reveal.ApplyRefunds(Ledger.SettleLanded(landed =>
+                    HeldCreditRelease.FateUnderDeclaration(landed.LostSeq, HomeCraftViews.Of(landed.OriginVesselId))));
                 Ledger.SettleForfeited(nowUt, forfeited =>
-                    HeldCreditRelease.FateOfForfeit(forfeited.LostSeq, HomeCraftViews.Of(forfeited.OriginVesselId)));
+                    HeldCreditRelease.FateUnderDeclaration(forfeited.LostSeq, HomeCraftViews.Of(forfeited.OriginVesselId)));
                 _reveal.ApplyMatured(nowUt);
             }
             catch (Exception ex)
