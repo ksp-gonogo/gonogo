@@ -1,5 +1,18 @@
-/** The public build of the app, reachable from any network. */
+/** The public release build of the app, reachable from any network. */
 export const PUBLIC_STATION_URL = "https://ksp-gonogo.github.io/app/station";
+
+/** The public release-candidate build of the app, reachable from any network. */
+export const PUBLIC_RC_STATION_URL = "https://ksp-gonogo.github.io/rc/station";
+
+/**
+ * The public station page of the channel this build came from: a release
+ * candidate version (`1.2.0-rc.<sha>`) is served at `/rc/`, anything else at
+ * `/app/`. A self-hosted build has the same version as its channel but a base
+ * path of `/`, so the version is the only thing that names the channel.
+ */
+export function publicStationUrl(appVersion: string): string {
+  return /-rc\./i.test(appVersion) ? PUBLIC_RC_STATION_URL : PUBLIC_STATION_URL;
+}
 
 export interface StationAddress {
   id: "local" | "public";
@@ -21,6 +34,8 @@ export interface StationAddressInput {
   origin: string;
   /** The app's base path, `/` for a self-hosted build. */
   baseUrl: string;
+  /** The version this build announces, which names the channel it was published on. */
+  appVersion: string;
   /** `VITE_STATION_URL`: a fork's own deploy, which replaces every other address. */
   override?: string;
 }
@@ -47,6 +62,7 @@ export function stationAddresses({
   code,
   origin,
   baseUrl,
+  appVersion,
   override,
 }: StationAddressInput): StationAddresses {
   if (override) {
@@ -76,7 +92,7 @@ export function stationAddresses({
     id: "public",
     label: "Public build",
     when: "For a device on another network (needs internet)",
-    url: withHost(PUBLIC_STATION_URL, code),
+    url: withHost(publicStationUrl(appVersion), code),
   };
   own.when = isLoopback
     ? "For another window on this computer"

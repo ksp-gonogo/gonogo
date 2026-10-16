@@ -29,11 +29,15 @@ If the main screen can't reach the KSP computer on the same WiFi, a firewall on 
 
 Adding a station screen, how a station finds the main screen, and what to do when one will not connect are in the app, under **Settings, Help**: **Adding a station screen** and **A station will not connect**.
 
+To join a friend's game, a station needs the share code from the host's **Add station** window and the host's main-screen tab open and awake. A station on another network also needs the host's router to forward the ports under [Cross-internet stations](#cross-internet-stations-cellular-remote-networks); a station on the same WiFi needs nothing forwarded.
+
+The share code belongs to the host's browser, not to a session. It is stored in that browser's site data, so it survives a reload or restart of the main screen and changes only on **New share code** or when the site data is cleared (a private window, another browser, or another address for the app, such as `localhost` against a network address, each keep their own). Always take the code from the **Add station** window the friend will join. Codes are not case-sensitive, and never contain `0`, `O`, `1`, `I` or `L`.
+
 ## Cross-internet stations (cellular, remote networks)
 
 A station on the same WiFi as the main screen connects directly, peer-to-peer, and never needs TURN or any port-forwarding. Everything below only applies when a station is on a different network, a phone on cellular, someone joining from their own home.
 
-Such a station also has to load the app itself from somewhere reachable, which your LAN address is not. Add Station lists the public build (`ksp-gonogo.github.io/app/station`, live from the first release) beside your own address whenever the main screen is running on a local address, so the usual answer is "it loads from GitHub Pages and needs nothing forwarded". Only a fork hosting its own build needs to think about this, via `VITE_STATION_URL`.
+Such a station also has to load the app itself from somewhere reachable, which your LAN address is not. Add Station lists the public build beside your own address whenever the main screen is running on a local address (`ksp-gonogo.github.io/app/station` for a release, `ksp-gonogo.github.io/rc/station` for a release candidate, chosen by the version the main screen is running), so the usual answer is "it loads from GitHub Pages and needs nothing forwarded". Only a fork hosting its own build needs to think about this, via `VITE_STATION_URL`.
 
 For a cross-internet station to reach the main screen, two things must be in place:
 
@@ -72,7 +76,7 @@ A relay containerized on a macOS host relays cross-internet traffic fine once bo
 
 ## Checking the relay works
 
-Open the **Add Station** modal on the main screen. An indicator at the bottom checks whether the relay's TURN server is reachable. This matters only for stations out on the internet, which need TURN to connect: green means a cross-internet station can be relayed, red usually means a missing port-forward or the wrong public address. A station on the same WiFi connects regardless of what this indicator says, because it doesn't use TURN; if one is failing, work through When a station won't connect (**Settings, Help**, **A station will not connect**) instead.
+Open the **Add Station** modal on the main screen. An indicator at the bottom checks whether the relay's TURN server is reachable. This matters only for stations out on the internet, which need TURN to connect: red usually means a missing port-forward or the wrong public address. Green means only that this computer's browser got a relay address from the relay. The check is made from the main screen computer, where a router that loops traffic for its own public address back inside passes it without any forward, so green does not prove a station on another network can connect. Only a friend elsewhere connecting does. A station on the same WiFi connects regardless of what this indicator says, because it doesn't use TURN; if one is failing, work through When a station won't connect (**Settings, Help**, **A station will not connect**) instead.
 
 The probe runs in the main screen's browser and looks for the relay at `http://localhost:3002`, so run the main screen on the machine the relay is on. Open it from a second computer and the indicator reports no TURN even when the relay is healthy.
 

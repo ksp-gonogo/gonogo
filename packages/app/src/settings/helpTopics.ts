@@ -150,6 +150,12 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
         "The station remembers the code and reconnects by itself while this tab is open. New share code in the same window drops every connected station, and they all need the new code.",
       ),
       text(
+        "The share code is kept in this browser's site data. It survives a reload and a restart, and changes only when you press New share code or the site data is cleared. A private window, another browser, and another address for the same app (localhost against a network address) each keep their own code, so read the code from the window you are sharing from. Codes are not case-sensitive and never contain 0, O, 1, I or L.",
+      ),
+      text(
+        "A station on a different network, such as a friend at home or a phone on cellular, may need the router in front of this computer to forward ports 3478 (TCP and UDP) and 49160 to 49170 (UDP) to it. The station page itself loads from the public build with nothing forwarded. A device on the same WiFi never needs the forwards. The relay line at the bottom of the Add station window is checked from this computer, so it cannot show whether your router lets outside traffic in: a friend elsewhere connecting is the only proof.",
+      ),
+      text(
         "Both devices need internet access, even on the same WiFi, because the two browsers meet through a public broker before they connect directly. The broker carries no telemetry.",
       ),
     ],

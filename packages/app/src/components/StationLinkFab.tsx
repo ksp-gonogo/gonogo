@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { peerHostService } from "../peer/PeerHostService";
 import { probeTurn, type TurnProbeResult } from "../peer/probeTurn";
+import { VERSION } from "../version";
 import { stationAddresses } from "./stationAddresses";
 
 /**
@@ -70,6 +71,7 @@ function StationLinkPanel() {
     code: shareCode,
     origin: globalThis.location.origin,
     baseUrl: import.meta.env.BASE_URL,
+    appVersion: VERSION,
     override: import.meta.env.VITE_STATION_URL,
   });
 
@@ -229,9 +231,9 @@ function describeProbeFailure(
   // timeout: most likely cause is router port-forward missing.
   if (r.errors.length > 0) {
     const first = r.errors[0];
-    return `TURN unreachable (${first.url} → ${first.code}). Check router port-forward for UDP 3478 + 49160-49200.`;
+    return `TURN unreachable (${first.url} → ${first.code}). Check router port-forward for 3478 (TCP and UDP) and UDP 49160-49170.`;
   }
-  return "TURN unreachable: relay never returned a relay candidate. Check router port-forward for UDP 3478 + 49160-49200.";
+  return "TURN unreachable: relay never returned a relay candidate. Check router port-forward for 3478 (TCP and UDP) and UDP 49160-49170.";
 }
 
 const Wrap = styled.div`
