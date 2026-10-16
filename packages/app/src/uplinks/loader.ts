@@ -242,24 +242,17 @@ function vouchersFor(
 }
 
 /**
- * Whether the operator is spared the consent prompt: the Uplink's client ships
- * inside the core mod and the installed mod vouches for the very hash the index
- * lists. A hash the mod does not vouch for, or vouches differently, leaves the
- * Uplink as untrusted as any other. Bytes that then miss that hash are refused
- * by the integrity check after the fetch.
+ * Whether the Uplink ships with Gonogo itself: its client is built into the
+ * app's own index and its mod half into the core mod, so it loads like the
+ * app's own code, with no consent question. The bytes are still checked
+ * against the index hash after the fetch, and a mod hash that disagrees with
+ * the index has already been refused by `checkCompat` before this is asked.
  */
-function vouchedBundled(
+function shipsWithGonogo(
   descriptor: UplinkDescriptor,
-  version: UplinkVersionDescriptor,
-  roster: RosterEntry | undefined,
   integrityAnchor: UplinkIntegrityParty,
 ): boolean {
-  return (
-    descriptor.bundled === true &&
-    integrityAnchor === "hub-index" &&
-    roster?.expectedClientHash != null &&
-    roster.expectedClientHash === version.integrity
-  );
+  return descriptor.bundled === true && integrityAnchor === "hub-index";
 }
 
 /** Pick the highest-version descriptor entry (design: the Hub offers a version list). */
@@ -903,10 +896,10 @@ async function loadOne(
 
     // Consent gates the fetch (design §5 step 4: consent between gate and fetch).
     // A remembered answer short-circuits; otherwise the operator answers on the
-    // first-load page, except for a core-bundled client the mod vouches for.
+    // first-load page, except for an Uplink that ships with Gonogo.
     // Decline quarantines with a legible reason, and bytes are never fetched
     // for a declined Uplink.
-    if (local || vouchedBundled(descriptor, version, roster, integrityAnchor)) {
+    if (local || shipsWithGonogo(descriptor, integrityAnchor)) {
       slot?.consent.pass();
     } else {
       const info: ConsentInfo = {

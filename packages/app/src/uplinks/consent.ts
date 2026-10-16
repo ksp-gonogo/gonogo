@@ -1,17 +1,20 @@
-// Per-Uplink first-load consent (design §3.5 / §5 step 4). Before the loader
-// import()s an Uplink it has never loaded at this id@version, the operator
-// answers for it on the first-load page, one row per Uplink. Both answers
-// persist per id@version: a grant loads it without asking again, a decline
-// quarantines it with a legible reason until "Reconsider" in Settings clears
-// it. A new version asks again, because it is new bytes to trust.
-//
-// An Uplink bundled in the core mod is the exception, and the loader (not this
-// file) decides it: its client hash is baked into the plugin and vouched for by
-// the installed mod, so the prompt would ask a player to judge something they
-// cannot. It applies only while the mod's hash equals the index's; a mismatch
-// asks like any other Uplink, and bytes that miss the hash are refused.
-//
-// Generic on purpose (no mod token) so the uplink-boundary ratchet stays clean.
+/*
+ * Per-Uplink first-load consent (design §3.5 / §5 step 4). Before the loader
+ * import()s an Uplink it has never loaded at this id@version, the main screen
+ * answers for it on the first-load page, one row per Uplink. Both answers
+ * persist per id@version: a grant loads it without asking again, a decline
+ * quarantines it with a legible reason until "Reconsider" in Settings clears
+ * it. A new version asks again, because it is new bytes to trust.
+ *
+ * A station is not asked. It runs every Uplink its main screen runs, because a
+ * station missing one of them can misread what the main screen shows, so its
+ * page is a notice naming what loads and every Uplink on it is granted.
+ *
+ * An Uplink that ships with Gonogo is never on either page; the loader (not
+ * this file) decides that.
+ *
+ * Generic on purpose (no mod token) so the uplink-boundary ratchet stays clean.
+ */
 
 import { logger } from "@ksp-gonogo/logger";
 import type { UplinkIdentity } from "./identity";
@@ -91,7 +94,10 @@ export interface ConsentInfo {
    * name in front of them or the bundle wrote it about itself.
    */
   identity?: UplinkIdentity;
-  /** True when the question is asked on a station, which answers for itself and has no logs question to add. */
+  /**
+   * True on a station, where the page is a notice rather than a question: the
+   * Uplink loads whatever is answered, and a decline saved earlier is ignored.
+   */
   onStation?: boolean;
   /**
    * The mod this Uplink connects and the version of it the Uplink was built
@@ -138,21 +144,22 @@ async function ask(infos: readonly ConsentInfo[]): Promise<boolean[]> {
 /**
  * Resolve consent for several Uplinks with at most one prompt: remembered
  * answers short-circuit, the rest are asked together, and every answer is
- * persisted.
+ * persisted. A station's Uplinks are always granted, and one it has already
+ * been shown is not shown again.
  */
 export async function ensureConsents(
   infos: readonly ConsentInfo[],
 ): Promise<boolean[]> {
   const answers = infos.map((info): boolean | undefined => {
     if (hasConsent(info.id, info.version)) return true;
-    if (hasDeclined(info.id, info.version)) return false;
+    if (!info.onStation && hasDeclined(info.id, info.version)) return false;
     return undefined;
   });
   const open = infos.filter((_, n) => answers[n] === undefined);
   if (open.length > 0) {
     const given = await ask(open);
     open.forEach((info, k) => {
-      const granted = given[k] === true;
+      const granted = info.onStation === true || given[k] === true;
       if (granted) grantConsent(info.id, info.version);
       else declineConsent(info.id, info.version);
       answers[infos.indexOf(info)] = granted;

@@ -18,6 +18,7 @@
     "render-flight-outcome": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-flight-outcome.ts",
     "render-header-delay": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-header-delay.ts",
     "render-header-badges": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-header-badges.ts",
+    "render-uplink-load": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-uplink-load.ts",
     "minsize-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/minsize-gate.ts",
     "bake-uplink-hash": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/bake-uplink-hash.ts",
     "render-rail-waveform": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-rail-waveform.ts"

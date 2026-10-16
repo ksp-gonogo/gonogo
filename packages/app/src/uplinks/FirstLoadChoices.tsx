@@ -52,6 +52,10 @@ function builtFor(info: ConsentInfo): string | undefined {
  * question. Each row needs its own answer, so loading an Uplink stays a choice
  * made about that Uplink. Escape answers whatever is still open with Skip and
  * Decline, so every way out leaves an answer behind.
+ *
+ * On a station the Uplinks are not a question: every one the main screen runs
+ * loads, so they are listed with no Skip or Load and Continue is the only
+ * control.
  */
 export function FirstLoadChoices({
   uplinks,
@@ -64,9 +68,11 @@ export function FirstLoadChoices({
   );
   const [logs, setLogs] = useState<boolean | undefined>(initial?.logs);
 
+  const notice = uplinks.length > 0 && uplinks.every((info) => info.onStation);
   const open =
-    answers.filter((answer) => answer === undefined).length +
+    (notice ? 0 : answers.filter((answer) => answer === undefined).length) +
     (askLogs && logs === undefined ? 1 : 0);
+  const questions = !notice || askLogs;
 
   // Escape answers what is still open and leaves what was chosen alone.
   useEffect(() => {
@@ -74,13 +80,13 @@ export function FirstLoadChoices({
       if (e.key !== "Escape") return;
       e.stopPropagation();
       onDone({
-        uplinks: answers.map((value) => value === true),
+        uplinks: answers.map((value) => notice || value === true),
         logs: askLogs ? logs === true : undefined,
       });
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [answers, logs, askLogs, onDone]);
+  }, [answers, logs, askLogs, notice, onDone]);
 
   const answer = (n: number, granted: boolean) =>
     setAnswers((current) =>
@@ -89,17 +95,24 @@ export function FirstLoadChoices({
 
   return (
     <Stack gap="section">
-      <Text level="muted" size="sm">
-        Answer these once for this browser. Settings changes any of them later.
-      </Text>
+      {questions && (
+        <Text level="muted" size="sm">
+          Answer these once for this browser. Settings changes any of them
+          later.
+        </Text>
+      )}
 
       {uplinks.length > 0 && (
         <Stack as="section" gap="related-comfortable">
-          <SectionHeading>Uplinks installed in KSP</SectionHeading>
+          <SectionHeading>
+            {notice
+              ? "Uplinks from the main screen"
+              : "Uplinks installed in KSP"}
+          </SectionHeading>
           <Text level="muted" size="sm">
-            An Uplink's code runs with the same access as this app, so load only
-            the ones you trust. One you skip adds no widgets and changes nothing
-            else.
+            {notice
+              ? "This station loads every Uplink the main screen runs."
+              : "An Uplink's code runs with the same access as this app, so load only the ones you trust. Skipping one leaves out all of it: its widgets and what it adds to other widgets."}
           </Text>
           <Rows>
             {uplinks.map((info, n) => {
@@ -120,23 +133,25 @@ export function FirstLoadChoices({
                       <UplinkIdentityBlock identity={info.identity} />
                     )}
                   </Stack>
-                  <ButtonGroup role="group" aria-label={`Load ${title}?`}>
-                    <ToggleButton
-                      size="sm"
-                      tone="warn"
-                      pressed={answers[n] === false}
-                      onClick={() => answer(n, false)}
-                    >
-                      Skip
-                    </ToggleButton>
-                    <ToggleButton
-                      size="sm"
-                      pressed={answers[n] === true}
-                      onClick={() => answer(n, true)}
-                    >
-                      Load
-                    </ToggleButton>
-                  </ButtonGroup>
+                  {!notice && (
+                    <ButtonGroup role="group" aria-label={`Load ${title}?`}>
+                      <ToggleButton
+                        size="sm"
+                        tone="warn"
+                        pressed={answers[n] === false}
+                        onClick={() => answer(n, false)}
+                      >
+                        Skip
+                      </ToggleButton>
+                      <ToggleButton
+                        size="sm"
+                        pressed={answers[n] === true}
+                        onClick={() => answer(n, true)}
+                      >
+                        Load
+                      </ToggleButton>
+                    </ButtonGroup>
+                  )}
                 </ChoiceRow>
               );
             })}
@@ -174,7 +189,8 @@ export function FirstLoadChoices({
 
       <Footer>
         <Text level="muted" size="sm" aria-live="polite">
-          {open === 0 ? "All answered" : `${open} still to answer`}
+          {questions &&
+            (open === 0 ? "All answered" : `${open} still to answer`)}
         </Text>
         <Button
           variant="primary"
@@ -182,7 +198,7 @@ export function FirstLoadChoices({
           disabled={open > 0}
           onClick={() =>
             onDone({
-              uplinks: answers.map((value) => value === true),
+              uplinks: answers.map((value) => notice || value === true),
               logs: askLogs ? logs === true : undefined,
             })
           }

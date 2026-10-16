@@ -75,10 +75,9 @@ export interface UplinkDescriptor {
   /** The mod this Uplink connects and the version it was built against, from its manifest. */
   mod?: { name?: string; builtAgainst?: string };
   /**
-   * Set by the build on an Uplink whose client ships inside the core mod, so
-   * the mod bakes its client hash into the plugin. The loader skips the consent
-   * prompt for one only while the live roster's hash from the mod equals the
-   * index's; any other Uplink is asked about.
+   * Set by the build on an Uplink whose client ships with the app and whose mod
+   * half ships inside the core mod. The loader loads one without a consent
+   * question, still checking its bytes against `integrity`.
    */
   bundled?: true;
   versions: UplinkVersionDescriptor[];

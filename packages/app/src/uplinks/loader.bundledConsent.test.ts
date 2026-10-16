@@ -93,7 +93,7 @@ async function load(opts: {
   return { outcome: outcomes[0], ensureConsent, importBundle };
 }
 
-describe("consent for Uplinks bundled in the core mod", () => {
+describe("consent for Uplinks that ship with Gonogo", () => {
   it("loads a bundled Uplink without a prompt when the mod vouches for the index hash", async () => {
     const { outcome, ensureConsent, importBundle } = await load({
       index: indexWith(goodHash, true),
@@ -124,13 +124,25 @@ describe("consent for Uplinks bundled in the core mod", () => {
     expect(importBundle).not.toHaveBeenCalled();
   });
 
-  it("still prompts for a bundled Uplink the mod does not vouch for", async () => {
-    const { outcome, ensureConsent } = await load({
+  it("loads a bundled Uplink without a prompt when the mod vouches for no hash", async () => {
+    const { outcome, ensureConsent, importBundle } = await load({
       index: indexWith(goodHash, true),
       roster: rosterVouching(null),
     });
-    expect(ensureConsent).toHaveBeenCalledOnce();
+    expect(ensureConsent).not.toHaveBeenCalled();
     expect(outcome.status).toBe("loaded");
+    expect(importBundle).toHaveBeenCalledOnce();
+  });
+
+  it("refuses bundled bytes that miss the index hash when the mod vouches for no hash", async () => {
+    const { outcome, ensureConsent, importBundle } = await load({
+      index: indexWith(goodHash, true),
+      roster: rosterVouching(null),
+      bytes: OTHER_BYTES,
+    });
+    expect(ensureConsent).not.toHaveBeenCalled();
+    expect(outcome.status).toBe("quarantined");
+    expect(importBundle).not.toHaveBeenCalled();
   });
 
   it("still prompts for an Uplink that is not bundled, even with a matching vouched hash", async () => {

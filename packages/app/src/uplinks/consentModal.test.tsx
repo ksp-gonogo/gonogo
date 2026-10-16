@@ -148,6 +148,32 @@ describe("the first-load page", () => {
   });
 });
 
+describe("the first-load page on a station", () => {
+  it("names every Uplink with no Skip or Load, and Continue loads them all", async () => {
+    const { answers } = await openPage([
+      { ...PLOTTER, onStation: true },
+      { ...SURVEY, onStation: true },
+    ]);
+    expect(screen.getByText("Plotter Uplink")).toBeInTheDocument();
+    expect(screen.getByText("Survey Uplink")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Skip" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Load" })).toBeNull();
+    expect(screen.queryByText(/still to answer/)).toBeNull();
+    await expectNoA11yViolations(document.body);
+
+    await press(screen.getByRole("button", { name: "Continue" }));
+    await expect(answers).resolves.toEqual([true, true]);
+  });
+
+  it("loads them all when Escape closes it", async () => {
+    const { answers } = await openPage([{ ...PLOTTER, onStation: true }]);
+    await act(async () => {
+      await pressEscape();
+    });
+    await expect(answers).resolves.toEqual([true]);
+  });
+});
+
 describe("the anonymous-logs question", () => {
   it("is asked beside the Uplinks and its answer is written to the service", async () => {
     const service = new AnalyticsConsentService();

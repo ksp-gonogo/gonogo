@@ -112,3 +112,29 @@ describe("consent store", () => {
     expect(hasDeclined("beta", "1.0.0")).toBe(false);
   });
 });
+
+describe("consent on a station", () => {
+  it("grants every Uplink whatever the page answers, and does not show one twice", async () => {
+    const page = vi.fn(async (infos: readonly unknown[]) =>
+      infos.map(() => false),
+    );
+    setConsentBatchPrompt(page);
+    const station = { name: "Alpha", version: "1.0.0", onStation: true };
+
+    expect(await ensureConsents([{ id: "alpha", ...station }])).toEqual([true]);
+    expect(hasConsent("alpha", "1.0.0")).toBe(true);
+    expect(await ensureConsents([{ id: "alpha", ...station }])).toEqual([true]);
+    expect(page).toHaveBeenCalledOnce();
+  });
+
+  it("loads an Uplink this browser declined before", async () => {
+    declineConsent("alpha", "1.0.0");
+    setConsentBatchPrompt(async (infos) => infos.map(() => false));
+    expect(
+      await ensureConsents([
+        { id: "alpha", name: "Alpha", version: "1.0.0", onStation: true },
+      ]),
+    ).toEqual([true]);
+    expect(hasDeclined("alpha", "1.0.0")).toBe(false);
+  });
+});
