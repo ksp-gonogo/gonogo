@@ -68,6 +68,7 @@ import type { SystemOverlayContext } from "./slots";
 import { createUtBucketThrottle } from "./utBucketThrottle";
 // The host's own `tracking-station.projection` entries, so the picker and resolver run on a bare install.
 import "./projectionContribution";
+import { useDismissEnded } from "../VesselCatalog/DismissEnded";
 import { orbitFramingZoom } from "./orbitFraming";
 import { SystemDiagram } from "./SystemDiagram";
 import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
@@ -170,6 +171,7 @@ function TrackingStationComponent({
   // biome-ignore lint/correctness/useExhaustiveDependencies: the setting is the trigger, not a value read
   useEffect(() => setAnchor(null), [frameSetting]);
   const bodies = useCelestialBodies();
+  const dismiss = useDismissEnded();
   const catalogueHeld = useCelestialHeld();
   const poses = useSystemInstant();
   // The whole catalogue, for the read frame's index lookups; a held catalogue is still the catalogue.
@@ -807,6 +809,7 @@ function TrackingStationComponent({
       <VesselInfoPanel
         meta={selectedEntity.meta}
         vesselId={selectedEntity.vesselId ?? null}
+        onDismiss={dismiss}
       />
     ) : (
       almanac

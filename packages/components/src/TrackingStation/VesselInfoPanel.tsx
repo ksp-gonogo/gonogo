@@ -1,5 +1,6 @@
 import { Grid } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
+import type { DismissVessel } from "../VesselCatalog/DismissEnded";
 import {
   useCatalogVessel,
   VesselCatalogEntry,
@@ -33,11 +34,14 @@ export interface VesselInfoPanelProps {
   meta: SystemEntityMeta;
   /** The selected craft's id, which finds its Vessel Catalog entry; absent shows the meta alone. */
   vesselId?: string | null;
+  /** Takes a destroyed craft off the catalog; without it the catalog entry offers no dismissal. */
+  onDismiss?: DismissVessel;
 }
 
 export function VesselInfoPanel({
   meta,
   vesselId = null,
+  onDismiss,
 }: VesselInfoPanelProps) {
   const catalog = useCatalogVessel(vesselId);
   const title = typeof meta.name === "string" ? meta.name : "(unnamed)";
@@ -73,6 +77,7 @@ export function VesselInfoPanel({
         <VesselCatalogEntry
           vessel={catalog.vessel}
           contactHeld={catalog.contactHeld}
+          onDismiss={onDismiss}
         />
       )}
     </Wrap>

@@ -260,6 +260,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     crewCapacity: "count",
     crewCount: "count",
     declaredLostUt: "ut",
+    endSource: "enum",
+    endedUt: "ut",
     expectedReturnUt: "ut",
     landedAt: "text",
     lastContactUt: "ut",
@@ -1420,6 +1422,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     kerbinTime: "flag",
     minuteSeconds: "s",
     yearSeconds: "s",
+  },
+  "TrackingStationDismissArgs": {
+    vesselId: "id",
   },
   "TrackingStationVesselLink": {
     connected: "flag",
@@ -2925,6 +2930,7 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
     commsControlSource: "RosterCommsControlSource",
     contact: "CatalogContact",
     crew: "CatalogCrew",
+    endSource: "RosterPlaceSource",
     placeSource: "RosterPlaceSource",
     situation: "Situation",
     vesselType: "VesselType",

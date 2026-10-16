@@ -10,5 +10,5 @@ export default {
     "vessel.target",
   ],
   optionalChannelFamilies: ["trackingStation.vessel.<guid>.link"],
-  commands: [],
+  commands: ["trackingStation.catalog.dismiss"],
 } as const;

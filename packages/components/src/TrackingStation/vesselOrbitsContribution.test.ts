@@ -1,4 +1,5 @@
 import {
+  CatalogContact,
   type CatalogEntry,
   CommsHopKind,
   type CommsNetwork,
@@ -172,6 +173,34 @@ describe("computeVesselOrbitEntities", () => {
     expect(entities).toHaveLength(1);
     expect(entities[0].shape).toEqual({ kind: "point", radiusPx: 3 });
     expect(entities[0].style).toEqual({ emphasis: "faint" });
+    expect(entities[0].position).toEqual({
+      kind: "fixed",
+      parentName: "Kerbin",
+      xMetres: 0,
+      yMetres: 0,
+      zMetres: 0,
+    });
+  });
+
+  it("draws a destroyed craft as a dot at its body, on no orbit", () => {
+    const entities = computeVesselOrbitEntities(
+      wire([
+        vessel({
+          contact: CatalogContact.Gone,
+          orbit: {
+            sma: value("m", 700_000),
+            ecc: value("1", 0.1),
+            inc: value("°", 5),
+            lan: value("°", 20),
+            argPe: value("°", 30),
+            meanAnomalyAtEpoch: value("rad", 0),
+            epoch: value("ut", 0),
+          },
+        }),
+      ]),
+      bodies(),
+    );
+    expect(entities[0].shape).toEqual({ kind: "point", radiusPx: 3 });
     expect(entities[0].position).toEqual({
       kind: "fixed",
       parentName: "Kerbin",

@@ -8,6 +8,7 @@ import {
 import {
   type AlertTone,
   type CatalogEntry,
+  RosterPlaceSource,
   stillTrue,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -31,20 +32,18 @@ export interface TrackingStationVesselStatusEntry {
   tooltip?: string;
 }
 
-const PHASE_TONE: Record<
-  Exclude<ContactPhase, "nominal" | "gone">,
-  AlertTone
-> = {
+const PHASE_TONE: Record<Exclude<ContactPhase, "nominal">, AlertTone> = {
   waiting: "info",
   expected: "info",
   overdue: "warn",
   lost: "nogo",
+  gone: "nogo",
 };
 
 /** What the centre knows of its contact with a craft, as its catalog entry carries it. */
 export type VesselContactEntry = Pick<
   CatalogEntry,
-  "contact" | "expectedReturnUt" | "overdueAfterUt"
+  "contact" | "expectedReturnUt" | "overdueAfterUt" | "endSource"
 >;
 
 /** Pure core: the entries contributed for a vessel id and the centre's contact with it, exported for direct testing. */
@@ -54,9 +53,23 @@ export function computeVesselStatus(
   nowUt: number,
 ): readonly TrackingStationVesselStatusEntry[] {
   const phase = contactPhase(entry, nowUt);
-  if (!phase || phase === "nominal" || phase === "gone") return [];
+  if (!phase || phase === "nominal") return [];
 
   const tone = PHASE_TONE[phase];
+
+  if (phase === "gone") {
+    return [
+      {
+        target: vesselId,
+        tone,
+        emphasis: "reckoned",
+        label:
+          entry?.endSource === RosterPlaceSource.Seen
+            ? "Seen destroyed"
+            : "Destroyed",
+      },
+    ];
+  }
 
   if (phase === "lost") {
     return [

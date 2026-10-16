@@ -12,6 +12,7 @@ import {
   Section,
 } from "@ksp-gonogo/ui-kit";
 import { commsRollup } from "./comms";
+import { useDismissEnded } from "./DismissEnded";
 import { useFleet } from "./fleet";
 import { RosterTable } from "./RosterTable";
 import { vesselCatalogTopics } from "./topics";
@@ -26,6 +27,7 @@ function VesselCatalogComponent({
   w,
 }: Readonly<ComponentProps<VesselCatalogConfig>>) {
   const { known, reading, vessels, coverage } = useFleet();
+  const dismiss = useDismissEnded();
   const rollup = commsRollup(vessels);
   // Whose light-time the delays are computed from: the selected command centre, else the one the frames name.
   const chosenVantage = useSelectedVantage();
@@ -77,6 +79,7 @@ function VesselCatalogComponent({
             vessels={vessels}
             compact={(w ?? 8) < 6}
             contactHeld={reading.state === "held"}
+            onDismiss={dismiss}
           />
         </Section>,
       ]}

@@ -33,7 +33,8 @@ namespace Sitrep.Host.Comms
         /// out of contact when it went sends nothing: no centre can tell its
         /// loss from the blackout it was already in.
         /// </summary>
-        void RecordCraftGone(string vesselId, double ut);
+        /// <param name="end">How it left the game.</param>
+        void RecordCraftGone(string vesselId, double ut, CraftEnd end);
 
         /// <summary>
         /// Records the state of a craft that carries no radio, as the ground
