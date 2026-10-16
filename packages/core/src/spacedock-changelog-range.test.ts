@@ -54,7 +54,7 @@ describe("the changelog range", () => {
   });
 
   it("is the whole history before the first stable tag", () => {
-    expect(range("v0.1.0")).toBe("v0.1.0");
+    expect(range("v0.1.0")).toBe("..v0.1.0");
   });
 });
 

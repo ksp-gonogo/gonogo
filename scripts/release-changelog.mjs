@@ -127,7 +127,7 @@ function readCommits(range) {
     });
 }
 
-/** The previous stable tag to `tag`, or `tag` alone (the whole history) when no stable tag precedes it. */
+/** The previous stable tag to `tag`, or `..tag` (the whole history, spelled as a range because git-cliff rejects a bare revision) when no stable tag precedes it. */
 export function rangeForTag(tag, cwd) {
   let tags = "";
   try {
@@ -136,7 +136,7 @@ export function rangeForTag(tag, cwd) {
     // a tag on a root commit has no parent, so nothing precedes it
   }
   const stable = tags.split("\n").find((t) => /^v\d+\.\d+\.\d+$/.test(t));
-  return stable ? `${stable}..${tag}` : tag;
+  return stable ? `${stable}..${tag}` : `..${tag}`;
 }
 
 function runCliff(range, skipIds) {
