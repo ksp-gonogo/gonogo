@@ -33,6 +33,7 @@
     "asyncapi": "node scripts/asyncapi-doc.mjs",
     "asyncapi:check": "node scripts/asyncapi-doc.mjs --check",
     "api-page": "node scripts/api-page.mjs",
+    "c4": "node scripts/c4/generate.mjs",
     "uplink-matrix": "node scripts/uplink-matrix.mjs",
     "uplink-docs": "bash scripts/uplink-docs.sh",
     "uplink-docs:check": "bash scripts/uplink-docs.sh --check",

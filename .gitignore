@@ -71,3 +71,7 @@ packages/app/.scaffold-probe/
 
 # The AsyncAPI generator transpiles the API page template here on every run.
 docs/api/template/__transpiled/
+
+# `pnpm c4` writes the LikeC4 model and its built site here, regenerated from
+# the tree on every run and never published.
+/.c4/
