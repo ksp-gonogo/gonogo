@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { scopeWidgets, shardFlag, widgetFlag } from "./gateScope";
+import { scopeWidgets, shardFlag, sliceShard, widgetFlag } from "./gateScope";
+import { listUplinkWidgets } from "./uplinkWidgets";
 import type { WidgetRenderConfig } from "./widgetRenderHarness";
 import { listWidgets } from "./widgets";
 
@@ -127,5 +128,36 @@ describe("scopeWidgets sharding", () => {
     expect(
       scopeWidgets(many, undefined, "g", 0, { index: 11, count: 11 }).refusal,
     ).toContain("holds no render config");
+  });
+});
+
+describe("sliceShard over the visual gate's real widget list", () => {
+  /* The CI visual job runs one shard per matrix leg; this holds the count written there to a partition, so a widget cannot fall in none or in two. */
+  const SHARDS = 4;
+
+  it("puts every render config in exactly one of the shards", async () => {
+    const all = [...listWidgets(), ...(await listUplinkWidgets())];
+    expect(all.length).toBeGreaterThan(SHARDS);
+    const slices = Array.from({ length: SHARDS }, (_, i) =>
+      sliceShard(all, { index: i + 1, count: SHARDS }),
+    );
+    for (const slice of slices) expect(slice.length).toBeGreaterThan(0);
+    const seen = slices.flat();
+    expect(seen).toHaveLength(all.length);
+    expect(new Set(seen)).toEqual(new Set(all));
+  });
+
+  it("matches the shard count the CI visual job declares", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const ci = await readFile(
+      new URL("../../../.github/workflows/ci.yml", import.meta.url),
+      "utf8",
+    );
+    const job = ci.slice(ci.indexOf("\n  visual:\n"));
+    const legs = /shard: \[([\d, ]+)\]/.exec(job);
+    expect(legs?.[1].split(",").map(Number)).toEqual(
+      Array.from({ length: SHARDS }, (_, i) => i + 1),
+    );
+    expect(job).toContain(`--shard \${{ matrix.shard }}/${SHARDS}`);
   });
 });

@@ -11,6 +11,11 @@
  *   visual-gate --engine firefox            # gate: diff vs baselines, fail on drift
  *   visual-gate --engine firefox --update   # accept: (re)write baselines from renders
  *   visual-gate --engine firefox --widget thermal-status   # scope to one widget
+ *   visual-gate --engine firefox --shard 2/4   # the second of four slices of the widget list
+ *
+ * A shard takes every nth render config of the registered list, so the shards
+ * partition it: each config renders in exactly one. Orphan-baseline checks look
+ * at the whole list and run in shard 1 only, so the other shards leave them to it.
  *
  * Baselines must be generated in the same OS the gate runs in (CI Linux),
  * font rasterisation differs across OSes. Use the `update-baselines` GitHub
@@ -26,6 +31,7 @@ import { cp, mkdir, readdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { diffRatio, writeDiff } from "./crossBrowserComposite";
+import { type Shard, shardFlag, sliceShard } from "./gateScope";
 import { orphanBaselineDirs } from "./orphanBaselines";
 import { listUplinkWidgets } from "./uplinkWidgets";
 import { renderWidgets, type WidgetRenderConfig } from "./widgetRenderHarness";
@@ -48,7 +54,7 @@ type Engine = (typeof ENGINES)[number];
 
 function usage(): never {
   console.error(
-    "Usage: visual-gate --engine <chromium|firefox|webkit> [--update] [--widget <id>]",
+    "Usage: visual-gate --engine <chromium|firefox|webkit> [--update] [--widget <id>] [--shard <i>/<n>]",
   );
   process.exit(1);
 }
@@ -87,13 +93,27 @@ async function main(): Promise<void> {
   // their baselines. Match by widgetId OR a config's own `label`, so a label
   // still scopes to its single config.
   const all = [...listWidgets(), ...(await listUplinkWidgets())];
-  const configs = widgetId
+  const selected = widgetId
     ? all.filter((c) => c.widgetId === widgetId || c.label === widgetId)
     : [...all];
-  if (configs.length === 0) {
+  if (selected.length === 0) {
     console.error(widgetId ? `Unknown widget id: ${widgetId}` : "No widgets");
     process.exit(1);
   }
+  const shard: Shard | undefined = shardFlag(args);
+  const configs = [...sliceShard(selected, shard)];
+  if (configs.length === 0) {
+    console.error(
+      `Shard ${shard?.index}/${shard?.count} holds no render config.`,
+    );
+    process.exit(1);
+  }
+  if (shard) {
+    console.log(
+      `${engine}: shard ${shard.index}/${shard.count}, ${configs.length} of ${selected.length} render config(s).`,
+    );
+  }
+  const checksOrphans = !widgetId && (shard === undefined || shard.index === 1);
 
   const actualBase = resolve(ACTUAL_ROOT, engine);
   // Render every widget for this engine into an isolated, gitignored dir.
@@ -135,10 +155,10 @@ async function main(): Promise<void> {
         written++;
       }
     }
-    if (!widgetId) {
+    if (checksOrphans) {
       for (const dir of await orphanBaselineDirs(
         resolve(BASELINE_ROOT, engine),
-        configs,
+        selected,
       )) {
         await rm(resolve(BASELINE_ROOT, engine, dir), {
           recursive: true,
@@ -226,10 +246,10 @@ async function main(): Promise<void> {
     }
   }
 
-  if (!widgetId) {
+  if (checksOrphans) {
     for (const dir of await orphanBaselineDirs(
       resolve(BASELINE_ROOT, engine),
-      configs,
+      selected,
     )) {
       failures.push({ widget: dir, name: dir, kind: "orphan-baseline" });
     }

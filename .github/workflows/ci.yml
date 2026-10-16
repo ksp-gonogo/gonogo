@@ -1168,16 +1168,21 @@ jobs:
   # Per-engine visual regression gate. Renders every widget through the probe
   # harness for one engine and diffs each against its committed baseline under
   # packages/components/visual-baselines/<engine>/. Its own matrix job with no
-  # `needs`, so all three legs run concurrently with `test` and `e2e`, wall
-  # time stays ≈ one engine's run. Baselines are Linux-generated (see the
-  # update-baselines workflow); on drift the job fails and the
-  # baseline/actual/diff PNGs upload as an artifact.
+  # `needs`, so every leg runs concurrently with `test` and `e2e`. Each engine
+  # is dealt across four shards (`--shard i/4` takes every 4th render config, so
+  # each config renders in exactly one; gateScope.test.ts holds this count to a
+  # partition of the real list). The job name keeps the "visual (" prefix and the
+  # engine, which the fold watcher matches. Baselines are Linux-generated (see
+  # the update-baselines workflow); on drift the job fails and the
+  # baseline/actual/diff PNGs upload as an artifact per shard.
   visual:
+    name: visual (${{ matrix.browser }}, shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         browser: [chromium, firefox, webkit]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -1217,12 +1222,12 @@ jobs:
         run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Visual gate (${{ matrix.browser }})
-        run: pnpm --filter @ksp-gonogo/components visual-gate --engine ${{ matrix.browser }}
+        run: pnpm --filter @ksp-gonogo/components visual-gate --engine ${{ matrix.browser }} --shard ${{ matrix.shard }}/4
 
       - name: Upload visual diffs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: visual-diffs-${{ matrix.browser }}
+          name: visual-diffs-${{ matrix.browser }}-${{ matrix.shard }}
           path: local_docs/renders/_visual-gate-diffs/
           retention-days: 7

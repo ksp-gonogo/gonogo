@@ -70,7 +70,7 @@ export interface GateScope {
  * before slicing, so a shard of a healthy set is not refused for being small,
  * while a shrunken set is refused in every shard.
  */
-function sliceShard(
+export function sliceShard(
   widgets: readonly WidgetRenderConfig[],
   shard: Shard | undefined,
 ): readonly WidgetRenderConfig[] {

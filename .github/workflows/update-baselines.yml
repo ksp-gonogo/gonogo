@@ -10,6 +10,11 @@ name: Update visual baselines
 #   gh workflow run update-baselines.yml --ref <branch> -f widget=thermal-status
 #
 # The visual gate in ci.yml prints this exact command when it detects drift.
+#
+# Every engine is dealt across four shards, the same split ci.yml's visual job
+# uses (`--shard i/4`), and each leg commits only the baselines of its own
+# widgets, so the legs never touch the same file. A scoped run (`widget` set)
+# renders a handful of configs, so it runs one leg per engine, unsharded.
 
 on:
   workflow_dispatch:
@@ -25,7 +30,15 @@ permissions:
 
 jobs:
   update:
+    name: update (${{ matrix.browser }}, shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+        # A scoped run is one leg per engine: the other shards would hold none
+        # of the widget's configs.
+        shard: ${{ fromJSON(inputs.widget == '' && '[1, 2, 3, 4]' || '[1]') }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -55,21 +68,20 @@ jobs:
       - name: Build render dependencies
         run: pnpm --filter "@ksp-gonogo/components..." build
 
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Regenerate baselines
         env:
           WIDGET: ${{ inputs.widget }}
+          BROWSER: ${{ matrix.browser }}
+          SHARD: ${{ matrix.shard }}
         run: |
-          for engine in chromium firefox webkit; do
-            echo "── updating $engine baselines ──"
-            if [ -n "$WIDGET" ]; then
-              pnpm --filter @ksp-gonogo/components visual-gate --engine "$engine" --update --widget "$WIDGET"
-            else
-              pnpm --filter @ksp-gonogo/components visual-gate --engine "$engine" --update
-            fi
-          done
+          if [ -n "$WIDGET" ]; then
+            pnpm --filter @ksp-gonogo/components visual-gate --engine "$BROWSER" --update --widget "$WIDGET"
+          else
+            pnpm --filter @ksp-gonogo/components visual-gate --engine "$BROWSER" --update --shard "$SHARD/4"
+          fi
 
       - name: Commit and push baselines
         run: |
@@ -84,16 +96,17 @@ jobs:
             # test) hooks are redundant here (CI re-runs the whole suite on the
             # resulting commit) and the pre-push test run was flaky enough to
             # block the baseline push outright. Skip the hooks; let CI gate.
-            git commit --no-verify -m "chore: update visual baselines (${WIDGET:-all widgets})"
+            git commit --no-verify -m "chore: update visual baselines (${WIDGET:-all widgets}, ${BROWSER} ${SHARD}/4)"
             # The render takes long enough for the branch to move meanwhile, so
             # a rejected push is rebased onto the new tip and retried.
             pushed=false
-            for attempt in 1 2 3 4 5; do
+            for attempt in 1 2 3 4 5 6 7 8 9 10; do
               if git push --no-verify origin HEAD:${{ github.ref_name }}; then
                 pushed=true
                 break
               fi
-              echo "Push rejected (attempt $attempt of 5), rebasing onto origin/${{ github.ref_name }}."
+              echo "Push rejected (attempt $attempt of 10), rebasing onto origin/${{ github.ref_name }}."
+              sleep $((RANDOM % 8 + 1))
               if ! git pull --rebase origin ${{ github.ref_name }}; then
                 git rebase --abort || true
                 echo "::error::Rebase conflict: another commit changed the same baseline files while this job rendered. Re-run the workflow on the updated branch."
@@ -101,9 +114,11 @@ jobs:
               fi
             done
             if [ "$pushed" != true ]; then
-              echo "::error::Baseline push still rejected after 5 attempts; the branch kept moving."
+              echo "::error::Baseline push still rejected after 10 attempts; the branch kept moving."
               exit 1
             fi
           fi
         env:
           WIDGET: ${{ inputs.widget }}
+          BROWSER: ${{ matrix.browser }}
+          SHARD: ${{ matrix.shard }}
