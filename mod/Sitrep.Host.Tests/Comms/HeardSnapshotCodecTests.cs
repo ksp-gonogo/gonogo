@@ -228,53 +228,6 @@ namespace Sitrep.Host.Tests.Comms
             Assert.True(more < added * 2.5, "doubling the centres more than doubled what the models add: " + added + " to " + more);
         }
 
-        private sealed class FakeLink : IPersistableContactLinkModel
-        {
-            private readonly double _reach;
-
-            public FakeLink(double reach) => _reach = reach;
-
-            public string ModelId => "fakeLink.v1";
-
-            public Dictionary<string, object?> Describe() => new Dictionary<string, object?> { ["reach"] = _reach };
-
-            public double MarginAt(double ut, Vector3d from, Vector3d to, IContactPositions positions) => _reach - (to - from).Magnitude();
-        }
-
-        private static IContactLinkModel? RestoreFakeLink(string model, IReadOnlyDictionary<string, object?> data) =>
-            model == "fakeLink.v1" && data.TryGetValue("reach", out var reach) && reach is double d ? new FakeLink(d) : null;
-
-        /// <summary>
-        /// A craft a centre cannot hear keeps the state it was last heard with, so
-        /// the link model in that state is the only thing that plans the pair on
-        /// the backend's own terms rather than on range alone.
-        /// </summary>
-        [Fact]
-        public void ALinkModelACraftWasHeardWithComesBackAndAnswersAsItDid()
-        {
-            var links = new Dictionary<string, CraftLink> { ["vessel:b"] = new CraftLink(9e11, new FakeLink(5.0)), ["ground:ksc"] = new CraftLink(2.5e9, null) };
-            var heard = CraftState.Orbiting("vessel:a", 120.0, 1, Orbit, null, 9000.0, true, links);
-            var encoded = HeardSnapshotCodec.Encode(new HeardSnapshot(new[] { new HeardAtCentre("ground:ksc", new[] { heard }, new Dictionary<string, bool>()) }));
-
-            var state = HeardSnapshotCodec.Decode(encoded, null, RestoreFakeLink)!.Centres.Single().States.Single();
-
-            var link = state.Links["vessel:b"].Link!;
-            Assert.Equal(2.0, link.MarginAt(0.0, new Vector3d(0, 0, 0), new Vector3d(3, 0, 0), null!), 9);
-            Assert.Equal(9e11, state.Links["vessel:b"].MaxRangeMeters);
-            Assert.Null(state.Links["ground:ksc"].Link);
-        }
-
-        [Fact]
-        public void ALinkModelNoBackendCanBuildAgainLeavesThePairOnRangeAlone()
-        {
-            var links = new Dictionary<string, CraftLink> { ["vessel:b"] = new CraftLink(9e11, new FakeLink(5.0)) };
-            var heard = CraftState.Orbiting("vessel:a", 120.0, 1, Orbit, null, 9000.0, true, links);
-            var encoded = HeardSnapshotCodec.Encode(new HeardSnapshot(new[] { new HeardAtCentre("ground:ksc", new[] { heard }, new Dictionary<string, bool>()) }));
-
-            Assert.Null(HeardSnapshotCodec.Decode(encoded)!.Centres.Single().States.Single().Links["vessel:b"].Link);
-            Assert.Null(HeardSnapshotCodec.Decode(encoded, null, (model, data) => throw new System.InvalidOperationException("unreadable"))!.Centres.Single().States.Single().Links["vessel:b"].Link);
-        }
-
         [Fact]
         public void AStrengthModelNoBackendCanBuildAgainLeavesThePairWithoutOne()
         {

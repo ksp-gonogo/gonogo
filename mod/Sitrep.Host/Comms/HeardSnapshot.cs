@@ -265,10 +265,7 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>The snapshot a save carried, or null when it carried none or one this build cannot read.</summary>
-        public static HeardSnapshot? Decode(
-            string? encoded,
-            Func<string, IReadOnlyDictionary<string, object?>, IContactLinkStrength?>? restoreStrength = null,
-            Func<string, IReadOnlyDictionary<string, object?>, IContactLinkModel?>? restoreLink = null)
+        public static HeardSnapshot? Decode(string? encoded, Func<string, IReadOnlyDictionary<string, object?>, IContactLinkStrength?>? restoreStrength = null)
         {
             if (string.IsNullOrEmpty(encoded))
             {
@@ -289,7 +286,7 @@ namespace Sitrep.Host.Comms
                     var states = new List<CraftState>();
                     foreach (var state in List(centre, "states"))
                     {
-                        states.Add(StateFrom((Dictionary<string, object?>)state!, restoreStrength, restoreLink, shared));
+                        states.Add(StateFrom((Dictionary<string, object?>)state!, restoreStrength, shared));
                     }
                     var links = new Dictionary<string, bool>(StringComparer.Ordinal);
                     if (Get(centre, "links") is Dictionary<string, object?> heardLinks)
@@ -404,17 +401,15 @@ namespace Sitrep.Host.Comms
             }
         }
 
-        /// <summary>A model a save kept for one link under <paramref name="key"/>, built again by the backend that described it, or null when none was kept or the backend cannot.</summary>
-        private static T? Restored<T>(
+        /// <summary>The strength model a save kept for one link, built again by the backend that described it, or null when none was kept or the backend cannot.</summary>
+        private static IContactLinkStrength? StrengthOf(
             Dictionary<string, object?> map,
-            string key,
             string other,
-            Func<string, IReadOnlyDictionary<string, object?>, T?>? restore,
+            Func<string, IReadOnlyDictionary<string, object?>, IContactLinkStrength?>? restore,
             List<object?> shared)
-            where T : class
         {
             if (restore == null
-                || !(Get(map, key) is Dictionary<string, object?> kept)
+                || !(Get(map, "strengths") is Dictionary<string, object?> kept)
                 || !kept.TryGetValue(other, out var entry)
                 || !(entry is Dictionary<string, object?> described)
                 || !(Get(described, "model") is string model)
@@ -428,7 +423,7 @@ namespace Sitrep.Host.Comms
             }
             catch (Exception)
             {
-                // A backend that cannot read what it once wrote leaves the pair without the model, as before the load.
+                // A backend that cannot read what it once wrote leaves the pair without a strength, as before the load.
                 return null;
             }
         }
@@ -437,17 +432,12 @@ namespace Sitrep.Host.Comms
         {
             var links = new Dictionary<string, object?>(StringComparer.Ordinal);
             var strengths = new Dictionary<string, object?>(StringComparer.Ordinal);
-            var models = new Dictionary<string, object?>(StringComparer.Ordinal);
             foreach (var link in state.Links)
             {
                 links[link.Key] = link.Value.MaxRangeMeters;
                 if (link.Value.Strength is IPersistableLinkStrength persistable)
                 {
                     strengths[link.Key] = new Dictionary<string, object?> { ["model"] = persistable.ModelId, ["data"] = pool.Compact(persistable.Describe()) };
-                }
-                if (link.Value.Link is IPersistableContactLinkModel model)
-                {
-                    models[link.Key] = new Dictionary<string, object?> { ["model"] = model.ModelId, ["data"] = pool.Compact(model.Describe()) };
                 }
             }
             return new Dictionary<string, object?>
@@ -468,15 +458,10 @@ namespace Sitrep.Host.Comms
                 ["centre"] = CentreOf(state),
                 ["links"] = links,
                 ["strengths"] = strengths,
-                ["linkModels"] = models,
             };
         }
 
-        private static CraftState StateFrom(
-            Dictionary<string, object?> map,
-            Func<string, IReadOnlyDictionary<string, object?>, IContactLinkStrength?>? restoreStrength,
-            Func<string, IReadOnlyDictionary<string, object?>, IContactLinkModel?>? restoreLink,
-            List<object?> shared)
+        private static CraftState StateFrom(Dictionary<string, object?> map, Func<string, IReadOnlyDictionary<string, object?>, IContactLinkStrength?>? restoreStrength, List<object?> shared)
         {
             var id = (string)map["id"]!;
             var capturedUt = (double)map["capturedUt"]!;
@@ -489,10 +474,7 @@ namespace Sitrep.Host.Comms
             {
                 foreach (var link in heard)
                 {
-                    links[link.Key] = new CraftLink(
-                        link.Value as double?,
-                        Restored(map, "linkModels", link.Key, restoreLink, shared),
-                        Restored(map, "strengths", link.Key, restoreStrength, shared));
+                    links[link.Key] = new CraftLink(link.Value as double?, null, StrengthOf(map, link.Key, restoreStrength, shared));
                 }
             }
             var roster = Get(map, "roster") is Dictionary<string, object?> listed ? Listed(listed) : null;

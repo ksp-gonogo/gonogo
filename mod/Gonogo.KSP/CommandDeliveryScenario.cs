@@ -57,10 +57,7 @@ namespace Gonogo.KSP
                 var carried = DeliverySnapshotCodec.Decode(node.GetValue(DeliveryKey));
                 var encodedHeard = node.GetValue(HeardKey);
                 var kernel = GonogoAddon.SharedEngine?.Kernel;
-                var heard = HeardSnapshotCodec.Decode(
-                    encodedHeard,
-                    (model, data) => CommsElection.RestoreLinkStrength(kernel, model, data),
-                    (model, data) => CommsElection.RestoreLinkModel(kernel, model, data));
+                var heard = HeardSnapshotCodec.Decode(encodedHeard, (model, data) => CommsElection.RestoreLinkStrength(kernel, model, data));
                 var savedUt = double.TryParse(node.GetValue(UtKey), NumberStyles.Float, CultureInfo.InvariantCulture, out var ut)
                     ? ut
                     : double.NegativeInfinity;
