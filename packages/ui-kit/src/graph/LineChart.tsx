@@ -546,7 +546,13 @@ export function LineChart({
   const [focusRing, setFocusRing] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
-  const [cardForm, setCardForm] = useState(0);
+  const [formAt, setFormAt] = useState<{
+    w: number;
+    h: number;
+    form: number;
+  } | null>(null);
+  // A form is tried from the most spread out at each plot size, so a chart resized to a size reads the same as one first drawn there.
+  const cardForm = formAt?.w === width && formAt.h === height ? formAt.form : 0;
   const [measured, setMeasured] = useState<{
     w: number;
     h: number;
@@ -578,10 +584,6 @@ export function LineChart({
     ro.observe(cardEl);
     return () => ro.disconnect();
   }, [cardEl, cardForm]);
-  // A new plot size starts the forms over from the most spread out.
-  useLayoutEffect(() => {
-    if (width >= 0 && height >= 0) setCardForm(0);
-  }, [width, height]);
   const w = width;
   const h = height;
 
@@ -1328,8 +1330,8 @@ export function LineChart({
     !cardBox &&
     cardForm < cardForms - 1;
   useLayoutEffect(() => {
-    if (needsNextForm) setCardForm((form) => form + 1);
-  }, [needsNextForm]);
+    if (needsNextForm) setFormAt({ w: width, h: height, form: cardForm + 1 });
+  }, [needsNextForm, width, height, cardForm]);
   // The line stands on a sample the way the keys put it, so the instant it names is a sample's own time and does not depend on where the plot's pixels fall.
   const snapped = (at: number): number => {
     let best = at;
