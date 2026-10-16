@@ -19,7 +19,8 @@ namespace Gonogo.KSP.CurrencyDelay
                 chunk.Amount,
                 chunk.RevealUt,
                 chunk.VesselId,
-                originDescription);
+                originDescription,
+                chunk.HeldSinceUt);
         }
     }
 }

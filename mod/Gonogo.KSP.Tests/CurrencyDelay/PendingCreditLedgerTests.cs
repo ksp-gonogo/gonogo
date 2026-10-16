@@ -181,10 +181,23 @@ public class PendingCreditLedgerTests
         ledger.Enqueue(HeldRow("still-silent"));
         ledger.Enqueue(HeldRow("heard"));
 
-        ledger.ReleaseHeld(1000, row => (row.OriginVesselId != "still-silent", 0));
+        ledger.ReleaseHeld(1000, row => (row.OriginVesselId != "still-silent" ? HeldOutcome.Lands : HeldOutcome.Waits, 0));
 
         Assert.Equal(new[] { "lost", "timed", "heard" }, ledger.PopMatured(1000).ConvertAll(r => r.OriginVesselId));
         Assert.Equal("still-silent", Assert.Single(ledger.Pending).OriginVesselId);
+    }
+
+    [Fact]
+    public void ReleaseHeld_removes_each_row_it_drops()
+    {
+        var ledger = new PendingCreditLedger();
+        ledger.Enqueue(HeldRow("dropped"));
+        ledger.Enqueue(HeldRow("waiting"));
+
+        ledger.ReleaseHeld(1000, row => (row.OriginVesselId == "dropped" ? HeldOutcome.Drops : HeldOutcome.Waits, 0));
+
+        Assert.Equal("waiting", Assert.Single(ledger.Pending).OriginVesselId);
+        Assert.Empty(ledger.PopMatured(double.MaxValue));
     }
 
     [Fact]
@@ -194,7 +207,7 @@ public class PendingCreditLedgerTests
         ledger.Enqueue(HeldRow("lost"));
         ledger.Enqueue(HeldRow("heard"));
 
-        ledger.ReleaseHeld(1000, row => (true, row.OriginVesselId == "lost" ? 3 : 0));
+        ledger.ReleaseHeld(1000, row => (HeldOutcome.Lands, row.OriginVesselId == "lost" ? 3 : 0));
 
         var landed = Assert.Single(PendingCreditLedger.FromConfigNode(ledger.ToConfigNode()).LandedOnLost);
         Assert.Equal("lost", landed.OriginVesselId);

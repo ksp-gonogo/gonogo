@@ -70,6 +70,10 @@ namespace Gonogo.KSP.CurrencyDelay
         internal static double SecondsToHome(string vesselId, SignalDelayConfig? config) =>
             KscDelayPolicy.DelaySeconds(ForVesselId(vesselId, config), config);
 
+        /// <summary>As <see cref="SecondsToHome"/> for a science credit: null for one held until home hears from its craft. See <see cref="KscDelayPolicy.ScienceDelaySeconds"/>.</summary>
+        internal static double? ScienceSecondsToHome(string vesselId, SignalDelayConfig? config) =>
+            KscDelayPolicy.ScienceDelaySeconds(ForVesselId(vesselId, config), config);
+
         /// <summary>
         /// The routed one-way signal delay for a vessel named only by its id, found
         /// among the vessels the game currently holds.

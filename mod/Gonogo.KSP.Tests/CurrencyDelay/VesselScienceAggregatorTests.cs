@@ -149,4 +149,52 @@ public class VesselScienceAggregatorTests
         var drainedAgain = aggregator.Drain(nowUt: 1000.0);
         Assert.Empty(drainedAgain);
     }
+
+    [Fact]
+    public void Science_earned_with_no_route_home_is_held_from_its_last_increment()
+    {
+        var aggregator = new VesselScienceAggregator();
+
+        var chunk = aggregator.Accept("vessel-a", 1.0, nowUt: 100.0, lightTimeSeconds: null);
+
+        Assert.NotNull(chunk);
+        Assert.Equal(100.0, chunk!.Value.HeldSinceUt);
+        Assert.Equal(double.PositiveInfinity, chunk.Value.RevealUt);
+    }
+
+    [Fact]
+    public void Held_and_timed_science_from_one_craft_never_share_a_chunk()
+    {
+        var aggregator = new VesselScienceAggregator();
+        aggregator.Accept("vessel-a", 0.01, nowUt: 0.0, lightTimeSeconds: 10.0);
+        aggregator.Accept("vessel-a", 0.01, nowUt: 1.0, lightTimeSeconds: null);
+
+        var chunks = aggregator.Drain(nowUt: 10.0);
+
+        Assert.Equal(2, chunks.Count);
+        Assert.Single(chunks, c => c.HeldSinceUt == 1.0);
+        Assert.Single(chunks, c => c.HeldSinceUt == null && c.RevealUt == 10.0);
+    }
+
+    [Fact]
+    public void Delay_switched_off_makes_an_open_held_window_due_at_once()
+    {
+        var aggregator = new VesselScienceAggregator();
+        aggregator.Accept("vessel-a", 0.01, nowUt: 0.0, lightTimeSeconds: null);
+
+        aggregator.ScaleLightTimes(0.0);
+
+        var chunk = Assert.Single(aggregator.Drain(nowUt: 10.0));
+        Assert.Null(chunk.HeldSinceUt);
+        Assert.Equal(0.0, chunk.RevealUt);
+    }
+
+    [Fact]
+    public void A_held_chunk_becomes_a_held_science_row()
+    {
+        var row = ScienceChunkCredit.ToPendingCreditRow(new AggregatedScienceChunk("vessel-a", 1.0, 0.0, heldSinceUt: 100.0));
+
+        Assert.Equal(100.0, row.HeldSinceUt);
+        Assert.Equal(DelayedCurrency.Science, row.Currency);
+    }
 }

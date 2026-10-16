@@ -72,6 +72,14 @@ namespace Gonogo.KSP.CurrencyDelay
             return delay.IsUnroutable ? SilenceDeclarationSeconds(config) : delay.Seconds;
         }
 
+        /// <summary>
+        /// The seconds a science credit waits, or null for one held until home
+        /// hears from its craft: one earned with no route home while delay is
+        /// modelled.
+        /// </summary>
+        internal static double? ScienceDelaySeconds(KscDelay delay, SignalDelayConfig config) =>
+            Enabled(config) && delay.IsUnroutable ? (double?)null : DelaySeconds(delay, config);
+
         /// <summary>The UT an event becomes visible in the books.</summary>
         internal static double RevealUt(KscDelay delay, double eventUt, SignalDelayConfig config) =>
             eventUt + DelaySeconds(delay, config);

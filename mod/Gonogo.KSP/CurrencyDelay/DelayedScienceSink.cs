@@ -60,13 +60,11 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 // Resolve the origin against the live roster: only a vessel the
                 // game still holds has a CommNet connection to route through,
-                // and a route is now the only thing that produces a delay. An
-                // origin nothing carries is unroutable, and an unroutable
-                // increment waits out the silence-declaration deadline rather
-                // than landing free - the zero here was the hole this
-                // subsystem's whole rule exists to close.
+                // and a route is the only thing that produces a delay. An origin
+                // nothing carries is unroutable, and its increment is held until
+                // home hears from the craft rather than landing free.
                 var config = CommsCoreUplink.SignalDelayConfig;
-                var lightTime = KscLightTime.SecondsToHome(vesselId, config);
+                var lightTime = KscLightTime.ScienceSecondsToHome(vesselId, config);
 
                 var chunk = aggregator.Accept(vesselId, amount, ut, lightTime);
                 if (chunk.HasValue)

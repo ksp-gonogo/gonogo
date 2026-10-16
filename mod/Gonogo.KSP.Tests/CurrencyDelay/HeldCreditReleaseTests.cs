@@ -58,5 +58,46 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         {
             Assert.False(HeldCreditRelease.Lands(ChargedUt, null));
         }
-    }
+
+        private static HeldOutcome Science(HomeCraftView? view) => HeldCreditRelease.Outcome(DelayedCurrency.Science, ChargedUt, view);
+
+        [Fact]
+        public void HeldScienceLandsOnceHomeHasHeardFromTheCraftSinceItWasEarned()
+        {
+            Assert.Equal(HeldOutcome.Lands, Science(View(CentreContactState.InContact, ChargedUt + 10, HomeVerdictState.Nominal)));
+        }
+
+        [Fact]
+        public void HeldScienceWaitsWhileTheCraftIsSilent()
+        {
+            Assert.Equal(HeldOutcome.Waits, Science(View(CentreContactState.Silent, ChargedUt - 10, HomeVerdictState.Silent)));
+            Assert.Equal(HeldOutcome.Waits, Science(null));
+        }
+
+        /// <summary>The data never left the craft, so a declaration of loss is the end of it.</summary>
+        [Fact]
+        public void HeldScienceIsDroppedWhenHomeDeclaresTheCraftLost()
+        {
+            Assert.Equal(HeldOutcome.Drops, Science(View(CentreContactState.Silent, ChargedUt - 10, HomeVerdictState.Lost)));
+        }
+
+        [Fact]
+        public void HeldScienceIsDroppedWhenTheCraftWentWithoutAWordSinceItWasEarned()
+        {
+            Assert.Equal(HeldOutcome.Drops, Science(View(CentreContactState.Gone, ChargedUt - 10, HomeVerdictState.Gone)));
+        }
+
+        /// <summary>Home heard from the craft after the science was earned, then of its end: the data reached home first.</summary>
+        [Fact]
+        public void HeldScienceLandsWhenTheCraftWasHeardFromBeforeItWent()
+        {
+            Assert.Equal(HeldOutcome.Lands, Science(View(CentreContactState.Gone, ChargedUt + 10, HomeVerdictState.Gone)));
+        }
+
+        [Fact]
+        public void AHeldPenaltyStillLandsOnALossDeclaration()
+        {
+            Assert.Equal(HeldOutcome.Lands, HeldCreditRelease.Outcome(DelayedCurrency.Reputation, ChargedUt, View(CentreContactState.Silent, ChargedUt - 10, HomeVerdictState.Lost)));
+        }
+}
 }

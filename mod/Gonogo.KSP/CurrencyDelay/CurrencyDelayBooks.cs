@@ -90,7 +90,9 @@ namespace Gonogo.KSP.CurrencyDelay
                 Ledger.ReleaseHeld(nowUt, row =>
                 {
                     var home = HomeCraftViews.Of(row.OriginVesselId);
-                    return (HeldCreditRelease.Lands(row.HeldSinceUt!.Value, home), HeldCreditRelease.DeclarationOf(home));
+                    // Science is never landed on a declaration, so none of it is owed back when one is withdrawn.
+                    var lostSeq = row.Currency == DelayedCurrency.Science ? 0 : HeldCreditRelease.DeclarationOf(home);
+                    return (HeldCreditRelease.Outcome(row.Currency, row.HeldSinceUt!.Value, home), lostSeq);
                 });
                 _reveal.ApplyMatured(nowUt);
             }

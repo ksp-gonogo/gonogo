@@ -44,9 +44,9 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         {
             var arm = AwayScienceArm();
 
-            // Through the one definition both legs of the home round trip share,
-            // which is itself the id walk.
-            Assert.Contains("KscLightTime.SecondsToHome(vesselId", arm, StringComparison.Ordinal);
+            // Through the science twin of the one definition both legs of the home
+            // round trip share, which is itself the id walk.
+            Assert.Contains("KscLightTime.ScienceSecondsToHome(vesselId", arm, StringComparison.Ordinal);
             Assert.Contains("ForVesselId(vesselId", SecondsToHomeBody(), StringComparison.Ordinal);
         }
 
@@ -70,7 +70,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
 
             // The call, in the method body: the file's doc comment names the id walk
             // too, and a whole-file scan passed on the comment alone.
-            Assert.Contains("KscLightTime.SecondsToHome(vesselId", sink, StringComparison.Ordinal);
+            Assert.Contains("KscLightTime.ScienceSecondsToHome(vesselId", sink, StringComparison.Ordinal);
 
             // It grew its own roster walk while the interceptor grew none, which
             // is how one subsystem came to hold two answers to one question and
@@ -99,7 +99,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         /// <summary>An expression-bodied member has no braces, so it runs to its first semicolon.</summary>
         private static string SecondsToHomeBody()
         {
-            const string declaration = "internal static double SecondsToHome(";
+            const string declaration = "internal static double? ScienceSecondsToHome(";
             var source = CurrencyDelaySourceText.Read("KscLightTime.cs");
             var at = source.IndexOf(declaration, StringComparison.Ordinal);
             if (at < 0)

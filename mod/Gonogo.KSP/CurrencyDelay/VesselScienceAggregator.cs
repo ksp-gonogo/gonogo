@@ -12,13 +12,23 @@ namespace Gonogo.KSP.CurrencyDelay
     {
         public string VesselId { get; }
         public double Amount { get; }
+
+        /// <summary>The instant the chunk is due, or positive infinity for one held: see <see cref="HeldSinceUt"/>.</summary>
         public double RevealUt { get; }
 
-        public AggregatedScienceChunk(string vesselId, double amount, double revealUt)
+        /// <summary>
+        /// For science earned with no route home, the instant of its last
+        /// increment, which home has to hear from the craft at or after for it to
+        /// land; null for a chunk due at <see cref="RevealUt"/>.
+        /// </summary>
+        public double? HeldSinceUt { get; }
+
+        public AggregatedScienceChunk(string vesselId, double amount, double revealUt, double? heldSinceUt = null)
         {
             VesselId = vesselId;
             Amount = amount;
-            RevealUt = revealUt;
+            RevealUt = heldSinceUt == null ? revealUt : double.PositiveInfinity;
+            HeldSinceUt = heldSinceUt;
         }
     }
 
@@ -63,13 +73,22 @@ namespace Gonogo.KSP.CurrencyDelay
 
         private sealed class Window
         {
+            public string VesselId = "";
             public double AccumulatedAmount;
             public double WindowStartUt;
             public double LatestUt;
             public double LatestLightTimeSeconds;
+
+            /// <summary>Whether the window holds science earned with no route home.</summary>
+            public bool Held;
         }
 
-        private readonly Dictionary<string, Window> _windows = new Dictionary<string, Window>();
+        /// <summary>
+        /// The open windows, by vessel and by whether they are held: science a
+        /// craft earns with a route home and science it earns without one never
+        /// share a chunk.
+        /// </summary>
+        private readonly Dictionary<(string VesselId, bool Held), Window> _windows = new Dictionary<(string, bool), Window>();
 
         /// <summary>
         /// Records one increment for a vessel. Returns the chunk this call
@@ -88,29 +107,31 @@ namespace Gonogo.KSP.CurrencyDelay
         /// per-increment smearing, but the same effect at chunk
         /// granularity.
         /// </summary>
-        public AggregatedScienceChunk? Accept(string vesselId, double increment, double nowUt, double lightTimeSeconds)
+        /// <param name="lightTimeSeconds">The signal delay the increment waits, or null for one earned with no route home, which is held until home hears from the craft.</param>
+        public AggregatedScienceChunk? Accept(string vesselId, double increment, double nowUt, double? lightTimeSeconds)
         {
             if (string.IsNullOrEmpty(vesselId))
             {
                 throw new ArgumentException("vesselId must not be null or empty", nameof(vesselId));
             }
 
-            if (!_windows.TryGetValue(vesselId, out var window))
+            var key = (vesselId, lightTimeSeconds == null);
+            if (!_windows.TryGetValue(key, out var window))
             {
-                window = new Window { WindowStartUt = nowUt };
-                _windows[vesselId] = window;
+                window = new Window { VesselId = vesselId, WindowStartUt = nowUt, Held = lightTimeSeconds == null };
+                _windows[key] = window;
             }
 
             window.AccumulatedAmount += increment;
             window.LatestUt = nowUt;
-            window.LatestLightTimeSeconds = lightTimeSeconds;
+            window.LatestLightTimeSeconds = lightTimeSeconds ?? 0.0;
 
             var cadenceElapsed = nowUt - window.WindowStartUt >= FlushCadenceSeconds;
             var thresholdCrossed = window.AccumulatedAmount >= FlushThresholdScience;
 
             if (cadenceElapsed || thresholdCrossed)
             {
-                return Flush(vesselId, window);
+                return Flush(key, window);
             }
 
             return null;
@@ -119,13 +140,18 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>
         /// Multiplies the signal delay every open window will reveal with by
         /// <paramref name="factor"/>, for a delay that has just been shortened or
-        /// switched off.
+        /// switched off. Switched off, a factor of 0, a held window is due at
+        /// once like the rest.
         /// </summary>
         public void ScaleLightTimes(double factor)
         {
             foreach (var window in _windows.Values)
             {
                 window.LatestLightTimeSeconds *= Math.Max(0.0, factor);
+                if (factor <= 0.0)
+                {
+                    window.Held = false;
+                }
             }
         }
 
@@ -142,26 +168,27 @@ namespace Gonogo.KSP.CurrencyDelay
         {
             var flushed = new List<AggregatedScienceChunk>();
 
-            foreach (var vesselId in new List<string>(_windows.Keys))
+            foreach (var key in new List<(string, bool)>(_windows.Keys))
             {
-                var window = _windows[vesselId];
+                var window = _windows[key];
                 if (nowUt - window.WindowStartUt >= FlushCadenceSeconds)
                 {
-                    flushed.Add(Flush(vesselId, window));
+                    flushed.Add(Flush(key, window));
                 }
             }
 
             return flushed;
         }
 
-        private AggregatedScienceChunk Flush(string vesselId, Window window)
+        private AggregatedScienceChunk Flush((string, bool) key, Window window)
         {
             var chunk = new AggregatedScienceChunk(
-                vesselId,
+                window.VesselId,
                 window.AccumulatedAmount,
-                window.LatestUt + window.LatestLightTimeSeconds);
+                window.LatestUt + window.LatestLightTimeSeconds,
+                window.Held ? window.LatestUt : (double?)null);
 
-            _windows.Remove(vesselId);
+            _windows.Remove(key);
 
             return chunk;
         }

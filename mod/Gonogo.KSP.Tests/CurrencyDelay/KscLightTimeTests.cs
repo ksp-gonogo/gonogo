@@ -139,6 +139,23 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         }
 
         [Fact]
+        public void With_delay_enabled_science_with_no_route_is_held_rather_than_timed()
+        {
+            var on = new SignalDelayConfig { Enabled = true, SilenceDeclarationSeconds = 86_400.0 };
+
+            Assert.Null(KscDelayPolicy.ScienceDelaySeconds(KscDelay.Unroutable, on));
+            Assert.Equal(4.0, KscDelayPolicy.ScienceDelaySeconds(KscDelay.Routed(4.0), on));
+        }
+
+        [Fact]
+        public void With_delay_disabled_science_with_no_route_lands_at_once()
+        {
+            var off = new SignalDelayConfig { Enabled = false, SilenceDeclarationSeconds = 86_400.0 };
+
+            Assert.Equal(0.0, KscDelayPolicy.ScienceDelaySeconds(KscDelay.Unroutable, off));
+        }
+
+        [Fact]
         public void With_delay_disabled_the_aggregator_offset_is_zero()
         {
             var off = new SignalDelayConfig { Enabled = false, SilenceDeclarationSeconds = 86_400.0 };

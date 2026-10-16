@@ -430,7 +430,7 @@ namespace Gonogo.KSP.CurrencyDelay
             // (KscLightTime.SecondsToHome), so the round trip is one number twice.
             var lightTime = recovered
                 ? KscDelayPolicy.DelaySeconds(KscDelay.Instant, config)
-                : KscLightTime.SecondsToHome(vesselId, config);
+                : KscLightTime.ScienceSecondsToHome(vesselId, config);
 
             NeutraliseScience(shadowToRestore);
 
@@ -460,7 +460,8 @@ namespace Gonogo.KSP.CurrencyDelay
                 CurrencyKind.Science, chunk.Value.Amount, shadowToRestore, vesselId,
                 // Already-resolved reveal UT: the aggregator applied the
                 // increment's own delay when it closed its window.
-                KscDelay.Instant, nowUt: chunk.Value.RevealUt, config: CommsCoreUplink.SignalDelayConfig);
+                KscDelay.Instant, nowUt: chunk.Value.RevealUt, config: CommsCoreUplink.SignalDelayConfig,
+                heldSinceUt: chunk.Value.HeldSinceUt);
 
             EnqueueCredit(credit);
         }

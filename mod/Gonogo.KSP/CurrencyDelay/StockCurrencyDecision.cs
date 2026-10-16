@@ -170,6 +170,7 @@ namespace Gonogo.KSP.CurrencyDelay
         private static bool HoldsForHome(KscDelay delay, CurrencyKind currency, Sitrep.Host.Comms.SignalDelayConfig config) =>
             KscDelayPolicy.Enabled(config) && delay.IsUnroutable && currency == CurrencyKind.Reputation;
 
+        /// <param name="heldSinceUt">For a credit already held until home hears of its craft (science earned with no route home), the instant it is held since.</param>
         public static StockCurrencyCredit? BuildCredit(
             CurrencyKind currency,
             double baseAmount,
@@ -177,7 +178,8 @@ namespace Gonogo.KSP.CurrencyDelay
             string originVesselId,
             KscDelay delay,
             double nowUt,
-            Sitrep.Host.Comms.SignalDelayConfig config)
+            Sitrep.Host.Comms.SignalDelayConfig config,
+            double? heldSinceUt = null)
         {
             if (baseAmount == 0.0)
             {
@@ -190,6 +192,11 @@ namespace Gonogo.KSP.CurrencyDelay
                 currency,
                 baseAmount,
                 shadowBalance);
+
+            if (heldSinceUt != null)
+            {
+                return new StockCurrencyCredit(currency, baseAmount, double.PositiveInfinity, originVesselId ?? "", description, heldSinceUt: heldSinceUt);
+            }
 
             if (HoldsForHome(delay, currency, config))
             {

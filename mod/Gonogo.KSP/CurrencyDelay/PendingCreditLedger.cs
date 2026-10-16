@@ -76,10 +76,11 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>
         /// Makes each held row <paramref name="landing"/> lands due at
         /// <paramref name="nowUt"/>, in place, so it is revealed in the order it
-        /// was taken in. A row that lands on a Lost declaration, a non-zero
-        /// declaration number, is also recorded in <see cref="LandedOnLost"/>.
+        /// was taken in, and removes each it drops. A row that lands on a Lost
+        /// declaration, a non-zero declaration number, is also recorded in
+        /// <see cref="LandedOnLost"/>.
         /// </summary>
-        public void ReleaseHeld(double nowUt, Func<PendingCreditRow, (bool Lands, int LostSeq)> landing)
+        public void ReleaseHeld(double nowUt, Func<PendingCreditRow, (HeldOutcome Outcome, int LostSeq)> landing)
         {
             for (var i = 0; i < _rows.Count; i++)
             {
@@ -88,8 +89,14 @@ namespace Gonogo.KSP.CurrencyDelay
                 {
                     continue;
                 }
-                var (lands, lostSeq) = landing(row);
-                if (!lands)
+                var (outcome, lostSeq) = landing(row);
+                if (outcome == HeldOutcome.Drops)
+                {
+                    _rows.RemoveAt(i);
+                    i--;
+                    continue;
+                }
+                if (outcome != HeldOutcome.Lands)
                 {
                     continue;
                 }
