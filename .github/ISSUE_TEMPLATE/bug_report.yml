@@ -1,0 +1,75 @@
+name: Bug report
+description: Something in Gonogo does not work
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The [reporting guide](https://github.com/ksp-gonogo/gonogo/blob/main/docs/REPORTING.md) shows where to find the versions and logs asked for below.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to make it happen
+      placeholder: |
+        1. Load a save
+        2. Open the Map widget
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: mod-version
+    attributes:
+      label: Mod version
+      description: Settings, About, Mod
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version or image tag
+      description: Settings, About, Gonogo. For the container, the tag you run, such as rc
+    validations:
+      required: true
+  - type: input
+    id: ksp-version
+    attributes:
+      label: KSP version
+    validations:
+      required: true
+  - type: textarea
+    id: uplinks
+    attributes:
+      label: Installed Uplinks
+      description: Settings, Uplinks. Name each with its version, or write none
+    validations:
+      required: true
+  - type: dropdown
+    id: screen
+    attributes:
+      label: Where it happened
+      options:
+        - Main screen
+        - Station
+        - Both
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: The [Gonogo] lines from KSP.log and the browser console. The reporting guide says how to get them
+      render: text
+    validations:
+      required: false

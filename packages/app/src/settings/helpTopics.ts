@@ -227,6 +227,20 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
     ],
   },
   {
+    id: "report",
+    title: "Reporting a problem",
+    blocks: [
+      text(
+        "A bug report is most useful with the versions from Settings, About, the Gonogo lines from KSP.log and the browser console. The guide says where to find each on Windows, macOS, Linux and the Steam Deck, and the report form on GitHub asks for them.",
+      ),
+      {
+        kind: "link",
+        label: "Reporting a problem",
+        href: SETUP_LINKS.reporting,
+      },
+    ],
+  },
+  {
     id: "app",
     title: "Running the app",
     blocks: [

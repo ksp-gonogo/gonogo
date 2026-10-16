@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Where to find the logs and versions
+    url: https://github.com/ksp-gonogo/gonogo/blob/main/docs/REPORTING.md
+    about: What to collect before you report a problem

@@ -1,0 +1,17 @@
+name: Feature idea
+description: Suggest something Gonogo could do
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Gonogo to do
+      description: Describe it as you would use it during a flight
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What are you trying to do that you cannot today
+    validations:
+      required: false

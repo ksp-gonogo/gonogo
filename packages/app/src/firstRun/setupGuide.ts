@@ -115,6 +115,7 @@ export const SETUP_LINKS = {
   ckanInstall: "https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN",
   kspSetup: `${DOCS}/KSP-SETUP.md`,
   networking: `${DOCS}/NETWORKING.md`,
+  reporting: `${DOCS}/REPORTING.md`,
   relayPorts: `${DOCS}/NETWORKING.md#cross-internet-stations-cellular-remote-networks`,
   source: "https://github.com/ksp-gonogo/gonogo",
   uplinkDocs: "https://ksp-gonogo.github.io/uplink-dev-docs/",

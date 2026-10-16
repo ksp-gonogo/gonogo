@@ -16,6 +16,7 @@ import { describe, expect, it } from "vitest";
 const USER_DOCS: readonly string[] = [
   "docs/KSP-SETUP.md",
   "docs/NETWORKING.md",
+  "docs/REPORTING.md",
   "docs/homepage/README.md",
 ];
 
