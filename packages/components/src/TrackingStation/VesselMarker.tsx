@@ -112,7 +112,6 @@ export function VesselMarker({
   held = false,
   fromRecord = false,
   selected = false,
-  onActivate,
 }: Readonly<{
   at: PlacedPoint;
   crowdAnchor: PlacedPoint;
@@ -124,8 +123,6 @@ export function VesselMarker({
   fromRecord?: boolean;
   /** The active vessel's own info is showing in the aside. */
   selected?: boolean;
-  /** Absent leaves the marker inert, as it is where no aside has anything to say about the craft. */
-  onActivate?: () => void;
 }>) {
   const pos = { x: at.x, y: at.y };
   const { marker, leaderFrom } = resolveVesselMarkerPlacement(
@@ -196,37 +193,63 @@ export function VesselMarker({
           strokeWidth={2 / zoom}
         />
       )}
-      {onActivate && (
-        <InteractiveMarker
-          data-vessel-hit=""
-          role="button"
-          tabIndex={0}
-          aria-label="Active vessel"
-          aria-pressed={selected}
-          style={{ cursor: "pointer", pointerEvents: "all" }}
-          // A press on the craft selects it and never starts a pan.
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={onActivate}
-          onKeyDown={activateOnKey(onActivate)}
-        >
-          <circle
-            className="focus-ring"
-            cx={marker.x}
-            cy={marker.y}
-            r={r * 3.2}
-            fill="none"
-            stroke="var(--color-focus)"
-            strokeWidth={2 / zoom}
-            pointerEvents="none"
-          />
-          <circle
-            cx={marker.x}
-            cy={marker.y}
-            r={Math.max(r * 2.6, 12 / zoom)}
-            fill="transparent"
-          />
-        </InteractiveMarker>
-      )}
     </g>
+  );
+}
+
+/**
+ * The active vessel's press target: a button over the craft's marker that selects it and shows its own info in the aside.
+ * Drawn before the body dots so a body the craft orbits keeps the centre of its own dot, with the craft's target ringing it.
+ */
+export function VesselHitTarget({
+  at,
+  crowdAnchor,
+  zoom,
+  selected,
+  onActivate,
+}: Readonly<{
+  at: PlacedPoint;
+  crowdAnchor: PlacedPoint;
+  zoom: number;
+  /** The active vessel's own info is showing in the aside. */
+  selected: boolean;
+  onActivate: () => void;
+}>) {
+  const { marker } = resolveVesselMarkerPlacement(
+    { x: at.x, y: at.y },
+    zoom,
+    crowdAnchor,
+  );
+  const r = 5 / zoom;
+  return (
+    <InteractiveMarker
+      data-vessel-hit=""
+      role="button"
+      tabIndex={0}
+      aria-label="Active vessel"
+      aria-pressed={selected}
+      style={{ cursor: "pointer", pointerEvents: "all" }}
+      // A press on the craft selects it and never starts a pan.
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={onActivate}
+      onKeyDown={activateOnKey(onActivate)}
+    >
+      <circle
+        className="focus-ring"
+        cx={marker.x}
+        cy={marker.y}
+        r={r * 3.2}
+        fill="none"
+        stroke="var(--color-focus)"
+        strokeWidth={2 / zoom}
+        pointerEvents="none"
+      />
+      <circle
+        cx={marker.x}
+        cy={marker.y}
+        r={Math.max(r * 2.6, 12 / zoom)}
+        fill="transparent"
+      />
+    </InteractiveMarker>
   );
 }

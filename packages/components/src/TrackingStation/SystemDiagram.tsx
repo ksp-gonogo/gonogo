@@ -44,7 +44,11 @@ import {
 import type { TargetConic, TargetEncounter } from "./targetOrbit";
 import type { CelestialBody } from "./useCelestialBodies";
 import type { PanZoom } from "./usePanZoom";
-import { VesselMarker, type VesselPlotState } from "./VesselMarker";
+import {
+  VesselHitTarget,
+  VesselMarker,
+  type VesselPlotState,
+} from "./VesselMarker";
 
 export type { VesselOrbit } from "./diagramGeometry";
 
@@ -596,6 +600,16 @@ export function SystemDiagram({
           />
         )}
 
+        {placed.vessel && onVesselActivate && (
+          <VesselHitTarget
+            at={placed.vessel}
+            crowdAnchor={placed.parent}
+            zoom={zoom}
+            selected={vesselSelected}
+            onActivate={onVesselActivate}
+          />
+        )}
+
         <FrameBodyMark
           body={parent}
           at={placed.parent}
@@ -671,7 +685,6 @@ export function SystemDiagram({
             held={vesselPositionHeld}
             fromRecord={vesselFromRecord}
             selected={vesselSelected}
-            onActivate={onVesselActivate}
           />
         )}
       </svg>
