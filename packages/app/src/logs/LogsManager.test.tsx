@@ -2,7 +2,18 @@ import { logger, tagRegistry } from "@ksp-gonogo/logger";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { HttpResponse, http } from "msw";
+import { setupServer } from "msw/node";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { LogsManager } from "./LogsManager";
 
 // Most of the rest of the modal (Verbose logging, Log buffer) reads
@@ -11,7 +22,37 @@ import { LogsManager } from "./LogsManager";
 // hook-of-hook ever needs it. The interesting assertions are on the
 // "Report bug" subform.
 
+/** Every request the ingest endpoint received, as its parsed JSON body. */
+let ingested: unknown[][] = [];
+let ingestStatus = 200;
+
+// The one-shot report transport talks to Axiom itself, so intercept at the network boundary.
+const server = setupServer(
+  http.post(
+    "https://api.axiom.co/v1/datasets/:dataset/ingest",
+    async ({ request }) => {
+      ingested.push((await request.json()) as unknown[]);
+      return ingestStatus === 200
+        ? HttpResponse.json({ ingested: 1, failed: 0 })
+        : new HttpResponse("nope", { status: ingestStatus });
+    },
+  ),
+);
+
+beforeAll(() => {
+  // Without CompressionStream the SDK sends plain JSON; jsdom's Blob cannot feed its gzip path.
+  vi.stubGlobal("CompressionStream", undefined);
+  server.listen({ onUnhandledRequest: "error" });
+});
+afterAll(() => {
+  server.close();
+  vi.unstubAllGlobals();
+});
+
 beforeEach(() => {
+  ingested = [];
+  ingestStatus = 200;
+  vi.stubEnv("VITE_AXIOM_TOKEN", "test-token");
   logger.clearBuffer();
   logger.setEnabled(true);
 });
@@ -19,6 +60,7 @@ beforeEach(() => {
 afterEach(() => {
   logger.clearBuffer();
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 
 function renderManager() {
@@ -226,5 +268,54 @@ describe("LogsManager: Feedback", () => {
     ).toBeInTheDocument();
     const reports = logger.getBuffer().filter((e) => e.tag === "bug-report");
     expect(reports).toHaveLength(0);
+  });
+});
+
+describe("LogsManager: Feedback with analytics off", () => {
+  it("sends the report to the developer through its own one-shot transport", async () => {
+    expect(logger.transportCount()).toBe(0);
+    const user = await openReportForm();
+    await user.type(screen.getByLabelText(/what went wrong/i), "Gauge froze");
+    await user.click(screen.getByRole("button", { name: /send report/i }));
+
+    await waitFor(
+      () => {
+        expect(screen.getByText(/bug report sent/i)).toBeInTheDocument();
+      },
+      { timeout: 8000 },
+    );
+    const events = ingested.flat() as { message?: string; tag?: string }[];
+    expect(events.some((e) => e.message === "[bug-report] Gauge froze")).toBe(
+      true,
+    );
+    // The one-shot is gone again, so nothing else is shipped in the background.
+    expect(logger.transportCount()).toBe(0);
+    await act(async () => {});
+  });
+
+  it("says plainly that the report was not sent when delivery fails", async () => {
+    ingestStatus = 500;
+    const user = await openReportForm();
+    await user.type(screen.getByLabelText(/what went wrong/i), "Gauge froze");
+    await user.click(screen.getByRole("button", { name: /send report/i }));
+
+    expect(
+      await screen.findByText(/report could not be sent/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/bug report sent/i)).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  it("says plainly that the build cannot send when it has no token", async () => {
+    vi.stubEnv("VITE_AXIOM_TOKEN", "");
+    const user = await openReportForm();
+    await user.type(screen.getByLabelText(/what went wrong/i), "Gauge froze");
+    await user.click(screen.getByRole("button", { name: /send report/i }));
+
+    expect(
+      await screen.findByText(/cannot send reports to the developer/i),
+    ).toBeInTheDocument();
+    expect(ingested).toHaveLength(0);
+    await act(async () => {});
   });
 });

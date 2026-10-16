@@ -32,6 +32,11 @@ export interface AxiomTransportOptions {
    * Tests pass `false` to keep behaviour deterministic.
    */
   flushOnPageHide?: boolean;
+  /**
+   * Called when the SDK fails to deliver a batch. Only used when the
+   * transport builds the client from `token`. Omitted, failures are silent.
+   */
+  onError?: (error: unknown) => void;
 }
 
 /**
@@ -82,7 +87,7 @@ export class AxiomTransport implements LogTransport {
         // failure doesn't show up as a noisy error on the user's screen.
         // The console transport (i.e. `ConsoleLogger`) keeps its own log
         // visibility independent of remote delivery.
-        onError: () => {},
+        onError: options.onError ?? (() => {}),
       });
     }
     throw new Error("AxiomTransport requires either `client` or `token`");

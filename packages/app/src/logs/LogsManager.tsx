@@ -29,6 +29,7 @@ import {
   SCREENSHOT_WARN_BYTES,
   ScreenshotTooLargeError,
 } from "./screenshotEncoder";
+import { sendReportOnce } from "./sendReportOnce";
 
 const LOG_TAGS_KEY = "LOG_TAGS";
 
@@ -251,24 +252,31 @@ function ReportBug() {
       // informational. Same payload shape either way, distinguished by `kind`.
       if (kind === "feedback") tagged.info(trimmed, payload);
       else tagged.error(trimmed, undefined, payload);
-      // The Axiom SDK auto-batches and retries on its own. Race the flush
-      // against a 10s deadline so a slow transport (e.g. backpressure on
-      // a large screenshot) doesn't trap the UI in "Submitting...". The entry
-      // is in the ring buffer regardless, so timing out is a soft success:
-      // surface "sent" but flip the form to its post-send state quickly.
-      const flushOrTimeout = await Promise.race([
-        logger.flushTransports().then(() => "flushed" as const),
-        new Promise<"timeout">((resolve) =>
-          window.setTimeout(() => resolve("timeout"), 10_000),
-        ),
-      ]);
-      if (flushOrTimeout === "timeout") {
-        // Don't error out: the entry is in the ring buffer and the SDK
-        // will keep retrying. Tag a one-liner so the operator sees in
-        // their own logs that delivery was slow.
-        logger.warn("[report] flush did not complete within 10s", {
-          screenshotEncodedSize: screenshot?.encodedSize ?? null,
-        });
+      if (logger.transportCount() === 0) {
+        // No standing sink is installed (analytics is off), so this Send ships its own entry: pressing it is the consent.
+        const entry = logger.getBuffer().at(-1);
+        if (!entry) throw new Error("The report could not be sent.");
+        await sendReportOnce(entry);
+      } else {
+        // The Axiom SDK auto-batches and retries on its own. Race the flush
+        // against a 10s deadline so a slow transport (e.g. backpressure on
+        // a large screenshot) doesn't trap the UI in "Submitting...". The entry
+        // is in the ring buffer regardless, so timing out is a soft success:
+        // surface "sent" but flip the form to its post-send state quickly.
+        const flushOrTimeout = await Promise.race([
+          logger.flushTransports().then(() => "flushed" as const),
+          new Promise<"timeout">((resolve) =>
+            window.setTimeout(() => resolve("timeout"), 10_000),
+          ),
+        ]);
+        if (flushOrTimeout === "timeout") {
+          // Don't error out: the entry is in the ring buffer and the SDK
+          // will keep retrying. Tag a one-liner so the operator sees in
+          // their own logs that delivery was slow.
+          logger.warn("[report] flush did not complete within 10s", {
+            screenshotEncodedSize: screenshot?.encodedSize ?? null,
+          });
+        }
       }
       setPhase("sent");
       setOpen(false);
