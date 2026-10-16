@@ -1225,6 +1225,26 @@ namespace Sitrep.Host.IntegrationTests
                 values["vessels"] = Game.RosterSnapshot();
             }
             Engine.TickAndWait(ut, new KspSnapshot { Ut = ut, Values = values }, Timeout);
+            WaitForTheOutboxesToDrain(ut);
+        }
+
+        /// <summary>
+        /// A topic that keeps only its newest frame loses every reading a later
+        /// tick overwrites before the outbox pump has sent it, so a tick returns
+        /// only once each screen's queue is empty and every report is the one
+        /// its own tick produced.
+        /// </summary>
+        private void WaitForTheOutboxesToDrain(double ut)
+        {
+            var deadline = DateTime.UtcNow + Timeout;
+            while (Engine.AnySessionHasQueuedFrames())
+            {
+                if (DateTime.UtcNow > deadline)
+                {
+                    throw new TimeoutException("the outboxes still held frames " + Timeout.TotalMilliseconds + " ms after the tick at UT " + ut);
+                }
+                Thread.Sleep(1);
+            }
         }
 
         /// <summary>Waits for both sockets to go quiet and takes in everything that arrived.</summary>

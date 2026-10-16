@@ -7211,6 +7211,14 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>
+        /// Test-only: whether any connected session still has a frame queued for
+        /// its socket. A lossy-latest topic keeps only its newest frame while the
+        /// pump has not drained, so a test that ticks faster than the pump runs
+        /// loses the intermediate readings it then asserts on.
+        /// </summary>
+        internal bool AnySessionHasQueuedFrames() => _sessions.Values.Any(session => session.Outbox.HasQueuedFrames);
+
         /// <summary>Test-only visibility into one topic's emission counters; see <c>GonogoBodiesServer.BodiesEmitterCounters</c>'s equivalent doc comment for why tests need this rather than inferring it from wire silence.</summary>
         internal EmissionCounters ChannelCounters(string topic) => _emitter.CountersFor(topic);
 
@@ -11722,8 +11730,11 @@ namespace Sitrep.Host
         /// </summary>
         public void ClearTopic(string topic) => _latestByTopic.TryRemove(topic, out _);
 
-        /// <summary>Test-only: whether a lossy-latest frame is currently queued (not yet pumped) for <paramref name="topic"/>. See <see cref="ChannelEngine.AnySessionHasQueuedFrame"/>.</summary>
+        /// <summary>Test-only: whether a lossy-latest frame is currently queued (not yet pumped) for <paramref name="topic"/>. See <see cref="ChannelEngine.AnySessionHasQueuedFrames"/>.</summary>
         internal bool HasQueuedFrame(string topic) => _latestByTopic.ContainsKey(topic);
+
+        /// <summary>Test-only: whether any frame, lossy-latest or reliable, is still waiting for the pump to hand it to the socket.</summary>
+        internal bool HasQueuedFrames => !_latestByTopic.IsEmpty || !_reliable.IsEmpty;
 
         private void PumpLoop()
         {
