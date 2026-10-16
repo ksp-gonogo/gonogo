@@ -1,4 +1,5 @@
 import { Axiom } from "@axiomhq/js";
+import { scrubEntry } from "./scrub.js";
 import type { LogEntry, LogTransport } from "./types.js";
 
 /**
@@ -45,7 +46,9 @@ export interface AxiomTransportOptions {
  * this wrapper is intentionally thin: convert {@link LogEntry} to JSON,
  * push to the client, and best-effort drain on tab close.
  *
- * Failures are swallowed, log delivery never crashes the app.
+ * Entries are scrubbed of share codes, addresses, host names, peer ids and
+ * URLs before they leave. Failures are swallowed, log delivery never crashes
+ * the app.
  */
 export class AxiomTransport implements LogTransport {
   /** Max entries per `ingest` call: bounds a one-shot backfill so a full
@@ -93,9 +96,11 @@ export class AxiomTransport implements LogTransport {
     throw new Error("AxiomTransport requires either `client` or `token`");
   }
 
-  send(entries: readonly LogEntry[]): void {
-    if (entries.length === 0) return;
+  send(unscrubbed: readonly LogEntry[]): void {
+    if (unscrubbed.length === 0) return;
     try {
+      // Every event passes through here, so scrubbing here covers every call site.
+      const entries = unscrubbed.map(scrubEntry);
       // Chunk large batches so a one-shot backfill of the whole ring buffer
       // (up to 5000 entries) can't exceed Axiom's per-request limits. Steady
       // -state sends are far smaller than the chunk size and pass through in
