@@ -157,6 +157,16 @@ namespace Gonogo.KSP
             _endsHooked = true;
             GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);
             GameEvents.onVesselRecovered.Add(OnVesselRecovered);
+            GameEvents.onVesselTerminated.Add(OnVesselTerminated);
+        }
+
+        /// <summary>The player ended the vessel from the Tracking Station; stock then destroys it, which this end replaces.</summary>
+        private void OnVesselTerminated(ProtoVessel vessel)
+        {
+            if (vessel != null)
+            {
+                _ends[vessel.vesselID.ToString()] = CraftEnd.Terminated;
+            }
         }
 
         private void OnVesselWillDestroy(Vessel vessel)

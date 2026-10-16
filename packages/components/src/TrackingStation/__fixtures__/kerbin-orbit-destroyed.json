@@ -168,7 +168,8 @@
               "declaredLostUt": null,
               "crewCount": 0,
               "endSource": 1,
-              "endedUt": -300.0
+              "endedUt": -300.0,
+              "endKind": 0
             }
           ]
         }
