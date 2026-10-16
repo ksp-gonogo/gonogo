@@ -68,7 +68,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
 
             var arms = ActiveArmIds();
-            Note("[Gonogo] derived-currency: BOUND on " + _lastBindReason + ", "
+            Note("BOUND on " + _lastBindReason + ", "
                 + arms.Count + " arm(s) active"
                 + (arms.Count == 0 ? "" : ": " + string.Join(", ", arms)));
         }
@@ -92,7 +92,7 @@ namespace Gonogo.KSP.CurrencyDelay
                 return;
             }
 
-            Report("[Gonogo] derived-currency: TORN DOWN on " + _lastTeardownReason
+            Report("TORN DOWN on " + _lastTeardownReason
                 + " (was bound on " + _lastBindReason + "). Nothing derived from a delayed currency "
                 + "change will be withheld until something binds a kernel again");
         }
@@ -168,7 +168,7 @@ namespace Gonogo.KSP.CurrencyDelay
         {
             if (!Bound)
             {
-                Report("[Gonogo] derived-currency: a delayed " + primaryCurrency + " credit of "
+                Report("a delayed " + primaryCurrency + " credit of "
                     + baseAmount.ToString("0.###", CultureInfo.InvariantCulture) + " at UT "
                     + ut.ToString("0.###", CultureInfo.InvariantCulture)
                     + " was neutralised with NO KERNEL BOUND, so no arm was asked and whatever any "
@@ -179,14 +179,14 @@ namespace Gonogo.KSP.CurrencyDelay
 
             if (reached.Count == 0)
             {
-                Note("[Gonogo] derived-currency: a delayed " + primaryCurrency + " credit of "
+                Note("a delayed " + primaryCurrency + " credit of "
                     + baseAmount.ToString("0.###", CultureInfo.InvariantCulture)
                     + " was neutralised and no installed mod has an arm registered, so nothing "
                     + "derived from it needed withholding");
                 return;
             }
 
-            Note("[Gonogo] derived-currency: asked " + string.Join(", ", reached)
+            Note("asked " + string.Join(", ", reached)
                 + " to withhold what it derived from a delayed " + primaryCurrency + " credit of "
                 + baseAmount.ToString("0.###", CultureInfo.InvariantCulture) + " at UT "
                 + ut.ToString("0.###", CultureInfo.InvariantCulture));
@@ -241,7 +241,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
             catch (Exception ex)
             {
-                Report("[Gonogo] derived-currency arm \"" + SafeId(arm)
+                Report("arm \"" + SafeId(arm)
                     + "\" would not take a diagnostic sink, so whatever it refuses to withhold will "
                     + "say so nowhere: " + ex.Message);
             }
@@ -274,7 +274,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
             catch (Exception ex)
             {
-                Report("[Gonogo] derived-currency arm \"" + SafeId(arm) + "\" threw out of " + call
+                Report("arm \"" + SafeId(arm) + "\" threw out of " + call
                     + ", so whatever it derives is NOT withheld: " + ex.Message);
             }
         }

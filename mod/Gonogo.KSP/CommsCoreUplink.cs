@@ -212,7 +212,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning("[Gonogo] the signal delay setting could not be read from the save: " + ex.Message);
+                    GonogoLog.Warn("comms", "the signal delay setting could not be read from the save: " + ex.Message);
                     return null;
                 }
             }

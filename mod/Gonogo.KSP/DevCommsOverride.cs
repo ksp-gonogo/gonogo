@@ -37,7 +37,6 @@ namespace Gonogo.KSP
     /// </summary>
     internal static class DevCommsOverride
     {
-        private const string LogPrefix = "[Gonogo] DevCommsOverride: ";
 
         // Matches GonogoDevTeleport's own poll cadence - comms-blackout
         // testing has no tighter latency requirement than teleport does.
@@ -106,14 +105,14 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning(LogPrefix + "failed enumerating loaded assemblies (treating as not-dev-tools): " + PathRedactor.Redact(ex.Message));
+                GonogoLog.Warn("dev-comms", "failed enumerating loaded assemblies (treating as not-dev-tools): " + PathRedactor.Redact(ex.Message));
                 found = false;
             }
 
             _devToolsLoaded = found;
             if (found)
             {
-                Debug.Log(LogPrefix + "GonogoDevTools assembly detected; force-comms override armed, polling " + PathRedactor.Redact(RequestPath));
+                GonogoLog.Info("dev-comms", "GonogoDevTools assembly detected; force-comms override armed, polling " + PathRedactor.Redact(RequestPath));
             }
             return found;
         }
@@ -142,13 +141,13 @@ namespace Gonogo.KSP
                     resolved = ModeOf(mode, out var recognised);
                     if (!recognised)
                     {
-                        Debug.LogWarning(LogPrefix + "unrecognized mode '" + mode + "' in " + PathRedactor.Redact(RequestPath) + "; treating as 'auto'");
+                        GonogoLog.Warn("dev-comms", "unrecognized mode '" + mode + "' in " + PathRedactor.Redact(RequestPath) + "; treating as 'auto'");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogWarning(LogPrefix + "failed reading " + PathRedactor.Redact(RequestPath) + " (treating as 'auto'): " + PathRedactor.Redact(ex.Message));
+                GonogoLog.Warn("dev-comms", "failed reading " + PathRedactor.Redact(RequestPath) + " (treating as 'auto'): " + PathRedactor.Redact(ex.Message));
                 resolved = null;
             }
 
@@ -156,11 +155,11 @@ namespace Gonogo.KSP
             {
                 if (resolved == false)
                 {
-                    Debug.LogWarning(LogPrefix + "mode -> " + DescribeMode(resolved) + ", from " + PathRedactor.Redact(RequestPath) + "; every craft reads out of contact until the request is set to restore");
+                    GonogoLog.Warn("dev-comms", "mode -> " + DescribeMode(resolved) + ", from " + PathRedactor.Redact(RequestPath) + "; every craft reads out of contact until the request is set to restore");
                 }
                 else
                 {
-                    Debug.Log(LogPrefix + "mode -> " + DescribeMode(resolved));
+                    GonogoLog.Info("dev-comms", "mode -> " + DescribeMode(resolved));
                 }
                 _everLogged = true;
             }
