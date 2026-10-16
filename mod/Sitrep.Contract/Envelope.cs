@@ -130,10 +130,12 @@ public class CommandRequest<TArgs>
     /// <summary>
     /// Per-call vantage override: the command centre id this command dispatches
     /// from, which decides its signal delay. Optional: null or empty uses the
-    /// connection's own vantage (see <see cref="SetVantage"/>). A program-level
-    /// command (tech, strategy, contract) sends <c>"meta"</c>, which carries no
-    /// delay whichever centre the operator has selected. A centre that is not
-    /// active is refused with an <c>unknownVantage</c> error.
+    /// connection's own vantage (see <see cref="SetVantage"/>). A command about the
+    /// space program rather than a craft (tech, strategy, contract) sends
+    /// <c>"meta"</c>, which carries no delay whichever centre the operator has
+    /// selected; sent from a centre instead, it rides that centre's delay to the
+    /// home command, which is none for a ground station. A centre that is not active is refused with an
+    /// <c>unknownVantage</c> error.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string? Vantage { get; set; }

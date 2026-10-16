@@ -3543,9 +3543,11 @@ export interface CommandRequest<Args>
 	/**
 	* Per-call vantage override: the command centre id this command dispatches
 	* from, which decides its signal delay. Optional: null or empty uses the
-	* connection's own vantage (see `SetVantage`). A program-level command (tech,
-	* strategy, contract) sends `"meta"`, which carries no delay whichever centre
-	* the operator has selected. A centre that is not active is refused with an
+	* connection's own vantage (see `SetVantage`). A command about the space
+	* program rather than a craft (tech, strategy, contract) sends `"meta"`, which
+	* carries no delay whichever centre the operator has selected; sent from a
+	* centre instead, it rides that centre's delay to the home command, which is
+	* none for a ground station. A centre that is not active is refused with an
 	* `unknownVantage` error.
 	*/
 	vantage?: string;
