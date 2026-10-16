@@ -149,11 +149,11 @@ describe("sliceShard over the visual gate's real widget list", () => {
 
   it("matches the shard count the CI visual job declares", async () => {
     const { readFile } = await import("node:fs/promises");
-    const ci = await readFile(
-      new URL("../../../.github/workflows/ci.yml", import.meta.url),
+    const workflow = await readFile(
+      new URL("../../../.github/workflows/visual.yml", import.meta.url),
       "utf8",
     );
-    const job = ci.slice(ci.indexOf("\n  visual:\n"));
+    const job = workflow.slice(workflow.indexOf("\n  visual:\n"));
     const legs = /shard: \[([\d, ]+)\]/.exec(job);
     expect(legs?.[1].split(",").map(Number)).toEqual(
       Array.from({ length: SHARDS }, (_, i) => i + 1),

@@ -20,7 +20,7 @@ on:
   # Manual trigger: run CI on any ref on demand. Needed because a baseline
   # regen (update-baselines.yml) commits with GITHUB_TOKEN, and a token push
   # does NOT trigger a workflow run, so the regenerated-baseline tip would
-  # otherwise never get a CI run to prove the visual gate is green.
+  # otherwise never get a CI run to prove the tree is green.
   workflow_dispatch:
   # rc.yml runs the whole of this against the staging sha before it publishes.
   # `schedule` and `workflow_dispatch` callers carry THEIR ref's context, which
@@ -404,7 +404,7 @@ jobs:
       # The render harness esbuild-bundles component source, which imports the
       # workspace packages from their built dists: build components and its
       # dependency graph (lighter than a full `pnpm build`, same command the
-      # `visual` job uses below).
+      # visual.yml uses).
       - name: Build render dependencies
         run: pnpm --filter "@ksp-gonogo/components..." build
 
@@ -433,7 +433,7 @@ jobs:
       # Does any widget paint two of its own sections into the same pixels?
       #
       # The detector has lived in the render harness since 76be6b9d2, so it has
-      # been running in CI the whole time: `visual` calls the same harness. But
+      # been running in CI the whole time: visual.yml calls the same harness. But
       # `visual` reports pixel drift against a baseline, not overlap, so a finding
       # of this kind would not change its colour, and the only other caller is a
       # person typing `render-widget`. A finding that lands nowhere anyone reads
@@ -665,7 +665,7 @@ jobs:
       - run: pnpm act-warning-gate ${{ matrix.scope }}
 
   # C# Sitrep mod: unit/integration tests + the contract shape-gate.
-  # Runs in parallel with `test`/`e2e`/`visual`, on the same triggers.
+  # Runs in parallel with `test` and `e2e`, on the same triggers.
   #
   # SCOPING: the test projects are listed explicitly rather than building
   # mod/Gonogo.sln wholesale, because Gonogo.KSP and the Uplink plugins
@@ -1164,70 +1164,3 @@ jobs:
         env:
           KSP_ROOT: ${{ github.workspace }}/ksp-managed
         run: pnpm scaffold-probe
-
-  # Per-engine visual regression gate. Renders every widget through the probe
-  # harness for one engine and diffs each against its committed baseline under
-  # packages/components/visual-baselines/<engine>/. Its own matrix job with no
-  # `needs`, so every leg runs concurrently with `test` and `e2e`. Each engine
-  # is dealt across four shards (`--shard i/4` takes every 4th render config, so
-  # each config renders in exactly one; gateScope.test.ts holds this count to a
-  # partition of the real list). The job name keeps the "visual (" prefix and the
-  # engine, which the fold watcher matches. Baselines are Linux-generated (see
-  # the update-baselines workflow); on drift the job fails and the
-  # baseline/actual/diff PNGs upload as an artifact per shard.
-  visual:
-    name: visual (${{ matrix.browser }}, shard ${{ matrix.shard }}/4)
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [chromium, firefox, webkit]
-        shard: [1, 2, 3, 4]
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ inputs.ref || github.sha }}
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-
-      - uses: pnpm/action-setup@v6
-        with:
-          run_install: false
-
-      - name: Get pnpm store path
-        id: pnpm-cache
-        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v5
-        with:
-          path: ${{ steps.pnpm-cache.outputs.store }}
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-
-
-      - name: pnpm install
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm install --frozen-lockfile
-
-      # The render harness esbuild-bundles component source, which imports the
-      # workspace packages from their built dists: so build components and its
-      # dependency graph (lighter than a full `pnpm build`; no app/relay needed
-      # since the harness doesn't use Playwright webServers).
-      - name: Build render dependencies
-        run: pnpm --filter "@ksp-gonogo/components..." build
-
-      - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
-
-      - name: Visual gate (${{ matrix.browser }})
-        run: pnpm --filter @ksp-gonogo/components visual-gate --engine ${{ matrix.browser }} --shard ${{ matrix.shard }}/4
-
-      - name: Upload visual diffs on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: visual-diffs-${{ matrix.browser }}-${{ matrix.shard }}
-          path: local_docs/renders/_visual-gate-diffs/
-          retention-days: 7

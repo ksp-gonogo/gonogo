@@ -9,9 +9,9 @@ name: Update visual baselines
 #   gh workflow run update-baselines.yml --ref <branch>            # all widgets
 #   gh workflow run update-baselines.yml --ref <branch> -f widget=thermal-status
 #
-# The visual gate in ci.yml prints this exact command when it detects drift.
+# The visual gate in visual.yml prints this exact command when it detects drift.
 #
-# Every engine is dealt across four shards, the same split ci.yml's visual job
+# Every engine is dealt across four shards, the same split visual.yml's job
 # uses (`--shard i/4`), and each leg commits only the baselines of its own
 # widgets, so the legs never touch the same file. A scoped run (`widget` set)
 # renders a handful of configs, so it runs one leg per engine, unsharded.
