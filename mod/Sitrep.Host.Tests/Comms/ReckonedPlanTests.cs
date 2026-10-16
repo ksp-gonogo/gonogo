@@ -199,6 +199,47 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(one.Pairs.Select(p => p.A + ">" + p.B), other.Pairs.Select(p => p.A + ">" + p.B));
         }
 
+        /// <summary>A model that refuses every link, as a backend does for a pair whose dish points away.</summary>
+        private sealed class Refuses : IPersistableContactLinkModel
+        {
+            public string ModelId => "refuses.v1";
+
+            public Dictionary<string, object?> Describe() => new Dictionary<string, object?>();
+
+            public double MarginAt(double ut, Vector3d from, Vector3d to, IContactPositions positions) => -1.0;
+        }
+
+        private static IContactLinkModel? RestoreRefuses(string model, IReadOnlyDictionary<string, object?> data) =>
+            model == "refuses.v1" ? new Refuses() : null;
+
+        /// <summary>
+        /// A craft the centre cannot hear keeps the state it was last heard with,
+        /// across a load as well. Its pair is planned on the backend's model in
+        /// that state, so a pair the model refuses stays shut however far the
+        /// bare range would reach.
+        /// </summary>
+        [Fact]
+        public void ARestoredStatePlansItsPairOnItsLinkModelNotOnBareRange()
+        {
+            var silent = CraftState.Orbiting(
+                "vessel:a", 20.0, Kerbin, Orbit(1_300_000.0), null, null, true,
+                new Dictionary<string, CraftLink> { ["vessel:b"] = new CraftLink(1e12, new Refuses()) });
+            var heard = Craft("b", 50.0, 1_400_000.0, Links(("vessel:a", 1e12)));
+            var encoded = HeardSnapshotCodec.Encode(new HeardSnapshot(new[]
+            {
+                new HeardAtCentre("ground:ksc", new[] { silent, heard }, new Dictionary<string, bool>()),
+            }));
+
+            List<CraftState> Restored(System.Func<string, IReadOnlyDictionary<string, object?>, IContactLinkModel?>? restoreLink) =>
+                HeardSnapshotCodec.Decode(encoded, null, restoreLink)!.Centres.Single().States.ToList();
+
+            var onModel = Assert.Single(ReckonedPlan.Request(Restored(RestoreRefuses), Ground(), 0.0, 3600.0).Run().Pairs);
+            var onRange = Assert.Single(ReckonedPlan.Request(Restored(null), Ground(), 0.0, 3600.0).Run().Pairs);
+
+            Assert.Empty(onModel.Windows);
+            Assert.NotEmpty(onRange.Windows);
+        }
+
         [Fact]
         public void TheRequestRunsToAPlanOverEveryPair()
         {
