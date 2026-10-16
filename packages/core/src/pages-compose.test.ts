@@ -84,6 +84,62 @@ describe("the rc channel", () => {
   });
 });
 
+describe("the rc channel before the first release", () => {
+  beforeEach(() => {
+    rmSync(join(site, "app"), { recursive: true, force: true });
+  });
+
+  it("shows the landing page at the root with its app link pointing at /rc/", () => {
+    compose("rc", dist, site);
+
+    expect(read("index.html")).toContain('<code id="run-command">');
+    expect(read("index.html")).toContain("ksp-gonogo.github.io/rc/station");
+    expect(read("index.html")).not.toContain("ksp-gonogo.github.io/app/");
+  });
+
+  it("sends the old /gonogo/ URLs to /rc/, keeping the station routes", () => {
+    compose("rc", dist, site);
+
+    expect(read("gonogo", "index.html")).toContain('href="/rc/"');
+    expect(read("gonogo", "station", "index.html")).toContain(
+      'href="/rc/station"',
+    );
+    expect(existsSync(join(site, "gonogo", "dev"))).toBe(false);
+    expect(read("404.html")).toContain("location.replace");
+    expect(existsSync(join(site, "app"))).toBe(false);
+  });
+
+  it("writes only the paths it says it owns, which is the list deploy.yml stages", () => {
+    compose("rc", dist, site);
+
+    expect(readdirSync(site).sort()).toEqual(
+      [...OWNED_PATHS.rc, "other"].sort(),
+    );
+  });
+});
+
+describe("the rc channel once a release exists", () => {
+  it("leaves the landing page, the 404 page and /gonogo/ to the release channel", () => {
+    writeFileSync(join(site, "404.html"), "RELEASE 404");
+    compose("release", dist, site);
+    const before = [
+      read("index.html"),
+      read("404.html"),
+      read("gonogo", "index.html"),
+    ];
+
+    compose("rc", dist, site);
+
+    expect([
+      read("index.html"),
+      read("404.html"),
+      read("gonogo", "index.html"),
+    ]).toEqual(before);
+    expect(read("index.html")).toContain("ksp-gonogo.github.io/app/station");
+    expect(read("gonogo", "index.html")).toContain('href="/app/"');
+  });
+});
+
 describe("the release channel", () => {
   it("writes the app to /app/, the landing page to the root, and the README beside it", () => {
     compose("release", dist, site);

@@ -4,10 +4,10 @@ name: Deploy to GitHub Pages
 # served from the `main` branch of ksp-gonogo/ksp-gonogo.github.io. That
 # repository is a deploy target shared by several tenants:
 #
-#   /                the landing page (docs/homepage)         release channel
+#   /                the landing page (docs/homepage)         release channel, rc until /app/ exists
 #   /README.md       one link to this repository, written once release channel
 #   /app/            the latest RELEASE app                   release channel
-#   /gonogo/         redirects from the old project-page URLs release channel
+#   /gonogo/         redirects from the old project-page URLs release channel, rc until /app/ exists
 #   /rc/             the release-candidate app                rc channel
 #
 # The Uplink developer docs at /uplink-dev-docs/ are not in that repository at
