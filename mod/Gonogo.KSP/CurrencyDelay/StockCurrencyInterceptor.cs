@@ -322,7 +322,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
             catch (Exception ex)
             {
-                GonogoLog.Warn("currency", "StockCurrencyInterceptor.OnVesselWillDestroy failed: " + ex.Message);
+                Debug.LogWarning("[Gonogo] StockCurrencyInterceptor.OnVesselWillDestroy failed: " + ex.Message);
             }
         }
 
@@ -348,7 +348,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
             catch (Exception ex)
             {
-                GonogoLog.Warn("currency", "StockCurrencyInterceptor.OnScienceReceived failed: " + ex.Message);
+                Debug.LogWarning("[Gonogo] StockCurrencyInterceptor.OnScienceReceived failed: " + ex.Message);
             }
         }
 
@@ -378,7 +378,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
             catch (Exception ex)
             {
-                GonogoLog.Warn("currency", "StockCurrencyInterceptor.OnScienceChanged failed: " + ex.Message);
+                Debug.LogWarning("[Gonogo] StockCurrencyInterceptor.OnScienceChanged failed: " + ex.Message);
             }
         }
 
@@ -397,7 +397,7 @@ namespace Gonogo.KSP.CurrencyDelay
                 // probe reads would say the subsystem was never involved - which
                 // is exactly how a base erased by an interleaved modifier query
                 // stayed invisible. Say so instead.
-                GonogoLog.Warn("currency", "StockCurrencyInterceptor: an away science change attributed to "
+                Debug.LogWarning("[Gonogo] StockCurrencyInterceptor: an away science change attributed to "
                     + vesselId + " carried a zero base, so nothing was neutralised or credited");
                 return;
             }
@@ -524,7 +524,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
             catch (Exception ex)
             {
-                GonogoLog.Warn("currency", "StockCurrencyInterceptor.OnFundsChanged failed: " + ex.Message);
+                Debug.LogWarning("[Gonogo] StockCurrencyInterceptor.OnFundsChanged failed: " + ex.Message);
             }
         }
 
@@ -556,7 +556,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
             catch (Exception ex)
             {
-                GonogoLog.Warn("currency", "StockCurrencyInterceptor.OnReputationChanged failed: " + ex.Message);
+                Debug.LogWarning("[Gonogo] StockCurrencyInterceptor.OnReputationChanged failed: " + ex.Message);
             }
         }
 
@@ -597,7 +597,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
             catch (Exception ex)
             {
-                GonogoLog.Warn("currency", "StockCurrencyInterceptor.NoteCrewAboard failed: " + ex.Message);
+                Debug.LogWarning("[Gonogo] StockCurrencyInterceptor.NoteCrewAboard failed: " + ex.Message);
             }
         }
 
@@ -616,7 +616,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
             catch (Exception ex)
             {
-                GonogoLog.Warn("currency", "StockCurrencyInterceptor.OnKerbalStatusChange failed: " + ex.Message);
+                Debug.LogWarning("[Gonogo] StockCurrencyInterceptor.OnKerbalStatusChange failed: " + ex.Message);
             }
         }
 

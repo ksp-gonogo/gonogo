@@ -12,6 +12,7 @@ namespace Gonogo.KSP
     /// </summary>
     internal static class FleckLogBridge
     {
+        private const string Prefix = "[Gonogo] transport: ";
         private const string StartedMessage = "Server started at";
 
         private static readonly LogLimiter Limiter = new LogLimiter();
@@ -40,13 +41,13 @@ namespace Gonogo.KSP
             switch (level)
             {
                 case LogLevel.Error:
-                    GonogoLog.Error("transport", line);
+                    Debug.LogError(Prefix + line);
                     break;
                 case LogLevel.Warn:
-                    GonogoLog.Warn("transport", line);
+                    Debug.LogWarning(Prefix + line);
                     break;
                 default:
-                    GonogoLog.Info("transport", line);
+                    Debug.Log(Prefix + line);
                     break;
             }
         }

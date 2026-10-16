@@ -186,7 +186,7 @@ namespace Gonogo.KSP
                         _recordingEnabled = settings.Bool(RecordingEnabledRow);
                         SilenceTrace.Diagnostics = _recordingEnabled;
                     });
-                GonogoLog.Info("addon", "Recording enabled=" + _recordingEnabled);
+                Debug.Log("[Gonogo] Recording enabled=" + _recordingEnabled);
                 Sitrep.Host.Settings.ConsoleSettings.Declare(settings);
                 // The trackingStation.vessel.<guid>.* namespace: core vessel-network-presence
                 // facts, unconditional and independent of whether any comms
@@ -348,7 +348,7 @@ namespace Gonogo.KSP
                 _sessionPath = Path.Combine(dir, "session-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + ".json");
                 _lastFlushRealtime = Time.realtimeSinceStartup;
 
-                GonogoLog.Info("addon", "Started - serving " + SystemViewProvider.Topic + " + " +
+                Debug.Log("[Gonogo] Started - serving " + SystemViewProvider.Topic + " + " +
                     VesselViewProvider.Topics.Count + " vessel.* channels on port " + _engine.BoundPort);
                 LogBuildIdentity();
             }
@@ -368,7 +368,7 @@ namespace Gonogo.KSP
             var manifest = uplink.Manifest;
             if (engine.IsUplinkRunning(manifest.Id))
             {
-                GonogoLog.Info("addon", "uplink \"" + manifest.Id + "\" " + manifest.Version + " loaded");
+                Debug.Log("[Gonogo] uplink \"" + manifest.Id + "\" " + manifest.Version + " loaded");
             }
         }
 
@@ -380,14 +380,14 @@ namespace Gonogo.KSP
         {
             try
             {
-                GonogoLog.Info("addon", "Gonogo " + (CoreBuildInfo.Version ?? "unreleased build")
+                Debug.Log("[Gonogo] Gonogo " + (CoreBuildInfo.Version ?? "unreleased build")
                     + " (contract " + ContractVersion.Major + "." + ContractVersion.Minor
                     + ") on KSP " + Versioning.GetVersionString()
                     + ", " + Application.platform);
             }
             catch (Exception ex)
             {
-                GonogoLog.Warn("addon", "could not read the version banner: " + ex.Message);
+                Debug.LogWarning("[Gonogo] could not read the version banner: " + ex.Message);
             }
         }
 
@@ -412,12 +412,12 @@ namespace Gonogo.KSP
                 var built = File.Exists(assembly.Location)
                     ? File.GetLastWriteTimeUtc(assembly.Location).ToString("yyyy-MM-dd HH:mm:ss") + "Z"
                     : "unknown";
-                GonogoLog.Info("addon", "build: mvid=" + assembly.ManifestModule.ModuleVersionId
+                Debug.Log("[Gonogo] build: mvid=" + assembly.ManifestModule.ModuleVersionId
                     + " written=" + built);
             }
             catch (Exception ex)
             {
-                GonogoLog.Warn("addon", "could not read build identity: " + ex.Message);
+                Debug.LogWarning("[Gonogo] could not read build identity: " + ex.Message);
             }
         }
 
@@ -443,7 +443,7 @@ namespace Gonogo.KSP
             try
             {
                 var arms = CurrencyDelay.DerivedCurrencyWithholding.ActiveArmIds();
-                GonogoLog.Info("addon", "derived-currency arms: "
+                Debug.Log("[Gonogo] derived-currency arms: "
                     + (arms.Count == 0
                         ? "none. No installed mod registered one, or its Uplink refused to; nothing "
                           + "derived from a delayed currency change will be withheld"
@@ -451,7 +451,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                GonogoLog.Warn("addon", "could not read the derived-currency arms: " + ex.Message);
+                Debug.LogWarning("[Gonogo] could not read the derived-currency arms: " + ex.Message);
             }
         }
 
@@ -694,8 +694,8 @@ namespace Gonogo.KSP
             {
                 _recorder.Save(_sessionPath);
                 var sizeKb = new FileInfo(_sessionPath).Length / 1024.0;
-                GonogoLog.Info("recording", string.Format(
-                    "{0} snapshots, {1} events → {2} ({3:F1} KB)",
+                Debug.Log(string.Format(
+                    "[Gonogo] recording: {0} snapshots, {1} events → {2} ({3:F1} KB)",
                     _recorder.SnapshotCount,
                     _recorder.EventCount,
                     Path.GetFileName(_sessionPath),

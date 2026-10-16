@@ -44,7 +44,7 @@ namespace Gonogo.KSP
                 }
                 catch (Exception ex)
                 {
-                    GonogoLog.Warn("comms-model", "CommsModelPresence read failed (treating as unknown): " + ex.Message);
+                    Debug.LogWarning("[Gonogo] CommsModelPresence read failed (treating as unknown): " + ex.Message);
                     return null;
                 }
             }

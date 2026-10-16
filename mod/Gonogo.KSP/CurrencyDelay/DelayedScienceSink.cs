@@ -74,7 +74,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
             catch (Exception ex)
             {
-                GonogoLog.Warn("currency", "DelayedScienceSink.RecordDelayedScienceIncrement failed: " + ex.Message);
+                Debug.LogWarning("[Gonogo] DelayedScienceSink.RecordDelayedScienceIncrement failed: " + ex.Message);
             }
         }
 

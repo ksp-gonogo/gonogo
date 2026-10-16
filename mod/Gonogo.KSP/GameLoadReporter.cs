@@ -42,7 +42,7 @@ namespace Gonogo.KSP
                 _state.Watch(TargetSceneIsUp(), Time.realtimeSinceStartup);
                 if (_state.EndedWithoutItsEvent)
                 {
-                    GonogoLog.Warn("load", "load of " + _state.Scene + " ended without its event");
+                    Debug.LogWarning("[Gonogo] load of " + _state.Scene + " ended without its event");
                 }
             }
             _engine.ReleaseGameStateWaitingLongerThan(ReadyWaitsForATick);

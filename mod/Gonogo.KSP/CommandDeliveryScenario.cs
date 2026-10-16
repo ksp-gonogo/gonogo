@@ -64,7 +64,7 @@ namespace Gonogo.KSP
                 var savedUt = double.TryParse(node.GetValue(UtKey), NumberStyles.Float, CultureInfo.InvariantCulture, out var ut)
                     ? ut
                     : double.NegativeInfinity;
-                GonogoLog.Info("command-delivery", "CommandDeliveryScenario loaded a save of UT " + savedUt.ToString("F2", CultureInfo.InvariantCulture)
+                Debug.Log("[Gonogo] CommandDeliveryScenario loaded a save of UT " + savedUt.ToString("F2", CultureInfo.InvariantCulture)
                     + (ownLatest ? ", this process's own latest" : ", not this process's latest, so a new timeline")
                     + ", heard " + (encodedHeard?.Length ?? 0) + " chars" + (heard == null ? " (none read)" : ""));
                 if (ownLatest)

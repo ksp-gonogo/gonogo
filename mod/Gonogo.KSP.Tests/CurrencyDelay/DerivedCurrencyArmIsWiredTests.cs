@@ -236,7 +236,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             var uplink = CurrencyDelaySourceText.ReadRelative("CurrencyEventUplink.cs");
 
             Assert.Contains("DerivedCurrencyWithholding.Report", uplink, StringComparison.Ordinal);
-            Assert.Contains("GonogoLog.Warn(\"derived-currency\"", uplink, StringComparison.Ordinal);
+            Assert.Contains("Debug.LogWarning", uplink, StringComparison.Ordinal);
         }
     }
 }

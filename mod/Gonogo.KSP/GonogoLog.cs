@@ -8,12 +8,11 @@ using UnityEngine;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The only writer of the plugin's lines to KSP.log, and the only owner of
-    /// the "[Gonogo] " prefix: no other code in the shipped mod calls
-    /// <c>Debug.Log</c>. A subsystem passes a short tag and the line reads
-    /// "[Gonogo] tag: message". An exception is folded onto that one line
-    /// (type, message, first frame). The first time a call site reports an
-    /// exception, the full stack trace follows on a second prefixed line.
+    /// Writes the plugin's faults to KSP.log. Every line starts with
+    /// "[Gonogo] " so a grep for the prefix finds it, and an exception is
+    /// folded onto that one line (type, message, first frame). The first time
+    /// a call site reports an exception, the full stack trace follows on a
+    /// second prefixed line.
     /// </summary>
     internal static class GonogoLog
     {
@@ -21,24 +20,6 @@ namespace Gonogo.KSP
 
         private static readonly LogLimiter Limiter = new LogLimiter();
         private static readonly HashSet<string> TracedSites = new HashSet<string>(StringComparer.Ordinal);
-
-        /// <summary>An informational line from the subsystem named <paramref name="tag"/>.</summary>
-        public static void Info(string tag, string message)
-        {
-            Emit(LogType.Log, Compose(tag, message));
-        }
-
-        /// <summary>A warning from the subsystem named <paramref name="tag"/>.</summary>
-        public static void Warn(string tag, string message)
-        {
-            Emit(LogType.Warning, Compose(tag, message));
-        }
-
-        /// <summary>An error from the subsystem named <paramref name="tag"/>.</summary>
-        public static void Error(string tag, string message)
-        {
-            Emit(LogType.Error, Compose(tag, message));
-        }
 
         /// <summary>A warning about <paramref name="ex"/>, logged every time it fires.</summary>
         public static void Warn(
@@ -91,13 +72,7 @@ namespace Gonogo.KSP
         /// </summary>
         public static void Sink(string message)
         {
-            Emit(LogType.Warning, Compose(null, message));
-        }
-
-        private static string Compose(string? tag, string message)
-        {
-            string head = string.IsNullOrEmpty(tag) ? Prefix : Prefix + tag + ": ";
-            return head + PathRedactor.Redact(message);
+            Debug.LogWarning(Prefix + PathRedactor.Redact(message));
         }
 
         private static void Write(LogType type, string message, Exception? ex, string site, bool limited)
@@ -138,13 +113,9 @@ namespace Gonogo.KSP
             {
                 Debug.LogError(text);
             }
-            else if (type == LogType.Warning)
-            {
-                Debug.LogWarning(text);
-            }
             else
             {
-                Debug.Log(text);
+                Debug.LogWarning(text);
             }
         }
 

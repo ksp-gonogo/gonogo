@@ -739,14 +739,14 @@ namespace Gonogo.KSP
                 var results = ScetAlarmActions.Run(due, flying, _actuator, EngagedNow);
                 if (due.Notice.ActionsWithheld)
                 {
-                    GonogoLog.Warn("scet-alarm", "SCET alarm " + due.Notice.Id
+                    Debug.LogWarning("[Gonogo] SCET alarm " + due.Notice.Id
                         + " withheld its actions: they act on " + due.ActsOn + ", not " + (flying ?? "no craft"));
                 }
                 for (var i = 0; i < results.Count; i++)
                 {
                     if (!results[i].Success)
                     {
-                        GonogoLog.Warn("scet-alarm", "SCET alarm " + due.Notice.Id + " action "
+                        Debug.LogWarning("[Gonogo] SCET alarm " + due.Notice.Id + " action "
                             + due.Actions[i].Kind + " refused: " + results[i].ErrorCode + " " + results[i].Detail);
                     }
                 }

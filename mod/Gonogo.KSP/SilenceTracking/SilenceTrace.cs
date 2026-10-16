@@ -20,6 +20,7 @@ namespace Gonogo.KSP.SilenceTracking
     /// </summary>
     internal static class SilenceTrace
     {
+        private const string Prefix = "[Gonogo] silence: ";
 
         /// <summary>
         /// Whether the frame-fit working lines are written: the self-check
@@ -36,7 +37,7 @@ namespace Gonogo.KSP.SilenceTracking
         {
             if (_warnedNoTracker) return;
             _warnedNoTracker = true;
-            GonogoLog.Info("silence", "no tracker bound; no forecast is made until a scenario binds one");
+            Debug.Log(Prefix + "no tracker bound; no forecast is made until a scenario binds one");
         }
 
         public static void Captured(int vesselCount, double ut)
@@ -44,7 +45,7 @@ namespace Gonogo.KSP.SilenceTracking
             _warnedNoTracker = false;
             if (vesselCount == _lastCaptureCount) return;
             _lastCaptureCount = vesselCount;
-            GonogoLog.Info("silence", "captured " + vesselCount + " vessel(s) at UT " + ut.ToString("F1"));
+            Debug.Log(Prefix + "captured " + vesselCount + " vessel(s) at UT " + ut.ToString("F1"));
         }
 
         private static string? _lastNoGeometryReason;
@@ -61,7 +62,7 @@ namespace Gonogo.KSP.SilenceTracking
         {
             if (reason == _lastNoGeometryReason) return;
             _lastNoGeometryReason = reason;
-            GonogoLog.Info("silence", "no geometry built: " + reason);
+            Debug.Log(Prefix + "no geometry built: " + reason);
         }
 
         /// <summary>
@@ -79,7 +80,7 @@ namespace Gonogo.KSP.SilenceTracking
             var key = FrameCheckKey(residualMeters);
             if (key == _lastFrameCheck) return;
             _lastFrameCheck = key;
-            GonogoLog.Info("silence", line);
+            Debug.Log(Prefix + line);
         }
 
         private static string? _lastHomeSearch;
@@ -99,7 +100,7 @@ namespace Gonogo.KSP.SilenceTracking
             var line = "home search: fromPaths=" + pathHomes + " fromScene=" + sceneHomes + " total=" + total;
             if (line == _lastHomeSearch) return;
             _lastHomeSearch = line;
-            GonogoLog.Info("silence", line);
+            Debug.Log(Prefix + line);
         }
 
         private static string? _lastCalibration;
@@ -118,7 +119,7 @@ namespace Gonogo.KSP.SilenceTracking
         {
             if (report == _lastCalibration) return;
             _lastCalibration = report;
-            GonogoLog.Info("silence", "frame fit: " + report);
+            Debug.Log(Prefix + "frame fit: " + report);
         }
 
         private static string? _lastChain;
@@ -136,7 +137,7 @@ namespace Gonogo.KSP.SilenceTracking
                 + " via " + links + " link(s)";
             if (line == _lastChain) return;
             _lastChain = line;
-            GonogoLog.Info("silence", line);
+            Debug.Log(Prefix + line);
         }
 
         private static string? _lastDecomp;
@@ -160,7 +161,7 @@ namespace Gonogo.KSP.SilenceTracking
             var key = DecomposeKey(liveVessel, predictedVessel, liveLink, predictedLink, liveStation, predictedStation);
             if (key == _lastDecomp) return;
             _lastDecomp = key;
-            GonogoLog.Info("silence", line);
+            Debug.Log(Prefix + line);
         }
 
         private static string? _lastStationDecomp;
@@ -208,7 +209,7 @@ namespace Gonogo.KSP.SilenceTracking
                 liveCentreToVessel, predictedCentreToVessel, liveToward, predictedToward, inverseRotation);
             if (key == _lastStationDecomp) return;
             _lastStationDecomp = key;
-            GonogoLog.Info("silence", line);
+            Debug.Log(Prefix + line);
         }
 
         /// <summary>
@@ -267,7 +268,7 @@ namespace Gonogo.KSP.SilenceTracking
             var line = "station network: " + stationCount + " station(s) on " + bodyName;
             if (line == _lastNetwork) return;
             _lastNetwork = line;
-            GonogoLog.Info("silence", line);
+            Debug.Log(Prefix + line);
         }
 
         private static string? _lastReach;
@@ -297,7 +298,7 @@ namespace Gonogo.KSP.SilenceTracking
                 + (rated > 0 ? ", nearest limit " + nearest.ToString("G4") + "m" : ", geometry only");
             if (line == _lastReach) return;
             _lastReach = line;
-            GonogoLog.Info("silence", line);
+            Debug.Log(Prefix + line);
         }
 
     }

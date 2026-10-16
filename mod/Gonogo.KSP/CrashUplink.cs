@@ -261,7 +261,7 @@ namespace Gonogo.KSP
                 // write nothing.
                 if (_deaths.Death(vessel.id.ToString(), BuildCapture(vessel, vesselType, ut), ut))
                 {
-                    GonogoLog.Info("crash", "crash: " + eventName + " vessel " + vessel.id
+                    Debug.Log("[Gonogo] crash: " + eventName + " vessel " + vessel.id
                         + " type " + vesselType + " active " + (active != null && active.id == vessel.id));
                 }
             }

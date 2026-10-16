@@ -6377,7 +6377,7 @@ namespace Gonogo.KSP
             }
             if (first)
             {
-                GonogoLog.Warn("host", "reflective read failed, omitting: " + failure);
+                Debug.LogWarning("[Gonogo] reflective read failed, omitting: " + failure);
             }
             return null;
         }
