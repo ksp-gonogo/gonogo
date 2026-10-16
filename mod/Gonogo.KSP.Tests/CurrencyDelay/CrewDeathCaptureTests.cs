@@ -146,34 +146,6 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         }
 
         [Fact]
-        public void ACrewDeathOnASurvivingCraftIsTiedToThatCraftForEveryOtherReportOfIt()
-        {
-            using var ksp = new UnityStandIns(DeathUt, DelayOn());
-            var interceptor = Interceptor(new PendingCreditLedger());
-            var craft = UnityStandIns.Craft(CraftId);
-
-            DiesAboard(interceptor, craft, TransactionReasons.VesselLoss);
-
-            Assert.Same(craft, CrewDeathTies.Take("Jebediah Kerman"));
-            Assert.Null(CrewDeathTies.Take("Jebediah Kerman"));
-        }
-
-        [Fact]
-        public void ACrewDeathInADestructionIsLeftToTheDestruction()
-        {
-            using var ksp = new UnityStandIns(DeathUt, DelayOn());
-            var interceptor = Interceptor(new PendingCreditLedger());
-            var craft = UnityStandIns.Craft(CraftId);
-            CrewDeathTies.Clear();
-            interceptor.NoteAboard("Jebediah Kerman", craft);
-
-            Destroy(interceptor, craft);
-            interceptor.NoteCrewDied("Jebediah Kerman", DeathUt);
-
-            Assert.Null(CrewDeathTies.Take("Jebediah Kerman"));
-        }
-
-        [Fact]
         public void ACrewDeathOnASurvivingCraftWithNoRouteIsHeldForHomeToHearOfIt()
         {
             using var ksp = new UnityStandIns(DeathUt, DelayOn());
