@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
+import { approveConnection } from "../test/approveStation";
 
 type Listener = (...args: unknown[]) => void;
 
@@ -96,6 +97,7 @@ describe("analytics-consent over peer", () => {
     if (!FakePeer.last) throw new Error("no fake peer");
     FakePeer.last.emit("connection", conn);
     conn.emit("open");
+    approveConnection(conn);
 
     const msgs = analyticsMsgs(conn);
     expect(msgs).toHaveLength(1);
@@ -110,6 +112,7 @@ describe("analytics-consent over peer", () => {
     if (!FakePeer.last) throw new Error("no fake peer");
     FakePeer.last.emit("connection", conn);
     conn.emit("open");
+    approveConnection(conn);
     // The on-connect send carried the default (false).
     expect(analyticsMsgs(conn)).toEqual([
       { type: "analytics-consent", enabled: false },
@@ -131,6 +134,7 @@ describe("analytics-consent over peer", () => {
     if (!FakePeer.last) throw new Error("no fake peer");
     FakePeer.last.emit("connection", conn);
     conn.emit("open");
+    approveConnection(conn);
     host.setAnalyticsConsent(true); // no change
     expect(analyticsMsgs(conn)).toHaveLength(1);
     host.stop();

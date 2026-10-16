@@ -114,11 +114,13 @@ const localStorageMock = {
 };
 vi.stubGlobal("localStorage", localStorageMock);
 
+import { approveStation } from "../test/approveStation";
 import { sha256Hex } from "./BundleFetchCache";
 import { PeerClientService } from "./PeerClientService";
 import { PeerHostService } from "./PeerHostService";
 
 async function connectedPair() {
+  approveStation();
   const host = new PeerHostService();
   await host.start();
   await Promise.resolve();
@@ -233,6 +235,7 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
       }),
     );
 
+    approveStation();
     const host = new PeerHostService();
     await host.start();
     await Promise.resolve();

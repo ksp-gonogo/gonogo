@@ -222,7 +222,7 @@ describe("a station the main screen has not approved", () => {
     localStorageMock.clear();
   });
 
-  it("reads telemetry but has commands, flight requests and Uplink calls refused", async () => {
+  it("is sent nothing but its hello and where its approval stands", async () => {
     const host = await startedHost();
     const station = await join(host, "station-a", "cred-a");
     host.broadcast({
@@ -231,14 +231,54 @@ describe("a station the main screen has not approved", () => {
       key: "v.altitude",
       value: 1,
     });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(station.told.map((m) => m.type)).toEqual([
+      "hello",
+      "station-approval",
+    ]);
+    host.stop();
+  });
+
+  it("has commands, flight requests and Uplink calls refused", async () => {
+    const host = await startedHost();
+    const station = await join(host, "station-a", "cred-a");
+    await askEverything(station);
+    refusedEverything(station);
+    host.stop();
+  });
+
+  it("has its reads refused and leaves no subscription behind", async () => {
+    const host = await startedHost();
+    const station = await join(host, "station-a", "cred-a");
+    station.conn.emit("data", {
+      type: "query-range-request",
+      requestId: "range-1",
+      sourceId: "sitrep",
+      key: "v.altitude",
+      tStart: 0,
+      tEnd: 1,
+    });
+    station.conn.emit("data", {
+      type: "sitrep-subscribe",
+      topic: "vessel.flight",
+    });
+    expect(replyTo(station, "range-1")).toMatchObject({
+      type: "query-range-response",
+      error: AWAITING_APPROVAL,
+    });
+    host.approveStation("station-a");
+    host.broadcast({
+      type: "data",
+      sourceId: "sitrep",
+      key: "v.altitude",
+      value: 2,
+    });
     expect(station.told).toContainEqual({
       type: "data",
       sourceId: "sitrep",
       key: "v.altitude",
-      value: 1,
+      value: 2,
     });
-    await askEverything(station);
-    refusedEverything(station);
     host.stop();
   });
 
@@ -426,6 +466,88 @@ describe("every other write from a station", () => {
     expect(
       station.told.filter((m) => m.type === "station-write-refused"),
     ).toEqual([]);
+    host.stop();
+  });
+});
+
+describe("the relay's credentials", () => {
+  const TURN: RTCIceServer[] = [
+    { urls: "turn:203.0.113.5:3478", username: "u", credential: "secret" },
+  ];
+  const ROTATED: RTCIceServer[] = [
+    { urls: "turn:203.0.113.5:3478", username: "u2", credential: "rotated" },
+  ];
+
+  afterEach(() => {
+    FakeHub.reset();
+    localStorageMock.clear();
+  });
+
+  function turnTold(station: Station): PeerMessage[] {
+    return station.told.filter((m) => m.type === "relay-ice-servers");
+  }
+
+  /** Serve `servers` from the relay's `/ice-config` until `restore` is called. */
+  function relayServes(servers: { current: RTCIceServer[] }) {
+    const spy = vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ iceServers: servers.current }), {
+          status: 200,
+        }),
+    );
+    return () => spy.mockRestore();
+  }
+
+  /** Let the host's minute-long `/ice-config` refresh run once, and settle. */
+  async function rotate(): Promise<void> {
+    await vi.advanceTimersByTimeAsync(60_000);
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+  }
+
+  it("are withheld from a station waiting for approval, even on a rotation", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const servers = { current: TURN };
+    const restore = relayServes(servers);
+    const host = await startedHost();
+    const station = await join(host, "station-a", "cred-a");
+    servers.current = ROTATED;
+    await rotate();
+    expect(host.iceServers).toEqual(ROTATED);
+    expect(turnTold(station)).toEqual([]);
+    host.stop();
+    restore();
+    vi.useRealTimers();
+  });
+
+  it("are handed to a station when it is approved and on each rotation after", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const servers = { current: TURN };
+    const restore = relayServes(servers);
+    const host = await startedHost();
+    const station = await join(host, "station-a", "cred-a");
+    host.approveStation("station-a");
+    expect(turnTold(station)).toEqual([
+      { type: "relay-ice-servers", iceServers: TURN },
+    ]);
+    servers.current = ROTATED;
+    await rotate();
+    expect(turnTold(station)).toEqual([
+      { type: "relay-ice-servers", iceServers: TURN },
+      { type: "relay-ice-servers", iceServers: ROTATED },
+    ]);
+    host.stop();
+    restore();
+    vi.useRealTimers();
+  });
+
+  it("are handed to a remembered station as soon as it rejoins", async () => {
+    stationApprovals.approve("cred-a", "Flight");
+    const host = await startedHost();
+    host.iceServers = TURN;
+    const station = await join(host, "station-a", "cred-a");
+    expect(turnTold(station)).toEqual([
+      { type: "relay-ice-servers", iceServers: TURN },
+    ]);
     host.stop();
   });
 });

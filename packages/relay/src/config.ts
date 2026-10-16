@@ -33,6 +33,12 @@ export interface RelayConfig {
    * deployment needs those ranges.
    */
   publicRelay: boolean;
+  /**
+   * Origins, beyond the public build and this machine's loopback addresses,
+   * whose pages may use the relay: a main screen opened at the machine's LAN
+   * address, or a fork's own site. From `RELAY_APP_ORIGINS`, comma-separated.
+   */
+  appOrigins: string[];
 }
 
 /** Defaults live here rather than in `startCoturn` so one file answers
@@ -47,6 +53,31 @@ function port(raw: string | undefined, fallback: number): number {
   return Number.isInteger(n) && n > 0 && n < 65536 ? n : fallback;
 }
 
+/**
+ * `RELAY_APP_ORIGINS` as origins. An entry that is not an origin throws: one
+ * dropped quietly would leave its main screen refused with nothing saying why.
+ */
+function appOrigins(raw: string | undefined): string[] {
+  const entries = (raw ?? "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter((e) => e.length > 0);
+  return entries.map((entry) => {
+    let origin: string;
+    try {
+      origin = new URL(entry).origin;
+    } catch {
+      origin = "null";
+    }
+    if (origin === "null") {
+      throw new Error(
+        `RELAY_APP_ORIGINS entry "${entry}" is not an origin such as http://<address>:8080`,
+      );
+    }
+    return origin;
+  });
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayConfig {
   return {
     port: Number(env.PORT ?? 3002),
@@ -56,5 +87,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayConfig {
     turnMaxPort: port(env.TURN_MAX_PORT, DEFAULT_TURN_MAX_PORT),
     skipCoturn: env.SKIP_COTURN === "1" || env.SKIP_COTURN === "true",
     publicRelay: env.RELAY_PUBLIC === "1" || env.RELAY_PUBLIC === "true",
+    appOrigins: appOrigins(env.RELAY_APP_ORIGINS),
   };
 }

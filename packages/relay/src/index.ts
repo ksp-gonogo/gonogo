@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { networkInterfaces } from "node:os";
-import cors from "@fastify/cors";
 import {
   AxiomConsentController,
   AxiomTransport,
@@ -8,6 +7,7 @@ import {
 } from "@ksp-gonogo/logger";
 import Fastify from "fastify";
 import { registerAnalyticsConfigRoutes } from "./analyticsConfig.js";
+import { registerAppOrigins } from "./appOrigins.js";
 import { registerBootstrapConfigRoutes } from "./bootstrapConfig.js";
 import { loadConfig } from "./config.js";
 import { startCoturn } from "./coturnManager.js";
@@ -62,7 +62,7 @@ function bridgeError(
   logger.error(msg, e, Object.keys(ctx).length > 0 ? ctx : undefined);
 }
 
-await fastify.register(cors, { origin: true });
+await registerAppOrigins(fastify, new Set(config.appOrigins));
 
 // Bridge Fastify's per-request log line through @ksp-gonogo/logger so it
 // reaches Axiom alongside the explicit `bridgeInfo` operational events.

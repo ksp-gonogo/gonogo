@@ -99,6 +99,7 @@ const localStorageMock = {
 vi.stubGlobal("localStorage", localStorageMock);
 
 import { util } from "peerjs";
+import { approveConnection } from "../test/approveStation";
 import { asDataConnection } from "../test/peerFakes";
 import { HOST_SESSION, PeerHostService } from "./PeerHostService";
 import type { PeerMessage } from "./protocol";
@@ -127,6 +128,7 @@ async function hostWithStation() {
   conn.pack = (msg) => util.pack(msg as Parameters<typeof util.pack>[0]);
   peer.emit("connection", asDataConnection(conn));
   conn.emit("open");
+  approveConnection(conn);
   await Promise.resolve();
   conn.sent.length = 0;
   return { host, conn };

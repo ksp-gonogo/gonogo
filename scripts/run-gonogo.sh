@@ -30,7 +30,7 @@ fi
 
 exec "$CONTAINER" run -d --name "$NAME" --restart unless-stopped \
   -p 8080:8080 \
-  -p 3002:3002 \
+  -p 127.0.0.1:3002:3002 \
   -p 3478:3478/tcp \
   -p 3478:3478/udp \
   -p 49160-49170:49160-49170/udp \

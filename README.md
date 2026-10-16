@@ -42,7 +42,7 @@ You need KSP 1.12.
 docker run -d --name gonogo --restart unless-stopped --pull always \
   --add-host=host.docker.internal:host-gateway \
   -e KSP_HOST=host.docker.internal \
-  -p 8080:8080 -p 3002:3002 \
+  -p 8080:8080 -p 127.0.0.1:3002:3002 \
   -p 3478:3478/tcp -p 3478:3478/udp \
   -p 49160-49170:49160-49170/udp \
   ghcr.io/ksp-gonogo/gonogo:rc

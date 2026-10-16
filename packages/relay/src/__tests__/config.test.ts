@@ -32,4 +32,16 @@ describe("loadConfig", () => {
     expect(loadConfig({ RELAY_PUBLIC: "1" }).publicRelay).toBe(true);
     expect(loadConfig({ RELAY_PUBLIC: "true" }).publicRelay).toBe(true);
   });
+
+  it("reads extra app origins and refuses one that is not an origin", () => {
+    expect(loadConfig({}).appOrigins).toEqual([]);
+    expect(
+      loadConfig({
+        RELAY_APP_ORIGINS: " http://198.51.100.20:8080/ ,https://fork.example",
+      }).appOrigins,
+    ).toEqual(["http://198.51.100.20:8080", "https://fork.example"]);
+    expect(() => loadConfig({ RELAY_APP_ORIGINS: "198.51.100.20" })).toThrow(
+      /RELAY_APP_ORIGINS entry "198.51.100.20"/,
+    );
+  });
 });

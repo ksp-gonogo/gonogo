@@ -367,9 +367,9 @@ async function connectStationService(
   peerHost: PeerHostService,
 ): Promise<PeerClientService> {
   const clientSvc = new PeerClientService();
+  approveStation();
   act(() => clientSvc.connect(peerHost.shareCode));
   await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
-  approveStation();
   return clientSvc;
 }
 
@@ -379,9 +379,9 @@ async function connectStation(
 ): Promise<PeerClientService> {
   const clientSvc = new PeerClientService();
   render(<StationApp clientSvc={clientSvc} extraTopic={extraTopic} />);
+  approveStation();
   act(() => clientSvc.connect(peerHost.shareCode));
   await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
-  approveStation();
   return clientSvc;
 }
 
@@ -784,6 +784,7 @@ describe("station subscription intent reaches the mod", () => {
 
     const clientSvc = new PeerClientService();
     render(<StationChainApp clientSvc={clientSvc} />);
+    approveStation();
     act(() => clientSvc.connect(peerHost.shareCode));
     await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
     stationServices.push(clientSvc);
@@ -1034,6 +1035,7 @@ describe("host-issued ICE servers, read from a station", () => {
         <IceProbe onServers={(s) => seen.push(s)} />
       </PeerClientProvider>,
     );
+    approveStation();
     act(() => clientSvc.connect(peerHost.shareCode));
     await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
 
@@ -1132,6 +1134,7 @@ describe("a game restart seen from a station", () => {
     const svc = new PeerClientService();
     services.push(svc);
     render(<StationThroughProvider svc={svc} />);
+    approveStation();
     act(() => svc.connect(peerHost.shareCode));
     await waitFor(() => expect(svc.getConnStatus()).toBe("connected"));
 

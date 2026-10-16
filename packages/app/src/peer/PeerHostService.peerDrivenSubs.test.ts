@@ -124,6 +124,7 @@ const localStorageMock = {
 };
 vi.stubGlobal("localStorage", localStorageMock);
 
+import { approveConnection } from "../test/approveStation";
 import { asDataConnection } from "../test/peerFakes";
 import { PeerHostService } from "./PeerHostService";
 
@@ -140,6 +141,7 @@ async function connectStation(
   const conn = new FakeHub.DataConnection(peerId, withPeerConnection);
   peer.emit("connection", asDataConnection(conn));
   conn.emit("open");
+  approveConnection(conn, `cred-${peerId}`);
   await Promise.resolve();
   return conn;
 }

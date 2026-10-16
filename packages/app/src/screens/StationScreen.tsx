@@ -66,7 +66,6 @@ import {
   useStationWakeLock,
 } from "../settings";
 import { StationApprovalNotice } from "../stationApproval/StationApprovalNotice";
-import { useApprovalEpoch } from "../stationApproval/useApprovalEpoch";
 import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { PeerTransport } from "../telemetry/PeerTransport";
@@ -97,7 +96,11 @@ export function StationScreen() {
     localStorage.getItem(HOST_ID_KEY) ?? "",
   );
   const [client] = useState(() => new PeerClientService());
-  const approvalEpoch = useApprovalEpoch(client);
+  const [approval, setApproval] = useState(() => client.getApproval());
+  useEffect(() => {
+    setApproval(client.getApproval());
+    return client.onApprovalChange(setApproval);
+  }, [client]);
   const bundleFetch = useMemo(() => createPeerBundleFetcher(client), [client]);
   // Build the `PeerTransport` INSIDE an effect rather than as a stable
   // `useState` singleton. `PeerTransport` subscribes to `client.onSitrepFrame`
@@ -302,12 +305,29 @@ export function StationScreen() {
     };
   }, []);
 
+  /* The host sends a station nothing, the schema included, until it is
+     approved, so the dashboard below never mounts while it waits. The station
+     still introduces itself, since its station-info is what raises it on the
+     main screen. */
+  if (!connected && connStatus === "connected" && approval === "pending") {
+    return (
+      <ScreenProvider value="station">
+        <ScopedStationIdentity>
+          <StationInfoBroadcaster client={client} seat="mission-control" />
+          <StationSupersededNotice client={client} />
+          <StationApprovalNotice client={client} />
+        </ScopedStationIdentity>
+      </ScreenProvider>
+    );
+  }
+
   if (!connected) {
     return (
       <ScreenProvider value="station">
         <SettingsProvider service={settingsService}>
           <MissionProfilesProvider service={missionProfiles}>
             <ScopedStationIdentity>
+              <StationInfoBroadcaster client={client} seat="mission-control" />
               <StationSupersededNotice client={client} />
               <StationApprovalNotice client={client} />
               <StationConnectView
@@ -374,11 +394,7 @@ export function StationScreen() {
                                   fetchBytes={bundleFetch}
                                   bundlesFromHost
                                 />
-                                {/* Remounted when this station is approved after waiting, so a widget's one-shot call refused while it waited runs again. */}
-                                <RootProviders
-                                  screen="station"
-                                  key={approvalEpoch}
-                                >
+                                <RootProviders screen="station">
                                   <Dashboard
                                     items={dashboard.items}
                                     layouts={dashboard.layouts}

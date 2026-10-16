@@ -160,6 +160,7 @@ import { PeerHostService } from "../peer/PeerHostService";
 import { PeerTransport } from "../telemetry/PeerTransport";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
+import { approveStation } from "../test/approveStation";
 
 function GameStatusProbe({ testId }: { testId: string }) {
   const { state, scene } = useGameStatus();
@@ -235,6 +236,7 @@ describe("a station joining while the game is not running a scene", () => {
     const clientSvc = new PeerClientService();
     services.push(clientSvc);
     render(<StationApp clientSvc={clientSvc} />);
+    approveStation();
     act(() => clientSvc.connect(peerHost.shareCode));
     await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
 

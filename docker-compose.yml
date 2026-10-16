@@ -10,7 +10,9 @@ services:
       context: .
       dockerfile: packages/relay/Dockerfile
     ports:
-      - "3002:3002"
+      # Loopback only: the main screen's browser on this machine is the relay's
+      # one HTTP client, and /ice-config hands out TURN credentials.
+      - "127.0.0.1:3002:3002"
       # TURN signalling. Both UDP and TCP for client compatibility.
       - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/udp"
       - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/tcp"
@@ -33,6 +35,10 @@ services:
       # to relay to private, loopback, link-local and CGNAT peers. Leave it
       # unset on a LAN, where those are the peers it serves.
       RELAY_PUBLIC: ${RELAY_PUBLIC:-}
+      # Pages beyond the public build and localhost that may use the relay,
+      # comma-separated origins, e.g. a main screen opened at this machine's
+      # LAN address: http://<lan-address>:5173
+      RELAY_APP_ORIGINS: ${RELAY_APP_ORIGINS:-}
       # TURN ports, kept in step with the published `ports:` above. Change
       # them here (or in `.env`) rather than in coturnManager.ts, and widen
       # the router forwards to match.

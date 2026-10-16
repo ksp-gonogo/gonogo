@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
+import { approveConnection } from "../test/approveStation";
 
 type Listener = (...args: unknown[]) => void;
 
@@ -87,6 +88,7 @@ describe("host-command-centre over peer", () => {
     if (!FakePeer.last) throw new Error("no fake peer");
     FakePeer.last.emit("connection", conn);
     conn.emit("open");
+    approveConnection(conn);
     return { host, conn };
   }
 
@@ -98,6 +100,7 @@ describe("host-command-centre over peer", () => {
     if (!FakePeer.last) throw new Error("no fake peer");
     FakePeer.last.emit("connection", conn);
     conn.emit("open");
+    approveConnection(conn);
     expect(centreMsgs(conn)).toEqual([
       { type: "host-command-centre", centreId: "ground:KSC" },
     ]);

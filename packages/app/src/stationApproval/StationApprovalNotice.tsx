@@ -25,9 +25,9 @@ const REFUSED_LABEL: Record<string, string> = {
 
 /**
  * Tells a station's operator that the main screen has not approved this
- * station yet, so everything it sends is refused while it reads, naming the
- * last thing refused; or that the main screen refused it, with the control
- * that asks again. Renders nothing once approved.
+ * station yet, so it is sent nothing and everything it sends is refused,
+ * naming the last thing refused; or that the main screen refused it, with
+ * the control that asks again. Renders nothing once approved.
  */
 export function StationApprovalNotice({ client }: { client: Client }) {
   const [approval, setApproval] = useState(() => client.getApproval());

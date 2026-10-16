@@ -52,7 +52,7 @@ Consumer routers like Google Wi-Fi require one forward entry per port, so that's
 
 Two things deliberately **not** in that table:
 
-- The relay's HTTP port (`3002`). Only the main screen's own browser reads `/ice-config`, over loopback. A station never fetches it: the main screen sends the TURN address and credentials to each station over their data channel once it connects, and again whenever the relay restarts and rotates the secret. The main screen's own connection to a station starts without TURN and adds it only when a connection has not opened within a few seconds
+- The relay's HTTP port (`3002`). Only the main screen's own browser reads `/ice-config`, over loopback, which is why the README publishes it on `127.0.0.1` alone. A station never fetches it: the main screen sends the TURN address and credentials to each station over their data channel once it connects, and again whenever the relay restarts and rotates the secret. The main screen's own connection to a station starts without TURN and adds it only when a connection has not opened within a few seconds
 - The app's port (`8080`). A remote station loads the app from the public build, not from your machine
 
 Point the forwards at a **fixed** LAN address for that machine. A DHCP lease change silently breaks every forward, which looks exactly like a relay that stopped working; a DHCP reservation on the router, or a static address, avoids it.
@@ -97,6 +97,7 @@ podman run -d --name gonogo-relay \
   -p 3002:3002 -p 3478:3478/udp -p 3478:3478/tcp -p 49160-49170:49160-49170/udp \
   -e TURN_EXTERNAL_IP=<public-ip> \
   -e RELAY_PUBLIC=1 \
+  -e RELAY_APP_ORIGINS=https://<your-fork-site> \
   ghcr.io/ksp-gonogo/gonogo-relay:latest
 ```
 
@@ -104,4 +105,6 @@ Until the first release the image exists only as `:rc`, so end the command with 
 
 On a box where the TURN ports are directly reachable, the relay finds its public IP by itself and nothing needs forwarding at home; leave `TURN_EXTERNAL_IP` out unless discovery gets it wrong.
 
-`RELAY_PUBLIC=1` makes coturn refuse to relay to loopback, private, link-local and CGNAT addresses, which on a relay reachable from the internet are the relay box's own networks. Leave it unset on a LAN, where stations and the main screen sit on those ranges. The relay answers any web page that asks for `/ice-config`, because the address of the main screen's app is not known to the relay (it may be a LAN address, the public build, or a fork), so keep `3002` closed to the internet where you can and publish only the TURN ports.
+`RELAY_PUBLIC=1` makes coturn refuse to relay to loopback, private, link-local and CGNAT addresses, which on a relay reachable from the internet are the relay box's own networks. Leave it unset on a LAN, where stations and the main screen sit on those ranges.
+
+The relay answers only the gonogo app's own pages: the public build at `ksp-gonogo.github.io`, any page on this machine's `localhost`, `127.0.0.1` or `[::1]` at any port, and a page served from the IP address the relay itself was reached at (a fork built with `VITE_RELAY_URL=http://<lan-address>:3002` opened at `http://<lan-address>:8080`). A request from any other page is refused, so a site the main screen's browser happens to open cannot read the TURN credentials or change the analytics setting. A main screen opened at another address (the machine's LAN address, or a fork's own site) needs that origin in `RELAY_APP_ORIGINS`, comma-separated, such as `RELAY_APP_ORIGINS=http://<lan-address>:8080`. Keep `3002` closed to the internet and publish only the TURN ports.

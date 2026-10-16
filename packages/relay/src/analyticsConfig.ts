@@ -64,9 +64,9 @@ function writeSseEvent(reply: FastifyReply, enabled: boolean): void {
 }
 
 /**
- * Mount the analytics-config broker onto a Fastify instance. CORS is
- * inherited from the relay's global `@fastify/cors` registration (same as
- * `/ice-config` and the host registry). Optionally takes a callback fired
+ * Mount the analytics-config broker onto a Fastify instance. Which pages
+ * may reach it is the relay-wide `registerAppOrigins` gate, the same one
+ * `/ice-config` sits behind. Optionally takes a callback fired
  * on every change so the relay can gate its own Axiom transport.
  *
  * Returns the controller so the caller can read/gate and tests can inspect.
@@ -104,12 +104,15 @@ export function registerAnalyticsConfigRoutes(
     // Take manual control of the response so we can keep it open and stream
     // SSE frames. Fastify won't manage a long-lived stream for us.
     reply.hijack();
+    // hijack() bypasses the onSend hook @fastify/cors adds its header in, so it is echoed here; a foreign origin was already refused in onRequest.
+    const origin = req.headers.origin;
     reply.raw.writeHead(200, {
       "content-type": "text/event-stream",
       "cache-control": "no-cache",
       connection: "keep-alive",
-      // Echo CORS for the SSE response: hijack() bypasses the onSend hooks @fastify/cors uses, so the header it would normally add is skipped.
-      "access-control-allow-origin": "*",
+      ...(origin
+        ? { "access-control-allow-origin": origin, vary: "Origin" }
+        : {}),
     });
 
     // Push the current value immediately so a subscriber gates correctly without waiting for the next change.

@@ -8,7 +8,6 @@ import { stationApprovals } from "../peer/stationApprovals";
 import { ApprovedStations } from "./ApprovedStations";
 import { StationApprovalNotice } from "./StationApprovalNotice";
 import { StationApprovalPrompt } from "./StationApprovalPrompt";
-import { useApprovalEpoch } from "./useApprovalEpoch";
 
 class FakeHost {
   pending: readonly PendingStation[] = [];
@@ -150,24 +149,5 @@ describe("StationApprovalNotice", () => {
     expect(client.asked).toBe(1);
     client.set("approved");
     expect(container).toBeEmptyDOMElement();
-  });
-});
-
-describe("useApprovalEpoch", () => {
-  function Epoch({ client }: { client: FakeClient }) {
-    return <output>{useApprovalEpoch(client)}</output>;
-  }
-
-  it("moves when a station that waited is approved, and only then", () => {
-    const client = new FakeClient();
-    render(<Epoch client={client} />);
-    client.set("approved");
-    expect(screen.getByRole("status")).toHaveTextContent("0");
-    client.set("pending");
-    client.set("approved");
-    expect(screen.getByRole("status")).toHaveTextContent("1");
-    client.set("unknown");
-    client.set("approved");
-    expect(screen.getByRole("status")).toHaveTextContent("1");
   });
 });

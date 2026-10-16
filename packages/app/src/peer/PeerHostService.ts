@@ -345,6 +345,16 @@ const STATION_WRITES: ReadonlySet<PeerMessage["type"]> = new Set([
   "note-reorder",
 ]);
 
+/**
+ * Everything a station that is not approved may send: the two messages by
+ * which it introduces itself, which is how the main screen comes to approve
+ * it. Anything else it sends is refused.
+ */
+const WAITING_STATION_MAY_SEND: ReadonlySet<PeerMessage["type"]> = new Set([
+  "station-info",
+  "station-credential",
+]);
+
 /** `meta` for a command reply the host writes itself rather than relays. */
 const HOST_REPLY_META = {
   source: "sitrep-command-rpc",
@@ -396,7 +406,15 @@ type HostEventMap = {
 
 export class PeerHostService {
   private peer: Peer | null = null;
+  /** Open connections of approved stations: everything the host sends goes to these. */
   private connections: Set<DataConnection> = new Set();
+  /**
+   * Open connections whose station the main screen has not approved. Each is
+   * told only where its approval stands and why its requests are refused,
+   * until `admit` moves it into `connections`.
+   */
+  private waiting: Set<DataConnection> = new Set();
+  private approvalsUnsub: (() => void) | null = null;
   /** Single typed event registry replacing the former ~22 hand-rolled
    *  `ListenerSet` fields. The `onX` methods are thin wrappers over
    *  `events.on("x", cb)` and the dispatcher fires via `events.emit("x", ...)`,
@@ -619,6 +637,10 @@ export class PeerHostService {
     // Peer's config at start() time would silently fail (401) on any
     // subsequent TURN allocation.
     this.startIceConfigRefresh();
+    // An approval can land while its station waits: from the prompt, or from another tab of this main screen sharing the store.
+    this.approvalsUnsub ??= stationApprovals.subscribe(() => {
+      for (const conn of [...this.waiting]) this.serveIfApproved(conn);
+    });
     this.openPeer();
   }
 
@@ -716,7 +738,7 @@ export class PeerHostService {
           clearTimeout(timer);
           this.turnEscalationTimers.delete(conn);
         }
-        this.connections.add(conn);
+        this.waiting.add(conn);
         // PeerJS can lose an open data connection without ever firing
         // `close`: the RTCPeerConnection goes silent and the events stop. A
         // station already watches for that on its own side and reconnects;
@@ -736,7 +758,7 @@ export class PeerHostService {
           }
         });
         logger.info(
-          `[PeerHost] connection open: peer=${conn.peer}, total=${this.connections.size}`,
+          `[PeerHost] connection open: peer=${conn.peer}, waiting for approval`,
         );
         // Hello first: stations parse it before anything else so a major mismatch banner can appear without waiting for the schema round.
         conn.send({
@@ -745,43 +767,6 @@ export class PeerHostService {
           buildTime: BUILD_TIME,
           sessionToken: this.sessionToken,
         } satisfies PeerMessage);
-        this.sendSchema(conn);
-        // A station cannot fetch /ice-config itself (it is this host's loopback), so a joining one is handed the TURN creds here.
-        if (this.iceServers.length > 0) {
-          conn.send({
-            type: "relay-ice-servers",
-            iceServers: this.iceServers,
-          } satisfies PeerMessage);
-        }
-        // Tell the joining station the host's current analytics consent so it gates its own Axiom transport from the moment it connects.
-        conn.send({
-          type: "analytics-consent",
-          enabled: this.analyticsConsent,
-        } satisfies PeerMessage);
-        conn.send({
-          type: "host-command-centre",
-          centreId: this.commandCentre,
-        } satisfies PeerMessage);
-        // Missions have no live "currently recording" concept: a mission only
-        // exists once StreamRecorder finishes and saveMission is called, so
-        // there is never an in-progress flight to report. Send a
-        // permanently-null snapshot for wire back-compat with stations that
-        // listen for it (useFlight()'s live-current-flight badge simply never
-        // lights up), and nudge the station to
-        // (re)fetch its flight list so an open FlightsManager modal doesn't
-        // sit on a stale "no flights" view.
-        conn.send({
-          type: "flight-change",
-          flight: null,
-        } satisfies PeerMessage);
-        conn.send({ type: "flight-list-changed" } satisfies PeerMessage);
-        // Lazy: wire the host's MissionHistorySource list-change broadcaster
-        // on the first peer connection. The source isn't registered
-        // synchronously: it imports the Uplink client modules first, so
-        // doing this in start() races. Per-connection is too eager (we'd
-        // subscribe every time), so we gate on a single attach.
-        void this.attachFlightListChangeBroadcaster();
-        this.events.emit("peerConnect", conn.peer);
       });
       conn.on("data", (raw) => {
         if (this.droppedConnections.has(conn)) return;
@@ -1046,6 +1031,73 @@ export class PeerHostService {
     return null;
   }
 
+  /** The open connection for `peerId`, approved or still waiting. */
+  private findOpenConn(peerId: string): DataConnection | null {
+    for (const c of this.waiting) if (c.peer === peerId) return c;
+    return this.findConnByPeerId(peerId);
+  }
+
+  /**
+   * Serve a waiting station whose credential the main screen has approved,
+   * telling it so. Does nothing for one not approved or already served.
+   */
+  private serveIfApproved(conn: DataConnection): void {
+    if (!this.waiting.has(conn)) return;
+    const credential = this.connCredential.get(conn);
+    if (credential === undefined || !stationApprovals.isApproved(credential)) {
+      return;
+    }
+    this.setPending(this.pending.filter((p) => p.peerId !== conn.peer));
+    conn.send({
+      type: "station-approval",
+      state: "approved",
+    } satisfies PeerMessage);
+    this.admit(conn);
+  }
+
+  /**
+   * Serve an approved station: move its connection into `connections` and
+   * send it what a station needs on joining. Runs once per connection.
+   */
+  private admit(conn: DataConnection): void {
+    if (!this.waiting.delete(conn)) return;
+    this.connections.add(conn);
+    logger.info(
+      `[PeerHost] station approved: peer=${conn.peer}, total=${this.connections.size}`,
+    );
+    this.sendSchema(conn);
+    this.sendRelayIceServers(conn);
+    // Tell the joining station the host's current analytics consent so it gates its own Axiom transport from the moment it connects.
+    conn.send({
+      type: "analytics-consent",
+      enabled: this.analyticsConsent,
+    } satisfies PeerMessage);
+    conn.send({
+      type: "host-command-centre",
+      centreId: this.commandCentre,
+    } satisfies PeerMessage);
+    // Missions have no live "currently recording" concept: a mission only
+    // exists once StreamRecorder finishes and saveMission is called, so
+    // there is never an in-progress flight to report. Send a
+    // permanently-null snapshot for wire back-compat with stations that
+    // listen for it (useFlight()'s live-current-flight badge simply never
+    // lights up), and nudge the station to
+    // (re)fetch its flight list so an open FlightsManager modal doesn't
+    // sit on a stale "no flights" view.
+    conn.send({
+      type: "flight-change",
+      flight: null,
+    } satisfies PeerMessage);
+    conn.send({ type: "flight-list-changed" } satisfies PeerMessage);
+    // Lazy: wire the host's MissionHistorySource list-change broadcaster
+    // on the first served station. The source isn't registered
+    // synchronously: it imports the Uplink client modules first, so
+    // doing this in start() races. Per-connection is too eager (we'd
+    // subscribe every time), so we gate on a single attach.
+    void this.attachFlightListChangeBroadcaster();
+    this.events.emit("peerConnect", conn.peer);
+  }
+
   /**
    * Register a host-owned data source for back-fill on peer-data-subscribe.
    * Called by PeerBroadcastingDataSource on construction; the wrapper
@@ -1115,7 +1167,8 @@ export class PeerHostService {
       clearTimeout(pendingTimer);
       this.turnEscalationTimers.delete(conn);
     }
-    this.connections.delete(conn);
+    const wasServed = this.connections.delete(conn);
+    this.waiting.delete(conn);
     this.peerIdToStationKey.delete(conn.peer);
     this.connCredential.delete(conn);
     this.setPending(this.pending.filter((p) => p.peerId !== conn.peer));
@@ -1148,7 +1201,7 @@ export class PeerHostService {
       `[PeerHost] connection ${why}: peer=${conn.peer}, total=${this.connections.size}`,
     );
     if (hadVantage) this.announceRequestedVantages();
-    this.events.emit("peerDisconnect", conn.peer);
+    if (wasServed) this.events.emit("peerDisconnect", conn.peer);
   }
 
   /**
@@ -1457,13 +1510,25 @@ export class PeerHostService {
   }
 
   /**
-   * Broadcast the current turn creds to every connected station. Without them
-   * a station's media connection cannot traverse the relay's container bridge
+   * Send the relay's current credentials to every served station. Without them a
+   * station's media connection cannot traverse the relay's container bridge
    * and its WebRTC negotiation dies with `negotiation-failed`.
    */
   private broadcastRelayIceServers(): void {
+    for (const conn of this.connections) this.sendRelayIceServers(conn);
+  }
+
+  /**
+   * Hand one station the relay credentials, which it cannot fetch itself (`/ice-config`
+   * is on this host's loopback). Only an approved station is given them: they
+   * let whoever holds them relay through this machine.
+   */
+  private sendRelayIceServers(conn: DataConnection): void {
     if (this.iceServers.length === 0) return;
-    this.broadcast({ type: "relay-ice-servers", iceServers: this.iceServers });
+    this.transmit(conn, {
+      type: "relay-ice-servers",
+      iceServers: this.iceServers,
+    } satisfies PeerMessage);
   }
 
   /**
@@ -1653,7 +1718,7 @@ export class PeerHostService {
            skipped so a rename's repeated station-info does not close it. */
         for (const [peerId, key] of this.peerIdToStationKey) {
           if (key === msg.stationKey && peerId !== conn.peer) {
-            const older = this.findConnByPeerId(peerId);
+            const older = this.findOpenConn(peerId);
             try {
               older?.send({ type: "station-superseded" } satisfies PeerMessage);
             } catch {
@@ -1677,6 +1742,7 @@ export class PeerHostService {
     "station-credential": (msg, conn) => {
       if (this.connCredential.has(conn)) return;
       this.connCredential.set(conn, msg.credential);
+      this.serveIfApproved(conn);
     },
     "gonogo-vote": (msg, conn) => {
       this.events.emit("gonogoVote", conn.peer, msg.status);
@@ -1789,8 +1855,11 @@ export class PeerHostService {
       peer: conn.peer,
       sessionId: "sessionId" in msg ? msg.sessionId : undefined,
     });
-    if (STATION_WRITES.has(msg.type) && !this.isApproved(conn)) {
-      this.refuseWrite(msg, conn);
+    if (
+      !this.connections.has(conn) &&
+      !WAITING_STATION_MAY_SEND.has(msg.type)
+    ) {
+      this.refuseWaiting(msg, conn);
       return;
     }
     this.dispatcher.dispatch(msg, conn);
@@ -1798,12 +1867,6 @@ export class PeerHostService {
 
   // GO/NO-GO + peer lifecycle subscriptions. Kept as plain pub/sub so the
   // GoNoGoHostService can aggregate without this class knowing the semantics.
-  /** Whether the main screen has approved the station on this connection. */
-  private isApproved(conn: DataConnection): boolean {
-    const credential = this.connCredential.get(conn);
-    return credential !== undefined && stationApprovals.isApproved(credential);
-  }
-
   /**
    * Refused on the response channel, the one the mod refuses on, so the
    * station's command status shows the reason as it would a refusal from the
@@ -1820,6 +1883,36 @@ export class PeerHostService {
       },
       meta: HOST_REPLY_META,
     } satisfies PeerMessage);
+  }
+
+  /**
+   * Answer a request from a station that is not approved: a write is refused
+   * on its reply channel or with `station-write-refused`, a read that has a
+   * reply channel is answered with an error, and any other read is dropped.
+   */
+  private refuseWaiting(msg: PeerMessage, conn: DataConnection): void {
+    if (STATION_WRITES.has(msg.type)) {
+      this.refuseWrite(msg, conn);
+      return;
+    }
+    switch (msg.type) {
+      case "query-range-request":
+        conn.send({
+          type: "query-range-response",
+          requestId: msg.requestId,
+          t: [],
+          v: [],
+          error: AWAITING_APPROVAL,
+        } satisfies PeerMessage);
+        return;
+      case "uplink-bundle-request":
+        conn.send({
+          type: "uplink-bundle-response",
+          requestId: msg.requestId,
+          error: AWAITING_APPROVAL,
+        } satisfies PeerMessage);
+        return;
+    }
   }
 
   private refuseWrite(msg: PeerMessage, conn: DataConnection): void {
@@ -1886,6 +1979,7 @@ export class PeerHostService {
         type: "station-approval",
         state: "approved",
       } satisfies PeerMessage);
+      this.admit(conn);
       return;
     }
     if (credential !== undefined) {
@@ -1926,21 +2020,18 @@ export class PeerHostService {
   /** Approve a waiting station and remember it, so it is served whenever it rejoins. */
   approveStation(peerId: string): void {
     const entry = this.pending.find((p) => p.peerId === peerId);
-    const conn = this.findConnByPeerId(peerId);
+    const conn = this.findOpenConn(peerId);
     const credential = conn ? this.connCredential.get(conn) : undefined;
     this.setPending(this.pending.filter((p) => p.peerId !== peerId));
     if (!conn || !credential) return;
     stationApprovals.approve(credential, entry?.name ?? peerId);
-    conn.send({
-      type: "station-approval",
-      state: "approved",
-    } satisfies PeerMessage);
+    this.serveIfApproved(conn);
   }
 
   /** Refuse a waiting station and disconnect it. Nothing is remembered. */
   refuseStation(peerId: string): void {
     this.setPending(this.pending.filter((p) => p.peerId !== peerId));
-    const conn = this.findConnByPeerId(peerId);
+    const conn = this.findOpenConn(peerId);
     if (conn) this.disconnectRefused(conn);
   }
 
@@ -2525,7 +2616,7 @@ export class PeerHostService {
    * recovery test; harmless in production but not wired to any UI.
    */
   closeAllConnections(): void {
-    for (const conn of this.connections) {
+    for (const conn of [...this.connections, ...this.waiting]) {
       conn.close();
     }
   }
@@ -2556,6 +2647,9 @@ export class PeerHostService {
     this.destroyPeer();
     this.peerId = null;
     this.connections.clear();
+    this.waiting.clear();
+    this.approvalsUnsub?.();
+    this.approvalsUnsub = null;
     // Clearing the set is not the same as each connection closing, so nothing
     // released what those stations were reading. Reconcile against the (now
     // empty) live set so the host stops pulling their topics from the mod.
