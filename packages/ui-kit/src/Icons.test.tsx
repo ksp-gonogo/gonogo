@@ -17,6 +17,19 @@ describe("Icons", () => {
     expect(img).not.toHaveAttribute("aria-hidden", "true");
   });
 
+  it("writes a token size as CSS, never as an SVG attribute", () => {
+    const { container } = render(
+      <>
+        <BellIcon />
+        <BellIcon size={48} data-testid="big" />
+      </>,
+    );
+    const [token] = container.querySelectorAll("svg");
+    expect(token.getAttribute("width")).not.toContain("var(");
+    expect(token).toHaveStyle({ width: "var(--icon-size-control)" });
+    expect(screen.getByTestId("big")).toHaveAttribute("width", "48");
+  });
+
   it("has no axe violations named or decorative", async () => {
     const { container } = render(
       <>

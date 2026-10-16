@@ -56,7 +56,11 @@ describe("MarkerIcons", () => {
     );
     const [small] = container.querySelectorAll("svg");
     // The token rather than its 20px, so the glyph takes the coarse-pointer step with the control around it.
-    expect(small).toHaveAttribute("width", "var(--icon-size-standalone)");
+    expect(small).not.toHaveAttribute("width");
+    expect(small).toHaveStyle({
+      width: "var(--icon-size-standalone)",
+      height: "var(--icon-size-standalone)",
+    });
     expect(small).toHaveAttribute("viewBox", "0 0 24 24");
     expect(screen.getByTestId("big")).toHaveAttribute("height", "48");
   });

@@ -74,15 +74,16 @@ export interface IconProps extends LucideProps {
   label?: string;
 }
 
+const DEFAULT_SIZE = "var(--icon-size-control)";
+
 /**
- * A `var()` resolves inside the SVG `width`/`height` presentation attribute
- * lucide writes `size` out as, so the size token picks up the coarse-pointer
- * step a bare number cannot. The default is `control`, the glyph inside a
- * control the operator presses; a glyph that is its own control (a Fab) is
- * sized by that control.
+ * The default size is `control`, the glyph inside a control the operator
+ * presses; a glyph that is its own control (a Fab) is sized by that control.
+ * An SVG `width`/`height` attribute does not take `var()`, so a string size
+ * is written as CSS, where the token picks up the coarse-pointer step a bare
+ * number cannot.
  */
 const ICON_DEFAULTS: LucideProps = {
-  size: "var(--icon-size-control)",
   strokeWidth: 1.8,
   "aria-hidden": true,
 };
@@ -92,7 +93,11 @@ function makeIcon(
   extraDefaults?: LucideProps,
 ) {
   const Wrapped = forwardRef<SVGSVGElement, IconProps>(
-    ({ label, ...props }, ref) => {
+    ({ label, size = DEFAULT_SIZE, style, ...props }, ref) => {
+      const sizing =
+        typeof size === "number"
+          ? { size, style }
+          : { style: { width: size, height: size, ...style } };
       const naming = label
         ? { role: "img", "aria-label": label, "aria-hidden": false }
         : {};
@@ -102,6 +107,7 @@ function makeIcon(
           {...extraDefaults}
           {...naming}
           {...props}
+          {...sizing}
           ref={ref}
         />
       );

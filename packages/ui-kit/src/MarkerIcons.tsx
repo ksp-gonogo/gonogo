@@ -38,7 +38,7 @@ export interface MarkerIconProps
 /** Extra width of the keyline beyond the coloured stroke, split across both sides. */
 const KEYLINE_EXTRA = 1.4;
 const DOT_RADIUS = 1.7;
-/** As in `Icons.tsx`: the token reaches the glyph through the presentation attribute, so it steps on a coarse pointer. */
+/** As in `Icons.tsx`: a string size is written as CSS, since an SVG attribute does not take `var()`. */
 const DEFAULT_SIZE = "var(--icon-size-standalone)";
 const DEFAULT_STROKE_WIDTH = 1.8;
 
@@ -214,6 +214,7 @@ function makeMarker(id: MarkerId, displayName: string) {
         size = DEFAULT_SIZE,
         strokeWidth = DEFAULT_STROKE_WIDTH,
         label,
+        style,
         ...rest
       },
       ref,
@@ -221,8 +222,9 @@ function makeMarker(id: MarkerId, displayName: string) {
       const frame = {
         ref,
         xmlns: "http://www.w3.org/2000/svg",
-        width: size,
-        height: size,
+        ...(typeof size === "number"
+          ? { width: size, height: size, style }
+          : { style: { width: size, height: size, ...style } }),
         viewBox: "0 0 24 24",
         "data-marker": id,
       };

@@ -7,13 +7,15 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const read = (p: string) => readFileSync(resolve(HERE, p), "utf8");
 
 /**
- * An icon's default size is a `var()` inside the SVG `width`/`height`
- * presentation attribute. It resolves in all three engines, and it steps under
+ * An icon's default size is a `var()` written as CSS `width`/`height`, never
+ * as the SVG attribute, which browsers reject. It steps under
  * `@media (pointer: coarse)`, which a JS number cannot.
  */
 describe("icon size tokens", () => {
   it("the kit's icon defaults reach for the token, not a number", () => {
-    expect(read("./Icons.tsx")).toMatch(/size:\s*"var\(--icon-size-control\)"/);
+    expect(read("./Icons.tsx")).toMatch(
+      /DEFAULT_SIZE\s*=\s*"var\(--icon-size-control\)"/,
+    );
     expect(read("./MarkerIcons.tsx")).toMatch(
       /DEFAULT_SIZE\s*=\s*"var\(--icon-size-(control|standalone)\)"/,
     );
@@ -36,7 +38,9 @@ describe("icon size tokens", () => {
 
   it("the icon family stays off the type scale", () => {
     // A type token offered for a box dimension gets reached for as text.
-    expect(read("./Icons.tsx")).not.toMatch(/size:\s*"var\(--font-size-/);
+    expect(read("./Icons.tsx")).not.toMatch(
+      /DEFAULT_SIZE\s*=\s*"var\(--font-size-/,
+    );
     expect(read("./MarkerIcons.tsx")).not.toMatch(
       /DEFAULT_SIZE\s*=\s*"var\(--font-size-/,
     );
