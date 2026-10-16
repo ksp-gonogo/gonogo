@@ -14,7 +14,6 @@ import {
 import type { ReactNode } from "react";
 import { DELTA_V_MODE_SHORT, type DeltaVMode } from "./config";
 import { budgetFigure, pickDeltaV, pickTWR } from "./deltaV";
-import { useFittedRows } from "./useFittedRows";
 
 function burnLabel(
   budgetReading: Reading<DeltaVBudget>,
@@ -57,98 +56,60 @@ export function StageStackSection({
   currentStage: number | undefined;
   maxStageDv: Value<"m/s">;
 }) {
-  /*
-   * A tile with room for fewer rows than there are stages draws from the
-   * current stage down, since the stages above it are spent, and counts the
-   * rest.
-   */
-  const first = Math.max(
-    0,
-    stages.findIndex((s) => s.stage === currentStage),
-  );
-  const { blockRef, listRef, fitted, noteFits } = useFittedRows(stages.length);
-  const collapsed = fitted === 0;
-  const shown =
-    fitted === null || collapsed ? stages : stages.slice(first, first + fitted);
-  const leftOut = stages.length - shown.length;
   return (
-    <div ref={blockRef}>
-      {/* A block with no room draws nothing but keeps its place, so growing the tile can bring it back. */}
-      {!collapsed && (
-        <Stack>
-          <ReadoutCaption
-            style={{
-              color: "var(--color-text-faint)",
-              letterSpacing: "0.1em",
-              marginBottom: "var(--gap-under-title)",
-            }}
-          >
-            Stages · ΔV ({DELTA_V_MODE_SHORT[mode]}) · burn · TWR
-          </ReadoutCaption>
-          <div ref={listRef}>
-            <MeterStack>
-              {shown.map((s) => {
-                const figure = pickDeltaV(s, mode);
-                // NaN is a stage the wire carried no ΔV for, which the meter draws as absent rather than empty.
-                const dv = Number.isFinite(figure)
-                  ? budgetFigure(budgetReading, value("m/s", figure))
-                  : null;
-                // A stage with no ΔV left is finished, so it is not the one burning.
-                const active = s.stage === currentStage && figure !== 0;
-                return (
-                  <MeterRowGroup key={s.stage}>
-                    <Meter
-                      label={`${active ? "▶ " : ""}S${s.stage}`}
-                      value={dv}
-                      capacity={maxStageDv}
-                      layout="row"
-                      fillColor={
-                        active
-                          ? "var(--color-warn-mark)"
-                          : "var(--color-text-faint)"
-                      }
-                      valueLabel={
-                        dv === null
-                          ? undefined
-                          : speakQuantity(value("m/s", figure))
-                      }
-                      valueLabelNode={
-                        dv === null ? undefined : (
-                          <Unit value={dv} decimals={0} />
-                        )
-                      }
-                    />
-                    <Text
-                      size="xs"
-                      style={{
-                        justifySelf: "end",
-                        whiteSpace: "nowrap",
-                        color: active
-                          ? "var(--color-text-primary)"
-                          : "var(--color-text-faint)",
-                      }}
-                    >
-                      {burnLabel(budgetReading, s.burnTime, figure)} · TWR{" "}
-                      {twrLabel(budgetReading, pickTWR(s, mode))}
-                    </Text>
-                  </MeterRowGroup>
-                );
-              })}
-            </MeterStack>
-          </div>
-          {leftOut > 0 && noteFits && (
-            <Text
-              size="xs"
-              style={{
-                justifySelf: "end",
-                color: "var(--color-text-faint)",
-              }}
-            >
-              +{leftOut} more {leftOut === 1 ? "stage" : "stages"}
-            </Text>
-          )}
-        </Stack>
-      )}
-    </div>
+    <Stack>
+      <ReadoutCaption
+        style={{
+          color: "var(--color-text-faint)",
+          letterSpacing: "0.1em",
+          marginBottom: "var(--gap-under-title)",
+        }}
+      >
+        Stages · ΔV ({DELTA_V_MODE_SHORT[mode]}) · burn · TWR
+      </ReadoutCaption>
+      <MeterStack>
+        {stages.map((s) => {
+          const figure = pickDeltaV(s, mode);
+          // NaN is a stage the wire carried no ΔV for, which the meter draws as absent rather than empty.
+          const dv = Number.isFinite(figure)
+            ? budgetFigure(budgetReading, value("m/s", figure))
+            : null;
+          // A stage with no ΔV left is finished, so it is not the one burning.
+          const active = s.stage === currentStage && figure !== 0;
+          return (
+            <MeterRowGroup key={s.stage}>
+              <Meter
+                label={`${active ? "▶ " : ""}S${s.stage}`}
+                value={dv}
+                capacity={maxStageDv}
+                layout="row"
+                fillColor={
+                  active ? "var(--color-warn-mark)" : "var(--color-text-faint)"
+                }
+                valueLabel={
+                  dv === null ? undefined : speakQuantity(value("m/s", figure))
+                }
+                valueLabelNode={
+                  dv === null ? undefined : <Unit value={dv} decimals={0} />
+                }
+              />
+              <Text
+                size="xs"
+                style={{
+                  justifySelf: "end",
+                  whiteSpace: "nowrap",
+                  color: active
+                    ? "var(--color-text-primary)"
+                    : "var(--color-text-faint)",
+                }}
+              >
+                {burnLabel(budgetReading, s.burnTime, figure)} · TWR{" "}
+                {twrLabel(budgetReading, pickTWR(s, mode))}
+              </Text>
+            </MeterRowGroup>
+          );
+        })}
+      </MeterStack>
+    </Stack>
   );
 }
