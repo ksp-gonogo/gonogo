@@ -91,9 +91,9 @@ function kspSettings(state: number, reason: string | null = null) {
         path: "SIGNAL_DELAY/enabled",
         owner: "gonogo",
         kind: BOOL,
-        label: "Apply light-time delay to commands and telemetry",
+        label: "Signal delay",
         description:
-          "Holds each command and each reading for the light time between the craft and the command centre.",
+          "Commands and readings take the time light needs to cross the distance. Off, they arrive at once; a craft with no path is still out of contact",
         value: "True",
         default: "True",
       },
@@ -101,8 +101,9 @@ function kspSettings(state: number, reason: string | null = null) {
         path: "SIGNAL_DELAY/lightSpeedScale",
         owner: "gonogo",
         kind: NUMBER,
-        label:
-          "One-way light time as a fraction of c, where 1 is real light speed",
+        label: "Light speed",
+        description:
+          "How fast signals travel, as a fraction of the speed of light. 1 is real light speed and 0.5 doubles every delay",
         value: "0.1",
         default: "1",
       },
