@@ -349,7 +349,7 @@ jobs:
       #
       # Exits 0 whatever it finds, deliberately. A missing fixture is the
       # permanent state here and a step that is always red hides the next real
-      # failure behind it, the way `visual` already does. The register it prints
+      # failure behind it. The register it prints
       # is held to the tree by `packages/core/src/fixture-gated-suites.test.ts`,
       # so it cannot go stale without that going red.
       - name: Which suites did not run, and what that costs
@@ -416,10 +416,9 @@ jobs:
       # module-scope `process.env` read reached staging in 8bd2b4e8 and the
       # probe bundle threw before installing `window.__renderProbe`, so all 42
       # widgets and 1442 baselines silently stopped being compared. `visual`
-      # was the only job that could see it, and `visual` is red on purpose, so
-      # it showed the colour it always shows for a day. This step asks a
-      # question `visual` cannot: not "did the pixels drift" but "did the
-      # harness render anything at all".
+      # was the only job that could see it, and it showed only as drift on every
+      # widget. This step asks a question `visual` cannot: not "did the pixels
+      # drift" but "did the harness render anything at all".
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
 
@@ -435,10 +434,11 @@ jobs:
       #
       # The detector has lived in the render harness since 76be6b9d2, so it has
       # been running in CI the whole time: `visual` calls the same harness. But
-      # `visual` is red on purpose, so it showed the colour it always shows
-      # whatever the detector reported, and the only other caller is a person
-      # typing `render-widget`. A finding that lands nowhere anyone reads is the
-      # same shape as the probe bundle that silently stopped rendering for a day.
+      # `visual` reports pixel drift against a baseline, not overlap, so a finding
+      # of this kind would not change its colour, and the only other caller is a
+      # person typing `render-widget`. A finding that lands nowhere anyone reads
+      # is the same shape as the probe bundle that silently stopped rendering for
+      # a day.
       #
       # 1edb08f74 registered the script and deliberately did NOT wire it in at
       # first, because CommSignal was printing its signal block over the
@@ -551,15 +551,14 @@ jobs:
       # emit suppressed and fails on any that still pass, because such a test is
       # capturing a render containing none of its fixture's data.
       #
-      # In this job rather than `visual` deliberately: `visual` is red on
-      # purpose until the end-of-run re-baseline, so a finding placed there would
-      # be invisible.
+      # In this job rather than `visual` deliberately: `visual` answers a pixel
+      # question per engine, and this one is engine-independent and needs no
+      # baselines.
       #
       # GREEN on landing, and it must stay that way. The 96 renders already un-fed
       # when it landed are recorded in `unfed-snapshot-debt.ts`, which is shrink-only
       # and enforced from both sides. Keeping this step green is the point: a step
-      # that is permanently red hides the next unrelated failure behind it, which is
-      # what happened to `visual`.
+      # that is permanently red hides the next unrelated failure behind it.
       - name: Snapshot specs are fed their fixtures
         run: pnpm --filter @ksp-gonogo/components unfed-snapshot-gate
 
