@@ -19,7 +19,6 @@
  * and which two are deliberately not.
  */
 export const PUNCTUATION_DASH_DEBT: Record<string, number> = {
-  "docs/NETWORKING.md": 1,
   "mod/Gonogo.KSP/KspRoboticsActuator.cs": 1,
   "mod/Sitrep.Host.IntegrationTests/TestUplinks.cs": 1,
   "mod/Sitrep.Host/ChannelEngine.cs": 2,
