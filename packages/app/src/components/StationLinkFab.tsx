@@ -1,4 +1,6 @@
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Badge,
   BroadcastIcon,
   Button,
   Fab,
@@ -7,8 +9,9 @@ import {
 } from "@ksp-gonogo/ui";
 import { Cluster, Tooltip } from "@ksp-gonogo/ui-kit";
 import { QRCodeSVG } from "qrcode.react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import styled from "styled-components";
+import { SETUP_LINKS } from "../firstRun/setupGuide";
 import {
   CONNECTION_PATH_LABEL,
   type ConnectionPath,
@@ -193,12 +196,22 @@ function StationPaths() {
   return (
     <PathList aria-label="Station connection paths">
       {rows.map((row) => (
-        <li key={row.peerId}>
-          {row.name ?? row.peerId}: {pathText(row.path)}
-        </li>
+        <PathRow key={row.peerId}>
+          <span>{row.name ?? row.peerId}</span>
+          <Badge tone={pathTone(row.path)} size="sm">
+            {pathText(row.path)}
+          </Badge>
+        </PathRow>
       ))}
     </PathList>
   );
+}
+
+function pathTone(path: ConnectionPath | null): Tone {
+  if (path === "lan") return "go";
+  if (path === "internet") return "info";
+  if (path === "relayed") return "warn";
+  return "neutral";
 }
 
 function pathText(path: ConnectionPath | null): string {
@@ -241,42 +254,61 @@ function TurnStatus() {
   }, []);
 
   const tone =
-    state.kind === "ok" ? "go" : state.kind === "fail" ? "nogo" : "info";
+    state.kind === "ok" ? "go" : state.kind === "fail" ? "warn" : "info";
   return (
     <StatusIndicator tone={tone} live>
       {state.kind === "probing" && "Checking relay..."}
       {state.kind === "ok" &&
-        `Relay answers on this network (${state.result.relayCandidates} relay candidate${
-          state.result.relayCandidates === 1 ? "" : "s"
-        })`}
+        "Relay ready for stations that can't connect directly"}
       {state.kind === "fail" && describeProbeFailure(state.result)}
     </StatusIndicator>
   );
 }
 
+const RELAY_NEEDED =
+  "Most stations connect without it; phones on mobile data and strict networks need it.";
+
 function describeProbeFailure(
   r: Extract<TurnProbeResult, { ok: false }>,
-): string {
+): ReactNode {
   if (r.reason === "no-ice-servers") {
-    return "No relay configured. Stations connect directly or not at all.";
+    return `No relay configured. ${RELAY_NEEDED}`;
   }
   if (r.reason === "errored") {
-    return "TURN probe errored: see logs (peer:turn-probe).";
+    return "Relay check failed: see logs (peer:turn-probe).";
   }
-  // timeout: most likely cause is router port-forward missing.
-  if (r.errors.length > 0) {
-    const first = r.errors[0];
-    return `TURN unreachable (${first.url} → ${first.code}). Check router port-forward for 3478 (TCP and UDP) and UDP 49160-49170.`;
-  }
-  return "TURN unreachable: relay never returned a relay candidate. Check router port-forward for 3478 (TCP and UDP) and UDP 49160-49170.";
+  return (
+    <>
+      Relay can't be reached from outside. {RELAY_NEEDED} The{" "}
+      <GuideLink href={SETUP_LINKS.relayPorts} target="_blank" rel="noreferrer">
+        networking guide
+      </GuideLink>{" "}
+      lists the forwards.
+    </>
+  );
 }
 
 const PathList = styled.ul`
   margin: 0;
   padding: 0;
   list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-related);
   font-size: var(--font-size-compact);
-  color: var(--color-text-muted);
+  color: var(--color-text-primary);
+`;
+
+const GuideLink = styled.a`
+  color: var(--color-info-text);
+  text-decoration: underline;
+`;
+
+const PathRow = styled.li`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-related);
 `;
 
 const Wrap = styled.div`
