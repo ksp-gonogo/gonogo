@@ -217,6 +217,43 @@ public class PendingCreditLedgerTests
     }
 
     [Fact]
+    public void A_forfeited_row_is_kept_off_the_books_until_its_declaration_is_withdrawn_and_then_comes_back_due()
+    {
+        var ledger = new PendingCreditLedger();
+        ledger.Enqueue(HeldRow("lost"));
+        ledger.ReleaseHeld(1000, _ => (HeldOutcome.Forfeits, 4));
+
+        Assert.Empty(ledger.Pending);
+        var saved = PendingCreditLedger.FromConfigNode(ledger.ToConfigNode());
+        var forfeited = Assert.Single(saved.Forfeited);
+        Assert.Equal("lost", forfeited.OriginVesselId);
+        Assert.Equal(4, forfeited.LostSeq);
+
+        saved.SettleForfeited(1500, _ => ForfeitFate.Keep);
+        Assert.Empty(saved.Pending);
+
+        saved.SettleForfeited(1600, _ => ForfeitFate.Restore);
+        var back = Assert.Single(saved.Pending);
+        Assert.Equal(DelayedCurrency.Science, back.Currency);
+        Assert.Equal(1600, back.RevealUt);
+        Assert.Null(back.HeldSinceUt);
+        Assert.Empty(saved.Forfeited);
+    }
+
+    [Fact]
+    public void A_discarded_forfeit_is_removed_without_coming_back()
+    {
+        var ledger = new PendingCreditLedger();
+        ledger.Enqueue(HeldRow("lost"));
+        ledger.ReleaseHeld(1000, _ => (HeldOutcome.Forfeits, 1));
+
+        ledger.SettleForfeited(1100, _ => ForfeitFate.Discard);
+
+        Assert.Empty(ledger.Pending);
+        Assert.Empty(ledger.Forfeited);
+    }
+
+    [Fact]
     public void Switching_signal_delay_off_releases_a_held_row()
     {
         var ledger = new PendingCreditLedger();

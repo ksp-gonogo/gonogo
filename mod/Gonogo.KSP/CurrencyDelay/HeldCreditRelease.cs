@@ -8,8 +8,22 @@ namespace Gonogo.KSP.CurrencyDelay
         Waits,
         Lands,
 
-        /// <summary>It never reaches the books: science whose craft home will not hear from again.</summary>
+        /// <summary>It never reaches the books: science whose craft home knows has gone without word of it.</summary>
         Drops,
+
+        /// <summary>
+        /// It is off the books while home's Lost declaration of the craft stands: science that
+        /// is given back if the declaration is withdrawn.
+        /// </summary>
+        Forfeits,
+    }
+
+    /// <summary>What becomes of science forfeited to a Lost declaration at one look at home's view of its craft.</summary>
+    public enum ForfeitFate
+    {
+        Keep,
+        Restore,
+        Discard,
     }
 
     /// <summary>
@@ -19,9 +33,9 @@ namespace Gonogo.KSP.CurrencyDelay
     /// declared it lost.
     ///
     /// <para>Science is held the same way and lands only on word from the
-    /// craft sent at or after it was earned. It is dropped when home declares
-    /// the craft lost, or knows it has gone with no such word, since the data
-    /// never left it.</para>
+    /// craft sent at or after it was earned. It is forfeited while home's
+    /// Lost declaration of the craft stands, and dropped when home knows it has
+    /// gone with no such word, since the data never left it.</para>
     /// </summary>
     public static class HeldCreditRelease
     {
@@ -43,9 +57,31 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 return HeldOutcome.Lands;
             }
-            return home.Verdict == HomeVerdictState.Lost || home.Contact == CentreContactState.Gone
-                ? HeldOutcome.Drops
-                : HeldOutcome.Waits;
+            if (home.Contact == CentreContactState.Gone)
+            {
+                return HeldOutcome.Drops;
+            }
+            return home.Verdict == HomeVerdictState.Lost ? HeldOutcome.Forfeits : HeldOutcome.Waits;
+        }
+
+        /// <summary>
+        /// What becomes of science forfeited under Lost declaration number <paramref name="lostSeq"/>
+        /// at this look at home's view of its craft: given back once that declaration is withdrawn
+        /// or has been replaced, discarded when home knows the craft has gone, kept otherwise.
+        /// </summary>
+        public static ForfeitFate FateOfForfeit(int lostSeq, HomeCraftView? view)
+        {
+            if (view is not HomeCraftView home)
+            {
+                return ForfeitFate.Keep;
+            }
+            if (home.Contact == CentreContactState.Gone || home.Verdict == HomeVerdictState.Gone)
+            {
+                return ForfeitFate.Discard;
+            }
+            return home.LostSeq > lostSeq || home.Verdict == HomeVerdictState.Nominal
+                ? ForfeitFate.Restore
+                : ForfeitFate.Keep;
         }
 
         /// <param name="heldSinceUt">The instant the change was charged, in the craft's own time.</param>

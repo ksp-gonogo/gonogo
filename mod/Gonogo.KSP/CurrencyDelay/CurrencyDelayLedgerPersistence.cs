@@ -55,6 +55,10 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 target.RecordLandedOnLost(landed);
             }
+            foreach (var forfeited in loaded.Forfeited)
+            {
+                target.RecordForfeited(forfeited);
+            }
         }
     }
 }

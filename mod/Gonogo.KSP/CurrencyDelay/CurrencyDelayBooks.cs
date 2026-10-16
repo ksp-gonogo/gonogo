@@ -90,10 +90,13 @@ namespace Gonogo.KSP.CurrencyDelay
                 Ledger.ReleaseHeld(nowUt, row =>
                 {
                     var home = HomeCraftViews.Of(row.OriginVesselId);
-                    // Science is never landed on a declaration, so none of it is owed back when one is withdrawn.
-                    var lostSeq = row.Currency == DelayedCurrency.Science ? 0 : HeldCreditRelease.DeclarationOf(home);
-                    return (HeldCreditRelease.Outcome(row.Currency, row.HeldSinceUt!.Value, home), lostSeq);
+                    var outcome = HeldCreditRelease.Outcome(row.Currency, row.HeldSinceUt!.Value, home);
+                    // Science is never landed on a declaration; it is forfeited under one and given back when it is withdrawn.
+                    var numbered = row.Currency != DelayedCurrency.Science || outcome == HeldOutcome.Forfeits;
+                    return (outcome, numbered ? HeldCreditRelease.DeclarationOf(home) : 0);
                 });
+                Ledger.SettleForfeited(nowUt, forfeited =>
+                    HeldCreditRelease.FateOfForfeit(forfeited.LostSeq, HomeCraftViews.Of(forfeited.OriginVesselId)));
                 _reveal.ApplyMatured(nowUt);
             }
             catch (Exception ex)

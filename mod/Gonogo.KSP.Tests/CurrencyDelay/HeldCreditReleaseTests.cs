@@ -74,11 +74,37 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             Assert.Equal(HeldOutcome.Waits, Science(null));
         }
 
-        /// <summary>The data never left the craft, so a declaration of loss is the end of it.</summary>
+        /// <summary>The data never left the craft, so it is off the books for as long as the declaration stands.</summary>
         [Fact]
-        public void HeldScienceIsDroppedWhenHomeDeclaresTheCraftLost()
+        public void HeldScienceIsForfeitedWhenHomeDeclaresTheCraftLost()
         {
-            Assert.Equal(HeldOutcome.Drops, Science(View(CentreContactState.Silent, ChargedUt - 10, HomeVerdictState.Lost)));
+            Assert.Equal(HeldOutcome.Forfeits, Science(View(CentreContactState.Silent, ChargedUt - 10, HomeVerdictState.Lost)));
+        }
+
+        [Fact]
+        public void ForfeitedScienceIsKeptWhileTheDeclarationStands()
+        {
+            Assert.Equal(ForfeitFate.Keep, HeldCreditRelease.FateOfForfeit(1, View(CentreContactState.Silent, ChargedUt, HomeVerdictState.Lost)));
+            Assert.Equal(ForfeitFate.Keep, HeldCreditRelease.FateOfForfeit(1, null));
+        }
+
+        [Fact]
+        public void ForfeitedScienceIsGivenBackWhenContactReturnsAndTheDeclarationIsWithdrawn()
+        {
+            Assert.Equal(ForfeitFate.Restore, HeldCreditRelease.FateOfForfeit(1, View(CentreContactState.InContact, ChargedUt + 50, HomeVerdictState.Nominal)));
+        }
+
+        [Fact]
+        public void ForfeitedScienceIsGivenBackWhenALaterDeclarationHasReplacedTheOne()
+        {
+            var again = new HomeCraftView(CentreContactState.Silent, ChargedUt, HomeVerdictState.Lost, 2);
+            Assert.Equal(ForfeitFate.Restore, HeldCreditRelease.FateOfForfeit(1, again));
+        }
+
+        [Fact]
+        public void ForfeitedScienceIsDiscardedOnceHomeKnowsTheCraftHasGone()
+        {
+            Assert.Equal(ForfeitFate.Discard, HeldCreditRelease.FateOfForfeit(1, View(CentreContactState.Gone, ChargedUt, HomeVerdictState.Gone)));
         }
 
         [Fact]

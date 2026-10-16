@@ -24,8 +24,14 @@ namespace Gonogo.KSP.CurrencyDelay
 
         private const string LandedOnLostNodeName = "LANDED_ON_LOST";
 
+        private const string ForfeitedNodeName = "FORFEITED_SCIENCE";
+
         private readonly List<PendingCreditRow> _rows = new List<PendingCreditRow>();
         private readonly List<LandedOnLost> _landedOnLost = new List<LandedOnLost>();
+        private readonly List<ForfeitedScience> _forfeited = new List<ForfeitedScience>();
+
+        /// <summary>Science held off the books while a Lost declaration of its craft stands, in the order it was forfeited.</summary>
+        public IReadOnlyList<ForfeitedScience> Forfeited => _forfeited;
 
         /// <summary>Every held change that landed on a Lost declaration, in the order it landed.</summary>
         public IReadOnlyList<LandedOnLost> LandedOnLost => _landedOnLost;
@@ -90,10 +96,14 @@ namespace Gonogo.KSP.CurrencyDelay
                     continue;
                 }
                 var (outcome, lostSeq) = landing(row);
-                if (outcome == HeldOutcome.Drops)
+                if (outcome == HeldOutcome.Drops || outcome == HeldOutcome.Forfeits)
                 {
                     _rows.RemoveAt(i);
                     i--;
+                    if (outcome == HeldOutcome.Forfeits)
+                    {
+                        _forfeited.Add(new ForfeitedScience(row.BaseAmount, row.OriginVesselId, row.OriginDescription, lostSeq));
+                    }
                     continue;
                 }
                 if (outcome != HeldOutcome.Lands)
@@ -107,6 +117,33 @@ namespace Gonogo.KSP.CurrencyDelay
                 }
             }
         }
+
+        /// <summary>
+        /// Settles each forfeited science row: one <paramref name="fate"/> restores is made due at
+        /// <paramref name="nowUt"/> and queued behind the rows already held, one it discards is
+        /// removed, and one it keeps stays.
+        /// </summary>
+        public void SettleForfeited(double nowUt, Func<ForfeitedScience, ForfeitFate> fate)
+        {
+            for (var i = 0; i < _forfeited.Count; i++)
+            {
+                var forfeited = _forfeited[i];
+                var decided = fate(forfeited);
+                if (decided == ForfeitFate.Keep)
+                {
+                    continue;
+                }
+                _forfeited.RemoveAt(i);
+                i--;
+                if (decided == ForfeitFate.Restore)
+                {
+                    _rows.Add(new PendingCreditRow(
+                        DelayedCurrency.Science, forfeited.BaseAmount, nowUt, forfeited.OriginVesselId, forfeited.OriginDescription));
+                }
+            }
+        }
+
+        public void RecordForfeited(ForfeitedScience forfeited) => _forfeited.Add(forfeited ?? throw new ArgumentNullException(nameof(forfeited)));
 
         public void RecordLandedOnLost(LandedOnLost landed) => _landedOnLost.Add(landed ?? throw new ArgumentNullException(nameof(landed)));
 
@@ -173,6 +210,14 @@ namespace Gonogo.KSP.CurrencyDelay
                 landedNode.AddValue("lostSeq", landed.LostSeq);
                 landedNode.AddValue("landedUt", landed.LandedUt);
             }
+            foreach (var forfeited in _forfeited)
+            {
+                var forfeitedNode = root.AddNode(ForfeitedNodeName);
+                forfeitedNode.AddValue("baseAmount", forfeited.BaseAmount);
+                forfeitedNode.AddValue("originVesselId", forfeited.OriginVesselId);
+                forfeitedNode.AddValue("originDescription", forfeited.OriginDescription);
+                forfeitedNode.AddValue("lostSeq", forfeited.LostSeq);
+            }
             return root;
         }
 
@@ -217,6 +262,16 @@ namespace Gonogo.KSP.CurrencyDelay
                 landedNode.TryGetValue("lostSeq", ref lostSeq);
                 landedNode.TryGetValue("landedUt", ref landedUt);
                 ledger.RecordLandedOnLost(new LandedOnLost(currency, baseAmount, landedNode.GetValue("originVesselId") ?? "", lostSeq, landedUt));
+            }
+
+            foreach (var forfeitedNode in node.GetNodes(ForfeitedNodeName))
+            {
+                double baseAmount = 0;
+                var lostSeq = 0;
+                forfeitedNode.TryGetValue("baseAmount", ref baseAmount);
+                forfeitedNode.TryGetValue("lostSeq", ref lostSeq);
+                ledger.RecordForfeited(new ForfeitedScience(
+                    baseAmount, forfeitedNode.GetValue("originVesselId") ?? "", forfeitedNode.GetValue("originDescription") ?? "", lostSeq));
             }
 
             return ledger;

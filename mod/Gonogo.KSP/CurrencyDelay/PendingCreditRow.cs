@@ -34,6 +34,27 @@ namespace Gonogo.KSP.CurrencyDelay
     }
 
     /// <summary>
+    /// Science held off the books under one of home's Lost declarations: the
+    /// row as it was held and the declaration's number, so it can be given back
+    /// if the declaration is withdrawn.
+    /// </summary>
+    public sealed class ForfeitedScience
+    {
+        public ForfeitedScience(double baseAmount, string originVesselId, string originDescription, int lostSeq)
+        {
+            BaseAmount = baseAmount;
+            OriginVesselId = originVesselId ?? "";
+            OriginDescription = originDescription ?? "";
+            LostSeq = lostSeq;
+        }
+
+        public double BaseAmount { get; }
+        public string OriginVesselId { get; }
+        public string OriginDescription { get; }
+        public int LostSeq { get; }
+    }
+
+    /// <summary>
     /// A single delayed-currency credit awaiting its reveal-UT.
     ///
     /// BaseAmount is the base requested amount, pre-clamp (e.g. the value
