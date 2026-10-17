@@ -2,14 +2,22 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useHeldOpen } from "@ksp-gonogo/core";
 import { datedFrom, delayVisibility, value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  ContainerBreak,
   Countdown,
   NULL_DISPLAY,
   Panel,
+  ScrollArea,
   Section,
   Stack,
   Text,
 } from "@ksp-gonogo/ui-kit";
-import { PlotBoard, type PlotSlot } from "../Plots/PlotBoard";
+import type { CSSProperties } from "react";
+import {
+  PlotBoard,
+  type PlotSlot,
+  plotRowWidth,
+  usePlotSlots,
+} from "../Plots/PlotBoard";
 import { AltitudeRail } from "./AltitudeRail";
 import {
   CarriedAltitude,
@@ -35,7 +43,6 @@ import {
 import { SolutionReadouts } from "./SolutionReadouts";
 import { ATMOSPHERIC_SITE_GATE_M } from "./siteGate";
 import { useLandingModel } from "./useLandingModel";
-import { useScrollerHeight } from "./useScrollerHeight";
 // The widget's own plots, registered into `plots` like any Uplink's; imported here so no module ordering can drop them. They draw in this order, the descent envelope last: it is the one that leaves at touchdown, and a plot leaving from the end of the row moves none of the others.
 import "./crossSectionPlot";
 import "./vesselViewPlot";
@@ -48,12 +55,44 @@ export type { FlightReading } from "./CarriedAltitude";
 type LandingStatusConfig = Record<string, never>;
 
 /** The smallest a plot is drawn: below it the touchdown site's heading and compass labels run into each other. */
-const MIN_LEGIBLE_PLOT_PX = 220;
+const MIN_LEGIBLE_PLOT_PX = 200;
+
+/** How much wider than tall the visible window is before the header sits beside the plots rather than above them: a tile this short spends its height on the plots. */
+const BESIDE_HEADER_ASPECT = 2.5;
+
+/**
+ * The grid the widget lays out in. Above the plots, the header, then the plots
+ * taking whatever height is left, then the readouts, with the altitude rail
+ * down the side. In a short, wide window the header, the plots and the readouts
+ * sit side by side, the plots one row as tall as the window.
+ */
+function landingLayout(
+  rail: boolean,
+  plots: boolean,
+): { narrow: CSSProperties; wide: CSSProperties } {
+  const lead = rail ? "rail " : "";
+  return {
+    narrow: {
+      display: "grid",
+      gridTemplateColumns: rail ? "auto minmax(0, 1fr)" : "minmax(0, 1fr)",
+      gridTemplateAreas: ["header", "plots", "readouts"]
+        .map((area) => `"${lead}${area}"`)
+        .join(" "),
+      gridTemplateRows: plots ? "auto 1fr auto" : "auto auto auto",
+      minHeight: "100cqh",
+      gap: "var(--gap-section)",
+    },
+    wide: {
+      gridTemplateColumns: `${rail ? "auto " : ""}auto auto minmax(0, 1fr)`,
+      gridTemplateAreas: `"${lead}header plots readouts"`,
+      gridTemplateRows: "100cqh",
+    },
+  };
+}
 
 function LandingStatusComponent({
   w,
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
-  const [measureScroller, railFrame] = useScrollerHeight();
   const model = useLandingModel();
   const {
     flight,
@@ -130,6 +169,7 @@ function LandingStatusComponent({
       : []),
   ];
 
+  const plotSlots = usePlotSlots(reservedPlots);
   // Contributed plots: each decides for itself whether it has anything to say, and the board lays out what comes back.
   const contributedPlots = (
     // gonogo:reads none
@@ -176,20 +216,6 @@ function LandingStatusComponent({
     />
   );
 
-  // Everything that is not a plot, in the order it matters, below the wide plots layout.
-  const detailStack = (
-    <Stack>
-      {contributedPlots}
-      {boardEl}
-      {velocityEl}
-      {readoutsStack}
-      {carriedAltitudeEl}
-      {comDatumNote}
-      {heightEl}
-      {divertEl}
-    </Stack>
-  );
-
   // Both rows are in the layout whenever the plots are, empty until there is a site, so a site arriving moves nothing below them.
   const verdictBannerEl = !showPlots ? null : siteReadoutsShown ? (
     <VerdictBanner model={model} />
@@ -201,6 +227,24 @@ function LandingStatusComponent({
   ) : (
     <TerrainReadoutIdle />
   );
+
+  const railShown = showRail && showBoard;
+  // A crash ends the descent and takes the vessel's readings with it: the touchdown plots stay, holding what they last drew.
+  const plotsShown = showBoard || (crash !== undefined && showPlots);
+  const readoutEls = (
+    <>
+      {verdictBannerEl}
+      {terrainReadoutEl}
+      {boardEl}
+      {velocityEl}
+      {readoutsStack}
+      {carriedAltitudeEl}
+      {comDatumNote}
+      {heightEl}
+      {divertEl}
+    </>
+  );
+  const layout = landingLayout(railShown, plotsShown);
 
   return (
     <Panel
@@ -223,132 +267,159 @@ function LandingStatusComponent({
       // No vessel reporting and no crash on record: the panel has nothing to present, so it gives its body over to the reason.
       inactive={!showBoard && !crash ? "No landing in progress" : undefined}
       // Host-derived: the panel watches every topic this widget declares.
-      sections={[
-        // The link state, first and full width: a delayed descent is flown by these countdowns, so a narrow tile must not fold them away.
-        // Through a descent every row is always present, so no state can change the height above the plots; with nothing descending there is no round trip to time, and the empty state keeps the room.
-        <Section key="link" full>
-          <Stack>
-            {commitLayerEl}
-            {crash && !crashInContext && (
-              <CrashOutcome crash={crash} record={recordOnly} />
-            )}
-            {showBoard && roundTripShown && (
-              <Text level="muted">
-                RT{" "}
-                {clocks.roundTripSeconds != null ? (
-                  <Countdown
-                    value={datedFrom(
-                      model.delayCurrency,
-                      value("s", clocks.roundTripSeconds),
-                    )}
-                    precise
-                  />
-                ) : (
-                  NULL_DISPLAY
-                )}
-              </Text>
-            )}
-          </Stack>
-        </Section>,
-        bodyName !== undefined && !recordOnly ? (
-          <Section key="context" full>
-            {crashInContext ? (
-              <CrashLine crash={crash} context={bodyLine} />
-            ) : (
-              <Text level="muted" size="xs">
-                {bodyLine}
-              </Text>
-            )}
-          </Section>
-        ) : null,
-        /* Not a filling section: the readouts scroll with the panel body, and a section held to the leftover height would overflow past the body's bottom inset. */
-        <Section key="descent" full>
-          {!showBoard ? (
-            <Stack>
-              {/* A crash ends the descent and takes the vessel's readings with it: the touchdown plots stay, holding what they last drew. */}
-              {crash && showPlots && (
-                <div style={{ padding: "var(--inset-contributed-plots)" }}>
-                  {contributedPlots}
-                </div>
-              )}
-            </Stack>
-          ) : (
-            // Rail and content sit inside the panel's own body, which owns the single inset.
+      sections={
+        <Section key="landing" fill>
+          <ScrollArea>
+            {/* The visible window: sized in both axes, so the layout reads its height in container units, and positioned, so nothing absolutely placed inside escapes the scroller. */}
             <div
-              ref={measureScroller}
               style={{
-                display: "flex",
-                alignItems: "stretch",
-                gap: "var(--gap-section)",
+                containerType: "size",
+                height: "100%",
+                position: "relative",
               }}
             >
-              {showRail && (
-                // Sticky, so the altitude scale stays in view while the readouts scroll; `align-self: flex-start` lets sticky engage.
-                <div
-                  style={{
-                    flex: "0 0 auto",
-                    // An instrument dimension: the width the scale's labels and track need.
-                    width: 64,
-                    position: "sticky",
-                    top: railFrame.top,
-                    alignSelf: "flex-start",
-                    // The visible height below the rail's top edge, so the whole scale and its cue are in view.
-                    height: railFrame.height > 0 ? railFrame.height : undefined,
-                  }}
-                >
-                  <AltitudeRail
-                    agl={aglReading}
-                    prediction={predictionOnRail(flightReading, aglReading)}
-                    seaLevel={seaLevelOnRail(flightReading, aglReading)}
-                    verticalSpeed={solution.verticalSpeed}
-                    centreOfMass={usingComDatum}
-                    ignitionAltitude={
-                      landed || !model.mayInstruct
-                        ? null
-                        : solution.ignitionAltitude
-                    }
-                    suicideBurnCountdown={
-                      landed || !model.mayInstruct
-                        ? null
-                        : solution.suicideBurnCountdown
-                    }
-                    instructionWithheld={!model.mayInstruct}
-                    burning={model.burning}
-                  />
-                </div>
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {showPlots ? (
-                  <div style={{ display: "flex", flexDirection: "column" }}>
-                    {/* No FramedDisplay: a contributed plot's chart owns its frame. */}
-                    <div style={{ padding: "var(--inset-contributed-plots)" }}>
-                      {contributedPlots}
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "var(--gap-section)",
-                      }}
-                    >
-                      {verdictBannerEl}
-                      {terrainReadoutEl}
-                      {boardEl}
-                      {velocityEl}
-                      {readoutsStack}
-                      {carriedAltitudeEl}
-                      {comDatumNote}
-                      {divertEl}
-                    </div>
+              <ContainerBreak
+                atAspect={BESIDE_HEADER_ASPECT}
+                narrow={layout.narrow}
+                wide={layout.wide}
+              >
+                {railShown && (
+                  // Sticky and as tall as the visible window, so the whole scale and its cue stay in view while the readouts scroll.
+                  <div
+                    style={{
+                      gridArea: "rail",
+                      position: "sticky",
+                      top: 0,
+                      alignSelf: "start",
+                      height: "100cqh",
+                      // An instrument dimension: the width the scale's labels and track need.
+                      width: 64,
+                    }}
+                  >
+                    <AltitudeRail
+                      agl={aglReading}
+                      prediction={predictionOnRail(flightReading, aglReading)}
+                      seaLevel={seaLevelOnRail(flightReading, aglReading)}
+                      verticalSpeed={solution.verticalSpeed}
+                      centreOfMass={usingComDatum}
+                      ignitionAltitude={
+                        landed || !model.mayInstruct
+                          ? null
+                          : solution.ignitionAltitude
+                      }
+                      suicideBurnCountdown={
+                        landed || !model.mayInstruct
+                          ? null
+                          : solution.suicideBurnCountdown
+                      }
+                      instructionWithheld={!model.mayInstruct}
+                      burning={model.burning}
+                    />
                   </div>
-                ) : (
-                  detailStack
                 )}
-              </div>
+                {/* The link state first: a delayed descent is flown by these countdowns, so a narrow tile must not fold them away. Through a descent every row is always present, so no state can change the height above the plots. */}
+                <div style={{ gridArea: "header", minWidth: 0 }}>
+                  <Stack gap="section-compact">
+                    <Stack>
+                      {commitLayerEl}
+                      {crash && !crashInContext && (
+                        <CrashOutcome crash={crash} record={recordOnly} />
+                      )}
+                      {showBoard && roundTripShown && (
+                        <Text level="muted">
+                          RT{" "}
+                          {clocks.roundTripSeconds != null ? (
+                            <Countdown
+                              value={datedFrom(
+                                model.delayCurrency,
+                                value("s", clocks.roundTripSeconds),
+                              )}
+                              precise
+                            />
+                          ) : (
+                            NULL_DISPLAY
+                          )}
+                        </Text>
+                      )}
+                    </Stack>
+                    {bodyName !== undefined &&
+                      !recordOnly &&
+                      (crashInContext ? (
+                        <CrashLine crash={crash} context={bodyLine} />
+                      ) : (
+                        <Text level="muted" size="xs">
+                          {bodyLine}
+                        </Text>
+                      ))}
+                  </Stack>
+                </div>
+                {plotsShown && (
+                  // Beside the header the plots are one row as tall as the window, and the readouts take the rest of the width.
+                  <ContainerBreak
+                    atAspect={BESIDE_HEADER_ASPECT}
+                    narrow={{
+                      gridArea: "plots",
+                      minWidth: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      // No FramedDisplay: a contributed plot's chart owns its frame.
+                      padding: showPlots
+                        ? "var(--inset-contributed-plots)"
+                        : undefined,
+                    }}
+                    wide={
+                      {
+                        width: plotRowWidth(plotSlots.length),
+                        padding: 0,
+                        "--square-grid-height": "100cqh",
+                      } as CSSProperties
+                    }
+                  >
+                    {contributedPlots}
+                  </ContainerBreak>
+                )}
+                {showBoard && (
+                  // Beside the plots the readouts scroll on their own, so the window never scrolls the plots out of view.
+                  <ContainerBreak
+                    atAspect={BESIDE_HEADER_ASPECT}
+                    narrow={
+                      {
+                        gridArea: "readouts",
+                        minWidth: 0,
+                        "--bleed-inline": "0px",
+                      } as CSSProperties
+                    }
+                    wide={{
+                      display: "flex",
+                      flexDirection: "column",
+                      height: "100cqh",
+                    }}
+                  >
+                    <ScrollArea>
+                      {/* Positioned, so nothing absolutely placed in the readouts escapes this scroller. */}
+                      <div style={{ position: "relative" }}>
+                        {showPlots ? (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "var(--gap-section)",
+                            }}
+                          >
+                            {readoutEls}
+                          </div>
+                        ) : (
+                          <Stack>{readoutEls}</Stack>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </ContainerBreak>
+                )}
+              </ContainerBreak>
             </div>
-          )}
-        </Section>,
-      ]}
+          </ScrollArea>
+        </Section>
+      }
     />
   );
 }

@@ -10643,6 +10643,14 @@
         "note": "now an interface extending CommandLossLike with an optional fault code, where it was an alias of CommandLossLike"
       },
       {
+        "key": "ui-kit . ContainerBreak",
+        "note": "its props take an aspect-ratio breakpoint, and the width breakpoint is optional"
+      },
+      {
+        "key": "ui-kit . ContainerBreakProps#at",
+        "note": "optional, so a break can switch on aspect ratio alone"
+      },
+      {
         "key": "ui-kit . ContributionRegistry#\"administration-building.screens\"",
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
@@ -15785,6 +15793,14 @@
         "note": "the fault code, which commandFailedSentence says in the code's own words"
       },
       {
+        "key": "ui-kit . ContainerBreakProps#at?",
+        "note": "the width breakpoint, now optional"
+      },
+      {
+        "key": "ui-kit . ContainerBreakProps#atAspect?",
+        "note": "New: switch to wide once the container is this many times wider than tall"
+      },
+      {
         "key": "ui-kit . ContributedEntries",
         "note": "New: the props a component takes to draw a slot, the slot's entries"
       },
@@ -16511,6 +16527,46 @@
       {
         "key": "ui-kit . SpinnerProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . SquareCell",
+        "note": "New: one cell of a SquareGrid, a heading row over the largest square the cell holds"
+      },
+      {
+        "key": "ui-kit . SquareCellProps",
+        "note": "New: the props of SquareCell"
+      },
+      {
+        "key": "ui-kit . SquareCellProps#children?",
+        "note": "the drawing that fills the square"
+      },
+      {
+        "key": "ui-kit . SquareCellProps#heading?",
+        "note": "drawn in the heading row above the square"
+      },
+      {
+        "key": "ui-kit . SquareGrid",
+        "note": "New: equal squares in as many columns as draws them largest in the room the grid is given"
+      },
+      {
+        "key": "ui-kit . SquareGridProps",
+        "note": "New: the props of SquareGrid"
+      },
+      {
+        "key": "ui-kit . SquareGridProps#children?",
+        "note": "the cells, each a SquareCell"
+      },
+      {
+        "key": "ui-kit . SquareGridProps#floorPx?",
+        "note": "the smallest square before the grid asks its container for more height"
+      },
+      {
+        "key": "ui-kit . SquareGridProps#headingPx?",
+        "note": "the height of the heading row every cell keeps"
+      },
+      {
+        "key": "ui-kit . SquareGridProps#minColumnPx?",
+        "note": "the narrowest column while the grid has the height to draw squares that wide"
       },
       {
         "key": "ui-kit . SwitchBaseProps",

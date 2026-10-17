@@ -8,7 +8,7 @@ import type { PlotEntry } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { heldWord } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";
-import { MIN_PLOT_PX, PlotBoard, type PlotSlot } from "./PlotBoard";
+import { PlotBoard, type PlotSlot, plotRowWidth } from "./PlotBoard";
 
 /**
  * What the arranger does with what it is handed, through the real registry,
@@ -222,13 +222,22 @@ describe("PlotBoard", () => {
 });
 
 describe("the board's layout", () => {
-  it("lays the plots out as an auto-fit grid of equal columns, none narrower than the host's minimum", async () => {
+  it("draws every plot in a square cell of one grid, its heading above the square", async () => {
     const { container } = render(<ReservingHost />);
 
     await act(async () => {});
     const board = container.querySelector<HTMLElement>("[data-plot-board]");
-    expect(board?.style.gridTemplateColumns).toBe(
-      `repeat(auto-fit, minmax(min(100%, ${MIN_PLOT_PX}px), 1fr))`,
+    const cells = board?.querySelectorAll("[data-square-cell]") ?? [];
+    expect(cells).toHaveLength(RESERVE.length);
+    for (const cell of cells) {
+      expect(cell.querySelector("[data-square-heading]")).not.toBeNull();
+      expect(cell.querySelector("[data-square]")?.childElementCount).toBe(1);
+    }
+  });
+
+  it("sizes a single row of plots from the height of the size container it sits in", () => {
+    expect(plotRowWidth(3)).toBe(
+      "calc(3 * (100cqh - 17px - var(--gap-related)) + 2 * var(--gap-related))",
     );
   });
 

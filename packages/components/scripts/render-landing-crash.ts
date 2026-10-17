@@ -28,7 +28,7 @@ const STORIES = [
 ] as const;
 
 const MEASURE = `(() => {
-  const grid = document.querySelector("[data-plot-board]");
+  const grid = document.querySelector("[data-square-grid]");
   const slots = grid ? Array.from(grid.children) : [];
   const r = (e) => {
     const b = e.getBoundingClientRect();
@@ -37,7 +37,7 @@ const MEASURE = `(() => {
   const body = document.querySelector("[data-panel-body]");
   return {
     columns: grid ? getComputedStyle(grid).gridTemplateColumns.split(" ").length : null,
-    plots: slots.map((s) => ({ title: (s.textContent || "").slice(0, 20), box: r(s), heading: r(s.children[0]), square: r(s.children[1]) })),
+    plots: slots.map((s) => ({ title: (s.textContent || "").slice(0, 20), box: r(s), heading: r(s.querySelector("[data-square-heading]")), square: r(s.querySelector("[data-square]")) })),
     body: body ? r(body) : null,
     scrollTop: body ? body.scrollTop : null,
   };

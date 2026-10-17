@@ -587,6 +587,12 @@ export {
 export { Slider, type SliderProps } from "./Slider";
 export { Sparkline, type SparklineProps } from "./Sparkline";
 export { Spinner, type SpinnerProps } from "./Spinner";
+export {
+  SquareCell,
+  type SquareCellProps,
+  SquareGrid,
+  type SquareGridProps,
+} from "./SquareGrid";
 export { Stack, type StackProps } from "./Stack";
 export { Stat, type StatProps } from "./Stat";
 export {

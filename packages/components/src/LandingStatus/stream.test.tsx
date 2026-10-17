@@ -337,12 +337,12 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
         return above.length;
       };
       const headings = () =>
-        Array.from(grid()?.children ?? []).map(
-          (slot) => (slot.firstElementChild as HTMLElement).style.minHeight,
+        Array.from(grid()?.querySelectorAll("[data-square-cell]") ?? []).map(
+          (cell) => cell.querySelector("[data-square-heading]")?.textContent,
         );
       const rowsBefore = rowsAbove();
       const headingsBefore = headings();
-      expect(headingsBefore).not.toContain("");
+      expect(headingsBefore).not.toContain(undefined);
 
       act(() => {
         stream.emit("crash.hasRecent", { recent: true });

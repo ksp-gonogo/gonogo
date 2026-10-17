@@ -107,7 +107,7 @@ describe("LandingStatus: the sections slot", () => {
     emitDescent();
     const rail = await waitFor(() => screen.getByRole("meter"));
     const planted = screen.getByTestId("planted");
-    const row = rail.closest("[style*='align-items: stretch']");
+    const row = rail.closest("[data-section-fill]");
     expect(row).not.toBeNull();
     // An ordinary section of the panel: once, and after the row that holds the rail, not inside it.
     expect(screen.getAllByTestId("planted")).toHaveLength(1);
