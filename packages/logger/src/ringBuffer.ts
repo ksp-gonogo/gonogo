@@ -62,6 +62,13 @@ export class LogRingBuffer {
     if (this.persist) this.dirty = true;
   }
 
+  /** Persists a change made to an entry already in the buffer, which `push` did not see. */
+  entryChanged(): void {
+    if (!this.persist) return;
+    this.dirty = true;
+    this.flush();
+  }
+
   snapshot(): LogEntry[] {
     return this.entries.slice();
   }

@@ -90,7 +90,6 @@ export class ConsoleLogger implements Logger {
   private readonly transports: LogTransport[] = [];
   private identity: DeviceIdentity = { role: "unknown" };
   private readonly sessionId: string;
-  private readonly delivered = new WeakSet<LogEntry>();
 
   constructor(opts?: {
     enabled?: boolean;
@@ -199,7 +198,7 @@ export class ConsoleLogger implements Logger {
    * freshly-installed transport.
    */
   snapshot(): readonly LogEntry[] {
-    return this.buffer.snapshot().filter((e) => !this.delivered.has(e));
+    return this.buffer.snapshot().filter((e) => !e.delivered);
   }
 
   /**
@@ -208,7 +207,8 @@ export class ConsoleLogger implements Logger {
    * report form, which ships its own entry when no standing transport exists.
    */
   markDelivered(entry: LogEntry): void {
-    this.delivered.add(entry);
+    entry.delivered = true;
+    this.buffer.entryChanged();
   }
 
   /** Serialises the buffer as a pretty-printed JSON array for download. */

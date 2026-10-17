@@ -40,6 +40,12 @@ export interface LogEntry {
    * a single tab session. Distinct from the persistent device id.
    */
   sessionId?: string;
+  /**
+   * Set once the entry has reached its destination by a route other than a
+   * standing transport. Kept on the entry so it survives the buffer's
+   * restore after a reload.
+   */
+  delivered?: true;
 }
 
 export interface LogTransport {

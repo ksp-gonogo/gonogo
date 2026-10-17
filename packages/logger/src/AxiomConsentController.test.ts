@@ -221,4 +221,28 @@ describe("AxiomConsentController backfill of delivered entries", () => {
     const messages = transport.sent.flat().map((e) => e.message);
     expect(messages).toEqual(["buffered before", "buffered after"]);
   });
+
+  it("still skips it after the buffer is restored from storage on a reload", () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => values.get(k) ?? null,
+      setItem: (k: string, v: string) => void values.set(k, v),
+      removeItem: (k: string) => void values.delete(k),
+    } as Storage;
+    const persist = { key: "delivered-test", storage };
+    const before = new ConsoleLogger({ enabled: true, persist });
+    before.tag("feedback").info("feedback text");
+    before.markDelivered(before.getBuffer().at(-1) as LogEntry);
+
+    const after = new ConsoleLogger({ enabled: true, persist });
+    after.info("written after the reload");
+    const transport = makeTransport();
+    new AxiomConsentController({
+      logger: after,
+      makeTransport: () => transport,
+    }).apply(true);
+
+    const messages = transport.sent.flat().map((e) => e.message);
+    expect(messages).toEqual(["written after the reload"]);
+  });
 });
