@@ -453,6 +453,12 @@ const LIMIT_MARK_SIZE = 14;
 /** A threshold label's width per character and for a held or modelled mark after it, at its 10 px type. */
 const LABEL_CHAR_PX = 6;
 const LABEL_MARK_PX = 12;
+/** What a y label gutter takes of the plot's width beyond the fitted margin. */
+const Y_GUTTER_ESTIMATE_PX = 16;
+/** The clear space kept between a legend chip and a caption standing on one row of the plot. */
+const OVERLAY_GAP_PX = 12;
+/** Shortest chart that can spare a strip under the plot for the legend. */
+const LEGEND_STRIP_MIN_HEIGHT = 200;
 /** How far the mark's centre stands from the crossing, on each axis. */
 const LIMIT_MARK_OFFSET = 10;
 const DEFAULT_BAND_OPACITY = 0.2;
@@ -487,11 +493,45 @@ function readoutColumnWidth({
   const widths: number[] = [];
   for (const s of series) widths.push(px(s.label.length) + 8);
   for (const t of thresholds) {
-    if (t.kind === "marker") continue;
+    // A marker is drawn only with the caption it was given.
+    if (t.kind === "marker" && !t.label) continue;
     const figure = t.label ?? yTickFormat(t.value);
     widths.push(px(figure.length) + LABEL_MARK_PX + 8);
   }
   return Math.max(0, ...widths) + COLUMN_SLACK_PX;
+}
+
+/**
+ * Whether the legend chips and the widest caption cannot stand side by side
+ * across a plot of this width, so the legend needs a strip of its own. Judged
+ * from the chart's width alone, since the plot's real gutters depend on the
+ * strip's height.
+ */
+function legendClashesWithCaptions({
+  width,
+  height,
+  hasSecondary,
+  series,
+  thresholds,
+}: {
+  width: number;
+  height: number;
+  hasSecondary: boolean;
+  series: readonly ChartSeries[];
+  thresholds: readonly ThresholdRule[];
+}): boolean {
+  const captions = thresholds.filter((t) => t.label);
+  if (series.length === 0 || captions.length === 0) return false;
+  const widestChip = Math.max(...series.map((s) => s.label.length * 6 + 8));
+  const widestCaption = Math.max(
+    ...captions.map(
+      (t) => (t.label?.length ?? 0) * LABEL_CHAR_PX + LABEL_MARK_PX,
+    ),
+  );
+  const margins = fitMargins(width, height, hasSecondary);
+  const plotRoom =
+    width - margins.left - margins.right - AXIS_TITLE_PX - Y_GUTTER_ESTIMATE_PX;
+  return widestChip + widestCaption + OVERLAY_GAP_PX > plotRoom;
 }
 
 /**
@@ -610,7 +650,7 @@ export function LineChart({
     hasCard &&
     cardSize !== null &&
     cardSize.w + COLUMN_GAP <= Math.max(112, Math.ceil(chipsWidth));
-  const readouts =
+  const placed =
     bare || !hasReadouts
       ? ({ placement: "overlay" } as const)
       : placePlotReadouts({
@@ -621,6 +661,21 @@ export function LineChart({
             legend === "none" ? 0 : series.length * LEGEND_ROW_PX + 6,
           cardHeight: cardInColumn && cardSize !== null ? cardSize.h : 0,
         });
+  // Over the plot the legend takes the top left corner and a caption the right end of its line: where they cannot share the width, the legend gets the strip under the plot.
+  const readouts =
+    placed.placement === "overlay" &&
+    !bare &&
+    legend !== "none" &&
+    h >= LEGEND_STRIP_MIN_HEIGHT &&
+    legendClashesWithCaptions({
+      width: w,
+      height: h,
+      hasSecondary,
+      series,
+      thresholds: thresholds ?? [],
+    })
+      ? ({ placement: "below" } as const)
+      : placed;
   const legendBelow =
     legend !== "none" &&
     (readouts.placement === "below" ||
@@ -1156,14 +1211,11 @@ export function LineChart({
           ? []
           : series.map((s, i) => ({
               x0: column ? column.x0 : plotX0 + 3,
-              y0: plotY0 + 6 + i * 16,
+              y0: plotY0 + 6 + i * LEGEND_ROW_PX,
               x1:
                 (column ? column.x0 : plotX0 + 3) +
-                Math.min(
-                  s.label.length * 6 + 8,
-                  column ? column.x1 - column.x0 : plotW - 6,
-                ),
-              y1: plotY0 + 6 + i * 16 + 13,
+                chipWidth(s.label, column ? column.x1 - column.x0 : plotW - 6),
+              y1: plotY0 + 6 + i * LEGEND_ROW_PX + 13,
             }))),
       ],
       traces: (column ? [] : series)
@@ -1193,6 +1245,46 @@ export function LineChart({
     plotY1,
     plotW,
   ]);
+
+  /*
+   * A caption stays on the line it names, so the legend is the one that gives
+   * way: it starts at the top of its corner and steps down a row at a time
+   * until its chips clear every caption and the card.
+   */
+  const legendTop = (() => {
+    const first = plotY0 + 6;
+    if (legend === "none" || legendBelow || series.length === 0) return first;
+    const x0 = column ? column.x0 : plotX0 + 3;
+    const x1 =
+      x0 +
+      Math.max(
+        ...series.map((s) =>
+          chipWidth(s.label, column ? column.x1 - column.x0 : plotW - 6),
+        ),
+      );
+    const taken: PixelBox[] = thresholdLines.flatMap((t) => {
+      const at = labelPlaces.get(t.id);
+      if (!t.label || !at) return [];
+      const width =
+        t.label.length * LABEL_CHAR_PX + (t.currency.held ? LABEL_MARK_PX : 0);
+      const left = at.anchor === "end" ? at.x - width : at.x;
+      return [{ x0: left, y0: at.y - 9, x1: left + width, y1: at.y + 2 }];
+    });
+    if (cardBox) taken.push(cardBox);
+    const height = series.length * LEGEND_ROW_PX - 3;
+    for (let top = first; top + height <= plotY1; top += LEGEND_ROW_PX) {
+      const box = { x0, y0: top, x1, y1: top + height };
+      if (
+        !taken.some(
+          (o) =>
+            box.x0 < o.x1 && o.x0 < box.x1 && box.y0 < o.y1 && o.y0 < box.y1,
+        )
+      ) {
+        return top;
+      }
+    }
+    return first;
+  })();
 
   /*
    * Shape and dash are not channels a screen reader has, so each layer and each reckoned run adds a
@@ -1943,7 +2035,7 @@ export function LineChart({
           const at = legendBelow ? legendStrip.positions[i] : undefined;
           const rowY = at
             ? h - legendStripH + 2 + at.row * LEGEND_ROW_PX
-            : plotY0 + 6 + i * LEGEND_ROW_PX;
+            : legendTop + i * LEGEND_ROW_PX;
           if (!legendBelow && rowY + 13 > plotY1) return null;
           const chipX = at
             ? LEGEND_STRIP_EDGE_PX + at.x
