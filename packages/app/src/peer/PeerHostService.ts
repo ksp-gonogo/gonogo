@@ -464,6 +464,7 @@ export class PeerHostService {
   // disabled until the host's consent service drives it via
   // setAnalyticsConsent.
   private analyticsConsent = false;
+  private analyticsRunId: string | undefined;
   /** Where this screen is standing, retained so a peer that joins later is told on connect. */
   private commandCentre: string | null = null;
   private runningUplinks: RunningUplink[] | null = null;
@@ -607,6 +608,7 @@ export class PeerHostService {
   // PeerJS open and stops in stop().
   private readonly relayRegistration = new RelayRegistration({
     getConsent: () => this.analyticsConsent,
+    getRunId: () => this.analyticsRunId,
   });
   // Exponential-backoff state for the broker-reconnect path. PeerJS's
   // `disconnected` event fires synchronously from the WS's `onclose`
@@ -779,6 +781,8 @@ export class PeerHostService {
           buildTime: BUILD_TIME,
           sessionToken: this.sessionToken,
         } satisfies PeerMessage);
+        // Sent before approval, so a station still waiting, or refused, can ship the logs that say why it never joined.
+        conn.send(this.analyticsConsentMessage());
       });
       conn.on("data", (raw) => {
         if (this.droppedConnections.has(conn)) return;
@@ -1079,11 +1083,6 @@ export class PeerHostService {
     );
     this.sendSchema(conn);
     this.sendRelayIceServers(conn);
-    // Tell the joining station the host's current analytics consent so it gates its own Axiom transport from the moment it connects.
-    conn.send({
-      type: "analytics-consent",
-      enabled: this.analyticsConsent,
-    } satisfies PeerMessage);
     conn.send({
       type: "host-command-centre",
       centreId: this.commandCentre,
@@ -1461,20 +1460,33 @@ export class PeerHostService {
   }
 
   /**
-   * Set the operator's technical-analytics consent. Retains the value,
+   * Set the operator's technical-analytics consent and the run it belongs
+   * to. Retains both,
    * broadcasts it to every connected station, and POSTs it to the relay
    * config broker so the relay learns the new state. Idempotent on
    * no-change, but always re-POSTs so a relay that
    * restarted re-learns the current value even if it didn't flip here.
    * Called by the main screen's AnalyticsConsentHost on mount + change.
    */
-  setAnalyticsConsent(enabled: boolean): void {
-    const changed = this.analyticsConsent !== enabled;
+  setAnalyticsConsent(enabled: boolean, runId?: string): void {
+    const changed =
+      this.analyticsConsent !== enabled || this.analyticsRunId !== runId;
     this.analyticsConsent = enabled;
+    this.analyticsRunId = runId;
     if (changed) {
-      this.broadcast({ type: "analytics-consent", enabled });
+      this.broadcast(this.analyticsConsentMessage());
     }
     void this.relayRegistration.postAnalyticsConfig();
+  }
+
+  private analyticsConsentMessage(): PeerMessage {
+    return this.analyticsRunId === undefined
+      ? { type: "analytics-consent", enabled: this.analyticsConsent }
+      : {
+          type: "analytics-consent",
+          enabled: this.analyticsConsent,
+          runId: this.analyticsRunId,
+        };
   }
 
   /**

@@ -10,6 +10,8 @@ const RELAY_POST_TIMEOUT_MS = 4_000;
 export interface RelayRegistrationDeps {
   /** Operator's current technical-analytics consent. */
   getConsent: () => boolean;
+  /** The analytics run the relay stamps on its own entries, while analytics is on. */
+  getRunId: () => string | undefined;
 }
 
 /**
@@ -35,7 +37,10 @@ export class RelayRegistration {
       const res = await fetch(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ enabled: this.deps.getConsent() }),
+        body: JSON.stringify({
+          enabled: this.deps.getConsent(),
+          runId: this.deps.getRunId(),
+        }),
         signal: controller.signal,
       });
       if (!res.ok) {

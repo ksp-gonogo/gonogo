@@ -144,8 +144,9 @@ export type PeerMessage =
   // the host's consent changes. Stations apply it to their own browser
   // Axiom transport: they never read a local consent value, they follow
   // the host. Privacy-first: a station defaults to disabled until this
-  // arrives.
-  | { type: "analytics-consent"; enabled: boolean }
+  // arrives. `runId` is the analytics run the station stamps on its own
+  // entries, present only while analytics is on.
+  | { type: "analytics-consent"; enabled: boolean; runId?: string }
   // Host -> peer: the command centre the main screen is standing at, sent on
   // connect and whenever it moves. A pilot on a session of its own never sees
   // the host's frames, so this is the only way it learns which centre its

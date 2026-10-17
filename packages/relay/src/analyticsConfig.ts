@@ -13,7 +13,10 @@ import type { FastifyInstance, FastifyReply } from "fastify";
  *                                        value on subscribe, then every
  *                                        change, for any service that wants
  *                                        to gate its own Axiom sink on it.
- *   - `POST /analytics-config`        : host pushes `{ enabled: boolean }`.
+ *   - `POST /analytics-config`        : host pushes `{ enabled: boolean,
+ *                                        runId?: string }`, the run being
+ *                                        the analytics run the relay stamps
+ *                                        on its own entries.
  *
  * In-memory only, single-instance assumption: same as the host registry.
  * A relay restart resets to disabled; the host's heartbeat re-POST re-learns
@@ -57,7 +60,11 @@ class InMemoryAnalyticsConfig implements AnalyticsConfigController {
 
 interface AnalyticsConfigBody {
   enabled?: unknown;
+  runId?: unknown;
 }
+
+/** The shape the main screen mints run ids in, and nothing longer, since the relay stamps it on every entry unmasked. */
+const RUN_ID_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
 
 function writeSseEvent(reply: FastifyReply, enabled: boolean): void {
   reply.raw.write(`data: ${JSON.stringify({ enabled })}\n\n`);
@@ -76,6 +83,8 @@ export function registerAnalyticsConfigRoutes(
   opts: {
     controller?: AnalyticsConfigController;
     onChange?: (enabled: boolean) => void;
+    /** Called on every POST, before the consent is applied, with the run the host named or `undefined`. */
+    onRunId?: (runId: string | undefined) => void;
   } = {},
 ): AnalyticsConfigController {
   const controller = opts.controller ?? new InMemoryAnalyticsConfig();
@@ -96,6 +105,13 @@ export function registerAnalyticsConfigRoutes(
     if (typeof body.enabled !== "boolean") {
       return reply.status(400).send({ error: "enabled (boolean) is required" });
     }
+    const runId =
+      body.enabled &&
+      typeof body.runId === "string" &&
+      RUN_ID_PATTERN.test(body.runId)
+        ? body.runId
+        : undefined;
+    opts.onRunId?.(runId);
     controller.set(body.enabled);
     return { ok: true, enabled: controller.get() };
   });

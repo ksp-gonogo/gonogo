@@ -13,7 +13,10 @@ import { Switch, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
 import { Button, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
-import { useAnalyticsConsent } from "../analytics/useAnalyticsConsent";
+import {
+  useAnalyticsConsent,
+  useAnalyticsRunId,
+} from "../analytics/useAnalyticsConsent";
 import { BackupManager } from "../backup/BackupManager";
 import { say } from "../firstRun/copy";
 import { LogsManager } from "../logs/LogsManager";
@@ -289,6 +292,7 @@ function GeneralSettings({
  */
 function AnalyticsConsentRow() {
   const [enabled, setEnabled] = useAnalyticsConsent();
+  const runId = useAnalyticsRunId();
   return (
     <SettingLine>
       <RowText>
@@ -297,6 +301,12 @@ function AnalyticsConsentRow() {
           Share anonymous technical logs and errors with the developer to help
           debugging. Applies to this main screen and every connected station.
         </RowDesc>
+        {runId && (
+          <RowDesc>
+            Run <code>{runId}</code>. Switching analytics off and on starts a
+            new run.
+          </RowDesc>
+        )}
       </RowText>
       <Switch
         checked={enabled}

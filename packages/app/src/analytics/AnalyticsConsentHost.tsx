@@ -1,3 +1,4 @@
+import { logger } from "@ksp-gonogo/logger";
 import { useEffect } from "react";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { AnalyticsConsentService } from "./AnalyticsConsentService";
@@ -27,9 +28,12 @@ export function AnalyticsConsentHost({
 
     const apply = () => {
       const enabled = service.isEnabled();
+      const runId = service.runId();
+      // Before the transport goes in, so the backfill joins this run.
+      logger.setRunId(runId);
       controller.apply(enabled);
       // Feed the host service so it broadcasts to stations AND keeps the relay config broker in sync (POST on change + heartbeat re-assert).
-      peerHost.setAnalyticsConsent(enabled);
+      peerHost.setAnalyticsConsent(enabled, runId);
     };
 
     // Apply the persisted value immediately on mount, then on every change.
@@ -39,6 +43,7 @@ export function AnalyticsConsentHost({
       unsub();
       // Detach the Axiom sink on unmount so a remount starts clean.
       controller.apply(false);
+      logger.setRunId(undefined);
     };
   }, [service, peerHost]);
 

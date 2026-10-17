@@ -79,6 +79,7 @@ vi.mock("@ksp-gonogo/serial", () => ({
 vi.mock("../analytics/AnalyticsConsentService", () => ({
   analyticsConsentService: {
     isEnabled: () => false,
+    runId: () => undefined,
     subscribe: () => () => {},
     set: () => {},
   },

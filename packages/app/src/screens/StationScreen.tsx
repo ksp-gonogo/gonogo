@@ -1,7 +1,7 @@
 import { ManeuverTriggerProvider } from "@ksp-gonogo/components";
 import { registerDataSource, ScreenProvider } from "@ksp-gonogo/core";
 import { CoverageMaskCacheProvider, FlightsFab } from "@ksp-gonogo/data";
-import { debugPeer } from "@ksp-gonogo/logger";
+import { debugPeer, logger } from "@ksp-gonogo/logger";
 import {
   InputDispatcher,
   SerialDeviceProvider,
@@ -199,12 +199,14 @@ export function StationScreen() {
   // disconnected station doesn't keep shipping under a stale grant.
   useEffect(() => {
     const controller = createBrowserConsentController();
-    const unsub = client.onAnalyticsConsent((enabled) => {
+    const unsub = client.onAnalyticsConsent((enabled, runId) => {
+      logger.setRunId(runId);
       controller.apply(enabled);
     });
     return () => {
       unsub();
       controller.apply(false);
+      logger.setRunId(undefined);
     };
   }, [client]);
 

@@ -90,6 +90,7 @@ export class ConsoleLogger implements Logger {
   private readonly transports: LogTransport[] = [];
   private identity: DeviceIdentity = { role: "unknown" };
   private readonly sessionId: string;
+  private runId: string | undefined;
 
   constructor(opts?: {
     enabled?: boolean;
@@ -156,6 +157,19 @@ export class ConsoleLogger implements Logger {
 
   getSessionId(): string {
     return this.sessionId;
+  }
+
+  /**
+   * Sets the analytics run stamped on every subsequent entry, or clears it
+   * with `undefined`. Does not rewrite past entries; a backfill stamps the
+   * current run onto any entry that has none (see {@link AxiomConsentController}).
+   */
+  setRunId(runId: string | undefined): void {
+    this.runId = runId;
+  }
+
+  getRunId(): string | undefined {
+    return this.runId;
   }
 
   async flushTransports(): Promise<void> {
@@ -269,6 +283,7 @@ export class ConsoleLogger implements Logger {
         : undefined,
       device: this.identity,
       sessionId: this.sessionId,
+      ...(this.runId !== undefined ? { runId: this.runId } : {}),
     };
 
     // Buffer first: the export is intentionally richer than the console

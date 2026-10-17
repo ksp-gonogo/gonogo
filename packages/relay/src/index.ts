@@ -188,6 +188,7 @@ fastify.get("/version", async () => ({
 // exposes it (GET + SSE) for any service that wants to gate on it, and gates
 // its OWN Axiom sink on it via the onChange callback.
 registerAnalyticsConfigRoutes(fastify, {
+  onRunId: (runId) => logger.setRunId(runId),
   onChange: (enabled) => {
     axiomConsent.apply(enabled);
     bridgeInfo(`analytics consent ${enabled ? "enabled" : "disabled"}`);

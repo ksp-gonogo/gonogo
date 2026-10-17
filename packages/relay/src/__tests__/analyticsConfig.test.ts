@@ -49,6 +49,22 @@ describe("analytics-config routes (fastify.inject)", () => {
     await app.close();
   });
 
+  it("hands on the host's run, and no run when analytics is off or the id is malformed", async () => {
+    const app = Fastify();
+    const runs: (string | undefined)[] = [];
+    registerAnalyticsConfigRoutes(app, { onRunId: (r) => runs.push(r) });
+    await app.ready();
+    for (const payload of [
+      { enabled: true, runId: "run-20261018T0912-k3x9" },
+      { enabled: false, runId: "run-20261018T0912-k3x9" },
+      { enabled: true, runId: "host=XK3F with spaces" },
+    ]) {
+      await app.inject({ method: "POST", url: "/analytics-config", payload });
+    }
+    expect(runs).toEqual(["run-20261018T0912-k3x9", undefined, undefined]);
+    await app.close();
+  });
+
   it("POST without a boolean enabled is rejected 400", async () => {
     const { app } = await buildApp();
     const bad = await app.inject({

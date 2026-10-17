@@ -15,3 +15,11 @@ export function useAnalyticsConsent(): readonly [
     (next) => analyticsConsentService.set(next ? "enabled" : "disabled"),
   ];
 }
+
+/** The current analytics run's id, undefined while analytics is off. */
+export function useAnalyticsRunId(): string | undefined {
+  return useSyncExternalStore(
+    (cb) => analyticsConsentService.subscribe(cb),
+    () => analyticsConsentService.runId(),
+  );
+}

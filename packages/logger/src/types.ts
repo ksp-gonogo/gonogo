@@ -46,6 +46,13 @@ export interface LogEntry {
    * restore after a reload.
    */
   delivered?: true;
+  /**
+   * The analytics run this entry belongs to: one id shared by the main
+   * screen, every station and the relay from the moment analytics is switched
+   * on until it is switched off, surviving reloads. Absent while analytics is
+   * off. Never masked, and carries nothing that identifies a player.
+   */
+  runId?: string;
 }
 
 export interface LogTransport {

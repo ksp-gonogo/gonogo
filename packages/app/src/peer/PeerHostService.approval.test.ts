@@ -222,7 +222,7 @@ describe("a station the main screen has not approved", () => {
     localStorageMock.clear();
   });
 
-  it("is sent nothing but its hello and where its approval stands", async () => {
+  it("is sent nothing but its hello, the analytics switch and where its approval stands", async () => {
     const host = await startedHost();
     const station = await join(host, "station-a", "cred-a");
     host.broadcast({
@@ -234,6 +234,7 @@ describe("a station the main screen has not approved", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(station.told.map((m) => m.type)).toEqual([
       "hello",
+      "analytics-consent",
       "station-approval",
     ]);
     host.stop();

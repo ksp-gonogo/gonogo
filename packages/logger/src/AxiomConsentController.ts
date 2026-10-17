@@ -20,7 +20,7 @@ import type { LogTransport } from "./types.js";
 export class AxiomConsentController {
   private readonly logger: Pick<
     ConsoleLogger,
-    "addTransport" | "removeTransport" | "snapshot"
+    "addTransport" | "removeTransport" | "snapshot" | "getRunId"
   >;
   /** Lazily constructs the Axiom transport. Returns `null` when no token
    *  is configured, so a tokenless build never installs a sink. Called at
@@ -35,7 +35,7 @@ export class AxiomConsentController {
   constructor(opts: {
     logger: Pick<
       ConsoleLogger,
-      "addTransport" | "removeTransport" | "snapshot"
+      "addTransport" | "removeTransport" | "snapshot" | "getRunId"
     >;
     makeTransport: () => LogTransport | null;
   }) {
@@ -63,7 +63,14 @@ export class AxiomConsentController {
       this.logger.addTransport(transport);
       if (buffered) {
         this.backfilled = true;
-        if (buffered.length > 0) transport.send(buffered);
+        // The run is only known once consent is given, so everything logged before it joins the run being started.
+        const runId = this.logger.getRunId();
+        if (buffered.length > 0)
+          transport.send(
+            runId === undefined
+              ? buffered
+              : buffered.map((e) => (e.runId ? e : { ...e, runId })),
+          );
       }
       return;
     }

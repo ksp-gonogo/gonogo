@@ -126,6 +126,43 @@ describe("analytics-consent over peer", () => {
     host.stop();
   });
 
+  it("tells a station still waiting for approval, with the run", async () => {
+    const host = new PeerHostService();
+    host.setAnalyticsConsent(true, "run-20261018T0912-k3x9");
+    await host.start();
+    const conn = new FakeDataConnection();
+    if (!FakePeer.last) throw new Error("no fake peer");
+    FakePeer.last.emit("connection", conn);
+    conn.emit("open");
+
+    expect(analyticsMsgs(conn)).toEqual([
+      {
+        type: "analytics-consent",
+        enabled: true,
+        runId: "run-20261018T0912-k3x9",
+      },
+    ]);
+    host.stop();
+  });
+
+  it("broadcasts a new run to connected stations", async () => {
+    const host = new PeerHostService();
+    host.setAnalyticsConsent(true, "run-a");
+    await host.start();
+    const conn = new FakeDataConnection();
+    if (!FakePeer.last) throw new Error("no fake peer");
+    FakePeer.last.emit("connection", conn);
+    conn.emit("open");
+    approveConnection(conn);
+    host.setAnalyticsConsent(true, "run-b");
+    expect(analyticsMsgs(conn).at(-1)).toEqual({
+      type: "analytics-consent",
+      enabled: true,
+      runId: "run-b",
+    });
+    host.stop();
+  });
+
   it("does not re-broadcast when the consent value is unchanged", async () => {
     const host = new PeerHostService();
     host.setAnalyticsConsent(true);
@@ -152,5 +189,22 @@ describe("analytics-consent over peer", () => {
 
     expect(seen).toEqual([false, true]);
     expect(client.getAnalyticsConsent()).toBe(true);
+  });
+
+  it("client hands on the host's run, and drops it when analytics goes off", () => {
+    const client = new PeerClientService();
+    const seen: (string | undefined)[] = [];
+    client.onAnalyticsConsent((_, runId) => seen.push(runId));
+    intake(client).handleMessage({
+      type: "analytics-consent",
+      enabled: true,
+      runId: "run-a",
+    });
+    intake(client).handleMessage({
+      type: "analytics-consent",
+      enabled: false,
+      runId: "run-a",
+    });
+    expect(seen).toEqual([undefined, "run-a", undefined]);
   });
 });

@@ -118,7 +118,7 @@ type ClientEventMap = {
   notesSnapshot: [snap: import("../notes/types").NotesSnapshot];
   noteResult: [result: Extract<PeerMessage, { type: "note-result" }>];
   gonogoAbortNotify: [stationName: string, t: number];
-  analyticsConsent: [enabled: boolean];
+  analyticsConsent: [enabled: boolean, runId: string | undefined];
   flightChange: [flight: FlightRecord | null];
   hostCommandCentre: [centreId: string | null];
   hostUplinks: [uplinks: RunningUplink[] | null];
@@ -201,6 +201,7 @@ export class PeerClientService {
   // state on subscribe. Privacy-first default: disabled until the first
   // `analytics-consent` message lands.
   private analyticsConsent = false;
+  private analyticsRunId: string | undefined;
   // The command centre the host's main screen stands at, as it last said.
   // Kept through a lost link: a pilot cut off from mission control still
   // knows where mission control was.
@@ -1340,10 +1341,11 @@ export class PeerClientService {
     },
     "analytics-consent": (msg) => {
       this.analyticsConsent = msg.enabled;
+      this.analyticsRunId = msg.enabled ? msg.runId : undefined;
       logger.info(
         `[PeerClient] host analytics consent: ${msg.enabled ? "enabled" : "disabled"}`,
       );
-      this.events.emit("analyticsConsent", msg.enabled);
+      this.events.emit("analyticsConsent", msg.enabled, this.analyticsRunId);
     },
     "sitrep-frame": (msg) => {
       this.events.emit(
@@ -1457,11 +1459,14 @@ export class PeerClientService {
   /**
    * Notified whenever the host broadcasts its analytics consent (on connect
    * and on every change). Fires immediately with the cached value so a late
-   * subscriber gates correctly without waiting for the next change.
+   * subscriber gates correctly without waiting for the next change. `runId`
+   * is the host's analytics run, undefined while analytics is off.
    */
-  onAnalyticsConsent(cb: (enabled: boolean) => void): () => void {
+  onAnalyticsConsent(
+    cb: (enabled: boolean, runId: string | undefined) => void,
+  ): () => void {
     const remove = this.events.on("analyticsConsent", cb);
-    cb(this.analyticsConsent);
+    cb(this.analyticsConsent, this.analyticsRunId);
     return remove;
   }
 

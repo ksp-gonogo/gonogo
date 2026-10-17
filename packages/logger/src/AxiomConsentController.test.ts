@@ -245,4 +245,23 @@ describe("AxiomConsentController backfill of delivered entries", () => {
     const messages = transport.sent.flat().map((e) => e.message);
     expect(messages).toEqual(["written after the reload"]);
   });
+
+  it("stamps the run onto backfilled entries logged before the run began", () => {
+    const logger = new ConsoleLogger({ enabled: true, persist: null });
+    const transport = makeTransport();
+    const controller = new AxiomConsentController({
+      logger,
+      makeTransport: () => transport,
+    });
+
+    logger.info("before the run");
+    logger.setRunId("run-a");
+    controller.apply(true);
+    logger.info("during the run");
+
+    expect(transport.sent.flat().map((e) => [e.message, e.runId])).toEqual([
+      ["before the run", "run-a"],
+      ["during the run", "run-a"],
+    ]);
+  });
 });
