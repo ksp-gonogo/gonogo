@@ -7,6 +7,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
 import styled, { css } from "styled-components";
+import { Dial } from "./Dial";
 import { fillFraction } from "./fillQuantity";
 import { HeldFigure } from "./HeldMark";
 import { LevelBars } from "./LevelBars";
@@ -19,6 +20,7 @@ import { ToggleButton } from "./ToggleButton";
 import { Tooltip } from "./Tooltip";
 import { TONE_MARK, TONE_TEXT } from "./tone";
 import { Unit } from "./Unit";
+import { writeQuantity } from "./units";
 import { VisuallyHidden } from "./VisuallyHidden";
 import { TINY_BELOW, TINY_SIZE } from "./widgetSize";
 
@@ -72,6 +74,9 @@ export function TinyEssentials({
     hero !== undefined &&
     rest.length === 0 &&
     hero.label.toUpperCase() === title.toUpperCase();
+  const arcGauge =
+    hero?.value != null && hero.gauge?.style === "arc" ? hero.gauge : undefined;
+  const arcHero = arcGauge !== undefined;
   return (
     <Panel
       panelTitle={title}
@@ -103,12 +108,14 @@ export function TinyEssentials({
           )}
           {hero !== undefined && (
             <TinyEssentials__Hero data-tiny-essential="">
-              {heroNamedByTitle ? (
+              {heroNamedByTitle || arcHero ? (
                 <VisuallyHidden as="dt">{hero.label}</VisuallyHidden>
               ) : (
                 <TinyEssentials__Label>{hero.label}</TinyEssentials__Label>
               )}
-              {hero.gauge === undefined ? (
+              {hero.value != null && arcGauge !== undefined ? (
+                <ArcGauge essential={hero} gauge={arcGauge} />
+              ) : hero.gauge === undefined ? (
                 <TinyEssentials__HeroFigure $tone={hero.tone ?? "neutral"}>
                   <EssentialFigure essential={hero} />
                 </TinyEssentials__HeroFigure>
@@ -374,6 +381,99 @@ function CompactGauge({
   );
 }
 
+/**
+ * The scale as a half-circle dial with the figure under its hub, drawn in the
+ * largest arc the tile's room allows. The dial carries the figure and its held
+ * mark itself, so no separate figure is drawn.
+ */
+function ArcGauge({
+  essential,
+  gauge,
+}: {
+  essential: TinyEssential;
+  gauge: TinyGauge;
+}) {
+  const { ref, room } = useFitRoom();
+  const width = Math.min(room.w, ARC_MAX_W);
+  const height = Math.min(
+    room.h - ARC_EDGE_CLEARANCE,
+    Math.round(width / 2) + ARC_FIGURE_H,
+  );
+  const shown = essential.value;
+  if (shown == null) return null;
+  const spoken = resolveCurrency(shown).shown;
+  return (
+    <TinyEssentials__ArcBox ref={ref}>
+      <Dial
+        startAngle={-90}
+        sweep={180}
+        value={shown}
+        min={gauge.min}
+        max={gauge.max}
+        zones={(gauge.bands ?? []).map((band) => ({
+          from: band.from,
+          to: band.to,
+          color: TONE_MARK[band.tone],
+        }))}
+        width={width}
+        height={height}
+        readout="large"
+        aria-label={
+          spoken == null
+            ? essential.label
+            : `${essential.label} ${writeQuantity(spoken)}`
+        }
+      />
+    </TinyEssentials__ArcBox>
+  );
+}
+
+/**
+ * The room the tile's fit body gives its content, worked out from the panel
+ * body around it: the fit body's own box is as tall as what it holds, so it
+ * cannot be asked. The fit body takes back the body's gap above and its bottom
+ * inset, and those are added to the body's content box. Starts at a default
+ * size where there is no panel body or no ResizeObserver.
+ */
+function useFitRoom() {
+  const ref = useRef<HTMLElement | null>(null);
+  const [room, setRoom] = useState({ w: 200, h: 110 });
+  useLayoutEffect(() => {
+    const fit = ref.current?.closest("[data-panel-fit-body]");
+    const body = fit?.closest("[data-panel-body]");
+    if (!fit || !body || typeof ResizeObserver === "undefined") return;
+    const measure = () => {
+      const box = getComputedStyle(body);
+      const taken = getComputedStyle(fit);
+      const w =
+        body.clientWidth -
+        Number.parseFloat(box.paddingLeft) -
+        Number.parseFloat(box.paddingRight);
+      const h =
+        body.clientHeight -
+        Number.parseFloat(box.paddingTop) -
+        Number.parseFloat(box.paddingBottom) -
+        Number.parseFloat(taken.marginTop) -
+        Number.parseFloat(taken.marginBottom);
+      if (w > 0 && h > 0) setRoom({ w: Math.floor(w), h: Math.floor(h) });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(body);
+    return () => observer.disconnect();
+  }, []);
+  return { ref, room };
+}
+
+/** The widest arc drawn, past which a roomy tile gains blank margin rather than a larger dial. */
+const ARC_MAX_W = 280;
+
+/** Left under the dial, because the fit box reaches the panel's border and the figure's descenders would touch it. */
+const ARC_EDGE_CLEARANCE = 16;
+
+/** What the dial needs under its arc's base line: half the track, the drop to its large figure, and the figure's descent. */
+const ARC_FIGURE_H = 40;
+
 /** Every state word on the tile with its label, the only thing the tile says aloud. */
 function spokenWords(essentials: readonly TinyEssential[]): string {
   return essentials
@@ -473,6 +573,14 @@ const TinyEssentials__FigureLine = styled.span`
   align-items: baseline;
   justify-content: center;
   gap: var(--gap-figure-parts);
+`;
+
+/* The box is out of flow, so the dial drawn in it can never grow the slot it is measured from. */
+const TinyEssentials__ArcBox = styled.dd`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
 `;
 
 const TinyEssentials__Gauge = styled.svg`

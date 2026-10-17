@@ -76,6 +76,29 @@ describe("gridFloor", () => {
 });
 
 describe("TinyEssentials", () => {
+  it("draws an arc gauge as a dial carrying the figure, with no bar", async () => {
+    const { container } = render(
+      <TinyEssentials
+        title="TWR"
+        essentials={[
+          {
+            label: "TWR",
+            value: value("1", 1.4),
+            gauge: {
+              style: "arc",
+              min: value("1", 0),
+              max: value("1", 3),
+              bands: [{ from: value("1", 0), to: value("1", 1), tone: "nogo" }],
+            },
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("meter", { name: /^TWR 1\.40/ })).toBeTruthy();
+    expect(container.querySelector("[data-tiny-gauge]")).toBeNull();
+    await expectNoA11yViolations(container);
+  });
+
   it("pairs each figure with its label, the first as the hero", async () => {
     const { container } = render(
       <TinyEssentials title="LANDING" essentials={ESSENTIALS} />,

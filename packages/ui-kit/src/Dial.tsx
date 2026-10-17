@@ -339,6 +339,8 @@ export function Dial<Unit extends string = string>({
           fontFamily: "var(--font-family-mono)",
           maxWidth: "100%",
           height: "auto",
+          // The raised figure's line box runs a few pixels past the viewBox; its glyphs sit inside it.
+          overflow: raised ? "visible" : undefined,
         }}
       >
         {r > 0 &&

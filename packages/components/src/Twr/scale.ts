@@ -28,6 +28,12 @@ export const ZONES: DialZone<"1">[] = [
   { from: value("1", 1.5), to: value("1", 3), color: "var(--color-accent-fg)" },
 ];
 
+export const GAUGE_BANDS = [
+  { from: value("1", 0), to: value("1", 1), tone: "nogo" },
+  { from: value("1", 1), to: value("1", 1.5), tone: "warn" },
+  { from: value("1", 1.5), to: value("1", 3), tone: "go" },
+] as const;
+
 type Tone = "ok" | "warn" | "lost";
 
 const TONE_COLOR: Record<Tone, string> = {
