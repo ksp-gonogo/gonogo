@@ -195,10 +195,6 @@ namespace Gonogo.KSP
             foreach (var death in _deaths.Drain(snapshot?.Ut ?? Planetarium.GetUniversalTime()))
             {
                 var terminated = TerminatedVessels.Covers(death.VesselId, death.Ut);
-                if (terminated)
-                {
-                    TerminatedVessels.Forget(death.VesselId);
-                }
                 var reason = terminated
                     ? FlightEndReason.Terminated
                     : death.Impact != null ? FlightEndReason.Crashed : FlightEndReason.Destroyed;
