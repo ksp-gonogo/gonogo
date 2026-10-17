@@ -268,9 +268,13 @@ describe("OrbitDiagram projected overlay", () => {
     );
     const plainVb = plain.querySelector("svg")?.getAttribute("viewBox") ?? "";
     const withVb = withProj.querySelector("svg")?.getAttribute("viewBox") ?? "";
-    const plainW = Number.parseFloat(plainVb.split(" ")[2] ?? "0");
-    const withW = Number.parseFloat(withVb.split(" ")[2] ?? "0");
-    expect(withW).toBeGreaterThan(plainW);
+    const widthOf = (vb: string) => Number.parseFloat(vb.split(" ")[2] ?? "0");
+    const rxOf = (c: HTMLElement) =>
+      Number.parseFloat(c.querySelector("ellipse")?.getAttribute("rx") ?? "0");
+    // The frame is drawn in a fixed number of units across the orbit's extent, so containing a larger orbit shrinks the main one within it.
+    expect(rxOf(withProj) / widthOf(withVb)).toBeLessThan(
+      rxOf(plain) / widthOf(plainVb),
+    );
   });
 });
 
@@ -325,7 +329,8 @@ describe("OrbitDiagram horizon mark", () => {
     const y2 = Number.parseFloat(mark?.getAttribute("y2") ?? "0");
     expect(x1).toBeCloseTo(x2, 6);
     expect(Math.abs(y2 - y1)).toBeGreaterThan(0);
-    expect(x1).toBeCloseTo(700_000, 6);
+    // The scene draws in units of a thousandth of the apoapsis.
+    expect(x1).toBeCloseTo(700_000 / (BASE.apoapsis / 1000), 6);
     const path = container.querySelector('path[data-trajectory="supplied"]');
     expect(path?.getAttribute("stroke")).not.toMatch(/url\(#/);
     expect(path?.getAttribute("opacity")).toBeNull();
@@ -468,5 +473,93 @@ describe("OrbitDiagram spread arc", () => {
       <OrbitDiagram {...BASE} spread={spreadOf(0.00001)} />,
     );
     expect(container.querySelector("path[data-spread]")).toBeNull();
+  });
+});
+
+/** Kerbin orbit with periapsis 80 km up and apoapsis 6.4 Mm up, in metres. */
+const STRETCHED = (() => {
+  const sma = 3_855_000;
+  const ecc = 0.8236;
+  return {
+    sma,
+    ecc,
+    apoapsis: sma * (1 + ecc),
+    periapsis: sma * (1 - ecc),
+    craft: { current: 20 },
+    argPe: 45,
+    bodyRadius: 600_000,
+  };
+})();
+
+/** The closed orbit as a supplied path, points even in eccentric anomaly with periapsis on +x. */
+function ringPath(count: number) {
+  const { sma, ecc } = STRETCHED;
+  const b = sma * Math.sqrt(1 - ecc * ecc);
+  return Array.from({ length: count + 1 }, (_, i) => {
+    const e = (2 * Math.PI * i) / count;
+    return { x: sma * (Math.cos(e) - ecc), y: b * Math.sin(e) };
+  });
+}
+
+function pathPoints(d: string): { x: number; y: number }[] {
+  return d
+    .replace(/[ML]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((pair) => {
+      const [x, y] = pair.split(",").map(Number);
+      return { x, y };
+    });
+}
+
+describe("OrbitDiagram geometry of a stretched closed orbit", () => {
+  it("draws every length in drawing units, never in metres", () => {
+    // A browser's GPU rasteriser paints a shape millions of units wide as a lens with points at both apsides.
+    const { container } = render(
+      <OrbitDiagram {...STRETCHED} trajectoryPath={ringPath(128)} />,
+    );
+    const attributes = ["cx", "cy", "rx", "ry", "r", "stroke-width"];
+    const lengths = Array.from(container.querySelectorAll("svg *")).flatMap(
+      (el) => attributes.map((a) => Number(el.getAttribute(a) ?? 0)),
+    );
+    const vb = (container.querySelector("svg")?.getAttribute("viewBox") ?? "")
+      .split(" ")
+      .map(Number);
+    expect(
+      Math.max(...lengths.map(Math.abs), ...vb.map(Math.abs)),
+    ).toBeLessThan(10_000);
+  });
+
+  it("draws the orbit path with no corner, the turn between segments staying small", () => {
+    const { container } = render(
+      <OrbitDiagram {...STRETCHED} trajectoryPath={ringPath(128)} />,
+    );
+    const d =
+      container
+        .querySelector('path[data-trajectory="supplied"]')
+        ?.getAttribute("d") ?? "";
+    const points = pathPoints(d);
+    expect(points.length).toBe(129);
+    let widest = 0;
+    for (let i = 1; i < points.length - 1; i++) {
+      const [a, b, c] = [points[i - 1], points[i], points[i + 1]];
+      const turn = Math.abs(
+        Math.atan2(
+          (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x),
+          (b.x - a.x) * (c.x - b.x) + (b.y - a.y) * (c.y - b.y),
+        ),
+      );
+      widest = Math.max(widest, turn);
+    }
+    expect((widest * 180) / Math.PI).toBeLessThan(10);
+  });
+
+  it("names the apsis altitudes in metres however the scene is scaled", () => {
+    const { container } = render(<OrbitDiagram {...STRETCHED} />);
+    const labels = Array.from(container.querySelectorAll("[aria-label]")).map(
+      (el) => el.getAttribute("aria-label"),
+    );
+    expect(labels).toContain("Apoapsis altitude 6.4 Mm");
+    expect(labels).toContain("Periapsis altitude 80.0 km");
   });
 });

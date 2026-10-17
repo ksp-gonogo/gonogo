@@ -117,8 +117,9 @@ describe("OrbitView: the trail behind the craft", () => {
 
     const points = trailPoints(view.container);
     expect(points.length).toBeGreaterThan(1);
+    // The diagram draws in units of a thousandth of the orbit's extent, and this orbit is circular, so its radius is the extent.
     for (const p of points) {
-      expect(Math.hypot(p.x, p.y)).toBeCloseTo(850_000, -4);
+      expect(Math.hypot(p.x, p.y)).toBeCloseTo(1000, -1);
     }
   });
 
