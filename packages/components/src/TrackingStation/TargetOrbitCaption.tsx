@@ -49,15 +49,20 @@ function TargetHorizonFact({
   );
 }
 
-/** What the held route and its encounters are, and how old the craft's report behind them is, with the target said to be drawn as of now when there is one. */
+/** What the held route and, while they are drawn, its encounters are, and how old the craft's report behind them is, with the target said to be drawn as of now when there is one. */
 export function HeldPlanCaption({
   reportAge,
   targetName,
-}: Readonly<{ reportAge: Value<"s">; targetName: string | null }>) {
+  encountersHidden = false,
+}: Readonly<{
+  reportAge: Value<"s">;
+  targetName: string | null;
+  encountersHidden?: boolean;
+}>) {
   return (
     <div style={FRAME_CAPTION} data-held-plan-caption="">
-      Route and encounters held from the craft's report{" "}
-      <Unit value={reportAge} decimals={0} /> ago
+      {encountersHidden ? "Route held" : "Route and encounters held"} from the
+      craft's report <Unit value={reportAge} decimals={0} /> ago
       {targetName !== null && <> · {targetName} is drawn as of now</>}
     </div>
   );

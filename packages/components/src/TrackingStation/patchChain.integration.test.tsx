@@ -257,6 +257,9 @@ describe("TrackingStation's predicted patch chain", () => {
       expect(
         view.container.querySelector('[data-encounter-subject="vessel"]'),
       ).not.toBeNull();
+      expect(
+        view.container.querySelector("[data-held-plan-caption]")?.textContent,
+      ).toMatch(/^Route and encounters held/);
       await act(async () => {});
     });
 
@@ -271,6 +274,9 @@ describe("TrackingStation's predicted patch chain", () => {
       expect(
         view.container.querySelector('[data-encounter-subject="vessel"]'),
       ).toBeNull();
+      expect(
+        view.container.querySelector("[data-held-plan-caption]")?.textContent,
+      ).toMatch(/^Route held from/);
       await act(async () => {});
     });
 

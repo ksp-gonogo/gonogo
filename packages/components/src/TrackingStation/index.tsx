@@ -881,6 +881,9 @@ function TrackingStationComponent({
             {reportAge !== undefined && (
               <HeldPlanCaption
                 reportAge={reportAge}
+                encountersHidden={
+                  recorded !== null && targetThen.reportOutlastsOrbit
+                }
                 targetName={
                   drawnTarget !== null && typeof targetName === "string"
                     ? targetName
