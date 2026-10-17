@@ -61,24 +61,25 @@ const MIN_LEGIBLE_PLOT_PX = 200;
 const BESIDE_HEADER_ASPECT = 2.5;
 
 /**
- * The grid the widget lays out in. Above the plots, the header, then the plots
- * taking whatever height is left, then the readouts, with the altitude rail
- * down the side. In a short, wide window the header, the plots and the readouts
- * sit side by side, the plots one row as tall as the window.
+ * The grid the widget lays out in: the header, the plots under it, then the
+ * readouts, with the altitude rail down the side and any height left over
+ * below the readouts. In a short, wide window the header, the plots and the
+ * readouts sit side by side, the plots one row as tall as the window.
  */
-function landingLayout(
-  rail: boolean,
-  plots: boolean,
-): { narrow: CSSProperties; wide: CSSProperties } {
+function landingLayout(rail: boolean): {
+  narrow: CSSProperties;
+  wide: CSSProperties;
+} {
   const lead = rail ? "rail " : "";
   return {
     narrow: {
       display: "grid",
       gridTemplateColumns: rail ? "auto minmax(0, 1fr)" : "minmax(0, 1fr)",
-      gridTemplateAreas: ["header", "plots", "readouts"]
+      // The last row takes the spare height, so the rail spanning every row stretches none of the others.
+      gridTemplateAreas: ["header", "plots", "readouts", "."]
         .map((area) => `"${lead}${area}"`)
         .join(" "),
-      gridTemplateRows: plots ? "auto 1fr auto" : "auto auto auto",
+      gridTemplateRows: "auto auto auto 1fr",
       minHeight: "100cqh",
       gap: "var(--gap-section)",
     },
@@ -244,7 +245,7 @@ function LandingStatusComponent({
       {divertEl}
     </>
   );
-  const layout = landingLayout(railShown, plotsShown);
+  const layout = landingLayout(railShown);
 
   return (
     <Panel
