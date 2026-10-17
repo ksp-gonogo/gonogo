@@ -115,6 +115,7 @@ export function UplinkReadinessStep() {
  * mod's reason, verbatim.
  */
 function reasonFor(entry: UplinkReadinessEntry): string | null {
+  if (entry.state === "skipped") return say("uplinks.row.skippedDetail");
   return entry.state === "quarantined" ? (entry.outcome?.reason ?? null) : null;
 }
 
@@ -215,6 +216,12 @@ function ReadinessReading({
       return (
         <StatusIndicator tone="nogo">
           {say("uplinks.row.quarantined")}
+        </StatusIndicator>
+      );
+    case "skipped":
+      return (
+        <StatusIndicator tone="neutral">
+          {say("uplinks.row.skipped")}
         </StatusIndicator>
       );
     case "contract-mismatch":
