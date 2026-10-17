@@ -108,7 +108,7 @@ export const CKAN_CORE_IDENTIFIER = "GonogoCore";
 /** Typed into CKAN's search box, this lists every mod that depends on Gonogo: the Uplinks. */
 export const CKAN_UPLINK_FILTER = `dep:${CKAN_CORE_IDENTIFIER}`;
 
-const DOCS = "https://github.com/ksp-gonogo/gonogo/blob/main/docs";
+const DOCS = "https://github.com/ksp-gonogo/gonogo/blob/staging/docs";
 
 export const SETUP_LINKS = {
   docker: "https://docs.docker.com/get-started/get-docker/",
