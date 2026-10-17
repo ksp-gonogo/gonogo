@@ -229,8 +229,6 @@ namespace Sitrep.Contract.TestSupport
 
         public double NowUt() => 0.0;
 
-        public void Log(UplinkLogLevel level, string tag, string message) { }
-
         public IDynamicChannelSource RegisterDynamicNamespace(
             string prefix, ChannelDeclaration template) => new ProbeNamespace(this, prefix);
 

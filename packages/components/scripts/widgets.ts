@@ -229,7 +229,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "Twr/__fixtures__",
     outPath: "renders/twr-widget",
     modes: [
-      // The tiny size: the kit's arc dial with the ratio under its hub, no title.
+      // The tiny size: the ratio as a figure over a gauge, no title.
       { name: "small-3x3", w: 3, h: 3 },
       // Default: the gauge over its trend strip, in one frame.
       { name: "default-4x5", w: 4, h: 5 },

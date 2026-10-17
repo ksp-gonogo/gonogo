@@ -139,18 +139,12 @@ describe("ManeuverPlanner: the conformance plot's planned conic", () => {
   it("draws the planet at the radius the stream reports", async () => {
     const view = await mountOnConformance([POST_BURN_PATCH]);
     await waitFor(() => {
-      const svg = view.container.querySelector("[data-conformance-plot] svg");
-      const radii = [...(svg?.querySelectorAll("circle") ?? [])].map((c) =>
-        Number(c.getAttribute("r")),
-      );
-      const plannedRx = Number(
-        svg?.querySelectorAll("ellipse")[0]?.getAttribute("rx"),
-      );
-      // The diagram draws in its own units, so the planet is read against the planned conic's semi-major axis.
-      const planetOverSma = 600000 / POST_BURN_PATCH.sma;
-      expect(
-        radii.some((r) => Math.abs(r / plannedRx - planetOverSma) < 1e-3),
-      ).toBe(true);
+      const radii = [
+        ...view.container.querySelectorAll(
+          "[data-conformance-plot] svg circle",
+        ),
+      ].map((c) => Number(c.getAttribute("r")));
+      expect(radii).toContain(600000);
     });
   });
 

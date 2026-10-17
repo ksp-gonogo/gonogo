@@ -6,21 +6,12 @@ export function unitTick(
   unit: string,
   magnitude: number,
   ticks?: readonly number[],
-  scale: "linear" | "log" = "linear",
 ): string {
   // A tick a hair from zero is zero: it would otherwise read "-0 m".
   const at = ticks && isZeroTick(magnitude, ticks) ? 0 : magnitude;
-  /*
-   * Log ticks are powers of ten that share no step, so each is written with the
-   * digits it needs: "10 mPa" beside "0.1 mPa", not "10.0 mPa" padded to the
-   * finest tick's decimals.
-   */
-  const decimals = !ticks
-    ? 0
-    : scale === "log"
-      ? decimalsFor(unit, at).decimals
-      : exactDecimals(unit, at, ticks);
-  return writeQuantity(value(unit as never, at), { decimals });
+  return writeQuantity(value(unit as never, at), {
+    decimals: ticks ? exactDecimals(unit, at, ticks) : 0,
+  });
 }
 
 /** Whether a tick is zero, but for the rounding that put it there: far closer to zero than to its neighbours. */

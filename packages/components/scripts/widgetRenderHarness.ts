@@ -506,8 +506,8 @@ export async function renderWidgets(
 
     if (findings.overlaps.length > 0) {
       const message =
-        `${findings.overlaps.length} pair(s) of stacked siblings or chart captions painting into the same ` +
-        "pixels, so two sections or two labels of the widget are on top of each other:\n  " +
+        `${findings.overlaps.length} pair(s) of stacked siblings painting into the same ` +
+        "pixels, so two sections of the widget are on top of each other:\n  " +
         findings.overlaps.join("\n  ");
       if (process.env.PROBE_ALLOW_OVERLAP === "1") {
         console.warn(`\n[warn] ${message}`);
@@ -516,8 +516,7 @@ export async function renderWidgets(
           `${message}\n(Set PROBE_ALLOW_OVERLAP=1 to render anyway. A stacked ` +
             "sibling overlap is usually a flex item with min-height:0 that was " +
             "shrunk below its content: it keeps painting at its natural size and " +
-            "the content lands on whatever follows it. Two chart captions are a legend chip " +
-            "and a threshold label given the same corner of the plot.)",
+            "the content lands on whatever follows it.)",
         );
       }
     }
@@ -975,78 +974,6 @@ async function findOverlappingSections(page: Page): Promise<string[]> {
 }
 
 /**
- * Every pair of SVG `<text>` elements under `#root` whose drawn glyphs share
- * pixels, reported as `"a" ⨯ "b" overlap WxHpx`.
- *
- * {@link findOverlappingSections} skips SVG outright, because shapes layered by
- * document order overlap by design. Text is the exception: two captions drawn
- * on top of each other are unreadable, whichever is on top, and no chart
- * layers its labels deliberately. A chart's legend chip, its threshold
- * captions and its tick labels are all `<text>`, so this is the walk that sees
- * one chart caption land on another.
- *
- * Boxes are the text's own ink box from `getBoundingClientRect`, shrunk by
- * the same tolerance, so lines set tight against each other do not report.
- */
-async function findOverlappingSvgText(page: Page): Promise<string[]> {
-  return page.evaluate((tolerance) => {
-    const host = document.getElementById("root");
-    if (!host) return [] as string[];
-    type Item = {
-      text: string;
-      id: string;
-      x0: number;
-      y0: number;
-      x1: number;
-      y1: number;
-    };
-    const items: Item[] = [];
-    for (const el of Array.from(host.querySelectorAll("svg text"))) {
-      const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
-      if (text === "") continue;
-      let hidden = false;
-      for (let n: Element | null = el; n && n !== host; n = n.parentElement) {
-        const s = getComputedStyle(n);
-        if (
-          s.display === "none" ||
-          s.visibility === "hidden" ||
-          s.opacity === "0"
-        ) {
-          hidden = true;
-          break;
-        }
-      }
-      if (hidden) continue;
-      const b = el.getBoundingClientRect();
-      if (b.width <= 0 || b.height <= 0) continue;
-      items.push({
-        text,
-        id: el.id ? `#${el.id}` : "",
-        x0: b.left,
-        y0: b.top,
-        x1: b.right,
-        y1: b.bottom,
-      });
-    }
-    const out: string[] = [];
-    for (let i = 0; i < items.length; i++) {
-      for (let j = i + 1; j < items.length; j++) {
-        const a = items[i];
-        const b = items[j];
-        const ox = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
-        const oy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
-        if (ox <= tolerance || oy <= tolerance) continue;
-        out.push(
-          `<text${a.id}> "${a.text.slice(0, 32)}" ⨯ <text${b.id}> "${b.text.slice(0, 32)}" overlap ` +
-            `${ox.toFixed(1)}×${oy.toFixed(1)}px`,
-        );
-      }
-    }
-    return out;
-  }, OVERLAP_TOLERANCE_PX);
-}
-
-/**
  * A box short enough to swallow a descender rather than a line of text. Clipping
  * that matters costs a whole reading; a pixel or two is antialiasing and the
  * rounding a fractional line height leaves behind.
@@ -1200,19 +1127,10 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
           <g id="quiet-svg-under"><rect width="40" height="40" fill="#111"></rect></g>
           <g id="quiet-svg-over"><circle cx="20" cy="20" r="18" fill="#222"></circle></g>
         </svg>
-      </div>
-      <div style="position:absolute;top:900px;left:0;display:flex">
-        <svg width="200" height="60" aria-label="captions">
-          <text id="fires-text-a" x="4" y="14" font-size="10">Pressure (Duna)</text>
-          <text id="fires-text-b" x="40" y="14" font-size="10">At 1 km: 4.66 kPa</text>
-          <text id="quiet-text-a" x="4" y="40" font-size="10">Pressure (Duna)</text>
-          <text id="quiet-text-b" x="4" y="54" font-size="10">At 1 km: 4.66 kPa</text>
-        </svg>
       </div>`;
     host.appendChild(box);
   });
   const found = await findOverlappingSections(page);
-  const foundText = await findOverlappingSvgText(page);
   await page.evaluate(() =>
     document.getElementById("overlap-detector-selfcheck")?.remove(),
   );
@@ -1220,18 +1138,7 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
   const fired = found.some(
     (f) => f.includes("fires-overflow") && f.includes("fires-victim"),
   );
-  const misfired = [...found, ...foundText].filter((f) => f.includes("quiet-"));
-  if (
-    !foundText.some(
-      (f) => f.includes("fires-text-a") && f.includes("fires-text-b"),
-    )
-  ) {
-    throw new Error(
-      "The SVG text-overlap detector is BLIND: two captions drawn over each " +
-        "other were not reported, so a clean run proves nothing about the charts.\n" +
-        `What it did report: ${foundText.length === 0 ? "nothing" : foundText.join("; ")}`,
-    );
-  }
+  const misfired = found.filter((f) => f.includes("quiet-"));
   if (!fired) {
     throw new Error(
       "The stacked-overlap detector is BLIND: a deliberately broken stack " +
@@ -2076,63 +1983,6 @@ interface RenderFindings {
   a11y: string[];
 }
 
-/**
- * Resolves once the page has gone a run of frames with no DOM change and no resize of `#root`.
- *
- * Layout that settles through chained ResizeObserver callbacks (a control row that yields and then comes back) takes a different number of frames per engine and per machine load, so a fixed wait can land in the middle of it. Counting quiet frames rather than milliseconds keeps it independent of the pinned clock.
- */
-async function awaitQuietLayout(page: Page): Promise<void> {
-  /*
-   * A string, not a function: tsx wraps named functions in a `__name` helper that does not exist in the page.
-   */
-  const settled = await page.evaluate<boolean>(`new Promise((res) => {
-    const QUIET_FRAMES = 12;
-    const MAX_FRAMES = 600;
-    const host = document.getElementById("root");
-    if (!host) {
-      res(true);
-      return;
-    }
-    let changed = true;
-    const mark = () => {
-      changed = true;
-    };
-    const mutations = new MutationObserver(mark);
-    mutations.observe(host, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      characterData: true,
-    });
-    const sizes = new ResizeObserver(mark);
-    sizes.observe(host);
-    let quiet = 0;
-    let frames = 0;
-    const tick = () => {
-      frames++;
-      if (changed) {
-        quiet = 0;
-        changed = false;
-      } else {
-        quiet++;
-      }
-      if (quiet >= QUIET_FRAMES || frames >= MAX_FRAMES) {
-        mutations.disconnect();
-        sizes.disconnect();
-        res(quiet >= QUIET_FRAMES);
-        return;
-      }
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  })`);
-  if (!settled) {
-    throw new Error(
-      "Probe: the layout was still changing after 600 frames, so the capture would depend on when it was taken",
-    );
-  }
-}
-
 function noFindings(): RenderFindings {
   return {
     crushedGraphics: [],
@@ -2390,10 +2240,7 @@ async function renderOneWidget(
           `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${crushed}`,
         );
       }
-      for (const overlap of [
-        ...(await findOverlappingSections(page)),
-        ...(await findOverlappingSvgText(page)),
-      ]) {
+      for (const overlap of await findOverlappingSections(page)) {
         findings.overlaps.push(
           `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${overlap}`,
         );
@@ -2484,7 +2331,6 @@ async function renderOneWidget(
         );
         console.log(`  dom dump → ${dumpPath} (${dumped.length} matches)`);
       }
-      await awaitQuietLayout(page);
       // animations:"disabled" cancels any still-running CSS animation to its
       // initial state and fast-forwards finite transitions, so the capture is
       // deterministic even for anything not covered by reducedMotion.

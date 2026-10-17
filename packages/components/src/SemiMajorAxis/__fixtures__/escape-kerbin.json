@@ -1,19 +1,8 @@
 {
   "_meta": {
-    "shows": "A hyperbolic escape from Kerbin, so the semi-major axis reads as a negative 5,000 km, shrinking over the last five minutes as the burn adds energy.",
+    "shows": "A hyperbolic escape from Kerbin, so the semi-major axis reads as a negative 5,000 km.",
     "scenario": "escape-kerbin",
-    "notes": "Hyperbolic escape trajectory around Kerbin. SMA is negative for hyperbolic orbits. Exercises the formatDistance function with a negative value. The sparkline shows the last 5 minutes of the escape burn: the burn adds energy, so the negative SMA shrinks toward zero."
-  },
-  "_series": {
-    "vessel.orbit.sma": [
-      { "t": -300000, "v": -5600000 },
-      { "t": -250000, "v": -5480000 },
-      { "t": -200000, "v": -5360000 },
-      { "t": -150000, "v": -5240000 },
-      { "t": -100000, "v": -5130000 },
-      { "t": -50000, "v": -5050000 },
-      { "t": 0, "v": -5000000 }
-    ]
+    "notes": "Hyperbolic escape trajectory around Kerbin. SMA is negative for hyperbolic orbits. Exercises the formatDistance function with a negative value."
   },
   "vessel.orbit.sma": -5000000,
   "o.referenceBody": "Kerbin",

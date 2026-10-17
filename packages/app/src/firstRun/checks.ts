@@ -93,12 +93,7 @@ export function isThisComputer(host: string): boolean {
  * part is not on the active craft.
  */
 export function needsAttention(entry: UplinkReadinessEntry): boolean {
-  if (
-    !entry.installed ||
-    entry.bundled ||
-    entry.state === "mod-only" ||
-    entry.state === "skipped"
-  )
+  if (!entry.installed || entry.bundled || entry.state === "mod-only")
     return false;
   if (entry.rosterEntry?.health.state === "unavailable") return true;
   return entry.state !== "loaded" && entry.state !== "loading";
@@ -130,15 +125,6 @@ export function uplinksCheck(
     };
 
   const attention = installed.filter(needsAttention).length;
-  const skipped = installed.filter((entry) => entry.state === "skipped").length;
-  if (attention === 0 && skipped > 0)
-    return {
-      state: "pass",
-      text: say("uplinks.check.skipped", {
-        installed: installed.length,
-        skipped,
-      }),
-    };
   if (attention === 0)
     return {
       state: "pass",

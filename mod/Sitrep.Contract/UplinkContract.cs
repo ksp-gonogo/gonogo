@@ -1231,21 +1231,6 @@ namespace Sitrep.Contract
         /// </summary>
         double NowUt();
 
-        /// <summary>
-        /// Writes one line to the game's log (KSP.log) as "[Gonogo] tag:
-        /// message", with the install and home folders taken out of it. Useful
-        /// for reporting what an Uplink loaded, connected to or could not do in
-        /// a form the operator can paste into a bug report. Used by an Uplink
-        /// for its startup line and its faults.
-        ///
-        /// <para>Call it for events, not for every tick: a line per tick fills
-        /// the log. Safe to call from any thread.</para>
-        /// </summary>
-        /// <param name="level">How serious the line is.</param>
-        /// <param name="tag">A short name for the part of the Uplink writing the line, usually its id, for example <c>"kos"</c>.</param>
-        /// <param name="message">The line, without the "[Gonogo]" prefix or the tag.</param>
-        void Log(UplinkLogLevel level, string tag, string message);
-
         /// <summary>Contribute a sampler that adds to the snapshot every
         /// channel source reads each tick. See <see
         /// cref="ISnapshotSampler"/>.</summary>

@@ -28,8 +28,6 @@ namespace Sitrep.Contract.TestSupport
 
         public double NowUt() => 0.0;
 
-        public void Log(UplinkLogLevel level, string tag, string message) { }
-
         public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler)
         {
             if (RefuseFirstHandler && !_refused)

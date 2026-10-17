@@ -59,17 +59,14 @@ export function UplinkClientStatus({
 }: {
   outcome: UplinkLoadOutcome;
 }) {
-  const color = outcome.skippedByOperator
-    ? "var(--color-text-muted)"
-    : loaderColor[outcome.status];
   return (
     <StatusItem>
       <ConnectionRow>
-        <Indicator $color={color} />
+        <Indicator $color={loaderColor[outcome.status]} />
         <Name>Client</Name>
         {outcome.version && <Version>v{outcome.version}</Version>}
-        <StatusLabel $color={color}>
-          {outcome.skippedByOperator ? "skipped by you" : outcome.status}
+        <StatusLabel $color={loaderColor[outcome.status]}>
+          {outcome.status}
         </StatusLabel>
       </ConnectionRow>
       {outcome.identity && (
@@ -89,18 +86,20 @@ export function UplinkClientStatus({
       )}
       {outcome.reason && <Detail>{outcome.reason}</Detail>}
       <UplinkSkewOverride outcome={outcome} />
-      {outcome.skippedByOperator && outcome.version && (
-        <Button
-          variant="ghost"
-          type="button"
-          onClick={() => {
-            revokeConsent(outcome.id, outcome.version as string);
-            window.location.reload();
-          }}
-        >
-          Reconsider
-        </Button>
-      )}
+      {outcome.status === "quarantined" &&
+        outcome.reason === "consent declined" &&
+        outcome.version && (
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => {
+              revokeConsent(outcome.id, outcome.version as string);
+              window.location.reload();
+            }}
+          >
+            Reconsider
+          </Button>
+        )}
     </StatusItem>
   );
 }
@@ -113,7 +112,7 @@ export function statusNeedsAttention(
   if (entry !== undefined && entry.health.state !== "healthy") return true;
   // An unvouched development client loaded, and still wants the operator to know it is there.
   if (outcome?.unvouchedDevClient) return true;
-  return outcome?.status === "quarantined" && !outcome.skippedByOperator;
+  return outcome?.status === "quarantined";
 }
 
 const healthColor: Record<UplinkHealthStateName, string> = {

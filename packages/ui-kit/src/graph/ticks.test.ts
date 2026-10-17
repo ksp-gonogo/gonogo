@@ -31,14 +31,4 @@ describe("an axis tick in a unit", () => {
       "500 m",
     ]);
   });
-
-  it("writes each tick of a log axis with the digits it needs, not the finest tick's", () => {
-    const ticks = [100, 1, 0.01, 0.0001];
-    expect(ticks.map((t) => unitTick("Pa", t, ticks, "log"))).toEqual([
-      "100 Pa",
-      "1 Pa",
-      "10 mPa",
-      "0.1 mPa",
-    ]);
-  });
 });

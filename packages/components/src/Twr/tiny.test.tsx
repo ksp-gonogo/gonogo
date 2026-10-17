@@ -1,5 +1,4 @@
 import { act, waitFor } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
   renderWidget,
@@ -27,13 +26,13 @@ function mountTiny(size = { w: 3, h: 3 }) {
 }
 
 describe("Twr at the smallest tile", () => {
-  it("draws the kit's arc with its figure in a 3x3 tile, and the framed dial from 4x4", async () => {
+  it("draws the dial with its figure, no title, in a 3x3 tile, and the framed dial from 4x4", async () => {
     const { unmount, fixture, emitTwr } = mountTiny();
     emitTwr(1.832);
     await waitFor(() => expect(visibleText()).toContain("1.83"));
     expect(document.querySelector('[aria-label^="TWR 1.83"]')).not.toBeNull();
-    // The kit's tiny form draws the dial alone: no bar gauge and no trend strip.
-    expect(document.querySelector("[data-tiny-essential]")).not.toBeNull();
+    // The dial is the tile's whole content: no kit tiny form and no trend strip.
+    expect(document.querySelector("[data-tiny-essential]")).toBeNull();
     expect(document.querySelector("[data-tiny-gauge]")).toBeNull();
     unmount();
 
@@ -43,9 +42,9 @@ describe("Twr at the smallest tile", () => {
     await act(async () => {});
   });
 
-  it("draws the null token at the tiny size while the craft has no engine data", async () => {
+  it("says there is no engine data while the craft has none", async () => {
     mountTiny();
-    await waitFor(() => expect(visibleText()).toContain(NULL_DISPLAY));
+    await waitFor(() => expect(visibleText()).toContain("No engine data"));
     await act(async () => {});
   });
 
