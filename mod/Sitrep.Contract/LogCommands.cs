@@ -43,4 +43,14 @@ public class RecentLog
     /// <summary>The lines, oldest first.</summary>
     [SitrepUnit(Units.Text)]
     public List<string> Lines { get; set; } = new();
+
+    /// <summary>
+    /// How many lines the mod has kept since it started, counting those it has
+    /// since let go of, which is also the number of the last of
+    /// <see cref="Lines"/>. A caller that keeps the previous reply's count can
+    /// tell which lines are new and how many it missed. Starts again from zero
+    /// when the game restarts.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int Total { get; set; }
 }

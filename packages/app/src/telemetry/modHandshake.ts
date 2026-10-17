@@ -3,6 +3,8 @@ export interface ModHello {
   modVersion?: string | null;
   contractMajor?: number;
   contractMinor?: number;
+  /** Which run of the game this is: it changes when KSP restarts. */
+  bootId?: string;
 }
 
 /** The contract this app was built against. */

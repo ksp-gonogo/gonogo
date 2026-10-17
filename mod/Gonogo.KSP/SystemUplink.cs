@@ -205,7 +205,7 @@ namespace Gonogo.KSP
 
             host.AddCommandHandler<RecentLogArgs, CommandResult<RecentLog>>(
                 RecentLogCommand,
-                args => CommandResult<RecentLog>.Ok(new RecentLog { Lines = LogTail.Shared.Recent(args.MaxLines) }));
+                args => CommandResult<RecentLog>.Ok(LogTail.Shared.Snapshot(args.MaxLines)));
         }
 
         /// <summary>The frame the game's navigation view is in, flattened by <see cref="ControlFrameWire"/>.</summary>

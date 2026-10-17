@@ -4723,6 +4723,13 @@ export interface RecentLog
 {
 	/** The lines, oldest first. */
 	lines: string[];
+	/**
+	* How many lines the mod has kept since it started, counting those it has
+	* since let go of, which is also the number of the last of `RecentLog.lines`.
+	* A caller that keeps the previous reply's count can tell which lines are new
+	* and how many it missed. Starts again from zero when the game restarts.
+	*/
+	total: Value<"count">;
 }
 /**
 * Whether a payload's subject is simulated under physics (`Quality.Loaded`) or

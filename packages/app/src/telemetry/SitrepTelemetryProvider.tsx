@@ -287,6 +287,7 @@ export function SitrepTelemetryProvider({
           modVersion: message.modVersion,
           contractMajor: message.contractMajor,
           contractMinor: message.contractMinor,
+          bootId: message.bootId,
         });
         const rebooted = bootId !== undefined && bootId !== message.bootId;
         bootId = message.bootId;

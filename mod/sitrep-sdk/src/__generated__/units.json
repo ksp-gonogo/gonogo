@@ -1021,7 +1021,8 @@
       "untilUt": "ut"
     },
     "RecentLog": {
-      "lines": "text"
+      "lines": "text",
+      "total": "count"
     },
     "RecentLogArgs": {
       "maxLines": "count"

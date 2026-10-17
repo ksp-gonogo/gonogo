@@ -56,6 +56,20 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void RecentLogCarriesItsLinesAndTheirRunningCount()
+        {
+            var result = WriteAndDecodeResult(CommandResult<RecentLog>.Ok(new RecentLog
+            {
+                Lines = new() { "[Gonogo] a", "[Gonogo] b" },
+                Total = 41,
+            }));
+
+            var payload = result.GetProperty("payload");
+            Assert.Equal(2, payload.GetProperty("lines").GetArrayLength());
+            Assert.Equal(41, payload.GetProperty("total").GetInt32());
+        }
+
+        [Fact]
         public void SuccessfulCommandResultOfStringSerializesOverTheWire()
         {
             var result = WriteAndDecodeResult(CommandResult<string>.Ok("node-1"));

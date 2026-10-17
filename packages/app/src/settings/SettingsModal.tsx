@@ -298,8 +298,9 @@ function AnalyticsConsentRow() {
       <RowText>
         <RowLabel>Send technical analytics</RowLabel>
         <RowDesc>
-          Share anonymous technical logs and errors with the developer to help
-          debugging. Applies to this main screen and every connected station.
+          Share anonymous technical logs and errors, including the mod's own
+          lines from KSP.log, with the developer to help debugging. Applies to
+          this main screen and every connected station.
         </RowDesc>
         {runId && (
           <RowDesc>

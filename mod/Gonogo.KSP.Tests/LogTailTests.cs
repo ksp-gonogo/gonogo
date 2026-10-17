@@ -25,6 +25,17 @@ namespace Gonogo.KSP.Tests
             Assert.Empty(tail.Recent(0));
         }
 
+        [Fact]
+        public void Numbers_the_last_line_returned_by_every_line_kept()
+        {
+            var tail = new LogTail(3);
+            tail.Add("[Other] not counted");
+            for (var i = 1; i <= 5; i++) tail.Add("[Gonogo] line " + i);
+            var snapshot = tail.Snapshot(2);
+            Assert.Equal(new[] { "[Gonogo] line 4", "[Gonogo] line 5" }, snapshot.Lines);
+            Assert.Equal(5, snapshot.Total);
+        }
+
         [Theory]
         [InlineData("[Gonogo] peer left")]
         [InlineData("[Gonogo] host went away")]

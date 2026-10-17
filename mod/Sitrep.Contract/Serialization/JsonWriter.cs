@@ -2532,7 +2532,7 @@ namespace Sitrep.Contract.Serialization
             sb.Append('}');
         }
 
-        /// <summary>A log tail's <c>{ lines }</c>, the payload half of <c>system.log.recent</c>'s reply.</summary>
+        /// <summary>A log tail's <c>{ lines, total }</c>, the payload half of <c>system.log.recent</c>'s reply.</summary>
         private static void AppendRecentLog(StringBuilder sb, Sitrep.Contract.RecentLog log)
         {
             sb.Append('{');
@@ -2543,7 +2543,11 @@ namespace Sitrep.Contract.Serialization
                 if (i > 0) sb.Append(',');
                 AppendString(sb, log.Lines[i]);
             }
-            sb.Append("]}");
+            sb.Append("],");
+            AppendString(sb, "total");
+            sb.Append(':');
+            AppendNumber(sb, log.Total);
+            sb.Append('}');
         }
 
         private static void AppendCommsConnectivity(StringBuilder sb, Sitrep.Contract.CommsConnectivity c)

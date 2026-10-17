@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 44.11.0
+  version: 44.12.0
   description: |-
     The WebSocket API of the Gonogo mod: 87 telemetry channels a client
     subscribes to and 65 commands it sends, each with its payload and what it
@@ -17540,6 +17540,7 @@ components:
         share codes replaced, so it is safe to post publicly.
       required:
         - lines
+        - total
       properties:
         lines:
           type: array
@@ -17547,6 +17548,14 @@ components:
             type: string
             x-sitrep-unit: text
           description: The lines, oldest first.
+        total:
+          type: number
+          x-sitrep-unit: count
+          description: |-
+            How many lines the mod has kept since it started, counting those it has
+            since let go of, which is also the number of the last of `RecentLog.lines`.
+            A caller that keeps the previous reply's count can tell which lines are new
+            and how many it missed. Starts again from zero when the game restarts.
     RecentLogArgs:
       type: object
       description: |-

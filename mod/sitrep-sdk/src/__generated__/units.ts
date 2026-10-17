@@ -1062,6 +1062,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "RecentLog": {
     lines: "text",
+    total: "count",
   },
   "RecentLogArgs": {
     maxLines: "count",

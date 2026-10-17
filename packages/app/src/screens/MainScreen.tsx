@@ -44,6 +44,7 @@ import {
 import type { AlarmSnapshot } from "../alarms/types";
 import { AnalyticsConsentHost } from "../analytics/AnalyticsConsentHost";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
+import { ModLogForwarder } from "../analytics/ModLogForwarder";
 import { CommcastLink } from "../commcast/CommcastLink";
 import type { CommcastLog } from "../commcast/CommcastLog";
 import { CommcastLogProvider } from "../commcast/CommcastLogContext";
@@ -339,6 +340,7 @@ export function MainScreen({
             service={analyticsConsentService}
             peerHost={peerHostService}
           />
+          <ModLogForwarder />
           <FirstRunSetupHost />
           <ConsoleSettingsFromHost service={settingsService} />
           {/*

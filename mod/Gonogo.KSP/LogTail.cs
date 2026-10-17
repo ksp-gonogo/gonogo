@@ -26,6 +26,7 @@ namespace Gonogo.KSP
         private readonly object _gate = new object();
         private int _next;
         private int _count;
+        private int _total;
 
         public LogTail(int capacity)
         {
@@ -46,6 +47,20 @@ namespace Gonogo.KSP
                 _ring[_next] = line;
                 _next = (_next + 1) % _ring.Length;
                 if (_count < _ring.Length) _count++;
+                _total++;
+            }
+        }
+
+        /// <summary>
+        /// The newest <paramref name="max"/> lines with the running count of
+        /// every line kept, read together so the count always numbers the last
+        /// line returned.
+        /// </summary>
+        public Sitrep.Contract.RecentLog Snapshot(int max)
+        {
+            lock (_gate)
+            {
+                return new Sitrep.Contract.RecentLog { Lines = Recent(max), Total = _total };
             }
         }
 
