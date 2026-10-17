@@ -8211,8 +8211,9 @@ export enum CatalogEnd {
 	/** The craft was destroyed. */
 	Destroyed = 0,
 	/**
-	* The player ended the craft from the Tracking Station. Its crew went with it
-	* and no reputation was charged.
+	* The player ended the craft from the Tracking Station. Its crew leave the
+	* roster as missing, back after the game's respawn period, and no reputation
+	* is charged: see `CatalogEntry.crewDead` and `CatalogEntry.crewMissing`.
 	*/
 	Terminated = 1
 }
@@ -8414,6 +8415,19 @@ export interface CatalogEntry
 	* is.
 	*/
 	endKind?: CatalogEnd | null;
+	/**
+	* For a craft the player ended from the Tracking Station, how many of its crew
+	* the game's roster marks dead after the end. Null for any other end and when
+	* the roster was not read.
+	*/
+	crewDead?: Value<"count"> | null;
+	/**
+	* For a craft the player ended from the Tracking Station, how many of its crew
+	* the game's roster marks missing after the end: they return to the roster
+	* when the game's respawn period for them ends. Null for any other end and
+	* when the roster was not read.
+	*/
+	crewMissing?: Value<"count"> | null;
 }
 /**
 * Take a destroyed craft off the catalog of the command centre the command is

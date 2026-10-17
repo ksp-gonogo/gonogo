@@ -34,7 +34,8 @@ namespace Sitrep.Host.Comms
         /// loss from the blackout it was already in.
         /// </summary>
         /// <param name="end">How it left the game.</param>
-        void RecordCraftGone(string vesselId, double ut, CraftEnd end);
+        /// <param name="crew">What became of its crew, for a craft the player ended from the Tracking Station, or null when none was read.</param>
+        void RecordCraftGone(string vesselId, double ut, CraftEnd end, CrewAtEnd? crew = null);
 
         /// <summary>
         /// Records the state of a craft that carries no radio, as the ground

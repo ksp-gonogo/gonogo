@@ -2,6 +2,7 @@ import { DashboardItemContext } from "@ksp-gonogo/core";
 import {
   CatalogContact,
   CatalogCrew,
+  CatalogEnd,
   RosterCommsControlSource,
 } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
@@ -93,5 +94,64 @@ describe("VesselCatalog: what a centre knows of a craft's crew", () => {
       ).toHaveTextContent("2/3"),
     );
     expect(screen.getByText(/crew lost/)).toBeInTheDocument();
+  });
+
+  describe("a craft the player ended from the Tracking Station", () => {
+    function terminated(crewDead: number | null, crewMissing: number | null) {
+      return {
+        ...craft(CatalogCrew.Lost, CatalogContact.Gone),
+        endKind: CatalogEnd.Terminated,
+        crewDead,
+        crewMissing,
+      };
+    }
+
+    it("words its crew from the roster as missing", async () => {
+      const { container } = mount(terminated(0, 2));
+
+      await waitFor(() =>
+        expect(
+          container.querySelector('[data-crew-known="terminated"]'),
+        ).toHaveTextContent("2 missing"),
+      );
+      expect(screen.queryByText(/crew lost/)).toBeNull();
+      await expectNoA11yViolations(container);
+    });
+
+    it("words a mixed outcome as dead and missing", async () => {
+      const { container } = mount(terminated(1, 1));
+
+      await waitFor(() =>
+        expect(
+          container.querySelector('[data-crew-known="terminated"]'),
+        ).toHaveTextContent("1 dead · 1 missing"),
+      );
+    });
+
+    it("keeps the lost wording when the roster was not read", async () => {
+      const { container } = mount(terminated(null, null));
+
+      await waitFor(() =>
+        expect(
+          container.querySelector('[data-crew-known="lost"]'),
+        ).toHaveTextContent("2/3"),
+      );
+    });
+
+    it("leaves a destroyed craft's crew worded as lost", async () => {
+      const { container } = mount({
+        ...terminated(0, 2),
+        endKind: CatalogEnd.Destroyed,
+      });
+
+      await waitFor(() =>
+        expect(
+          container.querySelector('[data-crew-known="lost"]'),
+        ).toHaveTextContent("2/3"),
+      );
+      expect(
+        container.querySelector('[data-crew-known="terminated"]'),
+      ).toBeNull();
+    });
   });
 });
