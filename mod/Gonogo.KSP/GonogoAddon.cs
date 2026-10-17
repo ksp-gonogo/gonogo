@@ -134,6 +134,7 @@ namespace Gonogo.KSP
                 // capture-throw would be invisible in the live log; this sink
                 // makes the whole fail-soft class visible at [WRN] level.
                 _engine.SetDiagnosticLog(GonogoLog.Sink);
+                _engine.SetUplinkLog(GonogoLog.Uplink);
                 _engine.SetSpaceCentre(SpaceCentreSite.Current);
                 _engine.SetHomeReadable(() => !VesselListWatch.Shared.Settling);
 

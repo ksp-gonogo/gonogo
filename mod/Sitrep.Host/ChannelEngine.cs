@@ -255,8 +255,8 @@ namespace Sitrep.Host
             {
                 return;
             }
-            Console.Error.WriteLine(
-                "[ChannelEngine] dynamic namespace \"" + prefix
+            LogHost(
+                "dynamic namespace \"" + prefix
                 + "\" VesselIdForKey threw; its topics route to the active craft until it stops: "
                 + SafeExceptionMessage(ex));
         }
@@ -3972,7 +3972,7 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine("[ChannelEngine] dynamic-namespace subscribe listener for \"" + prefix + "\" threw: " + ex);
+                    LogHostLimited("dynamic-namespace subscribe listener for \"" + prefix + "\" threw: " + ExceptionLine.Describe(ex));
                 }
             }
         }
@@ -6706,6 +6706,33 @@ namespace Sitrep.Host
         /// Courier thread.
         /// </summary>
         public void SetDiagnosticLog(Action<string> log) => _diagnosticLog = log;
+
+        /// <summary>
+        /// Where <see cref="IUplinkHost.Log"/> lines go: the level, the Uplink's
+        /// tag and the message. Set once at startup. With none set the line goes
+        /// to <c>Console.Error</c>.
+        /// </summary>
+        public void SetUplinkLog(Action<UplinkLogLevel, string, string> log) => _uplinkLog = log;
+        private Action<UplinkLogLevel, string, string>? _uplinkLog;
+
+        void IUplinkHost.Log(UplinkLogLevel level, string tag, string message)
+        {
+            var sink = _uplinkLog;
+            if (sink == null)
+            {
+                Console.Error.WriteLine("[" + tag + "] " + message);
+                return;
+            }
+
+            try
+            {
+                sink(level, tag, message);
+            }
+            catch
+            {
+                // A broken log sink must never take down the caller.
+            }
+        }
         private Action<string>? _diagnosticLog;
 
         private readonly LogLimiter _perTopicLog = new LogLimiter();
@@ -6720,6 +6747,21 @@ namespace Sitrep.Host
             if (_perTopicLog.ShouldLog(kind + topic, out int heldBack))
             {
                 LogHost(LogLimiter.Compose(message, heldBack));
+            }
+        }
+
+        private readonly LogLimiter _faultLog = new LogLimiter();
+
+        /// <summary>
+        /// <see cref="LogHost"/> for a fault that can recur every tick: the first
+        /// occurrence in full, then at most one line a minute saying how many
+        /// were held back.
+        /// </summary>
+        private void LogHostLimited(string message)
+        {
+            if (_faultLog.ShouldLog(message, out int held))
+            {
+                LogHost(LogLimiter.Compose(message, held));
             }
         }
 
@@ -7611,7 +7653,7 @@ namespace Sitrep.Host
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine("[ChannelEngine] IsKeyframe predicate for \"" + topic + "\" threw (treated as not-a-keyframe): " + SafeExceptionMessage(ex));
+                LogHostLimited("IsKeyframe predicate for \"" + topic + "\" threw (treated as not-a-keyframe): " + SafeExceptionMessage(ex));
                 return false;
             }
         }
@@ -7831,7 +7873,7 @@ namespace Sitrep.Host
         /// </summary>
         private void FailSoftSignalDelaySource(Exception ex)
         {
-            Console.Error.WriteLine("[ChannelEngine] signal delay source (owner \"" + _signalDelaySourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(ex));
+            LogHostLimited("signal delay source (owner \"" + _signalDelaySourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(ex));
         }
 
         /// <summary>
@@ -7856,7 +7898,7 @@ namespace Sitrep.Host
         {
             if (tick.PathBreak.Error != null)
             {
-                Console.Error.WriteLine("[ChannelEngine] path break source (owner \"" + _pathBreakSourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(tick.PathBreak.Error));
+                LogHostLimited("path break source (owner \"" + _pathBreakSourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(tick.PathBreak.Error));
                 return;
             }
             var found = tick.PathBreak.Value;
@@ -8992,7 +9034,7 @@ namespace Sitrep.Host
         /// </summary>
         private void FailSoftConnectivitySource(Exception ex)
         {
-            Console.Error.WriteLine("[ChannelEngine] connectivity source (owner \"" + _connectivitySourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(ex));
+            LogHostLimited("connectivity source (owner \"" + _connectivitySourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(ex));
         }
 
         /// <summary>
@@ -10363,8 +10405,8 @@ namespace Sitrep.Host
                 var dynamicPrefix = FindDynamicNamespaceForTopic(topic);
                 if (dynamicPrefix == null)
                 {
-                    Console.Error.WriteLine(
-                        "[ChannelEngine] standing subscription on unknown topic \"" + topic
+                    LogHostLimited(
+                        "standing subscription on unknown topic \"" + topic
                         + "\" refused (holder \"" + holder + "\")");
                     return;
                 }

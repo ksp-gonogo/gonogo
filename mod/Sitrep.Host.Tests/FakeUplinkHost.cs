@@ -44,6 +44,8 @@ namespace Sitrep.Host.Tests
 
         public double NowUt() => 0.0;
 
+        public void Log(UplinkLogLevel level, string tag, string message) { }
+
         public void AddSampler(ISnapshotSampler sampler)
         {
         }

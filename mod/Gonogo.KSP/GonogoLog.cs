@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
+using Sitrep.Contract;
 using Sitrep.Host;
 using UnityEngine;
 
@@ -92,6 +93,23 @@ namespace Gonogo.KSP
         public static void Sink(string message)
         {
             Emit(LogType.Warning, Compose(null, message));
+        }
+
+        /// <summary>Carries a line an Uplink wrote through <c>IUplinkHost.Log</c> to KSP.log at its level.</summary>
+        public static void Uplink(UplinkLogLevel level, string tag, string message)
+        {
+            switch (level)
+            {
+                case UplinkLogLevel.Error:
+                    Error(tag, message);
+                    break;
+                case UplinkLogLevel.Warn:
+                    Warn(tag, message);
+                    break;
+                default:
+                    Info(tag, message);
+                    break;
+            }
         }
 
         private static string Compose(string? tag, string message)
