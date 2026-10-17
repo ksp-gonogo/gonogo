@@ -13,9 +13,7 @@ import {
  * Token = credential, consent = runtime gate: both must hold before
  * anything ships to Axiom.
  */
-export function makeBrowserAxiomTransport(
-  onError?: (error: unknown) => void,
-): AxiomTransport | null {
+export function makeBrowserAxiomTransport(): AxiomTransport | null {
   const token = import.meta.env.VITE_AXIOM_TOKEN;
   if (!token) return null;
   return new AxiomTransport({
@@ -23,7 +21,6 @@ export function makeBrowserAxiomTransport(
     dataset: import.meta.env.VITE_AXIOM_DATASET ?? "gonogo",
     url: import.meta.env.VITE_AXIOM_URL,
     orgId: import.meta.env.VITE_AXIOM_ORG_ID,
-    onError,
   });
 }
 

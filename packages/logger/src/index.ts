@@ -277,10 +277,10 @@ export class ConsoleLogger implements Logger {
       }
     }
 
-    // Console gating starts here. Tagged debug only prints while verbose
-    // logging is on; info/warn/error from a tagged logger always print
+    // Console gating starts here. Tag-gated debug only prints if the tag
+    // is enabled; info/warn/error from a tagged logger always print
     // (tags are opt-in verbose tracing, not a way to hide ops messages).
-    if (tag && level === "debug" && !tagRegistry.isVerbose()) return;
+    if (tag && level === "debug" && !tagRegistry.isEnabled(tag)) return;
 
     // Level floor: same idea, console-only. Buffer keeps everything.
     if (LEVEL_ORDER[level] < LEVEL_ORDER[this.level]) return;

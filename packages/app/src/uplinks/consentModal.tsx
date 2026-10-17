@@ -54,12 +54,14 @@ const Dialog = styled.div`
 
 export interface FirstLoadPageProps {
   uplinks: readonly ConsentInfo[];
+  askLogs: boolean;
   onDone: (answers: FirstLoadAnswers) => void;
 }
 
 /** The first-load questions in the dialog that holds them. */
 export function FirstLoadPage({
   uplinks,
+  askLogs,
   onDone,
 }: Readonly<FirstLoadPageProps>) {
   const titleId = useId();
@@ -76,10 +78,18 @@ export function FirstLoadPage({
         tabIndex={-1}
       >
         <h2 id={titleId}>Before you start</h2>
-        <FirstLoadChoices uplinks={uplinks} onDone={onDone} />
+        <FirstLoadChoices uplinks={uplinks} askLogs={askLogs} onDone={onDone} />
       </Dialog>
     </Backdrop>
   );
+}
+
+export interface FirstLoadPromptOptions {
+  /**
+   * The anonymous-logs consent, when this page should ask it too: the main
+   * screen while it is unanswered. Its answer is written straight to it.
+   */
+  logs?: { set(value: "enabled" | "disabled"): void };
 }
 
 /**
@@ -92,6 +102,7 @@ export function FirstLoadPage({
 export function promptForConsents(
   uplinks: readonly ConsentInfo[],
   theme: DefaultTheme,
+  options: FirstLoadPromptOptions = {},
 ): Promise<boolean[]> {
   return new Promise<boolean[]>((resolve) => {
     const container = document.createElement("div");
@@ -102,6 +113,9 @@ export function promptForConsents(
     const release = isolateModal(container);
 
     const finish = (answers: FirstLoadAnswers): void => {
+      if (options.logs && answers.logs !== undefined) {
+        options.logs.set(answers.logs ? "enabled" : "disabled");
+      }
       release();
       root.unmount();
       container.remove();
@@ -110,7 +124,11 @@ export function promptForConsents(
 
     root.render(
       <ThemeProvider theme={theme}>
-        <FirstLoadPage uplinks={uplinks} onDone={finish} />
+        <FirstLoadPage
+          uplinks={uplinks}
+          askLogs={options.logs !== undefined}
+          onDone={finish}
+        />
       </ThemeProvider>,
     );
   });

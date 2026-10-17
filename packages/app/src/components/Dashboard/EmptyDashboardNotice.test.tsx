@@ -2,9 +2,7 @@ import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { analyticsConsentService } from "../../analytics/AnalyticsConsentService";
+import { describe, expect, it, vi } from "vitest";
 import { ComponentOverlay, OverlayProvider } from "../ComponentOverlay";
 import { Dashboard } from "./index";
 
@@ -51,30 +49,6 @@ function renderScreen(items: Parameters<typeof Dashboard>[0]["items"]) {
 }
 
 describe("Dashboard with no widgets", () => {
-  afterEach(() => localStorage.clear());
-
-  it("offers a switch for anonymous analytics, off until it is turned on", async () => {
-    renderScreen([]);
-    const toggle = screen.getByRole("checkbox", {
-      name: "Send anonymous analytics?",
-    });
-    expect(toggle).not.toBeChecked();
-    expect(analyticsConsentService.isEnabled()).toBe(false);
-
-    await userEvent.setup().click(toggle);
-
-    expect(toggle).toBeChecked();
-    expect(analyticsConsentService.isEnabled()).toBe(true);
-  });
-
-  it("shows a setting already turned on in Settings", () => {
-    analyticsConsentService.set("enabled");
-    renderScreen([]);
-    expect(
-      screen.getByRole("checkbox", { name: "Send anonymous analytics?" }),
-    ).toBeChecked();
-  });
-
   it("says so, with a button that opens the widget picker", async () => {
     const { container } = renderScreen([]);
 

@@ -1,12 +1,12 @@
 /**
- * Verbose logging gate. When on, tagged `debug` lines print to the console
- * for every subsystem; when off they are only buffered and sent. Enable at
- * runtime via `localStorage.LOG_TAGS = '*'` and reload, or through the
- * Diagnostics switch.
+ * Tag-based log gating. Tags name a subsystem ("peer", "camera", "serial"...)
+ * and can be toggled independently of the numeric log level. Enable at
+ * runtime via `localStorage.LOG_TAGS = 'peer,camera'` (or `'*'` for all)
+ * and reload.
  *
- * Only `debug` on tagged logs is gated. `info`, `warn` and `error` always
- * pass: a serious problem should surface even with verbose logging off.
- * Any stored value other than `*` counts as off.
+ * Tag gating only affects `debug` and `info` on tagged logs. `warn` and
+ * `error` always pass: a serious problem should surface even if you
+ * forgot to enable the subsystem's tag beforehand.
  */
 
 function readLocalStorage(key: string): string | null {
@@ -28,27 +28,63 @@ function readEnv(key: string): string | null {
   }
 }
 
-export class TagRegistry {
-  // null = not yet resolved from storage
-  private verbose: boolean | null = null;
+function parseTags(raw: string | null): Set<string> | "all" | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (trimmed === "*") return "all";
+  return new Set(
+    trimmed
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0),
+  );
+}
 
-  /** Runtime override, so the diagnostics UI can flip it without a reload. */
-  setVerbose(on: boolean): void {
-    this.verbose = on;
+export class TagRegistry {
+  // null = not yet resolved; "all" = wildcard; Set = explicit list
+  private resolved: Set<string> | "all" | null | "none" = null;
+
+  /**
+   * Runtime override: called by the diagnostics UI so operators can flip
+   * tags without reloading the page. Also resets the resolver cache so
+   * subsequent `isEnabled` checks reflect the override.
+   */
+  setTags(tags: readonly string[] | "all"): void {
+    if (tags === "all") {
+      this.resolved = "all";
+      return;
+    }
+    this.resolved = new Set(tags);
   }
 
   clearOverride(): void {
-    this.verbose = null;
+    this.resolved = null;
   }
 
-  isVerbose(): boolean {
-    if (this.verbose === null) this.verbose = this.resolve();
-    return this.verbose;
+  isEnabled(tag: string): boolean {
+    if (this.resolved === null) this.resolved = this.resolve();
+    if (this.resolved === "none") return false;
+    if (this.resolved === "all") return true;
+    if (this.resolved.has(tag)) return true;
+    // Colon-scoped tags like "peer:kos" inherit enablement from their base ("peer") so `LOG_TAGS=peer` enables all peer sub-tags.
+    const base = tag.split(":")[0];
+    return base !== tag && this.resolved.has(base);
   }
 
-  private resolve(): boolean {
-    const raw = readLocalStorage("LOG_TAGS") ?? readEnv("LOG_TAGS");
-    return raw?.trim() === "*";
+  snapshot(): { mode: "all" | "none" | "list"; tags: string[] } {
+    if (this.resolved === null) this.resolved = this.resolve();
+    if (this.resolved === "all") return { mode: "all", tags: [] };
+    if (this.resolved === "none") return { mode: "none", tags: [] };
+    return { mode: "list", tags: Array.from(this.resolved).sort() };
+  }
+
+  private resolve(): Set<string> | "all" | "none" {
+    return (
+      parseTags(readLocalStorage("LOG_TAGS")) ??
+      parseTags(readEnv("LOG_TAGS")) ??
+      "none"
+    );
   }
 }
 

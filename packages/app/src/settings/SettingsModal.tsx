@@ -11,9 +11,9 @@ import {
 import { SettingsPersistenceState } from "@ksp-gonogo/sitrep-sdk";
 import { Switch, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
 import { Button, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
-import { useAnalyticsConsent } from "../analytics/useAnalyticsConsent";
+import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
 import { BackupManager } from "../backup/BackupManager";
 import { say } from "../firstRun/copy";
 import { LogsManager } from "../logs/LogsManager";
@@ -281,14 +281,18 @@ function GeneralSettings({
 }
 
 /**
- * The switch for technical analytics, off until the operator turns it on.
- * Bound directly to `analyticsConsentService` (its own localStorage slot)
- * rather than the settings registry: the browser Axiom gate and the
- * peer/relay propagation read that same service, so routing this through the
- * registry's `gonogo.settings` store would split the source of truth.
+ * Re-toggle for the technical-analytics consent the boot modal first
+ * asked about. Bound directly to `analyticsConsentService` (its own
+ * localStorage slot) rather than the settings registry, the boot modal,
+ * the browser Axiom gate, and the peer/relay propagation all read that
+ * same service, so routing this through the registry's `gonogo.settings`
+ * store would split the source of truth.
  */
 function AnalyticsConsentRow() {
-  const [enabled, setEnabled] = useAnalyticsConsent();
+  const enabled = useSyncExternalStore(
+    (cb) => analyticsConsentService.subscribe(cb),
+    () => analyticsConsentService.isEnabled(),
+  );
   return (
     <SettingLine>
       <RowText>
@@ -300,7 +304,9 @@ function AnalyticsConsentRow() {
       </RowText>
       <Switch
         checked={enabled}
-        onChange={setEnabled}
+        onChange={(next) =>
+          analyticsConsentService.set(next ? "enabled" : "disabled")
+        }
         aria-label="Send technical analytics"
       />
     </SettingLine>
@@ -311,11 +317,10 @@ const Wrap = styled.div`
   display: flex;
   flex-direction: column;
   /* Give the tab system a workable box: wide enough for the embedded
-     Connection / Devices / Diagnostics panels, and a minimum height so
-     tabs of different length do not resize the modal. The wrapper grows
-     with a tall tab and the modal body scrolls, which keeps the body's
-     bottom padding under the last element of every tab. */
+     Connection / Devices / Diagnostics panels, and a height so a tall
+     panel scrolls within the modal rather than stretching it unbounded. */
   min-width: 460px;
   max-width: 80vw;
-  min-height: min(70vh, 640px);
+  height: min(70vh, 640px);
+  min-height: 0;
 `;

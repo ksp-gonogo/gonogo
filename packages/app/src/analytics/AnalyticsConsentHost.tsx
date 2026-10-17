@@ -1,19 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { PeerHostService } from "../peer/PeerHostService";
+import { AnalyticsConsentModal } from "./AnalyticsConsentModal";
 import type { AnalyticsConsentService } from "./AnalyticsConsentService";
 import { createBrowserConsentController } from "./axiomTransportFactory";
 
 /**
- * Main-screen consent orchestrator. Does two things, both reactive to the
+ * Main-screen consent orchestrator. Does three things, all reactive to the
  * host-owned consent value:
  *
  *  1. Gates this browser's Axiom transport (install on enabled, remove on
  *     disabled). Console + ring buffer are untouched.
  *  2. Pushes the current consent to `PeerHostService` so it broadcasts to
  *     every connected/joining station.
+ *  3. Renders the blocking boot modal while consent is unanswered.
  *
- * The host's relay post + heartbeat re-assert lives in PeerHostService,
- * driven by the same `setAnalyticsConsent` call.
+ * The host's relay post + heartbeat re-assert (item 5) lives in
+ * PeerHostService, driven by the same `setAnalyticsConsent` call.
  */
 export function AnalyticsConsentHost({
   service,
@@ -22,6 +24,8 @@ export function AnalyticsConsentHost({
   service: AnalyticsConsentService;
   peerHost: PeerHostService;
 }) {
+  const [answered, setAnswered] = useState(() => service.hasAnswered());
+
   useEffect(() => {
     const controller = createBrowserConsentController();
 
@@ -34,7 +38,10 @@ export function AnalyticsConsentHost({
 
     // Apply the persisted value immediately on mount, then on every change.
     apply();
-    const unsub = service.subscribe(apply);
+    const unsub = service.subscribe(() => {
+      apply();
+      setAnswered(service.hasAnswered());
+    });
     return () => {
       unsub();
       // Detach the Axiom sink on unmount so a remount starts clean.
@@ -42,5 +49,6 @@ export function AnalyticsConsentHost({
     };
   }, [service, peerHost]);
 
-  return null;
+  if (answered) return null;
+  return <AnalyticsConsentModal service={service} />;
 }

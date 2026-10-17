@@ -33,34 +33,25 @@ describe("ConsoleLogger tag gating", () => {
     tagRegistry.clearOverride();
   });
 
-  it("suppresses tagged debug while verbose logging is off", () => {
+  it("suppresses tagged debug when the tag is not enabled", () => {
     const logger = new ConsoleLogger({ enabled: true, level: "debug" });
-    tagRegistry.setVerbose(false);
+    tagRegistry.setTags([]);
     logger.tag("peer").debug("hello");
     expect(consoleSpy).not.toHaveBeenCalled();
   });
 
-  it("emits tagged debug for every tag while verbose logging is on", () => {
+  it("emits tagged debug when the tag is enabled", () => {
     const logger = new ConsoleLogger({ enabled: true, level: "debug" });
-    tagRegistry.setVerbose(true);
-    logger.tag("anything").debug("hello");
-    logger.tag("peer:kos").debug("nested");
-    expect(consoleSpy).toHaveBeenCalledTimes(2);
+    tagRegistry.setTags(["peer"]);
+    logger.tag("peer").debug("hello");
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("reads '*' from LOG_TAGS and ignores a stored tag list", () => {
+  it("wildcard '*' enables every tag", () => {
     const logger = new ConsoleLogger({ enabled: true, level: "debug" });
-    vi.stubEnv("LOG_TAGS", "peer,camera");
-    try {
-      logger.tag("peer").debug("hello");
-      expect(consoleSpy).not.toHaveBeenCalled();
-      tagRegistry.clearOverride();
-      vi.stubEnv("LOG_TAGS", "*");
-      logger.tag("peer").debug("hello");
-      expect(consoleSpy).toHaveBeenCalledTimes(1);
-    } finally {
-      vi.unstubAllEnvs();
-    }
+    tagRegistry.setTags("all");
+    logger.tag("anything").debug("hello");
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
   });
 
   it("does not read the old DEBUG_PEER / DEBUG_FLIGHT flags", () => {
@@ -76,11 +67,18 @@ describe("ConsoleLogger tag gating", () => {
     }
   });
 
+  it("colon-scoped tags inherit from their base tag", () => {
+    const logger = new ConsoleLogger({ enabled: true, level: "debug" });
+    tagRegistry.setTags(["peer"]);
+    logger.tag("peer:kos").debug("nested");
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("always emits warn/error regardless of tag gating", () => {
     const logger = new ConsoleLogger({ enabled: true, level: "debug" });
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    tagRegistry.setVerbose(false);
+    tagRegistry.setTags([]);
     logger.tag("peer").warn("wat");
     logger.tag("peer").error("boom");
     expect(warnSpy).toHaveBeenCalledTimes(1);
@@ -94,7 +92,7 @@ describe("ConsoleLogger tag gating", () => {
     // operator who downloads logs should see every entry the logger ever
     // emitted, not just the ones that passed the current tag/level filter.
     const logger = new ConsoleLogger({ enabled: true, level: "debug" });
-    tagRegistry.setVerbose(false);
+    tagRegistry.setTags([]);
     logger.tag("peer").debug("hidden");
     expect(consoleSpy).not.toHaveBeenCalled();
     expect(logger.getBuffer().length).toBe(1);
@@ -167,7 +165,7 @@ describe("ConsoleLogger transports and identity", () => {
     });
     const { sent, transport } = makeTransport();
     logger.addTransport(transport);
-    tagRegistry.setVerbose(false);
+    tagRegistry.setTags([]);
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     logger.tag("peer").debug("hidden from console");
     expect(consoleSpy).not.toHaveBeenCalled();

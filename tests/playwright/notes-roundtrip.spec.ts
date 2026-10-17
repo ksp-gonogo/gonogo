@@ -64,6 +64,8 @@ async function seedContext(
       try {
         localStorage.setItem("gonogo.datasource.sitrep", sitrepCfg);
         localStorage.setItem(dashboardKey, dashboard);
+        // Pre-answer analytics consent so the blocking boot modal doesn't sit over the dashboard and swallow the note-input click.
+        localStorage.setItem("gonogo.analytics.consent", "disabled");
         // The first-run setup host auto-opens the Settings modal on a fresh
         // browser (own component coverage in FirstRunSetupHost.test.tsx):
         // mark it already-seen so it doesn't

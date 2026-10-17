@@ -18,10 +18,14 @@ const STATION_URL = "/station";
 /**
  * The same boot seed `helpers.ts`'s bootstrapPair applies, kept local because
  * this spec builds its two contexts by hand rather than through that helper.
+ * Unanswered analytics consent is a blocking modal that puts the whole
+ * dashboard behind `inert` + `aria-hidden`, so a role query for anything on
+ * the screen behind it correctly finds nothing.
  */
 async function seedBootGates(context: BrowserContext): Promise<void> {
   await context.addInitScript(() => {
     try {
+      localStorage.setItem("gonogo.analytics.consent", "disabled");
       localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
     } catch {
       /* private mode / quota: ignore; the seed just won't apply */

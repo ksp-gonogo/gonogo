@@ -22,6 +22,7 @@ test("a local Uplink's widget renders under the dev server", async ({
   await page.evaluate(
     (dashboardJson) => {
       localStorage.setItem("gonogo:dashboard:main", dashboardJson);
+      localStorage.setItem("gonogo.analytics.consent", "disabled");
       localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
     },
     JSON.stringify(dashboardWithWidget("local-fixture-widget")),
