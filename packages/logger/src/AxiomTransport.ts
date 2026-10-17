@@ -1,4 +1,5 @@
 import { Axiom } from "@axiomhq/js";
+import { scrubEntry } from "./scrub.js";
 import type { LogEntry, LogTransport } from "./types.js";
 
 /**
@@ -32,6 +33,11 @@ export interface AxiomTransportOptions {
    * Tests pass `false` to keep behaviour deterministic.
    */
   flushOnPageHide?: boolean;
+  /**
+   * Called when the SDK fails to deliver a batch. Only used when the
+   * transport builds the client from `token`. Omitted, failures are silent.
+   */
+  onError?: (error: unknown) => void;
 }
 
 /**
@@ -40,7 +46,9 @@ export interface AxiomTransportOptions {
  * this wrapper is intentionally thin: convert {@link LogEntry} to JSON,
  * push to the client, and best-effort drain on tab close.
  *
- * Failures are swallowed, log delivery never crashes the app.
+ * Entries are scrubbed of share codes, addresses, host names, peer ids and
+ * URLs before they leave. Failures are swallowed, log delivery never crashes
+ * the app.
  */
 export class AxiomTransport implements LogTransport {
   /** Max entries per `ingest` call: bounds a one-shot backfill so a full
@@ -82,15 +90,17 @@ export class AxiomTransport implements LogTransport {
         // failure doesn't show up as a noisy error on the user's screen.
         // The console transport (i.e. `ConsoleLogger`) keeps its own log
         // visibility independent of remote delivery.
-        onError: () => {},
+        onError: options.onError ?? (() => {}),
       });
     }
     throw new Error("AxiomTransport requires either `client` or `token`");
   }
 
-  send(entries: readonly LogEntry[]): void {
-    if (entries.length === 0) return;
+  send(unscrubbed: readonly LogEntry[]): void {
+    if (unscrubbed.length === 0) return;
     try {
+      // Every event passes through here, so scrubbing here covers every call site.
+      const entries = unscrubbed.map(scrubEntry);
       // Chunk large batches so a one-shot backfill of the whole ring buffer
       // (up to 5000 entries) can't exceed Axiom's per-request limits. Steady
       // -state sends are far smaller than the chunk size and pass through in

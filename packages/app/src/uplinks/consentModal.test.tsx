@@ -2,16 +2,15 @@ import { act, harnessTheme, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
-import { AnalyticsConsentModal } from "../analytics/AnalyticsConsentModal";
-import { AnalyticsConsentService } from "../analytics/AnalyticsConsentService";
+import { isolateModal } from "../a11y/modalIsolation";
 import type { ConsentInfo } from "./consent";
-import { type FirstLoadPromptOptions, promptForConsents } from "./consentModal";
+import { promptForConsents } from "./consentModal";
 import { resolveUplinkIdentity } from "./identity";
 
 /**
  * The first-load page, which mounts its own root outside React's tree. It asks
- * every Uplink's question and the logs question on one page, and resolves only
- * once each has an answer.
+ * every Uplink's question on one page, and resolves only once each has an
+ * answer.
  */
 
 const PLOTTER: ConsentInfo = {
@@ -60,20 +59,16 @@ async function pressEscape(): Promise<void> {
  */
 async function openPage(
   uplinks: readonly ConsentInfo[],
-  options: FirstLoadPromptOptions = {},
 ): Promise<{ answers: Promise<boolean[]> }> {
   let answers!: Promise<boolean[]>;
   await act(async () => {
-    answers = promptForConsents(uplinks, harnessTheme, options);
+    answers = promptForConsents(uplinks, harnessTheme);
   });
   await screen.findByRole("dialog", { name: "Before you start" });
   return { answers };
 }
 
-function rowButton(
-  group: string,
-  name: "Skip" | "Load" | "Decline" | "Enable",
-) {
+function rowButton(group: string, name: "Skip" | "Load") {
   const row = screen.getByRole("group", { name: group });
   const button = [...row.querySelectorAll("button")].find(
     (b) => b.textContent === name,
@@ -174,41 +169,14 @@ describe("the first-load page on a station", () => {
   });
 });
 
-describe("the anonymous-logs question", () => {
-  it("is asked beside the Uplinks and its answer is written to the service", async () => {
-    const service = new AnalyticsConsentService();
-    const { answers } = await openPage([PLOTTER], { logs: service });
-    expect(screen.getByText("2 still to answer")).toBeInTheDocument();
-    expect(
-      screen.getByText("Send anonymous errors and logs to the developer."),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/mission data/)).not.toBeInTheDocument();
-
-    await press(rowButton("Load Plotter Uplink?", "Skip"));
-    await press(rowButton("Send anonymous logs?", "Enable"));
-    await press(screen.getByRole("button", { name: "Continue" }));
-
-    await expect(answers).resolves.toEqual([false]);
-    expect(service.isEnabled()).toBe(true);
-  });
-
-  it("is declined by Escape like every other open question", async () => {
-    const service = new AnalyticsConsentService();
-    const { answers } = await openPage([PLOTTER], { logs: service });
-    await act(async () => {
-      await pressEscape();
-    });
-    await answers;
-    expect(service.hasAnswered()).toBe(true);
-    expect(service.isEnabled()).toBe(false);
-  });
-
-  it("is not asked when the caller does not pass it, as on a station", async () => {
-    const { answers } = await openPage([{ ...PLOTTER, onStation: true }]);
-    expect(screen.queryByText(/anonymous/i)).not.toBeInTheDocument();
+it("asks nothing about logs, which stay off until Settings turns them on", async () => {
+  const { answers } = await openPage([PLOTTER]);
+  expect(screen.queryByText(/anonymous/i)).not.toBeInTheDocument();
+  expect(screen.getByText("1 still to answer")).toBeInTheDocument();
+  await act(async () => {
     await pressEscape();
-    await answers;
   });
+  await answers;
 });
 
 /*
@@ -308,14 +276,9 @@ describe("the first-load page's nested-modal guard", () => {
     const behind = document.createElement("div");
     document.body.append(behind);
 
-    const consentService = new AnalyticsConsentService();
     const outer = document.createElement("div");
     document.body.append(outer);
-    const { createRoot } = await import("react-dom/client");
-    const outerRoot = createRoot(outer);
-    await act(async () => {
-      outerRoot.render(<AnalyticsConsentModal service={consentService} />);
-    });
+    const releaseOuter = isolateModal(outer);
     await waitFor(() => expect(behind).toHaveAttribute("inert"));
 
     const { answers } = await openPage([PLOTTER]);
@@ -327,9 +290,7 @@ describe("the first-load page's nested-modal guard", () => {
     expect(behind).toHaveAttribute("inert");
     expect(behind).toHaveAttribute("aria-hidden", "true");
 
-    await act(async () => {
-      outerRoot.unmount();
-    });
+    releaseOuter();
     expect(behind).not.toHaveAttribute("inert");
 
     outer.remove();

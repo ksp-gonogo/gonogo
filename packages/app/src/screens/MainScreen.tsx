@@ -339,7 +339,7 @@ export function MainScreen({
             service={analyticsConsentService}
             peerHost={peerHostService}
           />
-          <FirstRunSetupHost analyticsConsent={analyticsConsentService} />
+          <FirstRunSetupHost />
           <ConsoleSettingsFromHost service={settingsService} />
           {/*
            * Above the replay provider, so it records the live stream. Below

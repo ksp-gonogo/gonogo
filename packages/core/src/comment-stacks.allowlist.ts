@@ -334,7 +334,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "scripts/decode-bug-report.mjs": 1,
   "scripts/release.mjs": 2,
   "scripts/verify-package-artifact.mjs": 1,
-  "tests/playwright/helpers.ts": 1,
   "tests/playwright/main-station.spec.ts": 2,
   "tests/playwright/notes-roundtrip.spec.ts": 2,
   "tests/playwright/serial-degradation.spec.ts": 1,

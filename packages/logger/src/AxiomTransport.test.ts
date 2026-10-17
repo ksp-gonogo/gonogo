@@ -161,3 +161,92 @@ describe("AxiomTransport pagehide flushing", () => {
     expect(listeners).toHaveLength(0);
   });
 });
+
+describe("AxiomTransport scrubbing", () => {
+  const SENSITIVE = {
+    shareCode: "XK3F",
+    address: "203.0.113.20",
+    relatedAddress: "198.51.100.7",
+    kspHost: "deck.local",
+    peerId: "station-0b9d2c4e-1a2b-4c3d-8e9f-0123456789ab-t0k3n",
+    stationPeerId: "station-0b9d2c4e-1a2b-4c3d-8e9f-0123456789ab-t0k3n",
+    url: "https://example.com/secret/path?code=XK3F",
+  };
+
+  function sentFrom(input: LogEntry): LogEntry {
+    const client = makeClient();
+    const transport = new AxiomTransport({
+      dataset: "gonogo",
+      client,
+      flushOnPageHide: false,
+    });
+    transport.send([input]);
+    const events = client.ingest.mock.calls[0]?.[1] as readonly LogEntry[];
+    return events[0] as LogEntry;
+  }
+
+  it("masks every identifying context field, by name", () => {
+    const sent = sentFrom({
+      ...entry("hello"),
+      context: { ...SENSITIVE, kept: 7 },
+    });
+    const context = sent.context as Record<string, unknown>;
+    for (const key of Object.keys(SENSITIVE)) {
+      expect(context[key]).toMatch(/^<[a-z]+:[0-9a-f]{8}>$/);
+    }
+    expect(context.kept).toBe(7);
+    expect(JSON.stringify(sent)).not.toMatch(
+      /XK3F|203\.0\.113|198\.51\.100\.7|deck\.local|0b9d2c4e|example\.com|secret/,
+    );
+  });
+
+  it("masks the same fields inside a bug report's recent logs", () => {
+    const sent = sentFrom({
+      ...entry("[bug-report] froze"),
+      context: {
+        bug_report: {
+          recentLogs: [
+            {
+              ...entry("inner"),
+              context: { ...SENSITIVE },
+              device: { role: "host", id: "XK3F", peerId: "XK3F" },
+            },
+          ],
+        },
+      },
+    });
+    expect(JSON.stringify(sent)).not.toMatch(
+      /XK3F|203\.0\.113|198\.51\.100\.7|deck\.local|0b9d2c4e|example\.com|secret/,
+    );
+  });
+
+  it("masks share codes, addresses, URLs and peer ids written into text", () => {
+    const sent = sentFrom({
+      ...entry(
+        "[PeerHost] open: id=XK3F (shareCode=XK3F) from 203.0.113.20:8090 via ws://deck.local:8090/stream peer station-0b9d2c4e-1a2b-4c3d-8e9f-0123456789ab-t0k3n v6 fe80::1ff:fe23:4567:890a",
+      ),
+      error: {
+        name: "Error",
+        message: "GET https://example.com/a/b failed",
+        stack: "at 198.51.100.7",
+      },
+    });
+    expect(JSON.stringify(sent)).not.toMatch(
+      /XK3F|203\.0\.113|198\.51\.100\.7|deck\.local|0b9d2c4e|example\.com|fe80|\/stream|a\/b/,
+    );
+    expect(sent.message).toContain("[PeerHost] open:");
+  });
+
+  it("keeps the same peer correlatable across entries and leaves clock times alone", () => {
+    const a = sentFrom({
+      ...entry("x"),
+      device: { role: "station", peerId: SENSITIVE.peerId },
+    });
+    const b = sentFrom({
+      ...entry("y"),
+      device: { role: "station", peerId: SENSITIVE.peerId },
+    });
+    expect(a.device?.peerId).toBe(b.device?.peerId);
+    expect(sentFrom(entry("at 12:30:45 UTC")).message).toBe("at 12:30:45 UTC");
+  });
+});

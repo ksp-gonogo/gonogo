@@ -29,55 +29,9 @@ import {
   SCREENSHOT_WARN_BYTES,
   ScreenshotTooLargeError,
 } from "./screenshotEncoder";
+import { sendReportOnce } from "./sendReportOnce";
 
 const LOG_TAGS_KEY = "LOG_TAGS";
-
-/**
- * Tags seeded in the UI. Any `logger.tag(...)` call outside this list still
- * works, this is just the curated on/off set shown in the modal. Add a new
- * tag here whenever you start logging under a fresh subsystem name.
- */
-const KNOWN_TAGS: Array<{ id: string; label: string; hint: string }> = [
-  { id: "peer", label: "peer", hint: "PeerJS connect / disconnect / errors" },
-  {
-    id: "peer:broadcast",
-    label: "peer:broadcast",
-    hint: "Per-sample broadcast traffic (noisy)",
-  },
-  {
-    id: "peer:stream",
-    label: "peer:stream",
-    hint: "WebRTC media calls (cameras)",
-  },
-  {
-    id: "peer:ice",
-    label: "peer:ice",
-    hint: "Per-data-conn ICE state + candidate gathering (verbose)",
-  },
-  { id: "camera", label: "camera", hint: "Camera stream source lifecycle" },
-  { id: "serial", label: "serial", hint: "Serial device connect / parse" },
-  {
-    id: "targets",
-    label: "targets",
-    hint: "Body / vessel data flow into the TargetPicker",
-  },
-  {
-    id: "gonogo",
-    label: "gonogo",
-    hint: "Station registration & votes",
-  },
-  { id: "flight", label: "flight", hint: "Flight history plumbing" },
-  {
-    id: "bug-report",
-    label: "bug-report",
-    hint: "User-submitted bug reports (rare, kept on for triage)",
-  },
-  {
-    id: "feedback",
-    label: "feedback",
-    hint: "User-submitted feedback / suggestions",
-  },
-];
 
 type TimeWindowOption = {
   label: string;
@@ -93,109 +47,51 @@ const TIME_WINDOW_OPTIONS: TimeWindowOption[] = [
 ];
 const DEFAULT_WINDOW_INDEX = 1;
 
-type Mode = "all" | "none" | "list";
-
-function readTags(): { mode: Mode; tags: Set<string> } {
-  const raw =
-    typeof localStorage !== "undefined"
-      ? localStorage.getItem(LOG_TAGS_KEY)
-      : null;
-  if (!raw?.trim()) return { mode: "none", tags: new Set() };
-  if (raw.trim() === "*") return { mode: "all", tags: new Set() };
-  return {
-    mode: "list",
-    tags: new Set(
-      raw
-        .split(",")
-        .map((t) => t.trim())
-        .filter((t) => t.length > 0),
-    ),
-  };
+function readVerbose(): boolean {
+  try {
+    return localStorage.getItem(LOG_TAGS_KEY)?.trim() === "*";
+  } catch {
+    return false;
+  }
 }
 
-/** The value to persist for `mode`/`tags`, or `null` when the key should be cleared. */
-function storedTagsValue(mode: Mode, tags: Set<string>): string | null {
-  if (mode === "all") return "*";
-  if (mode === "none" || tags.size === 0) return null;
-  return Array.from(tags).sort().join(",");
-}
-
-function writeTags(mode: Mode, tags: Set<string>): void {
-  if (typeof localStorage === "undefined") return;
-  const raw = storedTagsValue(mode, tags);
-  if (raw === null) localStorage.removeItem(LOG_TAGS_KEY);
-  else localStorage.setItem(LOG_TAGS_KEY, raw);
-  if (mode === "all") tagRegistry.setTags("all");
-  else tagRegistry.setTags(Array.from(tags));
+function writeVerbose(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(LOG_TAGS_KEY, "*");
+    else localStorage.removeItem(LOG_TAGS_KEY);
+  } catch {
+    // Storage is unavailable: the switch still applies for this page load.
+  }
+  tagRegistry.setVerbose(on);
 }
 
 export function LogsManager() {
-  const [state, setState] = useState(readTags);
+  const [verbose, setVerbose] = useState(readVerbose);
+  const [, setBufferVersion] = useState(0);
   const bufferSize = logger.getBuffer().length;
 
-  function toggleTag(id: string) {
-    const next = new Set(state.tags);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    const nextState = { mode: "list" as Mode, tags: next };
-    setState(nextState);
-    writeTags(nextState.mode, nextState.tags);
-  }
-
-  function setMode(mode: Mode) {
-    const nextState = { mode, tags: state.tags };
-    setState(nextState);
-    writeTags(nextState.mode, nextState.tags);
+  function toggleVerbose(on: boolean) {
+    setVerbose(on);
+    writeVerbose(on);
   }
 
   function clearBuffer() {
     logger.clearBuffer();
-    // Force re-render so the count below updates.
-    setState({ ...state });
+    setBufferVersion((v) => v + 1);
   }
 
   return (
     <Container>
       <Stack as="section" gap="related-comfortable">
-        <SectionTitle as="h3">Active tags</SectionTitle>
-        <ModeRow>
-          <ModeButton
-            $active={state.mode === "all"}
-            onClick={() => setMode("all")}
-          >
-            all
-          </ModeButton>
-          <ModeButton
-            $active={state.mode === "none"}
-            onClick={() => setMode("none")}
-          >
-            none
-          </ModeButton>
-          <ModeHint>
-            {state.mode === "all"
-              ? "Every tag is being logged, very noisy."
-              : state.mode === "none"
-                ? "No tag-gated debug will print. Warnings & errors still do."
-                : `${state.tags.size} tag${state.tags.size === 1 ? "" : "s"} enabled.`}
-          </ModeHint>
-        </ModeRow>
-        {state.mode !== "all" && (
-          <TagList>
-            {KNOWN_TAGS.map((t) => (
-              <TagRow key={t.id}>
-                <Switch
-                  checked={state.tags.has(t.id)}
-                  onChange={() => toggleTag(t.id)}
-                  label={t.label}
-                />
-                <TagHint>{t.hint}</TagHint>
-              </TagRow>
-            ))}
-          </TagList>
-        )}
+        <SectionTitle as="h3">Console output</SectionTitle>
+        <Switch
+          checked={verbose}
+          onChange={toggleVerbose}
+          label="Verbose logging"
+        />
         <Foot>
-          Changes persist to <code>localStorage.LOG_TAGS</code> and apply
-          immediately.
+          Prints debug lines from every part of the app to the browser console.
+          Warnings and errors always print.
         </Foot>
       </Stack>
 
@@ -356,24 +252,31 @@ function ReportBug() {
       // informational. Same payload shape either way, distinguished by `kind`.
       if (kind === "feedback") tagged.info(trimmed, payload);
       else tagged.error(trimmed, undefined, payload);
-      // The Axiom SDK auto-batches and retries on its own. Race the flush
-      // against a 10s deadline so a slow transport (e.g. backpressure on
-      // a large screenshot) doesn't trap the UI in "Submitting...". The entry
-      // is in the ring buffer regardless, so timing out is a soft success:
-      // surface "sent" but flip the form to its post-send state quickly.
-      const flushOrTimeout = await Promise.race([
-        logger.flushTransports().then(() => "flushed" as const),
-        new Promise<"timeout">((resolve) =>
-          window.setTimeout(() => resolve("timeout"), 10_000),
-        ),
-      ]);
-      if (flushOrTimeout === "timeout") {
-        // Don't error out: the entry is in the ring buffer and the SDK
-        // will keep retrying. Tag a one-liner so the operator sees in
-        // their own logs that delivery was slow.
-        logger.warn("[report] flush did not complete within 10s", {
-          screenshotEncodedSize: screenshot?.encodedSize ?? null,
-        });
+      if (logger.transportCount() === 0) {
+        // No standing sink is installed (analytics is off), so this Send ships its own entry: pressing it is the consent.
+        const entry = logger.getBuffer().at(-1);
+        if (!entry) throw new Error("The report could not be sent.");
+        await sendReportOnce(entry);
+      } else {
+        // The Axiom SDK auto-batches and retries on its own. Race the flush
+        // against a 10s deadline so a slow transport (e.g. backpressure on
+        // a large screenshot) doesn't trap the UI in "Submitting...". The entry
+        // is in the ring buffer regardless, so timing out is a soft success:
+        // surface "sent" but flip the form to its post-send state quickly.
+        const flushOrTimeout = await Promise.race([
+          logger.flushTransports().then(() => "flushed" as const),
+          new Promise<"timeout">((resolve) =>
+            window.setTimeout(() => resolve("timeout"), 10_000),
+          ),
+        ]);
+        if (flushOrTimeout === "timeout") {
+          // Don't error out: the entry is in the ring buffer and the SDK
+          // will keep retrying. Tag a one-liner so the operator sees in
+          // their own logs that delivery was slow.
+          logger.warn("[report] flush did not complete within 10s", {
+            screenshotEncodedSize: screenshot?.encodedSize ?? null,
+          });
+        }
       }
       setPhase("sent");
       setOpen(false);
@@ -510,45 +413,6 @@ const Container = styled.div`
   flex-direction: column;
   gap: var(--gap-section);
   min-width: 420px;
-`;
-
-const ModeRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
-`;
-
-const ModeButton = styled.button<{ $active: boolean }>`
-  background: ${({ $active }) => ($active ? "var(--color-go-status)" : "var(--color-surface-raised)")};
-  border: 1px solid ${({ $active }) => ($active ? "var(--color-go-status)" : "var(--color-border-subtle)")};
-  color: ${({ $active }) => ($active ? "var(--color-go-text)" : "var(--color-text-primary)")};
-  font-size: var(--font-size-compact);
-  padding: var(--inset-control);
-  border-radius: var(--radius-regular);
-  cursor: pointer;
-`;
-
-const ModeHint = styled.span`
-  color: var(--color-text-muted);
-  font-size: var(--font-size-compact);
-`;
-
-const TagList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  padding: var(--gap-under-field) 0 0;
-`;
-
-const TagRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
-`;
-
-const TagHint = styled.span`
-  color: var(--color-text-muted);
-  font-size: var(--font-size-compact);
 `;
 
 const Foot = styled.div`

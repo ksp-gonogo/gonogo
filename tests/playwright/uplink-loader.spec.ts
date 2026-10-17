@@ -95,9 +95,6 @@ async function seedConsent(page: import("@playwright/test").Page) {
  *    `dashboardWithWidget` shape `tests/playwright/helpers.ts`'s
  *    `bootstrapPair` seeds for every widget-DOM-mirror spec), so the widget
  *    is on the grid the instant the app renders;
- *  - the analytics-consent answer, so the blocking boot modal doesn't sit
- *    over the dashboard and intercept the Settings FAB click (the same seed
- *    every FAB-driving spec, e.g. `data-source-status.spec.ts`, uses);
  *  - the first-run setup flag, so its own auto-open doesn't race the manual
  *    Settings-FAB open this spec drives.
  */
@@ -108,7 +105,6 @@ async function seedRenderAndSettingsState(
   await page.evaluate(
     ({ dashboardJson }: { dashboardJson: string }) => {
       localStorage.setItem("gonogo:dashboard:main", dashboardJson);
-      localStorage.setItem("gonogo.analytics.consent", "disabled");
       localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
     },
     { dashboardJson: JSON.stringify(dashboard) },
@@ -214,12 +210,9 @@ test.describe("Uplink loader (default path)", () => {
     // An empty boot-time enabled set, where the test above names breakingGround: proof the param is read rather than ignored.
     await page.goto(`${PREVIEW}/?uplinkLoaderIds=`, { waitUntil: "load" });
 
-    // The app rendered, which happens only once the loader's boot call has
-    // resolved, so the absence below is the override's doing rather than a
-    // page that never got as far as the loader. Nothing is seeded here, so the
-    // first thing it renders is the analytics consent prompt.
+    // The app renders only once the loader's boot call has resolved, so the absence below is the override's doing rather than a page that never got as far as the loader.
     await expect(
-      page.getByRole("dialog", { name: "Help improve gonogo?" }),
+      page.getByRole("main", { name: "Mission control" }),
     ).toBeVisible({ timeout: 15_000 });
 
     const ids = await registeredComponentIds(page);

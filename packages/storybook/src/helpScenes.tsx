@@ -48,13 +48,10 @@ const UPLINKS: readonly ConsentInfo[] = [
 
 export type ChoicesState = "unanswered" | "partly" | "answered" | "station";
 
-const INITIAL: Record<
-  ChoicesState,
-  { uplinks: (boolean | undefined)[]; logs?: boolean }
-> = {
+const INITIAL: Record<ChoicesState, { uplinks: (boolean | undefined)[] }> = {
   unanswered: { uplinks: [] },
   partly: { uplinks: [true, true] },
-  answered: { uplinks: [true, true, false], logs: false },
+  answered: { uplinks: [true, true, false] },
   station: { uplinks: [true] },
 };
 
@@ -93,7 +90,6 @@ export function FirstLoadChoicesScene({
       <FirstLoadChoices
         key={state}
         uplinks={UPLINKS}
-        askLogs={state !== "station"}
         initial={INITIAL[state]}
         onDone={() => {}}
       />

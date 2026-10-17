@@ -75,7 +75,6 @@ function stamp() {
 function seedScript({ host, port, dashboards }) {
   const entries = [
     ["gonogo.datasource.sitrep", JSON.stringify({ host, port })],
-    ["gonogo.analytics.consent", "disabled"],
     ["gonogo.uplinkHubWizard.firstRunSeen", "1"],
     ...Object.entries(dashboards ?? {}).map(([scene, config]) => [
       `gonogo:dashboard:main:${scene}`,

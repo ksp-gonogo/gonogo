@@ -398,6 +398,8 @@ const CloseButton = styled.button`
 
 const DialogBody = styled.div`
   padding: var(--inset-modal-body);
+  /* A tab strip or table inside reaches the dialog's edges, not just the body's content column. */
+  --bleed-inline: var(--inset-modal-body);
   overflow-y: auto;
   ${focusRingInset}
   -webkit-overflow-scrolling: touch;
