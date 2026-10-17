@@ -21,6 +21,9 @@ export function createNotesHost(
     reorderNote: (centreId, id, afterId, v) =>
       service.reorderNote(centreId, id, afterId, v),
   });
-  service.subscribe((snap) => bridge.broadcastSnapshot(snap));
+  service.onDispose(
+    service.subscribe((snap) => bridge.broadcastSnapshot(snap)),
+  );
+  service.onDispose(() => bridge.dispose());
   return service;
 }

@@ -185,6 +185,14 @@ const NoActiveVessel__Body = styled.div`
   text-align: center;
 `;
 
+interface MainHosts {
+  goNoGoHost: GoNoGoHostService;
+  pushHost: PushHostService;
+  alarmHost: ReturnType<typeof createAlarmHost>;
+  notesHost: ReturnType<typeof createNotesHost>;
+  maneuverTriggerHost: ReturnType<typeof createManeuverTriggerHost>;
+}
+
 /**
  * The direct-WS screen, at whichever seat the route puts it.
  *
@@ -226,19 +234,33 @@ export function MainScreen({
   );
   const [settingsService] = useState(() => new SettingsService());
   const [missionProfiles] = useState(() => new MissionProfilesService(screen));
-  // GoNoGoHostService lives for the app's lifetime. Intentionally no dispose
-  // cleanup: StrictMode's simulated unmount would run it and leave the
-  // second mount with a zombie service that no longer receives host events
-  // (the useState initializer only runs once per mount cycle).
-  const [goNoGoHost] = useState(() => new GoNoGoHostService(peerHostService));
-  const [pushHost] = useState(() => new PushHostService(peerHostService));
-  const [alarmHost] = useState(() => createAlarmHost(peerHostService));
-  const [notesHost] = useState(() => createNotesHost(peerHostService));
+  /*
+   * The hosts subscribe to the peer host in their constructors, so they are
+   * built in an effect and disposed with it: a useState initialiser runs
+   * twice under StrictMode and the spare would stay subscribed, sending every
+   * stage and countdown twice.
+   */
+  const [hosts, setHosts] = useState<MainHosts | null>(null);
+  useEffect(() => {
+    const built: MainHosts = {
+      goNoGoHost: new GoNoGoHostService(peerHostService),
+      pushHost: new PushHostService(peerHostService),
+      alarmHost: createAlarmHost(peerHostService),
+      notesHost: createNotesHost(peerHostService),
+      maneuverTriggerHost: createManeuverTriggerHost(peerHostService),
+    };
+    setHosts(built);
+    return () => {
+      built.goNoGoHost.dispose();
+      built.pushHost.dispose();
+      built.alarmHost.dispose();
+      built.notesHost.dispose();
+      built.maneuverTriggerHost.dispose();
+      setHosts(null);
+    };
+  }, []);
   const [commcastLog] = useState(() =>
     hostsThePeerMesh ? createCommcastLog() : null,
-  );
-  const [maneuverTriggerHost] = useState(() =>
-    createManeuverTriggerHost(peerHostService),
   );
   // Prime the module-scoped sound flag from the persisted setting and keep
   // it in sync. MAIN-ONLY: StationScreen never calls this, so station
@@ -276,6 +298,10 @@ export function MainScreen({
       });
     };
   }, []);
+
+  if (!hosts) return null;
+  const { goNoGoHost, pushHost, alarmHost, notesHost, maneuverTriggerHost } =
+    hosts;
 
   return (
     <SitrepTelemetryProvider transport={transport} screenKey={screen}>

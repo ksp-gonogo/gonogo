@@ -29,12 +29,16 @@ export interface NotesPeerBridgeHandlers {
  */
 export class NotesPeerBridge {
   private readonly sentCentre = new Map<string, string | null>();
+  private unsubs: Array<() => void> = [];
 
   constructor(
     private readonly host: PeerHostService | null,
     private readonly handlers: NotesPeerBridgeHandlers,
   ) {
     if (!host) return;
+    const track = (unsubscribe: () => void) => {
+      this.unsubs.push(unsubscribe);
+    };
     const answer = (peerId: string, ref: string, result: NoteResult) => {
       host.sendToPeer(peerId, {
         type: "note-result",
@@ -45,59 +49,76 @@ export class NotesPeerBridge {
     };
     // A station with no centre has no list to change.
     const refuseWithoutCentre: NoteResult = { ok: false, current: null };
-    host.onNoteAdd((peerId, msg) => {
-      const centreId = host.centreOf(peerId);
-      if (centreId === null)
-        return answer(peerId, msg.ref, refuseWithoutCentre);
-      handlers.addNote(centreId, { body: msg.body, createdBy: peerId });
-      answer(peerId, msg.ref, { ok: true });
-    });
-    host.onNoteUpdate((peerId, msg) => {
-      const centreId = host.centreOf(peerId);
-      answer(
-        peerId,
-        msg.ref,
-        centreId === null
-          ? refuseWithoutCentre
-          : handlers.updateNote(centreId, msg.id, msg.body, msg.baseVersion),
-      );
-    });
-    host.onNoteDelete((peerId, msg) => {
-      const centreId = host.centreOf(peerId);
-      answer(
-        peerId,
-        msg.ref,
-        centreId === null
-          ? refuseWithoutCentre
-          : handlers.deleteNote(centreId, msg.id, msg.baseVersion),
-      );
-    });
-    host.onNoteReorder((peerId, msg) => {
-      const centreId = host.centreOf(peerId);
-      answer(
-        peerId,
-        msg.ref,
-        centreId === null
-          ? refuseWithoutCentre
-          : handlers.reorderNote(
-              centreId,
-              msg.id,
-              msg.afterId,
-              msg.baseVersion,
-            ),
-      );
-    });
-    host.onPeerConnect((peerId) => this.sendCurrent(peerId));
-    host.onPeerDisconnect((peerId) => {
-      this.sentCentre.delete(peerId);
-    });
-    host.onCentresChanged(() => {
-      for (const peerId of host.connectedPeerIds()) {
-        if (this.sentCentre.get(peerId) !== host.centreOf(peerId)) {
-          this.sendCurrent(peerId);
+    track(
+      host.onNoteAdd((peerId, msg) => {
+        const centreId = host.centreOf(peerId);
+        if (centreId === null)
+          return answer(peerId, msg.ref, refuseWithoutCentre);
+        handlers.addNote(centreId, { body: msg.body, createdBy: peerId });
+        answer(peerId, msg.ref, { ok: true });
+      }),
+    );
+    track(
+      host.onNoteUpdate((peerId, msg) => {
+        const centreId = host.centreOf(peerId);
+        answer(
+          peerId,
+          msg.ref,
+          centreId === null
+            ? refuseWithoutCentre
+            : handlers.updateNote(centreId, msg.id, msg.body, msg.baseVersion),
+        );
+      }),
+    );
+    track(
+      host.onNoteDelete((peerId, msg) => {
+        const centreId = host.centreOf(peerId);
+        answer(
+          peerId,
+          msg.ref,
+          centreId === null
+            ? refuseWithoutCentre
+            : handlers.deleteNote(centreId, msg.id, msg.baseVersion),
+        );
+      }),
+    );
+    track(
+      host.onNoteReorder((peerId, msg) => {
+        const centreId = host.centreOf(peerId);
+        answer(
+          peerId,
+          msg.ref,
+          centreId === null
+            ? refuseWithoutCentre
+            : handlers.reorderNote(
+                centreId,
+                msg.id,
+                msg.afterId,
+                msg.baseVersion,
+              ),
+        );
+      }),
+    );
+    track(host.onPeerConnect((peerId) => this.sendCurrent(peerId)));
+    track(
+      host.onPeerDisconnect((peerId) => {
+        this.sentCentre.delete(peerId);
+      }),
+    );
+    track(
+      host.onCentresChanged(() => {
+        for (const peerId of host.connectedPeerIds()) {
+          if (this.sentCentre.get(peerId) !== host.centreOf(peerId)) {
+            this.sendCurrent(peerId);
+          }
         }
-      }
-    });
+      }),
+    );
+  }
+
+  dispose(): void {
+    for (const unsubscribe of this.unsubs) unsubscribe();
+    this.unsubs = [];
   }
 
   /** Sends `snapshot` to every station standing at its centre. */

@@ -144,6 +144,20 @@ describe("notes per command centre", () => {
     host.stop();
   });
 
+  it("stops answering stations once the service is disposed", async () => {
+    const host = await startedHost();
+    host.setCommandCentre(HOME);
+    const service = createNotesHost(host);
+    const station = await connectStation(host, "station-a");
+    service.dispose();
+    const answered = results(station).length;
+
+    send(station, { type: "note-add", ref: "r1", body: "late" });
+
+    expect(results(station)).toHaveLength(answered);
+    host.stop();
+  });
+
   it("does not send a note to a station at another centre", async () => {
     const host = await startedHost();
     host.setCommandCentre(HOME);

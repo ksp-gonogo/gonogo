@@ -22,6 +22,7 @@ export type NoteResult = { ok: true } | { ok: false; current: Note | null };
 export class NotesHostService {
   private centres = new Map<string, Note[]>();
   private listeners = new Set<Listener>();
+  private teardowns: Array<() => void> = [];
   private nowFn: () => number;
 
   constructor(
@@ -48,6 +49,17 @@ export class NotesHostService {
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  /** Registers work to undo when the service is disposed. */
+  onDispose(teardown: () => void): void {
+    this.teardowns.push(teardown);
+  }
+
+  dispose(): void {
+    for (const t of this.teardowns) t();
+    this.teardowns = [];
+    this.listeners.clear();
   }
 
   addNote(centreId: string, input: { body: string; createdBy?: string }): Note {
