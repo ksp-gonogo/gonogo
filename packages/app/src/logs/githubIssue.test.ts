@@ -37,16 +37,18 @@ describe("redactLogLine", () => {
 });
 
 describe("buildIssueLink", () => {
-  it("prefills the form by field id", () => {
+  it("carries the description and the versions in the body", () => {
     const { url } = buildIssueLink(fields, []);
     const q = new URL(url).searchParams;
-    expect(q.get("template")).toBe("bug_report.yml");
-    expect(q.get("what-happened")).toBe(fields.description);
-    expect(q.get("mod-version")).toBe("v1.4.0");
-    expect(q.get("app-version")).toBe("1.4.0");
-    expect(q.get("uplinks")).toBe("sample 1.2.0\nexample 0.9.1");
-    expect(q.get("screen")).toBe("Main screen");
-    expect(q.has("logs")).toBe(false);
+    expect(q.has("template")).toBe(false);
+    expect(q.get("labels")).toBe("bug");
+    const body = q.get("body") ?? "";
+    expect(body).toContain(fields.description);
+    expect(body).toContain("Mod version: v1.4.0");
+    expect(body).toContain("App version: 1.4.0");
+    expect(body).toContain("Installed Uplinks: sample 1.2.0, example 0.9.1");
+    expect(body).toContain("Screen: Main screen");
+    expect(body).not.toContain("## Logs");
   });
 
   it("puts a short log in a collapsed section", () => {
@@ -55,7 +57,7 @@ describe("buildIssueLink", () => {
     ]);
     expect(link.log).toBe("all");
     expect(link.clipboard).toBeNull();
-    expect(new URL(link.url).searchParams.get("logs")).toContain("<details>");
+    expect(new URL(link.url).searchParams.get("body")).toContain("<details>");
   });
 
   it("drops the oldest lines first and copies the whole log", () => {
@@ -63,7 +65,7 @@ describe("buildIssueLink", () => {
     const link = buildIssueLink(fields, [{ title: "KSP.log", lines: all }]);
     expect(link.log).toBe("trimmed");
     expect(link.url.length).toBeLessThanOrEqual(ISSUE_URL_LIMIT);
-    const logs = new URL(link.url).searchParams.get("logs") ?? "";
+    const logs = new URL(link.url).searchParams.get("body") ?? "";
     expect(logs).toContain("line 399");
     expect(logs).not.toContain("line 0 ");
     expect(link.clipboard).toBe(`KSP.log\n${all.join("\n")}`);
@@ -85,7 +87,7 @@ describe("buildIssueLink", () => {
     const app = { title: "App log", lines: lines(200) };
     const link = buildIssueLink(fields, [mod, app]);
     expect(link.log).toBe("trimmed");
-    const logs = new URL(link.url).searchParams.get("logs") ?? "";
+    const logs = new URL(link.url).searchParams.get("body") ?? "";
     expect(logs).toContain("KSP.log (20 lines)");
     expect(logs).not.toContain("App log");
     expect(link.clipboard).toContain("App log");
@@ -97,6 +99,6 @@ describe("buildIssueLink", () => {
       { title: "App log", lines: lines(3) },
     ]);
     expect(link.log).toBe("all");
-    expect(new URL(link.url).searchParams.get("logs")).toContain("App log");
+    expect(new URL(link.url).searchParams.get("body")).toContain("App log");
   });
 });

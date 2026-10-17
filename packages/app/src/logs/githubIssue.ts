@@ -17,7 +17,7 @@ export interface LogSection {
   lines: readonly string[];
 }
 
-/** What the bug report form is prefilled with. Keys are the form's field ids. */
+/** What the issue body is prefilled with. */
 export interface IssueFields {
   description: string;
   modVersion: string | null;
@@ -90,17 +90,34 @@ function sectionText(
   ].join("\n");
 }
 
+/*
+ * Everything rides in `body`, which GitHub fills into a new issue whether or
+ * not the repository's default branch carries an issue form. Form field ids in
+ * the query are dropped when it does not, taking the description and the log
+ * with them.
+ */
 function build(fields: IssueFields, logText: string | null): string {
-  const params = new URLSearchParams();
-  params.set("template", "bug_report.yml");
-  params.set("what-happened", fields.description.slice(0, MAX_DESCRIPTION));
-  if (fields.modVersion) params.set("mod-version", fields.modVersion);
-  params.set("app-version", fields.appVersion);
-  if (fields.uplinks.length > 0) {
-    params.set("uplinks", fields.uplinks.join("\n"));
-  }
-  params.set("screen", fields.screen);
-  if (logText) params.set("logs", logText);
+  const facts = [
+    fields.modVersion ? `- Mod version: ${fields.modVersion}` : null,
+    `- App version: ${fields.appVersion}`,
+    `- Screen: ${fields.screen}`,
+    fields.uplinks.length > 0
+      ? `- Installed Uplinks: ${fields.uplinks.join(", ")}`
+      : null,
+    "- KSP version: ",
+  ].filter((line) => line !== null);
+  const body = [
+    "## What happened",
+    fields.description.slice(0, MAX_DESCRIPTION),
+    "## What you expected",
+    "",
+    "## Steps to make it happen",
+    "",
+    "## Versions",
+    facts.join("\n"),
+    ...(logText ? ["## Logs", logText] : []),
+  ].join("\n\n");
+  const params = new URLSearchParams({ labels: "bug", body });
   return `${NEW_ISSUE_URL}?${params.toString()}`;
 }
 

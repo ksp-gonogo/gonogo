@@ -63,6 +63,7 @@ export function GithubIssueForm({
   const [includeLog, setIncludeLog] = useState(true);
   const recentLog = useCommand("system.log.recent", { rail: false });
   const [notice, setNotice] = useState<string | null>(null);
+  const [blockedUrl, setBlockedUrl] = useState<string | null>(null);
   const descriptionId = useId();
 
   /** The mod's recent lines, or none when the mod is not connected or does not answer in time. */
@@ -79,6 +80,24 @@ export function GithubIssueForm({
   }
 
   async function open() {
+    /*
+     * The window opens inside the click, while the browser still counts it as
+     * the operator's action; the awaits below outlast that, and a window
+     * opened after them is blocked by Safari and by a station relaying the mod
+     * log over PeerJS.
+     */
+    const popup = window.open("about:blank", "_blank");
+    if (popup) popup.opener = null;
+    setBlockedUrl(null);
+    try {
+      await prepare(popup);
+    } catch (error) {
+      popup?.close();
+      throw error;
+    }
+  }
+
+  async function prepare(popup: Window | null) {
     const sections: LogSection[] = [];
     if (includeKspLog) {
       const lines = await modLogLines();
@@ -108,10 +127,15 @@ export function GithubIssueForm({
         .catch(() => false);
       const where = link.log === "none" ? "was too long to fit" : "was trimmed";
       message = copied
-        ? `The log ${where} for the link, so the whole log is copied. Paste it into the Logs box on GitHub.`
+        ? `The log ${where} for the link, so the whole log is copied. Paste it into the issue on GitHub.`
         : `The log ${where} for the link and could not be copied. Download it from Log buffer above and attach it.`;
     }
-    window.open(link.url, "_blank", "noopener,noreferrer");
+    if (popup) {
+      popup.location.href = link.url;
+    } else {
+      setBlockedUrl(link.url);
+      message = `${message ? `${message} ` : ""}The browser blocked the new window.`;
+    }
     setNotice(message);
   }
 
@@ -143,6 +167,11 @@ export function GithubIssueForm({
       />
       <FieldHint>
         <LiveRegion>{notice}</LiveRegion>
+        {blockedUrl !== null && (
+          <a href={blockedUrl} target="_blank" rel="noopener noreferrer">
+            Open the GitHub issue
+          </a>
+        )}
       </FieldHint>
       <FormActions>
         <Button type="button" onClick={() => void open()}>
