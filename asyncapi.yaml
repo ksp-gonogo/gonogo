@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 44.10.0
+  version: 44.11.0
   description: |-
     The WebSocket API of the Gonogo mod: 87 telemetry channels a client
-    subscribes to and 64 commands it sends, each with its payload and what it
+    subscribes to and 65 commands it sends, each with its payload and what it
     means, all over one socket.
 
     ## Frames the mod sends
@@ -2534,6 +2534,21 @@ channels:
         $ref: "#/components/messages/commandRequest.system.gate.check"
       commandResponse:
         $ref: "#/components/messages/commandResponse.system.gate.check"
+  system.log.recent:
+    address: system.log.recent
+    description: |-
+      Ask for the mod's most recent log lines. Args for `system.log.recent`: how
+      many of the newest `[Gonogo]` lines the game logged to `KSP.log` to return,
+      so a bug report can carry them. Lines are returned with file paths, IP
+      addresses and share codes already replaced.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.system.log.recent"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.system.log.recent"
   system.uplink.cancel:
     address: system.uplink.cancel
     description: |-
@@ -4197,6 +4212,20 @@ operations:
         $ref: "#/channels/system.gate.check"
       messages:
         - $ref: "#/channels/system.gate.check/messages/commandResponse"
+  dispatch:system.log.recent:
+    action: send
+    channel:
+      $ref: "#/channels/system.log.recent"
+    title: Dispatch system.log.recent
+    tags:
+      - name: system
+    messages:
+      - $ref: "#/channels/system.log.recent/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/system.log.recent"
+      messages:
+        - $ref: "#/channels/system.log.recent/messages/commandResponse"
   dispatch:system.uplink.cancel:
     action: send
     channel:
@@ -6158,6 +6187,21 @@ components:
                 const: system.gate.check
               args:
                 $ref: "#/components/schemas/GateCheckRequest"
+    commandRequest.system.log.recent:
+      name: command-request
+      title: Dispatch system.log.recent
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `system.log.recent`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: system.log.recent
+              args:
+                $ref: "#/components/schemas/RecentLogArgs"
     commandRequest.system.uplink.cancel:
       name: command-request
       title: Dispatch system.uplink.cancel
@@ -7053,6 +7097,32 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/GateVerdict"
+    commandResponse.system.log.recent:
+      name: command-response
+      title: Reply to system.log.recent
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `system.log.recent`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                description: |-
+                  A `CommandResult` that also returns a value in `payload`:
+                  `vessel.control.stage` returns the new current stage index, and
+                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
+                  when `CommandResult.success` is false.
+                allOf:
+                  - $ref: "#/components/schemas/CommandResult"
+                  - type: object
+                    properties:
+                      payload:
+                        description: The value the command returns; absent on a refusal.
+                        anyOf:
+                          - $ref: "#/components/schemas/RecentLog"
+                          - type: "null"
     commandResponse.system.uplink.cancel:
       name: command-response
       title: Reply to system.uplink.cancel
@@ -17461,6 +17531,37 @@ components:
         - const: 1
           title: Loaded
           description: Loaded and simulated under physics.
+    RecentLog:
+      type: object
+      description: |-
+        The newest `[Gonogo]` lines the game logged, oldest first, as
+        `system.log.recent` returns them. Empty when the mod has logged nothing
+        since it started. Each line has had file paths, IP addresses, peer ids and
+        share codes replaced, so it is safe to post publicly.
+      required:
+        - lines
+      properties:
+        lines:
+          type: array
+          items:
+            type: string
+          description: The lines, oldest first.
+    RecentLogArgs:
+      type: object
+      description: |-
+        Ask for the mod's most recent log lines. Args for `system.log.recent`: how
+        many of the newest `[Gonogo]` lines the game logged to `KSP.log` to return,
+        so a bug report can carry them. Lines are returned with file paths, IP
+        addresses and share codes already replaced.
+      required:
+        - maxLines
+      properties:
+        maxLines:
+          type: number
+          x-sitrep-unit: count
+          description: |-
+            The most lines to return. The mod keeps a few hundred; asking for more
+            returns what it has. Zero or negative returns none.
     RecoveryCrewEntry:
       type: object
       description: |-

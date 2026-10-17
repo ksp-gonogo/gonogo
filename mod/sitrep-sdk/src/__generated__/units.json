@@ -1020,6 +1020,9 @@
       "trajectoryKind": "enum",
       "untilUt": "ut"
     },
+    "RecentLogArgs": {
+      "maxLines": "count"
+    },
     "RecoveryCrewEntry": {
       "isTourist": "flag",
       "levelsGained": "count",

@@ -55,6 +55,9 @@ namespace Gonogo.KSP
         /// </summary>
         public const string SetControlFrameCommand = "system.frame.set";
 
+        /// <summary>The mod's most recent log lines, so a bug report can carry them.</summary>
+        public const string RecentLogCommand = "system.log.recent";
+
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "system",
@@ -159,6 +162,12 @@ namespace Gonogo.KSP
                 {
                     Command = SetControlFrameCommand,
                 },
+                // Reads what the game already logged, from the machine the player
+                // is sitting at, so there is no light-time to ride.
+                new CommandDeclaration
+                {
+                    Command = RecentLogCommand,
+                },
             },
         };
 
@@ -193,6 +202,11 @@ namespace Gonogo.KSP
             host.AddCommandHandler<SetControlFrameArgs, CommandResult>(
                 SetControlFrameCommand,
                 args => ControlFrameElection.Set(host.Kernel, args));
+
+            UnityEngine.Application.logMessageReceivedThreaded += (condition, stackTrace, type) => LogTail.Shared.Add(condition);
+            host.AddCommandHandler<RecentLogArgs, CommandResult<RecentLog>>(
+                RecentLogCommand,
+                args => CommandResult<RecentLog>.Ok(new RecentLog { Lines = LogTail.Shared.Recent(args.MaxLines) }));
         }
 
         /// <summary>The frame the game's navigation view is in, flattened by <see cref="ControlFrameWire"/>.</summary>

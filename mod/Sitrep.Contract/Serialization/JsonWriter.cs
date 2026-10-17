@@ -400,6 +400,10 @@ namespace Sitrep.Contract.Serialization
                     // science.experiment.transmit's reply payload, inside CommandResult<ScienceTransmission>.Payload.
                     AppendScienceTransmission(sb, scienceTransmission);
                     break;
+                case Sitrep.Contract.RecentLog recentLog:
+                    // system.log.recent's reply payload, inside CommandResult<RecentLog>.Payload.
+                    AppendRecentLog(sb, recentLog);
+                    break;
                 case Sitrep.Contract.ExperimentEntry experimentEntry:
                     AppendExperimentEntry(sb, experimentEntry);
                     break;
@@ -2526,6 +2530,20 @@ namespace Sitrep.Contract.Serialization
             sb.Append(':');
             AppendNumber(sb, t.DataAmount);
             sb.Append('}');
+        }
+
+        /// <summary>A log tail's <c>{ lines }</c>, the payload half of <c>system.log.recent</c>'s reply.</summary>
+        private static void AppendRecentLog(StringBuilder sb, Sitrep.Contract.RecentLog log)
+        {
+            sb.Append('{');
+            AppendString(sb, "lines");
+            sb.Append(":[");
+            for (var i = 0; i < log.Lines.Count; i++)
+            {
+                if (i > 0) sb.Append(',');
+                AppendString(sb, log.Lines[i]);
+            }
+            sb.Append("]}");
         }
 
         private static void AppendCommsConnectivity(StringBuilder sb, Sitrep.Contract.CommsConnectivity c)
