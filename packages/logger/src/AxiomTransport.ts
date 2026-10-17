@@ -99,8 +99,16 @@ export class AxiomTransport implements LogTransport {
   send(unscrubbed: readonly LogEntry[]): void {
     if (unscrubbed.length === 0) return;
     try {
-      // Every event passes through here, so scrubbing here covers every call site.
-      const entries = unscrubbed.map(scrubEntry);
+      /*
+       * Every event passes through here, so scrubbing here covers every call
+       * site. `_time` is the field Axiom files an event under; without it the
+       * event is filed at the moment it arrived, which puts a backfill of the
+       * whole pre-consent buffer at the moment analytics was switched on.
+       */
+      const entries = unscrubbed.map((e) => ({
+        _time: e.timestamp,
+        ...scrubEntry(e),
+      }));
       // Chunk large batches so a one-shot backfill of the whole ring buffer
       // (up to 5000 entries) can't exceed Axiom's per-request limits. Steady
       // -state sends are far smaller than the chunk size and pass through in

@@ -49,7 +49,28 @@ describe("AxiomTransport", () => {
     });
     transport.send([entry("hello")]);
     expect(client.ingest).toHaveBeenCalledTimes(1);
-    expect(client.ingest).toHaveBeenCalledWith("gonogo", [entry("hello")]);
+    expect(client.ingest).toHaveBeenCalledWith("gonogo", [
+      { _time: "2026-05-07T00:00:00.000Z", ...entry("hello") },
+    ]);
+  });
+
+  it("files each event at the time it was logged, not when it arrives", () => {
+    const client = makeClient();
+    transport = new AxiomTransport({
+      client,
+      dataset: "gonogo",
+      flushOnPageHide: false,
+    });
+    transport.send([
+      {
+        level: "info",
+        message: "early",
+        timestamp: "2026-10-18T09:00:01.000Z",
+      },
+    ]);
+    expect(client.ingest.mock.calls[0]?.[1]).toEqual([
+      expect.objectContaining({ _time: "2026-10-18T09:00:01.000Z" }),
+    ]);
   });
 
   it("is a no-op for an empty batch", () => {
