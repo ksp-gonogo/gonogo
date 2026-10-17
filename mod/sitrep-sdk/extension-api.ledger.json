@@ -11677,6 +11677,10 @@
         "note": "a widget can name a reason it stays open while a game state it requires is not met"
       },
       {
+        "key": "sitrep-sdk . ComponentDefinition#maxSize?",
+        "note": "a widget can declare the largest tile the dashboard lets it be resized to"
+      },
+      {
         "key": "sitrep-sdk . ComponentDefinition#optionalChannelFamilies?",
         "note": "Families of runtime-built Topics the widget reads but can do without"
       },
@@ -12819,6 +12823,10 @@
       {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#heldOpenBy?",
         "note": "a widget can name a reason it stays open while a game state it requires is not met"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ComponentDefinition#maxSize?",
+        "note": "a widget can declare the largest tile the dashboard lets it be resized to"
       },
       {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#optionalChannelFamilies?",

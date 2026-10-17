@@ -212,12 +212,16 @@ export function ComponentOverlay({
       const sized = withSizeDelta(def, sizeDeltaFor(def));
       const defaultSize = sized.defaultSize ?? { w: 3, h: 3 };
       const min = sized.minSize;
-      const size = min
+      const max = sized.maxSize;
+      const floored = min
         ? {
             w: Math.max(defaultSize.w, min.w),
             h: Math.max(defaultSize.h, min.h),
           }
         : defaultSize;
+      const size = max
+        ? { w: Math.min(floored.w, max.w), h: Math.min(floored.h, max.h) }
+        : floored;
       addItem(item, size);
       closeOverlay();
 

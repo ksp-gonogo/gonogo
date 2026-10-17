@@ -148,6 +148,15 @@ describe("withSizeDelta", () => {
     });
   });
 
+  it("grows a maxSize with the rest and leaves it absent when the widget has none", () => {
+    const capped = { minSize: { w: 3, h: 3 }, maxSize: { w: 10, h: 12 } };
+    expect(withSizeDelta(capped, { w: 1, h: 2 }).maxSize).toEqual({
+      w: 11,
+      h: 14,
+    });
+    expect(withSizeDelta({}, { w: 1, h: 2 })).not.toHaveProperty("maxSize");
+  });
+
   it("starts from 1x1 for a minSize and 3x3 for a defaultSize the widget leaves out", () => {
     const bare: { minSize?: never; defaultSize?: never } = {};
     expect(withSizeDelta(bare, { w: 1, h: 0 })).toMatchObject({

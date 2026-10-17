@@ -51,7 +51,8 @@ export function filterLayouts(layouts: Layouts): Layouts {
 
 /**
  * Inject `minW`/`minH` from each item's registered component definition into
- * its layout entries (RGL uses these to gate resize/drag). Also clamps `w`/`h`
+ * its layout entries (RGL uses these to gate resize/drag). Also injects `maxW`/`maxH`
+ * from `maxSize` and clamps `w`/`h` down to it. Clamps `w`/`h`
  * up to the floor: covers persisted layouts saved before a widget gained a
  * minSize (or when a user shrank one below the new floor). The floor is the
  * widget's `minSize`, or the kit-wide tiny size for a widget with a tiny mode,
@@ -73,21 +74,36 @@ export function applyMinSizes(
       const componentId = idToComponentId.get(entry.i);
       if (!componentId) return entry;
       const def = getComponent(componentId);
-      const min = def
-        ? gridFloor(sizeDeltaFor ? withSizeDelta(def, sizeDeltaFor(def)) : def)
-        : undefined;
-      if (!min) return entry;
-      const w = Math.max(entry.w, min.w);
-      const h = Math.max(entry.h, min.h);
+      if (!def) return entry;
+      const sized = sizeDeltaFor ? withSizeDelta(def, sizeDeltaFor(def)) : def;
+      const min = gridFloor(sized);
+      const max = sized.maxSize;
+      if (!min && !max) return entry;
+      let w = min ? Math.max(entry.w, min.w) : entry.w;
+      let h = min ? Math.max(entry.h, min.h) : entry.h;
+      if (max) {
+        w = Math.min(w, max.w);
+        h = Math.min(h, max.h);
+      }
       if (
         w === entry.w &&
         h === entry.h &&
-        entry.minW === min.w &&
-        entry.minH === min.h
+        entry.minW === min?.w &&
+        entry.minH === min?.h &&
+        entry.maxW === max?.w &&
+        entry.maxH === max?.h
       ) {
         return entry;
       }
-      return { ...entry, w, h, minW: min.w, minH: min.h };
+      return {
+        ...entry,
+        w,
+        h,
+        minW: min?.w,
+        minH: min?.h,
+        maxW: max?.w,
+        maxH: max?.h,
+      };
     });
   }
   return next;

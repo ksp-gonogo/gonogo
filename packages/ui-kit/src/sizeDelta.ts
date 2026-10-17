@@ -67,7 +67,7 @@ export function sizeDeltaFor(
 }
 
 /**
- * The definition with its `minSize` and `defaultSize` grown by `delta`: a
+ * The definition with its `minSize`, `defaultSize` and any `maxSize` grown by `delta`: a
  * missing `minSize` counts from 1x1 and a missing `defaultSize` from the
  * dashboard's 3x3. The definition itself, unchanged, for a zero delta, so a
  * widget nothing extends keeps one identity. Useful for giving a tile the room
@@ -77,7 +77,7 @@ export function sizeDeltaFor(
  * @category Extensions
  */
 export function withSizeDelta<
-  Def extends Pick<ComponentDefinition, "minSize" | "defaultSize">,
+  Def extends Pick<ComponentDefinition, "minSize" | "defaultSize" | "maxSize">,
 >(def: Def, delta: { w: number; h: number }): Def {
   if (delta.w === 0 && delta.h === 0) return def;
   const grow = (base: { w: number; h: number }) => ({
@@ -88,6 +88,7 @@ export function withSizeDelta<
     ...def,
     minSize: grow(def.minSize ?? { w: 1, h: 1 }),
     defaultSize: grow(def.defaultSize ?? { w: 3, h: 3 }),
+    ...(def.maxSize !== undefined ? { maxSize: grow(def.maxSize) } : {}),
   };
 }
 

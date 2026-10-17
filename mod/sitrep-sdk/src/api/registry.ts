@@ -170,6 +170,17 @@ export function registerComponent<Config = Record<string, unknown>>(
       );
     }
   }
+  const max = def.maxSize;
+  if (
+    max !== undefined &&
+    min !== undefined &&
+    (max.w < min.w || max.h < min.h)
+  ) {
+    throw new Error(
+      `Component "${def.id}" has maxSize ${max.w}x${max.h}, below its minSize ${min.w}x${min.h}. ` +
+        `A widget's largest tile cannot be smaller than its smallest on either axis.`,
+    );
+  }
   if (hasHost()) getHost().logger.info(`REGISTERED ${def.name}`);
   components.set(def.id, def as AnyDef);
 }

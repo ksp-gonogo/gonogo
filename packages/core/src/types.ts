@@ -204,9 +204,17 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * tiny form in any tile narrower or shorter than it, and can be resized down
    * to the kit-wide `TINY_SIZE`, so it must exceed `TINY_SIZE` on at least one
    * axis. Absent, the body fits from 1x1, or from 5x4 when a tiny mode is
-   * declared. There is no maximum: nothing limits how large a tile may grow.
+   * declared.
    */
   minSize?: { w: number; h: number };
+  /**
+   * The largest tile, in grid units, the widget's body still makes use of. The
+   * dashboard stops a resize at it and shrinks a saved tile that is larger.
+   * Useful for a widget whose layout only stretches past a point, so the
+   * operator cannot pull it into a thin strip. Absent, nothing limits how large
+   * a tile may grow. It may not be smaller than `minSize` on either axis.
+   */
+  maxSize?: { w: number; h: number };
   /** What the widget draws at the tiny size. Absent, it draws its own body at every size. */
   tiny?: TinyMode<Config>;
   /**

@@ -151,6 +151,86 @@ describe("applyMinSizes", () => {
     expect(out.lg[0]).toMatchObject({ w: 3, h: 3, minW: 3, minH: 3 });
   });
 
+  describe("with a maxSize", () => {
+    function registerWithMax(
+      min: { w: number; h: number } | undefined,
+      max: { w: number; h: number },
+    ) {
+      registerComponent({
+        id: "capped",
+        name: "capped",
+        description: "capped",
+        tags: [],
+        component: () => null,
+        minSize: min,
+        maxSize: max,
+      });
+    }
+    const items: DashboardItem[] = [{ i: "a", componentId: "capped" }];
+
+    it("injects maxW and maxH for the grid to stop a resize at", () => {
+      registerWithMax({ w: 3, h: 3 }, { w: 10, h: 12 });
+      const out = applyMinSizes(
+        { lg: [{ i: "a", x: 0, y: 0, w: 5, h: 5 }] },
+        items,
+      );
+      expect(out.lg[0]).toMatchObject({ w: 5, h: 5, maxW: 10, maxH: 12 });
+    });
+
+    it("clamps a saved tile larger than the cap down to it, per axis", () => {
+      registerWithMax({ w: 3, h: 3 }, { w: 10, h: 12 });
+      const out = applyMinSizes(
+        { lg: [{ i: "a", x: 0, y: 0, w: 5, h: 20 }] },
+        items,
+      );
+      expect(out.lg[0]).toMatchObject({ w: 5, h: 12 });
+    });
+
+    it("clamps with no minSize declared", () => {
+      registerWithMax(undefined, { w: 6, h: 6 });
+      const out = applyMinSizes(
+        { lg: [{ i: "a", x: 0, y: 0, w: 9, h: 2 }] },
+        items,
+      );
+      expect(out.lg[0]).toMatchObject({ w: 6, h: 2, maxW: 6, maxH: 6 });
+    });
+
+    it("returns the same entry when it already sits within the cap", () => {
+      registerWithMax({ w: 3, h: 3 }, { w: 10, h: 12 });
+      const entry = {
+        i: "a",
+        x: 0,
+        y: 0,
+        w: 4,
+        h: 4,
+        minW: 3,
+        minH: 3,
+        maxW: 10,
+        maxH: 12,
+      };
+      expect(applyMinSizes({ lg: [entry] }, items).lg[0]).toBe(entry);
+    });
+
+    it("grows the cap by the room extensions ask for", () => {
+      registerWithMax({ w: 3, h: 3 }, { w: 10, h: 12 });
+      const out = applyMinSizes(
+        { lg: [{ i: "a", x: 0, y: 0, w: 20, h: 20 }] },
+        items,
+        () => ({ w: 2, h: 1 }),
+      );
+      expect(out.lg[0]).toMatchObject({ w: 12, h: 13, maxW: 12, maxH: 13 });
+    });
+
+    it("refuses a registration whose maxSize is below its minSize on either axis", () => {
+      expect(() => registerWithMax({ w: 6, h: 6 }, { w: 5, h: 8 })).toThrow(
+        /maxSize 5x8, below its minSize 6x6/,
+      );
+      expect(() => registerWithMax({ w: 6, h: 6 }, { w: 8, h: 5 })).toThrow(
+        /maxSize 8x5, below its minSize 6x6/,
+      );
+    });
+  });
+
   describe("with an extension asking for room", () => {
     afterEach(() => clearAugments());
 

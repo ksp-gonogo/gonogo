@@ -738,6 +738,12 @@ registerComponent<GoNoGoWidgetConfig>({
   tags: ["mission-control"],
   defaultSize: { w: 4, h: 4 },
   minSize: { w: 3, h: 3 },
+  /*
+   * The board's text is one size and only the station cards grow, so past
+   * sixteen rows four stations are tall empty blocks. Width is left at the
+   * full desktop grid: a wide, short board stays a tidy row.
+   */
+  maxSize: { w: 36, h: 16 },
   component: GoNoGoComponent,
   configComponent: GoNoGoConfigComponent,
   dataRequirements: ["vessel.identity.launchUt"],
