@@ -1,6 +1,7 @@
 import { Children, type HTMLAttributes, type ReactNode } from "react";
 import styled from "styled-components";
 import { squareAreaRules, squareGridRules } from "./gridSquares";
+import { ScrollArea } from "./Panel";
 import { GAP_VAR, type GapToken } from "./scales";
 
 /**
@@ -77,10 +78,11 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
    * row shrinks to this height (a px figure) before the grid asks for more
    * height. The column count still follows the shape of the grid, and the
    * grid takes the room its flex container leaves rather than a size
-   * container's height, scrolling its rows within it once they no longer fit
-   * at this height. It keeps one row of that height, below which its
-   * container scrolls instead. Useful for cells that hold a line or two of text, such
-   * as a station's name and state, rather than a drawing.
+   * container's height. Once the rows no longer fit at this height the grid
+   * scrolls inside its own {@link ScrollArea}, which draws the edge glow, and
+   * it never shrinks below one row of that height. Without `minRowHeight` the
+   * grid has no scroller of its own. Useful for cells that hold a line or two
+   * of text, such as a station's name and state, rather than a drawing.
    */
   minRowHeight?: string;
   /** The cells, filled in reading order. */
@@ -121,26 +123,33 @@ export function Grid({
   if (squares) {
     const count = Children.toArray(children).length;
     const min = minColWidth ?? "120px";
-    return (
-      <Grid__SquaresWidth $rowMin={minRowHeight} {...rest}>
-        <Grid__SquaresArea
+    const area = (
+      <Grid__SquaresArea
+        $count={count}
+        $min={min}
+        $headingPx={squareHeadingPx}
+        $gap={GAP_VAR[gap]}
+        $rowMin={minRowHeight}
+      >
+        <Grid__Squares
           $count={count}
           $min={min}
           $headingPx={squareHeadingPx}
           $gap={GAP_VAR[gap]}
           $rowMin={minRowHeight}
+          data-grid-squares=""
         >
-          <Grid__Squares
-            $count={count}
-            $min={min}
-            $headingPx={squareHeadingPx}
-            $gap={GAP_VAR[gap]}
-            $rowMin={minRowHeight}
-            data-grid-squares=""
-          >
-            {children}
-          </Grid__Squares>
-        </Grid__SquaresArea>
+          {children}
+        </Grid__Squares>
+      </Grid__SquaresArea>
+    );
+    return (
+      <Grid__SquaresWidth $rowMin={minRowHeight} {...rest}>
+        {minRowHeight === undefined ? (
+          area
+        ) : (
+          <Grid__Scroll>{area}</Grid__Scroll>
+        )}
       </Grid__SquaresWidth>
     );
   }
@@ -190,8 +199,19 @@ const Grid__SquaresWidth = styled.div<{ $rowMin?: string }>`
     `
   flex-basis: 0;
   min-height: ${$rowMin};
-  overflow-y: auto;
 `}
+`;
+
+/*
+ * The area stays a flex child of the scroller's inner element, so it grows to
+ * the room there is and overflows into a scroll only once its rows reach their
+ * floor.
+ */
+const Grid__Scroll = styled(ScrollArea)`
+  & > [data-scroll-area-inner] {
+    display: flex;
+    flex-direction: column;
+  }
 `;
 
 const Grid__SquaresArea = styled.div<{

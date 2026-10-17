@@ -122,10 +122,22 @@ describe("Grid", () => {
       expect(injectedCss()).toContain(
         "(height < calc(1 * (48px + 8px) + 0px))",
       );
-      expect(screen.getByTestId("grid")).toHaveStyle({
-        overflowY: "auto",
-        minHeight: "48px",
-      });
+      const root = screen.getByTestId("grid");
+      expect(root).toHaveStyle({ minHeight: "48px" });
+      expect(
+        root.querySelector("[data-scroll-area-inner] [data-grid-squares]"),
+      ).not.toBeNull();
+    });
+
+    it("has no scroller of its own without minRowHeight", () => {
+      render(
+        <Grid squares data-testid="grid">
+          <span>a</span>
+        </Grid>,
+      );
+      const root = screen.getByTestId("grid");
+      expect(root.querySelector("[data-scroll-area-inner]")).toBeNull();
+      expect(root.querySelector("[data-grid-squares]")).not.toBeNull();
     });
 
     it("allows no heading band on a cell that has none", () => {

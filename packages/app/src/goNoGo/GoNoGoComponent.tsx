@@ -385,7 +385,7 @@ function MainView({
       <Grid
         squares
         minColWidth="88px"
-        minRowHeight="48px"
+        minRowHeight="40px"
         gap="related-comfortable"
       >
         {stations.length === 0 && <Empty>No stations connected</Empty>}
