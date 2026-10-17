@@ -47,6 +47,7 @@ export type FleetContact = Pick<
   | "overdueAfterUt"
   | "endSource"
   | "endedUt"
+  | "endKind"
 >;
 
 /** A craft this centre knows was destroyed, which stays listed until the player dismisses it and is no longer part of the fleet. */
@@ -155,6 +156,7 @@ export function useFleet(): {
             overdueAfterUt: v.overdueAfterUt,
             endSource: v.endSource,
             endedUt: v.endedUt,
+            endKind: v.endKind,
           },
         })),
     [system, nameByIndex],

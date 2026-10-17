@@ -122,6 +122,7 @@ namespace Gonogo.KSP
             GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);
             GameEvents.onVesselExplodeGroundCollision.Add(OnVesselExplodeGroundCollision);
             GameEvents.onVesselRecovered.Add(OnVesselRecovered);
+            GameEvents.onVesselTerminated.Add(OnVesselTerminated);
             // The hooks live for the whole process: Register runs once, before the
             // main menu, and a flight can end in any scene the player reaches.
         }
@@ -193,10 +194,30 @@ namespace Gonogo.KSP
             }
             foreach (var death in _deaths.Drain(snapshot?.Ut ?? Planetarium.GetUniversalTime()))
             {
-                var reason = death.Impact != null ? FlightEndReason.Crashed : FlightEndReason.Destroyed;
+                var terminated = TerminatedVessels.Covers(death.VesselId, death.Ut);
+                if (terminated)
+                {
+                    TerminatedVessels.Forget(death.VesselId);
+                }
+                var reason = terminated
+                    ? FlightEndReason.Terminated
+                    : death.Impact != null ? FlightEndReason.Crashed : FlightEndReason.Destroyed;
                 _sampler.SignalEnd(death.VesselId, death.Record, reason, death.Ut);
             }
             return null;
+        }
+
+        /// <summary>
+        /// MAIN-THREAD: the player ended the vessel from the Tracking Station. Noted for
+        /// the destruction stock raises with it, which then ends the flight as
+        /// Terminated rather than Destroyed.
+        /// </summary>
+        private void OnVesselTerminated(ProtoVessel vessel)
+        {
+            if (vessel != null)
+            {
+                TerminatedVessels.Note(vessel.vesselID.ToString(), Planetarium.GetUniversalTime());
+            }
         }
 
         /// <summary>

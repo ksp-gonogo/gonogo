@@ -4,7 +4,7 @@ import {
   overdueSeconds,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import { RosterPlaceSource, value } from "@ksp-gonogo/sitrep-sdk";
+import { CatalogEnd, RosterPlaceSource, value } from "@ksp-gonogo/sitrep-sdk";
 import { Badge, Unit } from "@ksp-gonogo/ui-kit";
 import type { ReactElement } from "react";
 import type { FleetContact } from "./fleet";
@@ -39,9 +39,11 @@ export function useContactBadge(
   if (phase === "gone") {
     return (
       <Badge size="sm" tone="nogo" live>
-        {contact.endSource === RosterPlaceSource.Seen
-          ? "seen destroyed"
-          : "destroyed"}
+        {contact.endKind === CatalogEnd.Terminated
+          ? "terminated"
+          : contact.endSource === RosterPlaceSource.Seen
+            ? "seen destroyed"
+            : "destroyed"}
       </Badge>
     );
   }

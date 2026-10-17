@@ -14,5 +14,8 @@ namespace Sitrep.Host.Comms
 
         /// <summary>It was recovered.</summary>
         Recovered,
+
+        /// <summary>The player ended it from the Tracking Station.</summary>
+        Terminated,
     }
 }

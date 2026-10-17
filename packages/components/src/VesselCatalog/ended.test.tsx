@@ -1,6 +1,7 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import {
   CatalogContact,
+  CatalogEnd,
   RosterCommsControlSource,
   RosterPlaceSource,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -17,6 +18,7 @@ function craft(
   vesselId: string,
   name: string,
   ended: RosterPlaceSource | null,
+  endKind: CatalogEnd | null = ended == null ? null : CatalogEnd.Destroyed,
 ): Record<string, unknown> {
   return {
     vesselId,
@@ -31,6 +33,7 @@ function craft(
     contact: ended == null ? CatalogContact.InContact : CatalogContact.Gone,
     endSource: ended,
     endedUt: ended == null ? null : 5,
+    endKind,
   };
 }
 
@@ -66,6 +69,19 @@ describe("VesselCatalog: a destroyed craft", () => {
     mount([craft("v-probe", "Mun Probe", RosterPlaceSource.Seen)]);
 
     expect(await screen.findByText("seen destroyed")).toBeInTheDocument();
+  });
+
+  it("says it was terminated when the player ended it from the Tracking Station", async () => {
+    mount([
+      craft(
+        "v-probe",
+        "Mun Probe",
+        RosterPlaceSource.Heard,
+        CatalogEnd.Terminated,
+      ),
+    ]);
+
+    expect(await screen.findByText("terminated")).toBeInTheDocument();
   });
 
   it("is not counted in the fleet's links", async () => {

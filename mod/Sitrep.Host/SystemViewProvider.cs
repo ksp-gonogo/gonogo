@@ -421,6 +421,7 @@ namespace Sitrep.Host
                     ["crew"] = null,
                     ["endSource"] = null,
                     ["endedUt"] = null,
+                    ["endKind"] = null,
                 });
             }
 
