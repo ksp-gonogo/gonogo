@@ -43,9 +43,12 @@ describe("Twr at the smallest tile", () => {
     await act(async () => {});
   });
 
-  it("draws the null token at the tiny size while the craft has no engine data", async () => {
+  it("says there is no engine data at the tiny size, with no arc, while the craft has none", async () => {
     mountTiny();
-    await waitFor(() => expect(visibleText()).toContain(NULL_DISPLAY));
+    await waitFor(() => expect(visibleText()).toContain("No engine"));
+    expect(visibleText()).not.toContain(NULL_DISPLAY);
+    expect(document.querySelector("[data-tiny-gauge]")).toBeNull();
+    expect(document.querySelector("[aria-label^='TWR']")).toBeNull();
     await act(async () => {});
   });
 

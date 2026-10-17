@@ -106,10 +106,14 @@ function nextStageWithThrust(
 /** The kit's arc gauge over the same scale as the body's dial, with the next stage's ratio while nothing fires. */
 function useTwrEssentials(): readonly TinyEssential[] {
   const { reading } = useTwrReading();
+  // A held TWR stays drawn: only a craft with no engine has nothing to put on the arc.
+  if (reading.value === undefined) {
+    return [{ label: "TWR", word: "No engine" }];
+  }
   return [
     {
       label: "TWR",
-      value: reading.value === undefined ? null : reading,
+      value: reading,
       gauge: {
         style: "arc",
         min: GAUGE_MIN,
