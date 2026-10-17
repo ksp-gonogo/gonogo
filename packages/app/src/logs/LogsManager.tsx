@@ -193,12 +193,10 @@ function ReportBug() {
   }
 
   if (phase === "sent") {
-    const sentTag = kind === "feedback" ? "feedback" : "bug-report";
     const sentLabel = kind === "feedback" ? "Feedback" : "Bug report";
     return (
       <SentNotice role="status" aria-live="polite">
-        {sentLabel} sent, thanks. The log store has it tagged{" "}
-        <code>{sentTag}</code>.
+        {sentLabel} sent to the developer, thanks.
       </SentNotice>
     );
   }

@@ -30,7 +30,7 @@ export function EmptyDashboardNotice() {
             <Switch
               checked={analytics}
               onChange={setAnalytics}
-              label="Send anonymous analytics?"
+              label="Send technical analytics"
             />
           )}
         </Stack>
