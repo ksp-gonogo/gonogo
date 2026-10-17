@@ -83,7 +83,7 @@ export function registerAnalyticsConfigRoutes(
   opts: {
     controller?: AnalyticsConfigController;
     onChange?: (enabled: boolean) => void;
-    /** Called on every POST, before the consent is applied, with the run the host named or `undefined`. */
+    /** Called each time the host sends its consent, before it is applied, with the run the host named or `undefined`. */
     onRunId?: (runId: string | undefined) => void;
   } = {},
 ): AnalyticsConfigController {

@@ -1,3 +1,5 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
+
 /**
  * Which of the mod's recent log lines have not been forwarded yet. Each reply
  * to `system.log.recent` carries the newest lines and the running count of
@@ -6,7 +8,7 @@
  * restarted and its count began again.
  */
 export class ModLogCursor {
-  private seen: number | undefined;
+  private seen: Value<"count"> | undefined;
   private bootId: string | undefined;
 
   /**
@@ -16,15 +18,21 @@ export class ModLogCursor {
    */
   take(
     lines: readonly string[],
-    total: number,
+    total: Value<"count">,
     bootId: string | undefined,
-  ): { fresh: string[]; missed: number } {
-    const restarted =
-      this.seen === undefined || bootId !== this.bootId || total < this.seen;
-    const newCount = restarted ? total : total - (this.seen ?? 0);
+  ): { fresh: string[]; missed: Value<"count"> } {
+    const seen = this.seen;
+    let unread =
+      seen === undefined || bootId !== this.bootId || total.lessThan(seen)
+        ? total
+        : total.minus(seen);
     this.seen = total;
     this.bootId = bootId;
-    const fresh = lines.slice(Math.max(0, lines.length - newCount));
-    return { fresh, missed: Math.max(0, newCount - lines.length) };
+    const fresh: string[] = [];
+    for (let i = lines.length - 1; i >= 0 && unread.isPositive(); i--) {
+      fresh.unshift(lines[i] ?? "");
+      unread = unread.minus(1);
+    }
+    return { fresh, missed: unread };
   }
 }

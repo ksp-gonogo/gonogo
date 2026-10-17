@@ -62,13 +62,13 @@ describe("command outcome tracing", () => {
     transport.setCommandHandler(() => ({ success: true }));
     const client = new TelemetryClient(transport);
 
-    await client.dispatch("kos.run", { script: "print 1." }).result;
+    await client.dispatch("vessel.rename", { name: "Kerbal X" }).result;
 
     expect(lines).toEqual([
       {
         level: "debug",
-        message: "kos.run confirmed",
-        context: { command: "kos.run" },
+        message: "vessel.rename confirmed",
+        context: { command: "vessel.rename" },
       },
     ]);
   });

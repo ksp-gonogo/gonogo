@@ -1,5 +1,6 @@
 import { logger } from "@ksp-gonogo/logger";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef } from "react";
 import {
   getSitrepHello,
@@ -42,10 +43,11 @@ export function ModLogForwarder() {
         if (stopped || !reply.success || !reply.payload) return;
         const { fresh, missed } = cursor.take(
           reply.payload.lines,
-          reply.payload.total.magnitude,
+          reply.payload.total,
           getSitrepHello()?.bootId,
         );
-        if (missed > 0) log.warn(`${missed} mod lines were not captured`);
+        if (missed.isPositive())
+          log.warn(`${writeQuantity(missed)} mod lines were not captured`);
         for (const line of fresh) log.info(line);
       } catch {
         // the command outcome is already logged; the next poll tries again

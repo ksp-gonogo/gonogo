@@ -11,7 +11,7 @@ const MAX_TRACKED = 200;
  */
 const BENIGN = /^ResizeObserver loop/;
 
-/** A field of an `ErrorEvent` or `PromiseRejectionEvent`, read without assuming which one arrived. */
+/** A field of the error or rejection event, read without assuming which of the two arrived. */
 function field(event: Event, name: string): unknown {
   return Reflect.get(event, name);
 }
