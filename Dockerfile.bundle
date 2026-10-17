@@ -75,6 +75,12 @@ RUN chmod +x /app/supervisor.sh
 
 # Version stamps, mirrored from the per-service images. version.ts in each
 # service reads these env-first with package.json as fallback.
+# The relay ships its own log lines with the same ingest credential the app
+# already carries in its JavaScript, and like the app only while the main
+# screen has analytics switched on. `-e AXIOM_TOKEN=` at run time overrides it.
+ARG VITE_AXIOM_TOKEN
+ENV AXIOM_TOKEN=${VITE_AXIOM_TOKEN}
+
 ARG GONOGO_VERSION
 ARG GONOGO_BUILD_TIME
 ENV GONOGO_VERSION=${GONOGO_VERSION}
