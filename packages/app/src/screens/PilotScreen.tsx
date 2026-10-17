@@ -3,6 +3,7 @@ import { StationConnectView } from "@ksp-gonogo/ui";
 import { Button, Text } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { useFollowHostAnalytics } from "../analytics/useFollowHostAnalytics";
 import { StationSupersededNotice } from "../components/StationSupersededNotice";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientService } from "../peer/PeerClientService";
@@ -63,6 +64,8 @@ export function PilotScreen() {
   useEffect(() => {
     logger.setIdentity({ role: "pilot" });
   }, []);
+
+  useFollowHostAnalytics(client);
 
   const connect = (code: string) => {
     const trimmed = code.trim().toUpperCase();

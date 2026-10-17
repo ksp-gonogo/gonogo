@@ -1,7 +1,7 @@
 import { ManeuverTriggerProvider } from "@ksp-gonogo/components";
 import { registerDataSource, ScreenProvider } from "@ksp-gonogo/core";
 import { CoverageMaskCacheProvider, FlightsFab } from "@ksp-gonogo/data";
-import { debugPeer, logger } from "@ksp-gonogo/logger";
+import { debugPeer } from "@ksp-gonogo/logger";
 import {
   InputDispatcher,
   SerialDeviceProvider,
@@ -25,7 +25,7 @@ import {
   AlarmsModal,
   StationAlarmBanner,
 } from "../alarms";
-import { createBrowserConsentController } from "../analytics/axiomTransportFactory";
+import { useFollowHostAnalytics } from "../analytics/useFollowHostAnalytics";
 import {
   ComponentOverlay,
   OverlayProvider,
@@ -191,24 +191,7 @@ export function StationScreen() {
     };
   }, [serialService]);
 
-  // Gate this station's Axiom transport on the HOST's analytics consent.
-  // Stations never read a local consent value, they follow the host. The
-  // controller defaults removed (disabled); onAnalyticsConsent fires
-  // immediately with the cached value and again on every host broadcast.
-  // On unmount we apply(false) so a remount starts clean and so a
-  // disconnected station doesn't keep shipping under a stale grant.
-  useEffect(() => {
-    const controller = createBrowserConsentController();
-    const unsub = client.onAnalyticsConsent((enabled, runId) => {
-      logger.setRunId(runId);
-      controller.apply(enabled);
-    });
-    return () => {
-      unsub();
-      controller.apply(false);
-      logger.setRunId(undefined);
-    };
-  }, [client]);
+  useFollowHostAnalytics(client);
 
   // Each Uplink that registered a station broker gets one relaying through this station's link; a registration arriving later, as a bundle loads, is attached then.
   useEffect(() => attachStationBrokers(client), [client]);

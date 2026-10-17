@@ -336,11 +336,15 @@ export function MainScreen({
       {screen === "pilot" && <PilotVantage />}
       <ScreenProvider value={screen}>
         <SettingsProvider service={settingsService}>
-          <AnalyticsConsentHost
-            service={analyticsConsentService}
-            peerHost={peerHostService}
-          />
-          <ModLogForwarder />
+          {screen === "main" && (
+            <>
+              <AnalyticsConsentHost
+                service={analyticsConsentService}
+                peerHost={peerHostService}
+              />
+              <ModLogForwarder />
+            </>
+          )}
           <FirstRunSetupHost />
           <ConsoleSettingsFromHost service={settingsService} />
           {/*

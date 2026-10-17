@@ -63,10 +63,8 @@ export function SettingsModal({
     (def) => def.uplink === undefined,
   );
   const uplinkPages = useUplinkPages(screen);
-  // The analytics-consent toggle is host-owned, so it only appears where the
-  // screen owns its own boot. Stations follow the host's consent over PeerJS
-  // and have no local control.
-  const showConsent = screen !== "station";
+  // The analytics-consent toggle is the main screen's alone: stations and pilots follow it over PeerJS and have no local control.
+  const showConsent = screen === "main";
   /*
    * The connection belongs to whichever screen holds its own telemetry session.
    * A station follows the host over PeerJS and has nothing to manage; a pilot
