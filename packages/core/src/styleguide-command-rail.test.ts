@@ -32,7 +32,6 @@ const RAIL_OPT_OUTS: Record<string, number> = {
   "packages/app/src/settings/ControlFrameSettings.tsx": 1,
   "packages/app/src/settings/GonogoSettings.tsx": 1,
   "packages/app/src/settings/ModSettingsSection.tsx": 1,
-  "packages/app/src/logs/GithubIssueForm.tsx": 1,
 };
 
 /** Widget-root files allowed to dispatch past `useCommand`, each with how many times. */

@@ -22,7 +22,6 @@ import {
 } from "react";
 import styled from "styled-components";
 import { downloadLogs } from "./downloadLogs";
-import { GithubIssueForm } from "./GithubIssueForm";
 import { recentLogsWindow } from "./recentLogsWindow";
 import {
   type EncodedScreenshot,
@@ -118,27 +117,9 @@ export function LogsManager() {
       <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3">Feedback</SectionTitle>
         <ReportBug />
-        <GithubIssue />
       </Stack>
     </Container>
   );
-}
-
-function GithubIssue() {
-  const [open, setOpen] = useState(false);
-  if (!open) {
-    return (
-      <>
-        <Foot>
-          Or report it on GitHub, with the versions already filled in.
-        </Foot>
-        <ActionRow>
-          <Button onClick={() => setOpen(true)}>Open a GitHub issue</Button>
-        </ActionRow>
-      </>
-    );
-  }
-  return <GithubIssueForm onCancel={() => setOpen(false)} />;
 }
 
 type FormPhase = "idle" | "encoding" | "submitting" | "sent";

@@ -506,8 +506,8 @@ export async function renderWidgets(
 
     if (findings.overlaps.length > 0) {
       const message =
-        `${findings.overlaps.length} pair(s) of stacked siblings or chart captions painting into the same ` +
-        "pixels, so two sections or two labels of the widget are on top of each other:\n  " +
+        `${findings.overlaps.length} pair(s) of stacked siblings painting into the same ` +
+        "pixels, so two sections of the widget are on top of each other:\n  " +
         findings.overlaps.join("\n  ");
       if (process.env.PROBE_ALLOW_OVERLAP === "1") {
         console.warn(`\n[warn] ${message}`);
@@ -516,8 +516,7 @@ export async function renderWidgets(
           `${message}\n(Set PROBE_ALLOW_OVERLAP=1 to render anyway. A stacked ` +
             "sibling overlap is usually a flex item with min-height:0 that was " +
             "shrunk below its content: it keeps painting at its natural size and " +
-            "the content lands on whatever follows it. Two chart captions are a legend chip " +
-            "and a threshold label given the same corner of the plot.)",
+            "the content lands on whatever follows it.)",
         );
       }
     }
@@ -975,109 +974,6 @@ async function findOverlappingSections(page: Page): Promise<string[]> {
 }
 
 /**
- * Every pair of SVG `<text>` elements under `#root` whose drawn glyphs share
- * pixels, reported as `"a" ⨯ "b" overlap WxHpx`.
- *
- * {@link findOverlappingSections} skips SVG outright, because shapes layered by
- * document order overlap by design. Text is the exception: two captions drawn
- * on top of each other are unreadable, whichever is on top, and no chart
- * layers its labels deliberately. A chart's legend chip, its threshold
- * captions and its tick labels are all `<text>`, so this is the walk that sees
- * one chart caption land on another.
- *
- * Each text is its own box carried through its transform, so rotated text is
- * the slanted rectangle it is drawn as, and an overlap must exceed the same
- * tolerance, so lines set tight against each other do not report.
- */
-async function findOverlappingSvgText(page: Page): Promise<string[]> {
-  return page.evaluate(
-    ([tolerance]) => {
-      const host = document.getElementById("root");
-      if (!host) return [] as string[];
-      type Item = { text: string; id: string; quad: number[][] };
-      const items: Item[] = [];
-      for (const el of Array.from(host.querySelectorAll("svg text"))) {
-        const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
-        if (text === "") continue;
-        let hidden = false;
-        for (let n: Element | null = el; n && n !== host; n = n.parentElement) {
-          const s = getComputedStyle(n);
-          if (
-            s.display === "none" ||
-            s.visibility === "hidden" ||
-            s.opacity === "0"
-          ) {
-            hidden = true;
-            break;
-          }
-        }
-        if (hidden) continue;
-        const box = (el as SVGGraphicsElement).getBBox();
-        const toScreen = (el as SVGGraphicsElement).getScreenCTM();
-        if (box.width <= 0 || box.height <= 0 || !toScreen) continue;
-        // The text's own box carried through its transform, so rotated text is the slanted rectangle it is drawn as and not the larger upright box around it.
-        const quad: number[][] = [];
-        for (const [cx, cy] of [
-          [box.x, box.y],
-          [box.x + box.width, box.y],
-          [box.x + box.width, box.y + box.height],
-          [box.x, box.y + box.height],
-        ]) {
-          quad.push([
-            toScreen.a * cx + toScreen.c * cy + toScreen.e,
-            toScreen.b * cx + toScreen.d * cy + toScreen.f,
-          ]);
-        }
-        items.push({ text, id: el.id ? `#${el.id}` : "", quad });
-      }
-      const out: string[] = [];
-      for (let i = 0; i < items.length; i++) {
-        for (let j = i + 1; j < items.length; j++) {
-          const a = items[i];
-          const b = items[j];
-          // Separating axis test over each rectangle's two edge directions; the least overlap along any of them is how far one box sits into the other.
-          let depth = Number.POSITIVE_INFINITY;
-          for (const quad of [a.quad, b.quad]) {
-            for (let k = 0; k < 2; k++) {
-              const ex = quad[k + 1][0] - quad[k][0];
-              const ey = quad[k + 1][1] - quad[k][1];
-              const len = Math.hypot(ex, ey) || 1;
-              const nx = -ey / len;
-              const ny = ex / len;
-              let aMin = Number.POSITIVE_INFINITY;
-              let aMax = Number.NEGATIVE_INFINITY;
-              let bMin = Number.POSITIVE_INFINITY;
-              let bMax = Number.NEGATIVE_INFINITY;
-              for (const pt of a.quad) {
-                const d = pt[0] * nx + pt[1] * ny;
-                aMin = Math.min(aMin, d);
-                aMax = Math.max(aMax, d);
-              }
-              for (const pt of b.quad) {
-                const d = pt[0] * nx + pt[1] * ny;
-                bMin = Math.min(bMin, d);
-                bMax = Math.max(bMax, d);
-              }
-              depth = Math.min(
-                depth,
-                Math.min(aMax, bMax) - Math.max(aMin, bMin),
-              );
-            }
-          }
-          if (depth <= tolerance) continue;
-          out.push(
-            `<text${a.id}> "${a.text.slice(0, 32)}" ⨯ <text${b.id}> "${b.text.slice(0, 32)}" overlap ` +
-              `${depth.toFixed(1)}px`,
-          );
-        }
-      }
-      return out;
-    },
-    [OVERLAP_TOLERANCE_PX] as const,
-  );
-}
-
-/**
  * A box short enough to swallow a descender rather than a line of text. Clipping
  * that matters costs a whole reading; a pixel or two is antialiasing and the
  * rounding a fractional line height leaves behind.
@@ -1231,21 +1127,10 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
           <g id="quiet-svg-under"><rect width="40" height="40" fill="#111"></rect></g>
           <g id="quiet-svg-over"><circle cx="20" cy="20" r="18" fill="#222"></circle></g>
         </svg>
-      </div>
-      <div style="position:absolute;top:900px;left:0;display:flex">
-        <svg width="240" height="64" aria-label="captions">
-          <text id="fires-text-a" x="4" y="14" font-size="10">Pressure (Duna)</text>
-          <text id="fires-text-b" x="40" y="14" font-size="10">At 1 km: 4.66 kPa</text>
-          <text id="quiet-text-a" x="4" y="40" font-size="10">Pressure (Duna)</text>
-          <text id="quiet-text-b" x="4" y="54" font-size="10">At 1 km: 4.66 kPa</text>
-          <text id="quiet-rot-a" transform="translate(120 58) rotate(-45)" font-size="10">AAAAAAAAAA</text>
-          <text id="quiet-rot-b" transform="translate(150 58) rotate(-45)" font-size="10">AAAAAAAAAA</text>
-        </svg>
       </div>`;
     host.appendChild(box);
   });
   const found = await findOverlappingSections(page);
-  const foundText = await findOverlappingSvgText(page);
   await page.evaluate(() =>
     document.getElementById("overlap-detector-selfcheck")?.remove(),
   );
@@ -1253,18 +1138,7 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
   const fired = found.some(
     (f) => f.includes("fires-overflow") && f.includes("fires-victim"),
   );
-  const misfired = [...found, ...foundText].filter((f) => f.includes("quiet-"));
-  if (
-    !foundText.some(
-      (f) => f.includes("fires-text-a") && f.includes("fires-text-b"),
-    )
-  ) {
-    throw new Error(
-      "The SVG text-overlap detector is BLIND: two captions drawn over each " +
-        "other were not reported, so a clean run proves nothing about the charts.\n" +
-        `What it did report: ${foundText.length === 0 ? "nothing" : foundText.join("; ")}`,
-    );
-  }
+  const misfired = found.filter((f) => f.includes("quiet-"));
   if (!fired) {
     throw new Error(
       "The stacked-overlap detector is BLIND: a deliberately broken stack " +
@@ -2423,10 +2297,7 @@ async function renderOneWidget(
           `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${crushed}`,
         );
       }
-      for (const overlap of [
-        ...(await findOverlappingSections(page)),
-        ...(await findOverlappingSvgText(page)),
-      ]) {
+      for (const overlap of await findOverlappingSections(page)) {
         findings.overlaps.push(
           `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${overlap}`,
         );

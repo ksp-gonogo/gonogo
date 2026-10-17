@@ -37,7 +37,6 @@ import {
   VesselOrbitPath,
 } from "./diagramMarks";
 import { EmptyDiagram } from "./EmptyDiagram";
-import type { CaptionBox } from "./encounterCaption";
 import {
   INERTIAL_PLACEMENT,
   type Placement,
@@ -463,32 +462,6 @@ export function SystemDiagram({
   const highlightSet = new Set(highlightNames ?? []);
   const showVessel = vesselHere !== null;
 
-  // The body names the encounter captions keep clear of: the frame body's, centred under its dot, and each child's beside its dot unless it sits on the parent and draws none.
-  const nameBoxes: CaptionBox[] = [];
-  const nameBox = (name: string, left: number, baseline: number) => ({
-    x0: left,
-    y0: baseline - 8 / zoom,
-    x1: left + (name.length * NAME_CHAR_PX) / zoom,
-    y1: baseline + 2 / zoom,
-  });
-  if (parent.name) {
-    const width = (parent.name.length * NAME_CHAR_PX) / zoom;
-    nameBoxes.push(
-      nameBox(
-        parent.name,
-        placed.parent.x - width / 2,
-        placed.parent.y + 18 / zoom,
-      ),
-    );
-  }
-  for (const p of placed.bodies) {
-    const onParent =
-      Math.hypot(p.x - placed.parent.x, p.y - placed.parent.y) * zoom < 30;
-    if (p.body.name && !onParent) {
-      nameBoxes.push(nameBox(p.body.name, p.x + 9 / zoom, p.y + 3 / zoom));
-    }
-  }
-
   return (
     <div onPointerLeave={clearHover} style={CONTAINER}>
       {/* biome-ignore lint/a11y/useSemanticElements: an SVG cannot be a fieldset; a group rather than an image because an image's children are presentational and the bodies and the active vessel are pressable */}
@@ -659,7 +632,6 @@ export function SystemDiagram({
             }
             zoom={zoom}
             subject="target"
-            avoid={nameBoxes}
           />
         )}
 
@@ -728,7 +700,6 @@ export function SystemDiagram({
               body={crossing.body}
               zoom={zoom}
               heldReason={vesselFromRecord ? heldReason : undefined}
-              avoid={nameBoxes}
             />
           ))}
 
@@ -785,9 +756,6 @@ export function SystemDiagram({
     </div>
   );
 }
-
-/** The width of one character of a body's name on screen, in pixels. */
-const NAME_CHAR_PX = 6;
 
 function parentColor(parent: CelestialBody): string {
   return (

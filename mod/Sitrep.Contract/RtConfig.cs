@@ -325,9 +325,6 @@ public static class RtConfig
                 typeof(SensorEntry),
                 // science.experiment.transmit reply payload
                 typeof(ScienceTransmission),
-                // system.log.recent args and reply payload
-                typeof(RecentLogArgs),
-                typeof(RecentLog),
                 // vessel.inventory channel payload + nested value shapes: stock
                 // cargo carried on parts AND on kerbals, which share one KSP
                 // module and so share one channel.

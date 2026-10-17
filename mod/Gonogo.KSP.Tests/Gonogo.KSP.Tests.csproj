@@ -43,7 +43,6 @@
     <!-- MakingHistoryReads.cs carries no KSP or Unity type either; MissionCapture.cs, the walk it serves, needs a live mission and stays out. -->
     <Compile Include="..\Gonogo.KSP\MakingHistoryReads.cs" />
     <Compile Include="..\Gonogo.KSP\ExpansionHealth.cs" />
-    <Compile Include="..\Gonogo.KSP\LogTail.cs" />
     <Compile Include="..\Gonogo.KSP\RescanGate.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyEventBuilder.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscDelay.cs" />
