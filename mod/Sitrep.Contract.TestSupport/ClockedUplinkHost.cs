@@ -29,6 +29,8 @@ namespace Sitrep.Contract.TestSupport
 
         public double NowUt() => _nowUt;
 
+        public void Log(UplinkLogLevel level, string tag, string message) { }
+
         /// <summary>Every topic an Uplink took a publisher for, in the order it asked.</summary>
         public List<string> PublishersTaken { get; } = new List<string>();
 

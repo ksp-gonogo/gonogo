@@ -182,6 +182,8 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public Kernel Kernel { get; } = new Kernel();
 
             public double NowUt() => 0.0;
+
+            public void Log(UplinkLogLevel level, string tag, string message) { }
             public void AddSampler(ISnapshotSampler sampler) => throw new NotSupportedException();
             public void AddChannelSource(string topic, Func<KspSnapshot?, object?> map) => throw new NotSupportedException();
             public bool IsAnyTopicSubscribed(string topicPrefix) => throw new NotSupportedException();
