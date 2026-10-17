@@ -279,8 +279,11 @@ function FieldLayer({
   const place = layer.along === "y" ? scaleY : frame.scaleX;
   const max = layer.maxOpacity ?? DEFAULT_FIELD_OPACITY;
   const tint = layer.tint ?? toneColor(layer);
+  // A blur fades a rect's own edges to nothing, so a blurred field is drawn past the plot area and the plot's clip trims it: the wash then runs to the frame's inner edge.
+  const bleed = layer.blur !== undefined ? Math.ceil(layer.blur * 3) : 0;
   const gradientId = `plot-field-${layer.id}-${frame.uid}`;
   const blurId = `plot-field-blur-${layer.id}-${frame.uid}`;
+  const far = layer.along === "y" ? frame.plotY1 : frame.plotX1;
   const stops = layer.stops
     .map((s) => ({
       offset: ((place(s.at) - origin) / span) * 100,
@@ -293,10 +296,11 @@ function FieldLayer({
       <defs>
         <linearGradient
           id={gradientId}
-          x1="0%"
-          y1="0%"
-          x2={layer.along === "x" ? "100%" : "0%"}
-          y2={layer.along === "y" ? "100%" : "0%"}
+          gradientUnits="userSpaceOnUse"
+          x1={frame.plotX0}
+          y1={frame.plotY0}
+          x2={layer.along === "x" ? far : frame.plotX0}
+          y2={layer.along === "y" ? far : frame.plotY0}
         >
           {stops.map((s, i) => (
             <stop
@@ -317,10 +321,10 @@ function FieldLayer({
       <rect
         data-plot-layer={layer.id}
         data-plot-layer-kind="field"
-        x={frame.plotX0}
-        y={frame.plotY0}
-        width={frame.plotX1 - frame.plotX0}
-        height={frame.plotY1 - frame.plotY0}
+        x={frame.plotX0 - bleed}
+        y={frame.plotY0 - bleed}
+        width={frame.plotX1 - frame.plotX0 + 2 * bleed}
+        height={frame.plotY1 - frame.plotY0 + 2 * bleed}
         fill={`url(#${gradientId})`}
         filter={layer.blur !== undefined ? `url(#${blurId})` : undefined}
       />
