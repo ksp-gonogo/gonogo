@@ -1,6 +1,6 @@
 # Reporting a problem
 
-Open a [bug report](https://github.com/ksp-gonogo/gonogo/issues/new?template=bug_report.yml). The form asks for the things below, and most of them take a minute to find.
+Open a [bug report](https://github.com/ksp-gonogo/gonogo/issues/new?template=bug_report.yml). The form asks for the things below, and most of them take a minute to find. In the app, **Settings, Logs, Open a GitHub issue** opens the form with the versions, your Uplinks and the app's recent log already filled in.
 
 ## Find the versions
 

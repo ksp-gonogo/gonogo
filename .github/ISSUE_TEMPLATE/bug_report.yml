@@ -52,9 +52,9 @@ body:
     id: uplinks
     attributes:
       label: Installed Uplinks
-      description: Settings, Uplinks. Name each with its version, or write none
+      description: Settings, Uplinks. Name each with its version
     validations:
-      required: true
+      required: false
   - type: dropdown
     id: screen
     attributes:
@@ -69,7 +69,6 @@ body:
     id: logs
     attributes:
       label: Logs
-      description: The [Gonogo] lines from KSP.log and the browser console. The reporting guide says how to get them
-      render: text
+      description: The [Gonogo] lines from KSP.log and the browser console. Reporting from inside the app fills in the app's log
     validations:
       required: false

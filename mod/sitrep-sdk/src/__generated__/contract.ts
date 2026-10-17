@@ -4696,6 +4696,35 @@ export enum KspResourceFlowMode {
 	NULL = 8
 }
 /**
+* Ask for the mod's most recent log lines. Args for `system.log.recent`: how
+* many of the newest `[Gonogo]` lines the game logged to `KSP.log` to return,
+* so a bug report can carry them. Lines are returned with file paths, IP
+* addresses and share codes already replaced.
+*
+* @category Command arguments
+*/
+export interface RecentLogArgs
+{
+	/**
+	* The most lines to return. The mod keeps a few hundred; asking for more
+	* returns what it has. Zero or negative returns none.
+	*/
+	maxLines: number;
+}
+/**
+* The newest `[Gonogo]` lines the game logged, oldest first, as
+* `system.log.recent` returns them. Empty when the mod has logged nothing
+* since it started. Each line has had file paths, IP addresses, peer ids and
+* share codes replaced, so it is safe to post publicly.
+*
+* @category System
+*/
+export interface RecentLog
+{
+	/** The lines, oldest first. */
+	lines: string[];
+}
+/**
 * Whether a payload's subject is simulated under physics (`Quality.Loaded`) or
 * moving on rails (`Quality.OnRails`).
 *

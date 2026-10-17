@@ -68,6 +68,8 @@ import type {
   InvokePartActionArgs,
   LaunchArgs,
   NoCommandArgs,
+  RecentLog,
+  RecentLogArgs,
   RemoveManeuverNodeArgs,
   RevertToEditorArgs,
   RotorReverseArgs,
@@ -181,6 +183,8 @@ export interface GeneratedCommandArgsMap {
   "system.frame.set": SetControlFrameArgs;
   /** Asks what a command's gate says about one particular call, from the command centre asking, without sending it. */
   "system.gate.check": GateCheckRequest;
+  /** The mod's most recent log lines, with paths and addresses removed. */
+  "system.log.recent": RecentLogArgs;
   /** Cancels a held or travelling command, named by its lane number, alone or with every later number this centre had sent on the lane when it was pressed. */
   "system.uplink.cancel": UplinkCancelRequest;
   /** Sends a held or overdue command again in its own place on its lane: a new copy with the same lane number, which must arrive before the commands behind it stop waiting for it. */
@@ -312,6 +316,8 @@ export interface GeneratedCommandReplyMap {
   "system.frame.set": CommandResult;
   /** Asks what a command's gate says about one particular call, from the command centre asking, without sending it. */
   "system.gate.check": GateVerdict;
+  /** The mod's most recent log lines, with paths and addresses removed. */
+  "system.log.recent": CommandResultOf<RecentLog>;
   /** Cancels a held or travelling command, named by its lane number, alone or with every later number this centre had sent on the lane when it was pressed. */
   "system.uplink.cancel": UplinkActionReply;
   /** Sends a held or overdue command again in its own place on its lane: a new copy with the same lane number, which must arrive before the commands behind it stop waiting for it. */
@@ -414,6 +420,7 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "settings.save": "CommandResult",
   "system.frame.set": "CommandResult",
   "system.gate.check": "GateVerdict",
+  "system.log.recent": "CommandResultOf<RecentLog>",
   "system.uplink.cancel": "UplinkActionReply",
   "system.uplink.resend": "UplinkActionReply",
   "time.setPaused": "CommandResult",
@@ -519,6 +526,7 @@ export const GENERATED_COMMAND_RAIL = {
   "settings.save": { replies: true, delayed: false },
   "system.frame.set": { replies: true, delayed: false },
   "system.gate.check": { replies: true, delayed: false },
+  "system.log.recent": { replies: true, delayed: false },
   "system.uplink.cancel": { replies: true, delayed: false },
   "system.uplink.resend": { replies: true, delayed: false },
   "time.setPaused": { replies: true, delayed: false },
@@ -586,6 +594,7 @@ export const GENERATED_COMMAND_IDS = [
   "settings.save",
   "system.frame.set",
   "system.gate.check",
+  "system.log.recent",
   "system.uplink.cancel",
   "system.uplink.resend",
   "time.setPaused",

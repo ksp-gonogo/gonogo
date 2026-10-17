@@ -1060,6 +1060,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     trajectoryKind: "enum",
     untilUt: "ut",
   },
+  "RecentLog": {
+    lines: "text",
+  },
+  "RecentLogArgs": {
+    maxLines: "count",
+  },
   "RecoveryCrewEntry": {
     isTourist: "flag",
     levelsGained: "count",
