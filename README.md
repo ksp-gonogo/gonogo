@@ -73,7 +73,7 @@ Use **Settings > Connection > Run setup again**.
 ## More
 
 - [Uplink developer docs](https://ksp-gonogo.github.io/uplink-dev-docs/)
-- [AsyncAPI reference](asyncapi.yaml) (open it in [AsyncAPI Studio](https://studio.asyncapi.com/?url=https://raw.githubusercontent.com/ksp-gonogo/gonogo/main/asyncapi.yaml&readOnly) to browse it)
+- [API reference](https://ksp-gonogo.github.io/gonogo/api/)
 - [KSP setup](docs/KSP-SETUP.md) and [networking](docs/NETWORKING.md)
 - [Contributing](CONTRIBUTING.md)
 - [Licence](LICENSE)
