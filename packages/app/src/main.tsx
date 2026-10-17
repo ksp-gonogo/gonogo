@@ -6,7 +6,7 @@ import {
   registerStockBodies,
   setAppVersion,
 } from "@ksp-gonogo/core";
-import { logger } from "@ksp-gonogo/logger";
+import { installGlobalErrorHooks, logger } from "@ksp-gonogo/logger";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { UiKitThemeProvider } from "@ksp-gonogo/ui-kit";
 import { StrictMode } from "react";
@@ -38,6 +38,7 @@ setAppVersion(VERSION, BUILD_TIME);
 // when the host broadcasts its consent over PeerJS (see StationScreen).
 // Console + ring-buffer logging is always on, unaffected by consent.
 logger.info(`gonogo v${VERSION} (build ${BUILD_TIME})`);
+installGlobalErrorHooks(window, logger);
 
 // Pass the Vite base URL so texture paths resolve correctly under sub-path deployments (e.g. /gonogo/bodies/ on GitHub Pages).
 registerStockBodies(`${import.meta.env.BASE_URL}bodies`);

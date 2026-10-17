@@ -332,6 +332,7 @@ export { AppError } from "./AppError.js";
 export { AxiomConsentController } from "./AxiomConsentController.js";
 export type { AxiomTransportOptions } from "./AxiomTransport.js";
 export { AxiomTransport } from "./AxiomTransport.js";
+export { installGlobalErrorHooks } from "./globalErrors.js";
 export { LogRingBuffer } from "./ringBuffer.js";
 export { tagRegistry } from "./tags.js";
 export type {
