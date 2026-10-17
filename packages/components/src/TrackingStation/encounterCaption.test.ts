@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { placeEncounterCaption } from "./encounterCaption";
+import {
+  placeEncounterCaption,
+  placeEncounterCaptions,
+} from "./encounterCaption";
 
 const base = { x: 100, y: 100, zoom: 1, widthPx: 60, heightPx: 8 };
 
@@ -31,5 +34,30 @@ describe("placeEncounterCaption", () => {
   it("keeps the right-hand spot when every spot is taken", () => {
     const everywhere = { x0: -1000, y0: -1000, x1: 1000, y1: 1000 };
     expect(placeEncounterCaption({ ...base, avoid: [everywhere] }).dx).toBe(7);
+  });
+});
+
+describe("placeEncounterCaptions", () => {
+  it("keeps a second caption off the first when their markers sit close together", () => {
+    const marker = { x: 100, y: 100, widthPx: 60, heightPx: 8 };
+    const [first, second] = placeEncounterCaptions(
+      [marker, { ...marker, y: 104 }],
+      1,
+      [],
+    );
+    expect(first).toEqual({ dx: 7, dy: 3, anchor: "start" });
+    expect(second).not.toEqual(first);
+  });
+
+  it("keeps a clear margin so a caption that runs wider than its estimate still clears the next", () => {
+    const [, second] = placeEncounterCaptions(
+      [
+        { x: 100, y: 100, widthPx: 60, heightPx: 8 },
+        { x: 100, y: 108, widthPx: 60, heightPx: 8 },
+      ],
+      1,
+      [],
+    );
+    expect(second).not.toEqual({ dx: 7, dy: 3, anchor: "start" });
   });
 });

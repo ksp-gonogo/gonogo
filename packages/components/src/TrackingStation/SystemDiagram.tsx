@@ -30,6 +30,8 @@ import {
   ArcFarEndMark,
   DepthGradient,
   EncounterMarker,
+  encounterCaptionRequest,
+  encounterLabel,
   FrameParentMark,
   onThePicture,
   PredictedPatchArc,
@@ -37,7 +39,7 @@ import {
   VesselOrbitPath,
 } from "./diagramMarks";
 import { EmptyDiagram } from "./EmptyDiagram";
-import type { CaptionBox } from "./encounterCaption";
+import { type CaptionBox, placeEncounterCaptions } from "./encounterCaption";
 import {
   INERTIAL_PLACEMENT,
   type Placement,
@@ -489,6 +491,49 @@ export function SystemDiagram({
     }
   }
 
+  // The craft's crossings and the target's encounter share one placement pass, so no caption prints over another.
+  const craftCrossings =
+    vesselFromRecord && hideHeldEncounters
+      ? []
+      : (placedPatches?.crossings ?? []);
+  const targetEncounter =
+    targetHere?.encounter && targetEncounterAt
+      ? {
+          at: targetEncounterAt,
+          kind: targetHere.encounter.direction,
+          body:
+            targetHere.encounter.direction === "escape"
+              ? parentName
+              : (targetHere.encounter.bodyName ?? NULL_DISPLAY),
+        }
+      : null;
+  const captionPlaces = placeEncounterCaptions(
+    [
+      ...craftCrossings.map(({ crossing, at }) =>
+        encounterCaptionRequest(
+          at[0] * plotScale,
+          at[1] * plotScale,
+          encounterLabel(crossing.kind, crossing.body),
+        ),
+      ),
+      ...(targetEncounter
+        ? [
+            encounterCaptionRequest(
+              targetEncounter.at.x,
+              targetEncounter.at.y,
+              encounterLabel(
+                targetEncounter.kind,
+                targetEncounter.body,
+                "target",
+              ),
+            ),
+          ]
+        : []),
+    ],
+    zoom,
+    nameBoxes,
+  );
+
   return (
     <div onPointerLeave={clearHover} style={CONTAINER}>
       {/* biome-ignore lint/a11y/useSemanticElements: an SVG cannot be a fieldset; a group rather than an image because an image's children are presentational and the bodies and the active vessel are pressable */}
@@ -647,19 +692,15 @@ export function SystemDiagram({
           />
         )}
 
-        {targetHere?.encounter && targetEncounterAt && (
+        {targetEncounter && (
           <EncounterMarker
-            x={targetEncounterAt.x}
-            y={targetEncounterAt.y}
-            kind={targetHere.encounter.direction}
-            body={
-              targetHere.encounter.direction === "escape"
-                ? parentName
-                : (targetHere.encounter.bodyName ?? NULL_DISPLAY)
-            }
+            x={targetEncounter.at.x}
+            y={targetEncounter.at.y}
+            kind={targetEncounter.kind}
+            body={targetEncounter.body}
             zoom={zoom}
             subject="target"
-            avoid={nameBoxes}
+            place={captionPlaces[craftCrossings.length]}
           />
         )}
 
@@ -718,19 +759,18 @@ export function SystemDiagram({
           />
         )}
 
-        {!(vesselFromRecord && hideHeldEncounters) &&
-          placedPatches?.crossings.map(({ crossing, at }) => (
-            <EncounterMarker
-              key={`enc-${crossing.patchIndex}`}
-              x={at[0] * plotScale}
-              y={at[1] * plotScale}
-              kind={crossing.kind}
-              body={crossing.body}
-              zoom={zoom}
-              heldReason={vesselFromRecord ? heldReason : undefined}
-              avoid={nameBoxes}
-            />
-          ))}
+        {craftCrossings.map(({ crossing, at }, i) => (
+          <EncounterMarker
+            key={`enc-${crossing.patchIndex}`}
+            x={at[0] * plotScale}
+            y={at[1] * plotScale}
+            kind={crossing.kind}
+            body={crossing.body}
+            zoom={zoom}
+            heldReason={vesselFromRecord ? heldReason : undefined}
+            place={captionPlaces[i]}
+          />
+        ))}
 
         {frameParentName !== undefined && frameParentPoint !== null && (
           <FrameParentMark

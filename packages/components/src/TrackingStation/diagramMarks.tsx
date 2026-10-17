@@ -11,7 +11,7 @@ import {
   depthStrength,
 } from "./depthCues";
 import { arcMetres, openPath, type PlacedRingEnd } from "./diagramGeometry";
-import { type CaptionBox, placeEncounterCaption } from "./encounterCaption";
+import type { CaptionPlace, CaptionRequest } from "./encounterCaption";
 import type { Placement } from "./projection";
 import { InteractiveMarker } from "./SystemEntitiesLayer";
 
@@ -296,6 +296,33 @@ export function PredictedPatchArc({
 const CAPTION_FONT_PX = 8;
 const CAPTION_CHAR_PX = 5;
 
+/**
+ * The words an encounter or escape marker prints beside its ring. The craft's
+ * own encounter is the short form: it is drawn where the diagram is busiest.
+ */
+export function encounterLabel(
+  kind: "encounter" | "escape",
+  body: string,
+  subject: "vessel" | "target" = "vessel",
+): string {
+  if (kind === "escape") return `escape ${body}`;
+  return subject === "target" ? `encounter ${body}` : `→ ${body}`;
+}
+
+/** The size and position `placeEncounterCaptions` needs for the marker at `x`,`y` printing `label`. */
+export function encounterCaptionRequest(
+  x: number,
+  y: number,
+  label: string,
+): CaptionRequest {
+  return {
+    x,
+    y,
+    widthPx: label.length * CAPTION_CHAR_PX,
+    heightPx: CAPTION_FONT_PX,
+  };
+}
+
 export function EncounterMarker({
   x,
   y,
@@ -304,7 +331,7 @@ export function EncounterMarker({
   zoom,
   subject = "vessel",
   heldReason,
-  avoid = [],
+  place,
 }: Readonly<{
   x: number;
   y: number;
@@ -314,25 +341,14 @@ export function EncounterMarker({
   subject?: "vessel" | "target";
   /** Set when the marker comes from a report older than the craft's place: it is dimmed, dashed and carries this tooltip. */
   heldReason?: string;
-  /** The names drawn nearby, which the caption keeps clear of. */
-  avoid?: readonly CaptionBox[];
+  /** Where the caption sits beside the ring, from `placeEncounterCaptions`. */
+  place: CaptionPlace;
 }>) {
   const held = heldReason !== undefined;
   const color =
     kind === "escape" ? "var(--color-info-mark)" : "var(--color-warn-mark)";
   const r = 4 / zoom;
-  // The craft's own encounter is the short form: it is drawn where the diagram is busiest.
-  const encounterLabel =
-    subject === "target" ? `encounter ${body}` : `→ ${body}`;
-  const label = kind === "escape" ? `escape ${body}` : encounterLabel;
-  const place = placeEncounterCaption({
-    x,
-    y,
-    zoom,
-    widthPx: label.length * CAPTION_CHAR_PX,
-    heightPx: CAPTION_FONT_PX,
-    avoid,
-  });
+  const label = encounterLabel(kind, body, subject);
   return (
     <g
       pointerEvents={held ? "visiblePainted" : "none"}
