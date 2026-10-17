@@ -8,6 +8,7 @@ import { PerfBudget } from "../perf/PerfBudget";
 import { dehydrateArgs } from "../wrap-units";
 import { warnChannelError } from "./channel-error-warning";
 import { type Clock, RealTimeClock } from "./clock";
+import { traceCommandOutcome } from "./command-trace";
 import { warnConnectionError } from "./connection-error-warning";
 import { CommandError, type CommandStatus } from "./lifecycle";
 import type { TimelineStore } from "./timeline-store";
@@ -1795,6 +1796,7 @@ export class TelemetryClient {
         breach,
         detail,
       };
+      this.traceSettled(pending);
       reject?.(
         new CommandError(
           COMMAND_REFUSED,
@@ -1818,6 +1820,7 @@ export class TelemetryClient {
     }
 
     pending.status = { phase: "confirmed", requestId, result };
+    this.traceSettled(pending);
     resolve(result);
     this.notifyStore();
   }
@@ -1847,6 +1850,7 @@ export class TelemetryClient {
           outcome: "errored",
           error: { code, message },
         };
+        this.traceSettled(pending);
         this.notifyStore();
       }
       return;
@@ -1855,6 +1859,7 @@ export class TelemetryClient {
     pending.cancelLossTimer = null;
     const reject = pending.reject;
     pending.status = { phase: "failed", requestId, error: { code, message } };
+    this.traceSettled(pending);
     pending.resolve = null;
     pending.reject = null;
     reject(new CommandError(code, message));
@@ -1915,6 +1920,7 @@ export class TelemetryClient {
             breach: refusal.breach,
             detail: refusal.detail,
           };
+    this.traceSettled(pending);
     this.notifyStore();
   }
 
@@ -1955,6 +1961,7 @@ export class TelemetryClient {
      */
     pending.cancelLossTimer?.();
     pending.status = { phase: "lost", requestId, reason };
+    this.traceSettled(pending);
     pending.resolve = null;
     pending.reject = null;
     pending.cancelLossTimer = null;
@@ -1993,6 +2000,7 @@ export class TelemetryClient {
     if (!pending.reject) {
       if (pending.status.phase !== "lost") return;
       pending.status = status;
+      this.traceSettled(pending);
       this.notifyStore();
       return;
     }
@@ -2000,10 +2008,15 @@ export class TelemetryClient {
     pending.cancelLossTimer = null;
     const reject = pending.reject;
     pending.status = status;
+    this.traceSettled(pending);
     pending.resolve = null;
     pending.reject = null;
     reject(new CommandError(FaultCode.Undelivered, reason));
     this.notifyStore();
+  }
+
+  private traceSettled(pending: PendingCommand): void {
+    traceCommandOutcome(pending.command, pending.label, pending.status);
   }
 
   private notifyStore(): void {

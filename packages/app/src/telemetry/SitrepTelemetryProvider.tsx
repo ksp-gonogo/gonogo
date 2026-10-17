@@ -26,6 +26,7 @@ import {
   subscribeSitrepHostConfig,
   subscribeSitrepReconnectNonce,
 } from "./sitrepRuntime";
+import { streamStatusTracer, traceHello } from "./streamTrace";
 import { VantageRestore } from "./VantageRestore";
 import { VantageRefusedContext } from "./vantageRefused";
 
@@ -244,11 +245,16 @@ export function SitrepTelemetryProvider({
     // Mirror the OWNED transport's connection status into the Connection tab's
     // "Sitrep Stream" row: an injected test transport has no bearing on what
     // that row should report about the real connection.
+    const traceStatus = streamStatusTracer(logger.tag("sitrep"));
     const unsubStatus = ownedTransport?.onStatusChange((status) => {
       reportSitrepTransportStatus(status);
+      traceStatus(status);
       if (status === "connected") setVantageRefused(false);
     });
-    if (ownedTransport) reportSitrepTransportStatus(ownedTransport.status);
+    if (ownedTransport) {
+      reportSitrepTransportStatus(ownedTransport.status);
+      traceStatus(ownedTransport.status);
+    }
     setSitrepRetryHandler(
       ownedTransport ? () => ownedTransport.retryNow() : null,
     );
@@ -284,6 +290,12 @@ export function SitrepTelemetryProvider({
         });
         const rebooted = bootId !== undefined && bootId !== message.bootId;
         bootId = message.bootId;
+        traceHello(logger.tag("sitrep"), {
+          modVersion: message.modVersion,
+          contractMajor: message.contractMajor,
+          contractMinor: message.contractMinor,
+          rebooted,
+        });
         if (rebooted) setGeneration((g) => g + 1);
       }
     });
