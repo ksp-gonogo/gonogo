@@ -14,6 +14,7 @@ import {
   it,
   vi,
 } from "vitest";
+import { createBrowserConsentController } from "../analytics/axiomTransportFactory";
 import { LogsManager } from "./LogsManager";
 
 // Most of the rest of the modal (Verbose logging, Log buffer) reads
@@ -31,7 +32,19 @@ const server = setupServer(
   http.post(
     "https://api.axiom.co/v1/datasets/:dataset/ingest",
     async ({ request }) => {
-      ingested.push((await request.json()) as unknown[]);
+      const text = await request.text();
+      const parsed: unknown = (() => {
+        try {
+          return JSON.parse(text);
+        } catch {
+          // A multi-event batch can arrive as newline-delimited JSON.
+          return text
+            .split("\n")
+            .filter((line) => line.trim() !== "")
+            .map((line): unknown => JSON.parse(line));
+        }
+      })();
+      ingested.push(Array.isArray(parsed) ? parsed : [parsed]);
       return ingestStatus === 200
         ? HttpResponse.json({ ingested: 1, failed: 0 })
         : new HttpResponse("nope", { status: ingestStatus });
@@ -290,6 +303,34 @@ describe("LogsManager: Feedback with analytics off", () => {
     );
     // The one-shot is gone again, so nothing else is shipped in the background.
     expect(logger.transportCount()).toBe(0);
+    await act(async () => {});
+  });
+
+  it("does not ship a feedback entry again when analytics is turned on afterwards", async () => {
+    logger.info("buffered before");
+    const user = await openReportForm();
+    await user.selectOptions(screen.getByLabelText(/type/i), "Feedback");
+    await user.type(screen.getByLabelText(/your feedback/i), "Add a readout");
+    await user.click(screen.getByRole("button", { name: /send report/i }));
+    await waitFor(
+      () => {
+        expect(screen.getByText(/feedback sent/i)).toBeInTheDocument();
+      },
+      { timeout: 8000 },
+    );
+
+    const controller = createBrowserConsentController();
+    controller.apply(true);
+    await logger.flushTransports();
+    controller.apply(false);
+
+    const messages = (ingested.flat() as { message?: string }[]).map(
+      (e) => e.message,
+    );
+    expect(
+      messages.filter((m) => m === "[feedback] Add a readout"),
+    ).toHaveLength(1);
+    expect(messages).toContain("buffered before");
     await act(async () => {});
   });
 

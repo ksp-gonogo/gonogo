@@ -202,3 +202,23 @@ describe("ConsoleLogger.removeTransport", () => {
     expect(transport.flush).not.toHaveBeenCalled();
   });
 });
+
+describe("AxiomConsentController backfill of delivered entries", () => {
+  it("skips an entry already sent by another route and still ships the rest", () => {
+    const logger = new ConsoleLogger({ enabled: true, persist: null });
+    logger.info("buffered before");
+    logger.tag("feedback").info("feedback text");
+    const feedback = logger.getBuffer().at(-1) as LogEntry;
+    logger.markDelivered(feedback);
+    logger.info("buffered after");
+
+    const transport = makeTransport();
+    new AxiomConsentController({
+      logger,
+      makeTransport: () => transport,
+    }).apply(true);
+
+    const messages = transport.sent.flat().map((e) => e.message);
+    expect(messages).toEqual(["buffered before", "buffered after"]);
+  });
+});

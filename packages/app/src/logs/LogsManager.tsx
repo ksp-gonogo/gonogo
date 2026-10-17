@@ -276,6 +276,7 @@ function ReportBug() {
         const entry = logger.getBuffer().at(-1);
         if (!entry) throw new Error("The report could not be sent.");
         await sendReportOnce(entry);
+        logger.markDelivered(entry);
       } else {
         // The Axiom SDK auto-batches and retries on its own. Race the flush
         // against a 10s deadline so a slow transport (e.g. backpressure on

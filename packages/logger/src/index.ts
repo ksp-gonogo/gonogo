@@ -90,6 +90,7 @@ export class ConsoleLogger implements Logger {
   private readonly transports: LogTransport[] = [];
   private identity: DeviceIdentity = { role: "unknown" };
   private readonly sessionId: string;
+  private readonly delivered = new WeakSet<LogEntry>();
 
   constructor(opts?: {
     enabled?: boolean;
@@ -192,12 +193,22 @@ export class ConsoleLogger implements Logger {
   }
 
   /**
-   * Snapshot of the in-memory ring buffer (oldest first). Alias of
-   * {@link getBuffer}: used by {@link AxiomConsentController} to backfill
-   * the pre-consent history to a freshly-installed transport.
+   * Ring buffer entries (oldest first) that no one has shipped yet: the
+   * buffer minus anything passed to {@link markDelivered}. Used by
+   * {@link AxiomConsentController} to backfill the pre-consent history to a
+   * freshly-installed transport.
    */
   snapshot(): readonly LogEntry[] {
-    return this.buffer.snapshot();
+    return this.buffer.snapshot().filter((e) => !this.delivered.has(e));
+  }
+
+  /**
+   * Records that an entry already reached its destination by another route,
+   * so a later backfill to a newly-installed transport skips it. Used by the
+   * report form, which ships its own entry when no standing transport exists.
+   */
+  markDelivered(entry: LogEntry): void {
+    this.delivered.add(entry);
   }
 
   /** Serialises the buffer as a pretty-printed JSON array for download. */
