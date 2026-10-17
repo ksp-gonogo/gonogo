@@ -345,11 +345,12 @@ export function buildDescentLayers(
   }
 
   // The vessel mark's position against the labelled Y axis is the height, so no corner readout repeats it.
+  // Both in the bottom-right, stacked: the plot's other corners are where the curve starts and ends.
   layers.push(
     {
       kind: "caption",
       id: "urgency",
-      anchor: "bottom-left",
+      anchor: "bottom-right",
       text: URGENCY_WORD[urgency],
       tone,
     },

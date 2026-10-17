@@ -38,7 +38,7 @@ export function DescentBoard({ model }: Readonly<{ model: LandingModel }>) {
     return (
       <Section>
         <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
-        <Grid cols="auto 1fr" gap="readout-row">
+        <Grid cols="auto 1fr" gap="label-value" rowGap="readout-row">
           <GridCellPair label="Terminal">
             {<Mps v={landing?.terminalVelocity} from={landingCurrency} />}
           </GridCellPair>
@@ -77,7 +77,7 @@ export function DescentBoard({ model }: Readonly<{ model: LandingModel }>) {
     return (
       <Section>
         <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
-        <Grid cols="auto 1fr" gap="readout-row">
+        <Grid cols="auto 1fr" gap="label-value" rowGap="readout-row">
           <GridCellPair label="Vertical">
             {<Mps v={solution.verticalSpeed} from={solveCurrency} />}
           </GridCellPair>

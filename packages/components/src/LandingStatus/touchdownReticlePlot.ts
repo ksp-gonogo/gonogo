@@ -40,8 +40,8 @@ export { dispersionRadiusMeters } from "./touchdownInputs";
  */
 
 /** The share of the map's width the frame's footprint fills at height, in the middle: most of it high up, more as the craft nears the ground, so the footprint and the marks read at the size the map is drawn and the last stretch is not a small square in a wide surround. */
-const MAP_SHARE_HIGH = 0.6;
-const MAP_SHARE_GROUND = 0.88;
+const MAP_SHARE_HIGH = 0.52;
+const MAP_SHARE_GROUND = 0.7;
 const MAP_SHARE_KNEE_M = 150;
 export function mapFootprintShare(heightMeters: number): number {
   const h = Math.max(0, heightMeters);
@@ -56,8 +56,7 @@ const MIN_MAP_METRES = 16;
 const IMPACT_MARGIN = 1.25;
 /** Points around the ring. */
 const ZONE_STEPS = 72;
-/** How far out from the map's middle the bearing marks sit, as a share of its width, and the bearings they mark. */
-const BEARING_REACH = 0.32;
+/** The bearings the map marks round its edge, in the margin the footprint leaves. */
 const BEARING_MARKS = [0, 90, 180, 270] as const;
 
 type Point = readonly [number, number];
@@ -343,19 +342,23 @@ export function buildTouchdownReticlePlot(
       kind: "caption",
       id: "zone-size",
       anchor: "bottom-right",
-      text: `ZONE r ${writeQuantity(value("m", zoneRadiusMeters), { decimals: 0 })}`,
+      caption: "ZONE",
+      text: `r ${writeQuantity(value("m", zoneRadiusMeters), { decimals: 0 })}`,
       tone: "warn",
     });
   }
   // The bearings round the map, written as the navball writes a heading: the map points the way the craft looks, so each is where that bearing lies.
   for (const bearing of BEARING_MARKS) {
     const rel = ((bearing - driftBearingDeg) * Math.PI) / 180;
+    // Out to the map's edge along the bearing; the plot holds the word inside it.
+    const toEdge =
+      0.5 / Math.max(Math.abs(Math.sin(rel)), Math.abs(Math.cos(rel)));
     layers.push({
       kind: "marker",
       id: `bearing-${bearing}`,
       at: {
-        x: Math.sin(rel) * BEARING_REACH * width,
-        y: Math.cos(rel) * BEARING_REACH * width,
+        x: Math.sin(rel) * toEdge * width,
+        y: Math.cos(rel) * toEdge * width,
       },
       shape: "none",
       tone: "caution",

@@ -118,7 +118,7 @@ export function CarriedAltitude({ reading }: { reading: FlightReading }) {
   const modelState = declined ? declinedState(declined) : null;
   return (
     <Section title="Altitude ASL">
-      <Grid cols="auto 1fr" gap="readout-row">
+      <Grid cols="auto 1fr" gap="label-value" rowGap="readout-row">
         {carrying ? (
           <GridCellPair label="Last observed">
             <Unit value={observed} decimals={decimals} />

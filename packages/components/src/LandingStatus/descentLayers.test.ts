@@ -302,17 +302,14 @@ describe("buildDescentLayers", () => {
     expect(readout.text).toContain("m/s");
   });
 
-  it("puts the readouts in the plot's four corners, never over the marks", () => {
-    const anchors = buildDescentLayers(ENTRY)
-      .filter(
-        (l): l is Extract<PlotLayer, { kind: "caption" }> =>
-          l.kind === "caption",
-      )
-      .map((l) => l.anchor);
-    expect(new Set(anchors).size).toBe(anchors.length);
-    expect(anchors).toContain("bottom-left");
-    expect(anchors).toContain("bottom-right");
-    // Not the altitude: the vessel mark against the labelled Y axis already states it.
-    expect(anchors).not.toContain("top-left");
+  it("keeps the urgency word off the corners where the terminal curve starts and ends, stacked with the touchdown speed", () => {
+    const captions = buildDescentLayers(ENTRY).filter(
+      (l): l is Extract<PlotLayer, { kind: "caption" }> => l.kind === "caption",
+    );
+    const anchorOf = (id: string) => captions.find((l) => l.id === id)?.anchor;
+    expect(anchorOf("touchdown")).toBe("bottom-right");
+    expect(anchorOf("urgency")).toBe("bottom-right");
+    expect(captions.map((l) => l.anchor)).not.toContain("bottom-left");
+    expect(captions.map((l) => l.anchor)).not.toContain("top-left");
   });
 });

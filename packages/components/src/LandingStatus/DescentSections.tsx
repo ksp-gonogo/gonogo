@@ -13,7 +13,7 @@ export function VelocitySection({ model }: Model) {
   return (
     <Section>
       <SectionTitle>Velocity</SectionTitle>
-      <Grid cols="auto 1fr" gap="readout-row">
+      <Grid cols="auto 1fr" gap="label-value" rowGap="readout-row">
         <GridCellPair label="Vertical">
           {<Mps v={solution.verticalSpeed} from={solveCurrency} />}
         </GridCellPair>
@@ -30,7 +30,7 @@ export function HeightSection({ model }: Model) {
   return (
     <Section>
       <SectionTitle>Height</SectionTitle>
-      <Grid cols="auto 1fr" gap="readout-row">
+      <Grid cols="auto 1fr" gap="label-value" rowGap="readout-row">
         <GridCellPair label="AGL">
           {<Metres m={model.heightFromTerrain} from={model.solveCurrency} />}
         </GridCellPair>
@@ -45,7 +45,7 @@ export function DivertSection({ model }: Model) {
   return (
     <Section>
       <SectionTitle>Divert</SectionTitle>
-      <Grid cols="auto 1fr" gap="readout-row">
+      <Grid cols="auto 1fr" gap="label-value" rowGap="readout-row">
         <GridCellPair label="Target range">
           {<Metres m={targetRange} from={model.solveCurrency} />}
         </GridCellPair>

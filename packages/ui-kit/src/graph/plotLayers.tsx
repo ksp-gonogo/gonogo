@@ -29,10 +29,19 @@ const CAPTION_PAD = 6;
 const CAPTION_SIZE = 10;
 const CAPTION_LABEL_SIZE = 9;
 const CAPTION_LINE = 12;
+/** Width of one bold caption character at {@link CAPTION_SIZE}, and the padding the backing leaves round the words. */
+const CAPTION_CHAR_PX = 6.2;
+const CAPTION_BACK_PAD = 4;
 const REGION_LABEL_SIZE = 9;
 /** Width a rotated edge word takes, for a corner readout to clear. */
 const EDGE_STRIP_PX = 13;
 const DEFAULT_REGION_OPACITY = 0.1;
+/** Cuts a plot's own lines and fills away under its words, so a label crossing a ring or an edge stays readable. */
+const TEXT_HALO = {
+  paintOrder: "stroke",
+  strokeWidth: 3,
+  strokeLinejoin: "round",
+} as const;
 
 /** Spacing between hatch lines, px. */
 const HATCH_PITCH = 5;
@@ -559,7 +568,8 @@ function RegionLayer({
       : layer.side === "left"
         ? frame.plotX0 + 11
         : boundary[boundary.length - 1].x;
-  const labelY = frame.plotY1 - 34;
+  // Centred on the edge, where it clears both corners and the free edge's curve.
+  const labelY = (frame.plotY0 + frame.plotY1) / 2;
 
   return (
     <>
@@ -601,9 +611,12 @@ function RegionLayer({
           x={labelX}
           y={labelY}
           transform={`rotate(-90 ${labelX} ${labelY})`}
+          textAnchor="middle"
           fontSize={REGION_LABEL_SIZE}
           letterSpacing="0.14em"
           fill="var(--color-text-muted)"
+          stroke="var(--color-surface-raised)"
+          {...TEXT_HALO}
         >
           {layer.label}
         </text>
@@ -829,17 +842,36 @@ function MarkerLayer({
       />
     ) : null;
 
+  // A bare label is held wholly inside the plot, so one placed at an edge is not cut off by it.
+  const halfLabel = ((layer.label?.length ?? 0) * LABEL_CHAR_PX) / 2 + 3;
+  const labelX =
+    shape === "none"
+      ? Math.min(
+          Math.max(x, frame.plotX0 + halfLabel),
+          frame.plotX1 - halfLabel,
+        )
+      : x + r + 3;
+  const labelY =
+    shape === "none"
+      ? Math.min(
+          Math.max(y + 3, frame.plotY0 + CAPTION_LABEL_SIZE + 3),
+          frame.plotY1 - 4,
+        )
+      : y + 3;
+
   return (
     <>
       {mark}
       {frame.labels && layer.label && (
         <text
-          x={shape === "none" ? x : x + r + 3}
-          y={y + 3}
+          x={labelX}
+          y={labelY}
           textAnchor={shape === "none" ? "middle" : undefined}
           fontSize={CAPTION_LABEL_SIZE}
           fill={toneText(layer)}
           fillOpacity={toneOpacity(layer)}
+          stroke="var(--color-surface-raised)"
+          {...TEXT_HALO}
         >
           {layer.label}
         </text>
@@ -879,6 +911,8 @@ function CaptionLayer({
         letterSpacing="0.14em"
         fill={toneText(layer)}
         fillOpacity={toneOpacity(layer)}
+        stroke="var(--color-surface-raised)"
+        {...TEXT_HALO}
       >
         {layer.text}
       </text>
@@ -895,12 +929,32 @@ function CaptionLayer({
     ? frame.plotY0 + CAPTION_PAD + CAPTION_SIZE + block
     : frame.plotY1 - CAPTION_PAD - block;
   const captionY = top ? baseY - CAPTION_LINE : baseY - CAPTION_LINE;
+  // A backing under the words, so a ring or an edge passing a corner does not run between the letters.
+  const backWidth =
+    Math.max(
+      layer.text.length * CAPTION_CHAR_PX,
+      (layer.caption?.length ?? 0) * LABEL_CHAR_PX,
+    ) +
+    2 * CAPTION_BACK_PAD;
+  const backTop =
+    (top ? baseY : baseY - (layer.caption ? CAPTION_LINE : 0)) -
+    CAPTION_SIZE -
+    1;
   return (
     <g
       data-plot-layer={layer.id}
       data-plot-layer-kind="caption"
       textAnchor={right ? "end" : "start"}
     >
+      <rect
+        x={right ? x - backWidth + CAPTION_BACK_PAD : x - CAPTION_BACK_PAD}
+        y={backTop}
+        width={backWidth}
+        height={lines * CAPTION_LINE + 1}
+        rx={3}
+        fill="var(--color-surface-raised)"
+        fillOpacity={0.8}
+      />
       {layer.caption && (
         <text
           x={x}
@@ -908,6 +962,8 @@ function CaptionLayer({
           fontSize={CAPTION_LABEL_SIZE}
           letterSpacing="0.05em"
           fill="var(--color-text-faint)"
+          stroke="var(--color-surface-raised)"
+          {...TEXT_HALO}
         >
           {layer.caption}
         </text>
@@ -919,6 +975,8 @@ function CaptionLayer({
         fontWeight={700}
         fill={toneText(layer)}
         fillOpacity={toneOpacity(layer)}
+        stroke="var(--color-surface-raised)"
+        {...TEXT_HALO}
       >
         {layer.text}
       </text>
