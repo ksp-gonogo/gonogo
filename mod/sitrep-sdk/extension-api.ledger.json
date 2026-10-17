@@ -8299,6 +8299,14 @@
         "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
       },
       {
+        "key": "sitrep-sdk . PlotSubjectRegistry#\"descent-envelope\"",
+        "note": "Removed: the descent plot's subject is renamed"
+      },
+      {
+        "key": "sitrep-sdk . PlotSubjectRegistry#\"descent-profile\"",
+        "note": "the descent plot's subject is descent-profile"
+      },
+      {
         "key": "sitrep-sdk . RailContinuity",
         "note": "Removed: the delay rail takes the same sample kind a channel declares (SampleKind) instead of a vocabulary of its own"
       },
@@ -9207,6 +9215,14 @@
         "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
       },
       {
+        "key": "sitrep-sdk ./registry ~PlotSubjectRegistry#\"descent-envelope\"",
+        "note": "Removed: the descent plot's subject is renamed"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotSubjectRegistry#\"descent-profile\"",
+        "note": "the descent plot's subject is descent-profile"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ReckoningDecline#reason",
         "note": "Follows ReckoningDecline#reason"
       },
@@ -9799,6 +9815,14 @@
         "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
       },
       {
+        "key": "sitrep-sdk ./spine ~PlotSubjectRegistry#\"descent-envelope\"",
+        "note": "Removed: the descent plot's subject is renamed"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlotSubjectRegistry#\"descent-profile\"",
+        "note": "the descent plot's subject is descent-profile"
+      },
+      {
         "key": "sitrep-sdk ./spine ~ReckonableFields",
         "note": "Read through ReckonableFieldMap, which an Uplink augments for an object Topic its own contract marks, so its reading is typed reckonable too"
       },
@@ -10145,6 +10169,14 @@
       {
         "key": "sitrep-sdk ./testing ~PlotMarkerLayer#shape?",
         "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotSubjectRegistry#\"descent-envelope\"",
+        "note": "Removed: the descent plot's subject is renamed"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotSubjectRegistry#\"descent-profile\"",
+        "note": "the descent plot's subject is descent-profile"
       },
       {
         "key": "sitrep-sdk ./testing ~RailContinuity",

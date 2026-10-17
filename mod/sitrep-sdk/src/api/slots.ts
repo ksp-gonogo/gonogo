@@ -755,7 +755,7 @@ export interface ScienceDataAboardRowContext {
 // leaving a hole. It was an overlay slot handing a guest a projection function,
 // a coordinate space and the host's own descent integrator, and the host drew
 // its curve, its wash and its marks through geometry that slot could not reach.
-// The descent envelope is a whole contributed PLOT now, on the app-wide `plots`
+// The descent profile is a whole contributed PLOT now, on the app-wide `plots`
 // slot (see `./plots.ts`), and this widget's own is one of them: it arranges
 // what it is handed and owns no projection a contributor cannot reach. What the
 // guest lost was pixels; what it gained is that there is no host privilege left

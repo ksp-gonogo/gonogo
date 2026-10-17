@@ -43,7 +43,7 @@ import {
 import { SolutionReadouts } from "./SolutionReadouts";
 import { ATMOSPHERIC_SITE_GATE_M } from "./siteGate";
 import { useLandingModel } from "./useLandingModel";
-// The widget's own plots, registered into `plots` like any Uplink's; imported here so no module ordering can drop them. They draw in this order, the descent envelope last: it is the one that leaves at touchdown, and a plot leaving from the end of the row moves none of the others.
+// The widget's own plots, registered into `plots` like any Uplink's; imported here so no module ordering can drop them. They draw in this order, the descent profile last: it is the one that leaves at touchdown, and a plot leaving from the end of the row moves none of the others.
 import "./crossSectionPlot";
 import "./vesselViewPlot";
 import "./touchdownReticlePlot";
@@ -164,9 +164,9 @@ function LandingStatusComponent({
     { subject: "vessel-view", title: "Touchdown view", note: idle },
     { subject: "touchdown-site", title: "Touchdown site", note: idle },
     { subject: "landing-cross-section", title: "Cross-section", note: idle },
-    // Only an atmosphere has a descent envelope to wait for.
+    // Only an atmosphere has a descent profile to wait for.
     ...(atmospheric
-      ? [{ subject: "descent-envelope", title: "Descent envelope", note: idle }]
+      ? [{ subject: "descent-profile", title: "Descent profile", note: idle }]
       : []),
   ];
 
@@ -449,7 +449,7 @@ registerComponent<LandingStatusConfig>({
   ...read,
   defaultConfig: {},
   augmentSlots: ["landing-status.sections", "landing-status.actions"],
-  // Declaring the slot is the whole opt-in; the widget's own descent envelope arrives through it too.
+  // Declaring the slot is the whole opt-in; the widget's own descent profile arrives through it too.
   contributionSlots: ["plots"],
   pushable: true,
   requires: ["flight"],

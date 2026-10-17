@@ -34,28 +34,28 @@ afterEach(() => {
 describe("mergePlots", () => {
   it("draws ONE plot when two contributions name one subject", () => {
     const merged = mergePlots([
-      entry("core:descent-envelope", {
-        subject: "descent-envelope",
-        title: "Descent envelope",
+      entry("core:descent-profile", {
+        subject: "descent-profile",
+        title: "Descent profile",
         frame: FRAME,
         layers: [{ kind: "rule", id: "terminal", along: "y", value: 10 }],
       }),
-      entry("aero:descent-envelope", {
-        subject: "descent-envelope",
+      entry("aero:descent-profile", {
+        subject: "descent-profile",
         layers: [{ kind: "rule", id: "model", along: "y", value: 20 }],
       }),
     ]);
 
     expect(merged).toHaveLength(1);
-    expect(merged[0].title).toBe("Descent envelope");
+    expect(merged[0].title).toBe("Descent profile");
     expect(merged[0].layers.map((l) => l.id)).toEqual(["terminal", "model"]);
     expect(warn).not.toHaveBeenCalled();
   });
 
   it("draws NOTHING for an enrichment whose subject nobody framed", () => {
-    // FAR's model curve with no landing envelope has nothing to part from, so nothing is drawn.
+    // FAR's model curve with no landing profile has nothing to part from, so nothing is drawn.
     const merged = mergePlots([
-      entry("aero:descent-envelope", { subject: "descent-envelope" }),
+      entry("aero:descent-profile", { subject: "descent-profile" }),
     ]);
     expect(merged).toEqual([]);
   });
@@ -77,11 +77,11 @@ describe("mergePlots", () => {
 
   it("keeps subjects apart, and preserves the order they arrived in", () => {
     const merged = mergePlots([
-      entry("core:a", { subject: "descent-envelope", frame: FRAME }),
+      entry("core:a", { subject: "descent-profile", frame: FRAME }),
       entry("core:b", { subject: "touchdown-site", frame: FRAME }),
     ]);
     expect(merged.map((m) => m.subject)).toEqual([
-      "descent-envelope",
+      "descent-profile",
       "touchdown-site",
     ]);
   });
@@ -97,13 +97,13 @@ describe("mergePlots", () => {
     };
     const merged = mergePlots([
       entry("core:first", {
-        subject: "descent-envelope",
+        subject: "descent-profile",
         title: "Mine",
         frame: FRAME,
         layers: [{ kind: "rule", id: "mine", along: "y", value: 1 }],
       }),
       entry("guest:second", {
-        subject: "descent-envelope",
+        subject: "descent-profile",
         title: "Theirs",
         frame: other,
         layers: [{ kind: "rule", id: "theirs", along: "y", value: 2 }],
@@ -121,19 +121,19 @@ describe("mergePlots", () => {
     // Both owners named, so the collision can be chased to its authors.
     expect(message).toContain("core:first");
     expect(message).toContain("guest:second");
-    expect(message).toContain("descent-envelope");
+    expect(message).toContain("descent-profile");
   });
 
   // Domains merge and cannot lose data; units and scales stay the frame owner's.
   it("widens the frame to contain a guest's marks, so nothing is clipped", () => {
     const merged = mergePlots([
       entry("core:host", {
-        subject: "descent-envelope",
+        subject: "descent-profile",
         frame: { xDomain: [0, 400], yDomain: [0, 1000], xUnit: "m/s" },
         layers: [{ kind: "marker", id: "mine", at: { x: 100, y: 100 } }],
       }),
       entry("guest:faster", {
-        subject: "descent-envelope",
+        subject: "descent-profile",
         // The craft reaches 800 m/s and 2 km, past the host's window.
         layers: [{ kind: "marker", id: "theirs", at: { x: 800, y: 2000 } }],
       }),
@@ -307,11 +307,11 @@ describe("mergePlots", () => {
   it("keys the plot by the framing contribution, not by the subject", () => {
     // A subject is a free string; a contribution id is namespaced by its owner.
     const merged = mergePlots([
-      entry("core:descent-envelope", {
-        subject: "descent-envelope",
+      entry("core:descent-profile", {
+        subject: "descent-profile",
         frame: FRAME,
       }),
     ]);
-    expect(merged[0].key).toBe("core:descent-envelope");
+    expect(merged[0].key).toBe("core:descent-profile");
   });
 });

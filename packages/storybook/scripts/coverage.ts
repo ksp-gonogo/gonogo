@@ -97,7 +97,7 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
     h: 10,
   },
   {
-    id: "core:descent-envelope",
+    id: "core:descent-profile",
     widgetId: "landing-status",
     fixture: `${COMPONENTS}/LandingStatus/__render_atmospheric__/at-terminal.json`,
     w: 12,

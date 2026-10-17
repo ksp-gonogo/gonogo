@@ -7,7 +7,7 @@ import {
 } from "./descentLayers";
 import { touchdownBand } from "./hazardVerdict";
 
-/** The descent envelope's own marks, tested as data: which layers exist and what they say, not how they are drawn. */
+/** The descent profile's own marks, tested as data: which layers exist and what they say, not how they are drawn. */
 
 const KERBIN_G = 9.81;
 

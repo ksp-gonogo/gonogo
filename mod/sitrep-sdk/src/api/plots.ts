@@ -155,7 +155,7 @@ export interface PlotEntry {
    * name the contribution itself.
    *
    * Two plots that share axes but are not the same plot, such as two vessels'
-   * descent envelopes, need two subjects. Plots are merged only by subject,
+   * descent profiles, need two subjects. Plots are merged only by subject,
    * never by matching axes.
    */
   subject: PlotSubject;

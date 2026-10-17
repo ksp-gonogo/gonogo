@@ -12,25 +12,25 @@ import { parentBodyFromTopics } from "../shared/streamBody";
 import { touchdownBand } from "./hazardVerdict";
 
 /**
- * The descent envelope as a contributed plot: a velocity-height instrument with speed on X and height above ground on Y, so the bottom edge is the ground. The bold curve is the terminal-velocity line, the equilibrium glide the vessel settles onto.
- * LandingStatus cannot name this plot and holds nothing an outside author lacks, so the widget would lose its own envelope the moment the seam stopped carrying one.
+ * The descent profile as a contributed plot: a velocity-height instrument with speed on X and height above ground on Y, so the bottom edge is the ground. The bold curve is the terminal-velocity line, the equilibrium glide the vessel settles onto.
+ * LandingStatus cannot name this plot and holds nothing an outside author lacks, so the widget would lose its own profile the moment the seam stopped carrying one.
  *
  * Not a reckoner: the trace is a descent projected from the speed and height at the view time, along a terminal-velocity curve built from the two anchors `vessel.landing` carries. It is a drawing of an outcome that has not happened, not a Topic's value carried past its last observation, and it sits on no channel for `registerReckoner` to name.
  */
 /**
  * Urgency is driven entirely by the do-nothing outcome (`projectedTouchdownSpeed`) and the altitude left, never the current speed.
- * The outcome is judged by the landing verdict's own touchdown bands (`touchdownBand`), so the envelope and the verdict never disagree about the same speed.
+ * The outcome is judged by the landing verdict's own touchdown bands (`touchdownBand`), so the profile and the verdict never disagree about the same speed.
  */
 /** Below this altitude a touchdown the verdict calls `DIVERT` has no room left to correct, so caution escalates. */
 const CRITICAL_ALTITUDE_M = 1500;
 
-export type EnvelopeUrgency = "safe" | "caution" | "urgent";
+export type ProfileUrgency = "safe" | "caution" | "urgent";
 
 /** The do-nothing touchdown outcome as an action-urgency tier. */
 export function classifyUrgency(
   touchdownSpeed: number,
   altitude: number,
-): EnvelopeUrgency {
+): ProfileUrgency {
   const band = touchdownBand(touchdownSpeed);
   if (band === "SAFE") return "safe";
   if (band === "DIVERT" && altitude <= CRITICAL_ALTITUDE_M) return "urgent";
@@ -38,21 +38,21 @@ export function classifyUrgency(
 }
 
 /** Urgency in the framework's severity words, the only thing a layer may name; the palette belongs to the drawing host. */
-const URGENCY_TONE: Record<EnvelopeUrgency, Tone> = {
+const URGENCY_TONE: Record<ProfileUrgency, Tone> = {
   safe: "go",
   caution: "warn",
   urgent: "nogo",
 };
 
 /** Short HUD word, kept terse like the corner readouts. */
-const URGENCY_WORD: Record<EnvelopeUrgency, string> = {
+const URGENCY_WORD: Record<ProfileUrgency, string> = {
   safe: "SAFE",
   caution: "CAUTION",
   urgent: "URGENT",
 };
 
 /** The accessible phrase, so colour is never the only channel carrying urgency (WCAG 1.4.1). */
-const URGENCY_COPY: Record<EnvelopeUrgency, string> = {
+const URGENCY_COPY: Record<ProfileUrgency, string> = {
   safe: "SAFE, no action needed",
   caution: "CAUTION, action needed soon",
   urgent: "URGENT, slow now",
@@ -83,7 +83,7 @@ const DRAG_MIN_SCALE = 0.2;
 const DRAG_MAX_SCALE = 1.4;
 const DECEL_WASH_OPACITY = 0.1;
 
-export interface DescentEnvelopeInputs {
+export interface DescentProfileInputs {
   /** Current surface speed, m/s. */
   currentSpeed: number | null;
   /** Current height above terrain, m (0 = touchdown). */
@@ -103,7 +103,7 @@ export interface DescentEnvelopeInputs {
 }
 
 /** The plot's axes and the two model functions every layer derives from, or null unless both terminal anchors and the current altitude are positive. */
-export function descentFrame(inputs: Readonly<DescentEnvelopeInputs>): {
+export function descentFrame(inputs: Readonly<DescentProfileInputs>): {
   xDomain: [number, number];
   yDomain: [number, number];
   altitude: number;
@@ -161,9 +161,9 @@ function fmtAlt(m: number): string {
   return writeQuantity(value("m", m), { decimals: 0 });
 }
 
-/** Every mark the descent envelope draws in the plot's data space; empty when the plot cannot be drawn, never a substituted zero. */
+/** Every mark the descent profile draws in the plot's data space; empty when the plot cannot be drawn, never a substituted zero. */
 export function buildDescentLayers(
-  inputs: Readonly<DescentEnvelopeInputs>,
+  inputs: Readonly<DescentProfileInputs>,
 ): PlotLayer[] {
   const frame = descentFrame(inputs);
   if (!frame) return [];
@@ -368,12 +368,12 @@ export function buildDescentLayers(
 }
 
 /**
- * The descent envelope, contributed as a whole plot through `CORE_UPLINK_CLIENT`, the same route a third party uses.
+ * The descent profile, contributed as a whole plot through `CORE_UPLINK_CLIENT`, the same route a third party uses.
  *
  * It re-derives the burn datum from Topic values as the widget does, since a contribution gets nothing else. Relevance is the `null` return alone: `descentFrame` produces a frame only once the mod's terminal-velocity model has a reading, so no second predicate can disagree with the marks.
  */
 CORE_UPLINK_CLIENT.registerContribution({
-  id: "descent-envelope",
+  id: "descent-profile",
   contributes: "plots",
   deps: [
     "vessel.identity",
@@ -392,7 +392,7 @@ CORE_UPLINK_CLIENT.registerContribution({
       surface?.heightFromTerrain?.magnitude ??
       flight?.altitudeTerrain?.magnitude ??
       null;
-    const inputs: DescentEnvelopeInputs = {
+    const inputs: DescentProfileInputs = {
       currentSpeed: flight?.surfaceSpeed?.magnitude ?? null,
       currentAltitude: height,
       terminalVelocity: landing?.terminalVelocity?.magnitude ?? null,
@@ -412,8 +412,8 @@ CORE_UPLINK_CLIENT.registerContribution({
     if (!frame) return null;
     return [
       {
-        subject: "descent-envelope",
-        title: "Descent envelope",
+        subject: "descent-profile",
+        title: "Descent profile",
         frame: {
           kind: "spatial",
           xDomain: frame.xDomain,

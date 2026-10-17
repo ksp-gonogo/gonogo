@@ -524,7 +524,7 @@ describe("LandingStatusComponent", () => {
     expect(await screen.findByText("LANDED")).toBeInTheDocument();
     // Held: the 5 m/s it came down at, not the 0 it reads now.
     expect(visibleText()).toMatch(/TOUCHDOWN SPEED\s*5(\.0+)?\s*m\/s/i);
-    // 5 m/s is the verdict's MARGINAL band, the same figure the envelope judged by the same rule.
+    // 5 m/s is the verdict's MARGINAL band, the same figure the profile judged by the same rule.
     expect(screen.getByText("MARGINAL")).toBeInTheDocument();
   });
 

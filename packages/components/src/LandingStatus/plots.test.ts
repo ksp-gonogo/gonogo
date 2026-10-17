@@ -1663,9 +1663,7 @@ describe("the body a contribution resolves", () => {
 
   // The projected trace needs a gravity, so it says whether the body resolved.
   it("projects the descent for a body no table knows", () => {
-    expect(layerIds("core:descent-envelope", EARTH)).toContain(
-      "trace-estimate",
-    );
+    expect(layerIds("core:descent-profile", EARTH)).toContain("trace-estimate");
   });
 
   // The downrange displacement is a great-circle arc on the body's radius; without one the mark would sit on the site.
@@ -1703,7 +1701,7 @@ describe("the body a contribution resolves", () => {
 
   it("marks every landing plot held while the flight it was drawn from is held, and none while it is current", () => {
     for (const id of [
-      "core:descent-envelope",
+      "core:descent-profile",
       "core:cross-section",
       "core:touchdown-reticle",
     ]) {

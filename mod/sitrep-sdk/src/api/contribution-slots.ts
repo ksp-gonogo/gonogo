@@ -682,7 +682,7 @@ declare module "./plots" {
      *  above ground up. A contribution that adds the band of the last burn that
      *  can stop the vessel, or a better terminal-velocity model, names this
      *  subject to draw onto the same plot. */
-    "descent-envelope": true;
+    "descent-profile": true;
     /** The terrain slice along the ground track through the predicted site. */
     "landing-cross-section": true;
     /** The top-down view around the predicted touchdown point. */

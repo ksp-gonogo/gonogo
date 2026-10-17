@@ -185,7 +185,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // log10, which wants the height as a number. The height itself reaches the
   // Tape as its whole reading.
   "packages/components/src/LandingStatus/AltitudeRail.tsx": 1,
-  // 7: the descent envelope's own layers, in the plot's own axes. The two
+  // 7: the descent profile's own layers, in the plot's own axes. The two
   // terminal anchors, the height and the speed set the frame and feed the
   // integration; the drag ratio scales a mark and the Mach number decides
   // whether the projection is drawn as an estimate. All arithmetic, none of it

@@ -53,7 +53,7 @@ export interface HazardResult {
   axes: HazardAxis[];
 }
 
-/** The band a touchdown speed falls in: the verdict's own rule, which the descent envelope's urgency also uses, so the two cannot disagree. A speed exactly on a boundary falls in the safer band. */
+/** The band a touchdown speed falls in: the verdict's own rule, which the descent profile's urgency also uses, so the two cannot disagree. A speed exactly on a boundary falls in the safer band. */
 export function touchdownBand(
   speed: number,
   thresholds: HazardThresholds = DEFAULT_HAZARD_THRESHOLDS,
