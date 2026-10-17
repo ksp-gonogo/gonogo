@@ -6,6 +6,7 @@ import {
   unlessLocked,
   type Value,
   type VesselOrbit,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { EncounterDirection } from "./encounter";
 import { encounterDirectionOf } from "./encounter";
@@ -63,6 +64,29 @@ export function targetEncounterOf(
       orbit == null || !encounter.transitionUt.isFinite()
         ? null
         : solveOrbit(orbit, encounter.transitionUt, undefined).trueAnomaly,
+  };
+}
+
+/**
+ * Where the target was along its own orbit at the instant of the craft's report, in degrees, and whether that report is older than one orbit of the target.
+ * Used beside a held route, to show where the plan was aimed against where the target was then.
+ * The true anomaly is null where the elements cannot say, and an open orbit has no period, so it never outlasts one.
+ */
+export function targetAtReport(
+  orbit: VesselOrbit | null | undefined,
+  reportEpoch: Value<"ut"> | undefined,
+  reportAge: Value<"s"> | undefined,
+): { trueAnomaly: number | null; reportOutlastsOrbit: boolean } {
+  if (orbit == null || reportEpoch === undefined) {
+    return { trueAnomaly: null, reportOutlastsOrbit: false };
+  }
+  const { trueAnomaly, period } = solveOrbit(orbit, reportEpoch, undefined);
+  return {
+    trueAnomaly,
+    reportOutlastsOrbit:
+      period !== null &&
+      reportAge !== undefined &&
+      reportAge.greaterThan(value("s", period)),
   };
 }
 

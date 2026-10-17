@@ -103,11 +103,17 @@ export function VesselOrbitPath({
   origin = [0, 0, 0],
   subject = "vessel",
   held = false,
+  heldReason,
+  liveReason,
 }: Readonly<{
+  /** The tooltip of a target curve drawn live beside a held route, saying it is newer than the craft's report. */
+  liveReason?: string;
   /** Whose curve this is; the target's is drawn in its own colour and keyed apart. */
   subject?: "vessel" | "target";
   /** Drawn from a report older than what the diagram places the craft by, so it is dimmed and marked held. */
   held?: boolean;
+  /** The tooltip a held route carries, naming why it is held and how old the report is. */
+  heldReason?: string;
   trajectory: OrbitTrajectory | null;
   conicRing: string | null;
   placement: Placement;
@@ -140,6 +146,7 @@ export function VesselOrbitPath({
       : hasGradient
         ? `url(#${gradId})`
         : DEPTH_LEVEL_COLOUR;
+  const tooltip = held ? heldReason : liveReason;
   const trajectoryAttr = {
     [`data-${subject}-trajectory`]: trajectory.shape,
     ...(held ? { "data-route-held": "", opacity: HELD_ROUTE_OPACITY } : {}),
@@ -147,29 +154,39 @@ export function VesselOrbitPath({
   if (trajectory.shape === "conic") {
     if (conicRing === null) return null;
     return (
+      <>
+        <path
+          {...trajectoryAttr}
+          d={conicRing}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={strokeW}
+          strokeDasharray={dashes}
+          pointerEvents="none"
+        />
+        {tooltip !== undefined && (
+          <HeldHitPath d={conicRing} zoom={zoom} reason={tooltip} />
+        )}
+      </>
+    );
+  }
+  if (arcPath === null) return null;
+  return (
+    <>
       <path
         {...trajectoryAttr}
-        d={conicRing}
+        data-trajectory-frame={trajectory.frame.kind}
+        d={arcPath}
         fill="none"
         stroke={stroke}
         strokeWidth={strokeW}
         strokeDasharray={dashes}
         pointerEvents="none"
       />
-    );
-  }
-  if (arcPath === null) return null;
-  return (
-    <path
-      {...trajectoryAttr}
-      data-trajectory-frame={trajectory.frame.kind}
-      d={arcPath}
-      fill="none"
-      stroke={stroke}
-      strokeWidth={strokeW}
-      strokeDasharray={dashes}
-      pointerEvents="none"
-    />
+      {tooltip !== undefined && (
+        <HeldHitPath d={arcPath} zoom={zoom} reason={tooltip} />
+      )}
+    </>
   );
 }
 
@@ -202,6 +219,29 @@ export function ArcFarEndMark({
   );
 }
 
+/**
+ * A transparent, wider copy of a held route that carries its tooltip.
+ * It handles no pointer event itself, so a press or wheel on it reaches the diagram's pan and zoom as on empty space.
+ */
+function HeldHitPath({
+  d,
+  zoom,
+  reason,
+}: Readonly<{ d: string; zoom: number; reason: string }>) {
+  return (
+    <path
+      data-route-held-hit=""
+      d={d}
+      fill="none"
+      stroke="transparent"
+      strokeWidth={10 / zoom}
+      pointerEvents="stroke"
+    >
+      <title>{reason}</title>
+    </path>
+  );
+}
+
 // Live patch solid green; upcoming patches dashed, info-blue for an escape and warm for an encounter.
 function patchStroke(patch: PatchChainArc): string {
   if (patch.isCurrent) return "var(--color-accent-fg)";
@@ -215,7 +255,9 @@ export function PredictedPatchArc({
   plotScale,
   zoom,
   held = false,
+  heldReason,
 }: Readonly<{
+  heldReason?: string;
   patch: PatchChainArc;
   points: readonly (readonly [number, number, number])[];
   plotScale: number;
@@ -227,20 +269,25 @@ export function PredictedPatchArc({
   const d = openPath(points, plotScale);
   const stroke = patchStroke(patch);
   return (
-    <path
-      data-patch-body={patch.referenceBody}
-      d={d}
-      fill="none"
-      stroke={stroke}
-      // Screen-constant stroke and dashes.
-      strokeWidth={(patch.isCurrent ? 1.6 : 1.2) / zoom}
-      strokeDasharray={
-        patch.isCurrent && !held ? undefined : `${5 / zoom} ${4 / zoom}`
-      }
-      opacity={held ? HELD_ROUTE_OPACITY : patch.isCurrent ? 0.95 : 0.7}
-      data-route-held={held ? "" : undefined}
-      pointerEvents="none"
-    />
+    <>
+      <path
+        data-patch-body={patch.referenceBody}
+        d={d}
+        fill="none"
+        stroke={stroke}
+        // Screen-constant stroke and dashes.
+        strokeWidth={(patch.isCurrent ? 1.6 : 1.2) / zoom}
+        strokeDasharray={
+          patch.isCurrent && !held ? undefined : `${5 / zoom} ${4 / zoom}`
+        }
+        opacity={held ? HELD_ROUTE_OPACITY : patch.isCurrent ? 0.95 : 0.7}
+        data-route-held={held ? "" : undefined}
+        pointerEvents="none"
+      />
+      {held && heldReason !== undefined && (
+        <HeldHitPath d={d} zoom={zoom} reason={heldReason} />
+      )}
+    </>
   );
 }
 
@@ -251,6 +298,7 @@ export function EncounterMarker({
   body,
   zoom,
   subject = "vessel",
+  heldReason,
 }: Readonly<{
   x: number;
   y: number;
@@ -258,7 +306,10 @@ export function EncounterMarker({
   body: string;
   zoom: number;
   subject?: "vessel" | "target";
+  /** Set when the marker comes from a report older than the craft's place: it is dimmed, dashed and carries this tooltip. */
+  heldReason?: string;
 }>) {
+  const held = heldReason !== undefined;
   const color =
     kind === "escape" ? "var(--color-info-mark)" : "var(--color-warn-mark)";
   const r = 4 / zoom;
@@ -267,7 +318,13 @@ export function EncounterMarker({
     subject === "target" ? `encounter ${body}` : `→ ${body}`;
   const label = kind === "escape" ? `escape ${body}` : encounterLabel;
   return (
-    <g pointerEvents="none" data-encounter-subject={subject}>
+    <g
+      pointerEvents={held ? "visiblePainted" : "none"}
+      data-encounter-subject={subject}
+      data-route-held={held ? "" : undefined}
+      opacity={held ? HELD_ROUTE_OPACITY : undefined}
+    >
+      {held && <title>{heldReason}</title>}
       <circle
         cx={x}
         cy={y}
@@ -275,6 +332,7 @@ export function EncounterMarker({
         fill="none"
         stroke={color}
         strokeWidth={1.5 / zoom}
+        strokeDasharray={held ? `${2 / zoom} ${2 / zoom}` : undefined}
       />
       <circle cx={x} cy={y} r={r * 0.35} fill={color} />
       <text
@@ -286,6 +344,50 @@ export function EncounterMarker({
       >
         {label}
       </text>
+    </g>
+  );
+}
+
+/**
+ * Where the target was along its orbit at the instant of the craft's report, drawn in the held route's dimmed, dashed form.
+ * Used beside a held route, so the operator can compare where the plan aimed with where the target was then.
+ */
+export function TargetThenMark({
+  x,
+  y,
+  zoom,
+  name,
+  reason,
+}: Readonly<{
+  x: number;
+  y: number;
+  zoom: number;
+  name: string;
+  /** The held route's own tooltip, naming the age of the report; absent when no age is known. */
+  reason?: string;
+}>) {
+  const r = 4 / zoom;
+  return (
+    <g
+      pointerEvents="visiblePainted"
+      data-target-then=""
+      data-route-held=""
+      opacity={HELD_ROUTE_OPACITY}
+    >
+      <title>
+        {reason === undefined
+          ? `${name} at the craft's report`
+          : `${name} at the craft's report. ${reason}`}
+      </title>
+      <circle
+        cx={x}
+        cy={y}
+        r={r}
+        fill="none"
+        stroke={TARGET_ORBIT_COLOUR}
+        strokeWidth={1.5 / zoom}
+        strokeDasharray={`${2 / zoom} ${2 / zoom}`}
+      />
     </g>
   );
 }

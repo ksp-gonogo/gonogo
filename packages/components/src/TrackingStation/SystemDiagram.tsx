@@ -33,6 +33,7 @@ import {
   FrameParentMark,
   onThePicture,
   PredictedPatchArc,
+  TargetThenMark,
   VesselOrbitPath,
 } from "./diagramMarks";
 import { EmptyDiagram } from "./EmptyDiagram";
@@ -99,6 +100,8 @@ export interface SystemDiagramProps {
     conic: TargetConic;
     trajectory: OrbitTrajectory | null;
     encounter: TargetEncounter | null;
+    /** Where the target was along its conic at the instant of the craft's report, degrees; set only while the craft's route is held, and null when the elements cannot say. */
+    trueAnomalyAtReport?: number | null;
   } | null;
   /** The body the frame body orbits and where it is from the frame body, in metres. Drawn at its place while that is on the picture and pointed to from the edge when it is not, so the body a craft just left the neighbourhood of stays findable. Null for the root star, or while the model has no place for it. */
   frameParent?: {
@@ -114,6 +117,12 @@ export interface SystemDiagramProps {
   vesselFromRecord?: boolean;
   /** The craft's own report's route, drawn held beside a craft placed by its record; absent or a conic draws nothing more. */
   heldRoute?: OrbitTrajectory | null;
+  /** The tooltip of the held route and its encounters: why they are held and how old the craft's report is. */
+  heldReason?: string;
+  /** The target drawn here is read live, so it is newer than the held route beside it; its curve says so in its tooltip. */
+  targetNewerThanReport?: boolean;
+  /** The held route's encounter markers are not drawn: the report is older than the target's orbital period, so where the plan pointed says nothing about where the target is. */
+  hideHeldEncounters?: boolean;
   /** The instant a body's open arc is read from, held by the host to one real second so a ring is not re-placed on every frame; absent reads each pose's own instant. */
   bucketUt?: number;
   /** The frame the whole picture is drawn in. `null` means the catalogue refused the requested frame, so the diagram draws parent-centred inertial and the caller names that frame. */
@@ -164,6 +173,9 @@ export function SystemDiagram({
   patchChain,
   vesselFromRecord = false,
   heldRoute = null,
+  heldReason,
+  targetNewerThanReport = false,
+  hideHeldEncounters = false,
   bucketUt,
   projection = null,
   width,
@@ -322,6 +334,22 @@ export function SystemDiagram({
     );
     return { x: at.x, y: at.y };
   }, [targetConic, targetEncounterAnomaly, placement, plotScale]);
+  const targetThenAnomaly = targetHere?.trueAnomalyAtReport;
+  const targetThenAt = useMemo(() => {
+    if (
+      targetConic === undefined ||
+      targetThenAnomaly === undefined ||
+      targetThenAnomaly === null
+    ) {
+      return null;
+    }
+    const at = placeVesselPoint(
+      { ...targetConic, trueAnomaly: targetThenAnomaly },
+      placement,
+      plotScale,
+    );
+    return { x: at.x, y: at.y };
+  }, [targetConic, targetThenAnomaly, placement, plotScale]);
   const placed = useMemo(
     () => ({
       ...placedBodies,
@@ -542,6 +570,7 @@ export function SystemDiagram({
             plotScale={plotScale}
             zoom={zoom}
             held={vesselFromRecord}
+            heldReason={heldReason}
           />
         ))}
 
@@ -569,6 +598,7 @@ export function SystemDiagram({
             zoom={zoom}
             origin={origin ?? ZERO_METRES}
             held
+            heldReason={heldReason}
           />
         )}
 
@@ -582,6 +612,11 @@ export function SystemDiagram({
             gradId={`${tiltGradId}-target`}
             hasGradient={false}
             zoom={zoom}
+            liveReason={
+              targetNewerThanReport
+                ? "Target drawn as of now, newer than the craft's report"
+                : undefined
+            }
           />
         )}
 
@@ -645,16 +680,28 @@ export function SystemDiagram({
           );
         })}
 
-        {placedPatches?.crossings.map(({ crossing, at }) => (
-          <EncounterMarker
-            key={`enc-${crossing.patchIndex}`}
-            x={at[0] * plotScale}
-            y={at[1] * plotScale}
-            kind={crossing.kind}
-            body={crossing.body}
+        {targetThenAt && (
+          <TargetThenMark
+            x={targetThenAt.x}
+            y={targetThenAt.y}
             zoom={zoom}
+            name={typeof targetName === "string" ? targetName : "Target"}
+            reason={heldReason}
           />
-        ))}
+        )}
+
+        {!(vesselFromRecord && hideHeldEncounters) &&
+          placedPatches?.crossings.map(({ crossing, at }) => (
+            <EncounterMarker
+              key={`enc-${crossing.patchIndex}`}
+              x={at[0] * plotScale}
+              y={at[1] * plotScale}
+              kind={crossing.kind}
+              body={crossing.body}
+              zoom={zoom}
+              heldReason={vesselFromRecord ? heldReason : undefined}
+            />
+          ))}
 
         {frameParentName !== undefined && frameParentPoint !== null && (
           <FrameParentMark

@@ -103,8 +103,15 @@ function wirePatch(
   };
 }
 
-function mount(patches: readonly unknown[], recordPlacedAt?: number) {
-  const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
+function mount(
+  patches: readonly unknown[],
+  recordPlacedAt?: number,
+  opts: { ut?: number; targetSma?: number } = {},
+) {
+  const fixture = setupStreamFixture({
+    pinnedUt: opts.ut ?? 0,
+    suspendFrames: true,
+  });
   const view = render(
     <fixture.Provider>
       <TrackingStationComponent
@@ -125,6 +132,22 @@ function mount(patches: readonly unknown[], recordPlacedAt?: number) {
       parentBodyIndex: 1,
     });
     fixture.emit("vessel.orbit", { ...NO_ENCOUNTER_ORBIT, patches });
+    if (opts.targetSma !== undefined) {
+      fixture.emit("vessel.target", {
+        name: "Relay",
+        kind: 0,
+        vesselId: "v-relay",
+        bodyIndex: null,
+        relativePosition: { x: 0, y: 0, z: 0 },
+        relativeVelocity: { x: 0, y: 0, z: 0 },
+        orbit: {
+          ...NO_ENCOUNTER_ORBIT,
+          ecc: 0,
+          sma: opts.targetSma,
+          patches: [],
+        },
+      });
+    }
     if (recordPlacedAt !== undefined) {
       fixture.emit("trackingStation.catalog", {
         entries: [
@@ -148,7 +171,7 @@ function mount(patches: readonly unknown[], recordPlacedAt?: number) {
 function predictedArcs(container: HTMLElement): Element[] {
   return Array.from(
     container.querySelectorAll(
-      'path[stroke][fill="none"]:not([data-vessel-trajectory]):not([data-body-orbit])',
+      'path[stroke][fill="none"]:not([data-vessel-trajectory]):not([data-body-orbit]):not([data-route-held-hit])',
     ),
   ).filter((el) => (el.getAttribute("d") ?? "").length > 0);
 }
@@ -194,7 +217,71 @@ describe("TrackingStation's predicted patch chain", () => {
     for (const arc of arcs) {
       expect(arc.closest("[data-route-held]")).not.toBeNull();
     }
+    const reasons = [
+      ...view.container.querySelectorAll("[data-route-held-hit] title"),
+    ].map((t) => t.textContent);
+    expect(reasons.length).toBeGreaterThan(0);
+    for (const reason of reasons) {
+      expect(reason).toMatch(/^Held: last report .+ ago$/);
+    }
+    for (const marker of view.container.querySelectorAll(
+      '[data-encounter-subject="vessel"]',
+    )) {
+      expect(marker.hasAttribute("data-route-held")).toBe(true);
+      expect(marker.querySelector("title")?.textContent).toMatch(
+        /^Held: last report/,
+      );
+    }
+    expect(
+      view.container.querySelector("[data-held-plan-caption]")?.textContent,
+    ).toMatch(/held from the craft's report/);
     await act(async () => {});
+  });
+
+  describe("beside a target", () => {
+    const chain = [
+      wirePatch("Kerbin", 0, ENCOUNTER_UT, 0, 3_000_000),
+      wirePatch("Mun", ENCOUNTER_UT, 60_000, 2, 400_000),
+    ];
+
+    it("marks where the target was at the report, and keeps the held encounter while the report is younger than the target's orbit", async () => {
+      const view = mount(chain, 500, { ut: 1000, targetSma: 3_000_000 });
+      await waitFor(() => {
+        expect(
+          view.container.querySelector("[data-target-then]"),
+        ).not.toBeNull();
+      });
+      expect(
+        view.container.querySelector("[data-target-then] title")?.textContent,
+      ).toMatch(/^Relay at the craft's report\. Held: last report/);
+      expect(
+        view.container.querySelector('[data-encounter-subject="vessel"]'),
+      ).not.toBeNull();
+      await act(async () => {});
+    });
+
+    it("hides the held encounter once the report is older than one orbit of the target, and keeps the target's place at the report", async () => {
+      // Period of a 3 000 km orbit about Kerbin is about 17 400 s.
+      const view = mount(chain, 500, { ut: 40_000, targetSma: 3_000_000 });
+      await waitFor(() => {
+        expect(
+          view.container.querySelector("[data-target-then]"),
+        ).not.toBeNull();
+      });
+      expect(
+        view.container.querySelector('[data-encounter-subject="vessel"]'),
+      ).toBeNull();
+      await act(async () => {});
+    });
+
+    it("draws no place at the report when the craft is not placed by a newer record", async () => {
+      const view = mount(chain, undefined, { ut: 1000, targetSma: 3_000_000 });
+      await waitFor(() => {
+        expect(view.container.querySelector("svg")).not.toBeNull();
+      });
+      expect(view.container.querySelector("[data-target-then]")).toBeNull();
+      await act(async () => {});
+    });
   });
 
   it("draws no prediction when the game published no chain, rather than making one from the orbit", async () => {

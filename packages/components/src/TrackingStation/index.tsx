@@ -35,6 +35,7 @@ import {
   NULL_DISPLAY,
   PanZoomViewport,
   Section,
+  speakQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import {
@@ -72,8 +73,13 @@ import { useDismissEnded } from "../VesselCatalog/DismissEnded";
 import { orbitFramingZoom } from "./orbitFraming";
 import { SystemDiagram } from "./SystemDiagram";
 import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
-import { CommsSourceCaption, TargetOrbitCaption } from "./TargetOrbitCaption";
 import {
+  CommsSourceCaption,
+  HeldPlanCaption,
+  TargetOrbitCaption,
+} from "./TargetOrbitCaption";
+import {
+  targetAtReport,
   targetEncounterOf,
   targetHorizonOf,
   targetParentOf,
@@ -359,6 +365,19 @@ function TrackingStationComponent({
     muOf: (name) => bodies.find((b) => b.name === name)?.gravParameter ?? null,
     ut: universalTime,
   });
+  const reportAge =
+    recorded !== null && viewUt !== undefined && orbitObserved?.epoch != null
+      ? viewUt.minus(orbitObserved.epoch).max(0)
+      : undefined;
+  const targetThen = targetAtReport(
+    targetOrbit ?? undefined,
+    orbitObserved?.epoch ?? undefined,
+    reportAge,
+  );
+  const diagramTarget =
+    drawnTarget === null || reportAge === undefined
+      ? drawnTarget
+      : { ...drawnTarget, trueAnomalyAtReport: targetThen.trueAnomaly };
   // A place a model carried the craft to is drawn as modelled even while every contact state says the craft is in touch.
   const drawnPlotState =
     recorded !== null ||
@@ -859,6 +878,16 @@ function TrackingStationComponent({
             {trajectoryWithheld && (
               <DeclinedEmptyState declined={trajectoryWithheld.declined} />
             )}
+            {reportAge !== undefined && (
+              <HeldPlanCaption
+                reportAge={reportAge}
+                targetName={
+                  drawnTarget !== null && typeof targetName === "string"
+                    ? targetName
+                    : null
+                }
+              />
+            )}
             {drawnTarget !== null &&
               targetHorizon !== null &&
               typeof targetName === "string" && (
@@ -916,7 +945,8 @@ function TrackingStationComponent({
                         recorded !== null ? RECORD_CONIC : vesselTrajectory
                       }
                       vesselPlotState={drawnPlotState}
-                      target={drawnTarget}
+                      target={diagramTarget}
+                      hideHeldEncounters={targetThen.reportOutlastsOrbit}
                       vesselPositionHeld={
                         recorded === null &&
                         vesselAt !== null &&
@@ -940,6 +970,14 @@ function TrackingStationComponent({
                       patchChain={patchChain}
                       vesselFromRecord={recorded !== null}
                       heldRoute={recorded !== null ? vesselTrajectory : null}
+                      heldReason={
+                        reportAge === undefined
+                          ? undefined
+                          : `Held: last report ${speakQuantity(reportAge, { decimals: 0 })} ago`
+                      }
+                      targetNewerThanReport={
+                        reportAge !== undefined && drawnTarget !== null
+                      }
                       frameParent={frameParent}
                       projection={projection}
                       width={size.w}
