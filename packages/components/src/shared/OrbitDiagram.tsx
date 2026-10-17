@@ -13,7 +13,7 @@ import {
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // biome-ignore lint/style/noRestrictedImports: SVG <circle> focus ring (a :focus-visible stroke on a shape), which neither an inline style nor a primitive can render
 import styled from "styled-components";
 
@@ -206,7 +206,121 @@ function Rotated({
   return transform ? <g transform={transform}>{children}</g> : children;
 }
 
-export function OrbitDiagram({
+/** Drawing units across the orbit's own extent. */
+const DIAGRAM_UNITS_ACROSS = 1000;
+
+/**
+ * The size of one drawing unit in the caller's distance unit: a thousandth of
+ * the orbit's extent. A hyperbola's extent is a multiple of periapsis, as in the
+ * scene's own framing. Falls back to 1 where no extent is finite.
+ */
+function drawingUnit({
+  ecc,
+  sma,
+  apoapsis,
+  periapsis,
+  projected,
+  secondaryProjected,
+}: Pick<
+  OrbitDiagramProps,
+  "ecc" | "sma" | "apoapsis" | "periapsis" | "projected" | "secondaryProjected"
+>): number {
+  const extentOf = (o: {
+    ecc: number;
+    sma: number;
+    apoapsis: number;
+    periapsis: number;
+  }) => (o.ecc >= 1 || o.sma <= 0 ? o.periapsis * 5 : o.apoapsis);
+  const extent = Math.max(
+    extentOf({ ecc, sma, apoapsis, periapsis }),
+    projected ? extentOf(projected) : 0,
+    secondaryProjected ? extentOf(secondaryProjected) : 0,
+  );
+  return Number.isFinite(extent) && extent > 0
+    ? extent / DIAGRAM_UNITS_ACROSS
+    : 1;
+}
+
+function inUnits(
+  points: readonly { x: number; y: number }[] | null | undefined,
+  unit: number,
+): readonly { x: number; y: number }[] | null {
+  return points ? points.map((p) => ({ x: p.x / unit, y: p.y / unit })) : null;
+}
+
+function projectedInUnits(
+  o: ProjectedOrbit | null | undefined,
+  unit: number,
+): ProjectedOrbit | null {
+  return o
+    ? {
+        ...o,
+        sma: o.sma / unit,
+        apoapsis: o.apoapsis / unit,
+        periapsis: o.periapsis / unit,
+      }
+    : null;
+}
+
+/**
+ * The orbit's plane, a body and the orbit drawn round it, from the distances
+ * its caller gives, in any one distance unit. Useful for showing the operator
+ * the shape of a craft's orbit, with the apsides and the craft on it. Used by
+ * Orbit View and the Maneuver Planner.
+ *
+ * Every length is converted to a drawing unit of a thousandth of the orbit's
+ * extent before anything is drawn. A browser's GPU rasteriser loses precision on
+ * shapes millions of units wide and paints a stretched ellipse as a lens with
+ * points at both apsides, so the scene never sees metres.
+ */
+export function OrbitDiagram(props: Readonly<OrbitDiagramProps>) {
+  const unit = drawingUnit(props);
+  const { trajectoryPath, trailPath, focus, maneuverHandles } = props;
+  const path = useMemo(
+    () => inUnits(trajectoryPath, unit),
+    [trajectoryPath, unit],
+  );
+  const trail = useMemo(() => inUnits(trailPath, unit), [trailPath, unit]);
+  return (
+    <OrbitDiagramScene
+      {...props}
+      unitSize={unit}
+      sma={props.sma / unit}
+      apoapsis={props.apoapsis / unit}
+      periapsis={props.periapsis / unit}
+      bodyRadius={
+        props.bodyRadius === undefined ? undefined : props.bodyRadius / unit
+      }
+      atmosphereDepthM={
+        props.atmosphereDepthM == null
+          ? props.atmosphereDepthM
+          : props.atmosphereDepthM / unit
+      }
+      projected={projectedInUnits(props.projected, unit)}
+      secondaryProjected={projectedInUnits(props.secondaryProjected, unit)}
+      trajectoryPath={path}
+      trailPath={trail}
+      focus={
+        focus
+          ? {
+              ...focus,
+              x: focus.x / unit,
+              y: focus.y / unit,
+              halfExtent: focus.halfExtent / unit,
+            }
+          : null
+      }
+      maneuverHandles={
+        maneuverHandles?.scale === undefined
+          ? maneuverHandles
+          : { ...maneuverHandles, scale: maneuverHandles.scale / unit }
+      }
+    />
+  );
+}
+
+function OrbitDiagramScene({
+  unitSize,
   sma,
   ecc,
   apoapsis,
@@ -231,7 +345,7 @@ export function OrbitDiagram({
   trajectoryFarEnd = null,
   corridor = false,
   focus = null,
-}: Readonly<OrbitDiagramProps>) {
+}: Readonly<OrbitDiagramProps & { unitSize: number }>) {
   const cfg = variantConfig[variant];
 
   // An escape trajectory has no ellipse and no apoapsis: it is sampled as a hyperbola and scaled off periapsis.
@@ -638,7 +752,7 @@ export function OrbitDiagram({
                     cy={0}
                     r={dotR}
                     fill="var(--color-apoapsis-mark)"
-                    aria-label={`Apoapsis altitude ${formatAltitude(apoapsis, bodyRadius)}`}
+                    aria-label={`Apoapsis altitude ${formatAltitude(apoapsis, bodyRadius, unitSize)}`}
                     onMouseEnter={() => setHoveredMarker("ap")}
                     onMouseLeave={() => setHoveredMarker(null)}
                     onFocus={() => setHoveredMarker("ap")}
@@ -651,7 +765,7 @@ export function OrbitDiagram({
                   cy={0}
                   r={dotR}
                   fill="var(--color-periapsis-mark)"
-                  aria-label={`Periapsis altitude ${formatAltitude(periapsis, bodyRadius)}`}
+                  aria-label={`Periapsis altitude ${formatAltitude(periapsis, bodyRadius, unitSize)}`}
                   onMouseEnter={() => setHoveredMarker("pe")}
                   onMouseLeave={() => setHoveredMarker(null)}
                   onFocus={() => setHoveredMarker("pe")}
@@ -730,7 +844,7 @@ export function OrbitDiagram({
                   hovered={hoveredMarker === "ap"}
                   text={
                     hoveredMarker === "ap"
-                      ? `Apoapsis, ${formatAltitude(apoapsis, bodyRadius)}`
+                      ? `Apoapsis, ${formatAltitude(apoapsis, bodyRadius, unitSize)}`
                       : "Ap"
                   }
                 />
@@ -745,7 +859,7 @@ export function OrbitDiagram({
                   hovered={hoveredMarker === "pe"}
                   text={
                     hoveredMarker === "pe"
-                      ? `Periapsis, ${formatAltitude(periapsis, bodyRadius)}`
+                      ? `Periapsis, ${formatAltitude(periapsis, bodyRadius, unitSize)}`
                       : "Pe"
                   }
                 />
@@ -819,8 +933,9 @@ function placeCraft(
 function formatAltitude(
   radius: number,
   bodyRadius: number | undefined,
+  unitSize: number,
 ): string {
-  return writeQuantity(value("m", radius - (bodyRadius ?? 0)));
+  return writeQuantity(value("m", (radius - (bodyRadius ?? 0)) * unitSize));
 }
 
 const ApsisMarker = styled.circle.attrs<{ r: number | string }>(({ r }) => ({
@@ -905,7 +1020,7 @@ function buildSuppliedPath(
   for (const p of points) {
     if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
     parts.push(
-      `${parts.length === 0 ? "M" : "L"}${p.x.toFixed(1)},${(-p.y).toFixed(1)}`,
+      `${parts.length === 0 ? "M" : "L"}${p.x.toFixed(2)},${(-p.y).toFixed(2)}`,
     );
   }
   return parts.join(" ");
@@ -982,7 +1097,7 @@ function buildHyperbolicPath(sma: number, ecc: number, rMax: number): string {
       continue;
     }
     const { x, y } = orbitalToCartesian(r, theta);
-    points.push(`${x.toFixed(1)},${(-y).toFixed(1)}`);
+    points.push(`${x.toFixed(2)},${(-y).toFixed(2)}`);
   }
   const segments: string[] = [];
   let current: string[] = [];
