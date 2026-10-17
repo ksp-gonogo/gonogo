@@ -273,8 +273,9 @@ export interface TinyEssential {
    */
   level?: { lit: number | null; of: number };
   /**
-   * A thin gauge bar drawn under the hero figure: where `value` sits on the
-   * scale from `min` to `max`, over the scale's bands. A value past either
+   * A gauge drawn with the hero figure, as a thin bar under it or as an arc
+   * dial around it (`style`): where `value` sits on the scale from `min` to
+   * `max`, over the scale's bands. A value past either
    * end pins to it, a held value dims its fill, and no value draws the bands
    * alone. Only the hero draws one; on a row it is ignored.
    */
@@ -318,13 +319,19 @@ export interface TinyControl {
 }
 
 /**
- * The scale a tiny essential's compact gauge draws its value on. Useful for
- * showing the operator where a figure sits between its limits. The `gauge` of a
- * {@link TinyEssential}.
+ * The scale a tiny essential's gauge draws its value on, as a thin bar or a
+ * half-circle arc. Useful for showing the operator where a figure sits between
+ * its limits. The `gauge` of a {@link TinyEssential}.
  *
  * @category Registering
  */
 export interface TinyGauge {
+  /**
+   * How the scale is drawn: `bar`, a thin bar under the figure, or `arc`, a
+   * half-circle dial with the figure under its hub, which takes the whole tile
+   * and so suits a widget whose figure is the gauge. Defaults to `bar`.
+   */
+  style?: "bar" | "arc";
   /** The value at the empty end of the gauge. */
   min: Value;
   /** The value at the full end of the gauge, in the same unit as `min`. */

@@ -12181,6 +12181,10 @@
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
       },
       {
+        "key": "sitrep-sdk . TinyGauge#style?",
+        "note": "A tiny gauge is drawn as a thin bar or as a half-circle arc dial carrying the figure. Optional, so a gauge without it is drawn as a bar"
+      },
+      {
         "key": "sitrep-sdk . TinyMode#equalRows?",
         "note": "Draws every essential as an equal row in shared columns with no large first figure, for a widget whose figures are peers. Optional, so a tiny mode without it is drawn as before"
       },
@@ -13775,6 +13779,10 @@
       {
         "key": "sitrep-sdk ./registry ~TinyEssentialMark#kind?",
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TinyGauge#style?",
+        "note": "A tiny gauge is drawn as a thin bar or as a half-circle arc dial carrying the figure. Optional, so a gauge without it is drawn as a bar"
       },
       {
         "key": "sitrep-sdk ./registry ~TinyMode#equalRows?",
