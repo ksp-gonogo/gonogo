@@ -400,7 +400,8 @@ export function Graph({
   const resolvedYTickFormat =
     yTickFormat ??
     (yUnit
-      ? (v: number, ticks?: readonly number[]) => unitTick(yUnit, v, ticks)
+      ? (v: number, ticks?: readonly number[]) =>
+          unitTick(yUnit, v, ticks, yScalePrimary)
       : undefined);
 
   const plotIsEmpty =
