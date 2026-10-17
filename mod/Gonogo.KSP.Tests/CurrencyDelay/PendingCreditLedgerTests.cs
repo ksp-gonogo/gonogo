@@ -254,6 +254,48 @@ public class PendingCreditLedgerTests
     }
 
     [Fact]
+    public void A_penalty_that_landed_on_a_declaration_is_refunded_by_what_the_balance_took_once_it_is_withdrawn()
+    {
+        var ledger = new PendingCreditLedger();
+        ledger.Enqueue(HeldRow("lost"));
+        ledger.ReleaseHeld(1000, _ => (HeldOutcome.Lands, 2));
+        var row = Assert.Single(ledger.PopMatured(1000));
+        Assert.Equal(2, row.LostSeq);
+
+        ledger.NoteApplied(row, -18.7);
+        var saved = PendingCreditLedger.FromConfigNode(ledger.ToConfigNode());
+
+        Assert.Empty(saved.SettleLanded(_ => ForfeitFate.Keep));
+        var refund = Assert.Single(saved.SettleLanded(_ => ForfeitFate.Restore));
+        Assert.Equal(-18.7, refund.AppliedDelta);
+        Assert.Equal(-10, refund.BaseAmount);
+        Assert.Empty(saved.LandedOnLost);
+    }
+
+    [Fact]
+    public void A_landed_penalty_not_yet_replayed_is_not_refunded_before_it_is_applied()
+    {
+        var ledger = new PendingCreditLedger();
+        ledger.Enqueue(HeldRow("lost"));
+        ledger.ReleaseHeld(1000, _ => (HeldOutcome.Lands, 2));
+
+        Assert.Empty(ledger.SettleLanded(_ => ForfeitFate.Restore));
+        Assert.Single(ledger.LandedOnLost);
+    }
+
+    [Fact]
+    public void A_landed_penalty_of_a_craft_known_gone_is_discarded_with_no_refund()
+    {
+        var ledger = new PendingCreditLedger();
+        ledger.Enqueue(HeldRow("lost"));
+        ledger.ReleaseHeld(1000, _ => (HeldOutcome.Lands, 2));
+        ledger.NoteApplied(Assert.Single(ledger.PopMatured(1000)), -10);
+
+        Assert.Empty(ledger.SettleLanded(_ => ForfeitFate.Discard));
+        Assert.Empty(ledger.LandedOnLost);
+    }
+
+    [Fact]
     public void Switching_signal_delay_off_releases_a_held_row()
     {
         var ledger = new PendingCreditLedger();
