@@ -39,9 +39,6 @@ public enum FlightEndReason
 
     /// <summary>The vessel was destroyed without a collision, for example burning up on re-entry.</summary>
     Destroyed,
-
-    /// <summary>The player ended the vessel from the Tracking Station. It was neither lost nor recovered.</summary>
-    Terminated,
 }
 
 /// <summary>

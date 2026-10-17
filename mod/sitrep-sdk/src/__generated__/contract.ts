@@ -4032,12 +4032,7 @@ export enum FlightEndReason {
 	* The vessel was destroyed without a collision, for example burning up on
 	* re-entry.
 	*/
-	Destroyed = 3,
-	/**
-	* The player ended the vessel from the Tracking Station. It was neither lost
-	* nor recovered.
-	*/
-	Terminated = 4
+	Destroyed = 3
 }
 /**
 * Which flight is active and what phase it is in, for the vessel gonogo is
@@ -8167,20 +8162,6 @@ export enum CatalogContact {
 	Gone = 4
 }
 /**
-* How a craft that has ended left the game, for `CatalogEntry.endKind`.
-*
-* @category Solar system and fleet
-*/
-export enum CatalogEnd {
-	/** The craft was destroyed. */
-	Destroyed = 0,
-	/**
-	* The player ended the craft from the Tracking Station. Its crew went with it
-	* and no reputation was charged.
-	*/
-	Terminated = 1
-}
-/**
 * What a command centre knows of a craft's crew, which only a link can tell
 * it.
 *
@@ -8372,12 +8353,6 @@ export interface CatalogEntry
 	* destruction itself. Null exactly when `CatalogEntry.endSource` is.
 	*/
 	endedUt?: Value<"ut"> | null;
-	/**
-	* Whether the craft this centre knows has ended was destroyed or ended by the
-	* player from the Tracking Station. Null exactly when `CatalogEntry.endSource`
-	* is.
-	*/
-	endKind?: CatalogEnd | null;
 }
 /**
 * Take a destroyed craft off the catalog of the command centre the command is

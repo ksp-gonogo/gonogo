@@ -111,16 +111,6 @@ public class StockCurrencyDecisionTests
     }
 
     [Fact]
-    public void BuildCredit_holds_funds_from_a_craft_with_no_route_for_home_to_hear_of_it()
-    {
-        var credit = StockCurrencyDecision.BuildCredit(
-            CurrencyKind.Funds, baseAmount: 5000.0, shadowBalance: 100.0,
-            originVesselId: "vessel-1", delay: KscDelay.Unroutable, config: new SignalDelayConfig { Enabled = true, SilenceDeclarationSeconds = 86_400.0 }, nowUt: 1000.0);
-
-        Assert.Equal(1000.0, credit!.Value.HeldSinceUt);
-    }
-
-    [Fact]
     public void BuildCredit_gives_science_from_a_craft_with_no_route_the_silence_deadline()
     {
         var credit = StockCurrencyDecision.BuildCredit(

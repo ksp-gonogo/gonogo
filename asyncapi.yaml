@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 44.10.0
+  version: 44.9.0
   description: |-
     The WebSocket API of the Gonogo mod: 87 telemetry channels a client
     subscribes to and 64 commands it sends, each with its payload and what it
@@ -10177,19 +10177,6 @@ components:
           description: |-
             The craft's last report over a link says it was destroyed with its crew
             aboard.
-    CatalogEnd:
-      type: integer
-      description: How a craft that has ended left the game, for `CatalogEntry.endKind`.
-      x-sitrep-enum-kind: ordinal
-      oneOf:
-        - const: 0
-          title: Destroyed
-          description: The craft was destroyed.
-        - const: 1
-          title: Terminated
-          description: |-
-            The player ended the craft from the Tracking Station. Its crew went with it
-            and no reputation was charged.
     CatalogEntry:
       type: object
       description: |-
@@ -10421,15 +10408,6 @@ components:
             was destroyed. A centre that had no line to the craft when it went sees it
             gone only when its place next comes into view, so this can be later than the
             destruction itself. Null exactly when `CatalogEntry.endSource` is.
-        endKind:
-          description: |-
-            Whether the craft this centre knows has ended was destroyed or ended by the
-            player from the Tracking Station. Null exactly when `CatalogEntry.endSource`
-            is.
-          anyOf:
-            - $ref: "#/components/schemas/CatalogEnd"
-              x-sitrep-unit: enum
-            - type: "null"
     CentreDelayEntry:
       type: object
       description: |-
@@ -14812,11 +14790,6 @@ components:
           description: |-
             The vessel was destroyed without a collision, for example burning up on
             re-entry.
-        - const: 4
-          title: Terminated
-          description: |-
-            The player ended the vessel from the Tracking Station. It was neither lost
-            nor recovered.
     FlightEnded:
       type: object
       description: |-

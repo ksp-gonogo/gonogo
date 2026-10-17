@@ -8,14 +8,10 @@ namespace Gonogo.KSP.CurrencyDelay
         public DelayedCurrency Currency { get; }
         public double BaseAmount { get; }
 
-        /// <summary>The row being replayed.</summary>
-        public PendingCreditRow Row { get; }
-
-        public RevealApplication(PendingCreditRow row)
+        public RevealApplication(DelayedCurrency currency, double baseAmount)
         {
-            Row = row;
-            Currency = row.Currency;
-            BaseAmount = row.BaseAmount;
+            Currency = currency;
+            BaseAmount = baseAmount;
         }
     }
 
@@ -50,7 +46,7 @@ namespace Gonogo.KSP.CurrencyDelay
                     continue;
                 }
 
-                plan.Add(new RevealApplication(row));
+                plan.Add(new RevealApplication(row.Currency, row.BaseAmount));
             }
 
             return plan;

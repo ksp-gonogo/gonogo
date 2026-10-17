@@ -220,7 +220,6 @@
       "crewCapacity": "count",
       "crewCount": "count",
       "declaredLostUt": "ut",
-      "endKind": "enum",
       "endSource": "enum",
       "endedUt": "ut",
       "expectedReturnUt": "ut",
@@ -2850,7 +2849,6 @@
       "commsControlSource": "RosterCommsControlSource",
       "contact": "CatalogContact",
       "crew": "CatalogCrew",
-      "endKind": "CatalogEnd",
       "endSource": "RosterPlaceSource",
       "placeSource": "RosterPlaceSource",
       "situation": "Situation",
@@ -3095,10 +3093,6 @@
       "2": "PresumedLost",
       "3": "Lost"
     },
-    "CatalogEnd": {
-      "0": "Destroyed",
-      "1": "Terminated"
-    },
     "CommsControlSource": {
       "0": "None",
       "1": "Partial",
@@ -3163,8 +3157,7 @@
       "0": "Recovered",
       "1": "Crashed",
       "2": "Reverted",
-      "3": "Destroyed",
-      "4": "Terminated"
+      "3": "Destroyed"
     },
     "GameMode": {
       "0": "Sandbox",

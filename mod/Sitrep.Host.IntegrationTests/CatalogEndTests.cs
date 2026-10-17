@@ -171,32 +171,5 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(RosterPlaceSource.Seen, EndSource(seated.FarView));
             Assert.Equal(CatalogCrew.PresumedLost, Crew(seated.FarView));
         }
-
-        private static CatalogEnd? EndKind(CentreView view)
-        {
-            var field = view.Vessel(Relay)!.Value.GetProperty("endKind");
-            return field.ValueKind == JsonValueKind.Null ? null : (CatalogEnd)field.GetInt32();
-        }
-
-        [Fact]
-        public async Task ACraftTheStationEndedStaysListedAsTerminatedAndItsCrewAsLost()
-        {
-            await using var seated = await SeatedAsync(crew: 2);
-            seated.World.Game.DestroyRelay(CraftEnd.Terminated);
-            await seated.TickAsync(T0, T0 + 2, T0 + 303, T0 + 304, T0 + 305);
-
-            Assert.Equal(CatalogEnd.Terminated, EndKind(seated.FarView));
-            Assert.Equal(CatalogCrew.Lost, Crew(seated.FarView));
-        }
-
-        [Fact]
-        public async Task ADestroyedCraftIsListedAsDestroyed()
-        {
-            await using var seated = await SeatedAsync();
-            seated.World.Game.DestroyRelay();
-            await seated.TickAsync(T0, T0 + 2, T0 + 303, T0 + 304, T0 + 305);
-
-            Assert.Equal(CatalogEnd.Destroyed, EndKind(seated.FarView));
-        }
-    }
+}
 }

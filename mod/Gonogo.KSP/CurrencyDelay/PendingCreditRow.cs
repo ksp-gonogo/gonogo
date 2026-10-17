@@ -17,9 +17,8 @@ namespace Gonogo.KSP.CurrencyDelay
     /// </summary>
     public sealed class LandedOnLost
     {
-        public LandedOnLost(DelayedCurrency currency, double baseAmount, string originVesselId, int lostSeq, double landedUt, double? appliedDelta = null)
+        public LandedOnLost(DelayedCurrency currency, double baseAmount, string originVesselId, int lostSeq, double landedUt)
         {
-            AppliedDelta = appliedDelta;
             Currency = currency;
             BaseAmount = baseAmount;
             OriginVesselId = originVesselId ?? "";
@@ -32,13 +31,6 @@ namespace Gonogo.KSP.CurrencyDelay
         public string OriginVesselId { get; }
         public int LostSeq { get; }
         public double LandedUt { get; }
-
-        /// <summary>
-        /// The change the balance actually took when the row was replayed, which the game's own
-        /// clamp and reputation curve make different from <see cref="BaseAmount"/>; null until it
-        /// is replayed. A refund reverses this, not the base amount.
-        /// </summary>
-        public double? AppliedDelta { get; internal set; }
     }
 
     /// <summary>
@@ -94,19 +86,14 @@ namespace Gonogo.KSP.CurrencyDelay
         /// </summary>
         public double? HeldSinceUt { get; }
 
-        /// <summary>The number of the home Lost declaration this row landed on, or 0 for a row that did not land on one.</summary>
-        public int LostSeq { get; }
-
         public PendingCreditRow(
             DelayedCurrency currency,
             double baseAmount,
             double revealUt,
             string originVesselId,
             string originDescription,
-            double? heldSinceUt = null,
-            int lostSeq = 0)
+            double? heldSinceUt = null)
         {
-            LostSeq = lostSeq;
             Currency = currency;
             BaseAmount = baseAmount;
             RevealUt = heldSinceUt == null ? revealUt : double.PositiveInfinity;
@@ -126,10 +113,6 @@ namespace Gonogo.KSP.CurrencyDelay
 
         /// <summary>This row due at <paramref name="revealUt"/>, held or not.</summary>
         public PendingCreditRow DueAt(double revealUt) =>
-            new PendingCreditRow(Currency, BaseAmount, revealUt, OriginVesselId, OriginDescription, lostSeq: LostSeq);
-
-        /// <summary>This row marked as landed on Lost declaration number <paramref name="lostSeq"/>.</summary>
-        public PendingCreditRow OnDeclaration(int lostSeq) =>
-            new PendingCreditRow(Currency, BaseAmount, RevealUt, OriginVesselId, OriginDescription, HeldSinceUt, lostSeq);
+            new PendingCreditRow(Currency, BaseAmount, revealUt, OriginVesselId, OriginDescription);
     }
 }

@@ -11,7 +11,6 @@
     "build-storybook": "pnpm generate && storybook build -o dist/static",
     "render-story": "tsx scripts/render-story.ts",
     "smoke": "pnpm build-storybook && tsx scripts/smoke.ts",
-    "fit": "pnpm build-storybook && tsx scripts/fit.ts",
     "review-sheet": "pnpm build-storybook && tsx scripts/review-sheet.ts",
     "typecheck": "pnpm generate && tsc --noEmit",
     "review-ledger": "tsx scripts/review-ledger.ts",

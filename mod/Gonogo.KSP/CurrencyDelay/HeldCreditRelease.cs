@@ -18,7 +18,7 @@ namespace Gonogo.KSP.CurrencyDelay
         Forfeits,
     }
 
-    /// <summary>What becomes of a change set against a Lost declaration, science forfeited or a penalty landed, at one look at home's view of its craft.</summary>
+    /// <summary>What becomes of science forfeited to a Lost declaration at one look at home's view of its craft.</summary>
     public enum ForfeitFate
     {
         Keep,
@@ -65,11 +65,11 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
-        /// What becomes of a change set against Lost declaration number <paramref name="lostSeq"/>
+        /// What becomes of science forfeited under Lost declaration number <paramref name="lostSeq"/>
         /// at this look at home's view of its craft: given back once that declaration is withdrawn
         /// or has been replaced, discarded when home knows the craft has gone, kept otherwise.
         /// </summary>
-        public static ForfeitFate FateUnderDeclaration(int lostSeq, HomeCraftView? view)
+        public static ForfeitFate FateOfForfeit(int lostSeq, HomeCraftView? view)
         {
             if (view is not HomeCraftView home)
             {

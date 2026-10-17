@@ -38,7 +38,6 @@
          unreadable part reaches the operator as "no robotic parts" and a
          powered base as unpowered, which is not a thing to check only where
          KSP is installed. -->
-    <Compile Include="..\Gonogo.KSP\TerminatedVessels.cs" />
     <Compile Include="..\Gonogo.KSP\BreakingGroundReads.cs" />
     <!-- MakingHistoryReads.cs carries no KSP or Unity type either; MissionCapture.cs, the walk it serves, needs a live mission and stays out. -->
     <Compile Include="..\Gonogo.KSP\MakingHistoryReads.cs" />

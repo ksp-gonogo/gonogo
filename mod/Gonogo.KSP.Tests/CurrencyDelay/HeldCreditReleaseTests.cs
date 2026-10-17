@@ -84,27 +84,27 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         [Fact]
         public void ForfeitedScienceIsKeptWhileTheDeclarationStands()
         {
-            Assert.Equal(ForfeitFate.Keep, HeldCreditRelease.FateUnderDeclaration(1, View(CentreContactState.Silent, ChargedUt, HomeVerdictState.Lost)));
-            Assert.Equal(ForfeitFate.Keep, HeldCreditRelease.FateUnderDeclaration(1, null));
+            Assert.Equal(ForfeitFate.Keep, HeldCreditRelease.FateOfForfeit(1, View(CentreContactState.Silent, ChargedUt, HomeVerdictState.Lost)));
+            Assert.Equal(ForfeitFate.Keep, HeldCreditRelease.FateOfForfeit(1, null));
         }
 
         [Fact]
         public void ForfeitedScienceIsGivenBackWhenContactReturnsAndTheDeclarationIsWithdrawn()
         {
-            Assert.Equal(ForfeitFate.Restore, HeldCreditRelease.FateUnderDeclaration(1, View(CentreContactState.InContact, ChargedUt + 50, HomeVerdictState.Nominal)));
+            Assert.Equal(ForfeitFate.Restore, HeldCreditRelease.FateOfForfeit(1, View(CentreContactState.InContact, ChargedUt + 50, HomeVerdictState.Nominal)));
         }
 
         [Fact]
         public void ForfeitedScienceIsGivenBackWhenALaterDeclarationHasReplacedTheOne()
         {
             var again = new HomeCraftView(CentreContactState.Silent, ChargedUt, HomeVerdictState.Lost, 2);
-            Assert.Equal(ForfeitFate.Restore, HeldCreditRelease.FateUnderDeclaration(1, again));
+            Assert.Equal(ForfeitFate.Restore, HeldCreditRelease.FateOfForfeit(1, again));
         }
 
         [Fact]
         public void ForfeitedScienceIsDiscardedOnceHomeKnowsTheCraftHasGone()
         {
-            Assert.Equal(ForfeitFate.Discard, HeldCreditRelease.FateUnderDeclaration(1, View(CentreContactState.Gone, ChargedUt, HomeVerdictState.Gone)));
+            Assert.Equal(ForfeitFate.Discard, HeldCreditRelease.FateOfForfeit(1, View(CentreContactState.Gone, ChargedUt, HomeVerdictState.Gone)));
         }
 
         [Fact]

@@ -234,7 +234,6 @@ namespace Gonogo.KSP
             GameEvents.onCrash.Add(OnCrash);
             GameEvents.onCrashSplashdown.Add(OnCrash);
             GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);
-            GameEvents.onVesselTerminated.Add(OnVesselTerminated);
         }
 
         /// <summary>
@@ -283,7 +282,6 @@ namespace Gonogo.KSP
             GameEvents.onCrash.Remove(OnCrash);
             GameEvents.onCrashSplashdown.Remove(OnCrash);
             GameEvents.onVesselWillDestroy.Remove(OnVesselWillDestroy);
-            GameEvents.onVesselTerminated.Remove(OnVesselTerminated);
         }
 
         /// <summary>
@@ -348,18 +346,6 @@ namespace Gonogo.KSP
         private void OnCrash(EventReport report) => RememberDestroyed(report?.origin?.vessel);
 
         private void OnVesselWillDestroy(Vessel vessel) => RememberDestroyed(vessel);
-
-        /// <summary>
-        /// MAIN-THREAD: the player ended the vessel from the Tracking Station. That is not a
-        /// loss, so the destruction stock raises with it must not be taken as one's cause.
-        /// </summary>
-        private void OnVesselTerminated(ProtoVessel vessel)
-        {
-            if (vessel != null && _lastDestroyed != null && _lastDestroyed.id == vessel.vesselID)
-            {
-                _lastDestroyed = null;
-            }
-        }
 
         /// <summary>
         /// MAIN-THREAD: note the vessel a destruction detector just saw, so a crew death

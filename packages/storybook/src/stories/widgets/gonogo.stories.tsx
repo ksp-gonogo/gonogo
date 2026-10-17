@@ -103,20 +103,6 @@ export const MissionActive: Story = {
   },
 };
 
-/** Twelve stations on one board, more than a small tile holds at once. */
-export const ManyStations: Story = {
-  name: "Main, many stations",
-  args: {
-    stations: Array.from({ length: 12 }, (_, i) => ({
-      peerId: `station-${i}`,
-      name: `Station ${i + 1}`,
-      vote: i % 5 === 3 ? ("no-go" as const) : ("go" as const),
-    })),
-    w: 8,
-    h: 8,
-  },
-};
-
 /** The host is up and no station has joined yet. */
 export const NoStations: Story = {
   name: "Main, no stations",

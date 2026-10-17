@@ -576,9 +576,8 @@ const AbortNotice = styled.span`
 `;
 
 const MainLayout = styled.div`
-  /* The countdown sizes itself against this box in both axes, so it fits the tile it is in. */
-  container-type: size;
-  overflow-y: auto;
+  /* The countdown sizes itself against this box, so it fits the tile it is in. */
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
@@ -599,6 +598,7 @@ const HeaderLabel = styled.span`
   letter-spacing: 0.15em;
   color: var(--color-text-muted);
   text-transform: uppercase;
+  white-space: nowrap;
 `;
 
 const HeaderRight = styled.div`
@@ -619,7 +619,7 @@ const WarnChip = styled.span`
 
 const CountdownBanner = styled.div`
   text-align: center;
-  font-size: clamp(var(--font-size-value), min(11cqw, 22cqh), 56px);
+  font-size: clamp(20px, 11cqw, 56px);
   font-weight: 700;
   color: var(--color-warn-text);
   letter-spacing: 0.1em;
@@ -637,28 +637,16 @@ const AbortBanner = styled.div`
   text-transform: uppercase;
 `;
 
-/*
- * The auto-fill track and the gap come from the kit. The rows share whatever
- * height the tile leaves, down to the cell floor, and the board scrolls once
- * the stations no longer fit at that floor. Below one floor row the whole
- * widget scrolls instead, so nothing is clipped.
- */
+// The auto-fill track and the gap come from the kit; filling the panel and packing rows to the top are this board's own.
 const StationBoard = styled(Grid).attrs({
   minColWidth: "88px",
   gap: "related-comfortable" as const,
-  align: "stretch" as const,
 })`
-  flex: 1 1 0;
-  min-height: var(--size-gonogo-cell-floor);
-  overflow-y: auto;
-  grid-auto-rows: minmax(var(--size-gonogo-cell-floor), 1fr);
+  flex: 1;
+  align-content: start;
 `;
 
 const Cell = styled.div<{ $state: CellState }>`
-  /* The cell's own height sets its type, so a short row shrinks its text instead of overflowing. */
-  container-type: size;
-  min-height: 0;
-  justify-content: center;
   padding: var(--inset-surface);
   border-radius: var(--radius-regular);
   border: 1px solid ${({ $state }) => cellBorder($state)};
@@ -666,7 +654,7 @@ const Cell = styled.div<{ $state: CellState }>`
   color: ${({ $state }) => cellColor($state)};
   display: flex;
   flex-direction: column;
-  gap: var(--gap-related-dense);
+  gap: var(--gap-related);
 `;
 
 function cellBorder(state: CellState): string {
@@ -713,8 +701,7 @@ function cellColor(state: CellState): string {
 }
 
 const CellName = styled.span`
-  font-size: clamp(var(--font-size-caption), 16cqh, var(--font-size-value));
-  line-height: var(--line-height-flush);
+  font-size: var(--font-size-value);
   letter-spacing: 0.08em;
 `;
 
@@ -722,8 +709,7 @@ const CellStatus = styled.span`
   /* Display tier: the type scale stops at --font-size-lg on purpose,
      everything above 16px in this codebase is a clamp, a JS fit, or locked
      to a box width. */
-  font-size: clamp(var(--font-size-value), 30cqh, 18px);
-  line-height: var(--line-height-flush);
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.12em;
 `;

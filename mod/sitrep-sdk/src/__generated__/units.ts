@@ -260,7 +260,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     crewCapacity: "count",
     crewCount: "count",
     declaredLostUt: "ut",
-    endKind: "enum",
     endSource: "enum",
     endedUt: "ut",
     expectedReturnUt: "ut",
@@ -2935,7 +2934,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
     commsControlSource: "RosterCommsControlSource",
     contact: "CatalogContact",
     crew: "CatalogCrew",
-    endKind: "CatalogEnd",
     endSource: "RosterPlaceSource",
     placeSource: "RosterPlaceSource",
     situation: "Situation",
@@ -3217,10 +3215,6 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     2: "PresumedLost",
     3: "Lost",
   },
-  "CatalogEnd": {
-    0: "Destroyed",
-    1: "Terminated",
-  },
   "CommsControlSource": {
     0: "None",
     1: "Partial",
@@ -3286,7 +3280,6 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     1: "Crashed",
     2: "Reverted",
     3: "Destroyed",
-    4: "Terminated",
   },
   "GameMode": {
     0: "Sandbox",

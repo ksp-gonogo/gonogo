@@ -282,10 +282,6 @@ namespace Gonogo.KSP
             {
                 try
                 {
-                    if (TerminatedVessels.Covers(death.VesselId, death.Ut))
-                    {
-                        continue;
-                    }
                     var capture = death.Record;
                     var impact = death.Impact;
                     if (impact != null)

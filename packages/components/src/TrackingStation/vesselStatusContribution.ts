@@ -7,7 +7,6 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import {
   type AlertTone,
-  CatalogEnd,
   type CatalogEntry,
   RosterPlaceSource,
   stillTrue,
@@ -44,7 +43,7 @@ const PHASE_TONE: Record<Exclude<ContactPhase, "nominal">, AlertTone> = {
 /** What the centre knows of its contact with a craft, as its catalog entry carries it. */
 export type VesselContactEntry = Pick<
   CatalogEntry,
-  "contact" | "expectedReturnUt" | "overdueAfterUt" | "endSource" | "endKind"
+  "contact" | "expectedReturnUt" | "overdueAfterUt" | "endSource"
 >;
 
 /** Pure core: the entries contributed for a vessel id and the centre's contact with it, exported for direct testing. */
@@ -65,11 +64,9 @@ export function computeVesselStatus(
         tone,
         emphasis: "reckoned",
         label:
-          entry?.endKind === CatalogEnd.Terminated
-            ? "Terminated"
-            : entry?.endSource === RosterPlaceSource.Seen
-              ? "Seen destroyed"
-              : "Destroyed",
+          entry?.endSource === RosterPlaceSource.Seen
+            ? "Seen destroyed"
+            : "Destroyed",
       },
     ];
   }

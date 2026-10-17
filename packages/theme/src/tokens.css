@@ -916,8 +916,6 @@ textarea {
   --inset-mission-bar: 0 var(--space-2);
   /* The Go/No-Go board. */
   --inset-gonogo-board: var(--space-12);
-  /* The shortest a station's cell on the Go/No-Go board is drawn: its name over its vote. */
-  --size-gonogo-cell-floor: calc(var(--space-24) * 2);
   /* A QR code's quiet zone. */
   --inset-qr: var(--space-12);
   /* A settings row, and a nested settings row. */

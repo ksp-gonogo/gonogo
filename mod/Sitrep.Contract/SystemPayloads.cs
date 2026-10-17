@@ -506,21 +506,6 @@ public enum CatalogContact
     Gone,
 }
 
-/// <summary>How a craft that has ended left the game, for <see cref="CatalogEntry.EndKind"/>.</summary>
-/// <category>Solar system and fleet</category>
-#if SITREP_CODEGEN
-[TsEnum]
-#endif
-[SitrepContract]
-public enum CatalogEnd
-{
-    /// <summary>The craft was destroyed.</summary>
-    Destroyed,
-
-    /// <summary>The player ended the craft from the Tracking Station. Its crew went with it and no reputation was charged.</summary>
-    Terminated,
-}
-
 /// <summary>What a command centre knows of a craft's crew, which only a link can tell it.</summary>
 /// <category>Solar system and fleet</category>
 #if SITREP_CODEGEN
@@ -755,14 +740,6 @@ public class CatalogEntry
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? EndedUt { get; set; }
-
-    /// <summary>
-    /// Whether the craft this centre knows has ended was destroyed or ended by
-    /// the player from the Tracking Station. Null exactly when
-    /// <see cref="EndSource"/> is.
-    /// </summary>
-    [SitrepUnit(Units.Enumeration)]
-    public CatalogEnd? EndKind { get; set; }
 }
 
 /// <summary>

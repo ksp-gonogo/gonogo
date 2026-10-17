@@ -47,17 +47,6 @@ export const RendersItsName: StoryObj = {
   render: () => <span>Smoke plant</span>,
 };
 
-/** A board taller than the tile that clips it, which `scripts/fit.ts` must report as cut off. */
-export const GonogoOverflow: StoryObj = {
-  render: () => (
-    <div data-scene="mounted" data-story-widget="">
-      <div style={{ height: 80, overflow: "hidden" }}>
-        <div style={{ height: 200 }}>Station</div>
-      </div>
-    </div>
-  ),
-};
-
 export const MountRejects: StoryObj = {
   render: () => (
     <WidgetScene widgetId="planted-not-registered" fixture={{}} w={6} h={6} />

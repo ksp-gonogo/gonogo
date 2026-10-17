@@ -62,8 +62,7 @@
               "contact": 4,
               "lastContactUt": 0,
               "endSource": 0,
-              "endedUt": 0,
-              "endKind": 0
+              "endedUt": 0
             },
             {
               "vesselId": "v-lander-duna",
@@ -79,7 +78,6 @@
               "lastContactUt": 0,
               "endSource": 1,
               "endedUt": 0,
-              "endKind": 0,
               "crew": 2
             },
             {
