@@ -490,6 +490,8 @@ async function mountInto(
   }
   root.style.width = `${payload.pxW}px`;
   root.style.height = `${payload.pxH}px`;
+  // The page centres #root in a flex row, which would otherwise shrink a tile wider than the viewport.
+  root.style.flexShrink = "0";
   root.style.overflow = "hidden";
   root.style.background = "var(--color-surface-app)";
 

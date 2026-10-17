@@ -20,11 +20,14 @@ export const MIN_PLOT_PX = 120;
 /** The height of a plot's heading row with a held badge beside the title, which the row keeps without one so a badge arriving moves nothing below it. */
 const HEADING_ROW_PX = 17;
 
+/** The narrowest square whose heading holds a reserved plot's whole title: below it the heading row is given to the plot, and the title stays in the plot's accessible name and tooltip. */
+const TITLED_PLOT_PX = 128;
+
 /**
- * The width a single row of `count` plots takes as tall as the nearest size container, for a host that sets the board beside its other content.
+ * The width a single row of `count` plots takes as tall as the nearest size container, for a host that sets the board beside its other content. The row allows no heading band, so a row too short for headings draws its plots the full height.
  */
 export function plotRowWidth(count: number): string {
-  return `calc(${count} * (100cqh - ${HEADING_ROW_PX}px - var(--gap-related)) + ${count - 1} * var(--gap-related))`;
+  return `calc(${count} * 100cqh + ${count - 1} * var(--gap-related))`;
 }
 
 /** The plots a board draws: the host's reserved slots, then any contributed beyond them. */
@@ -84,6 +87,8 @@ export function PlotBoard({
 }: Readonly<PlotBoardProps>) {
   const slots = usePlotSlots(reserve);
   if (slots.length === 0) return null;
+  // A held badge has to be seen, so while any plot carries one every heading row stays and the squares stay level.
+  const keepHeadings = slots.some((slot) => slot.plot?.held !== undefined);
 
   return (
     <div
@@ -100,6 +105,7 @@ export function PlotBoard({
       <Grid
         squares
         squareHeadingPx={HEADING_ROW_PX}
+        squareHeadingMinPx={keepHeadings ? undefined : TITLED_PLOT_PX}
         minColWidth={`${minPlotPx}px`}
         gap="related"
         data-plot-board=""
@@ -118,7 +124,7 @@ export function PlotBoard({
 
 /**
  * One cell of the board: the largest square the cell holds, centred, under a
- * heading row every plot keeps.
+ * heading row every plot keeps while the board gives it one.
  */
 function PlotCell({
   heading,
@@ -138,7 +144,7 @@ function PlotCell({
     >
       <div
         style={{
-          width: `min(100cqw, 100cqh - ${HEADING_ROW_PX}px - var(--gap-related))`,
+          width: "min(100cqw, 100cqh - var(--grid-square-heading))",
           display: "flex",
           flexDirection: "column",
           gap: "var(--gap-related)",
@@ -146,6 +152,7 @@ function PlotCell({
       >
         <div
           data-plot-heading=""
+          data-grid-square-heading=""
           style={{ minWidth: 0, height: HEADING_ROW_PX }}
         >
           {heading}

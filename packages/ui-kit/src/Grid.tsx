@@ -1,6 +1,10 @@
 import { Children, type HTMLAttributes, type ReactNode } from "react";
 import styled from "styled-components";
-import { squareAreaRules, squareGridRules } from "./gridSquares";
+import {
+  squareAreaRules,
+  squareGridRules,
+  squareHeadingRules,
+} from "./gridSquares";
 import { ScrollArea } from "./Panel";
 import { GAP_VAR, type GapToken } from "./scales";
 
@@ -74,6 +78,15 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
    */
   squareHeadingPx?: number;
   /**
+   * With `squareHeadingPx`, the smallest square, in px, that keeps its
+   * heading band. In a cell too small for a square this wide under the band,
+   * the band goes to the square: any element in the cell marked
+   * `data-grid-square-heading` is not drawn, and `--grid-square-heading`,
+   * which a cell's content reads for the room its heading takes, is `0px`.
+   * Without it the band is always kept.
+   */
+  squareHeadingMinPx?: number;
+  /**
    * With `squares`, the cells fill the grid instead of staying square, and a
    * row shrinks to this height (a px figure) before the grid asks for more
    * height. The column count still follows the shape of the grid, and the
@@ -116,6 +129,7 @@ export function Grid({
   align = "center",
   squares = false,
   squareHeadingPx = 0,
+  squareHeadingMinPx,
   minRowHeight,
   children,
   ...rest
@@ -137,6 +151,7 @@ export function Grid({
           $headingPx={squareHeadingPx}
           $gap={GAP_VAR[gap]}
           $rowMin={minRowHeight}
+          $headingMin={squareHeadingMinPx}
           data-grid-squares=""
         >
           {children}
@@ -233,6 +248,7 @@ const Grid__Squares = styled.div<{
   $headingPx: number;
   $gap: string;
   $rowMin?: string;
+  $headingMin?: number;
 }>`
   --cols: 1;
   --rows: ${({ $count }) => $count};
@@ -248,4 +264,5 @@ const Grid__Squares = styled.div<{
     min-width: 0;
     min-height: 0;
   }
+  ${({ $headingPx, $headingMin }) => squareHeadingRules($headingPx, $headingMin)}
 `;

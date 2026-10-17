@@ -47,7 +47,7 @@ function niceStep(x: number): number {
 }
 
 /** An instrument dimension: the least height at which the scale's end labels and ticks stay clear of one another. */
-const RAIL_MIN_SCALE_PX = 120;
+const RAIL_MIN_SCALE_PX = 100;
 
 export function AltitudeRail({
   agl,

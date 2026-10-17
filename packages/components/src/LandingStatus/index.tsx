@@ -60,13 +60,22 @@ const MIN_LEGIBLE_PLOT_PX = 200;
 /** How much wider than tall the visible window is before the header sits beside the plots rather than above them: a tile this short spends its height on the plots. */
 const BESIDE_HEADER_ASPECT = 2.5;
 
+/** The widest the header column grows beside the plots: it takes its content's width up to this, and the plots give up the width the rest of the row needs. */
+const HEADER_BESIDE_MAX_PX = 220;
+
+/** The narrowest the readouts column may be beside the plots, for the same reason. */
+const READOUTS_MIN_PX = 200;
+
 /**
  * The grid the widget lays out in: the header, the plots under it, then the
  * readouts, with the altitude rail down the side and any height left over
  * below the readouts. In a short, wide window the header, the plots and the
  * readouts sit side by side, the plots one row as tall as the window.
  */
-function landingLayout(rail: boolean): {
+function landingLayout(
+  rail: boolean,
+  plotCount: number,
+): {
   narrow: CSSProperties;
   wide: CSSProperties;
 } {
@@ -84,7 +93,8 @@ function landingLayout(rail: boolean): {
       gap: "var(--gap-section)",
     },
     wide: {
-      gridTemplateColumns: `${rail ? "auto " : ""}auto auto minmax(0, 1fr)`,
+      // The plots take up to one row as tall as the window and no more than the width the header and the readouts leave them.
+      gridTemplateColumns: `${rail ? "auto " : ""}fit-content(${HEADER_BESIDE_MAX_PX}px) minmax(0, ${plotRowWidth(plotCount)}) minmax(${READOUTS_MIN_PX}px, 1fr)`,
       gridTemplateAreas: `"${lead}header plots readouts"`,
       gridTemplateRows: "100cqh",
     },
@@ -245,7 +255,7 @@ function LandingStatusComponent({
       {divertEl}
     </>
   );
-  const layout = landingLayout(railShown);
+  const layout = landingLayout(railShown, plotSlots.length);
 
   return (
     <Panel
@@ -376,7 +386,6 @@ function LandingStatusComponent({
                     }}
                     wide={
                       {
-                        width: plotRowWidth(plotSlots.length),
                         padding: 0,
                         "--grid-squares-height": "100cqh",
                       } as CSSProperties
@@ -399,22 +408,26 @@ function LandingStatusComponent({
                     wide={{
                       display: "flex",
                       flexDirection: "column",
-                      height: "100cqh",
+                      // Down over the window's bottom inset, so this scroller's glow ends on the panel's edge.
+                      height: "calc(100cqh + var(--panel-body-bottom))",
                     }}
                   >
                     <ScrollArea>
                       {/* Positioned, so nothing absolutely placed in the readouts escapes this scroller. */}
                       <div style={{ position: "relative" }}>
                         {showPlots ? (
-                          <div
-                            style={{
+                          <ContainerBreak
+                            atAspect={BESIDE_HEADER_ASPECT}
+                            narrow={{
                               display: "flex",
                               flexDirection: "column",
                               gap: "var(--gap-section)",
                             }}
+                            // The window's bottom inset, which this scroller reaches down over.
+                            wide={{ paddingBottom: "var(--panel-body-bottom)" }}
                           >
                             {readoutEls}
-                          </div>
+                          </ContainerBreak>
                         ) : (
                           <Stack>{readoutEls}</Stack>
                         )}

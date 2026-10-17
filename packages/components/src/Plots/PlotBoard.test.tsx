@@ -238,9 +238,30 @@ describe("the board's layout", () => {
   });
 
   it("sizes a single row of plots from the height of the size container it sits in", () => {
-    expect(plotRowWidth(3)).toBe(
-      "calc(3 * (100cqh - 17px - var(--gap-related)) + 2 * var(--gap-related))",
+    expect(plotRowWidth(3)).toBe("calc(3 * 100cqh + 2 * var(--gap-related))");
+  });
+
+  it("gives each plot's heading row to the square when the square is too small for a title", async () => {
+    registerContribution({
+      id: "titled-plot",
+      contributes: "plots",
+      compute: () => [
+        { subject: "titled", title: "Titled", frame: FRAME, layers: ONE_MARK },
+      ],
+    });
+    const { container } = render(<Host />);
+    await waitFor(() =>
+      expect(container.querySelector("[data-plot-heading]")).not.toBeNull(),
     );
+    expect(
+      container
+        .querySelector("[data-plot-heading]")
+        ?.hasAttribute("data-grid-square-heading"),
+    ).toBe(true);
+    const css = Array.from(document.querySelectorAll("style"))
+      .map((el) => el.textContent)
+      .join("\n");
+    expect(css).toContain("@container (width < 128px)");
   });
 
   describe("reserved slots", () => {

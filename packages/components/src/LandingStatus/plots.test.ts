@@ -1482,7 +1482,8 @@ describe("touchdown map, the projection of the view", () => {
     // The numbers stand alone: no ring or dot is drawn round a bearing.
     expect(label?.kind === "marker" && label.shape).toBe("none");
     const heading = plot?.layers.find((l) => l.id === "heading");
-    expect(heading?.kind === "caption" && heading.text).toBe("HDG 090°");
+    expect(heading?.kind === "caption" && heading.caption).toBe("HDG");
+    expect(heading?.kind === "caption" && heading.text).toBe("090°");
   });
 
   it("draws ground to the north at the top of a map that points north, not mirrored", () => {

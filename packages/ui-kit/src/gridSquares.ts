@@ -85,25 +85,53 @@ export function squareAreaRules(
  * Each column count takes over once the area is wide enough, for its height,
  * that its squares outgrow the previous count's: where the two match, less a
  * margin for the heading each row spends. A count also needs columns of `min`,
- * unless the area is too short for squares that wide in any arrangement, or
- * for rows of `rowMin` when the cells fill the area.
+ * unless the area is too short for the previous count's rows at that size (so
+ * the previous count cannot draw squares of `min` either, and the count with
+ * more columns draws them larger). When the cells fill the area, the count is
+ * instead held to rows of `rowMin` and the area is too short only for its own.
  */
 export function squareGridRules(
   count: number,
   min: string,
   headingPx: number,
-  rowMin: string = min,
+  rowMin?: string,
 ): string {
   const choices = squareColumnChoices(count);
+  const fills = rowMin !== undefined;
   return choices
     .slice(1)
     .map(({ cols, rows }, i) => {
       const aspect = ((0.88 * cols) / choices[i].rows).toFixed(2);
       return `
-  @container grid-squares (aspect-ratio >= ${aspect}) and ((width >= ${across(cols, min)}) or (height < ${down(rows, rowMin, headingPx)})) {
+  @container grid-squares (aspect-ratio >= ${aspect}) and ((width >= ${across(cols, min)}) or (height < ${down(fills ? rows : choices[i].rows, rowMin ?? min, headingPx)})) {
     --cols: ${cols};
     --rows: ${rows};
   }`;
     })
     .join("");
+}
+
+/*
+ * The rules a cell's content reads its heading band from. They sit on the
+ * cell's children, since a container query styles only what is inside its
+ * container, and the cell is the container.
+ */
+export function squareHeadingRules(
+  headingPx: number,
+  headingMinPx?: number,
+): string {
+  const kept = `
+  & > * > * {
+    --grid-square-heading: ${headingPx === 0 ? "0px" : `calc${squareHeadingAllowance(headingPx)}`};
+  }`;
+  if (headingPx === 0 || headingMinPx === undefined) return kept;
+  return `${kept}
+  @container (width < ${headingMinPx}px) or (height < ${headingMinPx + headingPx + GAP_ALLOWANCE_PX}px) {
+    & > * > * {
+      --grid-square-heading: 0px;
+    }
+    & > * [data-grid-square-heading] {
+      display: none;
+    }
+  }`;
 }

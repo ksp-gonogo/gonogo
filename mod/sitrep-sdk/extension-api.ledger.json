@@ -16101,6 +16101,10 @@
         "note": "New: with squares, cells fill the grid and a row shrinks to this height before the grid scrolls"
       },
       {
+        "key": "ui-kit . GridProps#squareHeadingMinPx?",
+        "note": "New: with squares, the smallest square that keeps its heading band; a smaller one takes the band and hides what is marked as its heading"
+      },
+      {
         "key": "ui-kit . GridProps#squareHeadingPx?",
         "note": "New: with squares, the height of a band above each square that the column choice allows for"
       },

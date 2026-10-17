@@ -370,7 +370,9 @@ export function buildTouchdownReticlePlot(
     kind: "caption",
     id: "heading",
     anchor: "top-left",
-    text: `HDG ${bearingLabel(driftBearingDeg)}`,
+    // Captioned over the figure, so the corner stays narrow enough to clear the bearing written at the top edge.
+    caption: "HDG",
+    text: bearingLabel(driftBearingDeg),
     tone: "neutral",
   });
   return {

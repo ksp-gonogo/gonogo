@@ -92,7 +92,21 @@ describe("Grid", () => {
         </Grid>,
       );
       expect(injectedCss()).toContain(
-        "@container grid-squares (aspect-ratio >= 1.32) and ((width >= calc(3 * 200px + 16px)) or (height < calc(1 * (200px + 25px) + 0px)))",
+        "@container grid-squares (aspect-ratio >= 1.32) and ((width >= calc(3 * 200px + 16px)) or (height < calc(2 * (200px + 25px) + 8px)))",
+      );
+    });
+
+    it("sets four cells in one row when the area is too short for two rows of minimum squares, however narrow the columns", () => {
+      render(
+        <Grid squares minColWidth="200px" squareHeadingPx={17}>
+          <span>a</span>
+          <span>b</span>
+          <span>c</span>
+          <span>d</span>
+        </Grid>,
+      );
+      expect(injectedCss()).toContain(
+        "@container grid-squares (aspect-ratio >= 1.76) and ((width >= calc(4 * 200px + 24px)) or (height < calc(2 * (200px + 25px) + 8px)))",
       );
     });
 
@@ -138,6 +152,30 @@ describe("Grid", () => {
       const root = screen.getByTestId("grid");
       expect(root.querySelector("[data-scroll-area-inner]")).toBeNull();
       expect(root.querySelector("[data-grid-squares]")).not.toBeNull();
+    });
+
+    it("gives a cell's content the room its heading takes", () => {
+      render(
+        <Grid squares squareHeadingPx={17}>
+          <span>a</span>
+        </Grid>,
+      );
+      expect(injectedCss()).toContain(
+        "--grid-square-heading:calc(17px + var(--gap-related));",
+      );
+    });
+
+    it("gives the heading band to the square in a cell too small for squareHeadingMinPx, and hides what is marked as the heading", () => {
+      render(
+        <Grid squares squareHeadingPx={17} squareHeadingMinPx={128}>
+          <span>a</span>
+        </Grid>,
+      );
+      const css = injectedCss();
+      expect(css).toContain("@container (width < 128px) or (height < 153px)");
+      expect(css).toMatch(
+        /@container \(width < 128px\) or \(height < 153px\)\{[^@]*--grid-square-heading:0px;[^@]*\[data-grid-square-heading\]\{display:none;\}/,
+      );
     });
 
     it("allows no heading band on a cell that has none", () => {

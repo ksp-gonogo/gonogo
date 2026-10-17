@@ -110,6 +110,24 @@ export const PROBE_PAGES = {
 
 const COMPONENTS_SRC = resolve(HERE, "../src");
 const LOCAL_DOCS = resolve(HERE, "../../../local_docs");
+
+/** The page viewport's side in CSS px, which every tile up to that width renders in. */
+const VIEWPORT_PX = 800;
+
+/** The room either side of a tile wider than the viewport, so the shot keeps its margin. */
+const WIDE_TILE_MARGIN_PX = 32;
+
+/**
+ * The viewport a tile `pxW` wide renders in: the usual square, widened for a
+ * tile that would not fit across it, since the page centres `#root` and a
+ * wider one would be cut at the viewport's edges.
+ */
+export function viewportFor(pxW: number): { width: number; height: number } {
+  return {
+    width: Math.max(VIEWPORT_PX, pxW + 2 * WIDE_TILE_MARGIN_PX),
+    height: VIEWPORT_PX,
+  };
+}
 // The design tokens themselves. `packages/app/src/styles/global.css` only
 // `@import`s `@ksp-gonogo/theme/tokens.css` (see that file's header comment),
 // so reading it here would find no token declarations at all and every probe
@@ -354,7 +372,7 @@ export async function renderWidgets(
   const browser = await ENGINES[engine].launch();
   try {
     const context = await browser.newContext({
-      viewport: { width: 800, height: 800 },
+      viewport: { width: VIEWPORT_PX, height: VIEWPORT_PX },
       deviceScaleFactor: 2,
       // Several widgets pulse with `animation: ... infinite` guarded by
       // `@media (prefers-reduced-motion: no-preference)`. Emulate reduce so
@@ -2279,6 +2297,7 @@ async function renderOneWidget(
         profile,
         gridCell: gridCell && !fullContent,
       });
+      await page.setViewportSize(viewportFor(payload.pxW));
       try {
         await page.evaluate((p) => window.__renderProbe?.(p), payload);
       } catch (err) {
