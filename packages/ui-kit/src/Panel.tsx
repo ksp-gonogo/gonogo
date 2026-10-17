@@ -754,6 +754,10 @@ const PanelSections__Grid = styled.div<{ $min: string; $columns: number }>`
   & > [${SECTION_FULL_ATTR}] {
     grid-column: 1 / -1;
   }
+  /* A grid opened only to carry the augment slot, with nothing bound, takes no gap above it: a filling section reaches the body's bottom inset. */
+  &:empty {
+    display: none;
+  }
 `;
 
 /**

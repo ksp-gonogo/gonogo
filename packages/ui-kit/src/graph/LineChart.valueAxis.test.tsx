@@ -125,6 +125,15 @@ describe("axis titles", () => {
     );
     expect(container.querySelector("[data-axis-title]")).toBeNull();
   });
+
+  it("fills the whole frame on a plot of a place, so the frame's corners clip it", () => {
+    const { container } = render(chart({ spatial: true }));
+    const rect = container.querySelector("svg rect") as SVGRectElement;
+    expect(rect.getAttribute("x")).toBe("0");
+    expect(rect.getAttribute("y")).toBe("0");
+    expect(rect.getAttribute("width")).toBe("400");
+    expect(rect.getAttribute("height")).toBe("260");
+  });
 });
 
 describe("a fixed card", () => {

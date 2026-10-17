@@ -692,9 +692,10 @@ export function LineChart({
   const titledX = !bare && !hideXAxis && !!xAxisLabel;
   const titledY = !bare && !!yAxisLabel;
   const titledSecondary = !bare && hasSecondary && !!ySecondaryAxisLabel;
-  // One pixel of inset keeps the outermost stroke from being clipped by the frame.
+  // A compact plot keeps one pixel of inset so its outermost stroke is not clipped. A spatial plot fills its frame, which clips it to its own corner radius.
+  const edge = spatial ? 0 : 1;
   const base = bare
-    ? { top: 1, right: 1, bottom: 1, left: 1 }
+    ? { top: edge, right: edge, bottom: edge, left: edge }
     : fitMargins(w, h, hasSecondary);
   const fitted = {
     ...base,

@@ -269,14 +269,20 @@ function LandingStatusComponent({
       inactive={!showBoard && !crash ? "No landing in progress" : undefined}
       // Host-derived: the panel watches every topic this widget declares.
       sections={
-        <Section key="landing" fill>
+        <Section
+          key="landing"
+          fill
+          // Out over the body's bottom inset, so this scroller's glow ends on the panel's edge like the body's own.
+          style={{ marginBottom: "calc(-1 * var(--panel-body-bottom))" }}
+        >
           <ScrollArea>
-            {/* The visible window: sized in both axes, so the layout reads its height in container units, and positioned, so nothing absolutely placed inside escapes the scroller. */}
+            {/* The visible window: sized in both axes, so the layout reads its height in container units, and positioned, so nothing absolutely placed inside escapes the scroller. Its bottom padding keeps the inset the body would have given the content. */}
             <div
               style={{
                 containerType: "size",
                 height: "100%",
                 position: "relative",
+                paddingBottom: "var(--panel-body-bottom)",
               }}
             >
               <ContainerBreak

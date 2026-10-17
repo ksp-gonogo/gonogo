@@ -48,4 +48,14 @@ describe("Panel filling section floor", () => {
       /\[data-section-fill\]\{[^}]*min-height:0;[^}]*\}/,
     );
   });
+
+  it("hides the grid opened only for the augment slot, so it costs the body no gap", () => {
+    render(
+      <Panel
+        panelTitle="LANDING"
+        sections={<Section fill>breakdown</Section>}
+      />,
+    );
+    expect(injectedCss()).toMatch(/&?:empty\{display:none;?\}/);
+  });
 });

@@ -117,8 +117,8 @@ export interface TapeProps<Unit extends string = string> {
   "aria-label": string;
 }
 
-/** How close, in pixels, a tick label may sit to the pointer's figure before the figure hides it: the figure is 11 px tall. */
-const FIGURE_CLEARANCE_PX = 9;
+/** How close, in pixels, a tick label may sit to the pointer's figure before the figure hides it: the figure's box is about 13 px tall and a tick label's about 10. */
+const FIGURE_CLEARANCE_PX = 12;
 const PAD_TOP = 12;
 const PAD_BOTTOM = 12;
 // Left gutter wide enough for a 5-digit unit-less label (e.g. "10000").
