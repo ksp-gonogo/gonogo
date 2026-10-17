@@ -227,11 +227,13 @@ describe("the board's layout", () => {
 
     await act(async () => {});
     const board = container.querySelector<HTMLElement>("[data-plot-board]");
-    const cells = board?.querySelectorAll("[data-square-cell]") ?? [];
+    const cells = board?.querySelectorAll("[data-plot-cell]") ?? [];
     expect(cells).toHaveLength(RESERVE.length);
     for (const cell of cells) {
-      expect(cell.querySelector("[data-square-heading]")).not.toBeNull();
-      expect(cell.querySelector("[data-square]")?.childElementCount).toBe(1);
+      expect(cell.querySelector("[data-plot-heading]")).not.toBeNull();
+      expect(cell.querySelector("[data-plot-square]")?.childElementCount).toBe(
+        1,
+      );
     }
   });
 

@@ -1,5 +1,6 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import { Children, type HTMLAttributes, type ReactNode } from "react";
 import styled from "styled-components";
+import { squareAreaRules, squareGridRules } from "./gridSquares";
 import { GAP_VAR, type GapToken } from "./scales";
 
 /**
@@ -49,6 +50,28 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
    * wants its rows tighter than its columns.
    */
   rowGap?: GapToken;
+  /**
+   * Lay the cells out to hold equal squares in the height the grid is given,
+   * rather than in rows of their own height. The grid takes its height from
+   * its container as a flex or grid item with room to grow, and picks as many
+   * columns as draws the squares largest: a tall grid stacks its cells, a wide
+   * one sets them in a row. `minColWidth` (default `120px`) is the narrowest
+   * column while the grid has the height to draw squares that wide, and the
+   * smallest square it shrinks to before asking for more height and letting
+   * its container scroll. Inside a size container (`container-type: size`,
+   * such as the content of a scroller) it grows to that container's height and
+   * no further, and no square is taller than it; a container that sizes the
+   * grid itself sets `--grid-squares-height` on an ancestor to replace the
+   * height it asks for. Each cell is a size container, so a child draws its
+   * square with `min(100cqw, 100cqh)`, less any heading band. `cols` and `fit`
+   * are ignored.
+   */
+  squares?: boolean;
+  /**
+   * With `squares`, the height in px of a band above each square, such as a
+   * heading, which the column choice allows for. Defaults to `0`.
+   */
+  squareHeadingPx?: number;
   /** The cells, filled in reading order. */
   children?: ReactNode;
 }
@@ -63,8 +86,11 @@ const ALIGN_ITEMS: Record<GridAlign, string> = {
 /**
  * A CSS grid, either with a fixed column template (`cols`) or with as many
  * equal columns of at least `minColWidth` as fit. With neither it is a single
- * column. Useful for laying out cards or readouts that should reflow with the
- * width of the panel. Used by the comm signal and docking HUD widgets.
+ * column. With `squares` it fills the height it is given with equal square
+ * cells instead. Useful for laying out cards or readouts that should reflow
+ * with the width of the panel, or drawings that should share a scale and fill
+ * the tile. Used by the comm signal and docking HUD widgets, and by a landing
+ * widget's plots.
  *
  * @category Layout
  */
@@ -75,9 +101,35 @@ export function Grid({
   gap = "related-dense",
   rowGap,
   align = "center",
+  squares = false,
+  squareHeadingPx = 0,
   children,
   ...rest
 }: GridProps) {
+  if (squares) {
+    const count = Children.toArray(children).length;
+    const min = minColWidth ?? "120px";
+    return (
+      <Grid__SquaresWidth {...rest}>
+        <Grid__SquaresArea
+          $count={count}
+          $min={min}
+          $headingPx={squareHeadingPx}
+          $gap={GAP_VAR[gap]}
+        >
+          <Grid__Squares
+            $count={count}
+            $min={min}
+            $headingPx={squareHeadingPx}
+            $gap={GAP_VAR[gap]}
+            data-grid-squares=""
+          >
+            {children}
+          </Grid__Squares>
+        </Grid__SquaresArea>
+      </Grid__SquaresWidth>
+    );
+  }
   return (
     <Grid__Root
       $cols={cols}
@@ -111,4 +163,45 @@ const Grid__Root = styled.div<{
       return `repeat(${$fit ? "auto-fit" : "auto-fill"}, minmax(min(${$minColWidth}, 100%), 1fr))`;
     return "1fr";
   }};
+`;
+
+const Grid__SquaresWidth = styled.div`
+  container: grid-squares-width / inline-size;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+`;
+
+const Grid__SquaresArea = styled.div<{
+  $count: number;
+  $min: string;
+  $headingPx: number;
+  $gap: string;
+}>`
+  container: grid-squares / size;
+  flex: 1 1 auto;
+  ${({ $count, $min, $headingPx, $gap }) =>
+    squareAreaRules($count, $min, $headingPx, $gap)}
+`;
+
+const Grid__Squares = styled.div<{
+  $count: number;
+  $min: string;
+  $headingPx: number;
+  $gap: string;
+}>`
+  --cols: 1;
+  --rows: ${({ $count }) => $count};
+  display: grid;
+  height: 100%;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
+  gap: ${({ $gap }) => $gap};
+  ${({ $count, $min, $headingPx }) => squareGridRules($count, $min, $headingPx)}
+  & > * {
+    container-type: size;
+    min-width: 0;
+    min-height: 0;
+  }
 `;

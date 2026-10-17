@@ -337,8 +337,8 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
         return above.length;
       };
       const headings = () =>
-        Array.from(grid()?.querySelectorAll("[data-square-cell]") ?? []).map(
-          (cell) => cell.querySelector("[data-square-heading]")?.textContent,
+        Array.from(grid()?.querySelectorAll("[data-plot-cell]") ?? []).map(
+          (cell) => cell.querySelector("[data-plot-heading]")?.textContent,
         );
       const rowsBefore = rowsAbove();
       const headingsBefore = headings();

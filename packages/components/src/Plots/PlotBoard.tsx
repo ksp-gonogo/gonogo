@@ -1,12 +1,6 @@
 import { useContributions } from "@ksp-gonogo/core";
-import {
-  Cluster,
-  HeldBadge,
-  SectionTitle,
-  SquareCell,
-  SquareGrid,
-} from "@ksp-gonogo/ui-kit";
-import { useMemo } from "react";
+import { Cluster, Grid, HeldBadge, SectionTitle } from "@ksp-gonogo/ui-kit";
+import { type ReactNode, useMemo } from "react";
 import { GraphView } from "../Graph";
 import { type MergedPlot, mergePlots } from "./mergePlots";
 
@@ -103,11 +97,12 @@ export function PlotBoard({
     >
       {title && <SectionTitle>{title}</SectionTitle>}
       {/* Every plot the same square, in as many columns as draws them largest in the room the host gives the board. */}
-      <SquareGrid
+      <Grid
+        squares
+        squareHeadingPx={HEADING_ROW_PX}
+        minColWidth={`${minPlotPx}px`}
+        gap="related"
         data-plot-board=""
-        minColumnPx={minPlotPx}
-        floorPx={minPlotPx}
-        headingPx={HEADING_ROW_PX}
       >
         {slots.map((slot) =>
           slot.plot ? (
@@ -116,7 +111,58 @@ export function PlotBoard({
             <EmptyPlot key={slot.key} slot={slot.empty} />
           ) : null,
         )}
-      </SquareGrid>
+      </Grid>
+    </div>
+  );
+}
+
+/**
+ * One cell of the board: the largest square the cell holds, centred, under a
+ * heading row every plot keeps.
+ */
+function PlotCell({
+  heading,
+  children,
+}: {
+  heading: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      data-plot-cell=""
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          width: `min(100cqw, 100cqh - ${HEADING_ROW_PX}px - var(--gap-related))`,
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--gap-related)",
+        }}
+      >
+        <div
+          data-plot-heading=""
+          style={{ minWidth: 0, height: HEADING_ROW_PX }}
+        >
+          {heading}
+        </div>
+        <div
+          data-plot-square=""
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            width: "100%",
+            aspectRatio: "1 / 1",
+            minHeight: 0,
+          }}
+        >
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
@@ -131,7 +177,7 @@ const ONE_LINE = {
 /** One contributed plot, in the same square as every other, its title carrying the held badge while any contribution to it is held. */
 function Plot({ plot }: { plot: MergedPlot }) {
   return (
-    <SquareCell
+    <PlotCell
       heading={
         // One line whatever the plot's width: a heading that wrapped when a held badge joined it would push the plot down mid-flight. The full title is in the tooltip and the chart's own name.
         plot.held === undefined ? (
@@ -168,14 +214,14 @@ function Plot({ plot }: { plot: MergedPlot }) {
           yScalePrimary: plot.frame.yScale === "log" ? "log" : "linear",
         }}
       />
-    </SquareCell>
+    </PlotCell>
   );
 }
 
 /** A reserved slot with no plot: the same heading and square as a plot, its frame drawn empty with the note across it. */
 function EmptyPlot({ slot }: { slot: PlotSlot }) {
   return (
-    <SquareCell
+    <PlotCell
       heading={
         <SectionTitle style={ONE_LINE} data-tooltip={slot.title}>
           {slot.title}
@@ -203,6 +249,6 @@ function EmptyPlot({ slot }: { slot: PlotSlot }) {
           yDomainPrimary: [-1, 1],
         }}
       />
-    </SquareCell>
+    </PlotCell>
   );
 }

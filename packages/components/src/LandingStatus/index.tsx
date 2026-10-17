@@ -372,7 +372,7 @@ function LandingStatusComponent({
                       {
                         width: plotRowWidth(plotSlots.length),
                         padding: 0,
-                        "--square-grid-height": "100cqh",
+                        "--grid-squares-height": "100cqh",
                       } as CSSProperties
                     }
                   >

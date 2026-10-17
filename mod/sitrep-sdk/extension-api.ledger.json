@@ -10731,6 +10731,10 @@
         "note": "Gap between dashboard tiles in px, now 20 on both axes so the tile grab bar fits in it (was 8)"
       },
       {
+        "key": "ui-kit . Grid",
+        "note": "its props take a squares layout, equal square cells filling the height the grid is given"
+      },
+      {
         "key": "ui-kit . HeldFigure",
         "note": "Gains the optional elsewhere prop and its kind widens with \"current\". A caller that passes neither, or a kind of held or modelled alone, draws exactly as before"
       },
@@ -16053,6 +16057,14 @@
         "note": "a threshold line given as a quantity or reading, which Graph places and tones"
       },
       {
+        "key": "ui-kit . GridProps#squareHeadingPx?",
+        "note": "New: with squares, the height of a band above each square that the column choice allows for"
+      },
+      {
+        "key": "ui-kit . GridProps#squares?",
+        "note": "New: equal square cells in as many columns as draws them largest in the height the grid is given"
+      },
+      {
         "key": "ui-kit . GripIcon",
         "note": "A dot-grid icon marking a handle the operator drags, used by the dashboard tile grab bar"
       },
@@ -16527,46 +16539,6 @@
       {
         "key": "ui-kit . SpinnerProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
-      },
-      {
-        "key": "ui-kit . SquareCell",
-        "note": "New: one cell of a SquareGrid, a heading row over the largest square the cell holds"
-      },
-      {
-        "key": "ui-kit . SquareCellProps",
-        "note": "New: the props of SquareCell"
-      },
-      {
-        "key": "ui-kit . SquareCellProps#children?",
-        "note": "the drawing that fills the square"
-      },
-      {
-        "key": "ui-kit . SquareCellProps#heading?",
-        "note": "drawn in the heading row above the square"
-      },
-      {
-        "key": "ui-kit . SquareGrid",
-        "note": "New: equal squares in as many columns as draws them largest in the room the grid is given"
-      },
-      {
-        "key": "ui-kit . SquareGridProps",
-        "note": "New: the props of SquareGrid"
-      },
-      {
-        "key": "ui-kit . SquareGridProps#children?",
-        "note": "the cells, each a SquareCell"
-      },
-      {
-        "key": "ui-kit . SquareGridProps#floorPx?",
-        "note": "the smallest square before the grid asks its container for more height"
-      },
-      {
-        "key": "ui-kit . SquareGridProps#headingPx?",
-        "note": "the height of the heading row every cell keeps"
-      },
-      {
-        "key": "ui-kit . SquareGridProps#minColumnPx?",
-        "note": "the narrowest column while the grid has the height to draw squares that wide"
       },
       {
         "key": "ui-kit . SwitchBaseProps",
