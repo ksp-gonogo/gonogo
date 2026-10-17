@@ -8,7 +8,7 @@ import type { PlotEntry } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { heldWord } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";
-import { MIN_PLOT_PX, PlotBoard, type PlotSlot, plotGrid } from "./PlotBoard";
+import { MIN_PLOT_PX, PlotBoard, type PlotSlot } from "./PlotBoard";
 
 /**
  * What the arranger does with what it is handed, through the real registry,
@@ -222,74 +222,14 @@ describe("PlotBoard", () => {
 });
 
 describe("the board's layout", () => {
-  const GAP = 8;
-
-  it("draws each column as wide as its plot is tall and spaces the columns across the board", async () => {
+  it("lays the plots out as an auto-fit grid of equal columns, none narrower than the host's minimum", async () => {
     const { container } = render(<ReservingHost />);
 
     await act(async () => {});
-    const board = container.querySelector<HTMLElement>("[data-plot-columns]");
+    const board = container.querySelector<HTMLElement>("[data-plot-board]");
     expect(board?.style.gridTemplateColumns).toBe(
-      `repeat(2, ${MIN_PLOT_PX}px)`,
+      `repeat(auto-fit, minmax(min(100%, ${MIN_PLOT_PX}px), 1fr))`,
     );
-    expect(board?.style.justifyContent).toBe("space-between");
-  });
-
-  it("prefers full rows to a lone plot on the last, unless that shrinks every plot by a fifth", () => {
-    // Four plots: three across would leave one alone on the second row.
-    expect(plotGrid(4, 900, GAP, 700).columns).toBe(2);
-    expect(plotGrid(4, 900, GAP, 330).columns).toBe(4);
-  });
-
-  it("keeps plots at the size the host asks for when the height budget would shrink them further", () => {
-    expect(plotGrid(3, 300, GAP, 40, 1, 220).side).toBe(220);
-    expect(plotGrid(3, 300, GAP, 40).side).toBe(MIN_PLOT_PX);
-    // The board's own width still caps a plot.
-    expect(plotGrid(3, 200, GAP, 40, 1, 220).side).toBe(200);
-  });
-
-  it("puts every plot side by side while each stays legible, all the same size", () => {
-    const grid = plotGrid(3, 438, GAP);
-    expect(grid.columns).toBe(3);
-    expect(3 * grid.side + 2 * GAP).toBeLessThanOrEqual(438);
-    expect(grid.side).toBeGreaterThanOrEqual(MIN_PLOT_PX);
-  });
-
-  it("shrinks the plots with the board, rather than holding a width that overflows it", () => {
-    const wide = plotGrid(3, 900, GAP).side;
-    const narrow = plotGrid(3, 420, GAP).side;
-    expect(narrow).toBeLessThan(wide);
-    expect(plotGrid(3, 420, GAP).columns).toBe(3);
-  });
-
-  it("wraps when the board is too narrow for them all, and a plot on a row of its own is no larger than the rest", () => {
-    const grid = plotGrid(3, 300, GAP);
-    expect(grid.columns).toBe(2);
-    // One side for every plot: the third, alone on its row, is drawn at the same size.
-    expect(2 * grid.side + GAP).toBeLessThanOrEqual(300);
-  });
-
-  it("shrinks the plots to the height a short tile gives them, down to the legible minimum", () => {
-    const free = plotGrid(3, 900, GAP).side;
-    const short = plotGrid(3, 900, GAP, 200).side;
-    expect(short).toBeLessThan(free);
-    expect(short).toBeGreaterThanOrEqual(MIN_PLOT_PX);
-    expect(plotGrid(3, 900, GAP, 40).side).toBe(MIN_PLOT_PX);
-  });
-
-  it("puts more across in a wide, short board than the column limit it would otherwise keep", () => {
-    expect(plotGrid(4, 1400, GAP, 200).columns).toBe(4);
-    expect(plotGrid(4, 1400, GAP, undefined, 2).columns).toBe(2);
-  });
-
-  it("keeps the plots in fewer rows when no column count makes them larger", () => {
-    const grid = plotGrid(4, 1400, GAP, 40);
-    expect(grid.side).toBe(MIN_PLOT_PX);
-    expect(grid.columns).toBe(4);
-  });
-
-  it("never draws a plot wider than the board itself", () => {
-    expect(plotGrid(1, 90, GAP).side).toBeLessThanOrEqual(90);
   });
 
   describe("reserved slots", () => {

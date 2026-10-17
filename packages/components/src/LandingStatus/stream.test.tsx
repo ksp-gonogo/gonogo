@@ -306,7 +306,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
         emitMunDescent();
       });
       const grid = () =>
-        container.querySelector<HTMLElement>("[data-plot-columns]");
+        container.querySelector<HTMLElement>("[data-plot-board]");
       await waitFor(() => expect(grid()).not.toBeNull());
       /*
        * What stands above the plots in document order: a row more there takes
