@@ -55,6 +55,12 @@ export interface UplinkLoadOutcome {
    */
   refusedOnHealth?: true;
   /**
+   * Set when the quarantine is the operator's own answer at the consent prompt
+   * (Skip or Decline) rather than a fault. Nothing was fetched or run, and
+   * Reconsider asks again.
+   */
+  skippedByOperator?: true;
+  /**
    * Set when the quarantine was the registry index being unreadable, which says
    * nothing about the Uplink itself: the next roster read tries it again.
    */

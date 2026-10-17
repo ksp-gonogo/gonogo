@@ -84,6 +84,8 @@ export const WIZARD_COPY = {
     "{installed} {installed?Uplink|Uplinks} installed, all reporting healthy",
   "uplinks.check.attention":
     "{installed} {installed?Uplink|Uplinks} installed, {attention} {attention?needs|need} attention",
+  "uplinks.check.skipped":
+    "{installed} {installed?Uplink|Uplinks} installed, {skipped} skipped by you. Load {skipped?it|them} later from Settings, Uplinks",
   "uplinks.summary":
     "Client loaded for {loaded} of {installed} {installed?Uplink|Uplinks} that {installed?has|have} one",
   "uplinks.summaryRefused":
@@ -100,6 +102,9 @@ export const WIZARD_COPY = {
   "uplinks.row.loaded": "Client loaded",
   "uplinks.row.loading": "Client loading",
   "uplinks.row.quarantined": "Client quarantined",
+  "uplinks.row.skipped": "Skipped by you",
+  "uplinks.row.skippedDetail":
+    "You chose not to load this Uplink. Reconsider it from Settings, Uplinks.",
   "uplinks.row.refused": "Refused: contract mismatch",
   "uplinks.row.unavailable": "Mod reports unavailable",
   "uplinks.row.noClient": "No client loaded",

@@ -32,6 +32,8 @@ import {
  *
  * `no-client` and `quarantined` are deliberately separate. A quarantine is a
  * client that was found and refused, and it carries the refusal reason;
+ * `skipped` is the operator's own answer at the consent prompt, a choice that
+ * is not a fault;
  * `no-client` is nothing having been attempted at all, which the app cannot
  * explain further from here and does not pretend to.
  */
@@ -39,6 +41,7 @@ export type UplinkReadinessState =
   | "loaded"
   | "loading"
   | "quarantined"
+  | "skipped"
   | "contract-mismatch"
   | "no-client"
   | "mod-only"
@@ -112,6 +115,8 @@ function stateOf(
   if (installed && contractRefused) return "contract-mismatch";
   if (outcome?.status === "loaded") return "loaded";
   if (outcome?.status === "loading") return "loading";
+  if (outcome?.status === "quarantined" && outcome.skippedByOperator)
+    return "skipped";
   if (outcome?.status === "quarantined") return "quarantined";
   if (installed && !modAvailable) return "unavailable";
   if (installed && !declaresClient) return "mod-only";

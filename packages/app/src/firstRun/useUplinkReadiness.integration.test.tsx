@@ -1,5 +1,11 @@
 import { clearRegistry } from "@ksp-gonogo/core";
-import { render, renderHook, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
@@ -153,6 +159,67 @@ describe("useUplinkReadiness: hook wiring", () => {
     expect(
       screen.getByText(/1 refused due to a contract mismatch/),
     ).toBeInTheDocument();
+  });
+
+  it("reads a skipped Uplink as a choice with a way back, and a failed one as a fault", async () => {
+    setUplinkOutcome({
+      id: "widget-a",
+      name: "Widget A",
+      status: "quarantined",
+      reason: "consent declined",
+      skippedByOperator: true,
+    });
+    const clients = listenForClient();
+    render(<UplinkReadinessStep />, { wrapper });
+    await waitFor(() => expect(clients).toHaveLength(1));
+    const uplink = (id: string) => ({
+      id,
+      version: "1.0.0",
+      available: true,
+      reason: null,
+      expectedClientHash: "client-hash",
+      author: "Test Author",
+      repo: "example/addon",
+      health: { state: 0, detail: null },
+    });
+    const send = (ids: string[]) => {
+      clients[0].send(
+        streamFrame("system.uplinks", { uplinks: ids.map(uplink) }),
+      );
+      clients[0].send(
+        streamFrame("system.uplinkHealth", {
+          uplinks: ids.map((id) => ({
+            ...uplink(id),
+            name: id,
+            health: { state: "healthy", detail: null, facts: [] },
+          })),
+        }),
+      );
+    };
+    send(["widget-a"]);
+
+    await waitFor(() =>
+      expect(screen.getByText("Skipped by you")).toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(/1 skipped by you/)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/need attention|needs attention/)).toBeNull();
+    expect(screen.getByText(/Reconsider it from Settings/)).toBeInTheDocument();
+
+    await act(async () => {
+      setUplinkOutcome({
+        id: "widget-b",
+        name: "Widget B",
+        status: "quarantined",
+        reason: "bundle fetch failed: HTTP 404",
+      });
+    });
+    send(["widget-a", "widget-b"]);
+    await waitFor(() =>
+      expect(screen.getByText(/1 needs attention/)).toBeInTheDocument(),
+    );
+    await act(async () => {});
   });
 
   it("reflects an id already recorded loaded through the real outcome subscription", async () => {
