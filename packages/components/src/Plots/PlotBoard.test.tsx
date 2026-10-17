@@ -224,6 +224,30 @@ describe("PlotBoard", () => {
 describe("the board's layout", () => {
   const GAP = 8;
 
+  it("draws each column as wide as its plot is tall and spaces the columns across the board", async () => {
+    const { container } = render(<ReservingHost />);
+
+    await act(async () => {});
+    const board = container.querySelector<HTMLElement>("[data-plot-columns]");
+    expect(board?.style.gridTemplateColumns).toBe(
+      `repeat(2, ${MIN_PLOT_PX}px)`,
+    );
+    expect(board?.style.justifyContent).toBe("space-between");
+  });
+
+  it("prefers full rows to a lone plot on the last, unless that shrinks every plot by a fifth", () => {
+    // Four plots: three across would leave one alone on the second row.
+    expect(plotGrid(4, 900, GAP, 700).columns).toBe(2);
+    expect(plotGrid(4, 900, GAP, 330).columns).toBe(4);
+  });
+
+  it("keeps plots at the size the host asks for when the height budget would shrink them further", () => {
+    expect(plotGrid(3, 300, GAP, 40, 1, 220).side).toBe(220);
+    expect(plotGrid(3, 300, GAP, 40).side).toBe(MIN_PLOT_PX);
+    // The board's own width still caps a plot.
+    expect(plotGrid(3, 200, GAP, 40, 1, 220).side).toBe(200);
+  });
+
   it("puts every plot side by side while each stays legible, all the same size", () => {
     const grid = plotGrid(3, 438, GAP);
     expect(grid.columns).toBe(3);

@@ -13,7 +13,7 @@ import { type MergedPlot, mergePlots } from "./mergePlots";
  */
 
 /**
- * The smallest a plot is drawn across: narrower, its corner readouts crowd the marks, so wrapping beats shrinking further. Every plot on a board is the same square, chart and map alike, so a set reads as instruments rather than a layout accident; a spatial frame keeps itself square in its own data units.
+ * The smallest a plot is drawn across: narrower, its corner readouts crowd the marks, so wrapping beats shrinking further. Every plot on a board is the same height, chart and map alike, so a set reads as instruments rather than a layout accident; a board with width to spare spaces them out across it, and a spatial frame keeps itself square in its own data units.
  */
 export const MIN_PLOT_PX = 120;
 
@@ -23,6 +23,9 @@ const HEADING_ROW_PX = 17;
 /** The height a plot's heading takes above its square, with the gap under it. */
 const PLOT_HEADING_PX = HEADING_ROW_PX + 8;
 
+/** The share of the largest plot size a layout of full rows must keep to be chosen over one that leaves a row short. */
+const EVEN_ROWS_MIN_SHARE = 0.8;
+
 /** How the board lays its plots out: how many sit across, and the side of every one. */
 export interface PlotGrid {
   columns: number;
@@ -31,7 +34,7 @@ export interface PlotGrid {
 
 /**
  * The board's layout for `count` plots in a board `widthPx` wide with `gapPx` between them: the number across, up to `maxColumns` and no fewer than keeps each at least `MIN_PLOT_PX`, that gives the largest square, all the same size, so a plot that wraps onto a row of its own is never drawn larger than the rest.
- * `heightPx`, when given, is the most the whole board may take, headings included: in a short tile the plots shrink to it rather than run off the bottom, down to `MIN_PLOT_PX`.
+ * `heightPx`, when given, is the most the whole board may take, headings included: in a short tile the plots shrink to it rather than run off the bottom, down to `minSide` (`MIN_PLOT_PX` unless the host asks for larger), though never wider than the board allows.
  */
 export function plotGrid(
   count: number,
@@ -39,6 +42,7 @@ export function plotGrid(
   gapPx: number,
   heightPx?: number,
   maxColumns = Number.POSITIVE_INFINITY,
+  minSide = MIN_PLOT_PX,
 ): PlotGrid {
   const layout = (columns: number): PlotGrid => {
     const across = (widthPx - gapPx * (columns - 1)) / columns;
@@ -47,7 +51,7 @@ export function plotGrid(
       heightPx == null
         ? Number.POSITIVE_INFINITY
         : (heightPx - gapPx * (rows - 1)) / rows - PLOT_HEADING_PX;
-    const side = Math.min(across, Math.max(MIN_PLOT_PX, tall));
+    const side = Math.min(across, Math.max(minSide, tall));
     return { columns, side: Math.max(0, Math.floor(side)) };
   };
   const most = Math.max(1, Math.min(count, maxColumns));
@@ -69,7 +73,21 @@ export function plotGrid(
     const next = layout(columns);
     if (next.side >= best.side) best = next;
   }
-  return best;
+  // A grid whose rows are all full and which spans more of the board is preferred to the largest squares, unless it costs the plots a fifth of their size: a lone plot on the last row and an empty strip beside the rest are what it avoids.
+  const spread = (g: PlotGrid) => g.columns * g.side;
+  let chosen = best;
+  for (let columns = 1; columns <= most; columns++) {
+    if (count % columns !== 0) continue;
+    if ((widthPx - gapPx * (columns - 1)) / columns < MIN_PLOT_PX) break;
+    const even = layout(columns);
+    if (
+      even.side >= best.side * EVEN_ROWS_MIN_SHARE &&
+      (count % chosen.columns !== 0 || spread(even) > spread(chosen))
+    ) {
+      chosen = even;
+    }
+  }
+  return chosen;
 }
 
 /** A place the board keeps for a plot whether or not it has anything to draw: its frame stays, and `note` is what the frame says until the plot arrives. */
@@ -85,8 +103,10 @@ export interface PlotSlot {
 export interface PlotBoardProps {
   /** Rendered above the plots when there is at least one. Omit when the host already wrote a heading. */
   title?: string;
-  /** The most height the plots may take, headings included, so a host can keep its other content in view; the plots shrink to it, never below `MIN_PLOT_PX`. */
+  /** The most height the plots may take, headings included, so a host can keep its other content in view; the plots shrink to it, never below `minPlotPx`. */
   heightPx?: number;
+  /** The smallest a plot is drawn across, for a host whose plots carry corner readouts that crowd one another below it. Defaults to `MIN_PLOT_PX`. */
+  minPlotPx?: number;
   /** The most plots sat across, so a host with a few plots draws them larger than the narrowest they could be. */
   maxColumns?: number;
   /** Plots the host expects through its whole life, in the order they sit: each keeps its place, drawn as an empty frame while its plot is absent, so a plot arriving or leaving moves nothing. Plots contributed beyond them follow. */
@@ -120,6 +140,7 @@ export function PlotBoard({
   title,
   heightPx,
   maxColumns,
+  minPlotPx,
   reserve = [],
 }: Readonly<PlotBoardProps>) {
   const contributed = useContributions("plots");
@@ -166,6 +187,7 @@ export function PlotBoard({
           measured.gap,
           heightPx,
           maxColumns,
+          minPlotPx,
         )
       : { columns: most.current, side: MIN_PLOT_PX };
 
@@ -184,14 +206,16 @@ export function PlotBoard({
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${grid.columns}, ${grid.side}px)`,
+          // The squares keep their size and share out the room left across the board, so the right edge is not left empty.
+          justifyContent: "space-between",
           gap: "var(--gap-related)",
         }}
       >
         {slots.map((slot) =>
           slot.plot ? (
-            <Plot key={slot.key} plot={slot.plot} />
+            <Plot key={slot.key} plot={slot.plot} side={grid.side} />
           ) : slot.empty ? (
-            <EmptyPlot key={slot.key} slot={slot.empty} />
+            <EmptyPlot key={slot.key} slot={slot.empty} side={grid.side} />
           ) : null,
         )}
       </div>
@@ -209,7 +233,7 @@ const ONE_LINE = {
 } as const;
 
 /** One contributed plot, in the same square as every other, its title carrying the held badge while any contribution to it is held. */
-function Plot({ plot }: { plot: MergedPlot }) {
+function Plot({ plot, side }: { plot: MergedPlot; side: number }) {
   return (
     <div
       style={{
@@ -240,7 +264,8 @@ function Plot({ plot }: { plot: MergedPlot }) {
         style={{
           display: "flex",
           flexDirection: "column",
-          aspectRatio: "1",
+          width: side,
+          height: side,
           minHeight: 0,
         }}
       >
@@ -268,7 +293,7 @@ function Plot({ plot }: { plot: MergedPlot }) {
 }
 
 /** A reserved slot with no plot: the same heading and square as a plot, its frame drawn empty with the note across it. */
-function EmptyPlot({ slot }: { slot: PlotSlot }) {
+function EmptyPlot({ slot, side }: { slot: PlotSlot; side: number }) {
   return (
     <div
       style={{
@@ -287,7 +312,8 @@ function EmptyPlot({ slot }: { slot: PlotSlot }) {
         style={{
           display: "flex",
           flexDirection: "column",
-          aspectRatio: "1",
+          width: side,
+          height: side,
           minHeight: 0,
         }}
       >

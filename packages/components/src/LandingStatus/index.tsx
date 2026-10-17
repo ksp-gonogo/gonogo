@@ -41,14 +41,15 @@ import "./crossSectionPlot";
 import "./vesselViewPlot";
 import "./touchdownReticlePlot";
 import "./descentLayers";
+import { useElementHeight } from "./useElementHeight";
 import { useLandingEssentials } from "./useLandingEssentials";
 
 export type { FlightReading } from "./CarriedAltitude";
 
 type LandingStatusConfig = Record<string, never>;
 
-/** The share of the room below the link rows the plots may take, so in a short tile they shrink and the readouts under them stay in reach. */
-const PLOTS_SHARE_OF_ROOM = 0.85;
+/** The smallest a plot is drawn: below it the touchdown site's heading and compass labels run into each other. */
+const MIN_LEGIBLE_PLOT_PX = 220;
 
 /** Plots sat across while the tile's height is unknown: two, so each is drawn large enough to read at the default tile. */
 const PLOT_COLUMNS = 2;
@@ -57,6 +58,7 @@ function LandingStatusComponent({
   w,
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
   const [measureScroller, railFrame] = useScrollerHeight();
+  const [measureReadouts, readoutsHeight] = useElementHeight();
   const model = useLandingModel();
   const {
     flight,
@@ -139,8 +141,12 @@ function LandingStatusComponent({
     <PlotBoard
       maxColumns={railFrame.room > 0 ? undefined : PLOT_COLUMNS}
       reserve={reservedPlots}
+      minPlotPx={MIN_LEGIBLE_PLOT_PX}
+      // What the readouts under the plots leave of the room, so the plots take the rest and every readout stays in view; the board never goes below its smallest legible plots, and the panel scrolls only then.
       heightPx={
-        railFrame.room > 0 ? railFrame.room * PLOTS_SHARE_OF_ROOM : undefined
+        railFrame.room > 0
+          ? Math.max(0, railFrame.room - readoutsHeight)
+          : undefined
       }
     />
   );
@@ -334,6 +340,7 @@ function LandingStatusComponent({
                       {contributedPlots}
                     </div>
                     <div
+                      ref={measureReadouts}
                       style={{
                         display: "flex",
                         flexDirection: "column",
