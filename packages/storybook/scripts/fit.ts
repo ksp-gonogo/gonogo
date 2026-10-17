@@ -28,6 +28,7 @@ const MAIN_STORIES = [
   "widgets-gonogo--aborted",
   "widgets-gonogo--mission-active",
   "widgets-gonogo--no-stations",
+  "widgets-gonogo--eight-stations",
   "widgets-gonogo--many-stations",
 ];
 const STATION_STORIES = [

@@ -16057,6 +16057,10 @@
         "note": "a threshold line given as a quantity or reading, which Graph places and tones"
       },
       {
+        "key": "ui-kit . GridProps#minRowHeight?",
+        "note": "New: with squares, cells fill the grid and a row shrinks to this height before the grid scrolls"
+      },
+      {
         "key": "ui-kit . GridProps#squareHeadingPx?",
         "note": "New: with squares, the height of a band above each square that the column choice allows for"
       },

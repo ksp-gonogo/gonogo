@@ -72,6 +72,17 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
    * heading, which the column choice allows for. Defaults to `0`.
    */
   squareHeadingPx?: number;
+  /**
+   * With `squares`, the cells fill the grid instead of staying square, and a
+   * row shrinks to this height (a px figure) before the grid asks for more
+   * height. The column count still follows the shape of the grid, and the
+   * grid takes the room its flex container leaves rather than a size
+   * container's height, scrolling its rows within it once they no longer fit
+   * at this height. It keeps one row of that height, below which its
+   * container scrolls instead. Useful for cells that hold a line or two of text, such
+   * as a station's name and state, rather than a drawing.
+   */
+  minRowHeight?: string;
   /** The cells, filled in reading order. */
   children?: ReactNode;
 }
@@ -89,8 +100,8 @@ const ALIGN_ITEMS: Record<GridAlign, string> = {
  * column. With `squares` it fills the height it is given with equal square
  * cells instead. Useful for laying out cards or readouts that should reflow
  * with the width of the panel, or drawings that should share a scale and fill
- * the tile. Used by the comm signal and docking HUD widgets, and by a landing
- * widget's plots.
+ * the tile. Used by the comm signal and docking HUD widgets, by a landing
+ * widget's plots, and by the GO/NO-GO board's stations.
  *
  * @category Layout
  */
@@ -103,6 +114,7 @@ export function Grid({
   align = "center",
   squares = false,
   squareHeadingPx = 0,
+  minRowHeight,
   children,
   ...rest
 }: GridProps) {
@@ -110,18 +122,20 @@ export function Grid({
     const count = Children.toArray(children).length;
     const min = minColWidth ?? "120px";
     return (
-      <Grid__SquaresWidth {...rest}>
+      <Grid__SquaresWidth $rowMin={minRowHeight} {...rest}>
         <Grid__SquaresArea
           $count={count}
           $min={min}
           $headingPx={squareHeadingPx}
           $gap={GAP_VAR[gap]}
+          $rowMin={minRowHeight}
         >
           <Grid__Squares
             $count={count}
             $min={min}
             $headingPx={squareHeadingPx}
             $gap={GAP_VAR[gap]}
+            $rowMin={minRowHeight}
             data-grid-squares=""
           >
             {children}
@@ -165,12 +179,19 @@ const Grid__Root = styled.div<{
   }};
 `;
 
-const Grid__SquaresWidth = styled.div`
+const Grid__SquaresWidth = styled.div<{ $rowMin?: string }>`
   container: grid-squares-width / inline-size;
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  ${({ $rowMin }) =>
+    $rowMin &&
+    `
+  flex-basis: 0;
+  min-height: ${$rowMin};
+  overflow-y: auto;
+`}
 `;
 
 const Grid__SquaresArea = styled.div<{
@@ -178,11 +199,12 @@ const Grid__SquaresArea = styled.div<{
   $min: string;
   $headingPx: number;
   $gap: string;
+  $rowMin?: string;
 }>`
   container: grid-squares / size;
   flex: 1 1 auto;
-  ${({ $count, $min, $headingPx, $gap }) =>
-    squareAreaRules($count, $min, $headingPx, $gap)}
+  ${({ $count, $min, $headingPx, $gap, $rowMin }) =>
+    squareAreaRules($count, $min, $headingPx, $gap, $rowMin)}
 `;
 
 const Grid__Squares = styled.div<{
@@ -190,6 +212,7 @@ const Grid__Squares = styled.div<{
   $min: string;
   $headingPx: number;
   $gap: string;
+  $rowMin?: string;
 }>`
   --cols: 1;
   --rows: ${({ $count }) => $count};
@@ -198,7 +221,8 @@ const Grid__Squares = styled.div<{
   grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
   grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
   gap: ${({ $gap }) => $gap};
-  ${({ $count, $min, $headingPx }) => squareGridRules($count, $min, $headingPx)}
+  ${({ $count, $min, $headingPx, $rowMin }) =>
+    squareGridRules($count, $min, $headingPx, $rowMin)}
   & > * {
     container-type: size;
     min-width: 0;

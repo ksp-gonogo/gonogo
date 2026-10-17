@@ -103,6 +103,20 @@ export const MissionActive: Story = {
   },
 };
 
+/** Eight stations polled before launch: six `GO`, one holding NO-GO and one yet to vote. */
+export const EightStations: Story = {
+  name: "Main, eight stations",
+  args: {
+    stations: Array.from({ length: 8 }, (_, i) => ({
+      peerId: `station-${i}`,
+      name: `Station ${i + 1}`,
+      vote: i === 2 ? ("no-go" as const) : i === 6 ? null : ("go" as const),
+    })),
+    w: 8,
+    h: 8,
+  },
+};
+
 /** Twelve stations on one board, more than a small tile holds at once. */
 export const ManyStations: Story = {
   name: "Main, many stations",

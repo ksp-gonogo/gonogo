@@ -382,7 +382,12 @@ function MainView({
           ABORT: triggered by {abort.stationName}
         </AbortBanner>
       )}
-      <StationBoard>
+      <Grid
+        squares
+        minColWidth="88px"
+        minRowHeight="48px"
+        gap="related-comfortable"
+      >
         {stations.length === 0 && <Empty>No stations connected</Empty>}
         {stations.map((s) => {
           const cellState = deriveCellState(s, launched, abort);
@@ -399,7 +404,7 @@ function MainView({
             </Cell>
           );
         })}
-      </StationBoard>
+      </Grid>
     </MainLayout>
   );
 }
@@ -635,23 +640,6 @@ const AbortBanner = styled.div`
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-`;
-
-/*
- * The auto-fill track and the gap come from the kit. The rows share whatever
- * height the tile leaves, down to the cell floor, and the board scrolls once
- * the stations no longer fit at that floor. Below one floor row the whole
- * widget scrolls instead, so nothing is clipped.
- */
-const StationBoard = styled(Grid).attrs({
-  minColWidth: "88px",
-  gap: "related-comfortable" as const,
-  align: "stretch" as const,
-})`
-  flex: 1 1 0;
-  min-height: var(--size-gonogo-cell-floor);
-  overflow-y: auto;
-  grid-auto-rows: minmax(var(--size-gonogo-cell-floor), 1fr);
 `;
 
 const Cell = styled.div<{ $state: CellState }>`

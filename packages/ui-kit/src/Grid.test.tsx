@@ -1,7 +1,11 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Grid } from "./Grid";
-import { squareColumnChoices } from "./gridSquares";
+import {
+  squareAreaRules,
+  squareColumnChoices,
+  squareHeadingAllowance,
+} from "./gridSquares";
 
 describe("Grid", () => {
   it("renders its children", () => {
@@ -100,6 +104,33 @@ describe("Grid", () => {
       );
       expect(injectedCss()).toContain("min-height:var(--grid-squares-height,");
       expect(injectedCss()).toMatch(/min\(var\(--cell\),\s*200px,\s*100cqh/);
+    });
+    it("asks only for rows at minRowHeight when its cells fill the grid, and scrolls them in the room it is given", () => {
+      render(
+        <Grid squares minColWidth="88px" minRowHeight="48px" data-testid="grid">
+          <span>a</span>
+          <span>b</span>
+          <span>c</span>
+        </Grid>,
+      );
+      expect(injectedCss()).toContain(
+        "min-height:var(--grid-squares-height, calc(var(--rows) * (48px + 0px)",
+      );
+      expect(squareAreaRules(3, "88px", 0, "8px", "48px")).not.toContain(
+        "100cqh",
+      );
+      expect(injectedCss()).toContain(
+        "(height < calc(1 * (48px + 8px) + 0px))",
+      );
+      expect(screen.getByTestId("grid")).toHaveStyle({
+        overflowY: "auto",
+        minHeight: "48px",
+      });
+    });
+
+    it("allows no heading band on a cell that has none", () => {
+      expect(squareHeadingAllowance(0)).toBe("0px");
+      expect(squareHeadingAllowance(17)).toBe("(17px + var(--gap-related))");
     });
   });
 });
