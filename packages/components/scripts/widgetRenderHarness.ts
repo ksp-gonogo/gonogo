@@ -1983,6 +1983,63 @@ interface RenderFindings {
   a11y: string[];
 }
 
+/**
+ * Resolves once the page has gone a run of frames with no DOM change and no resize of `#root`.
+ *
+ * Layout that settles through chained ResizeObserver callbacks (a control row that yields and then comes back) takes a different number of frames per engine and per machine load, so a fixed wait can land in the middle of it. Counting quiet frames rather than milliseconds keeps it independent of the pinned clock.
+ */
+async function awaitQuietLayout(page: Page): Promise<void> {
+  /*
+   * A string, not a function: tsx wraps named functions in a `__name` helper that does not exist in the page.
+   */
+  const settled = await page.evaluate<boolean>(`new Promise((res) => {
+    const QUIET_FRAMES = 12;
+    const MAX_FRAMES = 600;
+    const host = document.getElementById("root");
+    if (!host) {
+      res(true);
+      return;
+    }
+    let changed = true;
+    const mark = () => {
+      changed = true;
+    };
+    const mutations = new MutationObserver(mark);
+    mutations.observe(host, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      characterData: true,
+    });
+    const sizes = new ResizeObserver(mark);
+    sizes.observe(host);
+    let quiet = 0;
+    let frames = 0;
+    const tick = () => {
+      frames++;
+      if (changed) {
+        quiet = 0;
+        changed = false;
+      } else {
+        quiet++;
+      }
+      if (quiet >= QUIET_FRAMES || frames >= MAX_FRAMES) {
+        mutations.disconnect();
+        sizes.disconnect();
+        res(quiet >= QUIET_FRAMES);
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  })`);
+  if (!settled) {
+    throw new Error(
+      "Probe: the layout was still changing after 600 frames, so the capture would depend on when it was taken",
+    );
+  }
+}
+
 function noFindings(): RenderFindings {
   return {
     crushedGraphics: [],
@@ -2331,6 +2388,7 @@ async function renderOneWidget(
         );
         console.log(`  dom dump → ${dumpPath} (${dumped.length} matches)`);
       }
+      await awaitQuietLayout(page);
       // animations:"disabled" cancels any still-running CSS animation to its
       // initial state and fast-forwards finite transitions, so the capture is
       // deterministic even for anything not covered by reducedMotion.
