@@ -11,6 +11,7 @@ import {
   depthStrength,
 } from "./depthCues";
 import { arcMetres, openPath, type PlacedRingEnd } from "./diagramGeometry";
+import { type CaptionBox, placeEncounterCaption } from "./encounterCaption";
 import type { Placement } from "./projection";
 import { InteractiveMarker } from "./SystemEntitiesLayer";
 
@@ -291,6 +292,10 @@ export function PredictedPatchArc({
   );
 }
 
+/** The caption's type size and the width of one of its characters on screen, in pixels. */
+const CAPTION_FONT_PX = 8;
+const CAPTION_CHAR_PX = 5;
+
 export function EncounterMarker({
   x,
   y,
@@ -299,6 +304,7 @@ export function EncounterMarker({
   zoom,
   subject = "vessel",
   heldReason,
+  avoid = [],
 }: Readonly<{
   x: number;
   y: number;
@@ -308,6 +314,8 @@ export function EncounterMarker({
   subject?: "vessel" | "target";
   /** Set when the marker comes from a report older than the craft's place: it is dimmed, dashed and carries this tooltip. */
   heldReason?: string;
+  /** The names drawn nearby, which the caption keeps clear of. */
+  avoid?: readonly CaptionBox[];
 }>) {
   const held = heldReason !== undefined;
   const color =
@@ -317,6 +325,14 @@ export function EncounterMarker({
   const encounterLabel =
     subject === "target" ? `encounter ${body}` : `→ ${body}`;
   const label = kind === "escape" ? `escape ${body}` : encounterLabel;
+  const place = placeEncounterCaption({
+    x,
+    y,
+    zoom,
+    widthPx: label.length * CAPTION_CHAR_PX,
+    heightPx: CAPTION_FONT_PX,
+    avoid,
+  });
   return (
     <g
       pointerEvents={held ? "visiblePainted" : "none"}
@@ -336,10 +352,11 @@ export function EncounterMarker({
       />
       <circle cx={x} cy={y} r={r * 0.35} fill={color} />
       <text
-        x={x + r + 3 / zoom}
-        y={y + 3 / zoom}
+        x={x + place.dx}
+        y={y + place.dy}
+        textAnchor={place.anchor}
         fill={color}
-        fontSize={8 / zoom}
+        fontSize={CAPTION_FONT_PX / zoom}
         fontWeight={600}
       >
         {label}
