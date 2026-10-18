@@ -17,10 +17,9 @@ import {
  * several secondaries. Secondaries stay hidden until the cluster is
  * "active": hovered or focused (a short close delay keeps it open while the
  * cursor travels between buttons), or held open by the toggle until it is
- * pressed again, Escape is pressed, a pointer lands outside the cluster or one
- * of its buttons is chosen. On a coarse primary pointer there is no hover, and
- * the hover and focus a touch synthesises are ignored, so only the toggle
- * opens the cluster.
+ * pressed again, Escape is pressed or a pointer lands outside the cluster. On
+ * a coarse primary pointer there is no hover to reveal them, so the cluster
+ * stays open and every name is readable.
  */
 interface FabClusterValue {
   /** True when any FAB in the cluster is hovered or focused, or the toggle holds it open. */
@@ -29,8 +28,6 @@ interface FabClusterValue {
   expanded: boolean;
   /** Opens the cluster until it is toggled again or dismissed. */
   toggle: () => void;
-  /** Closes the cluster, hover and toggle alike. */
-  close: () => void;
   /** Id of the element that holds the cluster's buttons, for `aria-controls`. */
   regionId: string;
   /** Attach to the toggle so Escape can return focus to it. */
@@ -69,7 +66,7 @@ export function FabClusterProvider({
   const [hovered, setHovered] = useState(false);
   const coarse = useSyncExternalStore(subscribeCoarse, readCoarse, () => false);
   const [expanded, setExpanded] = useState(false);
-  const active = expanded || (hovered && !coarse);
+  const active = hovered || expanded || coarse;
   const regionId = useId();
   const regionRef = useRef<HTMLDivElement | null>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -84,8 +81,8 @@ export function FabClusterProvider({
 
   const open = useCallback(() => {
     clearPendingClose();
-    if (!coarse) setHovered(true);
-  }, [clearPendingClose, coarse]);
+    setHovered(true);
+  }, [clearPendingClose]);
 
   const scheduleClose = useCallback(() => {
     clearPendingClose();
@@ -101,12 +98,6 @@ export function FabClusterProvider({
   }, [clearPendingClose]);
 
   useEffect(() => () => clearPendingClose(), [clearPendingClose]);
-
-  const close = useCallback(() => {
-    clearPendingClose();
-    setExpanded(false);
-    setHovered(false);
-  }, [clearPendingClose]);
 
   useEffect(() => {
     if (!expanded && !hovered) return;
@@ -137,7 +128,6 @@ export function FabClusterProvider({
       active,
       expanded,
       toggle,
-      close,
       regionId,
       toggleRef,
       onMouseEnter: open,
@@ -145,7 +135,7 @@ export function FabClusterProvider({
       onFocus: open,
       onBlur: scheduleClose,
     }),
-    [active, expanded, toggle, close, regionId, open, scheduleClose],
+    [active, expanded, toggle, regionId, open, scheduleClose],
   );
 
   return (

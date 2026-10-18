@@ -47,7 +47,6 @@ namespace Gonogo.KSP
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "ksp",
-            Bundled = true,
             Version = "1.0.0",
             // No channels: this uplink is command-only (see the class doc
             // comment). Every one of these is instant, and each says so on its

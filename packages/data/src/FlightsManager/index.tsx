@@ -681,12 +681,11 @@ const SrOnly = styled.span`
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  min-width: min(500px, 100%);
+  min-width: 500px;
   /* Graph panels expand in-place, so let the whole thing scroll rather than
      clipping the chart. Horizontal scroll catches narrow viewports where the
      row-action button cluster won't fit even in the wide flight modal. */
   max-height: 80vh;
-  max-height: 80dvh;
   overflow: auto;
 `;
 

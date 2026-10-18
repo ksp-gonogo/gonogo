@@ -78,7 +78,6 @@ namespace Gonogo.KSP
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "currency",
-            Bundled = true,
             Version = "1.0.0",
             // No static channels: every topic is materialized per vessel guid out of
             // the dynamic namespace registered below.

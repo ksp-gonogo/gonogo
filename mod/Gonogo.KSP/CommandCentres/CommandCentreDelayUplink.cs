@@ -89,7 +89,6 @@ namespace Gonogo.KSP.CommandCentres
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "command-centre-delay",
-            Bundled = true,
             Version = "1.0.0",
             // No channels. The roster, what has left it, the separations and
             // each centre's delay to the active craft are each centre's own,

@@ -12,22 +12,12 @@ import {
   setupStreamFixture,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
-  BellIcon,
-  Fab,
-  FabClusterProvider,
-  FabClusterToggle,
-  SettingsIcon,
-} from "@ksp-gonogo/ui";
-import {
   AugmentSlot,
   clearAugments,
   getAugmentsForSlot,
-  ModalProvider,
   registerAugment,
   setQuantityLocale,
-  useModal,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 import { SettingsProvider } from "../../src/settings/SettingsContext";
@@ -91,42 +81,6 @@ interface Scene {
   connected?: boolean;
   /** What the runtime loader recorded for each Uplink's client. */
   outcomes?: UplinkLoadOutcome[];
-  /** Open the modal inside the real dialog, as the settings button does, rather than bare. */
-  modal?: boolean;
-  /** Draw the station's floating button cluster instead of the settings modal. */
-  fab?: boolean;
-}
-
-const FAB_LABELS = [
-  "Mission alarms",
-  "Dashboard layouts",
-  "Settings",
-  "Enter fullscreen",
-  "Connection",
-  "Flight history",
-  "Add widget",
-];
-
-function FabScene() {
-  return (
-    <FabClusterProvider>
-      <FabClusterToggle />
-      {FAB_LABELS.map((label, i) => (
-        <Fab key={label} bottom={84 + i * 60} aria-label={label}>
-          {i % 2 === 0 ? <BellIcon /> : <SettingsIcon />}
-        </Fab>
-      ))}
-    </FabClusterProvider>
-  );
-}
-
-function OpenSettings({ tab, screen }: { tab: string; screen: string }) {
-  const { open } = useModal();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: opens once on mount
-  useEffect(() => {
-    open(<SettingsModal initialTabId={tab} />, { title: "Settings" });
-  }, []);
-  return <span data-screen={screen} />;
 }
 
 /**
@@ -175,8 +129,8 @@ async function renderScene(scene: Scene): Promise<void> {
 
   const host = document.getElementById("root");
   if (!host) throw new Error("#root missing");
-  host.style.width = scene.modal || scene.fab ? "" : `${scene.pxW}px`;
-  host.style.height = scene.modal || scene.fab ? "" : `${scene.pxH}px`;
+  host.style.width = `${scene.pxW}px`;
+  host.style.height = `${scene.pxH}px`;
   host.style.overflow = "hidden";
 
   if (root) {
@@ -210,18 +164,7 @@ async function renderScene(scene: Scene): Promise<void> {
             service={new SerialDeviceService({ screenKey: "render-probe" })}
           >
             <mounted.Provider>
-              {scene.fab ? (
-                <FabScene />
-              ) : scene.modal ? (
-                <ModalProvider>
-                  <OpenSettings
-                    tab={scene.tab ?? "general"}
-                    screen={scene.screen ?? "main"}
-                  />
-                </ModalProvider>
-              ) : (
-                <SettingsModal initialTabId={scene.tab ?? "general"} />
-              )}
+              <SettingsModal initialTabId={scene.tab ?? "general"} />
             </mounted.Provider>
           </SerialDeviceProvider>
         </SettingsProvider>

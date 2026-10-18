@@ -34,7 +34,6 @@ const Dialog = styled.div`
   max-width: 640px;
   width: calc(100% - 2rem);
   max-height: calc(100vh - 2rem);
-  max-height: calc(100dvh - 2rem);
   overflow-y: auto;
   padding: 1.5rem;
   display: flex;
