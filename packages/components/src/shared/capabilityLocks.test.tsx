@@ -4,7 +4,7 @@ import {
   registerDataSource,
 } from "@ksp-gonogo/core";
 import { useCommand, useStream } from "@ksp-gonogo/sitrep-client";
-import { UnlockKind } from "@ksp-gonogo/sitrep-sdk";
+import { registerDynamicTopicPrefix, UnlockKind } from "@ksp-gonogo/sitrep-sdk";
 import { LockScopeContext } from "@ksp-gonogo/sitrep-sdk/spine";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { AugmentSlot, LockScope, Panel, Section } from "@ksp-gonogo/ui-kit";
@@ -48,6 +48,66 @@ function ExecutorRows() {
 }
 
 describe("capability locks", () => {
+  it("keeps a Topic-locked section shut across gate passes from an engine that only answers for subscribed topics", () => {
+    const fixture = setupStreamFixture();
+    registerDynamicTopicPrefix("survey.coverage.");
+    const COVERAGE = "survey.coverage.Kerbin.1";
+    const ADVANCED_EXPLORATION = {
+      kind: UnlockKind.Tech,
+      id: "advExploration",
+      name: "Advanced Exploration",
+    };
+    function CoverageRows() {
+      useStream(COVERAGE);
+      return <p>coverage rows</p>;
+    }
+    // One gate pass of an engine that reports a per-topic verdict only while the topic is subscribed.
+    const gatePass = () =>
+      act(() => {
+        fixture.emit("system.uplink.gates", {
+          gates: [],
+          channels: fixture.transport.isSubscribed(COVERAGE)
+            ? [{ topic: COVERAGE, verdict: locked(ADVANCED_EXPLORATION) }]
+            : [],
+        });
+      });
+    render(
+      <fixture.Provider>
+        <RequiresGuard title="Ground Track" channels={[]}>
+          <Panel
+            panelTitle="GROUND TRACK"
+            sections={[
+              <Section key="scan" title="Survey">
+                <CoverageRows />
+              </Section>,
+            ]}
+          />
+        </RequiresGuard>
+      </fixture.Provider>,
+    );
+    expect(screen.getByText("coverage rows")).toBeTruthy();
+
+    for (let pass = 0; pass < 6; pass++) {
+      gatePass();
+      expect(
+        screen.queryByText("Missing tech: Advanced Exploration"),
+        `gate pass ${pass}`,
+      ).not.toBeNull();
+      expect(
+        screen.queryByText("coverage rows"),
+        `gate pass ${pass}`,
+      ).toBeNull();
+    }
+
+    act(() => {
+      fixture.emit("system.uplink.gates", {
+        gates: [],
+        channels: [{ topic: COVERAGE, verdict: PASS }],
+      });
+    });
+    expect(screen.getByText("coverage rows")).toBeTruthy();
+  });
+
   it("refuses the whole widget when its own body holds a locked command, and comes back when it unlocks", () => {
     const fixture = setupStreamFixture();
     function Planner() {

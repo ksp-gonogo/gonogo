@@ -1,4 +1,4 @@
-import { useContext, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ChannelGate,
   CommandGateReport,
@@ -8,10 +8,15 @@ import type {
 import { GateOutcome, UnlockKind } from "../__generated__/contract";
 import { CommandErrorCode } from "../__generated__/error-codes";
 import {
+  useTelemetryClientOptional,
+  useTelemetryStoreOptional,
+} from "./context";
+import {
   type Capability,
   LockScopeContext,
   type LockScopeRegistry,
 } from "./lock-scope";
+import { subscribeTopicRead } from "./subscribe-read";
 import { useLatestValue } from "./use-stream";
 
 /**
@@ -170,6 +175,11 @@ function keyOf(capability: Capability): string {
  * claim, which would reopen the scope, which would claim again. So a
  * capability that locked the scope is held until the report says it is
  * unlocked, whether or not anything still claims it.
+ *
+ * The mod reports the verdict of a Topic in a keyed namespace only while that
+ * Topic is subscribed, so a held Topic stays subscribed by the scope itself:
+ * once its readers unmount, a missing verdict would otherwise read as unlocked
+ * and reopen the scope on every other gate pass.
  */
 export function useLockScope(): {
   scope: LockScopeRegistry;
@@ -190,6 +200,16 @@ export function useLockScope(): {
    */
   const [, setVersion] = useState(0);
   const parent = useContext(LockScopeContext);
+  // gonogo:reads none
+  const client = useTelemetryClientOptional();
+  // gonogo:reads none
+  const store = useTelemetryStoreOptional();
+  /*
+   * One subscription per Topic that is claimed or held locked, taken when the
+   * claim is made so the wire never sees the readers' unsubscribe before the
+   * scope's own subscribe.
+   */
+  const interest = useRef(new Map<string, () => void>());
   const scope = useMemo<LockScopeRegistry>(
     () => ({
       observe(capability) {
@@ -199,6 +219,17 @@ export function useLockScope(): {
         parent?.observe?.(capability);
         const key = keyOf(capability);
         const entry = claims.current.get(key);
+        if (
+          capability.kind === "topic" &&
+          client &&
+          store &&
+          !interest.current.has(capability.id)
+        ) {
+          interest.current.set(
+            capability.id,
+            subscribeTopicRead(client, store, capability.id, "lock-scope"),
+          );
+        }
         claims.current.set(key, {
           capability,
           count: (entry?.count ?? 0) + 1,
@@ -213,11 +244,17 @@ export function useLockScope(): {
             return;
           }
           claims.current.delete(key);
-          if (lockedNow()) setVersion((v) => v + 1);
+          if (lockedNow()) {
+            setVersion((v) => v + 1);
+            return;
+          }
+          if (capability.kind !== "topic") return;
+          interest.current.get(capability.id)?.();
+          interest.current.delete(capability.id);
         };
       },
     }),
-    [parent],
+    [parent, client, store],
   );
 
   const held = useRef<ReadonlyMap<string, Capability>>(new Map());
@@ -232,6 +269,28 @@ export function useLockScope(): {
   }
   held.current = new Map(
     locks.map((lock) => [keyOf(lock.capability), lock.capability]),
+  );
+
+  useEffect(() => {
+    const wanted = new Set<string>();
+    for (const { capability } of claims.current.values()) {
+      if (capability.kind === "topic") wanted.add(capability.id);
+    }
+    for (const capability of held.current.values()) {
+      if (capability.kind === "topic") wanted.add(capability.id);
+    }
+    for (const [topic, release] of interest.current) {
+      if (wanted.has(topic)) continue;
+      release();
+      interest.current.delete(topic);
+    }
+  });
+  useEffect(
+    () => () => {
+      for (const release of interest.current.values()) release();
+      interest.current.clear();
+    },
+    [],
   );
 
   return { scope, locks };
