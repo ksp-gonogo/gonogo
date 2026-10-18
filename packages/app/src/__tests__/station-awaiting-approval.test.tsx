@@ -188,14 +188,14 @@ describe("a station waiting for the main screen's approval", () => {
     await waitFor(() => expect(screen.getByText(WAITING)).toBeVisible());
     expect(host.pendingStations()).toHaveLength(1);
     expect(screen.queryByRole("textbox", { name: "Host ID" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Add component" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add widget" })).toBeNull();
 
     const [pending] = host.pendingStations();
     act(() => host.approveStation(pending.peerId));
 
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Add component" }),
+        screen.getByRole("button", { name: "Add widget" }),
       ).toBeInTheDocument(),
     );
     expect(screen.queryByText(WAITING)).toBeNull();

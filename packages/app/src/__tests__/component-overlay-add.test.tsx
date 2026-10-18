@@ -93,7 +93,7 @@ describe("ComponentOverlay: add → configure → persist", () => {
 
     // Open the component-add panel, pick Trivial. The list items are
     // listbox options whose accessible name combines name + description.
-    await user.click(screen.getByRole("button", { name: "Add component" }));
+    await user.click(screen.getByRole("button", { name: "Add widget" }));
     await user.click(await screen.findByRole("option", { name: /Trivial/ }));
 
     // addItem fired with a fresh DashboardItem. Capture its id so we can
@@ -143,7 +143,7 @@ describe("ComponentOverlay: add → configure → persist", () => {
     );
 
     // Open the panel: the search box autofocuses (combobox pattern), so the whole add flow is reachable from the keyboard with no pointer.
-    await user.click(screen.getByRole("button", { name: "Add component" }));
+    await user.click(screen.getByRole("button", { name: "Add widget" }));
     // Filter to Trivial, nudge the active option, then commit with Enter.
     await user.keyboard("Trivial");
     await user.keyboard("{ArrowDown}");
@@ -192,7 +192,7 @@ describe("ComponentOverlay: add → configure → persist", () => {
       </ModalProvider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "Add component" }));
+    await user.click(screen.getByRole("button", { name: "Add widget" }));
     await user.click(await screen.findByRole("option", { name: /Roomy/ }));
 
     expect(addItem).toHaveBeenCalledTimes(1);

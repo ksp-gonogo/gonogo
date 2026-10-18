@@ -61,9 +61,7 @@ describe("MainScreen smoke", () => {
     renderScreen(<MainScreen />);
     expect(screen.getByText("No widgets on this dashboard")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Add a widget" })).not.toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Add component" }),
-    ).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Add widget" })).not.toBeNull();
   });
 
   it("renders the mission banner above the dashboard", () => {
