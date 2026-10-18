@@ -13,7 +13,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { Button, Switch } from "@ksp-gonogo/ui";
 import { Cluster, Notice, Stack, Text, Unit } from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import {
   Empty,
@@ -39,10 +39,29 @@ type Draft = Record<string, string>;
  * then publishes is the only authority for what was saved, because a save can
  * time out and still land.
  *
+ * With a `tag`, the form lists only that owner's rows carrying it.
+ *
  * Changes are refused, rather than queued, while KSP is not connected, and a
  * station only reads: both follow from the settings living in KSP's own file.
  */
-export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
+export function GonogoSettings({
+  owner = CORE_OWNER,
+  tag,
+  registerLeaveSave,
+  showSavedAt = true,
+}: {
+  owner?: string;
+  /** Narrows the rows to those carrying this tag. */
+  tag?: string;
+  /**
+   * Hands a surrounding flow a save of this form's unsaved edits, run before
+   * it moves on. The save resolves false when KSP refused it, with the refusal
+   * shown in the form.
+   */
+  registerLeaveSave?: (save: () => Promise<boolean>) => () => void;
+  /** Whether to say when the settings file was last written. */
+  showSavedAt?: boolean;
+}) {
   const screen = useScreen();
   const stationOnly = screen === "station";
   const hostDown = useTelemetryHostDown();
@@ -64,6 +83,11 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
   const [draft, setDraft] = useState<Draft>({});
   const [saving, setSaving] = useState(false);
   const [outcome, setOutcome] = useState<string | null>(null);
+  const saveOnLeave = useRef<() => Promise<boolean>>(async () => true);
+  useEffect(
+    () => registerLeaveSave?.(() => saveOnLeave.current()),
+    [registerLeaveSave],
+  );
 
   // An edit the published model now agrees with has landed; keep only the ones still waiting on it.
   useEffect(() => {
@@ -84,6 +108,7 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
   }, [model]);
 
   const canEdit = !stationOnly && !hostDown && model !== undefined;
+  saveOnLeave.current = async () => true;
 
   if (model === undefined) {
     return (
@@ -97,7 +122,11 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
     );
   }
 
-  const rows = model.rows.filter((row) => row.owner === owner);
+  const rows = model.rows.filter(
+    (row) =>
+      row.owner === owner &&
+      (tag === undefined || (row.tags ?? []).includes(tag)),
+  );
   const undeclared = model.undeclared.find(
     (failure) => failure.uplinkId === owner,
   );
@@ -107,7 +136,7 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
   });
   const pending = Object.keys(draft).length;
 
-  async function onSave() {
+  async function onSave(): Promise<boolean> {
     const changes = Object.entries(draft).map(([path, value]) => ({
       path,
       value,
@@ -116,12 +145,23 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
     setOutcome(null);
     try {
       await save.send({ changes });
+      return true;
     } catch (rejected) {
       setOutcome(refusalOf(rejected));
+      return false;
     } finally {
       setSaving(false);
     }
   }
+  /*
+   * A value of the wrong kind holds the flow until it is fixed. With KSP gone
+   * nothing could be saved, and holding the flow would hold it until KSP
+   * returns, so it moves on.
+   */
+  saveOnLeave.current = async () => {
+    if (pending === 0 || !canEdit) return true;
+    return invalid.length === 0 && onSave();
+  };
 
   return (
     <Body>
@@ -187,7 +227,7 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
             </Button>
           </Cluster>
         )}
-        <PersistenceLine model={model} />
+        <PersistenceLine model={model} showSavedAt={showSavedAt} />
       </Footer>
     </Body>
   );
@@ -198,12 +238,18 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
  * condition rather than a toast: it stays until the next save clears it, and
  * it says nothing while the file holds exactly what is shown.
  */
-function PersistenceLine({ model }: { model: SettingsModel }) {
+function PersistenceLine({
+  model,
+  showSavedAt,
+}: {
+  model: SettingsModel;
+  showSavedAt: boolean;
+}) {
   const { state, path, reason, savedAtUt } = model.persistence;
   const text = persistenceText(state, path, reason ?? null);
   if (text === null) {
     // A file holding exactly what is shown has nothing to warn about; when it was last written is still a fact.
-    if (!savedAtUt) return null;
+    if (!savedAtUt || !showSavedAt) return null;
     return (
       <Text level="muted" size="xs">
         Settings file last saved <Unit value={savedAtUt} />

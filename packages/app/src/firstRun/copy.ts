@@ -75,6 +75,7 @@ export const WIZARD_COPY = {
 
   "uplinks.heading": "Uplinks",
   "uplinks.advance": "Review setup",
+  "uplinks.advanceToRecommended": "Recommended settings",
   "uplinks.check.waiting":
     "Waiting for the mod to list its Uplinks. This needs the KSP connection.",
   "uplinks.check.noConnection":
@@ -112,6 +113,12 @@ export const WIZARD_COPY = {
   "uplinks.row.noClient": "No client loaded",
   "uplinks.row.modOnly": "Adds data, no widgets",
   "uplinks.row.details": "Details",
+
+  "recommended.heading": "Recommended settings",
+  "recommended.advance": "Review setup",
+  "recommended.intro":
+    "Gonogo and your installed Uplinks recommend choosing these before you start. Each one is also in Settings, where you can change it later.",
+  "recommended.coreOwner": "Gonogo",
 
   "health.heading": "Health check",
   "health.advance": "Next",

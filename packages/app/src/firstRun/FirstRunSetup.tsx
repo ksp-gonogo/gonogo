@@ -1,11 +1,14 @@
 import { Button, Stack } from "@ksp-gonogo/ui-kit";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
 import { type CopyKey, say } from "./copy";
+import { LeaveGuardContext, type LeaveSave } from "./leaveGuard";
+import { useHasSetupSettings } from "./setupSettings";
 import { ConnectStep } from "./steps/ConnectStep";
 import { ContainerStep } from "./steps/ContainerStep";
 import { DoneStep } from "./steps/DoneStep";
 import { HealthStep } from "./steps/HealthStep";
+import { RecommendedStep } from "./steps/RecommendedStep";
 import { UplinkReadinessStep } from "./steps/UplinkReadinessStep";
 import { WelcomeStep } from "./steps/WelcomeStep";
 
@@ -14,6 +17,7 @@ export type SetupStep =
   | "container"
   | "connect"
   | "uplinks"
+  | "recommended"
   | "health"
   | "done";
 
@@ -22,6 +26,7 @@ const ORDER: readonly SetupStep[] = [
   "container",
   "connect",
   "uplinks",
+  "recommended",
   "health",
   "done",
 ];
@@ -31,6 +36,7 @@ const HEADING = {
   container: "container.heading",
   connect: "connect.heading",
   uplinks: "uplinks.heading",
+  recommended: "recommended.heading",
   health: "health.heading",
   done: "done.heading",
 } as const satisfies Record<SetupStep, CopyKey>;
@@ -45,6 +51,7 @@ const ADVANCE_LABEL = {
   container: "container.advance",
   connect: "connect.advance",
   uplinks: "uplinks.advance",
+  recommended: "recommended.advance",
   health: "health.advance",
   done: "done.advance",
 } as const satisfies Record<SetupStep, CopyKey>;
@@ -74,46 +81,79 @@ export function FirstRunSetup({
   initialStep = "welcome",
 }: Readonly<FirstRunSetupProps> = {}) {
   const [step, setStep] = useState<SetupStep>(initialStep);
-  const index = ORDER.indexOf(step);
+  // The recommended settings step is there while some setting is tagged for it, and stays while it is open.
+  const hasRecommended = useHasSetupSettings();
+  const order =
+    hasRecommended || step === "recommended"
+      ? ORDER
+      : ORDER.filter((s) => s !== "recommended");
+  const index = order.indexOf(step);
+  const saves = useRef(new Set<LeaveSave>());
+  const [leaving, setLeaving] = useState(false);
+  const registerLeaveSave = useCallback((save: LeaveSave) => {
+    saves.current.add(save);
+    return () => {
+      saves.current.delete(save);
+    };
+  }, []);
+
+  /** Saves what the step holds unsaved, then moves, or stays where a save was refused. */
+  async function leaveTo(next: SetupStep | undefined) {
+    setLeaving(true);
+    const saved = await Promise.all([...saves.current].map((save) => save()));
+    setLeaving(false);
+    if (!saved.every(Boolean)) return;
+    if (next === undefined) onFinish?.();
+    else setStep(next);
+  }
 
   function advance() {
-    if (step === "done") {
-      onFinish?.();
-      return;
-    }
-    setStep(ORDER[index + 1]);
+    void leaveTo(step === "done" ? undefined : order[index + 1]);
   }
 
   return (
-    <Stack gap="related-comfortable">
-      <StepHeading aria-live="polite">
-        {say("shell.stepHeading", {
-          index: index + 1,
-          total: ORDER.length,
-          heading: say(HEADING[step]),
-        })}
-      </StepHeading>
-      {step === "welcome" && <WelcomeStep />}
-      {step === "container" && <ContainerStep />}
-      {step === "connect" && <ConnectStep />}
-      {step === "uplinks" && <UplinkReadinessStep />}
-      {step === "health" && <HealthStep />}
-      {step === "done" && <DoneStep />}
-      <Nav>
-        {index > 0 && (
+    <LeaveGuardContext.Provider value={registerLeaveSave}>
+      <Stack gap="related-comfortable">
+        <StepHeading aria-live="polite">
+          {say("shell.stepHeading", {
+            index: index + 1,
+            total: order.length,
+            heading: say(HEADING[step]),
+          })}
+        </StepHeading>
+        {step === "welcome" && <WelcomeStep />}
+        {step === "container" && <ContainerStep />}
+        {step === "connect" && <ConnectStep />}
+        {step === "uplinks" && <UplinkReadinessStep />}
+        {step === "recommended" && <RecommendedStep />}
+        {step === "health" && <HealthStep />}
+        {step === "done" && <DoneStep />}
+        <Nav>
+          {index > 0 && (
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => void leaveTo(order[index - 1])}
+              disabled={leaving}
+            >
+              {say("shell.back")}
+            </Button>
+          )}
           <Button
-            variant="ghost"
+            variant="primary"
             type="button"
-            onClick={() => setStep(ORDER[index - 1])}
+            onClick={advance}
+            disabled={leaving}
           >
-            {say("shell.back")}
+            {say(
+              step === "uplinks" && hasRecommended
+                ? "uplinks.advanceToRecommended"
+                : ADVANCE_LABEL[step],
+            )}
           </Button>
-        )}
-        <Button variant="primary" type="button" onClick={advance}>
-          {say(ADVANCE_LABEL[step])}
-        </Button>
-      </Nav>
-    </Stack>
+        </Nav>
+      </Stack>
+    </LeaveGuardContext.Provider>
   );
 }
 

@@ -25,7 +25,7 @@ namespace Sitrep.Host.Tests.Settings
             var store = new SettingsStore(backing);
             store.Declare(SettingsRow.Bool(Enabled, true, "Apply light-time delay", "Holds every command for the light time to the craft"));
             store.Declare(SettingsRow.Number(Scale, 1.0, "Light speed scale"));
-            store.Declare(SettingsRow.Number(Slip, 30, "Slip warning"));
+            store.Declare(new SettingsRow(Slip, SettingKind.Number, "30", "Slip warning", null, new[] { SettingTags.Setup }));
             return (store, backing);
         }
 
@@ -92,6 +92,18 @@ namespace Sitrep.Host.Tests.Settings
             Assert.Equal("", rows[1]["description"]);
             Assert.Equal("True", rows[0]["value"]);
             Assert.Equal("1", rows[1]["default"]);
+            Assert.Empty((List<object?>)rows[1]["tags"]!);
+            Assert.Equal(new object?[] { "setup" }, (List<object?>)rows[2]["tags"]!);
+        }
+
+        [Fact]
+        public void ATagIsALowerCaseWordAndARepeatIsKeptOnce()
+        {
+            var row = UplinkSettingRow.Bool("flag", false, "Flag").Tagged("setup", "setup");
+
+            Assert.Equal(new[] { "setup" }, row.Tags);
+            Assert.Throws<ArgumentException>(() => row.Tagged("Not Lower"));
+            Assert.Empty(UplinkSettingRow.Bool("flag", false, "Flag").Tags);
         }
 
         /// <summary>One press, one write, and the payload says what the file now holds.</summary>

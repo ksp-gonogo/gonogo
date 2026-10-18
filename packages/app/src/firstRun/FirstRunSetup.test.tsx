@@ -210,6 +210,60 @@ function coreEntry(id: string) {
   });
 }
 
+describe("FirstRunSetup: recommended settings step", () => {
+  it("adds a step listing the settings tagged for it, under the owner recommending them", async () => {
+    const { wsClients } = renderSetup();
+    await goToUplinks();
+    await emitRoster(wsClients, []);
+    wsClients[0]?.send(
+      streamFrame("settings.gonogo", {
+        rows: [
+          {
+            path: "Uplinks/widget-a/followGonogo",
+            owner: "widget-a",
+            kind: 1,
+            label: "Follow Gonogo",
+            description: "",
+            value: "False",
+            default: "False",
+            tags: ["setup"],
+          },
+        ],
+        persistence: {
+          state: 0,
+          path: "gonogo.cfg",
+          savedAtUt: null,
+          reason: null,
+        },
+        undeclared: [],
+      }),
+    );
+    const user = userEvent.setup();
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: say("uplinks.advanceToRecommended"),
+      }),
+    );
+
+    expect(
+      screen.getByText(
+        say("shell.stepHeading", {
+          index: 5,
+          total: 7,
+          heading: say("recommended.heading"),
+        }),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("checkbox", { name: "Follow Gonogo" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "widget-a" }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("FirstRunSetup: step sequence", () => {
   it("opens on Welcome and walks the six steps", async () => {
     const onFinish = vi.fn();
