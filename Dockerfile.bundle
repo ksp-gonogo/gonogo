@@ -12,8 +12,10 @@
 # ── builder ───────────────────────────────────────────────────────────────────
 # One Debian base for both packages: glibc is the reliable choice for the
 # app/relay build, and coturn is a clean apt install in the runtime stage
-# built on the same base.
-FROM node:24-bookworm-slim AS builder
+# built on the same base. The builder runs on the build host's own platform
+# and emits platform-independent JavaScript (the relay's production tree is
+# pure JS), so a multi-arch build does not run it under emulation.
+FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS builder
 WORKDIR /repo
 
 # pnpm via corepack: workspace-aware install.
