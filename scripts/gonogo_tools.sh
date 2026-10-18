@@ -70,11 +70,12 @@
 #   build kerbcast
 #       Build the kerbcast KSP plugin from its Plugin/ folder,
 #       install it into the synced kspdata at GameData/Kerbcast/Plugins/,
-#       seed libAsyncGPUReadbackPlugin.so + settings.cfg on first
-#       install, and (best-effort) pull the latest CI-built sidecar
-#       binary into GameData/Kerbcast/sidecar/ via `gh run download`.
-#       Sidecar fetch is best-effort: skips silently if gh isn't
-#       installed / not authed / no successful run found.
+#       seed settings.cfg on first install, and (best-effort) pull
+#       libAsyncGPUReadbackPlugin.so from the latest Kerbcast release
+#       into Plugins/linux-x64/ when it is missing, plus the latest
+#       CI-built sidecar binary into GameData/Kerbcast/sidecar/ via
+#       `gh run download`. Both fetches are best-effort: they skip
+#       with a warning if gh isn't installed / not authed / nothing found.
 #
 #   build gonogo
 #       Build the first-party Gonogo.KSP mod (mod/Gonogo.KSP/Gonogo.KSP.csproj)
@@ -565,8 +566,7 @@ build_kerbcast() {
   local managed="$ksp_root/KSP_Data/Managed"
   local gamedata="$ksp_root/GameData"
   local install_dir="$gamedata/Kerbcast/Plugins"
-  local install_native="$install_dir/x86_64"
-  local seed_so="$gamedata/OfCourseIStillLoveYou/Plugins/x86_64/libAsyncGPUReadbackPlugin.so"
+  local install_native="$install_dir/linux-x64"
 
   if [ ! -f "$proj" ]; then
     echo "kerbcast csproj not found at $proj"
@@ -592,18 +592,7 @@ build_kerbcast() {
   fi
   cp "$out_dll" "$install_dir/Kerbcast.dll"
 
-  # Seed the native AsyncGPUReadback .so on first install. Reuses the
-  # copy already living in the OCISLY mod's tree; once kerbcast ships
-  # its own download path, this fallback drops away.
-  if [ ! -f "$install_native/libAsyncGPUReadbackPlugin.so" ]; then
-    if [ -f "$seed_so" ]; then
-      cp "$seed_so" "$install_native/libAsyncGPUReadbackPlugin.so"
-      echo "seeded libAsyncGPUReadbackPlugin.so from OCISLY install"
-    else
-      echo "warning: libAsyncGPUReadbackPlugin.so not found at $seed_so"
-      echo "         place it at $install_native/ before launching KSP"
-    fi
-  fi
+  fetch_kerbcast_readback_lib "$install_native"
 
   # Seed settings.cfg on first install only; never clobber user edits.
   local settings_dest="$gamedata/Kerbcast/settings.cfg"
@@ -640,6 +629,40 @@ build_kerbcast() {
     echo "bundled ffmpeg libs:"
     ls -la "$sidecar_dir/lib/" 2>&1 || true
   fi
+}
+
+# Best-effort fetch of libAsyncGPUReadbackPlugin.so from the latest Kerbcast
+# release zip into the plugin's linux-x64 folder, which is where the plugin
+# dlopens it from by absolute path. Does nothing when the file is already there.
+fetch_kerbcast_readback_lib() {
+  local dest_dir="$1"
+  local lib_name="libAsyncGPUReadbackPlugin.so"
+  [ -f "$dest_dir/$lib_name" ] && return 0
+
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "warning: gh CLI not installed: place $lib_name at $dest_dir/ before launching KSP"
+    return 0
+  fi
+  if ! gh auth status >/dev/null 2>&1; then
+    echo "warning: gh CLI not authed: place $lib_name at $dest_dir/ before launching KSP"
+    return 0
+  fi
+
+  local tmpdir
+  tmpdir="$(mktemp -d)"
+  if perl -e 'alarm shift; exec @ARGV' 90 \
+       gh release download -R ksp-gonogo/kerbcast --pattern 'kerbcast-v*.zip' \
+         -D "$tmpdir" >/dev/null 2>&1 \
+     && unzip -j -o -q "$tmpdir"/kerbcast-v*.zip \
+          "GameData/Kerbcast/Plugins/linux-x64/$lib_name" -d "$tmpdir/out" \
+     && [ -f "$tmpdir/out/$lib_name" ]; then
+    mkdir -p "$dest_dir"
+    cp "$tmpdir/out/$lib_name" "$dest_dir/$lib_name"
+    echo "installed $lib_name from the latest Kerbcast release"
+  else
+    echo "warning: could not fetch $lib_name from the Kerbcast release: place it at $dest_dir/ before launching KSP"
+  fi
+  rm -rf "$tmpdir"
 }
 
 # Best-effort fetch of the latest successful sidecar-ci artefact from
