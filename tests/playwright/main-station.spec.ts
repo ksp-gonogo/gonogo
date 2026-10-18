@@ -97,9 +97,9 @@ test.describe("station connects directly via the share code", () => {
 
     const main = await mainContext.newPage();
     await main.goto(`${MAIN_URL}?uplinkLoaderIds=`);
-    await expect(
-      main.getByRole("button", { name: /add component/i }),
-    ).toBeVisible({ timeout: 30_000 });
+    await expect(main.getByRole("button", { name: /add widget/i })).toBeVisible(
+      { timeout: 30_000 },
+    );
 
     const peerId = await getMainPeerId(main);
     const shareCode = await getHostShareCode(main);
@@ -111,7 +111,7 @@ test.describe("station connects directly via the share code", () => {
 
     // Reaching the dashboard means the station derived the host's id from the share code, connected over the broker, and completed the data handshake.
     await expect(
-      station.getByRole("button", { name: /add component/i }),
+      station.getByRole("button", { name: /add widget/i }),
     ).toBeVisible({ timeout: 30_000 });
 
     await main.close();
@@ -136,11 +136,11 @@ test.describe("main + station co-resident", () => {
     // Main eventually opens its PeerJS connection: the dashboard renders
     // first (so the assertion isn't gated on widgets that might take time
     // to mount), then the StationLink FAB is reachable.
-    await expect(
-      main.getByRole("button", { name: /add component/i }),
-    ).toBeVisible({
-      timeout: 30_000,
-    });
+    await expect(main.getByRole("button", { name: /add widget/i })).toBeVisible(
+      {
+        timeout: 30_000,
+      },
+    );
 
     const shareCode = await getHostShareCode(main);
 
@@ -155,7 +155,7 @@ test.describe("main + station co-resident", () => {
     // screen. Once it lands, the dashboard mounts and the FAB cluster
     // appears.
     await expect(
-      station.getByRole("button", { name: /add component/i }),
+      station.getByRole("button", { name: /add widget/i }),
     ).toBeVisible({ timeout: 30_000 });
 
     await main.close();

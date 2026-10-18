@@ -132,7 +132,7 @@ describe("Tooltip", () => {
   it("closes when the anchor is pressed, so a leave after the press has no timer left to run", async () => {
     const user = userEvent.setup();
     render(
-      <Tooltip text="Add component">
+      <Tooltip text="Add widget">
         <button type="button">Add</button>
       </Tooltip>,
     );

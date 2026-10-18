@@ -37,14 +37,14 @@ test.describe("fab cluster toggle", () => {
     await expect(layouts).toHaveCSS("pointer-events", "auto");
     await expect(page.getByRole("dialog")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Add component" }).click();
+    await page.getByRole("button", { name: "Add widget" }).click();
     await expect(
-      page.getByRole("dialog", { name: "Add a component" }),
+      page.getByRole("dialog", { name: "Add a widget" }),
     ).toBeVisible();
     await context.close();
   });
 
-  test("Add component is the button nearest the toggle and follows it in tab order", async ({
+  test("Add widget is the button nearest the toggle and follows it in tab order", async ({
     browser,
   }) => {
     const { context, page } = await openMain(browser);
@@ -55,7 +55,7 @@ test.describe("fab cluster toggle", () => {
 
     const toggleBox = await toggle.boundingBox();
     const addBox = await page
-      .getByRole("button", { name: "Add component" })
+      .getByRole("button", { name: "Add widget" })
       .boundingBox();
     const layoutsBox = await page
       .getByRole("button", { name: "Dashboard layouts" })
@@ -68,7 +68,7 @@ test.describe("fab cluster toggle", () => {
     await toggle.focus();
     await page.keyboard.press("Tab");
     await expect(
-      page.getByRole("button", { name: "Add component" }),
+      page.getByRole("button", { name: "Add widget" }),
     ).toBeFocused();
     await context.close();
   });
@@ -85,7 +85,7 @@ test.describe("fab cluster toggle", () => {
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
 
     // Tab does not reach buttons in WebKit by default, so the next control is focused directly.
-    const add = page.getByRole("button", { name: "Add component" });
+    const add = page.getByRole("button", { name: "Add widget" });
     await add.focus();
     await expect(add).toBeFocused();
 

@@ -71,7 +71,7 @@ export function OverlayProvider({
 }
 
 /**
- * Opens the Add component picker, or `null` where no picker is mounted, so a
+ * Opens the Add widget picker, or `null` where no picker is mounted, so a
  * caller outside one renders no control that would do nothing.
  */
 export function useOpenComponentPicker(): (() => void) | null {
@@ -305,11 +305,11 @@ export function ComponentOverlay({
   return (
     <>
       <FabClusterToggle />
-      <Tooltip text="Add component">
+      <Tooltip text="Add widget">
         <Fab
           bottom={bottom}
           onClick={() => setOpen(true)}
-          aria-label="Add component"
+          aria-label="Add widget"
         >
           <PlusIcon />
         </Fab>
@@ -320,7 +320,7 @@ export function ComponentOverlay({
           <OverlaySurface
             onClick={(e) => e.stopPropagation()}
             role="dialog"
-            aria-label="Add a component"
+            aria-label="Add a widget"
           >
             <SearchRow>
               <SearchInput

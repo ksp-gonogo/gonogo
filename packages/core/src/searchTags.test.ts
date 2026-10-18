@@ -4,7 +4,7 @@ import { clearContributions, registerContribution } from "./contributions";
 import { clearRegistry, registerComponent } from "./registry";
 import { effectiveSearchTags, uplinkAdditions } from "./searchTags";
 import type { ComponentDefinition } from "./types";
-import { defineUplinkClient } from "./uplinkClients";
+import { CORE_UPLINK_CLIENT, defineUplinkClient } from "./uplinkClients";
 
 // Fictional owner tokens ("mod-alpha"/"mod-beta") throughout: a real
 // first-party Uplink token only lives inside its own Uplink client dir
@@ -201,6 +201,17 @@ describe("effectiveSearchTags: augment/contribution OWNER provenance", () => {
 
 describe("uplinkAdditions", () => {
   it("is empty when nothing augments or contributes to the widget", () => {
+    expect(uplinkAdditions(baseDef())).toEqual([]);
+  });
+
+  it("leaves the built-in Core client out", () => {
+    registerContribution({
+      id: "core-badge",
+      contributes: "widget.badges",
+      owner: CORE_UPLINK_CLIENT,
+      compute: () => [],
+    });
+
     expect(uplinkAdditions(baseDef())).toEqual([]);
   });
 

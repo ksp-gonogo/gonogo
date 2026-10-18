@@ -6,7 +6,7 @@ import { useOpenComponentPicker } from "../ComponentOverlay";
 
 /**
  * What a dashboard with no widgets shows, with a button that opens the same
- * picker as the Add component button in the corner. Outside a screen that
+ * picker as the Add widget button in the corner. Outside a screen that
  * mounts the picker there is nothing for it to open, so it shows no button.
  * On a screen that owns its analytics setting it also offers a quiet switch for
  * sending anonymous analytics, off until the operator turns it on; it is the
