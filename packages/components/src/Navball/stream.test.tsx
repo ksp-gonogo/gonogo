@@ -21,7 +21,7 @@ describe("Navball: genuinely runs off the stream (M3 batch 1)", () => {
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "nav-stream" }}>
-          <NavballComponent id="nav-stream" w={8} h={4} />
+          <NavballComponent id="nav-stream" w={8} h={8} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -55,8 +55,10 @@ describe("Navball: genuinely runs off the stream (M3 batch 1)", () => {
     });
 
     await waitFor(() => expect(visibleText()).toContain("87°"));
-    expect(visibleText()).toContain("+12°");
-    expect(visibleText()).toContain("\u22125°");
+    expect(visibleText()).toContain("12°");
+    expect(visibleText()).toContain("5°");
+    expect(visibleText()).not.toContain("40°");
+    expect(visibleText()).not.toContain("30°");
     // The toggle names the held mode rather than a bare ON.
     expect(screen.getByRole("button", { name: "SAS: PRO" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "PRECISION" })).toBeTruthy();

@@ -197,11 +197,18 @@ describe("Navball dial fit", () => {
     it("keeps the row where leaving it out would not free a dial", () => {
       columnHeight = 96;
       installColumnAndRowObserver(64);
-      renderAt({ w: 5, h: 6 }, emitAttitude);
+      renderAt({ w: 5, h: 8 }, emitAttitude);
       reportColumn(158, 96 + 64 + 8);
       reportColumn(158, 126);
       expect(dial()).not.toBeInTheDocument();
       expect(controls()).toBeInTheDocument();
+    });
+
+    it("leaves the row out of a tile too short to hold it under the readout", () => {
+      installColumnAndRowObserver(64);
+      renderAt({ w: 5, h: 7 }, emitAttitude);
+      reportColumn(158, 400);
+      expect(controls()).not.toBeInTheDocument();
     });
 
     it("takes the row back once the dial fits beside it", () => {

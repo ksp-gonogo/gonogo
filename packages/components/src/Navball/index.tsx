@@ -310,7 +310,7 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
   } = useDialFit({
     reserveThrottle: cols >= 5,
     controlSurface: showControlSurface,
-    controlRowWanted: cols >= 5,
+    controlRowWanted: cols >= 5 && rows >= CONTROL_ROW_MIN_ROWS,
     dialPossible: gridWantsDial && attitudeObserved,
   });
   /*
@@ -442,9 +442,14 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
  * Stops the attitude section shrinking under the numeric readout, which cannot
  * resize like the dial: a crushed tile scrolls instead of painting the readout
  * over the section below. It still grows, so a growing tile can measure its
- * way back to a dial.
+ * way back to a dial. Its own minimum height is dropped, since the filling
+ * section's default floor is taller than the readout and would push a short
+ * tile past its body.
  */
-const READOUT_FLOOR: CSSProperties = { flexShrink: 0 };
+const READOUT_FLOOR: CSSProperties = { flexShrink: 0, minHeight: 0 };
+
+/** The shortest tile, in rows, that holds the readout and the SAS and RCS row together without scrolling. */
+const CONTROL_ROW_MIN_ROWS = 8;
 
 /** The control row's measured box: the same stack the section would have made of its children. */
 const CONTROL_ROW: CSSProperties = {
