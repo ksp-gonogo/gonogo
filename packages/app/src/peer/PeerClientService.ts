@@ -112,6 +112,8 @@ type ClientEventMap = {
   hostRestart: [];
   gonogoCountdownStart: [t0Ms: number];
   gonogoCountdownCancel: [reason: string | undefined];
+  gonogoOnGo: [label: string | null];
+  gonogoReset: [reopened: boolean];
   alarmSnapshot: [snap: import("../alarms/types").AlarmSnapshot];
   alarmFired: [fire: { id: string; name: string; ut: number }];
   triggerSnapshot: [snap: import("@ksp-gonogo/components").TriggerSnapshot];
@@ -233,6 +235,9 @@ export class PeerClientService {
   // only T-0 is reporting. Replayed to late subscribers while t0 is still in
   // the future; cleared on cancel.
   private lastCountdownT0Ms: number | null = null;
+
+  // The host's T-0 action, kept for the same reason: the message is sent once, on join or change, and a widget that mounts afterwards still shows it. `undefined` until the host has said.
+  private lastOnGoLabel: string | null | undefined;
 
   constructor({
     retryIntervalMs = DEFAULT_RETRY_INTERVAL_MS,
@@ -1151,6 +1156,17 @@ export class PeerClientService {
     return unsub;
   }
 
+  onGonogoOnGo(cb: (label: string | null) => void) {
+    const unsub = this.events.on("gonogoOnGo", cb);
+    const label = this.lastOnGoLabel;
+    if (label !== undefined) queueMicrotask(() => cb(label));
+    return unsub;
+  }
+
+  onGonogoReset(cb: (reopened: boolean) => void) {
+    return this.events.on("gonogoReset", cb);
+  }
+
   onGonogoCountdownCancel(cb: (reason: string | undefined) => void) {
     return this.events.on("gonogoCountdownCancel", cb);
   }
@@ -1307,6 +1323,14 @@ export class PeerClientService {
     "gonogo-countdown-start": (msg) => {
       this.lastCountdownT0Ms = msg.t0Ms;
       this.events.emit("gonogoCountdownStart", msg.t0Ms);
+    },
+    "gonogo-on-go": (msg) => {
+      this.lastOnGoLabel = msg.label;
+      this.events.emit("gonogoOnGo", msg.label);
+    },
+    "gonogo-reset": (msg) => {
+      this.lastCountdownT0Ms = null;
+      this.events.emit("gonogoReset", msg.reopened);
     },
     "gonogo-countdown-cancel": (msg) => {
       this.lastCountdownT0Ms = null;
