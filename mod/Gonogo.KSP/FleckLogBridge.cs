@@ -22,6 +22,13 @@ namespace Gonogo.KSP
             FleckLog.LogAction = Write;
         }
 
+        /// <summary>The leading words of a server message, so a message that embeds an address or a count still shares one limiter key.</summary>
+        private static string FirstWords(string message)
+        {
+            string[] words = message.Split(new[] { ' ' }, 4, StringSplitOptions.RemoveEmptyEntries);
+            return string.Join(" ", words, 0, Math.Min(3, words.Length));
+        }
+
         private static void Write(LogLevel level, string message, Exception? ex)
         {
             // The server's own start line names the bind address; the plugin's
@@ -31,7 +38,7 @@ namespace Gonogo.KSP
                 return;
             }
 
-            if (!Limiter.ShouldLog(level + message, out int held))
+            if (!Limiter.ShouldLog(level + ":" + ex?.GetType().Name + ":" + FirstWords(message), out int held))
             {
                 return;
             }

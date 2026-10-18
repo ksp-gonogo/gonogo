@@ -699,7 +699,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                GonogoLog.WarnLimited("vessel." + key + " build failed, omitting", ex);
+                GonogoLog.WarnLimited("vessel." + key + " build failed, omitting", ex, key);
             }
         }
 
@@ -4038,7 +4038,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                GonogoLog.WarnLimited("space-center " + key + " snapshot build failed, omitting", ex);
+                GonogoLog.WarnLimited("space-center " + key + " snapshot build failed, omitting", ex, key);
             }
         }
 

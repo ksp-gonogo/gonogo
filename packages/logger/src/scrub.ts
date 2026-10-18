@@ -42,6 +42,46 @@ function mask(kind: string, value: unknown): string {
   return `<${kind}:${tagFor(String(value))}>`;
 }
 
+/*
+ * A stack frame's script URL: the scheme and authority (host and port) are
+ * masked, the path and the line and column that follow stay readable so the
+ * frame still maps through a source map. A query or fragment before the
+ * position is dropped. A URL with no authority (file:///...) is masked whole.
+ */
+const STACK_URL_PATTERN =
+  /\b([a-z][a-z0-9+.-]*:\/\/)([^\s"'<>)\]/?#]*)([^\s"'<>)\]]*)/gi;
+
+function scrubStackUrl(
+  _url: string,
+  scheme: string,
+  authority: string,
+  rest: string,
+): string {
+  if (authority === "") return mask("url", scheme + rest);
+  const path = rest.replace(/[?#].*?(?=(?::\d+){1,2}$|$)/, "");
+  return `${mask("url", scheme + authority)}${path}`;
+}
+
+/**
+ * Like {@link scrubText} for a stack trace: script URLs keep their path and
+ * line:col, so a frame from any engine ("at f (https://h/a.js:1:2)",
+ * "f@https://h/a.js:1:2") stays mappable.
+ */
+export function scrubStack(stack: string): string {
+  const protectedUrls: string[] = [];
+  const hidden = stack.replace(
+    STACK_URL_PATTERN,
+    (url, scheme: string, authority: string, rest: string) => {
+      protectedUrls.push(scrubStackUrl(url, scheme, authority, rest));
+      return `\uE000${protectedUrls.length - 1}\uE000`;
+    },
+  );
+  return scrubText(hidden).replace(
+    /\uE000(\d+)\uE000/g,
+    (_m, i: string) => protectedUrls[Number(i)],
+  );
+}
+
 /** Replaces share codes, addresses, host names, peer ids and URLs found inside free text. */
 export function scrubText(text: string): string {
   return text
@@ -98,7 +138,7 @@ export function scrubEntry(entry: LogEntry): LogEntry {
     scrubbed.error = {
       ...entry.error,
       message: scrubText(entry.error.message),
-      stack: entry.error.stack && scrubText(entry.error.stack),
+      stack: entry.error.stack && scrubStack(entry.error.stack),
     };
   }
   if (entry.device) {

@@ -611,7 +611,7 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    LogHost("a timeline-reset listener threw: " + ExceptionLine.Describe(ex));
+                    LogHostFault("a timeline-reset listener threw", ex);
                 }
             }
         }

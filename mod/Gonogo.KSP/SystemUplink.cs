@@ -203,7 +203,6 @@ namespace Gonogo.KSP
                 SetControlFrameCommand,
                 args => ControlFrameElection.Set(host.Kernel, args));
 
-            UnityEngine.Application.logMessageReceivedThreaded += (condition, stackTrace, type) => LogTail.Shared.Add(condition);
             host.AddCommandHandler<RecentLogArgs, CommandResult<RecentLog>>(
                 RecentLogCommand,
                 args => CommandResult<RecentLog>.Ok(new RecentLog { Lines = LogTail.Shared.Recent(args.MaxLines) }));

@@ -26,6 +26,21 @@ namespace Gonogo.KSP.Tests
         }
 
         [Theory]
+        [InlineData("[Gonogo] peer left")]
+        [InlineData("[Gonogo] host went away")]
+        [InlineData("[Gonogo] code path taken")]
+        public void A_lower_case_word_after_a_keyword_is_not_a_share_code(string line)
+        {
+            Assert.Equal(line, LogTail.Redact(line));
+        }
+
+        [Fact]
+        public void An_upper_case_share_code_is_still_redacted()
+        {
+            Assert.Equal("[Gonogo] hosting as host <code>", LogTail.Redact("[Gonogo] hosting as host XK3F"));
+        }
+
+        [Theory]
         [InlineData("[Gonogo] loaded /" + "Users/jon/Games/KSP/GameData/Gonogo/a.dll", "/Users")]
         [InlineData("[Gonogo] read C:\\Program Files\\KSP\\KSP.log", "C:\\")]
         [InlineData("[Gonogo] listening on 192." + "168.1.20:8090", "192.168")]

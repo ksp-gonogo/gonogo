@@ -150,6 +150,20 @@ function knownSlotIdsNow(): string[] {
 
 const warned = new Set<string>();
 
+/*
+ * Spelled `import.meta.env` on purpose: Vite substitutes that exact text, so a
+ * production bundle sees `false` and the browser, where `process` does not
+ * exist, still skips the warning. Outside Vite the Node convention decides.
+ */
+function isDevelopmentBuild(): boolean {
+  const dev = (import.meta as ImportMeta & { env?: { DEV?: boolean } }).env
+    ?.DEV;
+  if (typeof dev === "boolean") return dev;
+  return (
+    typeof process === "undefined" || process.env?.NODE_ENV !== "production"
+  );
+}
+
 /**
  * Warns, in development, that `kind` `id` names a slot nothing draws. The
  * check runs once the registering module has finished loading, so a widget
@@ -161,13 +175,9 @@ export function warnIfSlotUnknown(
   def: { id: string; owner?: { id: string; name: string } },
   slot: string,
   warn: (message: string) => void,
+  developmentBuild: boolean = isDevelopmentBuild(),
 ): void {
-  if (
-    typeof process !== "undefined" &&
-    process.env?.NODE_ENV === "production"
-  ) {
-    return;
-  }
+  if (!developmentBuild) return;
   queueMicrotask(() => {
     if (isKnownSlotId(slot)) return;
     const key = `${kind}:${def.id}:${slot}`;

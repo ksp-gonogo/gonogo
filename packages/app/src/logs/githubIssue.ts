@@ -46,8 +46,10 @@ const IPV6 = /\b(?:[0-9a-f]{1,4}:){3,7}[0-9a-f]{1,4}\b/gi;
 const UUID =
   /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 const PEER_ID = /\bstation-[\w-]+/g;
+/* The word before a code is matched in lower, Title and upper case and the code
+   in upper case only, so "peer left" is not read as a peer and a code. */
 const SHARE_CODE =
-  /\b(host|code|share|room|peer|station)(\W{0,3})\s*[A-Z0-9]{4}\b/gi;
+  /\b((?:host|Host|HOST|code|Code|CODE|share|Share|SHARE|room|Room|ROOM|peer|Peer|PEER|station|Station|STATION))(\W{0,3})\s*[A-Z0-9]{4}\b/g;
 
 /** A log line with paths, addresses, peer ids and share codes replaced, so it is safe to post publicly. */
 export function redactLogLine(line: string): string {

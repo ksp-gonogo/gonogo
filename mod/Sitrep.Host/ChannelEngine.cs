@@ -2743,12 +2743,12 @@ namespace Sitrep.Host
                 RegisterUplink(uplink);
                 if (IsUplinkAvailable(uplink.Manifest.Id))
                 {
-                    LogHost($"uplink \"{uplink.Manifest.Id}\" {uplink.Manifest.Version} loaded");
+                    LogHostInfo($"uplink \"{uplink.Manifest.Id}\" {uplink.Manifest.Version} loaded");
                 }
             }
 
             var loaded = accepted.Count(u => IsUplinkAvailable(u.Manifest.Id));
-            LogHost($"uplinks: {loaded} loaded, {all.Count - accepted.Count} refused, {accepted.Count - loaded} unavailable");
+            LogHostInfo($"uplinks: {loaded} loaded, {all.Count - accepted.Count} refused, {accepted.Count - loaded} unavailable");
 
             _settingsPublisher?.Rebuild();
         }
@@ -3470,7 +3470,7 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    LogHost("an addressed-subscribe listener for \"" + topic + "\" threw: " + ExceptionLine.Describe(ex));
+                    LogHostFault("an addressed-subscribe listener for \"" + topic + "\" threw", ex);
                 }
             }
         }
@@ -3972,7 +3972,7 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    LogHostLimited("dynamic-namespace subscribe listener for \"" + prefix + "\" threw: " + ExceptionLine.Describe(ex));
+                    LogHostFault("dynamic-namespace subscribe listener for \"" + prefix + "\" threw", ex, limited: true);
                 }
             }
         }
@@ -6705,7 +6705,11 @@ namespace Sitrep.Host
         /// cause for the whole investigation). Set once at startup; read on the
         /// Courier thread.
         /// </summary>
-        public void SetDiagnosticLog(Action<string> log) => _diagnosticLog = log;
+        public void SetDiagnosticLog(Action<string> log, Action<string>? info = null)
+        {
+            _diagnosticLog = log;
+            _diagnosticInfoLog = info ?? log;
+        }
 
         /// <summary>
         /// Where <see cref="IUplinkHost.Log"/> lines go: the level, the Uplink's
@@ -6734,6 +6738,7 @@ namespace Sitrep.Host
             }
         }
         private Action<string>? _diagnosticLog;
+        private Action<string>? _diagnosticInfoLog;
 
         private readonly LogLimiter _perTopicLog = new LogLimiter();
 
@@ -6757,9 +6762,9 @@ namespace Sitrep.Host
         /// occurrence in full, then at most one line a minute saying how many
         /// were held back.
         /// </summary>
-        private void LogHostLimited(string message)
+        private void LogHostLimited(string message, string? key = null)
         {
-            if (_faultLog.ShouldLog(message, out int held))
+            if (_faultLog.ShouldLog(key ?? message, out int held))
             {
                 LogHost(LogLimiter.Compose(message, held));
             }
@@ -6780,6 +6785,55 @@ namespace Sitrep.Host
                 {
                     // A broken log sink must never take down the Courier thread.
                 }
+            }
+        }
+
+        /// <summary>An informational host line: the same destinations as <see cref="LogHost"/>, at the info level of the optional sink.</summary>
+        private void LogHostInfo(string message)
+        {
+            Console.Error.WriteLine("[ChannelEngine] " + message);
+            var sink = _diagnosticInfoLog;
+            if (sink == null)
+            {
+                return;
+            }
+
+            try
+            {
+                sink("[ChannelEngine] " + message);
+            }
+            catch
+            {
+                // A broken log sink must never take down the Courier thread.
+            }
+        }
+
+        /// <summary>
+        /// A host line for an exception a handler threw: the one-line form every
+        /// time, and the full stack trace once per calling site so the faulting
+        /// caller is in the log.
+        /// </summary>
+        private void LogHostFault(
+            string message,
+            Exception ex,
+            bool limited = false,
+            [System.Runtime.CompilerServices.CallerFilePath] string file = "",
+            [System.Runtime.CompilerServices.CallerLineNumber] int line = 0)
+        {
+            string text = message + ": " + ExceptionLine.Describe(ex);
+            if (limited)
+            {
+                LogHostLimited(text, message);
+            }
+            else
+            {
+                LogHost(text);
+            }
+
+            string? trace = ExceptionLine.TraceOnce(ex, file, line);
+            if (trace != null)
+            {
+                LogHost(trace);
             }
         }
 
@@ -7410,19 +7464,19 @@ namespace Sitrep.Host
         {
             if (job is DispatchCommandJob dispatch)
             {
-                LogHost("dispatch of \"" + dispatch.Command + "\" threw: " + ExceptionLine.Describe(ex));
+                LogHostFault("dispatch of \"" + dispatch.Command + "\" threw", ex);
                 FailDispatch(dispatch, ex);
                 return;
             }
             if (job is DispatchGroupJob group)
             {
-                LogHost("dispatch of group \"" + group.GroupId + "\" threw: " + ExceptionLine.Describe(ex));
+                LogHostFault("dispatch of group \"" + group.GroupId + "\" threw", ex);
                 FailGroup(group, ex);
                 return;
             }
             if (++_courierJobThrows == 1 || _courierJobThrows % 300 == 0)
             {
-                LogHost("Courier job " + job.GetType().Name + " threw (" + _courierJobThrows + " so far): " + ExceptionLine.Describe(ex));
+                LogHostFault("Courier job " + job.GetType().Name + " threw (" + _courierJobThrows + " so far)", ex);
             }
         }
 
@@ -7653,7 +7707,7 @@ namespace Sitrep.Host
             }
             catch (Exception ex)
             {
-                LogHostLimited("IsKeyframe predicate for \"" + topic + "\" threw (treated as not-a-keyframe): " + SafeExceptionMessage(ex));
+                LogHostLimited("IsKeyframe predicate for \"" + topic + "\" threw (treated as not-a-keyframe): " + SafeExceptionMessage(ex), "IsKeyframe:" + topic);
                 return false;
             }
         }
@@ -7873,7 +7927,7 @@ namespace Sitrep.Host
         /// </summary>
         private void FailSoftSignalDelaySource(Exception ex)
         {
-            LogHostLimited("signal delay source (owner \"" + _signalDelaySourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(ex));
+            LogHostLimited("signal delay source (owner \"" + _signalDelaySourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(ex), "signal delay source");
         }
 
         /// <summary>
@@ -7898,7 +7952,7 @@ namespace Sitrep.Host
         {
             if (tick.PathBreak.Error != null)
             {
-                LogHostLimited("path break source (owner \"" + _pathBreakSourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(tick.PathBreak.Error));
+                LogHostLimited("path break source (owner \"" + _pathBreakSourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(tick.PathBreak.Error), "path break source");
                 return;
             }
             var found = tick.PathBreak.Value;
@@ -8257,7 +8311,7 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    LogHost("a craft-released listener threw: " + ExceptionLine.Describe(ex));
+                    LogHostFault("a craft-released listener threw", ex);
                 }
             }
         }
@@ -9034,7 +9088,7 @@ namespace Sitrep.Host
         /// </summary>
         private void FailSoftConnectivitySource(Exception ex)
         {
-            LogHostLimited("connectivity source (owner \"" + _connectivitySourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(ex));
+            LogHostLimited("connectivity source (owner \"" + _connectivitySourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(ex), "connectivity source");
         }
 
         /// <summary>
@@ -10898,7 +10952,7 @@ namespace Sitrep.Host
         {
             var session = new ClientSession(connection);
             _sessions[connection.Id] = session;
-            LogHost("client " + ShortSessionId(connection) + " connected (" + _sessions.Count + " connected)");
+            LogHostInfo("client " + ShortSessionId(connection) + " connected (" + _sessions.Count + " connected)");
 
             // Messages first: a close that came before this is raised as soon as
             // the handler attaches, and the frames buffered ahead of it have to be
@@ -11119,7 +11173,7 @@ namespace Sitrep.Host
             if (_sessions.TryRemove(session.Connection.Id, out _))
             {
                 var vantage = session.ChosenVantage;
-                LogHost("client " + ShortSessionId(session.Connection) + " disconnected ("
+                LogHostInfo("client " + ShortSessionId(session.Connection) + " disconnected ("
                     + (vantage == null ? "default vantage" : "vantage " + vantage) + ", "
                     + _sessions.Count + " still connected)");
             }

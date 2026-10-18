@@ -20,7 +20,7 @@ namespace Gonogo.KSP
         private static readonly Regex Ipv6 = new Regex(@"\b(?:[0-9a-f]{1,4}:){3,7}[0-9a-f]{1,4}\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex Uuid = new Regex(@"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex PeerId = new Regex(@"\bstation-[\w-]+", RegexOptions.Compiled);
-        private static readonly Regex ShareCode = new Regex(@"\b(host|code|share|room|peer|station)(\W{0,3})\s*[A-Z0-9]{4}\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex ShareCode = new Regex(@"\b((?i:host|code|share|room|peer|station))(\W{0,3})\s*[A-Z0-9]{4}\b", RegexOptions.Compiled);
 
         private readonly string[] _ring;
         private readonly object _gate = new object();

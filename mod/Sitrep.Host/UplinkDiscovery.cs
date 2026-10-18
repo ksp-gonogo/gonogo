@@ -147,6 +147,20 @@ namespace Sitrep.Host
                 }
             }
 
+            void LogFault(
+                string message,
+                Exception ex,
+                [System.Runtime.CompilerServices.CallerFilePath] string file = "",
+                [System.Runtime.CompilerServices.CallerLineNumber] int line = 0)
+            {
+                Log(message + ": " + ExceptionLine.Describe(ex));
+                string? trace = ExceptionLine.TraceOnce(ex, file, line);
+                if (trace != null)
+                {
+                    Log(trace);
+                }
+            }
+
             foreach (var assembly in candidateAssemblies)
             {
                 Type[] types;
@@ -179,7 +193,7 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    Log("failed to scan assembly \"" + assembly.FullName + "\": " + ExceptionLine.Describe(ex));
+                    LogFault("failed to scan assembly \"" + assembly.FullName + "\"", ex);
                     continue;
                 }
 
@@ -234,7 +248,7 @@ namespace Sitrep.Host
                     }
                     catch (Exception ex)
                     {
-                        Log("failed to inspect/instantiate \"" + type.FullName + "\": " + ExceptionLine.Describe(ex));
+                        LogFault("failed to inspect/instantiate \"" + type.FullName + "\"", ex);
                     }
                 }
             }

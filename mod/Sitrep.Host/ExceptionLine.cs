@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace Sitrep.Host
 {
@@ -39,6 +42,47 @@ namespace Sitrep.Host
             }
 
             return text.ToString();
+        }
+
+        private static readonly HashSet<string> TracedSites = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// The full stack trace of <paramref name="ex"/> as one line, the first
+        /// time the call site (the caller's file and line) reports an exception,
+        /// and null on every later call from that site. Follows the
+        /// <see cref="Describe"/> line it belongs to so a fault in a third-party
+        /// handler can be traced to its caller.
+        /// </summary>
+        public static string? TraceOnce(
+            Exception? ex,
+            [CallerFilePath] string file = "",
+            [CallerLineNumber] int line = 0)
+        {
+            if (ex == null)
+            {
+                return null;
+            }
+
+            string site = Path.GetFileName(file) + ":" + line;
+            lock (TracedSites)
+            {
+                if (!TracedSites.Add(site))
+                {
+                    return null;
+                }
+            }
+
+            string full;
+            try
+            {
+                full = ex.ToString();
+            }
+            catch
+            {
+                return null;
+            }
+
+            return "trace of the line above (" + site + "): " + PathRedactor.Redact(OneLine(full));
         }
 
         private static string SafeMessage(Exception e)

@@ -109,6 +109,7 @@ namespace Gonogo.KSP
             DontDestroyOnLoad(gameObject);
             PathRedactor.AddRoot(KSPUtil.ApplicationRootPath, "<KSP>");
             PathRedactor.AddRoot(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "<home>");
+            Application.logMessageReceivedThreaded += (condition, stackTrace, type) => LogTail.Shared.Add(condition);
             LogBanner();
             FleckLogBridge.Install();
 
@@ -132,8 +133,9 @@ namespace Gonogo.KSP
                 // Sitrep.Host otherwise logs only to Console.Error, which KSP does
                 // NOT capture: so a disabled/unavailable uplink or a retrying
                 // capture-throw would be invisible in the live log; this sink
-                // makes the whole fail-soft class visible at [WRN] level.
-                _engine.SetDiagnosticLog(GonogoLog.Sink);
+                // makes the whole fail-soft class visible at [WRN] level, while the
+                // host's connection and load lines go out at info level.
+                _engine.SetDiagnosticLog(GonogoLog.Sink, GonogoLog.SinkInfo);
                 _engine.SetUplinkLog(GonogoLog.Uplink);
                 _engine.SetSpaceCentre(SpaceCentreSite.Current);
                 _engine.SetHomeReadable(() => !VesselListWatch.Shared.Settling);

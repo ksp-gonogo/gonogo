@@ -65,25 +65,29 @@ namespace Gonogo.KSP
         /// A warning from a call site that can fire every tick: the first
         /// occurrence in full, then at most one line a minute carrying how many
         /// were held back. Each call site is limited on its own, so a site that
-        /// loops over parts shares one budget across all of them.
+        /// loops over parts shares one budget across all of them unless it
+        /// passes <paramref name="key"/>, a fixed name for what is failing
+        /// (a topic, a field) that gives each its own.
         /// </summary>
         public static void WarnLimited(
             string message,
             Exception? ex = null,
+            string? key = null,
             [CallerFilePath] string file = "",
             [CallerLineNumber] int line = 0)
         {
-            Write(LogType.Warning, message, ex, SiteKey(file, line), limited: true);
+            Write(LogType.Warning, message, ex, SiteKey(file, line), limited: true, key);
         }
 
         /// <summary>As <see cref="WarnLimited"/>, at error level.</summary>
         public static void ErrorLimited(
             string message,
             Exception? ex = null,
+            string? key = null,
             [CallerFilePath] string file = "",
             [CallerLineNumber] int line = 0)
         {
-            Write(LogType.Error, message, ex, SiteKey(file, line), limited: true);
+            Write(LogType.Error, message, ex, SiteKey(file, line), limited: true, key);
         }
 
         /// <summary>
@@ -93,6 +97,16 @@ namespace Gonogo.KSP
         public static void Sink(string message)
         {
             Emit(LogType.Warning, Compose(null, message));
+        }
+
+        /// <summary>
+        /// Carries an informational line from the host (a connection, an Uplink
+        /// loaded) to KSP.log at info level, with the install and home folders
+        /// taken out of it.
+        /// </summary>
+        public static void SinkInfo(string message)
+        {
+            Emit(LogType.Log, Compose(null, message));
         }
 
         /// <summary>Carries a line an Uplink wrote through <c>IUplinkHost.Log</c> to KSP.log at its level.</summary>
@@ -118,12 +132,12 @@ namespace Gonogo.KSP
             return head + PathRedactor.Redact(message);
         }
 
-        private static void Write(LogType type, string message, Exception? ex, string site, bool limited)
+        private static void Write(LogType type, string message, Exception? ex, string site, bool limited, string? key = null)
         {
             int held = 0;
             // The exception type joins the key so two different faults at one
             // site each get their first line.
-            if (limited && !Limiter.ShouldLog(site + ex?.GetType().Name, out held))
+            if (limited && !Limiter.ShouldLog(site + key + ex?.GetType().Name, out held))
             {
                 return;
             }

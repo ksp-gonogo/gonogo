@@ -31,6 +31,12 @@ describe("redactLogLine", () => {
     expect(redactLogLine(line)).not.toContain(leaked);
   });
 
+  it("leaves a lower-case word after a keyword alone", () => {
+    expect(redactLogLine("peer left")).toBe("peer left");
+    expect(redactLogLine("host went away")).toBe("host went away");
+    expect(redactLogLine("code path taken")).toBe("code path taken");
+  });
+
   it("leaves an ordinary line alone", () => {
     expect(redactLogLine("[Gonogo] Started")).toBe("[Gonogo] Started");
   });

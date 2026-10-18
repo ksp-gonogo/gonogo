@@ -9,6 +9,7 @@ import {
   isKnownSlotId,
   KNOWN_SLOT_IDS,
   resetSlotWarnings,
+  warnIfSlotUnknown,
 } from "./slot-ids";
 
 afterEach(() => {
@@ -77,6 +78,19 @@ describe("registerContribution naming an unknown slot", () => {
     expect(message).toContain("my-uplink.cme");
     expect(message).toContain("My Uplink (my-uplink)");
     expect(message).toContain("tracking-station.entities");
+  });
+
+  it("stays quiet in a production build", async () => {
+    const warn = vi.fn();
+    warnIfSlotUnknown(
+      "contribution",
+      { id: "my-uplink.cme" },
+      "system-view.entities",
+      warn,
+      false,
+    );
+    await Promise.resolve();
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("stays quiet for a declared slot", async () => {

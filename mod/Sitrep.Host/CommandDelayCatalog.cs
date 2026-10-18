@@ -126,7 +126,7 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    Log("failed to scan assembly \"" + assembly.FullName + "\": " + ExceptionLine.Describe(ex));
+                    LogFault("failed to scan assembly \"" + assembly.FullName + "\"", ex);
                     continue;
                 }
 
@@ -147,7 +147,7 @@ namespace Sitrep.Host
                     }
                     catch (Exception ex)
                     {
-                        Log("failed to read [SitrepCommand] on \"" + type.FullName + "\": " + ExceptionLine.Describe(ex));
+                        LogFault("failed to read [SitrepCommand] on \"" + type.FullName + "\"", ex);
                     }
                 }
             }
@@ -179,6 +179,20 @@ namespace Sitrep.Host
             }
 
             return false;
+        }
+
+        private static void LogFault(
+            string message,
+            Exception ex,
+            [System.Runtime.CompilerServices.CallerFilePath] string file = "",
+            [System.Runtime.CompilerServices.CallerLineNumber] int line = 0)
+        {
+            Log(message + ": " + ExceptionLine.Describe(ex));
+            string? trace = ExceptionLine.TraceOnce(ex, file, line);
+            if (trace != null)
+            {
+                Log(trace);
+            }
         }
 
         private static void Log(string message)

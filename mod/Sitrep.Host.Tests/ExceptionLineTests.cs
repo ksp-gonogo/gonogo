@@ -49,6 +49,34 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void TheFullTraceIsGivenOncePerCallSite()
+        {
+            var ex = Thrown(() => new InvalidOperationException("deep"));
+
+            string first = null;
+            string second = null;
+            for (int i = 0; i < 2; i++)
+            {
+                string trace = ExceptionLine.TraceOnce(ex, "Site.cs", 12);
+                if (i == 0) first = trace; else second = trace;
+            }
+
+            Assert.StartsWith("trace of the line above (Site.cs:12): ", first);
+            Assert.Contains("InvalidOperationException: deep", first);
+            Assert.DoesNotContain('\n', first);
+            Assert.Null(second);
+        }
+
+        [Fact]
+        public void ADifferentCallSiteGetsItsOwnTrace()
+        {
+            var ex = Thrown(() => new Exception("x"));
+
+            Assert.NotNull(ExceptionLine.TraceOnce(ex, "A.cs", 1));
+            Assert.NotNull(ExceptionLine.TraceOnce(ex, "A.cs", 2));
+        }
+
+        [Fact]
         public void AnExceptionNeverThrownHasNoFrame()
         {
             Assert.Equal("Exception: bare", ExceptionLine.Describe(new Exception("bare")));
