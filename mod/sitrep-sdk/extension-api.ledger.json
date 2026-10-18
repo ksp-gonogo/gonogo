@@ -8723,6 +8723,10 @@
         "note": "A slot listed in ContributionRegistry types compute from that slot's entry, so a literal such as tone: \"info\" returned from compute is checked against the slot's entry and no longer widens to a string; a component slot id keeps the earlier form"
       },
       {
+        "key": "sitrep-sdk . UplinkHealthEntry#bundled",
+        "note": "required, true for an Uplink compiled into the Gonogo mod and false for an installed one, so a hand-built roster entry must now carry it"
+      },
+      {
         "key": "sitrep-sdk . UseCommandResult#failures",
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
       },
@@ -9637,6 +9641,10 @@
       {
         "key": "sitrep-sdk ./spine UplinkClientHandle#registerContribution",
         "note": "A slot listed in ContributionRegistry types compute from that slot's entry, so a literal such as tone: \"info\" returned from compute is checked against the slot's entry and no longer widens to a string; a component slot id keeps the earlier form"
+      },
+      {
+        "key": "sitrep-sdk ./spine UplinkHealthEntry#bundled",
+        "note": "required, true for an Uplink compiled into the Gonogo mod and false for an installed one, so a hand-built roster entry must now carry it"
       },
       {
         "key": "sitrep-sdk ./spine UseCommandResult#failures",

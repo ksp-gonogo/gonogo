@@ -1,7 +1,8 @@
 /**
- * The names behind the dashboard controls toggle must be readable on a touch screen, where
- * there is no hover to open the cluster. A mouse screen keeps them tucked away
- * until the cluster is hovered or focused.
+ * On a touch screen the cluster opens by tapping the dashboard controls toggle,
+ * shows every name once open and closes on a second tap, on a tap outside or
+ * after a button is chosen. A mouse screen keeps the names tucked away until
+ * the cluster is hovered or focused.
  */
 
 import type { Page } from "@playwright/test";
@@ -13,7 +14,7 @@ const settingsLabel = (page: Page) =>
   page.locator('span[aria-hidden="true"]', { hasText: /^Settings/ });
 
 test.describe("fab cluster names", () => {
-  test("a touch screen shows every name without any gesture", async ({
+  test("a touch screen opens the names with the toggle and closes them again", async ({
     browser,
   }, testInfo) => {
     test.skip(
@@ -33,13 +34,19 @@ test.describe("fab cluster names", () => {
     const page = await context.newPage();
     await page.goto("/?uplinkLoaderIds=");
 
-    await expect(settingsLabel(page)).toHaveCSS("opacity", "1", {
-      timeout: 30_000,
-    });
+    const toggle = page.getByRole("button", { name: "Dashboard controls" });
+    await expect(toggle).toBeVisible({ timeout: 30_000 });
+    await expect(settingsLabel(page)).toHaveCSS("opacity", "0");
+
+    await toggle.tap();
+    await expect(settingsLabel(page)).toHaveCSS("opacity", "1");
     await expect(page.getByRole("button", { name: /^Settings/ })).toHaveCSS(
       "pointer-events",
       "auto",
     );
+
+    await toggle.tap();
+    await expect(settingsLabel(page)).toHaveCSS("opacity", "0");
     await context.close();
   });
 

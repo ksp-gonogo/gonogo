@@ -29,6 +29,7 @@ const page = (
   gonogo: false,
   undeclared: false,
   modSettings: false,
+  bundled: false,
   rosterKnown: true,
   attention: false,
   rows: [],

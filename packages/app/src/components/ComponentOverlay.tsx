@@ -428,6 +428,7 @@ const OverlaySurface = styled(Box).attrs({
      the panel is the same size. Filtering narrows the list inside, never
      resizes the wrapper. */
   height: min(640px, 80vh);
+  height: min(640px, 80dvh);
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
