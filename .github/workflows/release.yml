@@ -57,6 +57,9 @@ name: release
 # become `latest`, and the job summary says so); NuGet gets it as a SemVer
 # prerelease. Every gate the release runs before a publish runs on the
 # RC's own artifact. It runs only on refs/heads/staging, and only on dispatch.
+# The same dispatch then builds the app, the `:rc` images and the mod zips as that
+# candidate (the rc-channel job calls rc.yml with the RC's version as the label),
+# so one number names every part of one RC. A dry run skips that step.
 # Add `-f dry_run=true` to do everything but the login and the push.
 
 on:
@@ -775,6 +778,22 @@ jobs:
           else
             echo "🏷 $TAG is $VERSION for: $NAMES." >> "$GITHUB_STEP_SUMMARY"
           fi
+
+  # The app, images and mod zips of the same candidate, under the label the
+  # packages carry, built by the rc.yml pipeline. After move-tags, so the
+  # channel only moves once the whole package set exists. A dry run publishes
+  # nothing, so it skips this.
+  rc-channel:
+    needs: [rc-plan, move-tags]
+    if: ${{ !cancelled() && inputs.rc && !inputs.dry_run && needs.move-tags.result == 'success' }}
+    permissions:
+      contents: write
+      actions: read
+      packages: write
+    uses: ./.github/workflows/rc.yml
+    with:
+      label: ${{ fromJSON(needs.rc-plan.outputs.plan).version }}
+    secrets: inherit
 
   # The C# half of the Uplink surface, packed once and gated before anything
   # ships: the package gate, then the extraction probe building a real Uplink

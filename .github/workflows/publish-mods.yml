@@ -50,6 +50,11 @@ on:
         description: "Commit to build (default: the calling ref)"
         required: false
         type: string
+      label:
+        description: "rc channel: the version to carry, X.Y.Z-rc.N or X.Y.Z-dev.<sha7>"
+        required: false
+        default: ""
+        type: string
   workflow_dispatch:
     inputs:
       channel:
@@ -60,6 +65,11 @@ on:
         options:
           - rc
           - release
+      label:
+        description: "rc channel: the version to carry, X.Y.Z-rc.N or X.Y.Z-dev.<sha7>"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -86,10 +96,14 @@ jobs:
           sparse-checkout: scripts
       - name: Compute version string
         id: version
+        env:
+          LABEL: ${{ inputs.label }}
         run: |
           if [ "$CHANNEL" = "rc" ]; then
-            SHA="${{ inputs.ref || github.sha }}"
-            echo "value=rc-${SHA:0:7}" >> "$GITHUB_OUTPUT"
+            if [ -z "$LABEL" ]; then
+              echo "::error::channel=rc needs a label (X.Y.Z-rc.N or X.Y.Z-dev.<sha7>)"; exit 1
+            fi
+            echo "value=${LABEL}" >> "$GITHUB_OUTPUT"
           else
             # A release candidate, or anything with a prerelease part, stops the
             # whole run here, before a zip is built.
