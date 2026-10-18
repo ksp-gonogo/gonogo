@@ -23,22 +23,38 @@ namespace Sitrep.Host
     public static class LandingModel
     {
         /// <summary>
-        /// KSP's <c>Vessel.heightFromTerrain</c> when it is a raycast KSP made
-        /// against terrain this frame, otherwise null. KSP measures only a loaded,
-        /// unpacked vessel; a packed or unloaded one keeps a held value. A missed
-        /// ray leaves the <c>-1</c> sentinel, which KSP's position update can then
-        /// overwrite with the ASL altitude itself.
+        /// Whether the vessel is over the sea: the body has an ocean and the ground
+        /// at the point beneath the vessel is below sea level. The sea's surface is
+        /// then what a descent lands on.
+        /// </summary>
+        /// <param name="terrainAltitude">m, the ground's ASL altitude beneath the vessel, negative under the sea.</param>
+        public static bool IsOverSea(bool hasOcean, double terrainAltitude) =>
+            hasOcean && terrainAltitude < 0.0;
+
+        /// <summary>
+        /// The height of the surface the vessel descends to, at the root part's
+        /// origin. Over the sea (<paramref name="overSea"/>) that is the ASL
+        /// altitude itself, since the sea surface is at 0 and KSP's ray reads the
+        /// floor or misses it. Over land it is KSP's <c>Vessel.heightFromTerrain</c>
+        /// when KSP made a raycast against terrain this frame, otherwise null: KSP
+        /// measures only a loaded, unpacked vessel (a packed or unloaded one keeps
+        /// a held value), and a missed ray leaves the <c>-1</c> sentinel, which
+        /// KSP's position update can then overwrite with the ASL altitude itself.
         /// </summary>
         /// <param name="heightFromTerrain">KSP's raw field, as the float it holds.</param>
         /// <param name="altitude">m, the vessel's ASL altitude, KSP's <c>Vessel.altitude</c>.</param>
+        /// <param name="overSea">See <see cref="IsOverSea"/>.</param>
         public static double? MeasuredHeightFromTerrain(
             bool loaded,
             bool packed,
             float heightFromTerrain,
-            double altitude)
+            double altitude,
+            bool overSea = false)
         {
             if (!loaded || packed)
                 return null;
+            if (overSea)
+                return double.IsNaN(altitude) || double.IsInfinity(altitude) || altitude < 0.0 ? (double?)null : altitude;
             if (float.IsNaN(heightFromTerrain) || float.IsInfinity(heightFromTerrain) || heightFromTerrain < 0f)
                 return null;
             if (heightFromTerrain == (float)altitude)

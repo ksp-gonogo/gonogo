@@ -35,6 +35,49 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void OverTheSeaTheHeightIsTheAltitudeAboveTheSeaSurface()
+        {
+            Assert.Equal(613.99, LandingModel.MeasuredHeightFromTerrain(
+                true, false, 613.99f, 613.99, overSea: true));
+            Assert.Equal(613.99, LandingModel.MeasuredHeightFromTerrain(
+                true, false, -1f, 613.99, overSea: true));
+        }
+
+        [Fact]
+        public void OverShallowSeaTheSurfaceIsStillTheWaterNotTheRayHitOnTheFloor()
+        {
+            Assert.Equal(40.0, LandingModel.MeasuredHeightFromTerrain(true, false, 52f, 40.0, overSea: true));
+        }
+
+        [Fact]
+        public void OverLandAMissedRayStaysAbsent()
+        {
+            Assert.Null(LandingModel.MeasuredHeightFromTerrain(true, false, 613.99f, 613.99, overSea: false));
+        }
+
+        [Fact]
+        public void ASubmergedVesselOverTheSeaHasNoHeight()
+        {
+            Assert.Null(LandingModel.MeasuredHeightFromTerrain(true, false, -1f, -2.0, overSea: true));
+        }
+
+        [Fact]
+        public void APackedVesselOverTheSeaStaysAbsent()
+        {
+            Assert.Null(LandingModel.MeasuredHeightFromTerrain(true, true, 100f, 100.0, overSea: true));
+        }
+
+        [Theory]
+        [InlineData(true, -40.0, true)]
+        [InlineData(true, 0.0, false)]
+        [InlineData(true, 120.0, false)]
+        [InlineData(false, -40.0, false)]
+        public void OverTheSeaNeedsAnOceanAndGroundBelowSeaLevel(bool hasOcean, double terrain, bool expected)
+        {
+            Assert.Equal(expected, LandingModel.IsOverSea(hasOcean, terrain));
+        }
+
+        [Fact]
         public void APackedVesselsHeldValueIsAbsent()
         {
             Assert.Null(LandingModel.MeasuredHeightFromTerrain(loaded: true, packed: true, heightFromTerrain: 812f, altitude: 30000));

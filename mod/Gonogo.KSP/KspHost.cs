@@ -2473,8 +2473,13 @@ namespace Gonogo.KSP
         /// The single read of KSP's <c>heightFromTerrain</c>, the height of the
         /// root part's origin; see <see cref="LandingModel.MeasuredHeightFromTerrain"/>.
         /// </summary>
-        private static double? MeasuredHeightFromTerrain(Vessel vessel) =>
-            LandingModel.MeasuredHeightFromTerrain(vessel.loaded, vessel.packed, vessel.heightFromTerrain, vessel.altitude);
+        private static double? MeasuredHeightFromTerrain(Vessel vessel)
+        {
+            var body = vessel.mainBody;
+            var overSea = body != null
+                && LandingModel.IsOverSea(body.ocean, body.TerrainAltitude(vessel.latitude, vessel.longitude, allowNegative: true));
+            return LandingModel.MeasuredHeightFromTerrain(vessel.loaded, vessel.packed, vessel.heightFromTerrain, vessel.altitude, overSea);
+        }
 
         /// <summary>
         /// <see cref="LowestPointHeightFromTerrain"/> off the measured root height, or
