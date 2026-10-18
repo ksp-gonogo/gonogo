@@ -8,6 +8,8 @@ const HOST_HEARTBEAT_MS = 30_000;
 const RELAY_POST_TIMEOUT_MS = 4_000;
 
 export interface RelayRegistrationDeps {
+  /** This host's stable identity, its share code, which the relay uses to tell the host from any other page posting consent. */
+  getHostId: () => string;
   /** Operator's current technical-analytics consent. */
   getConsent: () => boolean;
   /** The analytics run the relay stamps on its own entries, while analytics is on. */
@@ -20,6 +22,8 @@ export interface RelayRegistrationDeps {
  */
 export class RelayRegistration {
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private inFlight: Promise<void> | null = null;
+  private resend = false;
 
   constructor(private readonly deps: RelayRegistrationDeps) {}
 
@@ -28,8 +32,25 @@ export class RelayRegistration {
    * Best-effort: relay down / non-2xx is logged at debug and swallowed,
    * The heartbeat re-asserts this so a relay restart re-learns the real
    * value (the relay defaults to disabled until first post).
+   * Calls made while a post is in flight collapse into one more post sent
+   * afterwards, so a burst of callers costs two requests at most.
    */
-  async postAnalyticsConfig(): Promise<void> {
+  postAnalyticsConfig(): Promise<void> {
+    if (this.inFlight) {
+      this.resend = true;
+      return this.inFlight;
+    }
+    this.inFlight = this.send().finally(() => {
+      this.inFlight = null;
+      if (this.resend) {
+        this.resend = false;
+        void this.postAnalyticsConfig();
+      }
+    });
+    return this.inFlight;
+  }
+
+  private async send(): Promise<void> {
     const url = `${relayBaseUrl()}/analytics-config`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), RELAY_POST_TIMEOUT_MS);
@@ -38,6 +59,7 @@ export class RelayRegistration {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          hostId: this.deps.getHostId(),
           enabled: this.deps.getConsent(),
           runId: this.deps.getRunId(),
         }),

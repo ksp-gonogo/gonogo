@@ -606,7 +606,9 @@ export class PeerHostService {
   // Best-effort relay bookkeeping: the analytics-consent POST and the
   // periodic heartbeat that re-asserts it. The heartbeat starts on the first
   // PeerJS open and stops in stop().
+  private analyticsPosted = false;
   private readonly relayRegistration = new RelayRegistration({
+    getHostId: () => this.shareCode,
     getConsent: () => this.analyticsConsent,
     getRunId: () => this.analyticsRunId,
   });
@@ -1464,8 +1466,8 @@ export class PeerHostService {
    * to. Retains both,
    * broadcasts it to every connected station, and POSTs it to the relay
    * config broker so the relay learns the new state. Idempotent on
-   * no-change, but always re-POSTs so a relay that
-   * restarted re-learns the current value even if it didn't flip here.
+   * no-change: a repeat call does not re-POST, the heartbeat does that, so a
+   * relay that restarted re-learns the current value within one beat.
    * Called by the main screen's AnalyticsConsentHost on mount + change.
    */
   setAnalyticsConsent(enabled: boolean, runId?: string): void {
@@ -1476,7 +1478,10 @@ export class PeerHostService {
     if (changed) {
       this.broadcast(this.analyticsConsentMessage());
     }
-    void this.relayRegistration.postAnalyticsConfig();
+    if (changed || !this.analyticsPosted) {
+      this.analyticsPosted = true;
+      void this.relayRegistration.postAnalyticsConfig();
+    }
   }
 
   private analyticsConsentMessage(): PeerMessage {

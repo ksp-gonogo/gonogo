@@ -41,7 +41,7 @@ describe("analytics-config routes (fastify.inject)", () => {
     const post = await app.inject({
       method: "POST",
       url: "/analytics-config",
-      payload: { enabled: true },
+      payload: { hostId: "XK3F", enabled: true },
     });
     expect(post.statusCode).toBe(200);
     const get = await app.inject({ method: "GET", url: "/analytics-config" });
@@ -55,13 +55,57 @@ describe("analytics-config routes (fastify.inject)", () => {
     registerAnalyticsConfigRoutes(app, { onRunId: (r) => runs.push(r) });
     await app.ready();
     for (const payload of [
-      { enabled: true, runId: "run-20261018T0912-k3x9" },
-      { enabled: false, runId: "run-20261018T0912-k3x9" },
-      { enabled: true, runId: "host=XK3F with spaces" },
+      { hostId: "XK3F", enabled: true, runId: "run-20261018T0912-k3x9" },
+      { hostId: "XK3F", enabled: false, runId: "run-20261018T0912-k3x9" },
+      { hostId: "XK3F", enabled: true, runId: "host=XK3F with spaces" },
     ]) {
       await app.inject({ method: "POST", url: "/analytics-config", payload });
     }
     expect(runs).toEqual(["run-20261018T0912-k3x9", undefined, undefined]);
+    await app.close();
+  });
+
+  it("ignores a second host while the first is posting, and a post with no hostId", async () => {
+    let t = 0;
+    const app = Fastify();
+    const controller = registerAnalyticsConfigRoutes(app, { now: () => t });
+    await app.ready();
+    const post = (payload: object) =>
+      app.inject({ method: "POST", url: "/analytics-config", payload });
+    expect((await post({ hostId: "XK3F", enabled: true })).statusCode).toBe(
+      200,
+    );
+    // a burst from another page that never learned the host's choice
+    for (let i = 0; i < 12; i++) {
+      t += 50;
+      expect((await post({ hostId: "ZZZ9", enabled: false })).statusCode).toBe(
+        409,
+      );
+    }
+    expect(controller.get()).toBe(true);
+    expect((await post({ enabled: false })).statusCode).toBe(400);
+    expect(controller.get()).toBe(true);
+    // the owner keeps its say, including turning consent off
+    expect((await post({ hostId: "XK3F", enabled: false })).statusCode).toBe(
+      200,
+    );
+    expect(controller.get()).toBe(false);
+    await app.close();
+  });
+
+  it("hands consent to a new host once the owner has gone silent", async () => {
+    let t = 0;
+    const app = Fastify();
+    const controller = registerAnalyticsConfigRoutes(app, { now: () => t });
+    await app.ready();
+    const post = (payload: object) =>
+      app.inject({ method: "POST", url: "/analytics-config", payload });
+    await post({ hostId: "XK3F", enabled: true });
+    t += 121_000;
+    expect((await post({ hostId: "ZZZ9", enabled: false })).statusCode).toBe(
+      200,
+    );
+    expect(controller.get()).toBe(false);
     await app.close();
   });
 
@@ -70,7 +114,7 @@ describe("analytics-config routes (fastify.inject)", () => {
     const bad = await app.inject({
       method: "POST",
       url: "/analytics-config",
-      payload: { enabled: "yes" },
+      payload: { hostId: "XK3F", enabled: "yes" },
     });
     expect(bad.statusCode).toBe(400);
     const missing = await app.inject({
@@ -89,18 +133,18 @@ describe("analytics-config routes (fastify.inject)", () => {
     await app.inject({
       method: "POST",
       url: "/analytics-config",
-      payload: { enabled: true },
+      payload: { hostId: "XK3F", enabled: true },
     });
     // A repeat POST of the same value should NOT re-fire (dedupe).
     await app.inject({
       method: "POST",
       url: "/analytics-config",
-      payload: { enabled: true },
+      payload: { hostId: "XK3F", enabled: true },
     });
     await app.inject({
       method: "POST",
       url: "/analytics-config",
-      payload: { enabled: false },
+      payload: { hostId: "XK3F", enabled: false },
     });
     expect(changes).toEqual([false, true, false]);
     await app.close();

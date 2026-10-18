@@ -60,11 +60,18 @@ class InMemoryAnalyticsConfig implements AnalyticsConfigController {
 
 interface AnalyticsConfigBody {
   enabled?: unknown;
+  hostId?: unknown;
   runId?: unknown;
 }
 
 /** The shape the main screen mints run ids in, and nothing longer, since the relay stamps it on every entry unmasked. */
 const RUN_ID_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
+
+/** How long a host that has stopped posting keeps the say; four missed 30 s heartbeats. */
+const HOST_SILENT_MS = 120_000;
+
+/** A host's stable identity, its share code. */
+const HOST_ID_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
 
 function writeSseEvent(reply: FastifyReply, enabled: boolean): void {
   reply.raw.write(`data: ${JSON.stringify({ enabled })}\n\n`);
@@ -85,9 +92,14 @@ export function registerAnalyticsConfigRoutes(
     onChange?: (enabled: boolean) => void;
     /** Called each time the host sends its consent, before it is applied, with the run the host named or `undefined`. */
     onRunId?: (runId: string | undefined) => void;
+    /** Clock, for tests. */
+    now?: () => number;
   } = {},
 ): AnalyticsConfigController {
   const controller = opts.controller ?? new InMemoryAnalyticsConfig();
+  const now = opts.now ?? Date.now;
+  // Consent is one host's choice. The first host to post owns it, and a post naming any other host is refused until the owner has been silent for HOST_SILENT_MS, so a second page (a station, another browser profile) cannot move it.
+  let owner: { hostId: string; lastSeen: number } | undefined;
 
   if (opts.onChange) {
     const onChange = opts.onChange;
@@ -105,6 +117,20 @@ export function registerAnalyticsConfigRoutes(
     if (typeof body.enabled !== "boolean") {
       return reply.status(400).send({ error: "enabled (boolean) is required" });
     }
+    if (typeof body.hostId !== "string" || !HOST_ID_PATTERN.test(body.hostId)) {
+      return reply.status(400).send({ error: "hostId is required" });
+    }
+    const t = now();
+    if (
+      owner &&
+      owner.hostId !== body.hostId &&
+      t - owner.lastSeen < HOST_SILENT_MS
+    ) {
+      return reply
+        .status(409)
+        .send({ error: "analytics consent belongs to another host" });
+    }
+    owner = { hostId: body.hostId, lastSeen: t };
     const runId =
       body.enabled &&
       typeof body.runId === "string" &&

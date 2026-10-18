@@ -57,7 +57,7 @@ describe("registerAppOrigins", () => {
       method: "POST",
       url: "/analytics-config",
       headers: { origin: "https://evil.example" },
-      payload: { enabled: true },
+      payload: { hostId: "XK3F", enabled: true },
     });
     expect(res.statusCode).toBe(403);
     expect(controller.get()).toBe(false);
@@ -84,7 +84,7 @@ describe("registerAppOrigins", () => {
       method: "POST",
       url: "/analytics-config",
       headers: { origin: "http://localhost:8080" },
-      payload: { enabled: true },
+      payload: { hostId: "XK3F", enabled: true },
     });
     expect(res.statusCode).toBe(200);
     expect(res.headers["access-control-allow-origin"]).toBe(
