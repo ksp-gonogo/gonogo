@@ -527,6 +527,13 @@ export type PeerMessage =
       requestId: string;
       bundleUrl: string;
       expectedHash: string;
+      /**
+       * The base path the requesting station's app is served under (`/rc/` on
+       * the hosted site). A same-origin `bundleUrl` is written against it, and
+       * the host serves the same files under its own base, so the host swaps
+       * one for the other before it fetches.
+       */
+      appBase?: string;
     }
   | {
       type: "uplink-bundle-response";

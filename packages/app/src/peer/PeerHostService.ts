@@ -18,7 +18,7 @@ import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import Peer, { type DataConnection } from "peerjs";
 import type { RunningUplink } from "../uplinks/loaderState";
 import { BUILD_TIME, VERSION } from "../version";
-import { BundleFetchCache } from "./BundleFetchCache";
+import { BundleFetchCache, rebaseBundleUrl } from "./BundleFetchCache";
 import { type ConnectionPath, readConnectionPath } from "./connectionPath";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
@@ -2366,7 +2366,7 @@ export class PeerHostService {
     };
     try {
       const { bytes, digest } = await this.bundleFetchCache.fetchVerified(
-        msg.bundleUrl,
+        rebaseBundleUrl(msg.bundleUrl, msg.appBase, import.meta.env.BASE_URL),
         this.fetchBundleBytes,
       );
       if (digest !== msg.expectedHash) {

@@ -745,6 +745,7 @@ export class PeerClientService {
     bundleUrl: string,
     expectedHash: string,
     timeoutMs = 30_000,
+    appBase: string = import.meta.env.BASE_URL,
   ): Promise<ArrayBuffer> {
     if (!this.conn) {
       return Promise.reject(new Error("not connected"));
@@ -760,6 +761,7 @@ export class PeerClientService {
       requestId,
       bundleUrl,
       expectedHash,
+      appBase,
     } satisfies PeerMessage);
     return pending.then((bytes) => {
       /*

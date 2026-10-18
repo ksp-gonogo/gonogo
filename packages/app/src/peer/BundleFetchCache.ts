@@ -23,6 +23,24 @@ export async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
 }
 
 /**
+ * The url a host fetches for a station's same-origin bundle request. The
+ * station writes the url against its own app base (`/rc/uplinks/x.js` on the
+ * hosted site); the host serves the same files under its own base, where the
+ * station's path would answer with the app shell instead of the bundle. Any
+ * url that is not a path under the station's base (an absolute author-host
+ * url) is returned as given.
+ */
+export function rebaseBundleUrl(
+  bundleUrl: string,
+  stationBase: string | undefined,
+  hostBase: string,
+): string {
+  if (!stationBase || stationBase === hostBase) return bundleUrl;
+  if (!bundleUrl.startsWith(stationBase)) return bundleUrl;
+  return `${hostBase}${bundleUrl.slice(stationBase.length)}`;
+}
+
+/**
  * Download-once cache for Uplink bundle bytes (D6, the station conduit).
  * Keyed by `bundleUrl`: concurrent or sequential requests for the same url
  * coalesce onto a single in-flight fetch+digest, so N stations asking for

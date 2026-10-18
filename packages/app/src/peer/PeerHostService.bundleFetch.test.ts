@@ -115,7 +115,7 @@ const localStorageMock = {
 vi.stubGlobal("localStorage", localStorageMock);
 
 import { approveStation } from "../test/approveStation";
-import { sha256Hex } from "./BundleFetchCache";
+import { rebaseBundleUrl, sha256Hex } from "./BundleFetchCache";
 import { PeerClientService } from "./PeerClientService";
 import { PeerHostService } from "./PeerHostService";
 
@@ -168,6 +168,38 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
 
     expect(new Uint8Array(result)).toEqual(new Uint8Array(bundle));
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("fetches a station's hosted-site bundle path under the host's own base", async () => {
+    const bundle = textBytes("console.log('bundled client');");
+    const goodHash = await sha256Hex(bundle);
+    const requested: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        requested.push(String(url));
+        return {
+          ok: true,
+          status: 200,
+          arrayBuffer: async () =>
+            String(url) === "/uplinks/bg.client.js"
+              ? bundle
+              : textBytes("<!doctype html>app shell"),
+        };
+      }),
+    );
+
+    const { client } = await connectedPair();
+    const result = await client.sendBundleFetch(
+      "/rc/uplinks/bg.client.js",
+      goodHash,
+      undefined,
+      "/rc/",
+    );
+
+    expect(new Uint8Array(result)).toEqual(new Uint8Array(bundle));
+    expect(requested).toContain("/uplinks/bg.client.js");
+    expect(requested).not.toContain("/rc/uplinks/bg.client.js");
   });
 
   it("refuses to redistribute bytes on a hash mismatch, station's fetchBytes rejects", async () => {
@@ -284,5 +316,26 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
     );
     expect(result).toBeInstanceOf(ArrayBuffer);
     expect(new Uint8Array(result)).toEqual(payload);
+  });
+});
+
+describe("rebaseBundleUrl", () => {
+  it("swaps the station's base for the host's on a path under it", () => {
+    expect(rebaseBundleUrl("/rc/uplinks/a.js", "/rc/", "/")).toBe(
+      "/uplinks/a.js",
+    );
+    expect(rebaseBundleUrl("/uplinks/a.js", "/", "/app/")).toBe(
+      "/app/uplinks/a.js",
+    );
+  });
+
+  it("leaves absolute urls and matching bases alone", () => {
+    expect(rebaseBundleUrl("https://x.test/a.js", "/rc/", "/")).toBe(
+      "https://x.test/a.js",
+    );
+    expect(rebaseBundleUrl("/uplinks/a.js", "/", "/")).toBe("/uplinks/a.js");
+    expect(rebaseBundleUrl("/uplinks/a.js", undefined, "/app/")).toBe(
+      "/uplinks/a.js",
+    );
   });
 });
