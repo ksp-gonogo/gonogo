@@ -504,9 +504,10 @@ export type PeerMessage =
   // verified bytes to every station that asks for that url.
   // requestId-correlated like `query-range-*`/`uplink-relay-*`.
   //
-  // Wire shape: `bytes` travels as a raw `Uint8Array`, NOT base64, PeerJS's
-  // default "binary" serialization (BinaryPack) already passes a
-  // `Uint8Array` through untouched; base64 would only add ~33%
+  // Wire shape: `bytes` is sent as a raw `Uint8Array` and arrives as an
+  // `ArrayBuffer`, NOT base64: PeerJS's default "binary" serialization
+  // (BinaryPack) packs a `Uint8Array` natively and unpacks it as a plain
+  // `ArrayBuffer`; base64 would only add ~33%
   // overhead on a channel that already carries binary natively. A fetch or
   // hash-mismatch failure is a distinct `error` variant (no `bytes`) rather
   // than a thrown exception on the wire, same convention as
@@ -521,7 +522,7 @@ export type PeerMessage =
   | {
       type: "uplink-bundle-response";
       requestId: string;
-      bytes?: Uint8Array;
+      bytes?: Uint8Array | ArrayBuffer;
       error?: string;
     };
 

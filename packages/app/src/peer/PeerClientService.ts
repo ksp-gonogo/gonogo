@@ -216,7 +216,7 @@ export class PeerClientService {
   // D6: the Uplink bundle-byte conduit. Tracked separately (its own typed
   // map) because the resolved value shape (raw bytes) differs from every
   // other RequestTracker on this class: see sendBundleFetch.
-  private pendingBundleFetch = new RequestTracker<Uint8Array>();
+  private pendingBundleFetch = new RequestTracker<Uint8Array | ArrayBuffer>();
 
   // Cached current flight pushed by the host. Updated on every `flight-change`
   // message, including the initial snapshot the host sends on connect open.
@@ -723,8 +723,8 @@ export class PeerClientService {
    * protocol.ts's `uplink-bundle-request`/`-response` doc comment). Never
    * fetches `bundleUrl` itself; a station has no route to an author host.
    *
-   * Resolves with the verified `ArrayBuffer` (converted from the wire's
-   * `Uint8Array`: see the dispatcher entry below) so this method is a
+   * Resolves with the verified `ArrayBuffer` (the wire delivers an
+   * `ArrayBuffer`, or a `Uint8Array` that is copied out) so this method is a
    * drop-in for the loader's `LoaderContext.fetchBytes` seam once wrapped
    * by `../uplinks/peerBundleFetch.ts`'s `createPeerBundleFetcher`.
    * Rejects on a hash mismatch, a host-side fetch failure, a timeout, or
@@ -755,12 +755,14 @@ export class PeerClientService {
       expectedHash,
     } satisfies PeerMessage);
     return pending.then((bytes) => {
-      // `.slice()` copies into a fresh, exactly-sized ArrayBuffer, the
-      // wire's Uint8Array may be a view into a larger decode buffer
-      // (PeerJS's BinaryPack), and the loader's sha256Hex re-verification
-      // needs the EXACT bytes, nothing extra either side.
-      const copy = bytes.slice();
-      return copy.buffer as ArrayBuffer;
+      /*
+       * BinaryPack unpacks a sent Uint8Array as a plain ArrayBuffer, so the
+       * station never sees a view; a Uint8Array can still arrive from a
+       * transport that keeps it. The loader's re-hash needs an exactly-sized
+       * ArrayBuffer either way, and a view may sit inside a larger buffer.
+       */
+      if (bytes instanceof ArrayBuffer) return bytes;
+      return bytes.slice().buffer as ArrayBuffer;
     });
   }
 
