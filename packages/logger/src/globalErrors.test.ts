@@ -69,6 +69,28 @@ describe("installGlobalErrorHooks", () => {
     expect(logger.getBuffer()).toHaveLength(0);
   });
 
+  it("keeps an interrupted media play() silent and warns once on any other refusal", () => {
+    const { logger, fire } = setup();
+    const interrupted = new DOMException(
+      "The play() request was interrupted by a new load request.",
+      "AbortError",
+    );
+    fire("unhandledrejection", { reason: interrupted });
+    expect(logger.getBuffer()).toHaveLength(0);
+
+    const refused = new DOMException(
+      "play() failed because the user didn't interact with the document first.",
+      "NotAllowedError",
+    );
+    fire("unhandledrejection", { reason: refused });
+    fire("unhandledrejection", { reason: refused });
+    expect(logger.getBuffer()).toHaveLength(1);
+    expect(logger.getBuffer()[0]).toMatchObject({
+      level: "warn",
+      context: { reason: "NotAllowedError" },
+    });
+  });
+
   it("stops listening once removed", () => {
     const { logger, fire, remove } = setup();
     remove();

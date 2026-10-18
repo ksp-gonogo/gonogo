@@ -765,7 +765,11 @@ export class PeerHostService {
         // only reliably readable once the connection is open.
         this.trackStationPath(conn);
         attachIceDiagnostics(conn, () => {
-          this.dropConnection(conn, "ICE dead");
+          /*
+           * A station that closed its tab ends the data channel before ICE
+           * reports anything, so a connection no longer open left cleanly.
+           */
+          this.dropConnection(conn, conn.open ? "ICE dead" : "closed");
           // Closed as well as forgotten: a link whose ICE recovers would otherwise keep delivering messages from a station the host has already let go.
           try {
             conn.close();
@@ -1898,12 +1902,29 @@ export class PeerHostService {
     },
   });
 
+  private readonly incomingTypesLogged = new WeakMap<
+    DataConnection,
+    Set<PeerMessage["type"]>
+  >();
+
   private handleIncoming(msg: PeerMessage, conn: DataConnection) {
-    debugPeer("host handleIncoming", {
-      type: msg.type,
-      peer: conn.peer,
-      sessionId: "sessionId" in msg ? msg.sessionId : undefined,
-    });
+    /*
+     * Once per message type per connection: the stream of a live station is
+     * thousands of identical lines and every one of them ships.
+     */
+    let seen = this.incomingTypesLogged.get(conn);
+    if (!seen) {
+      seen = new Set();
+      this.incomingTypesLogged.set(conn, seen);
+    }
+    if (!seen.has(msg.type)) {
+      seen.add(msg.type);
+      debugPeer("host handleIncoming", {
+        type: msg.type,
+        peer: conn.peer,
+        sessionId: "sessionId" in msg ? msg.sessionId : undefined,
+      });
+    }
     if (
       !this.connections.has(conn) &&
       !WAITING_STATION_MAY_SEND.has(msg.type)

@@ -507,11 +507,20 @@ const Layout = styled.div`
   padding-right: calc(var(--gutter-screen) + env(safe-area-inset-right, 0px));
   background: var(--color-surface-app);
   min-height: 100vh;
+
+  /*
+   * The station chip is fixed to the top right corner, and below this width
+   * the mission banner's fields reach under it. The extra top padding gives
+   * the chip a row of its own above the banner.
+   */
+  @media (max-width: 699px) {
+    padding-top: calc(var(--gutter-screen) + env(safe-area-inset-top, 0px) + var(--size-station-chip-row));
+  }
 `;
 
 const StationNameChip = styled.div`
   position: fixed;
-  top: 12px;
+  top: calc(12px + env(safe-area-inset-top, 0px));
   right: 16px;
   padding: var(--inset-surface);
   background: rgba(20, 20, 20, 0.85);

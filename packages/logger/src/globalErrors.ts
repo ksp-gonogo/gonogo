@@ -11,6 +11,15 @@ const MAX_TRACKED = 200;
  */
 const BENIGN = /^ResizeObserver loop/;
 
+/*
+ * A media element's play() promise rejects when the element is interrupted or
+ * refused. Browsers word it "The play() request was interrupted by ..." for a
+ * source change, which is routine for a video whose stream is swapped, and
+ * "play() failed because the user didn't interact with the document first"
+ * for a refused autoplay.
+ */
+const MEDIA_PLAY = /\bplay\(\)/;
+
 /** A field of the error or rejection event, read without assuming which of the two arrived. */
 function field(event: Event, name: string): unknown {
   return Reflect.get(event, name);
@@ -84,11 +93,23 @@ export function installGlobalErrorHooks(
     });
   };
   const onRejection = (event: Event) => {
-    report(
-      "unhandled rejection",
-      asError(field(event, "reason"), "rejected with no reason"),
-      {},
-    );
+    const error = asError(field(event, "reason"), "rejected with no reason");
+    if (MEDIA_PLAY.test(error.message)) {
+      /*
+       * An interrupted play is expected and silent; any other refusal is a
+       * warning that names its reason, not an uncaught error.
+       */
+      if (error.name === "AbortError") return;
+      warnOnce(`media play() rejected: ${error.message}`, error.name);
+      return;
+    }
+    report("unhandled rejection", error, {});
+  };
+  const warned = new Set<string>();
+  const warnOnce = (message: string, reason: string) => {
+    if (warned.has(message)) return;
+    warned.add(message);
+    uncaught.warn(message, { kind: "unhandled rejection", reason });
   };
 
   target.addEventListener("error", onError);
