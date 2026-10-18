@@ -17,8 +17,9 @@ function toStageFrames(frames: readonly PlaybackFrame[]): StageFrame[] {
 /**
  * The grid sizes the Navball is shown at, smallest to largest. Each size is the
  * first at which something new is drawn: the three figures of the tiny form at
- * 3x3, the stacked readout at 4x5, the dial at 4x7 (the shortest four-column
- * tile that holds one), the throttle column and control row at 5x9 (the
+ * 3x3, the stacked readout at 4x6 (the shortest four-column tile that holds
+ * its three lines), the dial at 4x7 (the shortest four-column tile that holds
+ * one), the throttle column and control row at 5x9 (the
  * shortest five-column tile that holds a dial beside them), the widget's own
  * default size, and the tall tile that has room for the full control surface.
  */
@@ -28,7 +29,7 @@ export const NAVBALL_SIZES: ReadonlyArray<{
   config?: Record<string, unknown>;
 }> = [
   { w: 3, h: 3 },
-  { w: 4, h: 5 },
+  { w: 4, h: 6 },
   { w: 4, h: 7 },
   { w: 5, h: 9 },
   { w: 8, h: 11 },

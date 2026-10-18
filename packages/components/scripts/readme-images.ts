@@ -18,7 +18,7 @@
  */
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { platform, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -50,6 +50,10 @@ const FPS = 15;
 const HERO_FPS = 10;
 /** Every Nth model frame is rendered: frame N is at the same model instant in every instance. */
 const SIZES_STRIDE = 2;
+/** The app's page ground, which a transparent stage's H.264 twin is laid over. */
+const PAGE_GROUND = "0x050505";
+/** The colour a transparent stage's ground is carried as until it is declared transparent: absent from the widgets. */
+const GROUND_KEY = 0xff00ff;
 /** Seconds the last frame is held before the loop restarts. */
 const HOLD_SECONDS = 1.5;
 
@@ -145,10 +149,86 @@ async function renderFrames(
   const root = page.locator("#root");
   for (let i = 0; i < steps; i++) {
     await page.evaluate((idx) => window.__stage.step(idx), indicesFor(i));
+    // A tile whose content is taller than its scrolling body would show a clipped last line under the fade.
+    const clipped = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>("#root *")]
+        .filter((el) => {
+          const o = getComputedStyle(el).overflowY;
+          return (
+            (o === "auto" || o === "scroll" || o === "hidden") &&
+            el.clientHeight > 20 &&
+            el.scrollHeight > el.clientHeight + 1
+          );
+        })
+        .map(
+          (el) =>
+            `${el.tagName.toLowerCase()} ${el.clientHeight}px shows ${el.scrollHeight}px at ${Math.round(el.getBoundingClientRect().left)},${Math.round(el.getBoundingClientRect().top)}`,
+        ),
+    );
+    if (clipped.length > 0)
+      throw new Error(`frame ${i} clips content: ${clipped.join("; ")}`);
     await root.screenshot({
       path: join(dir, `f${String(i).padStart(4, "0")}.png`),
+      omitBackground: true,
     });
   }
+}
+
+/**
+ * Lays the stage over a flat key colour after cutting its alpha to one bit.
+ * ffmpeg's GIF encoder stops writing only the changed rectangle once a source
+ * has alpha (or an alpha-carrying pixel format), which made every frame a full image, so the ground is carried as
+ * an opaque colour and {@link keyToTransparent} declares it transparent after.
+ */
+const KEY_OVER_GROUND = `format=rgba,lutrgb=a='if(gte(val,128),255,0)',split[k][s];[k]drawbox=c=0x${GROUND_KEY.toString(16).padStart(6, "0")}:t=fill[g];[g][s]overlay=format=auto,format=rgb24`;
+
+/**
+ * Marks the ground colour transparent in a GIF written with a global palette.
+ * The first frame is the one image that draws the ground: the encoder writes
+ * every later frame as the rectangle that changed, with its own transparent
+ * index standing for the pixels that did not, so the ground stays clear in them
+ * too. The ground's index is the first pixel's, read from the first compressed code.
+ */
+async function keyToTransparent(path: string, key: number): Promise<void> {
+  const buf = await readFile(path);
+  if (buf.length < 13 || (buf[10] & 0x80) === 0)
+    throw new Error(`${path} has no global palette to find the ground in`);
+  const tableSize = 3 * (1 << ((buf[10] & 7) + 1));
+  let at = 13 + tableSize;
+  const skipSubBlocks = (from: number): number => {
+    let p = from;
+    while (buf[p] !== 0) p += buf[p] + 1;
+    return p + 1;
+  };
+  let gce = -1;
+  while (buf[at] !== 0x2c) {
+    if (buf[at] !== 0x21)
+      throw new Error(`${path}: unexpected block ${buf[at]}`);
+    if (buf[at + 1] === 0xf9) gce = at;
+    at = skipSubBlocks(at + 2);
+  }
+  if (gce === -1) throw new Error(`${path} has no graphic control block`);
+  const local = buf[at + 9] & 0x80 ? 3 * (1 << ((buf[at + 9] & 7) + 1)) : 0;
+  const minCodeSize = buf[at + 10 + local];
+  // After the clear code comes the first pixel as a literal, both (minCodeSize + 1) bits wide, least significant bit first.
+  const data = at + 10 + local + 2;
+  const width = minCodeSize + 1;
+  let bits = 0;
+  for (let i = 0; i < 2 * width; i++) {
+    const byte = buf[data + (i >> 3)];
+    bits |= ((byte >> (i & 7)) & 1) << i;
+  }
+  const index = bits >> width;
+  const palette = at - tableSize + 3 * index;
+  const colour =
+    (buf[palette] << 16) + (buf[palette + 1] << 8) + buf[palette + 2];
+  if (colour !== key)
+    throw new Error(
+      `${path}: the first pixel is ${colour.toString(16)}, not the ground colour`,
+    );
+  buf[gce + 3] |= 1;
+  buf[gce + 6] = index;
+  await writeFile(path, buf);
 }
 
 async function encode(
@@ -157,6 +237,7 @@ async function encode(
   gif: string | undefined,
   mp4: string | undefined,
   fps = FPS,
+  transparent = false,
 ): Promise<void> {
   const hold = Math.round(HOLD_SECONDS * fps);
   const input = ["-framerate", String(fps), "-i", join(frames, "f%04d.png")];
@@ -170,11 +251,12 @@ async function encode(
       "error",
       ...input,
       "-vf",
-      `${tail},scale=${gifWidth}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle`,
+      `${tail},scale=${gifWidth}:-1:flags=lanczos${transparent ? `,${KEY_OVER_GROUND}` : ""},split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=${transparent ? "dither=none" : "dither=bayer:bayer_scale=5"}:diff_mode=rectangle`,
       "-loop",
       "0",
       gif,
     ]);
+    if (transparent) await keyToTransparent(gif, GROUND_KEY);
     console.log(`wrote ${gif}`);
   }
   if (mp4) {
@@ -185,7 +267,10 @@ async function encode(
       "error",
       ...input,
       "-vf",
-      `${tail},scale=trunc(iw/2)*2:trunc(ih/2)*2`,
+      // H.264 has no alpha: a transparent stage is laid over the app's own ground.
+      transparent
+        ? `${tail},format=rgba,split[a][b];[a]drawbox=c=${PAGE_GROUND}:t=fill[g];[g][b]overlay,scale=trunc(iw/2)*2:trunc(ih/2)*2`
+        : `${tail},scale=trunc(iw/2)*2:trunc(ih/2)*2`,
       "-c:v",
       "libx264",
       "-pix_fmt",
@@ -228,7 +313,7 @@ async function animate(
       tmp,
     );
     console.log(`${name}: ${steps} frames at ${FPS} fps`);
-    await encode(tmp, spec.width, gif, mp4);
+    await encode(tmp, spec.width, gif, mp4, FPS, true);
   } finally {
     await rm(tmp, { recursive: true, force: true });
   }

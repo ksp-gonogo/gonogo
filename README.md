@@ -8,6 +8,10 @@ A telemetry mod system and mission control dashboard for [Kerbal Space Program](
 
 <img src="docs/assets/hero-dashboard.gif" alt="The Gonogo dashboard flying a three-stage craft from the pad to orbit: a ground track, orbit view, altitude and orbital speed graph, fuel and delta-v readouts, a system view and SAS and fairing action groups" />
 
+<p align="center">
+  <img src="docs/assets/navball-sizes.gif" alt="Six Navball panels side by side, from a three-line heading, pitch and roll readout to the full ball with heading tape, throttle, SAS mode buttons and fly-by-wire controls, all showing the same flight at the same moment" />
+</p>
+
 ## Real Light Delay
 
 <img src="docs/assets/light-delay-rail.gif" alt="The delay rail on a Throttle panel: a throttle pulse crosses from left to right through three zones, outgoing to the craft, the echo coming back, and confirmed at the command centre" />
