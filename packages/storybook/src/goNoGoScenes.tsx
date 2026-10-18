@@ -44,16 +44,6 @@ function vesselStream(launched: boolean): Record<string, unknown> {
             launchUt: launched ? LIFTOFF_UT : null,
           },
         },
-        {
-          channel: "vessel.control",
-          value: {
-            actionGroups: [
-              { index: 1, name: "Custom 01", state: false },
-              { index: 2, name: "Custom 02", state: false },
-              { index: 3, name: "Custom 03", state: false },
-            ],
-          },
-        },
       ],
     },
   };
@@ -84,7 +74,6 @@ class ScenePeerHost {
   onGonogoVote = (cb: Listener) => this.on("vote", cb);
   onGonogoAbort = (cb: Listener) => this.on("abort", cb);
   broadcast = () => {};
-  sendToPeer = () => {};
 }
 
 /** One station on the main screen's board. */
@@ -102,10 +91,6 @@ export interface GoNoGoMainSceneProps {
   abortBy?: string;
   /** How long a countdown the widget is configured for. */
   countdownSeconds?: number;
-  /** Once the craft has lifted off, the operator presses Reset and the stations vote again, so the board counts a later event. */
-  resetAfterLaunch?: boolean;
-  /** What the widget is set to fire at T-0: an action group id or "none". Defaults to Stage. */
-  onGo?: string;
   w: number;
   h: number;
 }
@@ -138,7 +123,6 @@ export function GoNoGoMainScene(props: GoNoGoMainSceneProps) {
    * probe drops an emit on a topic nobody holds.
    */
   useEffect(() => holdActiveTopicRead("vessel.identity", "gonogo story"), []);
-  useEffect(() => holdActiveTopicRead("vessel.control", "gonogo story"), []);
 
   const wrap = useMemo(
     () => (tree: ReactNode) => (
@@ -150,22 +134,18 @@ export function GoNoGoMainScene(props: GoNoGoMainSceneProps) {
   );
   const fixture = useMemo(() => vesselStream(launched), [launched]);
   const mode = useMemo(
-    () => ({ config: { countdownSeconds, onGo: props.onGo } }),
-    [countdownSeconds, props.onGo],
+    () => ({ config: { countdownSeconds } }),
+    [countdownSeconds],
   );
 
-  // An abort is only taken, and a poll only re-opened, once the host has seen the craft leave the pad.
+  // An abort is only taken once the host has seen the craft leave the pad.
   const onDriven = async () => {
-    if (abortBy === undefined && !props.resetAfterLaunch) return;
+    if (abortBy === undefined) return;
     const deadline = Date.now() + 3_000;
     while (!scene.service.getSnapshot().launched && Date.now() < deadline) {
       await new Promise((resolve) => requestAnimationFrame(resolve));
     }
-    if (abortBy !== undefined) scene.peers.fire("abort", abortBy);
-    if (props.resetAfterLaunch) {
-      scene.service.reset();
-      for (const s of stations) scene.peers.fire("vote", s.peerId, s.vote);
-    }
+    scene.peers.fire("abort", abortBy);
   };
 
   return (
@@ -184,12 +164,8 @@ export function GoNoGoMainScene(props: GoNoGoMainSceneProps) {
 /** A station's link to a host that relays countdowns and aborts, driven by the scene. */
 class ScenePeerClient implements PeerClient {
   private abortNotify = new Set<(stationName: string, at: number) => void>();
-  private resetListeners = new Set<(reopened: boolean) => void>();
 
-  constructor(
-    private readonly countdownFor: number | undefined,
-    private readonly onGoLabel: string | null | undefined,
-  ) {}
+  constructor(private readonly countdownFor: number | undefined) {}
 
   getConnStatus = () => "connected" as const;
   onConnectionStatus = () => () => {};
@@ -215,21 +191,6 @@ class ScenePeerClient implements PeerClient {
   sendUplinkRelay = () => new Promise<unknown>(() => {});
   sendBundleFetch = () => new Promise<ArrayBuffer>(() => {});
 
-  onGonogoReset = (cb: (reopened: boolean) => void) => {
-    this.resetListeners.add(cb);
-    return () => this.resetListeners.delete(cb);
-  };
-
-  /** The host resetting the poll, as it tells every station. */
-  notifyReset(reopened: boolean): void {
-    for (const cb of this.resetListeners) cb(reopened);
-  }
-
-  onGonogoOnGo = (cb: (label: string | null) => void) => {
-    if (this.onGoLabel !== undefined) cb(this.onGoLabel);
-    return () => {};
-  };
-
   onGonogoCountdownStart = (cb: (t0Ms: number) => void) => {
     if (this.countdownFor !== undefined)
       cb(Date.now() + this.countdownFor * 1000);
@@ -252,10 +213,6 @@ export interface GoNoGoStationSceneProps {
   launched?: boolean;
   /** Seconds left on a countdown the host has started. */
   countdownFrom?: number;
-  /** What the host says it fires at T-0, or `null` for nothing. Left out, the host has not said. */
-  onGoLabel?: string | null;
-  /** The host presses Reset once the station has mounted and made its presses. */
-  hostResets?: boolean;
   /** The station the host says aborted, once launched. */
   abortedBy?: string;
   /** Controls pressed once mounted, such as the vote itself. */
@@ -266,30 +223,20 @@ export interface GoNoGoStationSceneProps {
 
 /** A station's button, connected to a host that relays countdowns and aborts. */
 export function GoNoGoStationScene(props: GoNoGoStationSceneProps) {
-  const {
-    launched = false,
-    countdownFrom,
-    onGoLabel,
-    hostResets,
-    abortedBy,
-    presses,
-    w,
-    h,
-  } = props;
+  const { launched = false, countdownFrom, abortedBy, presses, w, h } = props;
   const scene = useMemo(() => {
-    const client = new ScenePeerClient(countdownFrom, onGoLabel);
+    const client = new ScenePeerClient(countdownFrom);
     const wrap = (tree: ReactNode) => (
       <ScreenProvider value="station">
         <PeerClientProvider client={client}>{tree}</PeerClientProvider>
       </ScreenProvider>
     );
     return { client, wrap };
-  }, [countdownFrom, onGoLabel]);
+  }, [countdownFrom]);
   const fixture = useMemo(() => vesselStream(launched), [launched]);
 
   // A station drops an abort notice while it is still on the pad, so the relay waits for the button to become ABORT.
   const onDriven = async (_mount: unknown, root: HTMLElement) => {
-    if (hostResets) scene.client.notifyReset(false);
     if (abortedBy === undefined) return;
     const deadline = Date.now() + 3_000;
     while (!root.textContent?.includes("ABORT") && Date.now() < deadline) {

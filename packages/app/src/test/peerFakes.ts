@@ -48,8 +48,6 @@ export function idlePeerClient(): PeerClient {
     sendGonogoAbort: () => {},
     onGonogoCountdownStart: () => unsubscribe,
     onGonogoCountdownCancel: () => unsubscribe,
-    onGonogoOnGo: () => unsubscribe,
-    onGonogoReset: () => unsubscribe,
     onGonogoAbortNotify: () => unsubscribe,
     sendWidgetPush: () => {},
     sendWidgetRecall: () => {},

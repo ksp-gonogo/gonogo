@@ -188,14 +188,6 @@ export type PeerMessage =
      pre-synchronise to the host so the countdown display matches across
      devices within a small skew. */
   | { type: "gonogo-countdown-start"; t0Ms: number }
-  /* Host → stations whenever the action the host fires at T-0 changes, and to a
-     station as it joins. `label` is the action's display name, or `null` when
-     nothing fires. */
-  | { type: "gonogo-on-go"; label: string | null }
-  /* Host → stations when the operator resets the poll: every vote is cleared
-     and a countdown in flight is gone. `reopened` is true when the craft has
-     already launched, so the station offers its vote again beside ABORT. */
-  | { type: "gonogo-reset"; reopened: boolean }
   // Host → stations when a vote flips to NO-GO during an active countdown or when a station disconnects mid-countdown.
   | { type: "gonogo-countdown-cancel"; reason?: string }
   // Station → host after launch, when the operator hits the big red ABORT

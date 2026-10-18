@@ -11,21 +11,26 @@ import {
 } from "@ksp-gonogo/core";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Field, FieldLabel, Input, useModalSaveBar } from "@ksp-gonogo/ui";
-import { Button, Grid, NULL_DISPLAY, Select, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  Field,
+  FieldLabel,
+  Input,
+  Switch,
+  useModalSaveBar,
+} from "@ksp-gonogo/ui";
+import { Grid, NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
 import { playCountdownTone } from "../sound";
 import { useGoNoGoHost, useGoNoGoSnapshot } from "./GoNoGoHostContext";
 import { DEFAULT_GONOGO_CONFIG } from "./GoNoGoHostService";
-import { DEFAULT_ON_GO, onGoLabelOf, useOnGoOptions } from "./onGo";
 
 interface GoNoGoWidgetConfig {
   /** Main-screen only: countdown length in seconds. Default 10. */
   countdownSeconds?: number;
-  /** Main-screen only: what fires at T-0, an action group id or "none". Default Stage. */
-  onGo?: string;
+  /** Main-screen only: trigger f.stage at T-0. Default true. */
+  triggerStageAtZero?: boolean;
 }
 
 const actions = [
@@ -50,34 +55,17 @@ function GoNoGoComponent({
   config,
   w,
   h,
-  onConfigChange,
 }: Readonly<ComponentProps<GoNoGoWidgetConfig>>) {
   // The host aggregates every participant's vote; every other screen casts one
   // and reads the tally back. A pilot page is a mesh CLIENT for this even
   // though it holds its own telemetry session, so it votes rather than tallies.
   const screen = useScreen();
   if (screen !== "main") return <StationView w={w} h={h} />;
-  return (
-    <MainView config={config} w={w} h={h} onConfigChange={onConfigChange} />
-  );
+  return <MainView config={config} w={w} h={h} />;
 }
 
-function StationView({
-  w,
-  h,
-}: {
-  w: number | undefined;
-  h: number | undefined;
-}) {
+function StationView(_props: { w: number | undefined; h: number | undefined }) {
   const client = usePeerClient();
-  // The host owns the T-0 action; `undefined` until it has said.
-  const [onGoLabel, setOnGoLabel] = useState<string | null | undefined>(
-    undefined,
-  );
-  useEffect(() => {
-    if (!client) return;
-    return client.onGonogoOnGo(setOnGoLabel);
-  }, [client]);
   // Launched once the view clock is past liftoff, so it runs against the same
   // clock this screen reads everything else against. Never before the clamps
   // release, `launchUt` being null until then.
@@ -92,8 +80,6 @@ function StationView({
     viewUt !== undefined &&
     viewUt.minus(launchUt).greaterThan(0);
   const [vote, setVote] = useState<"go" | "no-go">("no-go");
-  // Set when the host resets the poll after launch, so the vote is offered again beside ABORT until the craft is back on the pad.
-  const [pollOpen, setPollOpen] = useState(false);
   const [countdown, setCountdown] = useState<{ t0Ms: number } | null>(null);
   const [abortNotice, setAbortNotice] = useState<{
     stationName: string;
@@ -109,8 +95,7 @@ function StationView({
   const iAbortedRef = useRef(false);
 
   // A launched station has effectively "left the poll", null = not voting rather than stale no-go, which would render a confusing red cell on main.
-  const polling = !launched || pollOpen;
-  const effectiveVote = polling ? vote : null;
+  const effectiveVote = launched ? null : vote;
 
   // Push the current effective vote whenever it changes. Split from the
   // lifecycle effect below so vote flips don't transiently send null (which
@@ -131,10 +116,7 @@ function StationView({
 
   // Revert clears local "I aborted" memory: revert means we're back on the pad and the abort button is a fresh slate.
   useEffect(() => {
-    if (!launched) {
-      iAbortedRef.current = false;
-      setPollOpen(false);
-    }
+    if (!launched) iAbortedRef.current = false;
   }, [launched]);
 
   useEffect(() => {
@@ -175,13 +157,6 @@ function StationView({
     const unsubs = [
       client.onGonogoCountdownStart((t0Ms) => setCountdown({ t0Ms })),
       client.onGonogoCountdownCancel(() => setCountdown(null)),
-      client.onGonogoReset((reopened) => {
-        // Update the ref synchronously so a vote resend sees the cleared value.
-        effectiveVoteRef.current = "no-go";
-        setVote("no-go");
-        setCountdown(null);
-        setPollOpen(reopened);
-      }),
       client.onGonogoAbortNotify((stationName, at) =>
         setAbortNotice({ stationName, at }),
       ),
@@ -213,7 +188,7 @@ function StationView({
   }, [launched, abortNotice]);
 
   const handleVoteToggle = () => {
-    if (!polling) return;
+    if (launched) return;
     setVote((prev) => (prev === "go" ? "no-go" : "go"));
   };
 
@@ -236,21 +211,19 @@ function StationView({
     },
   });
 
-  if (launched && !pollOpen) {
+  if (launched) {
     return (
-      <StationLayout>
-        <BigButton
-          $variant="abort"
-          onClick={handleAbort}
-          role="alert"
-          aria-live="assertive"
-        >
-          <ButtonLabel>ABORT</ButtonLabel>
-          {abortNotice && (
-            <AbortNotice>Aborted by {abortNotice.stationName}</AbortNotice>
-          )}
-        </BigButton>
-      </StationLayout>
+      <BigButton
+        $variant="abort"
+        onClick={handleAbort}
+        role="alert"
+        aria-live="assertive"
+      >
+        <ButtonLabel>ABORT</ButtonLabel>
+        {abortNotice && (
+          <AbortNotice>Aborted by {abortNotice.stationName}</AbortNotice>
+        )}
+      </BigButton>
     );
   }
 
@@ -258,40 +231,21 @@ function StationView({
     ? Math.max(0, (countdown.t0Ms - Date.now()) / 1000)
     : null;
 
-  const showOnGo = onGoLabel !== undefined && (w ?? 4) >= 4 && (h ?? 4) >= 4;
-
   return (
-    <StationLayout>
-      {showOnGo && (
-        <OnGoReadout>
-          On go: <strong>{onGoLabel ?? "Nothing"}</strong>
-        </OnGoReadout>
+    <BigButton
+      $variant={vote === "go" ? "go" : "nogo"}
+      onClick={handleVoteToggle}
+      role="status"
+      aria-live="polite"
+    >
+      <ButtonLabel>{vote === "go" ? "GO" : "NO-GO"}</ButtonLabel>
+      {secondsLeft !== null && (
+        <CountdownOverlay role="timer" aria-label="Countdown">
+          T − <Unit value={value("s", secondsLeft)} decimals={1} />
+        </CountdownOverlay>
       )}
-      <BigButton
-        $variant={vote === "go" ? "go" : "nogo"}
-        onClick={handleVoteToggle}
-        role="status"
-        aria-live="polite"
-      >
-        <ButtonLabel>{vote === "go" ? "GO" : "NO-GO"}</ButtonLabel>
-        {secondsLeft !== null && (
-          <CountdownOverlay role="timer" aria-label="Countdown">
-            T − <Unit value={value("s", secondsLeft)} decimals={1} />
-          </CountdownOverlay>
-        )}
-        {secondsLeft !== null && (
-          <CountdownAnnouncer secondsLeft={secondsLeft} />
-        )}
-      </BigButton>
-      {launched && (
-        <AbortStrip $variant="abort" onClick={handleAbort}>
-          <ButtonLabel>ABORT</ButtonLabel>
-          {abortNotice && (
-            <AbortNotice>Aborted by {abortNotice.stationName}</AbortNotice>
-          )}
-        </AbortStrip>
-      )}
-    </StationLayout>
+      {secondsLeft !== null && <CountdownAnnouncer secondsLeft={secondsLeft} />}
+    </BigButton>
   );
 }
 
@@ -358,17 +312,12 @@ export function CountdownTone({
 function MainView({
   config,
   w,
-  onConfigChange,
 }: Readonly<{
   config: GoNoGoWidgetConfig | undefined;
   w: number | undefined;
   h: number | undefined;
-  onConfigChange: ((config: GoNoGoWidgetConfig) => void) | undefined;
 }>) {
   const host = useGoNoGoHost();
-  const options = useOnGoOptions();
-  const onGo = config?.onGo ?? DEFAULT_ON_GO;
-  const onGoLabel = onGoLabelOf(options, onGo);
   const snapshot = useGoNoGoSnapshot();
   // Bumped from the countdown ticker below: useReducer so Sonar's "unused tuple element" rule (S6754) doesn't flag this.
   const [, setNow] = useReducer((n: number, _action: unknown) => n + 1, 0);
@@ -382,10 +331,10 @@ function MainView({
       countdownLengthMs:
         (config?.countdownSeconds ??
           DEFAULT_GONOGO_CONFIG.countdownLengthMs / 1000) * 1000,
-      onGo,
-      onGoLabel,
+      triggerStageAtZero:
+        config?.triggerStageAtZero ?? DEFAULT_GONOGO_CONFIG.triggerStageAtZero,
     });
-  }, [host, config?.countdownSeconds, onGo, onGoLabel]);
+  }, [host, config?.countdownSeconds, config?.triggerStageAtZero]);
 
   // Tick during countdown so the T-minus display updates
   useEffect(() => {
@@ -398,51 +347,28 @@ function MainView({
     return <Empty>GO/NO-GO host unavailable</Empty>;
   }
 
-  const { stations, countdown, abort, launched, reopened } = snapshot;
-  const polling = !launched || reopened;
+  const { stations, countdown, abort, launched, config: hostConfig } = snapshot;
   const secondsLeft = countdown
     ? Math.max(0, (countdown.t0Ms - Date.now()) / 1000)
     : null;
 
-  // Selective rendering: chrome (the T-0 action line) drops at small widths so the GO/NO-GO grid stays the focus.
+  // Selective rendering: chrome (the auto-stage warning) drops at small widths so the GO/NO-GO grid stays the focus.
   const cols = w ?? 4;
-  const showControls = cols >= 4;
+  const showWarnChip = cols >= 8;
 
   return (
     <MainLayout>
       <MainHeader>
-        <HeaderLabel>{polling ? "GO / NO-GO" : "MISSION ACTIVE"}</HeaderLabel>
-      </MainHeader>
-      {showControls && (
-        <ControlsRow>
-          {polling && (
-            <OnGoLine>
-              <label htmlFor="gonogo-on-go">On go:</label>
-              <OnGoSelect
-                id="gonogo-on-go"
-                value={onGo}
-                disabled={countdown !== null}
-                onChange={(e) =>
-                  onConfigChange?.({ ...config, onGo: e.target.value })
-                }
-              >
-                {options.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.label}
-                  </option>
-                ))}
-              </OnGoSelect>
-            </OnGoLine>
+        <HeaderLabel>{launched ? "MISSION ACTIVE" : "GO / NO-GO"}</HeaderLabel>
+        <HeaderRight>
+          {showWarnChip && hostConfig.triggerStageAtZero && !launched && (
+            <WarnChip>AUTO STAGE AT T-0</WarnChip>
           )}
-          <Button size="sm" onClick={() => host?.reset()}>
-            Reset
-          </Button>
-        </ControlsRow>
-      )}
+        </HeaderRight>
+      </MainHeader>
       {countdown && (
         <>
           <CountdownBanner role="timer" aria-label="Countdown">
-            {onGoLabel !== null && <BannerAction>{onGoLabel} in </BannerAction>}
             T − <Unit value={value("s", secondsLeft ?? 0)} decimals={1} />
           </CountdownBanner>
           {secondsLeft !== null && (
@@ -464,7 +390,7 @@ function MainView({
       >
         {stations.length === 0 && <Empty>No stations connected</Empty>}
         {stations.map((s) => {
-          const cellState = deriveCellState(s, launched, reopened, abort);
+          const cellState = deriveCellState(s, launched, abort);
           return (
             <Cell
               key={s.peerId}
@@ -488,12 +414,11 @@ type CellState = "go" | "no-go" | "neutral" | "abort" | "unknown";
 function deriveCellState(
   s: { peerId: string; status: "go" | "no-go" | null },
   launched: boolean,
-  reopened: boolean,
   abort: { peerId: string; stationName: string; at: number } | null,
 ): CellState {
   if (launched) {
     if (abort?.peerId === s.peerId) return "abort";
-    if (!reopened) return "neutral";
+    return "neutral";
   }
   if (s.status === "go") return "go";
   if (s.status === "no-go") return "no-go";
@@ -526,6 +451,9 @@ function GoNoGoConfigComponent({
         DEFAULT_GONOGO_CONFIG.countdownLengthMs / 1000,
     ),
   );
+  const [triggerStage, setTriggerStage] = useState(
+    config?.triggerStageAtZero ?? DEFAULT_GONOGO_CONFIG.triggerStageAtZero,
+  );
 
   const candidate = useMemo<GoNoGoWidgetConfig>(() => {
     const secs = Number.parseFloat(countdownSeconds);
@@ -534,9 +462,9 @@ function GoNoGoConfigComponent({
         Number.isFinite(secs) && secs > 0
           ? secs
           : DEFAULT_GONOGO_CONFIG.countdownLengthMs / 1000,
-      onGo: config?.onGo ?? DEFAULT_ON_GO,
+      triggerStageAtZero: triggerStage,
     };
-  }, [countdownSeconds, config?.onGo]);
+  }, [countdownSeconds, triggerStage]);
 
   useModalSaveBar({
     onSave: () => onSave(candidate),
@@ -556,6 +484,13 @@ function GoNoGoConfigComponent({
           step={1}
           value={countdownSeconds}
           onChange={(e) => setCountdownSeconds(e.target.value)}
+        />
+      </Field>
+      <Field>
+        <Switch
+          checked={triggerStage}
+          onChange={setTriggerStage}
+          label="Auto-trigger next stage at T-0"
         />
       </Field>
     </ConfigWrap>
@@ -586,8 +521,7 @@ const BIG_BUTTON_COLOR: Record<BigButtonVariant, string> = {
 const BigButton = styled.button<{ $variant: BigButtonVariant }>`
   position: relative;
   width: 100%;
-  flex: 1 1 0;
-  min-height: 0;
+  height: 100%;
   border-radius: var(--radius-floating);
   border: 2px solid ${({ $variant }) => BIG_BUTTON_BORDER[$variant]};
   background: ${({ $variant }) => BIG_BUTTON_BG[$variant]};
@@ -614,10 +548,6 @@ const BigButton = styled.button<{ $variant: BigButtonVariant }>`
   &:active {
     transform: scale(0.98);
   }
-`;
-
-const AbortStrip = styled(BigButton)`
-  flex: 0 0 30%;
 `;
 
 const ButtonLabel = styled.span`
@@ -670,55 +600,26 @@ const MainHeader = styled.div`
 `;
 
 const HeaderLabel = styled.span`
-  white-space: nowrap;
   font-size: var(--font-size-caption);
   letter-spacing: 0.15em;
   color: var(--color-text-muted);
   text-transform: uppercase;
 `;
 
-const ControlsRow = styled.div`
+const HeaderRight = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
   gap: var(--gap-related);
 `;
 
-const OnGoLine = styled.div`
-  flex: 1 1 0;
-  min-width: 7rem;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
-  min-width: 0;
+const WarnChip = styled.span`
   font-size: var(--font-size-caption);
   letter-spacing: 0.15em;
-  color: var(--color-text-muted);
+  padding: var(--inset-chip);
+  border: 1px solid var(--color-warn-muted-edge);
+  background: rgba(120, 100, 40, 0.25);
+  color: var(--color-warn-text);
+  border-radius: var(--radius-regular);
   text-transform: uppercase;
-`;
-
-const OnGoSelect = styled(Select)`
-  flex: 1;
-  min-width: 0;
-  font-size: var(--font-size-caption);
-`;
-
-const OnGoReadout = styled.div`
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.15em;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  text-align: center;
-`;
-
-const StationLayout = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  width: 100%;
-  height: 100%;
 `;
 
 const CountdownBanner = styled.div`
@@ -728,13 +629,6 @@ const CountdownBanner = styled.div`
   color: var(--color-warn-text);
   letter-spacing: 0.1em;
   white-space: nowrap;
-`;
-
-const BannerAction = styled.span`
-  display: block;
-  font-size: clamp(var(--font-size-caption), 4.5cqw, var(--font-size-value));
-  letter-spacing: 0.12em;
-  white-space: normal;
 `;
 
 const AbortBanner = styled.div`
@@ -855,7 +749,7 @@ registerComponent<GoNoGoWidgetConfig>({
   dataRequirements: ["vessel.identity.launchUt"],
   defaultConfig: {
     countdownSeconds: DEFAULT_GONOGO_CONFIG.countdownLengthMs / 1000,
-    onGo: DEFAULT_ON_GO,
+    triggerStageAtZero: DEFAULT_GONOGO_CONFIG.triggerStageAtZero,
   },
   actions,
 });

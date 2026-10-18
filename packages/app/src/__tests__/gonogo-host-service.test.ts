@@ -23,7 +23,6 @@ import {
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GoNoGoHostService } from "../goNoGo/GoNoGoHostService";
-import { ON_GO_NONE } from "../goNoGo/onGo";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 import type { SettingsService } from "../settings";
@@ -38,7 +37,6 @@ import { asHostService } from "../test/peerFakes";
 // Fakes: small stand-ins so we can drive events deterministically.
 class FakeHost {
   broadcasts: PeerMessage[] = [];
-  sent: Array<{ peerId: string; msg: PeerMessage }> = [];
   private listeners = {
     connect: new Set<(peerId: string) => void>(),
     disconnect: new Set<(peerId: string) => void>(),
@@ -54,10 +52,6 @@ class FakeHost {
 
   broadcast(msg: PeerMessage): void {
     this.broadcasts.push(msg);
-  }
-
-  sendToPeer(peerId: string, msg: PeerMessage): void {
-    this.sent.push({ peerId, msg });
   }
 
   onPeerConnect(cb: (peerId: string) => void) {
@@ -381,7 +375,7 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().countdown).not.toBeNull();
   });
 
-  it("stages at T-0 by default", async () => {
+  it("stages at T-0 when triggerStageAtZero is on (default)", async () => {
     svc.setConfig({ countdownLengthMs: 5_000 });
     host.fireConnect("peer-1");
     host.fireVote("peer-1", "go");
@@ -422,8 +416,8 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().countdown).not.toBeNull();
   });
 
-  it("fires nothing at T-0 when the choice is nothing", async () => {
-    svc.setConfig({ countdownLengthMs: 5_000, onGo: ON_GO_NONE });
+  it("does not stage at T-0 when triggerStageAtZero is off", async () => {
+    svc.setConfig({ countdownLengthMs: 5_000, triggerStageAtZero: false });
     host.fireConnect("peer-1");
     host.fireVote("peer-1", "go");
     vi.advanceTimersByTime(5_001);
@@ -431,120 +425,6 @@ describe("GoNoGoHostService", () => {
     expect(dispatched.map((d) => d.command)).not.toContain(
       "vessel.control.stage",
     );
-  });
-
-  it("does not stage at T-0 when another action is chosen, and leaves a refused one restartable", async () => {
-    svc.setConfig({ countdownLengthMs: 5_000, onGo: "AG3" });
-    host.fireConnect("peer-1");
-    host.fireVote("peer-1", "go");
-    vi.advanceTimersByTime(5_001);
-    await drainDispatch();
-    // No vessel.control reading has arrived, so a custom group has nothing to invert and nothing is sent.
-    expect(dispatched).toHaveLength(0);
-    host.fireVote("peer-1", "no-go");
-    host.fireVote("peer-1", "go");
-    expect(svc.getSnapshot().countdown).not.toBeNull();
-  });
-
-  it("tells every station what fires at T-0 when the choice changes", () => {
-    host.broadcasts.length = 0;
-    svc.setConfig({ onGo: "Gear", onGoLabel: "Gear" });
-    expect(host.broadcasts).toContainEqual({
-      type: "gonogo-on-go",
-      label: "Gear",
-    });
-    host.broadcasts.length = 0;
-    svc.setConfig({ onGo: ON_GO_NONE, onGoLabel: null });
-    expect(host.broadcasts).toContainEqual({
-      type: "gonogo-on-go",
-      label: null,
-    });
-  });
-
-  it("tells a station that joins what fires at T-0", () => {
-    host.fireConnect("peer-9");
-    expect(host.sent).toContainEqual({
-      peerId: "peer-9",
-      msg: { type: "gonogo-on-go", label: "Stage" },
-    });
-  });
-
-  describe("reset", () => {
-    it("cancels a running countdown the way a NO-GO does, without a tone", () => {
-      host.fireConnect("peer-1");
-      host.fireVote("peer-1", "go");
-      expect(svc.getSnapshot().countdown).not.toBeNull();
-      host.broadcasts.length = 0;
-      svc.reset();
-      expect(svc.getSnapshot().countdown).toBeNull();
-      expect(host.broadcasts).toContainEqual({
-        type: "gonogo-countdown-cancel",
-        reason: "reset",
-      });
-      vi.advanceTimersByTime(60_000);
-      expect(oscillators).toHaveLength(0);
-    });
-
-    it("clears every vote and the T-0 commit, keeps the chosen action, and tells every station", async () => {
-      svc.setConfig({
-        countdownLengthMs: 5_000,
-        onGo: "Gear",
-        onGoLabel: "Gear",
-      });
-      host.fireConnect("peer-1");
-      host.fireStationInfo("peer-1", "A");
-      host.fireVote("peer-1", "go");
-      vi.advanceTimersByTime(5_001);
-      await drainDispatch();
-      host.broadcasts.length = 0;
-      svc.reset();
-      expect(svc.getSnapshot().stations).toEqual([
-        { peerId: "peer-1", name: "A", status: null },
-      ]);
-      expect(svc.getSnapshot().config.onGo).toBe("Gear");
-      expect(host.broadcasts).toContainEqual({
-        type: "gonogo-reset",
-        reopened: false,
-      });
-      host.fireVote("peer-1", "go");
-      expect(svc.getSnapshot().countdown).not.toBeNull();
-    });
-
-    it("re-opens the poll after launch, so a later event can be counted down", () => {
-      host.fireConnect("peer-1");
-      timeline.emitMet(10);
-      expect(svc.getSnapshot().launched).toBe(true);
-      host.fireVote("peer-1", "go");
-      expect(svc.getSnapshot().countdown).toBeNull();
-      host.broadcasts.length = 0;
-      svc.reset();
-      expect(svc.getSnapshot().reopened).toBe(true);
-      expect(host.broadcasts).toContainEqual({
-        type: "gonogo-reset",
-        reopened: true,
-      });
-      host.fireVote("peer-1", "go");
-      expect(svc.getSnapshot().countdown).not.toBeNull();
-      // The next frame of a launched craft does not cancel the new countdown.
-      timeline.emitMet(11);
-      expect(svc.getSnapshot().countdown).not.toBeNull();
-    });
-
-    it("leaves the abort available and its attribution in place, and closes the poll again on a revert", async () => {
-      host.fireConnect("peer-1");
-      host.fireStationInfo("peer-1", "Booster");
-      timeline.emitMet(10);
-      host.fireAbort("peer-1");
-      await drainDispatch();
-      expect(svc.getSnapshot().abort?.stationName).toBe("Booster");
-      svc.reset();
-      expect(svc.getSnapshot().abort?.stationName).toBe("Booster");
-      host.fireAbort("peer-1");
-      expect(svc.getSnapshot().launched).toBe(true);
-      timeline.emitMet(0);
-      expect(svc.getSnapshot().reopened).toBe(false);
-      expect(svc.getSnapshot().abort).toBeNull();
-    });
   });
 
   it("plays the T-0 commit tone when the countdown reaches zero", () => {

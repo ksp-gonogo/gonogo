@@ -21,13 +21,10 @@ import {
   onActiveTimelineFrame,
 } from "@ksp-gonogo/sitrep-client";
 import { Situation, type Value, value } from "@ksp-gonogo/sitrep-sdk";
-import { dispatchActionGroup } from "../dispatchActionGroup";
 import type { PeerHostService } from "../peer/PeerHostService";
-import type { PeerMessage } from "../peer/protocol";
 import { playAbortTone, playCountdownTone } from "../sound";
-import { DEFAULT_ON_GO, ON_GO_NONE } from "./onGo";
 
-/** The slice of the peer host this aggregator reads: five lifecycle subscriptions plus the sends it makes. */
+/** The slice of the peer host this aggregator reads: five lifecycle subscriptions plus the broadcast it sends on. */
 type GoNoGoHost = Pick<
   PeerHostService,
   | "onPeerConnect"
@@ -36,7 +33,6 @@ type GoNoGoHost = Pick<
   | "onGonogoVote"
   | "onGonogoAbort"
   | "broadcast"
-  | "sendToPeer"
 >;
 
 /**
@@ -67,24 +63,18 @@ export interface GoNoGoSnapshot {
   stations: StationSnapshot[];
   countdown: { t0Ms: number } | null;
   launched: boolean;
-  /** The operator reset the poll after launch, so votes and countdowns run again until the craft is back on the pad. */
-  reopened: boolean;
   abort: { peerId: string; stationName: string; at: number } | null;
   config: GoNoGoConfig;
 }
 
 export interface GoNoGoConfig {
   countdownLengthMs: number;
-  /** What fires at T-0: an action group id as `actionGroupIdOf` spells it, or {@link ON_GO_NONE}. */
-  onGo: string;
-  /** The name `onGo` is shown under, on this screen and every station, or `null` for nothing. */
-  onGoLabel: string | null;
+  triggerStageAtZero: boolean;
 }
 
 export const DEFAULT_GONOGO_CONFIG: GoNoGoConfig = {
   countdownLengthMs: 10_000,
-  onGo: DEFAULT_ON_GO,
-  onGoLabel: "Stage",
+  triggerStageAtZero: true,
 };
 
 type Listener = () => void;
@@ -98,7 +88,6 @@ export class GoNoGoHostService {
     timer: ReturnType<typeof setTimeout>;
   } | null = null;
   private launched = false;
-  private reopened = false;
   private abortInFlight = false;
   /**
    * Set when a countdown reaches T-0, and what keeps a second one from
@@ -120,7 +109,6 @@ export class GoNoGoHostService {
       host.onPeerConnect((peerId) => {
         // A screen that has just joined has no vote, and a screen with no vote is not in the poll: its first vote decides what it does to a countdown.
         this.connectedPeers.add(peerId);
-        this.host.sendToPeer(peerId, this.onGoMessage());
         this.emit();
       }),
     );
@@ -210,9 +198,8 @@ export class GoNoGoHostService {
       // Revert to pad: clear abort so the operator can try again.
       this.abort = null;
       this.committed = false;
-      this.reopened = false;
     }
-    if (this.launched && !this.reopened && this.countdown) {
+    if (this.launched && this.countdown) {
       this.cancelCountdownIfRunning("launch detected");
     }
     if (wasLaunched !== this.launched || wasLaunched) this.emit();
@@ -287,7 +274,6 @@ export class GoNoGoHostService {
       stations,
       countdown: this.countdown ? { t0Ms: this.countdown.t0Ms } : null,
       launched: this.launched,
-      reopened: this.reopened,
       abort: this.abort,
       config: { ...this.config },
     };
@@ -297,33 +283,11 @@ export class GoNoGoHostService {
     const next = { ...this.config, ...partial };
     if (
       next.countdownLengthMs === this.config.countdownLengthMs &&
-      next.onGo === this.config.onGo &&
-      next.onGoLabel === this.config.onGoLabel
+      next.triggerStageAtZero === this.config.triggerStageAtZero
     ) {
       return;
     }
-    const labelChanged = next.onGoLabel !== this.config.onGoLabel;
     this.config = next;
-    if (labelChanged) this.host.broadcast(this.onGoMessage());
-    this.emit();
-  }
-
-  private onGoMessage(): PeerMessage {
-    return { type: "gonogo-on-go", label: this.config.onGoLabel };
-  }
-
-  /**
-   * Start the poll over: cancel a countdown in flight, forget every vote and
-   * the T-0 commit, and tell every station to drop its own vote. After launch
-   * this re-opens the poll, so a later event can be polled; the abort and its
-   * attribution are untouched.
-   */
-  reset(): void {
-    this.cancelCountdownIfRunning("reset");
-    this.peerIdToVote.clear();
-    this.committed = false;
-    this.reopened = this.launched;
-    this.host.broadcast({ type: "gonogo-reset", reopened: this.reopened });
     this.emit();
   }
 
@@ -357,7 +321,7 @@ export class GoNoGoHostService {
   }
 
   private maybeStartCountdown(): void {
-    if ((this.launched && !this.reopened) || this.committed) return;
+    if (this.launched || this.committed) return;
     if (this.countdown) return;
     if (!this.pollIsGo()) return;
     const t0Ms = Date.now() + this.config.countdownLengthMs;
@@ -386,22 +350,16 @@ export class GoNoGoHostService {
     // Internally gated by isSoundEnabled(); main-only since this service
     // is instantiated only on MainScreen.
     playCountdownTone(true);
-    if (this.config.onGo !== ON_GO_NONE) void this.fireOnGo(this.config.onGo);
+    if (this.config.triggerStageAtZero) {
+      void this.dispatchCommand("vessel.control.stage", null).then(
+        (refusal) => {
+          if (refusal === undefined) return;
+          logger.warn(`[GoNoGoHost] T-0 stage not sent: ${refusal}`);
+          this.committed = false;
+        },
+      );
+    }
     this.emit();
-  }
-
-  /**
-   * Fire the chosen action at T-0, through the command the ActionGroup widget
-   * sends. An action the craft did not take leaves the countdown restartable.
-   */
-  private async fireOnGo(actionGroupId: string): Promise<void> {
-    const outcome = dispatchActionGroup(actionGroupId);
-    const refusal = outcome.routed
-      ? (await outcome.settled)?.message
-      : outcome.refusal;
-    if (refusal === undefined) return;
-    logger.warn(`[GoNoGoHost] T-0 action not sent: ${refusal}`);
-    this.committed = false;
   }
 
   private emit(): void {
