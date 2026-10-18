@@ -6642,8 +6642,11 @@ export interface InstrumentEntry
 	*/
 	experimentId?: string | null;
 	/**
-	* The experiment's display title (KSP's `ScienceExperiment.experimentTitle`).
-	* `null` when the module's experiment definition has not resolved.
+	* The experiment's own display title (KSP's
+	* `ScienceExperiment.experimentTitle`, or the providing mod's title for the
+	* experiment). Never the part's title: several experiments on one part have
+	* different titles. `null` when the experiment definition has not resolved,
+	* and a client then names the experiment by `experimentId`.
 	*/
 	title?: string | null;
 	/**
@@ -6658,7 +6661,9 @@ export interface InstrumentEntry
 	inoperable?: boolean | null;
 	/**
 	* Whether the experiment can be run more than once without a reset (KSP's
-	* `ModuleScienceExperiment.rerunnable`).
+	* `ModuleScienceExperiment.rerunnable`). `null` when the providing mod has no
+	* such notion, which is neither answer: a client does not present it as a
+	* one-shot experiment.
 	*/
 	rerunnable?: boolean | null;
 	/**

@@ -12,6 +12,36 @@ describe("parseInstruments", () => {
   });
 });
 
+describe("parseInstruments rerunnable", () => {
+  it("records whether the wire said an instrument is rerunnable, so null is not read as false", () => {
+    const parsed = parseInstruments([
+      { partId: 1, rerunnable: true },
+      { partId: 2, rerunnable: false },
+      { partId: 3, rerunnable: null },
+      { partId: 4 },
+    ]);
+    expect(parsed?.map((p) => p.rerunnableKnown)).toEqual([
+      true,
+      true,
+      false,
+      false,
+    ]);
+  });
+
+  it("titles each experiment by its own title and leaves an absent title undefined", () => {
+    const parsed = parseInstruments([
+      {
+        partId: 1,
+        partName: "Stayputnik",
+        experimentId: "a",
+        title: "Seismic Scan",
+      },
+      { partId: 1, partName: "Stayputnik", experimentId: "b", title: null },
+    ]);
+    expect(parsed?.map((p) => p.expTitle)).toEqual(["Seismic Scan", undefined]);
+  });
+});
+
 describe("parseLab", () => {
   it("carries the value model a lab's figures are in, and null when untagged", () => {
     const parsed = parseLab([

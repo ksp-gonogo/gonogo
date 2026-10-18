@@ -26,6 +26,8 @@ export interface TitledInstrument extends Instrument {
   expTitle?: string;
   /** False where the wire did not say whether the instrument holds data, so `hasData` is a default rather than a reading. */
   dataKnown?: boolean;
+  /** False where the wire did not say whether the experiment can run again, so `rerunnable` is a default rather than a reading and the row does not call it one-shot. */
+  rerunnableKnown?: boolean;
   /** Whether the experiment can be reset; `null` where the wire did not say, which is neither answer. */
   resettable?: boolean | null;
 }

@@ -78,7 +78,53 @@ describe("Experiments: genuinely runs off the stream", () => {
     expect(screen.queryByText("PROCESSING")).not.toBeInTheDocument();
 
     expect(screen.getByText("Mystery Goo™ Containment Unit")).toBeTruthy();
-    expect(screen.getByText(/^Mystery Goo Observation · /)).toBeTruthy();
+    expect(screen.getByText("Mystery Goo Observation")).toBeTruthy();
     expect(screen.getByText("DATA")).toBeTruthy();
+  });
+});
+
+describe("Experiments: instruments whose reusability the wire leaves unknown", () => {
+  const stayputnik = (experimentId: string, title: string | null) => ({
+    partId: "1475388156",
+    partName: "Probodobodyne Stayputnik",
+    experimentId,
+    title,
+    deployed: false,
+    inoperable: false,
+    rerunnable: null,
+    resettable: null,
+    dataIsCollectable: false,
+  });
+
+  it("lists experiments under their part named once, by their own title or id, and none as one-shot", async () => {
+    const fixture = setupStreamFixture({ suspendFrames: true, pinnedUt: 10 });
+    const { unmount } = render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider
+          value={{ instanceId: "so-unknown-rerun" }}
+        >
+          <ExperimentsComponent id="so-unknown-rerun" w={6} h={9} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    renderedTrees.push(unmount);
+
+    act(() => {
+      fixture.emit("science.experiments", []);
+      fixture.emit("science.instruments", [
+        stayputnik("seismicScan", "Seismic Scan"),
+        stayputnik("liteScan", null),
+        stayputnik("temperatureScan", "Temperature Scan"),
+      ]);
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Seismic Scan")).toBeInTheDocument(),
+    );
+    expect(screen.getAllByText("Probodobodyne Stayputnik")).toHaveLength(1);
+    expect(screen.getByText("liteScan")).toBeInTheDocument();
+    expect(screen.getByText("Temperature Scan")).toBeInTheDocument();
+    expect(screen.queryByText("ONE-SHOT")).toBeNull();
+    await act(async () => {});
   });
 });

@@ -39,6 +39,8 @@ export interface ScienceExperimentRowProps {
    * refuses an instrument no longer in the state it needs.
    */
   heldGrade?: HeldGrade;
+  /** True where the row sits under its part's heading: the card is then titled by its experiment and does not repeat the part. */
+  underPart?: boolean;
 }
 
 /** The experiment a card is for, by its title where the wire has one. */
@@ -64,6 +66,7 @@ export function ScienceExperimentRow({
   transmitCmd,
   onTransmitted,
   heldGrade,
+  underPart,
 }: Readonly<ScienceExperimentRowProps>) {
   const actions = (
     <Inline inset style={ACTION_SLOT}>
@@ -99,7 +102,7 @@ export function ScienceExperimentRow({
   return (
     <Card
       as="li"
-      title={instrument.partTitle}
+      title={underPart ? experimentName(instrument) : instrument.partTitle}
       tone={
         instrument.inoperable ? "nogo" : instrument.hasData ? "go" : undefined
       }
@@ -116,7 +119,8 @@ export function ScienceExperimentRow({
             <Badge>DEPLOYED</Badge>
           </Tooltip>
         )}
-        {!instrument.rerunnable && (
+        {/* An experiment whose reusability is unknown is not one-shot. */}
+        {!instrument.rerunnable && instrument.rerunnableKnown !== false && (
           <Tooltip
             text={
               instrument.resettable === true
@@ -139,9 +143,9 @@ export function ScienceExperimentRow({
         )}
       </Inline>
       <Text level="muted" size="xs">
-        {experimentName(instrument)}
+        {!underPart && experimentName(instrument)}
         {instrument.dataKnown !== false &&
-          ` · ${instrument.hasData ? "Holds data" : "No data"}`}
+          `${underPart ? "" : " · "}${instrument.hasData ? "Holds data" : "No data"}`}
       </Text>
     </Card>
   );

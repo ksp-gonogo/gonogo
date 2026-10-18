@@ -5723,7 +5723,13 @@ namespace Gonogo.KSP
                     }
 
                     string? title = null;
-                    try { title = exp.experiment != null ? exp.experiment.experimentTitle : null; }
+                    try
+                    {
+                        var definition = exp.experiment ?? ResearchAndDevelopment.GetExperiment(exp.experimentID);
+                        title = definition != null && !string.IsNullOrEmpty(definition.experimentTitle)
+                            ? definition.experimentTitle
+                            : null;
+                    }
                     catch { title = null; }
 
                     list ??= new List<object?>();

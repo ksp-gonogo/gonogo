@@ -35,6 +35,7 @@ export function parseInstruments(raw: unknown): TitledInstrument[] | null {
       hasData: e.dataIsCollectable === true,
       dataKnown: typeof e.dataIsCollectable === "boolean",
       rerunnable: e.rerunnable === true,
+      rerunnableKnown: typeof e.rerunnable === "boolean",
       inoperable: e.inoperable === true,
       resettable: typeof e.resettable === "boolean" ? e.resettable : null,
     });

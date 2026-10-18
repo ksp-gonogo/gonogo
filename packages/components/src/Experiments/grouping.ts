@@ -23,6 +23,38 @@ export function byExperiment<Item extends TitledInstrument>(
   });
 }
 
+export interface PartGroup<Item extends TitledInstrument> {
+  partId: string;
+  partTitle: string;
+  /** This part's instruments, ordered by experiment. */
+  items: Item[];
+}
+
+/**
+ * Instruments listed under the part that carries them, one group per part in
+ * the order the vessel first reported it, so a part with several experiments
+ * names itself once.
+ */
+export function byPart<Item extends TitledInstrument>(
+  instruments: readonly Item[],
+): PartGroup<Item>[] {
+  const groups = new Map<string, PartGroup<Item>>();
+  for (const inst of instruments) {
+    const group = groups.get(inst.partId);
+    if (group) group.items.push(inst);
+    else
+      groups.set(inst.partId, {
+        partId: inst.partId,
+        partTitle: inst.partTitle,
+        items: [inst],
+      });
+  }
+  return Array.from(groups.values()).map((group) => ({
+    ...group,
+    items: byExperiment(group.items),
+  }));
+}
+
 /**
  * The contributed entries this widget draws: first per `partId` wins, and a
  * `partId` the stock list carries is dropped, since the stock row can be commanded.

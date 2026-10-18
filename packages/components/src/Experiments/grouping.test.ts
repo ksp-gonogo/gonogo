@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { byExperiment } from "./grouping";
+import { byExperiment, byPart } from "./grouping";
 import type { TitledInstrument } from "./instrument";
 
 function instrument(
@@ -35,5 +35,20 @@ describe("byExperiment", () => {
       instrument("named", "goo"),
     ]);
     expect(sorted.map((i) => i.partId)).toEqual(["named", "none"]);
+  });
+});
+
+describe("byPart", () => {
+  it("names a part once with its experiments beneath, in first-seen part order", () => {
+    const groups = byPart([
+      { ...instrument("p1", "seismicScan"), partTitle: "Stayputnik" },
+      { ...instrument("p2", "mysteryGoo"), partTitle: "Goo" },
+      { ...instrument("p1", "geigerCounter"), partTitle: "Stayputnik" },
+    ]);
+    expect(groups.map((g) => g.partTitle)).toEqual(["Stayputnik", "Goo"]);
+    expect(groups[0].items.map((i) => i.expId)).toEqual([
+      "geigerCounter",
+      "seismicScan",
+    ]);
   });
 });

@@ -9,7 +9,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
-import type { Instrument } from "./instrument";
+import type { TitledInstrument } from "./instrument";
 import { ScienceExperimentRow } from "./ScienceExperimentRow";
 
 const OK: CommandReplyLike = { success: true };
@@ -42,7 +42,9 @@ function renderRow(ui: ReactElement) {
   return render(<ul>{ui}</ul>);
 }
 
-function instrument(overrides: Partial<Instrument> = {}): Instrument {
+function instrument(
+  overrides: Partial<TitledInstrument> = {},
+): TitledInstrument {
   return {
     partId: "1",
     partTitle: "Mystery Goo",
@@ -56,6 +58,30 @@ function instrument(overrides: Partial<Instrument> = {}): Instrument {
 }
 
 describe("ScienceExperimentRow", () => {
+  it("does not call an instrument one-shot when the wire never said whether it reruns", () => {
+    renderRow(
+      <ScienceExperimentRow
+        instrument={instrument({ rerunnable: false, rerunnableKnown: false })}
+      />,
+    );
+    expect(screen.queryByText("ONE-SHOT")).toBeNull();
+  });
+
+  it("titles the card by its experiment, not the part, when listed under a part", () => {
+    renderRow(
+      <ScienceExperimentRow
+        underPart
+        instrument={instrument({
+          partTitle: "Probodobodyne Stayputnik",
+          expId: "seismicScan",
+          expTitle: "Seismic Scan",
+        })}
+      />,
+    );
+    expect(screen.getByText("Seismic Scan")).toBeInTheDocument();
+    expect(screen.queryByText("Probodobodyne Stayputnik")).toBeNull();
+  });
+
   it("renders the instrument's name", () => {
     renderRow(
       <ScienceExperimentRow

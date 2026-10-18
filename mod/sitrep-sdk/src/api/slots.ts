@@ -817,7 +817,7 @@ export interface ExperimentsInstrument {
   partId: string;
   /** The part's display title, such as `"2HOT Thermometer"`. */
   partTitle: string;
-  /** KSP's experiment id, such as `"temperatureScan"`. The widget groups rows by it. */
+  /** KSP's experiment id, such as `"temperatureScan"`. The widget lists it under its part. */
   expId: string;
   /** True once the experiment has been run. */
   deployed: boolean;

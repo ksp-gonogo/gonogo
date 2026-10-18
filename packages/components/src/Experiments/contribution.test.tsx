@@ -140,7 +140,7 @@ describe("Experiments: the experiments.instruments contribution slot", () => {
       .getByText("SAR Altimetry Sensor")
       .closest("li") as HTMLElement;
     const stockRow = screen
-      .getByText("Mystery Goo")
+      .getByRole("button", { name: /Transmit/ })
       .closest("li") as HTMLElement;
     // Commands reach a part only through the stock science module.
     expect(within(contributedRow).queryByRole("button")).toBeNull();

@@ -32,7 +32,7 @@ import { Fragment } from "react";
 import { heldGrade } from "../shared/heldGrade";
 import read from "./experiments.declarations.g";
 import {
-  byExperiment,
+  byPart,
   groupContributed,
   ownContributed,
   summarise,
@@ -205,36 +205,41 @@ function ExperimentsBody({
   const matchesFilter = (inst: TitledInstrument) =>
     filter.matches(`${inst.expTitle ?? ""} ${inst.expId} ${inst.partTitle}`);
 
-  // One card per instrument, each naming its experiment, ordered so one experiment's cards sit together.
-  const listed = byExperiment((instruments ?? []).filter(matchesFilter));
+  // One card per instrument under its part, so a part with several experiments names itself once.
+  const listed = byPart((instruments ?? []).filter(matchesFilter));
   const contributedGroups = groupContributed(contributed.filter(matchesFilter));
 
   // The vessel's totals, not the filter's, contributed instruments included.
   const totals = summarise([...(instruments ?? []), ...contributed]);
 
-  const sectionNodes =
-    listed.length === 0 ? null : (
-      <Section key="instruments" full>
-        {/* A real list, because the row renders an `<li>`; an augment in the slot below must be a list item too. */}
-        <Stack as="ul" style={INSTRUMENT_GRID}>
-          {listed.map((inst) => (
-            <Fragment key={inst.partId}>
-              <ScienceExperimentRow
-                instrument={inst}
-                deployCmd={deployCmd}
-                transmitCmd={transmitCmd}
-                onTransmitted={onTransmitted}
-                heldGrade={instrumentsHeld}
-              />
-              <AugmentSlot
-                name="experiments.instrument"
-                props={{ instrument: inst }}
-              />
-            </Fragment>
-          ))}
-        </Stack>
-      </Section>
-    );
+  const sectionNodes = listed.map((group) => (
+    <Section
+      key={group.partId}
+      full
+      gap="related-dense"
+      title={group.partTitle}
+    >
+      {/* A real list, because the row renders an `<li>`; an augment in the slot below must be a list item too. */}
+      <Stack as="ul" style={INSTRUMENT_GRID}>
+        {group.items.map((inst) => (
+          <Fragment key={`${inst.partId}:${inst.expId}`}>
+            <ScienceExperimentRow
+              instrument={inst}
+              underPart
+              deployCmd={deployCmd}
+              transmitCmd={transmitCmd}
+              onTransmitted={onTransmitted}
+              heldGrade={instrumentsHeld}
+            />
+            <AugmentSlot
+              name="experiments.instrument"
+              props={{ instrument: inst }}
+            />
+          </Fragment>
+        ))}
+      </Stack>
+    </Section>
+  ));
 
   // Contributed rows sit in sections headed by their supplier, which is why they carry no stock commands.
   const contributedNodes = contributedGroups.map(({ ownerLabel, items }) => (
@@ -299,7 +304,7 @@ function ExperimentsBody({
             <LabSection labs={labs} heldGrade={labHeld} />
           </Section>
         ),
-        sectionNodes === null && contributedNodes.length === 0 ? (
+        sectionNodes.length === 0 && contributedNodes.length === 0 ? (
           <Section key="unmatched" full>
             <EmptyState>No instrument matches the filter</EmptyState>
           </Section>
@@ -316,7 +321,7 @@ registerComponent<ExperimentsConfig>({
   id: "experiments",
   name: "Experiments",
   description:
-    "Every science instrument on your vessel, grouped by experiment, and the status of any Mobile Processing Lab. Shows which instruments hold data, which have run, which work only once and which are broken, and lets you run them and transmit their results.",
+    "Every science instrument on your vessel, listed under its part, and the status of any Mobile Processing Lab. Shows which instruments hold data, which have run, which work only once and which are broken, and lets you run them and transmit their results.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 3, h: 4 },

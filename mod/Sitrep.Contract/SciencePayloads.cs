@@ -262,9 +262,12 @@ public class InstrumentEntry
     [SitrepUnit(Units.Id)]
     public string? ExperimentId { get; set; }
 
-    /// <summary>The experiment's display title (KSP's
-    /// <c>ScienceExperiment.experimentTitle</c>). <c>null</c> when the
-    /// module's experiment definition has not resolved.</summary>
+    /// <summary>The experiment's own display title (KSP's
+    /// <c>ScienceExperiment.experimentTitle</c>, or the providing mod's title
+    /// for the experiment). Never the part's title: several experiments on one
+    /// part have different titles. <c>null</c> when the experiment definition
+    /// has not resolved, and a client then names the experiment by
+    /// <c>experimentId</c>.</summary>
     [SitrepUnit(Units.Text)]
     public string? Title { get; set; }
 
@@ -279,7 +282,9 @@ public class InstrumentEntry
     public bool? Inoperable { get; set; }
 
     /// <summary>Whether the experiment can be run more than once without a
-    /// reset (KSP's <c>ModuleScienceExperiment.rerunnable</c>).</summary>
+    /// reset (KSP's <c>ModuleScienceExperiment.rerunnable</c>). <c>null</c>
+    /// when the providing mod has no such notion, which is neither answer: a
+    /// client does not present it as a one-shot experiment.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? Rerunnable { get; set; }
 
