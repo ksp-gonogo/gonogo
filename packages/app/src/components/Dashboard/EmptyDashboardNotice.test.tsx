@@ -79,13 +79,17 @@ describe("Dashboard with no widgets", () => {
     const { container } = renderScreen([]);
 
     expect(screen.getByText("No widgets on this dashboard")).toBeVisible();
-    expect(screen.queryByRole("dialog", { name: "Add a widget" })).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Add a component" }),
+    ).toBeNull();
     await expectNoA11yViolations(container);
 
     await act(async () => {
       screen.getByRole("button", { name: "Add a widget" }).click();
     });
-    expect(screen.getByRole("dialog", { name: "Add a widget" })).toBeVisible();
+    expect(
+      screen.getByRole("dialog", { name: "Add a component" }),
+    ).toBeVisible();
   });
 
   it("shows no button where no picker is mounted to open", () => {

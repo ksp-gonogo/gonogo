@@ -5,15 +5,8 @@ name: RC
 #
 #   Pages app       ksp-gonogo.github.io/rc/ (stations: /rc/station)  deploy.yml
 #   images          ghcr.io/ksp-gonogo/gonogo{,-relay}:rc         publish-images.yml
-#   mod zips        build artifacts                               publish-mods.yml
-#   version         one label for all of them, see below
-#
-# ONE LABEL per run, passed to every publisher as `label`: the app version, the
-# image version, the mod zips' version and build-info.txt all carry it. An RC cut
-# (release.yml -f rc=true) calls this workflow with `X.Y.Z-rc.<N>`, the same
-# number its packages carry. Any other run (the nightly, a dispatch with no
-# label) is not an RC: it labels `X.Y.Z-dev.<shortsha>`, X.Y.Z being the next
-# release. The commit stays in build-info.txt as its own `git_sha=` line.
+#   mod zips        build artifacts, version rc-<shortsha>        publish-mods.yml
+#   app version     X.Y.Z-rc.<shortsha>
 #
 # Nothing here touches `main`, a release tag, npm, nuget or SpaceDock. A release
 # is prepare-release.yml's job.
@@ -44,25 +37,8 @@ name: RC
 on:
   schedule:
     - cron: "0 3 * * *"
-  workflow_call:
-    inputs:
-      label:
-        description: "The version label every publisher carries: X.Y.Z-rc.N or X.Y.Z-dev.<sha7>. Empty: X.Y.Z-dev.<sha7>"
-        required: false
-        default: ""
-        type: string
-      force:
-        description: "Rebuild even when staging's head already has an RC (CI still runs and must pass)"
-        required: false
-        default: false
-        type: boolean
   workflow_dispatch:
     inputs:
-      label:
-        description: "The version label every publisher carries: X.Y.Z-rc.N or X.Y.Z-dev.<sha7>. Empty: X.Y.Z-dev.<sha7>"
-        required: false
-        default: ""
-        type: string
       force:
         description: "Rebuild even when staging's head already has an RC (CI still runs and must pass)"
         required: false
@@ -99,22 +75,16 @@ jobs:
       ci: ${{ steps.decide.outputs.ci }}
       sha: ${{ steps.decide.outputs.sha }}
       short: ${{ steps.decide.outputs.short }}
-      label: ${{ steps.decide.outputs.label }}
     steps:
       - uses: actions/checkout@v5
         with:
           ref: staging
           fetch-depth: 0
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-
       - id: decide
         env:
           GH_TOKEN: ${{ github.token }}
           FORCE: ${{ inputs.force }}
-          LABEL: ${{ inputs.label }}
         run: |
           set -euo pipefail
           sha="$(git rev-parse HEAD)"
@@ -129,23 +99,10 @@ jobs:
             exit 0
           fi
 
-          # A label from an RC cut is a new version to publish, so it rebuilds a
-          # sha that already has a nightly.
-          if git rev-parse -q --verify "refs/tags/rc-$short" >/dev/null && [ "$FORCE" != "true" ] && [ -z "$LABEL" ]; then
+          if git rev-parse -q --verify "refs/tags/rc-$short" >/dev/null && [ "$FORCE" != "true" ]; then
             echo "::notice::rc-$short already exists, staging has not moved since the last RC."
             exit 0
           fi
-
-          if [ -z "$LABEL" ]; then
-            release="$(node scripts/release-packages.mjs plan --bump auto | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).release')"
-            LABEL="$release-dev.$short"
-          fi
-          if ! [[ "$LABEL" =~ ^[0-9]+\.[0-9]+\.[0-9]+-(rc\.[0-9]+|dev\.[0-9a-f]{7})$ ]]; then
-            echo "::error::label must be X.Y.Z-rc.N or X.Y.Z-dev.<sha7>, got '$LABEL'"
-            exit 1
-          fi
-          echo "label=$LABEL" >> "$GITHUB_OUTPUT"
-          echo "::notice::this run is $LABEL"
 
           echo "build=true" >> "$GITHUB_OUTPUT"
 
@@ -176,7 +133,6 @@ jobs:
     with:
       channel: rc
       ref: ${{ needs.gate.outputs.sha }}
-      label: ${{ needs.gate.outputs.label }}
     secrets: inherit
 
   images:
@@ -189,7 +145,6 @@ jobs:
     with:
       channel: rc
       ref: ${{ needs.gate.outputs.sha }}
-      label: ${{ needs.gate.outputs.label }}
     secrets: inherit
 
   mods:
@@ -204,7 +159,6 @@ jobs:
     with:
       channel: rc
       ref: ${{ needs.gate.outputs.sha }}
-      label: ${{ needs.gate.outputs.label }}
     secrets: inherit
 
   record:
@@ -223,7 +177,6 @@ jobs:
         env:
           SHA: ${{ needs.gate.outputs.sha }}
           SHORT: ${{ needs.gate.outputs.short }}
-          LABEL: ${{ needs.gate.outputs.label }}
         run: |
           set -euo pipefail
           if git ls-remote --exit-code --tags origin "refs/tags/rc-$SHORT" >/dev/null; then
@@ -235,7 +188,7 @@ jobs:
           git tag "rc-$SHORT" "$SHA"
           git push origin "refs/tags/rc-$SHORT"
           {
-            echo "### Built $LABEL (tag rc-$SHORT)"
+            echo "### RC built: rc-$SHORT"
             echo ""
             echo "This builds the app, images and mod zips only. The package release candidates"
             echo "(\`@ksp-gonogo/sitrep-sdk\`, \`@ksp-gonogo/ui-kit\`, \`@ksp-gonogo/uplink-tools\` and"

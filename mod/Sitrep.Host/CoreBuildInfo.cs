@@ -6,7 +6,7 @@ namespace Sitrep.Host
     /// <summary>
     /// The release this mod was built as: the <c>version=</c> line of the
     /// <c>build-info.txt</c> the release build writes beside the mod's DLLs, a
-    /// tag such as <c>v1.4.0</c> or a candidate label such as <c>1.4.0-rc.41</c>.
+    /// tag such as <c>v1.4.0</c> or a candidate label such as <c>rc-abc1234</c>.
     /// Null for a build that carries no such file, which is every local build.
     /// </summary>
     public static class CoreBuildInfo

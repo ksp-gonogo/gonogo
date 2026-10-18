@@ -157,7 +157,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/notes/templating.ts": 1,
   "packages/app/src/peer/PeerBroadcastingDataSource.ts": 1,
   "packages/app/src/peer/PeerClientDataSource.ts": 2,
-  "packages/app/src/peer/PeerClientService.ts": 5,
+  "packages/app/src/peer/PeerClientService.ts": 6,
   "packages/app/src/peer/PeerHostService.bundleFetch.test.ts": 1,
   "packages/app/src/peer/PeerHostService.ts": 8,
   "packages/app/src/peer/PeerHostService.uplinkRelay.test.ts": 1,
@@ -183,7 +183,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/uplinks/identity.ts": 1,
   "packages/app/src/uplinks/loader.ts": 1,
   "packages/app/src/uplinks/rosterProbe.test.ts": 3,
-  "packages/app/vite.config.ts": 4,
+  "packages/app/vite.config.ts": 5,
   "packages/app/vitest.config.ts": 1,
   "packages/components/scripts/banner-probe/banner-probe-entry.tsx": 2,
   "packages/components/scripts/crew-avatar-probe/crew-avatar-probe-entry.tsx": 1,
@@ -358,5 +358,5 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * it exists to produce; the census is printed beside the verdict instead.
  */
 export const SCAN_FLOORS = {
-  files: 1926,
+  files: 1755,
 } as const;

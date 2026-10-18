@@ -69,7 +69,7 @@ describe("ComponentOverlay: owner-derived mod search tags", () => {
     const user = userEvent.setup();
     renderOverlay();
 
-    await user.click(screen.getByRole("button", { name: "Add widget" }));
+    await user.click(screen.getByRole("button", { name: "Add component" }));
     // Nothing matches "mod-alpha" as a literal tag on the def, only via effectiveSearchTags deriving it from `owner.id`.
     await user.type(
       screen.getByRole("combobox", { name: "Search widgets" }),
@@ -93,7 +93,7 @@ describe("ComponentOverlay: owner-derived mod search tags", () => {
     const user = userEvent.setup();
     renderOverlay();
 
-    await user.click(screen.getByRole("button", { name: "Add widget" }));
+    await user.click(screen.getByRole("button", { name: "Add component" }));
     await user.type(
       screen.getByRole("combobox", { name: "Search widgets" }),
       "mod-alpha",

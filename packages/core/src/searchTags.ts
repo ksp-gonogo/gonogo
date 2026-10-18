@@ -1,7 +1,7 @@
 import { getAugmentsForSlot } from "./augments";
 import { getContributionsForSlot } from "./contributions";
 import type { ComponentDefinition } from "./types";
-import { CORE_UPLINK_CLIENT, type UplinkClientHandle } from "./uplinkClients";
+import type { UplinkClientHandle } from "./uplinkClients";
 
 /**
  * The distinct Uplink clients that augment or CONTRIBUTE-to this widget, deduped
@@ -82,11 +82,7 @@ export interface UplinkAddition {
  * The Uplinks that extend a widget by augmenting or contributing to it, deduped
  * by id, for the description addendum shown in the widget picker (a per-Uplink
  * line making the addition explicit). Empty when nothing extends the widget.
- * The built-in Core client is left out: every widget is Core, so naming it
- * tells the operator nothing.
  */
 export function uplinkAdditions(def: ComponentDefinition): UplinkAddition[] {
-  return provenanceUplinks(def)
-    .filter((u) => u.id !== CORE_UPLINK_CLIENT.id)
-    .map((u) => ({ id: u.id, name: u.name }));
+  return provenanceUplinks(def).map((u) => ({ id: u.id, name: u.name }));
 }

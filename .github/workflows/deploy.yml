@@ -22,8 +22,7 @@ name: Deploy to GitHub Pages
 # scripts/pages-compose.mjs (OWNED_PATHS), which this file stages from.
 #
 #   rc       rebuilt from the ref it is given, base /rc/, version-suffixed
-#            the `label` input (X.Y.Z-rc.N or X.Y.Z-dev.<sha7>) so stations and
-#            the hello handshake identify it.
+#            `-rc.<shortsha>` so stations and the hello handshake identify it.
 #   release  the newest GitHub Release's site asset (built by release.yml with
 #            base /app/), plus the landing page and the redirects from the ref
 #            this runs on, so neither can drift from a release.
@@ -51,11 +50,6 @@ on:
         description: "Commit to build from (default: the calling ref)"
         required: false
         type: string
-      label:
-        description: "rc channel: the version the app carries, X.Y.Z-rc.N or X.Y.Z-dev.<sha7>"
-        required: false
-        default: ""
-        type: string
   workflow_dispatch:
     inputs:
       channel:
@@ -65,11 +59,6 @@ on:
         options:
           - rc
           - release
-      label:
-        description: "rc channel: the version the app carries, X.Y.Z-rc.N or X.Y.Z-dev.<sha7>"
-        required: false
-        default: ""
-        type: string
 
 permissions:
   contents: read
@@ -95,17 +84,12 @@ jobs:
           CHANNEL: ${{ inputs.channel }}
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
-          LABEL: ${{ inputs.label }}
           PAGES_DEPLOY_TOKEN: ${{ secrets.PAGES_DEPLOY_TOKEN }}
         run: |
           case "$CHANNEL" in
             rc|release) ;;
             *) echo "::error::channel must be rc or release (got '$CHANNEL')"; exit 1 ;;
           esac
-          if [ "$CHANNEL" = rc ] && [ -z "$LABEL" ]; then
-            echo "::error::channel=rc needs a label (X.Y.Z-rc.N or X.Y.Z-dev.<sha7>)"
-            exit 1
-          fi
           if [ "$CHANNEL" = rc ] && [ "$EVENT" = workflow_dispatch ] && [ "$REF" != refs/heads/staging ]; then
             echo "::error::channel=rc is built from refs/heads/staging only, got $REF: gh workflow run rc.yml --ref staging"
             exit 1
@@ -165,7 +149,7 @@ jobs:
         run: pnpm turbo build --filter=@ksp-gonogo/app...
         env:
           VITE_BASE_PATH: /rc/
-          GONOGO_VERSION: ${{ inputs.label }}
+          GONOGO_VERSION_SUFFIX: -rc.${{ steps.sha.outputs.short }}
           # Axiom ingest. If the secret isn't set the logger silently
           # skips installing the Axiom transport, so dropping the secret
           # is a clean way to disable remote logging.

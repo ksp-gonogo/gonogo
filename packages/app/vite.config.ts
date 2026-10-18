@@ -241,15 +241,12 @@ const uplinkDevImportMap = (): PluginOption => ({
   },
 });
 
-/*
- * RC-channel builds carry the run's whole label (e.g. "1.0.0-rc.41") so a
- * deployed station is distinguishable from the release it forked from, in the
- * hello handshake, the host's station chips, and the page meta tags.
- * compareVersions ignores the prerelease part, so rc and release of the same
- * base version interoperate silently; a bumped release shows the mismatch
- * banner.
- */
-const VERSION = process.env.GONOGO_VERSION || pkg.version;
+// Dev-channel builds append a prerelease suffix (e.g. "-dev.a1b2c3d") so a
+// deployed dev station is distinguishable from the release it forked from,
+// in the hello handshake, the host's station chips, and the page meta tags.
+// compareVersions ignores the suffix, so dev↔release of the same base
+// version interoperate silently; a bumped release shows the mismatch banner.
+const VERSION = `${pkg.version}${process.env.GONOGO_VERSION_SUFFIX ?? ""}`;
 
 const BUILD_TIME = new Date().toISOString();
 

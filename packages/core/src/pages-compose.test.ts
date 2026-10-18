@@ -298,12 +298,7 @@ describe("deploy.yml's channel check", () => {
 
   const check = (env: Record<string, string>) =>
     spawnSync("bash", ["-c", checkScript()], {
-      env: {
-        PATH: process.env.PATH,
-        PAGES_DEPLOY_TOKEN: "x",
-        LABEL: "1.0.0-rc.41",
-        ...env,
-      },
+      env: { PATH: process.env.PATH, PAGES_DEPLOY_TOKEN: "x", ...env },
       encoding: "utf8",
     }).status;
 
@@ -313,17 +308,6 @@ describe("deploy.yml's channel check", () => {
         CHANNEL: "rc",
         EVENT: "workflow_dispatch",
         REF: "refs/heads/fleet/x",
-      }),
-    ).toBe(1);
-  });
-
-  it("refuses the rc channel with no label", () => {
-    expect(
-      check({
-        CHANNEL: "rc",
-        EVENT: "workflow_dispatch",
-        REF: "refs/heads/staging",
-        LABEL: "",
       }),
     ).toBe(1);
   });

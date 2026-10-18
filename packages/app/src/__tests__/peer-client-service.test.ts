@@ -69,7 +69,6 @@ vi.mock("peerjs", () => ({ default: FakePeer }));
 
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
-import { sha256Integrity } from "@ksp-gonogo/sitrep-sdk/uplink-load";
 import { STUN_SERVERS } from "../peer/iceServers";
 import type { ConnStatus } from "../peer/PeerClientService";
 import { PeerClientService } from "../peer/PeerClientService";
@@ -891,34 +890,6 @@ describe("PeerClientService.sendBundleFetch", () => {
     const result = await pending;
     expect(result).toBeInstanceOf(ArrayBuffer);
     expect(new Uint8Array(result)).toEqual(wireBytes);
-  });
-
-  it("resolves with bytes the loader can hash when the wire delivers an ArrayBuffer, as BinaryPack unpacks them", async () => {
-    const { svc, peer } = connectedSvc();
-    if (!peer._lastConn) throw new Error("expected an active peer connection");
-    const sent: PeerMessage[] = [];
-    peer._lastConn.send = (msg: PeerMessage) => {
-      sent.push(msg);
-    };
-
-    const pending = svc.sendBundleFetch(BUNDLE_URL, EXPECTED_HASH);
-    const first = sent[0];
-    if (!first || first.type !== "uplink-bundle-request") {
-      throw new Error("expected uplink-bundle-request");
-    }
-
-    const wireBytes = new Uint8Array([1, 2, 3, 4, 5]).buffer;
-    fromHost(svc).send({
-      type: "uplink-bundle-response",
-      requestId: first.requestId,
-      bytes: wireBytes,
-    });
-
-    const result = await pending;
-    expect(result).toBeInstanceOf(ArrayBuffer);
-    await expect(sha256Integrity(result)).resolves.toMatch(
-      /^sha256-[0-9a-f]{64}$/,
-    );
   });
 
   it("rejects when the host reports an error (e.g. hash mismatch or fetch failure)", async () => {

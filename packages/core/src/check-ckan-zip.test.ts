@@ -81,7 +81,7 @@ describe("checkZip on the files a real core zip carries", () => {
     expect(
       check("rc", {
         "GameData/Gonogo/Gonogo.version": JSON.stringify(
-          avcVersion("Gonogo", "1.0.0-rc.41"),
+          avcVersion("Gonogo", "rc-abc1234"),
         ),
       }),
     ).toEqual([]);

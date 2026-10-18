@@ -206,7 +206,7 @@ function PushedItem({
           </DashboardItemContext.Provider>
         ) : (
           <MissingComponent>
-            Widget "{placement.widget.componentId}" not registered on this
+            Component "{placement.widget.componentId}" not registered on this
             screen.
           </MissingComponent>
         )}

@@ -38,10 +38,10 @@ RUN pnpm install --frozen-lockfile
 ARG VITE_AXIOM_TOKEN
 ENV VITE_AXIOM_TOKEN=${VITE_AXIOM_TOKEN}
 ENV VITE_RELAY_URL=http://localhost:3002
-# The run's version label (e.g. "1.0.0-rc.41") so the bundled app announces it
-# in the peer hello handshake. Empty for release builds, which use package.json.
-ARG GONOGO_VERSION
-ENV GONOGO_VERSION=${GONOGO_VERSION}
+# RC-channel builds pass "-rc.<shortsha>" so the bundled app announces a
+# prerelease version in the peer hello handshake. Empty for release builds.
+ARG GONOGO_VERSION_SUFFIX
+ENV GONOGO_VERSION_SUFFIX=${GONOGO_VERSION_SUFFIX}
 RUN pnpm turbo build --filter=@ksp-gonogo/app...
 
 # Build the relay and deploy a self-contained dir (workspace deps inlined
