@@ -26,6 +26,7 @@ import {
   subscribeUplinkOutcomes,
   type UplinkLoadOutcome,
 } from "../uplinks/loaderState";
+import { useUplinkClientNotes } from "../uplinks/uplinkClientNotes";
 
 /**
  * One Uplink's resolved client state.
@@ -77,6 +78,11 @@ export interface UplinkReadinessEntry {
   /** The recorded load outcome, or null when nothing was attempted for this id. */
   outcome: UplinkLoadOutcome | null;
   state: UplinkReadinessState;
+  /**
+   * What the loaded client says is wrong from this browser, such as a sidecar it
+   * cannot reach, which the mod half cannot see. Null while it has nothing to say.
+   */
+  clientNote?: string | null;
 }
 
 /**
@@ -250,13 +256,19 @@ export function useUplinkReadiness(): UseUplinkReadinessResult {
         )
       : undefined;
 
+  const joined = computeUplinkReadiness(
+    roster,
+    outcomes,
+    clientDeclarations,
+    bundledIds,
+  );
+  const notes = useUplinkClientNotes(joined.map((entry) => entry.id));
+
   return {
-    entries: computeUplinkReadiness(
-      roster,
-      outcomes,
-      clientDeclarations,
-      bundledIds,
-    ),
+    entries: joined.map((entry) => ({
+      ...entry,
+      clientNote: notes.get(entry.id) ?? null,
+    })),
     waitingForMod: roster === undefined,
   };
 }

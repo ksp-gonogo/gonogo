@@ -82,6 +82,8 @@ export const WIZARD_COPY = {
   "uplinks.check.none": "No Uplinks installed. If this is expected, continue.",
   "uplinks.check.allWorking":
     "{installed} {installed?Uplink|Uplinks} installed, all reporting healthy",
+  "uplinks.check.degraded":
+    "{installed} {installed?Uplink|Uplinks} installed, {degraded} reporting degraded. Each lists its reason below",
   "uplinks.check.attention":
     "{installed} {installed?Uplink|Uplinks} installed, {attention} {attention?needs|need} attention",
   "uplinks.check.skipped":

@@ -88,8 +88,8 @@ export function isThisComputer(host: string): boolean {
 
 /**
  * An installed Uplink the operator should look at: the mod refused it or calls
- * it unavailable, or no working client for it is running here. A degraded
- * Uplink is not one, because degraded is the ordinary state of an Uplink whose
+ * it unavailable, its client reports a problem of its own, or no working
+ * client for it is running here. A degraded Uplink is not one, because degraded is the ordinary state of an Uplink whose
  * part is not on the active craft.
  */
 export function needsAttention(entry: UplinkReadinessEntry): boolean {
@@ -101,6 +101,7 @@ export function needsAttention(entry: UplinkReadinessEntry): boolean {
   )
     return false;
   if (entry.rosterEntry?.health.state === "unavailable") return true;
+  if (entry.clientNote) return true;
   return entry.state !== "loaded" && entry.state !== "loading";
 }
 
@@ -137,6 +138,17 @@ export function uplinksCheck(
       text: say("uplinks.check.skipped", {
         installed: installed.length,
         skipped,
+      }),
+    };
+  const degraded = installed.filter(
+    (entry) => entry.rosterEntry?.health.state === "degraded",
+  ).length;
+  if (attention === 0 && degraded > 0)
+    return {
+      state: "pass",
+      text: say("uplinks.check.degraded", {
+        installed: installed.length,
+        degraded,
       }),
     };
   if (attention === 0)

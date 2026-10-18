@@ -4,6 +4,10 @@ import type {
   DataSourceStatus,
 } from "@ksp-gonogo/core";
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import {
+  registerUplinkHandle,
+  unregisterUplinkHandle,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -721,6 +725,25 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     expect(screen.queryByText(say("uplinks.row.loaded"))).toBeNull();
   });
 
+  it("asks for attention and shows the note when a loaded client reports its own problem", async () => {
+    setUplinkOutcome({ id: "cameras", name: "cameras", status: "loaded" });
+    registerUplinkHandle("cameras", {
+      readinessNote: () => "The sidecar at ksp-pc:8088 is unreachable.",
+      onReadinessNoteChange: () => () => {},
+    });
+    const { wsClients } = renderSetup();
+    await goToUplinks();
+    await emitRoster(wsClients, [rosterEntry({ id: "cameras" })]);
+
+    await screen.findByText(
+      say("uplinks.check.attention", { installed: 1, attention: 1 }),
+    );
+    expect(
+      screen.getByText("The sidecar at ksp-pc:8088 is unreachable."),
+    ).toBeInTheDocument();
+    unregisterUplinkHandle("cameras");
+  });
+
   it("shows each Uplink's own health report: its state, what it says, and its facts", async () => {
     setUplinkOutcome({ id: "cameras", name: "cameras", status: "loaded" });
     const { wsClients } = renderSetup();
@@ -736,7 +759,9 @@ describe("FirstRunSetup: the Uplinks reading", () => {
       }),
     ]);
 
-    await screen.findByText(say("uplinks.check.allWorking", { installed: 1 }));
+    await screen.findByText(
+      say("uplinks.check.degraded", { installed: 1, degraded: 1 }),
+    );
     expect(screen.getByText("degraded")).toBeInTheDocument();
     expect(
       screen.getByText("No camera on the active craft"),

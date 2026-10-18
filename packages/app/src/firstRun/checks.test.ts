@@ -114,15 +114,35 @@ describe("uplinksCheck", () => {
     });
   });
 
-  it("passes when every installed Uplink is working, degraded included", () => {
+  it("passes without claiming health when an installed Uplink reports degraded", () => {
     const degraded = entry({ id: "mapper", health: "degraded" });
     expect(needsAttention(degraded)).toBe(false);
     expect(
       uplinksCheck({ entries: [entry({}), degraded], waitingForMod: false }),
     ).toEqual({
       state: "pass",
-      text: say("uplinks.check.allWorking", { installed: 2 }),
+      text: say("uplinks.check.degraded", { installed: 2, degraded: 1 }),
     });
+  });
+
+  it("says all healthy only when no installed Uplink is degraded", () => {
+    expect(
+      uplinksCheck({ entries: [entry({})], waitingForMod: false }),
+    ).toEqual({
+      state: "pass",
+      text: say("uplinks.check.allWorking", { installed: 1 }),
+    });
+  });
+
+  it("asks for attention when a loaded client reports its own problem", () => {
+    const unreachable = entry({
+      id: "cams",
+      clientNote: "The sidecar is unreachable.",
+    });
+    expect(needsAttention(unreachable)).toBe(true);
+    expect(
+      uplinksCheck({ entries: [unreachable], waitingForMod: false }).state,
+    ).toBe("attention");
   });
 
   it("asks for attention, never failure, when an Uplink is not working", () => {

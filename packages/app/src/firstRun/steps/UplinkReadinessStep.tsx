@@ -172,6 +172,11 @@ function UplinkReadinessRow({
           <UplinkHealthReport entry={entry.rosterEntry} />
         </StatusList>
       )}
+      {entry.clientNote && (
+        <Text level="muted" size="sm">
+          {entry.clientNote}
+        </Text>
+      )}
       {identity && <UplinkIdentityBlock identity={identity} />}
       {entry.state === "contract-mismatch" && (
         <ContractMismatchDetail entry={entry} />
