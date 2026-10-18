@@ -152,7 +152,7 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-section);
-  min-width: min(420px, 100%);
+  min-width: 420px;
 `;
 
 const Foot = styled.div`

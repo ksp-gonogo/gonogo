@@ -248,38 +248,6 @@ const STREAMER_SETTINGS = {
   ],
 };
 
-/** A roster as a phone station meets it: the core features beside the installed Uplinks. */
-function phoneRoster() {
-  const entry = (id: string, name: string, bundled: boolean) => ({
-    id,
-    name,
-    version: "1.0.0",
-    available: true,
-    reason: null,
-    bundled,
-    modSettings: false,
-    health: { state: 0, detail: null, facts: [] },
-  });
-  return {
-    uplinks: [
-      entry("fleet", "Fleet", true),
-      entry("command-centre-delay", "Command centre delay", true),
-      entry("comms-contacts", "Comms contacts", true),
-      entry("commcast", "Commcast", true),
-      entry("breakingGround", "Breaking Ground", true),
-      entry("makingHistory", "Making History", true),
-      entry("alpha", "Alpha", false),
-      entry("beta", "Beta", false),
-      entry("survival", "Survival", false),
-    ],
-  };
-}
-
-const PHONE_EMIT = {
-  "system.uplinks": phoneRoster(),
-  [KSP_TOPIC]: kspSettings(SAVED),
-};
-
 const UPLINK_EMIT = {
   "system.uplinks": UPLINKS,
   [KSP_TOPIC]: kspSettings(SAVED),
@@ -313,10 +281,6 @@ interface Scene {
   clickTab?: string;
   /** What the runtime loader recorded for each Uplink's client. None when unset. */
   outcomes?: readonly Record<string, unknown>[];
-  /** Open the settings inside the real dialog on a phone-sized touch screen of this width. */
-  phone?: number;
-  /** Draw the floating button cluster instead of the settings. */
-  fab?: "closed" | "open" | "chosen";
 }
 
 const SCENES: Scene[] = [
@@ -459,62 +423,6 @@ const SCENES: Scene[] = [
     pxW: 900,
     pxH: 620,
   },
-  {
-    name: "phone-fab-closed",
-    fab: "closed",
-    phone: 390,
-    pxW: 390,
-    pxH: 844,
-    screen: "station",
-  },
-  {
-    name: "phone-fab-open",
-    fab: "open",
-    phone: 390,
-    pxW: 390,
-    pxH: 844,
-    screen: "station",
-  },
-  {
-    name: "phone-fab-after-choosing",
-    fab: "chosen",
-    phone: 390,
-    pxW: 390,
-    pxH: 844,
-    screen: "station",
-  },
-  ...["general", "gonogo", "devices", "uplinks", "backup", "diagnostics"].map(
-    (tab): Scene => ({
-      name: `phone-station-settings-${tab}`,
-      tab,
-      phone: 390,
-      pxW: 390,
-      pxH: 844,
-      screen: "station",
-      connected: true,
-      emit: PHONE_EMIT,
-    }),
-  ),
-  {
-    name: "phone-host-settings-uplinks",
-    tab: "uplinks",
-    phone: 390,
-    pxW: 390,
-    pxH: 844,
-    screen: "main",
-    connected: true,
-    emit: PHONE_EMIT,
-  },
-  {
-    name: "phone-host-settings-gonogo",
-    tab: "gonogo",
-    phone: 390,
-    pxW: 390,
-    pxH: 844,
-    screen: "main",
-    connected: true,
-    emit: PHONE_EMIT,
-  },
 ];
 
 /** The theme sheet whole, checked to be the tokens file. The border-box reset
@@ -542,7 +450,6 @@ async function prepareProbePage(): Promise<string> {
       "import.meta.env.DEV": "false",
       "import.meta.env.PROD": "true",
       "import.meta.env.MODE": '"production"',
-      "import.meta.env": "{}",
     },
     loader: { ".css": "text", ".svg": "dataurl", ".png": "dataurl" },
   });
@@ -589,20 +496,7 @@ async function main(): Promise<void> {
       viewport: { width: 960, height: 1400 },
       deviceScaleFactor: 2,
     });
-    /*
-     * The visible viewport of a 390 by 844 phone with the browser's address and
-     * navigation bars showing: 110px of the screen is chrome. A dvh length is
-     * this height; a vh length would be the 844 behind the bars.
-     */
-    const phoneContext = await browser.newContext({
-      viewport: { width: 390, height: 734 },
-      deviceScaleFactor: 2,
-      isMobile: true,
-      hasTouch: true,
-    });
-    const only = process.env.SETTINGS_RENDER_ONLY;
-    const phoneOnly = only === "phone";
-    const page = await (phoneOnly ? phoneContext : context).newPage();
+    const page = await context.newPage();
     page.on("pageerror", (err) => {
       failures++;
       console.error("  [page error]", err.message);
@@ -635,10 +529,7 @@ async function main(): Promise<void> {
       openDisclosures,
       clickTab,
       outcomes,
-      phone,
-      fab,
     } of SCENES) {
-      if (phoneOnly !== (phone !== undefined)) continue;
       await page.evaluate(
         (s) =>
           (
@@ -646,18 +537,7 @@ async function main(): Promise<void> {
               __renderSettings: (p: unknown) => Promise<void>;
             }
           ).__renderSettings(s),
-        {
-          emit,
-          prefs,
-          pxW,
-          pxH,
-          tab,
-          screen,
-          connected,
-          outcomes,
-          modal: phone !== undefined && fab === undefined,
-          fab: fab !== undefined,
-        },
+        { emit, prefs, pxW, pxH, tab, screen, connected, outcomes },
       );
       if (clickTab !== undefined) {
         await page.getByRole("tab", { name: clickTab, exact: true }).click();
@@ -684,19 +564,7 @@ async function main(): Promise<void> {
           .first()
           .scrollIntoViewIfNeeded();
       }
-      if (fab === "open" || fab === "chosen") {
-        await page.getByRole("button", { name: "Dashboard controls" }).tap();
-      }
-      if (fab === "chosen") {
-        await page.getByRole("button", { name: "Settings" }).tap();
-      }
-      await page.waitForTimeout(400);
-      if (phone !== undefined) {
-        const out = join(OUT_DIR, `${name}.png`);
-        await page.screenshot({ path: out });
-        console.log(`  ✓ ${name} → ${out}`);
-        continue;
-      }
+      await page.waitForTimeout(150);
       const root = await page.$("#root");
       if (!root) throw new Error("#root missing after render");
       const out = join(OUT_DIR, `${name}.png`);

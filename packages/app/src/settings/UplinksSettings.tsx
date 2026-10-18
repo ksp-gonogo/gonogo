@@ -65,8 +65,6 @@ export interface UplinkPage {
   announcesNoClient?: true;
   /** Set when the dev server was started with this Uplink named in `--uplink`. */
   local?: LocalUplinkStatus;
-  /** The Uplink is compiled into the Gonogo mod, a core feature rather than one the operator installed. */
-  bundled: boolean;
   /** Its health or its client asks for the operator's attention. */
   attention: boolean;
   /** Rows its client registered for this screen. */
@@ -76,16 +74,10 @@ export interface UplinkPage {
 }
 
 /**
- * Every installed Uplink the mod lists or the runtime loader tried, and any
- * whose client registered settings for `screen`: the mod's order first, then
- * the rest. Core features, the Uplinks compiled into the Gonogo mod, have no
- * page and no settings.
+ * Every Uplink the mod lists or the runtime loader tried, and any whose client
+ * registered settings for `screen`: the mod's order first, then the rest.
  */
 export function useUplinkPages(screen: Screen): UplinkPage[] {
-  return useAllPages(screen).filter((page) => !page.bundled);
-}
-
-function useAllPages(screen: Screen): UplinkPage[] {
   const health = useStream<SystemUplinkHealth>("system.uplinkHealth");
   const gonogo = useTelemetry("settings.gonogo");
   const rosterKnown = health.state === "observed" || health.state === "held";
@@ -136,7 +128,6 @@ function useAllPages(screen: Screen): UplinkPage[] {
       gonogo: undeclared || (model?.rows.some((r) => r.owner === id) ?? false),
       undeclared,
       modSettings: entry?.modSettings ?? false,
-      bundled: entry?.bundled ?? false,
       health: entry,
       rosterKnown,
       client,

@@ -9,13 +9,8 @@ interface FabProps
   children: ReactNode;
 }
 
-/** Secondary floating action button, hidden until its FabCluster is active and closing the cluster once pressed; its visible label comes from `aria-label` or `title`. */
-export function Fab({
-  bottom,
-  children,
-  onClick,
-  ...rest
-}: Readonly<FabProps>) {
+/** Secondary floating action button, hidden until its FabCluster is active; its visible label comes from `aria-label` or `title`. */
+export function Fab({ bottom, children, ...rest }: Readonly<FabProps>) {
   const cluster = useFabCluster();
   const visible = cluster?.active ?? true;
   const label =
@@ -36,15 +31,7 @@ export function Fab({
           {label}
         </FabLabel>
       ) : null}
-      <StyledFab
-        $visible={visible}
-        tabIndex={visible ? 0 : -1}
-        onClick={(e) => {
-          onClick?.(e);
-          cluster?.close();
-        }}
-        {...rest}
-      >
+      <StyledFab $visible={visible} tabIndex={visible ? 0 : -1} {...rest}>
         {children}
       </StyledFab>
     </FabRow>

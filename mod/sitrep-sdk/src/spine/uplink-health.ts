@@ -61,8 +61,6 @@ interface RawUplinkEntry {
   contractMinor?: number | null;
   /** Whether `settings.<id>` carries this Uplink's host mod settings. */
   modSettings?: boolean;
-  /** Whether the Uplink is compiled into the Gonogo mod. Absent on a mod build predating the field. */
-  bundled?: boolean;
 }
 
 /** The raw `system.uplinks` wire payload. */
@@ -170,13 +168,6 @@ export interface UplinkHealthEntry {
    * report it.
    */
   modSettings: boolean;
-  /**
-   * Whether the Uplink is compiled into the Gonogo mod itself, a core feature
-   * rather than an Uplink the operator installed. `false` when the mod is too
-   * old to report it. Useful for keeping core features off a list of installed
-   * Uplinks. Used by the Uplinks settings in the Settings window.
-   */
-  bundled: boolean;
   /** How the Uplink says it is doing. */
   health: {
     /** Its state, as a name. The `system.uplinks` Topic carries it as a number, which is decoded here. */
@@ -253,7 +244,6 @@ export function deriveSystemUplinkHealth(
       contract: readContractVersion(entry.contractMajor, entry.contractMinor),
       ownedPrefixes: entry.ownedPrefixes ?? [],
       modSettings: entry.modSettings === true,
-      bundled: entry.bundled === true,
       health: {
         state: HEALTH_STATE_NAMES[entry.health.state] ?? "unavailable",
         detail: entry.health.detail ?? null,

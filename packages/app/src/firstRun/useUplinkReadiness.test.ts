@@ -27,7 +27,6 @@ function roster(
       contract: e.contract ?? null,
       ownedPrefixes: e.ownedPrefixes ?? [],
       modSettings: e.modSettings ?? false,
-      bundled: e.bundled ?? false,
       health: e.health ?? { state: "healthy", detail: null, facts: [] },
     })),
   };

@@ -219,7 +219,6 @@ const Dialog = styled.div`
   max-width: 560px;
   width: 90vw;
   max-height: 80vh;
-  max-height: 80dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;

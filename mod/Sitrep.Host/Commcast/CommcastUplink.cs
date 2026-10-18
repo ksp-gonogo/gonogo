@@ -130,7 +130,6 @@ namespace Sitrep.Host.Commcast
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = UplinkId,
-            Bundled = true,
             Version = "1.0.0",
             Channels = new List<ChannelDeclaration>
             {

@@ -354,9 +354,7 @@ const Dialog = styled.div<{ $width?: string }>`
   min-width: min(320px, 100vw - 16px);
   max-width: ${({ $width }) => $width ?? "560px"};
   width: 90vw;
-  /* The dvh line is the visible viewport on a phone, where vh is the height with the browser bars away. */
   max-height: 80vh;
-  max-height: 80dvh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
