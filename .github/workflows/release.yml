@@ -786,9 +786,12 @@ jobs:
   rc-channel:
     needs: [rc-plan, move-tags]
     if: ${{ !cancelled() && inputs.rc && !inputs.dry_run && needs.move-tags.result == 'success' }}
+    # GitHub checks every job of a called workflow against these grants before the
+    # run starts, including rc.yml's trampoline, which dispatches rc.yml and so
+    # needs actions: write even though it never runs when called from here.
     permissions:
       contents: write
-      actions: read
+      actions: write
       packages: write
     uses: ./.github/workflows/rc.yml
     with:
