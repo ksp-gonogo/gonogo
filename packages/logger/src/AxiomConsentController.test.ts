@@ -265,3 +265,62 @@ describe("AxiomConsentController backfill of delivered entries", () => {
     ]);
   });
 });
+
+describe("AxiomConsentController backfill across reloads and roles", () => {
+  it("does not ship entries restored from an earlier page load", () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => values.get(k) ?? null,
+      setItem: (k: string, v: string) => void values.set(k, v),
+      removeItem: (k: string) => void values.delete(k),
+    } as Storage;
+    const persist = { key: "reload-test", storage };
+    values.set(
+      "reload-test",
+      JSON.stringify([
+        {
+          level: "info",
+          message: "from the earlier load",
+          timestamp: "2026-10-18T00:00:00.000Z",
+          sessionId: "an-earlier-load",
+        },
+      ]),
+    );
+    const after = new ConsoleLogger({ enabled: true, persist });
+    after.info("from this load");
+    const transport = makeTransport();
+    new AxiomConsentController({
+      logger: after,
+      makeTransport: () => transport,
+    }).apply(true);
+
+    expect(transport.sent.flat().map((e) => e.message)).toEqual([
+      "from this load",
+    ]);
+    expect(after.getBuffer().map((e) => e.message)).toEqual([
+      "from the earlier load",
+      "from this load",
+    ]);
+  });
+
+  it("stamps the role onto backfilled entries logged before it was known", () => {
+    const logger = new ConsoleLogger({ enabled: true, persist: null });
+    const transport = makeTransport();
+    const controller = new AxiomConsentController({
+      logger,
+      makeTransport: () => transport,
+    });
+
+    logger.info("before the role");
+    logger.setIdentity({ role: "host", id: "ABCD" });
+    logger.info("after the role");
+    controller.apply(true);
+
+    expect(
+      transport.sent.flat().map((e) => [e.message, e.device?.role]),
+    ).toEqual([
+      ["before the role", "host"],
+      ["after the role", "host"],
+    ]);
+  });
+});

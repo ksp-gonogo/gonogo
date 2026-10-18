@@ -101,4 +101,20 @@ describe("station to host data channel", () => {
       svc.disconnect();
     }
   });
+
+  it("logs under the broker id it opened with, so the host's lines about it join", async () => {
+    vi.stubGlobal("RTCPeerConnection", RecordingPeerConnection);
+    vi.resetModules();
+    const { PeerClientService } = await import("../peer/PeerClientService");
+    const { logger } = await import("@ksp-gonogo/logger");
+
+    const svc = new PeerClientService();
+    svc.connect("ABCD");
+    try {
+      const peer = await svc.waitForPeer();
+      expect(logger.getIdentity().peerId).toBe(peer.id);
+    } finally {
+      svc.disconnect();
+    }
+  });
 });

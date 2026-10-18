@@ -20,7 +20,7 @@ import type { LogTransport } from "./types.js";
 export class AxiomConsentController {
   private readonly logger: Pick<
     ConsoleLogger,
-    "addTransport" | "removeTransport" | "snapshot" | "getRunId"
+    "addTransport" | "removeTransport" | "snapshot" | "getRunId" | "getIdentity"
   >;
   /** Lazily constructs the Axiom transport. Returns `null` when no token
    *  is configured, so a tokenless build never installs a sink. Called at
@@ -35,7 +35,11 @@ export class AxiomConsentController {
   constructor(opts: {
     logger: Pick<
       ConsoleLogger,
-      "addTransport" | "removeTransport" | "snapshot" | "getRunId"
+      | "addTransport"
+      | "removeTransport"
+      | "snapshot"
+      | "getRunId"
+      | "getIdentity"
     >;
     makeTransport: () => LogTransport | null;
   }) {
@@ -65,11 +69,17 @@ export class AxiomConsentController {
         this.backfilled = true;
         // The run is only known once consent is given, so everything logged before it joins the run being started.
         const runId = this.logger.getRunId();
+        // Likewise the role: lines logged before the screen knew what it was carry "unknown".
+        const { role } = this.logger.getIdentity();
         if (buffered.length > 0)
           transport.send(
-            runId === undefined
-              ? buffered
-              : buffered.map((e) => (e.runId ? e : { ...e, runId })),
+            buffered.map((e) => {
+              const stamped = { ...e };
+              if (runId !== undefined && !e.runId) stamped.runId = runId;
+              if (role !== "unknown" && e.device?.role === "unknown")
+                stamped.device = { ...e.device, role };
+              return stamped;
+            }),
           );
       }
       return;

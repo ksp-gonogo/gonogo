@@ -293,6 +293,7 @@ export class PeerClientService {
     // graceful leave (mid-session WS drop, screen lock, tab background).
     if (!this.fixedPeerIdOverride) {
       this.stationPeerId = getStationPeerId();
+      logger.setIdentity({ peerId: this.stationPeerId });
     }
     logger.info(
       `[PeerClient] opening peer as ${this.stationPeerId}` +

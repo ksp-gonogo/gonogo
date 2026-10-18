@@ -48,6 +48,7 @@ describe("AxiomTransport", () => {
       flushOnPageHide: false,
     });
     transport.send([entry("hello")]);
+    void transport.flush();
     expect(client.ingest).toHaveBeenCalledTimes(1);
     expect(client.ingest).toHaveBeenCalledWith("gonogo", [
       { _time: "2026-05-07T00:00:00.000Z", ...entry("hello") },
@@ -68,6 +69,7 @@ describe("AxiomTransport", () => {
         timestamp: "2026-10-18T09:00:01.000Z",
       },
     ]);
+    void transport.flush();
     expect(client.ingest.mock.calls[0]?.[1]).toEqual([
       expect.objectContaining({ _time: "2026-10-18T09:00:01.000Z" }),
     ]);
@@ -84,7 +86,7 @@ describe("AxiomTransport", () => {
     expect(client.ingest).not.toHaveBeenCalled();
   });
 
-  it("swallows ingest errors so logging never crashes the caller", () => {
+  it("swallows ingest errors so logging never crashes the caller", async () => {
     const client = makeClient();
     client.ingest.mockImplementation(() => {
       throw new Error("network down");
@@ -95,6 +97,40 @@ describe("AxiomTransport", () => {
       flushOnPageHide: false,
     });
     expect(() => transport.send([entry("boom")])).not.toThrow();
+    await expect(transport.flush()).resolves.toBeUndefined();
+  });
+
+  it("sends lines logged close together as one request", async () => {
+    vi.useFakeTimers();
+    try {
+      const client = makeClient();
+      transport = new AxiomTransport({
+        client,
+        dataset: "gonogo",
+        flushOnPageHide: false,
+        flushIntervalMs: 500,
+      });
+      for (let i = 0; i < 20; i++) transport.send([entry(`line ${i}`)]);
+      expect(client.ingest).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(500);
+      expect(client.ingest).toHaveBeenCalledTimes(1);
+      expect(client.ingest.mock.calls[0]?.[1]).toHaveLength(20);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("sends at once when the queue reaches the size cap", () => {
+    const client = makeClient();
+    transport = new AxiomTransport({
+      client,
+      dataset: "gonogo",
+      flushOnPageHide: false,
+    });
+    transport.send(Array.from({ length: 1200 }, (_, i) => entry(`l${i}`)));
+    expect(
+      client.ingest.mock.calls.map((c) => (c[1] as unknown[]).length),
+    ).toEqual([500, 500, 200]);
   });
 
   it("flush() drains the underlying client", async () => {
@@ -167,7 +203,7 @@ describe("AxiomTransport pagehide flushing", () => {
     globalThis.removeEventListener = originalRemove;
   });
 
-  it("flushes the client when the browser fires pagehide", async () => {
+  it("sends what is queued and flushes the client when the browser fires pagehide", async () => {
     const client = makeClient();
     const transport = new AxiomTransport({
       client,
@@ -175,8 +211,10 @@ describe("AxiomTransport pagehide flushing", () => {
       flushOnPageHide: true,
     });
     expect(listeners).toHaveLength(1);
+    transport.send([entry("last words")]);
     listeners[0]();
     await Promise.resolve();
+    expect(client.ingest).toHaveBeenCalledTimes(1);
     expect(client.flush).toHaveBeenCalledTimes(1);
     transport.dispose();
     expect(listeners).toHaveLength(0);
@@ -202,6 +240,7 @@ describe("AxiomTransport scrubbing", () => {
       flushOnPageHide: false,
     });
     transport.send([input]);
+    void transport.flush();
     const events = client.ingest.mock.calls[0]?.[1] as readonly LogEntry[];
     return events[0] as LogEntry;
   }
@@ -256,6 +295,15 @@ describe("AxiomTransport scrubbing", () => {
       /XK3F|203\.0\.113|198\.51\.100\.7|deck\.local|0b9d2c4e|example\.com|fe80|\/stream|a\/b/,
     );
     expect(sent.message).toContain("[PeerHost] open:");
+  });
+
+  it("masks a station's device.peerId as the same tag its text mentions carry", () => {
+    const a = sentFrom({
+      ...entry(`[PeerHost] incoming connection from ${SENSITIVE.peerId}`),
+      device: { role: "station", peerId: SENSITIVE.peerId },
+    });
+    const fromText = /<peer:[0-9a-f]{8}>/.exec(a.message)?.[0];
+    expect(a.device?.peerId).toBe(fromText);
   });
 
   it("keeps the same peer correlatable across entries and leaves clock times alone", () => {

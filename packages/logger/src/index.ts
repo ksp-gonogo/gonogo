@@ -206,13 +206,17 @@ export class ConsoleLogger implements Logger {
   }
 
   /**
-   * Ring buffer entries (oldest first) that no one has shipped yet: the
-   * buffer minus anything passed to {@link markDelivered}. Used by
+   * Ring buffer entries (oldest first) from this page load that no one has
+   * shipped yet: the buffer minus anything passed to {@link markDelivered}
+   * and anything restored from an earlier load, which stays in the buffer for
+   * export and bug reports but is never sent on. Used by
    * {@link AxiomConsentController} to backfill the pre-consent history to a
    * freshly-installed transport.
    */
   snapshot(): readonly LogEntry[] {
-    return this.buffer.snapshot().filter((e) => !e.delivered);
+    return this.buffer
+      .snapshot()
+      .filter((e) => !e.delivered && e.sessionId === this.sessionId);
   }
 
   /**

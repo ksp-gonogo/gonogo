@@ -25,6 +25,7 @@ const IPV6_PATTERN =
   /\b(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}\b|(?<![\w:])(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,6})?::(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,6})?(?![\w:])/gi;
 const STATION_PEER_PATTERN =
   /\bstation-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}(?:-[\w]+)?/gi;
+const STATION_PEER_EXACT = new RegExp(`^${STATION_PEER_PATTERN.source}$`, "i");
 const IDENTIFIER_ASSIGNMENT_PATTERN =
   /\b(shareCode|peerId|stationPeerId|hostPeerId|stationKey|host|id)=([^\s,)]+)/g;
 
@@ -36,6 +37,11 @@ function tagFor(value: string): string {
     hash = Math.imul(hash, 0x01000193);
   }
   return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+/** A station's broker id masks as it does inside message text, so the field and every line naming the peer carry the same tag. */
+function isStationPeerId(value: string): boolean {
+  return STATION_PEER_EXACT.test(value);
 }
 
 function mask(kind: string, value: unknown): string {
@@ -146,7 +152,8 @@ export function scrubEntry(entry: LogEntry): LogEntry {
     scrubbed.device = {
       ...entry.device,
       id: id && mask("id", id),
-      peerId: peerId && mask("peerid", peerId),
+      peerId:
+        peerId && mask(isStationPeerId(peerId) ? "peer" : "peerid", peerId),
       hostPeerId: hostPeerId && mask("hostpeerid", hostPeerId),
     };
   }

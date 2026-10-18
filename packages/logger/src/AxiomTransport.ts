@@ -33,6 +33,8 @@ export interface AxiomTransportOptions {
    * Tests pass `false` to keep behaviour deterministic.
    */
   flushOnPageHide?: boolean;
+  /** How long lines are held to go out as one request. Defaults to 1000. */
+  flushIntervalMs?: number;
   /**
    * Called when the SDK fails to deliver a batch. Only used when the
    * transport builds the client from `token`. Omitted, failures are silent.
@@ -56,6 +58,9 @@ export class AxiomTransport implements LogTransport {
   private static readonly MAX_BATCH = 500;
   private readonly client: AxiomIngestClient;
   private readonly dataset: string;
+  private queue: object[] = [];
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  private readonly flushIntervalMs: number;
   private pageHideHandler: (() => void) | null = null;
 
   constructor(options: AxiomTransportOptions) {
@@ -64,6 +69,7 @@ export class AxiomTransport implements LogTransport {
     }
 
     this.dataset = options.dataset;
+    this.flushIntervalMs = options.flushIntervalMs ?? 1000;
     this.client = AxiomTransport.resolveClient(options);
 
     const wantPageHide =
@@ -105,22 +111,21 @@ export class AxiomTransport implements LogTransport {
        * event is filed at the moment it arrived, which puts a backfill of the
        * whole pre-consent buffer at the moment analytics was switched on.
        */
-      const entries = unscrubbed.map((e) => ({
-        _time: e.timestamp,
-        ...scrubEntry(e),
-      }));
-      // Chunk large batches so a one-shot backfill of the whole ring buffer
-      // (up to 5000 entries) can't exceed Axiom's per-request limits. Steady
-      // -state sends are far smaller than the chunk size and pass through in
-      // a single ingest call.
-      if (entries.length <= AxiomTransport.MAX_BATCH) {
-        this.client.ingest(this.dataset, entries);
+      for (const e of unscrubbed) {
+        this.queue.push({ _time: e.timestamp, ...scrubEntry(e) });
+      }
+      if (this.queue.length >= AxiomTransport.MAX_BATCH) {
+        void this.flush();
         return;
       }
-      for (let i = 0; i < entries.length; i += AxiomTransport.MAX_BATCH) {
-        const chunk = entries.slice(i, i + AxiomTransport.MAX_BATCH);
-        this.client.ingest(this.dataset, chunk);
-      }
+      /*
+       * The SDK sends at once whenever its last request is over a second old,
+       * so handing it each line as it is logged makes one request per line.
+       * Holding lines here and handing them over together makes one.
+       */
+      this.timer ??= setTimeout(() => {
+        void this.flush();
+      }, this.flushIntervalMs);
     } catch {
       // ignore: never let a logging path throw
     }
@@ -128,6 +133,18 @@ export class AxiomTransport implements LogTransport {
 
   async flush(): Promise<void> {
     try {
+      if (this.timer !== null) {
+        clearTimeout(this.timer);
+        this.timer = null;
+      }
+      const queued = this.queue;
+      this.queue = [];
+      for (let i = 0; i < queued.length; i += AxiomTransport.MAX_BATCH) {
+        this.client.ingest(
+          this.dataset,
+          queued.slice(i, i + AxiomTransport.MAX_BATCH),
+        );
+      }
       await this.client.flush();
     } catch {
       // ignore
@@ -143,5 +160,7 @@ export class AxiomTransport implements LogTransport {
       globalThis.removeEventListener("pagehide", this.pageHideHandler);
     }
     this.pageHideHandler = null;
+    if (this.timer !== null) clearTimeout(this.timer);
+    this.timer = null;
   }
 }
