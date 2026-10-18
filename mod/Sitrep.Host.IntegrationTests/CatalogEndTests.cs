@@ -189,35 +189,6 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(CatalogCrew.Lost, Crew(seated.FarView));
         }
 
-        private static int? Count(CentreView view, string field)
-        {
-            var value = view.Vessel(Relay)!.Value.GetProperty(field);
-            return value.ValueKind == JsonValueKind.Null ? null : value.GetInt32();
-        }
-
-        /// <summary>The roster's own word for the crew of a terminated craft reaches the catalog, whichever way the centre learned of the end.</summary>
-        [Fact]
-        public async Task ACraftTheStationEndedListsWhatTheRosterSaysOfItsCrew()
-        {
-            await using var seated = await SeatedAsync(crew: 3);
-            seated.World.Game.DestroyRelay(CraftEnd.Terminated, new CrewAtEnd(dead: 1, missing: 2));
-            await seated.TickAsync(T0, T0 + 2, T0 + 303, T0 + 304, T0 + 305);
-
-            Assert.Equal(1, Count(seated.FarView, "crewDead"));
-            Assert.Equal(2, Count(seated.FarView, "crewMissing"));
-        }
-
-        [Fact]
-        public async Task ADestroyedCraftListsNoCrewStatusFromTheRoster()
-        {
-            await using var seated = await SeatedAsync(crew: 3);
-            seated.World.Game.DestroyRelay(CraftEnd.Destroyed, new CrewAtEnd(dead: 3, missing: 0));
-            await seated.TickAsync(T0, T0 + 2, T0 + 303, T0 + 304, T0 + 305);
-
-            Assert.Null(Count(seated.FarView, "crewDead"));
-            Assert.Null(Count(seated.FarView, "crewMissing"));
-        }
-
         [Fact]
         public async Task ADestroyedCraftIsListedAsDestroyed()
         {

@@ -23,12 +23,12 @@ namespace Gonogo.KSP
 
         internal static void Note(string vesselId, double ut) => Noted[vesselId] = ut;
 
-        /// <summary>
-        /// Whether a destruction of <paramref name="vesselId"/> at <paramref name="ut"/> is the termination the player made.
-        /// Reading does not consume the note, so every detector answers the same whichever reads first.
-        /// </summary>
+        /// <summary>Whether a destruction of <paramref name="vesselId"/> at <paramref name="ut"/> is the termination the player made.</summary>
         internal static bool Covers(string vesselId, double ut) =>
             Noted.TryGetValue(vesselId, out var at) && Math.Abs(ut - at) <= WindowUt;
+
+        /// <summary>Forgets <paramref name="vesselId"/>'s termination, once its destruction has been told apart.</summary>
+        internal static void Forget(string vesselId) => Noted.Remove(vesselId);
 
         internal static void Clear() => Noted.Clear();
     }

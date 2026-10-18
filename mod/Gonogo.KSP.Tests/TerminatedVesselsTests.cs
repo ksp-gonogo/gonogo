@@ -34,15 +34,12 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
-        public void EveryReaderOfADestructionGetsTheSameAnswerWhicheverReadsFirst()
+        public void AForgottenTerminationCoversNothing()
         {
             TerminatedVessels.Note("v", 500.0);
+            TerminatedVessels.Forget("v");
 
-            var first = TerminatedVessels.Covers("v", 500.0);
-            var second = TerminatedVessels.Covers("v", 500.0);
-
-            Assert.True(first);
-            Assert.True(second);
+            Assert.False(TerminatedVessels.Covers("v", 500.0));
         }
     }
 }

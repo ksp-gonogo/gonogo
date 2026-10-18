@@ -162,9 +162,6 @@ public class PendingCreditLedgerTests
     private static PendingCreditRow HeldRow(string originVesselId, double heldSinceUt = 500) =>
         PendingCreditRow.Held(DelayedCurrency.Reputation, -10, heldSinceUt, originVesselId, "crew lost out of contact");
 
-    private static PendingCreditRow HeldFundsRow(string originVesselId) =>
-        PendingCreditRow.Held(DelayedCurrency.Funds, -10, 500, originVesselId, "funds from a craft out of contact");
-
     [Fact]
     public void A_held_row_never_matures_by_time_alone()
     {
@@ -257,10 +254,10 @@ public class PendingCreditLedgerTests
     }
 
     [Fact]
-    public void A_change_that_landed_on_a_declaration_is_refunded_by_what_the_balance_took_once_it_is_withdrawn()
+    public void A_penalty_that_landed_on_a_declaration_is_refunded_by_what_the_balance_took_once_it_is_withdrawn()
     {
         var ledger = new PendingCreditLedger();
-        ledger.Enqueue(HeldFundsRow("lost"));
+        ledger.Enqueue(HeldRow("lost"));
         ledger.ReleaseHeld(1000, _ => (HeldOutcome.Lands, 2));
         var row = Assert.Single(ledger.PopMatured(1000));
         Assert.Equal(2, row.LostSeq);
@@ -276,35 +273,10 @@ public class PendingCreditLedgerTests
     }
 
     [Fact]
-    public void A_crew_death_penalty_is_never_refunded_when_the_declaration_is_withdrawn()
-    {
-        var ledger = new PendingCreditLedger();
-        ledger.Enqueue(HeldRow("lost"));
-        ledger.ReleaseHeld(1000, _ => (HeldOutcome.Lands, 2));
-        ledger.NoteApplied(Assert.Single(ledger.PopMatured(1000)), -18.7);
-
-        Assert.Empty(ledger.SettleLanded(_ => ForfeitFate.Restore));
-        Assert.Empty(ledger.LandedOnLost);
-    }
-
-    [Fact]
-    public void A_crew_death_penalty_not_yet_replayed_is_dropped_from_the_record_on_withdrawal_and_still_replays()
-    {
-        var ledger = new PendingCreditLedger();
-        ledger.Enqueue(HeldRow("lost"));
-        ledger.ReleaseHeld(1000, _ => (HeldOutcome.Lands, 2));
-
-        Assert.Empty(ledger.SettleLanded(_ => ForfeitFate.Restore));
-
-        Assert.Empty(ledger.LandedOnLost);
-        Assert.Single(ledger.PopMatured(1000));
-    }
-
-    [Fact]
     public void A_landed_penalty_not_yet_replayed_is_not_refunded_before_it_is_applied()
     {
         var ledger = new PendingCreditLedger();
-        ledger.Enqueue(HeldFundsRow("lost"));
+        ledger.Enqueue(HeldRow("lost"));
         ledger.ReleaseHeld(1000, _ => (HeldOutcome.Lands, 2));
 
         Assert.Empty(ledger.SettleLanded(_ => ForfeitFate.Restore));

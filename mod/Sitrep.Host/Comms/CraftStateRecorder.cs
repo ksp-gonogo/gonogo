@@ -102,11 +102,9 @@ namespace Sitrep.Host.Comms
                 IReadOnlyList<Sighted>? sightings = null,
                 IReadOnlyList<string>? known = null,
                 IReadOnlyDictionary<string, double>? keeps = null,
-                IReadOnlyDictionary<string, CraftEnd>? ends = null,
-                IReadOnlyDictionary<string, CrewAtEnd>? endCrews = null)
+                IReadOnlyDictionary<string, CraftEnd>? ends = null)
             {
                 Ends = ends ?? new Dictionary<string, CraftEnd>();
-                EndCrews = endCrews ?? new Dictionary<string, CrewAtEnd>();
                 Keeps = keeps ?? new Dictionary<string, double>();
                 Ut = ut;
                 Present = present;
@@ -139,12 +137,6 @@ namespace Sitrep.Host.Comms
             /// <summary>How the gone craft left the game: <see cref="CraftEnd.Absorbed"/> where the game said nothing.</summary>
             public CraftEnd EndOf(string vesselId) => Ends.TryGetValue(vesselId, out var end) ? end : CraftEnd.Absorbed;
 
-            /// <summary>What became of the crew of each of <see cref="Gone"/> the player ended from the Tracking Station, by bare guid, where the game said.</summary>
-            public IReadOnlyDictionary<string, CrewAtEnd> EndCrews { get; }
-
-            /// <summary>What became of the gone craft's crew, or null where none was read.</summary>
-            public CrewAtEnd? EndCrewOf(string vesselId) => EndCrews.TryGetValue(vesselId, out var crew) ? crew : null;
-
             /// <summary>
             /// Gone objects, by bare guid, that some centre is still owed the sight
             /// of the going of, each with the UT not to let it go before; negative
@@ -174,9 +166,6 @@ namespace Sitrep.Host.Comms
         /// <summary>How each object the game has said is leaving left, by node id, with when it said so.</summary>
         private readonly Dictionary<string, (CraftEnd End, double Ut)> _ends = new Dictionary<string, (CraftEnd, double)>(StringComparer.Ordinal);
 
-        /// <summary>What became of the crew of each object the player ended from the Tracking Station, by node id; forgotten with <see cref="_ends"/>.</summary>
-        private readonly Dictionary<string, CrewAtEnd> _endCrews = new Dictionary<string, CrewAtEnd>(StringComparer.Ordinal);
-
         /// <summary>The centres the last pass measured to. A centre that is new has seen nothing, so everything is seen again for it.</summary>
         private HashSet<string> _sightCentres = new HashSet<string>(StringComparer.Ordinal);
         private int _readAll;
@@ -204,7 +193,6 @@ namespace Sitrep.Host.Comms
                 _goneUnseenBy.Clear();
                 _centreSaid.Clear();
                 _ends.Clear();
-                _endCrews.Clear();
             }
             NoteEnds(look, ut);
 
@@ -291,7 +279,7 @@ namespace Sitrep.Host.Comms
                     IReadOnlyDictionary<string, double>? light = null;
                     if (_lastSight != null && _lastSight.TryGetValue(id, out light) && light.Count > 0)
                     {
-                        sightings.Add(new Sighted(CraftSighting.Gone(id, ut, EndOf(id), crew: EndCrewOf(id)), light));
+                        sightings.Add(new Sighted(CraftSighting.Gone(id, ut, EndOf(id)), light));
                     }
                     var unseenBy = new HashSet<string>(CentresOf(look), StringComparer.Ordinal);
                     if (light != null)
@@ -310,7 +298,6 @@ namespace Sitrep.Host.Comms
 
             var gone = new List<string>();
             var ends = new Dictionary<string, CraftEnd>(StringComparer.Ordinal);
-            var endCrews = new Dictionary<string, CrewAtEnd>(StringComparer.Ordinal);
             foreach (var id in new List<string>(_read.Keys))
             {
                 // Still in the game with no radio to read this pass is not gone.
@@ -319,15 +306,11 @@ namespace Sitrep.Host.Comms
                     _read.Remove(id);
                     gone.Add(GuidOf(id));
                     ends[GuidOf(id)] = EndOf(id);
-                    if (EndCrewOf(id) is CrewAtEnd crew)
-                    {
-                        endCrews[GuidOf(id)] = crew;
-                    }
                 }
             }
             ForgetEnds(ut);
             StatesRecordedBudget.Record(states.Count + sightings.Count, ut);
-            return new Batch(ut, present, states, gone, sightings, known, keeps, ends, endCrews);
+            return new Batch(ut, present, states, gone, sightings, known, keeps, ends);
         }
 
         /// <summary>
@@ -350,19 +333,9 @@ namespace Sitrep.Host.Comms
                 }
                 _ends[id] = (end.Value, ut);
             }
-            if (look.EndCrews == null)
-            {
-                return;
-            }
-            foreach (var crew in look.EndCrews)
-            {
-                _endCrews[VesselPrefix + crew.Key] = crew.Value;
-            }
         }
 
         private CraftEnd EndOf(string id) => _ends.TryGetValue(id, out var end) ? end.End : CraftEnd.Absorbed;
-
-        private CrewAtEnd? EndCrewOf(string id) => _endCrews.TryGetValue(id, out var crew) ? crew : null;
 
         /// <summary>Forgets how an object left once no centre is still owed the sight of its going.</summary>
         private void ForgetEnds(double ut)
@@ -372,7 +345,6 @@ namespace Sitrep.Host.Comms
                 if (ut - _ends[id].Ut > CraftSighting.GoneSightHorizonSeconds && !_goneUnseenBy.ContainsKey(id))
                 {
                     _ends.Remove(id);
-                    _endCrews.Remove(id);
                 }
             }
         }
@@ -443,7 +415,7 @@ namespace Sitrep.Host.Comms
                     }
                     if (nowInView.Count > 0)
                     {
-                        sightings.Add(new Sighted(CraftSighting.Gone(id, ut, EndOf(id), crew: EndCrewOf(id)), nowInView));
+                        sightings.Add(new Sighted(CraftSighting.Gone(id, ut, EndOf(id)), nowInView));
                     }
                     if (unseenBy.Count > 0)
                     {
@@ -723,7 +695,7 @@ namespace Sitrep.Host.Comms
         {
             foreach (var vesselId in batch.Gone)
             {
-                host.RecordCraftGone(vesselId, batch.Ut, batch.EndOf(vesselId), batch.EndCrewOf(vesselId));
+                host.RecordCraftGone(vesselId, batch.Ut, batch.EndOf(vesselId));
             }
             foreach (var vesselId in batch.Present)
             {

@@ -517,7 +517,7 @@ public enum CatalogEnd
     /// <summary>The craft was destroyed.</summary>
     Destroyed,
 
-    /// <summary>The player ended the craft from the Tracking Station. Its crew leave the roster as missing, back after the game's respawn period, and no reputation is charged: see <see cref="CatalogEntry.CrewDead"/> and <see cref="CatalogEntry.CrewMissing"/>.</summary>
+    /// <summary>The player ended the craft from the Tracking Station. Its crew went with it and no reputation was charged.</summary>
     Terminated,
 }
 
@@ -763,23 +763,6 @@ public class CatalogEntry
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public CatalogEnd? EndKind { get; set; }
-
-    /// <summary>
-    /// For a craft the player ended from the Tracking Station, how many of its
-    /// crew the game's roster marks dead after the end. Null for any other end
-    /// and when the roster was not read.
-    /// </summary>
-    [SitrepUnit(Units.Count)]
-    public int? CrewDead { get; set; }
-
-    /// <summary>
-    /// For a craft the player ended from the Tracking Station, how many of its
-    /// crew the game's roster marks missing after the end: they return to the
-    /// roster when the game's respawn period for them ends. Null for any other
-    /// end and when the roster was not read.
-    /// </summary>
-    [SitrepUnit(Units.Count)]
-    public int? CrewMissing { get; set; }
 }
 
 /// <summary>

@@ -244,19 +244,16 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>The relay is gone from the game, as the game says: destroyed unless told otherwise, or recovered, or with no word at all as when docked into another craft.</summary>
-        /// <param name="crew">What the game's roster says of the relay's crew after the end, for one the player terminated.</param>
-        public void DestroyRelay(CraftEnd? how = CraftEnd.Destroyed, CrewAtEnd? crew = null)
+        public void DestroyRelay(CraftEnd? how = CraftEnd.Destroyed)
         {
             lock (_gate)
             {
                 _relayExists = false;
                 _relayEnd = how;
-                _relayEndCrew = crew;
             }
         }
 
         private CraftEnd? _relayEnd;
-        private CrewAtEnd? _relayEndCrew;
 
         public IReadOnlyList<string> Centres() => RelayIsEngineCentre && RelayExists ? new[] { Home, Far, Relay } : new[] { Home, Far };
 
@@ -531,22 +528,8 @@ namespace Sitrep.Host.IntegrationTests
             }
             return new ContactGameLook(nodes, Bodies, Kerbin, (_, index) => index == Kerbin ? KerbinRadius : 0.0)
             {
-                Radio = Radio, Roster = roster, Sight = Sight(), GoneSight = GoneSight(), Vessels = vessels, Ends = TakeEnds(), EndCrews = TakeEndCrews(),
+                Radio = Radio, Roster = roster, Sight = Sight(), GoneSight = GoneSight(), Vessels = vessels, Ends = TakeEnds(),
             };
-        }
-
-        private IReadOnlyDictionary<string, CrewAtEnd>? TakeEndCrews()
-        {
-            lock (_gate)
-            {
-                if (_relayEndCrew == null)
-                {
-                    return null;
-                }
-                var crews = new Dictionary<string, CrewAtEnd> { [RelayGuid] = _relayEndCrew };
-                _relayEndCrew = null;
-                return crews;
-            }
         }
 
         private IReadOnlyDictionary<string, CraftEnd>? TakeEnds()

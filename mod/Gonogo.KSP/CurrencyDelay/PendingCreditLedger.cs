@@ -174,8 +174,7 @@ namespace Gonogo.KSP.CurrencyDelay
         /// Settles each change that landed on a Lost declaration: one <paramref name="fate"/>
         /// restores, and that has been replayed, is removed and returned for the caller to
         /// reverse; one it discards is removed; one it keeps, or restores before it was replayed,
-        /// stays. A reputation change is a crew death, which stands whatever becomes of the
-        /// declaration, so a restore of one removes it without a refund.
+        /// stays.
         /// </summary>
         public List<LandedOnLost> SettleLanded(Func<LandedOnLost, ForfeitFate> fate)
         {
@@ -184,10 +183,6 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 var landed = _landedOnLost[i];
                 var decided = fate(landed);
-                if (decided == ForfeitFate.Restore && landed.Currency == DelayedCurrency.Reputation)
-                {
-                    decided = ForfeitFate.Discard;
-                }
                 var refunded = decided == ForfeitFate.Restore && landed.AppliedDelta != null;
                 if (decided != ForfeitFate.Discard && !refunded)
                 {

@@ -48,8 +48,6 @@ export type FleetContact = Pick<
   | "endSource"
   | "endedUt"
   | "endKind"
-  | "crewDead"
-  | "crewMissing"
 >;
 
 /** A craft this centre knows was destroyed, which stays listed until the player dismisses it and is no longer part of the fleet. */
@@ -159,8 +157,6 @@ export function useFleet(): {
             endSource: v.endSource,
             endedUt: v.endedUt,
             endKind: v.endKind,
-            crewDead: v.crewDead,
-            crewMissing: v.crewMissing,
           },
         })),
     [system, nameByIndex],

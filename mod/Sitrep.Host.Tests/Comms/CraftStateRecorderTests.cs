@@ -479,22 +479,6 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Contains("gone b@2 Destroyed", host.Calls);
         }
 
-        [Fact]
-        public void TheRostersWordOfATerminatedCrewIsRecordedWithTheEndAndOnlyForThatCraft()
-        {
-            var recorder = new CraftStateRecorder();
-            recorder.Capture(Look(Craft("a", Orbit(700_000.0)), Craft("b", Orbit(800_000.0))), 0.0, null);
-            var ending = Look(Craft("a", Orbit(700_000.0)), Craft("b", Orbit(800_000.0)));
-            ending.Ends = new Dictionary<string, CraftEnd> { ["b"] = CraftEnd.Terminated };
-            ending.EndCrews = new Dictionary<string, CrewAtEnd> { ["b"] = new CrewAtEnd(1, 2) };
-            recorder.Capture(ending, 1.0, null);
-            var host = new RecordingHost();
-
-            CraftStateRecorder.Record(recorder.Capture(Look(Craft("a", Orbit(700_000.0))), 2.0, null), host);
-
-            Assert.Contains("gone b@2 Terminated dead 1 missing 2", host.Calls);
-        }
-
         /// <summary>The game removes a recovered craft after recovering it, and reports that removal as its destruction.</summary>
         [Fact]
         public void ARecoveryIsNotOverwrittenByTheDestructionThatFollowsIt()
@@ -816,8 +800,7 @@ namespace Sitrep.Host.Tests.Comms
 
             public void NoteCraftPresent(string vesselId, double ut) => Calls.Add("present " + vesselId);
 
-            public void RecordCraftGone(string vesselId, double ut, CraftEnd end, CrewAtEnd? crew = null) =>
-                Calls.Add("gone " + vesselId + "@" + ut + (end == CraftEnd.Absorbed ? "" : " " + end) + (crew == null ? "" : " dead " + crew.Dead + " missing " + crew.Missing));
+            public void RecordCraftGone(string vesselId, double ut, CraftEnd end) => Calls.Add("gone " + vesselId + "@" + ut + (end == CraftEnd.Absorbed ? "" : " " + end));
 
             public System.Action HearCraftState(string vesselId, string centre, System.Action<CraftState> heard) => () => { };
 
