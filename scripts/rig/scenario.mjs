@@ -15,7 +15,7 @@
  *   {
  *     name: "launch-and-stage",
  *     topics: ["vessel.flight", ...],      // held and snapshotted at every capture
- *     dashboards: { Flight: {items, layouts}, SpaceCenter: ... },  // seeded per scene
+ *     dashboards: { Flight: {items, layout}, SpaceCenter: ... },  // seeded per scene
  *     steps: [ ... ],
  *   }
  *

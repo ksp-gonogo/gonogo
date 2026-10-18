@@ -1,23 +1,19 @@
 import { useSizeDeltaFor } from "@ksp-gonogo/ui-kit";
-import type { ComponentProps } from "react";
-import { useMemo, useRef } from "react";
-import type { Layout } from "react-grid-layout";
-import { Responsive, WidthProvider } from "react-grid-layout";
+import type { RefObject } from "react";
+import { useMemo } from "react";
+import type { LayoutItem } from "react-grid-layout";
+import ReactGridLayout, {
+  useContainerWidth,
+  verticalCompactor,
+} from "react-grid-layout";
 import styled from "styled-components";
 import "react-grid-layout/css/styles.css";
 import "../../styles/react-resizable.css";
 import { GridItemContent } from "./GridItemContent";
 import type { DashboardProps } from "./index";
-import {
-  applyMinSizes,
-  BREAKPOINTS,
-  COLS,
-  filterLayouts,
-} from "./layoutNormalization";
+import { applyMinSizes, COLS } from "./layoutNormalization";
 import { highlightStyle } from "./shared";
 import { useScrollIntoViewOnAdd } from "./useScrollIntoViewOnAdd";
-
-const ResponsiveGridLayout = WidthProvider(Responsive);
 
 /**
  * The gap between tiles, the same on both axes so it reads the same at rest.
@@ -34,110 +30,108 @@ const GRID_GAP = 20;
  */
 const ROW_PITCH = 33;
 
-// RGL's resize-handle type isn't a named export, so derive the array element type straight from the component's own prop signature instead.
-type ResizeHandles = NonNullable<
-  ComponentProps<typeof Responsive>["resizeHandles"]
->;
+/**
+ * The grid width, in px, past which rows grow. Up to it a row keeps the 33px
+ * pitch whatever the width; beyond it the row pitch grows in step with the
+ * column pitch, so a tile keeps the shape it had at this width rather than
+ * stretching sideways on a very wide screen.
+ */
+const WIDE_GRID_FROM = 1920;
+
+/** The row height for a grid `width` px wide. */
+export function rowHeightFor(width: number): number {
+  if (width <= WIDE_GRID_FROM) return ROW_PITCH - GRID_GAP;
+  // A column's pitch is (width + gap) / COLS, so the pitch ratio is the ratio of (width + gap).
+  const scale = (width + GRID_GAP) / (WIDE_GRID_FROM + GRID_GAP);
+  return Math.round(ROW_PITCH * scale) - GRID_GAP;
+}
 
 // Enable resize from every edge + corner so the cursor changes on approach
 // like an OS window. Module-level const keeps the array reference stable
 // across renders (an inline literal would re-allocate each time).
-const RESIZE_HANDLES: ResizeHandles = [
-  "s",
-  "e",
-  "se",
-  "sw",
-  "w",
-  "n",
-  "ne",
-  "nw",
-];
+const RESIZE_HANDLES = ["s", "e", "se", "sw", "w", "n", "ne", "nw"] as const;
 
 export function GridDashboard({
   items,
-  layouts,
-  currentLayouts,
-  breakpoint,
+  layout,
   onLayoutChange,
-  onBreakpointChange,
   updateItemConfig,
   updateItemMappings,
   removeItem,
   lastAddedId,
   clearLastAdded,
 }: Readonly<DashboardProps>) {
-  // Defensive: persisted layouts may carry breakpoint keys that are not in
-  // COLS (e.g. `xxxs`). Strip anything RGL wouldn't recognise
-  // before handing the map off so it doesn't warn on every render. Then
-  // inject minW/minH + clamp from each item's registered minSize.
+  // Clamp each tile to its widget's minSize and maxSize before the layout reaches the grid.
   const sizeDeltaFor = useSizeDeltaFor();
-  const filteredLayouts = useMemo(
-    () => applyMinSizes(filterLayouts(layouts), items, sizeDeltaFor),
-    [layouts, items, sizeDeltaFor],
+  const sizedLayout = useMemo(
+    () => applyMinSizes(layout, items, sizeDeltaFor),
+    [layout, items, sizeDeltaFor],
   );
 
-  const gridRef = useRef<HTMLDivElement | null>(null);
-  useScrollIntoViewOnAdd(gridRef, lastAddedId, clearLastAdded);
+  const { width, containerRef } = useContainerWidth();
+  useScrollIntoViewOnAdd(containerRef, lastAddedId, clearLastAdded);
+
+  // Build a single index of layout-by-id once, rather than O(items) .find() per item: pays off as the dashboard fills up.
+  const sizeById = useMemo(() => {
+    const byId = new Map<string, LayoutItem>();
+    for (const l of sizedLayout) byId.set(l.i, l);
+    return byId;
+  }, [sizedLayout]);
 
   return (
-    <div ref={gridRef}>
-      <ResponsiveGridLayout
+    <div ref={containerRef as RefObject<HTMLDivElement>}>
+      <ReactGridLayout
         className="dashboard-grid"
-        layouts={filteredLayouts}
-        breakpoints={BREAKPOINTS}
-        cols={COLS}
-        rowHeight={ROW_PITCH - GRID_GAP}
-        /* The desktop dashboard gutter, written as a react-grid-layout JS prop
-           so no CSS token pass can reach it. The mobile branch has no grab bar
-           and keeps the narrower --gutter-dashboard. The top padding is room
-           for the first row's grab bar. */
-        margin={[GRID_GAP, GRID_GAP]}
-        containerPadding={[0, GRID_GAP]}
-        draggableHandle=".drag-handle"
-        /* Exclude interactive chrome so touch drag-start doesn't swallow button taps. */
-        draggableCancel=".widget-action-buttons"
-        resizeHandles={RESIZE_HANDLES}
-        // Vertical compaction: widgets float up to fill gaps and neighbours
-        // reflow out of the way when one is moved or resized into them. This
-        // is the natural model, free placement (`compactType={null}` plus
-        // collision prevention) left widgets unable to move when hemmed in by
-        // others. New widgets are dropped at the bottom (see `addItem`) and
-        // compaction pulls them up into the first available slot.
-        compactType="vertical"
+        width={width}
+        layout={sizedLayout}
+        gridConfig={{
+          cols: COLS,
+          rowHeight: rowHeightFor(width),
+          /* The desktop dashboard gutter, written as a react-grid-layout JS
+             prop so no CSS token pass can reach it. The mobile branch has no
+             grab bar and keeps the narrower --gutter-dashboard. The top
+             padding is room for the first row's grab bar. */
+          margin: [GRID_GAP, GRID_GAP],
+          containerPadding: [0, GRID_GAP],
+        }}
+        dragConfig={{
+          handle: ".drag-handle",
+          /* Exclude interactive chrome so touch drag-start doesn't swallow button taps. */
+          cancel: ".widget-action-buttons",
+        }}
+        resizeConfig={{ handles: RESIZE_HANDLES }}
+        /* Vertical compaction: tiles float up to fill gaps, and neighbours
+           move out of the way when a tile is moved or resized into them.
+           Without it a tile hemmed in by others cannot move. A new tile is
+           dropped at the bottom (see `addItem`) and floats up into the first
+           free slot. */
+        compactor={verticalCompactor}
         onLayoutChange={onLayoutChange}
-        onBreakpointChange={onBreakpointChange}
       >
-        {(() => {
-          // Build a single index of layout-by-id once, rather than O(items) .find() per item: pays off as the dashboard fills up.
-          const bpLayouts =
-            currentLayouts[breakpoint] ?? currentLayouts.lg ?? [];
-          const sizeById = new Map<string, Layout>();
-          for (const l of bpLayouts) sizeById.set(l.i, l);
-          return items.map((item) => {
-            const entry = sizeById.get(item.i);
-            const highlighted = lastAddedId === item.i;
-            return (
-              <GridCell
-                key={item.i}
-                data-i={item.i}
-                data-highlight={highlighted ? "true" : undefined}
-                onAnimationEnd={
-                  highlighted ? () => clearLastAdded?.(item.i) : undefined
-                }
-              >
-                <GridItemContent
-                  item={item}
-                  w={entry?.w}
-                  h={entry?.h}
-                  updateItemConfig={updateItemConfig}
-                  updateItemMappings={updateItemMappings}
-                  removeItem={removeItem}
-                />
-              </GridCell>
-            );
-          });
-        })()}
-      </ResponsiveGridLayout>
+        {items.map((item) => {
+          const entry = sizeById.get(item.i);
+          const highlighted = lastAddedId === item.i;
+          return (
+            <GridCell
+              key={item.i}
+              data-i={item.i}
+              data-highlight={highlighted ? "true" : undefined}
+              onAnimationEnd={
+                highlighted ? () => clearLastAdded?.(item.i) : undefined
+              }
+            >
+              <GridItemContent
+                item={item}
+                w={entry?.w}
+                h={entry?.h}
+                updateItemConfig={updateItemConfig}
+                updateItemMappings={updateItemMappings}
+                removeItem={removeItem}
+              />
+            </GridCell>
+          );
+        })}
+      </ReactGridLayout>
     </div>
   );
 }

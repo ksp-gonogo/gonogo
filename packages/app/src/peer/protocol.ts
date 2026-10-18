@@ -199,7 +199,7 @@ export type PeerMessage =
   // Push-to-main: a station mirrors one of its widgets onto the main
   // screen's modal dashboard. Config is passed through to the main's
   // registered component; input mappings stay station-local. `width` and
-  // `height` are the station's grid units on its `lg` layout, the main
+  // `height` are the widget's grid units on the station's grid, the main
   // modal uses them as the ideal size and scales uniformly if it can't
   // fit everything without scrolling.
   | {

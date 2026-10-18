@@ -98,7 +98,7 @@ export interface ProbePayload {
 /*
  * The dashboard's grid: row height and margin mirror
  * packages/app/src/components/Dashboard/GridDashboard.tsx, and the column
- * width approximates `lg` (cols=36) at a comfortable viewport.
+ * width approximates the 36-column grid at a comfortable viewport.
  */
 const COL_WIDTH = 21;
 const ROW_HEIGHT = 13;

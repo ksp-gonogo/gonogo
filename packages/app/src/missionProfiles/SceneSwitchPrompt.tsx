@@ -1,7 +1,7 @@
 import { useGameContext } from "@ksp-gonogo/core";
 import { FabPrompt } from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
-import type { Layouts } from "react-grid-layout";
+import type { Layout } from "react-grid-layout";
 import type { DashboardItem } from "../components/Dashboard";
 import { useMissionProfilesService } from "./MissionProfilesContext";
 import {
@@ -12,7 +12,7 @@ import {
 
 interface SceneSwitchPromptProps {
   /** Called when the profile is loaded, either via the prompt or auto-switch. */
-  onLoad: (items: DashboardItem[], layouts: Layouts) => void;
+  onLoad: (items: DashboardItem[], layout: Layout) => void;
 }
 
 /**
@@ -61,7 +61,7 @@ export function SceneSwitchPrompt({
     }
 
     if (profile.autoSwitch) {
-      onLoad(profile.items, profile.layouts);
+      onLoad(profile.items, profile.layout);
       setActive(null);
       return;
     }
@@ -76,7 +76,7 @@ export function SceneSwitchPrompt({
       label={`Now ${SCENE_PHRASES[active.scene]}: switch to ${active.profile.name}?`}
       acceptLabel={`Load layout ${active.profile.name}`}
       onAccept={() => {
-        onLoad(active.profile.items, active.profile.layouts);
+        onLoad(active.profile.items, active.profile.layout);
         setActive(null);
       }}
       onDismiss={() => setActive(null)}

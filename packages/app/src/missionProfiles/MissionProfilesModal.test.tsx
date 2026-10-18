@@ -1,5 +1,5 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
-import type { Layouts } from "react-grid-layout";
+import type { Layout } from "react-grid-layout";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DashboardItem } from "../components/Dashboard";
 import { MissionProfilesProvider } from "./MissionProfilesContext";
@@ -23,9 +23,9 @@ function memoryStorage(): Storage {
 }
 
 const ITEMS: DashboardItem[] = [{ i: "a", componentId: "fuel-status" }];
-const LAYOUTS: Layouts = {
-  lg: [{ i: "a", x: 0, y: 0, w: 8, h: 14, moved: false, static: false }],
-};
+const LAYOUT: Layout = [
+  { i: "a", x: 0, y: 0, w: 8, h: 14, moved: false, static: false },
+];
 
 const NOW = 1_700_000_000_000;
 const HOUR_MS = 3_600_000;
@@ -33,13 +33,13 @@ const HOUR_MS = 3_600_000;
 function renderWithProfileAgedBy(ms: number) {
   const svc = new MissionProfilesService("main", memoryStorage());
   vi.spyOn(Date, "now").mockReturnValue(NOW - ms);
-  svc.save("Launch", ITEMS, LAYOUTS);
+  svc.save("Launch", ITEMS, LAYOUT);
   vi.spyOn(Date, "now").mockReturnValue(NOW);
   return render(
     <MissionProfilesProvider service={svc}>
       <MissionProfilesModal
         currentItems={ITEMS}
-        currentLayouts={LAYOUTS}
+        currentLayout={LAYOUT}
         onLoad={() => {}}
       />
     </MissionProfilesProvider>,
@@ -82,12 +82,12 @@ describe("MissionProfilesModal", () => {
   describe("scenes", () => {
     function renderWithBound() {
       const svc = new MissionProfilesService("main", memoryStorage());
-      svc.save("Launch", ITEMS, LAYOUTS, ["SpaceCenter", "Editor"]);
+      svc.save("Launch", ITEMS, LAYOUT, ["SpaceCenter", "Editor"]);
       return render(
         <MissionProfilesProvider service={svc}>
           <MissionProfilesModal
             currentItems={ITEMS}
-            currentLayouts={LAYOUTS}
+            currentLayout={LAYOUT}
             onLoad={() => {}}
           />
         </MissionProfilesProvider>,

@@ -10,7 +10,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
-import type { Layouts } from "react-grid-layout";
+import type { Layout } from "react-grid-layout";
 import { describe, expect, it, vi } from "vitest";
 import type { DashboardItem } from "../components/Dashboard";
 import { MissionProfilesProvider } from "./MissionProfilesContext";
@@ -34,9 +34,9 @@ function memoryStorage(): Storage {
 }
 
 const ITEMS: DashboardItem[] = [{ i: "a", componentId: "fuel-status" }];
-const LAYOUTS: Layouts = {
-  lg: [{ i: "a", x: 0, y: 0, w: 8, h: 14, moved: false, static: false }],
-};
+const LAYOUT: Layout = [
+  { i: "a", x: 0, y: 0, w: 8, h: 14, moved: false, static: false },
+];
 
 function setup() {
   const wall = createFakeWallClock();
@@ -50,7 +50,7 @@ function setup() {
   const store = new TimelineStore(clock);
   clock.scrubTo(10);
   const svc = new MissionProfilesService("main", memoryStorage());
-  svc.save("Ascent", ITEMS, LAYOUTS, ["Flight"]);
+  svc.save("Ascent", ITEMS, LAYOUT, ["Flight"]);
   const onLoad = vi.fn();
 
   function Wrap({ children }: { children: ReactNode }) {

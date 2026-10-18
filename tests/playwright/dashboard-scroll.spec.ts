@@ -23,23 +23,18 @@ const DASHBOARD = {
     { i: MAP, componentId: "ground-track" },
     { i: "widget-orbit-view", componentId: "orbit-view" },
   ],
-  layouts: Object.fromEntries(
-    ([12, 10, 8, 6, 4] as const).map((cols, idx) => [
-      ["lg", "md", "sm", "xs", "xxs"][idx],
-      [
-        { i: MAP, x: 0, y: 0, w: cols, h: 8, moved: false, static: false },
-        {
-          i: "widget-orbit-view",
-          x: 0,
-          y: 8,
-          w: cols,
-          h: 8,
-          moved: false,
-          static: false,
-        },
-      ],
-    ]),
-  ),
+  layout: [
+    { i: MAP, x: 0, y: 0, w: 12, h: 8, moved: false, static: false },
+    {
+      i: "widget-orbit-view",
+      x: 0,
+      y: 8,
+      w: 12,
+      h: 8,
+      moved: false,
+      static: false,
+    },
+  ],
 };
 
 test.describe("dashboard scrolling", () => {

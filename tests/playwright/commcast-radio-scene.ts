@@ -59,19 +59,8 @@ export const NAMES: Record<string, string> = {
  */
 export const SCREEN_SIZE = { width: 800, height: 520 } as const;
 
-/**
- * The grid's real column counts, from
- * `packages/app/src/components/Dashboard/layoutNormalization.ts`.
- *
- * Repeated here rather than guessed, which is the whole reason this exists.
- * `dashboardWithWidget` in `helpers.ts` carries its own 12/10/8/6/4, which
- * matches nothing the app uses: at a 900 px viewport the grid picks `sm` and
- * gives out eighteen columns, so a layout asking for eight got less than half
- * the pane and the widget was photographed in a corner of its own screen.
- * Every entry here is the full width of its breakpoint, so whichever one the
- * container lands on, the widget fills the pane.
- */
-const GRID_COLS = { lg: 36, md: 30, sm: 18, xs: 12, xxs: 6 } as const;
+/** The grid has one layout of this many columns. */
+const GRID_COLS = 36;
 
 /**
  * Rows tall enough to fill the pane under the caption strip, at the grid's own
@@ -79,17 +68,22 @@ const GRID_COLS = { lg: 36, md: 30, sm: 18, xs: 12, xxs: 6 } as const;
  */
 const GRID_ROWS = 12;
 
-/** The commcast widget, filling whatever breakpoint the pane lands on. */
+/** The commcast widget, filling the pane. */
 function commcastDashboard() {
   const i = "widget-commcast";
-  const at = (w: number) => [
-    { i, x: 0, y: 0, w, h: GRID_ROWS, moved: false, static: false },
-  ];
   return {
     items: [{ i, componentId: "commcast" }],
-    layouts: Object.fromEntries(
-      Object.entries(GRID_COLS).map(([bp, cols]) => [bp, at(cols)]),
-    ),
+    layout: [
+      {
+        i,
+        x: 0,
+        y: 0,
+        w: GRID_COLS,
+        h: GRID_ROWS,
+        moved: false,
+        static: false,
+      },
+    ],
   };
 }
 

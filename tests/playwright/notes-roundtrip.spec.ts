@@ -37,13 +37,7 @@ interface DashboardItem {
 // present in the layout.
 const dashboardWithNotes = (i = "notes-1") => ({
   items: [{ i, componentId: "notes" }] satisfies DashboardItem[],
-  layouts: {
-    lg: [{ i, x: 0, y: 0, w: 8, h: 6, moved: false, static: false }],
-    md: [{ i, x: 0, y: 0, w: 8, h: 6, moved: false, static: false }],
-    sm: [{ i, x: 0, y: 0, w: 6, h: 6, moved: false, static: false }],
-    xs: [{ i, x: 0, y: 0, w: 4, h: 6, moved: false, static: false }],
-    xxs: [{ i, x: 0, y: 0, w: 2, h: 6, moved: false, static: false }],
-  },
+  layout: [{ i, x: 0, y: 0, w: 8, h: 6, moved: false, static: false }],
 });
 
 async function seedContext(

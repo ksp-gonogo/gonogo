@@ -1,7 +1,7 @@
 import { ScreenProvider, useScreen } from "@ksp-gonogo/core";
 import { Fab, LayersIcon, useModal } from "@ksp-gonogo/ui";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
-import type { Layouts } from "react-grid-layout";
+import type { Layout } from "react-grid-layout";
 import type { DashboardItem } from "../components/Dashboard";
 import {
   MissionProfilesProvider,
@@ -13,14 +13,14 @@ import type { MissionProfile } from "./MissionProfilesService";
 export interface MissionProfilesFabProps {
   bottom?: number;
   currentItems: DashboardItem[];
-  currentLayouts: Layouts;
+  currentLayout: Layout;
   onLoad: (profile: MissionProfile) => void;
 }
 
 export function MissionProfilesFab({
   bottom = 384,
   currentItems,
-  currentLayouts,
+  currentLayout,
   onLoad,
 }: MissionProfilesFabProps) {
   const { open, close } = useModal();
@@ -34,7 +34,7 @@ export function MissionProfilesFab({
         <ScreenProvider value={screen}>
           <MissionProfilesModal
             currentItems={currentItems}
-            currentLayouts={currentLayouts}
+            currentLayout={currentLayout}
             onLoad={(profile) => {
               onLoad(profile);
               close(id);

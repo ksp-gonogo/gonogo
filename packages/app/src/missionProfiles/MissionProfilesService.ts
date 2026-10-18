@@ -1,13 +1,13 @@
 import type { Screen } from "@ksp-gonogo/core";
 import { safeRandomUuid } from "@ksp-gonogo/core";
 import { LocalStorageStore } from "@ksp-gonogo/data";
-import type { Layouts } from "react-grid-layout";
+import type { Layout } from "react-grid-layout";
 import type { DashboardItem } from "../components/Dashboard";
 
 /**
  * Named dashboard snapshots: "Launch", "Orbit", "Rendezvous", etc.:
- * scoped per-screen (main vs station). A profile bundles the items + per-
- * breakpoint layouts; loading one into the dashboard swaps the whole
+ * scoped per-screen (main vs station). A profile bundles the items + the
+ * layout; loading one into the dashboard swaps the whole
  * state in a single tick via `useDashboardState.replaceState`.
  *
  * Storage is partitioned by screen so main and station have independent
@@ -54,7 +54,7 @@ export interface MissionProfile {
   /** Which screen this profile was captured from. */
   screen: Screen;
   items: DashboardItem[];
-  layouts: Layouts;
+  layout: Layout;
   /**
    * Scenes that should prompt the user to load this profile. Empty /
    * absent = profile is purely manual. Multiple entries are allowed
@@ -112,7 +112,7 @@ export class MissionProfilesService {
   save(
     name: string,
     items: DashboardItem[],
-    layouts: Layouts,
+    layout: Layout,
     sceneBindings: BindableScene[] = [],
     autoSwitch = false,
   ): MissionProfile {
@@ -122,7 +122,7 @@ export class MissionProfilesService {
       name: trimmed,
       screen: this.screen,
       items,
-      layouts,
+      layout,
       sceneBindings: sceneBindings.length > 0 ? [...sceneBindings] : undefined,
       autoSwitch: autoSwitch || undefined,
       updatedAt: Date.now(),
@@ -138,7 +138,7 @@ export class MissionProfilesService {
     patch: Partial<
       Pick<
         MissionProfile,
-        "name" | "items" | "layouts" | "sceneBindings" | "autoSwitch"
+        "name" | "items" | "layout" | "sceneBindings" | "autoSwitch"
       >
     >,
   ): void {
@@ -194,7 +194,10 @@ export class MissionProfilesService {
           (p): p is MissionProfile =>
             typeof p?.id === "string" && typeof p?.name === "string",
         )
-        .map((p) => {
+        .map((saved) => {
+          const p = Array.isArray(saved.layout)
+            ? saved
+            : { ...saved, layout: [] };
           // Drop unknown scene names quietly: `kc.scene` could in theory
           // emit values we haven't seen yet, but a tagged binding for an
           // unknown scene would never resolve, so it's noise.

@@ -24,13 +24,7 @@ const SITREP_CONFIG = JSON.stringify({
 
 const dashboardWithOrbit = () => ({
   items: [{ i: "orbit", componentId: "orbit-view" }],
-  layouts: {
-    lg: [{ i: "orbit", x: 0, y: 0, w: 4, h: 6, moved: false, static: false }],
-    md: [{ i: "orbit", x: 0, y: 0, w: 4, h: 6, moved: false, static: false }],
-    sm: [{ i: "orbit", x: 0, y: 0, w: 4, h: 6, moved: false, static: false }],
-    xs: [{ i: "orbit", x: 0, y: 0, w: 4, h: 6, moved: false, static: false }],
-    xxs: [{ i: "orbit", x: 0, y: 0, w: 2, h: 6, moved: false, static: false }],
-  },
+  layout: [{ i: "orbit", x: 0, y: 0, w: 4, h: 6, moved: false, static: false }],
 });
 
 async function seedContext(

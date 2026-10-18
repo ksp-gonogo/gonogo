@@ -42,7 +42,7 @@ export default {
   dashboards: {
     Flight: {
       items: flight.map((p) => p.item),
-      layouts: { lg: flight.map((p) => p.layout) },
+      layout: flight.map((p) => p.layout),
     },
   },
   steps: [

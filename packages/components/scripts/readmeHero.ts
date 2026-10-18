@@ -41,7 +41,7 @@ interface Tile {
 }
 
 export interface HeroComposition {
-  /** Page width in pixels: it picks the breakpoint and so the column width. */
+  /** Page width in pixels: it sets the column width. */
   width: number;
   rows: number;
   tiles: readonly Tile[];

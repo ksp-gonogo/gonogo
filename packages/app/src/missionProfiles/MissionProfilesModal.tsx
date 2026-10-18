@@ -2,7 +2,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Button, FilterChip, Input, Switch } from "@ksp-gonogo/ui";
 import { SectionTitle, Stack, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
-import type { Layouts } from "react-grid-layout";
+import type { Layout } from "react-grid-layout";
 import styled from "styled-components";
 import type { DashboardItem } from "../components/Dashboard";
 import {
@@ -19,7 +19,7 @@ import {
 interface MissionProfilesModalProps {
   /** Current dashboard state: used for the "save current as..." button. */
   currentItems: DashboardItem[];
-  currentLayouts: Layouts;
+  currentLayout: Layout;
   /** Called when the user loads a profile. */
   onLoad: (profile: MissionProfile) => void;
   /** Closes the modal. */
@@ -34,7 +34,7 @@ interface MissionProfilesModalProps {
  */
 export function MissionProfilesModal({
   currentItems,
-  currentLayouts,
+  currentLayout,
   onLoad,
   onClose,
 }: Readonly<MissionProfilesModalProps>) {
@@ -57,7 +57,7 @@ export function MissionProfilesModal({
     svc.save(
       trimmed,
       currentItems,
-      currentLayouts,
+      currentLayout,
       newBindings,
       newBindings.length > 0 && newAutoSwitch,
     );
@@ -91,7 +91,7 @@ export function MissionProfilesModal({
   const handleOverwrite = (profile: MissionProfile) => {
     svc.update(profile.id, {
       items: currentItems,
-      layouts: currentLayouts,
+      layout: currentLayout,
     });
   };
 

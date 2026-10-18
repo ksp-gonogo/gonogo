@@ -44,7 +44,7 @@ import { GearButton } from "./WidgetGearMenu";
 //   • mobileWidth='half' items take ~50% and pair on a row when consecutive;
 //     'full' (default) takes the whole row.
 //   • mobileHeight (px) defaults to defaultSize.h * ROW_HEIGHT.
-//   • Item order is driven by `items` (not the persisted grid `layouts`).
+//   • Item order is driven by `items` (not the persisted grid `layout`).
 export function MobileDashboard({
   items,
   updateItemConfig,
@@ -185,9 +185,9 @@ const MobileItemContent = memo(function MobileItemContent({
   const halfHeight = item.mobileHeight === "half";
   const height = halfHeight ? Math.round(fullHeightPx / 2) : fullHeightPx;
   // Pass derived grid units to the component so size-bucket-aware widgets
-  // (e.g. Graph's auto-mini) work on mobile too. Mobile uses the xxs
-  // breakpoint's 6-col mental model: half = 3, full = 6. Height in grid
-  // units derives from the cell pixel height.
+  // (e.g. Graph's auto-mini) work on mobile too. The list counts a row as
+  // 6 columns: half = 3, full = 6. Height in grid units derives from the
+  // cell pixel height.
   const gridW = half ? 3 : 6;
   const gridH = Math.max(1, Math.round(height / ROW_HEIGHT));
   const hasConfig = Boolean(def.configComponent);

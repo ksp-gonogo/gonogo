@@ -60,12 +60,12 @@ export interface HeroLayoutEntry {
 }
 
 export interface HeroSpec {
-  /** Width of the page the dashboard lays out in, which picks its breakpoint and column width. */
+  /** Width of the page the dashboard lays out in, which sets the column width. */
   width: number;
   /** Height of the picture. */
   height: number;
   items: HeroItem[];
-  /** The saved layout at the 36-column breakpoint. */
+  /** The saved 36-column layout. */
   layout: HeroLayoutEntry[];
   /** `today` keeps every piece of the screen's chrome; `clean` hides the drag bar of each tile and the strip above the grid. */
   chrome: "today" | "clean";
@@ -121,7 +121,7 @@ const noopAlarm = {
 
 /** The saved layout the app's own hook reads, through the app's own storage key. */
 function SavedDashboard({ chrome }: { chrome: HeroSpec["chrome"] }) {
-  const dashboard = useDashboardState(STORAGE_KEY, { items: [], layouts: {} });
+  const dashboard = useDashboardState(STORAGE_KEY, { items: [], layout: [] });
   return (
     <main
       aria-label="Mission control"
@@ -134,11 +134,8 @@ function SavedDashboard({ chrome }: { chrome: HeroSpec["chrome"] }) {
       {chrome === "today" ? <MissionBanner /> : null}
       <Dashboard
         items={dashboard.items}
-        layouts={dashboard.layouts}
-        currentLayouts={dashboard.currentLayouts}
-        breakpoint={dashboard.breakpoint}
+        layout={dashboard.layout}
         onLayoutChange={dashboard.handleLayoutChange}
-        onBreakpointChange={dashboard.handleBreakpointChange}
         updateItemConfig={dashboard.updateItemConfig}
         updateItemMappings={dashboard.updateItemMappings}
         updateItemMobileWidth={dashboard.updateItemMobileWidth}
@@ -182,7 +179,7 @@ window.__hero = {
       STORAGE_KEY,
       JSON.stringify({
         items: spec.items,
-        layouts: { lg: spec.layout },
+        layout: spec.layout,
       }),
     );
     for (const item of spec.items) {

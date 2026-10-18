@@ -1,9 +1,9 @@
-import { useTouchDevice } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
-import type { Layout, Layouts } from "react-grid-layout";
+import type { Layout } from "react-grid-layout";
 import { EmptyDashboardNotice } from "./EmptyDashboardNotice";
 import { GridDashboard } from "./GridDashboard";
 import { MobileDashboard } from "./MobileDashboard";
+import { useListDashboard } from "./useListDashboard";
 
 export interface DashboardItem {
   /** Unique instance ID: used as the react-grid-layout key. */
@@ -36,20 +36,14 @@ export interface DashboardItem {
 
 export interface DashboardConfig {
   items: DashboardItem[];
-  /**
-   * Per-breakpoint layouts in react-grid-layout format.
-   * Keys: lg | md | sm | xs | xxs
-   */
-  layouts: Layouts;
+  /** The single grid layout, in react-grid-layout format. */
+  layout: Layout;
 }
 
 export interface DashboardProps {
   items: DashboardItem[];
-  layouts: Layouts;
-  currentLayouts: Layouts;
-  breakpoint: string;
-  onLayoutChange: (current: Layout[], all: Layouts) => void;
-  onBreakpointChange: (bp: string) => void;
+  layout: Layout;
+  onLayoutChange: (layout: Layout) => void;
   updateItemConfig: (id: string, config: Record<string, unknown>) => void;
   updateItemMappings: (id: string, mappings: InputMappings) => void;
   updateItemMobileWidth: (id: string, width: "full" | "half") => void;
@@ -70,11 +64,8 @@ export interface DashboardProps {
 // owning screen) so external consumers like the Phase 4 InputDispatcher can
 // subscribe to item changes without reaching into Dashboard internals.
 export function Dashboard(props: Readonly<DashboardProps>) {
-  // Touch devices can't realistically use react-grid-layout's drag handle.
-  // Render a linear list with up/down reorder buttons instead, the desktop
-  // grid is unaffected, and a desktop user with a narrow window keeps drag.
-  const isTouch = useTouchDevice();
+  const isList = useListDashboard();
   if (props.items.length === 0) return <EmptyDashboardNotice />;
-  if (isTouch) return <MobileDashboard {...props} />;
+  if (isList) return <MobileDashboard {...props} />;
   return <GridDashboard {...props} />;
 }

@@ -1,32 +1,12 @@
 import type { InputMappings } from "@ksp-gonogo/serial";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Layout, Layouts } from "react-grid-layout";
+import type { Layout, LayoutItem } from "react-grid-layout";
 import type { DashboardConfig, DashboardItem } from "./index";
-import { BREAKPOINTS, COLS, firstFreeSlot } from "./layoutNormalization";
-
-// Derived from the single source of truth in layoutNormalization.ts, RGL warns at runtime if a key here isn't a valid breakpoint.
-const COLS_KEYS = Object.keys(BREAKPOINTS);
-
-// Derived from BREAKPOINTS in layoutNormalization.ts as descending
-// [name, minWidth] pairs (Object.entries preserves insertion order). Used so
-// the initial render picks the correct breakpoint before ResponsiveGridLayout
-// has a chance to fire onBreakpointChange, avoids a one-frame flash of desktop
-// layout on phones.
-const INITIAL_BREAKPOINTS: ReadonlyArray<readonly [string, number]> =
-  Object.entries(BREAKPOINTS);
-
-function initialBreakpoint(): string {
-  if (typeof window === "undefined") return "lg";
-  const w = window.innerWidth;
-  for (const [name, min] of INITIAL_BREAKPOINTS) {
-    if (w >= min) return name;
-  }
-  return "xxs";
-}
+import { COLS, firstFreeSlot } from "./layoutNormalization";
 
 interface PersistedState {
   items: DashboardItem[];
-  layouts: Layouts;
+  layout: Layout;
 }
 
 function loadState(key: string): PersistedState | null {
@@ -47,12 +27,8 @@ function loadState(key: string): PersistedState | null {
         )
       : [];
     return {
-      ...state,
       items,
-      layouts:
-        typeof state.layouts === "object" && state.layouts !== null
-          ? state.layouts
-          : {},
+      layout: Array.isArray(state.layout) ? state.layout : [],
     };
   } catch {
     return null;
@@ -68,7 +44,7 @@ function saveState(key: string, state: PersistedState): void {
 }
 
 /**
- * Owns the items + layouts state for a Dashboard instance and persists it
+ * Owns the items + layout state for a Dashboard instance and persists it
  * under `storageKey`. Screens (MainScreen / StationScreen) call this hook
  * and pass the result into `<Dashboard>` as props, so other consumers
  * (notably the InputDispatcher) can subscribe to item changes
@@ -76,9 +52,7 @@ function saveState(key: string, state: PersistedState): void {
  */
 export interface DashboardState {
   items: DashboardItem[];
-  layouts: Layouts;
-  currentLayouts: Layouts;
-  breakpoint: string;
+  layout: Layout;
   /**
    * Set to the id of the most recently added item so the Dashboard can scroll
    * to and briefly highlight it. Cleared by the Dashboard via `clearLastAdded`
@@ -87,9 +61,8 @@ export interface DashboardState {
   lastAddedId: string | null;
   /** Clears `lastAddedId` if it matches the supplied id (no-op otherwise). */
   clearLastAdded: (id: string) => void;
-  handleLayoutChange: (current: Layout[], all: Layouts) => void;
-  handleBreakpointChange: (bp: string) => void;
-  addItem: (item: DashboardItem, layout: Partial<Layout>) => void;
+  handleLayoutChange: (layout: Layout) => void;
+  addItem: (item: DashboardItem, placement: Partial<LayoutItem>) => void;
   removeItem: (id: string) => void;
   /** Reorder: move the item with this id one slot earlier in `items`. No-op for the first item. */
   moveItemUp: (id: string) => void;
@@ -104,8 +77,8 @@ export interface DashboardState {
   subscribeItems: (cb: (items: DashboardItem[]) => void) => () => void;
   /** Always returns the latest items without going through React render. */
   getItems: () => readonly DashboardItem[];
-  /** Replace items + layouts wholesale (mission-profile load). */
-  replaceState: (items: DashboardItem[], layouts: Layouts) => void;
+  /** Replace items + layout wholesale (mission-profile load). */
+  replaceState: (items: DashboardItem[], layout: Layout) => void;
 }
 
 export function useDashboardState(
@@ -120,19 +93,13 @@ export function useDashboardState(
   const [items, setItemsInner] = useState<DashboardItem[]>(
     saved?.items ?? initial.items,
   );
-  const [layouts, setLayouts] = useState<Layouts>(
-    saved?.layouts ?? initial.layouts,
-  );
-  const [currentLayouts, setCurrentLayouts] = useState<Layouts>(
-    saved?.layouts ?? initial.layouts,
-  );
-  const [breakpoint, setBreakpoint] = useState<string>(initialBreakpoint);
+  const [layout, setLayout] = useState<Layout>(saved?.layout ?? initial.layout);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
-  const layoutsRef = useRef(layouts);
-  layoutsRef.current = layouts;
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
 
   const itemListeners = useRef(new Set<(items: DashboardItem[]) => void>());
   const hasMountedRef = useRef(false);
@@ -159,11 +126,11 @@ export function useDashboardState(
       return;
     }
     const key = activeKeyRef.current;
-    if (key) saveState(key, { items, layouts });
+    if (key) saveState(key, { items, layout });
     itemListeners.current.forEach((cb) => {
       cb(items);
     });
-  }, [items, layouts]);
+  }, [items, layout]);
 
   // Scene-scoped key changed (e.g. the operator entered a different KSP
   // scene): load that key's saved layout, or seed it from the current
@@ -180,56 +147,40 @@ export function useDashboardState(
     const next = storageKey ? loadState(storageKey) : null;
     if (next) {
       setItemsInner(next.items);
-      setLayouts(next.layouts);
-      setCurrentLayouts(next.layouts);
+      setLayout(next.layout);
       return;
     }
     if (storageKey) {
       // Seed the new key from what's on screen now; keep showing it.
       saveState(storageKey, {
         items: itemsRef.current,
-        layouts: layoutsRef.current,
+        layout: layoutRef.current,
       });
     }
   }, [storageKey]);
 
-  const handleLayoutChange = useCallback((_current: Layout[], all: Layouts) => {
-    setCurrentLayouts(all);
-    setLayouts(all);
-  }, []);
-
-  const handleBreakpointChange = useCallback((bp: string) => {
-    setBreakpoint(bp);
+  const handleLayoutChange = useCallback((next: Layout) => {
+    setLayout(next);
   }, []);
 
   const addItem = useCallback(
-    (item: DashboardItem, layout: Partial<Layout>) => {
+    (item: DashboardItem, placement: Partial<LayoutItem>) => {
       setItemsInner((prev) => [...prev, item]);
-      // Without a caller-supplied x/y the widget takes the first free slot wide enough for it at each breakpoint's own column count.
-      const w = layout.w ?? 3;
-      const h = layout.h ?? 3;
-      const placeAt = (bp: string): Layout => {
-        const placed = currentLayouts[bp] ?? [];
-        if (layout.x !== undefined || layout.y !== undefined) {
-          return { i: item.i, x: 0, y: 9999, w, h, ...layout };
-        }
-        return {
-          ...layout,
-          i: item.i,
-          ...firstFreeSlot(placed, { w, h }, COLS[bp as keyof typeof COLS]),
-        };
-      };
-      const nextLayouts = Object.fromEntries(
-        COLS_KEYS.map((bp) => [
-          bp,
-          [...(currentLayouts[bp] ?? []), placeAt(bp)],
-        ]),
-      );
-      setLayouts(nextLayouts);
-      setCurrentLayouts(nextLayouts);
+      // Without a caller-supplied x/y the widget takes the first free slot wide enough for it.
+      const w = placement.w ?? 3;
+      const h = placement.h ?? 3;
+      const placed: LayoutItem =
+        placement.x !== undefined || placement.y !== undefined
+          ? { i: item.i, x: 0, y: 9999, w, h, ...placement }
+          : {
+              ...placement,
+              i: item.i,
+              ...firstFreeSlot(layout, { w, h }, COLS),
+            };
+      setLayout([...layout, placed]);
       setLastAddedId(item.i);
     },
-    [currentLayouts],
+    [layout],
   );
 
   const clearLastAdded = useCallback((id: string) => {
@@ -238,18 +189,7 @@ export function useDashboardState(
 
   const removeItem = useCallback((id: string) => {
     setItemsInner((prev) => prev.filter((it) => it.i !== id));
-    const stripped = (ls: Layout[] | undefined): Layout[] =>
-      (ls ?? []).filter((l) => l.i !== id);
-    setLayouts((prev) =>
-      Object.fromEntries(
-        Object.entries(prev).map(([bp, ls]) => [bp, stripped(ls)]),
-      ),
-    );
-    setCurrentLayouts((prev) =>
-      Object.fromEntries(
-        Object.entries(prev).map(([bp, ls]) => [bp, stripped(ls)]),
-      ),
-    );
+    setLayout((prev) => prev.filter((l) => l.i !== id));
   }, []);
 
   const moveItemUp = useCallback((id: string) => {
@@ -320,32 +260,28 @@ export function useDashboardState(
   const getItems = useCallback(() => itemsRef.current, []);
 
   /**
-   * Replace items + layouts wholesale. Used by the mission-profile loader
+   * Replace items + layout wholesale. Used by the mission-profile loader
    * so a profile swap snaps the dashboard to a saved state in one tick.
    * Loses in-flight drag/resize state by design: callers should warn the
    * user that unsaved changes are discarded.
    */
   const replaceState = useCallback(
-    (nextItems: DashboardItem[], nextLayouts: Layouts) => {
+    (nextItems: DashboardItem[], nextLayout: Layout) => {
       if (storageKeyRef.current !== activeKeyRef.current) {
         replacedForKeyRef.current = storageKeyRef.current;
       }
       setItemsInner(nextItems);
-      setLayouts(nextLayouts);
-      setCurrentLayouts(nextLayouts);
+      setLayout(nextLayout);
     },
     [],
   );
 
   return {
     items,
-    layouts,
-    currentLayouts,
-    breakpoint,
+    layout,
     lastAddedId,
     clearLastAdded,
     handleLayoutChange,
-    handleBreakpointChange,
     addItem,
     removeItem,
     moveItemUp,

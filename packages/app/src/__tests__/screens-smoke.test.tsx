@@ -100,14 +100,14 @@ describe("MainScreen smoke", () => {
       "gonogo:dashboard:main",
       JSON.stringify({
         items: [{ i: "orbit", componentId: "orbit-view" }],
-        layouts: { lg: [{ i: "orbit", x: 0, y: 0, w: 4, h: 4 }] },
+        layout: [{ i: "orbit", x: 0, y: 0, w: 4, h: 4 }],
       }),
     );
     localStorage.setItem(
       "gonogo:dashboard:main:SpaceCenter",
       JSON.stringify({
         items: [{ i: "warp", componentId: "warp-control" }],
-        layouts: { lg: [{ i: "warp", x: 0, y: 0, w: 4, h: 4 }] },
+        layout: [{ i: "warp", x: 0, y: 0, w: 4, h: 4 }],
       }),
     );
     const transport = new StubTransport();

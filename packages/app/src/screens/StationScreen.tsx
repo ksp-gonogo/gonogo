@@ -78,7 +78,7 @@ const HOST_ID_KEY = "gonogo-station-host-id";
 
 const DEFAULT_CONFIG: DashboardConfig = {
   items: [],
-  layouts: {},
+  layout: [],
 };
 
 export function StationScreen() {
@@ -375,14 +375,9 @@ export function StationScreen() {
                                 <RootProviders screen="station">
                                   <Dashboard
                                     items={dashboard.items}
-                                    layouts={dashboard.layouts}
-                                    currentLayouts={dashboard.currentLayouts}
-                                    breakpoint={dashboard.breakpoint}
+                                    layout={dashboard.layout}
                                     onLayoutChange={
                                       dashboard.handleLayoutChange
-                                    }
-                                    onBreakpointChange={
-                                      dashboard.handleBreakpointChange
                                     }
                                     updateItemConfig={
                                       dashboard.updateItemConfig
@@ -437,9 +432,9 @@ export function StationScreen() {
                                 <MissionProfilesFab
                                   bottom={384}
                                   currentItems={dashboard.items}
-                                  currentLayouts={dashboard.layouts}
+                                  currentLayout={dashboard.layout}
                                   onLoad={(p) =>
-                                    dashboard.replaceState(p.items, p.layouts)
+                                    dashboard.replaceState(p.items, p.layout)
                                   }
                                 />
                                 <AlarmsFab
@@ -471,8 +466,8 @@ export function StationScreen() {
                                 <FlightOutcomeBanner />
                                 <HomeFallbackNotice />
                                 <SceneSwitchPrompt
-                                  onLoad={(items, layouts) =>
-                                    dashboard.replaceState(items, layouts)
+                                  onLoad={(items, layout) =>
+                                    dashboard.replaceState(items, layout)
                                   }
                                 />
                               </BannerStack>

@@ -103,7 +103,7 @@ import { UplinkHealthRetry } from "../uplinks/UplinkHealthRetry";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { dashboardKeyForScene } from "./dashboardKey";
 
-const EMPTY_DASHBOARD: DashboardConfig = { items: [], layouts: {} };
+const EMPTY_DASHBOARD: DashboardConfig = { items: [], layout: [] };
 
 /**
  * What this device is called in the shared thread before anyone renames it.
@@ -444,11 +444,8 @@ function MainDashboard({
           ) : null}
           <Dashboard
             items={dashboard.items}
-            layouts={dashboard.layouts}
-            currentLayouts={dashboard.currentLayouts}
-            breakpoint={dashboard.breakpoint}
+            layout={dashboard.layout}
             onLayoutChange={dashboard.handleLayoutChange}
-            onBreakpointChange={dashboard.handleBreakpointChange}
             updateItemConfig={dashboard.updateItemConfig}
             updateItemMappings={dashboard.updateItemMappings}
             updateItemMobileWidth={dashboard.updateItemMobileWidth}
@@ -469,8 +466,8 @@ function MainDashboard({
             <MissionProfilesFab
               bottom={384}
               currentItems={dashboard.items}
-              currentLayouts={dashboard.layouts}
-              onLoad={(p) => dashboard.replaceState(p.items, p.layouts)}
+              currentLayout={dashboard.layout}
+              onLoad={(p) => dashboard.replaceState(p.items, p.layout)}
             />
             <MainAlarmsFab />
           </FabClusterProvider>
@@ -499,9 +496,7 @@ function MainDashboard({
             <StationBuildMismatchNotice host={peerHostService} />
             <StationApprovalPrompt host={peerHostService} />
             <SceneSwitchPrompt
-              onLoad={(items, layouts) =>
-                dashboard.replaceState(items, layouts)
-              }
+              onLoad={(items, layout) => dashboard.replaceState(items, layout)}
             />
           </BannerStack>
           <PushedDashboardOverlay />

@@ -44,11 +44,8 @@ function Harness({
   return (
     <Dashboard
       items={s.items}
-      layouts={s.layouts}
-      currentLayouts={s.currentLayouts}
-      breakpoint={s.breakpoint}
+      layout={s.layout}
       onLayoutChange={s.handleLayoutChange}
-      onBreakpointChange={s.handleBreakpointChange}
       updateItemConfig={s.updateItemConfig}
       updateItemMappings={s.updateItemMappings}
       updateItemMobileWidth={s.updateItemMobileWidth}
@@ -123,7 +120,7 @@ describe("Dashboard: mobile / touch path", () => {
             { i: "a", componentId: "alpha" },
             { i: "b", componentId: "beta" },
           ],
-          layouts: {},
+          layout: [],
         }}
       />,
     );
@@ -159,7 +156,7 @@ describe("Dashboard: mobile / touch path", () => {
             { i: "a", componentId: "alpha" },
             { i: "b", componentId: "beta" },
           ],
-          layouts: {},
+          layout: [],
         }}
       />,
     );
@@ -190,7 +187,7 @@ describe("Dashboard: mobile / touch path", () => {
             { i: "a", componentId: "alpha" },
             { i: "b", componentId: "beta" },
           ],
-          layouts: {},
+          layout: [],
         }}
       />,
     );
@@ -218,7 +215,7 @@ describe("Dashboard: mobile / touch path", () => {
         storageKey="test-mobile-half"
         config={{
           items: [{ i: "c1", componentId: "compact" }],
-          layouts: {},
+          layout: [],
         }}
       />,
     );
@@ -240,7 +237,7 @@ describe("Dashboard: mobile / touch path", () => {
         storageKey={KEY}
         config={{
           items: [{ i: "a", componentId: "alpha" }],
-          layouts: {},
+          layout: [],
         }}
       />,
     );
@@ -276,7 +273,7 @@ describe("Dashboard: mobile / touch path", () => {
         storageKey={KEY}
         config={{
           items: [{ i: "a", componentId: "alpha" }],
-          layouts: {},
+          layout: [],
         }}
       />,
     );
@@ -321,7 +318,7 @@ describe("Dashboard: mobile / touch path", () => {
         storageKey="test-mobile-width-override"
         config={{
           items: [{ i: "c1", componentId: "compact", mobileWidth: "full" }],
-          layouts: {},
+          layout: [],
         }}
       />,
     );
@@ -361,7 +358,7 @@ describe("Dashboard: mobile / touch path", () => {
             { i: "t", componentId: "tall" },
             { i: "d", componentId: "default-h" },
           ],
-          layouts: {},
+          layout: [],
         }}
       />,
     );

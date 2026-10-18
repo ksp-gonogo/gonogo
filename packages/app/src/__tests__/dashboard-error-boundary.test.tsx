@@ -25,11 +25,8 @@ function Harness({
   return (
     <Dashboard
       items={s.items}
-      layouts={s.layouts}
-      currentLayouts={s.currentLayouts}
-      breakpoint={s.breakpoint}
+      layout={s.layout}
       onLayoutChange={s.handleLayoutChange}
-      onBreakpointChange={s.handleBreakpointChange}
       updateItemConfig={s.updateItemConfig}
       updateItemMappings={s.updateItemMappings}
       updateItemMobileWidth={s.updateItemMobileWidth}
@@ -94,7 +91,7 @@ describe("Dashboard widget error boundary", () => {
         storageKey="test-error-boundary"
         config={{
           items: [{ i: "x", componentId: "boomer" }],
-          layouts: { lg: [{ i: "x", x: 0, y: 0, w: 3, h: 3 }] },
+          layout: [{ i: "x", x: 0, y: 0, w: 3, h: 3 }],
         }}
       />,
     );
@@ -126,7 +123,7 @@ describe("Dashboard widget error boundary", () => {
         storageKey="test-error-boundary-retry"
         config={{
           items: [{ i: "x", componentId: "togglable" }],
-          layouts: { lg: [{ i: "x", x: 0, y: 0, w: 3, h: 3 }] },
+          layout: [{ i: "x", x: 0, y: 0, w: 3, h: 3 }],
         }}
       />,
     );

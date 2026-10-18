@@ -14,11 +14,8 @@ function dashboard(items: Parameters<typeof Dashboard>[0]["items"]) {
   return (
     <Dashboard
       items={items}
-      layouts={{}}
-      currentLayouts={{}}
-      breakpoint="lg"
+      layout={[]}
       onLayoutChange={NOOP}
-      onBreakpointChange={NOOP}
       updateItemConfig={NOOP}
       updateItemMappings={NOOP}
       updateItemMobileWidth={NOOP}

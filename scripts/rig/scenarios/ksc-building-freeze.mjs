@@ -27,7 +27,7 @@ export default {
   dashboards: {
     SpaceCenter: {
       items: spaceCenter.map((p) => p.item),
-      layouts: { lg: spaceCenter.map((p) => p.layout) },
+      layout: spaceCenter.map((p) => p.layout),
     },
   },
   steps: [

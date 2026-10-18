@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { DashboardItem } from "./index";
 import { useDashboardState } from "./useDashboardState";
 
-const INITIAL = { items: [] as DashboardItem[], layouts: { lg: [] } };
+const INITIAL = { items: [] as DashboardItem[], layout: [] };
 const item = (i: string): DashboardItem => ({ i, componentId: "test" });
 const idsOf = (items: readonly DashboardItem[]) => items.map((it) => it.i);
 const stored = (key: string): { items?: DashboardItem[] } => {
@@ -24,7 +24,7 @@ describe("useDashboardState: per-scene keys", () => {
       "dash:Flight",
       JSON.stringify({
         items: [item("a")],
-        layouts: { lg: [{ i: "a", x: 0, y: 0, w: 3, h: 3 }] },
+        layout: [{ i: "a", x: 0, y: 0, w: 3, h: 3 }],
       }),
     );
     const { result, rerender } = renderHook(
@@ -69,7 +69,7 @@ describe("useDashboardState: a damaged saved layout", () => {
   it("keeps the good items when one saved entry is not an item", () => {
     localStorage.setItem(
       "dash:base",
-      JSON.stringify({ items: [item("a"), null, item("b")], layouts: {} }),
+      JSON.stringify({ items: [item("a"), null, item("b")], layout: [] }),
     );
     const { result } = renderHook(() =>
       useDashboardState("dash:base", INITIAL),
@@ -80,7 +80,7 @@ describe("useDashboardState: a damaged saved layout", () => {
   it("reads items that are not a list as none, without throwing", () => {
     localStorage.setItem(
       "dash:base",
-      JSON.stringify({ items: "nope", layouts: { lg: [] } }),
+      JSON.stringify({ items: "nope", layout: [] }),
     );
     const { result } = renderHook(() =>
       useDashboardState("dash:base", INITIAL),
@@ -114,7 +114,7 @@ describe("useDashboardState: a layout loaded because the scene changed", () => {
   it("is not undone by the incoming scene's saved layout, and is saved under that scene", () => {
     localStorage.setItem(
       "dash:Flight",
-      JSON.stringify({ items: [item("saved")], layouts: { lg: [] } }),
+      JSON.stringify({ items: [item("saved")], layout: [] }),
     );
     const seen: { items: readonly DashboardItem[] } = { items: [] };
     function Parent({ sceneKey }: { sceneKey: string }) {
@@ -122,7 +122,7 @@ describe("useDashboardState: a layout loaded because the scene changed", () => {
       seen.items = state.items;
       const { replaceState } = state;
       const replace = useCallback(
-        () => replaceState([item("profile")], { lg: [] }),
+        () => replaceState([item("profile")], []),
         [replaceState],
       );
       return createElement(Child, { sceneKey, replace });

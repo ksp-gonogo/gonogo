@@ -70,23 +70,16 @@ export function dashboardWithWidget(
     size?: { w: number; h: number };
     config?: Record<string, unknown>;
   } = {},
-): { items: DashboardItem[]; layouts: Record<string, DashboardLayout[]> } {
+): { items: DashboardItem[]; layout: DashboardLayout[] } {
   const i = opts.i ?? `widget-${componentId}`;
   const { w, h } = opts.size ?? { w: 9, h: 6 };
-  const layoutAt = (cw: number) => [
-    { i, x: 0, y: 0, w: Math.min(w, cw), h, moved: false, static: false },
-  ];
   return {
     items: [
       { i, componentId, ...(opts.config ? { config: opts.config } : {}) },
     ],
-    layouts: {
-      lg: layoutAt(12),
-      md: layoutAt(10),
-      sm: layoutAt(8),
-      xs: layoutAt(6),
-      xxs: layoutAt(4),
-    },
+    layout: [
+      { i, x: 0, y: 0, w: Math.min(w, 12), h, moved: false, static: false },
+    ],
   };
 }
 
@@ -228,13 +221,11 @@ export async function bootstrapPair(
     };
     /**
      * Per-context overrides applied to both main and station. Use for
-     * mobile testing: `{ viewport: { width: 375, height: 667 },
-     * hasTouch: true }` triggers the MobileDashboard rendering path
-     * (Dashboard/index.tsx:83: `if (isTouch) return <MobileDashboard
-     * .../>;`). Without this every spec runs at the default desktop
-     * viewport with no touch, so mobile-only sizing regressions (e.g.
-     * the camera-feed 2x0.5 squish reported 2026-05-18) never surface
-     * in CI.
+     * mobile testing: a viewport under 700px wide, or `hasTouch: true`,
+     * renders the dashboard as the MobileDashboard list
+     * (`useListDashboard`). Without this every spec runs at the default
+     * desktop viewport with no touch, so mobile-only sizing regressions
+     * never surface in CI.
      */
     contextOptions?: Parameters<Browser["newContext"]>[0];
     /**

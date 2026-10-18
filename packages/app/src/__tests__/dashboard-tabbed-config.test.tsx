@@ -30,11 +30,8 @@ function DashboardHarness({
   return (
     <Dashboard
       items={s.items}
-      layouts={s.layouts}
-      currentLayouts={s.currentLayouts}
-      breakpoint={s.breakpoint}
+      layout={s.layout}
       onLayoutChange={s.handleLayoutChange}
-      onBreakpointChange={s.handleBreakpointChange}
       updateItemConfig={s.updateItemConfig}
       updateItemMappings={s.updateItemMappings}
       updateItemMobileWidth={s.updateItemMobileWidth}
@@ -116,7 +113,7 @@ const STORAGE_KEY = "gonogo.dashboard.test";
 
 const CONFIG: DashboardConfig = {
   items: [{ i: "w1", componentId: "fake-both" } satisfies DashboardItem],
-  layouts: { lg: [{ i: "w1", x: 0, y: 0, w: 3, h: 3 }] },
+  layout: [{ i: "w1", x: 0, y: 0, w: 3, h: 3 }],
 };
 
 beforeEach(() => {
@@ -234,7 +231,7 @@ describe("Dashboard tabbed config modal", () => {
       <DashboardHarness
         config={{
           items: [{ i: "w1", componentId: "fake-config-only" }],
-          layouts: { lg: [{ i: "w1", x: 0, y: 0, w: 3, h: 3 }] },
+          layout: [{ i: "w1", x: 0, y: 0, w: 3, h: 3 }],
         }}
         storageKey={STORAGE_KEY}
       />,
@@ -262,7 +259,7 @@ describe("Dashboard tabbed config modal", () => {
       <DashboardHarness
         config={{
           items: [{ i: "w1", componentId: "fake-actions-only" }],
-          layouts: { lg: [{ i: "w1", x: 0, y: 0, w: 3, h: 3 }] },
+          layout: [{ i: "w1", x: 0, y: 0, w: 3, h: 3 }],
         }}
         storageKey={STORAGE_KEY}
       />,

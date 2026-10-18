@@ -11,7 +11,7 @@ import {
 } from "@ksp-gonogo/core";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GridDashboard } from "./GridDashboard";
+import { GridDashboard, rowHeightFor } from "./GridDashboard";
 
 vi.mock("@ksp-gonogo/components", () => ({
   SeatGuard: (props: { children: React.ReactNode }) => <>{props.children}</>,
@@ -31,21 +31,11 @@ function StubWidget(_: ComponentProps) {
 const LAYOUT = [{ i: "w1", x: 0, y: 0, w: 6, h: 6 }];
 
 function mount() {
-  const layouts = {
-    lg: LAYOUT,
-    md: LAYOUT,
-    sm: LAYOUT,
-    xs: LAYOUT,
-    xxs: LAYOUT,
-  };
   return render(
     <GridDashboard
       items={[{ i: "w1", componentId: "stub" }]}
-      layouts={layouts}
-      currentLayouts={layouts}
-      breakpoint="lg"
+      layout={LAYOUT}
       onLayoutChange={vi.fn()}
-      onBreakpointChange={vi.fn()}
       updateItemConfig={vi.fn()}
       updateItemMappings={vi.fn()}
       updateItemMobileWidth={vi.fn()}
@@ -147,5 +137,19 @@ describe("GridDashboard tile chrome", () => {
     mount();
     const bar = document.querySelector(".drag-handle");
     expect(bar?.querySelector("svg")).not.toBeNull();
+  });
+});
+
+describe("rowHeightFor", () => {
+  it("keeps the 13px row up to a 1920px grid", () => {
+    expect(rowHeightFor(600)).toBe(13);
+    expect(rowHeightFor(1280)).toBe(13);
+    expect(rowHeightFor(1920)).toBe(13);
+  });
+
+  it("grows the row with the column on a wider grid, so a tile keeps its shape", () => {
+    // A 2560px grid's columns are (2560 + 20) / (1920 + 20) wider: 33px pitch becomes 44.
+    expect(rowHeightFor(2560)).toBe(24);
+    expect(rowHeightFor(3840)).toBe(46);
   });
 });

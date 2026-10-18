@@ -48,7 +48,6 @@ export * from "./hooks/useOrbitSolve";
 export * from "./hooks/useTelemetry";
 export * from "./hooks/useTelemetryHostStatus";
 export * from "./hooks/useTimeContexts";
-export * from "./hooks/useTouchDevice";
 export * from "./hooks/useUplinkHealthFor";
 export { useWidgetBadges } from "./hooks/useWidgetBadges";
 export * from "./hooks/useWidgetStreamStatus";
