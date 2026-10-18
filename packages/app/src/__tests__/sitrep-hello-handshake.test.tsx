@@ -36,7 +36,7 @@ async function mountAfterHello(hello: Record<string, unknown>) {
 }
 
 describe("the mod's hello reaches the app", () => {
-  it("records the mod version and contract the hello names", async () => {
+  it("records the mod version, contract and game run the hello names", async () => {
     await mountAfterHello({
       bootId: "a",
       modVersion: "v1.4.0",
@@ -48,6 +48,7 @@ describe("the mod's hello reaches the app", () => {
       modVersion: "v1.4.0",
       contractMajor: 44,
       contractMinor: 2,
+      bootId: "a",
     });
   });
 
