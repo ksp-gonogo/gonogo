@@ -127,12 +127,44 @@ namespace Sitrep.Contract
         /// <param name="label">What an operator reads beside the control. <c>null</c> becomes empty.</param>
         /// <param name="description">Text read under the label. <c>null</c> becomes empty.</param>
         public UplinkSettingRow(string name, SettingKind kind, string defaultText, string label, string description = "")
+            : this(name, kind, defaultText, label, description, Array.Empty<string>())
+        {
+        }
+
+        private UplinkSettingRow(
+            string name, SettingKind kind, string defaultText, string label, string description, IReadOnlyList<string> tags)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Kind = kind;
             DefaultText = defaultText ?? throw new ArgumentNullException(nameof(defaultText));
             Label = label ?? string.Empty;
             Description = description ?? string.Empty;
+            Tags = tags;
+        }
+
+        /// <summary>
+        /// This row with <paramref name="tags"/> added, each a name from
+        /// <see cref="SettingTags"/> or one a client of your own reads. Tags
+        /// are lower-case words without whitespace, and a repeated tag is kept once.
+        /// </summary>
+        /// <param name="tags">The tags to add.</param>
+        public UplinkSettingRow Tagged(params string[] tags)
+        {
+            var all = new List<string>(Tags);
+            foreach (var tag in tags ?? throw new ArgumentNullException(nameof(tags)))
+            {
+                if (string.IsNullOrEmpty(tag) || tag != tag.ToLowerInvariant() || tag.IndexOfAny(new[] { ' ', '\t', '\r', '\n' }) >= 0)
+                {
+                    throw new ArgumentException("a settings tag is a lower-case word with no whitespace: " + tag, nameof(tags));
+                }
+
+                if (!all.Contains(tag))
+                {
+                    all.Add(tag);
+                }
+            }
+
+            return new UplinkSettingRow(Name, Kind, DefaultText, Label, Description, all);
         }
 
         /// <summary>A <see cref="SettingKind.Bool"/> row whose default is <paramref name="defaultValue"/>, stored as <c>"True"</c> or <c>"False"</c>.</summary>
@@ -174,6 +206,25 @@ namespace Sitrep.Contract
 
         /// <summary>Why the setting matters or what it needs, read under the label. Empty when the label says enough.</summary>
         public string Description { get; }
+
+        /// <summary>The tags a client groups this setting by, such as <see cref="SettingTags.Setup"/>. Empty for none.</summary>
+        public IReadOnlyList<string> Tags { get; }
+    }
+
+    /// <summary>
+    /// Tag names a client acts on. A setting carries any number of tags; one a
+    /// client does not know is ignored.
+    /// </summary>
+    /// <category>Uplink API</category>
+    public static class SettingTags
+    {
+        /// <summary>
+        /// Offered among the first-run setup's recommended settings, under the
+        /// Uplink's name and drawn as the settings screen draws it. Use it for a
+        /// choice the operator should make before the Uplink first runs, not for
+        /// tuning.
+        /// </summary>
+        public const string Setup = "setup";
     }
 
     /// <summary>
