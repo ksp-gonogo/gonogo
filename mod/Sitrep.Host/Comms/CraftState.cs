@@ -184,12 +184,18 @@ namespace Sitrep.Host.Comms
         /// <summary>The craft is gone: destroyed, recovered, or docked into another.</summary>
         /// <param name="end">How it left the game.</param>
         /// <param name="roster">Its entry on <c>trackingStation.catalog</c> as it last stood, or null when none was read.</param>
-        public static CraftState Gone(string id, double capturedUt, CraftEnd end = CraftEnd.Absorbed, IReadOnlyDictionary<string, object?>? roster = null)
+        /// <param name="crew">What became of its crew, for a craft the player ended from the Tracking Station, or null when none was read.</param>
+        public static CraftState Gone(
+            string id, double capturedUt, CraftEnd end = CraftEnd.Absorbed, IReadOnlyDictionary<string, object?>? roster = null, CrewAtEnd? crew = null)
         {
             var gone = new CraftState(id, capturedUt, false, -1, null, null, null, null, false, NoLinks, null, true, null, roster);
             gone.End = end;
+            gone.EndCrew = crew;
             return gone;
         }
+
+        /// <summary>What became of the crew of a craft the player ended from the Tracking Station, or null while it is in the game or none was read.</summary>
+        public CrewAtEnd? EndCrew { get; private set; }
 
         /// <summary>How the craft left the game, or null while it is in it.</summary>
         public CraftEnd? End { get; private set; }
@@ -240,7 +246,7 @@ namespace Sitrep.Host.Comms
             {
                 return this;
             }
-            return Exists ? Listed(before.Roster).AsCentre(Centre) : Gone(Id, CapturedUt, End ?? CraftEnd.Absorbed, before.Roster);
+            return Exists ? Listed(before.Roster).AsCentre(Centre) : Gone(Id, CapturedUt, End ?? CraftEnd.Absorbed, before.Roster, EndCrew);
         }
 
         /// <summary>Only where this craft is going, as a sighting carries it: no links, no name, no entry and nothing of whether it is a command centre.</summary>

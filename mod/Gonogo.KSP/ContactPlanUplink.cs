@@ -30,6 +30,9 @@ namespace Gonogo.KSP
         private Dictionary<string, CraftEnd> _ends = new Dictionary<string, CraftEnd>();
         private bool _endsHooked;
 
+        /// <summary>The crew aboard each vessel the player ended from the Tracking Station, by bare guid, until their roster status is read at the next look. Main thread.</summary>
+        private Dictionary<string, List<string>> _terminatedCrew = new Dictionary<string, List<string>>();
+
         /// <summary>The links as they were last read from a vessel list that stood, or null before any was.</summary>
         private LiveLinkGraph? _linksLastRead;
         private IUplinkHost? _host;
@@ -166,6 +169,12 @@ namespace Gonogo.KSP
             if (vessel != null)
             {
                 _ends[vessel.vesselID.ToString()] = CraftEnd.Terminated;
+                var names = new List<string>();
+                foreach (var kerbal in vessel.GetVesselCrew())
+                {
+                    names.Add(kerbal.name);
+                }
+                _terminatedCrew[vessel.vesselID.ToString()] = names;
             }
         }
 
@@ -184,6 +193,36 @@ namespace Gonogo.KSP
             {
                 _ends[vessel.vesselID.ToString()] = CraftEnd.Recovered;
             }
+        }
+
+        /// <summary>
+        /// What the game's roster says of the crew of each vessel ended from the Tracking Station
+        /// since the last look, handed over once. Stock marks them after raising the termination,
+        /// within the same call, so a look after it reads what stock set.
+        /// </summary>
+        private IReadOnlyDictionary<string, CrewAtEnd> TakeEndCrews()
+        {
+            var read = new Dictionary<string, CrewAtEnd>();
+            var roster = HighLogic.CurrentGame?.CrewRoster;
+            foreach (var ended in _terminatedCrew)
+            {
+                if (roster == null)
+                {
+                    break;
+                }
+                var statuses = new List<string>();
+                foreach (var name in ended.Value)
+                {
+                    var kerbal = roster[name];
+                    if (kerbal != null)
+                    {
+                        statuses.Add(kerbal.rosterStatus.ToString());
+                    }
+                }
+                read[ended.Key] = CrewAtEnd.Of(statuses);
+            }
+            _terminatedCrew = new Dictionary<string, List<string>>();
+            return read;
         }
 
         /// <summary>The ends said since the last look, handed over once.</summary>
@@ -309,6 +348,7 @@ namespace Gonogo.KSP
                 Vessels = stands ? listed : null,
                 VesselsUnread = !stands,
                 Ends = TakeEnds(),
+                EndCrews = TakeEndCrews(),
             };
         }
 

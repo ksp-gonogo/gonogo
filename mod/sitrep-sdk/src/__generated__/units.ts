@@ -259,6 +259,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     crew: "enum",
     crewCapacity: "count",
     crewCount: "count",
+    crewDead: "count",
+    crewMissing: "count",
     declaredLostUt: "ut",
     endKind: "enum",
     endSource: "enum",

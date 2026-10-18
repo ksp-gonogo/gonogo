@@ -1,0 +1,116 @@
+{
+  "_meta": {
+    "shows": "A fleet where the player ended two crewed craft from the Tracking Station: one with a kerbal the roster marks dead and one missing, the other with its only kerbal missing. Each stays listed, worded from the roster as dead and missing rather than as lost, with the control that dismisses it.",
+    "scenario": "terminated-craft",
+    "source": "Derived from destroyed-craft.json, with two entries set by hand to the state a centre's catalog carries for a craft the player terminated.",
+    "notes": "A craft ended by anything but a termination keeps the lost wording, as destroyed-craft.json shows."
+  },
+  "_stream": {
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "trackingStation.bodies",
+        "value": {
+          "bodies": [
+            {
+              "index": 0,
+              "name": "Kerbin"
+            },
+            {
+              "index": 1,
+              "name": "Mun"
+            },
+            {
+              "index": 2,
+              "name": "Duna"
+            },
+            {
+              "index": 3,
+              "name": "Eve"
+            }
+          ]
+        }
+      },
+      {
+        "channel": "trackingStation.catalog",
+        "value": {
+          "entries": [
+            {
+              "vesselId": "v-station-1",
+              "name": "Kerbin Station Alpha",
+              "vesselType": 1,
+              "situation": 3,
+              "bodyIndex": 0,
+              "crewCount": 6,
+              "crewCapacity": 6,
+              "commsConnected": true,
+              "commsControlSource": 2,
+              "contact": 0,
+              "lastContactUt": 0,
+              "crew": 0
+            },
+            {
+              "vesselId": "v-lander-duna",
+              "name": "Duna Lander Bravo",
+              "vesselType": 2,
+              "situation": 0,
+              "bodyIndex": 2,
+              "crewCount": 2,
+              "crewCapacity": 3,
+              "commsConnected": false,
+              "commsControlSource": 1,
+              "contact": 4,
+              "lastContactUt": 0,
+              "endSource": 1,
+              "endedUt": 0,
+              "endKind": 1,
+              "crew": 3,
+              "crewDead": 1,
+              "crewMissing": 1
+            },
+            {
+              "vesselId": "v-orbiter-eve",
+              "name": "Eve Orbiter Charlie",
+              "vesselType": 2,
+              "situation": 0,
+              "bodyIndex": 3,
+              "crewCount": 1,
+              "crewCapacity": 1,
+              "commsConnected": false,
+              "commsControlSource": 1,
+              "contact": 4,
+              "lastContactUt": 0,
+              "endSource": 1,
+              "endedUt": 0,
+              "endKind": 1,
+              "crew": 3,
+              "crewDead": 0,
+              "crewMissing": 1
+            }
+          ]
+        }
+      },
+      {
+        "channel": "trackingStation.vessel.v-station-1.link",
+        "value": {
+          "connected": true,
+          "oneWaySeconds": 1.2
+        }
+      },
+      {
+        "channel": "trackingStation.vessel.v-probe-mun.link",
+        "value": {
+          "connected": true,
+          "oneWaySeconds": 0.8
+        }
+      },
+      {
+        "channel": "trackingStation.vessel.v-lander-duna.link",
+        "value": {
+          "connected": true,
+          "oneWaySeconds": 620.0
+        }
+      }
+    ]
+  }
+}

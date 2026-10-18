@@ -133,6 +133,13 @@ namespace Sitrep.Host.Comms
         public IReadOnlyDictionary<string, CraftEnd>? Ends { get; set; }
 
         /// <summary>
+        /// What became of the crew of each vessel the player ended from the
+        /// Tracking Station, by bare guid, read from the game's roster after
+        /// the end. Null from a game that cannot say.
+        /// </summary>
+        public IReadOnlyDictionary<string, CrewAtEnd>? EndCrews { get; set; }
+
+        /// <summary>
         /// Whether the game's vessel list could not be read on this look: it
         /// was still being filled, or the scene does not fill it. The look then
         /// holds the ground stations and the centres the game can still name,
@@ -1540,6 +1547,9 @@ namespace Sitrep.Host.Comms
                     entry["endSource"] = end.HasValue ? (int)end.Value.Source : (int?)null;
                     entry["endedUt"] = end?.Ut;
                     entry["endKind"] = end.HasValue ? (int)(end.Value.End == CraftEnd.Terminated ? CatalogEnd.Terminated : CatalogEnd.Destroyed) : (int?)null;
+                    var endCrew = end?.End == CraftEnd.Terminated ? _hearing.EndCrewAt(centre, state.Id) : null;
+                    entry["crewDead"] = endCrew?.Dead;
+                    entry["crewMissing"] = endCrew?.Missing;
                     if (contact.State == CatalogContact.Silent && contact.OverdueAfterUt is double overdueAt
                         && (!_catalogDueAt.TryGetValue(centre, out var soonest) || overdueAt < soonest))
                     {

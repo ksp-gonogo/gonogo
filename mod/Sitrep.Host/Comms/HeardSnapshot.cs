@@ -195,6 +195,7 @@ namespace Sitrep.Host.Comms
                         ["capturedUt"] = sighting.CapturedUt,
                         ["exists"] = sighting.Exists,
                         ["end"] = sighting.End?.ToString(),
+                        ["endCrew"] = EndCrewMap(sighting.EndCrew),
                         ["listed"] = sighting.Listed == null ? null : new Dictionary<string, object?>(Copy(sighting.Listed)),
                     });
                 }
@@ -317,7 +318,7 @@ namespace Sitrep.Host.Comms
                         var seenListed = Get(seen, "listed") is Dictionary<string, object?> listing ? Listed(listing) : null;
                         sightings.Add(Get(seen, "exists") is bool there && there
                             ? CraftSighting.Of(seenId, seenUt, seenListed)
-                            : CraftSighting.Gone(seenId, seenUt, EndOf(seen), seenListed));
+                            : CraftSighting.Gone(seenId, seenUt, EndOf(seen), seenListed, EndCrewOf(seen)));
                     }
                     var reaches = new List<CraftReach>();
                     foreach (var item3 in List(centre, "reaches"))
@@ -456,6 +457,7 @@ namespace Sitrep.Host.Comms
                 ["capturedUt"] = state.CapturedUt,
                 ["exists"] = state.Exists,
                 ["end"] = state.End?.ToString(),
+                ["endCrew"] = EndCrewMap(state.EndCrew),
                 ["bodyIndex"] = (double)state.BodyIndex,
                 ["orbit"] = state.Orbit == null ? null : Orbit(state.Orbit.Value),
                 ["surface"] = state.Surface == null ? null : Surface(state.Surface.Value),
@@ -482,7 +484,7 @@ namespace Sitrep.Host.Comms
             var capturedUt = (double)map["capturedUt"]!;
             if (!(Get(map, "exists") is bool exists) || !exists)
             {
-                return CraftState.Gone(id, capturedUt, EndOf(map), Get(map, "roster") is Dictionary<string, object?> lastListed ? Listed(lastListed) : null);
+                return CraftState.Gone(id, capturedUt, EndOf(map), Get(map, "roster") is Dictionary<string, object?> lastListed ? Listed(lastListed) : null, EndCrewOf(map));
             }
             var links = new Dictionary<string, CraftLink>(StringComparer.Ordinal);
             if (Get(map, "links") is Dictionary<string, object?> heard)
@@ -508,6 +510,15 @@ namespace Sitrep.Host.Comms
         /// <summary>How a gone craft left the game, as saved; a save that does not say is one that never learned.</summary>
         private static CraftEnd EndOf(Dictionary<string, object?> map) =>
             Get(map, "end") is string named && Enum.TryParse<CraftEnd>(named, out var end) ? end : CraftEnd.Absorbed;
+
+        private static Dictionary<string, object?>? EndCrewMap(CrewAtEnd? crew) =>
+            crew == null ? null : new Dictionary<string, object?> { ["dead"] = (double)crew.Dead, ["missing"] = (double)crew.Missing };
+
+        /// <summary>What became of a gone craft's crew, as saved; null where the save holds none.</summary>
+        private static CrewAtEnd? EndCrewOf(Dictionary<string, object?> map) =>
+            Get(map, "endCrew") is Dictionary<string, object?> saved && saved.TryGetValue("dead", out var dead) && saved.TryGetValue("missing", out var missing)
+                ? new CrewAtEnd((int)(double)dead!, (int)(double)missing!)
+                : null;
 
         /// <summary>A radio reading as the save keeps it. A save's own layout, not the wire's.</summary>
         private static Dictionary<string, object?> RadioOf(ContactRadio radio)

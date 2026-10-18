@@ -10258,8 +10258,9 @@ components:
         - const: 1
           title: Terminated
           description: |-
-            The player ended the craft from the Tracking Station. Its crew went with it
-            and no reputation was charged.
+            The player ended the craft from the Tracking Station. Its crew leave the
+            roster as missing, back after the game's respawn period, and no reputation
+            is charged: see `CatalogEntry.crewDead` and `CatalogEntry.crewMissing`.
     CatalogEntry:
       type: object
       description: |-
@@ -10500,6 +10501,25 @@ components:
             - $ref: "#/components/schemas/CatalogEnd"
               x-sitrep-unit: enum
             - type: "null"
+        crewDead:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: count
+          description: |-
+            For a craft the player ended from the Tracking Station, how many of its crew
+            the game's roster marks dead after the end. Null for any other end and when
+            the roster was not read.
+        crewMissing:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: count
+          description: |-
+            For a craft the player ended from the Tracking Station, how many of its crew
+            the game's roster marks missing after the end: they return to the roster
+            when the game's respawn period for them ends. Null for any other end and
+            when the roster was not read.
     CentreDelayEntry:
       type: object
       description: |-

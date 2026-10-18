@@ -291,6 +291,10 @@ namespace Sitrep.Host.Comms
             return (source, known.CapturedUt, known.End ?? CraftEnd.Absorbed);
         }
 
+        /// <summary>What became of the crew of a craft <paramref name="centre"/> knows the player ended from the Tracking Station, or null when none was read.</summary>
+        public CrewAtEnd? EndCrewAt(string centre, string nodeId) =>
+            _ears.TryGetValue(centre, out var ear) && ear.Known.TryGetValue(nodeId, out var known) && !known.Exists ? known.EndCrew : null;
+
         /// <summary>
         /// Takes a craft <paramref name="centre"/> knows has ended off its
         /// catalog. Returns false, and takes nothing off, when the centre knows

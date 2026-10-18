@@ -45,7 +45,7 @@ namespace Sitrep.Host.Tests.Comms
             {
             }
 
-            public void RecordCraftGone(string vesselId, double ut, CraftEnd end)
+            public void RecordCraftGone(string vesselId, double ut, CraftEnd end, CrewAtEnd? crew = null)
             {
             }
 

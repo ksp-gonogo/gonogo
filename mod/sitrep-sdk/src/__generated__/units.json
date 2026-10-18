@@ -219,6 +219,8 @@
       "crew": "enum",
       "crewCapacity": "count",
       "crewCount": "count",
+      "crewDead": "count",
+      "crewMissing": "count",
       "declaredLostUt": "ut",
       "endKind": "enum",
       "endSource": "enum",
