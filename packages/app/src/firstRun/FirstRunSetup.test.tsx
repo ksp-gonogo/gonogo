@@ -200,13 +200,12 @@ function rosterEntry(overrides: { id: string } & Record<string, unknown>) {
   };
 }
 
-/** An Uplink inside the core mod: no author, no repository, no client. */
+/** An Uplink compiled into the core mod: bundled, and with no client. */
 function coreEntry(id: string) {
   return rosterEntry({
     id,
     expectedClientHash: null,
-    author: null,
-    repo: null,
+    bundled: true,
   });
 }
 

@@ -86,6 +86,7 @@ namespace Gonogo.KSP
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "recovery",
+            Bundled = true,
             Version = "1.0.0",
             Channels = new List<ChannelDeclaration>
             {

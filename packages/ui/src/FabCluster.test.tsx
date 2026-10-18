@@ -44,11 +44,52 @@ describe("FabCluster", () => {
     expect(button).toHaveAttribute("tabindex", "0");
   });
 
-  it("shows secondaries and their names without any hover on a coarse pointer", () => {
-    stubPointer(true);
-    const button = renderCluster();
-    expect(button).toHaveAttribute("tabindex", "0");
-    expect(screen.getByText("Settings", { selector: "span" })).toBeVisible();
+  describe("on a coarse pointer", () => {
+    function renderTouch() {
+      stubPointer(true);
+      render(
+        <FabClusterProvider>
+          <FabClusterToggle />
+          <Fab bottom={84} aria-label="Settings">
+            s
+          </Fab>
+        </FabClusterProvider>,
+      );
+      return {
+        toggle: screen.getByRole("button", { name: "Dashboard controls" }),
+        settings: screen.getByRole("button", { name: "Settings" }),
+      };
+    }
+
+    it("keeps secondaries hidden until the toggle is tapped, whatever hover or focus a touch synthesises", async () => {
+      const { toggle, settings } = renderTouch();
+      expect(settings).toHaveAttribute("tabindex", "-1");
+      fireEvent.mouseEnter(toggle);
+      act(() => toggle.focus());
+      expect(settings).toHaveAttribute("tabindex", "-1");
+
+      await userEvent.setup().click(toggle);
+
+      expect(settings).toHaveAttribute("tabindex", "0");
+      expect(screen.getByText("Settings", { selector: "span" })).toBeVisible();
+    });
+
+    it("closes when the toggle is tapped again", async () => {
+      const user = userEvent.setup();
+      const { toggle, settings } = renderTouch();
+      await user.click(toggle);
+      await user.click(toggle);
+      expect(settings).toHaveAttribute("tabindex", "-1");
+    });
+
+    it("closes after a button in the cluster is chosen", async () => {
+      const user = userEvent.setup();
+      const { toggle, settings } = renderTouch();
+      await user.click(toggle);
+      await user.click(settings);
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(settings).toHaveAttribute("tabindex", "-1");
+    });
   });
 
   describe("toggle", () => {

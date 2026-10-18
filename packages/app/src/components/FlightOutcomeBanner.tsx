@@ -717,9 +717,10 @@ const DetailWrap = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-section);
-  min-width: 480px;
+  min-width: min(480px, 100%);
   max-width: 640px;
   max-height: 70vh;
+  max-height: 70dvh;
   overflow-y: auto;
 `;
 

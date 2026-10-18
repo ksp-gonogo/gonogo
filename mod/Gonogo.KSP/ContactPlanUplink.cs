@@ -56,6 +56,7 @@ namespace Gonogo.KSP
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "comms-contacts",
+            Bundled = true,
             Version = "1.0.0",
             Channels = ContactPlanSource.Channels(),
             Commands = ContactPlanSource.Commands(),

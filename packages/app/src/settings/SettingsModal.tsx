@@ -25,7 +25,6 @@ import { AppVersion } from "./AppVersion";
 import { ControlFrameSettings } from "./ControlFrameSettings";
 import { GonogoSettings } from "./GonogoSettings";
 import { HelpSettings } from "./HelpSettings";
-import { ModSettingsSection } from "./ModSettingsSection";
 import type { SettingDefinition } from "./registry";
 import { getSettingsForScreen } from "./registry";
 import { bucketBy, CategoryRows } from "./SettingRows";
@@ -103,12 +102,7 @@ export function SettingsModal({
     content: (
       <SectionStack>
         <GonogoSettings />
-        <Stack as="section" gap="related-comfortable">
-          <SectionTitle as="h3" $rule>
-            Signal delay
-          </SectionTitle>
-          <ModSettingsSection uplinkId="comms" name="Signal delay" />
-        </Stack>
+
         <Stack as="section" gap="related-comfortable">
           <SectionTitle as="h3" $rule>
             Control Frame
@@ -195,8 +189,8 @@ export function SettingsModal({
 
 /**
  * The Connection tab: the game host this screen streams from, whether the
- * stream is up, and on the main screen the stations it has approved. Each
- * Uplink's own health is on its page under Uplinks.
+ * stream is up, and on the main screen the stations it has approved. Each installed Uplink's own health is on its page
+ * under Uplinks.
  */
 function ConnectionPanel({
   onRunSetupAgain,
@@ -323,8 +317,10 @@ const Wrap = styled.div`
      Connection / Devices / Diagnostics panels, and a minimum height so
      tabs of different length do not resize the modal. The wrapper grows
      with a tall tab and the modal body scrolls, which keeps the body's
-     bottom padding under the last element of every tab. */
-  min-width: 460px;
+     bottom padding under the last element of every tab. The minimum gives
+     way to a narrower dialog, so a phone is not made to scroll sideways. */
+  min-width: min(460px, 100%);
   max-width: 80vw;
   min-height: min(70vh, 640px);
+  min-height: min(70dvh, 640px);
 `;

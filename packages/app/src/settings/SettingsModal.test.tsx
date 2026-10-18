@@ -1057,6 +1057,93 @@ describe("SettingsModal: the Uplinks tab", () => {
     undeclared: [],
   };
 
+  it("lists only installed Uplinks, never a core feature compiled into the mod", async () => {
+    const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    renderModalWithStream(stream);
+    act(() =>
+      stream.emit({
+        uplinks: [
+          { ...SURVIVAL_ENTRY, modSettings: false },
+          {
+            ...uplinkEntry("fleet", { state: 0, detail: null }),
+            bundled: true,
+          },
+          {
+            ...uplinkEntry("breakingGround", { state: 0, detail: null }),
+            name: "Breaking Ground",
+            bundled: true,
+          },
+        ],
+      }),
+    );
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("tab", { name: "Uplinks" }));
+
+    expect(screen.getByRole("tab", { name: "Survival" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "fleet" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "Breaking Ground" })).toBeNull();
+  });
+
+  it("has no Uplinks tab when the mod lists only core features", async () => {
+    const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    renderModalWithStream(stream);
+    act(() =>
+      stream.emit({
+        uplinks: [
+          {
+            ...uplinkEntry("fleet", { state: 0, detail: null }),
+            bundled: true,
+          },
+        ],
+      }),
+    );
+    await screen.findByRole("tab", { name: "Gonogo" });
+    expect(screen.queryByRole("tab", { name: "Uplinks" })).toBeNull();
+  });
+
+  it("shows a core feature's rows and health nowhere in Settings", async () => {
+    const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    renderModalWithStream(stream);
+    act(() => {
+      stream.emit({
+        uplinks: [
+          {
+            ...uplinkEntry("fleet", { state: 1, detail: "no vessels yet" }),
+            name: "Fleet",
+            bundled: true,
+          },
+        ],
+      });
+      stream.emitTopic("settings.gonogo", {
+        ...GONOGO_SETTINGS,
+        rows: [
+          {
+            path: "Uplinks/fleet/showLanded",
+            owner: "fleet",
+            kind: 1,
+            label: "Show landed vessels",
+            description: "",
+            value: "True",
+            default: "True",
+          },
+        ],
+      });
+    });
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("tab", { name: "Gonogo" }));
+    expect(
+      screen.queryByRole("checkbox", { name: "Show landed vessels" }),
+    ).toBeNull();
+    await user.click(screen.getByRole("tab", { name: /^Connection/ }));
+    expect(screen.queryByText("no vessels yet")).toBeNull();
+    expect(screen.queryByText("Fleet")).toBeNull();
+  });
+
   it("has no Uplinks tab while no Uplink has anything to show", () => {
     renderModal("main");
     expect(screen.queryByRole("tab", { name: "Uplinks" })).toBeNull();
@@ -1159,43 +1246,6 @@ describe("SettingsModal: the Uplinks tab", () => {
     expect(await screen.findByText("Failures from wear")).toBeInTheDocument();
     expect(
       screen.getByText("Set in Difficulty settings, Survival"),
-    ).toBeInTheDocument();
-    await act(async () => {});
-  });
-
-  it("draws the signal delay choice the save holds under the Gonogo tab, and writes it through the mod", async () => {
-    const stream = setupTelemetryStream();
-    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
-    renderModalWithStream(stream);
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("tab", { name: "Gonogo" }));
-    act(() => {
-      stream.emitTopic("settings.comms", {
-        uplink: "comms",
-        failure: null,
-        settings: [
-          {
-            id: "delayEnabled",
-            label: "Signal delay",
-            description:
-              "Off, they arrive at once; a craft with no path is still out of contact",
-            kind: 1,
-            unit: null,
-            group: "",
-            setIn: "Difficulty settings, Gonogo",
-            writable: true,
-            value: "True",
-            unavailable: null,
-          },
-        ],
-      });
-    });
-
-    expect(
-      await screen.findByRole("checkbox", { name: "Signal delay" }),
-    ).toBeChecked();
-    expect(
-      screen.getByText("Set in Difficulty settings, Gonogo"),
     ).toBeInTheDocument();
     await act(async () => {});
   });
