@@ -37,16 +37,32 @@ export function useScrollerMetric<Metric>(
     const ro = new ResizeObserver(update);
     ro.observe(el);
     for (const child of Array.from(el.children)) ro.observe(child);
-    const mo = new MutationObserver(() => {
-      for (const child of Array.from(el.children)) ro.observe(child);
-      update();
+    let frame: number | undefined;
+    const mo = new MutationObserver((records) => {
+      if (records.some((r) => r.type === "childList")) {
+        for (const child of Array.from(el.children)) ro.observe(child);
+        update();
+        return;
+      }
+      // A style change deep inside can resize content past the scroller's edge; checked once a frame, since an animated descendant restyles every frame.
+      if (frame === undefined)
+        frame = requestAnimationFrame(() => {
+          frame = undefined;
+          update();
+        });
     });
     // The subtree, because content can overflow the scroller from a descendant without any observed box changing size.
-    mo.observe(el, { childList: true, subtree: true });
+    mo.observe(el, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["style"],
+    });
     return () => {
       el.removeEventListener("scroll", update);
       ro.disconnect();
       mo.disconnect();
+      if (frame !== undefined) cancelAnimationFrame(frame);
     };
   }, [el]);
 

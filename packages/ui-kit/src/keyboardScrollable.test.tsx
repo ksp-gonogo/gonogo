@@ -48,6 +48,30 @@ describe("scroll bodies from the keyboard", () => {
     expect(inner).toHaveAttribute("tabindex", "0");
   });
 
+  it("notices content restyled past its edge from deep inside, with no scroll and no change of children", async () => {
+    const { container } = render(
+      <ScrollArea>
+        <div>
+          <p data-testid="deep">row</p>
+        </div>
+      </ScrollArea>,
+    );
+    const inner = container.querySelector(
+      "[data-scroll-area-inner]",
+    ) as HTMLElement;
+    for (const [key, value] of Object.entries({
+      clientHeight: 100,
+      scrollHeight: 300,
+    })) {
+      Object.defineProperty(inner, key, { configurable: true, value });
+    }
+    await act(async () => {
+      screen.getByTestId("deep").style.height = "300px";
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    });
+    expect(inner).toHaveAttribute("tabindex", "0");
+  });
+
   it("does the same for a capped disclosure body", async () => {
     const user = userEvent.setup();
     render(

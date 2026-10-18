@@ -151,6 +151,26 @@ describe("a spatial plot's dot lattice", () => {
 });
 
 describe("plot layers", () => {
+  it("draws a scatter dot given a radius in plot units at that size on screen, and one without at a fixed size", () => {
+    const dot = (radius?: number) => {
+      const { container, unmount } = chart([
+        {
+          kind: "series",
+          id: "dots",
+          style: "scatter",
+          points: [{ x: 50, y: 500 }],
+          ...(radius === undefined ? {} : { radius }),
+        },
+      ]);
+      const r = Number(container.querySelector("circle")?.getAttribute("r"));
+      unmount();
+      return r;
+    };
+    expect(dot(10)).toBeCloseTo(2 * dot(5));
+    expect(dot(10)).toBeGreaterThan(dot(1));
+    expect(dot()).toBe(1.5);
+  });
+
   it("draws one element per layer, tagged with the contributor's own id", () => {
     const { container } = chart([
       {

@@ -640,6 +640,10 @@ function SeriesLayer({
   if (pts.length === 0) return null;
   const width = BASE_STROKE_WIDTH * (layer.weight ?? 1);
   if (layer.style === "scatter") {
+    const r =
+      layer.radius === undefined
+        ? width
+        : Math.abs(frame.scaleX(layer.radius) - frame.scaleX(0));
     return (
       <g
         data-plot-layer={layer.id}
@@ -649,7 +653,7 @@ function SeriesLayer({
       >
         {pts.map((p, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: scatter points have no other identity
-          <circle key={i} cx={p.x} cy={p.y} r={width} />
+          <circle key={i} cx={p.x} cy={p.y} r={r} />
         ))}
       </g>
     );

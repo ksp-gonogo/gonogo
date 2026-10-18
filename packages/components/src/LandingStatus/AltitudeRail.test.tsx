@@ -224,6 +224,30 @@ describe("AltitudeRail", () => {
     });
   });
 
+  describe("the cue under the rail", () => {
+    it("is not written while the link is live, where the headline counts down to the same burn", () => {
+      const { container } = render(<AltitudeRail {...descending} live />);
+      expect(visibleText()).not.toMatch(/ignite in/i);
+      // The scale is the rail's only row, so it takes the cue's height.
+      const rail = container.firstElementChild as HTMLElement;
+      expect(rail.children).toHaveLength(1);
+    });
+
+    it("counts down to ignition under delay", () => {
+      render(<AltitudeRail {...descending} live={false} />);
+      expect(visibleText()).toMatch(/ignite in 8s/i);
+    });
+
+    it("is not written under delay when there is no burn to describe", () => {
+      const { container } = render(
+        <AltitudeRail {...descending} suicideBurnCountdown={null} />,
+      );
+      expect(visibleText()).not.toMatch(/no burn|ignite in/i);
+      const rail = container.firstElementChild as HTMLElement;
+      expect(rail.children).toHaveLength(1);
+    });
+  });
+
   it("reads 'past ignition' once the burn window has opened", () => {
     render(<AltitudeRail {...descending} suicideBurnCountdown={-1} />);
     expect(screen.getByText(/past ignition/i)).toBeInTheDocument();
@@ -244,7 +268,7 @@ describe("AltitudeRail", () => {
         name: `Altitude above terrain: ${NULL_DISPLAY}`,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/no burn/i)).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(/no burn|ignite in/i);
   });
 
   it("holds a height that has stopped arriving and says so on the rail", () => {

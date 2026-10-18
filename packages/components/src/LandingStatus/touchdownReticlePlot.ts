@@ -15,6 +15,7 @@ import {
   frameFootprint,
   groundLattice,
   LATTICE_DOT,
+  LATTICE_DOT_SHARE,
   latticePitch,
   RING_MARK,
   SITE_MARK_SCALE,
@@ -207,6 +208,7 @@ export function buildTouchdownReticlePlot(
       points,
       style: "scatter",
       ...LATTICE_DOT,
+      radius: width * LATTICE_DOT_SHARE,
       description: referenceNote,
     });
   }

@@ -11897,6 +11897,10 @@
         "note": "a relief marks ground that is outside the view, hidden or without data without changing the height it is coloured by"
       },
       {
+        "key": "sitrep-sdk . PlotSeriesLayer#radius?",
+        "note": "New: with scatter, each dot's radius in the plot's x units, so the dots scale with the plot"
+      },
+      {
         "key": "sitrep-sdk . PlotWaterLayer",
         "note": "A plot layer for open water: a sea surface the renderer animates, fixed to the body and shaded by its slope"
       },
@@ -13271,6 +13275,10 @@
       {
         "key": "sitrep-sdk ./registry ~PlotReliefLayer#veil?",
         "note": "a relief marks ground that is outside the view, hidden or without data without changing the height it is coloured by"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlotSeriesLayer#radius?",
+        "note": "New: with scatter, each dot's radius in the plot's x units, so the dots scale with the plot"
       },
       {
         "key": "sitrep-sdk ./registry ~PlotWaterLayer",
@@ -14685,6 +14693,10 @@
         "note": "a relief marks ground that is outside the view, hidden or without data without changing the height it is coloured by"
       },
       {
+        "key": "sitrep-sdk ./spine ~PlotSeriesLayer#radius?",
+        "note": "New: with scatter, each dot's radius in the plot's x units, so the dots scale with the plot"
+      },
+      {
         "key": "sitrep-sdk ./spine ~PlotWaterLayer",
         "note": "A plot layer for open water: a sea surface the renderer animates, fixed to the body and shaded by its slope"
       },
@@ -15143,6 +15155,10 @@
       {
         "key": "sitrep-sdk ./testing ~PlotReliefLayer#veil?",
         "note": "a relief marks ground that is outside the view, hidden or without data without changing the height it is coloured by"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlotSeriesLayer#radius?",
+        "note": "New: with scatter, each dot's radius in the plot's x units, so the dots scale with the plot"
       },
       {
         "key": "sitrep-sdk ./testing ~PlotWaterLayer",

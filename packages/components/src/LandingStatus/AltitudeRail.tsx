@@ -1,5 +1,5 @@
 /**
- * The altimeter as a full-height rail down one edge of the landing widget: AGL falling toward the ground line, the suicide-burn ignition band shaded as a hot zone, and the ignition cue beneath it.
+ * The altimeter as a full-height rail down one edge of the landing widget: AGL falling toward the ground line, the suicide-burn ignition band shaded as a hot zone, and, under delay, the ignition cue beneath it.
  * `agl` is handed to the `Tape` as a whole reading so the rail marks a held height itself; before data arrives it renders an empty scale.
  * The scale is a window around the craft sized by its height and vertical speed: below it, as far as it falls in `LOOKAHEAD_SECONDS` (never less than a tenth of its height) and no lower than the lower of the ground and sea level, so the scale tightens as the craft closes on the ground. Both levels are always drawn, pinned to an edge when off the scale.
  */
@@ -32,6 +32,8 @@ export interface AltitudeRailProps {
   burning?: boolean;
   /** The burn solve rests on a dated reading: no ignition band is drawn and the footer names nothing, since "no burn" would claim the solve found none. */
   instructionWithheld?: boolean;
+  /** The link is live, so the widget's headline already counts down to the burn and the footer would repeat it: no footer is written and the scale takes its height. */
+  live?: boolean;
 }
 
 /** How far ahead the scale looks along the craft's vertical motion. */
@@ -59,6 +61,7 @@ export function AltitudeRail({
   suicideBurnCountdown,
   burning = false,
   instructionWithheld = false,
+  live = false,
 }: Readonly<AltitudeRailProps>) {
   const ground = value("m", 0);
   const height = agl.value ?? ground;
@@ -100,6 +103,17 @@ export function AltitudeRail({
       : undefined;
 
   const near = suicideBurnCountdown != null && suicideBurnCountdown <= 5;
+  // Written only under delay, where the headline shows the burn-GO clock and nothing else counts down to ignition, and only with a burn to describe.
+  const footer =
+    centreOfMass || instructionWithheld || live
+      ? null
+      : burning
+        ? "burning"
+        : suicideBurnCountdown == null
+          ? null
+          : suicideBurnCountdown <= 0
+            ? "past ignition"
+            : `ignite in ${writeQuantity(value("s", Math.ceil(suicideBurnCountdown)))}`;
 
   return (
     <div
@@ -146,16 +160,10 @@ export function AltitudeRail({
         />
       </div>
       {/* Panel.Body supplies the outer inset. */}
-      {!centreOfMass && !instructionWithheld && (
+      {footer !== null && (
         <div style={{ alignSelf: "stretch" }}>
           <Text tone={near ? "go" : undefined} level="muted" size="xs">
-            {burning
-              ? "burning"
-              : suicideBurnCountdown == null
-                ? "no burn"
-                : suicideBurnCountdown <= 0
-                  ? "past ignition"
-                  : `ignite in ${writeQuantity(value("s", Math.ceil(suicideBurnCountdown)))}`}
+            {footer}
           </Text>
         </div>
       )}

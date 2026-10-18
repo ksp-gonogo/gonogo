@@ -2,17 +2,21 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useHeldOpen } from "@ksp-gonogo/core";
 import { datedFrom, delayVisibility, value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Cluster,
   ContainerBreak,
   Countdown,
+  type ElementSize,
   NULL_DISPLAY,
   Panel,
   ScrollArea,
   Section,
   Stack,
   Text,
+  useElementSize,
 } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode, RefObject } from "react";
 import {
+  fittedBoardSize,
   PlotBoard,
   type PlotSlot,
   plotRowWidth,
@@ -69,29 +73,47 @@ const READOUTS_MIN_PX = 200;
 /**
  * The grid the widget lays out in: the header, the plots under it, then the
  * readouts, with the altitude rail down the side and any height left over
- * below the readouts. In a short, wide window the header, the plots and the
- * readouts sit side by side, the plots one row as tall as the window.
+ * below the readouts, or the readouts beside plots `besideReadoutsPx` wide. In
+ * a short, wide window the header, the plots and the readouts sit side by
+ * side, the plots one row as tall as the window.
  */
 function landingLayout(
   rail: boolean,
   plotCount: number,
+  besideReadoutsPx?: number,
 ): {
   narrow: CSSProperties;
   wide: CSSProperties;
 } {
   const lead = rail ? "rail " : "";
   return {
-    narrow: {
-      display: "grid",
-      gridTemplateColumns: rail ? "auto minmax(0, 1fr)" : "minmax(0, 1fr)",
-      // The last row takes the spare height, so the rail spanning every row stretches none of the others.
-      gridTemplateAreas: ["header", "plots", "readouts", "."]
-        .map((area) => `"${lead}${area}"`)
-        .join(" "),
-      gridTemplateRows: "auto auto auto 1fr",
-      minHeight: "100cqh",
-      gap: "var(--gap-section)",
-    },
+    narrow:
+      besideReadoutsPx === undefined
+        ? {
+            display: "grid",
+            gridTemplateColumns: rail
+              ? "auto minmax(0, 1fr)"
+              : "minmax(0, 1fr)",
+            gridTemplateAreas: ["header", "plots", "readouts"]
+              .map((area) => `"${lead}${area}"`)
+              .join(" "),
+            gridTemplateRows: "auto auto auto",
+            // The rows sit at the top and any spare height stays under them, so the rail spanning every row stretches none of the others and no empty row adds a gap past the window's edge.
+            alignContent: "start",
+            minHeight: "100cqh",
+            gap: "var(--gap-section)",
+          }
+        : {
+            display: "grid",
+            gridTemplateColumns: `${rail ? "auto " : ""}${besideReadoutsPx}px minmax(0, 1fr)`,
+            gridTemplateAreas: ["header header", "plots readouts"]
+              .map((areas) => `"${lead}${areas}"`)
+              .join(" "),
+            gridTemplateRows: "auto auto",
+            alignContent: "start",
+            minHeight: "100cqh",
+            gap: "var(--gap-section)",
+          },
     wide: {
       // The plots take up to one row as tall as the window and no more than the width the header and the readouts leave them.
       gridTemplateColumns: `${rail ? "auto " : ""}fit-content(${HEADER_BESIDE_MAX_PX}px) minmax(0, ${plotRowWidth(plotCount)}) minmax(${READOUTS_MIN_PX}px, 1fr)`,
@@ -101,10 +123,45 @@ function landingLayout(
   };
 }
 
+/** The window height below which a stacked header sets its rows side by side, so a short tile spends its height on the plots. */
+const COMPACT_HEADER_BELOW_PX = 280;
+
+type Measured = { ref: RefObject<HTMLDivElement>; size: ElementSize };
+
+/**
+ * Where the plots go in a window that stacks them under the header: the
+ * height they have, so a regular tile shows them whole before the readouts,
+ * and the width they take when that leaves the readouts room beside them. None
+ * in a wide window, where the plots sit beside the header, or before the window
+ * has been measured.
+ */
+function stackedPlots(
+  windowBox: Measured,
+  header: ElementSize,
+  count: number,
+  keepHeadings: boolean,
+): { room: number; besideReadoutsPx?: number } | undefined {
+  const { w, h } = windowBox.size;
+  const layout = windowBox.ref.current?.firstElementChild;
+  if (w === 0 || header.h === 0 || !layout) return undefined;
+  if (w / h >= BESIDE_HEADER_ASPECT) return undefined;
+  const style = getComputedStyle(layout);
+  const gap = Number.parseFloat(style.rowGap) || 0;
+  const inset =
+    Number.parseFloat(style.getPropertyValue("--inset-contributed-plots")) || 0;
+  const room = h - header.h - gap - 2 * inset;
+  const board = fittedBoardSize(count, header.w, room, keepHeadings);
+  return header.w - board.width - gap >= READOUTS_MIN_PX
+    ? { room, besideReadoutsPx: board.width }
+    : { room };
+}
+
 function LandingStatusComponent({
   w,
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
   const model = useLandingModel();
+  const windowBox = useElementSize({ w: 0, h: 0 });
+  const headerBox = useElementSize({ w: 0, h: 0 });
   const {
     flight,
     flightReading,
@@ -181,10 +238,24 @@ function LandingStatusComponent({
   ];
 
   const plotSlots = usePlotSlots(reservedPlots);
+  const stacked = stackedPlots(
+    windowBox,
+    headerBox.size,
+    plotSlots.length,
+    plotSlots.some((slot) => slot.plot?.held !== undefined),
+  );
+  const compactHeader =
+    windowBox.size.h > 0 &&
+    windowBox.size.w / windowBox.size.h < BESIDE_HEADER_ASPECT &&
+    windowBox.size.h < COMPACT_HEADER_BELOW_PX;
   // Contributed plots: each decides for itself whether it has anything to say, and the board lays out what comes back.
   const contributedPlots = (
     // gonogo:reads none
-    <PlotBoard reserve={reservedPlots} minPlotPx={MIN_LEGIBLE_PLOT_PX} />
+    <PlotBoard
+      reserve={reservedPlots}
+      minPlotPx={MIN_LEGIBLE_PLOT_PX}
+      fitHeight={stacked?.room}
+    />
   );
 
   const comDatumNote = <ComDatumNote model={model} />;
@@ -204,6 +275,7 @@ function LandingStatusComponent({
 
   const commitLayerEl = (
     <CommitLayer
+      inline={compactHeader}
       regime={clocks.regime}
       live={live}
       mayInstruct={mayInstruct}
@@ -255,7 +327,11 @@ function LandingStatusComponent({
       {divertEl}
     </>
   );
-  const layout = landingLayout(railShown, plotSlots.length);
+  const layout = landingLayout(
+    railShown,
+    plotSlots.length,
+    showPlots ? stacked?.besideReadoutsPx : undefined,
+  );
 
   return (
     <Panel
@@ -288,6 +364,7 @@ function LandingStatusComponent({
           <ScrollArea>
             {/* The visible window: sized in both axes, so the layout reads its height in container units, and positioned, so nothing absolutely placed inside escapes the scroller. Its bottom padding keeps the inset the body would have given the content. */}
             <div
+              ref={windowBox.ref}
               style={{
                 containerType: "size",
                 height: "100%",
@@ -331,13 +408,17 @@ function LandingStatusComponent({
                       }
                       instructionWithheld={!model.mayInstruct}
                       burning={model.burning}
+                      live={clocks.regime === "live"}
                     />
                   </div>
                 )}
                 {/* The link state first: a delayed descent is flown by these countdowns, so a narrow tile must not fold them away. Through a descent every row is always present, so no state can change the height above the plots. */}
-                <div style={{ gridArea: "header", minWidth: 0 }}>
-                  <Stack gap="section-compact">
-                    <Stack>
+                <div
+                  ref={headerBox.ref}
+                  style={{ gridArea: "header", minWidth: 0 }}
+                >
+                  <HeaderRows compact={compactHeader}>
+                    <HeaderRows compact={compactHeader} inner>
                       {commitLayerEl}
                       {crash && !crashInContext && (
                         <CrashOutcome crash={crash} record={recordOnly} />
@@ -358,7 +439,7 @@ function LandingStatusComponent({
                           )}
                         </Text>
                       )}
-                    </Stack>
+                    </HeaderRows>
                     {bodyName !== undefined &&
                       !recordOnly &&
                       (crashInContext ? (
@@ -368,7 +449,7 @@ function LandingStatusComponent({
                           {bodyLine}
                         </Text>
                       ))}
-                  </Stack>
+                  </HeaderRows>
                 </div>
                 {plotsShown && (
                   // Beside the header the plots are one row as tall as the window, and the readouts take the rest of the width.
@@ -441,6 +522,35 @@ function LandingStatusComponent({
         </Section>
       }
     />
+  );
+}
+
+/**
+ * The header's rows: stacked, or in a short tile side by side and wrapping,
+ * so the header gives its height to the plots.
+ */
+function HeaderRows({
+  compact,
+  inner = false,
+  children,
+}: {
+  compact: boolean;
+  inner?: boolean;
+  children: ReactNode;
+}) {
+  // One wrapping row for every item, so a short line joins the one before it.
+  if (compact)
+    return inner ? (
+      children
+    ) : (
+      <Cluster justify="start" align="baseline" gap="related" wrap>
+        {children}
+      </Cluster>
+    );
+  return inner ? (
+    <Stack>{children}</Stack>
+  ) : (
+    <Stack gap="section-compact">{children}</Stack>
   );
 }
 

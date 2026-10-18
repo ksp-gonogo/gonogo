@@ -208,6 +208,8 @@ export const LATTICE_DOT = {
   dashed: false,
   weight: 1.4,
 } as const;
+/** A lattice dot's radius as a share of the plot's width, so a small plot shows small dots rather than a few large ones. */
+export const LATTICE_DOT_SHARE = 0.0082;
 /** The lines of the lattice across a footprint. */
 const LATTICE_ACROSS = 9;
 /** The site cross is the landmark that matches the two plots, so it is drawn larger than a plain mark. */

@@ -16,6 +16,7 @@ import {
   groundLattice,
   type HeightField,
   LATTICE_DOT,
+  LATTICE_DOT_SHARE,
   RING_MARK,
   renderTerrain,
   SITE_MARK_SCALE,
@@ -127,6 +128,8 @@ export function buildVesselViewPlot(
       points: crossings,
       style: "scatter",
       ...LATTICE_DOT,
+      // The screen spans 2 units across.
+      radius: 2 * LATTICE_DOT_SHARE,
       description: referenceNote,
     });
   }

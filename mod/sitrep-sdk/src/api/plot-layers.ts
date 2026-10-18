@@ -95,6 +95,12 @@ export interface PlotSeriesLayer extends PlotLayerBase {
   dashed?: boolean;
   /** Multiplier on the plot's own series weight. Defaults to 1. */
   weight?: number;
+  /**
+   * With `style: "scatter"`, each dot's radius in the plot's x units, so the
+   * dots grow and shrink with the plot. Without it a dot is drawn at a fixed
+   * size set by `weight`.
+   */
+  radius?: number;
 }
 
 /**

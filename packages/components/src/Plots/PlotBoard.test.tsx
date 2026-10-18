@@ -8,7 +8,12 @@ import type { PlotEntry } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { heldWord } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";
-import { PlotBoard, type PlotSlot, plotRowWidth } from "./PlotBoard";
+import {
+  fittedBoardSize,
+  PlotBoard,
+  type PlotSlot,
+  plotRowWidth,
+} from "./PlotBoard";
 
 /**
  * What the arranger does with what it is handed, through the real registry,
@@ -239,6 +244,27 @@ describe("the board's layout", () => {
 
   it("sizes a single row of plots from the height of the size container it sits in", () => {
     expect(plotRowWidth(3)).toBe("calc(3 * 100cqh + 2 * var(--gap-related))");
+  });
+
+  describe("a board fitted to a height", () => {
+    it("sets four plots in one row under a short room, and asks for no more than that row", () => {
+      // 4 across 400 px: 94 px squares, untitled; two rows in 120 px would give 56.
+      expect(fittedBoardSize(4, 400, 120)).toEqual({ width: 400, height: 94 });
+    });
+
+    it("stacks plots in a tall, narrow room at the width's size, with no gaps between them", () => {
+      // One column 140 wide: 140 px squares, titled (140 + 25 a row), well short of the 1000 px room.
+      expect(fittedBoardSize(3, 140, 1000).height).toBe(3 * 165 + 2 * 8);
+    });
+
+    it("keeps every heading row while a plot is held", () => {
+      expect(fittedBoardSize(4, 400, 120, true).height).toBe(94 + 25);
+    });
+
+    it("packs its columns when the room runs out before the width, leaving the spare width to the host", () => {
+      // 2 by 2 in a 400 px room: 171 px titled squares, 350 px across of the 600; four in a row would be 144.
+      expect(fittedBoardSize(4, 600, 400)).toEqual({ width: 350, height: 400 });
+    });
   });
 
   it("gives each plot's heading row to the square when the square is too small for a title", async () => {

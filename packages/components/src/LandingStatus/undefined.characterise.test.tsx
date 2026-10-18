@@ -323,7 +323,8 @@ describe("LandingStatus: what undefined means today", () => {
     await waitFor(() =>
       expect(screen.getByRole("status")).toHaveTextContent("T−"),
     );
-    expect(visibleText()).toMatch(/ignite in/);
+    // Live, the headline carries the countdown and the rail its burn band; the rail writes no cue of its own.
+    expect(rail().getAttribute("aria-valuetext")).toContain("burn zone");
   });
 
   it("shows the same root-part note for a TOMBSTONED vessel.surface as for an absent one", async () => {

@@ -1,6 +1,12 @@
 import { useContributions } from "@ksp-gonogo/core";
-import { Cluster, Grid, HeldBadge, SectionTitle } from "@ksp-gonogo/ui-kit";
-import { type ReactNode, useMemo } from "react";
+import {
+  Cluster,
+  Grid,
+  HeldBadge,
+  SectionTitle,
+  useElementSize,
+} from "@ksp-gonogo/ui-kit";
+import { type CSSProperties, type ReactNode, useMemo } from "react";
 import { GraphView } from "../Graph";
 import { type MergedPlot, mergePlots } from "./mergePlots";
 
@@ -22,6 +28,54 @@ const HEADING_ROW_PX = 17;
 
 /** The narrowest square whose heading holds a reserved plot's whole title: below it the heading row is given to the plot, and the title stays in the plot's accessible name and tooltip. */
 const TITLED_PLOT_PX = 128;
+
+/** The gap between plots and under a heading as a px figure, for working out an arrangement. */
+const GAP_ALLOWANCE_PX = 8;
+
+/** How close two arrangements' squares must be for the one with more columns to be preferred. */
+const NEAR_TIE = 0.95;
+
+/** The smallest square a board fitted to a height draws: below it the board asks for the height to draw this and its host scrolls. */
+const FITTED_FLOOR_PX = 40;
+
+/**
+ * The size a board at most `width` px wide takes to draw `count` squares as
+ * large as a room `room` px tall allows: it tries each column count that saves
+ * a row, keeps the one whose squares come out largest (or nearly so, with more
+ * columns), and gives the heading band to squares too small for a title unless
+ * `keepHeadings`. It takes no more than those squares need either way, so a
+ * tall, narrow room leaves no gaps between them and a wide one leaves its spare
+ * width to the board's host.
+ */
+export function fittedBoardSize(
+  count: number,
+  width: number,
+  room: number,
+  keepHeadings = false,
+): { width: number; height: number } {
+  const g = GAP_ALLOWANCE_PX;
+  const band = HEADING_ROW_PX + g;
+  let best = { side: 0, cols: 1, rows: 1, titled: true };
+  let lastRows = Number.POSITIVE_INFINITY;
+  for (let cols = 1; cols <= count; cols++) {
+    const rows = Math.ceil(count / cols);
+    if (rows >= lastRows) continue;
+    lastRows = rows;
+    const across = (width - (cols - 1) * g) / cols;
+    const down = (room - (rows - 1) * g) / rows;
+    const withBand = Math.min(across, down - band);
+    const titled = keepHeadings || withBand >= TITLED_PLOT_PX;
+    const side = titled ? withBand : Math.min(across, down);
+    // Within a few percent, the arrangement with more columns wins: it fills the width and leaves the host more height under it.
+    if (side >= best.side * NEAR_TIE) best = { side, cols, rows, titled };
+  }
+  const side = Math.max(FITTED_FLOOR_PX, best.side);
+  const rowHeight = best.titled ? side + band : side;
+  return {
+    width: Math.ceil(Math.min(width, best.cols * side + (best.cols - 1) * g)),
+    height: Math.floor(best.rows * rowHeight + (best.rows - 1) * g),
+  };
+}
 
 /**
  * The width a single row of `count` plots takes as tall as the nearest size container, for a host that sets the board beside its other content. The row allows no heading band, so a row too short for headings draws its plots the full height.
@@ -53,6 +107,8 @@ export interface PlotBoardProps {
   title?: string;
   /** The smallest a plot is drawn, for a host whose plots carry corner readouts that crowd one another below it. Defaults to `MIN_PLOT_PX`. */
   minPlotPx?: number;
+  /** The height in px the board fits its plots into, as large as that room allows and no larger than they need, for a host that sets the plots under other content in a window that should show them whole. Without it the board grows into the height of its size container. */
+  fitHeight?: number;
   /** Plots the host expects through its whole life, in the order they sit: each keeps its place, drawn as an empty frame while its plot is absent, so a plot arriving or leaving moves nothing. Plots contributed beyond them follow. */
   reserve?: readonly PlotSlot[];
 }
@@ -83,22 +139,34 @@ function slotsOf(
 export function PlotBoard({
   title,
   minPlotPx = MIN_PLOT_PX,
+  fitHeight,
   reserve = [],
 }: Readonly<PlotBoardProps>) {
   const slots = usePlotSlots(reserve);
+  const { ref, size } = useElementSize({ w: 0, h: 0 });
   if (slots.length === 0) return null;
   // A held badge has to be seen, so while any plot carries one every heading row stays and the squares stay level.
   const keepHeadings = slots.some((slot) => slot.plot?.held !== undefined);
+  const fitted =
+    fitHeight !== undefined && size.w > 0
+      ? fittedBoardSize(slots.length, size.w, fitHeight, keepHeadings)
+      : undefined;
 
   return (
     <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--gap-related)",
-        flex: "1 1 auto",
-        minHeight: 0,
-      }}
+      ref={ref}
+      style={
+        {
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--gap-related)",
+          flex: "1 1 auto",
+          minHeight: 0,
+          ...(fitted === undefined
+            ? {}
+            : { "--grid-squares-height": `${fitted.height}px` }),
+        } as CSSProperties
+      }
     >
       {title && <SectionTitle>{title}</SectionTitle>}
       {/* Every plot the same square, in as many columns as draws them largest in the room the host gives the board. */}
@@ -108,6 +176,8 @@ export function PlotBoard({
         squareHeadingMinPx={keepHeadings ? undefined : TITLED_PLOT_PX}
         minColWidth={`${minPlotPx}px`}
         gap="related"
+        // The squares packed together at the start of the row, so a board with width to spare leaves no gutter between its columns; on the grid rather than the measured root, which must keep the full width the board was given.
+        style={fitted === undefined ? undefined : { maxWidth: fitted.width }}
         data-plot-board=""
       >
         {slots.map((slot) =>

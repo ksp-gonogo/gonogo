@@ -246,7 +246,8 @@ describe("LandingStatus when the solve inputs are held", () => {
       const { container } = renderWidget();
       emitDescent();
       act(() => {
-        stream.emit("comms.delay", { source: 0, oneWaySeconds: 0 });
+        // Under delay, the only regime the rail writes its cue in.
+        stream.emit("comms.delay", { source: 0, oneWaySeconds: 5 });
         stream.emit("vessel.surface", {
           biome: "Highlands",
           landedAt: null,
@@ -257,7 +258,7 @@ describe("LandingStatus when the solve inputs are held", () => {
         expect(visibleText(container)).toMatch(/ignite in|past ignition/i),
       );
       act(() => {
-        stream.emit("comms.delay", { source: 0, oneWaySeconds: 0 });
+        stream.emit("comms.delay", { source: 0, oneWaySeconds: 5 });
         stream.emit(
           "vessel.flight",
           {

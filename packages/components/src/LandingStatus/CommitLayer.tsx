@@ -9,6 +9,7 @@
 
 import { type Tone, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Cluster,
   Countdown,
   NULL_DISPLAY,
   Readout,
@@ -120,6 +121,8 @@ export interface CommitLayerProps {
   burning?: boolean;
   /** False for a craft with no engine to burn (none, no thrust, or none reported): the block says nothing of a burn. True when omitted. */
   engine?: boolean;
+  /** Sets the two rows side by side, wrapping, for a tile too short to stack them. */
+  inline?: boolean;
   /** The craft's parachutes, from `vessel.landing`, for a craft with no engine: how far they have opened, whether opening the rest is safe, and the height they open fully at. Omitted or all null, the row says nothing. */
   parachute?: ParachuteStatus;
 }
@@ -249,7 +252,7 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
       aria-live={alarmed ? "assertive" : "polite"}
     >
       {/* Two rows in every state, so a change of state never adds or takes away a row; in a tile too narrow for a row's words they wrap rather than being cut off. */}
-      <Stack>
+      <RowsOrLine inline={props.inline}>
         <Readout tone={heroTone}>
           {heroValue}
           {heroCaption && <ReadoutCaption>{heroCaption}</ReadoutCaption>}
@@ -262,7 +265,23 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
           )}
           <ReadoutCaption>{IMPACT_CAPTION}</ReadoutCaption>
         </Readout>
-      </Stack>
+      </RowsOrLine>
     </Section>
+  );
+}
+
+function RowsOrLine({
+  inline = false,
+  children,
+}: {
+  inline?: boolean;
+  children: ReactNode;
+}) {
+  return inline ? (
+    <Cluster justify="start" align="baseline" gap="section" wrap>
+      {children}
+    </Cluster>
+  ) : (
+    <Stack>{children}</Stack>
   );
 }
