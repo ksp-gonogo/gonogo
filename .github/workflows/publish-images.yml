@@ -3,8 +3,8 @@ name: Publish proxy images
 # Two publish channels share these jobs:
 #
 #   rc       rc.yml, nightly and on demand, calls this with channel=rc. Images
-#            are tagged `rc` + `sha-...` and the bundle's app build carries a
-#            `-rc.<shortsha>` version suffix. Testers run `:rc`; end users
+#            are tagged `rc` + `sha-...` and carry the `label` input
+#            (X.Y.Z-rc.N or X.Y.Z-dev.<sha7>) as their version. Testers run `:rc`; end users
 #            never see it.
 #   release  dispatched by release.yml on a `v*` tag, with channel=release.
 #            Images are tagged `<version>` (from packages/app/package.json,
@@ -34,6 +34,11 @@ on:
         description: "Commit to build (default: the calling ref)"
         required: false
         type: string
+      label:
+        description: "rc channel: the version to carry, X.Y.Z-rc.N or X.Y.Z-dev.<sha7>"
+        required: false
+        default: ""
+        type: string
   workflow_dispatch:
     inputs:
       channel:
@@ -44,6 +49,11 @@ on:
         options:
           - rc
           - release
+      label:
+        description: "rc channel: the version to carry, X.Y.Z-rc.N or X.Y.Z-dev.<sha7>"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -62,7 +72,6 @@ jobs:
     outputs:
       sha: ${{ steps.resolve.outputs.sha }}
       version: ${{ steps.appver.outputs.version }}
-      suffix: ${{ steps.suffix.outputs.value }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -76,24 +85,22 @@ jobs:
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - id: appver
+        env:
+          LABEL: ${{ inputs.label }}
         run: |
           VERSION="$(node -p "require('./packages/app/package.json').version")"
           if [ "$CHANNEL" = "release" ] && [ "v${VERSION}" != "${GITHUB_REF_NAME}" ]; then
             echo "::error::packages/app/package.json says ${VERSION} but the tag is ${GITHUB_REF_NAME}"; exit 1
           fi
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
-      # RC images bake a prerelease suffix into the app so a host running
-      # `:rc` announces e.g. 0.1.0-rc.a1b2c3d in the hello handshake.
-      - id: suffix
-        env:
-          SHA: ${{ steps.resolve.outputs.sha }}
-        run: |
+          # RC images carry the run's label so a host running `:rc` announces
+          # e.g. 1.0.0-rc.41 in the hello handshake.
           if [ "$CHANNEL" = "rc" ]; then
-            echo "value=-rc.${SHA:0:7}" >> "$GITHUB_OUTPUT"
-          else
-            echo "value=" >> "$GITHUB_OUTPUT"
+            if [ -z "$LABEL" ]; then
+              echo "::error::channel=rc needs a label (X.Y.Z-rc.N or X.Y.Z-dev.<sha7>)"; exit 1
+            fi
+            VERSION="$LABEL"
           fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
   publish:
     needs: plan
@@ -127,10 +134,10 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ needs.plan.outputs.sha }}
-            org.opencontainers.image.version=${{ needs.plan.outputs.version }}${{ needs.plan.outputs.suffix }}
+            org.opencontainers.image.version=${{ needs.plan.outputs.version }}
           # Runtime ENV for the services' log identity.
           build-args: |
-            GONOGO_VERSION=${{ needs.plan.outputs.version }}${{ needs.plan.outputs.suffix }}
+            GONOGO_VERSION=${{ needs.plan.outputs.version }}
             GONOGO_BUILD_TIME=${{ steps.build-time.outputs.value }}
           cache-from: type=gha,scope=relay
           cache-to: type=gha,mode=max,scope=relay
@@ -179,11 +186,10 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ needs.plan.outputs.sha }}
-            org.opencontainers.image.version=${{ needs.plan.outputs.version }}${{ needs.plan.outputs.suffix }}
+            org.opencontainers.image.version=${{ needs.plan.outputs.version }}
           build-args: |
             VITE_AXIOM_TOKEN=${{ secrets.VITE_AXIOM_TOKEN }}
-            GONOGO_VERSION_SUFFIX=${{ needs.plan.outputs.suffix }}
-            GONOGO_VERSION=${{ needs.plan.outputs.version }}${{ needs.plan.outputs.suffix }}
+            GONOGO_VERSION=${{ needs.plan.outputs.version }}
             GONOGO_BUILD_TIME=${{ steps.build-time.outputs.value }}
           cache-from: type=gha,scope=gonogo-bundle
           cache-to: type=gha,mode=max,scope=gonogo-bundle

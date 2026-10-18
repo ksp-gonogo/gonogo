@@ -8,7 +8,7 @@
         "VITE_BASE_PATH",
         "VITE_AXIOM_TOKEN",
         "VITE_RELAY_URL",
-        "GONOGO_VERSION_SUFFIX"
+        "GONOGO_VERSION"
       ]
     },
     "dev": {

@@ -52,17 +52,32 @@ describe("avcVersion", () => {
     }
   });
 
-  it("splits a release tag into the mod's own version and gives an rc 0.0.0", () => {
+  it("splits a release tag into the mod's own version", () => {
     expect(avcVersion("Gonogo", "v0.2.0").VERSION).toEqual({
       MAJOR: 0,
       MINOR: 2,
       PATCH: 0,
     });
-    expect(avcVersion("Gonogo", "rc-abc1234").VERSION).toEqual({
-      MAJOR: 0,
-      MINOR: 0,
-      PATCH: 0,
+  });
+
+  it.each([
+    "1.4.2-rc.41",
+    "1.4.2-dev.abc1234",
+  ])("writes the base release of the label %s", (label) => {
+    expect(avcVersion("Gonogo", label).VERSION).toEqual({
+      MAJOR: 1,
+      MINOR: 4,
+      PATCH: 2,
     });
+  });
+
+  it.each([
+    "rc-abc1234",
+    "1.4.2-rc",
+    "1.4.2-beta.1",
+    "",
+  ])("refuses %j", (label) => {
+    expect(() => avcVersion("Gonogo", label)).toThrow(/version must be/);
   });
 
   it("names a compatible range that contains the declared game version", () => {

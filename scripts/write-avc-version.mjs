@@ -5,9 +5,10 @@
  *
  * Usage: node scripts/write-avc-version.mjs <out-file> <display-name> <version>
  *
- * `<version>` is a release tag (`v1.4.0`) or an rc label (`rc-abc1234`). A tag
- * is split into MAJOR/MINOR/PATCH; anything else is written as 0.0.0, since
- * an rc is never indexed and CKAN takes its own version from the release.
+ * `<version>` is a release tag (`v1.4.0`) or a candidate label
+ * (`1.4.0-rc.41`, `1.4.0-dev.abc1234`). It is split into MAJOR/MINOR/PATCH of
+ * the base release, since KSP-AVC has no prerelease field. Anything else is
+ * refused.
  */
 import { writeFileSync } from "node:fs";
 
@@ -29,8 +30,15 @@ function versionObject(dotted) {
 }
 
 export function avcVersion(name, version) {
-  const m = /^[vV]?(\d+)\.(\d+)\.(\d+)/.exec(version);
-  const [major, minor, patch] = m ? [m[1], m[2], m[3]].map(Number) : [0, 0, 0];
+  const m = /^[vV]?(\d+)\.(\d+)\.(\d+)(?:-(?:rc\.\d+|dev\.[0-9a-f]{7}))?$/.exec(
+    version,
+  );
+  if (!m) {
+    throw new Error(
+      `version must be vX.Y.Z, X.Y.Z-rc.N or X.Y.Z-dev.<sha7>, got '${version}'`,
+    );
+  }
+  const [major, minor, patch] = [m[1], m[2], m[3]].map(Number);
   return {
     NAME: name,
     VERSION: { MAJOR: major, MINOR: minor, PATCH: patch },
