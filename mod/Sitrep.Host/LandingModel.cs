@@ -36,30 +36,36 @@ namespace Sitrep.Host
         /// origin. Over the sea (<paramref name="overSea"/>) that is the ASL
         /// altitude itself, since the sea surface is at 0 and KSP's ray reads the
         /// floor or misses it. Over land it is KSP's <c>Vessel.heightFromTerrain</c>
-        /// when KSP made a raycast against terrain this frame, otherwise null: KSP
-        /// measures only a loaded, unpacked vessel (a packed or unloaded one keeps
-        /// a held value), and a missed ray leaves the <c>-1</c> sentinel, which
-        /// KSP's position update can then overwrite with the ASL altitude itself.
+        /// when KSP made a raycast against terrain this frame. KSP measures only a
+        /// loaded, unpacked vessel (a packed or unloaded one keeps a held value),
+        /// and a missed ray leaves the <c>-1</c> sentinel, which KSP's position
+        /// update can then overwrite with the ASL altitude itself. A missed ray
+        /// falls back to the altitude above KSP's own terrain model at the point
+        /// beneath the vessel, and is null only when that is not known either.
         /// </summary>
         /// <param name="heightFromTerrain">KSP's raw field, as the float it holds.</param>
         /// <param name="altitude">m, the vessel's ASL altitude, KSP's <c>Vessel.altitude</c>.</param>
         /// <param name="overSea">See <see cref="IsOverSea"/>.</param>
+        /// <param name="terrainAltitude">m, the ground's ASL altitude beneath the vessel from the body's terrain model, or null when it was not read.</param>
         public static double? MeasuredHeightFromTerrain(
             bool loaded,
             bool packed,
             float heightFromTerrain,
             double altitude,
-            bool overSea = false)
+            bool overSea = false,
+            double? terrainAltitude = null)
         {
             if (!loaded || packed)
                 return null;
             if (overSea)
                 return double.IsNaN(altitude) || double.IsInfinity(altitude) || altitude < 0.0 ? (double?)null : altitude;
-            if (float.IsNaN(heightFromTerrain) || float.IsInfinity(heightFromTerrain) || heightFromTerrain < 0f)
+            if (!(float.IsNaN(heightFromTerrain) || float.IsInfinity(heightFromTerrain) || heightFromTerrain < 0f
+                  || heightFromTerrain == (float)altitude))
+                return heightFromTerrain;
+            if (!terrainAltitude.HasValue)
                 return null;
-            if (heightFromTerrain == (float)altitude)
-                return null;
-            return heightFromTerrain;
+            var modelled = altitude - terrainAltitude.Value;
+            return double.IsNaN(modelled) || double.IsInfinity(modelled) || modelled < 0.0 ? (double?)null : modelled;
         }
 
         /// <summary>

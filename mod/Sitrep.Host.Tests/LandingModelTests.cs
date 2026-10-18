@@ -22,7 +22,7 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void TheNoRaycastHitSentinelIsAbsentNotAHeight()
+        public void TheNoRaycastHitSentinelWithNoTerrainReadingIsAbsentNotAHeight()
         {
             Assert.Null(LandingModel.MeasuredHeightFromTerrain(true, false, -1f, 40000));
         }
@@ -50,9 +50,37 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void OverLandAMissedRayStaysAbsent()
+        public void OverLandAMissedRayWithNoTerrainReadingStaysAbsent()
         {
             Assert.Null(LandingModel.MeasuredHeightFromTerrain(true, false, 613.99f, 613.99, overSea: false));
+        }
+
+        [Fact]
+        public void OverLandAMissedRayFallsBackToTheAltitudeAboveKspsTerrain()
+        {
+            // 8 km ASL over highlands at 2.4 km: the ray read -1.
+            Assert.Equal(5600.0, LandingModel.MeasuredHeightFromTerrain(true, false, -1f, 8000, terrainAltitude: 2400));
+            // The ASL substitute for a miss is a miss too.
+            Assert.Equal(5600.0, LandingModel.MeasuredHeightFromTerrain(true, false, 8000f, 8000, terrainAltitude: 2400));
+        }
+
+        [Fact]
+        public void ARayThatHitIsPreferredToTheTerrainModel()
+        {
+            Assert.Equal(5590.0, LandingModel.MeasuredHeightFromTerrain(true, false, 5590f, 8000, terrainAltitude: 2400));
+        }
+
+        [Fact]
+        public void TheTerrainFallbackIsAbsentWhenTheVesselIsBelowTheGroundItReads()
+        {
+            Assert.Null(LandingModel.MeasuredHeightFromTerrain(true, false, -1f, 100, terrainAltitude: 250));
+        }
+
+        [Fact]
+        public void TheTerrainFallbackKeepsTheLoadedAndPackedGates()
+        {
+            Assert.Null(LandingModel.MeasuredHeightFromTerrain(true, true, -1f, 8000, terrainAltitude: 2400));
+            Assert.Null(LandingModel.MeasuredHeightFromTerrain(false, false, -1f, 8000, terrainAltitude: 2400));
         }
 
         [Fact]

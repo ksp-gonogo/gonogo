@@ -2433,7 +2433,8 @@ namespace Gonogo.KSP
         /// The <c>vessel.surface</c> raw group: biome, landedAt and
         /// heightFromTerrain, for the LandingStatus widget. Null only when there
         /// is no reference body yet (mirrors <see cref="BuildAttitude"/>'s
-        /// guard). The height is present only when KSP measured it this frame,
+        /// guard). The height is present only when KSP measured it this frame or
+        /// its terrain model gave it (see <see cref="LandingModel.MeasuredHeightFromTerrain"/>),
         /// whatever the situation: KSP's orbiting is a periapsis-above-datum
         /// test, which an airless-body descent passes while inside the terrain.
         /// </summary>
@@ -2476,9 +2477,12 @@ namespace Gonogo.KSP
         private static double? MeasuredHeightFromTerrain(Vessel vessel)
         {
             var body = vessel.mainBody;
-            var overSea = body != null
-                && LandingModel.IsOverSea(body.ocean, body.TerrainAltitude(vessel.latitude, vessel.longitude, allowNegative: true));
-            return LandingModel.MeasuredHeightFromTerrain(vessel.loaded, vessel.packed, vessel.heightFromTerrain, vessel.altitude, overSea);
+            double? terrain = body != null
+                ? body.TerrainAltitude(vessel.latitude, vessel.longitude, allowNegative: true)
+                : (double?)null;
+            var overSea = body != null && terrain.HasValue && LandingModel.IsOverSea(body.ocean, terrain.Value);
+            return LandingModel.MeasuredHeightFromTerrain(
+                vessel.loaded, vessel.packed, vessel.heightFromTerrain, vessel.altitude, overSea, terrain);
         }
 
         /// <summary>
