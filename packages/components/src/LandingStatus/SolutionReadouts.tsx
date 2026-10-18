@@ -145,15 +145,17 @@ export function SolutionReadouts({
           </StackedField>
         )}
         {showTrend && descentHistory.length >= 2 && (
-          // The trend carries no words, so it is the one mark a moot grid may dim by opacity.
+          // The trend carries no words of its own, so the caption names it; it is the one mark a moot grid may dim by opacity.
           <div style={noLandingVector ? { opacity: 0.5 } : undefined}>
-            <Sparkline
-              values={descentHistory}
-              yDomain={descentDomain ?? undefined}
-              width={120}
-              height={24}
-              aria-label="Descent-rate trend"
-            />
+            <StackedField label="Descent rate">
+              <Sparkline
+                values={descentHistory}
+                yDomain={descentDomain ?? undefined}
+                width={120}
+                height={24}
+                aria-label="Descent-rate trend"
+              />
+            </StackedField>
           </div>
         )}
       </Grid>

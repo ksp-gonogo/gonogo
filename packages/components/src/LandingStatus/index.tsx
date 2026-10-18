@@ -14,7 +14,12 @@ import {
   Text,
   useElementSize,
 } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties, ReactNode, RefObject } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+  useRef,
+} from "react";
 import {
   fittedBoardSize,
   PlotBoard,
@@ -46,6 +51,7 @@ import {
 } from "./SiteReadouts";
 import { SolutionReadouts } from "./SolutionReadouts";
 import { ATMOSPHERIC_SITE_GATE_M } from "./siteGate";
+import { useFoldSnap } from "./useFoldSnap";
 import { useLandingModel } from "./useLandingModel";
 // The widget's own plots, registered into `plots` like any Uplink's; imported here so no module ordering can drop them. They draw in this order, the descent profile last: it is the one that leaves at touchdown, and a plot leaving from the end of the row moves none of the others.
 import "./crossSectionPlot";
@@ -86,6 +92,7 @@ function landingLayout(
   wide: CSSProperties;
 } {
   const lead = rail ? "rail " : "";
+  const spare = besideReadoutsPx === undefined ? "." : ". .";
   return {
     narrow:
       besideReadoutsPx === undefined
@@ -94,11 +101,11 @@ function landingLayout(
             gridTemplateColumns: rail
               ? "auto minmax(0, 1fr)"
               : "minmax(0, 1fr)",
-            gridTemplateAreas: ["header", "plots", "readouts"]
+            gridTemplateAreas: ["header", "plots", "readouts", spare]
               .map((area) => `"${lead}${area}"`)
               .join(" "),
-            gridTemplateRows: "auto auto auto",
-            // The rows sit at the top and any spare height stays under them, so the rail spanning every row stretches none of the others and no empty row adds a gap past the window's edge.
+            // The last row is the flexible one, so the rail's window-tall height spans it and the spare height collects under the readouts rather than being shared between the rows above.
+            gridTemplateRows: "auto auto auto 1fr",
             alignContent: "start",
             minHeight: "100cqh",
             gap: "var(--gap-section)",
@@ -106,10 +113,10 @@ function landingLayout(
         : {
             display: "grid",
             gridTemplateColumns: `${rail ? "auto " : ""}${besideReadoutsPx}px minmax(0, 1fr)`,
-            gridTemplateAreas: ["header header", "plots readouts"]
+            gridTemplateAreas: ["header header", "plots readouts", spare]
               .map((areas) => `"${lead}${areas}"`)
               .join(" "),
-            gridTemplateRows: "auto auto",
+            gridTemplateRows: "auto auto 1fr",
             alignContent: "start",
             minHeight: "100cqh",
             gap: "var(--gap-section)",
@@ -122,6 +129,9 @@ function landingLayout(
     },
   };
 }
+
+/** The narrowest a column of readouts is when they flow beside the plots. */
+const READOUT_COLUMN_PX = 160;
 
 /** The window height below which a stacked header sets its rows side by side, so a short tile spends its height on the plots. */
 const COMPACT_HEADER_BELOW_PX = 280;
@@ -162,6 +172,7 @@ function LandingStatusComponent({
   const model = useLandingModel();
   const windowBox = useElementSize({ w: 0, h: 0 });
   const headerBox = useElementSize({ w: 0, h: 0 });
+  const readoutsStack = useRef<HTMLDivElement>(null);
   const {
     flight,
     flightReading,
@@ -259,7 +270,7 @@ function LandingStatusComponent({
   );
 
   const comDatumNote = <ComDatumNote model={model} />;
-  const readoutsStack = (
+  const burnReadouts = (
     <SolutionReadouts model={model} showTrend={scopeShown} />
   );
   const boardEl = <DescentBoard model={model} />;
@@ -314,18 +325,43 @@ function LandingStatusComponent({
   const railShown = showRail && showBoard;
   // A crash ends the descent and takes the vessel's readings with it: the touchdown plots stay, holding what they last drew.
   const plotsShown = showBoard || (crash !== undefined && showPlots);
-  const readoutEls = (
-    <>
-      {verdictBannerEl}
-      {terrainReadoutEl}
-      {boardEl}
-      {velocityEl}
-      {readoutsStack}
-      {carriedAltitudeEl}
-      {comDatumNote}
-      {heightEl}
-      {divertEl}
-    </>
+  // Beside the plots the readouts flow into columns instead of one tall stack, so a short, wide tile shows them whole: each block stays in one column, the velocity and the board come first and the burn figures run across all the columns under them. In the stack the burn figures follow the velocity.
+  const readoutsBeside =
+    windowBox.size.h > 0 &&
+    windowBox.size.w / windowBox.size.h >= BESIDE_HEADER_ASPECT;
+  const readoutEls = (wrapped: boolean) => {
+    const block = (node: ReactNode, span = false) =>
+      wrapped ? <ReadoutBlock span={span}>{node}</ReadoutBlock> : node;
+    const burn = block(burnReadouts, true);
+    return (
+      <>
+        {block(verdictBannerEl)}
+        {block(terrainReadoutEl)}
+        {readoutsBeside ? (
+          <>
+            {block(velocityEl)}
+            {block(boardEl)}
+          </>
+        ) : (
+          <>
+            {block(boardEl)}
+            {block(velocityEl)}
+            {burn}
+          </>
+        )}
+        {block(carriedAltitudeEl)}
+        {block(comDatumNote)}
+        {block(heightEl)}
+        {block(divertEl)}
+        {readoutsBeside && burn}
+      </>
+    );
+  };
+  // Stacked under the plots, the readouts scroll with the window, and the glow at its foot must not dim one at rest.
+  useFoldSnap(
+    readoutsStack,
+    windowBox.ref,
+    showPlots && windowBox.size.w / windowBox.size.h < BESIDE_HEADER_ASPECT,
   );
   const layout = landingLayout(
     railShown,
@@ -497,20 +533,34 @@ function LandingStatusComponent({
                       {/* Positioned, so nothing absolutely placed in the readouts escapes this scroller. */}
                       <div style={{ position: "relative" }}>
                         {showPlots ? (
-                          <ContainerBreak
-                            atAspect={BESIDE_HEADER_ASPECT}
-                            narrow={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "var(--gap-section)",
-                            }}
-                            // The window's bottom inset, which this scroller reaches down over.
-                            wide={{ paddingBottom: "var(--panel-body-bottom)" }}
-                          >
-                            {readoutEls}
-                          </ContainerBreak>
+                          <div ref={readoutsStack}>
+                            <ContainerBreak
+                              atAspect={BESIDE_HEADER_ASPECT}
+                              narrow={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "var(--gap-section)",
+                              }}
+                              // The window's bottom inset, which this scroller reaches down over.
+                              wide={
+                                {
+                                  display: "block",
+                                  columnWidth: READOUT_COLUMN_PX,
+                                  columnGap: "var(--gap-section)",
+                                  "--readout-block": "block",
+                                  "--readout-span": "all",
+                                  "--readout-pad": "var(--gap-related)",
+                                  paddingBottom: "var(--panel-body-bottom)",
+                                  // The last block's trailing space is not content, so it must not make a column that fits scroll.
+                                  marginBottom: "calc(-1 * var(--gap-related))",
+                                } as CSSProperties
+                              }
+                            >
+                              {readoutEls(true)}
+                            </ContainerBreak>
+                          </div>
                         ) : (
-                          <Stack>{readoutEls}</Stack>
+                          <Stack>{readoutEls(false)}</Stack>
                         )}
                       </div>
                     </ScrollArea>
@@ -522,6 +572,31 @@ function LandingStatusComponent({
         </Section>
       }
     />
+  );
+}
+
+/**
+ * One readout in the stack. Beside the plots (the wide layout sets the
+ * variables) it is a block that stays whole in its column, and with `span` it
+ * runs across every column; in the narrow stack it adds no box of its own.
+ */
+function ReadoutBlock({
+  span,
+  children,
+}: Readonly<{ span: boolean; children: ReactNode }>) {
+  return (
+    <div
+      style={{
+        display: "var(--readout-block, contents)",
+        breakInside: "avoid",
+        // A margin, so the empty blocks of a state with nothing to say collapse into one gap instead of each adding their own.
+        marginBottom: "var(--readout-pad, 0)",
+        marginTop: span ? "var(--readout-pad, 0)" : undefined,
+        columnSpan: span ? ("var(--readout-span, none)" as "all") : undefined,
+      }}
+    >
+      {children}
+    </div>
   );
 }
 
