@@ -1299,7 +1299,6 @@
       "label": "text",
       "owner": "id",
       "path": "id",
-      "tags": "id",
       "value": "text"
     },
     "SpaceCenterPartsAvailable": {

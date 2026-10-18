@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 44.13.0
+  version: 44.12.0
   description: |-
     The WebSocket API of the Gonogo mod: 87 telemetry channels a client
     subscribes to and 65 commands it sends, each with its payload and what it
@@ -19721,7 +19721,6 @@ components:
         - description
         - value
         - default
-        - tags
       properties:
         path:
           type: string
@@ -19761,15 +19760,6 @@ components:
           description: |-
             The value in force when the settings file holds none for this row, in the
             same spelling as `SettingsRowState.value`.
-        tags:
-          type: array
-          items:
-            type: string
-            x-sitrep-unit: id
-          description: |-
-            The tags the declaring Uplink gave the setting, such as `setup` for one
-            offered among the first-run setup's recommended settings. Empty for none; a
-            client ignores a tag it does not know.
     SignalQuantity:
       type: integer
       description: |-

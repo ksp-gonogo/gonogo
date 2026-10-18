@@ -1339,7 +1339,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     label: "text",
     owner: "id",
     path: "id",
-    tags: "id",
     value: "text",
   },
   "SpaceCenterPartsAvailable": {

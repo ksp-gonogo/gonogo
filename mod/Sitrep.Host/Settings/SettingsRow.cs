@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Sitrep.Contract;
 
 namespace Sitrep.Host.Settings
@@ -15,7 +14,7 @@ namespace Sitrep.Host.Settings
     /// </summary>
     public sealed class SettingsRow
     {
-        public SettingsRow(string path, SettingKind kind, string defaultText, string? label = null, string? description = null, IReadOnlyList<string>? tags = null)
+        public SettingsRow(string path, SettingKind kind, string defaultText, string? label = null, string? description = null)
         {
             if (string.IsNullOrEmpty(path))
             {
@@ -28,7 +27,6 @@ namespace Sitrep.Host.Settings
             DefaultText = defaultText ?? string.Empty;
             Label = label ?? string.Empty;
             Description = description ?? string.Empty;
-            Tags = tags ?? Array.Empty<string>();
             var refusal = SettingsText.RefusalOf(DefaultText);
             if (refusal != null)
             {
@@ -62,9 +60,6 @@ namespace Sitrep.Host.Settings
 
         /// <summary>Why the row matters or what it needs, read under its label. Empty when the label says enough.</summary>
         public string Description { get; }
-
-        /// <summary>The tags a client groups the row by, as its declarer wrote them.</summary>
-        public IReadOnlyList<string> Tags { get; }
 
         /// <summary>
         /// The comment written beside the row: its label, what it may hold, and

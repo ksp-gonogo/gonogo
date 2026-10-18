@@ -9,7 +9,7 @@ Lists the running Making History mission's objectives in the Objectives widget, 
 | --- | --- |
 | Uplink id | `makingHistory` |
 | Version | `0.0.1` |
-| Built against | contract 44.13, extension API 6.0.0 |
+| Built against | contract 44.12, extension API 6.0.0 |
 
 ## Install
 

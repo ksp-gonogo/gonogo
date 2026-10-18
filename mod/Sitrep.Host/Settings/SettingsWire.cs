@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Sitrep.Contract;
 
 namespace Sitrep.Host.Settings
@@ -46,8 +45,7 @@ namespace Sitrep.Host.Settings
                     row.Declared.Label,
                     row.Declared.Description,
                     row.Value,
-                    row.Declared.DefaultText,
-                    row.Declared.Tags));
+                    row.Declared.DefaultText));
             }
 
             var wireUndeclared = new List<object?>();
@@ -65,8 +63,7 @@ namespace Sitrep.Host.Settings
         }
 
         internal static Dictionary<string, object?> BuildRowState(
-            string path, string owner, SettingKind kind, string label, string description, string value, string defaultValue,
-            IReadOnlyList<string> tags) =>
+            string path, string owner, SettingKind kind, string label, string description, string value, string defaultValue) =>
             new Dictionary<string, object?>
             {
                 ["path"] = path,
@@ -76,7 +73,6 @@ namespace Sitrep.Host.Settings
                 ["description"] = description,
                 ["value"] = value,
                 ["default"] = defaultValue,
-                ["tags"] = tags.Select(tag => (object?)tag).ToList(),
             };
 
         internal static Dictionary<string, object?> BuildPersistence(

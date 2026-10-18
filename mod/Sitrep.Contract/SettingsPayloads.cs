@@ -101,14 +101,6 @@ public class SettingsRowState
     /// <summary>The value in force when the settings file holds none for this row, in the same spelling as <see cref="Value"/>.</summary>
     [SitrepUnit(Units.Text)]
     public string Default { get; set; } = "";
-
-    /// <summary>
-    /// The tags the declaring Uplink gave the setting, such as <c>setup</c>
-    /// for one offered among the first-run setup's recommended settings. Empty
-    /// for none; a client ignores a tag it does not know.
-    /// </summary>
-    [SitrepUnit(Units.Id)]
-    public List<string> Tags { get; set; } = new();
 }
 
 /// <summary>Where the settings in force stand against the settings file.</summary>

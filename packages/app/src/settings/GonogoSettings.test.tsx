@@ -46,7 +46,6 @@ interface Row {
   label: string;
   value: string;
   default: string;
-  tags?: string[];
 }
 
 const ROWS: Row[] = [
@@ -107,16 +106,12 @@ afterEach(() => {
   unmounts.length = 0;
 });
 
-function mount(
-  screenName: "main" | "station" = "main",
-  owner?: string,
-  tag?: string,
-) {
+function mount(screenName: "main" | "station" = "main", owner?: string) {
   const fixture = setupStreamFixture();
   const view = render(
     <ScreenProvider value={screenName}>
       <fixture.Provider>
-        <GonogoSettings owner={owner} tag={tag} />
+        <GonogoSettings owner={owner} />
       </fixture.Provider>
     </ScreenProvider>,
   );
@@ -155,44 +150,6 @@ describe("GonogoSettings", () => {
     expect(
       await screen.findByRole("textbox", { name: "Slip warning" }),
     ).toHaveValue("30");
-    expect(
-      screen.queryByRole("checkbox", { name: "Apply light-time delay" }),
-    ).toBeNull();
-  });
-
-  it("with a tag, draws only the owner's rows carrying it", async () => {
-    registerDataSource(sitrep("connected"));
-    const { fixture } = mount("main", "widget-a", "setup");
-    await publish(
-      fixture,
-      model([
-        ...ROWS,
-        {
-          path: "Uplinks/widget-a/followHost",
-          owner: "widget-a",
-          kind: SettingKind.Bool,
-          label: "Follow the host",
-          value: "False",
-          default: "False",
-          tags: ["setup"],
-        },
-        {
-          path: "Uplinks/widget-a/quality",
-          owner: "widget-a",
-          kind: SettingKind.Number,
-          label: "Quality",
-          value: "1",
-          default: "1",
-        },
-      ]),
-    );
-
-    expect(
-      await screen.findByRole("checkbox", {
-        name: "Follow the host",
-      }),
-    ).not.toBeChecked();
-    expect(screen.queryByLabelText("Quality")).toBeNull();
     expect(
       screen.queryByRole("checkbox", { name: "Apply light-time delay" }),
     ).toBeNull();

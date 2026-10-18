@@ -7186,12 +7186,6 @@ export interface SettingsRowState
 	* same spelling as `SettingsRowState.value`.
 	*/
 	default: string;
-	/**
-	* The tags the declaring Uplink gave the setting, such as `setup` for one
-	* offered among the first-run setup's recommended settings. Empty for none; a
-	* client ignores a tag it does not know.
-	*/
-	tags: string[];
 }
 /**
 * Where the settings in force stand against the settings file.
