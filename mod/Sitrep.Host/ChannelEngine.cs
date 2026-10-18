@@ -2277,6 +2277,7 @@ namespace Sitrep.Host
                 {
                     ["id"] = id,
                     ["version"] = uplink.Manifest.Version,
+                    ["bundled"] = uplink.Manifest.Bundled,
                     // Provenance for the consent dialog: who wrote this, and
                     // where to go and look. Omitted entirely when unset, so an
                     // Uplink that predates the fields costs nothing on the wire.
@@ -2503,6 +2504,7 @@ namespace Sitrep.Host
                 // Register never ran, so it owns nothing. Present and empty, so a
                 // client enumerates this entry exactly like every other one.
                 ["ownedPrefixes"] = new List<string>(),
+                ["bundled"] = false,
             };
         }
 

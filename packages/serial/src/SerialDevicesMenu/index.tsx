@@ -429,7 +429,7 @@ function TypesTab() {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  min-width: 440px;
+  min-width: min(440px, 100%);
 `;
 
 const Credit = styled.p`

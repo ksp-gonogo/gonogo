@@ -4499,6 +4499,9 @@ namespace Sitrep.Host.IntegrationTests
                 var dynEntry = byId[DynamicNamespaceOwnerTestUplink.UplinkId];
                 var dynPrefixes = Assert.IsType<List<object?>>(dynEntry["ownedPrefixes"]);
                 Assert.Equal(new[] { DynamicNamespaceOwnerTestUplink.Prefix }, dynPrefixes.Cast<string>());
+
+                Assert.Equal(true, staticEntry["bundled"]);
+                Assert.Equal(false, dynEntry["bundled"]);
             }
             finally
             {
@@ -4624,6 +4627,7 @@ namespace Sitrep.Host.IntegrationTests
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = UplinkId,
+                Bundled = true,
                 Version = "1.0.0",
                 Channels = new List<ChannelDeclaration>
                 {

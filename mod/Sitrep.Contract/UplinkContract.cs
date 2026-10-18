@@ -1032,6 +1032,16 @@ namespace Sitrep.Contract
         /// <summary>The Uplink's semver version, shared by its mod and client
         /// halves.</summary>
         public string Version { get; set; } = "";
+
+        /// <summary>
+        /// Whether this Uplink is compiled into the Gonogo mod itself, a core
+        /// feature rather than an Uplink an operator installed. Emitted on
+        /// <c>system.uplinks</c>, so the app lists only installed Uplinks on its
+        /// Uplinks page and puts a core feature's settings on the Gonogo page.
+        /// <c>false</c> unless declared.
+        /// </summary>
+        public bool Bundled { get; set; }
+
         /// <summary> The Uplink's human-facing name. With <see cref="Author"/>
         /// and <see cref="Repo"/> it is emitted on <c>system.uplinks</c>, so
         /// the consent dialog can say who wrote the bundle it is asking to run.

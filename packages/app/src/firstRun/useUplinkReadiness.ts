@@ -203,12 +203,11 @@ export function computeUplinkReadiness(
   });
 }
 
-/** The fields of a raw `system.uplinks` entry that say whether the Uplink ships a client and who wrote it. */
+/** The fields of a raw `system.uplinks` entry that say whether the Uplink ships a client and whether it is compiled into the core mod. */
 interface RawClientDeclarations {
   uplinks: Array<{
     id: string;
-    author?: string | null;
-    repo?: string | null;
+    bundled?: boolean;
     expectedClientHash?: string | null;
     clientSource?: unknown;
   }>;
@@ -251,7 +250,7 @@ export function useUplinkReadiness(): UseUplinkReadinessResult {
     declarations.state === "observed" || declarations.state === "held"
       ? new Set(
           declarations.value.uplinks
-            .filter((u) => !u.author && !u.repo)
+            .filter((u) => u.bundled === true)
             .map((u) => u.id),
         )
       : undefined;
