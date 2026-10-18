@@ -129,28 +129,29 @@ function afterTheCrash(extra: string[]): RigFixture {
   return { frames: [...base.frames, ...extra] };
 }
 
-describe("Landing Status over the rig's recorded landings", () => {
-  let crash: Second[] = [];
-  let lowPass: Second[] = [];
-  let firstCrash = -1;
-  let leaves: Second[] = [];
-  let nextFlight: Second[] = [];
-
-  beforeAll(async () => {
-    const restore = installSizedResizeObserver({ w: 720, h: 640 });
+/** Runs `run` with the sized observer and stock bodies in place. Each describe below plays its own recordings, so a slow machine spends one timeout per landing rather than one for all four. */
+async function playAll<T>(run: () => Promise<T>): Promise<T> {
+  const restore = installSizedResizeObserver({ w: 720, h: 640 });
+  try {
     registerStockBodies();
-    crash = await play(rigFixture("landing-crashfall"));
-    lowPass = await play(rigFixture("landing-lowpass"));
-    leaves = await play(afterTheCrash([sceneFrame("SpaceCenter")]), true);
-    nextFlight = await play(
-      afterTheCrash([sceneFrame("Flight"), identityFrame("next-craft")]),
-      true,
-    );
-    firstCrash = crash.findIndex((f) => f.text.includes("CRASHED"));
+    return await run();
+  } finally {
     restore();
-  }, 240_000);
+  }
+}
 
+const PLAY_TIMEOUT = 240_000;
+
+describe("Landing Status over the rig's recorded landings", () => {
   describe("the fast crash", () => {
+    let crash: Second[] = [];
+    let firstCrash = -1;
+
+    beforeAll(async () => {
+      crash = await playAll(() => play(rigFixture("landing-crashfall")));
+      firstCrash = crash.findIndex((f) => f.text.includes("CRASHED"));
+    }, PLAY_TIMEOUT);
+
     it("shows the descent before it, with nothing said of a crash", () => {
       expect(firstCrash).toBeGreaterThan(100);
       for (const f of crash.slice(0, firstCrash)) {
@@ -202,6 +203,12 @@ describe("Landing Status over the rig's recorded landings", () => {
   });
 
   describe("the low pass", () => {
+    let lowPass: Second[] = [];
+
+    beforeAll(async () => {
+      lowPass = await playAll(() => play(rigFixture("landing-lowpass")));
+    }, PLAY_TIMEOUT);
+
     it("puts the board up front in flight even though no landing is predicted, and says so", () => {
       for (const f of lowPass.slice(40)) {
         expect(f.text, `at ${f.second} s`).toContain("NO LANDING PREDICTION");
@@ -242,6 +249,21 @@ describe("Landing Status over the rig's recorded landings", () => {
   });
 
   describe("the crash ending once the game moves on", () => {
+    let leaves: Second[] = [];
+    let nextFlight: Second[] = [];
+
+    beforeAll(async () => {
+      leaves = await playAll(() =>
+        play(afterTheCrash([sceneFrame("SpaceCenter")]), true),
+      );
+      nextFlight = await playAll(() =>
+        play(
+          afterTheCrash([sceneFrame("Flight"), identityFrame("next-craft")]),
+          true,
+        ),
+      );
+    }, PLAY_TIMEOUT * 2);
+
     it("stays on screen when the game leaves the flight scene, as a record of the last flight", () => {
       const last = leaves.slice(-1);
       for (const f of last) {
