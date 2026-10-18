@@ -23,6 +23,8 @@ export type PeerClient = Pick<
   | "sendGonogoAbort"
   | "onGonogoCountdownStart"
   | "onGonogoCountdownCancel"
+  | "onGonogoOnGo"
+  | "onGonogoReset"
   | "onGonogoAbortNotify"
   | "sendWidgetPush"
   | "sendWidgetRecall"

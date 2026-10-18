@@ -61,11 +61,49 @@ export const PollInProgress: Story = {
   },
 };
 
-/** Every station `GO`, so the host is counting down to the auto-stage at T-0. */
+/** Four stations polled, one holding NO-GO: the board idles with its "On go:" line at Stage. */
+export const OnGoIdle: Story = {
+  name: "Main, on go choice",
+  args: {
+    stations: [FLIGHT, { ...BOOSTER, vote: "no-go" }, GUIDANCE, EECOM],
+    w: 6,
+    h: 8,
+  },
+};
+
+/** Every station `GO`, so the host is counting down to Stage at T-0. */
 export const CountingDown: Story = {
   name: "Main, all GO and counting down",
   args: {
     stations: [FLIGHT, BOOSTER, GUIDANCE, EECOM],
+    w: 6,
+    h: 8,
+  },
+};
+
+/** Every station `GO` with an action group chosen: the banner names it. */
+export const CountingDownActionGroup: Story = {
+  name: "Main, counting down to an action group",
+  args: {
+    stations: [FLIGHT, BOOSTER, GUIDANCE, EECOM],
+    onGo: "AG3",
+    w: 6,
+    h: 8,
+  },
+};
+
+/** After liftoff the operator pressed Reset: the board polls again, and the stations that voted go are counted. */
+export const ReopenedAfterLaunch: Story = {
+  name: "Main, poll re-opened after launch",
+  args: {
+    stations: [
+      FLIGHT,
+      { ...BOOSTER, vote: "no-go" },
+      GUIDANCE,
+      { ...EECOM, vote: null },
+    ],
+    launched: true,
+    resetAfterLaunch: true,
     w: 6,
     h: 8,
   },
@@ -151,6 +189,27 @@ export const StationCountingDown: StationStory = {
   args: {
     countdownFrom: 42,
     presses: [{ text: "NO-GO" }],
+    w: 4,
+    h: 4,
+  },
+};
+
+/** A station sees what the host fires at T-0, read-only. */
+export const StationOnGo: StationStory = {
+  name: "Station, host fires an action group",
+  render: (args) => <GoNoGoStationScene {...args} />,
+  args: { onGoLabel: "Custom 03", w: 4, h: 4 },
+};
+
+/** The host pressed Reset while this station was voting go: the vote and the countdown are gone. */
+export const StationAfterReset: StationStory = {
+  name: "Station, host reset the poll",
+  render: (args) => <GoNoGoStationScene {...args} />,
+  args: {
+    onGoLabel: "Stage",
+    countdownFrom: 42,
+    presses: [{ text: "NO-GO" }],
+    hostResets: true,
     w: 4,
     h: 4,
   },
