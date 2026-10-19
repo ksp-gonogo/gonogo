@@ -229,6 +229,39 @@ declare global {
 }
 
 /**
+ * The longest any one browser call in a render may take, in milliseconds. A
+ * scene that never mounts leaves `evaluate` waiting forever with the browser
+ * alive and idle, so every call into the page is raced against this and fails
+ * the run instead of hanging it.
+ */
+export const RENDER_STEP_TIMEOUT_MS = 60_000;
+
+/** A browser call that outlived {@link RENDER_STEP_TIMEOUT_MS}. */
+export class RenderStepTimeout extends Error {
+  constructor(readonly step: string) {
+    super(
+      `${step} did not finish within ${RENDER_STEP_TIMEOUT_MS / 1000} seconds`,
+    );
+    this.name = "RenderStepTimeout";
+  }
+}
+
+/** Fail with {@link RenderStepTimeout} when `work` is still pending at the limit. */
+export function within<Result>(
+  step: string,
+  work: Promise<Result>,
+): Promise<Result> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new RenderStepTimeout(step)),
+      RENDER_STEP_TIMEOUT_MS,
+    );
+  });
+  return Promise.race([work, limit]).finally(() => clearTimeout(timer));
+}
+
+/**
  * Load the Uplink into a probe page, read what it registers, and hand the open
  * tab to `body`. Every scene is built and coverage asserted before `body` runs.
  */
@@ -259,6 +292,7 @@ async function withProbe<Result>(
       reducedMotion: "reduce",
     });
     const tab = await context.newPage();
+    tab.setDefaultTimeout(RENDER_STEP_TIMEOUT_MS);
     tab.on("pageerror", (err) => {
       if (isUnmountPlayAbort(err.message)) return;
       console.error(`  [page error] ${err.message}`);
@@ -276,15 +310,18 @@ async function withProbe<Result>(
         typeof (globalThis as Record<string, unknown>)[key as string] ===
         "object",
       RENDER_PROBE_GLOBAL,
-      { timeout: 20_000 },
+      { timeout: Math.min(20_000, RENDER_STEP_TIMEOUT_MS) },
     );
 
-    const inventory = await tab.evaluate(
-      ([key, uplinkId]) =>
-        globalThis[key as typeof RENDER_PROBE_GLOBAL].readInventory(
-          uplinkId as string | undefined,
-        ),
-      [RENDER_PROBE_GLOBAL, opts.uplinkId] as const,
+    const inventory = await within(
+      "reading the Uplink's registrations",
+      tab.evaluate(
+        ([key, uplinkId]) =>
+          globalThis[key as typeof RENDER_PROBE_GLOBAL].readInventory(
+            uplinkId as string | undefined,
+          ),
+        [RENDER_PROBE_GLOBAL, opts.uplinkId] as const,
+      ),
     );
 
     const scenes = buildScenes(pkg, inventory);
@@ -348,7 +385,7 @@ export async function renderUplink(
     const assets: RenderedAsset[] = [];
     const ledger = guestLedger(read.inventory);
     for (const scene of scenes) {
-      await renderOneScene(tab, scene, opts, assets, ledger);
+      await renderOneScene(tab, scene, opts, assets, ledger, read.inventory.id);
     }
     recordRenders(opts.outDir, [...kept, ...assets.map((a) => a.file)]);
     reportUnjudgedGuests(ledger, opts.scene !== undefined);
@@ -404,7 +441,35 @@ function isUnmountPlayAbort(message: string): boolean {
   );
 }
 
-async function renderOneScene(
+/**
+ * Draw one scene, and turn a browser call that outlived
+ * {@link RENDER_STEP_TIMEOUT_MS} into an error naming the Uplink, the widget,
+ * the scene and the engine.
+ */
+export async function renderOneScene(
+  tab: Page,
+  scene: Scene,
+  opts: RenderOptions,
+  assets: RenderedAsset[],
+  ledger: GuestLedger,
+  uplink: string,
+): Promise<void> {
+  try {
+    await drawScene(tab, scene, opts, assets, ledger);
+  } catch (err) {
+    if (!(err instanceof RenderStepTimeout)) throw err;
+    throw new Error(
+      `uplink-tools: ${err.message}.\n  Uplink ${uplink}, ` +
+        `${scene.target.kind} ${scene.target.id}, scene ${scene.name}, ` +
+        `engine ${opts.engine}.\n  The scene is stuck rather than slow: the ` +
+        "browser is open and idle. Run `uplink-tools render --scene " +
+        `${scene.name}\` to reproduce it on its own.`,
+      { cause: err },
+    );
+  }
+}
+
+async function drawScene(
   tab: Page,
   scene: Scene,
   opts: RenderOptions,
@@ -481,16 +546,21 @@ async function renderOneScene(
  */
 async function captureShape(tab: Page): Promise<ShapeCapture> {
   const read = (): Promise<ShapeCapture> =>
-    tab.evaluate(readShapeText, {
-      properties: ADMISSIBLE_PROPERTIES as readonly string[],
-      attributes: RECORDED_ATTRIBUTES,
-    });
+    within(
+      "reading the widget's shape",
+      tab.evaluate(readShapeText, {
+        properties: ADMISSIBLE_PROPERTIES as readonly string[],
+        attributes: RECORDED_ATTRIBUTES,
+      }),
+    );
 
   let previous: ShapeCapture | undefined;
   let capture: ShapeCapture | undefined;
   let endless: string[] = [];
   for (let attempt = 0; attempt < 3; attempt++) {
-    endless = (await tab.evaluate(settleAnimations)).endless;
+    endless = (
+      await within("settling animations", tab.evaluate(settleAnimations))
+    ).endless;
     previous = capture;
     capture = await read();
     if (previous !== undefined && previous.text === capture.text) {
@@ -532,9 +602,12 @@ async function captureShape(tab: Page): Promise<ShapeCapture> {
  * nobody runs.
  */
 async function reportFit(tab: Page, scene: Scene, mode: string): Promise<void> {
-  const findings = await tab.evaluate(
-    (key) => globalThis[key as typeof RENDER_PROBE_GLOBAL].auditMinFit(),
-    RENDER_PROBE_GLOBAL,
+  const findings = await within(
+    "auditing what is readable at this size",
+    tab.evaluate(
+      (key) => globalThis[key as typeof RENDER_PROBE_GLOBAL].auditMinFit(),
+      RENDER_PROBE_GLOBAL,
+    ),
   );
   if (findings.length === 0) return;
   console.log(
@@ -555,29 +628,37 @@ async function reportFit(tab: Page, scene: Scene, mode: string): Promise<void> {
 }
 
 async function mount(tab: Page, payload: ScenePayload): Promise<SceneReport> {
-  const report = await tab.evaluate(
-    ([key, scene]) =>
-      globalThis[key as typeof RENDER_PROBE_GLOBAL].renderScene(
-        scene as ScenePayload,
-      ),
-    [RENDER_PROBE_GLOBAL, payload] as const,
+  return within(
+    "mounting the scene",
+    tab.evaluate(
+      ([key, scene]) =>
+        globalThis[key as typeof RENDER_PROBE_GLOBAL].renderScene(
+          scene as ScenePayload,
+        ),
+      [RENDER_PROBE_GLOBAL, payload] as const,
+    ),
   );
-  return report;
 }
 
 /** Feed whatever `_scene.before` has just mounted, and read back what is still
  *  unread. See the probe's `refeedScene`. */
 function refeed(tab: Page): Promise<UnreadTopics> {
-  return tab.evaluate(
-    (key) => globalThis[key as typeof RENDER_PROBE_GLOBAL].refeedScene(),
-    RENDER_PROBE_GLOBAL,
+  return within(
+    "feeding the mounted scene",
+    tab.evaluate(
+      (key) => globalThis[key as typeof RENDER_PROBE_GLOBAL].refeedScene(),
+      RENDER_PROBE_GLOBAL,
+    ),
   );
 }
 
 function readScene(tab: Page): Promise<SceneReport> {
-  return tab.evaluate(
-    (key) => globalThis[key as typeof RENDER_PROBE_GLOBAL].readScene(),
-    RENDER_PROBE_GLOBAL,
+  return within(
+    "reading the mounted scene",
+    tab.evaluate(
+      (key) => globalThis[key as typeof RENDER_PROBE_GLOBAL].readScene(),
+      RENDER_PROBE_GLOBAL,
+    ),
   );
 }
 
@@ -760,11 +841,14 @@ async function restPointer(tab: Page): Promise<void> {
 
 /** Two frames, which is what a React state change plus its layout costs. */
 async function settle(tab: Page): Promise<void> {
-  await tab.evaluate(
-    () =>
-      new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      }),
+  await within(
+    "waiting for the widget to settle",
+    tab.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        }),
+    ),
   );
 }
 
@@ -793,7 +877,10 @@ async function shoot(tab: Page, path: string): Promise<Buffer> {
   await fitViewportToRoot(tab);
   const root = await tab.$("#root");
   if (!root) throw new Error("render: #root vanished after mount");
-  return root.screenshot({ path, animations: "disabled" });
+  return within(
+    "taking the screenshot",
+    root.screenshot({ path, animations: "disabled" }),
+  );
 }
 
 /**
@@ -807,8 +894,12 @@ async function shoot(tab: Page, path: string): Promise<Buffer> {
  * Fitting the viewport first means nothing ever scrolls.
  */
 async function fitViewportToRoot(tab: Page): Promise<void> {
-  const height = await tab.evaluate(
-    () => document.getElementById("root")?.getBoundingClientRect().height ?? 0,
+  const height = await within(
+    "measuring the widget",
+    tab.evaluate(
+      () =>
+        document.getElementById("root")?.getBoundingClientRect().height ?? 0,
+    ),
   );
   const wanted = Math.ceil(height) + VIEWPORT_MARGIN_PX;
   const current = tab.viewportSize();
@@ -831,14 +922,9 @@ const VIEWPORT_MARGIN_PX = 64;
  * wants the crop, and a reader of a docs page wants the widget.
  */
 async function growToFullContent(tab: Page): Promise<void> {
-  await tab.evaluate(growRootToContent);
+  await within("growing the widget", tab.evaluate(growRootToContent));
   // ResizeObserver-driven bits (gauges, tapes, scroll glow) settle at the final height before the shot.
-  await tab.evaluate(
-    () =>
-      new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      }),
-  );
+  await settle(tab);
 }
 
 /**
@@ -993,9 +1079,12 @@ function heldStage(tab: Page): HeldStage {
       await refeed(tab);
     },
     finish: () =>
-      tab.evaluate(
-        (key) => globalThis[key as typeof RENDER_PROBE_GLOBAL].finishScene(),
-        RENDER_PROBE_GLOBAL,
+      within(
+        "finishing the scene",
+        tab.evaluate(
+          (key) => globalThis[key as typeof RENDER_PROBE_GLOBAL].finishScene(),
+          RENDER_PROBE_GLOBAL,
+        ),
       ),
     read: () => readScene(tab),
   };
@@ -1235,13 +1324,16 @@ async function captureMotion(
         i === 0
           ? { ...step, frames: 1, waitMs: wait }
           : { frames: 1, waitMs: wait };
-      await tab.evaluate(
-        ([key, s, d]) =>
-          globalThis[key as typeof RENDER_PROBE_GLOBAL].stepScene(
-            s as SceneStep,
-            d as number,
-          ),
-        [RENDER_PROBE_GLOBAL, perFrame, delta] as const,
+      await within(
+        "stepping the scene",
+        tab.evaluate(
+          ([key, s, d]) =>
+            globalThis[key as typeof RENDER_PROBE_GLOBAL].stepScene(
+              s as SceneStep,
+              d as number,
+            ),
+          [RENDER_PROBE_GLOBAL, perFrame, delta] as const,
+        ),
       );
       frames.push(await shootFrame(tab, opts, framesDir, frames.length));
       captures.push(await captureShape(tab));
@@ -1355,5 +1447,8 @@ async function shootFrame(
     : undefined;
   const root = await tab.$("#root");
   if (!root) throw new Error("render: #root vanished mid-motion");
-  return root.screenshot({ path, animations: "disabled" });
+  return within(
+    "taking the frame",
+    root.screenshot({ path, animations: "disabled" }),
+  );
 }
