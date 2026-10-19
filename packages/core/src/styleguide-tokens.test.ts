@@ -260,7 +260,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // tile's hover-revealed title strip over its centred content. None is
     // app-global chrome, so a named rung would lift a widget-internal overlay
     // above the dashboard's.
-    "packages/ui-kit/src/Panel.tsx": 4,
+    "packages/ui-kit/src/Panel.tsx": 3,
     // The signal-delay rail's detail float, local sibling ordering inside the
     // panel's own stacking context: it must sit above the sticky header
     // (Panel.tsx's z-index 2) and the scrolling body it overlays. Not
