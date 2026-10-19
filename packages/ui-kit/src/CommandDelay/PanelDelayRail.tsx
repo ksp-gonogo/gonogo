@@ -176,6 +176,12 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
       data-panel-rail-frame=""
       $tiny={tiny}
       $hasContent={hasContent}
+      /* The frame holds the grown lists as well as the strip, so the pointer moving from the strip onto a list never leaves the area that keeps the preview open. */
+      onMouseEnter={() => {
+        setSuppressHoverPreview(false);
+        setPreviewing(true);
+      }}
+      onMouseLeave={() => setPreviewing(false)}
     >
       {/*
         The rail's one announcer, outside the toggle. Mounted once a command
@@ -210,11 +216,6 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
           data-grown={grown}
           data-pinned={pinned}
           data-suppress-hover={suppressHoverPreview}
-          onMouseEnter={() => {
-            setSuppressHoverPreview(false);
-            setPreviewing(true);
-          }}
-          onMouseLeave={() => setPreviewing(false)}
           onKeyDown={(e) => {
             if (e.key === "Escape" && pinned) {
               e.stopPropagation();

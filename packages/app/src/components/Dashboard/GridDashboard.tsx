@@ -1,6 +1,6 @@
 import { useSizeDeltaFor } from "@ksp-gonogo/ui-kit";
 import type { RefObject } from "react";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { LayoutItem } from "react-grid-layout";
 import ReactGridLayout, {
   useContainerWidth,
@@ -78,6 +78,37 @@ export function GridDashboard({
     return byId;
   }, [sizedLayout]);
 
+  /* The grid keeps the dragged tile's pointer position in a ref and only draws
+     it when the tile is rendered again. The tile is rendered again when its
+     cell changes or its child element is new, so without a render per drag
+     event it would move a whole cell at a time like the placement box. The
+     bumped counter renders the grid again for each event, and the content
+     elements below are memoised so that render does not reach the widgets. */
+  const [, setDragFrame] = useState(0);
+  const followPointer = useCallback(() => setDragFrame((n) => n + 1), []);
+
+  const contents = useMemo(
+    () =>
+      new Map(
+        items.map((item) => {
+          const entry = sizeById.get(item.i);
+          return [
+            item.i,
+            <GridItemContent
+              key={item.i}
+              item={item}
+              w={entry?.w}
+              h={entry?.h}
+              updateItemConfig={updateItemConfig}
+              updateItemMappings={updateItemMappings}
+              removeItem={removeItem}
+            />,
+          ] as const;
+        }),
+      ),
+    [items, sizeById, updateItemConfig, updateItemMappings, removeItem],
+  );
+
   return (
     <div ref={containerRef as RefObject<HTMLDivElement>}>
       <ReactGridLayout
@@ -107,9 +138,9 @@ export function GridDashboard({
            free slot. */
         compactor={verticalCompactor}
         onLayoutChange={onLayoutChange}
+        onDrag={followPointer}
       >
         {items.map((item) => {
-          const entry = sizeById.get(item.i);
           const highlighted = lastAddedId === item.i;
           return (
             <GridCell
@@ -120,14 +151,7 @@ export function GridDashboard({
                 highlighted ? () => clearLastAdded?.(item.i) : undefined
               }
             >
-              <GridItemContent
-                item={item}
-                w={entry?.w}
-                h={entry?.h}
-                updateItemConfig={updateItemConfig}
-                updateItemMappings={updateItemMappings}
-                removeItem={removeItem}
-              />
+              {contents.get(item.i)}
             </GridCell>
           );
         })}

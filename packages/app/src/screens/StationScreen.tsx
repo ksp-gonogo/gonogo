@@ -130,16 +130,17 @@ export function StationScreen() {
   // code / host never up" (never connected, so "couldn't find that code"). On
   // the wire both look like the same `peer-unavailable`.
   const [everConnected, setEverConnected] = useState(false);
-  const dashboard = useDashboardState(
-    "gonogo:dashboard:station",
-    DEFAULT_CONFIG,
-  );
   const [serialService] = useState(
     () => new SerialDeviceService({ screenKey: "station" }),
   );
   const [settingsService] = useState(() => new SettingsService());
   const [missionProfiles] = useState(
     () => new MissionProfilesService("station"),
+  );
+  const dashboard = useDashboardState(
+    "gonogo:dashboard:station",
+    DEFAULT_CONFIG,
+    { onDiscard: (items, layout) => missionProfiles.saveDraft(items, layout) },
   );
   const [alarmClient] = useState(() => new AlarmClientService(client));
   const [maneuverTriggerClient] = useState(

@@ -75,6 +75,7 @@ import {
   MissionProfilesProvider,
   MissionProfilesService,
   SceneSwitchPrompt,
+  useMissionProfilesService,
 } from "../missionProfiles";
 import { createNotesHost } from "../notes/createNotesHost";
 import { NotesHostProvider } from "../notes/NotesHostContext";
@@ -415,9 +416,11 @@ function MainDashboard({
   serialService: SerialDeviceService;
 }) {
   const { scene, inFlight, hasGameSignal } = useGameContext();
+  const profiles = useMissionProfilesService();
   const dashboard = useDashboardState(
     dashboardKeyForScene(screen, scene),
     EMPTY_DASHBOARD,
+    { onDiscard: (items, layout) => profiles.saveDraft(items, layout) },
   );
 
   useEffect(() => {

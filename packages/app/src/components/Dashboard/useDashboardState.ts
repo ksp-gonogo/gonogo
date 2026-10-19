@@ -81,9 +81,18 @@ export interface DashboardState {
   replaceState: (items: DashboardItem[], layout: Layout) => void;
 }
 
+export interface DashboardStateOptions {
+  /**
+   * Called with the items and layout that `replaceState` is about to overwrite
+   * when the dashboard has any, so the caller can keep them.
+   */
+  onDiscard?: (items: DashboardItem[], layout: Layout) => void;
+}
+
 export function useDashboardState(
   storageKey: string | undefined,
   initial: DashboardConfig,
+  options: DashboardStateOptions = {},
 ): DashboardState {
   // Read once: a ref's initial value is evaluated on every render, a state initialiser is not.
   const [saved] = useState<PersistedState | null>(() =>
@@ -100,6 +109,9 @@ export function useDashboardState(
   itemsRef.current = items;
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
+
+  const onDiscardRef = useRef(options.onDiscard);
+  onDiscardRef.current = options.onDiscard;
 
   const itemListeners = useRef(new Set<(items: DashboardItem[]) => void>());
   const hasMountedRef = useRef(false);
@@ -262,12 +274,22 @@ export function useDashboardState(
   /**
    * Replace items + layout wholesale. Used by the mission-profile loader
    * so a profile swap snaps the dashboard to a saved state in one tick.
-   * Loses in-flight drag/resize state by design: callers should warn the
-   * user that unsaved changes are discarded.
+   * Loses in-flight drag/resize state by design. What it overwrites goes to
+   * `onDiscard` first.
    */
   const replaceState = useCallback(
     (nextItems: DashboardItem[], nextLayout: Layout) => {
-      if (storageKeyRef.current !== activeKeyRef.current) {
+      const keyPending = storageKeyRef.current !== activeKeyRef.current;
+      // With a key change still pending, what is on screen is saved under the outgoing key and the incoming key's saved dashboard is what the replacement overwrites.
+      const discarded = keyPending
+        ? storageKeyRef.current
+          ? loadState(storageKeyRef.current)
+          : null
+        : { items: itemsRef.current, layout: layoutRef.current };
+      if (discarded && discarded.items.length > 0) {
+        onDiscardRef.current?.(discarded.items, discarded.layout);
+      }
+      if (keyPending) {
         replacedForKeyRef.current = storageKeyRef.current;
       }
       setItemsInner(nextItems);

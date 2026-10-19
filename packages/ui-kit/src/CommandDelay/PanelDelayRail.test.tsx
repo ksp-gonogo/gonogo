@@ -4,7 +4,7 @@ import {
   railTagsForControlAxis,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { act, fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
@@ -504,6 +504,28 @@ describe("PanelDelayRail", () => {
       inPanel(<PanelDelayRail />, store);
       const rule = emittedRuleFor(screen.getByText("1 command failed"));
       expect(rule).toContain("var(--color-warn-text)");
+    });
+
+    it("stays open while the pointer moves from the strip onto the refusal list", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(refusedHandle("cmd", 1));
+      inPanel(<PanelDelayRail />, store);
+      const btn = screen.getByRole("button", { name: "Signal-delay detail" });
+
+      await user.hover(btn);
+      expect(railOf(btn)).toHaveAttribute("data-grown", "true");
+      const sentence = screen.getByText(
+        "Upgrade Launch Pad refused: it is already at tier 3 of 3.",
+        { ignore: "script, style, [data-live-region] *" },
+      );
+
+      // A browser names the element the pointer came from and the one it went to; user-event's hover names neither, which reads as leaving the window.
+      fireEvent.mouseOut(btn, { relatedTarget: sentence });
+      fireEvent.mouseOver(sentence, { relatedTarget: btn });
+
+      expect(railOf(btn)).toHaveAttribute("data-grown", "true");
+      expect(sentence.isConnected).toBe(true);
     });
 
     it("keeps the reason out of the collapsed strip and shows it once expanded", async () => {

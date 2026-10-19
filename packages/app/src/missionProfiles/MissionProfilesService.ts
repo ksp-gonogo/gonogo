@@ -68,8 +68,26 @@ export interface MissionProfile {
    * meaningful when `sceneBindings` is non-empty.
    */
   autoSwitch?: boolean;
+  /**
+   * True for a layout kept automatically because loading another one would
+   * have replaced it before it was saved. Renaming it or overwriting it makes
+   * it an ordinary saved layout.
+   */
+  draft?: boolean;
   /** ms: lets the UI sort by recency and detect "did I change this?". */
   updatedAt: number;
+}
+
+/** How many automatically kept layouts are held; the oldest go first. */
+export const MAX_DRAFTS = 5;
+
+/** What a layout is, ignoring the grid bookkeeping fields react-grid-layout adds. */
+function fingerprint(items: DashboardItem[], layout: Layout): string {
+  const byId = (a: { i: string }, b: { i: string }) => a.i.localeCompare(b.i);
+  return JSON.stringify([
+    [...items].sort(byId),
+    layout.map(({ i, x, y, w, h }) => ({ i, x, y, w, h })).sort(byId),
+  ]);
 }
 
 type Listener = () => void;
@@ -133,6 +151,40 @@ export class MissionProfilesService {
     return profile;
   }
 
+  /**
+   * Keeps a dashboard that is about to be replaced, so a layout the operator
+   * arranged and never saved can be loaded back from the layouts list. Does
+   * nothing for an empty dashboard or one already held by a saved layout.
+   * Returns the layout kept, if any.
+   */
+  saveDraft(items: DashboardItem[], layout: Layout): MissionProfile | null {
+    if (items.length === 0) return null;
+    const print = fingerprint(items, layout);
+    if (this.profiles.some((p) => fingerprint(p.items, p.layout) === print)) {
+      return null;
+    }
+    const draft: MissionProfile = {
+      id: generateId(),
+      name: "Unsaved layout",
+      screen: this.screen,
+      items,
+      layout,
+      draft: true,
+      updatedAt: Date.now(),
+    };
+    const drafts = this.profiles
+      .filter((p) => p.draft)
+      .sort((a, b) => a.updatedAt - b.updatedAt);
+    const dropped = new Set(
+      drafts.slice(0, Math.max(0, drafts.length - (MAX_DRAFTS - 1))),
+    );
+    this.profiles = this.profiles.filter((p) => !dropped.has(p));
+    this.profiles.push(draft);
+    this.persist();
+    this.emit();
+    return draft;
+  }
+
   update(
     id: string,
     patch: Partial<
@@ -155,6 +207,7 @@ export class MissionProfilesService {
       next.sceneBindings = undefined;
     }
     if (next.autoSwitch !== true) next.autoSwitch = undefined;
+    if (patch.name || patch.items || patch.layout) next.draft = undefined;
     this.profiles[idx] = next;
     this.persist();
     this.emit();

@@ -294,6 +294,7 @@ export function MissionProfilesModal({
                     <ProfileName>{p.name}</ProfileName>
                   )}
                   <ProfileMeta>
+                    {p.draft ? "Kept before a switch · " : ""}
                     {p.items.length} widget{p.items.length === 1 ? "" : "s"} ·{" "}
                     <Unit value={value("irl:s", ageSeconds(p.updatedAt))} /> ago
                   </ProfileMeta>
