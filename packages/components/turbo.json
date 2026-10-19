@@ -5,7 +5,8 @@
     // partActions.cs-sync reads the part-action names out of the two C# providers,
     // the probe's gridCell test reads the dashboard cell it copies, and the
     // render harness's document-defaults test reads the app's body font rule, and
-    // the gate-scope test reads the visual job's shard legs out of visual.yml.
+    // the gate-scope test reads the visual job's shard legs out of visual.yml, and
+    // the replay tests play the recorded flights kept under tests/fixtures/wire.
     "test": {
       "dependsOn": ["^build"],
       "passThroughEnv": ["VITEST_SHARD"],
@@ -15,7 +16,8 @@
         "$TURBO_ROOT$/mod/Sitrep.Host/PartActionCommandProvider.cs",
         "$TURBO_ROOT$/packages/app/src/components/Dashboard/**",
         "$TURBO_ROOT$/packages/app/src/styles/global.css",
-        "$TURBO_ROOT$/.github/workflows/visual.yml"
+        "$TURBO_ROOT$/.github/workflows/visual.yml",
+        "$TURBO_ROOT$/tests/fixtures/wire/**"
       ]
     }
   }

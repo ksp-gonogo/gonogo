@@ -111,6 +111,9 @@ const topics = defineTopicManifest({
     "vessel.identity.vesselType",
     "vessel.identity.situation",
     "vessel.identity.parentBodyIndex",
+    "vessel.crew.count",
+    "vessel.crew.capacity",
+    "vessel.comms.connected",
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
     "vessel.orbit.inc",
@@ -228,9 +231,20 @@ function TrackingStationComponent({
     bodiesReading.state === "observed" || bodiesReading.state === "held"
       ? bodiesReading.value
       : undefined;
+  // The craft's own crew and link, which describe the pad craft the roster does not list yet.
+  const crewReading = topics.useTelemetry("vessel.crew");
+  const crew =
+    crewReading.state === "observed" || crewReading.state === "held"
+      ? crewReading.value
+      : undefined;
+  const commsReading = topics.useTelemetry("vessel.comms");
+  const comms =
+    commsReading.state === "observed" || commsReading.state === "held"
+      ? commsReading.value
+      : undefined;
   const flownCraft = useMemo(
-    () => flownCraftEntity(identity, orbit, systemBodies),
-    [identity, orbit, systemBodies],
+    () => flownCraftEntity(identity, orbit, systemBodies, { crew, comms }),
+    [identity, orbit, systemBodies, crew, comms],
   );
   const targetReading = topics.useTelemetry("vessel.target");
   const targetName =
