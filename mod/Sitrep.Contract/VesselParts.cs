@@ -50,7 +50,8 @@ public class VesselParts
 /// One part in the <see cref="VesselParts.Parts"/> tree. <see cref="Id"/>,
 /// <see cref="Name"/>, <see cref="Position"/>, <see cref="DryMass"/>,
 /// <see cref="InverseStage"/> and <see cref="MaxTemp"/> are always present;
-/// <see cref="ParentId"/> (null for the root), <see cref="Up"/>, the current
+/// <see cref="ParentId"/> (null for the root), <see cref="Up"/>, <see
+/// cref="Forward"/>, the current
 /// and skin temperatures (unset before physics runs) and
 /// <see cref="FuelLineTargetId"/> are nullable.
 ///
@@ -102,6 +103,15 @@ public class VesselPart
     // orgRot is the part's rotation within the construction frame, so the rotated axis lands in the vessel's frame and not the part's own.
     [SitrepFrame(Frames.VesselLocal)]
     public Vec3? Up { get; set; }
+
+    /// <summary>The part's local forward axis (<c>Part.orgRot *
+    /// Vector3.forward</c>) as a unit vector in the vessel's frame. With <see
+    /// cref="Up"/> it fixes the part's whole rotation, including the turn about
+    /// its up axis that sets which way a fin or a radial part faces. <c>null</c>
+    /// when absent.</summary>
+    [SitrepUnit(Units.Dimensionless)]
+    [SitrepFrame(Frames.VesselLocal)]
+    public Vec3? Forward { get; set; }
 
     /// <summary>The part's bounding box, in the part's own frame. Always present.</summary>
     public PartBounds Bounds { get; set; } = new();
@@ -363,16 +373,14 @@ public class PartModuleState
 }
 
 /// <summary>
-/// A <see cref="VesselPart"/>'s local bounding box: <see cref="Size"/> is the
-/// part's <c>prefabSize</c> (a per-part-type constant approximating its
-/// rendered bounds), <see cref="Center"/> the mesh-centre offset from the
-/// part's own origin (<c>Part.boundsCentroidOffset</c>). A fuel-line part
-/// reports bounds wrapping the whole conduit, as KSP does.
+/// A <see cref="VesselPart"/>'s box: the union of the bounds of every mesh in
+/// the part's own model, whatever its deploy or animation state, so an
+/// engine's hidden shroud still counts. Parts attached to this one are not
+/// included.
 ///
-/// <para>Both are in the part's own frame (<c>part-local</c>), never the
-/// vessel's: they are authored fields of the part's config node, so one value
-/// has to serve every instance of that part however it was assembled. A
-/// consumer placing the box on a ship rotates both by that part's <c>orgRot</c>
+/// <para>Its size and centre are in the part's own frame (<c>part-local</c>), never the
+/// vessel's. A consumer placing the box on a ship rotates both by the part's
+/// rotation (<see cref="VesselPart.Up"/> and <see cref="VesselPart.Forward"/>)
 /// before adding <see cref="VesselPart.Position"/>, which is
 /// <c>vessel-local</c>.</para>
 /// </summary>
@@ -383,22 +391,16 @@ public class PartModuleState
 #endif
 public class PartBounds
 {
-    /// <summary><c>Part.prefabSize</c>: the part's untransformed bounding-box
-    /// extents (metres).</summary>
+    /// <summary>The box's extent along the part's own axes (metres). Zero
+    /// when the part's model has no mesh.</summary>
     [SitrepUnit(Units.Metres)]
     [SitrepFrame(Frames.PartLocal)]
     public Vec3 Size { get; set; } = new();
 
-    /// <summary> <c>Part.boundsCentroidOffset</c>: mesh-centre offset from the
-    /// part's own origin (metres, part-local); <c>null</c> when absent.
-    ///
-    /// <para>Part-local, not vessel-local: an authored per-part-type constant
-    /// like <see cref="Size"/> beside it, so one value serves every instance of
-    /// the part at whatever attitude it was assembled at. <see
-    /// cref="VesselPart.Position"/> is <c>vessel-local</c>, so adding the two
-    /// raw mixes frames and lands the box somewhere the part is not; rotate
-    /// this one by the part's <c>orgRot</c> first.</para>
-    /// </summary>
+    /// <summary>The box's centre as an offset from the part's own origin
+    /// (metres, part-local); <c>null</c> when the part's model has no mesh.
+    /// Turn it by the part's rotation before adding it to <see
+    /// cref="VesselPart.Position"/>.</summary>
     [SitrepUnit(Units.Metres)]
     [SitrepFrame(Frames.PartLocal)]
     public Vec3? Center { get; set; }

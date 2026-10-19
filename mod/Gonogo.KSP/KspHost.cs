@@ -6834,6 +6834,8 @@ namespace Gonogo.KSP
             }
 
             var up = part.orgRot * Vector3.up;
+            var forward = part.orgRot * Vector3.forward;
+            var hasMesh = PartMeshBounds.TryMeasure(part, out var meshCenter, out var meshSize);
 
             return new Dictionary<string, object?>
             {
@@ -6843,12 +6845,11 @@ namespace Gonogo.KSP
                 ["title"] = part.partInfo != null ? part.partInfo.title : null,
                 ["position"] = Vec3Array(part.orgPos),
                 ["up"] = Vec3Array(up),
+                ["forward"] = Vec3Array(forward),
                 ["bounds"] = new Dictionary<string, object?>
                 {
-                    // prefabSize is the per-part-constant proxy for renderer
-                    // bounds (design §6): cheap to read every keyframe.
-                    ["size"] = Vec3Array(part.prefabSize),
-                    ["center"] = Vec3Array(part.boundsCentroidOffset),
+                    ["size"] = Vec3Array(meshSize),
+                    ["center"] = hasMesh ? Vec3Array(meshCenter) : null,
                 },
                 ["dryMass"] = (double)part.mass,
                 ["inverseStage"] = part.inverseStage,

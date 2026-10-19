@@ -51,23 +51,25 @@ export interface TopologyPart {
    * `[0, 1, 0]` for axially-mounted parts (the majority); `[±1, 0, 0]` or
    * `[0, 0, ±1]` for radially-mounted parts (docking ports, side nose cones,
    * radial decouplers); inverted parts (rare) carry a negative-Y component.
-   * Optional because fixtures captured before the fork started emitting it
-   * stay readable: consumers should default to `[0, 1, 0]`.
+   * Optional because older fixtures carry none: consumers default to
+   * `[0, 1, 0]`.
    */
   up?: [number, number, number];
   /**
-   * Prefab renderer bounds in metres: stable across the session.
+   * Part's local +forward (+Z) axis in vessel-local frame
+   * (`part.orgRot * Vector3.forward`). With {@link up} it fixes the part's
+   * whole rotation, including the turn about its up axis that sets which way
+   * a fin or a radial part faces. Optional because older fixtures carry none.
+   */
+  forward?: [number, number, number];
+  /**
+   * The part's mesh box in metres, in the part's own frame: the union of the
+   * mesh bounds under the part's model, whatever its deploy state.
    *
-   * `size` is the mesh extent in part-local frame.
-   *
-   * `center` is the mesh-center offset from `orgPos` in *vessel-local*
-   * frame (the fork pre-rotates by `orgRot` before emitting). Non-zero
-   * for parts whose mesh doesn't sit on the attach-node anchor, radial
-   * decouplers, surface ladders, structural brackets. Add it to `orgPos`
-   * to get the mesh centre in assembly space. Optional because fixtures
-   * captured before the fork started emitting it stay readable; missing
-   * → treat as `{x: 0, y: 0, z: 0}` (correct for the axially-stacked
-   * majority where the mesh centres on the anchor).
+   * `size` is the box's extent and `center` its centre's offset from
+   * `orgPos`, both part-local, so a consumer turns `center` by the part's
+   * rotation before adding it to `orgPos`. Missing `center` is treated as
+   * `{x: 0, y: 0, z: 0}`.
    */
   bounds: {
     size: { x: number; y: number; z: number };

@@ -45,11 +45,11 @@ export interface ShipMapPart {
    * screen-right). 0 when `up` is absent.
    */
   rotationRad: number;
-  /** Prefab bounds in metres: `{x, y, z}` from `v.topology.parts[].bounds.size`. */
+  /** The part's mesh box in metres, in its own frame: `bounds.size` from the topology. */
   size: { x: number; y: number; z: number };
-  /** Half-extent along the picked lateral axis, in metres. */
+  /** Half-width of the part's box in the diagram, across its projected up direction, in metres. */
   latHalfExtent: number;
-  /** Half-extent along the spine, in metres. */
+  /** Half-height of the part's box in the diagram, along its projected up direction, in metres. */
   axialHalfExtent: number;
   /** `Part.mass` from topology: dry mass, no resources. Null when unread. */
   dryMass: number | null;
@@ -122,35 +122,51 @@ export function pickLateralAxis(parts: readonly TopologyPart[]): {
   return { useX: xMax - xMin >= zMax - zMin };
 }
 
+type Vec3 = { x: number; y: number; z: number };
+
+/** The vessel-frame images of the part's local X, Y and Z axes: the columns of its rotation. */
+interface PartAxes {
+  right: Vec3;
+  up: Vec3;
+  forward: Vec3;
+}
+
+const IDENTITY_AXES: PartAxes = {
+  right: { x: 1, y: 0, z: 0 },
+  up: { x: 0, y: 1, z: 0 },
+  forward: { x: 0, y: 0, z: 1 },
+};
+
+function unit(v: readonly [number, number, number]): Vec3 | null {
+  const len = Math.hypot(v[0], v[1], v[2]);
+  if (len < 1e-9) return null;
+  return { x: v[0] / len, y: v[1] / len, z: v[2] / len };
+}
+
+function cross(a: Vec3, b: Vec3): Vec3 {
+  return {
+    x: a.y * b.z - a.z * b.y,
+    y: a.z * b.x - a.x * b.z,
+    z: a.x * b.y - a.y * b.x,
+  };
+}
+
 /**
- * Rotate a part-local vector into the vessel frame by the minimal swing
- * taking +Y onto `up` (`orgRot * Vector3.up`, the only rotation on the wire),
- * via the trig-free `v + k x v + (k x (k x v)) / (1 + cos)` form. No `up`, or
- * a zero one, is the identity. An exactly inverted part is a half-turn about
- * X, since the closed form divides by zero there.
+ * Rotate a part-local vector by the minimal swing taking +Y onto `up`, via
+ * the trig-free `v + k x v + (k x (k x v)) / (1 + cos)` form. An exactly
+ * inverted part is a half-turn about X, since the closed form divides by
+ * zero there.
  */
-function rotateIntoVesselFrame(
-  v: { x: number; y: number; z: number },
-  up: readonly [number, number, number] | undefined,
-): { x: number; y: number; z: number } {
-  if (!up) return v;
-  const len = Math.hypot(up[0], up[1], up[2]);
-  if (len < 1e-9) return v;
-  const bx = up[0] / len;
-  const by = up[1] / len;
-  const bz = up[2] / len;
-  // cos of the swing angle: dot((0,1,0), up).
-  const cos = by;
+function swing(v: Vec3, up: Vec3): Vec3 {
+  const cos = up.y;
   if (cos > 1 - 1e-12) return v;
   if (cos < -1 + 1e-12) return { x: v.x, y: -v.y, z: -v.z };
-  // k = (0,1,0) x up.
-  const kx = bz;
-  const kz = -bx;
-  // k x v, with k.y identically zero.
+  // k = (0,1,0) x up, so k.y is identically zero.
+  const kx = up.z;
+  const kz = -up.x;
   const c1x = -kz * v.y;
   const c1y = kz * v.x - kx * v.z;
   const c1z = kx * v.y;
-  // k x (k x v), same shortcut.
   const c2x = -kz * c1y;
   const c2y = kz * c1x - kx * c1z;
   const c2z = kx * c1y;
@@ -159,6 +175,34 @@ function rotateIntoVesselFrame(
     x: v.x + c1x + c2x * s,
     y: v.y + c1y + c2y * s,
     z: v.z + c1z + c2z * s,
+  };
+}
+
+/**
+ * The part's rotation in the vessel frame from its `up` and `forward` axes.
+ * With `up` alone the roll about it is unknown, so the minimal swing onto
+ * `up` stands in for it; with neither the part is unrotated.
+ */
+function partAxes(part: TopologyPart): PartAxes {
+  const up = part.up ? unit(part.up) : null;
+  if (!up) return IDENTITY_AXES;
+  const forward = part.forward ? unit(part.forward) : null;
+  if (!forward) {
+    return {
+      right: swing(IDENTITY_AXES.right, up),
+      up,
+      forward: swing(IDENTITY_AXES.forward, up),
+    };
+  }
+  // KSP's frame is left-handed, where right = up x forward with the ordinary cross product.
+  return { right: cross(up, forward), up, forward };
+}
+
+function rotate(axes: PartAxes, v: Vec3): Vec3 {
+  return {
+    x: axes.right.x * v.x + axes.up.x * v.y + axes.forward.x * v.z,
+    y: axes.right.y * v.x + axes.up.y * v.y + axes.forward.y * v.z,
+    z: axes.right.z * v.x + axes.up.z * v.y + axes.forward.z * v.z,
   };
 }
 
@@ -172,7 +216,6 @@ export function buildShipMapPart(
   resources: PartResources | undefined,
   useX: boolean,
   partState?: PartState | null,
-  parentOrgPos?: readonly [number, number, number] | null,
 ): ShipMapPart {
   const orgPos = part.orgPos;
   const ecFlow = resources?.ElectricCharge?.flow;
@@ -183,70 +226,44 @@ export function buildShipMapPart(
         : "consumer"
       : null;
   const size = part.bounds.size;
+  const axes = partAxes(part);
+  const latOf = (v: Vec3) => (useX ? v.x : v.z);
+  const depthOf = (v: Vec3) => (useX ? v.z : v.x);
   /* Rotation is `atan2(lateral, axial)` from screen-up. When both projected components are near zero the part points along the depth axis, where atan2 flips on the sign of -0, so it renders unrotated. */
-  const up = part.up;
-  const upLat = up ? (useX ? up[0] : up[2]) : 0;
-  const upAxial = up ? up[1] : 1;
-  const projectedMagSq = upLat * upLat + upAxial * upAxial;
-  const rotationRad = projectedMagSq < 0.01 ? 0 : Math.atan2(upLat, upAxial);
+  const upLat = latOf(axes.up);
+  const upAxial = axes.up.y;
+  const rotationRad =
+    upLat * upLat + upAxial * upAxial < 0.01 ? 0 : Math.atan2(upLat, upAxial);
+  // `bounds.center` is part-local, so it turns with the part before it is added to `orgPos`.
+  const center = part.bounds.center ?? { x: 0, y: 0, z: 0 };
+  const meshOffset = rotate(axes, center);
   /*
-   * Mesh-centre offset, rotated into the vessel frame before it is added to
-   * `orgPos` (the attach-node anchor). `bounds.center` is part-local. Only the
-   * swing onto `up` is recoverable, so the twist about `up` is not, and a
-   * lateral offset can land on the wrong side of its mount.
+   * The box is drawn upright and then turned by `rotationRad`, so its height
+   * runs along the projected up direction and its width across it. Each
+   * extent is the half-width of the part's rotated box measured along that
+   * screen direction, which is exact for the box's silhouette in this view.
    */
-  const center = part.bounds.center;
-  const meshOffset = center
-    ? rotateIntoVesselFrame(center, up)
-    : { x: 0, y: 0, z: 0 };
-  const meshLat =
-    (useX ? orgPos[0] : orgPos[2]) + (useX ? meshOffset.x : meshOffset.z);
-  const meshDepth =
-    (useX ? orgPos[2] : orgPos[0]) + (useX ? meshOffset.z : meshOffset.x);
-  const meshAxial = orgPos[1] + meshOffset.y;
+  const sin = Math.sin(rotationRad);
+  const cos = Math.cos(rotationRad);
+  const halfExtentAlong = (dLat: number, dAxial: number) =>
+    (size.x / 2) * Math.abs(dLat * latOf(axes.right) + dAxial * axes.right.y) +
+    (size.y / 2) * Math.abs(dLat * latOf(axes.up) + dAxial * axes.up.y) +
+    (size.z / 2) *
+      Math.abs(dLat * latOf(axes.forward) + dAxial * axes.forward.y);
   const type = classifyPart(part, resources);
-  /* Flat radial plates (solar panels, fins) are foreshortened by how face-on they are, from their azimuth relative to the parent (not the root). Assumes the ring convention: a panel's thin axis faces radially, a fin's tangentially. */
-  let latHalfExtent = (useX ? size.x : size.z) / 2;
-  if (type === "solar" || type === "fin") {
-    const parentLat = parentOrgPos
-      ? useX
-        ? parentOrgPos[0]
-        : parentOrgPos[2]
-      : 0;
-    const parentDepth = parentOrgPos
-      ? useX
-        ? parentOrgPos[2]
-        : parentOrgPos[0]
-      : 0;
-    const pickedPos = (useX ? orgPos[0] : orgPos[2]) - parentLat;
-    const depthPos = (useX ? orgPos[2] : orgPos[0]) - parentDepth;
-    const radius = Math.hypot(pickedPos, depthPos);
-    if (radius > 0.05) {
-      // A panel's broad face is tangential and a fin's is radial, so they swap which extent rides which direction.
-      const broad = Math.max(size.x, size.z);
-      const thin = Math.min(size.x, size.z);
-      const ru = Math.abs(pickedPos / radius);
-      const rd = Math.abs(depthPos / radius);
-      // A fin's radial factor is squared so angled fins read clearly shorter; the extremes are unchanged.
-      latHalfExtent =
-        type === "fin"
-          ? (broad / 2) * ru * ru + (thin / 2) * rd
-          : (broad / 2) * rd + (thin / 2) * ru;
-    }
-  }
   return {
     flightId: part.flightId,
     parentFlightId: part.parentFlightId,
     name: part.name,
     title: part.title,
     type,
-    lat: meshLat,
-    axial: meshAxial,
-    depth: meshDepth,
+    lat: (useX ? orgPos[0] : orgPos[2]) + latOf(meshOffset),
+    axial: orgPos[1] + meshOffset.y,
+    depth: (useX ? orgPos[2] : orgPos[0]) + depthOf(meshOffset),
     rotationRad,
     size,
-    latHalfExtent,
-    axialHalfExtent: size.y / 2,
+    latHalfExtent: halfExtentAlong(cos, -sin),
+    axialHalfExtent: halfExtentAlong(sin, cos),
     dryMass: part.dryMass,
     stage: part.inverseStage,
     maxTemp: part.maxTemp,

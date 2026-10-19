@@ -41,6 +41,9 @@ function topologyPartToVesselPartWire(
     title: p.title,
     position: { x: p.orgPos[0], y: p.orgPos[1], z: p.orgPos[2] },
     up: p.up ? { x: p.up[0], y: p.up[1], z: p.up[2] } : undefined,
+    forward: p.forward
+      ? { x: p.forward[0], y: p.forward[1], z: p.forward[2] }
+      : undefined,
     bounds: {
       size: p.bounds.size,
       center: p.bounds.center,

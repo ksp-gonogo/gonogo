@@ -22,7 +22,7 @@ namespace Sitrep.Host
     /// <code>
     /// Values["vessel"]["topology"] = [
     ///   { "id", "parentId", "name", "title",
-    ///     "position": [x,y,z], "up": [x,y,z]|null,
+    ///     "position": [x,y,z], "up": [x,y,z]|null, "forward": [x,y,z]|null,
     ///     "bounds": { "size": [x,y,z], "center": [x,y,z]|null },
     ///     "dryMass", "inverseStage", "maxTemp", "skinMaxTemp"|null,
     ///     "currentTemp"|null, "skinTemp", "category", "categoryOrdinal"|null,
@@ -96,6 +96,7 @@ namespace Sitrep.Host
                 // tree the rest of the topology needs.
                 Position = GetVec3(raw, "position") ?? new Vec3(),
                 Up = GetVec3(raw, "up"),
+                Forward = GetVec3(raw, "forward"),
                 Bounds = MapBounds(raw),
                 DryMass = GetDouble(raw, "dryMass"),
                 InverseStage = GetInt(raw, "inverseStage"),
@@ -243,6 +244,7 @@ namespace Sitrep.Host
             ["title"] = part.Title,
             ["position"] = ToWire(part.Position),
             ["up"] = part.Up != null ? ToWire(part.Up) : null,
+            ["forward"] = part.Forward != null ? ToWire(part.Forward) : null,
             ["bounds"] = ToWire(part.Bounds),
             ["dryMass"] = part.DryMass,
             ["inverseStage"] = part.InverseStage,

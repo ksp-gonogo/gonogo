@@ -42,6 +42,7 @@ export const GENERATED_TYPE_FRAMES = {
     velocity: { frame: "body-centred-inertial", whenSet: "body-centred-rotating", selectedBy: "frameRotating" },
   },
   "VesselPart": {
+    forward: { frame: "vessel-local" },
     position: { frame: "vessel-local" },
     up: { frame: "vessel-local" },
   },

@@ -207,48 +207,27 @@ describe("mesh-centre offset frame", () => {
     );
   });
 
-  /**
-   * `up` pins two of three rotational degrees of freedom and nothing about
-   * the roll about it. These two mounts are one station apart on the
-   * `oxstat-ring` capture, a 45 degree turn about vessel Y, so an offset
-   * perpendicular to up ought to swing 45 degrees with it; the minimal swing
-   * does not. Its length and its component along `up` stay exact.
-   */
-  it("cannot recover the roll about up, and this is what that costs", () => {
+  // Two mounts a 45 degree turn about vessel Y apart share an up axis; only forward tells them apart.
+  it("turns the offset with the roll about up that forward carries", () => {
     const center = { x: -0.033157, y: 0, z: 0 };
-    const at = (up: [number, number, number]) =>
+    const at = (forward: [number, number, number]) =>
       buildShipMapPart(
         part({
           orgPos: [0, 0, 0],
-          up,
+          up: [0, 1, 0],
+          forward,
           bounds: { size: { x: 1, y: 1, z: 1 }, center },
         }),
         undefined,
         undefined,
         true,
       );
-    const first = at([0.27684477, 0.96091467, 0]);
-    const next = at([0.19575876, 0.96091467, -0.19575885]);
-    // A true 45-degree clocking would put the offset here.
-    const turn = Math.PI / 4;
-    const trueLat = first.lat * Math.cos(turn) + first.depth * Math.sin(turn);
-    const trueDepth =
-      -first.lat * Math.sin(turn) + first.depth * Math.cos(turn);
-    expect(trueLat).toBeCloseTo(-0.022529, 5);
-    expect(trueDepth).toBeCloseTo(0.022529, 5);
-    // What the swing actually produces: barely moved off the first mount.
-    expect(next.lat).toBeCloseTo(-0.032509, 5);
-    expect(next.depth).toBeCloseTo(-0.000648, 5);
-    // The invariants that DO survive.
-    expect(Math.hypot(next.lat, next.axial, next.depth)).toBeCloseTo(
-      Math.hypot(center.x, center.y, center.z),
-      9,
-    );
-    expect(
-      next.lat * 0.19575876 +
-        next.axial * 0.96091467 +
-        next.depth * -0.19575885,
-    ).toBeCloseTo(0, 9);
+    const first = at([0, 0, 1]);
+    const turned = at([Math.SQRT1_2, 0, Math.SQRT1_2]);
+    expect(first.lat).toBeCloseTo(-0.033157, 9);
+    expect(first.depth).toBeCloseTo(0, 9);
+    expect(turned.lat).toBeCloseTo(-0.033157 * Math.SQRT1_2, 9);
+    expect(turned.depth).toBeCloseTo(0.033157 * Math.SQRT1_2, 9);
   });
 
   // The identity rotation leaves an axially-mounted part exactly where it was.
@@ -311,5 +290,57 @@ describe("mesh-centre offset frame", () => {
     expect(p.lat).toBeCloseTo(1.1, 9);
     expect(p.axial).toBeCloseTo(2.2, 9);
     expect(p.depth).toBeCloseTo(3.3, 9);
+  });
+});
+
+describe("drawn extent", () => {
+  // An upright part's box is its mesh box seen side on.
+  it("draws an upright part at its own width and height", () => {
+    const p = buildShipMapPart(
+      part({ bounds: { size: { x: 1.25, y: 0.68, z: 1.1 } } }),
+      undefined,
+      undefined,
+      true,
+    );
+    expect(p.latHalfExtent).toBeCloseTo(0.625, 9);
+    expect(p.axialHalfExtent).toBeCloseTo(0.34, 9);
+  });
+
+  // A thin plate turned 60 degrees about up shows its span foreshortened and its thickness widened.
+  it("foreshortens a plate by its turn about up", () => {
+    const turn = Math.PI / 3;
+    const p = buildShipMapPart(
+      part({
+        up: [0, 1, 0],
+        forward: [Math.sin(turn), 0, Math.cos(turn)],
+        bounds: { size: { x: 1.5, y: 2, z: 0.1 } },
+      }),
+      undefined,
+      undefined,
+      true,
+    );
+    expect(p.latHalfExtent).toBeCloseTo(
+      0.75 * Math.cos(turn) + 0.05 * Math.sin(turn),
+      9,
+    );
+    expect(p.axialHalfExtent).toBeCloseTo(1, 9);
+    expect(p.rotationRad).toBe(0);
+  });
+
+  // A part lying on its side is drawn upright and turned, so its height still runs along its own up axis.
+  it("keeps a part's height along its up axis when it lies on its side", () => {
+    const p = buildShipMapPart(
+      part({
+        up: [1, 0, 0],
+        forward: [0, 0, 1],
+        bounds: { size: { x: 0.2, y: 0.8, z: 0.3 } },
+      }),
+      undefined,
+      undefined,
+      true,
+    );
+    expect(p.rotationRad).toBeCloseTo(Math.PI / 2, 9);
+    expect(p.axialHalfExtent).toBeCloseTo(0.4, 9);
+    expect(p.latHalfExtent).toBeCloseTo(0.1, 9);
   });
 });

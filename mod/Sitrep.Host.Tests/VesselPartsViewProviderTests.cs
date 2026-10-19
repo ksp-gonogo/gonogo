@@ -120,6 +120,16 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void ForwardIsNullWhenRawForwardIsAbsent()
+        {
+            var raw = RawPart("1", null);
+            raw.Remove("forward");
+
+            var parts = VesselPartsViewProvider.BuildParts(TopologySnapshot(raw))!;
+            Assert.Null(Assert.Single(parts.Parts).Forward);
+        }
+
+        [Fact]
         public void PerPartThermalAndGeometryRoundTrip()
         {
             var raw = RawPart("1", null);
@@ -131,6 +141,7 @@ namespace Sitrep.Host.Tests
             raw["inverseStage"] = 3;
             raw["position"] = new double[] { 1.0, 2.0, 3.0 };
             raw["up"] = new double[] { 0.0, 1.0, 0.0 };
+            raw["forward"] = new double[] { -0.5, 0.0, 0.866 };
             raw["bounds"] = new Dictionary<string, object?>
             {
                 ["size"] = new double[] { 0.5, 1.5, 0.5 },
@@ -148,6 +159,9 @@ namespace Sitrep.Host.Tests
             Assert.Equal(2.0, part.Position.Y);
             Assert.NotNull(part.Up);
             Assert.Equal(1.0, part.Up!.Y);
+            Assert.NotNull(part.Forward);
+            Assert.Equal(-0.5, part.Forward!.X);
+            Assert.Equal(0.866, part.Forward.Z);
             Assert.Equal(1.5, part.Bounds.Size.Y);
             Assert.NotNull(part.Bounds.Center);
             Assert.Equal(0.25, part.Bounds.Center!.Y);
@@ -249,6 +263,7 @@ namespace Sitrep.Host.Tests
             ["title"] = title,
             ["position"] = new double[] { 0.0, 0.0, 0.0 },
             ["up"] = new double[] { 0.0, 1.0, 0.0 },
+            ["forward"] = new double[] { 0.0, 0.0, 1.0 },
             ["bounds"] = new Dictionary<string, object?>
             {
                 ["size"] = new double[] { 1.0, 1.0, 1.0 },

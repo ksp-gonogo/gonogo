@@ -47,6 +47,7 @@ namespace Sitrep.Host.Tests
             AssertKeysMatchType(typeof(PartBounds), bounds);
             AssertVec3(part["position"]);
             AssertVec3(part["up"]);
+            AssertVec3(part["forward"]);
             AssertVec3(bounds["size"]);
             AssertVec3(bounds["center"]);
 
@@ -89,6 +90,7 @@ namespace Sitrep.Host.Tests
                             ["title"] = "Mk1 Command Pod",
                             ["position"] = new double[] { 0.0, 1.0, 2.0 },
                             ["up"] = new double[] { 0.0, 1.0, 0.0 },
+                            ["forward"] = new double[] { 0.0, 0.0, 1.0 },
                             ["bounds"] = new Dictionary<string, object?>
                             {
                                 ["size"] = new double[] { 1.0, 1.2, 1.0 },
@@ -143,7 +145,7 @@ namespace Sitrep.Host.Tests
         /// The emitted per-part dict's key set must equal <see cref="VesselPart"/>'s
         /// camelCase'd property set, and every emitted scalar value's runtime type
         /// must match the (Nullable-unwrapped) property type. Nested-object props
-        /// (<c>position</c>/<c>up</c>/<c>bounds</c>, whose property types are
+        /// (<c>position</c>/<c>up</c>/<c>forward</c>/<c>bounds</c>, whose property types are
         /// <see cref="Vec3"/>/<see cref="PartBounds"/>) are dict-shaped on the
         /// wire, so their runtime type is asserted by the caller instead.
         /// </summary>
@@ -158,7 +160,7 @@ namespace Sitrep.Host.Tests
             // resources/moduleStates are dict-of-dicts / list-of-dicts (like
             // bounds' nested Vec3s): their per-row shape is asserted
             // separately by the caller via AssertKeysMatchType, not here.
-            var nestedObjectKeys = new HashSet<string> { "position", "up", "bounds", "resources", "moduleStates", "actionBindings" };
+            var nestedObjectKeys = new HashSet<string> { "position", "up", "forward", "bounds", "resources", "moduleStates", "actionBindings" };
 
             foreach (var (key, value) in emitted)
             {

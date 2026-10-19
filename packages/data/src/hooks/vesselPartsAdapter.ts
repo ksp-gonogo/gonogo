@@ -21,7 +21,7 @@ import type {
  * without touching either widget's rendering logic.
  *
  * Every field the diagrams actually read maps straight across
- * (name/title/category/modules/dryMass/inverseStage/maxTemp/orgPos/up/
+ * (name/title/category/modules/dryMass/inverseStage/maxTemp/orgPos/up/forward/
  * bounds/fuelLineTarget/parentFlightId: see `shipTopology.ts`'s
  * `buildShipMapPart`/`classifyPart`). `persistentId`/`manufacturer`/
  * `crewCapacity`/`crashTolerance` have no `VesselPart` equivalent and no
@@ -54,6 +54,15 @@ export function deriveTopologyFromVesselParts(
   };
 }
 
+/** One of a part's unit axes as the `[x, y, z]` tuple the diagrams read. */
+function axisTuple(
+  axis: VesselPart["up"],
+): [number, number, number] | undefined {
+  return axis
+    ? [axis.x.magnitude, axis.y.magnitude, axis.z.magnitude]
+    : undefined;
+}
+
 function deriveTopologyPart(p: VesselPart): TopologyPart {
   return {
     flightId: Number(p.id),
@@ -76,9 +85,8 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
       p.position.y.magnitude,
       p.position.z.magnitude,
     ],
-    up: p.up
-      ? [p.up.x.magnitude, p.up.y.magnitude, p.up.z.magnitude]
-      : undefined,
+    up: axisTuple(p.up),
+    forward: axisTuple(p.forward),
     bounds: {
       size: {
         x: p.bounds.size.x.magnitude,

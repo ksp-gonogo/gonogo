@@ -10858,9 +10858,9 @@ export interface VesselParts
 * One part in the `VesselParts.parts` tree. `VesselPart.id`,
 * `VesselPart.name`, `VesselPart.position`, `VesselPart.dryMass`,
 * `VesselPart.inverseStage` and `VesselPart.maxTemp` are always present;
-* `VesselPart.parentId` (null for the root), `VesselPart.up`, the current and
-* skin temperatures (unset before physics runs) and
-* `VesselPart.fuelLineTargetId` are nullable.
+* `VesselPart.parentId` (null for the root), `VesselPart.up`,
+* `VesselPart.forward`, the current and skin temperatures (unset before
+* physics runs) and `VesselPart.fuelLineTargetId` are nullable.
 *
 * **Join key.** `VesselPart.id` is `Part.flightID` as a string, the same form
 * the `partId` of `parts.power` and `parts.robotics` uses, so a part can be
@@ -10900,6 +10900,13 @@ export interface VesselPart
 	* thrust glyphs, as a unit vector in the vessel's frame. `null` when absent.
 	*/
 	up?: Vec3Of<"1"> | null;
+	/**
+	* The part's local forward axis (`Part.orgRot * Vector3.forward`) as a unit
+	* vector in the vessel's frame. With `VesselPart.up` it fixes the part's whole
+	* rotation, including the turn about its up axis that sets which way a fin or
+	* a radial part faces. `null` when absent.
+	*/
+	forward?: Vec3Of<"1"> | null;
 	/** The part's bounding box, in the part's own frame. Always present. */
 	bounds: PartBounds;
 	/** `Part.mass`: dry mass (tonnes). Null when it could not be read. */
@@ -11106,33 +11113,28 @@ export interface PartModuleState
 	flameout?: boolean | null;
 }
 /**
-* A `VesselPart`'s local bounding box: `PartBounds.size` is the part's
-* `prefabSize` (a per-part-type constant approximating its rendered bounds),
-* `PartBounds.center` the mesh-centre offset from the part's own origin
-* (`Part.boundsCentroidOffset`). A fuel-line part reports bounds wrapping the
-* whole conduit, as KSP does.
+* A `VesselPart`'s box: the union of the bounds of every mesh in the part's
+* own model, whatever its deploy or animation state, so an engine's hidden
+* shroud still counts. Parts attached to this one are not included.
 *
-* Both are in the part's own frame (`part-local`), never the vessel's: they
-* are authored fields of the part's config node, so one value has to serve
-* every instance of that part however it was assembled. A consumer placing the
-* box on a ship rotates both by that part's `orgRot` before adding
+* Its size and centre are in the part's own frame (`part-local`), never the
+* vessel's. A consumer placing the box on a ship rotates both by the part's
+* rotation (`VesselPart.up` and `VesselPart.forward`) before adding
 * `VesselPart.position`, which is `vessel-local`.
 *
 * @category Parts
 */
 export interface PartBounds
 {
-	/** `Part.prefabSize`: the part's untransformed bounding-box extents (metres). */
+	/**
+	* The box's extent along the part's own axes (metres). Zero when the part's
+	* model has no mesh.
+	*/
 	size: Vec3Of<"m">;
 	/**
-	* `Part.boundsCentroidOffset`: mesh-centre offset from the part's own origin
-	* (metres, part-local); `null` when absent.
-	*
-	* Part-local, not vessel-local: an authored per-part-type constant like
-	* `PartBounds.size` beside it, so one value serves every instance of the part
-	* at whatever attitude it was assembled at. `VesselPart.position` is
-	* `vessel-local`, so adding the two raw mixes frames and lands the box
-	* somewhere the part is not; rotate this one by the part's `orgRot` first.
+	* The box's centre as an offset from the part's own origin (metres,
+	* part-local); `null` when the part's model has no mesh. Turn it by the part's
+	* rotation before adding it to `VesselPart.position`.
 	*/
 	center?: Vec3Of<"m"> | null;
 }

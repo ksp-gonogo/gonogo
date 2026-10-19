@@ -7,6 +7,9 @@ import { describe, expect, it } from "vitest";
 import fuellinePrelaunch from "./__fixtures__/fuelline-tester-22parts-prelaunch.json";
 import fuellinePrelaunchPartState from "./__fixtures__/fuelline-tester-22parts-prelaunch.partState.json";
 import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
+import lfv2Wave from "./__fixtures__/lfv2-wave-19parts.json";
+import lfv2WavePower from "./__fixtures__/lfv2-wave-power-23parts.json";
+import lfv2WaveProbe from "./__fixtures__/lfv2-wave-probe-14parts.json";
 import oxstatRing from "./__fixtures__/oxstat-ring-17parts.json";
 import roverBAlone from "./__fixtures__/rover-b-alone-28parts.json";
 import roverMerged from "./__fixtures__/rover-merged-56parts.json";
@@ -52,20 +55,12 @@ function fixtureToParts(
 ): ShipMapPart[] {
   const topo = fixture["v.topology"];
   const { useX } = pickLateralAxis(topo.parts);
-  const orgPosById = new Map(topo.parts.map((p) => [p.flightId, p.orgPos]));
   return topo.parts.map((p) => {
     const modules = sidecar?.[String(p.flightId)];
     const partState: PartState | undefined = modules
       ? { seq: 0, modules }
       : undefined;
-    return buildShipMapPart(
-      p,
-      undefined,
-      undefined,
-      useX,
-      partState,
-      p.parentFlightId != null ? orgPosById.get(p.parentFlightId) : null,
-    );
+    return buildShipMapPart(p, undefined, undefined, useX, partState);
   });
 }
 
@@ -112,13 +107,25 @@ describe("Ship Map SVG snapshots", () => {
   });
 
   it("renders winged-lander (radial winglets + two solar rings)", () => {
-    // Winglets and two OX-STAT rings on non-root parents: azimuth foreshortening for both plate types, parent-relative.
+    // Winglets and two OX-STAT rings on non-root parents. The fixture carries no forward axis, so each plate is drawn at the swing onto its up axis.
     expect(renderFixture(wingedLander as Fixture)).toMatchSnapshot();
   });
 
   it("renders synthetic-radial-offsets (part-local mesh-centre offsets)", () => {
     // The only fixture whose `bounds.center` is the mod's part-local `Part.boundsCentroidOffset`, so the only rendered check of the frame conversion.
     expect(renderFixture(syntheticRadialOffsets as Fixture)).toMatchSnapshot();
+  });
+
+  it("renders lfv2-wave-probe (measured mesh boxes and rotations, in flight)", () => {
+    expect(renderFixture(lfv2WaveProbe as Fixture)).toMatchSnapshot();
+  });
+
+  it("renders lfv2-wave (measured mesh boxes and rotations, on the pad)", () => {
+    expect(renderFixture(lfv2Wave as Fixture)).toMatchSnapshot();
+  });
+
+  it("renders lfv2-wave-power (measured mesh boxes and rotations, on the pad)", () => {
+    expect(renderFixture(lfv2WavePower as Fixture)).toMatchSnapshot();
   });
 
   it("renders an empty parts list as a placeholder", () => {

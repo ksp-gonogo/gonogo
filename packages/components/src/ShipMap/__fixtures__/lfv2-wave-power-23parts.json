@@ -1,0 +1,852 @@
+{
+  "_comment": "A vessel.parts capture of the LFV-2 Wave Power on the pad, with orgPos, up and the part list as the mod sent them. forward and bounds are measured in the game for the same parts: forward from the part transform, bounds as the union of the mesh bounds under each part model, the box the mod sends.",
+  "v.topology": {
+    "topologySeq": 23,
+    "rootFlightId": 436096363,
+    "parts": [
+      {
+        "flightId": 436096363,
+        "persistentId": 436096363,
+        "parentFlightId": null,
+        "fuelLineTarget": null,
+        "name": "solidBooster.v2",
+        "title": "RT-10 \"Hammer\" Solid Fuel Booster",
+        "manufacturer": "",
+        "category": "Engine",
+        "categoryOrdinal": 8,
+        "inverseStage": 3,
+        "crewCapacity": 0,
+        "maxTemp": 2000,
+        "crashTolerance": 0,
+        "dryMass": 0.75,
+        "orgPos": [0, 0, 0],
+        "up": [0, 1, 0],
+        "forward": [0, 0, 1],
+        "bounds": {
+          "size": {
+            "x": 1.267,
+            "y": 2.8902,
+            "z": 1.267
+          },
+          "center": {
+            "x": 0.0,
+            "y": -0.137,
+            "z": 0.0
+          }
+        },
+        "modules": [
+          "ModuleEngines",
+          "FXModuleAnimateThrottle",
+          "ModuleTestSubject",
+          "ModuleSurfaceFX",
+          "ModulePartVariants",
+          "ModuleJettison",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "flightId": 705677666,
+        "persistentId": 705677666,
+        "parentFlightId": 436096363,
+        "fuelLineTarget": null,
+        "name": "winglet",
+        "title": "AV-T1 Winglet",
+        "manufacturer": "",
+        "category": "Aero",
+        "categoryOrdinal": 3,
+        "inverseStage": 3,
+        "crewCapacity": 0,
+        "maxTemp": 2400,
+        "crashTolerance": 0,
+        "dryMass": 0.03700000047683716,
+        "orgPos": [-1.1866, -0.0335, -0.3709],
+        "up": [-0.0, 1.0, -0.0],
+        "forward": [-0.2588, 0.0, 0.9659],
+        "bounds": {
+          "size": {
+            "x": 1.4971,
+            "y": 2.11,
+            "z": 0.097
+          },
+          "center": {
+            "x": -0.1187,
+            "y": 0.2268,
+            "z": -0.0066
+          }
+        },
+        "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"]
+      },
+      {
+        "flightId": 109617175,
+        "persistentId": 109617175,
+        "parentFlightId": 436096363,
+        "fuelLineTarget": null,
+        "name": "winglet",
+        "title": "AV-T1 Winglet",
+        "manufacturer": "",
+        "category": "Aero",
+        "categoryOrdinal": 3,
+        "inverseStage": 3,
+        "crewCapacity": 0,
+        "maxTemp": 2400,
+        "crashTolerance": 0,
+        "dryMass": 0.03700000047683716,
+        "orgPos": [0.2721, -0.0335, 1.213],
+        "up": [0.0, 1.0, 0.0],
+        "forward": [0.9659, -0.0, -0.2588],
+        "bounds": {
+          "size": {
+            "x": 1.4971,
+            "y": 2.11,
+            "z": 0.097
+          },
+          "center": {
+            "x": -0.1187,
+            "y": 0.2268,
+            "z": -0.0066
+          }
+        },
+        "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"]
+      },
+      {
+        "flightId": 3214126339,
+        "persistentId": 3214126339,
+        "parentFlightId": 436096363,
+        "fuelLineTarget": null,
+        "name": "winglet",
+        "title": "AV-T1 Winglet",
+        "manufacturer": "",
+        "category": "Aero",
+        "categoryOrdinal": 3,
+        "inverseStage": 3,
+        "crewCapacity": 0,
+        "maxTemp": 2400,
+        "crashTolerance": 0,
+        "dryMass": 0.03700000047683716,
+        "orgPos": [0.9145, -0.0335, -0.8421],
+        "up": [0.0, 1.0, -0.0],
+        "forward": [-0.7071, 0.0, -0.7071],
+        "bounds": {
+          "size": {
+            "x": 1.4971,
+            "y": 2.11,
+            "z": 0.097
+          },
+          "center": {
+            "x": -0.1187,
+            "y": 0.2268,
+            "z": -0.0066
+          }
+        },
+        "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"]
+      },
+      {
+        "flightId": 1833165,
+        "persistentId": 1833165,
+        "parentFlightId": 436096363,
+        "fuelLineTarget": null,
+        "name": "Decoupler.1",
+        "title": "TD-12 Decoupler",
+        "manufacturer": "",
+        "category": "Coupling",
+        "categoryOrdinal": 14,
+        "inverseStage": 2,
+        "crewCapacity": 0,
+        "maxTemp": 2000,
+        "crashTolerance": 0,
+        "dryMass": 0.03999999910593033,
+        "orgPos": [0, 1.3318, 0],
+        "up": [-0.0, 1.0, -0.0],
+        "forward": [0.0, 0.0, 1.0],
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 0.16,
+            "z": 1.25
+          },
+          "center": {
+            "x": -0.0,
+            "y": -0.0,
+            "z": 0.0
+          }
+        },
+        "modules": [
+          "ModuleDecouple",
+          "ModuleToggleCrossfeed",
+          "ModuleTestSubject",
+          "ModulePartVariants",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "flightId": 3505838615,
+        "persistentId": 3505838615,
+        "parentFlightId": 1833165,
+        "fuelLineTarget": null,
+        "name": "liquidEngine2.v2",
+        "title": "LV-T45 \"Swivel\" Liquid Fuel Engine",
+        "manufacturer": "",
+        "category": "Engine",
+        "categoryOrdinal": 8,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 2000,
+        "crashTolerance": 0,
+        "dryMass": 1.5,
+        "orgPos": [0, 3.0118, 0],
+        "up": [-0.0, 1.0, -0.0002],
+        "forward": [0.0, 0.0002, 1.0],
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 1.6503,
+            "z": 1.25
+          },
+          "center": {
+            "x": 0.0,
+            "y": -0.8051,
+            "z": 0.0
+          }
+        },
+        "modules": [
+          "FXModuleLookAtConstraint",
+          "ModulePartVariants",
+          "ModuleEngines",
+          "ModuleJettison",
+          "ModuleGimbal",
+          "FXModuleAnimateThrottle",
+          "ModuleAlternator",
+          "ModuleSurfaceFX",
+          "ModuleTestSubject",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "flightId": 2556408501,
+        "persistentId": 2556408501,
+        "parentFlightId": 3505838615,
+        "fuelLineTarget": null,
+        "name": "fuelTankSmallFlat",
+        "title": "FL-T100 Fuel Tank",
+        "manufacturer": "",
+        "category": "FuelTank",
+        "categoryOrdinal": 7,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 2000,
+        "crashTolerance": 0,
+        "dryMass": 0.0625,
+        "orgPos": [0, 3.3243, 0],
+        "up": [-0.0, 1.0, -0.0002],
+        "forward": [0.0, 0.0002, 1.0],
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 0.68,
+            "z": 1.25
+          },
+          "center": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          }
+        },
+        "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"]
+      },
+      {
+        "flightId": 2082859895,
+        "persistentId": 2082859895,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "parachuteRadial",
+        "title": "Mk2-R Radial-Mount Parachute",
+        "manufacturer": "",
+        "category": "Utility",
+        "categoryOrdinal": 4,
+        "inverseStage": 1,
+        "crewCapacity": 0,
+        "maxTemp": 2500,
+        "crashTolerance": 0,
+        "dryMass": 0.10000000149011612,
+        "orgPos": [-0.0094, 3.5088, 0.6037],
+        "up": [-0.0001, 1.0, -0.0003],
+        "forward": [-0.0, -0.0003, -1.0],
+        "bounds": {
+          "size": {
+            "x": 0.4906,
+            "y": 0.8397,
+            "z": 0.2079
+          },
+          "center": {
+            "x": -0.0,
+            "y": -0.0034,
+            "z": -0.0287
+          }
+        },
+        "modules": [
+          "ModuleParachute",
+          "ModuleTestSubject",
+          "ModuleDragModifier",
+          "ModuleDragModifier",
+          "ModuleCargoPart",
+          "Reliability",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "flightId": 3890473716,
+        "persistentId": 3890473716,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "GooExperiment",
+        "title": "Mystery Goo\u2122 Containment Unit",
+        "manufacturer": "",
+        "category": "Science",
+        "categoryOrdinal": 5,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 1200,
+        "crashTolerance": 0,
+        "dryMass": 0.07190000265836716,
+        "orgPos": [0.5148, 3.3749, -0.1357],
+        "up": [-0.0001, 1.0, -0.0003],
+        "forward": [-0.866, 0.0001, 0.5],
+        "bounds": {
+          "size": {
+            "x": 0.2554,
+            "y": 0.6975,
+            "z": 0.3369
+          },
+          "center": {
+            "x": -0.0013,
+            "y": 0.0003,
+            "z": -0.1677
+          }
+        },
+        "modules": ["ModuleCargoPart", "Experiment", "KOSNameTag", "HardDrive"]
+      },
+      {
+        "flightId": 348559831,
+        "persistentId": 348559831,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "sensorBarometer",
+        "title": "PresMat Barometer",
+        "manufacturer": "",
+        "category": "Science",
+        "categoryOrdinal": 5,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 1200,
+        "crashTolerance": 0,
+        "dryMass": 0.004999999888241291,
+        "orgPos": [-0.5062, 3.358, -0.3307],
+        "up": [-0.0, 1.0, -0.0002],
+        "forward": [0.866, 0.0001, 0.5],
+        "bounds": {
+          "size": {
+            "x": 0.1751,
+            "y": 0.2494,
+            "z": 0.1274
+          },
+          "center": {
+            "x": -0.0,
+            "y": 0.0071,
+            "z": -0.0439
+          }
+        },
+        "modules": ["ModuleCargoPart", "Experiment", "Sensor", "KOSNameTag"]
+      },
+      {
+        "flightId": 2041831505,
+        "persistentId": 2041831505,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "batteryPack",
+        "title": "Z-100 Rechargeable Battery Pack",
+        "manufacturer": "",
+        "category": "Electrical",
+        "categoryOrdinal": 10,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 1200,
+        "crashTolerance": 0,
+        "dryMass": 0.004999999888241291,
+        "orgPos": [0.5221, 3.3197, 0.303],
+        "up": [-0.0, 1.0, -0.0002],
+        "forward": [-0.866, -0.0001, -0.5],
+        "bounds": {
+          "size": {
+            "x": 0.2752,
+            "y": 0.4126,
+            "z": 0.2883
+          },
+          "center": {
+            "x": -0.0,
+            "y": 0.0336,
+            "z": -0.1084
+          }
+        },
+        "modules": ["ModuleCargoPart", "KOSNameTag"]
+      },
+      {
+        "flightId": 1169768944,
+        "persistentId": 1169768944,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "radialDrogue",
+        "title": "Mk12-R Radial-Mount Drogue Chute",
+        "manufacturer": "",
+        "category": "Utility",
+        "categoryOrdinal": 4,
+        "inverseStage": 1,
+        "crewCapacity": 0,
+        "maxTemp": 2500,
+        "crashTolerance": 0,
+        "dryMass": 0.07500000298023224,
+        "orgPos": [0.3435, 3.3207, -0.4988],
+        "up": [-0.0001, 1.0, -0.0003],
+        "forward": [-0.5, 0.0002, 0.866],
+        "bounds": {
+          "size": {
+            "x": 0.2453,
+            "y": 0.4199,
+            "z": 0.1039
+          },
+          "center": {
+            "x": 0.0,
+            "y": -0.0017,
+            "z": -0.0143
+          }
+        },
+        "modules": [
+          "ModuleParachute",
+          "ModuleTestSubject",
+          "ModuleDragModifier",
+          "ModuleDragModifier",
+          "ModuleCargoPart",
+          "Reliability",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "flightId": 3872755157,
+        "persistentId": 3872755157,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "radialDrogue",
+        "title": "Mk12-R Radial-Mount Drogue Chute",
+        "manufacturer": "",
+        "category": "Utility",
+        "categoryOrdinal": 4,
+        "inverseStage": 1,
+        "crewCapacity": 0,
+        "maxTemp": 2500,
+        "crashTolerance": 0,
+        "dryMass": 0.07500000298023224,
+        "orgPos": [-0.2969, 3.3486, -0.5257],
+        "up": [-0.0001, 1.0, -0.0003],
+        "forward": [0.5, 0.0003, 0.866],
+        "bounds": {
+          "size": {
+            "x": 0.2453,
+            "y": 0.4199,
+            "z": 0.1039
+          },
+          "center": {
+            "x": 0.0,
+            "y": -0.0017,
+            "z": -0.0143
+          }
+        },
+        "modules": [
+          "ModuleParachute",
+          "ModuleTestSubject",
+          "ModuleDragModifier",
+          "ModuleDragModifier",
+          "ModuleCargoPart",
+          "Reliability",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "flightId": 1190250131,
+        "persistentId": 1190250131,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "kOSMachine1m",
+        "title": "CX-4181 Scriptable Control System",
+        "manufacturer": "",
+        "category": "Control",
+        "categoryOrdinal": 1,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 2000,
+        "crashTolerance": 0,
+        "dryMass": 0.11999999731779099,
+        "orgPos": [0, 3.8098, 0],
+        "up": [-0.0001, 1.0, -0.0003],
+        "forward": [0.0, 0.0003, 1.0],
+        "bounds": {
+          "size": {
+            "x": 1.2072,
+            "y": 0.35,
+            "z": 1.2072
+          },
+          "center": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          }
+        },
+        "modules": ["kOSProcessor", "KOSNameTag", "ModuleCargoPart"]
+      },
+      {
+        "flightId": 52984878,
+        "persistentId": 52984878,
+        "parentFlightId": 1190250131,
+        "fuelLineTarget": null,
+        "name": "sasModule",
+        "title": "Small Inline Reaction Wheel",
+        "manufacturer": "",
+        "category": "Control",
+        "categoryOrdinal": 1,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 2000,
+        "crashTolerance": 0,
+        "dryMass": 0.05000000074505806,
+        "orgPos": [0, 4.0739, 0],
+        "up": [-0.0001, 1.0, -0.0003],
+        "forward": [0.0, 0.0003, 1.0],
+        "bounds": {
+          "size": {
+            "x": 0.6281,
+            "y": 0.1871,
+            "z": 0.6281
+          },
+          "center": {
+            "x": 0.0,
+            "y": -0.0,
+            "z": 0.0
+          }
+        },
+        "modules": [
+          "ModuleReactionWheel",
+          "ModuleCargoPart",
+          "Reliability",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "flightId": 856254687,
+        "persistentId": 856254687,
+        "parentFlightId": 52984878,
+        "fuelLineTarget": null,
+        "name": "probeCoreSphere.v2",
+        "title": "Probodobodyne Stayputnik",
+        "manufacturer": "",
+        "category": "Pods",
+        "categoryOrdinal": 6,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 1800,
+        "crashTolerance": 0,
+        "dryMass": 0.08200100064277649,
+        "orgPos": [0, 4.4395, 0],
+        "up": [-0.0001, 1.0, -0.0003],
+        "forward": [0.0, 0.0003, 1.0],
+        "bounds": {
+          "size": {
+            "x": 0.9058,
+            "y": 1.008,
+            "z": 0.9058
+          },
+          "center": {
+            "x": -0.0,
+            "y": 0.1422,
+            "z": 0.0
+          }
+        },
+        "modules": [
+          "ModuleCommand",
+          "ModuleKerbNetAccess",
+          "ModuleCargoPart",
+          "Configure",
+          "HardDrive",
+          "Experiment",
+          "Experiment",
+          "Experiment",
+          "Experiment",
+          "Experiment",
+          "Experiment",
+          "Experiment",
+          "KOSNameTag",
+          "ModuleRealAntenna",
+          "Sensor",
+          "Sensor",
+          "ModuleTripLogger"
+        ]
+      },
+      {
+        "flightId": 2146826439,
+        "persistentId": 2146826439,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "parachuteRadial",
+        "title": "Mk2-R Radial-Mount Parachute",
+        "manufacturer": "",
+        "category": "Utility",
+        "categoryOrdinal": 4,
+        "inverseStage": 1,
+        "crewCapacity": 0,
+        "maxTemp": 2500,
+        "crashTolerance": 0,
+        "dryMass": 0.10000000149011612,
+        "orgPos": [0.0579, 3.3903, -0.6037],
+        "up": [-0.0001, 1.0, -0.0003],
+        "forward": [0.0, 0.0003, 1.0],
+        "bounds": {
+          "size": {
+            "x": 0.4906,
+            "y": 0.8397,
+            "z": 0.2079
+          },
+          "center": {
+            "x": -0.0,
+            "y": -0.0034,
+            "z": -0.0287
+          }
+        },
+        "modules": [
+          "ModuleParachute",
+          "ModuleTestSubject",
+          "ModuleDragModifier",
+          "ModuleDragModifier",
+          "ModuleCargoPart",
+          "Reliability",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "flightId": 44888612,
+        "persistentId": 44888612,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "kerbalism-geigercounter",
+        "title": "Geiger Counter",
+        "manufacturer": "",
+        "category": "Science",
+        "categoryOrdinal": 5,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 1200,
+        "crashTolerance": 0,
+        "dryMass": 0.004999999888241291,
+        "orgPos": [-0.3903, 3.3981, 0.4718],
+        "up": [-0.5, 0.0002, 0.866],
+        "forward": [0.0, -1.0, 0.0002],
+        "bounds": {
+          "size": {
+            "x": 0.1584,
+            "y": 0.1617,
+            "z": 0.2855
+          },
+          "center": {
+            "x": -0.0135,
+            "y": 0.0183,
+            "z": 0.0145
+          }
+        },
+        "modules": ["Sensor", "ModuleCargoPart", "Experiment", "KOSNameTag"]
+      },
+      {
+        "flightId": 303509961,
+        "persistentId": 303509961,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "hc.booster",
+        "title": "BoosterCam",
+        "manufacturer": "",
+        "category": "Utility",
+        "categoryOrdinal": 4,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 1200,
+        "crashTolerance": 0,
+        "dryMass": 0.004999999888241291,
+        "orgPos": [-0.6051, 3.3726, 0.2344],
+        "up": [-0.0, 1.0, -0.0002],
+        "forward": [-0.5, -0.0002, -0.866],
+        "bounds": {
+          "size": {
+            "x": 0.1875,
+            "y": 0.4375,
+            "z": 0.125
+          },
+          "center": {
+            "x": 0.0313,
+            "y": 0.0,
+            "z": -0.0
+          }
+        },
+        "modules": [
+          "MuMechModuleHullCameraZoom",
+          "ModuleCargoPart",
+          "MuMechModuleHullCameraZoom",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "flightId": 3813955316,
+        "persistentId": 3813955316,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "longAntenna",
+        "title": "Communotron 16",
+        "manufacturer": "",
+        "category": "Communication",
+        "categoryOrdinal": 9,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 2000,
+        "crashTolerance": 0,
+        "dryMass": 0.009641800075769424,
+        "orgPos": [-0.3051, 3.7726, 0.8344],
+        "up": [-0.0, 1.0, -0.0002],
+        "forward": [-0.5, -0.0002, -0.866],
+        "bounds": {
+          "size": {
+            "x": 0.078,
+            "y": 0.418,
+            "z": 0.0676
+          },
+          "center": {
+            "x": 0.0,
+            "y": 0.1766,
+            "z": -0.0
+          }
+        },
+        "modules": [
+          "ModuleDeployableAntenna",
+          "ModuleCargoPart",
+          "KOSNameTag",
+          "ModuleRealAntenna"
+        ]
+      },
+      {
+        "flightId": 2235690997,
+        "persistentId": 2235690997,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "scansat-multi-msi-1",
+        "title": "MS-2A Advanced Multispectral Scanner",
+        "manufacturer": "",
+        "category": "Science",
+        "categoryOrdinal": 5,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 1200,
+        "crashTolerance": 0,
+        "dryMass": 0.25,
+        "orgPos": [-0.3051, 2.9726, -0.3656],
+        "up": [-0.0, 1.0, -0.0002],
+        "forward": [-0.5, -0.0002, -0.866],
+        "bounds": {
+          "size": {
+            "x": 0.9819,
+            "y": 1.4023,
+            "z": 1.0509
+          },
+          "center": {
+            "x": 0.0386,
+            "y": -0.0343,
+            "z": 0.0775
+          }
+        },
+        "modules": [
+          "SCANsat",
+          "ModulePartVariants",
+          "ModuleCargoPart",
+          "KOSNameTag",
+          "PlannerController",
+          "KerbalismScansat"
+        ]
+      },
+      {
+        "flightId": 2076267187,
+        "persistentId": 2076267187,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "DC.aerocam2",
+        "title": "Aerocam UP",
+        "manufacturer": "",
+        "category": "Utility",
+        "categoryOrdinal": 4,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 2200,
+        "crashTolerance": 0,
+        "dryMass": 0.004000000189989805,
+        "orgPos": [-0.6051, 3.3726, 0.6844],
+        "up": [-0.0001, 1.0, -0.0002],
+        "forward": [-0.5, -0.0002, -0.866],
+        "bounds": {
+          "size": {
+            "x": 0.1727,
+            "y": 0.1069,
+            "z": 0.3561
+          },
+          "center": {
+            "x": -0.0,
+            "y": 0.0427,
+            "z": -0.0139
+          }
+        },
+        "modules": [
+          "MuMechModuleHullCameraZoom",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      },
+      {
+        "flightId": 922264598,
+        "persistentId": 922264598,
+        "parentFlightId": 2556408501,
+        "fuelLineTarget": null,
+        "name": "DC.aerocam2.180",
+        "title": "Aerocam DN",
+        "manufacturer": "",
+        "category": "Utility",
+        "categoryOrdinal": 4,
+        "inverseStage": 0,
+        "crewCapacity": 0,
+        "maxTemp": 2200,
+        "crashTolerance": 0,
+        "dryMass": 0.004000000189989805,
+        "orgPos": [-0.6051, 3.3726, -0.2156],
+        "up": [-0.0001, 1.0, -0.0002],
+        "forward": [-0.5, -0.0002, -0.866],
+        "bounds": {
+          "size": {
+            "x": 0.1727,
+            "y": 0.1069,
+            "z": 0.3561
+          },
+          "center": {
+            "x": 0.0,
+            "y": 0.0427,
+            "z": -0.0139
+          }
+        },
+        "modules": [
+          "MuMechModuleHullCameraZoom",
+          "ModuleCargoPart",
+          "KOSNameTag"
+        ]
+      }
+    ]
+  }
+}

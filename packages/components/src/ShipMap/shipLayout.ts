@@ -14,18 +14,6 @@ export interface ProjectedPart extends ShipMapPart {
   spineDist: number;
 }
 
-interface Intrinsic {
-  /** Half-extent along the axial (spine) axis, in metres. */
-  halfH: number;
-  /** Half-extent along the lateral axis, in metres. */
-  halfW: number;
-  /** Tanks, boosters and engines stretch axially to fill stack slabs; everything else keeps its intrinsic size. */
-  stretchy: boolean;
-}
-
-/** Lateral offset under which a child counts as stack-attached. Well under the ~1.25 m stack diameter's radius. */
-const STACK_LAT_TOL = 0.3;
-
 /** Screen-space margin (px) reserved around the fit-scaled diagram. */
 export const SHIP_DIAGRAM_PADDING = 24;
 
@@ -95,16 +83,6 @@ function parachuteCanopyReach(p: ShipMapPart, latExtent: number): number {
   return canopy ? latExtent * canopy.height : 0;
 }
 
-function intrinsicSize(part: ShipMapPart): Intrinsic {
-  const stretchy =
-    part.type === "tank" || part.type === "booster" || part.type === "engine";
-  return {
-    halfH: part.axialHalfExtent,
-    halfW: part.latHalfExtent,
-    stretchy,
-  };
-}
-
 export function project(parts: readonly ShipMapPart[]) {
   if (parts.length === 0) {
     return {
@@ -115,21 +93,7 @@ export function project(parts: readonly ShipMapPart[]) {
     };
   }
 
-  const intrinsics = new Map<number, Intrinsic>(
-    parts.map((p) => [p.flightId, intrinsicSize(p)]),
-  );
-  const byId = new Map(parts.map((p) => [p.flightId, p]));
-  const childrenOf = new Map<number, ShipMapPart[]>();
-  for (const p of parts) {
-    if (p.parentFlightId == null) continue;
-    const list = childrenOf.get(p.parentFlightId) ?? [];
-    list.push(p);
-    childrenOf.set(p.parentFlightId, list);
-  }
-
-  const projected: ProjectedPart[] = parts.map((p) =>
-    withBody(p, byId, childrenOf, intrinsics),
-  );
+  const projected: ProjectedPart[] = parts.map(withBody);
 
   const stages = projected
     .filter((p) => p.type === "decoupler")
@@ -166,105 +130,16 @@ export function project(parts: readonly ShipMapPart[]) {
   };
 }
 
-function withBody(
-  p: ShipMapPart,
-  byId: Map<number, ShipMapPart>,
-  childrenOf: Map<number, ShipMapPart[]>,
-  intrinsics: Map<number, Intrinsic>,
-): ProjectedPart {
-  const intr = intrinsics.get(p.flightId);
-  if (!intr)
-    throw new Error(`ShipDiagram: missing intrinsic for ${p.flightId}`);
-  const parent =
-    p.parentFlightId != null ? (byId.get(p.parentFlightId) ?? null) : null;
-  const children = childrenOf.get(p.flightId) ?? [];
-
-  const isStackAxial = (c: ShipMapPart) =>
-    Math.abs(c.lat - p.lat) < STACK_LAT_TOL &&
-    Math.abs(c.axial - p.axial) > 0.05;
-
-  const stackParent = parent && isStackAxial(parent) ? parent : null;
-  const stackChildAbove = children
-    .filter((c) => isStackAxial(c) && c.axial > p.axial)
-    .reduce<ShipMapPart | null>(
-      (m, c) => (!m || c.axial > m.axial ? c : m),
-      null,
-    );
-  const stackChildBelow = children
-    .filter((c) => isStackAxial(c) && c.axial < p.axial)
-    .reduce<ShipMapPart | null>(
-      (m, c) => (!m || c.axial < m.axial ? c : m),
-      null,
-    );
-
-  let axialMax = p.axial + intr.halfH;
-  let axialMin = p.axial - intr.halfH;
-
-  if (intr.stretchy) {
-    const upper =
-      stackParent && stackParent.axial > p.axial
-        ? stackParent
-        : stackChildAbove;
-    const lower =
-      stackParent && stackParent.axial < p.axial
-        ? stackParent
-        : stackChildBelow;
-    if (upper) {
-      const ui = intrinsics.get(upper.flightId);
-      if (ui) {
-        axialMax = ui.stretchy
-          ? (p.axial + upper.axial) / 2
-          : upper.axial - ui.halfH;
-      }
-    }
-    if (lower) {
-      const li = intrinsics.get(lower.flightId);
-      if (li) {
-        axialMin = li.stretchy
-          ? (p.axial + lower.axial) / 2
-          : lower.axial + li.halfH;
-      }
-    }
-  }
-
-  let latMin = p.lat - intr.halfW;
-  let latMax = p.lat + intr.halfW;
-  for (const c of children) {
-    if (isStackAxial(c)) continue;
-    const ci = intrinsics.get(c.flightId);
-    if (!ci) continue;
-    if (c.type !== "fin" && c.type !== "solar") {
-      if (c.axial + ci.halfH > axialMax) axialMax = c.axial + ci.halfH;
-      if (c.axial - ci.halfH < axialMin) axialMin = c.axial - ci.halfH;
-    }
-    if (
-      Math.abs(c.lat - p.lat) > 0.05 &&
-      c.type !== "fin" &&
-      c.type !== "solar"
-    ) {
-      const sign = Math.sign(c.lat - p.lat);
-      const innerEdge = c.lat - sign * ci.halfW;
-      if (sign > 0 && innerEdge > latMax) latMax = innerEdge;
-      if (sign < 0 && innerEdge < latMin) latMin = innerEdge;
-    }
-  }
-
-  if (p.type === "decoupler") {
-    const widthOf = (n: ShipMapPart | null) =>
-      n ? (intrinsics.get(n.flightId)?.halfW ?? 0) : 0;
-    const halfW = Math.max(
-      intr.halfW,
-      widthOf(stackParent),
-      widthOf(stackChildAbove),
-      widthOf(stackChildBelow),
-    );
-    latMin = p.lat - halfW;
-    latMax = p.lat + halfW;
-  }
-
+/** The part's box as `buildShipMapPart` measured it, centred on its mesh centre and drawn upright before its rotation. */
+function withBody(p: ShipMapPart): ProjectedPart {
   return {
     ...p,
-    body: { latMin, latMax, axialMin, axialMax },
+    body: {
+      latMin: p.lat - p.latHalfExtent,
+      latMax: p.lat + p.latHalfExtent,
+      axialMin: p.axial - p.axialHalfExtent,
+      axialMax: p.axial + p.axialHalfExtent,
+    },
     spineDist: Math.abs(p.lat),
   };
 }
