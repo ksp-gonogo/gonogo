@@ -4,7 +4,7 @@
 // height, written here. That is the one input the grow step acts on, and it is
 // what tells a box the root governs from a box that clips the same at any size.
 import { afterEach, describe, expect, it } from "vitest";
-import { growRootToContent } from "./grow";
+import { growRootToContent, restScrollersAtTop } from "./grow";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -93,5 +93,35 @@ describe("growRootToContent", () => {
     growRootToContent();
 
     expect(rootHeight()).toBe(300);
+  });
+});
+
+describe("restScrollersAtTop", () => {
+  it("returns a scrolled box to its start and tells its listeners", () => {
+    const root = mountRoot(100);
+    const scroller = box(root, "auto", () => ({ client: 50, scroll: 200 }));
+    scroller.scrollTop = 80;
+    let heard = 0;
+    scroller.addEventListener("scroll", () => {
+      heard += 1;
+    });
+
+    restScrollersAtTop();
+
+    expect(scroller.scrollTop).toBe(0);
+    expect(heard).toBe(1);
+  });
+
+  it("leaves a box that does not overflow alone", () => {
+    const root = mountRoot(100);
+    const fits = box(root, "auto", () => ({ client: 50, scroll: 50 }));
+    let heard = 0;
+    fits.addEventListener("scroll", () => {
+      heard += 1;
+    });
+
+    restScrollersAtTop();
+
+    expect(heard).toBe(0);
   });
 });

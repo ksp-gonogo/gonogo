@@ -60,3 +60,28 @@ export const growRootToContent = (): void => {
     grew = true;
   }
 };
+
+/**
+ * Puts every scrolled box under the root back at its start and tells it so.
+ * Useful for taking a picture whose scroll cues (the glow along a panel's
+ * edge) show the same state on every run, whatever a scroll listener or an
+ * observer had got to by the time of capture. Used by the render driver after
+ * it grows the root and before it takes a screenshot.
+ *
+ * A `scroll` event is dispatched on each box because the kit's scroll cues
+ * recompute from that event synchronously, where a ResizeObserver or a
+ * throttled MutationObserver reports on a later frame.
+ *
+ * It is passed to `tab.evaluate`, so it closes over nothing and declares no
+ * named function inside.
+ */
+export const restScrollersAtTop = (): void => {
+  const el = document.getElementById("root");
+  if (!el) return;
+  for (const node of [el, ...el.querySelectorAll("*")]) {
+    if (node.scrollTop > 0) node.scrollTop = 0;
+    if (node.scrollHeight > node.clientHeight) {
+      node.dispatchEvent(new Event("scroll"));
+    }
+  }
+};

@@ -13,7 +13,7 @@ import type {
 } from "../render-probe";
 import type { UplinkPackage } from "./context";
 import { encodeGif } from "./gif";
-import { growRootToContent } from "./grow";
+import { growRootToContent, restScrollersAtTop } from "./grow";
 import {
   type HeldStage,
   type HeldVerdict,
@@ -923,6 +923,7 @@ const VIEWPORT_MARGIN_PX = 64;
  */
 async function growToFullContent(tab: Page): Promise<void> {
   await within("growing the widget", tab.evaluate(growRootToContent));
+  await within("resting the scrollers", tab.evaluate(restScrollersAtTop));
   // ResizeObserver-driven bits (gauges, tapes, scroll glow) settle at the final height before the shot.
   await settle(tab);
 }
