@@ -276,7 +276,7 @@ namespace Sitrep.Host.IntegrationTests
                     FlightId = VesselA,
                     VesselId = VesselA,
                     VesselName = "Alpha",
-                    Reason = FlightEndReason.Crashed,
+                    Reason = FlightEndReason.Recovered,
                     Ut = 6.0,
                 }, 6.0);
                 engine.TickAndWait(6.02, new KspSnapshot { Ut = 6.02, Values = new Dictionary<string, object?>() }, Timeout);

@@ -182,7 +182,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
-        public async Task ALoadThatCarriesNothingLeavesEveryCentreKnowingWhatItKnew()
+        public async Task ALoadThatCarriesNothingLeavesEveryCentreToHearAgain()
         {
             await using var world = await ReckonedVantageWorld.StartAsync();
             foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
@@ -195,7 +195,7 @@ namespace Sitrep.Host.IntegrationTests
             world.Tick(703.0);
             world.Tick(704.0);
 
-            Assert.NotNull(world.Engine.HeardSnapshotNow()!.Centres.SingleOrDefault(c => c.Centre == Home)?.States.SingleOrDefault(s => s.Id == Relay));
+            Assert.Null(world.Engine.HeardSnapshotNow()!.Centres.SingleOrDefault(c => c.Centre == Home)?.States.SingleOrDefault(s => s.Id == Relay));
         }
 
         /// <summary>

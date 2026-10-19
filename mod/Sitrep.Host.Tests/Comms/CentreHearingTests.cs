@@ -31,8 +31,6 @@ namespace Sitrep.Host.Tests.Comms
         {
             public int Listening { get; private set; }
 
-            public bool TimelineResetChangedSave => false;
-
             private Action Hear()
             {
                 Listening++;
