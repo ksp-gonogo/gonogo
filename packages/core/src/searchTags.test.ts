@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { clearAugments, registerAugment } from "./augments";
 import { clearContributions, registerContribution } from "./contributions";
 import { clearRegistry, registerComponent } from "./registry";
-import { effectiveSearchTags, uplinkAdditions } from "./searchTags";
+import {
+  effectiveSearchTags,
+  uplinkAdditions,
+  uplinkOwner,
+} from "./searchTags";
 import type { ComponentDefinition } from "./types";
 import { CORE_UPLINK_CLIENT, defineUplinkClient } from "./uplinkClients";
 
@@ -246,6 +250,26 @@ describe("uplinkAdditions", () => {
       { id: "mod-gamma", name: "Mod Gamma" },
       { id: "mod-epsilon", name: "Mod Epsilon" },
     ]);
+  });
+});
+
+describe("uplinkOwner", () => {
+  it("names the Uplink that registered the widget", () => {
+    const MOD_OWNER = defineUplinkClient({
+      id: "mod-owner",
+      version: "0.0.0-dev",
+      name: "Mod Owner",
+      description: "A test Uplink.",
+    });
+    expect(uplinkOwner(baseDef({ owner: MOD_OWNER }))).toEqual({
+      id: "mod-owner",
+      name: "Mod Owner",
+    });
+  });
+
+  it("is undefined for a widget with no owner or a Core one", () => {
+    expect(uplinkOwner(baseDef())).toBeUndefined();
+    expect(uplinkOwner(baseDef({ owner: CORE_UPLINK_CLIENT }))).toBeUndefined();
   });
 });
 

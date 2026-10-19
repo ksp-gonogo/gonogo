@@ -18,7 +18,7 @@ import {
   registerComponent,
 } from "@ksp-gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { render, screen, within } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
@@ -103,5 +103,39 @@ describe("ComponentOverlay: owner-derived mod search tags", () => {
       screen.queryByRole("option", { name: /Unowned Widget/ }),
     ).not.toBeInTheDocument();
     expect(screen.getByText(/No widgets match/)).toBeInTheDocument();
+  });
+
+  it("names the owning Uplink on the widget's row, as it does an Uplink that extends one", async () => {
+    registerComponent({
+      id: "owned-widget",
+      name: "Owned Widget",
+      description: "A widget registered through an Uplink client handle.",
+      tags: ["telemetry"],
+      component: OwnedWidget,
+      owner: MOD_ALPHA,
+    });
+    registerComponent({
+      id: "core-widget",
+      name: "Core Widget",
+      description: "A widget with no Uplink owner.",
+      tags: ["telemetry"],
+      component: OwnedWidget,
+    });
+
+    const user = userEvent.setup();
+    renderOverlay();
+
+    await user.click(screen.getByRole("button", { name: "Add widget" }));
+
+    expect(
+      within(
+        await screen.findByRole("option", { name: /Owned Widget/ }),
+      ).getByText("from Mod Alpha"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("option", { name: /Core Widget/ })).queryByText(
+        /^from /,
+      ),
+    ).toBeNull();
   });
 });

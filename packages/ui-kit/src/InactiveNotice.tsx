@@ -40,8 +40,8 @@ export function InactiveNotice({ reason }: { reason: PanelInactiveReason }) {
 }
 
 const InactiveNotice__Body = styled.div`
-  flex: 0 1 auto;
-  min-height: 0;
+  /* Never shrinks below its text: a centred box squeezed under its content spills it upward over the title. */
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;

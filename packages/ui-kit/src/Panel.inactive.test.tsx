@@ -54,3 +54,19 @@ describe("Panel inactive", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe("Panel inactive in a short tile", () => {
+  it("keeps the notice at its full height so its text cannot spill over the title", () => {
+    render(
+      <Panel
+        panelTitle="ACTION GROUP"
+        inactive={{
+          reason: "Vessel in flight required",
+          hint: "Launch a vessel",
+        }}
+      />,
+    );
+    const notice = screen.getByRole("status");
+    expect(getComputedStyle(notice).flexShrink).toBe("0");
+  });
+});

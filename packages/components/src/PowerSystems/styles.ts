@@ -50,6 +50,13 @@ export const CELL_VALUE: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
+/** The NET figure may wrap between the number and its unit, so a narrow cell shows the unit on a second line rather than cutting it off. */
+export const NET_VALUE: CSSProperties = {
+  fontWeight: 700,
+  whiteSpace: "normal",
+  overflowWrap: "anywhere",
+};
+
 export const NO_BREAK: CSSProperties = { whiteSpace: "nowrap" };
 
 // An "amount / max" pair may wrap inside its narrow cell; NO_BREAK on each half keeps the separator with the maximum.

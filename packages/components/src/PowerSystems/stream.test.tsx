@@ -71,7 +71,7 @@ describe("PowerSystems: genuinely runs off the stream", () => {
     });
 
     await waitFor(() => expect(screen.getByText("PROD")).toBeTruthy());
-    expect(visibleText()).toContain("+5.00 units/s");
+    expect(visibleText()).toContain("+5.00 EC/s");
     expect(screen.getAllByText("+5.00")).toHaveLength(2);
 
     expect(fixture.transport.isSubscribed("parts.power")).toBe(true);
@@ -90,8 +90,8 @@ describe("PowerSystems: genuinely runs off the stream", () => {
     });
 
     // A disagreeing measurement never wins PROD/NET over the itemised rows.
-    expect(screen.queryByText("+42.00 units/s")).toBeNull();
-    expect(visibleText()).toContain("+5.00 units/s");
+    expect(screen.queryByText("+42.00 EC/s")).toBeNull();
+    expect(visibleText()).toContain("+5.00 EC/s");
     expect(screen.getAllByText("+5.00")).toHaveLength(2); // PROD cell + the one row
 
     // Nor is it dropped: it shows as a separate MEASURED reading.
@@ -183,7 +183,7 @@ describe("PowerSystems: genuinely runs off the stream", () => {
 
     expect(screen.queryByText("Nothing consuming")).toBeNull();
     // "-1.80" appears twice: the CONS totals cell and the single Consumers row.
-    expect(visibleText()).toContain("+3.20 units/s");
+    expect(visibleText()).toContain("+3.20 EC/s");
     expect(screen.getAllByText("-1.80")).toHaveLength(2);
   });
 });

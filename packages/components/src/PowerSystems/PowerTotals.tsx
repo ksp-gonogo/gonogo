@@ -7,6 +7,7 @@ import {
   MEASURED_CELL,
   NET_CELL_BY_TONE,
   NET_LABEL_COLOUR,
+  NET_VALUE,
   NO_BREAK,
   STORED_VALUE,
   TOTALS,
@@ -50,7 +51,7 @@ export function PowerTotals({
         <span style={{ ...CELL_LABEL, color: NET_LABEL_COLOUR[netTone] }}>
           NET
         </span>
-        <Text size="sm" style={CELL_VALUE}>
+        <Text size="sm" style={NET_VALUE}>
           {netFigure !== null ? (
             <>
               {net >= 0 ? "+" : ""}
