@@ -3,77 +3,77 @@
   "engine": "chromium",
   "assets": {
     "breaking-ground-absent--default.png": {
-      "hash": "56a9ac1eb2dc0c83",
+      "hash": "29b4b7087fb03cca",
       "elements": 16,
       "text": "e2f1fa7a"
     },
     "controller-not-connected--default.png": {
-      "hash": "bc815c3f809275d6",
+      "hash": "126b8bd369854cfa",
       "elements": 36,
       "text": "10da8719"
     },
     "controller-not-connected--min.png": {
-      "hash": "bc815c3f809275d6",
+      "hash": "126b8bd369854cfa",
       "elements": 36,
       "text": "10da8719"
     },
     "mun-and-minmus-bases--default.png": {
-      "hash": "f56593c234ec1eea",
+      "hash": "1ea27c6aea0920c0",
       "elements": 71,
       "text": "4d2e4f91"
     },
     "mun-and-minmus-bases--min.png": {
-      "hash": "f56593c234ec1eea",
+      "hash": "1ea27c6aea0920c0",
       "elements": 71,
       "text": "4d2e4f91"
     },
     "mun-and-minmus-bases-stopped-arriving--default.png": {
-      "hash": "30998d122b781931",
+      "hash": "6d934f7a2e1e22c9",
       "elements": 76,
       "text": "f82b728d"
     },
     "mun-and-minmus-bases-stopped-arriving--min.png": {
-      "hash": "30998d122b781931",
+      "hash": "6d934f7a2e1e22c9",
       "elements": 76,
       "text": "f82b728d"
     },
     "robotics-dlc-absent--default.png": {
-      "hash": "1b56a78693df1041",
+      "hash": "085ade9bb4602cce",
       "elements": 17,
       "text": "f93a7788"
     },
     "rotors--default.png": {
-      "hash": "a49caa4afdde3c1e",
+      "hash": "26ae31b598567ae9",
       "elements": 65,
       "text": "f14fa8db"
     },
     "rotors--min.png": {
-      "hash": "fafbcac181c7ada9",
+      "hash": "887ae2d4db16f412",
       "elements": 53,
       "text": "482ff170"
     },
     "rotors-dlc-absent--default.png": {
-      "hash": "a4cc68504370a57a",
+      "hash": "40410232e6aca911",
       "elements": 17,
       "text": "f903d91f"
     },
     "rotors-link-lost--default.png": {
-      "hash": "ec13b4a6205313f0",
+      "hash": "801b3f050e1c4b6f",
       "elements": 79,
       "text": "8b5ad60a"
     },
     "servos--default.png": {
-      "hash": "ee78251933dd47d2",
+      "hash": "a2e09861cfd5d919",
       "elements": 61,
       "text": "c9621c46"
     },
     "servos--min.png": {
-      "hash": "7411eb6f42106c78",
+      "hash": "44123ad2596400a5",
       "elements": 36,
       "text": "220c5a23"
     },
     "servos-link-lost--default.png": {
-      "hash": "878bfb8376a53f80",
+      "hash": "a329539ae73178e9",
       "elements": 72,
       "text": "03c0e156"
     }
