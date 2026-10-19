@@ -510,6 +510,9 @@ namespace Sitrep.Propagation.Contacts
         /// <summary>How far above its surface a point fixed to it is taken to see from, in metres, when it is tested for line of sight against another such point.</summary>
         public const double SurfaceMastMeters = 10.0;
 
+        /// <summary>How far inside an occluder an end of a pair has to be, in metres, before it is taken to have sunk below it rather than to stand on it.</summary>
+        public const double SunkToleranceMeters = 1e-3;
+
         /// <summary>Grid samples per shortest cycle among the nodes: enough to see a window a seventy-second of a cycle long.</summary>
         public const int StepsPerShortestCycle = 72;
 
@@ -1075,6 +1078,12 @@ namespace Sitrep.Propagation.Contacts
             private double OcclusionBy(OccludingBody occluder, double ut, Vector3d a, Vector3d b)
             {
                 var centre = _cache.BodyAt(occluder.BodyIndex, ut);
+                var depth = Math.Max(DepthInside(a, centre, occluder.OccludingRadiusMeters), DepthInside(b, centre, occluder.OccludingRadiusMeters));
+                if (depth > SunkToleranceMeters)
+                {
+                    // The comms backends test the whole segment, ends included, so an end inside the occluder has no line of sight at all, mast or not.
+                    return -depth * occluder.OccludingRadiusMeters;
+                }
                 if (_cache.IsOnSurface(_pair.A) && _cache.IsOnSurface(_pair.B))
                 {
                     a = Raised(a, centre);
@@ -1082,6 +1091,9 @@ namespace Sitrep.Propagation.Contacts
                 }
                 return ChordOcclusion.HorizonMargin(a, b, centre, occluder.OccludingRadiusMeters);
             }
+
+            private static double DepthInside(Vector3d point, Vector3d centre, double radius) =>
+                radius > 0.0 ? radius - (point - centre).Magnitude() : double.NegativeInfinity;
 
             private static Vector3d Raised(Vector3d point, Vector3d centre)
             {

@@ -9407,6 +9407,10 @@
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
       {
+        "key": "sitrep-sdk ./spine CommsLinkLike#connected",
+        "note": "connected is optional and may be null, as comms.link now says when nothing is reported yet"
+      },
+      {
         "key": "sitrep-sdk ./spine ConnectivityHistory#get size",
         "note": "New: how many changes of link state the history holds, which is now bounded"
       },
@@ -14131,6 +14135,10 @@
       {
         "key": "sitrep-sdk ./spine CommandGroupPhase",
         "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommsLinkLike#connected?",
+        "note": "connected is optional and may be null, as comms.link now says when nothing is reported yet"
       },
       {
         "key": "sitrep-sdk ./spine ConicShape",

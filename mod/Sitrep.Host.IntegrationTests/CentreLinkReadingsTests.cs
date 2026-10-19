@@ -353,6 +353,54 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The game cuts the craft's link while the centre's plan still has
+        /// it in sight, as a backend that occludes at the bare radius does
+        /// for a probe floating a few centimetres below sea level. Once the
+        /// reading that the link has gone
+        /// reaches a centre, that centre is shown no path and no live route to
+        /// the craft, and is shown them again when a reading in contact arrives.
+        /// </summary>
+        [Fact]
+        public async Task ACentreThatHasHeardTheLinkGoIsShownNoLivePathWhereItsPlanStillHasOne()
+        {
+            await using var seated = await SeatedAsync(Direct(0.9));
+            await seated.TickAsync(1, 2, 3, 4, 700, 702);
+            Assert.NotEmpty(Hops(seated.HomeView));
+            Assert.All(LiveRows(seated.HomeView), live => Assert.True(live));
+
+            seated.World.Game.ActiveConnected = false;
+            seated.World.Game.Radio = Lost();
+            await seated.TickAsync(T0, T0 + 0.5);
+            Assert.NotEmpty(Hops(seated.HomeView));
+
+            await seated.TickAsync(T0 + 2, T0 + 3, T0 + 4, T0 + 5);
+            Assert.Empty(Hops(seated.HomeView));
+            Assert.Empty(Hops(seated.FarView));
+            Assert.All(LiveRows(seated.HomeView), live => Assert.False(live));
+            Assert.All(LiveRows(seated.FarView), live => Assert.False(live));
+
+            seated.World.Game.ActiveConnected = true;
+            seated.World.Game.Radio = Direct(0.7);
+            await seated.TickAsync(T0 + 100, T0 + 102, T0 + 103, T0 + 104);
+            Assert.NotEmpty(Hops(seated.HomeView));
+            Assert.All(LiveRows(seated.HomeView), live => Assert.True(live));
+        }
+
+        private static List<JsonElement> Hops(CentreView view)
+        {
+            using var doc = JsonDocument.Parse(view.Path!);
+            return doc.RootElement.GetProperty("hops").EnumerateArray().Select(h => h.Clone()).ToList();
+        }
+
+        private static List<bool> LiveRows(CentreView view)
+        {
+            using var doc = JsonDocument.Parse(view.Latest(ContactPlanSource.RouteTopic)!);
+            var rows = doc.RootElement.GetProperty("routes").EnumerateArray().Select(r => r.GetProperty("live").GetBoolean()).ToList();
+            Assert.NotEmpty(rows);
+            return rows;
+        }
+
+        /// <summary>
         /// A craft that has just been put on screen reads no link for the look
         /// it takes the game to bring its radio up. That one look is not the
         /// link having gone, and no centre is told the strength fell to

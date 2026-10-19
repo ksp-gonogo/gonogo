@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 44.15.0
+  version: 45.0.0
   description: |-
     The WebSocket API of the Gonogo mod: 87 telemetry channels a client
     subscribes to and 65 commands it sends, each with its payload and what it
@@ -849,9 +849,12 @@ channels:
     description: |-
       Whether the active vessel has a control link home right now, and the degree
       of control it has. Read from the comms mod in force: ground-side truth, with
-      all three fields describing the same tick. Nothing is published while no
-      craft is on screen (an editor, the space centre, the tracking station): a
-      link report is about a craft.
+      all three fields describing the same tick. While no craft is on screen (an
+      editor, the space centre, the tracking station), and for the moment the game
+      takes to solve a craft's link after it comes on screen, nothing is reported:
+      `CommsConnectivity.connected` is `null`, `CommsConnectivity.controlSource`
+      is `CommsControlSource.Unknown` and `CommsConnectivity.hasLocalControl` is
+      false and says nothing.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -11920,21 +11923,27 @@ components:
       description: |-
         Whether the active vessel has a control link home right now, and the degree
         of control it has. Read from the comms mod in force: ground-side truth, with
-        all three fields describing the same tick. Nothing is published while no
-        craft is on screen (an editor, the space centre, the tracking station): a
-        link report is about a craft.
+        all three fields describing the same tick. While no craft is on screen (an
+        editor, the space centre, the tracking station), and for the moment the game
+        takes to solve a craft's link after it comes on screen, nothing is reported:
+        `CommsConnectivity.connected` is `null`, `CommsConnectivity.controlSource`
+        is `CommsControlSource.Unknown` and `CommsConnectivity.hasLocalControl` is
+        false and says nothing.
       required:
-        - connected
         - controlSource
         - hasLocalControl
       properties:
         connected:
-          type: boolean
+          type:
+            - boolean
+            - "null"
           x-sitrep-unit: flag
           description: |-
             True when the backend resolved a control path home for the active vessel.
             False when it has none, and also when no link state could be read (then
-            `CommsConnectivity.controlSource` is `CommsControlSource.None`).
+            `CommsConnectivity.controlSource` is `CommsControlSource.None`). `null` when
+            nothing is reported yet, which is not a lost link: no craft is on screen, or
+            the game has not yet solved the link of one that just came on screen.
         controlSource:
           description: The degree of control the vessel has.
           allOf:
@@ -12537,15 +12546,18 @@ components:
         The `VesselComms` readings (signal strength, control state) are delayed too,
         but do freeze: they hold their last value through the outage.
       required:
-        - connected
         - meta
       properties:
         connected:
-          type: boolean
+          type:
+            - boolean
+            - "null"
           x-sitrep-unit: flag
           description: |-
             True while the active vessel has a control link home, as of one signal delay
-            ago; false through a blackout.
+            ago; false through a blackout. `null` when nothing is reported yet, which is
+            not a lost link: no craft is on screen, or the game has not yet solved the
+            link of one that just came on screen.
         meta:
           description: The payload's provenance (`"vessel:<guid>"` or `"game"`).
           allOf:

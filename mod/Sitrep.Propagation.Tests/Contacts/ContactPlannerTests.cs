@@ -114,6 +114,23 @@ namespace Sitrep.Propagation.Tests.Contacts
         }
 
         [Fact]
+        public void ACraftFloatingJustBelowTheOccludingRadiusSeesNoStation()
+        {
+            // A splashed probe read 0.0776 m below sea level, 2315 m from a station 70 m up: a backend that occludes at the bare radius gives it no link.
+            var apartDeg = 2315.0 / KerbinRadius * 180.0 / Math.PI;
+            var nodes = new[]
+            {
+                SurfaceNode("ground:ksc", 10.0, 70.0),
+                SurfaceNode("vessel:splashed", 10.0 + apartDeg, -0.0776),
+            };
+            var pairs = new[] { new PlanPair("vessel:splashed", "ground:ksc", KerbinOnly(), null) };
+
+            var plan = ContactPlanner.Plan(nodes, pairs, Propagator(), Kerbin, 0.0, 3600.0, 10.0, 0.05);
+
+            Assert.Empty(plan.Pairs[0].Windows);
+        }
+
+        [Fact]
         public void ACraftAndAStationOnOppositeSidesOfTheBodyNeverSeeEachOther()
         {
             Assert.Empty(PlanSurfacePair(KerbinRadius * Math.PI * 0.5, 70.0).Pairs[0].Windows);
