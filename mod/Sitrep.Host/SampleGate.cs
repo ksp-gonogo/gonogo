@@ -21,8 +21,17 @@ namespace Sitrep.Host
         private double? _previousTickUt;
         private double _lastSampledRealSec;
         private readonly LoadState _load;
+        private readonly TopicCadence? _cadence;
 
-        public SampleGate(LoadState load) => _load = load;
+        /// <param name="cadence">
+        /// The per-topic cadence whose fastest interval the gate admits ticks at;
+        /// null gates at <see cref="SampleCadence.IntervalUt"/>.
+        /// </param>
+        public SampleGate(LoadState load, TopicCadence? cadence = null)
+        {
+            _load = load;
+            _cadence = cadence;
+        }
 
         /// <summary>
         /// Called once per physics tick with the game's UT, the warp rate and
@@ -33,7 +42,7 @@ namespace Sitrep.Host
         {
             var previousTickUt = _previousTickUt;
             _previousTickUt = ut;
-            if (!SampleCadence.ShouldSample(ut, _lastSampledUt, SampleCadence.IntervalUtAt(warpRate))
+            if (!SampleCadence.ShouldSample(ut, _lastSampledUt, SampleCadence.IntervalUtAt(warpRate, _cadence?.FastestIntervalUt ?? SampleCadence.IntervalUt))
                 && (_load.Phase == GamePhase.Loading || !SampleCadence.ShouldSampleStoppedClock(ut, previousTickUt, realSec - _lastSampledRealSec)))
             {
                 return false;

@@ -1235,6 +1235,39 @@ namespace Sitrep.Host
             _channelDeclarations.TryGetValue(topic, out var declaration) ? declaration : null;
         private readonly Dictionary<string, Func<KspSnapshot?, object?>> _channelSources = new Dictionary<string, Func<KspSnapshot?, object?>>();
 
+        /// <summary>
+        /// How often each pull channel is built, UT per topic: every topic at
+        /// <see cref="SampleCadence.IntervalUt"/> unless a development override says
+        /// otherwise. See <see cref="TopicCadence"/>.
+        /// </summary>
+        public TopicCadence Cadence { get; } = new TopicCadence();
+
+        /// <summary>Per-topic publish cost, logged on an interval once a development tool turns it on. See <see cref="TopicPublishStats"/>.</summary>
+        public TopicPublishStats PublishStats { get; } = new TopicPublishStats();
+
+        /// <summary>
+        /// Run <paramref name="topic"/> at <paramref name="hz"/> samples per UT second
+        /// from the next tick, and log what is now in force. Refused, with the reason in
+        /// <paramref name="message"/>, for a topic that has no pull channel or a rate
+        /// <see cref="TopicCadence.TrySetRateHz"/> will not take.
+        /// </summary>
+        public bool TrySetTopicRate(string topic, double hz, out string message)
+        {
+            if (!_channelSources.ContainsKey(topic))
+            {
+                message = topic + " is not a pull channel this engine builds";
+                return false;
+            }
+            if (!Cadence.TrySetRateHz(topic, hz, out var refusal))
+            {
+                message = refusal ?? "refused";
+                return false;
+            }
+            message = Cadence.Describe();
+            LogHostInfo(TopicPublishStats.LogPrefix + " topic rates now: " + message);
+            return true;
+        }
+
         /// <summary>What <paramref name="topic"/>'s source produces now, with no snapshot, or null when it has no source.</summary>
         internal object? PayloadOf(string topic) =>
             _channelSources.TryGetValue(topic, out var source) ? source(null) : null;
@@ -9203,6 +9236,7 @@ namespace Sitrep.Host
                     _courier.ResetTimeline(tick.Ut);
                 }
                 _emitter.Reset(tick.Ut);
+                Cadence.ResetTimeline();
                 // Drop every un-revealed buffered sample: they belong to the
                 // abandoned pre-rewind timeline and must never surface on the
                 // new one (the reveal-gate analogue of ResetTimeline dropping
@@ -9415,7 +9449,7 @@ namespace Sitrep.Host
                 }
 
                 var map = channelSource.Value;
-                if (!_subscriptions.IsSubscribed(topic))
+                if (!_subscriptions.IsSubscribed(topic) || !Cadence.IsDue(topic, tick.Ut))
                 {
                     continue;
                 }
@@ -9423,8 +9457,13 @@ namespace Sitrep.Host
                 object? value;
                 try
                 {
+                    var buildStarted = PublishStats.Enabled ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
                     value = map(tick.Snapshot);
                     if (value != null) value = WithFieldLocks(topic, value);
+                    if (PublishStats.Enabled)
+                    {
+                        PublishStats.RecordBuild(topic, System.Diagnostics.Stopwatch.GetTimestamp() - buildStarted);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -9515,6 +9554,7 @@ namespace Sitrep.Host
                 }
                 if (decision.ShouldEmit)
                 {
+                    PublishStats.RecordEmit(topic);
                     Emit(topic, decision.Value, tick.Ut);
                 }
             }
@@ -9546,7 +9586,26 @@ namespace Sitrep.Host
             ReleaseGameStateAfterTick();
             timing.End(ref timing.StoreAndForward);
             ReportSlowTick(tick, timing);
+            ReportPublishStats();
             tick.Done?.Set();
+        }
+
+        /// <summary>Log the window of per-topic publish cost that has just closed, when recording is on and the interval has elapsed.</summary>
+        private void ReportPublishStats()
+        {
+            if (!PublishStats.Enabled)
+            {
+                return;
+            }
+            var lines = PublishStats.TryTakeReport(System.Diagnostics.Stopwatch.GetTimestamp(), Cadence.Describe());
+            if (lines == null)
+            {
+                return;
+            }
+            foreach (var line in lines)
+            {
+                LogHostInfo(line);
+            }
         }
 
         /// <summary>A tick that takes this many real seconds, on the Courier or in its main-thread captures, is reported: see <see cref="ReportSlowTick"/>.</summary>
@@ -10614,6 +10673,7 @@ namespace Sitrep.Host
                     // serialization instead of the throw recurring silently,
                     // unattributed, on every subsequent tick.
                     byte[] bytes;
+                    var serializeStarted = PublishStats.Enabled ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
                     try
                     {
                         // The binary lane is DECLARED, never inferred: a
@@ -10641,6 +10701,11 @@ namespace Sitrep.Host
                     if (opaque)
                     {
                         _binaryFrameBudget?.Record(1, streamData.Meta.DeliveredAt);
+                    }
+
+                    if (PublishStats.Enabled)
+                    {
+                        PublishStats.RecordFrame(topic, bytes.Length, System.Diagnostics.Stopwatch.GetTimestamp() - serializeStarted);
                     }
 
                     // A replayed sample rides the FIFO lane whatever the channel

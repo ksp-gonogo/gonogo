@@ -79,10 +79,19 @@ namespace Sitrep.Host
         /// the mod can state exactly (see <see cref="ObservationQuantumUt"/>).
         /// A rate that is not a positive number is treated as 1x.
         /// </summary>
-        public static double IntervalUtAt(double warpRate) =>
+        public static double IntervalUtAt(double warpRate) => IntervalUtAt(warpRate, IntervalUt);
+
+        /// <summary>
+        /// As <see cref="IntervalUtAt(double)"/> for a gate whose base interval is
+        /// <paramref name="baseIntervalUt"/> rather than <see cref="IntervalUt"/>: the
+        /// fastest interval any topic asks for (see <see cref="TopicCadence"/>). The
+        /// real-time floor still applies above 1x, so warp thins a fast topic the way
+        /// it thins every other.
+        /// </summary>
+        public static double IntervalUtAt(double warpRate, double baseIntervalUt) =>
             warpRate > 1.0 && !double.IsInfinity(warpRate)
-                ? Math.Max(IntervalUt, FloorRealSec * warpRate)
-                : IntervalUt;
+                ? Math.Max(baseIntervalUt, FloorRealSec * warpRate)
+                : baseIntervalUt;
 
         /// <summary>
         /// The UT that actually passes between two samples when one physics

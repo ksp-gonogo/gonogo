@@ -127,7 +127,7 @@ namespace Gonogo.KSP
                 _engine = new ChannelEngine(BindUri, executeCommandsOnMainThread: true);
                 SharedEngine = _engine;
                 _loadReporter = new GameLoadReporter(_engine);
-                _sampleGate = new SampleGate(_loadReporter.State);
+                _sampleGate = new SampleGate(_loadReporter.State, _engine.Cadence);
 
                 // Route the engine's fail-soft diagnostics to the KSP log.
                 // Sitrep.Host otherwise logs only to Console.Error, which KSP does

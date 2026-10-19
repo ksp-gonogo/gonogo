@@ -189,6 +189,7 @@
        reasons from, and the half that is quietly wrong when the file says
        nothing useful. No KSP/Unity type, so no KspManaged gating. -->
   <ItemGroup>
+    <Compile Include="..\GonogoDevTools\CadenceRequest.cs" />
     <Compile Include="..\GonogoDevTools\CurrencyProbeVerdicts.cs" />
     <Compile Include="..\GonogoDevTools\DevRequestLedger.cs" />
     <Compile Include="..\GonogoDevTools\TeleportAnomaly.cs" />
