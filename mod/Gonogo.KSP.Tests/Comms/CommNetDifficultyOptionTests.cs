@@ -327,6 +327,107 @@ namespace Gonogo.KSP.Tests.Comms
         /// SecurityException with no Unity player behind it). What stands in
         /// for it is what stock's object graph actually reports on such a save.
         /// </param>
+        /// <summary>
+        /// The splashed probe from the rig: the backend's flag reads disconnected
+        /// while its control path runs from the craft to the home centre over a
+        /// live hop (strength 1, as recorded). The gate and the channel must agree
+        /// with the path, and a path that reaches nowhere is still a disconnect.
+        /// </summary>
+        [Fact]
+        public void APathReachingHome_IsALinkWhateverTheBackendFlagSays()
+        {
+            var craft = UnityStandIns.Craft(Guid.NewGuid());
+            var backend = new DeadGraphBackend
+            {
+                Hops =
+                {
+                    new CommsHop
+                    {
+                        From = "41f7fe02-334f-403b-878c-e223c7cf54b0",
+                        To = "Kerbal Space Center",
+                        ToIsHome = true,
+                        Kind = CommsHopKind.Home,
+                        DistanceMeters = 7028.64,
+                    },
+                },
+            };
+            var host = new NoOpUplinkHost(new Kernel());
+            var uplink = RegisteredUplink(backend, host);
+
+            CommsCoreUplink.ConfigureCommsModelProbe(() => true);
+            CommsCoreUplink.ConfigureActiveVesselProbe(() => craft);
+            try
+            {
+                Assert.True(uplink.ComputeConnectedOnMain(new KspSnapshot { Ut = 500.0 }));
+
+                backend.Hops.Clear();
+                Assert.False(uplink.ComputeConnectedOnMain(new KspSnapshot { Ut = 501.0 }));
+            }
+            finally
+            {
+                CommsCoreUplink.ConfigureCommsModelProbe(null);
+                CommsCoreUplink.ConfigureActiveVesselProbe(null);
+            }
+        }
+
+        /// <summary>
+        /// Before the first real reading of a craft its connectivity is unknown:
+        /// the gate is given no answer (it keeps its last state) and the channels
+        /// stay silent, until the craft reads connected or the window passes.
+        /// </summary>
+        [Fact]
+        public void AFirstDisconnectedReadOfACraft_IsUnknownRatherThanALoss()
+        {
+            var craft = UnityStandIns.Craft(Guid.NewGuid());
+            var backend = new DeadGraphBackend();
+            var host = new NoOpUplinkHost(new Kernel());
+            var uplink = RegisteredUplink(backend, host);
+
+            CommsCoreUplink.ConfigureCommsModelProbe(() => true);
+            CommsCoreUplink.ConfigureActiveVesselProbe(() => craft);
+            try
+            {
+                var first = new KspSnapshot { Ut = 100.0 };
+                Assert.Null(uplink.ComputeConnectedOnMain(first));
+                uplink.HandleOnCourier(uplink.CaptureOnMain(first));
+                Assert.DoesNotContain(CommsCoreUplink.ConnectivityTopic, host.Published);
+                Assert.DoesNotContain(CommsCoreUplink.LinkTopic, host.Published);
+
+                backend.Connected = true;
+                Assert.True(uplink.ComputeConnectedOnMain(new KspSnapshot { Ut = 100.5 }));
+
+                // A loss once the craft has been read connected is a loss at once.
+                backend.Connected = false;
+                Assert.False(uplink.ComputeConnectedOnMain(new KspSnapshot { Ut = 101.0 }));
+            }
+            finally
+            {
+                CommsCoreUplink.ConfigureCommsModelProbe(null);
+                CommsCoreUplink.ConfigureActiveVesselProbe(null);
+            }
+        }
+
+        /// <summary>A craft that is never read connected is a loss once the window has passed.</summary>
+        [Fact]
+        public void ACraftThatStaysDisconnected_IsALossAfterTheWindow()
+        {
+            var craft = UnityStandIns.Craft(Guid.NewGuid());
+            var uplink = RegisteredUplink(new DeadGraphBackend());
+
+            CommsCoreUplink.ConfigureCommsModelProbe(() => true);
+            CommsCoreUplink.ConfigureActiveVesselProbe(() => craft);
+            try
+            {
+                Assert.Null(uplink.ComputeConnectedOnMain(new KspSnapshot { Ut = 100.0 }));
+                Assert.False(uplink.ComputeConnectedOnMain(new KspSnapshot { Ut = 100.0 + ConnectivitySettle.WindowSeconds + 0.1 }));
+            }
+            finally
+            {
+                CommsCoreUplink.ConfigureCommsModelProbe(null);
+                CommsCoreUplink.ConfigureActiveVesselProbe(null);
+            }
+        }
+
         private static CommsCoreUplink RegisteredUplink(ICommsBackend backend) =>
             RegisteredUplink(backend, new NoOpUplinkHost(new Kernel()));
 
@@ -360,10 +461,14 @@ namespace Gonogo.KSP.Tests.Comms
         public bool? StillCarriesTo(object? vessel, string nodeId) => null;
             public string ProviderId => "commnet";
 
+            internal bool Connected;
+
+            internal List<CommsHop> Hops = new List<CommsHop>();
+
             public CommsConnectivity Connectivity() => new CommsConnectivity
             {
-                Connected = false,
-                ControlSource = CommsControlSource.None,
+                Connected = Connected,
+                ControlSource = Connected ? CommsControlSource.Full : CommsControlSource.None,
                 HasLocalControl = false,
             };
 
@@ -375,7 +480,7 @@ namespace Gonogo.KSP.Tests.Comms
                 Reason = "no connection to a command source",
             };
 
-            public CommsPath Path(object? vessel) => new CommsPath { Hops = new List<CommsHop>() };
+            public CommsPath Path(object? vessel) => new CommsPath { Hops = Hops };
 
             public CommsNetwork Network(object? vessel) => new CommsNetwork();
 
