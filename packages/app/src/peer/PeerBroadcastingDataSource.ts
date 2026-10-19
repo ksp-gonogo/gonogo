@@ -192,26 +192,6 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     return real.exportFlight(id);
   }
 
-  saveMissionPart(
-    meta: unknown,
-    part: number,
-    fixture: unknown,
-  ): Promise<void> {
-    const real = this.real as {
-      saveMissionPart?: (
-        meta: unknown,
-        part: number,
-        fixture: unknown,
-      ) => Promise<void>;
-    };
-    if (!real.saveMissionPart) {
-      return Promise.reject(
-        new Error("saveMissionPart not supported by wrapped source"),
-      );
-    }
-    return real.saveMissionPart(meta, part, fixture);
-  }
-
   deleteFlight(id: string): Promise<void> {
     const real = this.real as {
       deleteFlight?: (id: string) => Promise<void>;

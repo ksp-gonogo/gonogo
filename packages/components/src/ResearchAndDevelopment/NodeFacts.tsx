@@ -12,7 +12,6 @@ import {
   Unit,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
-import { PartName } from "./styles";
 import type { TechNode } from "./wire";
 
 export function NodeDescription({ node }: Readonly<{ node: TechNode }>) {
@@ -63,11 +62,11 @@ export function NodeParts({
       </Text>
       <Stack as="ul" gap="related-dense">
         {shown.map((p) => (
-          <Row key={p.name} wrap>
+          <Row key={p.name}>
             <Tooltip text={p.manufacturer || undefined} focusable>
-              <PartName>
+              <RowName>
                 <Text level={p.purchased ? "faint" : undefined}>{p.title}</Text>
-              </PartName>
+              </RowName>
             </Tooltip>
             <Cluster gap="related" align="baseline">
               {p.category && (

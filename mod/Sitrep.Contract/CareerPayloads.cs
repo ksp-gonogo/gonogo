@@ -745,9 +745,11 @@ public class CareerTech
     public int UnlockedCount { get; set; }
 
     /// <summary>
-    /// The ids of the unlocked tech nodes, in no particular order: exactly the
-    /// nodes of <see cref="Nodes"/> whose <see cref="CareerTechNode.Unlocked"/>
-    /// is true.
+    /// The ids of the unlocked tech nodes, in no particular order. Derived from
+    /// the loaded parts (each part's <c>TechRequired</c> whose tech is
+    /// available), so a node that unlocks no part never appears here even when
+    /// it is researched; <see cref="CareerTechNode.Unlocked"/> is the per-node
+    /// reading.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public List<string> UnlockedIds { get; set; } = new();
@@ -812,48 +814,4 @@ public class CareerTechNode
     /// </summary>
     [SitrepUnit(Units.Id)]
     public List<string> Parents { get; set; } = new();
-
-    /// <summary>
-    /// The parts researching the node unlocks, in the order the game loads
-    /// them. Empty for a node that unlocks no part.
-    /// </summary>
-    public List<CareerTechPart> Parts { get; set; } = new();
-}
-
-/// <summary>One part in <see cref="CareerTechNode.Parts"/>.</summary>
-/// <category>Career</category>
-[SitrepContract]
-#if SITREP_CODEGEN
-[TsInterface]
-#endif
-public class CareerTechPart
-{
-    /// <summary>The part's internal name, KSP's <c>AvailablePart.name</c>.</summary>
-    [SitrepUnit(Units.Id)]
-    public string? Name { get; set; }
-
-    /// <summary>The part's display title.</summary>
-    [SitrepUnit(Units.Text)]
-    public string? Title { get; set; }
-
-    /// <summary>The part's manufacturer, as the part's config names it.</summary>
-    [SitrepUnit(Units.Text)]
-    public string? Manufacturer { get; set; }
-
-    /// <summary>The part's category (e.g. <c>"Propulsion"</c>, <c>"Pods"</c>).</summary>
-    [SitrepUnit(Units.Text)]
-    public string? Category { get; set; }
-
-    /// <summary>
-    /// The funds it costs to purchase the part once its node is researched.
-    /// </summary>
-    [SitrepUnit(Units.Funds)]
-    public double? EntryCost { get; set; }
-
-    /// <summary>
-    /// Whether the save has purchased the part, which is what makes it
-    /// placeable once its node is researched.
-    /// </summary>
-    [SitrepUnit(Units.Flag)]
-    public bool? Purchased { get; set; }
 }

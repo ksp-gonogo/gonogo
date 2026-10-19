@@ -4365,19 +4365,18 @@ namespace Gonogo.KSP
         /// <summary>
         /// The count of parts the player can place right now. In career this is
         /// tech-unlocked and purchased (<c>ResearchAndDevelopment.
-        /// PartTechAvailable</c> + <c>PartModelPurchased</c>) over
-        /// <c>PartLoader.LoadedPartsList</c>; outside career everything in the
-        /// catalogue is placeable, so its full count is emitted. The
-        /// <c>PartLoader.parts</c> field is not the list the R&amp;D tree reads.
-        /// Returns <c>null</c>
+        /// PartTechAvailable</c> + <c>PartModelPurchased</c>, the same
+        /// <c>PartLoader.parts</c> walk <see cref="BuildCareerTech"/> already
+        /// does); outside career everything in the catalogue is placeable, so
+        /// the full <c>PartLoader.parts.Count</c> is emitted. Returns <c>null</c>
         /// when <c>PartLoader</c> isn't ready (pre-load), or in career when
         /// <c>ResearchAndDevelopment.Instance</c> isn't ready, so the provider
         /// reads "no data yet."
         /// </summary>
         private static int? BuildPartsAvailable()
         {
-            var loaded = PartLoader.Instance != null ? PartLoader.LoadedPartsList : null;
-            if (loaded == null)
+            var loader = PartLoader.Instance;
+            if (loader == null || loader.parts == null)
             {
                 return null;
             }
@@ -4386,7 +4385,7 @@ namespace Gonogo.KSP
             var career = game != null && game.Mode == Game.Modes.CAREER;
             if (!career)
             {
-                return loaded.Count;
+                return loader.parts.Count;
             }
 
             if (ResearchAndDevelopment.Instance == null)
@@ -4395,7 +4394,7 @@ namespace Gonogo.KSP
             }
 
             var count = 0;
-            foreach (var part in loaded)
+            foreach (var part in loader.parts)
             {
                 if (part == null)
                 {
@@ -5056,57 +5055,53 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Unlocked-tech count and ids, read from the same node walk as the
-        /// per-node <c>unlocked</c> flag so the three can never disagree. When
-        /// the static tree is not resolvable yet the ids fall back to the
-        /// distinct <c>TechRequired</c> of every available part in
-        /// <c>PartLoader.LoadedPartsList</c>, and <c>nodes</c> is
-        /// <c>null</c>.
+        /// Unlocked-tech count (+ ids, since it's cheap here) - derived from
+        /// <c>PartLoader.Instance.parts</c> rather than
+        /// <c>ResearchAndDevelopment</c>'s own tech dictionary, which is
+        /// private (confirmed via decompile: <c>protoTechNodes</c> has no
+        /// public enumerator, only per-id lookups via <c>GetTechState</c>).
+        /// Every loaded <c>AvailablePart</c> carries a public
+        /// <c>TechRequired</c> field; <c>ResearchAndDevelopment.
+        /// PartTechAvailable(AvailablePart)</c> is the confirmed public
+        /// static check for "is this part's tech unlocked" - deduplicating
+        /// by <c>TechRequired</c> across every unlocked part yields the
+        /// distinct unlocked tech-node id set cheaply, without needing the
+        /// full tech-tree asset. A part with no <c>TechRequired</c> (rare,
+        /// but seen on some stock/utility parts) is skipped rather than
+        /// counted as an empty-string "tech."
         /// </summary>
         private static Dictionary<string, object?>? BuildCareerTech()
         {
             var rnd = ResearchAndDevelopment.Instance;
-            var loaded = PartLoader.Instance != null ? PartLoader.LoadedPartsList : null;
-            if (rnd == null || loaded == null)
+            var loader = PartLoader.Instance;
+            if (rnd == null || loader == null || loader.parts == null)
             {
                 return null;
             }
 
-            var nodes = BuildCareerTechNodes(loaded);
-            var unlockedTechIds = new List<object?>();
-            if (nodes != null)
+            var unlockedTechIds = new HashSet<string>();
+            foreach (var part in loader.parts)
             {
-                foreach (var node in nodes)
+                if (part == null || string.IsNullOrEmpty(part.TechRequired))
                 {
-                    var entry = (Dictionary<string, object?>)node!;
-                    if (entry["unlocked"] is true)
-                    {
-                        unlockedTechIds.Add(entry["id"]);
-                    }
+                    continue;
                 }
-            }
-            else
-            {
-                var seen = new HashSet<string>();
-                foreach (var part in loaded)
-                {
-                    if (part == null || string.IsNullOrEmpty(part.TechRequired))
-                    {
-                        continue;
-                    }
 
-                    if (ResearchAndDevelopment.PartTechAvailable(part) && seen.Add(part.TechRequired))
-                    {
-                        unlockedTechIds.Add(part.TechRequired);
-                    }
+                if (ResearchAndDevelopment.PartTechAvailable(part))
+                {
+                    unlockedTechIds.Add(part.TechRequired);
                 }
             }
 
             return new Dictionary<string, object?>
             {
                 ["unlockedCount"] = unlockedTechIds.Count,
-                ["unlockedIds"] = unlockedTechIds,
-                ["nodes"] = nodes,
+                ["unlockedIds"] = new List<object?>(unlockedTechIds),
+                // M3b career-detail capture-add: see BuildCareerTechNodes -
+                // purely additive alongside unlockedCount/unlockedIds above
+                // (unchanged), so nothing that already reads those two
+                // regresses.
+                ["nodes"] = BuildCareerTechNodes(),
             };
         }
 
@@ -5137,12 +5132,6 @@ namespace Gonogo.KSP
         /// <c>ConfigNode</c>, see <see cref="BuildCareerTechDescriptions"/> for
         /// why it cannot come from the node objects here.</para>
         ///
-        /// <para><c>parts</c> lists the loaded parts whose <c>TechRequired</c>
-        /// is the node's id, leaving out hidden parts and parts in
-        /// <c>PartCategories.none</c> (the editor never offers those; stock keeps
-        /// the pre-1.0 Reliant there beside its replacement), each with its
-        /// <c>entryCost</c> and whether the save has purchased it.</para>
-        ///
         /// <para><c>parents</c> (prerequisite edges) is included rather
         /// than deferred: <c>ProtoRDNode.parents</c> is already an in-memory
         /// object graph the walk below needs anyway for <c>tech.techID</c>
@@ -5164,7 +5153,7 @@ namespace Gonogo.KSP
         /// method itself only returns <c>null</c> for the "tree not ready"
         /// case, it never throws deliberately.</para>
         /// </summary>
-        private static List<object?>? BuildCareerTechNodes(List<AvailablePart> loadedParts)
+        private static List<object?>? BuildCareerTechNodes()
         {
             var tree = AssetBase.RnDTechTree;
             var rdNodes = tree != null ? tree.GetTreeNodes() : null;
@@ -5174,30 +5163,6 @@ namespace Gonogo.KSP
             }
 
             var descriptions = BuildCareerTechDescriptions(tree!);
-            var partsByTech = new Dictionary<string, List<object?>>();
-            foreach (var part in loadedParts)
-            {
-                if (part == null || part.TechHidden || part.category == PartCategories.none || string.IsNullOrEmpty(part.TechRequired))
-                {
-                    continue;
-                }
-
-                if (!partsByTech.TryGetValue(part.TechRequired, out var techParts))
-                {
-                    techParts = new List<object?>();
-                    partsByTech[part.TechRequired] = techParts;
-                }
-
-                techParts.Add(new Dictionary<string, object?>
-                {
-                    ["name"] = part.name,
-                    ["title"] = part.title,
-                    ["manufacturer"] = part.manufacturer,
-                    ["category"] = part.category.ToString(),
-                    ["entryCost"] = (double)part.entryCost,
-                    ["purchased"] = ResearchAndDevelopment.PartModelPurchased(part),
-                });
-            }
 
             var nodes = new List<object?>();
             foreach (var rdNode in rdNodes)
@@ -5229,7 +5194,6 @@ namespace Gonogo.KSP
                     ["scienceCost"] = (double)tech.scienceCost,
                     ["unlocked"] = ResearchAndDevelopment.GetTechnologyState(tech.techID) == RDTech.State.Available,
                     ["parents"] = parentIds,
-                    ["parts"] = partsByTech.TryGetValue(tech.techID, out var nodeParts) ? nodeParts : new List<object?>(),
                 });
             }
 

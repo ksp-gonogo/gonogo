@@ -251,14 +251,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     title: "text",
     unlocked: "flag",
   },
-  "CareerTechPart": {
-    category: "text",
-    entryCost: "funds",
-    manufacturer: "text",
-    name: "id",
-    purchased: "flag",
-    title: "text",
-  },
   "CatalogEntry": {
     bodyIndex: "id",
     commsConnected: "flag",
@@ -2396,9 +2388,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "CareerTech": {
     nodes: "CareerTechNode[]",
-  },
-  "CareerTechNode": {
-    parts: "CareerTechPart[]",
   },
   "CatalogEntry": {
     orbit: "OrbitEntry",

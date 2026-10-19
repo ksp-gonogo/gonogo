@@ -254,7 +254,6 @@ public static class RtConfig
                 typeof(CareerStrategy),
                 typeof(CareerTech),
                 typeof(CareerTechNode),
-                typeof(CareerTechPart),
                 // parts.* channel payloads + entries
                 typeof(PartsPower),
                 typeof(ServoEntry),

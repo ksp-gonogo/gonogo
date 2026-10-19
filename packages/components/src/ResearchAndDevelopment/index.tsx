@@ -45,8 +45,8 @@ function ResearchAndDevelopmentComponent({
   const tech = stillTrue(career, undefined)?.tech;
   /*
    * A node that never says whether it is unlocked is still unlocked when the
-   * mod lists its id: that list is built from the same node walk, so it only
-   * ever confirms a node and never refutes one.
+   * mod lists its id: that list is built from loaded parts, so it only ever
+   * confirms a node and never refutes one.
    */
   const confirmed = new Set(tech?.unlockedIds ?? []);
   const nodesRaw = tech?.nodes?.map((n) =>

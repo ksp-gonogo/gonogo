@@ -617,8 +617,7 @@ namespace Gonogo.KSP
              * it. No answer leaves the last-known state in force. A forced
              * blackout is about a craft too, so this precedes the dev override.
              */
-            var active = _activeVesselProbe();
-            if (active == null)
+            if (_activeVesselProbe() == null)
             {
                 return null;
             }
@@ -663,45 +662,7 @@ namespace Gonogo.KSP
             // and never worsening LAN behaviour. A GENUINE disconnect still
             // arrives as a clean `false` (Connection() null ⇒ Connected=false,
             // no throw) and still freezes, as intended.
-            var connected = ReadConnectivity(backend, active).Connected;
-            return _gateSettle.IsUnknown(active, snapshot?.Ut ?? Planetarium.GetUniversalTime(), connected)
-                ? null
-                : connected;
-        }
-
-        private readonly ConnectivitySettle _gateSettle = new ConnectivitySettle();
-        private readonly ConnectivitySettle _channelSettle = new ConnectivitySettle();
-
-        /// <summary>
-        /// The backend's connectivity with <see cref="CommsConnectivity.Connected"/>
-        /// reconciled against the control path the same backend reports for the
-        /// same craft. A path that reaches home over live hops is a link, whatever
-        /// the backend's own flag says: the flag and the path are solved at
-        /// different points of the game's network update, and a backend can hold
-        /// the flag at false while the path it routes over is up.
-        /// </summary>
-        internal static CommsConnectivity ReadConnectivity(ICommsBackend backend, Vessel? active)
-        {
-            var connectivity = backend.Connectivity();
-            if (connectivity.Connected || active == null)
-            {
-                return connectivity;
-            }
-            var reachesHome = false;
-            foreach (var hop in backend.Path(active).Hops)
-            {
-                reachesHome |= hop.FromIsHome || hop.ToIsHome;
-            }
-            if (!reachesHome)
-            {
-                return connectivity;
-            }
-            return new CommsConnectivity
-            {
-                Connected = true,
-                ControlSource = connectivity.ControlSource,
-                HasLocalControl = connectivity.HasLocalControl,
-            };
+            return backend.Connectivity().Connected;
         }
 
         /// <summary>
@@ -874,11 +835,7 @@ namespace Gonogo.KSP
                     path,
                     SourceOf(active));
 
-                var connectivity = ReadConnectivity(backend, active);
-                var settling = _channelSettle.IsUnknown(
-                    active,
-                    snapshot?.Ut ?? Planetarium.GetUniversalTime(),
-                    connectivity.Connected);
+                var connectivity = backend.Connectivity();
 
                 // DEV-ONLY: mirror the same override ComputeConnectedOnMain
                 // applies to the reveal gate into the comms.connectivity
@@ -905,7 +862,6 @@ namespace Gonogo.KSP
                 {
                     Ut = snapshot?.Ut ?? Planetarium.GetUniversalTime(),
                     Connectivity = connectivity,
-                    Settling = settling && !devOverride.HasValue,
                     Signal = backend.Signal(),
                     Control = backend.ControlState(),
                     Delay = delay,
@@ -996,11 +952,6 @@ namespace Gonogo.KSP
                 return;
             }
 
-            if (capture.Settling)
-            {
-                return;
-            }
-
             _connectivity?.Publish(capture.Connectivity, capture.Ut);
             _control?.Publish(capture.Control, capture.Ut);
             // comms.link: the client-facing, freeze-exempt-Delayed connectivity
@@ -1034,7 +985,6 @@ namespace Gonogo.KSP
         {
             public double Ut;
             public bool HasCraft = true;
-            public bool Settling;
             public CommsConnectivity Connectivity = new();
             public CommsSignal Signal = new();
             public CommsControl Control = new();

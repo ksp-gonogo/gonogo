@@ -97,11 +97,3 @@ export const GraphOwned = styled.span<{ $dimmed: boolean }>`
     p.$dimmed ? "var(--color-text-faint)" : "var(--color-go-text)"};
   letter-spacing: 0.04em;
 `;
-
-/** A part's title in the node's parts list: wraps like the node's description rather than truncating, so a long stock title stays readable. */
-export const PartName = styled.span`
-  flex: 1;
-  min-width: min(12ch, 100%);
-  overflow-wrap: anywhere;
-  color: var(--color-text-primary);
-`;

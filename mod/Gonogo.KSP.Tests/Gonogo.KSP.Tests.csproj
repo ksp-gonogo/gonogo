@@ -394,7 +394,6 @@
     <Compile Include="..\Gonogo.KSP\CommsModelPresence.cs" />
     <Compile Include="..\Gonogo.KSP\DevCommsOverride.cs" />
     <Compile Include="..\Gonogo.KSP\CommsCoreUplink.cs" />
-    <Compile Include="..\Gonogo.KSP\ConnectivitySettle.cs" />
     <Compile Include="..\Gonogo.KSP\CommsDelayModSettings.cs" />
     <Compile Include="..\Gonogo.KSP\GonogoGameParameters.cs" />
     <!-- ConfigNodeSettingsStore.cs is the settings document's one translation

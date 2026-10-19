@@ -493,36 +493,6 @@ namespace Sitrep.Host
                     ["scienceCost"] = GetDouble(node, "scienceCost"),
                     ["unlocked"] = GetBool(node, "unlocked"),
                     ["parents"] = parents,
-                    ["parts"] = BuildTechParts(node),
-                });
-            }
-
-            return result;
-        }
-
-        private static List<object?> BuildTechParts(IDictionary<string, object?> node)
-        {
-            var result = new List<object?>();
-            if (!node.TryGetValue("parts", out var rawParts) || rawParts is not IEnumerable<object?> parts)
-            {
-                return result;
-            }
-
-            foreach (var rawPart in parts)
-            {
-                if (rawPart is not IDictionary<string, object?> part)
-                {
-                    continue;
-                }
-
-                result.Add(new Dictionary<string, object?>
-                {
-                    ["name"] = GetString(part, "name"),
-                    ["title"] = GetString(part, "title"),
-                    ["manufacturer"] = GetString(part, "manufacturer"),
-                    ["category"] = GetString(part, "category"),
-                    ["entryCost"] = GetDouble(part, "entryCost"),
-                    ["purchased"] = GetBool(part, "purchased"),
                 });
             }
 
