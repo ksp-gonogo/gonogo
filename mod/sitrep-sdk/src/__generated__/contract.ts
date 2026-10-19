@@ -833,10 +833,8 @@ export interface CareerTech
 	*/
 	unlockedCount: Value<"count">;
 	/**
-	* The ids of the unlocked tech nodes, in no particular order. Derived from the
-	* loaded parts (each part's `TechRequired` whose tech is available), so a node
-	* that unlocks no part never appears here even when it is researched;
-	* `CareerTechNode.unlocked` is the per-node reading.
+	* The ids of the unlocked tech nodes, in no particular order: exactly the
+	* nodes of `CareerTech.nodes` whose `CareerTechNode.unlocked` is true.
 	*/
 	unlockedIds: string[];
 	/**
@@ -879,6 +877,34 @@ export interface CareerTechNode
 	* client, from these edges and each parent's `CareerTechNode.unlocked`.
 	*/
 	parents: string[];
+	/**
+	* The parts researching the node unlocks, in the order the game loads them.
+	* Empty for a node that unlocks no part.
+	*/
+	parts: CareerTechPart[];
+}
+/**
+* One part in `CareerTechNode.parts`.
+*
+* @category Career
+*/
+export interface CareerTechPart
+{
+	/** The part's internal name, KSP's `AvailablePart.name`. */
+	name?: string | null;
+	/** The part's display title. */
+	title?: string | null;
+	/** The part's manufacturer, as the part's config names it. */
+	manufacturer?: string | null;
+	/** The part's category (e.g. `"Propulsion"`, `"Pods"`). */
+	category?: string | null;
+	/** The funds it costs to purchase the part once its node is researched. */
+	entryCost?: Value<"funds"> | null;
+	/**
+	* Whether the save has purchased the part, which is what makes it placeable
+	* once its node is researched.
+	*/
+	purchased?: boolean | null;
 }
 /**
 * One declared channel's emission counters, plus the four facts about the

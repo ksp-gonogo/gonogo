@@ -248,6 +248,18 @@ namespace Sitrep.Host.Tests
                                     ["scienceCost"] = 5.0,
                                     ["unlocked"] = true,
                                     ["parents"] = new List<object?> { "start" },
+                                    ["parts"] = new List<object?>
+                                    {
+                                        new Dictionary<string, object?>
+                                        {
+                                            ["name"] = "liquidEngine",
+                                            ["title"] = "LV-T30 Reliant",
+                                            ["manufacturer"] = "Reaction Motors",
+                                            ["category"] = "Propulsion",
+                                            ["entryCost"] = 3000.0,
+                                            ["purchased"] = false,
+                                        },
+                                    },
                                 },
                                 new Dictionary<string, object?>
                                 {
@@ -358,6 +370,17 @@ namespace Sitrep.Host.Tests
             Assert.Equal("basicRocketry", Assert.Single(generalRocketryParents));
             var ids = Assert.IsType<List<object?>>(tech["unlockedIds"]);
             Assert.Equal(2, ids.Count);
+
+            var basicRocketry = Assert.IsType<Dictionary<string, object?>>(techNodes[1]);
+            var part = Assert.IsType<Dictionary<string, object?>>(
+                Assert.Single(Assert.IsType<List<object?>>(basicRocketry["parts"])));
+            Assert.Equal("liquidEngine", part["name"]);
+            Assert.Equal("LV-T30 Reliant", part["title"]);
+            Assert.Equal("Reaction Motors", part["manufacturer"]);
+            Assert.Equal("Propulsion", part["category"]);
+            Assert.Equal(3000.0, part["entryCost"]);
+            Assert.Equal(false, part["purchased"]);
+            Assert.Empty(Assert.IsType<List<object?>>(start["parts"]));
 
             // Serializes cleanly through the REAL production path.
             var streamData = new StreamData<object?>

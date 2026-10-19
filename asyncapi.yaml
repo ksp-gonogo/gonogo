@@ -10124,10 +10124,8 @@ components:
             type: string
             x-sitrep-unit: id
           description: |-
-            The ids of the unlocked tech nodes, in no particular order. Derived from the
-            loaded parts (each part's `TechRequired` whose tech is available), so a node
-            that unlocks no part never appears here even when it is researched;
-            `CareerTechNode.unlocked` is the per-node reading.
+            The ids of the unlocked tech nodes, in no particular order: exactly the
+            nodes of `CareerTech.nodes` whose `CareerTechNode.unlocked` is true.
         nodes:
           type: array
           items:
@@ -10140,6 +10138,7 @@ components:
       description: One node in `CareerTech.nodes`.
       required:
         - parents
+        - parts
       properties:
         id:
           type:
@@ -10189,6 +10188,55 @@ components:
             The tech ids of the node's prerequisites, from the tree's parent edges.
             Empty for a root node. Whether a locked node is researchable is left to the
             client, from these edges and each parent's `CareerTechNode.unlocked`.
+        parts:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerTechPart"
+          description: |-
+            The parts researching the node unlocks, in the order the game loads them.
+            Empty for a node that unlocks no part.
+    CareerTechPart:
+      type: object
+      description: One part in `CareerTechNode.parts`.
+      properties:
+        name:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: The part's internal name, KSP's `AvailablePart.name`.
+        title:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The part's display title.
+        manufacturer:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The part's manufacturer, as the part's config names it.
+        category:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The part's category (e.g. `"Propulsion"`, `"Pods"`).
+        entryCost:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: funds
+          description: The funds it costs to purchase the part once its node is researched.
+        purchased:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether the save has purchased the part, which is what makes it placeable
+            once its node is researched.
     CatalogContact:
       type: integer
       description: |-

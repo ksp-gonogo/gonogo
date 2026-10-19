@@ -90,7 +90,7 @@ namespace Sitrep.Core.Tests
             // BuildStrategies/BuildTech fill its four groups. Those four ARE
             // graded; the wrapper and the nested rows under them are not.
             "CareerStatus", "CareerFacility",
-            "CareerContract", "CareerContractParameter", "CareerStrategy", "CareerTechNode",
+            "CareerContract", "CareerContractParameter", "CareerStrategy", "CareerTechNode", "CareerTechPart",
             // currency.<guid>.science: CurrencyEventBuilder.BuildScienceCredit
             // and its reputation sibling return the flattened dictionary that
             // CurrencyEventUplink publishes.

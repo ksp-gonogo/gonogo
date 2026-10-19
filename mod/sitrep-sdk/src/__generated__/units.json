@@ -211,6 +211,14 @@
       "title": "text",
       "unlocked": "flag"
     },
+    "CareerTechPart": {
+      "category": "text",
+      "entryCost": "funds",
+      "manufacturer": "text",
+      "name": "id",
+      "purchased": "flag",
+      "title": "text"
+    },
     "CatalogEntry": {
       "bodyIndex": "id",
       "commsConnected": "flag",
@@ -2314,6 +2322,9 @@
     },
     "CareerTech": {
       "nodes": "CareerTechNode[]"
+    },
+    "CareerTechNode": {
+      "parts": "CareerTechPart[]"
     },
     "CatalogEntry": {
       "orbit": "OrbitEntry"
