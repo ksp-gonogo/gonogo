@@ -5445,6 +5445,29 @@ export interface PartsPower
 	* are not included. Null when no finite total could be read.
 	*/
 	totalProductionEc?: Value<"units/s"> | null;
+	/**
+	* How fast the vessel's stored electric charge is changing, in EC per second:
+	* negative while the batteries drain, positive while they charge. Measured
+	* from the stored amount over the last ten seconds of game time, so it
+	* includes every draw and every source whatever reports it. Null while it
+	* cannot be known: with the batteries full or empty the stored amount does not
+	* move, and for ten seconds after leaving either, after a change of vessel, a
+	* staging or docking, or a revert. Null is not zero.
+	*/
+	netChargeRateEc?: Value<"units/s"> | null;
+	/**
+	* The vessel's total electric-charge draw in EC per second, as a positive
+	* figure: what the itemised producers on `vessel.parts` add, less
+	* `PartsPower.netChargeRateEc`. It counts draw the parts do not itemise. Null
+	* whenever `PartsPower.netChargeRateEc` is null.
+	*/
+	totalConsumptionEc?: Value<"units/s"> | null;
+	/**
+	* The part of `PartsPower.totalConsumptionEc` that no part on `vessel.parts`
+	* reports a draw for, in EC per second: the total less the itemised consumers,
+	* never below zero. Null whenever `PartsPower.netChargeRateEc` is null.
+	*/
+	unattributedConsumptionEc?: Value<"units/s"> | null;
 }
 /**
 * One entry in the `robotics.servos` Topic payload, a single Breaking Ground

@@ -4,6 +4,7 @@ import {
   PerfBudget,
 } from "@ksp-gonogo/core";
 import { act, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
   renderWidget,
@@ -71,6 +72,47 @@ describe("PowerSystems tiny mode", () => {
     await waitFor(() => expect(essentialTexts()[0]).toMatch(/NET\s*3\s*EC\/s/));
     expect(essentialTexts()[0]).toContain("EC NET");
     await expectNoA11yViolations(container);
+  });
+
+  it("draws the measured net, to the decimal that shows a small draw as non-zero", async () => {
+    const { fixture } = mountTiny();
+    act(() => {
+      fixture.emit("vessel.parts", {
+        parts: [part("1", EC(-0.028)), part("2", {})],
+      });
+    });
+    act(() => {
+      fixture.emit("parts.power", {
+        totalProductionEc: 0,
+        netChargeRateEc: -0.0687,
+        totalConsumptionEc: 0.0687,
+        unattributedConsumptionEc: 0.0407,
+      });
+    });
+    await waitFor(() =>
+      expect(essentialTexts()[0]).toMatch(/NET\s*-0\.07\s*EC\/s/),
+    );
+    await act(async () => {});
+  });
+
+  it("draws the net as unknown while the stored charge is not moving", async () => {
+    const { fixture } = mountTiny();
+    act(() => {
+      fixture.emit("vessel.parts", {
+        parts: [part("1", EC(-0.028)), part("2", {})],
+      });
+    });
+    act(() => {
+      fixture.emit("parts.power", {
+        totalProductionEc: 0,
+        netChargeRateEc: null,
+        totalConsumptionEc: null,
+        unattributedConsumptionEc: null,
+      });
+    });
+    await waitFor(() => expect(essentialTexts()[0]).toContain(NULL_DISPLAY));
+    expect(essentialTexts()[0]).not.toContain("EC/s");
+    await act(async () => {});
   });
 
   it("says no flow when nothing on the vessel reports one", async () => {

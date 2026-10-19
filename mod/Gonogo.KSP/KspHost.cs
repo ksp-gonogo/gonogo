@@ -321,6 +321,7 @@ namespace Gonogo.KSP
                         // vessel.* group above.
                         TryBuildGroup(values, "science", () => BuildScience(activeVessel));
                         TryBuildGroup(values, "parts", () => BuildParts(activeVessel));
+                        AttachChargeRate(values, vesselEntry, activeVessel, ut);
 
                         // target.available -- everything the active vessel
                         // could target right now (generic ITargetable
@@ -6474,6 +6475,37 @@ namespace Gonogo.KSP
         /// and robotics state. Same "own try per sub-group" discipline as
         /// <see cref="BuildScience"/>.
         /// </summary>
+        private readonly ChargeRateEstimator _chargeRate = new ChargeRateEstimator();
+
+        /// <summary>
+        /// Adds the rate the stored electric charge is changing at to the <c>parts</c> group, null when the
+        /// estimator cannot know it. A vessel with no electric charge storage resets the estimator.
+        /// </summary>
+        private void AttachChargeRate(Dictionary<string, object?> values, Dictionary<string, object?> vesselEntry, Vessel vessel, double ut)
+        {
+            if (!values.TryGetValue("parts", out var rawParts) || rawParts is not Dictionary<string, object?> parts)
+            {
+                return;
+            }
+
+            double? rate = null;
+            if (vesselEntry.TryGetValue("resources", out var rawResources)
+                && rawResources is Dictionary<string, object?> resources
+                && resources.TryGetValue("ElectricCharge", out var rawEc)
+                && rawEc is Dictionary<string, object?> ec
+                && ec["current"] is double current
+                && ec["max"] is double max)
+            {
+                rate = _chargeRate.Observe(vessel.id.ToString(), ut, current, max);
+            }
+            else
+            {
+                _chargeRate.Observe(vessel.id.ToString(), ut, double.NaN, 0);
+            }
+
+            parts["chargeRateEc"] = rate;
+        }
+
         private static Dictionary<string, object?> BuildParts(Vessel vessel)
         {
             var entry = new Dictionary<string, object?>();

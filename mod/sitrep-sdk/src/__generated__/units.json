@@ -985,7 +985,10 @@
       "unratedProcess": "flag"
     },
     "PartsPower": {
-      "totalProductionEc": "units/s"
+      "netChargeRateEc": "units/s",
+      "totalConsumptionEc": "units/s",
+      "totalProductionEc": "units/s",
+      "unattributedConsumptionEc": "units/s"
     },
     "PayloadMeta": {
       "source": "id"
@@ -1901,7 +1904,10 @@
       "succeeded": "flag"
     },
     "parts.power": {
-      "totalProductionEc": "units/s"
+      "netChargeRateEc": "units/s",
+      "totalConsumptionEc": "units/s",
+      "totalProductionEc": "units/s",
+      "unattributedConsumptionEc": "units/s"
     },
     "recovery.hasRecent": {
       "recent": "flag"
