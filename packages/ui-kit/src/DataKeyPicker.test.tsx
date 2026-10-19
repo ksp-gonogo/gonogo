@@ -355,3 +355,20 @@ describe("DataKeyPicker accessibility", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe("DataKeyPicker sizing inside a control row", () => {
+  it("grows to take the free width of a flex row and keeps a readable minimum", () => {
+    render(
+      <div style={{ display: "flex" }}>
+        <DataKeyPicker keys={KEYS} value={null} onChange={() => undefined} />
+        <span>Line</span>
+      </div>,
+    );
+    const input = screen.getByRole("combobox");
+    openDropdown(input);
+    const container = input.parentElement as HTMLElement;
+    expect(getComputedStyle(container).flexGrow).toBe("1");
+    const list = screen.getByRole("listbox");
+    expect(getComputedStyle(list).minWidth).toBe("16rem");
+  });
+});

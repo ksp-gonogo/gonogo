@@ -314,6 +314,7 @@ const Dropdown = styled.div<{ $placement: "below" | "above" }>`
       : "top: calc(100% + 2px);"}
   left: 0;
   right: 0;
+  min-width: 16rem;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-regular);

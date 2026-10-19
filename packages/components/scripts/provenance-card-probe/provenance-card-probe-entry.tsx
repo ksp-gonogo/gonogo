@@ -21,6 +21,7 @@ import {
   registerAugment,
   registerComponent,
   uplinkAdditions,
+  uplinkOwner,
 } from "@ksp-gonogo/core";
 import { createRoot, type Root } from "react-dom/client";
 import styled from "styled-components";
@@ -78,6 +79,9 @@ function WidgetCard({ def }: { def: ComponentDefinition }) {
     <ListItem>
       <ItemName>{def.name}</ItemName>
       <ItemDesc>{def.description}</ItemDesc>
+      {uplinkOwner(def) && (
+        <UplinkAddLine>from {uplinkOwner(def)?.name}</UplinkAddLine>
+      )}
       {uplinkAdditions(def).map((u) => (
         <UplinkAddLine key={u.id}>+ {u.name}</UplinkAddLine>
       ))}

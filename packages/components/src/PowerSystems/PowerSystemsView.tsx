@@ -2,7 +2,6 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { useTelemetry } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
 import { readingOf } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
 import { VisuallyHidden } from "@ksp-gonogo/ui";
 import {
   getWidgetShape,
@@ -18,6 +17,7 @@ import { useMemo } from "react";
 import { heldGrade } from "../shared/heldGrade";
 import { magnitudeOf } from "../shared/magnitude";
 import { ContributionSection } from "./ContributionSection";
+import { netRate } from "./chargeRate";
 import type { PowerSystemsConfig } from "./config";
 import { type NetTone, netToneWithUnrated, splitCamel } from "./flow";
 import { PowerTotals } from "./PowerTotals";
@@ -185,7 +185,9 @@ export function PowerSystemsComponent({
                 <>
                   {net >= 0 ? "+" : ""}
                   <Unit
-                    value={readingOf(partsReading, () => value("units/s", net))}
+                    value={readingOf(partsReading, () =>
+                      netRate(resource, net),
+                    )}
                     decimals={2}
                   />
                 </>
@@ -239,7 +241,7 @@ export function PowerSystemsComponent({
             <PowerTotals
               netFigure={
                 flowMeasured
-                  ? readingOf(partsReading, () => value("units/s", net))
+                  ? readingOf(partsReading, () => netRate(resource, net))
                   : null
               }
               net={net}

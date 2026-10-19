@@ -1608,6 +1608,8 @@ const PanelStickyTop = styled.div`
   flex-direction: column;
   /* Never shrink, or a short tile crushes the band and the title. */
   flex-shrink: 0;
+  /* Opaque: the scroll glow only masks the first strip of the header, so rows scrolled under a taller title would show through. */
+  background: var(--color-surface-panel);
 
   /* The band is this unit's own first row, so the rail frame does not pull up into container padding. */
   & > [data-panel-rail-frame] {
@@ -1644,7 +1646,6 @@ const PanelFilterSlot = styled.div`
 
 /* The standard header inside the sticky unit. The unit's negative margins cancel the body's inset for the header alone. */
 const PanelStickyHeader = styled(PanelHeader)`
-  /* Transparent: the panel glow under it is its backing. */
   /* The rail band above is this header's top inset. */
   padding-top: 0;
   /* The one header that reads over scrolled content gets a title a notch brighter than the dim chrome token. */

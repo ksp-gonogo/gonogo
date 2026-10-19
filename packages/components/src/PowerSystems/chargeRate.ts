@@ -1,4 +1,4 @@
-import { registerUnit } from "@ksp-gonogo/sitrep-sdk";
+import { registerUnit, value } from "@ksp-gonogo/sitrep-sdk";
 
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface UnitDeclarations {
@@ -23,3 +23,10 @@ registerUnit({
   ratio: 1,
   word: "electric charge per second",
 });
+
+/** A resource's net rate as a figure: electric charge in EC/s, any other resource in units per second. */
+export function netRate(resource: string, net: number) {
+  return resource === "ElectricCharge"
+    ? value("EC/s", net)
+    : value("units/s", net);
+}
