@@ -509,6 +509,8 @@ namespace Sitrep.Host
 
         public void OnTimelineReset(Action reset) => _timelineResetListeners.Add(reset);
 
+        public bool TimelineResetChangedSave { get; private set; }
+
         private readonly List<Action<string>> _craftReleasedListeners = new List<Action<string>>();
 
         public void OnCraftReleased(Action<string> released) => _craftReleasedListeners.Add(released);

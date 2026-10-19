@@ -807,6 +807,8 @@ namespace Sitrep.Host.Tests.Comms
         {
             public List<string> Calls { get; } = new List<string>();
 
+            public bool TimelineResetChangedSave => false;
+
             public void RecordCraftState(string vesselId, CraftState state, double ut)
             {
                 // The engine notes a craft present as it records its state.

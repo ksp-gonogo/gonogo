@@ -59,11 +59,11 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// A save that carried nothing a centre had heard, loaded where the list cannot be
-        /// read, does not mean the game holds no craft. The screen is sent no list, which
-        /// reads as unknown, where an empty list would say there are none.
+        /// read, does not mean the game holds no craft. The screen is told the craft it
+        /// already knew of as last known, never an empty list that would say there are none.
         /// </summary>
         [Fact]
-        public async Task AScreenIsSentNoListWhenTheSaveCarriedNothingAndTheListCannotBeRead()
+        public async Task AScreenIsToldTheCraftItKnewWhenTheSaveCarriedNothingAndTheListCannotBeRead()
         {
             await using var world = await ReckonedVantageWorld.StartAsync();
             foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
@@ -82,8 +82,36 @@ namespace Sitrep.Host.IntegrationTests
             await using var seated = client;
             world.Tick(702.0);
             world.Tick(702.0);
-            await client.AssertNoMessageArrivesAsync(TestBudgets.Quiet);
-            Assert.Null(view.Vessels);
+            await ReckonedVantageWorld.SettleAsync(client, view);
+            Assert.NotNull(view.Vessel(ScriptedContactGame.RelayGuid));
+        }
+
+        /// <summary>
+        /// A game loaded in the same save from a record that holds nothing of a
+        /// craft the centre had already heard of leaves that craft listed, as
+        /// last known, rather than blank until its word arrives again.
+        /// </summary>
+        [Fact]
+        public async Task ACraftACentreKnewStaysListedAfterALoadWhoseSaveHeldNothingOfIt()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
+            {
+                world.Tick(ut);
+            }
+            await world.SettleAsync();
+
+            world.Engine.NoteGameLoaded(new DeliverySnapshot(), new HeardSnapshot(new HeardAtCentre[0]));
+            world.Tick(702.0);
+            world.Tick(703.0);
+
+            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.CatalogTopic);
+            await using var seated = client;
+            world.Tick(704.0);
+            world.Tick(705.0);
+            await ReckonedVantageWorld.SettleAsync(client, view);
+
+            Assert.True(view.Vessel(ScriptedContactGame.RelayGuid) != null, "a craft the centre knew of dropped off its list across a load");
         }
 
         [Fact]

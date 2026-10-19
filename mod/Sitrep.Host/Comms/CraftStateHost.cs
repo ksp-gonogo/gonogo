@@ -114,6 +114,9 @@ namespace Sitrep.Host.Comms
         /// <summary>Calls <paramref name="reset"/> whenever the game's timeline is rewound or replaced, after everything recorded ahead of it has been dropped.</summary>
         void OnTimelineReset(Action reset);
 
+        /// <summary>Whether the reset last announced to <see cref="OnTimelineReset"/> moved to a different save folder, so that nothing known before it belongs to the game now loaded.</summary>
+        bool TimelineResetChangedSave { get; }
+
         /// <summary>
         /// Calls <paramref name="released"/> with a craft's bare guid once the craft
         /// has left the game and the last of what it sent has reached every
