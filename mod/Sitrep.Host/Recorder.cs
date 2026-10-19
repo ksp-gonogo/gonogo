@@ -39,6 +39,8 @@ namespace Sitrep.Host
         private int _snapshotCount;
         private int _eventCount;
 
+        private RecordingStreamWriter? _stream;
+
         public Recorder(IKspHost host, int schemaVersion = RecordedSessionCodec.CurrentSchemaVersion)
         {
             _host = host ?? throw new ArgumentNullException(nameof(host));
@@ -105,7 +107,7 @@ namespace Sitrep.Host
         /// </summary>
         public void Record(double ut, KspSnapshot snapshot)
         {
-            _session.Entries.Add(new RecordedEntry
+            Append(new RecordedEntry
             {
                 T = ut,
                 Kind = "snapshot",
@@ -119,9 +121,20 @@ namespace Sitrep.Host
             _snapshotCount++;
         }
 
+        private void Append(RecordedEntry entry)
+        {
+            var stream = _stream;
+            if (stream != null)
+            {
+                stream.Enqueue(entry);
+                return;
+            }
+            _session.Entries.Add(entry);
+        }
+
         private void OnLifecycle(KspLifecycleEvent evt)
         {
-            _session.Entries.Add(new RecordedEntry
+            Append(new RecordedEntry
             {
                 T = evt.Ut,
                 Kind = "event",
@@ -135,6 +148,41 @@ namespace Sitrep.Host
             });
             _eventCount++;
         }
+
+        /// <summary>
+        /// Starts appending to <paramref name="path"/> as a line-delimited file, from a writer
+        /// thread that drains every <paramref name="flushInterval"/>. Entries already held in
+        /// <see cref="Session"/> are written first and released, and every later entry goes
+        /// to the file alone, so <see cref="Session"/> stops growing and a flush costs what
+        /// was recorded since the last one. <see cref="RecordedSessionCodec.Parse"/> reads the file.
+        /// </summary>
+        public void StartStreaming(string path, TimeSpan flushInterval)
+        {
+            if (_stream != null)
+            {
+                throw new InvalidOperationException("The recorder is already streaming.");
+            }
+
+            var writer = new RecordingStreamWriter(path, _session.SchemaVersion, _session.StartUt, flushInterval);
+            foreach (var held in _session.Entries)
+            {
+                writer.Enqueue(held);
+            }
+            _session.Entries.Clear();
+            _stream = writer;
+        }
+
+        /// <summary>Bytes written to the streaming file so far, or 0 when not streaming.</summary>
+        public long StreamedBytes => _stream?.BytesWritten ?? 0;
+
+        /// <summary>Writes everything queued so far to the streaming file now. Does nothing when not streaming.</summary>
+        public void FlushStream()
+        {
+            _stream?.Drain();
+        }
+
+        /// <summary>Entries the last streaming drain wrote, for tests of the flush cost.</summary>
+        internal int LastDrainCount => _stream?.LastDrainCount ?? 0;
 
         /// <summary>Serializes <see cref="Session"/> to UTF-8 JSON bytes via <see cref="RecordedSessionCodec"/>.</summary>
         public byte[] ToBytes()
@@ -158,6 +206,8 @@ namespace Sitrep.Host
             }
             _disposed = true;
             _host.Lifecycle -= OnLifecycle;
+            _stream?.Dispose();
+            _stream = null;
         }
     }
 }

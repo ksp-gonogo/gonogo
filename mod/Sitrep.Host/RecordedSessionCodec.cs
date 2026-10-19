@@ -35,16 +35,113 @@ namespace Sitrep.Host
             return sb.ToString();
         }
 
+        /// <summary>
+        /// The first line of a line-delimited recording: the session's header, with no entries.
+        /// Each <see cref="WriteEntryLine"/> after it is one entry, so a recorder appends to the
+        /// file instead of rewriting it.
+        /// </summary>
+        public static string WriteHeaderLine(int schemaVersion, double startUt)
+        {
+            var sb = new StringBuilder();
+            sb.Append('{');
+            AppendField(sb, "schemaVersion", first: true);
+            JsonWriter.AppendInteger(sb, schemaVersion);
+            AppendField(sb, "startUt");
+            JsonWriter.AppendNumber(sb, startUt);
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        /// <summary>One entry as a single line of JSON, with no trailing newline.</summary>
+        public static string WriteEntryLine(RecordedEntry entry)
+        {
+            var sb = new StringBuilder();
+            AppendEntry(sb, entry);
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Reads either shape: the whole-document form <see cref="Write"/> produces, or the
+        /// line-delimited form a streaming recorder appends (a header line, then one entry per line).
+        /// A trailing partial line, left by a crash mid-append, is ignored.
+        /// </summary>
         public static RecordedSession Parse(string json)
         {
-            var raw = ExpectObject(JsonReader.Parse(json));
+            if (TryParseLines(json, out var lined))
+            {
+                return lined;
+            }
+            return ParseDocument(json);
+        }
 
+        private static bool TryParseLines(string text, out RecordedSession session)
+        {
+            session = null!;
+            var firstEnd = text.IndexOf('\n');
+            if (firstEnd < 0)
+            {
+                return false;
+            }
+
+            Dictionary<string, object?> header;
+            try
+            {
+                header = ExpectObject(JsonReader.Parse(text.Substring(0, firstEnd)));
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            if (header.ContainsKey("entries"))
+            {
+                return false;
+            }
+
+            var schemaVersion = CheckSchema(header);
+            var raw = new List<object?>();
+            var lines = text.Substring(firstEnd + 1).Split('\n');
+            for (var i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i].Trim();
+                if (line.Length == 0)
+                {
+                    continue;
+                }
+                try
+                {
+                    raw.Add(JsonReader.Parse(line));
+                }
+                catch (Exception) when (i == lines.Length - 1)
+                {
+                    break;
+                }
+            }
+
+            session = new RecordedSession
+            {
+                SchemaVersion = schemaVersion,
+                StartUt = RequireDouble(header, "startUt"),
+                Entries = ParseEntries(raw),
+            };
+            return true;
+        }
+
+        private static int CheckSchema(Dictionary<string, object?> raw)
+        {
             var schemaVersion = (int)RequireDouble(raw, "schemaVersion");
             if (schemaVersion != CurrentSchemaVersion)
             {
                 throw new FormatException(
                     $"Unsupported RecordedSession schemaVersion {schemaVersion}: this build only understands schemaVersion {CurrentSchemaVersion}.");
             }
+            return schemaVersion;
+        }
+
+        private static RecordedSession ParseDocument(string json)
+        {
+            var raw = ExpectObject(JsonReader.Parse(json));
+
+            var schemaVersion = CheckSchema(raw);
 
             return new RecordedSession
             {

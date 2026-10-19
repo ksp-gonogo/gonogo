@@ -53,14 +53,10 @@ namespace Gonogo.KSP
         // joins through the host's share code instead of this port.
         private const string BindUri = "ws://0.0.0.0:8090";
 
-        // Periodic recording flush. Writing only at quit means a serialization
-        // bug surfaces only at quit, by which point the whole session is lost.
-        // Flushing every ~60s of REAL (wall-clock) time - not UT - means the
-        // file exists and grows almost immediately, a bad serialize throws on
-        // the FIRST flush (visible in KSP.log within a minute, not at quit),
-        // and a crash mid-session only loses the last partial interval instead
-        // of the whole flight. Wall-clock, gated via FlushCadence, is
-        // deliberately steady under time-warp.
+        // How often, in real (wall-clock) seconds, the recording's progress is
+        // logged. The file itself is appended to by the recorder's writer thread
+        // about once a second, so a crash loses only that last second, and a
+        // serialization fault shows in KSP.log within a minute rather than at quit.
         private const double FlushIntervalSeconds = 60.0;
 
         /// <summary>The dev-capture recorder's opt-in row in the settings document.</summary>
@@ -89,6 +85,7 @@ namespace Gonogo.KSP
         // drives the live stream is guarded on `_recorder != null`); this flag
         // gates only the Record + flush calls, never the live emit.
         private bool _recordingEnabled;
+        private bool _recordingStreaming;
 
         // The settings document, read once at startup and the authority for the
         // rest of the process. Held so a later surface can stage and commit
@@ -619,6 +616,7 @@ namespace Gonogo.KSP
                     var snapshot = _host.Sample();
                     if (_recordingEnabled)
                     {
+                        EnsureRecordingStream();
                         _recorder.Record(snapshot.Ut, snapshot);
                     }
                     return snapshot;
@@ -661,9 +659,8 @@ namespace Gonogo.KSP
                 GonogoLog.Error("Error stopping server", ex);
             }
 
-            // The final save is just the LAST flush, to the same fixed path
-            // every periodic flush already used.
-            FlushRecording();
+            // Disposing the recorder drains what its writer still holds.
+            FlushRecording(final: true);
 
             try
             {
@@ -676,33 +673,49 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Re-writes the current session to <see cref="_sessionPath"/> in
-        /// full (sessions are small, so a full re-write per flush is fine -
-        /// incremental append is a future optimization if sessions grow
-        /// large) and logs the result. This is the in-game confirmation a
-        /// user checks <c>KSP.log</c> for: on success, growing counts +
-        /// file size prove recording is alive; on failure, the exception is
-        /// logged immediately (within one flush interval, not at quit) but
-        /// swallowed here so a bad flush never crashes the addon or halts
-        /// sampling - the next periodic flush simply retries.
+        /// Logs how much the recorder has appended to <see cref="_sessionPath"/> so far. The
+        /// recorder's own writer thread does the appending, so nothing here touches the disk
+        /// and the cost does not grow with the session. In KSP.log, growing counts and size
+        /// prove recording is alive.
         /// </summary>
-        private void FlushRecording()
+        private void EnsureRecordingStream()
         {
-            if (!_recordingEnabled || _recorder == null || _sessionPath == null)
+            if (_recordingStreaming || _recorder == null || _sessionPath == null)
             {
                 return;
             }
 
             try
             {
-                _recorder.Save(_sessionPath);
-                var sizeKb = new FileInfo(_sessionPath).Length / 1024.0;
+                _recorder.StartStreaming(_sessionPath, TimeSpan.FromSeconds(1));
+                _recordingStreaming = true;
+            }
+            catch (Exception ex)
+            {
+                _recordingEnabled = false;
+                GonogoLog.Error("recording could not start", ex);
+            }
+        }
+
+        private void FlushRecording(bool final = false)
+        {
+            if (!_recordingStreaming || _recorder == null || _sessionPath == null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (final)
+                {
+                    _recorder.Dispose();
+                }
                 GonogoLog.Info("recording", string.Format(
                     "{0} snapshots, {1} events → {2} ({3:F1} KB)",
                     _recorder.SnapshotCount,
                     _recorder.EventCount,
                     Path.GetFileName(_sessionPath),
-                    sizeKb));
+                    _recorder.StreamedBytes / 1024.0));
             }
             catch (Exception ex)
             {
