@@ -817,6 +817,23 @@ const WIDGETS: WidgetRenderConfig[] = [
         clicks: [{ selector: '[data-launch-action="arm-revert"]' }],
         forFixtures: ["in-flight-at-12-km", "pad-occupied"],
       },
+      // A long craft list narrowed by typing into the search field.
+      {
+        name: "craft-search-7x14",
+        w: 7,
+        h: 14,
+        fills: [{ selector: 'input[type="search"]', text: "station" }],
+        forFixtures: ["pre-launch-long-craft-list"],
+      },
+      // A narrowed list with its first craft picked: the crew and the launch control open under it.
+      {
+        name: "craft-search-picked-7x14",
+        w: 7,
+        h: 14,
+        fills: [{ selector: 'input[type="search"]', text: "station" }],
+        clicks: [{ selector: "[data-ship-row]" }],
+        forFixtures: ["pre-launch-long-craft-list"],
+      },
       // The crew grid and the launch control only render once a craft is
       // picked, so click the first craft row under the open pad to reveal
       // them. The three crew fixtures are here for the same reason: each is a
@@ -829,6 +846,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         clicks: [{ selector: "[data-ship-row]" }],
         forFixtures: [
           "pre-launch-mixed",
+          "pre-launch-long-craft-list",
           "crew-mixed-standings",
           "crew-all-available",
           "crew-roster-unread",

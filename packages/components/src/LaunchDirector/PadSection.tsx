@@ -21,7 +21,6 @@ import { ShipPicker } from "./ShipPicker";
 import { launchFacilityArg, type SavedShip } from "./ships";
 import type { LaunchDirectorSlotContext } from "./slots";
 import {
-  CraftAndCrew,
   EmptyNote,
   LaunchControls,
   PadActions,
@@ -55,8 +54,6 @@ interface PadSectionProps {
   funds: number | undefined;
   /** The tile's height in grid rows; decides whether the crew grid stands open. */
   rows: number;
-  /** Wide and short, so the pad's craft and crew sit side by side. */
-  letterbox: boolean;
   /** Too narrow for a pad's name and its occupancy on one line, so the occupancy sits beneath. */
   narrow: boolean;
   launchCmd: CommandButtonHandle & Pick<UseCommandResult, "check">;
@@ -168,7 +165,6 @@ function OpenPad({
   onToggleCrew,
   fundsAvailable,
   rows,
-  letterbox,
   launchCmd,
   recoverCmd,
   revertEditorCmd,
@@ -222,38 +218,38 @@ function OpenPad({
     .filter((k) => crewReading(k) === "available" && selectedCrew.has(k.name))
     .map((k) => k.name);
   return (
-    <CraftAndCrew $sideBySide={letterbox && ship != null}>
-      <ShipPicker
-        padCraft={padCraft}
-        selectedShip={selectedShip}
-        onSelectShip={onSelectShip}
-        fundsAvailable={fundsAvailable}
-      />
-      {ship && (
-        <PadColumn>
-          <CrewPicker
-            crew={crew}
-            selectedCrew={selectedCrew}
-            manifestSize={manifest.length}
-            onToggleCrew={onToggleCrew}
-            rows={rows}
-          />
-          <LaunchControls>
-            <LaunchAction
-              handle={launchCmd}
-              args={{
-                shipName: ship.file,
-                facility: launchFacilityArg(ship),
-                site: site.name,
-                crew: manifest,
-              }}
-              shipName={ship.name}
-              crewCount={manifest.length}
+    <ShipPicker
+      padCraft={padCraft}
+      selectedShip={selectedShip}
+      onSelectShip={onSelectShip}
+      fundsAvailable={fundsAvailable}
+      detail={
+        ship && (
+          <PadColumn>
+            <CrewPicker
+              crew={crew}
+              selectedCrew={selectedCrew}
+              manifestSize={manifest.length}
+              onToggleCrew={onToggleCrew}
+              rows={rows}
             />
-          </LaunchControls>
-        </PadColumn>
-      )}
-    </CraftAndCrew>
+            <LaunchControls>
+              <LaunchAction
+                handle={launchCmd}
+                args={{
+                  shipName: ship.file,
+                  facility: launchFacilityArg(ship),
+                  site: site.name,
+                  crew: manifest,
+                }}
+                shipName={ship.name}
+                crewCount={manifest.length}
+              />
+            </LaunchControls>
+          </PadColumn>
+        )
+      }
+    />
   );
 }
 

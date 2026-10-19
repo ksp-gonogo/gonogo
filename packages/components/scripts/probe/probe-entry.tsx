@@ -694,6 +694,22 @@ async function mountInto(
   // is fully committed before the click handlers run. Each click waits
   // `awaitMs` (default 100ms) so the resulting state change has time
   // to render before the next click / screenshot.
+  if (payload.fills && payload.fills.length > 0) {
+    const valueSetter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )?.set;
+    for (const f of payload.fills) {
+      const el = findIn(root, f.selector);
+      if (!(el instanceof HTMLInputElement) || !valueSetter) {
+        throw new Error(`Probe: fill selector "${f.selector}" is not an input`);
+      }
+      valueSetter.call(el, f.text);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      await settle(f.awaitMs ?? 100);
+    }
+  }
+
   if (payload.clicks && payload.clicks.length > 0) {
     for (const c of payload.clicks) {
       const el = findIn(root, c.selector);

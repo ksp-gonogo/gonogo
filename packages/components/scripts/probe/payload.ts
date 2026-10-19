@@ -52,6 +52,13 @@ export interface ProbePayload {
    */
   clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
   /**
+   * Optional synthetic typing into a text field, dispatched before the clicks so
+   * a mode can narrow a list and then pick from what is left. Each entry sets the
+   * matching input's value the way a keystroke does, so a controlled field
+   * re-renders. Missing selectors throw, the same as a click's.
+   */
+  fills?: ReadonlyArray<{ selector: string; text: string; awaitMs?: number }>;
+  /**
    * Optional synthetic pointer entries, for a surface that only exists while
    * the pointer is over something: a hover tooltip, a hover-revealed control.
    *
@@ -118,6 +125,7 @@ export interface ProbeSize {
   h: number;
   config?: Record<string, unknown>;
   clicks?: ProbePayload["clicks"];
+  fills?: ProbePayload["fills"];
   hovers?: ProbePayload["hovers"];
   zooms?: ProbePayload["zooms"];
   focuses?: ProbePayload["focuses"];
@@ -174,6 +182,7 @@ export function probePayload(opts: {
     config: fixtureWidgetConfig(fixture, size.config),
     series,
     clicks: size.clicks,
+    fills: size.fills,
     hovers: size.hovers,
     zooms: size.zooms,
     focuses: size.focuses,

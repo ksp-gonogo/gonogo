@@ -75,13 +75,12 @@ export const PadDetail = styled.div`
   border-left: 2px solid var(--color-border-subtle);
 `;
 
-// One track normally, two in a letterbox once a craft is picked; `align-items: start` keeps the crew column its own height.
-export const CraftAndCrew = styled.div<{ $sideBySide: boolean }>`
-  display: grid;
-  grid-template-columns: ${(p) =>
-    p.$sideBySide ? "minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 1fr)"};
-  align-items: start;
+/** A craft's row and, while it is picked, its crew and launch control beneath it. */
+export const ShipSelection = styled.div`
+  display: flex;
+  flex-direction: column;
   gap: var(--gap-related);
+  min-width: 0;
 `;
 
 export const PadColumn = styled.div`

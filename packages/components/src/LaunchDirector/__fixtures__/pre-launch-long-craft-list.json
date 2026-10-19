@@ -1,0 +1,439 @@
+{
+  "_meta": {
+    "shows": "The ten launch sites a Making History install reports and a long saved-craft list, for searching the craft and for the crew and controls opening under the picked craft.",
+    "scenario": "pre-launch-long-craft-list",
+    "notes": "The sites are the payload `spaceCenter.launchSites` carried on a real rig session: the stock pad and runways plus the Making History sites, all `isStock` true, none a CommNet ground station. The craft are a VAB and SPH mix long enough that the list scrolls, so the crew roster and the launch control used to sit below the fold. Funds are generous so no craft is blocked."
+  },
+  "_stream": {
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "LaunchPad",
+            "displayName": "Launchpad",
+            "editorFacility": "VAB",
+            "bodyIndex": 1,
+            "latitude": -0.09720779900523957,
+            "longitude": -74.55767496695627,
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          },
+          {
+            "name": "Runway",
+            "displayName": "Runway",
+            "editorFacility": "SPH",
+            "bodyIndex": 1,
+            "latitude": -0.04859991026483413,
+            "longitude": -74.72447023289027,
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          },
+          {
+            "name": "Island_Airfield",
+            "displayName": "Island Airfield",
+            "editorFacility": "SPH",
+            "bodyIndex": 1,
+            "latitude": -1.5292754088285911,
+            "longitude": -71.88530402483401,
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          },
+          {
+            "name": "Woomerang_Launch_Site",
+            "displayName": "Woomerang Launch Site",
+            "editorFacility": "VAB",
+            "bodyIndex": 1,
+            "latitude": 45.28961770649859,
+            "longitude": 136.10998454633074,
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          },
+          {
+            "name": "Desert_Airfield",
+            "displayName": "Dessert Airfield",
+            "editorFacility": "SPH",
+            "bodyIndex": 1,
+            "latitude": -6.599704468364114,
+            "longitude": -144.04086747365258,
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          },
+          {
+            "name": "Desert_Launch_Site",
+            "displayName": "Dessert Launch Site",
+            "editorFacility": "VAB",
+            "bodyIndex": 1,
+            "latitude": -6.560381005329042,
+            "longitude": -143.95000368504049,
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          },
+          {
+            "name": "Crater_Launch_Site",
+            "displayName": "Crater Launch Site",
+            "editorFacility": "VAB",
+            "bodyIndex": 1,
+            "latitude": 8.385830819085974,
+            "longitude": -179.69771553532476,
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          },
+          {
+            "name": "MahiMahi_Launch_Site",
+            "displayName": "Mahi Mahi Launch Site",
+            "editorFacility": "VAB",
+            "bodyIndex": 1,
+            "latitude": -49.80255151053554,
+            "longitude": -120.76610963712312,
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          },
+          {
+            "name": "Cove_Launch_Site",
+            "displayName": "Cove Launch Site",
+            "editorFacility": "VAB",
+            "bodyIndex": 1,
+            "latitude": 3.747782829915754,
+            "longitude": -72.21332720895852,
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          },
+          {
+            "name": "GlacierLake_Launch_Site",
+            "displayName": "Glacier Lake Launch site",
+            "editorFacility": "VAB",
+            "bodyIndex": 1,
+            "latitude": 73.5614946234844,
+            "longitude": 84.24796664303703,
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "balances": {
+            "funds": 900000,
+            "reputation": null,
+            "science": null
+          },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "channel": "spaceCenter.savedShips",
+        "value": [
+          {
+            "name": "Mun Hopper I",
+            "file": "Mun Hopper I",
+            "partCount": 12,
+            "totalMass": 4.0,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 6000,
+            "missingParts": []
+          },
+          {
+            "name": "Mun Hopper II",
+            "file": "Mun Hopper II",
+            "partCount": 15,
+            "totalMass": 6.7,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 10500,
+            "missingParts": []
+          },
+          {
+            "name": "Minmus Lander",
+            "file": "Minmus Lander",
+            "partCount": 18,
+            "totalMass": 9.4,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 15000,
+            "missingParts": []
+          },
+          {
+            "name": "Duna Transfer Stage",
+            "file": "Duna Transfer Stage",
+            "partCount": 21,
+            "totalMass": 12.1,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 19500,
+            "missingParts": []
+          },
+          {
+            "name": "Eve Probe",
+            "file": "Eve Probe",
+            "partCount": 24,
+            "totalMass": 14.8,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 24000,
+            "missingParts": []
+          },
+          {
+            "name": "Jool Flyby",
+            "file": "Jool Flyby",
+            "partCount": 27,
+            "totalMass": 17.5,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 28500,
+            "missingParts": []
+          },
+          {
+            "name": "Kerbin Relay Sat",
+            "file": "Kerbin Relay Sat",
+            "partCount": 30,
+            "totalMass": 20.2,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 33000,
+            "missingParts": []
+          },
+          {
+            "name": "Tourist Shuttle",
+            "file": "Tourist Shuttle",
+            "partCount": 33,
+            "totalMass": 22.9,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 37500,
+            "missingParts": []
+          },
+          {
+            "name": "Rescue Rover",
+            "file": "Rescue Rover",
+            "partCount": 36,
+            "totalMass": 25.6,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 42000,
+            "missingParts": []
+          },
+          {
+            "name": "Orbital Tug",
+            "file": "Orbital Tug",
+            "partCount": 39,
+            "totalMass": 28.3,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 46500,
+            "missingParts": []
+          },
+          {
+            "name": "Space Station Core",
+            "file": "Space Station Core",
+            "partCount": 42,
+            "totalMass": 31.0,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 51000,
+            "missingParts": []
+          },
+          {
+            "name": "Station Module A",
+            "file": "Station Module A",
+            "partCount": 45,
+            "totalMass": 33.7,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 55500,
+            "missingParts": []
+          },
+          {
+            "name": "Station Module B",
+            "file": "Station Module B",
+            "partCount": 48,
+            "totalMass": 36.4,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 60000,
+            "missingParts": []
+          },
+          {
+            "name": "Heavy Lifter Mk3",
+            "file": "Heavy Lifter Mk3",
+            "partCount": 51,
+            "totalMass": 39.1,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 64500,
+            "missingParts": []
+          },
+          {
+            "name": "Sounding Rocket",
+            "file": "Sounding Rocket",
+            "partCount": 54,
+            "totalMass": 41.8,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 69000,
+            "missingParts": []
+          },
+          {
+            "name": "Ion Probe",
+            "file": "Ion Probe",
+            "partCount": 57,
+            "totalMass": 44.5,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 73500,
+            "missingParts": []
+          },
+          {
+            "name": "Lab Module",
+            "file": "Lab Module",
+            "partCount": 60,
+            "totalMass": 47.2,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 78000,
+            "missingParts": []
+          },
+          {
+            "name": "Fuel Tanker",
+            "file": "Fuel Tanker",
+            "partCount": 63,
+            "totalMass": 49.9,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 82500,
+            "missingParts": []
+          },
+          {
+            "name": "Dres Explorer",
+            "file": "Dres Explorer",
+            "partCount": 66,
+            "totalMass": 52.6,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 87000,
+            "missingParts": []
+          },
+          {
+            "name": "Eeloo Orbiter",
+            "file": "Eeloo Orbiter",
+            "partCount": 69,
+            "totalMass": 55.3,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 91500,
+            "missingParts": []
+          },
+          {
+            "name": "SSTO Spaceplane",
+            "file": "SSTO Spaceplane",
+            "partCount": 20,
+            "totalMass": 9.0,
+            "facility": "SPH",
+            "facilityOrdinal": 2,
+            "requiresFunds": 7000,
+            "missingParts": []
+          },
+          {
+            "name": "Island Hopper",
+            "file": "Island Hopper",
+            "partCount": 22,
+            "totalMass": 10.9,
+            "facility": "SPH",
+            "facilityOrdinal": 2,
+            "requiresFunds": 9500,
+            "missingParts": []
+          },
+          {
+            "name": "Cargo Plane",
+            "file": "Cargo Plane",
+            "partCount": 24,
+            "totalMass": 12.8,
+            "facility": "SPH",
+            "facilityOrdinal": 2,
+            "requiresFunds": 12000,
+            "missingParts": []
+          },
+          {
+            "name": "Jet Trainer",
+            "file": "Jet Trainer",
+            "partCount": 26,
+            "totalMass": 14.7,
+            "facility": "SPH",
+            "facilityOrdinal": 2,
+            "requiresFunds": 14500,
+            "missingParts": []
+          },
+          {
+            "name": "Recon Drone",
+            "file": "Recon Drone",
+            "partCount": 28,
+            "totalMass": 16.6,
+            "facility": "SPH",
+            "facilityOrdinal": 2,
+            "requiresFunds": 17000,
+            "missingParts": []
+          },
+          {
+            "name": "Glider",
+            "file": "Glider",
+            "partCount": 30,
+            "totalMass": 18.5,
+            "facility": "SPH",
+            "facilityOrdinal": 2,
+            "requiresFunds": 19500,
+            "missingParts": []
+          }
+        ]
+      },
+      {
+        "channel": "spaceCenter.crewRoster",
+        "value": [
+          {
+            "name": "Jebediah Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 5,
+            "available": true,
+            "unavailableReason": ""
+          },
+          {
+            "name": "Bill Kerman",
+            "trait": "Engineer",
+            "experienceLevel": 3,
+            "available": true,
+            "unavailableReason": ""
+          },
+          {
+            "name": "Valentina Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 4,
+            "available": false,
+            "unavailableReason": "On EVA"
+          }
+        ]
+      }
+    ],
+    "profiles": ["stock-career", "planted-space-centre"]
+  }
+}

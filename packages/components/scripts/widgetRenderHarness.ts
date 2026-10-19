@@ -163,6 +163,8 @@ export interface SizeMode {
    * fixtures get caught instead of producing misleading screenshots.
    */
   clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
+  /** Optional synthetic typing into a text field, dispatched before the clicks: see `ProbePayload.fills`. */
+  fills?: ProbePayload["fills"];
   /**
    * Optional synthetic pointer entries, dispatched after the clicks. Captures
    * a surface that only exists under the pointer, chiefly a hover tooltip, and
