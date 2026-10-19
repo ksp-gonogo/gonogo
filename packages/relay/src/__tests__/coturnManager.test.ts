@@ -25,6 +25,17 @@ function fakeTurnserver(lifetimeMs: number): string {
   return path;
 }
 
+/** A stand-in turnserver stuck in the pool-exhaustion loop: one error line per bind attempt, then a summary at exit. */
+function floodingTurnserver(lines: number): string {
+  const path = join(mkdtempSync(join(tmpdir(), "turn-")), "turnserver.sh");
+  writeFileSync(
+    path,
+    `#!/bin/sh\ni=0\nwhile [ $i -lt ${lines} ]; do echo "bind: Address already in use"; echo "Trying to bind fd $i"; i=$((i+1)); done\nsleep 5\n`,
+    { mode: 0o755 },
+  );
+  return path;
+}
+
 const quiet = { info: () => {}, error: () => {} };
 
 function until(cond: () => boolean, timeoutMs = 3000): Promise<void> {
@@ -134,5 +145,18 @@ describe("startCoturn", () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(reasons).toEqual([]);
     expect(h.running()).toBe(false);
+  });
+
+  it("forwards a bounded number of lines when coturn loops on one error", async () => {
+    const lines: string[] = [];
+    const h = startCoturn({
+      externalIp: "203.0.113.1",
+      binaryPath: floodingTurnserver(5000),
+      logger: { info: (m) => lines.push(m), error: (m) => lines.push(m) },
+    });
+    handles.push(h);
+    await until(() => lines.some((l) => l.includes("Address already in use")));
+    await new Promise((r) => setTimeout(r, 500));
+    expect(lines.length).toBeLessThan(100);
   });
 });

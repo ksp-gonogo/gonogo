@@ -45,7 +45,7 @@ export interface RelayConfig {
  *  "what ports does this relay want forwarded". */
 const DEFAULT_TURN_PORT = 3478;
 const DEFAULT_TURN_MIN_PORT = 49160;
-const DEFAULT_TURN_MAX_PORT = 49170;
+const DEFAULT_TURN_MAX_PORT = 49199;
 
 function port(raw: string | undefined, fallback: number): number {
   const n = Number(raw);

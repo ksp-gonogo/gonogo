@@ -1,5 +1,6 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
+import { createLogRateLimiter } from "./logRateLimit.js";
 
 /**
  * Manages a coturn child process, generating a fresh shared-secret on
@@ -35,13 +36,12 @@ export interface CoturnOptions {
   /** Min relay port. Defaults to 49160. */
   minPort?: number;
   /**
-   * Max relay port. Defaults to 49170: coturn allocates one relay port
-   * per active turn session, so 11 ports comfortably covers ≤10
-   * simultaneous TURN-using clients. Bumped down from the original
-   * 49200 because Google Wi-Fi (and most consumer routers) require
-   * one port-forward entry per port; the old range demanded 41
-   * clicks. If your sessions routinely exceed ~10 concurrent
-   * TURN-relayed clients, widen it with `TURN_MIN_PORT`/`TURN_MAX_PORT`
+   * Max relay port. Defaults to 49199: coturn allocates one relay port
+   * per active turn session, and a reloaded station leaves its old
+   * allocations holding ports until they expire, so the pool needs room
+   * beyond the number of live clients. Consumer routers want one
+   * port-forward entry per port, which keeps the range small. If your
+   * sessions routinely exceed ~20 concurrent TURN-relayed clients, widen it with `TURN_MIN_PORT`/`TURN_MAX_PORT`
    * (see `config.ts`) and widen the matching docker-compose mapping and
    * router forwards to the same window. No source edit is needed.
    */
@@ -91,8 +91,12 @@ export interface CoturnHandle {
 }
 
 const DEFAULT_PORT = 3478;
+
+/** Lines of one kind forwarded per window before the rest are only counted. */
+const LOG_LINES_PER_WINDOW = 20;
+const LOG_WINDOW_MS = 10_000;
 const DEFAULT_MIN_PORT = 49160;
-const DEFAULT_MAX_PORT = 49170;
+const DEFAULT_MAX_PORT = 49199;
 
 /**
  * Peer address ranges coturn refuses to relay to when `denyPrivatePeers` is
@@ -155,18 +159,11 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
     `--external-ip=${externalIpArg}`,
     "--no-tls",
     "--no-dtls",
-    // Aggressive idle cleanup: coturn's defaults give an unused
-    // allocation up to 600s (10min) before reclaim. With our small
-    // 11-port relay range, a station retry storm or a few quick
-    // host reconnects exhaust the pool faster than the default
-    // sweeper can recover, and `create_relay_ioa_sockets: no
-    // available ports` starts firing: at which point new TURN
-    // allocations (including the host's own) fail and peers on
-    // restrictive networks silently lose connectivity. 5 min max +
-    // 1 min channel timeout halves the worst-case pin time without
-    // affecting healthy sessions, which actively refresh well within
+    // A reloaded page cannot release its allocations, so each one pins a
+    // relay port until it expires. Coturn's default of 600s lets a few
+    // reloads exhaust a small pool; healthy sessions refresh well inside
     // these windows.
-    "--max-allocate-lifetime=300",
+    "--max-allocate-lifetime=120",
     "--channel-lifetime=60",
     ...(opts.denyPrivatePeers
       ? PRIVATE_PEER_RANGES.map((range) => `--denied-peer-ip=${range}`)
@@ -188,23 +185,39 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
    */
   const scrub = (line: string) => line.split(secret).join("[redacted]");
 
-  proc.stdout?.on("data", (chunk: Buffer) => {
-    // coturn is chatty at default verbosity; surface line-by-line so the proxy's log timestamps interleave correctly.
-    for (const line of chunk.toString("utf8").split(/\r?\n/)) {
-      if (line.length > 0) opts.logger.info(`[coturn] ${scrub(line)}`);
+  const limiter = createLogRateLimiter(LOG_LINES_PER_WINDOW, LOG_WINDOW_MS);
+  const flushTimer = setInterval(() => {
+    for (const summary of limiter.flush()) {
+      opts.logger.error(`[coturn] ${summary}`);
     }
-  });
-  proc.stderr?.on("data", (chunk: Buffer) => {
+  }, LOG_WINDOW_MS);
+  flushTimer.unref();
+
+  const forward = (write: (msg: string) => void) => (chunk: Buffer) => {
     for (const line of chunk.toString("utf8").split(/\r?\n/)) {
-      if (line.length > 0) opts.logger.error(`[coturn] ${scrub(line)}`);
+      if (line.length === 0) continue;
+      const clean = scrub(line);
+      if (limiter.allow(clean)) write(`[coturn] ${clean}`);
     }
-  });
+  };
+  proc.stdout?.on(
+    "data",
+    forward((m) => opts.logger.info(m)),
+  );
+  proc.stderr?.on(
+    "data",
+    forward((m) => opts.logger.error(m)),
+  );
 
   let running = true;
   let stopping = false;
   const down = (reason: string) => {
     if (!running) return;
     running = false;
+    clearInterval(flushTimer);
+    for (const summary of limiter.flush()) {
+      opts.logger.error(`[coturn] ${summary}`);
+    }
     if (!stopping) opts.onExit?.(reason);
   };
 

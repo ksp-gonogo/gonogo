@@ -51,9 +51,9 @@ Only needed for stations that can't connect directly. The relay runs inside the 
 | Port | Protocol | Purpose |
 | --- | --- | --- |
 | `3478` | TCP and UDP | Relay connections |
-| `49160-49170` | UDP | Relay sessions, one port per relayed station |
+| `49160-49199` | UDP | Relay sessions, one port per relayed station |
 
-Some routers want one entry per port, so about twelve in all. Don't forward `3002` (the relay's status port, published on `127.0.0.1` only so it stays on this computer) or `8080` (a remote station loads the app from the public site, not from your machine).
+Some routers want one entry per port, so about forty in all. Don't forward `3002` (the relay's status port, published on `127.0.0.1` only so it stays on this computer) or `8080` (a remote station loads the app from the public site, not from your machine).
 
 Give the main screen computer a fixed address on your LAN first (a reservation in the router is easiest). If its address changes, every forward silently points at nothing.
 

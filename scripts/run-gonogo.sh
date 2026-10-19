@@ -33,6 +33,6 @@ exec "$CONTAINER" run -d --name "$NAME" --restart unless-stopped \
   -p 127.0.0.1:3002:3002 \
   -p 3478:3478/tcp \
   -p 3478:3478/udp \
-  -p 49160-49170:49160-49170/udp \
+  -p 49160-49199:49160-49199/udp \
   "${EXTRA_ARGS[@]}" \
   "$IMAGE"

@@ -20,11 +20,12 @@ services:
       # in this window, so the whole range must be mappable to the host.
       # Same TURN_MIN_PORT / TURN_MAX_PORT the relay passes to coturn, so
       # widening the window is one pair of env vars rather than a source
-      # edit. Sized at 11 ports by default: covers ≤10 simultaneous
-      # TURN-relayed clients, and consumer routers (Google Wi-Fi etc.)
-      # require one port-forward entry per port, so a small range keeps
-      # the click cost down.
-      - "${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49170}:${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49170}/udp"
+      # edit. Sized at 40 ports by default: a reloaded station leaves
+      # its old allocations holding ports until they expire, so the pool
+      # needs room beyond the number of live clients. Consumer routers
+      # (Google Wi-Fi etc.) want one port-forward entry per port, so the
+      # range stays small.
+      - "${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49199}:${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49199}/udp"
     environment:
       PORT: 3002
       # Optional pin for the public IP coturn advertises to clients.
@@ -44,7 +45,7 @@ services:
       # the router forwards to match.
       TURN_PORT: ${TURN_PORT:-3478}
       TURN_MIN_PORT: ${TURN_MIN_PORT:-49160}
-      TURN_MAX_PORT: ${TURN_MAX_PORT:-49170}
+      TURN_MAX_PORT: ${TURN_MAX_PORT:-49199}
       # Axiom log shipping. Empty default → no transport installed
       # (matches the browser pattern). Set in `.env` next to this file
       # to opt in.

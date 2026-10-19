@@ -101,7 +101,7 @@ ENV RELAY_PORT=3002
 ENV KSP_HOST=host.containers.internal
 
 # The app and relay HTTP ports. The TURN ports (3478 for signalling over UDP and
-# TCP, 49160-49170/udp for relay sessions by default) follow TURN_PORT,
+# TCP, 49160-49199/udp for relay sessions by default) follow TURN_PORT,
 # TURN_MIN_PORT and TURN_MAX_PORT, so they are published with -p rather than
 # declared here; see scripts/run-gonogo.sh and docs/NETWORKING.md.
 EXPOSE 8080

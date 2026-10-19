@@ -6,7 +6,7 @@ describe("loadConfig", () => {
     const c = loadConfig({});
     expect(c.turnPort).toBe(3478);
     expect(c.turnMinPort).toBe(49160);
-    expect(c.turnMaxPort).toBe(49170);
+    expect(c.turnMaxPort).toBe(49199);
   });
 
   it("takes the TURN window from the environment", () => {
