@@ -20,7 +20,7 @@ import { useScrollIntoViewOnAdd } from "./useScrollIntoViewOnAdd";
  * Each tile's grab bar (18px) is drawn in the gap above it, so the gap must be
  * at least that tall and leave the bar clear of the tile above.
  */
-const GRID_GAP = 20;
+export const GRID_GAP = 20;
 
 /**
  * Row height plus gap, in px: the pitch the grid had before the gap grew. The
