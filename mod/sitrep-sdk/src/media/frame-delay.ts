@@ -127,6 +127,13 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
    */
   gopSafeEviction?: boolean;
   /**
+   * Called when `flush()` has left an encoded stream without the frames its
+   * next frames depend on, so the source can be asked for a keyframe sooner than
+   * its own interval. Until one arrives, frames that need earlier ones are
+   * dropped instead of written. Only used with `gopSafeEviction`.
+   */
+  onNeedKeyframe?(): void;
+  /**
    * Spaces released frames out by their own UT intervals rather than writing
    * them at once (see {@link PresentationPacer}). Unset, each frame is written
    * as it is released. When set, call `pipeline.tickPacing(nowWall)` about 60
@@ -138,6 +145,28 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
     /** See `PresentationPacerOptions.maxLeadSeconds`. */
     maxLeadSeconds?: number;
   };
+}
+
+/**
+ * Running totals of what a {@link FrameDelayPipeline} has done with the frames
+ * it read. Useful for telling a camera that is sent few frames from one whose
+ * frames the delay discards. Returned by `FrameDelayPipeline.stats()`.
+ *
+ * @category Delayed video
+ */
+export interface FrameDelayStats {
+  /** Frames read from the source. */
+  read: number;
+  /** Frames written to the sink. */
+  presented: number;
+  /** Frames the presentation pacer skipped to catch up. */
+  pacerSkipped: number;
+  /** Frames dropped by `flush()`. */
+  flushDropped: number;
+  /** Frames evicted over the buffer's size limit. */
+  evicted: number;
+  /** Frames dropped after a flush because they need a keyframe not yet seen. */
+  awaitingKeyframeDropped: number;
 }
 
 /**
@@ -162,6 +191,8 @@ export interface FrameDelayPipeline {
    *  seconds, same basis the caller's own clock reads) through the
    *  pacer: see `pacing`'s doc above. */
   tickPacing(nowWall: number): void;
+  /** A snapshot of the pipeline's running totals. */
+  stats(): FrameDelayStats;
 }
 
 const DEFAULT_MAX_BUFFERED_FRAMES = 300; // ~10s @ 30fps; see module docstring
@@ -180,8 +211,18 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
   opts: FrameDelayPipelineOptions<Frame>,
 ): FrameDelayPipeline {
   let disposed = false;
+  let awaitingKeyframe = false;
+  const stats: FrameDelayStats = {
+    read: 0,
+    presented: 0,
+    pacerSkipped: 0,
+    flushDropped: 0,
+    evicted: 0,
+    awaitingKeyframeDropped: 0,
+  };
 
   const writeAndClose = (data: Frame) => {
+    stats.presented += 1;
     opts.sink
       .write(data)
       .catch((err) => opts.onError?.(err))
@@ -197,8 +238,12 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
     ? new PresentationPacer<Frame>({
         maxBacklogSeconds: opts.pacing.maxBacklogSeconds,
         maxLeadSeconds: opts.pacing.maxLeadSeconds,
+        gopSafeSkip: opts.gopSafeEviction,
         onPresent: (f) => writeAndClose(f.data),
-        onSkip: (f) => f.data.close?.(),
+        onSkip: (f) => {
+          stats.pacerSkipped += 1;
+          f.data.close?.();
+        },
       })
     : null;
 
@@ -210,12 +255,14 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
       const data = frame.data;
       if (!data) return;
       if (pacer) {
-        pacer.submit({ ut: frame.ut, data });
+        pacer.submit({ ut: frame.ut, data, keyframe: frame.keyframe });
       } else {
         writeAndClose(data);
       }
     },
-    onDrop: (frame) => {
+    onDrop: (frame, reason) => {
+      if (reason === "flush") stats.flushDropped += 1;
+      if (reason === "cap" || reason === "undated") stats.evicted += 1;
       frame.data?.close?.();
     },
   });
@@ -235,9 +282,19 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
         frame.close?.();
         return;
       }
+      stats.read += 1;
+      const keyframe = opts.isKeyframe?.(frame) ?? false;
+      if (awaitingKeyframe) {
+        if (!keyframe) {
+          stats.awaitingKeyframeDropped += 1;
+          frame.close?.();
+          continue;
+        }
+        awaitingKeyframe = false;
+      }
       buffer.push({
         ut: opts.captureUt(),
-        keyframe: opts.isKeyframe?.(frame) ?? false,
+        keyframe,
         data: frame,
         bytes: opts.frameBytes?.(frame) ?? 1,
       });
@@ -247,8 +304,17 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
 
   return {
     flush() {
+      const discardedBefore = stats.flushDropped + stats.pacerSkipped;
       buffer.flush();
       pacer?.reset();
+      // Nothing discarded means the decoder's reference chain is unbroken.
+      if (
+        opts.gopSafeEviction &&
+        stats.flushDropped + stats.pacerSkipped > discardedBefore
+      ) {
+        awaitingKeyframe = true;
+        opts.onNeedKeyframe?.();
+      }
     },
     dispose() {
       if (disposed) return;
@@ -258,6 +324,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
       void Promise.resolve(opts.source.cancel()).catch(() => {});
       void Promise.resolve(opts.sink.close()).catch(() => {});
     },
+    stats: () => ({ ...stats }),
     tickPacing(nowWall: number) {
       pacer?.tick(nowWall);
     },

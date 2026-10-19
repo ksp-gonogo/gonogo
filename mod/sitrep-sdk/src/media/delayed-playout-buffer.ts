@@ -66,6 +66,16 @@ export interface DelayClockLike {
 }
 
 /**
+ * Why a {@link DelayedPlayoutBuffer} discarded a frame without releasing it:
+ * `cap` for eviction over the size limit, `flush` for a timeline reset,
+ * `dispose` for teardown, `undated` for a frame stamped before the capture
+ * clock had a UT. Passed to the buffer's `onDrop`.
+ *
+ * @category Delayed video
+ */
+export type DelayedPlayoutDropReason = "cap" | "flush" | "dispose" | "undated";
+
+/**
  * Options for a new {@link DelayedPlayoutBuffer}: the clock to release frames
  * by, the callbacks that receive them, and the cap on what is held. Useful for
  * setting how a vessel's video is held back before the operator sees it, by the
@@ -89,11 +99,11 @@ export interface DelayedPlayoutBufferOptions<Frame = unknown> {
   onResync?(): void;
   /**
    * Called for each frame discarded without being released: dropped over the
-   * cap, by `flush()`, or still held at `dispose()`. Supply it whenever a frame
-   * holds something that must be closed, such as a `VideoFrame`, or every
-   * discarded frame leaks it.
+   * cap, by `flush()`, or still held at `dispose()`, with the reason. Supply it
+   * whenever a frame holds something that must be closed, such as a
+   * `VideoFrame`, or every discarded frame leaks it.
    */
-  onDrop?(frame: StampedFrame<Frame>): void;
+  onDrop?(frame: StampedFrame<Frame>, reason: DelayedPlayoutDropReason): void;
   /**
    * The most the buffer holds, summed over each frame's `bytes` (1 for a frame
    * without one). Over it, the oldest frames are dropped; `gopSafeEviction` says
@@ -181,7 +191,7 @@ export class DelayedPlayoutBuffer<Frame = unknown> {
    * those old UTs: they were discarded, not merely held.
    */
   flush(): void {
-    for (const dropped of this.queue) this.opts.onDrop?.(dropped);
+    for (const dropped of this.queue) this.opts.onDrop?.(dropped, "flush");
     this.queue = [];
     this.bufferedBytes = 0;
     this.lastReleased = undefined;
@@ -209,7 +219,7 @@ export class DelayedPlayoutBuffer<Frame = unknown> {
     if (this.disposed) return;
     this.disposed = true;
     this.unsubscribeFrame();
-    for (const dropped of this.queue) this.opts.onDrop?.(dropped);
+    for (const dropped of this.queue) this.opts.onDrop?.(dropped, "dispose");
     this.queue = [];
     this.bufferedBytes = 0;
   }
@@ -220,7 +230,7 @@ export class DelayedPlayoutBuffer<Frame = unknown> {
     for (const frame of this.queue) {
       if (frame.ut === Number.POSITIVE_INFINITY) {
         this.bufferedBytes -= frame.bytes ?? 1;
-        this.opts.onDrop?.(frame);
+        this.opts.onDrop?.(frame, "undated");
       } else {
         kept.push(frame);
       }
@@ -258,7 +268,7 @@ export class DelayedPlayoutBuffer<Frame = unknown> {
     const [dropped] = this.queue.splice(dropIdx, 1);
     if (dropped) {
       this.bufferedBytes -= dropped.bytes ?? 1;
-      this.opts.onDrop?.(dropped);
+      this.opts.onDrop?.(dropped, "cap");
     }
     return true;
   }
@@ -275,7 +285,7 @@ export class DelayedPlayoutBuffer<Frame = unknown> {
     const dropped = this.queue.splice(0, dropCount);
     for (const frame of dropped) {
       this.bufferedBytes -= frame.bytes ?? 1;
-      this.opts.onDrop?.(frame);
+      this.opts.onDrop?.(frame, "cap");
     }
     return dropped.length > 0;
   }

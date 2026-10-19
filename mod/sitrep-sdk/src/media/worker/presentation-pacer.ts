@@ -70,6 +70,11 @@ export interface PacedFrame<Frame> {
   ut: number;
   /** The frame. */
   data: Frame;
+  /**
+   * Whether the frame can be decoded without any frame before it. Read only
+   * when the pacer is built with `gopSafeSkip`.
+   */
+  keyframe?: boolean;
 }
 
 /**
@@ -118,6 +123,15 @@ export interface PresentationPacerOptions<Frame> {
    * pacer uses the nearer limit.
    */
   maxRateDeparture?: number;
+  /**
+   * Set for encoded video, where a frame between keyframes cannot be decoded
+   * without the frames before it. Catching up then never presents a frame whose
+   * references were skipped: it jumps to the newest keyframe in the queue and
+   * keeps every frame after it, and with no keyframe queued it presents the
+   * whole queue at once and skips nothing. Each submitted frame must set
+   * `keyframe`.
+   */
+  gopSafeSkip?: boolean;
 }
 
 /** See `PresentationPacerOptions.rateBaselineSeconds`: ten frames of a 20 ms
@@ -238,12 +252,8 @@ export class PresentationPacer<Frame> {
       nowWall - headDue > this.opts.maxBacklogSeconds ||
       lead > (this.opts.maxLeadSeconds ?? Number.POSITIVE_INFINITY)
     ) {
-      for (const dropped of this.queue) {
-        if (dropped !== newest) this.opts.onSkip?.(dropped);
-      }
-      this.queue = [];
-      this.opts.onPresent(newest);
-      this.lastPresented = { ut: newest.ut, wall: nowWall };
+      if (this.opts.gopSafeSkip) this.catchUpWithoutBreakingReferences(nowWall);
+      else this.skipToNewest(newest, nowWall);
       return;
     }
 
@@ -260,6 +270,46 @@ export class PresentationPacer<Frame> {
       // compounding jitter from one frame to the next.
       this.lastPresented = { ut: next.ut, wall: due };
     }
+  }
+
+  private skipToNewest(newest: PacedFrame<Frame>, nowWall: number): void {
+    for (const dropped of this.queue) {
+      if (dropped !== newest) this.opts.onSkip?.(dropped);
+    }
+    this.queue = [];
+    this.opts.onPresent(newest);
+    this.lastPresented = { ut: newest.ut, wall: nowWall };
+  }
+
+  /*
+   * The newest keyframe is shown now and the frames after it stay queued, due
+   * on their own spacing from it, so every frame the decoder sees still has its
+   * references. With no keyframe queued nothing can be skipped safely, so the
+   * queue is shown at once, which costs a burst and no frames.
+   */
+  private catchUpWithoutBreakingReferences(nowWall: number): void {
+    let keyAt = -1;
+    for (let i = this.queue.length - 1; i >= 0; i--) {
+      if (this.queue[i]?.keyframe) {
+        keyAt = i;
+        break;
+      }
+    }
+    if (keyAt === -1) {
+      const all = this.queue;
+      this.queue = [];
+      for (const f of all) this.opts.onPresent(f);
+      const last = all[all.length - 1];
+      if (last) this.lastPresented = { ut: last.ut, wall: nowWall };
+      return;
+    }
+    for (const dropped of this.queue.splice(0, keyAt)) {
+      this.opts.onSkip?.(dropped);
+    }
+    const key = this.queue.shift();
+    if (!key) return;
+    this.opts.onPresent(key);
+    this.lastPresented = { ut: key.ut, wall: nowWall };
   }
 
   /**

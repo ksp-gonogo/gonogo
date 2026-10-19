@@ -82,6 +82,11 @@ export interface EncodedTransformerLike {
   readable: ReadableStream<EncodedVideoFrameLike>;
   /** Where the delayed frames are written. */
   writable: WritableStream<EncodedVideoFrameLike>;
+  /**
+   * Asks the sender for a keyframe, as a real receiving transformer can. Called
+   * after a flush discards frames the next ones depend on.
+   */
+  sendKeyFrameRequest?(): Promise<void>;
 }
 
 /**
@@ -156,6 +161,13 @@ export function attachEncodedFrameDelayTransform(
     isKeyframe: (f) => f.type === "key",
     frameBytes: (f) => f.data.byteLength,
     gopSafeEviction: true,
+    onNeedKeyframe: () => {
+      try {
+        transformer.sendKeyFrameRequest?.().catch(() => {});
+      } catch {
+        // A transformer that refuses the request leaves the wait for the sender's own keyframe interval.
+      }
+    },
     onError: opts.onError,
     pacing: {
       maxBacklogSeconds:

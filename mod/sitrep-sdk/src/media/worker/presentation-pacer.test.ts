@@ -409,4 +409,79 @@ describe("PresentationPacer", () => {
     expect(skipped).toEqual(["left over"]);
     expect(presented).toEqual(["a", "b"]);
   });
+
+  describe("gopSafeSkip (encoded video)", () => {
+    function coded(
+      ut: number,
+      label: string,
+      keyframe: boolean,
+    ): PacedFrame<string> {
+      return { ut, data: label, keyframe };
+    }
+
+    function setup() {
+      const presented: string[] = [];
+      const skipped: string[] = [];
+      const pacer = new PresentationPacer<string>({
+        onPresent: (f) => presented.push(f.data),
+        onSkip: (f) => skipped.push(f.data),
+        maxBacklogSeconds: 0.5,
+        gopSafeSkip: true,
+      });
+      return { presented, skipped, pacer };
+    }
+
+    it("a backlog that starts mid-GOP jumps to the newest keyframe and never presents a delta whose references were skipped", () => {
+      const { presented, skipped, pacer } = setup();
+      pacer.submit(coded(0, "K0", true));
+      pacer.tick(0);
+
+      pacer.submit(coded(0.1, "d1", false));
+      pacer.submit(coded(0.2, "d2", false));
+      pacer.submit(coded(0.3, "K1", true));
+      pacer.submit(coded(0.4, "d3", false));
+      pacer.submit(coded(0.5, "d4", false));
+      pacer.tick(5);
+
+      expect(presented).toEqual(["K0", "K1"]);
+      expect(skipped).toEqual(["d1", "d2"]);
+
+      // The deltas after the keyframe stay queued, due on their own spacing.
+      pacer.tick(5.05);
+      expect(presented).toEqual(["K0", "K1"]);
+      pacer.tick(5.11);
+      expect(presented).toEqual(["K0", "K1", "d3"]);
+      pacer.tick(5.21);
+      expect(presented).toEqual(["K0", "K1", "d3", "d4"]);
+    });
+
+    it("with no keyframe queued it presents the whole queue in order and skips nothing", () => {
+      const { presented, skipped, pacer } = setup();
+      pacer.submit(coded(0, "K0", true));
+      pacer.tick(0);
+
+      pacer.submit(coded(0.1, "d1", false));
+      pacer.submit(coded(0.2, "d2", false));
+      pacer.submit(coded(0.3, "d3", false));
+      pacer.tick(5);
+
+      expect(presented).toEqual(["K0", "d1", "d2", "d3"]);
+      expect(skipped).toEqual([]);
+    });
+
+    it("without gopSafeSkip the skip still presents only the newest frame", () => {
+      const presented: string[] = [];
+      const pacer = new PresentationPacer<string>({
+        onPresent: (f) => presented.push(f.data),
+        maxBacklogSeconds: 0.5,
+      });
+      pacer.submit(coded(0, "K0", true));
+      pacer.tick(0);
+      pacer.submit(coded(0.1, "d1", false));
+      pacer.submit(coded(0.2, "d2", false));
+      pacer.tick(5);
+
+      expect(presented).toEqual(["K0", "d2"]);
+    });
+  });
 });

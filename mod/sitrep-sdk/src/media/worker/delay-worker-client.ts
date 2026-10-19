@@ -28,7 +28,7 @@
 import type { ClockFormulaSnapshot } from "../../view-clock-formula";
 import type { CaptureClockSample } from "../capture-clock";
 import type { DelayClockLike } from "../delayed-playout-buffer";
-import type { FrameDelayStream } from "../frame-delay";
+import type { FrameDelayStats, FrameDelayStream } from "../frame-delay";
 import { startPacingTicker } from "../frame-delay";
 import type {
   CreatePipelineMessage,
@@ -71,7 +71,13 @@ export interface CreateWorkerFrameDelayStreamOptions {
   maxPacingBacklogSeconds?: number;
   /** Called with a non-fatal pipeline error. */
   onError?(error: unknown): void;
+  /** Called with the worker's running frame totals every `statsIntervalMs`. */
+  onStats?(stats: FrameDelayStats): void;
+  /** How often `onStats` is called, in milliseconds. Defaults to 5000. */
+  statsIntervalMs?: number;
 }
+
+const DEFAULT_STATS_INTERVAL_MS = 5000;
 
 const DEFAULT_MAX_PACING_BACKLOG_SECONDS = 0.5; // see frame-delay.ts's own default + rationale
 
@@ -84,6 +90,17 @@ interface PendingReady {
 }
 const pendingReady = new Map<string, PendingReady>();
 const nonFatalErrorHandlers = new Map<string, (reason: string) => void>();
+const statsHandlers = new Map<string, (stats: FrameDelayStats) => void>();
+
+/** The interval to ask the worker for, or undefined when nobody listens. */
+function statsIntervalFor(opts: {
+  onStats?: unknown;
+  statsIntervalMs?: number;
+}): number | undefined {
+  return opts.onStats
+    ? (opts.statsIntervalMs ?? DEFAULT_STATS_INTERVAL_MS)
+    : undefined;
+}
 
 function getSharedWorker(): Worker | null {
   if (sharedWorker !== undefined) return sharedWorker;
@@ -112,6 +129,9 @@ function getSharedWorker(): Worker | null {
           return;
         case "pipelineNonFatalError":
           nonFatalErrorHandlers.get(msg.pipelineId)?.(msg.reason);
+          return;
+        case "pipelineStats":
+          statsHandlers.get(msg.pipelineId)?.(msg.stats);
           return;
       }
     };
@@ -218,6 +238,7 @@ export async function createWorkerFrameDelayStream(
     maxBufferedFrames: opts.maxBufferedFrames,
     maxPacingBacklogSeconds:
       opts.maxPacingBacklogSeconds ?? DEFAULT_MAX_PACING_BACKLOG_SECONDS,
+    statsIntervalMs: statsIntervalFor(opts),
   };
 
   try {
@@ -242,6 +263,7 @@ export async function createWorkerFrameDelayStream(
   nonFatalErrorHandlers.set(pipelineId, (reason) => {
     opts.onError?.(new Error(reason));
   });
+  if (opts.onStats) statsHandlers.set(pipelineId, opts.onStats);
   const stopTicker = startPipelineTicker(worker, pipelineId, opts);
 
   return {
@@ -249,6 +271,7 @@ export async function createWorkerFrameDelayStream(
     dispose: () => {
       stopTicker();
       nonFatalErrorHandlers.delete(pipelineId);
+      statsHandlers.delete(pipelineId);
       post(worker, { type: "dispose", pipelineId });
     },
     flush: () => {
@@ -286,6 +309,10 @@ export interface AttachEncodedFrameDelayOptions {
   maxPacingBacklogSeconds?: number;
   /** Called with a non-fatal pipeline error. */
   onError?(error: unknown): void;
+  /** Called with the worker's running frame totals every `statsIntervalMs`. */
+  onStats?(stats: FrameDelayStats): void;
+  /** How often `onStats` is called, in milliseconds. Defaults to 5000. */
+  statsIntervalMs?: number;
 }
 
 /**
@@ -335,6 +362,7 @@ export function attachEncodedWorkerFrameDelay(
       pipelineId,
       maxBufferedBytes: opts.maxBufferedBytes,
       maxPacingBacklogSeconds: opts.maxPacingBacklogSeconds,
+      statsIntervalMs: statsIntervalFor(opts),
     });
   } catch (err) {
     opts.onError?.(err);
@@ -344,12 +372,14 @@ export function attachEncodedWorkerFrameDelay(
   nonFatalErrorHandlers.set(pipelineId, (reason) => {
     opts.onError?.(new Error(reason));
   });
+  if (opts.onStats) statsHandlers.set(pipelineId, opts.onStats);
   const stopTicker = startPipelineTicker(worker, pipelineId, opts);
 
   return {
     dispose: () => {
       stopTicker();
       nonFatalErrorHandlers.delete(pipelineId);
+      statsHandlers.delete(pipelineId);
       post(worker, { type: "dispose", pipelineId });
       receiver.transform = null;
     },

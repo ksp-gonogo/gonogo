@@ -42,6 +42,8 @@
  *                               "can't delay -> no video" case.
  *  - `pipelineNonFatalError`: a post-construction read/write rejection,
  *                               mirrors `runFrameDelayPipeline`'s `onError`.
+ *  - `pipelineStats`        : the pipeline's running frame totals, posted every
+ *                               `statsIntervalMs` for a pipeline that asked.
  *
  * Encoded-transform path (2026-07-16):
  * `self.onrtctransform` (native platform event, not one of the message
@@ -68,6 +70,7 @@ import {
 import {
   DEFAULT_PACING_MAX_LEAD_SECONDS,
   type FrameDelayPipeline,
+  type FrameDelayStats,
   runFrameDelayPipeline,
   startPacingTicker,
 } from "../frame-delay";
@@ -100,6 +103,7 @@ export interface CreatePipelineMessage {
   track: MediaStreamTrack;
   maxBufferedFrames?: number;
   maxPacingBacklogSeconds: number;
+  statsIntervalMs?: number;
 }
 
 export interface FlushMessage {
@@ -138,10 +142,17 @@ export interface PipelineNonFatalErrorMessage {
   reason: string;
 }
 
+export interface PipelineStatsMessage {
+  type: "pipelineStats";
+  pipelineId: string;
+  stats: FrameDelayStats;
+}
+
 export type WorkerToMainMessage =
   | PipelineReadyMessage
   | PipelineErrorMessage
-  | PipelineNonFatalErrorMessage;
+  | PipelineNonFatalErrorMessage
+  | PipelineStatsMessage;
 
 // This package's shared tsconfig targets the default DOM lib (not
 // "webworker": the two are mutually exclusive libs, and swapping the
@@ -166,6 +177,7 @@ interface RtcTransformEventLike {
       pipelineId?: string;
       maxBufferedBytes?: number;
       maxPacingBacklogSeconds?: number;
+      statsIntervalMs?: number;
     };
   };
 }
@@ -196,6 +208,7 @@ interface PipelineEntry {
   pipeline: FrameDelayPipeline | null;
   captureSample: CaptureClockSample;
   stopPacingTicker: () => void;
+  stopStats: () => void;
 }
 const pipelines = new Map<string, PipelineEntry>();
 
@@ -287,6 +300,7 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
       pipeline: null,
       captureSample: DEFAULT_MS,
       stopPacingTicker: () => {},
+      stopStats: () => {},
     };
     pipelines.set(msg.pipelineId, entry);
     const stampUt = captureUtStamper();
@@ -317,6 +331,11 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
     entry.stopPacingTicker = startPacingTicker(
       pipeline.tickPacing,
       clockNowWall,
+    );
+    entry.stopStats = startStatsReporter(
+      msg.pipelineId,
+      pipeline,
+      msg.statsIntervalMs,
     );
 
     workerSelf.postMessage(
@@ -377,6 +396,7 @@ function handleRtcTransform(event: RtcTransformEventLike): void {
     pipeline: null,
     captureSample: DEFAULT_MS,
     stopPacingTicker: () => {},
+    stopStats: () => {},
   };
   pipelines.set(pipelineId, entry);
   const stampUt = captureUtStamper();
@@ -396,6 +416,28 @@ function handleRtcTransform(event: RtcTransformEventLike): void {
   });
   entry.pipeline = pipeline;
   entry.stopPacingTicker = startPacingTicker(pipeline.tickPacing, clockNowWall);
+  entry.stopStats = startStatsReporter(
+    pipelineId,
+    pipeline,
+    options.statsIntervalMs,
+  );
+}
+
+/** Posts the pipeline's totals every `intervalMs`; does nothing unless asked. */
+function startStatsReporter(
+  pipelineId: string,
+  pipeline: FrameDelayPipeline,
+  intervalMs: number | undefined,
+): () => void {
+  if (!intervalMs || intervalMs <= 0) return () => {};
+  const timer = setInterval(() => {
+    workerSelf.postMessage({
+      type: "pipelineStats",
+      pipelineId,
+      stats: pipeline.stats(),
+    });
+  }, intervalMs);
+  return () => clearInterval(timer);
 }
 
 function handleFlush(msg: FlushMessage): void {
@@ -406,6 +448,7 @@ function handleDispose(msg: DisposePipelineMessage): void {
   const entry = pipelines.get(msg.pipelineId);
   if (!entry) return;
   entry.stopPacingTicker();
+  entry.stopStats();
   entry.pipeline?.dispose();
   pipelines.delete(msg.pipelineId);
 }

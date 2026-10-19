@@ -9135,8 +9135,16 @@
         "note": "Removed: the withheld arm uses the standard ReckoningDecline reasons (no-horizon-stated and shape-not-stated are input-absent, past-horizon is beyond-horizon, no-arc-available is model-inapplicable, frame-unavailable is added to the standard union)"
       },
       {
+        "key": "sitrep-sdk ./media DelayedPlayoutBufferOptions#onDrop?",
+        "note": "Gains a second argument, the reason the frame was discarded"
+      },
+      {
         "key": "sitrep-sdk ./media DelayedStreamLease#failed",
         "note": "New: says the shared build failed, so a consumer can stop waiting and acquire again"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayPipeline#stats",
+        "note": "New: running totals of frames read, presented, skipped and dropped"
       },
       {
         "key": "sitrep-sdk ./media FrameDelayPipelineOptions#pacing?",
@@ -12747,6 +12755,70 @@
       {
         "key": "sitrep-sdk ./frames ~TrajectoryArcAnswer",
         "note": "Reachable through arcInOrbitPlane now; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./media AttachEncodedFrameDelayOptions#onStats?",
+        "note": "New: receives the worker's running frame totals"
+      },
+      {
+        "key": "sitrep-sdk ./media AttachEncodedFrameDelayOptions#statsIntervalMs?",
+        "note": "New: how often onStats is called"
+      },
+      {
+        "key": "sitrep-sdk ./media CreateWorkerFrameDelayStreamOptions#onStats?",
+        "note": "New: receives the worker's running frame totals"
+      },
+      {
+        "key": "sitrep-sdk ./media CreateWorkerFrameDelayStreamOptions#statsIntervalMs?",
+        "note": "New: how often onStats is called"
+      },
+      {
+        "key": "sitrep-sdk ./media DelayedPlayoutDropReason",
+        "note": "New: why the buffer discarded a frame"
+      },
+      {
+        "key": "sitrep-sdk ./media EncodedTransformerLike#sendKeyFrameRequest?",
+        "note": "New: asks the sender for a keyframe after a flush"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayPipelineOptions#onNeedKeyframe?",
+        "note": "New: called when a flush leaves an encoded stream waiting for a keyframe"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStats",
+        "note": "New: the totals FrameDelayPipeline.stats returns"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStats#awaitingKeyframeDropped",
+        "note": "New: frames dropped while waiting for a keyframe after a flush"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStats#evicted",
+        "note": "New: frames evicted over the buffer's size limit"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStats#flushDropped",
+        "note": "New: frames dropped by a flush"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStats#pacerSkipped",
+        "note": "New: frames the pacer skipped to catch up"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStats#presented",
+        "note": "New: frames written to the sink"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStats#read",
+        "note": "New: frames read from the source"
+      },
+      {
+        "key": "sitrep-sdk ./media PacedFrame#keyframe?",
+        "note": "New: marks a frame decodable on its own, read when gopSafeSkip is set"
+      },
+      {
+        "key": "sitrep-sdk ./media PresentationPacerOptions#gopSafeSkip?",
+        "note": "New: catch-up never presents a frame whose references were skipped"
       },
       {
         "key": "sitrep-sdk ./media PresentationPacerOptions#maxLeadSeconds?",

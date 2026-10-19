@@ -16,6 +16,7 @@ export { interpolateCaptureUt } from "./capture-clock";
 export type {
   DelayClockLike,
   DelayedPlayoutBufferOptions,
+  DelayedPlayoutDropReason,
   StampedFrame,
 } from "./delayed-playout-buffer";
 export { DelayedPlayoutBuffer } from "./delayed-playout-buffer";
@@ -32,6 +33,7 @@ export type {
   CreateFrameDelayStreamOptions,
   FrameDelayPipeline,
   FrameDelayPipelineOptions,
+  FrameDelayStats,
   FrameDelayStream,
   FrameLike,
   FrameSink,

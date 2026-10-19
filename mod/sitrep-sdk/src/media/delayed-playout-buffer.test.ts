@@ -416,3 +416,34 @@ describe("DelayedPlayoutBuffer", () => {
     });
   });
 });
+
+describe("DelayedPlayoutBuffer: drop reasons", () => {
+  it("tells onDrop whether a frame went over the cap, to a flush or to dispose", () => {
+    const dropped: Array<[string, string]> = [];
+    const buffer = new DelayedPlayoutBuffer<string>({
+      view: manualClock(),
+      onRelease: () => {},
+      onDrop: (f, reason) => dropped.push([f.data as string, reason]),
+      maxBufferedBytes: 2,
+    });
+    const frame = (ut: number, data: string): StampedFrame<string> => ({
+      ut,
+      data,
+      keyframe: false,
+    });
+
+    buffer.push(frame(1, "a"));
+    buffer.push(frame(2, "b"));
+    buffer.push(frame(3, "c"));
+    buffer.flush();
+    buffer.push(frame(4, "d"));
+    buffer.dispose();
+
+    expect(dropped).toEqual([
+      ["a", "cap"],
+      ["b", "flush"],
+      ["c", "flush"],
+      ["d", "dispose"],
+    ]);
+  });
+});
