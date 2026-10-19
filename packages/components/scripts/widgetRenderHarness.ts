@@ -2625,7 +2625,10 @@ export async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
     jsx: "automatic",
     write: false,
     sourcemap: "inline",
-    define: { "process.env.NODE_ENV": '"production"' },
+    define: {
+      "process.env.NODE_ENV": '"production"',
+      "import.meta.env": "{}",
+    },
     alias: opts.alias,
     plugins: [cssSideEffectPlugin],
   });
