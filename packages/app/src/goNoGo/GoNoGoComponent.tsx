@@ -10,7 +10,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
 import { Field, FieldLabel, Input, useModalSaveBar } from "@ksp-gonogo/ui";
 import { Button, Grid, NULL_DISPLAY, Select, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
@@ -91,6 +91,9 @@ function StationView({
     launchUt != null &&
     viewUt !== undefined &&
     viewUt.minus(launchUt).greaterThan(0);
+  // The vessel's identity stays as the last report until the centre hears the flight ended, so after a recovery the scene is what says there is nothing to abort. An unreported scene leaves the control as it was.
+  const scene = stillTrue(useTelemetry("spaceCenter.scene"), undefined)?.scene;
+  const noFlight = scene != null && scene !== "Flight";
   const [vote, setVote] = useState<"go" | "no-go">("no-go");
   // Set when the host resets the poll after launch, so the vote is offered again beside ABORT until the craft is back on the pad.
   const [pollOpen, setPollOpen] = useState(false);
@@ -224,7 +227,7 @@ function StationView({
   };
 
   const handleAbort = () => {
-    if (!launched || !client) return;
+    if (!launched || noFlight || !client) return;
     iAbortedRef.current = true;
     client.sendGonogoAbort();
   };
@@ -248,10 +251,12 @@ function StationView({
         <BigButton
           $variant="abort"
           onClick={handleAbort}
+          disabled={noFlight}
           role="alert"
           aria-live="assertive"
         >
           <ButtonLabel>ABORT</ButtonLabel>
+          {noFlight && <AbortNotice>{NO_FLIGHT_REASON}</AbortNotice>}
           {abortNotice && (
             <AbortNotice>Aborted by {abortNotice.stationName}</AbortNotice>
           )}
@@ -290,8 +295,9 @@ function StationView({
         )}
       </BigButton>
       {launched && (
-        <AbortStrip $variant="abort" onClick={handleAbort}>
+        <AbortStrip $variant="abort" onClick={handleAbort} disabled={noFlight}>
           <ButtonLabel>ABORT</ButtonLabel>
+          {noFlight && <AbortNotice>{NO_FLIGHT_REASON}</AbortNotice>}
           {abortNotice && (
             <AbortNotice>Aborted by {abortNotice.stationName}</AbortNotice>
           )}
@@ -589,6 +595,8 @@ const BIG_BUTTON_COLOR: Record<BigButtonVariant, string> = {
   nogo: "var(--color-nogo-text)",
 };
 
+const NO_FLIGHT_REASON = "No flight in progress";
+
 const BigButton = styled.button<{ $variant: BigButtonVariant }>`
   position: relative;
   width: 100%;
@@ -619,6 +627,12 @@ const BigButton = styled.button<{ $variant: BigButtonVariant }>`
 
   &:active {
     transform: scale(0.98);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    transform: none;
   }
 `;
 

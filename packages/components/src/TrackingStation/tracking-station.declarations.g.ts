@@ -5,6 +5,8 @@ export default {
     "system.frame",
     "system.uplink.pending",
     "trackingStation.catalog",
+    "vessel.comms",
+    "vessel.crew",
     "vessel.identity",
     "vessel.orbit",
     "vessel.target",
