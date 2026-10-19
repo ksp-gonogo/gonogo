@@ -1,6 +1,6 @@
 import type { TopicReading } from "@ksp-gonogo/sitrep-client";
 import { Section, SectionTitle } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { ContributionRow } from "./ContributionRow";
 import type { Contribution } from "./flow";
 import {
@@ -20,6 +20,7 @@ export function ContributionSection({
   listStyle,
   landscape,
   currency,
+  trailing,
 }: Readonly<{
   title: string;
   rows: readonly Contribution[];
@@ -27,8 +28,10 @@ export function ContributionSection({
   listStyle: CSSProperties;
   landscape: boolean;
   currency: TopicReading<unknown>;
+  /** A row after the part rows, not counted among them. */
+  trailing?: ReactNode;
 }>) {
-  if (rows.length === 0 && emptyText === undefined) return null;
+  if (rows.length === 0 && emptyText === undefined && !trailing) return null;
   return (
     <Section
       as="section"
@@ -38,7 +41,7 @@ export function ContributionSection({
         {title}
         {rows.length > 0 && <span style={SECTION_COUNT}>· {rows.length}</span>}
       </SectionTitle>
-      {rows.length === 0 ? (
+      {rows.length === 0 && !trailing ? (
         <div style={SECTION_EMPTY}>{emptyText}</div>
       ) : (
         <ul style={listStyle}>
@@ -49,6 +52,7 @@ export function ContributionSection({
               currency={currency}
             />
           ))}
+          {trailing}
         </ul>
       )}
     </Section>

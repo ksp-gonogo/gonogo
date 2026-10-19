@@ -1,6 +1,7 @@
 import { NULL_DISPLAY, Text, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import type { ComponentProps } from "react";
 import { formatUnits, type NetTone } from "./flow";
+import { UNKNOWN_DRAW_TEXT } from "./OtherDrawRow";
 import {
   CELL_LABEL,
   CELL_VALUE,
@@ -23,6 +24,8 @@ import {
  */
 export function PowerTotals({
   netFigure,
+  drawUnknown,
+  flowMeasured,
   net,
   netTone,
   unratedCount,
@@ -32,8 +35,12 @@ export function PowerTotals({
   measuredDisagrees,
   storage,
 }: Readonly<{
-  /** The net rate as the figure the cell draws, null while no part reports a measured flow, when the three totals are unknown rather than zero. */
+  /** The net rate as the figure the cell draws, null while the net is unknown rather than zero. */
   netFigure: ComponentProps<typeof Unit>["value"] | null;
+  /** The stored charge is not moving, so the net and the total draw cannot be read: both show as unknown. */
+  drawUnknown: boolean;
+  /** Whether any part reports a measured flow; without one PROD is unknown too. */
+  flowMeasured: boolean;
   net: number;
   netTone: NetTone;
   /** Parts running a process with no published rate: their draw or yield is missing from NET. */
@@ -57,6 +64,8 @@ export function PowerTotals({
               {net >= 0 ? "+" : ""}
               <Unit value={netFigure} decimals={2} />
             </>
+          ) : drawUnknown ? (
+            <UnknownFigure label="Net rate unknown" />
           ) : (
             NULL_DISPLAY
           )}
@@ -73,7 +82,7 @@ export function PowerTotals({
       <div style={TOTALS_CELL}>
         <span style={CELL_LABEL}>PROD</span>
         <Text tone="go" size="sm" style={CELL_VALUE}>
-          {netFigure !== null ? (
+          {flowMeasured ? (
             <>
               {totalProduced > 0 ? "+" : ""}
               {totalProduced.toFixed(2)}
@@ -99,7 +108,13 @@ export function PowerTotals({
       <div style={TOTALS_CELL}>
         <span style={CELL_LABEL}>CONS</span>
         <Text tone="warn" size="sm" style={CELL_VALUE}>
-          {netFigure !== null ? totalConsumed.toFixed(2) : NULL_DISPLAY}
+          {drawUnknown ? (
+            <UnknownFigure label="Total draw unknown" />
+          ) : netFigure !== null ? (
+            totalConsumed.toFixed(2)
+          ) : (
+            NULL_DISPLAY
+          )}
         </Text>
       </div>
       {storage && storage.maxAmount > 0 && (
@@ -112,5 +127,15 @@ export function PowerTotals({
         </div>
       )}
     </div>
+  );
+}
+
+function UnknownFigure({ label }: Readonly<{ label: string }>) {
+  return (
+    <Tooltip text={UNKNOWN_DRAW_TEXT} focusable>
+      <span role="img" aria-label={label}>
+        {NULL_DISPLAY}
+      </span>
+    </Tooltip>
   );
 }

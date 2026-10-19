@@ -20,6 +20,7 @@ import { ContributionSection } from "./ContributionSection";
 import { netRate } from "./chargeRate";
 import type { PowerSystemsConfig } from "./config";
 import { type NetTone, netToneWithUnrated, splitCamel } from "./flow";
+import { OtherDrawRow } from "./OtherDrawRow";
 import { PowerTotals } from "./PowerTotals";
 import { ResourceTrend } from "./ResourceTrend";
 import type { PowerSystemsScope } from "./slots";
@@ -36,6 +37,7 @@ import {
 import {
   useCycleResourceAction,
   useLiveParts,
+  useMeasuredCharge,
   useResourceBreakdown,
   useResourcePick,
 } from "./usePowerFlow";
@@ -110,6 +112,18 @@ export function PowerSystemsComponent({
     measuredTotalProduced !== undefined &&
     Math.abs(measuredTotalProduced - totalProduced) > 0.01;
 
+  const isCharge = resource === "ElectricCharge";
+  const {
+    unknown: drawUnknown,
+    net: measuredNet,
+    consumption: measuredConsumption,
+    other: measuredOther,
+  } = useMeasuredCharge(resource);
+  // The stored charge counts every draw and source, so it replaces the itemised sum whenever it is known.
+  const shownNet = measuredNet ?? net;
+  const shownConsumed =
+    measuredConsumption === undefined ? totalConsumed : -measuredConsumption;
+
   const seriesKey = `vessel.resources.resources.${resource}.current`;
   const series = useDataSeries(seriesKey, SPARKLINE_WINDOW_SEC);
   const sparkValues = useMemo(
@@ -170,7 +184,12 @@ export function PowerSystemsComponent({
     );
   }
 
-  const netTone = netToneWithUnrated(net, unratedCount);
+  const netTone = drawUnknown
+    ? "neutral"
+    : netToneWithUnrated(
+        shownNet,
+        measuredNet === undefined ? unratedCount : 0,
+      );
 
   if (!showFullList) {
     return (
@@ -181,12 +200,12 @@ export function PowerSystemsComponent({
           <Section gap="related-dense" style={COMPACT_BODY}>
             <div style={COMPACT_RESOURCE}>{splitCamel(resource)}</div>
             <Text tone={COMPACT_NET_TONE[netTone]} style={COMPACT_NET}>
-              {flowMeasured ? (
+              {flowMeasured && !drawUnknown ? (
                 <>
-                  {net >= 0 ? "+" : ""}
+                  {shownNet >= 0 ? "+" : ""}
                   <Unit
                     value={readingOf(partsReading, () =>
-                      netRate(resource, net),
+                      netRate(resource, shownNet),
                     )}
                     decimals={2}
                   />
@@ -240,15 +259,17 @@ export function PowerSystemsComponent({
 
             <PowerTotals
               netFigure={
-                flowMeasured
-                  ? readingOf(partsReading, () => netRate(resource, net))
+                flowMeasured && !drawUnknown
+                  ? readingOf(partsReading, () => netRate(resource, shownNet))
                   : null
               }
-              net={net}
+              drawUnknown={drawUnknown}
+              flowMeasured={flowMeasured}
+              net={shownNet}
               netTone={netTone}
-              unratedCount={unratedCount}
+              unratedCount={measuredNet === undefined ? unratedCount : 0}
               totalProduced={totalProduced}
-              totalConsumed={totalConsumed}
+              totalConsumed={shownConsumed}
               measuredTotalProduced={measuredTotalProduced}
               measuredDisagrees={measuredDisagrees}
               storage={storage}
@@ -278,6 +299,11 @@ export function PowerSystemsComponent({
                 title="Consumers"
                 rows={consumers}
                 emptyText="Nothing consuming"
+                trailing={
+                  isCharge && flowMeasured ? (
+                    <OtherDrawRow draw={measuredOther ?? null} />
+                  ) : undefined
+                }
                 listStyle={CONTRIB_LIST}
                 landscape={isLandscape}
                 currency={partsReading}

@@ -68,6 +68,8 @@ describe("netToneWithUnrated", () => {
 describe("PowerTotals", () => {
   const props = {
     net: 5,
+    drawUnknown: false,
+    flowMeasured: true,
     netFigure: value("units/s", 5),
     netTone: "neutral" as const,
     totalProduced: 5,
@@ -93,6 +95,8 @@ describe("PowerTotals NET cell", () => {
     render(
       <PowerTotals
         net={-0.03}
+        drawUnknown={false}
+        flowMeasured
         netFigure={value("EC/s", -0.03)}
         netTone="warn"
         unratedCount={0}

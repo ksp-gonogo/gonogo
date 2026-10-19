@@ -1025,7 +1025,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     unratedProcess: "flag",
   },
   "PartsPower": {
+    netChargeRateEc: "units/s",
+    totalConsumptionEc: "units/s",
     totalProductionEc: "units/s",
+    unattributedConsumptionEc: "units/s",
   },
   "PayloadMeta": {
     source: "id",
@@ -1946,7 +1949,10 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     succeeded: "flag",
   },
   "parts.power": {
+    netChargeRateEc: "units/s",
+    totalConsumptionEc: "units/s",
     totalProductionEc: "units/s",
+    unattributedConsumptionEc: "units/s",
   },
   "recovery.hasRecent": {
     recent: "flag",

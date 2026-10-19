@@ -24,6 +24,7 @@ namespace Sitrep.Host
     ///   "power": {
     ///     "totalProductionEc": double,
     ///   } | null
+    ///   "chargeRateEc": double | null            // stored-charge rate, ChargeRateEstimator
     ///   "robotics": [ ... ] | null              // read by BreakingGroundViewProvider
     ///   "roboticsAvailable": bool                // read by BreakingGroundViewProvider
     /// }
@@ -48,10 +49,63 @@ namespace Sitrep.Host
                 return null;
             }
 
+            var netRate = ReadChargeRate(snapshot);
+            var rows = ReadChargeFlows(snapshot);
+            double? total = null;
+            double? unattributed = null;
+            if (netRate.HasValue && rows.HasValue)
+            {
+                total = Math.Max(0.0, rows.Value.Produced - netRate.Value);
+                unattributed = Math.Max(0.0, total.Value - rows.Value.Consumed);
+            }
+
             return new Dictionary<string, object?>
             {
                 ["totalProductionEc"] = SnapshotDict.GetDouble(raw, "totalProductionEc"),
+                ["netChargeRateEc"] = netRate,
+                ["totalConsumptionEc"] = total,
+                ["unattributedConsumptionEc"] = unattributed,
             };
+        }
+
+        private static double? ReadChargeRate(KspSnapshot? snapshot)
+        {
+            return snapshot?.Values != null
+                && snapshot.Values.TryGetValue("parts", out var rawParts)
+                && rawParts is IDictionary<string, object?> parts
+                    ? SnapshotDict.GetDouble(parts, "chargeRateEc")
+                    : null;
+        }
+
+        /// <summary>What the itemised <c>ElectricCharge</c> rows of <c>vessel.parts</c> add and draw, each as a magnitude; null when the part list is not in the snapshot.</summary>
+        private static (double Produced, double Consumed)? ReadChargeFlows(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null
+                || !snapshot.Values.TryGetValue("vessel", out var rawVessel)
+                || rawVessel is not IDictionary<string, object?> vessel
+                || !vessel.TryGetValue("topology", out var rawTopology)
+                || rawTopology is not IEnumerable<object?> topology)
+            {
+                return null;
+            }
+
+            double produced = 0;
+            double consumed = 0;
+            foreach (var rawPart in topology)
+            {
+                if (rawPart is IDictionary<string, object?> part
+                    && part.TryGetValue("resources", out var rawResources)
+                    && rawResources is IDictionary<string, object?> resources
+                    && resources.TryGetValue("ElectricCharge", out var rawRow)
+                    && rawRow is IDictionary<string, object?> row)
+                {
+                    var flow = SnapshotDict.GetDouble(row, "flow");
+                    produced += Math.Max(0.0, flow ?? 0.0);
+                    consumed += Math.Max(0.0, -(flow ?? 0.0));
+                }
+            }
+
+            return (produced, consumed);
         }
 
         /// <summary>
