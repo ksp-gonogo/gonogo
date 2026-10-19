@@ -453,7 +453,7 @@ namespace Gonogo.KSP
                 var signal = backend.Signal();
                 return new ContactRadio(
                     "vessel:" + active.id,
-                    backend.Connectivity().Connected,
+                    CommsCoreUplink.ReadConnectivity(backend, active).Connected,
                     signal.Strength,
                     CommsDegradeModels.ToPayload(backend.DegradeModel()),
                     hops,
