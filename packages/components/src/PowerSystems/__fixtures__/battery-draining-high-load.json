@@ -2,7 +2,7 @@
   "_meta": {
     "shows": "A craft under heavy electrical load from a Convert-O-Tron 125 drawing 6 EC/s, with the battery bank about half drained and the net rate showing a warning.",
     "scenario": "battery-draining-high-load",
-    "notes": "High load scenario: engines firing, drills running, ISRU processing. Net negative, battery draining fast. NET cell should show warning tone. Multiple consumers. The stored charge falls 0.25 EC/s faster than the part rows account for, so Other shows that draw."
+    "notes": "High load scenario: engines firing, drills running, ISRU processing. Net negative, battery draining fast. NET cell should show warning tone. Multiple consumers."
   },
   "v.topologySeq": 2,
   "v.topology": {
@@ -368,10 +368,7 @@
       {
         "channel": "parts.power",
         "value": {
-          "totalProductionEc": 1.1,
-          "netChargeRateEc": -5.33,
-          "totalConsumptionEc": 6.43,
-          "unattributedConsumptionEc": 0.25
+          "totalProductionEc": 1.1
         }
       }
     ]

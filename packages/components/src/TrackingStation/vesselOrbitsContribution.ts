@@ -245,42 +245,17 @@ export function computeVesselOrbitEntities(
   return entities;
 }
 
-/** What the flown craft itself reports of its crew and its link; either is undefined until that report has arrived. */
-export interface FlownCraftReport {
-  crew?: TopicPayload<"vessel.crew">;
-  comms?: TopicPayload<"vessel.comms">;
-}
-
-/** Said in place of a figure the roster and the craft have both yet to report. */
-const NOT_YET_REPORTED = "not yet reported";
-
-function reportedCrewLabel(crew: TopicPayload<"vessel.crew"> | undefined) {
-  const count = crew?.count;
-  if (count == null) return NOT_YET_REPORTED;
-  const capacity = crew?.capacity;
-  return capacity != null
-    ? `${count.valueOf()}/${capacity.valueOf()}`
-    : String(count.valueOf());
-}
-
-function reportedCommsLabel(comms: TopicPayload<"vessel.comms"> | undefined) {
-  if (comms?.connected == null) return NOT_YET_REPORTED;
-  return comms.connected ? "connected" : "none";
-}
-
 /**
  * The flown craft as a catalog entity, built from its own `vessel.identity`
- * and `vessel.orbit`, for a centre whose catalog does not list it yet. Its
- * crew and link come from the craft's own `vessel.crew` and `vessel.comms`,
- * and read "not yet reported" until those have arrived; everything else is
- * placed and labelled exactly as a catalog entry would be. Null without an
- * identity or a resolvable body.
+ * and `vessel.orbit`, for a centre whose catalog does not list it yet. Crew
+ * and comms read as unknown, since the craft's own report does not carry
+ * them; everything else is placed and labelled exactly as a catalog entry
+ * would be. Null without an identity or a resolvable body.
  */
 export function flownCraftEntity(
   identity: TopicPayload<"vessel.identity"> | undefined,
   orbit: TopicPayload<"vessel.orbit"> | undefined,
   bodies: SystemBodies | null | undefined,
-  report: FlownCraftReport = {},
 ): SystemEntity | null {
   if (identity == null) return null;
   const entry: CatalogEntry = {
@@ -302,16 +277,7 @@ export function flownCraftEntity(
             epoch: orbit.epoch,
           },
   };
-  const entity = computeVesselOrbitEntities({ entries: [entry] }, bodies)[0];
-  if (entity == null) return null;
-  return {
-    ...entity,
-    meta: {
-      ...entity.meta,
-      crew: reportedCrewLabel(report.crew),
-      comms: reportedCommsLabel(report.comms),
-    },
-  };
+  return computeVesselOrbitEntities({ entries: [entry] }, bodies)[0] ?? null;
 }
 
 /** The body flagged `isHome`, or `null` when none is, which keeps the home edge omitted rather than placed at a guessed body. */

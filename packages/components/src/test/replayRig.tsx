@@ -72,27 +72,6 @@ export function rigFixture(name: RigName): RigFixture {
   };
 }
 
-/**
- * A recording kept under `tests/fixtures/wire` (JSON Lines, one `{ t, f }` per frame, cut with `wire-fixture.mjs`), as the frames `ReplayTransport` takes: the stream and event frames, every one exactly as recorded.
- */
-export function wireFixture(name: string): RigFixture {
-  const file = path.join(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "../../../../tests/fixtures/wire",
-    `${name}.jsonl`,
-  );
-  const frames: string[] = [];
-  for (const line of readFileSync(file, "utf8").split("\n")) {
-    if (line.trim() === "") continue;
-    const row: unknown = JSON.parse(line);
-    if (typeof row !== "object" || row === null || !("f" in row)) {
-      throw new Error(`${name}: not a recording`);
-    }
-    frames.push(typeof row.f === "string" ? row.f : JSON.stringify(row.f));
-  }
-  return { frames };
-}
-
 export interface RigReplay {
   /** Wraps the widget in the pipeline the recording is played into. */
   Provider: (props: { children: ReactNode }) => JSX.Element;

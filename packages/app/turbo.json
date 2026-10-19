@@ -4,7 +4,6 @@
   "tasks": {
     // bakedClientHash reads each Uplink's ExpectedClientHash.g.cs and runs
     // scripts/uplink-matrix.mjs; topic-cs-sync walks mod/ for the C# topic ids;
-    // GoNoGoAbortRecovery replays a recorded flight from tests/fixtures/wire;
     // setupGuide holds the README and the static home page to the app's run command.
     "test": {
       "dependsOn": ["^build"],
@@ -19,7 +18,6 @@
         "!$TURBO_ROOT$/mod/**/node_modules/**",
         "!$TURBO_ROOT$/mod/**/coverage/**",
         "$TURBO_ROOT$/scripts/uplink-matrix.mjs",
-        "$TURBO_ROOT$/tests/fixtures/wire/**",
         "$TURBO_ROOT$/README.md",
         "$TURBO_ROOT$/docs/homepage/index.html"
       ]

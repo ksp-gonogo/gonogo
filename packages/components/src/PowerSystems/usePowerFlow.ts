@@ -1,4 +1,4 @@
-import { useActionInput, useTelemetry } from "@ksp-gonogo/core";
+import { useActionInput } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { useEffect, useMemo, useState } from "react";
 import type { PowerSystemsActions } from "./config";
@@ -192,25 +192,4 @@ export function useCycleResourceAction(
       return { resource: next };
     },
   });
-}
-
-/** A wire rate as the plain EC per second the totals arithmetic and the row figures take, undefined while it is null. */
-function plainRate(rate: { valueOf(): number } | null | undefined) {
-  return rate == null ? undefined : Number(rate);
-}
-
-/**
- * The draw measured from the vessel's stored electric charge, each figure undefined while it cannot be known (batteries full or empty, or the figure held). Only electric charge has one; any other resource reads all three as undefined.
- */
-export function useMeasuredCharge(resource: string) {
-  const reading = useTelemetry("parts.power");
-  const power = reading.state === "observed" ? reading.value : undefined;
-  const isCharge = resource === "ElectricCharge";
-  return {
-    /** The stream answered and says the stored charge is not moving, so no draw can be read from it. */
-    unknown: isCharge && power != null && power.netChargeRateEc === null,
-    net: plainRate(isCharge ? power?.netChargeRateEc : undefined),
-    consumption: plainRate(isCharge ? power?.totalConsumptionEc : undefined),
-    other: plainRate(isCharge ? power?.unattributedConsumptionEc : undefined),
-  };
 }
