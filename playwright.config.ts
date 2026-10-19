@@ -40,6 +40,11 @@ const RADIO_STREAM_PORTS = {
   near: 18096,
   far: 18097,
 } as const;
+/**
+ * The mod played back from a wire recording and stepped by the spec, for the
+ * scenes where every screen replays one flight. See `wire-replay-server.mjs`.
+ */
+const WIRE_REPLAY_PORT = 18098;
 // The relay (/ice-config + coturn + the host-discovery registry).
 //
 // Port deliberately offset from the production default (3002) so the
@@ -147,6 +152,15 @@ export default defineConfig({
       },
     },
     {
+      command: "node ./tests/playwright/wire-replay-server.mjs",
+      url: `http://localhost:${WIRE_REPLAY_PORT}/health`,
+      reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 15_000,
+      env: { WIRE_REPLAY_PORT: String(WIRE_REPLAY_PORT) },
+    },
+    {
       command: "pnpm --filter @ksp-gonogo/relay exec tsx src/index.ts",
       url: `http://localhost:${RELAY_PORT}/health`,
       reuseExistingServer: !process.env.CI,
@@ -242,4 +256,5 @@ export const PORTS = {
   relay: RELAY_PORT,
   preview: PREVIEW_PORT,
   radioStream: RADIO_STREAM_PORTS,
+  wireReplay: WIRE_REPLAY_PORT,
 } as const;

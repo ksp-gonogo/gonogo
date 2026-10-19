@@ -4,10 +4,9 @@
  * local broker, asserts the station picks up the main's schema.
  *
  * This is the minimum-viable plumbing test: it proves the broker config
- * override works, both screens boot, and they can find each other. The
- * fixture-driven telemetry assertions (recorded-flight replay, station
- * mirrors widget values) layer on top of this once we have a way to
- * inject a test data source per page, TODO in a follow-up.
+ * override works, both screens boot, and they can find each other. Screens
+ * replaying a recorded flight and agreeing on what they show are covered by
+ * `replay-parity.spec.ts`.
  */
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import { seedApprovedStation } from "./helpers";
