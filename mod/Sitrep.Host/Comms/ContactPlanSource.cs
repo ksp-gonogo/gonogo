@@ -1894,6 +1894,10 @@ namespace Sitrep.Host.Comms
                 }
                 var routes = ContactRouting.RoutesFor(
                     plan, looked.ActiveCraft, new[] { centre }, looked.Ut, _audience!.LightFactor(), _audience.HomeCentre(), StationIds(), _audience.DishRouting());
+                if (HeardCut(centre, _hearing!.RadioAt(centre, looked.ActiveCraft)))
+                {
+                    routes = ContactRouting.NoneLive(routes);
+                }
                 rows += routes.Routes.Count;
                 _streams!.PublishAddressedTo(RouteTopic, routes, looked.Ut, ToItself(centre));
             }
@@ -1996,6 +2000,7 @@ namespace Sitrep.Host.Comms
                     plan = null;
                 }
                 var gameRoute = looked.ActiveCraft == null ? null : _routes?.ActiveVesselRoute(centre);
+                var cut = gameRoute == null && HeardCut(centre, radio);
                 // A delay that is switched off, or a save with no network to cross, is a setting and not a distance: it needs no plan to state. Where delay is merely off, a craft the centre believes has no path still has none.
                 var measured = modelled && lightFactor > 0.0;
                 if (!measured && _host!.IsAnyTopicSubscribed(DelayTopic) && (looked.RoutesDue || _pathsAsked[DelayTopic].Contains(centre)))
@@ -2007,6 +2012,7 @@ namespace Sitrep.Host.Comms
                         _believed.Of(centre, source)?.Path,
                         () => gameRoute != null
                             ? CentrePath.Taken(gameRoute, looked.ActiveCraft!, _stations, id => NameOf(offHeard, id), looked.Ut).Path
+                            : cut ? CentrePath.None(looked.ActiveCraft).Path
                             : CentrePath.For(plan, looked.ActiveCraft, centre, centre == home, _stations, id => NameOf(offHeard, id), looked.Ut, lightFactor).Path);
                     _streams!.PublishAddressedTo(DelayTopic, CentreDelay.NotMeasured(modelled, offPath, source), looked.Ut, ToItself(centre));
                     frames++;
@@ -2031,6 +2037,7 @@ namespace Sitrep.Host.Comms
                 var strengths = PathStrengths.For(heard, looked.PathStrength);
                 var view = gameRoute != null
                     ? CentrePath.Taken(gameRoute, looked.ActiveCraft!, _stations, id => NameOf(heard, id), looked.Ut, strengths)
+                    : cut ? CentrePath.None(looked.ActiveCraft)
                     : CentrePath.For(
                         plan,
                         looked.ActiveCraft,
@@ -2105,6 +2112,34 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>Every ground station's id, as the plans name them.</summary>
+        /// <summary>
+        /// Whether the newest reading of the active craft's radio to reach
+        /// <paramref name="centre"/> says its link home is gone. The game has then
+        /// cut the craft whatever the plan's geometry holds, so a centre on the
+        /// ground is shown no path open now; what the plan holds for later still
+        /// stands. A craft acting as a centre may still be reached over a link of
+        /// its own and keeps its plan.
+        /// </summary>
+        private bool HeardCut(string centre, ContactRadio? radio)
+        {
+            if (radio == null || radio.Connected)
+            {
+                return false;
+            }
+            if (centre == _audience!.HomeCentre())
+            {
+                return true;
+            }
+            foreach (var station in _stations)
+            {
+                if (station.Id == centre)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private IReadOnlyCollection<string> StationIds()
         {
             var ids = new List<string>(_stations.Count);

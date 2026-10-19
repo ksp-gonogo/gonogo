@@ -1917,9 +1917,12 @@ export enum CommsControlSource {
 /**
 * Whether the active vessel has a control link home right now, and the degree
 * of control it has. Read from the comms mod in force: ground-side truth, with
-* all three fields describing the same tick. Nothing is published while no
-* craft is on screen (an editor, the space centre, the tracking station): a
-* link report is about a craft.
+* all three fields describing the same tick. While no craft is on screen (an
+* editor, the space centre, the tracking station), and for the moment the game
+* takes to solve a craft's link after it comes on screen, nothing is reported:
+* `CommsConnectivity.connected` is `null`, `CommsConnectivity.controlSource`
+* is `CommsControlSource.Unknown` and `CommsConnectivity.hasLocalControl` is
+* false and says nothing.
 *
 * @category Comms
 * @categoryDescription Comms
@@ -1934,9 +1937,11 @@ export interface CommsConnectivity
 	/**
 	* True when the backend resolved a control path home for the active vessel.
 	* False when it has none, and also when no link state could be read (then
-	* `CommsConnectivity.controlSource` is `CommsControlSource.None`).
+	* `CommsConnectivity.controlSource` is `CommsControlSource.None`). `null` when
+	* nothing is reported yet, which is not a lost link: no craft is on screen, or
+	* the game has not yet solved the link of one that just came on screen.
 	*/
-	connected: boolean;
+	connected?: boolean | null;
 	/** The degree of control the vessel has. */
 	controlSource: CommsControlSource;
 	/**
@@ -2417,9 +2422,11 @@ export interface CommsLink
 {
 	/**
 	* True while the active vessel has a control link home, as of one signal delay
-	* ago; false through a blackout.
+	* ago; false through a blackout. `null` when nothing is reported yet, which is
+	* not a lost link: no craft is on screen, or the game has not yet solved the
+	* link of one that just came on screen.
 	*/
-	connected: boolean;
+	connected?: boolean | null;
 	/** The payload's provenance (`"vessel:<guid>"` or `"game"`). */
 	meta: PayloadMeta;
 }

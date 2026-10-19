@@ -37,7 +37,7 @@ export const EXTENSION_API_VERSION: string = "6.0.0";
  *
  * @category Host and runtime
  */
-export const CONTRACT_MAJOR = 44;
+export const CONTRACT_MAJOR = 45;
 
 /**
  * The minor version of the game data contract. A minor only adds, so an Uplink
@@ -47,4 +47,4 @@ export const CONTRACT_MAJOR = 44;
  *
  * @category Host and runtime
  */
-export const CONTRACT_MINOR: number = 15;
+export const CONTRACT_MINOR: number = 0;

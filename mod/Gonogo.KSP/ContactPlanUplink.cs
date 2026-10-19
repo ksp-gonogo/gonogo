@@ -450,10 +450,16 @@ namespace Gonogo.KSP
                 {
                     hops.Add(new RadioHop(hop.From, hop.To, !hop.ToIsHome, hop.Extensions));
                 }
+                // A link with nothing reported yet is no reading at all, and is never taken as a lost link.
+                var connected = CommsCoreUplink.ReadConnectivity(backend, active).Connected;
+                if (connected == null)
+                {
+                    return null;
+                }
                 var signal = backend.Signal();
                 return new ContactRadio(
                     "vessel:" + active.id,
-                    CommsCoreUplink.ReadConnectivity(backend, active).Connected,
+                    connected.Value,
                     signal.Strength,
                     CommsDegradeModels.ToPayload(backend.DegradeModel()),
                     hops,

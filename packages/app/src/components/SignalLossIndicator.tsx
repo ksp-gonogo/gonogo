@@ -50,7 +50,9 @@ export function SignalLossIndicator() {
   // already this component's not-yet-known state, and the confirmed-true gate
   // below still governs whether a false counts as a blackout.
   const connected =
-    linkReading.state === "observed" ? linkReading.value.connected : undefined;
+    linkReading.state === "observed"
+      ? (linkReading.value.connected ?? undefined)
+      : undefined;
   const signalStrength =
     commsReading.state === "observed"
       ? commsReading.value.signalStrength

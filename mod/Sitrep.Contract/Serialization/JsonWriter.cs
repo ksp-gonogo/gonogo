@@ -1744,7 +1744,7 @@ namespace Sitrep.Contract.Serialization
             sb.Append('{');
             AppendString(sb, "connected");
             sb.Append(':');
-            AppendBool(sb, l.Connected);
+            AppendNullableBool(sb, l.Connected);
             sb.Append(',');
             AppendString(sb, "meta");
             sb.Append(':');
@@ -2555,7 +2555,7 @@ namespace Sitrep.Contract.Serialization
             sb.Append('{');
             AppendString(sb, "connected");
             sb.Append(':');
-            AppendBool(sb, c.Connected);
+            AppendNullableBool(sb, c.Connected);
             sb.Append(',');
             AppendString(sb, "controlSource");
             sb.Append(':');

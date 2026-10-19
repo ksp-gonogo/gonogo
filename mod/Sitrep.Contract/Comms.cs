@@ -57,9 +57,12 @@ public enum CommsControlSource
 /// <summary>
 /// Whether the active vessel has a control link home right now, and the degree
 /// of control it has. Read from the comms mod in force: ground-side truth, with
-/// all three fields describing the same tick. Nothing is published while no
-/// craft is on screen (an editor, the space centre, the tracking station): a
-/// link report is about a craft.
+/// all three fields describing the same tick. While no craft is on screen (an
+/// editor, the space centre, the tracking station), and for the moment the game
+/// takes to solve a craft's link after it comes on screen, nothing is reported:
+/// <see cref="Connected"/> is <c>null</c>, <see cref="ControlSource"/> is
+/// <see cref="CommsControlSource.Unknown"/> and <see cref="HasLocalControl"/> is
+/// false and says nothing.
 /// </summary>
 /// <category>Comms</category>
 /// <categoryDescription>
@@ -80,10 +83,12 @@ public class CommsConnectivity
     /// True when the backend resolved a control path home for the active
     /// vessel. False when it has none, and also when no link state could be
     /// read (then <see cref="ControlSource"/> is
-    /// <see cref="CommsControlSource.None"/>).
+    /// <see cref="CommsControlSource.None"/>). <c>null</c> when nothing is
+    /// reported yet, which is not a lost link: no craft is on screen, or the
+    /// game has not yet solved the link of one that just came on screen.
     /// </summary>
     [SitrepUnit(Units.Flag)]
-    public bool Connected { get; set; }
+    public bool? Connected { get; set; }
     /// <summary>The degree of control the vessel has.</summary>
     [SitrepUnit(Units.Enumeration)]
     public CommsControlSource ControlSource { get; set; }
@@ -705,9 +710,14 @@ public class CommsDelay
 [SitrepTopic("comms.link")]
 public class CommsLink
 {
-    /// <summary>True while the active vessel has a control link home, as of one signal delay ago; false through a blackout.</summary>
+    /// <summary>
+    /// True while the active vessel has a control link home, as of one signal
+    /// delay ago; false through a blackout. <c>null</c> when nothing is reported
+    /// yet, which is not a lost link: no craft is on screen, or the game has not
+    /// yet solved the link of one that just came on screen.
+    /// </summary>
     [SitrepUnit(Units.Flag)]
-    public bool Connected { get; set; }
+    public bool? Connected { get; set; }
     /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>).</summary>
     public PayloadMeta Meta { get; set; } = new();
 }

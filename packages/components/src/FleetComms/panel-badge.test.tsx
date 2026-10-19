@@ -1,6 +1,7 @@
 import { ContributionsProvider, WidgetMetaContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import {
+  NULL_DISPLAY,
   Panel,
   PanelBadgesProvider,
   useWidgetBadges,
@@ -87,5 +88,23 @@ describe("TrackingStation panel badge (fleet-comms-badge contribution)", () => {
     await waitFor(() =>
       expect(screen.getByText("NO COMMS LINK")).toBeInTheDocument(),
     );
+  });
+
+  it("drops a previous craft's NO LINK once comms.link says nothing is reported", async () => {
+    unmount = renderPanel(fixture).unmount;
+    act(() => {
+      fixture.emit("comms.link", { connected: false });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("NO COMMS LINK")).toBeInTheDocument(),
+    );
+
+    act(() => {
+      fixture.emit("comms.link", { connected: null });
+    });
+    await waitFor(() =>
+      expect(screen.getByText(`COMMS ${NULL_DISPLAY}`)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("NO COMMS LINK")).toBeNull();
   });
 });

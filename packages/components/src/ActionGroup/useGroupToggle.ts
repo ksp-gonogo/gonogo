@@ -52,7 +52,9 @@ export function useGroupToggle({
     warpReading.state === "observed" ? warpReading.value.paused : undefined;
   const linkReading = useTelemetry("comms.link");
   const commConnected =
-    linkReading.state === "observed" ? linkReading.value.connected : undefined;
+    linkReading.state === "observed"
+      ? (linkReading.value.connected ?? undefined)
+      : undefined;
 
   const toggleCommand = group ? toggleCommandFor(group) : null;
   const toggleCmd = useCommand(toggleCommand ?? "");
