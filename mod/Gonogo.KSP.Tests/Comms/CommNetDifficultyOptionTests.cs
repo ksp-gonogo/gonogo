@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using CommNet;
 using Sitrep.Contract;
@@ -191,11 +190,10 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         /// <summary>
-        /// A link report is about a craft. With none on screen (an editor)
-        /// connectivity and the link say nothing is reported, rather than
-        /// keeping the last craft's link or reporting one the no-comms-model
-        /// wrapper would call connected. Control stays silent, and the
-        /// occlusion rule, which is about the bodies, still goes out.
+        /// A link report is about a craft. With none on screen (an editor) the
+        /// connectivity, control and link channels stay silent rather than
+        /// reporting a link the no-comms-model wrapper would call connected,
+        /// while the occlusion rule, which is about the bodies, still goes out.
         /// </summary>
         [Fact]
         public void WithNoCraftOnScreen_NoLinkIsReported_AndOcclusionStillIs()
@@ -209,10 +207,7 @@ namespace Gonogo.KSP.Tests.Comms
             {
                 uplink.HandleOnCourier(uplink.CaptureOnMain(new KspSnapshot { Ut = 100.0 }));
 
-                Assert.Equal(
-                    new[] { CommsCoreUplink.OcclusionTopic, CommsCoreUplink.ConnectivityTopic, CommsCoreUplink.LinkTopic },
-                    host.Published);
-                AssertUnreported(host);
+                Assert.Equal(new[] { CommsCoreUplink.OcclusionTopic }, host.Published);
             }
             finally
             {
@@ -378,8 +373,7 @@ namespace Gonogo.KSP.Tests.Comms
         /// <summary>
         /// Before the first real reading of a craft its connectivity is unknown:
         /// the gate is given no answer (it keeps its last state) and the channels
-        /// say nothing is reported, until the craft reads connected or the
-        /// window passes.
+        /// stay silent, until the craft reads connected or the window passes.
         /// </summary>
         [Fact]
         public void AFirstDisconnectedReadOfACraft_IsUnknownRatherThanALoss()
@@ -396,8 +390,8 @@ namespace Gonogo.KSP.Tests.Comms
                 var first = new KspSnapshot { Ut = 100.0 };
                 Assert.Null(uplink.ComputeConnectedOnMain(first));
                 uplink.HandleOnCourier(uplink.CaptureOnMain(first));
-                Assert.DoesNotContain(CommsCoreUplink.ControlTopic, host.Published);
-                AssertUnreported(host);
+                Assert.DoesNotContain(CommsCoreUplink.ConnectivityTopic, host.Published);
+                Assert.DoesNotContain(CommsCoreUplink.LinkTopic, host.Published);
 
                 backend.Connected = true;
                 Assert.True(uplink.ComputeConnectedOnMain(new KspSnapshot { Ut = 100.5 }));
@@ -411,15 +405,6 @@ namespace Gonogo.KSP.Tests.Comms
                 CommsCoreUplink.ConfigureCommsModelProbe(null);
                 CommsCoreUplink.ConfigureActiveVesselProbe(null);
             }
-        }
-
-        private static void AssertUnreported(NoOpUplinkHost host)
-        {
-            var connectivity = Assert.IsType<CommsConnectivity>(host.Last(CommsCoreUplink.ConnectivityTopic));
-            Assert.Null(connectivity.Connected);
-            Assert.Equal(CommsControlSource.Unknown, connectivity.ControlSource);
-            Assert.False(connectivity.HasLocalControl);
-            Assert.Null(Assert.IsType<CommsLink>(host.Last(CommsCoreUplink.LinkTopic)).Connected);
         }
 
         /// <summary>A craft that is never read connected is a loss once the window has passed.</summary>
@@ -534,13 +519,7 @@ namespace Gonogo.KSP.Tests.Comms
 
             internal List<string> Published { get; } = new List<string>();
 
-            /// <summary>Every payload published, with its topic, in order.</summary>
-            internal List<(string Topic, object? Payload)> Payloads { get; } = new List<(string Topic, object? Payload)>();
-
-            /// <summary>The last payload published on <paramref name="topic"/>, or null when none was.</summary>
-            internal object? Last(string topic) => Payloads.LastOrDefault(p => p.Topic == topic).Payload;
-
-            public IChannelPublisher Publisher(string topic) => new RecordingPublisher(topic, Published, Payloads);
+            public IChannelPublisher Publisher(string topic) => new RecordingPublisher(topic, Published);
 
             public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread)
             {
@@ -587,25 +566,19 @@ namespace Gonogo.KSP.Tests.Comms
             {
                 private readonly string _topic;
                 private readonly List<string> _published;
-                private readonly List<(string Topic, object? Payload)> _payloads;
 
-                internal RecordingPublisher(string topic, List<string> published, List<(string Topic, object? Payload)> payloads)
+                internal RecordingPublisher(string topic, List<string> published)
                 {
                     _topic = topic;
                     _published = published;
-                    _payloads = payloads;
                 }
 
-                public void Publish(object? payload, double ut)
-                {
-                    _published.Add(_topic);
-                    _payloads.Add((_topic, payload));
-                }
+                public void Publish(object? payload, double ut) => _published.Add(_topic);
             }
 
             private sealed class NullDynamicSource : IDynamicChannelSource
             {
-                public IChannelPublisher Publisher(string subTopic) => new RecordingPublisher(subTopic, new List<string>(), new List<(string Topic, object? Payload)>());
+                public IChannelPublisher Publisher(string subTopic) => new RecordingPublisher(subTopic, new List<string>());
 
                 public void OnSubscribed(Action<string> callback)
                 {

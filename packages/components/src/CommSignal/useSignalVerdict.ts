@@ -111,9 +111,7 @@ export function useSignalVerdict(): SignalVerdict {
   const linkReading = useTelemetry("comms.link");
   const commsReading = useTelemetry("vessel.comms");
   const connected =
-    linkReading.state === "observed"
-      ? (linkReading.value.connected ?? undefined)
-      : undefined;
+    linkReading.state === "observed" ? linkReading.value.connected : undefined;
   // The strength sent to this command centre for the active route. The craft's own figure is of whatever path the game had it on, so it is never drawn in its place.
   const signalReading = useTelemetry("comms.signal");
   const told =

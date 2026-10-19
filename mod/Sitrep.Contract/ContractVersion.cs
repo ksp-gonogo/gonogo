@@ -42,7 +42,7 @@ namespace Sitrep.Contract
         /// the commit that moved it, not here.
         /// </internal>
         /// </summary>
-        public const int Major = 45;
+        public const int Major = 44;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It
@@ -50,6 +50,6 @@ namespace Sitrep.Contract
         /// Minor of the same Major stays compatible. The value is inlined into an
         /// Uplink at compile time, so it records the Minor that Uplink was built against.
         /// </summary>
-        public const int Minor = 0;
+        public const int Minor = 15;
     }
 }

@@ -9,13 +9,11 @@
 /**
  * The part of the `comms.link` payload that {@link ConnectivityHistory} reads:
  * whether the radio path between the command centre and the vessel is
- * connected, or `null` when nothing is reported yet (no craft on screen, or
- * one whose link the game has not yet solved). Useful for feeding the history
- * from the stream without passing the whole payload. Used by the delay-aware
- * command hook, which records only a reported state.
+ * connected. Useful for feeding the history from the stream without passing the
+ * whole payload. Used by the delay-aware command hook.
  */
 export interface CommsLinkLike {
-  connected?: boolean | null;
+  connected: boolean;
 }
 
 interface ConnectivityTransition {

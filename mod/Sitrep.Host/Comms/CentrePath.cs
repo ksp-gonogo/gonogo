@@ -84,7 +84,13 @@ namespace Sitrep.Host.Comms
             PathStrengths? strengths = null)
         {
             var source = activeCraft == null ? "game" : activeCraft;
-            var none = None(activeCraft);
+            var none = new CentrePathView(
+                new CommsPath(),
+                new CommsNetwork { Meta = new PayloadMeta { Source = source } },
+                new CommsCommandCentre())
+            {
+                Shape = source,
+            };
             if (plan == null || activeCraft == null)
             {
                 return none;
@@ -144,19 +150,6 @@ namespace Sitrep.Host.Comms
             {
                 Shape = shape.ToString(),
                 Strength = strengths?.Of(hops.ConvertAll(h => h.Strength)),
-            };
-        }
-
-        /// <summary>The view of no path at all from <paramref name="activeCraft"/>, or from the game when there is no craft.</summary>
-        public static CentrePathView None(string? activeCraft)
-        {
-            var source = activeCraft == null ? "game" : activeCraft;
-            return new CentrePathView(
-                new CommsPath(),
-                new CommsNetwork { Meta = new PayloadMeta { Source = source } },
-                new CommsCommandCentre())
-            {
-                Shape = source,
             };
         }
 

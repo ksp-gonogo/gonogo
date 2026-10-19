@@ -664,11 +664,7 @@ namespace Gonogo.KSP
             // arrives as a clean `false` (Connection() null ⇒ Connected=false,
             // no throw) and still freezes, as intended.
             var connected = ReadConnectivity(backend, active).Connected;
-            if (connected == null)
-            {
-                return null;
-            }
-            return _gateSettle.IsUnknown(active, snapshot?.Ut ?? Planetarium.GetUniversalTime(), connected.Value)
+            return _gateSettle.IsUnknown(active, snapshot?.Ut ?? Planetarium.GetUniversalTime(), connected)
                 ? null
                 : connected;
         }
@@ -687,7 +683,7 @@ namespace Gonogo.KSP
         internal static CommsConnectivity ReadConnectivity(ICommsBackend backend, Vessel? active)
         {
             var connectivity = backend.Connectivity();
-            if (connectivity.Connected != false || active == null)
+            if (connectivity.Connected || active == null)
             {
                 return connectivity;
             }
@@ -879,10 +875,10 @@ namespace Gonogo.KSP
                     SourceOf(active));
 
                 var connectivity = ReadConnectivity(backend, active);
-                var settling = connectivity.Connected == null || _channelSettle.IsUnknown(
+                var settling = _channelSettle.IsUnknown(
                     active,
                     snapshot?.Ut ?? Planetarium.GetUniversalTime(),
-                    connectivity.Connected.Value);
+                    connectivity.Connected);
 
                 // DEV-ONLY: mirror the same override ComputeConnectedOnMain
                 // applies to the reveal gate into the comms.connectivity
@@ -995,10 +991,13 @@ namespace Gonogo.KSP
                 return;
             }
             _occlusion?.Publish(capture.Occlusion, capture.Ut);
-            if (!capture.HasCraft || capture.Settling)
+            if (!capture.HasCraft)
             {
-                // Nothing is reported, which a client must not read as the last craft's link or as a lost one.
-                PublishUnreported(capture.HasCraft ? capture.Delay?.Meta?.Source ?? "game" : "game", capture.Ut);
+                return;
+            }
+
+            if (capture.Settling)
+            {
                 return;
             }
 
@@ -1014,20 +1013,6 @@ namespace Gonogo.KSP
                 Meta = new PayloadMeta { Source = capture.Delay?.Meta?.Source ?? "game" },
             }, capture.Ut);
         }
-
-        /// <summary>Courier thread: <c>comms.connectivity</c> and <c>comms.link</c> saying nothing is reported.</summary>
-        private void PublishUnreported(string source, double ut)
-        {
-            _connectivity?.Publish(Unreported, ut);
-            _link?.Publish(new CommsLink { Connected = null, Meta = new PayloadMeta { Source = source } }, ut);
-        }
-
-        private static readonly CommsConnectivity Unreported = new CommsConnectivity
-        {
-            Connected = null,
-            ControlSource = CommsControlSource.Unknown,
-            HasLocalControl = false,
-        };
 
         /// <summary>
         /// The mandatory healthcheck (see <see cref="ISitrepUplink.Health"/>):

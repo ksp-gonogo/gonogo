@@ -217,7 +217,7 @@ function PilotSignalDelay({ wrap }: { wrap: Wrap | undefined }) {
 function useLinkConnected(): boolean | undefined {
   const linkReading = useTelemetry("comms.link");
   return linkReading.state === "observed"
-    ? (linkReading.value.connected ?? undefined)
+    ? linkReading.value.connected
     : undefined;
 }
 

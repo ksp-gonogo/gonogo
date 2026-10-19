@@ -7,8 +7,8 @@
   "version": "0.0.1",
   "minAppVersion": "0.0.0",
   "apiVersion": "6.0.0",
-  "contractMajor": 45,
-  "contractMinor": 0,
+  "contractMajor": 44,
+  "contractMinor": 15,
   "bundleUrl": "makingHistory/makingHistory.client.js",
   "integrity": "",
   "sdkVersion": "0.0.1"

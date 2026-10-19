@@ -50,26 +50,6 @@ namespace Sitrep.Host.Comms
             return routes;
         }
 
-        /// <summary>
-        /// <paramref name="routes"/> with every row the plan holds open now
-        /// marked not live and given no arrival, for a centre that has heard the
-        /// game cut the link the plan still has: the plan cannot say when that
-        /// link returns. A row that already waits for a later window keeps it.
-        /// </summary>
-        public static CommsRoutes NoneLive(CommsRoutes routes)
-        {
-            foreach (var row in routes.Routes)
-            {
-                if (row.Live)
-                {
-                    row.Live = false;
-                    row.ArrivalUt = null;
-                    row.Holds.Clear();
-                }
-            }
-            return routes;
-        }
-
         private static CommsRoute Row(
             ContactPlan plan, string from, string to, double sentUt, double lightFactor, string? home, IReadOnlyCollection<string>? antennas, RetargetRouting? retarget)
         {

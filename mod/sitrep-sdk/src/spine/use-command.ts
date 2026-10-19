@@ -634,7 +634,7 @@ export function useCommand(
         readNextLossUt(nextLossPayload),
       );
 
-  if (typeof connectivity?.connected === "boolean") {
+  if (connectivity) {
     connectivityHistoryRef.current.record(nowUt, connectivity.connected);
   }
 
