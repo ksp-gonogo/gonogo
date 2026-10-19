@@ -754,6 +754,18 @@ namespace Sitrep.Host
             ActiveLinkReports.Contains(topic)
             || IsPerVesselField(topic, CraftStatePrefix, CraftLinkSuffix);
 
+        /// <summary>
+        /// Whether a sample is the news that a craft was recovered: the end of a
+        /// flight by recovery, or the recovery summary and its flag. A crash or
+        /// any other end of a flight is not.
+        /// </summary>
+        private static bool IsRecoveryNews(string topic, object? value) =>
+            topic == Sitrep.Host.Recovery.RecoveryTopics.LastSummaryTopic
+            || topic == Sitrep.Host.Recovery.RecoveryTopics.HasRecentTopic
+            || (topic == Sitrep.Host.Flight.FlightTopics.EndedTopic
+                && value is FlightEnded ended
+                && ended.Reason == FlightEndReason.Recovered);
+
         /// <summary>Whether <paramref name="topic"/> is exactly <paramref name="prefix"/>, one key segment, and <paramref name="suffix"/>.</summary>
         private static bool IsPerVesselField(string topic, string prefix, string suffix)
         {
@@ -7552,6 +7564,14 @@ namespace Sitrep.Host
                 return;
             }
 
+            if (IsRecoveryNews(topic, value))
+            {
+                // A recovery is done at a centre, so the news comes from the
+                // ground and no craft link carries or withholds it.
+                RecordThrough(topic, value, ut, ExemptStampFor(topic));
+                return;
+            }
+
             var delay = RevealDelayFor(topic, stampedAtPublish ? ut : (double?)null);
             if (delay <= 0.0)
             {
@@ -9279,6 +9299,7 @@ namespace Sitrep.Host
                 RecomputeChannelBirthFromArchive();
                 _failedCommands.Clear();
                 BroadcastTimelineReset();
+                TimelineResetChangedSave = folderChanged;
                 NotifyTimelineResetListeners();
             }
 

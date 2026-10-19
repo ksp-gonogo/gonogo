@@ -1021,6 +1021,8 @@ namespace Sitrep.Host.Comms
                 return;
             }
             var reset = _timelineReset;
+            var previousUt = _lastLookedUt;
+            _lastLookedUt = looked.Ut;
             if (looked.VesselsUnread && !reset && !_unreadSinceReset)
             {
                 // A scene that is loading, on the same timeline: every centre knows what it knew, and nothing is said until the craft can be read.
@@ -1029,6 +1031,7 @@ namespace Sitrep.Host.Comms
             if (reset)
             {
                 _timelineReset = false;
+                var knownBefore = _craftHost.TimelineResetChangedSave || looked.Ut < previousUt ? null : _hearing.Snapshot();
                 _hearing.Reset();
                 // A load starts every centre where the save left it, knowing what
                 // it had heard by then and nothing that was still on its way.
@@ -1036,6 +1039,10 @@ namespace Sitrep.Host.Comms
                 if (carried != null)
                 {
                     _hearing.Restore(carried);
+                }
+                if (knownBefore != null)
+                {
+                    _hearing.Restore(StillKnown(knownBefore, carried));
                 }
                 _heardNowNews = -1;
                 _plansBeforeReset = new Dictionary<string, ContactPlan>(_plans, StringComparer.Ordinal);
@@ -1238,6 +1245,8 @@ namespace Sitrep.Host.Comms
         /// its lists whenever a screen asks, from what it was given back.
         /// </summary>
         private bool _unreadSinceReset;
+
+        private double _lastLookedUt = double.NegativeInfinity;
 
         /// <summary>
         /// Courier thread: finishes a load into a scene whose vessel list cannot
@@ -1449,6 +1458,45 @@ namespace Sitrep.Host.Comms
             }
             _heardNowNews = news;
             System.Threading.Volatile.Write(ref _heardNow, _hearing!.Snapshot());
+        }
+
+        /// <summary>
+        /// What a centre knew of its craft before a reset in the same save and
+        /// still knows after it: every craft, and every ended craft not yet
+        /// dismissed, that the save the game went back to does not hold. A
+        /// load that does not turn the clock back leaves the centre's list as it
+        /// was.
+        /// </summary>
+        private static HeardSnapshot StillKnown(HeardSnapshot before, HeardSnapshot? restored)
+        {
+            var centres = new List<HeardAtCentre>(before.Centres.Count);
+            foreach (var centre in before.Centres)
+            {
+                var held = new HashSet<string>(StringComparer.Ordinal);
+                if (restored != null)
+                {
+                    foreach (var other in restored.Centres)
+                    {
+                        if (other.Centre == centre.Centre)
+                        {
+                            foreach (var state in other.States)
+                            {
+                                held.Add(state.Id);
+                            }
+                        }
+                    }
+                }
+                var states = new List<CraftState>();
+                foreach (var state in centre.States)
+                {
+                    if (!held.Contains(state.Id))
+                    {
+                        states.Add(state);
+                    }
+                }
+                centres.Add(new HeardAtCentre(centre.Centre, states, new Dictionary<string, bool>(), dismissed: centre.Dismissed));
+            }
+            return new HeardSnapshot(centres);
         }
 
         /// <summary>What every centre has heard, for saving with the game. Any thread.</summary>
