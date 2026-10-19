@@ -1,4 +1,9 @@
 #!/usr/bin/env tsx
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render the <Band> digit-ladder sheet through a real Chromium page.
  *
@@ -10,12 +15,7 @@
  * same scale factor, run once on each side of a change to the digit ladder. A before
  * taken any other way is a picture of something else.
  */
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import { SHEETS } from "./bandLadderScenarios.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -58,7 +58,10 @@ async function main(): Promise<void> {
 html, body { margin: 0; background: #000; }
 </style></head><body><div id="root"></div>
 <script type="module">${js}</script></body></html>`;
-  const page = join(tmpdir(), `gonogo-band-ladder-${process.pid}.html`);
+  const page = join(
+    makeTempDir("gonogo-probe-"),
+    `gonogo-band-ladder-${process.pid}.html`,
+  );
   await writeFile(page, html, "utf8");
   await mkdir(outDir, { recursive: true });
 

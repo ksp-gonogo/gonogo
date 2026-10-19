@@ -1,4 +1,9 @@
 #!/usr/bin/env tsx
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render the three states a trace can be in, at every fixture in
  * `scripts/graph-crosshair-probe/__fixtures__/`, to a PNG under
@@ -10,12 +15,7 @@
  * (arrays in, SVG out), so it mounts here with explicit props and the picture
  * shows the presentation the moment a model exists to fill it.
  */
-import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "graph-crosshair-probe");
@@ -73,7 +73,7 @@ async function main(): Promise<void> {
       () => `<script type="module">${bundle}</script>`,
     );
   const probe = join(
-    tmpdir(),
+    makeTempDir("gonogo-probe-"),
     `gonogo-graph-crosshair-probe-${process.pid}.html`,
   );
   await writeFile(probe, html, "utf8");

@@ -1,14 +1,5 @@
 #!/usr/bin/env tsx
-/**
- * Render the Panel delay rail (`Panel.Delay`) at a set of hand-built handle
- * scenarios to PNGs under `local_docs/renders/delay-ux-v3/`. Exists because the
- * dashboard visual-gate probe does not mount `DelayRailProvider`, so the rail
- * is invisible in CI; this driver + `delay-rail-probe/` close that gap. Model
- * copied from `render-alarm-banner.ts` (same esbuild -> injected HTML ->
- * playwright screenshot pipeline).
- */
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
@@ -23,6 +14,15 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { build } from "esbuild";
 import { chromium } from "playwright";
+/**
+ * Render the Panel delay rail (`Panel.Delay`) at a set of hand-built handle
+ * scenarios to PNGs under `local_docs/renders/delay-ux-v3/`. Exists because the
+ * dashboard visual-gate probe does not mount `DelayRailProvider`, so the rail
+ * is invisible in CI; this driver + `delay-rail-probe/` close that gap. Model
+ * copied from `render-alarm-banner.ts` (same esbuild -> injected HTML ->
+ * playwright screenshot pipeline).
+ */
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "delay-rail-probe");
@@ -535,7 +535,7 @@ async function main(): Promise<void> {
     );
 
   const probeHtmlOut = join(
-    tmpdir(),
+    makeTempDir("gonogo-probe-"),
     `gonogo-delay-rail-probe-${process.pid}.html`,
   );
   await writeFile(probeHtmlOut, htmlWithBundle, "utf8");

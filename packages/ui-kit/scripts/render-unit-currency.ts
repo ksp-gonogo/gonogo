@@ -1,4 +1,9 @@
 #!/usr/bin/env tsx
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render the held mark on `<Unit>`, and measure what it costs a table.
  *
@@ -18,12 +23,7 @@
  * does not cause one, so the sheet plants a reflow and the run fails if the
  * measurement cannot see it.
  */
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ENTRY = join(HERE, "render-unit-currency.entry.tsx");
@@ -125,7 +125,10 @@ async function main(): Promise<void> {
 html, body { margin: 0; background: #000; font-family: var(--font-family-mono); }
 </style></head><body><div id="root"></div>
 <script type="module">${js}</script></body></html>`;
-  const page = join(tmpdir(), `gonogo-unit-currency-${process.pid}.html`);
+  const page = join(
+    makeTempDir("gonogo-probe-"),
+    `gonogo-unit-currency-${process.pid}.html`,
+  );
   await writeFile(page, html, "utf8");
   await mkdir(outDir, { recursive: true });
 

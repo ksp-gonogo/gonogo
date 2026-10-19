@@ -1,4 +1,10 @@
 #!/usr/bin/env tsx
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { STOCK_KERBIN_CALENDAR } from "@ksp-gonogo/sitrep-sdk";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render the settings surface through a real Chromium page.
  *
@@ -14,13 +20,7 @@
  * category with several groups in it, the same category with the Topic silent, a
  * quantity beside a bare count, and a writable row gone inert under its parent.
  */
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { STOCK_KERBIN_CALENDAR } from "@ksp-gonogo/sitrep-sdk";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "probe");
@@ -559,7 +559,10 @@ async function prepareProbePage(): Promise<string> {
       '<script type="module" src="./settings-probe-entry.bundle.js"></script>',
       () => `<script type="module">${escaped}</script>`,
     );
-  const file = join(tmpdir(), `settings-probe-${process.pid}.html`);
+  const file = join(
+    makeTempDir("gonogo-probe-"),
+    `settings-probe-${process.pid}.html`,
+  );
   await writeFile(file, out, "utf8");
   return file;
 }

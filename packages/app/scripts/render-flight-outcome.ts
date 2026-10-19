@@ -1,4 +1,9 @@
 #!/usr/bin/env tsx
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render the flight-outcome banner and its two detail modals through a real
  * Chromium page.
@@ -15,12 +20,7 @@
  * quantity, so a recovery that paid 1,035 funds announced a total loss and a
  * crash that came after a recovery was never announced at all.
  */
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "probe");
@@ -249,7 +249,10 @@ async function prepareProbePage(): Promise<string> {
       '<script type="module" src="./flight-outcome-probe-entry.bundle.js"></script>',
       () => `<script type="module">${escaped}</script>`,
     );
-  const file = join(tmpdir(), `flight-outcome-probe-${process.pid}.html`);
+  const file = join(
+    makeTempDir("gonogo-probe-"),
+    `flight-outcome-probe-${process.pid}.html`,
+  );
   await writeFile(file, out, "utf8");
   return file;
 }

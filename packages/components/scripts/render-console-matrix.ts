@@ -1,4 +1,9 @@
 #!/usr/bin/env tsx
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render the `Console` composition across its prop states to PNGs.
  *
@@ -9,12 +14,7 @@
  * harness reaches it. Same esbuild -> injected HTML -> playwright pipeline as
  * `render-delay-rail.ts`, driving `console-matrix-probe/`.
  */
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "console-matrix-probe");
@@ -416,7 +416,7 @@ async function main(): Promise<void> {
     );
 
   const probeHtmlOut = join(
-    tmpdir(),
+    makeTempDir("gonogo-probe-"),
     `gonogo-console-matrix-probe-${process.pid}.html`,
   );
   await writeFile(probeHtmlOut, html, "utf8");

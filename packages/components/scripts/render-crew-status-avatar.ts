@@ -1,4 +1,10 @@
 #!/usr/bin/env tsx
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build, type Plugin } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Renders CrewStatus's per-row `crew-status.avatar` slot to PNGs under
  * `local_docs/renders/crew-status-avatar/`, showing the avatar-LEFT-of-
@@ -19,13 +25,7 @@
  * Sizes: narrow-4x10 (badge-wrap width floor), default-6x8 (defaultSize),
  * wide-9x12 (roomy review shot).
  */
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build, type Plugin } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import type { CrewAvatarProbePayload } from "./crew-avatar-probe/crew-avatar-probe-entry";
 import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
 
@@ -129,7 +129,7 @@ async function main(): Promise<void> {
     );
 
   const probeHtmlOut = join(
-    tmpdir(),
+    makeTempDir("gonogo-probe-"),
     `gonogo-crew-avatar-probe-${process.pid}.html`,
   );
   await writeFile(probeHtmlOut, htmlWithBundle, "utf8");

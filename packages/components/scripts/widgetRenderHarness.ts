@@ -8,9 +8,9 @@
  * and reuses the same Chromium page across every widget when running
  * `--all`, so 10 widgets render in one launch instead of 10.
  */
+
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, type Plugin } from "esbuild";
@@ -21,6 +21,7 @@ import {
   type Page,
   webkit,
 } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import type { MinFitFinding } from "../../uplink-tools/src/render/minFit";
 import { fixtureProfiles, getInstallProfile } from "../src/test/installProfile";
 import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
@@ -2663,7 +2664,7 @@ export async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
     );
 
   const probeHtmlOut = join(
-    tmpdir(),
+    makeTempDir("gonogo-probe-"),
     `gonogo-probe-${opts.slug}-${process.pid}.html`,
   );
   await writeFile(probeHtmlOut, htmlWithBundle, "utf8");

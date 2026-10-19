@@ -1,4 +1,10 @@
 #!/usr/bin/env tsx
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build, type Plugin } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Renders Rendezvous's docking HUD to PNGs under
  * `local_docs/renders/rendezvous-hud/`, in both camera states: with a
@@ -18,13 +24,7 @@
  * (`rendezvous-hud-<s>/`), which is how a before/after pair is captured from
  * two states of the working tree without one clobbering the other.
  */
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build, type Plugin } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
 import type { RendezvousHudProbePayload } from "./rendezvous-hud-probe/rendezvous-hud-probe-entry";
 
@@ -154,7 +154,7 @@ async function main(): Promise<void> {
     );
 
   const probeHtmlOut = join(
-    tmpdir(),
+    makeTempDir("gonogo-probe-"),
     `gonogo-rendezvous-hud-probe-${process.pid}.html`,
   );
   await writeFile(probeHtmlOut, htmlWithBundle, "utf8");

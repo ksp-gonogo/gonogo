@@ -1,11 +1,11 @@
 #!/usr/bin/env tsx
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, type Plugin } from "esbuild";
 import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import type { CommSignalBadgeProbePayload } from "./comm-signal-badge-probe/comm-signal-badge-probe-entry";
 import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
 
@@ -117,7 +117,7 @@ async function main(): Promise<void> {
     );
 
   const probeHtmlOut = join(
-    tmpdir(),
+    makeTempDir("gonogo-probe-"),
     `gonogo-comm-signal-badge-probe-${process.pid}.html`,
   );
   await writeFile(probeHtmlOut, htmlWithBundle, "utf8");

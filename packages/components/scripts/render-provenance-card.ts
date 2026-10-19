@@ -1,4 +1,9 @@
 #!/usr/bin/env tsx
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render the add-widget picker's provenance card (base description + the
  * `+ <Uplink>` addition lines + derived tags) to a PNG under
@@ -6,12 +11,7 @@
  * (ComponentOverlay is not renderable through the widget probe). Same
  * esbuild -> injected HTML -> playwright pipeline as `render-delay-rail.ts`.
  */
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "provenance-card-probe");
@@ -56,7 +56,7 @@ async function main(): Promise<void> {
     );
 
   const probeHtmlOut = join(
-    tmpdir(),
+    makeTempDir("gonogo-probe-"),
     `gonogo-provenance-card-probe-${process.pid}.html`,
   );
   await writeFile(probeHtmlOut, htmlWithBundle, "utf8");

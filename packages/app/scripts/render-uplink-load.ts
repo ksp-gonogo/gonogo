@@ -1,4 +1,9 @@
 #!/usr/bin/env tsx
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render what a brand new browser is shown about the installed Uplinks: the
  * first-load page on the main screen and on a station, and the setup's Uplinks
@@ -7,12 +12,7 @@
  * Run: `pnpm --filter @ksp-gonogo/app render-uplink-load`
  * Output: local_docs/renders/uplink-load/ (UPLINK_LOAD_RENDER_OUT overrides)
  */
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "probe");
@@ -74,7 +74,10 @@ async function prepareProbePage(): Promise<string> {
       '<script type="module" src="./uplink-load-probe-entry.bundle.js"></script>',
       () => `<script type="module">${escaped}</script>`,
     );
-  const file = join(tmpdir(), `uplink-load-probe-${process.pid}.html`);
+  const file = join(
+    makeTempDir("gonogo-probe-"),
+    `uplink-load-probe-${process.pid}.html`,
+  );
   await writeFile(file, out, "utf8");
   return file;
 }

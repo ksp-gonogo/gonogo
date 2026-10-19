@@ -1,4 +1,9 @@
 #!/usr/bin/env tsx
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render the orbit-spread scenes through a real Chromium page, each one twice:
  * `before` is the diagram with no spread handed over, `after` the same diagram
@@ -10,12 +15,7 @@
  * Not registered in `widgets.ts`: that file is the visual gate's input, and a
  * scene added to it with no committed baseline fails the gate as missing.
  */
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import { SCENES } from "./orbitSpreadScenarios";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -57,7 +57,10 @@ async function main(): Promise<void> {
 html, body { margin: 0; background: #000; }
 </style></head><body><div id="root"></div>
 <script type="module">${js}</script></body></html>`;
-  const page = join(tmpdir(), `gonogo-orbit-spread-${process.pid}.html`);
+  const page = join(
+    makeTempDir("gonogo-probe-"),
+    `gonogo-orbit-spread-${process.pid}.html`,
+  );
   await writeFile(page, html, "utf8");
   await mkdir(outDir, { recursive: true });
 

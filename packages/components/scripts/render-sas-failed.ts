@@ -1,4 +1,9 @@
 #!/usr/bin/env tsx
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Ext-1 render: the Navball SAS-mode grid as the reference control for the
  * `data-unconfirmed` styling convention. Renders the exact primitive Navball
@@ -9,12 +14,7 @@
  * Same esbuild -> injected HTML -> playwright pipeline as render-delay-rail.ts.
  * Output → local_docs/renders/delay-ux-v3/.
  */
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = resolve(HERE, "../../../local_docs/renders/delay-ux-v3");
@@ -113,7 +113,10 @@ async function main(): Promise<void> {
 </style></head><body><div id="root"></div>
 <script type="module">${escapedBundle}</script></body></html>`;
 
-  const htmlOut = join(tmpdir(), `gonogo-sas-failed-${process.pid}.html`);
+  const htmlOut = join(
+    makeTempDir("gonogo-probe-"),
+    `gonogo-sas-failed-${process.pid}.html`,
+  );
   await writeFile(htmlOut, html, "utf8");
 
   console.log("Launching Chromium...");

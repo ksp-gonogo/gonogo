@@ -1,4 +1,9 @@
 #!/usr/bin/env tsx
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render the Commcast widget through a real Chromium page.
  *
@@ -13,12 +18,7 @@
  * cannot see what the other end is not showing, and under this model you also
  * cannot see that the other end does not have it.
  */
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "probe");
@@ -1195,7 +1195,10 @@ async function prepareProbePage(): Promise<string> {
       '<script type="module" src="./commcast-probe-entry.bundle.js"></script>',
       () => `<script type="module">${escaped}</script>`,
     );
-  const file = join(tmpdir(), `commcast-probe-${process.pid}.html`);
+  const file = join(
+    makeTempDir("gonogo-probe-"),
+    `commcast-probe-${process.pid}.html`,
+  );
   await writeFile(file, out, "utf8");
   return file;
 }

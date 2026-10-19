@@ -5,9 +5,10 @@
  *
  *   visual-repeatability --engine chromium --widget landing-status
  */
+
 import { readdir, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import { listUplinkWidgets } from "./uplinkWidgets";
 import { renderWidgets } from "./widgetRenderHarness";
 import { listWidgets } from "./widgets";
@@ -46,7 +47,7 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
-  const root = resolve(tmpdir(), `visual-repeatability-${process.pid}`);
+  const root = makeTempDir("visual-repeatability-");
   const runs = [join(root, "first"), join(root, "second")];
   try {
     for (const outBase of runs) {

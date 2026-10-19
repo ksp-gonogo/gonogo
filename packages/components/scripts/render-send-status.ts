@@ -1,15 +1,15 @@
 #!/usr/bin/env tsx
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render one command control in each send-status state, and the same control
  * without a status, to PNGs. `--out <dir>` picks the folder. Model copied from
  * `render-delay-rail.ts`: esbuild bundle, injected theme, playwright shot.
  */
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "send-status-probe");
@@ -52,7 +52,10 @@ async function main(): Promise<void> {
       () =>
         `<script type="module">${bundle.outputFiles[0].text.replace(/<\/script/gi, "<\\/script")}</script>`,
     );
-  const file = join(tmpdir(), `gonogo-send-status-probe-${process.pid}.html`);
+  const file = join(
+    makeTempDir("gonogo-probe-"),
+    `gonogo-send-status-probe-${process.pid}.html`,
+  );
   await writeFile(file, html, "utf8");
 
   const browser = await chromium.launch();

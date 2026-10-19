@@ -1,4 +1,10 @@
 #!/usr/bin/env tsx
+import { readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium, firefox, webkit } from "playwright";
+import { PNG } from "pngjs";
 /**
  * The checkered-flag aspect gate. Paints a checkerboard of square cells into a
  * `FramedDisplay` the way a camera augment paints its video, at landscape,
@@ -15,13 +21,7 @@
  *
  * Run via `pnpm --filter @ksp-gonogo/components aspect-gate [--engine <e>]`.
  */
-import { readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium, firefox, webkit } from "playwright";
-import { PNG } from "pngjs";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import { type AspectCase, CASES, coverCells } from "./aspect/cases";
 import { measureCheckerCells } from "./aspect/checkerCells";
 
@@ -64,7 +64,10 @@ async function main(): Promise<void> {
     `<!doctype html><html><head><meta charset="utf-8"><style>${tokens}</style>` +
     "<style>html,body{margin:0;background:var(--color-surface-app)}</style></head>" +
     `<body><div id="root"></div><script type="module">${script}</script></body></html>`;
-  const htmlPath = join(tmpdir(), `gonogo-aspect-gate-${process.pid}.html`);
+  const htmlPath = join(
+    makeTempDir("gonogo-probe-"),
+    `gonogo-aspect-gate-${process.pid}.html`,
+  );
   await writeFile(htmlPath, html, "utf8");
 
   const browser = await engine.launch();

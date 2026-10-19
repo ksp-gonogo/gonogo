@@ -1,4 +1,9 @@
 #!/usr/bin/env tsx
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render the delay rail's voice ribbon through a real Chromium page.
  *
@@ -35,12 +40,7 @@
  * A picture of a waveform is easy to misread at 380 px; the extent, the
  * turning-point count and the height of the drawn peaks are not.
  */
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import type {
   RailWaveformProbePayload,
   RailWaveformProbeReading,
@@ -264,7 +264,7 @@ async function main(): Promise<void> {
     );
 
   const probeHtmlOut = join(
-    tmpdir(),
+    makeTempDir("gonogo-probe-"),
     `gonogo-rail-waveform-probe-${process.pid}.html`,
   );
   await writeFile(probeHtmlOut, html, "utf8");

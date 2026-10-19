@@ -1,4 +1,9 @@
 #!/usr/bin/env tsx
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render the alarm surface through a real Chromium page, at two signal delays.
  *
@@ -13,12 +18,7 @@
  * or as clutter is a question about pixels, and a test that asserts the string
  * is present cannot answer it.
  */
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "probe");
@@ -106,7 +106,10 @@ async function prepareProbePage(): Promise<string> {
       '<script type="module" src="./alarms-probe-entry.bundle.js"></script>',
       () => `<script type="module">${escaped}</script>`,
     );
-  const file = join(tmpdir(), `alarms-probe-${process.pid}.html`);
+  const file = join(
+    makeTempDir("gonogo-probe-"),
+    `alarms-probe-${process.pid}.html`,
+  );
   await writeFile(file, out, "utf8");
   return file;
 }

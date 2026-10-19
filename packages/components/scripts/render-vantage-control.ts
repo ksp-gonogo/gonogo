@@ -1,4 +1,10 @@
 #!/usr/bin/env tsx
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build, type Plugin } from "esbuild";
+import { chromium } from "playwright";
 /**
  * One-off review-render driver for `MissionBanner`'s `VantageControl` (the
  * command-vantage selector in the app header). Not part of the widget/screen
@@ -22,13 +28,7 @@
  *
  * Run via `pnpm --filter @ksp-gonogo/components exec tsx scripts/render-vantage-control.ts`.
  */
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build, type Plugin } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
 
 const require = createRequire(import.meta.url);
@@ -234,7 +234,7 @@ async function main(): Promise<void> {
 </html>`;
 
   const probeHtmlOut = join(
-    tmpdir(),
+    makeTempDir("gonogo-probe-"),
     `gonogo-vantage-probe-${process.pid}.html`,
   );
   await writeFile(probeHtmlOut, html, "utf8");

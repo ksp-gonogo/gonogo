@@ -1,4 +1,10 @@
 #!/usr/bin/env tsx
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build, type Plugin } from "esbuild";
+import { chromium } from "playwright";
 /**
  * Render CrewStatus's WIDGET-LEVEL panel badges to a PNG under
  * `local_docs/renders/crew-status-panel-badge/`, the header chips two
@@ -40,13 +46,7 @@
  * tile; the collapse behavior itself is real dashboard behavior, not
  * something to work around in the component.
  */
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { build, type Plugin } from "esbuild";
-import { chromium } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import type { CrewBadgeProbePayload } from "./crew-badge-probe/crew-badge-probe-entry";
 import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
 
@@ -147,7 +147,7 @@ async function main(): Promise<void> {
     );
 
   const probeHtmlOut = join(
-    tmpdir(),
+    makeTempDir("gonogo-probe-"),
     `gonogo-crew-badge-probe-${process.pid}.html`,
   );
   await writeFile(probeHtmlOut, htmlWithBundle, "utf8");
