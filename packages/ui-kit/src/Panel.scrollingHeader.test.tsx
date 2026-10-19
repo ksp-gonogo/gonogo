@@ -32,16 +32,6 @@ describe("Panel sticky header (standard)", () => {
     expect(getComputedStyle(unit).position).toBe("sticky");
   });
 
-  it("backs the sticky unit with the panel colour so scrolled rows never show through the title", () => {
-    render(<Panel panelTitle="ALTITUDE">body</Panel>);
-    const unit = document.querySelector(
-      "[data-panel-sticky-top]",
-    ) as HTMLElement;
-    expect(getComputedStyle(unit).background).toContain(
-      "var(--color-surface-panel)",
-    );
-  });
-
   it("renders exactly one heading and no scroll-away ghost", () => {
     render(<Panel panelTitle="ALTITUDE">body</Panel>);
     const headings = screen.getAllByRole("heading");

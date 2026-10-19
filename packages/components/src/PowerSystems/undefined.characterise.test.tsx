@@ -167,7 +167,7 @@ describe("PowerSystems: what undefined means today", () => {
     await waitFor(() => expect(screen.getByText("PROD")).toBeTruthy());
     expect(fixture.transport.isSubscribed("parts.power")).toBe(true);
     expect(screen.queryByText("MEASURED")).toBeNull();
-    expect(visibleText()).toContain("+5.00 EC/s");
+    expect(visibleText()).toContain("+5.00 units/s");
   });
 
   it("shows no MEASURED cell when parts.power arrives WITHOUT totalProductionEc", async () => {
@@ -186,7 +186,7 @@ describe("PowerSystems: what undefined means today", () => {
 
     await waitFor(() => expect(screen.getByText("PROD")).toBeTruthy());
     expect(screen.queryByText("MEASURED")).toBeNull();
-    expect(visibleText()).toContain("+5.00 EC/s");
+    expect(visibleText()).toContain("+5.00 units/s");
   });
 
   // An unmeasured idle row is distinguishable from a panel measured at zero: no number, no percentage.
@@ -217,7 +217,7 @@ describe("PowerSystems: what undefined means today", () => {
     ).toBeTruthy();
     expect(queryByTip(document.body, /of nominal/)).toBeNull();
     // The idle row contributes nothing to the totals, so NET still reads the one real producer.
-    expect(visibleText()).toContain("+5.00 EC/s");
+    expect(visibleText()).toContain("+5.00 units/s");
   });
 
   it("dashes the three totals when no part reports a measured flow", async () => {

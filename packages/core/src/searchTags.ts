@@ -90,16 +90,3 @@ export function uplinkAdditions(def: ComponentDefinition): UplinkAddition[] {
     .filter((u) => u.id !== CORE_UPLINK_CLIENT.id)
     .map((u) => ({ id: u.id, name: u.name }));
 }
-
-/**
- * The Uplink that registered a widget, for the picker's "from" line, so a widget
- * an Uplink ships reads as that Uplink's the way one it only extends does.
- * Undefined for a widget with no owner or one the built-in Core client owns.
- */
-export function uplinkOwner(
-  def: ComponentDefinition,
-): UplinkAddition | undefined {
-  const owner = def.owner;
-  if (!owner || owner.id === CORE_UPLINK_CLIENT.id) return undefined;
-  return { id: owner.id, name: owner.name };
-}

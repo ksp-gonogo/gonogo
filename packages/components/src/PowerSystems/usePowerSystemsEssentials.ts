@@ -1,8 +1,8 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { useTelemetry } from "@ksp-gonogo/core";
 import { readingOf } from "@ksp-gonogo/sitrep-client";
-import type { TinyEssential } from "@ksp-gonogo/sitrep-sdk";
-import { netRate } from "./chargeRate";
+import { type TinyEssential, value } from "@ksp-gonogo/sitrep-sdk";
+import "./chargeRate";
 import type { PowerSystemsConfig } from "./config";
 import { netToneWithUnrated, splitCamel } from "./flow";
 import {
@@ -47,7 +47,11 @@ export function usePowerSystemsEssentials({
   return [
     {
       label: `${resourceLabel(resource)} NET`,
-      value: readingOf(partsReading, () => netRate(resource, net)),
+      value: readingOf(partsReading, () =>
+        resource === "ElectricCharge"
+          ? value("EC/s", net)
+          : value("units/s", net),
+      ),
       // A 3-column tile has no room for a decimal beside the unit once the figure is a unit or more, held mark included.
       decimals: Math.abs(net) >= 1 ? 0 : 1,
       tone: netToneWithUnrated(net, unratedCount),

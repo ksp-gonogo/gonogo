@@ -5,7 +5,6 @@ import {
   getComponents,
   safeRandomUuid,
   uplinkAdditions,
-  uplinkOwner,
   useChromeWrap,
   useSeat,
 } from "@ksp-gonogo/core";
@@ -385,11 +384,6 @@ export function ComponentOverlay({
                   >
                     <ItemName>{def.name}</ItemName>
                     <ItemDesc>{def.description}</ItemDesc>
-                    {uplinkOwner(def) && (
-                      <UplinkAddLine>
-                        from {uplinkOwner(def)?.name}
-                      </UplinkAddLine>
-                    )}
                     {uplinkAdditions(def).map((u) => (
                       <UplinkAddLine key={u.id}>+ {u.name}</UplinkAddLine>
                     ))}

@@ -2181,7 +2181,7 @@ namespace Sitrep.Host
         /// Takes an Uplink's declared refinements, or none of them: a code that
         /// is a root, that is not under the Uplink's own id, or that another
         /// Uplink or core already declared drops the whole set with one log line,
-        /// and the Uplink's refusals then travel undeclared.
+        /// and the Uplink's refusals then travel as their roots.
         /// </summary>
         private void AcceptErrorCodes(string uplinkId, IReadOnlyList<RefusalCode>? codes)
         {
@@ -2222,26 +2222,25 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// A result carrying a refinement no accepted Uplink declared travels as
-        /// the mod sent it, detail included: the code is still a refusal of its
-        /// root's kind, and a client that does not know it reads the detail
-        /// instead of the root's generic sentence. The first occurrence per
-        /// command owner and code is logged.
-        ///
-        /// <para>A refinement declared by another Uplink than the command's
-        /// owner is declared: the roster carries every Uplink's codes, and an
-        /// Uplink's backend can answer a command core owns.</para>
+        /// A result carrying a refinement its command's Uplink never declared is
+        /// sent as the refinement's root: the refusal still arrives, and only the
+        /// detail nobody declared is dropped.
         /// </summary>
         private object? GuardRefinement(string command, object? result)
         {
             if (result is not CommandResult refused || refused.ErrorCode is not { IsRoot: false } code) return result;
             if (CommandErrorCode.Find(code.Id) != null) return result;
-            if (_refinementOwner.ContainsKey(code.Id)) return result;
-            _commandOwner.TryGetValue(command, out var owner);
-            if (_undeclaredRefinementsLogged.Add((owner ?? "") + "|" + code.Id))
+            if (_commandOwner.TryGetValue(command, out var owner)
+                && _refinementOwner.TryGetValue(code.Id, out var declaredBy)
+                && declaredBy == owner)
             {
-                LogHost("command \"" + command + "\" answered with \"" + code.Id + "\", which Uplink \"" + owner + "\" does not declare; sent as the mod sent it");
+                return result;
             }
+            if (_undeclaredRefinementsLogged.Add(code.Id))
+            {
+                LogHost("command \"" + command + "\" answered with \"" + code.Id + "\", which its Uplink does not declare; sent as \"" + code.Root.Id + "\"");
+            }
+            refused.ErrorCode = code.Root;
             return result;
         }
 

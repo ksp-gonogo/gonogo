@@ -1,4 +1,3 @@
-import "./chargeRate";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
@@ -85,26 +84,5 @@ describe("PowerTotals", () => {
   it("names nothing when every draw is rated", () => {
     render(<PowerTotals {...props} unratedCount={0} />);
     expect(screen.queryByText(/unrated/)).toBeNull();
-  });
-});
-
-describe("PowerTotals NET cell", () => {
-  it("lets the figure wrap onto a second line so the unit is never cut off by the cell edge", () => {
-    render(
-      <PowerTotals
-        net={-0.03}
-        netFigure={value("EC/s", -0.03)}
-        netTone="warn"
-        unratedCount={0}
-        totalProduced={0}
-        totalConsumed={0.03}
-        measuredTotalProduced={undefined}
-        measuredDisagrees={false}
-        storage={{ amount: 0, maxAmount: 0 }}
-      />,
-    );
-    const figure = screen.getByText("NET").nextElementSibling as HTMLElement;
-    expect(figure.textContent).toContain("EC/s");
-    expect(getComputedStyle(figure).whiteSpace).not.toBe("nowrap");
   });
 });

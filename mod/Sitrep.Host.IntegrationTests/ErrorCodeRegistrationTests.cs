@@ -35,44 +35,18 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
-        public void ARefinementItsUplinkNeverDeclaredReachesTheCallerAsSentAndIsLoggedOnce()
+        public void ARefinementItsUplinkNeverDeclaredIsSentAsItsRoot()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            var lines = new List<string>();
-            engine.SetDiagnosticLog(lines.Add);
             engine.RegisterUplink(new CodeProbeUplink(CodeProbeUplink.Declared));
             engine.Start();
             try
             {
-                var first = Dispatch(engine, CodeProbeUplink.RefuseUndeclared);
-                Dispatch(engine, CodeProbeUplink.RefuseUndeclared);
+                var result = Dispatch(engine, CodeProbeUplink.RefuseUndeclared);
 
-                Assert.False(first.Success);
-                Assert.Equal(CommandErrorCode.WrongState, first.ErrorCode?.Root);
-                Assert.Equal("codeProbe.neverDeclared", first.Reason);
-                Assert.Equal("the probe said so", first.Detail);
-                var undeclared = lines.FindAll(l => l.Contains("codeProbe.neverDeclared") && l.Contains("not declare"));
-                Assert.Single(undeclared);
-                Assert.Contains("codeProbe", undeclared[0]);
-            }
-            finally { engine.Stop(); }
-        }
-
-        [Fact]
-        public void ARefinementAnotherUplinkDeclaredIsNotLoggedAsUndeclared()
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            var lines = new List<string>();
-            engine.SetDiagnosticLog(lines.Add);
-            engine.RegisterUplink(new CodeProbeUplink(CodeProbeUplink.Declared));
-            engine.RegisterUplink(new SiblingProbeUplink());
-            engine.Start();
-            try
-            {
-                var result = Dispatch(engine, CodeProbeUplink.RefuseSibling);
-
-                Assert.Equal("siblingProbe.shared", result.Reason);
-                Assert.DoesNotContain(lines, l => l.Contains("siblingProbe.shared"));
+                Assert.False(result.Success);
+                Assert.Equal(CommandErrorCode.WrongState, result.ErrorCode);
+                Assert.Null(result.Reason);
             }
             finally { engine.Stop(); }
         }
@@ -89,8 +63,8 @@ namespace Sitrep.Host.IntegrationTests
             {
                 var result = Dispatch(engine, CodeProbeUplink.RefuseDeclared);
 
-                Assert.Equal(CommandErrorCode.CareerModeRequired, result.ErrorCode?.Root);
-                Assert.Equal("codeProbe.notManaging", result.Reason);
+                Assert.Equal(CommandErrorCode.CareerModeRequired, result.ErrorCode);
+                Assert.Null(result.Reason);
             }
             finally { engine.Stop(); }
         }
@@ -165,7 +139,6 @@ namespace Sitrep.Host.IntegrationTests
             public const string RefuseDeclared = "codeProbe.refuseDeclared";
             public const string RefuseUndeclared = "codeProbe.refuseUndeclared";
             public const string Fault = "codeProbe.fault";
-            public const string RefuseSibling = "codeProbe.refuseSibling";
 
             public static readonly RefusalCode NotManaging =
                 CommandErrorCode.CareerModeRequired.Refine("codeProbe.notManaging", "the probe is not managing this save");
@@ -186,7 +159,6 @@ namespace Sitrep.Host.IntegrationTests
                         new CommandDeclaration { Command = RefuseDeclared, Delay = DelayRole.TrueNow },
                         new CommandDeclaration { Command = RefuseUndeclared, Delay = DelayRole.TrueNow },
                         new CommandDeclaration { Command = Fault, Delay = DelayRole.TrueNow },
-                        new CommandDeclaration { Command = RefuseSibling, Delay = DelayRole.TrueNow },
                     },
                     ErrorCodes = codes,
                 };
@@ -199,33 +171,10 @@ namespace Sitrep.Host.IntegrationTests
             public void Register(IUplinkHost host)
             {
                 host.AddCommandHandler<object, CommandResult>(RefuseDeclared, _ => CommandResult.Fail(NotManaging));
-                host.AddCommandHandler<object, CommandResult>(RefuseUndeclared, _ => CommandResult.Fail(NeverDeclared, "the probe said so"));
-                host.AddCommandHandler<object, CommandResult>(RefuseSibling, _ => CommandResult.Fail(SiblingProbeUplink.Shared));
+                host.AddCommandHandler<object, CommandResult>(RefuseUndeclared, _ => CommandResult.Fail(NeverDeclared));
                 host.AddCommandHandler<object, CommandResult>(
                     Fault, _ => throw new CommandFaultException(FaultCode.MainThreadTimeout, "the probe did not get to it"));
             }
-        }
-
-        private sealed class SiblingProbeUplink : ISitrepUplink
-        {
-            public static readonly RefusalCode Shared =
-                CommandErrorCode.WrongState.Refine("siblingProbe.shared", "the sibling refused");
-
-            public SiblingProbeUplink()
-            {
-                Manifest = new UplinkManifest
-                {
-                    Id = "siblingProbe",
-                    Version = "1.0.0",
-                    ErrorCodes = new[] { Shared },
-                };
-            }
-
-            public UplinkManifest Manifest { get; }
-
-            public UplinkHealth Health() => UplinkHealth.Healthy;
-
-            public void Register(IUplinkHost host) { }
         }
     }
 }

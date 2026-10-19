@@ -264,8 +264,6 @@ export function DataKeyPicker({
 
 const Container = styled.div`
   position: relative;
-  flex-grow: 1;
-  min-width: 0;
 `;
 
 const PickerInput = styled.input<{ $hasValue: boolean; $retired?: boolean }>`
