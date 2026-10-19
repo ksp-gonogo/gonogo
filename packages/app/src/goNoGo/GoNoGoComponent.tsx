@@ -128,10 +128,6 @@ function StationView({
   useEffect(() => {
     effectiveVoteRef.current = effectiveVote;
   }, [effectiveVote]);
-  const launchedRef = useRef(launched);
-  useEffect(() => {
-    launchedRef.current = launched;
-  }, [launched]);
 
   // Revert clears local "I aborted" memory: revert means we're back on the pad and the abort button is a fresh slate.
   useEffect(() => {
@@ -180,13 +176,11 @@ function StationView({
       client.onGonogoCountdownStart((t0Ms) => setCountdown({ t0Ms })),
       client.onGonogoCountdownCancel(() => setCountdown(null)),
       client.onGonogoReset((reopened) => {
-        // The host has forgotten every vote, and a vote already at NO-GO would not change and so would not be sent again: resend it, or this screen drops out of the poll.
-        const next = reopened || !launchedRef.current ? "no-go" : null;
-        effectiveVoteRef.current = next ?? "no-go";
+        // Update the ref synchronously so a vote resend sees the cleared value.
+        effectiveVoteRef.current = "no-go";
         setVote("no-go");
         setCountdown(null);
         setPollOpen(reopened);
-        client.sendGonogoVote(next);
       }),
       client.onGonogoAbortNotify((stationName, at) =>
         setAbortNotice({ stationName, at }),

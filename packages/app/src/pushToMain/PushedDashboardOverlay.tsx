@@ -6,20 +6,17 @@ import {
 } from "@ksp-gonogo/core";
 import { CloseIcon, WidgetAtTileSize } from "@ksp-gonogo/ui";
 import { Box, Tooltip } from "@ksp-gonogo/ui-kit";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import {
-  GRID_GAP as GAP,
-  rowHeightFor,
-} from "../components/Dashboard/GridDashboard";
-import { COLS } from "../components/Dashboard/layoutNormalization";
 import { usePushedWidgets, usePushHost } from "./PushHostContext";
 import type { PushedWidget } from "./PushHostService";
 
-/** The grid width assumed while the viewport has no measured width, as before layout or in a DOM that has none. */
-const UNMEASURED_WIDTH = 1200;
-/** Smallest scale a crowded overlay shrinks its cells to before it lets the widgets overflow. */
-const MIN_SCALE = 0.25;
+const COLS = 12;
+const GAP = 8;
+/** Minimum cell height below which pushed widgets become unreadable. */
+const MIN_CELL_HEIGHT = 18;
+/** Minimum cell width below which nothing renders usefully. */
+const MIN_CELL_WIDTH = 40;
 
 interface Placement {
   widget: PushedWidget;
@@ -30,20 +27,18 @@ interface Placement {
 }
 
 /**
- * Greedy shelf-pack in the dashboard's own grid units, which are what a station
- * sends: widgets land in insertion order, moving to a new row whenever the
- * current one would overflow the column count.
+ * Greedy shelf-pack: widgets land in insertion order, moving to a new row
+ * whenever the current one would overflow the column count. Keeps station-
+ * side order roughly visible on main and never needs operator placement.
  */
 function packWidgets(widgets: PushedWidget[]): {
   placements: Placement[];
   totalRows: number;
-  totalCols: number;
 } {
   const placements: Placement[] = [];
   let x = 0;
   let y = 0;
   let rowHeight = 0;
-  let totalCols = 0;
   for (const w of widgets) {
     // Clamp per-widget width so a single oversized widget still fits.
     const width = Math.min(Math.max(1, w.width), COLS);
@@ -55,10 +50,9 @@ function packWidgets(widgets: PushedWidget[]): {
     }
     placements.push({ widget: w, x, y, w: width, h: height });
     x += width;
-    totalCols = Math.max(totalCols, x);
     rowHeight = Math.max(rowHeight, height);
   }
-  return { placements, totalRows: y + rowHeight, totalCols };
+  return { placements, totalRows: y + rowHeight };
 }
 
 export function PushedDashboardOverlay() {
@@ -70,10 +64,7 @@ export function PushedDashboardOverlay() {
     h: 0,
   });
 
-  const hasWidgets = widgets.length > 0;
-
-  useLayoutEffect(() => {
-    if (!hasWidgets) return;
+  useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
     const update = () => {
@@ -85,35 +76,33 @@ export function PushedDashboardOverlay() {
     return () => {
       ro.disconnect();
     };
-  }, [hasWidgets]);
+  }, []);
 
-  const { placements, totalRows, totalCols } = useMemo(
+  const { placements, totalRows } = useMemo(
     () => packWidgets(widgets),
     [widgets],
   );
 
   if (widgets.length === 0) return null;
 
-  /*
-   * Cells are the dashboard's, so a widget is as many columns and rows wide as
-   * the station sent. A pack taller or wider than the viewport shrinks every
-   * cell by one factor, and the pack sits in the middle of what is left.
-   */
-  const gridW = viewport.w > 0 ? viewport.w : UNMEASURED_WIDTH;
-  const naturalCellW = Math.max(1, (gridW - (COLS - 1) * GAP) / COLS);
-  const naturalCellH = rowHeightFor(gridW);
-  const heightScale =
-    totalRows > 0 && viewport.h > 0
-      ? (viewport.h - Math.max(0, totalRows - 1) * GAP) /
-        (totalRows * naturalCellH)
-      : 1;
-  const scale = Math.max(MIN_SCALE, Math.min(1, heightScale));
-  const cellW = naturalCellW * scale;
-  const cellH = naturalCellH * scale;
-  const packW = totalCols * cellW + Math.max(0, totalCols - 1) * GAP;
-  const packH = totalRows * cellH + Math.max(0, totalRows - 1) * GAP;
-  const offsetX = Math.max(0, (viewport.w - packW) / 2);
-  const offsetY = Math.max(0, (viewport.h - packH) / 2);
+  // Size each grid cell so the packed widgets fill the actual viewport
+  // instead of being rendered at a fixed BASE size and then CSS-scaled.
+  // Scaling via `transform` leaves each widget internally thinking it has
+  // some other pixel budget, so flex/overflow inside the widget root can
+  // clip content below the visible area. By handing every widget an actual
+  // pixel-size that fits, GroundTrack / Graph / etc. resize their own contents
+  // (canvas, flex-wrap telemetry rows) to what's available.
+  const cellW =
+    viewport.w > 0
+      ? Math.max(MIN_CELL_WIDTH, (viewport.w - (COLS - 1) * GAP) / COLS)
+      : MIN_CELL_WIDTH;
+  const cellH =
+    viewport.h > 0 && totalRows > 0
+      ? Math.max(
+          MIN_CELL_HEIGHT,
+          (viewport.h - Math.max(0, totalRows - 1) * GAP) / totalRows,
+        )
+      : MIN_CELL_HEIGHT;
 
   return (
     <Backdrop>
@@ -131,8 +120,6 @@ export function PushedDashboardOverlay() {
               placement={p}
               cellW={cellW}
               cellH={cellH}
-              offsetX={offsetX}
-              offsetY={offsetY}
               onDismiss={() =>
                 host?.dismiss(p.widget.peerId, p.widget.widgetInstanceId)
               }
@@ -148,20 +135,16 @@ function PushedItem({
   placement,
   cellW,
   cellH,
-  offsetX,
-  offsetY,
   onDismiss,
 }: Readonly<{
   placement: Placement;
   cellW: number;
   cellH: number;
-  offsetX: number;
-  offsetY: number;
   onDismiss: () => void;
 }>) {
   const def = getComponent(placement.widget.componentId);
-  const pxX = offsetX + placement.x * (cellW + GAP);
-  const pxY = offsetY + placement.y * (cellH + GAP);
+  const pxX = placement.x * (cellW + GAP);
+  const pxY = placement.y * (cellH + GAP);
   const pxW = placement.w * cellW + (placement.w - 1) * GAP;
   const pxH = placement.h * cellH + (placement.h - 1) * GAP;
   return (
