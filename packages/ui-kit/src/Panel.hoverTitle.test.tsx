@@ -236,6 +236,27 @@ describe("Panel hoverTitle: the tiny tile's header out of flow", () => {
     expect(rule).toContain("margin-top:calc(-1 * var(--panel-rail-band))");
   });
 
+  it("leaves the sticky unit transparent over content pulled up into the rail band, so the figure's top is not clipped", () => {
+    const { container } = render(
+      <Panel
+        panelTitle="TWR"
+        fitToSize
+        hoverTitle
+        sections={<Section full>1.8</Section>}
+      />,
+    );
+    const unit = container.querySelector(
+      "[data-panel-sticky-top]",
+    ) as HTMLElement;
+    expect(container.querySelector("[data-panel-fit-shifted]")).not.toBeNull();
+    expect(
+      emittedStateRuleFor(
+        unit,
+        ":has(+ [data-panel-fit-body] [data-panel-fit-shifted])",
+      ),
+    ).toContain("background:transparent");
+  });
+
   it("has no axe violations", async () => {
     const { container } = render(
       <Panel

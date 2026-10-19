@@ -782,6 +782,7 @@ function PanelFitBody({
         ref={innerRef}
         $fits={fits}
         $hoverTitle={hoverTitle}
+        data-panel-fit-shifted={fits && hoverTitle ? "" : undefined}
       >
         {children}
       </PanelBody__FitContent>
@@ -1611,6 +1612,11 @@ const PanelStickyTop = styled.div`
   & > [data-panel-rail-frame] {
     margin-top: 0;
     /* The unit's backing is the opaque surface and the glow sits on it, so the band shows the glow with the rail drawn over it. */
+    background: transparent;
+  }
+
+  /* A tiny tile's centred content is pulled up into the rail band's strip and cannot scroll under it, so an opaque backing would only clip the figure's top. */
+  &:has(+ [data-panel-fit-body] [data-panel-fit-shifted]) {
     background: transparent;
   }
 
