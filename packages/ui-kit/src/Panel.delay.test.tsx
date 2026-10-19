@@ -81,7 +81,7 @@ describe("the rail travels with the header", () => {
   });
 
   it("does not let body content read through the rail", () => {
-    // The header is transparent over the glow, but the rail is a reading, so its band is opaque.
+    // The rail band is transparent so the top glow shows through it, so the sticky unit holding it is the opaque backing.
     render(
       <DelayRailProvider>
         <Panel panelTitle="Nav">
@@ -89,10 +89,10 @@ describe("the rail travels with the header", () => {
         </Panel>
       </DelayRailProvider>,
     );
-    const frame = document.querySelector(
-      "[data-panel-rail-frame]",
+    const unit = document.querySelector(
+      "[data-panel-sticky-top]",
     ) as HTMLElement;
-    expect(getComputedStyle(frame).background).toContain(
+    expect(getComputedStyle(unit).background).toContain(
       "--color-surface-panel",
     );
   });

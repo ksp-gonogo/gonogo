@@ -942,15 +942,12 @@ const ScrollAreaInner = styled.div`
 const ScrollOverflowGlow = styled.div<{
   $position: "top" | "bottom";
   $visible: boolean;
-  /** How far below the scroller's top edge the top glow starts: the rail band's height when the rail travels inside the scroller. */
-  $topOffset?: string;
 }>`
   position: absolute;
   /* Flush with the scroller's edges: the body's inset is inside the scroller, so nothing pads this. */
   left: 0;
   right: 0;
-  ${({ $position, $topOffset }) =>
-    $position === "top" ? `top: ${$topOffset ?? "0"};` : "bottom: 0;"}
+  ${({ $position }) => ($position === "top" ? "top: 0;" : "bottom: 0;")}
   /* The box both layers fade within; each sets its own reach in its gradient stops. */
   height: 44px;
   /* The audit reads the mask depth from the gradient, so the literal height costs it nothing. */
@@ -1286,7 +1283,7 @@ export function PanelGlow({
   railBandAbove,
   ...rest
 }: ComponentPropsWithoutRef<"div"> & {
-  /** The scroller's first row is the delay rail's opaque band, so start the top glow below it. */
+  /** The scroller's first row is the sticky unit holding the delay rail's band, which draws the top glow itself, so this one shows only the bottom glow. */
   railBandAbove?: boolean;
 }) {
   const ctx = useContext(PanelCtx);
@@ -1315,8 +1312,7 @@ export function PanelGlow({
       {children}
       <ScrollOverflowGlow
         $position="top"
-        $visible={overflow.top}
-        $topOffset={railBandAbove ? "var(--panel-rail-band)" : undefined}
+        $visible={overflow.top && !railBandAbove}
       />
       <ScrollOverflowGlow $position="bottom" $visible={overflow.bottom} />
     </PanelGlow__Root>
@@ -1614,8 +1610,52 @@ const PanelStickyTop = styled.div`
   /* The band is this unit's own first row, so the rail frame does not pull up into container padding. */
   & > [data-panel-rail-frame] {
     margin-top: 0;
+    /* The unit's backing is the opaque surface and the glow sits on it, so the band shows the glow with the rail drawn over it. */
+    background: transparent;
+  }
+
+  /* The top glow is the first background layer while the body is scrolled, over the opaque surface and under the rail and header; capped at the unit's height so a short unit never masks rows below it. */
+  &[data-panel-glow-top] {
+    background:
+      linear-gradient(
+          to bottom,
+          color-mix(
+            in srgb,
+            color-mix(in srgb, var(--color-surface-panel), white 20%) 55%,
+            transparent
+          ),
+          transparent 40%
+        )
+        top / 100% min(44px, 100%) no-repeat,
+      linear-gradient(
+          to bottom,
+          var(--color-surface-panel) 0%,
+          var(--color-surface-panel) 27%,
+          transparent 50%
+        )
+        top / 100% min(44px, 100%) no-repeat,
+      var(--color-surface-panel);
   }
 `;
+
+/** The sticky unit, marked while the body has content above to scroll back to so its top glow shows. */
+function PanelStickyUnit({ children }: { children: ReactNode }) {
+  const ctx = useContext(PanelCtx);
+  const overflow = useScrollerMetric(
+    ctx?.scroller ?? null,
+    scrollOverflow,
+    sameOverflow,
+    NO_OVERFLOW,
+  );
+  return (
+    <PanelStickyTop
+      data-panel-sticky-top=""
+      data-panel-glow-top={overflow.top ? "" : undefined}
+    >
+      {children}
+    </PanelStickyTop>
+  );
+}
 
 /** The full-bleed strip `panelTrend` draws into, measured so the trend can be drawn to its pixels. */
 function PanelTrend({
@@ -2052,7 +2092,7 @@ function PanelRootImpl({
       loneFrame={loneFrame}
       hoverTitle={hoverTitle}
     >
-      <PanelStickyTop data-panel-sticky-top="">
+      <PanelStickyUnit>
         <PanelDelayRail tiny={hoverTitle} />
         {!hoverTitle && (
           <PanelStickyHeader
@@ -2062,7 +2102,7 @@ function PanelRootImpl({
             toolbar={toolbar}
           />
         )}
-      </PanelStickyTop>
+      </PanelStickyUnit>
       {fitToSize ? (
         <PanelFitBody hoverTitle={hoverTitle}>{content}</PanelFitBody>
       ) : (
