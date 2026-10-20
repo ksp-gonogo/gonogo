@@ -50,7 +50,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsup && node scripts/widget-manifest.mjs",
+    "build": "rm -rf dist && node scripts/private-packages.mjs && tsup && node scripts/widget-manifest.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"

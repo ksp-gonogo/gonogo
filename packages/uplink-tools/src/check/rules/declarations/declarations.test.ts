@@ -312,6 +312,66 @@ registerComponent({ id: "w", component: Widget });
     expect(found).toEqual([]);
   });
 
+  describe("a prefix registered through a value", () => {
+    const familyFound = (registration: string) => {
+      const scan = scanFiles(ts, {
+        "w.tsx": `import { registerComponent, useStream } from "./hooks";
+declare function registerDynamicTopicPrefix(prefix: string): void;
+declare const computed: string;
+${registration}
+function Widget(props: { topic: string }) {
+  useStream(\`mine.forecast.$${"{"}props.topic}\`);
+  return null;
+}
+registerComponent({ id: "w", component: Widget });
+`,
+      });
+      return declarationRules
+        .filter((r) => r.id === "declarations/family-unregistered")
+        .flatMap((r) =>
+          r.check({ clientDir: "/client", scan, dynamicPrefixes: PREFIXES }),
+        );
+    };
+
+    it("resolves a const string", () => {
+      expect(
+        familyFound(
+          `const PREFIX = "mine.forecast.";\nregisterDynamicTopicPrefix(PREFIX);`,
+        ),
+      ).toEqual([]);
+    });
+
+    it("resolves a for-of loop over a const array literal of strings", () => {
+      expect(
+        familyFound(
+          `const PREFIXES = ["other.", "mine.forecast."];\nfor (const prefix of PREFIXES) registerDynamicTopicPrefix(prefix);`,
+        ),
+      ).toEqual([]);
+    });
+
+    it("still reports a computed prefix", () => {
+      expect(familyFound(`registerDynamicTopicPrefix(computed);`)).toHaveLength(
+        1,
+      );
+    });
+
+    it("still reports a loop over a list it cannot read", () => {
+      expect(
+        familyFound(
+          `declare const unknownList: string[];\nfor (const prefix of unknownList) registerDynamicTopicPrefix(prefix);`,
+        ),
+      ).toHaveLength(1);
+    });
+
+    it("still reports a loop whose list does not hold the prefix", () => {
+      expect(
+        familyFound(
+          `for (const prefix of ["other."]) registerDynamicTopicPrefix(prefix);`,
+        ),
+      ).toHaveLength(1);
+    });
+  });
+
   it("says why when the sdk's prefixes could not be read", () => {
     const scan = scanFiles(ts, {
       "w.tsx": `import { registerComponent, useStream } from "./hooks";

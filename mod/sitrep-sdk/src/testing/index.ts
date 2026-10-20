@@ -45,6 +45,8 @@ export {
   getAugmentsForSlot,
 } from "../api/index";
 export { clearMapPoiProviders } from "../api/map-poi";
+// The observation half of `registerStationBroker`, for a test asserting its Uplink registered a broker.
+export { watchStationBrokers } from "../api/station-brokers";
 export { clearUplinkHandles } from "../api/uplink-handles";
 // The transport double. It named nothing above this leaf (wire messages, `Meta`,
 // `wrapTopicPayload`), so its old home in the unpublished `@ksp-gonogo/sitrep-client`

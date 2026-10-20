@@ -585,3 +585,24 @@ registerComponent({ id: "w", component: Widget });
     expect(scan.widgets[0].unresolved).toEqual([]);
   });
 });
+
+describe("test files", () => {
+  const opaque = `import { registerComponent } from "./hooks";
+declare const captured: { id: string };
+registerComponent({ ...captured });
+`;
+
+  it.each([
+    ["a .test file", "w.test.tsx"],
+    ["a .spec file", "w.spec.ts"],
+    ["a file under src/test", "test/w.ts"],
+  ])("does not read a registration in %s", (_name, file) => {
+    expect(scanFiles(ts, { [file]: opaque }).widgets).toEqual([]);
+  });
+
+  it("still reads an opaque registration in source", () => {
+    const scan = scanFiles(ts, { "w.tsx": opaque });
+    expect(scan.widgets).toHaveLength(1);
+    expect(scan.widgets[0].registration.opaque).toBeTruthy();
+  });
+});

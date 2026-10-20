@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -124,5 +125,48 @@ export { x };
   it("judges a bare specifier of this ecosystem and no other", () => {
     expect(importFault("lodash", false)).toBeUndefined();
     expect(importFault("@ksp-gonogo/ui-kit", false)).toBeUndefined();
+  });
+});
+
+describe("imports of other packages under the scope", () => {
+  it("never calls a package the gonogo workspace does not hold private", () => {
+    for (const specifier of [
+      "@ksp-gonogo/example-external",
+      "@ksp-gonogo/example-external-react",
+      "@ksp-gonogo/example-external/sub",
+    ]) {
+      expect(importFault(specifier, false)).toBeUndefined();
+      expect(importFault(specifier, true)).toBeUndefined();
+    }
+  });
+
+  it("still fails a private package of the workspace", () => {
+    for (const specifier of [
+      "@ksp-gonogo/components",
+      "@ksp-gonogo/core",
+      "@ksp-gonogo/sitrep-client",
+    ]) {
+      expect(importFault(specifier, false)?.rule).toBe(
+        "imports/private-package",
+      );
+    }
+  });
+
+  it("is generated from the workspace's own manifests", () => {
+    expect(
+      readFileSync(
+        join(import.meta.dirname, "private-packages.generated.ts"),
+        "utf8",
+      ),
+    ).toBe(
+      execFileSync(
+        process.execPath,
+        [
+          join(import.meta.dirname, "../../../../scripts/private-packages.mjs"),
+          "--stdout",
+        ],
+        { encoding: "utf8" },
+      ),
+    );
   });
 });

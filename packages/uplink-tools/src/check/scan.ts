@@ -126,6 +126,9 @@ export function scanClient(
   return createScanner(ts, program, options).scanClient();
 }
 
+const TEST_SOURCE =
+  /(?:\.(?:test|spec)\.[cm]?[jt]sx?$|(?:^|\/)(?:test|tests|__tests__)\/)/;
+
 export function createScanner(
   ts: TypeScript,
   program: TS.Program,
@@ -138,6 +141,8 @@ export function createScanner(
     !file.isDeclarationFile &&
     !inNodeModules(file.fileName) &&
     slashed(file.fileName).startsWith(clientRoot);
+  const isTestSource = (file: TS.SourceFile) =>
+    TEST_SOURCE.test(slashed(file.fileName).slice(clientRoot.length));
   const resolver = createResolver(ts, program, isOwnSource);
 
   const directives = new Map<string, DirectiveRecord>();
@@ -1147,22 +1152,49 @@ export function createScanner(
     return widget;
   };
 
+  /**
+   * The prefixes a `registerDynamicTopicPrefix` argument can be: a literal, a
+   * constant, or the variable of a `for...of` over a constant list of strings.
+   * Anything computed gives none, so the family it would cover still reports.
+   */
+  const prefixesOf = (arg: TS.Expression): string[] => {
+    const got = resolver.resolve(arg);
+    if (got.ok && got.families.length === 0 && got.ids.length > 0) {
+      return got.ids;
+    }
+    if (!ts.isIdentifier(arg)) return [];
+    const decl = resolver.declarationOf(arg);
+    const loop = decl?.parent?.parent;
+    if (
+      decl &&
+      ts.isVariableDeclaration(decl) &&
+      loop &&
+      ts.isForOfStatement(loop) &&
+      loop.initializer === decl.parent
+    ) {
+      return stringList(loop.expression, resolver) ?? [];
+    }
+    return [];
+  };
+
   const scanClient = (): ClientScan => {
     const widgets: WidgetScan[] = [];
     const registeredPrefixes: string[] = [];
     const augments: AugmentRegistration[] = [];
     for (const file of program.getSourceFiles()) {
       if (!isOwnSource(file)) continue;
+      // A test registers captured or throwaway definitions to exercise the host, not to ship them.
+      const testSource = isTestSource(file);
       const find = (node: TS.Node): void => {
         if (
           ts.isCallExpression(node) &&
           calleeName(node) === "registerDynamicTopicPrefix" &&
-          node.arguments[0] &&
-          ts.isStringLiteralLike(node.arguments[0])
+          node.arguments[0]
         ) {
-          registeredPrefixes.push(node.arguments[0].text);
+          registeredPrefixes.push(...prefixesOf(node.arguments[0]));
         }
         if (
+          !testSource &&
           ts.isCallExpression(node) &&
           calleeName(node) === "registerComponent"
         ) {
@@ -1189,6 +1221,7 @@ export function createScanner(
           }
         }
         if (
+          !testSource &&
           ts.isCallExpression(node) &&
           calleeName(node) === "registerAugment" &&
           node.arguments[0] &&

@@ -89,9 +89,12 @@ export function clearStationBrokers(): void {
 
 /**
  * Hand every registration, present and future, to `watcher`, until the
- * returned function is called. Used by the station screen, which hands each
- * registration a broker bound to the main screen. An Uplink never calls it;
- * it registers with `registerStationBroker`.
+ * returned function is called. Useful in a test for checking that an Uplink
+ * registered a station broker with {@link registerStationBroker}. Used by the
+ * station screen, which hands each registration a broker bound to the main
+ * screen. An Uplink's client never calls it outside a test.
+ *
+ * @category Extensions
  */
 export function watchStationBrokers(watcher: StationBrokerWatcher): () => void {
   const { attaches, watchers } = slot();

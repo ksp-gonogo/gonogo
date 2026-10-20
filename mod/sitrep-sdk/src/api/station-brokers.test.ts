@@ -69,3 +69,11 @@ describe("station brokers", () => {
     expect(watcher).not.toHaveBeenCalled();
   });
 });
+
+describe("the testing subpath", () => {
+  it("exposes the same watcher the registry subpath does", async () => {
+    const testing = await import("../testing");
+    const registry = await import("../registry");
+    expect(testing.watchStationBrokers).toBe(registry.watchStationBrokers);
+  });
+});

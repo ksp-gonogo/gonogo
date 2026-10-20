@@ -5,11 +5,12 @@ import { fileURLToPath } from "node:url";
 import { UPLINK_BUNDLE_EXTERNALS } from "@ksp-gonogo/sitrep-sdk/uplink-externals";
 import { CheckUnableError, type TypeScript } from "../../program";
 import type { CheckContext, FixableFinding, Rule } from "../../types";
+import {
+  PRIVATE_PACKAGES,
+  WORKSPACE_PUBLISHED_PACKAGES,
+} from "./private-packages.generated";
 
 const SCOPE = "@ksp-gonogo/";
-
-/** The only packages of this ecosystem an Uplink can install. */
-const PUBLISHED = ["sitrep-sdk", "ui-kit", "uplink-tools"];
 
 /** The entry points `@ksp-gonogo/uplink-tools` publishes, which its export map is held to. */
 export const UPLINK_TOOLS_SUBPATHS = [
@@ -70,13 +71,18 @@ export function importFault(
   if (!specifier.startsWith(SCOPE)) return undefined;
   const [pkg, ...sub] = specifier.slice(SCOPE.length).split("/");
   const subpath = sub.join("/");
-  if (!PUBLISHED.includes(pkg)) {
+  if (PRIVATE_PACKAGES.includes(pkg)) {
     return {
       rule: "imports/private-package",
       message: `${specifier} is a private package of the gonogo repository, so nobody outside it can install or build against it.`,
       fix: "Import it from @ksp-gonogo/sitrep-sdk or @ksp-gonogo/ui-kit. If what you need is missing there, ask for it to be moved into one.",
     };
   }
+  /*
+   * A package under the scope that the gonogo workspace does not hold lives in
+   * another repository, and is bundled into the client like any dependency.
+   */
+  if (!WORKSPACE_PUBLISHED_PACKAGES.includes(pkg)) return undefined;
   if (pkg === "uplink-tools") {
     if (subpath && !UPLINK_TOOLS_SUBPATHS.includes(subpath)) {
       return {

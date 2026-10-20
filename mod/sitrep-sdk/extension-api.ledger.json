@@ -15025,6 +15025,10 @@
         "note": "Declares a test Topic's mark, so a test can register a model where the contract marks nothing"
       },
       {
+        "key": "sitrep-sdk ./testing watchStationBrokers",
+        "note": "Reachable from the testing subpath, so an Uplink test can observe its own station broker registration"
+      },
+      {
         "key": "sitrep-sdk ./testing ~AdministrationBuildingScreenBodyContext",
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
@@ -15503,6 +15507,26 @@
       {
         "key": "sitrep-sdk ./testing ~StatEntry#held?",
         "note": "StatEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StationBroker",
+        "note": "The type a watcher on the testing subpath receives from watchStationBrokers"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StationBroker#iceServers",
+        "note": "The type a watcher on the testing subpath receives from watchStationBrokers"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StationBroker#relay",
+        "note": "The type a watcher on the testing subpath receives from watchStationBrokers"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StationBrokerAttach",
+        "note": "The type a watcher on the testing subpath receives from watchStationBrokers"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StationBrokerWatcher",
+        "note": "The type a watcher on the testing subpath receives from watchStationBrokers"
       },
       {
         "key": "sitrep-sdk ./testing ~SystemEntity#currency?",
