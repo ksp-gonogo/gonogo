@@ -51,9 +51,9 @@ Only needed for stations that can't connect directly. The relay runs inside the 
 | Port | Protocol | Purpose |
 | --- | --- | --- |
 | `3478` | TCP and UDP | Relay connections |
-| `49160-49199` | UDP | Relay sessions, one port per relayed station |
+| `49160-49179` | UDP | Relay sessions: a relayed station holds a few ports, one per network interface on each of its connections that uses the relay |
 
-Some routers want one entry per port, so about forty in all. Don't forward `3002` (the relay's status port, published on `127.0.0.1` only so it stays on this computer) or `8080` (a remote station loads the app from the public site, not from your machine).
+Some routers want one entry per port, so about twenty in all. Don't forward `3002` (the relay's status port, published on `127.0.0.1` only so it stays on this computer) or `8080` (a remote station loads the app from the public site, not from your machine).
 
 Give the main screen computer a fixed address on your LAN first (a reservation in the router is easiest). If its address changes, every forward silently points at nothing.
 
@@ -92,3 +92,4 @@ To work out a route between two devices, each asks a public Google or Cloudflare
 - `GET /health`, `/version` and `/ice-config` on port 3002 report the relay status, the image version and the relay address and credentials the main screen reads on boot
 - To run the relay on its own on a public host, use the `ghcr.io/ksp-gonogo/gonogo-relay` image with the same ports and `RELAY_PUBLIC=1`. Keep `3002` closed to the internet
 - `TURN_MIN_PORT` and `TURN_MAX_PORT` widen the relay session range for more relayed stations; publish and forward the same range
+- The relay offers a UDP relay address only. `TURN_TCP=1` adds a TCP one for stations behind a network that blocks UDP, which doubles the ports each relayed connection holds

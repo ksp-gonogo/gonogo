@@ -106,3 +106,29 @@ describe("turn routes (fastify.inject)", () => {
     await app.close();
   });
 });
+
+describe("relay addresses offered by /ice-config", () => {
+  async function urls(tcpRelay?: boolean): Promise<string[]> {
+    const app = Fastify();
+    registerTurnRoutes(app, {
+      getCoturn: () => handle(() => true),
+      turnExpected: true,
+      tcpRelay,
+    });
+    await app.ready();
+    const ice = await app.inject({ method: "GET", url: "/ice-config" });
+    await app.close();
+    return ice.json().iceServers[0].urls;
+  }
+
+  it("offers one UDP address, so a connection holds one relay port per network", async () => {
+    expect(await urls()).toEqual(["turn:203.0.113.1:3478?transport=udp"]);
+  });
+
+  it("adds a TCP address when the relay is set to offer one", async () => {
+    expect(await urls(true)).toEqual([
+      "turn:203.0.113.1:3478?transport=udp",
+      "turn:203.0.113.1:3478?transport=tcp",
+    ]);
+  });
+});

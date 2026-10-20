@@ -20,6 +20,13 @@ export interface RelayConfig {
   turnMinPort: number;
   turnMaxPort: number;
   /**
+   * Offer a TCP relay address next to the UDP one. A browser allocates on
+   * every local network for every address it is given, so the TCP one doubles
+   * the relay ports each connection holds; it only helps a station behind a
+   * network that blocks UDP.
+   */
+  turnTcp: boolean;
+  /**
    * When true, skip the public-IP discovery + coturn spawn entirely
    * and report `/ice-config` as 503. Used by the Playwright multi-
    * screen test, where the host + station run on `localhost` and
@@ -52,7 +59,7 @@ export interface RelayConfig {
  *  "what ports does this relay want forwarded". */
 const DEFAULT_TURN_PORT = 3478;
 const DEFAULT_TURN_MIN_PORT = 49160;
-const DEFAULT_TURN_MAX_PORT = 49199;
+const DEFAULT_TURN_MAX_PORT = 49179;
 
 function port(raw: string | undefined, fallback: number): number {
   const n = Number(raw);
@@ -110,6 +117,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayConfig {
     turnPort: port(env.TURN_PORT, DEFAULT_TURN_PORT),
     turnMinPort: port(env.TURN_MIN_PORT, DEFAULT_TURN_MIN_PORT),
     turnMaxPort: port(env.TURN_MAX_PORT, DEFAULT_TURN_MAX_PORT),
+    turnTcp: env.TURN_TCP === "1" || env.TURN_TCP === "true",
     skipCoturn: env.SKIP_COTURN === "1" || env.SKIP_COTURN === "true",
     publicRelay: env.RELAY_PUBLIC === "1" || env.RELAY_PUBLIC === "true",
     appOrigins: appOrigins(env.RELAY_APP_ORIGINS),

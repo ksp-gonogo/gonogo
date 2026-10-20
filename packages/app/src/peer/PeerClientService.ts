@@ -4,6 +4,7 @@ import { debugPeer, logger } from "@ksp-gonogo/logger";
 import type { ConnectProgress } from "@ksp-gonogo/ui";
 import Peer, { type DataConnection } from "peerjs";
 import type { RunningUplink } from "../uplinks/loaderState";
+import { type ConnectionPath, readConnectionPath } from "./connectionPath";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import { fetchRelayIceConfig, withStun } from "./iceServers";
@@ -220,6 +221,14 @@ export class PeerClientService {
   // Uplink's station broker can feed them to a media connection of its own,
   // a path separate from PeerJS. Empty until the first broadcast arrives.
   private relayIceServers: RTCIceServer[] = [];
+  /*
+   * Whether this station has shown it needs the relay: its host channel
+   * stalled, or the one that opened is carried by it. Until then the relay
+   * servers are withheld from the station's media connections, because every
+   * connection handed them allocates a relay port per local network even when
+   * a direct path would have worked.
+   */
+  private relayNeeded = false;
   private hostVersion: { version: string; buildTime: string } | null = null;
   private hostSessionToken: string | null = null;
   /** The share code last passed to `connect`, kept so the station can be taken back. */
@@ -301,12 +310,23 @@ export class PeerClientService {
     });
   }
 
+  /*
+   * A page that unloads without closing its RTCPeerConnections leaves their
+   * relay allocations on the TURN server until they expire, each one holding a
+   * relay port. Closing the Peer on pagehide releases them straight away.
+   */
+  private readonly onPageHide = () => this.tearDownPeer();
+
   /**
    * `relayUrl` is the relay address from the station's link. Omitted, the
    * relay of an earlier call is kept, so pressing Connect again on the
    * connect screen reuses it.
    */
   connect(code: string, relayUrl?: string | null) {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("pagehide", this.onPageHide);
+      window.addEventListener("pagehide", this.onPageHide);
+    }
     // `code` is the operator-typed share code. Derive the host's broker peer
     // id (`gonogo-host-<CODE>`) once and hold it as the reconnect target.
     this.shareCode = code;
@@ -382,6 +402,7 @@ export class PeerClientService {
     const { entered } = this.connectProgress;
     if (entered.host !== undefined && entered.data === undefined) {
       this.hostChannelStalls += 1;
+      this.markRelayNeeded();
       if (this.hostChannelStalls >= MAX_HOST_CHANNEL_ATTEMPTS) {
         logger.warn(
           `[PeerClient] host channel never opened in ${this.hostChannelStalls} attempts: stopping`,
@@ -509,6 +530,7 @@ export class PeerClientService {
       this.retryPolicy.onConnected();
       this.hostChannelStalls = 0;
       this.enterStage("data");
+      void this.noteRelayIfCarried(conn);
       // First, so the host knows whether this station is approved before any request it sends.
       conn.send({
         type: "station-credential",
@@ -1560,7 +1582,7 @@ export class PeerClientService {
   private applyRelayIceServers(iceServers: RTCIceServer[]): void {
     // Expose for station brokers regardless of whether the Peer is up yet, an Uplink's media connection reads these for itself.
     this.relayIceServers = iceServers;
-    this.events.emit("relayIceServers", iceServers);
+    this.events.emit("relayIceServers", this.exposedRelayIceServers());
     if (!this.peer) return;
     const opts: unknown = Reflect.get(this.peer, "_options");
     if (typeof opts === "object" && opts !== null) {
@@ -1571,9 +1593,33 @@ export class PeerClientService {
     }
   }
 
-  /** Latest relay turn creds the host has broadcast (empty until one arrives). */
+  /** Latest relay turn creds the host has broadcast, empty until one arrives and until this station has shown it needs the relay. */
   getRelayIceServers(): RTCIceServer[] {
-    return this.relayIceServers;
+    return this.exposedRelayIceServers();
+  }
+
+  private exposedRelayIceServers(): RTCIceServer[] {
+    return this.relayNeeded ? this.relayIceServers : [];
+  }
+
+  /**
+   * Release the relay servers to this station's media connections, for a
+   * station that cannot reach the main screen directly.
+   */
+  markRelayNeeded(): void {
+    if (this.relayNeeded) return;
+    this.relayNeeded = true;
+    if (this.relayIceServers.length > 0) {
+      this.events.emit("relayIceServers", this.relayIceServers);
+    }
+  }
+
+  private async noteRelayIfCarried(conn: DataConnection): Promise<void> {
+    const pc = (conn as DataConnection & { peerConnection?: RTCPeerConnection })
+      .peerConnection;
+    if (!pc) return;
+    const path: ConnectionPath | null = await readConnectionPath(pc);
+    if (path === "relayed") this.markRelayNeeded();
   }
 
   /** Notified whenever the host broadcasts a fresh set of relay turn creds. */
@@ -1658,6 +1704,9 @@ export class PeerClientService {
   }
 
   disconnect() {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("pagehide", this.onPageHide);
+    }
     this.retryPolicy.cancel();
     this.tearDownPeer();
     this.rejectPendingQueries("peer client disconnected");

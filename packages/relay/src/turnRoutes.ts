@@ -17,24 +17,28 @@ export interface TurnRoutesOptions {
   turnExpected: boolean;
   /** The address stations on other networks reach this relay at, named in `/ice-config` when the operator published one. */
   publicUrl?: string | null;
+  /** Offer a TCP relay address as well as the UDP one. */
+  tcpRelay?: boolean;
 }
 
 /**
- * Build the ICE-server list advertising the relay's coturn over both UDP and
- * TCP. Without an explicit `?transport=` hint browsers gather only a UDP relay
- * candidate, which strands clients on UDP-restrictive networks. coturn listens
- * on both, so the transport list is purely a hint.
+ * Build the ICE-server list advertising the relay's coturn over UDP, and over
+ * TCP as well when `tcp` is set. A browser allocates one relay port per local
+ * network for every address it is given, so the TCP address doubles the ports
+ * a connection holds and is only worth offering to stations behind a network
+ * that blocks UDP.
  */
 export function iceServersFor(
   handle: CoturnHandle,
   hostOverride?: string,
+  tcp = false,
 ): IceServer[] {
   const turnHost = `${hostOverride ?? handle.externalIp}:${handle.port}`;
   return [
     {
       urls: [
         `turn:${turnHost}?transport=udp`,
-        `turn:${turnHost}?transport=tcp`,
+        ...(tcp ? [`turn:${turnHost}?transport=tcp`] : []),
       ],
       username: handle.username,
       credential: handle.credential,
@@ -52,7 +56,13 @@ export function iceServersFor(
  */
 export function registerTurnRoutes(
   fastify: FastifyInstance,
-  { getCoturn, getPendingReason, turnExpected, publicUrl }: TurnRoutesOptions,
+  {
+    getCoturn,
+    getPendingReason,
+    turnExpected,
+    publicUrl,
+    tcpRelay = false,
+  }: TurnRoutesOptions,
 ): void {
   const live = (): CoturnHandle | null => {
     const handle = getCoturn();
@@ -93,7 +103,7 @@ export function registerTurnRoutes(
       });
     }
     return {
-      iceServers: iceServersFor(handle),
+      iceServers: iceServersFor(handle, undefined, tcpRelay),
       ...(publicUrl ? { publicUrl } : {}),
     };
   });

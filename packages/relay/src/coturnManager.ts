@@ -36,14 +36,13 @@ export interface CoturnOptions {
   /** Min relay port. Defaults to 49160. */
   minPort?: number;
   /**
-   * Max relay port. Defaults to 49199: coturn allocates one relay port
-   * per active turn session, and a reloaded station leaves its old
-   * allocations holding ports until they expire, so the pool needs room
-   * beyond the number of live clients. Consumer routers want one
-   * port-forward entry per port, which keeps the range small. If your
-   * sessions routinely exceed ~20 concurrent TURN-relayed clients, widen it with `TURN_MIN_PORT`/`TURN_MAX_PORT`
-   * (see `config.ts`) and widen the matching docker-compose mapping and
-   * router forwards to the same window. No source edit is needed.
+   * Max relay port. Defaults to 49179: coturn holds one relay port per
+   * allocation, and a browser makes one allocation per local network for each
+   * connection that is handed the relay, so a relayed station holds a few
+   * ports. Consumer routers want one port-forward entry per port, which keeps
+   * the range small. To serve more relayed stations, widen it with
+   * `TURN_MIN_PORT`/`TURN_MAX_PORT` (see `config.ts`) and widen the matching
+   * docker-compose mapping and router forwards to the same window.
    */
   maxPort?: number;
   /** Username for static credentials. Defaults to `gonogo`. */
@@ -96,7 +95,7 @@ const DEFAULT_PORT = 3478;
 const LOG_LINES_PER_WINDOW = 20;
 const LOG_WINDOW_MS = 10_000;
 const DEFAULT_MIN_PORT = 49160;
-const DEFAULT_MAX_PORT = 49199;
+const DEFAULT_MAX_PORT = 49179;
 
 /**
  * Peer address ranges coturn refuses to relay to when `denyPrivatePeers` is
@@ -159,10 +158,10 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
     `--external-ip=${externalIpArg}`,
     "--no-tls",
     "--no-dtls",
-    // A reloaded page cannot release its allocations, so each one pins a
-    // relay port until it expires. Coturn's default of 600s lets a few
-    // reloads exhaust a small pool; healthy sessions refresh well inside
-    // these windows.
+    // A page killed without closing its connections cannot release its
+    // allocations, so each one pins a relay port until it expires. Coturn's
+    // default of 600s lets a few of those exhaust a small pool; healthy
+    // sessions refresh well inside these windows.
     "--max-allocate-lifetime=120",
     "--channel-lifetime=60",
     ...(opts.denyPrivatePeers

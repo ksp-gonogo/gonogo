@@ -9,6 +9,7 @@ const { FakePeer } = vi.hoisted(() => {
     private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
     sent: unknown[] = [];
     target: string;
+    peerConnection?: unknown;
     constructor(target = "") {
       this.target = target;
     }
@@ -57,7 +58,10 @@ const { FakePeer } = vi.hoisted(() => {
       this._conns.push(conn);
       return conn;
     }
-    destroy() {}
+    destroyed = false;
+    destroy() {
+      this.destroyed = true;
+    }
   }
 
   return { FakePeer };
@@ -134,5 +138,91 @@ describe("PeerClientService: stable host id (derived connect target)", () => {
     await driveOpen(FakePeer.instances[1]);
 
     expect(FakePeer.instances[1]._lastConnectTarget).toBe("gonogo-host-STABLE");
+  });
+});
+
+describe("PeerClientService: page unload", () => {
+  beforeEach(() => {
+    FakePeer.instances = [];
+  });
+
+  it("destroys the Peer on pagehide so its relay allocations are released", async () => {
+    const svc = new PeerClientService();
+    svc.connect("SHARE");
+    await driveOpen(FakePeer.instances[0]);
+
+    window.dispatchEvent(new Event("pagehide"));
+
+    expect(FakePeer.instances[0].destroyed).toBe(true);
+    svc.disconnect();
+  });
+
+  it("stops listening for pagehide once disconnected", async () => {
+    const svc = new PeerClientService();
+    svc.connect("SHARE");
+    svc.disconnect();
+    FakePeer.instances[0].destroyed = false;
+
+    window.dispatchEvent(new Event("pagehide"));
+
+    expect(FakePeer.instances[0].destroyed).toBe(false);
+  });
+});
+
+describe("PeerClientService: relay servers for media connections", () => {
+  const relay = [
+    {
+      urls: ["turn:203.0.113.1:3478?transport=udp"],
+      username: "u",
+      credential: "c",
+    },
+  ];
+
+  function pairStats(local: string, remote: string) {
+    const entries: Array<Record<string, unknown>> = [
+      { id: "T", type: "transport", selectedCandidatePairId: "P" },
+      {
+        id: "P",
+        type: "candidate-pair",
+        localCandidateId: "L",
+        remoteCandidateId: "R",
+      },
+      { id: "L", type: "local-candidate", candidateType: local },
+      { id: "R", type: "remote-candidate", candidateType: remote },
+    ];
+    return {
+      getStats: async () => ({
+        forEach: (cb: (s: Record<string, unknown>) => void) =>
+          entries.forEach(cb),
+      }),
+    };
+  }
+
+  async function station(local: string, remote: string) {
+    FakePeer.instances = [];
+    const svc = new PeerClientService();
+    svc.connect("SHARE");
+    const peer = FakePeer.instances[0];
+    peer.emit("open", peer.id);
+    await vi.waitFor(() => expect(peer._lastConn).not.toBeNull());
+    const conn = peer._lastConn;
+    if (!conn) throw new Error("no host connection");
+    conn.peerConnection = pairStats(local, remote);
+    conn.emit("open");
+    conn.emit("data", { type: "relay-ice-servers", iceServers: relay });
+    return svc;
+  }
+
+  it("withholds them from a station connected directly, so its cameras allocate no relay port", async () => {
+    const svc = await station("host", "host");
+    await new Promise((r) => setTimeout(r, 0));
+    expect(svc.getRelayIceServers()).toEqual([]);
+    svc.disconnect();
+  });
+
+  it("hands them over once the station's own connection is carried by the relay", async () => {
+    const svc = await station("relay", "srflx");
+    await vi.waitFor(() => expect(svc.getRelayIceServers()).toEqual(relay));
+    svc.disconnect();
   });
 });

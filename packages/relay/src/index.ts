@@ -178,6 +178,7 @@ registerTurnRoutes(fastify, {
   getPendingReason: () => turn.pendingReason,
   turnExpected: !config.skipCoturn,
   publicUrl: config.publicUrl,
+  tcpRelay: config.turnTcp,
 });
 
 fastify.get("/version", async () => ({

@@ -15,19 +15,19 @@ services:
       # credentials. To let a station on another network fetch them from its
       # link, set RELAY_HTTP_BIND=0.0.0.0 and RELAY_PUBLIC_URL below.
       - "${RELAY_HTTP_BIND:-127.0.0.1}:3002:3002"
-      # TURN signalling. Both UDP and TCP for client compatibility.
+      # TURN signalling. UDP is what stations use; TCP is only used when
+      # TURN_TCP=1 offers a TCP relay address as well.
       - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/udp"
       - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/tcp"
       # TURN relay port range. Every active relay session takes one port
       # in this window, so the whole range must be mappable to the host.
       # Same TURN_MIN_PORT / TURN_MAX_PORT the relay passes to coturn, so
       # widening the window is one pair of env vars rather than a source
-      # edit. Sized at 40 ports by default: a reloaded station leaves
-      # its old allocations holding ports until they expire, so the pool
-      # needs room beyond the number of live clients. Consumer routers
-      # (Google Wi-Fi etc.) want one port-forward entry per port, so the
-      # range stays small.
-      - "${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49199}:${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49199}/udp"
+      # edit. Sized at 20 ports by default: a relayed station holds
+      # a few of them (one per network interface on each connection that
+      # uses the relay). Consumer routers (Google Wi-Fi etc.) want one
+      # port-forward entry per port, so the range stays small.
+      - "${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49179}:${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49179}/udp"
     environment:
       PORT: 3002
       # Optional pin for the public IP coturn advertises to clients.
@@ -53,7 +53,7 @@ services:
       # the router forwards to match.
       TURN_PORT: ${TURN_PORT:-3478}
       TURN_MIN_PORT: ${TURN_MIN_PORT:-49160}
-      TURN_MAX_PORT: ${TURN_MAX_PORT:-49199}
+      TURN_MAX_PORT: ${TURN_MAX_PORT:-49179}
       # Axiom log shipping. Empty default → no transport installed
       # (matches the browser pattern). Set in `.env` next to this file
       # to opt in.

@@ -1049,7 +1049,25 @@ describe("host-issued ICE servers, read from a station", () => {
       });
     });
 
+    /* A station connected directly keeps them back, so its media connections allocate no relay port. */
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(seen.at(-1)).toEqual([]);
+
+    act(() => clientSvc.markRelayNeeded());
     await waitFor(() => expect(seen.at(-1)).toEqual(TURN));
+
+    const ROTATED: RTCIceServer[] = [
+      { urls: "turn:relay.example:3478", username: "u2", credential: "c2" },
+    ];
+    act(() => {
+      peerHost.broadcast({
+        type: "relay-ice-servers",
+        iceServers: ROTATED,
+      });
+    });
+    await waitFor(() => expect(seen.at(-1)).toEqual(ROTATED));
   });
 
   it("reads empty on a screen with no peer client, so the main screen fetches its own", async () => {
