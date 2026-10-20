@@ -8,7 +8,6 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { useHeldRegime } from "./descentRegime";
 import { GridCellPair, Mps } from "./readouts";
 import type { LandingModel } from "./useLandingModel";
 
@@ -34,11 +33,6 @@ export function DescentBoard({ model }: Readonly<{ model: LandingModel }>) {
     solution,
     solveCurrency,
   } = model;
-
-  const regime = useHeldRegime(
-    landing?.descentRegime,
-    landing?.dragToWeightRatio,
-  );
 
   if (board === "atmospheric-aware") {
     return (
@@ -66,7 +60,9 @@ export function DescentBoard({ model }: Readonly<{ model: LandingModel }>) {
               />
             )}
           </GridCellPair>
-          {regime && <GridCellPair label="Regime">{regime}</GridCellPair>}
+          {landing?.descentRegime && (
+            <GridCellPair label="Regime">{landing.descentRegime}</GridCellPair>
+          )}
         </Grid>
         <Text level="muted" size="xs">
           est · current config

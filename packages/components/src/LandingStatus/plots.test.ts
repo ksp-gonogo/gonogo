@@ -1630,7 +1630,6 @@ describe("the body a contribution resolves", () => {
     Object.fromEntries([
       ["crash.lastCrash", { state: "absent", atUt: value("ut", 100) }],
       ["crash.hasRecent", { state: "absent", atUt: value("ut", 100) }],
-      ["spaceCenter.scene", { state: "absent", atUt: value("ut", 100) }],
       ...Object.entries(payloads).map(([topic, payload]) => [
         topic,
         held.includes(topic)
