@@ -24,6 +24,10 @@ import {
 import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import type { MinFitFinding } from "../../uplink-tools/src/render/minFit";
 import { fixtureProfiles, getInstallProfile } from "../src/test/installProfile";
+import {
+  findCoveredEssentials,
+  proveCoverDetectorWorks,
+} from "./coveredEssentials";
 import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
 import { type ProbePayload, probePayload } from "./probe/payload";
 import {
@@ -426,8 +430,10 @@ export async function renderWidgets(
 
       /*
        * CSS.getPlatformFontsForNode is a DevTools Protocol call, so the
-       * font-fallback check runs under chromium only. firefox/webkit renders
-       * (cross-browser review shots) still get every other check.
+       * font-fallback check runs under chromium only, and the covered-figure
+       * check with it, since its pixel comparison is proven on that engine
+       * and the layout it guards is the same in all three. firefox/webkit
+       * renders (cross-browser review shots) still get every other check.
        */
       const cdp =
         engine === "chromium" ? await context.newCDPSession(page) : undefined;
@@ -435,6 +441,7 @@ export async function renderWidgets(
         await cdp.send("DOM.enable");
         await cdp.send("CSS.enable");
         await proveFontDetectorWorks(page, cdp);
+        await proveCoverDetectorWorks(page);
       }
       return { page, cdp };
     };
@@ -523,6 +530,17 @@ export async function renderWidgets(
             "the widget's minSize to a tile the figures fit.)",
         );
       }
+    }
+
+    if (findings.coveredEssentials.length > 0) {
+      throw new Error(
+        `${findings.coveredEssentials.length} tiny form figure(s) painted ` +
+          "over by another element in the tile:\n  " +
+          findings.coveredEssentials.join("\n  ") +
+          "\n(The tiny form centres its figures in the whole tile, under " +
+          "the panel's title unit, so anything that unit paints, a backing " +
+          "or a glow, lands on the figure.)",
+      );
     }
 
     if (findings.overlaps.length > 0) {
@@ -2126,6 +2144,8 @@ interface RenderFindings {
   fontFallbacks: string[];
   /** What cannot be read in the kit's tiny form, measured fed rather than empty. */
   tinyMisfits: string[];
+  /** Figures of the kit's tiny form that another element in the tile paints over. */
+  coveredEssentials: string[];
   /** Accessibility violations axe finds in the laid-out page. */
   a11y: string[];
 }
@@ -2196,6 +2216,7 @@ function noFindings(): RenderFindings {
     fontFallbacks: [],
     mounts: [],
     tinyMisfits: [],
+    coveredEssentials: [],
     a11y: [],
   };
 }
@@ -2318,6 +2339,11 @@ async function renderOneWidget(
       for (const f of await auditTinyFit(page)) {
         findings.tinyMisfits.push(
           `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${describeMisfit(f)}`,
+        );
+      }
+      for (const f of cdp ? ((await findCoveredEssentials(page)) ?? []) : []) {
+        findings.coveredEssentials.push(
+          `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${f}`,
         );
       }
       // Full-content capture (review path): grow `#root` until nothing is clipped, so the PNG shows the WHOLE widget, not a tile-height crop.
