@@ -56,6 +56,11 @@ function experimentName(instrument: TitledInstrument): string {
   return instrument.expTitle || instrument.expId || "Unknown experiment";
 }
 
+/** The experiment and the part it is on, so two experiments of one part read apart on the delay rail. */
+function experimentOnPart(instrument: TitledInstrument): string {
+  return `${experimentName(instrument)} on ${instrument.partTitle}`;
+}
+
 /** Holds a badge's height whether or not the instrument has any state to badge. */
 const BADGE_SLOT = { minHeight: "var(--control-height)" } as const;
 
@@ -132,7 +137,7 @@ export function ScienceExperimentRow({
             size="sm"
             handle={deployCmd}
             args={{ partId: instrument.partId }}
-            commandLabel={`Deploy ${instrument.partTitle}`}
+            commandLabel={`Deploy ${experimentOnPart(instrument)}`}
             label="Deploy"
             pendingLabel="Deploying..."
           />
@@ -145,7 +150,7 @@ export function ScienceExperimentRow({
             size="sm"
             handle={transmitCmd}
             args={{ partId: instrument.partId }}
-            commandLabel={`Transmit ${instrument.partTitle}`}
+            commandLabel={`Transmit ${experimentOnPart(instrument)}`}
             label="Transmit"
             confirmLabel="Confirm transmit"
             pendingLabel="Transmitting..."
@@ -216,7 +221,12 @@ export function ScienceExperimentRow({
           </Tooltip>
         )}
         {heldGrade !== undefined && (
-          <HeldBadge grade={heldGrade} subject={instrument.partTitle} />
+          <HeldBadge
+            grade={heldGrade}
+            subject={
+              underPart ? experimentOnPart(instrument) : instrument.partTitle
+            }
+          />
         )}
       </Inline>
       <Text level="muted" size="xs">

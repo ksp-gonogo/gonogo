@@ -82,6 +82,40 @@ describe("ScienceExperimentRow", () => {
     expect(screen.queryByText("Probodobodyne Stayputnik")).toBeNull();
   });
 
+  it("labels each experiment of one part's Deploy by experiment and part", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(OK));
+    const part = { partId: "7", partTitle: "Probodobodyne OKTO" };
+    renderRow(
+      <>
+        <ScienceExperimentRow
+          underPart
+          instrument={instrument({
+            ...part,
+            expId: "temperatureScan",
+            expTitle: "Temperature Scan",
+          })}
+          deployCmd={handle(send)}
+        />
+        <ScienceExperimentRow
+          underPart
+          instrument={instrument({
+            ...part,
+            expId: "barometerScan",
+            expTitle: "Atmospheric Pressure Scan",
+          })}
+          deployCmd={handle(send)}
+        />
+      </>,
+    );
+    for (const button of screen.getAllByRole("button", { name: "Deploy" }))
+      await user.click(button);
+    expect(send.mock.calls.map((call) => (call as unknown[])[1])).toEqual([
+      { label: "Deploy Temperature Scan on Probodobodyne OKTO" },
+      { label: "Deploy Atmospheric Pressure Scan on Probodobodyne OKTO" },
+    ]);
+  });
+
   it("renders the instrument's name", () => {
     renderRow(
       <ScienceExperimentRow
@@ -120,7 +154,7 @@ describe("ScienceExperimentRow", () => {
     await user.click(screen.getByRole("button", { name: "Deploy" }));
     expect(send).toHaveBeenCalledWith(
       { partId: "42" },
-      { label: "Deploy Mystery Goo" },
+      { label: "Deploy mysteryGoo on Mystery Goo" },
     );
   });
 
@@ -139,7 +173,7 @@ describe("ScienceExperimentRow", () => {
     await user.click(screen.getByRole("button", { name: /Confirm transmit/i }));
     expect(send).toHaveBeenCalledWith(
       { partId: "99" },
-      { label: "Transmit Mystery Goo" },
+      { label: "Transmit mysteryGoo on Mystery Goo" },
     );
   });
 
