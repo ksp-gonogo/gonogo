@@ -1,8 +1,8 @@
 import { useContributions } from "@ksp-gonogo/core";
 import {
-  Cluster,
   Grid,
-  HeldBadge,
+  HeldFigure,
+  heldWord,
   SectionTitle,
   useElementSize,
 } from "@ksp-gonogo/ui-kit";
@@ -23,7 +23,7 @@ import { type MergedPlot, mergePlots } from "./mergePlots";
  */
 export const MIN_PLOT_PX = 120;
 
-/** The height of a plot's heading row with a held badge beside the title, which the row keeps without one so a badge arriving moves nothing below it. */
+/** The height of a plot's heading row with the held mark on the title, which the row keeps without one so a mark arriving moves nothing below it. */
 const HEADING_ROW_PX = 17;
 
 /** The narrowest square whose heading holds a reserved plot's whole title: below it the heading row is given to the plot, and the title stays in the plot's accessible name and tooltip. */
@@ -145,7 +145,7 @@ export function PlotBoard({
   const slots = usePlotSlots(reserve);
   const { ref, size } = useElementSize({ w: 0, h: 0 });
   if (slots.length === 0) return null;
-  // A held badge has to be seen, so while any plot carries one every heading row stays and the squares stay level.
+  // A held mark has to be seen, so while any plot carries one every heading row stays and the squares stay level.
   const keepHeadings = slots.some((slot) => slot.plot?.held !== undefined);
   const fitted =
     fitHeight !== undefined && size.w > 0
@@ -251,26 +251,19 @@ const ONE_LINE = {
   whiteSpace: "nowrap",
 } as const;
 
-/** One contributed plot, in the same square as every other, its title carrying the held badge while any contribution to it is held. */
+/** One contributed plot, in the same square as every other, its title carrying the held mark while any contribution to it is held. */
 function Plot({ plot }: { plot: MergedPlot }) {
   return (
     <PlotCell
       heading={
-        // One line whatever the plot's width: a heading that wrapped when a held badge joined it would push the plot down mid-flight. The full title is in the tooltip and the chart's own name.
-        plot.held === undefined ? (
-          <SectionTitle style={ONE_LINE} data-tooltip={plot.title}>
-            {plot.title}
-          </SectionTitle>
-        ) : (
-          <Cluster align="baseline">
-            <SectionTitle style={ONE_LINE} data-tooltip={plot.title}>
-              {plot.title}
-            </SectionTitle>
-            <span style={{ flexShrink: 0 }}>
-              <HeldBadge grade={plot.held} subject={plot.title} size="sm" />
-            </span>
-          </Cluster>
-        )
+        // One line whatever the plot's width, so a held mark arriving never pushes the plot down mid-flight. The full title is in the tooltip and the chart's own name.
+        <SectionTitle style={ONE_LINE} data-tooltip={plot.title}>
+          {plot.held === undefined ? (
+            plot.title
+          ) : (
+            <HeldFigure caption={heldWord(plot.held)}>{plot.title}</HeldFigure>
+          )}
+        </SectionTitle>
       }
     >
       <GraphView

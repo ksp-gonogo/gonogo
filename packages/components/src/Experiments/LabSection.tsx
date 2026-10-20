@@ -6,7 +6,6 @@ import {
   CommandButton,
   type CommandButtonHandle,
   Divider,
-  HeldBadge,
   Inline,
   RowName,
   type Severity,
@@ -59,10 +58,11 @@ export function LabSection({
               <Cluster>
                 <RowName>{lab.partName}</RowName>
                 <Inline>
-                  <Badge tone={operational.severity}>{operational.label}</Badge>
-                  {lab.processingData === true && <Badge>PROCESSING</Badge>}
-                  {labGrade !== undefined && (
-                    <HeldBadge grade={labGrade} subject={lab.partName} />
+                  <Badge held={labGrade} tone={operational.severity}>
+                    {operational.label}
+                  </Badge>
+                  {lab.processingData === true && (
+                    <Badge held={labGrade}>PROCESSING</Badge>
                   )}
                 </Inline>
               </Cluster>

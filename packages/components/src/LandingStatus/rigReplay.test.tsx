@@ -23,6 +23,8 @@ interface Second {
   text: string;
   /** The ids of every plot layer on screen. */
   layers: Set<string>;
+  /** How many plot headings carry the held mark. */
+  heldPlots: number;
 }
 
 /** What the widget reads at each whole second of a recording. */
@@ -59,6 +61,9 @@ async function play(fixture: RigFixture, guarded = false): Promise<Second[]> {
     });
     const read = () => ({
       text: visibleText(container),
+      heldPlots: container.querySelectorAll(
+        "[data-plot-heading] [data-held-mark]",
+      ).length,
       layers: new Set(
         [...container.querySelectorAll("[data-plot-layer]")].map(
           (el) => el.getAttribute("data-plot-layer") ?? "",
@@ -183,7 +188,7 @@ describe("Landing Status over the rig's recorded landings", () => {
       for (const f of crash.slice(firstCrash + 2)) {
         expect(f.layers.has("landing-zone"), `at ${f.second} s`).toBe(true);
         expect(f.layers.has("impact"), `at ${f.second} s`).toBe(true);
-        expect(f.text, `at ${f.second} s`).toContain("HELD");
+        expect(f.heldPlots, `at ${f.second} s`).toBeGreaterThan(0);
       }
     });
 
@@ -237,7 +242,7 @@ describe("Landing Status over the rig's recorded landings", () => {
     it("draws no crash, impact or held scene", () => {
       for (const f of lowPass) {
         expect(f.layers.has("impact"), `at ${f.second} s`).toBe(false);
-        expect(f.text).not.toContain("HELD");
+        expect(f.heldPlots, `at ${f.second} s`).toBe(0);
       }
     });
 
@@ -281,7 +286,7 @@ describe("Landing Status over the rig's recorded landings", () => {
     it("keeps the held touchdown plots and the crash site there too", () => {
       for (const f of leaves.slice(-1)) {
         expect(f.layers.has("impact"), `at ${f.second} s`).toBe(true);
-        expect(f.text).toContain("HELD");
+        expect(f.heldPlots, `at ${f.second} s`).toBeGreaterThan(0);
       }
     });
 

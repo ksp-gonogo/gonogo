@@ -1031,7 +1031,8 @@ export { VesselWidget } from "./Vessel/index.js";
     `import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
-  HeldBadge,
+  HeldFigure,
+  heldWord,
   Panel,
   Section,
   Text,
@@ -1068,23 +1069,19 @@ function VesselWidget() {
     );
   }
 
-  // A number is marked as held by <Unit>. Text has no figure to hang a mark on, so a held name carries the badge that says why it stopped updating.
+  // A number is marked as held by <Unit>. A name is text, so <HeldFigure> hangs the same held mark on it and says why it stopped updating.
   return (
     <Panel
       panelTitle="Vessel"
       sections={
         <Section>
           <Text>
-            {identity.value.name}
-            {identity.state === "held" && (
-              <>
-                {" "}
-                <HeldBadge
-                  grade={identity.grade}
-                  subject="Vessel name"
-                  size="sm"
-                />
-              </>
+            {identity.state === "held" ? (
+              <HeldFigure caption={heldWord(identity.grade)}>
+                {identity.value.name}
+              </HeldFigure>
+            ) : (
+              identity.value.name
             )}
           </Text>
         </Section>

@@ -4,6 +4,7 @@ import {
   Cluster,
   Grid,
   ReadoutCaption,
+  type ReckoningMarking,
   Section,
   Text,
   ToggleButton,
@@ -40,6 +41,8 @@ export interface RotorControlsProps {
   setMotor: (id: string, engaged: boolean) => void;
   setLock: (id: string, locked: boolean) => void;
   reverse: (id: string) => void;
+  /** The held marking of the read behind the toggles' flags and the heading, while it is held. */
+  flagsMarked?: ReckoningMarking | null;
 }
 
 /** The selected rotor's steppers and toggles; each is relative to or inverted from a figure read back, so an unread one disables it. */
@@ -53,6 +56,7 @@ export function RotorControls({
   setMotor,
   setLock,
   reverse,
+  flagsMarked = null,
 }: RotorControlsProps) {
   return (
     <Section gap="related-dense">
@@ -145,6 +149,7 @@ export function RotorControls({
           tone="go"
           disabled={selected.motorEngaged === null}
           disabledReason="The motor state is not reported"
+          marked={flagsMarked}
           onClick={() =>
             selected.motorEngaged !== null &&
             setMotor(selected.partId, !selected.motorEngaged)
@@ -158,6 +163,7 @@ export function RotorControls({
           tone="warn"
           disabled={selected.locked === null}
           disabledReason="The lock state is not reported"
+          marked={flagsMarked}
           onClick={() =>
             selected.locked !== null &&
             setLock(selected.partId, !selected.locked)
@@ -174,6 +180,7 @@ export function RotorControls({
           tone="warn"
           disabled={selected.brakePercentage === null}
           disabledReason="The brake is not reported"
+          marked={flagsMarked}
           onClick={() =>
             selected.brakePercentage !== null &&
             setBrake(selected.partId, selected.brakePercentage > 0 ? 0 : 100)
@@ -186,6 +193,7 @@ export function RotorControls({
           size="sm"
           type="button"
           aria-label={reverseLabel(selected.counterClockwise)}
+          marked={flagsMarked}
           onClick={() => reverse(selected.partId)}
         >
           {directionText(selected.counterClockwise)}
