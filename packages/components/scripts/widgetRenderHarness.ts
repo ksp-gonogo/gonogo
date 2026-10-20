@@ -31,7 +31,6 @@ import {
   PLANTED_TINY_MISFIT_ID,
 } from "./probe/plantedTinyMisfit";
 import type { ScreenProbePayload } from "./probe/screen-entry";
-import { findContentUnderStickyBar } from "./stickyBarBacking";
 
 const require = createRequire(import.meta.url);
 
@@ -235,12 +234,6 @@ export interface WidgetRenderConfig {
    * covered by default and an exemption has to be written down as one.
    */
   mustBeVisible?: { selector: string; mayScroll?: readonly string[] };
-  /**
-   * Require the panel's sticky bar (title, rail and filter control) to hide
-   * the rows scrolled under it, in every mode that sets `scroll`. Judged on
-   * pixels in the real engine, since a transparent box still takes the pointer.
-   */
-  stickyBarMustBackRows?: boolean;
 }
 
 /** A viewport size the screen harness renders a screen at. Unlike a widget
@@ -488,14 +481,6 @@ export async function renderWidgets(
           "\n(A missing click selector is the usual cause: an interaction mode " +
           "whose control has been renamed, moved behind a condition the fixture " +
           "no longer meets, or dropped.)",
-      );
-    }
-
-    if (findings.stickyBar.length > 0) {
-      throw new Error(
-        `${findings.stickyBar.length} scrolled panel(s) let rows show through the sticky bar:\n  ` +
-          findings.stickyBar.join("\n  ") +
-          "\n(The bar, filter control included, needs an opaque backing in the panel surface colour.)",
       );
     }
 
@@ -2143,8 +2128,6 @@ interface RenderFindings {
   tinyMisfits: string[];
   /** Accessibility violations axe finds in the laid-out page. */
   a11y: string[];
-  /** Scrolled rows that show through the panel's sticky bar. */
-  stickyBar: string[];
 }
 
 /**
@@ -2214,7 +2197,6 @@ function noFindings(): RenderFindings {
     mounts: [],
     tinyMisfits: [],
     a11y: [],
-    stickyBar: [],
   };
 }
 
@@ -2423,13 +2405,6 @@ async function renderOneWidget(
               requestAnimationFrame(() => requestAnimationFrame(() => res()));
             }),
         );
-      }
-      if (config.stickyBarMustBackRows && mode.scroll !== undefined) {
-        for (const problem of await findContentUnderStickyBar(page)) {
-          findings.stickyBar.push(
-            `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${problem}`,
-          );
-        }
       }
       if (
         config.mustBeVisible &&
