@@ -324,8 +324,8 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
   const showThrottleColumn = showDial && cols >= 5;
   // Armed with the control surface out of sight (control mode off, or a small tile), the override still says so and can be dropped.
   const fbwOutsideSurface = fbwState !== "off" && !showControlSurface;
-  // Under the stacked readout's own floor the figures take one fixed-width line each.
-  const compactReadout = rows < 5;
+  // Under the stacked readout's own floor the figures take one fixed-width line each. A column too narrow for three across stacks them, and five rows cannot hold that stack under the title.
+  const compactReadout = rows < 5 || (rows < 6 && !readoutAcross);
 
   return (
     <Panel

@@ -147,13 +147,26 @@ describe("Navball dial fit", () => {
   it("stacks all three rather than two-and-one on a column too narrow for three", () => {
     // a narrow column of 78px; the layout must never depend on how many digits the attitude has.
     installSizedObserver(78, 85);
-    renderAt({ w: 4, h: 5 }, emitAttitude);
+    renderAt({ w: 4, h: 6 }, emitAttitude);
     expect(readoutShape()).toBe("stacked");
+  });
+
+  it("draws one line per angle where five rows could not hold the stacked cells", () => {
+    installSizedObserver(78, 85);
+    renderAt({ w: 4, h: 5 }, emitAttitude);
+    expect(document.querySelectorAll("[data-attitude-line]")).toHaveLength(3);
+  });
+
+  it("keeps three across at five rows once the column can hold three", () => {
+    installSizedObserver(300, 85);
+    renderAt({ w: 18, h: 5 }, emitAttitude);
+    expect(document.querySelectorAll("[data-attitude-line]")).toHaveLength(0);
+    expect(readoutShape()).toBe("three-across");
   });
 
   it("brings the readout back to three across when the column grows", () => {
     installSizedObserver(78, 85);
-    renderAt({ w: 4, h: 5 }, emitAttitude);
+    renderAt({ w: 4, h: 6 }, emitAttitude);
     expect(readoutShape()).toBe("stacked");
     reportSize(300, 85);
     expect(readoutShape()).toBe("three-across");

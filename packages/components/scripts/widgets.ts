@@ -167,7 +167,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       // operator cannot select, and the three figures clip there.
       { name: "micro-3x3", w: 3, h: 3, forFixtures: MICRO_FIXTURES },
       { name: "micro-4x4", w: 4, h: 4, forFixtures: MICRO_FIXTURES },
-      // The largest tile that still shows the stacked readout with its title.
+      // The tallest tile that still takes the compact readout.
       { name: "tiny-4x5", w: 4, h: 5 },
       { name: "medium-4x7", w: 4, h: 7 },
       { name: "wide-5x8", w: 5, h: 8 },
