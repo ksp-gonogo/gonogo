@@ -74,7 +74,7 @@ describe("HeaderBadges", () => {
     expect(screen.queryByText("BADGE A")).toBeNull();
   });
 
-  it("reads a held badge through the kit's held word, keeping its verdict in the tooltip", async () => {
+  it("draws a held badge with its own words and the held square, naming the grade in the tooltip", async () => {
     registerContribution({
       id: "stub.held",
       contributes: "app.header-badges",
@@ -89,8 +89,9 @@ describe("HeaderBadges", () => {
     });
     mount();
 
-    const badge = await screen.findByText("HELD");
-    expect(screen.queryByText("BADGE B")).toBeNull();
+    const badge = await screen.findByText("BADGE B");
+    expect(badge.querySelector("[data-held-mark]")).not.toBeNull();
+    expect(screen.queryByText("HELD")).toBeNull();
     expect(badge.closest("[data-tooltip]")).toHaveAttribute(
       "data-tooltip",
       "BADGE B: HELD",
