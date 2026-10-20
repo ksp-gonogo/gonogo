@@ -26,7 +26,7 @@
  * lands. For anything the figures do not cover (a plot, a banner), read the
  * page directly through `mc.screens`.
  */
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import {
   bootMissionControl,
   diffViews,
@@ -35,6 +35,15 @@ import {
 } from "./mission-control";
 
 const DESCENT = "tests/fixtures/wire/landing-sea-descent.jsonl";
+const LINK_LOST = "tests/fixtures/wire/splashed-probe-link-lost.jsonl";
+
+async function textOf(page: Page, i: string): Promise<string> {
+  return await page
+    .locator(`[data-i="${i}"]`)
+    .evaluate((el) =>
+      (el as HTMLElement).innerText.replace(/\s+/g, " ").trim(),
+    );
+}
 
 test.describe("one recorded flight on a main screen and two stations", () => {
   test("every screen shows the same semi-major axis at each step", async ({
@@ -49,6 +58,37 @@ test.describe("one recorded flight on a main screen and two stations", () => {
       await mc.replay.advanceTo(ms);
       await expectScreensAgree(mc, "semi-major-axis");
     }
+
+    await mc.close();
+  });
+
+  test("every screen agrees through a probe losing its link at splashdown", async ({
+    browser,
+  }) => {
+    const mc = await bootMissionControl(browser, {
+      fixture: LINK_LOST,
+      widgets: [
+        { componentId: "comm-signal" },
+        { componentId: "semi-major-axis" },
+      ],
+    });
+
+    const signal: string[] = [];
+    for (const ms of [0, 2_000, 6_000, 10_000, 14_000]) {
+      await mc.replay.advanceTo(ms);
+      await expectScreensAgree(mc, "semi-major-axis");
+      await expectScreensAgree(mc, "comm-signal", { allowEmpty: true });
+      await expect
+        .poll(async () => {
+          const shown = await Promise.all(
+            mc.screens.map(({ page }) => textOf(page, "comm-signal")),
+          );
+          return shown.every((text) => text === shown[0]) ? shown[0] : null;
+        })
+        .not.toBeNull();
+      signal.push(await textOf(mc.main, "comm-signal"));
+    }
+    expect(new Set(signal).size).toBeGreaterThan(1);
 
     await mc.close();
   });

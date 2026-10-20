@@ -124,6 +124,14 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   // (cleared only when the client is rebuilt) so a station reconnecting after a gap
   // still gets the last-known value immediately.
   const cacheRef = useRef(new Map<string, StreamData<unknown>[]>());
+  /*
+   * The newest `subscribed` ack per topic that declared a keyframe interval.
+   * It is sent once, when the host subscribes, so a station that joins later
+   * or reads a topic the host already held never sees it live, and without the
+   * declared interval it would call a quiet topic held after its own learned
+   * cadence while the main screen still reads it as live.
+   */
+  const acksRef = useRef(new Map<string, ServerMessage>());
   // The newest word on what the game is doing. Held apart from the frame cache because it is keyed by no topic, and kept for the same reason: a station arriving mid-load must hold at once, and no later frame is coming to tell it.
   const gameStateRef = useRef<ServerMessage | undefined>(undefined);
 
@@ -145,6 +153,12 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   // changed before it got here.
   useEffect(() => {
     return peerHost.onPeerConnect((peerId) => {
+      for (const ack of acksRef.current.values()) {
+        peerHost.sendToPeer(peerId, {
+          type: "sitrep-frame",
+          message: ack,
+        } satisfies PeerMessage);
+      }
       for (const run of cacheRef.current.values()) {
         const newest = run[run.length - 1];
         if (!newest) continue;
@@ -177,6 +191,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     // A rebuilt client is a new game process, whose frames carry a lower epoch than anything cached from the last: replaying those would make a station's fresh store refuse the new game.
     if (previousClient.current && previousClient.current !== client) {
       cacheRef.current.clear();
+      acksRef.current.clear();
       gameStateRef.current = undefined;
       peerHost.broadcast({ type: "sitrep-reset" } satisfies PeerMessage);
     }
@@ -190,6 +205,13 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
         }
         run.push(message);
         if (run.length > HISTORY_PER_TOPIC) run.shift();
+      }
+      if (
+        message.type === "event" &&
+        message.name === "subscribed" &&
+        typeof message.keyframeIntervalUt === "number"
+      ) {
+        acksRef.current.set(message.topic, message);
       }
       if (isGameState(message)) gameStateRef.current = message;
     });
@@ -208,11 +230,17 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
         SITREP_PEER_SUB_BUDGET.record();
         return client.subscribe(topic, () => {});
       },
-      cachedFrames: (topic) =>
-        (cacheRef.current.get(topic) ?? []).map(
+      cachedFrames: (topic) => {
+        const ack = acksRef.current.get(topic);
+        const frames: ServerMessage[] = [
+          ...(ack ? [ack] : []),
+          ...(cacheRef.current.get(topic) ?? []),
+        ];
+        return frames.map(
           (message) =>
             ({ type: "sitrep-frame", message }) satisfies PeerMessage,
-        ),
+        );
+      },
     });
   }, [client, peerHost]);
 
