@@ -53,7 +53,7 @@ export function worstSeverity(severities: readonly Severity[]): Severity {
  * instant), `held`, `last-before-blackout`, `loading` and `no-game` are `warn`,
  * and `disconnected` and `absent` are `offline`. Useful for colouring a stream
  * status the way the operator reads its severity. Used by
- * {@link StreamStatusBadge} and {@link HeldBadge}.
+ * {@link StreamStatusBadge} and {@link Panel}.
  *
  * @category Panel
  */
