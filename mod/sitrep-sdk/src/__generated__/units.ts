@@ -714,7 +714,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     type: "id",
   },
   "ExperimentActionArgs": {
-    experimentId: "id",
     partId: "id",
   },
   "ExperimentBreakdownEntry": {
@@ -800,18 +799,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     applicantName: "id",
   },
   "InstrumentEntry": {
-    continuous: "flag",
     dataIsCollectable: "flag",
     deployed: "flag",
     experimentId: "id",
     inoperable: "flag",
     partId: "id",
     partName: "text",
-    producing: "flag",
     rerunnable: "flag",
     resettable: "flag",
-    runIssue: "text",
-    running: "flag",
     title: "text",
   },
   "InventoryItem": {
@@ -858,9 +853,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     partId: "id",
     partName: "text",
     processingData: "flag",
-    producing: "flag",
-    runIssue: "text",
-    running: "flag",
     scienceCap: "science",
     scienceRate: "science/day",
     scientistCount: "count",
@@ -1172,10 +1164,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "RotorSetTorqueLimitArgs": {
     partId: "id",
     percent: "%",
-  },
-  "RunStateChange": {
-    changed: "flag",
-    running: "flag",
   },
   "SavedShipEntry": {
     facility: "text",
@@ -2045,18 +2033,14 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     valueModel: "id",
   },
   "science.instruments": {
-    continuous: "flag",
     dataIsCollectable: "flag",
     deployed: "flag",
     experimentId: "id",
     inoperable: "flag",
     partId: "id",
     partName: "text",
-    producing: "flag",
     rerunnable: "flag",
     resettable: "flag",
-    runIssue: "text",
-    running: "flag",
     title: "text",
   },
   "science.lab": {
@@ -2066,9 +2050,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     partId: "id",
     partName: "text",
     processingData: "flag",
-    producing: "flag",
-    runIssue: "text",
-    running: "flag",
     scienceCap: "science",
     scienceRate: "science/day",
     scientistCount: "count",

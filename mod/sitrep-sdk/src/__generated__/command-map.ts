@@ -76,7 +76,6 @@ import type {
   RotorSetBrakeArgs,
   RotorSetRpmLimitArgs,
   RotorSetTorqueLimitArgs,
-  RunStateChange,
   SaveSettingsArgs,
   ScetAlarmArmArgs,
   ScetAlarmDisarmArgs,
@@ -174,16 +173,8 @@ export interface GeneratedCommandArgsMap {
   "robotics.servo.setMotor": ServoSetEnabledArgs;
   /** Deploy a science experiment on a part. */
   "science.experiment.deploy": ExperimentActionArgs;
-  /** Switch a continuous science instrument on. */
-  "science.experiment.start": ExperimentActionArgs;
-  /** Switch a continuous science instrument off. */
-  "science.experiment.stop": ExperimentActionArgs;
   /** Transmit a science experiment's data home. */
   "science.experiment.transmit": ExperimentActionArgs;
-  /** Start a Mobile Processing Lab's research. */
-  "science.lab.start": ExperimentActionArgs;
-  /** Stop a Mobile Processing Lab's research. */
-  "science.lab.stop": ExperimentActionArgs;
   /** Change one of a host mod's own settings through its Uplink, at once. */
   "settings.mod.write": WriteModSettingArgs;
   /** Apply the settings from one Save press together and write the settings file once. */
@@ -315,16 +306,8 @@ export interface GeneratedCommandReplyMap {
   "robotics.servo.setMotor": CommandResult;
   /** Deploy a science experiment on a part. */
   "science.experiment.deploy": CommandResult;
-  /** Switch a continuous science instrument on. */
-  "science.experiment.start": CommandResultOf<RunStateChange>;
-  /** Switch a continuous science instrument off. */
-  "science.experiment.stop": CommandResultOf<RunStateChange>;
   /** Transmit a science experiment's data home. */
   "science.experiment.transmit": CommandResultOf<ScienceTransmission>;
-  /** Start a Mobile Processing Lab's research. */
-  "science.lab.start": CommandResultOf<RunStateChange>;
-  /** Stop a Mobile Processing Lab's research. */
-  "science.lab.stop": CommandResultOf<RunStateChange>;
   /** Change one of a host mod's own settings through its Uplink, at once. */
   "settings.mod.write": CommandResult;
   /** Apply the settings from one Save press together and write the settings file once. */
@@ -432,11 +415,7 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "robotics.servo.setLock": "CommandResult",
   "robotics.servo.setMotor": "CommandResult",
   "science.experiment.deploy": "CommandResult",
-  "science.experiment.start": "CommandResultOf<RunStateChange>",
-  "science.experiment.stop": "CommandResultOf<RunStateChange>",
   "science.experiment.transmit": "CommandResultOf<ScienceTransmission>",
-  "science.lab.start": "CommandResultOf<RunStateChange>",
-  "science.lab.stop": "CommandResultOf<RunStateChange>",
   "settings.mod.write": "CommandResult",
   "settings.save": "CommandResult",
   "system.frame.set": "CommandResult",
@@ -542,11 +521,7 @@ export const GENERATED_COMMAND_RAIL = {
   "robotics.servo.setLock": { replies: true, delayed: true },
   "robotics.servo.setMotor": { replies: true, delayed: true },
   "science.experiment.deploy": { replies: true, delayed: true },
-  "science.experiment.start": { replies: true, delayed: true },
-  "science.experiment.stop": { replies: true, delayed: true },
   "science.experiment.transmit": { replies: true, delayed: true },
-  "science.lab.start": { replies: true, delayed: true },
-  "science.lab.stop": { replies: true, delayed: true },
   "settings.mod.write": { replies: true, delayed: false },
   "settings.save": { replies: true, delayed: false },
   "system.frame.set": { replies: true, delayed: false },
@@ -614,11 +589,7 @@ export const GENERATED_COMMAND_IDS = [
   "robotics.servo.setLock",
   "robotics.servo.setMotor",
   "science.experiment.deploy",
-  "science.experiment.start",
-  "science.experiment.stop",
   "science.experiment.transmit",
-  "science.lab.start",
-  "science.lab.stop",
   "settings.mod.write",
   "settings.save",
   "system.frame.set",

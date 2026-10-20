@@ -146,10 +146,6 @@ function ExperimentsBody({
   const instruments = parseInstruments(instrumentsRaw);
   const deployCmd = useCommand("science.experiment.deploy");
   const transmitCmd = useCommand("science.experiment.transmit");
-  const startCmd = useCommand("science.experiment.start");
-  const stopCmd = useCommand("science.experiment.stop");
-  const startLabCmd = useCommand("science.lab.start");
-  const stopLabCmd = useCommand("science.lab.stop");
   const transmissions = useTransmissions();
   useRailEntry(transmissions);
   // The result has left the craft once its last packet has, and lands one light-time later.
@@ -187,12 +183,7 @@ function ExperimentsBody({
         ),
         showLab && (
           <Section key="lab">
-            <LabSection
-              labs={allLabs}
-              heldGrade={labHeld}
-              startCmd={startLabCmd}
-              stopCmd={stopLabCmd}
-            />
+            <LabSection labs={allLabs} heldGrade={labHeld} />
           </Section>
         ),
       ]}
@@ -236,8 +227,6 @@ function ExperimentsBody({
               instrument={inst}
               underPart
               deployCmd={deployCmd}
-              startCmd={startCmd}
-              stopCmd={stopCmd}
               transmitCmd={transmitCmd}
               onTransmitted={onTransmitted}
               heldGrade={instrumentsHeld}
@@ -281,10 +270,8 @@ function ExperimentsBody({
         showSubtitle && (
           <Section key="totals" full>
             <Text level="muted" size="xs" role="status" aria-live="polite">
-              {totals.hasData}/{totals.total} with data
-              {totals.total > totals.continuous &&
-                ` · ${totals.deployed} deployed`}
-              {totals.continuous > 0 && ` · ${totals.running} running`}
+              {totals.hasData}/{totals.total} with data · {totals.deployed}{" "}
+              deployed
               {totals.inoperable > 0
                 ? ` · ${totals.inoperable} inoperable`
                 : ""}
@@ -314,12 +301,7 @@ function ExperimentsBody({
         ),
         showLab && (
           <Section key="lab" full>
-            <LabSection
-              labs={labs}
-              heldGrade={labHeld}
-              startCmd={startLabCmd}
-              stopCmd={stopLabCmd}
-            />
+            <LabSection labs={labs} heldGrade={labHeld} />
           </Section>
         ),
         sectionNodes.length === 0 && contributedNodes.length === 0 ? (

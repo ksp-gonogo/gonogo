@@ -5798,8 +5798,6 @@ namespace Gonogo.KSP
                         ["rerunnable"] = exp.rerunnable,
                         ["resettable"] = exp.resettable,
                         ["dataIsCollectable"] = exp.dataIsCollectable,
-                        // Every stock experiment is deployed once; none runs over time.
-                        ["continuous"] = false,
                     });
                 }
             }
@@ -5946,30 +5944,6 @@ namespace Gonogo.KSP
                     bool? isOperational = null;
                     try { isOperational = lab.IsOperational(); } catch { isOperational = null; }
 
-                    bool? running = null;
-                    bool? producing = null;
-                    string? runIssue = null;
-                    try
-                    {
-                        var converter = lab.Converter;
-                        if (converter != null)
-                        {
-                            running = converter.IsActivated;
-                            producing = LabRunRule.Producing(
-                                converter.IsActivated,
-                                isOperational,
-                                lab.dataStored,
-                                lab.storedScience,
-                                converter.scienceCap);
-                            runIssue = LabRunRule.IssueFor(
-                                converter.IsActivated, producing, converter.status);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        GonogoLog.WarnLimited("science.lab run state read failed on \"" + partName + "\", omitting", ex);
-                    }
-
                     list ??= new List<object?>();
                     list.Add(new Dictionary<string, object?>
                     {
@@ -5984,9 +5958,6 @@ namespace Gonogo.KSP
                         ["scienceRate"] = rate,
                         ["scienceCap"] = scienceCap,
                         ["isOperational"] = isOperational,
-                        ["running"] = running,
-                        ["producing"] = producing,
-                        ["runIssue"] = runIssue,
                     });
                 }
             }

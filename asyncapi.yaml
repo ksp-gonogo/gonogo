@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 45.1.0
+  version: 45.0.0
   description: |-
     The WebSocket API of the Gonogo mod: 87 telemetry channels a client
-    subscribes to and 69 commands it sends, each with its payload and what it
+    subscribes to and 65 commands it sends, each with its payload and what it
     means, all over one socket.
 
     ## Frames the mod sends
@@ -2019,32 +2019,6 @@ channels:
         $ref: "#/components/messages/commandResponse.science.experiment.deploy"
       commandAccepted:
         $ref: "#/components/messages/commandAccepted"
-  science.experiment.start:
-    address: science.experiment.start
-    description: Switch a continuous science instrument on.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: true
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.science.experiment.start"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.science.experiment.start"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
-  science.experiment.stop:
-    address: science.experiment.stop
-    description: Switch a continuous science instrument off.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: true
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.science.experiment.stop"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.science.experiment.stop"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   science.experiment.transmit:
     address: science.experiment.transmit
     description: Transmit a science experiment's data home.
@@ -2161,32 +2135,6 @@ channels:
         $ref: "#/components/messages/streamData.science.lab"
       event:
         $ref: "#/components/messages/event"
-  science.lab.start:
-    address: science.lab.start
-    description: Start a Mobile Processing Lab's research.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: true
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.science.lab.start"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.science.lab.start"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
-  science.lab.stop:
-    address: science.lab.stop
-    description: Stop a Mobile Processing Lab's research.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: true
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.science.lab.stop"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.science.lab.stop"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   science.sensors:
     address: science.sensors
     description: |-
@@ -4196,36 +4144,6 @@ operations:
       messages:
         - $ref: "#/channels/science.experiment.deploy/messages/commandResponse"
         - $ref: "#/channels/science.experiment.deploy/messages/commandAccepted"
-  dispatch:science.experiment.start:
-    action: send
-    channel:
-      $ref: "#/channels/science.experiment.start"
-    title: Dispatch science.experiment.start
-    tags:
-      - name: science
-    messages:
-      - $ref: "#/channels/science.experiment.start/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/science.experiment.start"
-      messages:
-        - $ref: "#/channels/science.experiment.start/messages/commandResponse"
-        - $ref: "#/channels/science.experiment.start/messages/commandAccepted"
-  dispatch:science.experiment.stop:
-    action: send
-    channel:
-      $ref: "#/channels/science.experiment.stop"
-    title: Dispatch science.experiment.stop
-    tags:
-      - name: science
-    messages:
-      - $ref: "#/channels/science.experiment.stop/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/science.experiment.stop"
-      messages:
-        - $ref: "#/channels/science.experiment.stop/messages/commandResponse"
-        - $ref: "#/channels/science.experiment.stop/messages/commandAccepted"
   dispatch:science.experiment.transmit:
     action: send
     channel:
@@ -4241,36 +4159,6 @@ operations:
       messages:
         - $ref: "#/channels/science.experiment.transmit/messages/commandResponse"
         - $ref: "#/channels/science.experiment.transmit/messages/commandAccepted"
-  dispatch:science.lab.start:
-    action: send
-    channel:
-      $ref: "#/channels/science.lab.start"
-    title: Dispatch science.lab.start
-    tags:
-      - name: science
-    messages:
-      - $ref: "#/channels/science.lab.start/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/science.lab.start"
-      messages:
-        - $ref: "#/channels/science.lab.start/messages/commandResponse"
-        - $ref: "#/channels/science.lab.start/messages/commandAccepted"
-  dispatch:science.lab.stop:
-    action: send
-    channel:
-      $ref: "#/channels/science.lab.stop"
-    title: Dispatch science.lab.stop
-    tags:
-      - name: science
-    messages:
-      - $ref: "#/channels/science.lab.stop/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/science.lab.stop"
-      messages:
-        - $ref: "#/channels/science.lab.stop/messages/commandResponse"
-        - $ref: "#/channels/science.lab.stop/messages/commandAccepted"
   dispatch:settings.mod.write:
     action: send
     channel:
@@ -6227,36 +6115,6 @@ components:
                 const: science.experiment.deploy
               args:
                 $ref: "#/components/schemas/ExperimentActionArgs"
-    commandRequest.science.experiment.start:
-      name: command-request
-      title: Dispatch science.experiment.start
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `science.experiment.start`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: science.experiment.start
-              args:
-                $ref: "#/components/schemas/ExperimentActionArgs"
-    commandRequest.science.experiment.stop:
-      name: command-request
-      title: Dispatch science.experiment.stop
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `science.experiment.stop`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: science.experiment.stop
-              args:
-                $ref: "#/components/schemas/ExperimentActionArgs"
     commandRequest.science.experiment.transmit:
       name: command-request
       title: Dispatch science.experiment.transmit
@@ -6270,36 +6128,6 @@ components:
           - properties:
               command:
                 const: science.experiment.transmit
-              args:
-                $ref: "#/components/schemas/ExperimentActionArgs"
-    commandRequest.science.lab.start:
-      name: command-request
-      title: Dispatch science.lab.start
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `science.lab.start`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: science.lab.start
-              args:
-                $ref: "#/components/schemas/ExperimentActionArgs"
-    commandRequest.science.lab.stop:
-      name: command-request
-      title: Dispatch science.lab.stop
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `science.lab.stop`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: science.lab.stop
               args:
                 $ref: "#/components/schemas/ExperimentActionArgs"
     commandRequest.settings.mod.write:
@@ -7194,58 +7022,6 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/CommandResult"
-    commandResponse.science.experiment.start:
-      name: command-response
-      title: Reply to science.experiment.start
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `science.experiment.start`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                description: |-
-                  A `CommandResult` that also returns a value in `payload`:
-                  `vessel.control.stage` returns the new current stage index, and
-                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
-                  when `CommandResult.success` is false.
-                allOf:
-                  - $ref: "#/components/schemas/CommandResult"
-                  - type: object
-                    properties:
-                      payload:
-                        description: The value the command returns; absent on a refusal.
-                        anyOf:
-                          - $ref: "#/components/schemas/RunStateChange"
-                          - type: "null"
-    commandResponse.science.experiment.stop:
-      name: command-response
-      title: Reply to science.experiment.stop
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `science.experiment.stop`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                description: |-
-                  A `CommandResult` that also returns a value in `payload`:
-                  `vessel.control.stage` returns the new current stage index, and
-                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
-                  when `CommandResult.success` is false.
-                allOf:
-                  - $ref: "#/components/schemas/CommandResult"
-                  - type: object
-                    properties:
-                      payload:
-                        description: The value the command returns; absent on a refusal.
-                        anyOf:
-                          - $ref: "#/components/schemas/RunStateChange"
-                          - type: "null"
     commandResponse.science.experiment.transmit:
       name: command-response
       title: Reply to science.experiment.transmit
@@ -7271,58 +7047,6 @@ components:
                         description: The value the command returns; absent on a refusal.
                         anyOf:
                           - $ref: "#/components/schemas/ScienceTransmission"
-                          - type: "null"
-    commandResponse.science.lab.start:
-      name: command-response
-      title: Reply to science.lab.start
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `science.lab.start`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                description: |-
-                  A `CommandResult` that also returns a value in `payload`:
-                  `vessel.control.stage` returns the new current stage index, and
-                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
-                  when `CommandResult.success` is false.
-                allOf:
-                  - $ref: "#/components/schemas/CommandResult"
-                  - type: object
-                    properties:
-                      payload:
-                        description: The value the command returns; absent on a refusal.
-                        anyOf:
-                          - $ref: "#/components/schemas/RunStateChange"
-                          - type: "null"
-    commandResponse.science.lab.stop:
-      name: command-response
-      title: Reply to science.lab.stop
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `science.lab.stop`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                description: |-
-                  A `CommandResult` that also returns a value in `payload`:
-                  `vessel.control.stage` returns the new current stage index, and
-                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
-                  when `CommandResult.success` is false.
-                allOf:
-                  - $ref: "#/components/schemas/CommandResult"
-                  - type: object
-                    properties:
-                      payload:
-                        description: The value the command returns; absent on a refusal.
-                        anyOf:
-                          - $ref: "#/components/schemas/RunStateChange"
                           - type: "null"
     commandResponse.settings.mod.write:
       name: command-response
@@ -14733,16 +14457,13 @@ components:
     ExperimentActionArgs:
       type: object
       description: |-
-        Act on a science experiment or lab on a part. Args shared by every science
-        actuation command (`science.experiment.deploy`,
-        `science.experiment.transmit`, `science.experiment.start`,
-        `science.experiment.stop`, `science.lab.start` and `science.lab.stop`): the
-        part is named by `ExperimentActionArgs.partId`, the part's flight id as a
-        string, the same id `science.instruments` carries on each experiment entry.
-        It is looked up among the active vessel's parts, never by array index. An
-        empty or unknown `ExperimentActionArgs.partId` fails with
-        `CommandErrorCode.NotFound`. The lab commands act on the lab on the part and
-        ignore `ExperimentActionArgs.experimentId`.
+        Deploy or transmit a science experiment on a part. Args shared by every
+        science-experiment actuation command (`science.experiment.deploy` and
+        `science.experiment.transmit`): the experiment is named by
+        `ExperimentActionArgs.partId`, the part's flight id as a string, the same id
+        `science.instruments` carries on each experiment entry. It is looked up
+        among the active vessel's parts, never by array index. An empty or unknown
+        `ExperimentActionArgs.partId` fails with `CommandErrorCode.NotFound`.
       required:
         - partId
       properties:
@@ -14753,20 +14474,6 @@ components:
             The experiment's part, as its flight id in a string: the same id
             `science.instruments` keys its entries by. Resolved against the active
             vessel's parts; empty or unknown yields `CommandErrorCode.NotFound`.
-        experimentId:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            Which experiment on the part is meant, as the `experimentId` of its
-            `science.instruments` entry. Optional: an empty value means the part's only
-            candidate. A part can carry several experiments, so
-            `science.experiment.start` and `science.experiment.stop` are refused with
-            `CommandErrorCode.NotFound` when this is empty and the part holds more than
-            one continuous experiment. Deploy and transmit take the first eligible
-            experiment when it is empty. An id the part does not carry fails with
-            `CommandErrorCode.NotFound`.
     ExperimentBreakdownEntry:
       type: object
       description: |-
@@ -15822,49 +15529,6 @@ components:
           description: |-
             Whether a kerbal on EVA can collect the experiment's data (KSP's
             `ModuleScienceExperiment.dataIsCollectable`).
-        continuous:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            Whether the instrument runs over time once switched on, rather than being
-            deployed once. A continuous instrument has no deploy or transmit: it is
-            started and stopped with `science.experiment.start` and
-            `science.experiment.stop`, and its `InstrumentEntry.deployed` is `null`.
-            Stock writes `false` for every experiment. `null` is the one-shot model, so
-            a provider that never sets it changes nothing.
-        running:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            Whether a continuous instrument is switched on, whether or not it is
-            producing right now. `null` on an instrument that is not continuous or whose
-            state is unknown, which is neither answer: a client then offers neither
-            Start nor Stop.
-        producing:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            Whether a continuous instrument is generating science right now. An
-            instrument can be `InstrumentEntry.running` and not producing, for example
-            with no electric charge or with its subject exhausted, so this is the field
-            a client branches on to tell a working instrument from an idle one. `null`
-            where the provider cannot say.
-        runIssue:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            Why a switched-on instrument is not producing, in the provider's own words,
-            for display. `null` when nothing is in the way. Prose in the game's
-            language, so never branch on it, and never a signal or return fact: it
-            answers why nothing is being generated, not why nothing is arriving home.
         extensions:
           type:
             - object
@@ -16495,34 +16159,6 @@ components:
           description: |-
             Whether the lab can operate right now (KSP's
             `ModuleScienceLab.IsOperational()`).
-        running:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            Whether the lab's research is switched on (KSP's `BaseConverter.IsActivated`
-            on the lab's converter), whether or not it is producing.
-            `LabEntry.processingData` is not this: it means a data transfer into the lab
-            is in progress. `null` when the lab has no converter or it could not be
-            read. Switched with `science.lab.start` and `science.lab.stop`.
-        producing:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            Whether the lab is turning stored data into science right now: switched on,
-            operational, holding data and below its science cap. `null` where it could
-            not be read.
-        runIssue:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            Why a switched-on lab is not producing, in the game's own words, for
-            display. `null` when nothing is in the way. Never branch on it.
         valueModel:
           type:
             - string
@@ -18582,30 +18218,6 @@ components:
           type: number
           x-sitrep-unit: "%"
           description: The torque limit as a percentage of the rotor's maximum torque, 0 to 100.
-    RunStateChange:
-      type: object
-      description: |-
-        What `science.experiment.start`, `science.experiment.stop`,
-        `science.lab.start` and `science.lab.stop` answer with: whether the press
-        changed anything. Start and stop are idempotent, so a press on something
-        already in the requested state succeeds with `RunStateChange.changed` false
-        rather than refusing, and a command that reaches the craft after the state
-        changed on its own tells the operator so instead of reporting a start that
-        did nothing.
-      required:
-        - changed
-        - running
-      properties:
-        changed:
-          type: boolean
-          x-sitrep-unit: flag
-          description: |-
-            Whether the command switched the instrument or lab. False when it was
-            already in the requested state ("already running", "already stopped").
-        running:
-          type: boolean
-          x-sitrep-unit: flag
-          description: Whether the instrument or lab is switched on after the command.
     SasMode:
       type: integer
       description: |-

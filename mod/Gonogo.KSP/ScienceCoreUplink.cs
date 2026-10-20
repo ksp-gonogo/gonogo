@@ -12,8 +12,8 @@ namespace Gonogo.KSP
     /// <see cref="CommsCoreUplink"/>. It
     /// owns the exclusive <c>"science"</c> capability (registering
     /// <see cref="StockScienceBackend"/> as the always-present Vanilla factory),
-    /// declares the five <c>science.*</c> channels and the
-    /// <c>science.experiment.*</c> and <c>science.lab.*</c> commands once, and sources them from whichever
+    /// declares the five <c>science.*</c> channels and the two
+    /// <c>science.experiment.*</c> commands once, and sources them from whichever
     /// backend the election picked, resolved at map/dispatch time via
     /// <c>host.Kernel.Query&lt;IScienceBackend&gt;("science")</c>. A
     /// science-modelling mod registers a provider from its own
@@ -168,10 +168,6 @@ namespace Gonogo.KSP
             {
                 Command(ScienceCommandProvider.DeployCommand, ScienceViewProvider.InstrumentsTopic),
                 Command(ScienceCommandProvider.TransmitCommand, ScienceViewProvider.InstrumentsTopic),
-                Command(ScienceCommandProvider.StartExperimentCommand, ScienceViewProvider.InstrumentsTopic),
-                Command(ScienceCommandProvider.StopExperimentCommand, ScienceViewProvider.InstrumentsTopic),
-                Command(ScienceCommandProvider.StartLabCommand, ScienceViewProvider.LabTopic),
-                Command(ScienceCommandProvider.StopLabCommand, ScienceViewProvider.LabTopic),
             },
         };
 
@@ -210,12 +206,6 @@ namespace Gonogo.KSP
 
             host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.DeployCommand, args => Backend().DeployExperiment(args));
             host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.TransmitCommand, args => Backend().TransmitExperiment(args));
-
-            // Start and stop go to the elected backend only when it implements the optional run interface; one that does not has no continuous instrument or lab to switch.
-            host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.StartExperimentCommand, args => RunBackend()?.StartExperiment(args) ?? NotSwitchable());
-            host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.StopExperimentCommand, args => RunBackend()?.StopExperiment(args) ?? NotSwitchable());
-            host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.StartLabCommand, args => RunBackend()?.StartLab(args) ?? NotSwitchable());
-            host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.StopLabCommand, args => RunBackend()?.StopLab(args) ?? NotSwitchable());
         }
 
         /// <summary>
@@ -226,11 +216,6 @@ namespace Gonogo.KSP
         /// </summary>
         private IScienceBackend Backend() =>
             (_kernel != null ? ScienceElection.Elected(_kernel) : null) ?? _vanilla;
-
-        private IScienceRunBackend? RunBackend() => Backend() as IScienceRunBackend;
-
-        private static CommandResult NotSwitchable() =>
-            CommandResult.Fail(CommandErrorCode.CapabilityMismatch, "this science provider has nothing that switches on and off");
 
         private static CommandDeclaration Command(string command, string subject) => new CommandDeclaration
         {

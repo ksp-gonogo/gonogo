@@ -14,41 +14,21 @@ namespace Sitrep.Host.Tests
     internal sealed class FakeScienceActuator : IScienceActuator
     {
         public string? LastDeployPartId;
-        public string? LastDeployExperimentId;
         public string? LastTransmitPartId;
-        public string? LastTransmitExperimentId;
-        public string? LastStartLabPartId;
-        public string? LastStopLabPartId;
 
         public CommandResult DeployResult = CommandResult.Ok();
         public CommandResult TransmitResult = CommandResult.Ok();
-        public CommandResult StartLabResult = CommandResult<RunStateChange>.Ok(new RunStateChange { Changed = true, Running = true });
-        public CommandResult StopLabResult = CommandResult<RunStateChange>.Ok(new RunStateChange { Changed = true, Running = false });
 
-        public CommandResult DeployExperiment(string partId, string? experimentId)
+        public CommandResult DeployExperiment(string partId)
         {
             LastDeployPartId = partId;
-            LastDeployExperimentId = experimentId;
             return DeployResult;
         }
 
-        public CommandResult TransmitExperiment(string partId, string? experimentId)
+        public CommandResult TransmitExperiment(string partId)
         {
             LastTransmitPartId = partId;
-            LastTransmitExperimentId = experimentId;
             return TransmitResult;
-        }
-
-        public CommandResult StartLab(string partId)
-        {
-            LastStartLabPartId = partId;
-            return StartLabResult;
-        }
-
-        public CommandResult StopLab(string partId)
-        {
-            LastStopLabPartId = partId;
-            return StopLabResult;
         }
     }
 }

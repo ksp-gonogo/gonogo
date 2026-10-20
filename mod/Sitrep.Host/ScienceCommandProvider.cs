@@ -27,10 +27,6 @@ namespace Sitrep.Host
     {
         public const string DeployCommand = "science.experiment.deploy";
         public const string TransmitCommand = "science.experiment.transmit";
-        public const string StartExperimentCommand = "science.experiment.start";
-        public const string StopExperimentCommand = "science.experiment.stop";
-        public const string StartLabCommand = "science.lab.start";
-        public const string StopLabCommand = "science.lab.stop";
 
         /// <summary>
         /// An empty <c>partId</c> can never resolve to a live part, so it
@@ -47,7 +43,7 @@ namespace Sitrep.Host
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound);
             }
-            return actuator.DeployExperiment(args.PartId, NullIfEmpty(args.ExperimentId));
+            return actuator.DeployExperiment(args.PartId);
         }
 
         /// <summary>Mirrors <see cref="HandleDeploy"/>'s empty-<c>partId</c> fail-fast before the actuator is ever called.</summary>
@@ -57,45 +53,7 @@ namespace Sitrep.Host
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound);
             }
-            return actuator.TransmitExperiment(args.PartId, NullIfEmpty(args.ExperimentId));
+            return actuator.TransmitExperiment(args.PartId);
         }
-
-        /// <summary>
-        /// Stock has no continuous experiment, so every start or stop is refused
-        /// as <see cref="CommandErrorCode.CapabilityMismatch"/> once the part is
-        /// at least named. A backend that has continuous instruments answers
-        /// these itself.
-        /// </summary>
-        public static CommandResult HandleExperimentRunNotContinuous(ExperimentActionArgs args)
-        {
-            if (string.IsNullOrEmpty(args.PartId))
-            {
-                return CommandResult.Fail(CommandErrorCode.NotFound);
-            }
-            return CommandResult.Fail(
-                CommandErrorCode.CapabilityMismatch, "this instrument does not run continuously");
-        }
-
-        /// <summary>Mirrors <see cref="HandleDeploy"/>'s empty-<c>partId</c> fail-fast before the actuator is ever called.</summary>
-        public static CommandResult HandleStartLab(IScienceActuator actuator, ExperimentActionArgs args)
-        {
-            if (string.IsNullOrEmpty(args.PartId))
-            {
-                return CommandResult.Fail(CommandErrorCode.NotFound);
-            }
-            return actuator.StartLab(args.PartId);
-        }
-
-        /// <summary>Mirrors <see cref="HandleStartLab"/>.</summary>
-        public static CommandResult HandleStopLab(IScienceActuator actuator, ExperimentActionArgs args)
-        {
-            if (string.IsNullOrEmpty(args.PartId))
-            {
-                return CommandResult.Fail(CommandErrorCode.NotFound);
-            }
-            return actuator.StopLab(args.PartId);
-        }
-
-        private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;
     }
 }

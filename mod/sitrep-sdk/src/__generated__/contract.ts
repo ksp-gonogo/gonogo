@@ -6493,16 +6493,13 @@ export interface ScetAddressableTopic
 	topic: string;
 }
 /**
-* Act on a science experiment or lab on a part. Args shared by every science
-* actuation command (`science.experiment.deploy`,
-* `science.experiment.transmit`, `science.experiment.start`,
-* `science.experiment.stop`, `science.lab.start` and `science.lab.stop`): the
-* part is named by `ExperimentActionArgs.partId`, the part's flight id as a
-* string, the same id `science.instruments` carries on each experiment entry.
-* It is looked up among the active vessel's parts, never by array index. An
-* empty or unknown `ExperimentActionArgs.partId` fails with
-* `CommandErrorCode.NotFound`. The lab commands act on the lab on the part and
-* ignore `ExperimentActionArgs.experimentId`.
+* Deploy or transmit a science experiment on a part. Args shared by every
+* science-experiment actuation command (`science.experiment.deploy` and
+* `science.experiment.transmit`): the experiment is named by
+* `ExperimentActionArgs.partId`, the part's flight id as a string, the same id
+* `science.instruments` carries on each experiment entry. It is looked up
+* among the active vessel's parts, never by array index. An empty or unknown
+* `ExperimentActionArgs.partId` fails with `CommandErrorCode.NotFound`.
 *
 * @category Command arguments
 */
@@ -6514,38 +6511,6 @@ export interface ExperimentActionArgs
 	* vessel's parts; empty or unknown yields `CommandErrorCode.NotFound`.
 	*/
 	partId: string;
-	/**
-	* Which experiment on the part is meant, as the `experimentId` of its
-	* `science.instruments` entry. Optional: an empty value means the part's only
-	* candidate. A part can carry several experiments, so
-	* `science.experiment.start` and `science.experiment.stop` are refused with
-	* `CommandErrorCode.NotFound` when this is empty and the part holds more than
-	* one continuous experiment. Deploy and transmit take the first eligible
-	* experiment when it is empty. An id the part does not carry fails with
-	* `CommandErrorCode.NotFound`.
-	*/
-	experimentId?: string;
-}
-/**
-* What `science.experiment.start`, `science.experiment.stop`,
-* `science.lab.start` and `science.lab.stop` answer with: whether the press
-* changed anything. Start and stop are idempotent, so a press on something
-* already in the requested state succeeds with `RunStateChange.changed` false
-* rather than refusing, and a command that reaches the craft after the state
-* changed on its own tells the operator so instead of reporting a start that
-* did nothing.
-*
-* @category Science
-*/
-export interface RunStateChange
-{
-	/**
-	* Whether the command switched the instrument or lab. False when it was
-	* already in the requested state ("already running", "already stopped").
-	*/
-	changed: boolean;
-	/** Whether the instrument or lab is switched on after the command. */
-	running: boolean;
 }
 /**
 * A science result the craft has started sending home, as
@@ -6768,37 +6733,6 @@ export interface InstrumentEntry
 	*/
 	dataIsCollectable?: boolean | null;
 	/**
-	* Whether the instrument runs over time once switched on, rather than being
-	* deployed once. A continuous instrument has no deploy or transmit: it is
-	* started and stopped with `science.experiment.start` and
-	* `science.experiment.stop`, and its `InstrumentEntry.deployed` is `null`.
-	* Stock writes `false` for every experiment. `null` is the one-shot model, so
-	* a provider that never sets it changes nothing.
-	*/
-	continuous?: boolean | null;
-	/**
-	* Whether a continuous instrument is switched on, whether or not it is
-	* producing right now. `null` on an instrument that is not continuous or whose
-	* state is unknown, which is neither answer: a client then offers neither
-	* Start nor Stop.
-	*/
-	running?: boolean | null;
-	/**
-	* Whether a continuous instrument is generating science right now. An
-	* instrument can be `InstrumentEntry.running` and not producing, for example
-	* with no electric charge or with its subject exhausted, so this is the field
-	* a client branches on to tell a working instrument from an idle one. `null`
-	* where the provider cannot say.
-	*/
-	producing?: boolean | null;
-	/**
-	* Why a switched-on instrument is not producing, in the provider's own words,
-	* for display. `null` when nothing is in the way. Prose in the game's
-	* language, so never branch on it, and never a signal or return fact: it
-	* answers why nothing is being generated, not why nothing is arriving home.
-	*/
-	runIssue?: string | null;
-	/**
 	* The provider-namespaced extension bag, instrument half. Same mechanism and
 	* same rule as `ExperimentEntry.extensions`. This payload carries no number
 	* whose meaning depends on the value model (it is pure operability), so it has
@@ -6883,25 +6817,6 @@ export interface LabEntry
 	* `ModuleScienceLab.IsOperational()`).
 	*/
 	isOperational?: boolean | null;
-	/**
-	* Whether the lab's research is switched on (KSP's `BaseConverter.IsActivated`
-	* on the lab's converter), whether or not it is producing.
-	* `LabEntry.processingData` is not this: it means a data transfer into the lab
-	* is in progress. `null` when the lab has no converter or it could not be
-	* read. Switched with `science.lab.start` and `science.lab.stop`.
-	*/
-	running?: boolean | null;
-	/**
-	* Whether the lab is turning stored data into science right now: switched on,
-	* operational, holding data and below its science cap. `null` where it could
-	* not be read.
-	*/
-	producing?: boolean | null;
-	/**
-	* Why a switched-on lab is not producing, in the game's own words, for
-	* display. `null` when nothing is in the way. Never branch on it.
-	*/
-	runIssue?: string | null;
 	/**
 	* Which value model produced `LabEntry.scienceRate` and
 	* `LabEntry.storedScience`, and which unit `LabEntry.dataStored` and

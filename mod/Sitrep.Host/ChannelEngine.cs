@@ -3368,7 +3368,7 @@ namespace Sitrep.Host
          * SetUnroutable. Courier-thread-only, like every ledger write, and read
          * by ProcessDispatchCommand on the same thread.
          */
-        private readonly Comms.ReachLedger _reach = new Comms.ReachLedger();
+        private Dictionary<string, HashSet<string>> _unroutable = new Dictionary<string, HashSet<string>>();
 
         public void SetUnroutable(IReadOnlyDictionary<string, IReadOnlyCollection<string>> nodesByCentre)
         {
@@ -3390,8 +3390,7 @@ namespace Sitrep.Host
              * measures it, in this same handle; the row is cleared here only if
              * nothing has replaced it.
              */
-            var previous = _reach.ReplaceUnroutable(next);
-            foreach (var row in previous)
+            foreach (var row in _unroutable)
             {
                 next.TryGetValue(row.Key, out var still);
                 foreach (var node in row.Value)
@@ -3409,6 +3408,7 @@ namespace Sitrep.Host
                     _network.SetDelay(row.Key, node, double.PositiveInfinity);
                 }
             }
+            _unroutable = next;
         }
 
         /*
@@ -8083,8 +8083,9 @@ namespace Sitrep.Host
         /// ledger is never out of contact with itself, so for it only the second
         /// half can be down. Courier-thread-only.
         /// </summary>
-        internal bool CanSend(string vantage, string node) =>
-            _reach.Reaches(vantage, node, FleetNodePrefix, _deliveryInputs.NetworkModelled, SubjectConnected(node), HomeCentre());
+        private bool CanSend(string vantage, string node) =>
+            SubjectConnected(node)
+            && !(_unroutable.TryGetValue(vantage, out var unroutable) && unroutable.Contains(node));
 
         /// <summary>
         /// Rewrite the delay ledger for this tick, after

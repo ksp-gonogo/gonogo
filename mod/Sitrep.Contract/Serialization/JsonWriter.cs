@@ -400,10 +400,6 @@ namespace Sitrep.Contract.Serialization
                     // science.experiment.transmit's reply payload, inside CommandResult<ScienceTransmission>.Payload.
                     AppendScienceTransmission(sb, scienceTransmission);
                     break;
-                case Sitrep.Contract.RunStateChange runStateChange:
-                    // science.experiment.start/stop and science.lab.start/stop's reply payload, inside CommandResult<RunStateChange>.Payload.
-                    AppendRunStateChange(sb, runStateChange);
-                    break;
                 case Sitrep.Contract.RecentLog recentLog:
                     // system.log.recent's reply payload, inside CommandResult<RecentLog>.Payload.
                     AppendRecentLog(sb, recentLog);
@@ -838,22 +834,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "dataIsCollectable");
             sb.Append(':');
             AppendNullableBool(sb, e.DataIsCollectable);
-            sb.Append(',');
-            AppendString(sb, "continuous");
-            sb.Append(':');
-            AppendNullableBool(sb, e.Continuous);
-            sb.Append(',');
-            AppendString(sb, "running");
-            sb.Append(':');
-            AppendNullableBool(sb, e.Running);
-            sb.Append(',');
-            AppendString(sb, "producing");
-            sb.Append(':');
-            AppendNullableBool(sb, e.Producing);
-            sb.Append(',');
-            AppendString(sb, "runIssue");
-            sb.Append(':');
-            AppendNullableString(sb, e.RunIssue);
             AppendProviderExtensions(sb, e.Extensions);
             sb.Append('}');
         }
@@ -907,18 +887,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "isOperational");
             sb.Append(':');
             AppendNullableBool(sb, e.IsOperational);
-            sb.Append(',');
-            AppendString(sb, "running");
-            sb.Append(':');
-            AppendNullableBool(sb, e.Running);
-            sb.Append(',');
-            AppendString(sb, "producing");
-            sb.Append(':');
-            AppendNullableBool(sb, e.Producing);
-            sb.Append(',');
-            AppendString(sb, "runIssue");
-            sb.Append(':');
-            AppendNullableString(sb, e.RunIssue);
             sb.Append(',');
             AppendString(sb, "valueModel");
             sb.Append(':');
@@ -2561,20 +2529,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "dataAmount");
             sb.Append(':');
             AppendNumber(sb, t.DataAmount);
-            sb.Append('}');
-        }
-
-        /// <summary>A start or stop's <c>{ changed, running }</c>, the payload half of the science run commands' reply.</summary>
-        private static void AppendRunStateChange(StringBuilder sb, Sitrep.Contract.RunStateChange r)
-        {
-            sb.Append('{');
-            AppendString(sb, "changed");
-            sb.Append(':');
-            AppendBool(sb, r.Changed);
-            sb.Append(',');
-            AppendString(sb, "running");
-            sb.Append(':');
-            AppendBool(sb, r.Running);
             sb.Append('}');
         }
 

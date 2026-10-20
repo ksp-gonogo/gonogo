@@ -288,10 +288,8 @@ namespace Sitrep.Host.IntegrationTests
         // only" rationale.
         private sealed class NoopScienceActuator : IScienceActuator
         {
-            public CommandResult DeployExperiment(string partId, string? experimentId) => CommandResult.Ok();
-            public CommandResult TransmitExperiment(string partId, string? experimentId) => CommandResult.Ok();
-            public CommandResult StartLab(string partId) => CommandResult.Ok();
-            public CommandResult StopLab(string partId) => CommandResult.Ok();
+            public CommandResult DeployExperiment(string partId) => CommandResult.Ok();
+            public CommandResult TransmitExperiment(string partId) => CommandResult.Ok();
         }
 
         private readonly IScienceActuator _actuator = new NoopScienceActuator();

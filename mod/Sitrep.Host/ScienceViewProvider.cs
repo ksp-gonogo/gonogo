@@ -195,10 +195,6 @@ namespace Sitrep.Host
             Rerunnable = SnapshotDict.GetBool(raw, "rerunnable"),
             Resettable = SnapshotDict.GetBool(raw, "resettable"),
             DataIsCollectable = SnapshotDict.GetBool(raw, "dataIsCollectable"),
-            Continuous = SnapshotDict.GetBool(raw, "continuous"),
-            Running = SnapshotDict.GetBool(raw, "running"),
-            Producing = SnapshotDict.GetBool(raw, "producing"),
-            RunIssue = SnapshotDict.GetString(raw, "runIssue"),
         };
 
         private static LabEntry BuildLabEntry(IDictionary<string, object?> raw) => new LabEntry
@@ -214,9 +210,6 @@ namespace Sitrep.Host
             ScienceRate = SnapshotDict.GetDouble(raw, "scienceRate"),
             ScienceCap = SnapshotDict.GetDouble(raw, "scienceCap"),
             IsOperational = SnapshotDict.GetBool(raw, "isOperational"),
-            Running = SnapshotDict.GetBool(raw, "running"),
-            Producing = SnapshotDict.GetBool(raw, "producing"),
-            RunIssue = SnapshotDict.GetString(raw, "runIssue"),
             // Stock's lab is terminal: it produces science per game-day. See
             // ScienceValueModels and LabEntry.ValueModel.
             ValueModel = ScienceValueModels.Stock,

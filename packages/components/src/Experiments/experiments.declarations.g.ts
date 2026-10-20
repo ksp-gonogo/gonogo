@@ -8,12 +8,5 @@ export default {
     "vessel.parts",
   ],
   optionalChannelFamilies: [],
-  commands: [
-    "science.experiment.deploy",
-    "science.experiment.start",
-    "science.experiment.stop",
-    "science.experiment.transmit",
-    "science.lab.start",
-    "science.lab.stop",
-  ],
+  commands: ["science.experiment.deploy", "science.experiment.transmit"],
 } as const;

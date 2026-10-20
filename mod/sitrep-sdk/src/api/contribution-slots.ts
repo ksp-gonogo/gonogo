@@ -616,14 +616,6 @@ export interface ExperimentsInstrumentEntry {
   rerunnable: boolean;
   /** The instrument cannot be used. */
   inoperable: boolean;
-  /** The instrument runs over time once started. Omit for a one-shot instrument. */
-  continuous?: boolean;
-  /** A continuous instrument is switched on. */
-  running?: boolean;
-  /** A continuous instrument is generating science now. */
-  producing?: boolean;
-  /** Why a switched-on instrument is not producing, for display only. */
-  runIssue?: string;
   /**
    * The reading the flags were read from, such as a processor's reading of the
    * contributor's own topic. The widget marks the row held while it is held and

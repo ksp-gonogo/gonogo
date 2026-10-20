@@ -287,25 +287,5 @@ namespace Sitrep.Host.Tests
             Assert.Equal(CommandErrorCode.NotFound, refused.ErrorCode);
             Assert.Null(empty.LastDeployPartId);
         }
-
-        /// <summary>
-        /// The run interface rides beside the science one, so the elected stock
-        /// backend answers start and stop without the science interface having
-        /// gained a member: an experiment is refused as not continuous, and the
-        /// lab goes through the actuator.
-        /// </summary>
-        [Fact]
-        public void ElectedVanillaImplementsTheRunInterfaceBesideTheScienceOne()
-        {
-            var actuator = new FakeScienceActuator();
-            var run = Assert.IsAssignableFrom<IScienceRunBackend>(ElectedVanilla(actuator));
-
-            var experiment = run.StartExperiment(new ExperimentActionArgs { PartId = "12345" });
-            Assert.False(experiment.Success);
-            Assert.Equal(CommandErrorCode.CapabilityMismatch, experiment.ErrorCode);
-
-            Assert.True(run.StartLab(new ExperimentActionArgs { PartId = "2001" }).Success);
-            Assert.Equal("2001", actuator.LastStartLabPartId);
-        }
     }
 }

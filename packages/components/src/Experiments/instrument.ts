@@ -15,17 +15,6 @@ export interface Instrument {
   hasData: boolean;
   rerunnable: boolean;
   inoperable: boolean;
-  /**
-   * The instrument runs over time once started instead of being deployed once.
-   * Absent where the wire did not say, which is the deploy model.
-   */
-  continuous?: boolean;
-  /** A continuous instrument is switched on. Absent where the wire did not say, so the row offers neither Start nor Stop. */
-  running?: boolean;
-  /** A continuous instrument is generating science now. A running instrument can be idle. */
-  producing?: boolean;
-  /** Why a switched-on instrument is not producing, as the provider wrote it. Display text only. */
-  runIssue?: string;
 }
 
 /**

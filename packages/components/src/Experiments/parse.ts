@@ -11,11 +11,6 @@ function partIdOf(raw: unknown): string | null {
   return null;
 }
 
-/** A wire bool with its absence kept as undefined. */
-function asOptionalFlag(value: unknown): boolean | undefined {
-  return typeof value === "boolean" ? value : undefined;
-}
-
 /**
  * Parses `science.instruments`. The wire's `partName`, `experimentId` and
  * `dataIsCollectable` become the widget's `partTitle`, `expId` and `hasData`;
@@ -43,11 +38,6 @@ export function parseInstruments(raw: unknown): TitledInstrument[] | null {
       rerunnableKnown: typeof e.rerunnable === "boolean",
       inoperable: e.inoperable === true,
       resettable: typeof e.resettable === "boolean" ? e.resettable : null,
-      continuous: asOptionalFlag(e.continuous),
-      running: asOptionalFlag(e.running),
-      producing: asOptionalFlag(e.producing),
-      runIssue:
-        typeof e.runIssue === "string" && e.runIssue ? e.runIssue : undefined,
     });
   }
   return out;
@@ -71,8 +61,6 @@ export function sumExperimentDataAmount(raw: unknown): number {
 }
 
 export interface LabStatus {
-  /** The lab part's flight id, which the lab Start and Stop commands take; `null` where the wire carried none. */
-  partId: string | null;
   partName: string;
   dataStored: number | null;
   dataStorage: number | null;
@@ -86,12 +74,6 @@ export interface LabStatus {
   valueModel: string | null;
   /** Null when the provider could not read it; offline is a diagnosis, not a failed read. */
   isOperational: boolean | null;
-  /** Whether the lab's research is switched on; `null` where the provider could not read it. */
-  running: boolean | null;
-  /** Whether the lab is turning data into science now; `null` where the provider could not read it. */
-  producing: boolean | null;
-  /** Why a switched-on lab is not producing, as written by the provider. Display text only. */
-  runIssue: string | null;
 }
 
 /** A wire bool with its absence kept as null. */
@@ -112,7 +94,6 @@ export function parseLab(raw: unknown): LabStatus[] | null {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     out.push({
-      partId: partIdOf(e.partId),
       partName: typeof e.partName === "string" ? e.partName : "Lab",
       dataStored: magnitudeOf(asQuantityish(e.dataStored)),
       dataStorage: magnitudeOf(asQuantityish(e.dataStorage)),
@@ -124,10 +105,6 @@ export function parseLab(raw: unknown): LabStatus[] | null {
       valueModel:
         typeof e.valueModel === "string" && e.valueModel ? e.valueModel : null,
       isOperational: asFlag(e.isOperational),
-      running: asFlag(e.running),
-      producing: asFlag(e.producing),
-      runIssue:
-        typeof e.runIssue === "string" && e.runIssue ? e.runIssue : null,
     });
   }
   return out;
