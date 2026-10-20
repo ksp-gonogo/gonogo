@@ -10,6 +10,7 @@ import {
   Text,
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
+import { useState } from "react";
 import type { TitledInstrument } from "./instrument";
 
 /** What each state badge on an instrument row means, shown on hover and focus. */
@@ -20,6 +21,9 @@ const BADGE_MEANING = {
   oneShotResettable: "Can run once only until it is reset",
   oneShotFinal: "Can run once only, and cannot be reset",
   inoperable: "Cannot be run in its current state, so it offers no controls",
+  running: "Switched on and generating science",
+  runningIdle: "Switched on, but not generating science right now",
+  stopped: "Switched off",
 } as const;
 
 export interface ScienceExperimentRowProps {
@@ -27,6 +31,10 @@ export interface ScienceExperimentRowProps {
   instrument: TitledInstrument;
   /** The deploy command. Omit for a read-only listing: the control is then not rendered at all, never rendered inert. */
   deployCmd?: CommandButtonHandle;
+  /** The start command for a continuous instrument. Omit for a read-only listing. */
+  startCmd?: CommandButtonHandle<CommandReply<"science.experiment.start">>;
+  /** The stop command for a continuous instrument. Omit for a read-only listing. */
+  stopCmd?: CommandButtonHandle<CommandReply<"science.experiment.stop">>;
   /** The transmit command. Omit for a read-only listing. */
   transmitCmd?: CommandButtonHandle<
     CommandReply<"science.experiment.transmit">
@@ -57,20 +65,66 @@ const ACTION_SLOT = { minHeight: "var(--control-height)" } as const;
 /**
  * A single science-instrument card. Every card has the same four slots in the
  * same places: the part's name, state badges, a data line (the experiment and
- * whether it holds data) and the Deploy/Transmit controls. Reads no telemetry, so the same row draws a stock instrument and a
- * contributed one.
+ * whether it holds data) and the Deploy/Transmit controls, or Start/Stop for a
+ * continuous instrument. Reads no telemetry, so the same row draws a stock
+ * instrument and a contributed one.
  */
 export function ScienceExperimentRow({
   instrument,
   deployCmd,
+  startCmd,
+  stopCmd,
   transmitCmd,
   onTransmitted,
   heldGrade,
   underPart,
 }: Readonly<ScienceExperimentRowProps>) {
+  const continuous = instrument.continuous === true;
+  // The reply to one press that found the instrument already where it was sent; it holds only while the reading agrees.
+  const [unchanged, setUnchanged] = useState<{
+    text: string;
+    whileRunning: boolean;
+  } | null>(null);
+  const noteIfUnchanged =
+    (started: boolean) => (reply: CommandReply<"science.experiment.start">) => {
+      if (reply?.payload?.changed === false)
+        setUnchanged({
+          text: started ? "Already running" : "Already stopped",
+          whileRunning: started,
+        });
+    };
   const actions = (
     <Inline inset style={ACTION_SLOT}>
-      {!instrument.inoperable &&
+      {continuous &&
+        !instrument.inoperable &&
+        instrument.running === false &&
+        startCmd && (
+          <CommandButton
+            size="sm"
+            handle={startCmd}
+            args={{ partId: instrument.partId, experimentId: instrument.expId }}
+            commandLabel={`Start ${experimentName(instrument)}`}
+            label="Start"
+            pendingLabel="Starting..."
+            onConfirmed={noteIfUnchanged(true)}
+          />
+        )}
+      {continuous &&
+        !instrument.inoperable &&
+        instrument.running === true &&
+        stopCmd && (
+          <CommandButton
+            size="sm"
+            handle={stopCmd}
+            args={{ partId: instrument.partId, experimentId: instrument.expId }}
+            commandLabel={`Stop ${experimentName(instrument)}`}
+            label="Stop"
+            pendingLabel="Stopping..."
+            onConfirmed={noteIfUnchanged(false)}
+          />
+        )}
+      {!continuous &&
+        !instrument.inoperable &&
         !instrument.deployed &&
         !instrument.hasData &&
         deployCmd && (
@@ -83,20 +137,23 @@ export function ScienceExperimentRow({
             pendingLabel="Deploying..."
           />
         )}
-      {!instrument.inoperable && instrument.hasData && transmitCmd && (
-        <CommandButton
-          size="sm"
-          handle={transmitCmd}
-          args={{ partId: instrument.partId }}
-          commandLabel={`Transmit ${instrument.partTitle}`}
-          label="Transmit"
-          confirmLabel="Confirm transmit"
-          pendingLabel="Transmitting..."
-          onConfirmed={(reply) => {
-            if (reply?.payload) onTransmitted?.(reply.payload);
-          }}
-        />
-      )}
+      {!continuous &&
+        !instrument.inoperable &&
+        instrument.hasData &&
+        transmitCmd && (
+          <CommandButton
+            size="sm"
+            handle={transmitCmd}
+            args={{ partId: instrument.partId }}
+            commandLabel={`Transmit ${instrument.partTitle}`}
+            label="Transmit"
+            confirmLabel="Confirm transmit"
+            pendingLabel="Transmitting..."
+            onConfirmed={(reply) => {
+              if (reply?.payload) onTransmitted?.(reply.payload);
+            }}
+          />
+        )}
     </Inline>
   );
   return (
@@ -114,25 +171,45 @@ export function ScienceExperimentRow({
             <Badge tone="go">DATA</Badge>
           </Tooltip>
         )}
-        {instrument.deployed && (
+        {continuous && instrument.running === true && (
+          <Tooltip
+            text={
+              instrument.producing === false
+                ? BADGE_MEANING.runningIdle
+                : BADGE_MEANING.running
+            }
+          >
+            <Badge tone={instrument.producing === false ? "caution" : "go"}>
+              RUNNING
+            </Badge>
+          </Tooltip>
+        )}
+        {continuous && instrument.running === false && (
+          <Tooltip text={BADGE_MEANING.stopped}>
+            <Badge>STOPPED</Badge>
+          </Tooltip>
+        )}
+        {!continuous && instrument.deployed && (
           <Tooltip text={BADGE_MEANING.deployed}>
             <Badge>DEPLOYED</Badge>
           </Tooltip>
         )}
-        {/* An experiment whose reusability is unknown is not one-shot. */}
-        {!instrument.rerunnable && instrument.rerunnableKnown !== false && (
-          <Tooltip
-            text={
-              instrument.resettable === true
-                ? BADGE_MEANING.oneShotResettable
-                : instrument.resettable === false
-                  ? BADGE_MEANING.oneShotFinal
-                  : BADGE_MEANING.oneShot
-            }
-          >
-            <Badge>ONE-SHOT</Badge>
-          </Tooltip>
-        )}
+        {/* An experiment whose reusability is unknown is not one-shot, and a continuous one is not run once. */}
+        {!continuous &&
+          !instrument.rerunnable &&
+          instrument.rerunnableKnown !== false && (
+            <Tooltip
+              text={
+                instrument.resettable === true
+                  ? BADGE_MEANING.oneShotResettable
+                  : instrument.resettable === false
+                    ? BADGE_MEANING.oneShotFinal
+                    : BADGE_MEANING.oneShot
+              }
+            >
+              <Badge>ONE-SHOT</Badge>
+            </Tooltip>
+          )}
         {instrument.inoperable && (
           <Tooltip text={BADGE_MEANING.inoperable}>
             <Badge tone="nogo">INOPERABLE</Badge>
@@ -146,6 +223,16 @@ export function ScienceExperimentRow({
         {!underPart && experimentName(instrument)}
         {instrument.dataKnown !== false &&
           `${underPart ? "" : " · "}${instrument.hasData ? "Holds data" : "No data"}`}
+      </Text>
+      {continuous && instrument.running === true && instrument.runIssue && (
+        <Text level="muted" size="xs">
+          {instrument.runIssue}
+        </Text>
+      )}
+      <Text level="muted" size="xs" role="status" aria-live="polite">
+        {unchanged !== null && unchanged.whileRunning === instrument.running
+          ? unchanged.text
+          : null}
       </Text>
     </Card>
   );

@@ -11,24 +11,44 @@ namespace Sitrep.Host.Tests
     /// touching KSP. Mirrors <see cref="FakeVesselActuator"/>'s
     /// "record + configurable" convention.
     /// </summary>
-    internal sealed class FakeScienceActuator : IScienceActuator
+    internal class FakeScienceActuator : IScienceActuator
     {
         public string? LastDeployPartId;
+        public string? LastDeployExperimentId;
         public string? LastTransmitPartId;
+        public string? LastTransmitExperimentId;
+        public string? LastStartLabPartId;
+        public string? LastStopLabPartId;
 
         public CommandResult DeployResult = CommandResult.Ok();
         public CommandResult TransmitResult = CommandResult.Ok();
+        public CommandResult StartLabResult = CommandResult<RunStateChange>.Ok(new RunStateChange { Changed = true, Running = true });
+        public CommandResult StopLabResult = CommandResult<RunStateChange>.Ok(new RunStateChange { Changed = true, Running = false });
 
-        public CommandResult DeployExperiment(string partId)
+        public CommandResult DeployExperiment(string partId, string? experimentId)
         {
             LastDeployPartId = partId;
+            LastDeployExperimentId = experimentId;
             return DeployResult;
         }
 
-        public CommandResult TransmitExperiment(string partId)
+        public CommandResult TransmitExperiment(string partId, string? experimentId)
         {
             LastTransmitPartId = partId;
+            LastTransmitExperimentId = experimentId;
             return TransmitResult;
+        }
+
+        public virtual CommandResult StartLab(string partId)
+        {
+            LastStartLabPartId = partId;
+            return StartLabResult;
+        }
+
+        public virtual CommandResult StopLab(string partId)
+        {
+            LastStopLabPartId = partId;
+            return StopLabResult;
         }
     }
 }

@@ -268,3 +268,152 @@ describe("ScienceExperimentRow", () => {
     expect(card).not.toHaveTextContent("Holds data");
   });
 });
+
+describe("ScienceExperimentRow: a continuous instrument", () => {
+  type RunReply = CommandReply<"science.experiment.start">;
+
+  const CHANGED: RunReply = {
+    success: true,
+    payload: { changed: true, running: true },
+  };
+  const UNCHANGED: RunReply = {
+    success: true,
+    payload: { changed: false, running: true },
+  };
+
+  function continuous(
+    overrides: Partial<TitledInstrument> = {},
+  ): TitledInstrument {
+    return instrument({
+      expId: "seismicScan",
+      expTitle: "Seismic Scan",
+      continuous: true,
+      running: false,
+      producing: false,
+      ...overrides,
+    });
+  }
+
+  it("offers Start and not Deploy while stopped", () => {
+    renderRow(
+      <ScienceExperimentRow
+        instrument={continuous()}
+        deployCmd={handle(() => Promise.resolve(OK))}
+        startCmd={handle<RunReply>(() => Promise.resolve(CHANGED))}
+        stopCmd={handle<RunReply>(() => Promise.resolve(CHANGED))}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Start" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Deploy" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Stop" })).toBeNull();
+    expect(screen.getByText("STOPPED")).toBeInTheDocument();
+  });
+
+  it("offers Stop while running, with a RUNNING badge and no Deploy, Transmit or DEPLOYED", () => {
+    renderRow(
+      <ScienceExperimentRow
+        instrument={continuous({
+          running: true,
+          producing: true,
+          hasData: true,
+        })}
+        deployCmd={handle(() => Promise.resolve(OK))}
+        transmitCmd={handle<TransmitReply>(() => Promise.resolve(TRANSMITTED))}
+        startCmd={handle<RunReply>(() => Promise.resolve(CHANGED))}
+        stopCmd={handle<RunReply>(() => Promise.resolve(CHANGED))}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Stop" })).toBeInTheDocument();
+    expect(screen.getByText("RUNNING")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Deploy" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Transmit" })).toBeNull();
+    expect(screen.queryByText("DEPLOYED")).toBeNull();
+    expect(screen.queryByText("ONE-SHOT")).toBeNull();
+  });
+
+  it("says why a running instrument is not producing", () => {
+    renderRow(
+      <ScienceExperimentRow
+        instrument={continuous({
+          running: true,
+          producing: false,
+          runIssue: "No electric charge",
+        })}
+      />,
+    );
+    expect(screen.getByText("RUNNING")).toBeInTheDocument();
+    expect(screen.getByText("No electric charge")).toBeInTheDocument();
+  });
+
+  it("does not show the issue of a stopped instrument", () => {
+    renderRow(
+      <ScienceExperimentRow
+        instrument={continuous({ runIssue: "No electric charge" })}
+      />,
+    );
+    expect(screen.queryByText("No electric charge")).toBeNull();
+  });
+
+  it("offers neither Start nor Stop when the provider did not say whether it runs", () => {
+    renderRow(
+      <ScienceExperimentRow
+        instrument={continuous({ running: undefined, producing: undefined })}
+        startCmd={handle<RunReply>(() => Promise.resolve(CHANGED))}
+        stopCmd={handle<RunReply>(() => Promise.resolve(CHANGED))}
+      />,
+    );
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("dispatches start naming the part and the experiment, since a part can hold several", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(CHANGED));
+    renderRow(
+      <ScienceExperimentRow
+        instrument={continuous({ partId: "42" })}
+        startCmd={handle<RunReply>(send)}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Start" }));
+    expect(send).toHaveBeenCalledWith(
+      { partId: "42", experimentId: "seismicScan" },
+      { label: "Start Seismic Scan" },
+    );
+  });
+
+  it("tells the operator when a start found the instrument already running", async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderRow(
+      <ScienceExperimentRow
+        instrument={continuous()}
+        startCmd={handle<RunReply>(() => Promise.resolve(UNCHANGED))}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Start" }));
+    // The reading catches up with the instrument, as the next sample would.
+    rerender(
+      <ul>
+        <ScienceExperimentRow
+          instrument={continuous({ running: true, producing: true })}
+          startCmd={handle<RunReply>(() => Promise.resolve(UNCHANGED))}
+        />
+      </ul>,
+    );
+    expect(await screen.findByText("Already running")).toBeInTheDocument();
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = renderRow(
+      <ScienceExperimentRow
+        instrument={continuous({
+          running: true,
+          producing: false,
+          runIssue: "No electric charge",
+        })}
+        stopCmd={handle<RunReply>(() => Promise.resolve(CHANGED))}
+      />,
+    );
+    await expectNoA11yViolations(container);
+  });
+});

@@ -62,6 +62,7 @@ namespace Sitrep.Host.Tests
                             ["rerunnable"] = true,
                             ["resettable"] = true,
                             ["dataIsCollectable"] = false,
+                            ["continuous"] = false,
                         },
                     },
                     ["lab"] = new List<object?>
@@ -79,6 +80,9 @@ namespace Sitrep.Host.Tests
                             ["scienceRate"] = 0.75,
                             ["scienceCap"] = 500.0,
                             ["isOperational"] = true,
+                            ["running"] = true,
+                            ["producing"] = false,
+                            ["runIssue"] = "Not enough power",
                         },
                     },
                     ["sensors"] = new List<object?>
@@ -151,11 +155,30 @@ namespace Sitrep.Host.Tests
         private static readonly string[] Expected =
         {
                 "[{\"partName\":\"Mystery Goo Containment Pod\",\"location\":\"experiment\",\"experimentId\":\"mysteryGoo\",\"subjectId\":\"mysteryGoo@KerbinSrfLanded\",\"title\":\"Mystery Goo Observation\",\"dataAmount\":5,\"scienceValueRatio\":1,\"baseTransmitValue\":0.3,\"transmitBonus\":1,\"labValue\":1,\"deployed\":true,\"inoperable\":false,\"situation\":\"LANDED\",\"valueModel\":\"stock\"},{\"partName\":\"Science Jr.\",\"location\":\"container\",\"experimentId\":null,\"subjectId\":null,\"title\":null,\"dataAmount\":null,\"scienceValueRatio\":null,\"baseTransmitValue\":null,\"transmitBonus\":null,\"labValue\":null,\"deployed\":null,\"inoperable\":null,\"situation\":null,\"valueModel\":\"stock\"}]",
-                "[{\"partId\":\"4012\",\"partName\":\"Thermometer\",\"experimentId\":\"temperatureScan\",\"title\":\"Temperature Scan\",\"deployed\":false,\"inoperable\":false,\"rerunnable\":true,\"resettable\":true,\"dataIsCollectable\":false}]",
-                "[{\"partId\":\"4021\",\"partName\":\"Mobile Processing Lab\",\"dataStored\":120.5,\"dataStorage\":750,\"storedScience\":3.25,\"processingData\":true,\"statusText\":\"Processing\",\"scientistCount\":2,\"scienceRate\":0.75,\"scienceCap\":500,\"isOperational\":true,\"valueModel\":\"stock\"}]",
+                "[{\"partId\":\"4012\",\"partName\":\"Thermometer\",\"experimentId\":\"temperatureScan\",\"title\":\"Temperature Scan\",\"deployed\":false,\"inoperable\":false,\"rerunnable\":true,\"resettable\":true,\"dataIsCollectable\":false,\"continuous\":false,\"running\":null,\"producing\":null,\"runIssue\":null}]",
+                "[{\"partId\":\"4021\",\"partName\":\"Mobile Processing Lab\",\"dataStored\":120.5,\"dataStorage\":750,\"storedScience\":3.25,\"processingData\":true,\"statusText\":\"Processing\",\"scientistCount\":2,\"scienceRate\":0.75,\"scienceCap\":500,\"isOperational\":true,\"running\":true,\"producing\":false,\"runIssue\":\"Not enough power\",\"valueModel\":\"stock\"}]",
                 "[{\"partId\":\"4013\",\"partName\":\"Accelerometer\",\"type\":\"ACC\",\"readout\":\"1.02 g\",\"active\":true}]",
                 "[{\"subjectId\":\"mysteryGoo@KerbinSrfLanded\",\"biome\":\"Shores\",\"situation\":\"SrfLanded\",\"expTitle\":\"Mystery Goo Observation\",\"dataMits\":5,\"remainingPotential\":null,\"valueModel\":\"stock\"}]",
         };
+
+        /// <summary>
+        /// A start or stop answers with whether anything changed, which the client
+        /// reads off <c>payload</c>; a raw POCO the writer has no case for would
+        /// be dropped at the wire boundary.
+        /// </summary>
+        [Fact]
+        public void ARunCommandsReplyCarriesWhetherAnythingChanged()
+        {
+            var json = Sitrep.Contract.Serialization.EnvelopeCodec.WriteCommandResponse(new CommandResponse<object?>
+            {
+                RequestId = "r1",
+                Result = CommandResult<RunStateChange>.Ok(new RunStateChange { Changed = false, Running = true }),
+                Meta = new Meta { Source = "science", Vantage = "v" },
+            });
+
+            Assert.Contains("\"success\":true", json);
+            Assert.Contains("\"payload\":{\"changed\":false,\"running\":true}", json);
+        }
 
         [Fact]
         public void TheFiveChannelsWriteTheTextTheDictionaryProducersWrote()

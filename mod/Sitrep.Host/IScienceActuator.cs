@@ -30,8 +30,23 @@ namespace Sitrep.Host
     /// </summary>
     public interface IScienceActuator
     {
-        CommandResult DeployExperiment(string partId);
+        /// <param name="partId">The part's flight id.</param>
+        /// <param name="experimentId">Which experiment on the part, or null for the first eligible one.</param>
+        CommandResult DeployExperiment(string partId, string? experimentId);
 
-        CommandResult TransmitExperiment(string partId);
+        /// <param name="partId">The part's flight id.</param>
+        /// <param name="experimentId">Which experiment on the part, or null for the first one holding data.</param>
+        CommandResult TransmitExperiment(string partId, string? experimentId);
+
+        /// <summary>
+        /// Start the research of the lab on the part. Idempotent: a lab already
+        /// running answers success with <see cref="RunStateChange.Changed"/>
+        /// false. A lab whose part is not yet deployed is refused with
+        /// <see cref="CommandErrorCode.WrongState"/>.
+        /// </summary>
+        CommandResult StartLab(string partId);
+
+        /// <summary>Stop the research of the lab on the part. Idempotent, as <see cref="StartLab"/>.</summary>
+        CommandResult StopLab(string partId);
     }
 }

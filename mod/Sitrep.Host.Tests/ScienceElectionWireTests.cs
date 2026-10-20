@@ -287,5 +287,54 @@ namespace Sitrep.Host.Tests
             Assert.Equal(CommandErrorCode.NotFound, refused.ErrorCode);
             Assert.Null(empty.LastDeployPartId);
         }
+
+        /// <summary>The stock backend passes the shipped run conformance, with a lab whose switch remembers its state.</summary>
+        [Fact]
+        public void ElectedVanillaPassesTheRunConformance()
+        {
+            var actuator = new SwitchingLabActuator();
+            var run = Assert.IsAssignableFrom<IScienceRunBackend>(ElectedVanilla(actuator));
+
+            Sitrep.Contract.TestSupport.ScienceRunConformance.AssertRunBackendContract(run);
+            Sitrep.Contract.TestSupport.ScienceRunConformance.AssertStartAndStopAreIdempotent(
+                () => run.StartLab(new ExperimentActionArgs { PartId = "2001" }),
+                () => run.StopLab(new ExperimentActionArgs { PartId = "2001" }));
+        }
+
+        private sealed class SwitchingLabActuator : FakeScienceActuator
+        {
+            private bool _on;
+
+            public override CommandResult StartLab(string partId) => Set(true);
+
+            public override CommandResult StopLab(string partId) => Set(false);
+
+            private CommandResult Set(bool on)
+            {
+                var changed = _on != on;
+                _on = on;
+                return CommandResult<RunStateChange>.Ok(new RunStateChange { Changed = changed, Running = on });
+            }
+        }
+
+        /// <summary>
+        /// The run interface rides beside the science one, so the elected stock
+        /// backend answers start and stop without the science interface having
+        /// gained a member: an experiment is refused as not continuous, and the
+        /// lab goes through the actuator.
+        /// </summary>
+        [Fact]
+        public void ElectedVanillaImplementsTheRunInterfaceBesideTheScienceOne()
+        {
+            var actuator = new FakeScienceActuator();
+            var run = Assert.IsAssignableFrom<IScienceRunBackend>(ElectedVanilla(actuator));
+
+            var experiment = run.StartExperiment(new ExperimentActionArgs { PartId = "12345" });
+            Assert.False(experiment.Success);
+            Assert.Equal(CommandErrorCode.CapabilityMismatch, experiment.ErrorCode);
+
+            Assert.True(run.StartLab(new ExperimentActionArgs { PartId = "2001" }).Success);
+            Assert.Equal("2001", actuator.LastStartLabPartId);
+        }
     }
 }

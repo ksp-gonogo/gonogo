@@ -49,9 +49,9 @@ namespace Gonogo.KSP
         /// bug in the other direction: it returned Ok having deployed
         /// nothing.</para>
         /// </summary>
-        public CommandResult DeployExperiment(string partId)
+        public CommandResult DeployExperiment(string partId, string? experimentId)
         {
-            if (!TryResolveExperiments(partId, out var experiments, out var error))
+            if (!TryResolveExperiments(partId, experimentId, out var experiments, out var error))
             {
                 return CommandResult.Fail(error!);
             }
@@ -164,7 +164,7 @@ namespace Gonogo.KSP
         /// <see cref="CommandErrorCode.NoConnection"/> when no transmitter on the
         /// craft can carry it.
         /// </summary>
-        public CommandResult TransmitExperiment(string partId)
+        public CommandResult TransmitExperiment(string partId, string? experimentId)
         {
             var vessel = ActiveVesselScope.Current;
             if (vessel == null)
@@ -172,7 +172,7 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
             }
 
-            if (!TryResolveExperiments(partId, out var experiments, out var error))
+            if (!TryResolveExperiments(partId, experimentId, out var experiments, out var error))
             {
                 return CommandResult.Fail(error!);
             }
@@ -247,17 +247,73 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// Starts the research of the lab on the addressed part, through the
+        /// shared converter actuator. <see cref="CommandErrorCode.NotFound"/>
+        /// when the part carries no lab.
+        /// </summary>
+        public CommandResult StartLab(string partId) => SetLab(partId, on: true);
+
+        /// <summary>Stops the research of the lab on the addressed part. See <see cref="StartLab"/>.</summary>
+        public CommandResult StopLab(string partId) => SetLab(partId, on: false);
+
+        private static CommandResult SetLab(string partId, bool on)
+        {
+            if (!TryResolvePart(partId, out var part, out var error))
+            {
+                return CommandResult.Fail(error!);
+            }
+
+            var lab = part!.Modules == null ? null : part.Modules.GetModule<ModuleScienceLab>();
+            var converter = lab == null ? null : lab.Converter;
+            if (converter == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound, "the part has no lab research to switch");
+            }
+
+            return KspConverterActuator.Set(converter, on);
+        }
+
+        /// <summary>
         /// Resolves the opaque <paramref name="partId"/> (a part's
         /// <c>flightID.ToString()</c>) to that part's live
         /// <c>ModuleScienceExperiment</c> list on the active vessel: the same
-        /// join key <c>KspHost.BuildScienceInstruments</c> emits. Returns
+        /// join key <c>KspHost.BuildScienceInstruments</c> emits. A non-empty
+        /// <paramref name="experimentId"/> narrows the list to the experiments
+        /// with that id. Returns
         /// <see cref="CommandErrorCode.NoVessel"/> with no active vessel,
-        /// <see cref="CommandErrorCode.NotFound"/> when no part carries the id
-        /// or the resolved part has no experiment module at all.
+        /// <see cref="CommandErrorCode.NotFound"/> when no part carries the id,
+        /// the resolved part has no experiment module at all, or none matches
+        /// <paramref name="experimentId"/>.
         /// </summary>
-        private static bool TryResolveExperiments(string partId, out List<ModuleScienceExperiment> experiments, out RefusalCode? error)
+        private static bool TryResolveExperiments(string partId, string? experimentId, out List<ModuleScienceExperiment> experiments, out RefusalCode? error)
         {
             experiments = new List<ModuleScienceExperiment>();
+
+            if (!TryResolvePart(partId, out var found, out error))
+            {
+                return false;
+            }
+
+            var modules = found!.Modules == null ? null : found.Modules.GetModules<ModuleScienceExperiment>();
+            if (modules != null && experimentId != null)
+            {
+                modules = modules.FindAll(m => m != null && string.Equals(m.experimentID, experimentId, StringComparison.Ordinal));
+            }
+
+            if (modules == null || modules.Count == 0)
+            {
+                error = CommandErrorCode.NotFound;
+                return false;
+            }
+
+            experiments = modules;
+            error = null;
+            return true;
+        }
+
+        private static bool TryResolvePart(string partId, out Part? part, out RefusalCode? error)
+        {
+            part = null;
 
             var vessel = ActiveVesselScope.Current;
             if (vessel == null || vessel.parts == null)
@@ -267,18 +323,18 @@ namespace Gonogo.KSP
             }
 
             Part? found = null;
-            foreach (var part in vessel.parts)
+            foreach (var candidate in vessel.parts)
             {
-                if (part == null)
+                if (candidate == null)
                 {
                     continue;
                 }
                 // flightID is the same stable per-Part join key the read side
                 // uses (see KspHost.BuildScienceInstruments); 0 is the
                 // uninitialized sentinel, so it never matches a real id.
-                if (part.flightID != 0 && string.Equals(part.flightID.ToString(), partId, StringComparison.Ordinal))
+                if (candidate.flightID != 0 && string.Equals(candidate.flightID.ToString(), partId, StringComparison.Ordinal))
                 {
-                    found = part;
+                    found = candidate;
                     break;
                 }
             }
@@ -289,14 +345,7 @@ namespace Gonogo.KSP
                 return false;
             }
 
-            var modules = found.Modules.GetModules<ModuleScienceExperiment>();
-            if (modules == null || modules.Count == 0)
-            {
-                error = CommandErrorCode.NotFound;
-                return false;
-            }
-
-            experiments = modules;
+            part = found;
             error = null;
             return true;
         }

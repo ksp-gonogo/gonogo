@@ -827,6 +827,14 @@ export interface ExperimentsInstrument {
   rerunnable: boolean;
   /** True when the instrument cannot run again until it is reset. */
   inoperable: boolean;
+  /** True when the instrument runs over time once started, and has Start and Stop instead of Deploy and Transmit. Absent where the mod did not say. */
+  continuous?: boolean;
+  /** True while a continuous instrument is switched on. Absent where the mod did not say. */
+  running?: boolean;
+  /** True while a continuous instrument is generating science, which a running instrument may not be. Absent where the mod did not say. */
+  producing?: boolean;
+  /** Why a switched-on instrument is not producing, as the mod wrote it. For display only, never to branch on. */
+  runIssue?: string;
 }
 
 /**

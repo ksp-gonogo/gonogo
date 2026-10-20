@@ -24,7 +24,7 @@ namespace Sitrep.Host.Science
     /// the commands go through the actuator interface whose real implementation
     /// (<c>Gonogo.KSP.KspScienceActuator</c>) is the only KSP-touching half.</para>
     /// </summary>
-    public sealed class StockScienceBackend : IScienceBackend
+    public sealed class StockScienceBackend : IScienceBackend, IScienceRunBackend
     {
         private readonly IScienceActuator _actuator;
 
@@ -50,5 +50,19 @@ namespace Sitrep.Host.Science
 
         public CommandResult TransmitExperiment(ExperimentActionArgs args) =>
             ScienceCommandProvider.HandleTransmit(_actuator, args);
+
+        /// <summary>Stock experiments are all deployed once, so a start is refused as not continuous.</summary>
+        public CommandResult StartExperiment(ExperimentActionArgs args) =>
+            ScienceCommandProvider.HandleExperimentRunNotContinuous(args);
+
+        /// <summary>Stock experiments are all deployed once, so a stop is refused as not continuous.</summary>
+        public CommandResult StopExperiment(ExperimentActionArgs args) =>
+            ScienceCommandProvider.HandleExperimentRunNotContinuous(args);
+
+        public CommandResult StartLab(ExperimentActionArgs args) =>
+            ScienceCommandProvider.HandleStartLab(_actuator, args);
+
+        public CommandResult StopLab(ExperimentActionArgs args) =>
+            ScienceCommandProvider.HandleStopLab(_actuator, args);
     }
 }

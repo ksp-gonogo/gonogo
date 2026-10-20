@@ -674,6 +674,7 @@
       "type": "id"
     },
     "ExperimentActionArgs": {
+      "experimentId": "id",
       "partId": "id"
     },
     "ExperimentBreakdownEntry": {
@@ -759,14 +760,18 @@
       "applicantName": "id"
     },
     "InstrumentEntry": {
+      "continuous": "flag",
       "dataIsCollectable": "flag",
       "deployed": "flag",
       "experimentId": "id",
       "inoperable": "flag",
       "partId": "id",
       "partName": "text",
+      "producing": "flag",
       "rerunnable": "flag",
       "resettable": "flag",
+      "runIssue": "text",
+      "running": "flag",
       "title": "text"
     },
     "InventoryItem": {
@@ -813,6 +818,9 @@
       "partId": "id",
       "partName": "text",
       "processingData": "flag",
+      "producing": "flag",
+      "runIssue": "text",
+      "running": "flag",
       "scienceCap": "science",
       "scienceRate": "science/day",
       "scientistCount": "count",
@@ -1124,6 +1132,10 @@
     "RotorSetTorqueLimitArgs": {
       "partId": "id",
       "percent": "%"
+    },
+    "RunStateChange": {
+      "changed": "flag",
+      "running": "flag"
     },
     "SavedShipEntry": {
       "facility": "text",
@@ -1988,14 +2000,18 @@
       "valueModel": "id"
     },
     "science.instruments": {
+      "continuous": "flag",
       "dataIsCollectable": "flag",
       "deployed": "flag",
       "experimentId": "id",
       "inoperable": "flag",
       "partId": "id",
       "partName": "text",
+      "producing": "flag",
       "rerunnable": "flag",
       "resettable": "flag",
+      "runIssue": "text",
+      "running": "flag",
       "title": "text"
     },
     "science.lab": {
@@ -2005,6 +2021,9 @@
       "partId": "id",
       "partName": "text",
       "processingData": "flag",
+      "producing": "flag",
+      "runIssue": "text",
+      "running": "flag",
       "scienceCap": "science",
       "scienceRate": "science/day",
       "scientistCount": "count",

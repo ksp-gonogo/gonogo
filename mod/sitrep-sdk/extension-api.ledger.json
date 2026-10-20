@@ -11845,6 +11845,38 @@
         "note": "Dep is exported from the root, since it is named in an author-facing signature"
       },
       {
+        "key": "sitrep-sdk . ExperimentsInstrument#continuous?",
+        "note": "Optional flag: the instrument runs over time once started, with Start and Stop instead of Deploy and Transmit"
+      },
+      {
+        "key": "sitrep-sdk . ExperimentsInstrument#producing?",
+        "note": "Optional flag: a continuous instrument is generating science now, which a running one may not be"
+      },
+      {
+        "key": "sitrep-sdk . ExperimentsInstrument#runIssue?",
+        "note": "Optional display text: why a switched-on instrument is not producing"
+      },
+      {
+        "key": "sitrep-sdk . ExperimentsInstrument#running?",
+        "note": "Optional flag: a continuous instrument is switched on"
+      },
+      {
+        "key": "sitrep-sdk . ExperimentsInstrumentEntry#continuous?",
+        "note": "Optional flag: the instrument runs over time once started, with Start and Stop instead of Deploy and Transmit"
+      },
+      {
+        "key": "sitrep-sdk . ExperimentsInstrumentEntry#producing?",
+        "note": "Optional flag: a continuous instrument is generating science now, which a running one may not be"
+      },
+      {
+        "key": "sitrep-sdk . ExperimentsInstrumentEntry#runIssue?",
+        "note": "Optional display text: why a switched-on instrument is not producing"
+      },
+      {
+        "key": "sitrep-sdk . ExperimentsInstrumentEntry#running?",
+        "note": "Optional flag: a continuous instrument is switched on"
+      },
+      {
         "key": "sitrep-sdk . FRAMEWORK_READS",
         "note": "The Topics the framework reads for a widget, keyed by the hook or component that reads them, which a scan of a widget's reads leaves out"
       },
@@ -13049,6 +13081,10 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~ExperimentsInstrument#continuous?",
+        "note": "Optional flag: the instrument runs over time once started, with Start and Stop instead of Deploy and Transmit"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ExperimentsInstrument#deployed",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
@@ -13073,8 +13109,36 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~ExperimentsInstrument#producing?",
+        "note": "Optional flag: a continuous instrument is generating science now, which a running one may not be"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ExperimentsInstrument#rerunnable",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ExperimentsInstrument#runIssue?",
+        "note": "Optional display text: why a switched-on instrument is not producing"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ExperimentsInstrument#running?",
+        "note": "Optional flag: a continuous instrument is switched on"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ExperimentsInstrumentEntry#continuous?",
+        "note": "Optional flag: the instrument runs over time once started, with Start and Stop instead of Deploy and Transmit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ExperimentsInstrumentEntry#producing?",
+        "note": "Optional flag: a continuous instrument is generating science now, which a running one may not be"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ExperimentsInstrumentEntry#runIssue?",
+        "note": "Optional display text: why a switched-on instrument is not producing"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ExperimentsInstrumentEntry#running?",
+        "note": "Optional flag: a continuous instrument is switched on"
       },
       {
         "key": "sitrep-sdk ./registry ~ExperimentsInstrumentSlotContext",
@@ -14713,6 +14777,22 @@
         "note": "The sample kinds the mod sends on system.uplinks, by topic and by namespace prefix"
       },
       {
+        "key": "sitrep-sdk ./spine ~ExperimentsInstrumentEntry#continuous?",
+        "note": "Optional flag: the instrument runs over time once started, with Start and Stop instead of Deploy and Transmit"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ExperimentsInstrumentEntry#producing?",
+        "note": "Optional flag: a continuous instrument is generating science now, which a running one may not be"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ExperimentsInstrumentEntry#runIssue?",
+        "note": "Optional display text: why a switched-on instrument is not producing"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ExperimentsInstrumentEntry#running?",
+        "note": "Optional flag: a continuous instrument is switched on"
+      },
+      {
         "key": "sitrep-sdk ./spine ~FrameCallback",
         "note": "The subscriber subscribeFrames takes: the value and the Meta of its frame"
       },
@@ -15123,6 +15203,38 @@
       {
         "key": "sitrep-sdk ./testing ~DelayClockLike#onFrame",
         "note": "DelayClockLike is named by the typed view clock, so it is on the testing surface too"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ExperimentsInstrument#continuous?",
+        "note": "Optional flag: the instrument runs over time once started, with Start and Stop instead of Deploy and Transmit"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ExperimentsInstrument#producing?",
+        "note": "Optional flag: a continuous instrument is generating science now, which a running one may not be"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ExperimentsInstrument#runIssue?",
+        "note": "Optional display text: why a switched-on instrument is not producing"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ExperimentsInstrument#running?",
+        "note": "Optional flag: a continuous instrument is switched on"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ExperimentsInstrumentEntry#continuous?",
+        "note": "Optional flag: the instrument runs over time once started, with Start and Stop instead of Deploy and Transmit"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ExperimentsInstrumentEntry#producing?",
+        "note": "Optional flag: a continuous instrument is generating science now, which a running one may not be"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ExperimentsInstrumentEntry#runIssue?",
+        "note": "Optional display text: why a switched-on instrument is not producing"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ExperimentsInstrumentEntry#running?",
+        "note": "Optional flag: a continuous instrument is switched on"
       },
       {
         "key": "sitrep-sdk ./testing ~FrameCallback",
