@@ -110,7 +110,12 @@ export async function startTurnRelay(
 
 /** pnpm, tsx, the relay and the TURN server are a chain of processes, so the group the relay was started in is signalled. */
 function stopGroup(proc: ChildProcess): void {
-  if (proc.pid !== undefined) process.kill(-proc.pid, "SIGTERM");
+  if (proc.pid === undefined) return;
+  try {
+    process.kill(-proc.pid, "SIGTERM");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ESRCH") throw err;
+  }
 }
 
 type PcRecord = {

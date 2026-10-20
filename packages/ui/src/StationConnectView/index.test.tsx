@@ -219,14 +219,14 @@ describe("connect progress", () => {
       />,
     );
     const stages = screen.getByRole("list", { name: /connection stages/i });
-    expect(stages.textContent).toContain("Brokerok, 0s");
-    expect(stages.textContent).toContain("Host channelwaiting, 3s");
-    expect(stages.textContent).toContain("Host datanot started");
+    expect(stages.textContent).toContain("Connection serviceok, 0s");
+    expect(stages.textContent).toContain("Main screenwaiting, 3s");
+    expect(stages.textContent).toContain("Main screen datanot started");
     expect(stages.textContent).toContain("Elapsed4s, attempt 1");
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("reports a stall naming the stage once the stall window passes", () => {
+  it("reports a stall once the stall window passes", () => {
     vi.useFakeTimers({
       now: T0 + CONNECT_STALL_MS + 2_000,
       toFake: ["Date", "setInterval"],
@@ -243,8 +243,68 @@ describe("connect progress", () => {
       />,
     );
     expect(screen.getByRole("alert").textContent).toMatch(
-      /No connection after 32s\. Stalled at broker, attempt 7/,
+      /No connection after 32s\. Still trying in the background/,
     );
+  });
+
+  it("says it is trying a direct connection, then switching to the relay, then that it is connected through it", () => {
+    vi.useFakeTimers({ now: T0 + 2_000, toFake: ["Date", "setInterval"] });
+    const progress = {
+      startedAt: T0,
+      attempt: 1,
+      entered: { broker: T0, host: T0 + 500 },
+    };
+    const { rerender } = render(
+      <StationConnectView
+        {...baseProps}
+        connStatus="connecting"
+        relayLookup="used"
+        progress={progress}
+      />,
+    );
+    expect(screen.getByText(/Trying a direct connection/)).not.toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(
+      screen.getByText(/No direct path yet, switching to the relay/),
+    ).not.toBeNull();
+    rerender(
+      <StationConnectView
+        {...baseProps}
+        connStatus="connecting"
+        relayLookup="used"
+        progress={{ ...progress, attempt: 2, viaRelay: true }}
+      />,
+    );
+    expect(
+      screen.getByText(/No direct path, switching to the relay/),
+    ).not.toBeNull();
+    rerender(
+      <StationConnectView
+        {...baseProps}
+        connStatus="connected"
+        relayLookup="used"
+        progress={{ ...progress, attempt: 2, viaRelay: true, relayed: true }}
+      />,
+    );
+    expect(screen.getByText(/Connected through the relay/)).not.toBeNull();
+  });
+
+  it("does not mention the relay for a station whose link names none", () => {
+    vi.useFakeTimers({ now: T0 + 8_000, toFake: ["Date", "setInterval"] });
+    render(
+      <StationConnectView
+        {...baseProps}
+        connStatus="connecting"
+        progress={{
+          startedAt: T0,
+          attempt: 1,
+          entered: { broker: T0, host: T0 + 500 },
+        }}
+      />,
+    );
+    expect(screen.queryByText(/relay/i)).toBeNull();
   });
 
   it("advances the elapsed time each second", () => {

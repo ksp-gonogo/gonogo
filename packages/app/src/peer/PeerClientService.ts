@@ -403,6 +403,7 @@ export class PeerClientService {
     if (entered.host !== undefined && entered.data === undefined) {
       this.hostChannelStalls += 1;
       this.markRelayNeeded();
+      this.connectProgress = { ...this.connectProgress, viaRelay: true };
       if (this.hostChannelStalls >= MAX_HOST_CHANNEL_ATTEMPTS) {
         logger.warn(
           `[PeerClient] host channel never opened in ${this.hostChannelStalls} attempts: stopping`,
@@ -1619,7 +1620,10 @@ export class PeerClientService {
       .peerConnection;
     if (!pc) return;
     const path: ConnectionPath | null = await readConnectionPath(pc);
-    if (path === "relayed") this.markRelayNeeded();
+    if (path !== "relayed") return;
+    this.markRelayNeeded();
+    this.connectProgress = { ...this.connectProgress, relayed: true };
+    this.events.emit("connectProgress", this.connectProgress);
   }
 
   /** Notified whenever the host broadcasts a fresh set of relay turn creds. */

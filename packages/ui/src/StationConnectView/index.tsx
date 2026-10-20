@@ -11,6 +11,7 @@ import {
   CONNECT_STALL_MS,
   type ConnectProgress,
   describeConnStatus,
+  describeRelayStage,
   type StationConnStatus,
   stageStates,
   statusTone,
@@ -26,6 +27,7 @@ import {
   HostInput,
   NameRow,
   ReconnectMsg,
+  RelayStage,
   StageList,
 } from "./StationConnectView.styles";
 
@@ -80,7 +82,9 @@ export function StationConnectView({
   nameEditor,
 }: StationConnectViewProps) {
   const waiting = connStatus === "connecting" || connStatus === "reconnecting";
-  const now = useNow(waiting && progress !== undefined);
+  const now = useNow(
+    (waiting || connStatus === "connected") && progress !== undefined,
+  );
   const stalled =
     waiting &&
     progress !== undefined &&
@@ -88,6 +92,12 @@ export function StationConnectView({
     !hostNotFound &&
     !hostChannelFailed &&
     now - progress.startedAt >= CONNECT_STALL_MS;
+  const relayStage = describeRelayStage(
+    connStatus,
+    progress,
+    now,
+    relayLookup === "used",
+  );
   return (
     <ConnectLayout as="main" aria-label="Connect to mission control">
       <ConnectBox>
@@ -123,7 +133,7 @@ export function StationConnectView({
           </ErrorMsg>
         )}
         {!brokerUnreachable && hostNotFound && everConnected && (
-          <ReconnectMsg role="status" aria-live="polite">
+          <ReconnectMsg>
             Host reconnecting... The main screen is restarting and will be back
             shortly: this station reconnects automatically.
           </ReconnectMsg>
@@ -169,9 +179,8 @@ export function StationConnectView({
           )}
         {stalled && progress && (
           <ErrorMsg role="alert">
-            No connection after <Seconds ms={now - progress.startedAt} />.
-            Stalled at {stalledAt(progress)}, attempt {progress.attempt}.
-            Retrying in the background.
+            No connection after <Seconds ms={now - progress.startedAt} />. Still
+            trying in the background.
           </ErrorMsg>
         )}
         <StatusIndicator
@@ -190,6 +199,15 @@ export function StationConnectView({
             brokerUnreachable,
           )}
         </StatusIndicator>
+        <RelayStage>
+          {relayStage}
+          {relayStage && waiting && progress?.entered.host !== undefined && (
+            <>
+              {" "}
+              <Seconds ms={now - progress.startedAt} />
+            </>
+          )}
+        </RelayStage>
         {waiting && progress && progress.attempt > 0 && (
           <ProgressList progress={progress} now={now} />
         )}
@@ -201,11 +219,6 @@ export function StationConnectView({
       </ConnectBox>
     </ConnectLayout>
   );
-}
-
-function stalledAt(progress: ConnectProgress): string {
-  const active = stageStates(progress).find((r) => r.state === "active");
-  return (active?.label ?? "Broker").toLowerCase();
 }
 
 /** Epoch ms, refreshed each second while `running`. */
