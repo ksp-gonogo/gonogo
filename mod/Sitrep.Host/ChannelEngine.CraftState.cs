@@ -144,11 +144,7 @@ namespace Sitrep.Host
         /// <summary>The delays each craft's last word of who can hear it was sent under, which its release waits out like its other stamps.</summary>
         private readonly Dictionary<string, DelayStamp> _craftReachStamps = new Dictionary<string, DelayStamp>(StringComparer.Ordinal);
 
-        /// <summary>The craft whose route ends somewhere other than a ground station, as of the last pass. Courier thread only.</summary>
-        private HashSet<string> _offTheGround = new HashSet<string>(StringComparer.Ordinal);
-
-        public void SetOffTheGround(IReadOnlyCollection<string> vesselIds) =>
-            _offTheGround = new HashSet<string>(vesselIds, StringComparer.Ordinal);
+        public void SetOffTheGround(IReadOnlyCollection<string> vesselIds) => _reach.ReplaceOffTheGround(vesselIds);
 
         /// <summary>
         /// Says, for each craft present this tick whose set has changed, which
@@ -174,7 +170,6 @@ namespace Sitrep.Host
                 var node = FleetNodePrefix + vesselId;
                 var stamp = _network.StampFor(node);
                 var connected = SubjectConnected(node);
-                var offTheGround = _offTheGround.Contains(vesselId);
                 if (!_craftReached.TryGetValue(vesselId, out var reached))
                 {
                     reached = new Dictionary<string, (double, double)>(StringComparer.Ordinal);
@@ -184,8 +179,7 @@ namespace Sitrep.Host
                 foreach (var centre in _activeCentreIds)
                 {
                     var seconds = stamp.For(centre);
-                    var unroutable = _unroutable.TryGetValue(centre, out var nodes) && nodes.Contains(node);
-                    if (!CentreReach.Reaches(centre, vesselId, modelled, connected, home, offTheGround, unroutable))
+                    if (!_reach.Reaches(centre, node, FleetNodePrefix, modelled, connected, home))
                     {
                         continue;
                     }
