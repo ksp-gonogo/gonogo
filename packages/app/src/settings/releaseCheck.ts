@@ -14,7 +14,7 @@ export interface LatestRelease {
  * rate-limited, or no release published yet. A `null` says nothing about
  * whether this build is current.
  */
-export async function fetchLatestRelease(
+async function fetchLatestRelease(
   url: string = LATEST_RELEASE_URL,
 ): Promise<LatestRelease | null> {
   try {

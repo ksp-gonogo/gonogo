@@ -17,7 +17,7 @@ import {
 const GROUP = "declarations";
 
 /** Until the built-in widgets are migrated this is a warning; it becomes an error with them. */
-export const LEGACY_SEVERITY = "warning" as const;
+const LEGACY_SEVERITY = "warning" as const;
 
 /** A scan that is missing reads cannot prove that anything is unread. */
 const provable = (widget: WidgetScan) =>

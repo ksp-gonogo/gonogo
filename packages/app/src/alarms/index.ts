@@ -9,7 +9,6 @@ export { AlarmClientService } from "./AlarmClientService";
 export {
   AlarmHostProvider,
   useAlarmHost,
-  useAlarmSnapshot,
   useAlarmSnapshotOptional,
 } from "./AlarmHostContext";
 export type { AlarmHostOptions } from "./AlarmHostService";

@@ -13,7 +13,7 @@ export interface Contribution {
 export type NetTone = "go" | "warn" | "neutral";
 
 /** Surplus, deficit, or balanced within a micro-unit per second. */
-export function netToneOf(net: number): NetTone {
+function netToneOf(net: number): NetTone {
   if (net > 1e-6) return "go";
   if (net < -1e-6) return "warn";
   return "neutral";

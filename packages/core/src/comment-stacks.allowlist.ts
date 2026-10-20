@@ -243,7 +243,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/data/src/FlightsManager/index.test.tsx": 1,
   "packages/data/src/hooks/deltaVBudget.stream.test.tsx": 2,
   "packages/data/src/hooks/useFlight.test.tsx": 1,
-  "packages/data/src/hooks/useOptionalVesselIdentity.ts": 1,
   "packages/data/src/hooks/usePartsLive.undefined.characterise.test.tsx": 2,
   "packages/data/src/hooks/useTopology.undefined.characterise.test.tsx": 2,
   "packages/data/src/hooks/vesselPartsAdapter.ts": 1,

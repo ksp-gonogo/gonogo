@@ -259,10 +259,7 @@ export interface ClipSpec {
  * tick that the whole timing measurement is made of, and base64 on that path
  * would be the instrument disturbing its own subject.
  */
-export async function installClipRadio(
-  page: Page,
-  clip: ClipSpec,
-): Promise<void> {
+async function installClipRadio(page: Page, clip: ClipSpec): Promise<void> {
   await page.evaluate(
     async ({
       name,

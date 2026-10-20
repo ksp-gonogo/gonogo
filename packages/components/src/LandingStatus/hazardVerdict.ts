@@ -25,7 +25,7 @@ export interface HazardThresholds {
   touchdown: readonly [Value<"m/s">, Value<"m/s">];
 }
 
-export const DEFAULT_HAZARD_THRESHOLDS: HazardThresholds = {
+const DEFAULT_HAZARD_THRESHOLDS: HazardThresholds = {
   slope: [value("°", 5), value("°", 15)],
   touchdown: [value("m/s", 2), value("m/s", 6)],
 };

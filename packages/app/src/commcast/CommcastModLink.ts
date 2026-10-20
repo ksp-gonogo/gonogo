@@ -406,7 +406,7 @@ function readBatch(value: unknown): BatchWire | null {
  * stretch before the mod stamped it, so each chunk arrived that much earlier
  * than the last, and they play back on their own grid.
  */
-export function heardFrames(
+function heardFrames(
   segments: readonly Uint8Array[],
   deliveredAt: number,
 ): HeardRadioFrame[] {

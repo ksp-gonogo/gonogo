@@ -2,7 +2,7 @@ import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 
 /** The tooltip of a verdict that waits on the parent body's data. */
-export const WAITING_FOR_BODY = "Waiting for body data";
+const WAITING_FOR_BODY = "Waiting for body data";
 
 export interface OrbitPill {
   label: string;

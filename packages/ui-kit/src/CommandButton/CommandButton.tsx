@@ -158,7 +158,7 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
  *
  * @category CommandButton
  */
-export function standingGate<Args>(
+function standingGate<Args>(
   handle: Pick<CommandButtonHandle<unknown, Args>, "gate" | "gateFor">,
   args: Args | undefined,
 ): CommandGateLike | undefined {

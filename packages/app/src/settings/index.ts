@@ -17,7 +17,6 @@ export {
   getSettingDefinition,
   getSettingsForScreen,
   isReadOnlySetting,
-  registerSetting,
   type SettingDefinition,
   type SettingDefinitionBase,
   type SettingDefinitionOf,

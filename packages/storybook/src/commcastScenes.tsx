@@ -201,9 +201,7 @@ export function seededLog(props: CommcastSceneProps): CommcastLog {
  * its instant against the clock's running estimate, which a pinned clock never
  * advances.
  */
-export function sceneStream(
-  props: CommcastSceneProps,
-): Record<string, unknown> {
+function sceneStream(props: CommcastSceneProps): Record<string, unknown> {
   const meta = {
     validAt: VIEW_UT,
     deliveredAt: VIEW_UT,

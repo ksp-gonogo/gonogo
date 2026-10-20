@@ -252,7 +252,7 @@ export interface PublishResult {
 }
 
 /** The spec sheet's file name in a release folder, which a viewer fetches beside the sidecar. */
-export const RELEASED_SPEC_FILE = "spec.json";
+const RELEASED_SPEC_FILE = "spec.json";
 
 /**
  * Copies the client into the served tree, and the Uplink's spec sheet beside it
