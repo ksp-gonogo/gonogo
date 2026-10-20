@@ -37,6 +37,14 @@ export type StationApproval = "unknown" | "pending" | "approved" | "refused";
 const DEFAULT_RETRY_INTERVAL_MS = 2_000;
 const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
 
+/**
+ * Consecutive attempts that reached the broker but never opened the host's
+ * data channel before the station stops retrying and says so. The broker
+ * answering while the channel stays shut means the two devices have no
+ * direct path, which a further identical attempt does not change.
+ */
+const MAX_HOST_CHANNEL_ATTEMPTS = 4;
+
 /** PeerJS error shape: `.type` is the discriminator. */
 interface PeerJsError extends Error {
   type?: string;
@@ -130,6 +138,7 @@ type ClientEventMap = {
   approval: [approval: StationApproval];
   writeRefused: [refused: string];
   brokerReachable: [reachable: boolean];
+  hostChannelFailed: [failed: boolean];
   // Sitrep telemetry-stream forwarding: see protocol.ts's `sitrep-frame`/
   // `sitrep-command-*` doc comment. `sitrepFrame` carries the host-relayed
   // `ServerMessage` verbatim (unwrapped from its `sitrep-frame` envelope);
@@ -188,6 +197,9 @@ export class PeerClientService {
   };
   /** Last broker-reachability verdict; `null` until the first attempt resolves. */
   private brokerReachable: boolean | null = null;
+  /** Attempts in a row that reached the host stage and never opened the data channel. */
+  private hostChannelStalls = 0;
+  private hostChannelFailed = false;
   // Relay TURN creds from the latest `relay-ice-servers` broadcast. Applied to
   // the station's own Peer (see applyRelayIceServers) AND exposed here so an
   // Uplink's station broker can feed them to a media connection of its own,
@@ -283,6 +295,8 @@ export class PeerClientService {
     this.hostPeerId = deriveHostPeerId(code);
     logger.setIdentity({ hostPeerId: this.hostPeerId });
     this.retryPolicy.beginConnect();
+    this.hostChannelStalls = 0;
+    this.setHostChannelFailed(false);
     this.connectProgress = { startedAt: Date.now(), attempt: 0, entered: {} };
     this.openPeer();
   }
@@ -295,6 +309,19 @@ export class PeerClientService {
    */
   private openPeer() {
     if (!this.hostPeerId) return;
+    const { entered } = this.connectProgress;
+    if (entered.host !== undefined && entered.data === undefined) {
+      this.hostChannelStalls += 1;
+      if (this.hostChannelStalls >= MAX_HOST_CHANNEL_ATTEMPTS) {
+        logger.warn(
+          `[PeerClient] host channel never opened in ${this.hostChannelStalls} attempts: stopping`,
+        );
+        this.retryPolicy.cancel();
+        this.setHostChannelFailed(true);
+        this.emitConnStatus("disconnected");
+        return;
+      }
+    }
     // Re-roll the per-session id so retries can't collide with a broker
     // hold from a previous attempt that dropped without sending a
     // graceful leave (mid-session WS drop, screen lock, tab background).
@@ -410,6 +437,7 @@ export class PeerClientService {
       if (!current()) return;
       logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
       this.retryPolicy.onConnected();
+      this.hostChannelStalls = 0;
       this.enterStage("data");
       // First, so the host knows whether this station is approved before any request it sends.
       conn.send({
@@ -1167,6 +1195,23 @@ export class PeerClientService {
       );
     }
     this.events.emit("brokerReachable", reachable);
+  }
+
+  /**
+   * Fires `true` when the station stops retrying because the broker answered
+   * but the host's data channel never opened, and `false` when a new connect
+   * begins. Replays the current verdict on subscribe.
+   */
+  onHostChannelFailed(cb: (failed: boolean) => void) {
+    const unsub = this.events.on("hostChannelFailed", cb);
+    cb(this.hostChannelFailed);
+    return unsub;
+  }
+
+  private setHostChannelFailed(failed: boolean): void {
+    if (this.hostChannelFailed === failed) return;
+    this.hostChannelFailed = failed;
+    this.events.emit("hostChannelFailed", failed);
   }
 
   onGonogoCountdownStart(cb: (t0Ms: number) => void) {

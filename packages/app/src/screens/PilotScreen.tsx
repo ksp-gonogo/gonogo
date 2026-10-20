@@ -50,6 +50,7 @@ export function PilotScreen() {
   const [status, setStatus] = useState<ConnStatus>("idle");
   const [hostNotFound, setHostNotFound] = useState(false);
   const [brokerUnreachable, setBrokerUnreachable] = useState(false);
+  const [hostChannelFailed, setHostChannelFailed] = useState(false);
   const [everConnected, setEverConnected] = useState(false);
   const [hostInput, setHostInput] = useState(
     () => localStorage.getItem(HOST_ID_KEY) ?? "",
@@ -85,6 +86,7 @@ export function PilotScreen() {
       }),
       client.onHostUnavailable(() => setHostNotFound(true)),
       client.onBrokerReachable((reachable) => setBrokerUnreachable(!reachable)),
+      client.onHostChannelFailed(setHostChannelFailed),
     );
     client.connect(trimmed);
   };
@@ -142,6 +144,7 @@ export function PilotScreen() {
           connStatus={status}
           hostNotFound={hostNotFound}
           brokerUnreachable={brokerUnreachable}
+          hostChannelFailed={hostChannelFailed}
           everConnected={everConnected}
           onHostInputChange={setHostInput}
           onConnect={connect}

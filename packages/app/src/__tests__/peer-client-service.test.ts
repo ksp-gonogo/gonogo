@@ -455,6 +455,35 @@ describe("PeerClientService reconnect loop", () => {
     expect(statuses.filter((s) => s === "connected")).toHaveLength(2);
   });
 
+  it("stops with a stated failure when the host channel never opens, and retries on connect", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 10,
+      retryTimeoutMs: 60_000,
+    });
+    const statuses: ConnStatus[] = [];
+    const failures: boolean[] = [];
+    svc.onConnectionStatus((s) => statuses.push(s));
+    svc.onHostChannelFailed((failed) => failures.push(failed));
+
+    svc.connect("HOST");
+    for (let i = 0; i < 10; i++) {
+      const peer = FakePeer.instances[FakePeer.instances.length - 1];
+      peer.emit("open");
+      peer._lastConn?.emit("close");
+      vi.advanceTimersByTime(11);
+    }
+
+    expect(statuses[statuses.length - 1]).toBe("disconnected");
+    expect(failures[failures.length - 1]).toBe(true);
+    const attempts = FakePeer.instances.length;
+    vi.advanceTimersByTime(60_000);
+    expect(FakePeer.instances).toHaveLength(attempts);
+
+    svc.connect("HOST");
+    expect(failures[failures.length - 1]).toBe(false);
+    expect(FakePeer.instances).toHaveLength(attempts + 1);
+  });
+
   it("gives up with disconnected after exceeding the retry timeout", () => {
     const svc = new PeerClientService({
       retryIntervalMs: 10,

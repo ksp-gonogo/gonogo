@@ -116,6 +116,25 @@ describe("StationConnectView", () => {
     expect(screen.queryByText(/Check the host ID/i)).toBeNull();
   });
 
+  it("states why it stopped when the host channel never opened, and Connect tries again", async () => {
+    const onConnect = vi.fn();
+    render(
+      <StationConnectView
+        {...baseProps}
+        hostInput="AB3K"
+        connStatus="disconnected"
+        hostChannelFailed
+        onConnect={onConnect}
+      />,
+    );
+    expect(
+      screen.getByText(/Couldn't reach the main screen directly/i),
+    ).not.toBeNull();
+    expect(screen.queryByText(/Connection lost/i)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /^connect$/i }));
+    expect(onConnect).toHaveBeenCalledWith("AB3K");
+  });
+
   it("renders the injected name editor slot", () => {
     render(
       <StationConnectView

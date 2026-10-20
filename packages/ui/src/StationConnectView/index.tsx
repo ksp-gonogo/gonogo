@@ -47,6 +47,8 @@ export interface StationConnectViewProps {
   hostNotFound: boolean;
   /** This browser cannot reach the PeerJS broker at all: unlike `hostNotFound`, nothing about the code is wrong, and the device has no route to the service both ends meet on. */
   brokerUnreachable?: boolean;
+  /** The station stopped retrying: the broker answered but the main screen's data channel never opened, so the two devices have no direct path. Connecting again starts a fresh set of attempts. */
+  hostChannelFailed?: boolean;
   /** This station reached "connected" at least once this session. */
   everConnected: boolean;
   /** Fired on every keystroke in the host-code input. */
@@ -66,6 +68,7 @@ export function StationConnectView({
   connStatus,
   hostNotFound,
   brokerUnreachable = false,
+  hostChannelFailed = false,
   everConnected,
   onHostInputChange,
   onConnect,
@@ -80,6 +83,7 @@ export function StationConnectView({
     progress !== undefined &&
     !brokerUnreachable &&
     !hostNotFound &&
+    !hostChannelFailed &&
     now - progress.startedAt >= CONNECT_STALL_MS;
   return (
     <ConnectLayout as="main" aria-label="Connect to mission control">
@@ -128,8 +132,16 @@ export function StationConnectView({
             tab may be closed/asleep.
           </ErrorMsg>
         )}
+        {!brokerUnreachable && !hostNotFound && hostChannelFailed && (
+          <ErrorMsg role="alert">
+            Couldn&apos;t reach the main screen directly, and no relay is set up
+            for this connection. Move this device onto the same network as the
+            main screen, or set up the relay, then press Connect to try again.
+          </ErrorMsg>
+        )}
         {!brokerUnreachable &&
           !hostNotFound &&
+          !hostChannelFailed &&
           connStatus === "disconnected" && (
             <ErrorMsg>
               Connection lost. Check the host ID and try again.

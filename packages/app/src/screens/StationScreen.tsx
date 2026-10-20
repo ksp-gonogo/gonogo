@@ -89,6 +89,7 @@ export function StationScreen() {
   const [connStatus, setConnStatus] = useState<ConnStatus>("idle");
   const [hostNotFound, setHostNotFound] = useState(false);
   const [brokerUnreachable, setBrokerUnreachable] = useState(false);
+  const [hostChannelFailed, setHostChannelFailed] = useState(false);
   const [progress, setProgress] = useState<ConnectProgress>();
   const [hostInput, setHostInput] = useState(
     localStorage.getItem(HOST_ID_KEY) ?? "",
@@ -240,6 +241,7 @@ export function StationScreen() {
         setBrokerUnreachable(!reachable);
       }),
     );
+    unsubsRef.current.push(client.onHostChannelFailed(setHostChannelFailed));
     // `HOST_ID_KEY` holds the stable share-code. The host's broker peer id
     // is derived from it (`gonogo-host-<code>`) and never changes for a
     // given code, so a refresh re-derives the same target, no persistence
@@ -318,6 +320,7 @@ export function StationScreen() {
                 connStatus={connStatus}
                 hostNotFound={hostNotFound}
                 brokerUnreachable={brokerUnreachable}
+                hostChannelFailed={hostChannelFailed}
                 progress={progress}
                 everConnected={everConnected}
                 onHostInputChange={setHostInput}
