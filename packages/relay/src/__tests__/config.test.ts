@@ -6,7 +6,7 @@ describe("loadConfig", () => {
     const c = loadConfig({});
     expect(c.turnPort).toBe(3478);
     expect(c.turnMinPort).toBe(49160);
-    expect(c.turnMaxPort).toBe(49179);
+    expect(c.turnMaxPort).toBe(49169);
   });
 
   it("offers no TCP relay address unless asked", () => {
