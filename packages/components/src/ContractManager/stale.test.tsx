@@ -129,13 +129,17 @@ describe("ContractManager when career telemetry is held", () => {
       expect(screen.getByText("Orbit Kerbin")).toBeInTheDocument(),
     );
     // The control: without it the assertions below would pass on a widget that marked unconditionally.
-    expect(screen.queryAllByText("OFFLINE")).toHaveLength(0);
+    expect(container.querySelectorAll("[data-held-mark]")).toHaveLength(0);
     expect(screen.getByRole("button", { name: /Cancel/ })).toBeEnabled();
 
     goStale(fixture);
 
-    // One per card, beside its own deadline.
-    expect(screen.getAllByText("OFFLINE")).toHaveLength(2);
+    // One per card, on its own deadline, and never a grade word drawn as a pill of its own.
+    expect(container.querySelectorAll("[data-held-mark]")).toHaveLength(2);
+    expect(
+      screen.getByText("1d left").querySelector("[data-held-mark]"),
+    ).not.toBeNull();
+    expect(screen.queryByText("OFFLINE")).toBeNull();
     // Each command refuses a contract that is gone or no longer in the state it needs, so a held board decides nothing about them.
     expect(screen.getByRole("button", { name: /Cancel/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: /Accept/ })).toBeEnabled();

@@ -171,11 +171,15 @@ describe("PlotBoard", () => {
     render(<Host />);
 
     await waitFor(() => expect(screen.getByText("Shared plot")).toBeTruthy());
-    expect(screen.getByText(heldWord("disconnected"))).toBeTruthy();
+    expect(
+      screen.getByText("Shared plot").querySelector("[data-held-mark]"),
+    ).not.toBeNull();
+    // The title carries the mark; the grade's word is never drawn as a badge of its own.
+    expect(screen.queryByText(heldWord("disconnected"))).toBeNull();
     await act(async () => {});
   });
 
-  it("keeps a plot's heading on one line when a held badge joins it, so the plot under it never moves down", async () => {
+  it("keeps a plot's heading on one line when the held mark joins it, so the plot under it never moves down", async () => {
     registerContribution({
       id: "held-plot",
       contributes: "plots",
@@ -192,13 +196,15 @@ describe("PlotBoard", () => {
 
     render(<Host />);
 
-    const title = await screen.findByText("A long plot title");
+    const title = (await screen.findByText("A long plot title")).closest(
+      '[data-tooltip="A long plot title"]',
+    ) as HTMLElement;
     expect(title.style.whiteSpace).toBe("nowrap");
     expect(title.style.textOverflow).toBe("ellipsis");
     await act(async () => {});
   });
 
-  it("draws no held badge on a plot every contribution draws from current readings", async () => {
+  it("draws no held mark on a plot every contribution draws from current readings", async () => {
     registerContribution({
       id: "current-plot",
       contributes: "plots",
@@ -220,6 +226,9 @@ describe("PlotBoard", () => {
     render(<Host />);
 
     await waitFor(() => expect(screen.getByText("Current plot")).toBeTruthy());
+    expect(
+      screen.getByText("Current plot").querySelector("[data-held-mark]"),
+    ).toBeNull();
     expect(screen.queryByText(heldWord("disconnected"))).toBeNull();
     expect(screen.queryByText(heldWord("held"))).toBeNull();
     await act(async () => {});

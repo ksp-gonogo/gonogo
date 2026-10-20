@@ -10647,6 +10647,10 @@
         "note": "an augment setting field names its kind with SettingKind, the same type a registered setting and a mod settings row use"
       },
       {
+        "key": "ui-kit . Badge",
+        "note": "Takes held, the reading behind the badge or its grade: a held badge keeps its words, reads caution where it was go or info, and carries the held square on its corner"
+      },
+      {
         "key": "ui-kit . COL_WIDTH",
         "note": "Column width of the dashboard grid in px, now 21 beside a 20 px gap (was 32 beside 8)"
       },
@@ -10785,6 +10789,26 @@
       {
         "key": "ui-kit . Grid",
         "note": "its props take a squares layout, equal square cells filling the height the grid is given"
+      },
+      {
+        "key": "ui-kit . HeldBadge",
+        "note": "Removed: a held state is drawn on the badge it belongs to with Badge's held prop, or on a figure with HeldFigure, never as a grade word on its own"
+      },
+      {
+        "key": "ui-kit . HeldBadgeProps",
+        "note": "Removed with HeldBadge"
+      },
+      {
+        "key": "ui-kit . HeldBadgeProps#grade",
+        "note": "Removed with HeldBadge"
+      },
+      {
+        "key": "ui-kit . HeldBadgeProps#size?",
+        "note": "Removed with HeldBadge"
+      },
+      {
+        "key": "ui-kit . HeldBadgeProps#subject?",
+        "note": "Removed with HeldBadge"
       },
       {
         "key": "ui-kit . HeldFigure",
@@ -11911,6 +11935,10 @@
       {
         "key": "sitrep-sdk . MissionMeta#partCount?",
         "note": "New: how many parts a recording is stored in, absent for one"
+      },
+      {
+        "key": "sitrep-sdk . ObjectiveSlotSection#held?",
+        "note": "An objectives source passes the reading its items come from, so each item's state is drawn held while it is"
       },
       {
         "key": "sitrep-sdk . OwnedReckonableValue",
@@ -13339,6 +13367,10 @@
       {
         "key": "sitrep-sdk ./registry ~ObjectiveSlotSection",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ObjectiveSlotSection#held?",
+        "note": "An objectives source passes the reading its items come from, so each item's state is drawn held while it is"
       },
       {
         "key": "sitrep-sdk ./registry ~ObjectiveSlotSection#items",
@@ -15285,6 +15317,10 @@
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
       },
       {
+        "key": "sitrep-sdk ./testing ~ObjectiveSlotSection#held?",
+        "note": "An objectives source passes the reading its items come from, so each item's state is drawn held while it is"
+      },
+      {
         "key": "sitrep-sdk ./testing ~OutstandingCommand",
         "note": "New: one command stored while it is outstanding"
       },
@@ -15951,6 +15987,14 @@
       {
         "key": "ui-kit . AxisScale",
         "note": "linear or log y scale, moved here unchanged"
+      },
+      {
+        "key": "ui-kit . BadgeFace#held?",
+        "note": "The held grade of a held entry, for the badge's held prop; a held entry now keeps its own label and takes its held tone"
+      },
+      {
+        "key": "ui-kit . BadgeProps#held?",
+        "note": "A badge drawn from a held reading keeps its words, takes its held tone and carries the held square on its corner"
       },
       {
         "key": "ui-kit . ButtonProps#disabledReason?",

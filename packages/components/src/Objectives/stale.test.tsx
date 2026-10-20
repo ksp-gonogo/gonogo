@@ -73,7 +73,7 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
 }
 
 describe("Objectives when career telemetry is held", () => {
-  it("keeps the list, its per-objective states, says the board is held, and does not fall back to the empty state", async () => {
+  it("keeps the list, its per-objective states, marks each state held, and does not fall back to the empty state", async () => {
     const fixture = newFixture();
     mount(fixture);
     emitObjectives(fixture);
@@ -81,20 +81,20 @@ describe("Objectives when career telemetry is held", () => {
       expect(screen.getByRole("list", { name: "Objectives" })).toBeTruthy(),
     );
 
-    // Held is said beside the list, and not while the board is current.
-    expect(screen.queryByText("OFFLINE")).toBeNull();
+    const list = () => screen.getByRole("list", { name: "Objectives" });
+    // Held is marked on each objective's state, and not while the board is current.
+    expect(list().querySelectorAll("[data-held-mark]")).toHaveLength(0);
 
     goStale(fixture);
 
-    expect(screen.getByText("OFFLINE")).toBeInTheDocument();
+    expect(list().querySelectorAll("[data-held-mark]")).toHaveLength(2);
+    expect(screen.queryByText("OFFLINE")).toBeNull();
     expect(screen.getByText("Reach the Mun")).toBeInTheDocument();
     expect(screen.getByText("Return home safely")).toBeInTheDocument();
     expect(screen.getByText("reached")).toBeInTheDocument();
     expect(screen.getByText("pending")).toBeInTheDocument();
     // The fallback is hidden by a CSS rule jsdom does not evaluate, so the list is the evidence.
-    expect(
-      screen.getByRole("list", { name: "Objectives" }).children,
-    ).toHaveLength(2);
+    expect(list().children).toHaveLength(2);
   });
 
   it("still says it is awaiting contract data when none ever arrived", async () => {

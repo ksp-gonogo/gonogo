@@ -362,7 +362,6 @@ export {
   gridToPixels,
   ROW_HEIGHT,
 } from "./gridUnits";
-export { HeldBadge, type HeldBadgeProps } from "./HeldBadge";
 export { HeldFigure, type HeldFigureProps, ReckoningMark } from "./HeldMark";
 export { HoverCard, type HoverCardProps } from "./HoverCard";
 export {
