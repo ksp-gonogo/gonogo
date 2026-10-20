@@ -1,6 +1,7 @@
 import {
   act,
   clearActionHandlers,
+  screen,
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -110,17 +111,24 @@ describe("RoboticsConsole: a servo list that has stopped arriving", () => {
     expect(visibleText(container)).not.toContain("No robotic parts");
   });
 
-  it("says the flags and the target stepper's figure are held, since they are plain text", async () => {
+  it("marks the toggles whose flags are held and the target stepper's figure", async () => {
     const { fixture, container } = mountWithHinge("rc-stale-badge");
     await waitFor(() => expect(visibleText(container)).toContain("22°"));
-    expect(visibleText(container)).not.toContain("OFFLINE");
+    const motorMark = () =>
+      screen
+        .getByRole("button", { name: /Motor/ })
+        .querySelector("[data-held-mark]");
+    // The control: current flags carry no mark.
+    expect(motorMark()).toBeNull();
 
     act(() => {
       fixture.store.setTransportConnected(false);
       fixture.store.beginFrame();
     });
 
-    await waitFor(() => expect(visibleText(container)).toContain("OFFLINE"));
+    // The flags are the toggles' words, so each toggle carries the mark, and no grade word is drawn on its own.
+    await waitFor(() => expect(motorMark()).not.toBeNull());
+    expect(screen.queryByText("OFFLINE")).toBeNull();
     // The stepper's target is a figure of its own, marked where it is drawn.
     const stepper = Array.from(
       container.querySelectorAll("[data-figure]"),

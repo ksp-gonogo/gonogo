@@ -90,7 +90,7 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
 }
 
 describe("PowerSystems when vessel.parts is held", () => {
-  it("keeps every rate and says the read behind them has stopped", async () => {
+  it("keeps every rate and marks the read behind them as stopped", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -101,14 +101,16 @@ describe("PowerSystems when vessel.parts is held", () => {
     });
     await waitFor(() => expect(visibleText(container)).toContain("-6.00"));
     // The control: a live widget carries no mark.
-    expect(screen.queryByText("OFFLINE")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
 
     goStale(fixture);
 
     // Held, not withheld. A blank NET would say the vessel has no load.
     expect(visibleText(container)).toContain("-6.00");
     expect(visibleText(container)).toContain("+0.75");
-    expect(screen.getByText("OFFLINE")).toBeTruthy();
+    // The figures carry the held mark, and no grade word is drawn as a badge of its own.
+    expect(container.querySelector("[data-held]")).not.toBeNull();
+    expect(screen.queryByText("OFFLINE")).toBeNull();
   });
 
   it("marks the per-part efficiency figures on the figures themselves", async () => {
