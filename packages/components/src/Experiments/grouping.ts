@@ -99,19 +99,39 @@ export function groupContributed(
   }));
 }
 
+/**
+ * The vessel's instrument totals. A continuous instrument is counted as running
+ * or not, never as deployed, since it has no deploy.
+ */
 export function summarise(instruments: Instrument[]): {
   total: number;
   hasData: number;
   deployed: number;
   inoperable: number;
+  running: number;
+  continuous: number;
 } {
   let hasData = 0;
   let deployed = 0;
   let inoperable = 0;
+  let running = 0;
+  let continuous = 0;
   for (const inst of instruments) {
     if (inst.hasData) hasData++;
-    if (inst.deployed) deployed++;
     if (inst.inoperable) inoperable++;
+    if (inst.continuous === true) {
+      continuous++;
+      if (inst.running === true) running++;
+      continue;
+    }
+    if (inst.deployed) deployed++;
   }
-  return { total: instruments.length, hasData, deployed, inoperable };
+  return {
+    total: instruments.length,
+    hasData,
+    deployed,
+    inoperable,
+    running,
+    continuous,
+  };
 }

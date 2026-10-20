@@ -56,3 +56,63 @@ describe("parseLab", () => {
     ]);
   });
 });
+
+describe("parseInstruments continuous state", () => {
+  it("carries the run state a continuous instrument states and leaves an absent one undefined", () => {
+    const parsed = parseInstruments([
+      {
+        partId: 1,
+        deployed: null,
+        continuous: true,
+        running: true,
+        producing: false,
+        runIssue: "No electric charge",
+      },
+      { partId: 2, continuous: false, running: null, runIssue: null },
+      { partId: 3 },
+    ]);
+    expect(parsed?.[0]).toMatchObject({
+      deployed: false,
+      continuous: true,
+      running: true,
+      producing: false,
+      runIssue: "No electric charge",
+    });
+    expect(parsed?.[1]).toMatchObject({
+      continuous: false,
+      running: undefined,
+      runIssue: undefined,
+    });
+    expect(parsed?.[2]?.continuous).toBeUndefined();
+  });
+});
+
+describe("parseLab run state", () => {
+  it("carries the lab part, whether research is on, whether it produces, and why not", () => {
+    const [lab] = parseLab([
+      {
+        partId: "2001",
+        partName: "Mobile Processing Lab",
+        running: true,
+        producing: false,
+        runIssue: "Not enough power",
+      },
+    ]) ?? [null];
+    expect(lab).toMatchObject({
+      partId: "2001",
+      running: true,
+      producing: false,
+      runIssue: "Not enough power",
+    });
+  });
+
+  it("keeps an unread run state null rather than off", () => {
+    const [lab] = parseLab([{ partName: "Lab" }]) ?? [null];
+    expect(lab).toMatchObject({
+      partId: null,
+      running: null,
+      producing: null,
+      runIssue: null,
+    });
+  });
+});

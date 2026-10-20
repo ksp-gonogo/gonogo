@@ -1,7 +1,10 @@
 import type { HeldGrade } from "@ksp-gonogo/sitrep-client";
+import type { CommandReply } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Cluster,
+  CommandButton,
+  type CommandButtonHandle,
   Divider,
   HeldBadge,
   Inline,
@@ -9,6 +12,7 @@ import {
   type Severity,
   Stack,
   Text,
+  Tooltip,
 } from "@ksp-gonogo/ui-kit";
 import type { LabStatus } from "./parse";
 
@@ -21,14 +25,27 @@ function operationalBadge(isOperational: boolean | null): {
   return { severity: "nogo", label: "OFFLINE" };
 }
 
+/** The one sentence on a lab card for each run state: producing, switched on and idle, or off. */
+const RUN_MEANING = {
+  running: "Research is switched on and generating science",
+  runningIdle: "Research is switched on, but not generating science right now",
+  stopped: "Research is switched off",
+} as const;
+
 /** Mobile Processing Lab status. Renders nothing while loading or when the vessel carries no lab. */
 export function LabSection({
   labs,
   heldGrade: labGrade,
+  startCmd,
+  stopCmd,
 }: {
   labs: LabStatus[] | null;
   /** `science.lab` stopped arriving: every badge and count below is held. */
   heldGrade: HeldGrade | undefined;
+  /** The lab start command. Omit for a read-only listing. */
+  startCmd?: CommandButtonHandle<CommandReply<"science.lab.start">>;
+  /** The lab stop command. Omit for a read-only listing. */
+  stopCmd?: CommandButtonHandle<CommandReply<"science.lab.stop">>;
 }) {
   if (labs === null || labs.length === 0) return null;
   return (
@@ -49,7 +66,45 @@ export function LabSection({
                   )}
                 </Inline>
               </Cluster>
-              <Inline>
+              <Inline wrap>
+                {lab.running === true && (
+                  <Tooltip
+                    text={
+                      lab.producing === false
+                        ? RUN_MEANING.runningIdle
+                        : RUN_MEANING.running
+                    }
+                  >
+                    <Badge tone={lab.producing === false ? "caution" : "go"}>
+                      RUNNING
+                    </Badge>
+                  </Tooltip>
+                )}
+                {lab.running === false && (
+                  <Tooltip text={RUN_MEANING.stopped}>
+                    <Badge>STOPPED</Badge>
+                  </Tooltip>
+                )}
+                {lab.partId !== null && lab.running === false && startCmd && (
+                  <CommandButton
+                    size="sm"
+                    handle={startCmd}
+                    args={{ partId: lab.partId }}
+                    commandLabel={`Start research on ${lab.partName}`}
+                    label="Start research"
+                    pendingLabel="Starting..."
+                  />
+                )}
+                {lab.partId !== null && lab.running === true && stopCmd && (
+                  <CommandButton
+                    size="sm"
+                    handle={stopCmd}
+                    args={{ partId: lab.partId }}
+                    commandLabel={`Stop research on ${lab.partName}`}
+                    label="Stop research"
+                    pendingLabel="Stopping..."
+                  />
+                )}
                 {lab.scientistCount !== null && (
                   <Text level="muted" size="xs">
                     {lab.scientistCount} scientist
@@ -68,6 +123,11 @@ export function LabSection({
                   </Text>
                 )}
               </Inline>
+              {lab.running === true && lab.runIssue !== null && (
+                <Text level="muted" size="xs">
+                  {lab.runIssue}
+                </Text>
+              )}
             </Stack>
           );
         })}

@@ -298,6 +298,47 @@ public class InstrumentEntry
     [SitrepUnit(Units.Flag)]
     public bool? DataIsCollectable { get; set; }
 
+    /// <summary>
+    /// Whether the instrument runs over time once switched on, rather than
+    /// being deployed once. A continuous instrument has no deploy or transmit:
+    /// it is started and stopped with <c>science.experiment.start</c> and
+    /// <c>science.experiment.stop</c>, and its <see cref="Deployed"/> is
+    /// <c>null</c>. Stock writes <c>false</c> for every experiment. <c>null</c>
+    /// is the one-shot model, so a provider that never sets it changes
+    /// nothing.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Continuous { get; set; }
+
+    /// <summary>
+    /// Whether a continuous instrument is switched on, whether or not it is
+    /// producing right now. <c>null</c> on an instrument that is not
+    /// continuous or whose state is unknown, which is neither answer: a client
+    /// then offers neither Start nor Stop.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Running { get; set; }
+
+    /// <summary>
+    /// Whether a continuous instrument is generating science right now. An
+    /// instrument can be <see cref="Running"/> and not producing, for example
+    /// with no electric charge or with its subject exhausted, so this is the
+    /// field a client branches on to tell a working instrument from an idle
+    /// one. <c>null</c> where the provider cannot say.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Producing { get; set; }
+
+    /// <summary>
+    /// Why a switched-on instrument is not producing, in the provider's own
+    /// words, for display. <c>null</c> when nothing is in the way. Prose in
+    /// the game's language, so never branch on it, and never a signal or
+    /// return fact: it answers why nothing is being generated, not why
+    /// nothing is arriving home.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? RunIssue { get; set; }
+
     /// <summary> The provider-namespaced extension bag, instrument half. Same
     /// mechanism and same rule as <see cref="ExperimentEntry.Extensions"/>.
     /// This payload carries no number whose meaning depends on the value model
@@ -407,6 +448,32 @@ public class LabEntry
     /// <c>ModuleScienceLab.IsOperational()</c>).</summary>
     [SitrepUnit(Units.Flag)]
     public bool? IsOperational { get; set; }
+
+    /// <summary>
+    /// Whether the lab's research is switched on (KSP's
+    /// <c>BaseConverter.IsActivated</c> on the lab's converter), whether or
+    /// not it is producing. <see cref="ProcessingData"/> is not this: it
+    /// means a data transfer into the lab is in progress. <c>null</c> when the
+    /// lab has no converter or it could not be read. Switched with
+    /// <c>science.lab.start</c> and <c>science.lab.stop</c>.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Running { get; set; }
+
+    /// <summary>
+    /// Whether the lab is turning stored data into science right now: switched
+    /// on, operational, holding data and below its science cap. <c>null</c>
+    /// where it could not be read.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Producing { get; set; }
+
+    /// <summary>
+    /// Why a switched-on lab is not producing, in the game's own words, for
+    /// display. <c>null</c> when nothing is in the way. Never branch on it.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? RunIssue { get; set; }
 
     /// <summary>
     /// Which value model produced <see cref="ScienceRate"/> and

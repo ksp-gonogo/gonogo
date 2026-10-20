@@ -326,6 +326,8 @@ public static class RtConfig
                 typeof(SensorEntry),
                 // science.experiment.transmit reply payload
                 typeof(ScienceTransmission),
+                // science.experiment.start/stop and science.lab.start/stop reply payload
+                typeof(RunStateChange),
                 // system.log.recent args and reply payload
                 typeof(RecentLogArgs),
                 typeof(RecentLog),

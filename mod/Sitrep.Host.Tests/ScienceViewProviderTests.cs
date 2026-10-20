@@ -210,6 +210,44 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildInstrumentsAndLabCarryTheRunStateTheCaptureWrote()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["science"] = new Dictionary<string, object?>
+                    {
+                        ["instruments"] = new List<object?>
+                        {
+                            new Dictionary<string, object?> { ["partId"] = "1", ["continuous"] = false },
+                        },
+                        ["lab"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["partId"] = "2",
+                                ["running"] = true,
+                                ["producing"] = false,
+                                ["runIssue"] = "Not enough power",
+                            },
+                        },
+                    },
+                },
+            };
+
+            var instrument = Assert.Single(ScienceViewProvider.BuildInstruments(snapshot)!);
+            Assert.Equal(false, instrument.Continuous);
+            Assert.Null(instrument.Running);
+
+            var lab = Assert.Single(ScienceViewProvider.BuildLab(snapshot)!);
+            Assert.Equal(true, lab.Running);
+            Assert.Equal(false, lab.Producing);
+            Assert.Equal("Not enough power", lab.RunIssue);
+        }
+
+        [Fact]
         public void ASubGroupPresentWithNoValueIsAnEmptyListNotAbsence()
         {
             var snapshot = new KspSnapshot

@@ -71,6 +71,11 @@ namespace Sitrep.Host.Tests
             nameof(InstrumentEntry.Rerunnable),
             nameof(InstrumentEntry.Resettable),
             nameof(InstrumentEntry.DataIsCollectable),
+            // Source-agnostic run state: every science backend either has continuous instruments or states that it has none.
+            nameof(InstrumentEntry.Continuous),
+            nameof(InstrumentEntry.Running),
+            nameof(InstrumentEntry.Producing),
+            nameof(InstrumentEntry.RunIssue),
             nameof(InstrumentEntry.Extensions),
         };
 
@@ -88,6 +93,10 @@ namespace Sitrep.Host.Tests
             // Stock's own lab rule (ModuleScienceConverter.scienceCap): every lab stops generating at its cap.
             nameof(LabEntry.ScienceCap),
             nameof(LabEntry.IsOperational),
+            // Source-agnostic run state: stock and any modelled lab are both switched on and off.
+            nameof(LabEntry.Running),
+            nameof(LabEntry.Producing),
+            nameof(LabEntry.RunIssue),
             nameof(LabEntry.ValueModel),
             nameof(LabEntry.Extensions),
         };

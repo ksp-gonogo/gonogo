@@ -5,13 +5,16 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Deploy or transmit a science experiment on a part. Args shared by every science-experiment actuation command
-/// (<c>science.experiment.deploy</c> and <c>science.experiment.transmit</c>):
-/// the experiment is named by <see cref="PartId"/>, the part's flight id as a
+/// Act on a science experiment or lab on a part. Args shared by every science actuation command
+/// (<c>science.experiment.deploy</c>, <c>science.experiment.transmit</c>,
+/// <c>science.experiment.start</c>, <c>science.experiment.stop</c>,
+/// <c>science.lab.start</c> and <c>science.lab.stop</c>):
+/// the part is named by <see cref="PartId"/>, the part's flight id as a
 /// string, the same id <c>science.instruments</c> carries
 /// on each experiment entry. It is looked up among the active vessel's parts,
 /// never by array index. An empty or unknown <see cref="PartId"/> fails with
-/// <see cref="CommandErrorCode.NotFound"/>.
+/// <see cref="CommandErrorCode.NotFound"/>. The lab commands act on the lab on
+/// the part and ignore <see cref="ExperimentId"/>.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -20,6 +23,10 @@ namespace Sitrep.Contract;
 #endif
 [SitrepCommand("science.experiment.deploy", Summary = "Deploy a science experiment on a part.")]
 [SitrepCommand("science.experiment.transmit", Payload = typeof(ScienceTransmission), Summary = "Transmit a science experiment's data home.")]
+[SitrepCommand("science.experiment.start", Payload = typeof(RunStateChange), Summary = "Switch a continuous science instrument on.")]
+[SitrepCommand("science.experiment.stop", Payload = typeof(RunStateChange), Summary = "Switch a continuous science instrument off.")]
+[SitrepCommand("science.lab.start", Payload = typeof(RunStateChange), Summary = "Start a Mobile Processing Lab's research.")]
+[SitrepCommand("science.lab.stop", Payload = typeof(RunStateChange), Summary = "Stop a Mobile Processing Lab's research.")]
 public class ExperimentActionArgs
 {
     /// <summary>
@@ -30,6 +37,44 @@ public class ExperimentActionArgs
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string PartId { get; set; } = "";
+
+    /// <summary>
+    /// Which experiment on the part is meant, as the <c>experimentId</c> of its
+    /// <c>science.instruments</c> entry. Optional: an empty value means the
+    /// part's only candidate. A part can carry several experiments, so
+    /// <c>science.experiment.start</c> and <c>science.experiment.stop</c> are
+    /// refused with <see cref="CommandErrorCode.NotFound"/> when this is empty
+    /// and the part holds more than one continuous experiment. Deploy and
+    /// transmit take the first eligible experiment when it is empty. An id the
+    /// part does not carry fails with <see cref="CommandErrorCode.NotFound"/>.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? ExperimentId { get; set; }
+}
+
+/// <summary>
+/// What <c>science.experiment.start</c>, <c>science.experiment.stop</c>,
+/// <c>science.lab.start</c> and <c>science.lab.stop</c> answer with: whether
+/// the press changed anything. Start and stop are idempotent, so a press on
+/// something already in the requested state succeeds with
+/// <see cref="Changed"/> false rather than refusing, and a command that
+/// reaches the craft after the state changed on its own tells the operator
+/// so instead of reporting a start that did nothing.
+/// </summary>
+/// <category>Science</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class RunStateChange
+{
+    /// <summary>Whether the command switched the instrument or lab. False when it was already in the requested state ("already running", "already stopped").</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool Changed { get; set; }
+
+    /// <summary>Whether the instrument or lab is switched on after the command.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool Running { get; set; }
 }
 
 /// <summary>

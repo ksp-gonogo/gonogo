@@ -45,6 +45,57 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void TheExperimentIdReachesTheActuatorAndAnEmptyOneIsNoNarrowing()
+        {
+            var actuator = new FakeScienceActuator();
+
+            ScienceCommandProvider.HandleDeploy(actuator, new ExperimentActionArgs { PartId = "1", ExperimentId = "crewReport" });
+            Assert.Equal("crewReport", actuator.LastDeployExperimentId);
+
+            ScienceCommandProvider.HandleTransmit(actuator, new ExperimentActionArgs { PartId = "1", ExperimentId = "" });
+            Assert.Null(actuator.LastTransmitExperimentId);
+        }
+
+        [Fact]
+        public void AStockExperimentRefusesStartAndStopBecauseItIsNotContinuous()
+        {
+            var start = ScienceCommandProvider.HandleExperimentRunNotContinuous(new ExperimentActionArgs { PartId = "12345" });
+
+            Assert.False(start.Success);
+            Assert.Equal(CommandErrorCode.CapabilityMismatch, start.ErrorCode);
+        }
+
+        [Fact]
+        public void AStartOrStopWithNoPartIsNotFound()
+        {
+            var result = ScienceCommandProvider.HandleExperimentRunNotContinuous(new ExperimentActionArgs { PartId = "" });
+
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
+            var actuator = new FakeScienceActuator();
+            Assert.Equal(CommandErrorCode.NotFound, ScienceCommandProvider.HandleStartLab(actuator, new ExperimentActionArgs()).ErrorCode);
+            Assert.Equal(CommandErrorCode.NotFound, ScienceCommandProvider.HandleStopLab(actuator, new ExperimentActionArgs()).ErrorCode);
+            Assert.Null(actuator.LastStartLabPartId);
+            Assert.Null(actuator.LastStopLabPartId);
+        }
+
+        [Fact]
+        public void TheLabCommandsReachTheLabActuatorAndHandBackWhetherAnythingChanged()
+        {
+            var actuator = new FakeScienceActuator
+            {
+                StartLabResult = CommandResult<RunStateChange>.Ok(new RunStateChange { Changed = false, Running = true }),
+            };
+
+            var started = ScienceCommandProvider.HandleStartLab(actuator, new ExperimentActionArgs { PartId = "2001" });
+            var stopped = ScienceCommandProvider.HandleStopLab(actuator, new ExperimentActionArgs { PartId = "2002" });
+
+            Assert.Equal("2001", actuator.LastStartLabPartId);
+            Assert.Equal("2002", actuator.LastStopLabPartId);
+            Assert.False(Assert.IsType<CommandResult<RunStateChange>>(started).Payload!.Changed);
+            Assert.True(Assert.IsType<CommandResult<RunStateChange>>(stopped).Payload!.Changed);
+        }
+
+        [Fact]
         public void HandleTransmitHandsBackTheActuatorsTransmissionPayload()
         {
             var transmission = new ScienceTransmission { SubjectId = "crewReport@KerbinSrfLandedShores", StartedAt = 1000, StreamSeconds = 1.05 };
