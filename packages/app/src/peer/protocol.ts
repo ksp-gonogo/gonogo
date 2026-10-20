@@ -84,6 +84,10 @@ export type PeerMessage =
      One station identity holds one live connection, so the page told this
      stops reconnecting until its operator takes the station back. */
   | { type: "station-superseded" }
+  /* Host → every station, on a fixed beat while the connection is open. A
+     station that hears nothing from the host for `HOST_SILENCE_MS` treats the
+     link as lost, whatever the browser's connection state still says. */
+  | { type: "host-heartbeat" }
   /* Station → host, the first message on every connection: the station's
      secret, which the host remembers its approval against. A station that
      sends none reads but is never approved. */
@@ -551,6 +555,12 @@ export type PeerMessage =
  * A frame with no `type` reaches no handler, and dropping it here is the same
  * outcome the dispatcher's default arm reaches, stated once.
  */
+/** How often the host sends a station a `host-heartbeat`. */
+export const HOST_HEARTBEAT_MS = 2_000;
+
+/** How long a station goes without hearing the host before it reports the link lost. */
+export const HOST_SILENCE_MS = 6_000;
+
 export function asPeerMessage(raw: unknown): PeerMessage | null {
   if (typeof raw !== "object" || raw === null) return null;
   return typeof Reflect.get(raw, "type") === "string"

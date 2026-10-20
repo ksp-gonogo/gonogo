@@ -26,7 +26,7 @@ import { fetchHostIceServers, STUN_SERVERS, withStun } from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { PeerMessage } from "./protocol";
-import { asPeerMessage } from "./protocol";
+import { asPeerMessage, HOST_HEARTBEAT_MS } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
 import { stationApprovals } from "./stationApprovals";
 import { TypedListeners } from "./typedListeners";
@@ -603,6 +603,7 @@ export class PeerHostService {
   // rebuild of the relay container silently breaks new TURN allocations
   // until the operator hard-refreshes the host page.
   private iceConfigRefreshTimer: ReturnType<typeof setInterval> | null = null;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   // Best-effort relay bookkeeping: the analytics-consent POST and the
   // periodic heartbeat that re-asserts it. The heartbeat starts on the first
   // PeerJS open and stops in stop().
@@ -653,6 +654,7 @@ export class PeerHostService {
     // Peer's config at start() time would silently fail (401) on any
     // subsequent TURN allocation.
     this.startIceConfigRefresh();
+    this.startHeartbeat();
     // An approval can land while its station waits: from the prompt, or from another tab of this main screen sharing the store.
     this.approvalsUnsub ??= stationApprovals.subscribe(() => {
       for (const conn of [...this.waiting]) this.serveIfApproved(conn);
@@ -2725,6 +2727,7 @@ export class PeerHostService {
     this.flightListChangeUnsub?.();
     this.flightListChangeUnsub = null;
     this.stopIceConfigRefresh();
+    this.stopHeartbeat();
     this.relayRegistration.stopHeartbeat();
     this.detachLifecycleListeners();
     if (this.brokerReconnectTimer !== null) {
@@ -2786,6 +2789,22 @@ export class PeerHostService {
     const code = this.shareCode;
     queueMicrotask(() => cb(code));
     return unsub;
+  }
+
+  private startHeartbeat(): void {
+    if (this.heartbeatTimer) return;
+    this.heartbeatTimer = setInterval(() => {
+      for (const conn of [...this.connections, ...this.waiting]) {
+        if (!conn.open) continue;
+        conn.send({ type: "host-heartbeat" } satisfies PeerMessage);
+      }
+    }, HOST_HEARTBEAT_MS);
+  }
+
+  private stopHeartbeat(): void {
+    if (!this.heartbeatTimer) return;
+    clearInterval(this.heartbeatTimer);
+    this.heartbeatTimer = null;
   }
 
   private stopIceConfigRefresh(): void {

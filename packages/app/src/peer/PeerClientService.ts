@@ -10,7 +10,7 @@ import { STUN_SERVERS, withStun } from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
-import { asPeerMessage } from "./protocol";
+import { asPeerMessage, HOST_SILENCE_MS } from "./protocol";
 import { RequestTracker } from "./RequestTracker";
 import { RetryPolicy } from "./RetryPolicy";
 import {
@@ -152,6 +152,8 @@ type ClientEventMap = {
 export class PeerClientService {
   private peer: Peer | null = null;
   private conn: DataConnection | null = null;
+  private lastHostMessageAt = 0;
+  private silenceTimer: ReturnType<typeof setInterval> | null = null;
   /** The host's broker peer id, derived from the operator-typed share-code
    *  (`gonogo-host-<CODE>`) in `connect()`. Stable across the session and
    *  read by `openPeer()` as the reconnect target, a host that refreshed
@@ -420,9 +422,11 @@ export class PeerClientService {
       // PeerClientDataSource are then respected per peer.
       this.sendDataMode("selective");
       this.emitConnStatus("connected");
+      this.watchForSilence();
     });
     conn.on("data", (raw) => {
       if (!current()) return;
+      this.lastHostMessageAt = Date.now();
       const msg = asPeerMessage(raw);
       if (msg) this.handleMessage(msg);
     });
@@ -437,7 +441,27 @@ export class PeerClientService {
     });
   }
 
+  /**
+   * Reports the link lost once the host has been silent for `HOST_SILENCE_MS`.
+   * A path that dies without the browser noticing leaves the data channel
+   * open and the figures frozen, so the host's heartbeat is the only sign the
+   * link is alive.
+   */
+  private watchForSilence(): void {
+    this.lastHostMessageAt = Date.now();
+    if (this.silenceTimer !== null) clearInterval(this.silenceTimer);
+    this.silenceTimer = setInterval(() => {
+      if (Date.now() - this.lastHostMessageAt < HOST_SILENCE_MS) return;
+      logger.warn("[PeerClient] host went silent: reconnecting");
+      this.retryPolicy.handleUnexpectedClose();
+    }, 1_000);
+  }
+
   private tearDownPeer() {
+    if (this.silenceTimer !== null) {
+      clearInterval(this.silenceTimer);
+      this.silenceTimer = null;
+    }
     // Cleared before closing, so the events closing emits find no current connection to fail.
     const conn = this.conn;
     const peer = this.peer;
@@ -1298,6 +1322,7 @@ export class PeerClientService {
     "relay-ice-servers": (msg) => {
       this.applyRelayIceServers(msg.iceServers);
     },
+    "host-heartbeat": () => {},
     "station-superseded": () => {
       logger.info("[PeerClient] station taken over by another page");
       // No retry: reconnecting would take the station straight back from the page that now holds it.
