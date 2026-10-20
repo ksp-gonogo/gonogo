@@ -18,7 +18,6 @@ import {
 } from "../peer/connectionPath";
 import { peerHostService } from "../peer/PeerHostService";
 import { probeTurn, type TurnProbeResult } from "../peer/probeTurn";
-import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
 import { VERSION } from "../version";
 import { stationAddresses } from "./stationAddresses";
 
@@ -72,12 +71,7 @@ function StationLinkPanel() {
   // null), but the share code IS valid, show it with a clear status so the
   // operator can already share the link; stations retry until the host's back.
   if (!peerId && !reclaiming) {
-    return (
-      <Wrap>
-        <StationApprovalPrompt host={peerHostService} />
-        <Empty>Connecting to peer network...</Empty>
-      </Wrap>
-    );
+    return <Empty>Connecting to peer network...</Empty>;
   }
 
   const { addresses, qr } = stationAddresses({
@@ -90,8 +84,6 @@ function StationLinkPanel() {
 
   return (
     <Wrap>
-      {/* The banner strip sits under the modal overlay, so a request is answered here while the panel is open. */}
-      <StationApprovalPrompt host={peerHostService} />
       {reclaiming && (
         <StatusIndicator tone="info" live>
           Reclaiming your share code after an unexpected restart, stations
