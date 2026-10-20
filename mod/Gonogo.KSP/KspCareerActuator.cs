@@ -306,8 +306,10 @@ namespace Gonogo.KSP
             // affordability, which is the order RDTech.ResearchTech uses, so an
             // operator who is both short and over the limit is told the same
             // thing the game would have told them.
+            // No facilities scenario means no R&D tier to be limited by (a science
+            // game), and reading tier zero there would refuse every costly node.
             var gameVariables = GameVariables.Instance;
-            if (gameVariables != null)
+            if (gameVariables != null && ScenarioUpgradeableFacilities.Instance != null)
             {
                 var overLimit = CareerRefusals.ScienceCostBreach(
                     rndFacility.ToString(), FacilityDisplayName(rndFacility), rndNorm,

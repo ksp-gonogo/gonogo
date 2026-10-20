@@ -118,12 +118,24 @@ namespace Gonogo.KSP.Gates
     /// Authority: <c>HighLogic.CurrentGame.Mode</c> (<c>Game.Modes</c>).
     ///
     /// <para><see cref="CommandRequirement.Quantity"/> is the mode the command
-    /// needs, e.g. <c>CAREER</c>. This is a permanent property of the save
+    /// needs, e.g. <c>CAREER</c>, or several joined by <c>|</c> when more than
+    /// one has what the command needs. This is a permanent property of the save
     /// rather than a state that changes, which is precisely why it belongs on a
     /// gate: a career control in a sandbox game should never be live.</para>
     /// </summary>
     internal sealed class GameModeGate : ICommandGateEvaluator
     {
+        /// <summary>Separates the modes a requirement accepts when one mode is not the whole answer.</summary>
+        public const string Alternatives = "|";
+
+        private readonly Func<Game.Modes?> _gameMode;
+
+        /// <summary>The live read, replaceable for a headless test.</summary>
+        public GameModeGate(Func<Game.Modes?>? gameMode = null)
+        {
+            _gameMode = gameMode ?? FacilityGateHelp.CurrentGameMode;
+        }
+
         public string Kind => KspGateEvaluators.Kinds.GameMode;
 
         public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
@@ -131,23 +143,23 @@ namespace Gonogo.KSP.Gates
             Game.Modes actual;
             try
             {
-                var game = HighLogic.CurrentGame;
-                if (game == null) return GateVerdict.Unknown("no game is loaded");
-                actual = game.Mode;
+                var mode = _gameMode();
+                if (mode == null) return GateVerdict.Unknown("no game is loaded");
+                actual = mode.Value;
             }
             catch (Exception ex)
             {
                 return GateVerdict.Unknown("could not read the game mode: " + ex.Message);
             }
 
-            var required = requirement.Quantity ?? "";
-            if (string.Equals(actual.ToString(), required, StringComparison.OrdinalIgnoreCase))
+            var accepted = (requirement.Quantity ?? "").Split(new[] { Alternatives }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var name in accepted)
             {
-                return GateVerdict.Pass();
+                if (string.Equals(actual.ToString(), name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return GateVerdict.Pass();
+                }
             }
-            // Career and science both have an R&D tree and a Mission Control, so
-            // a command needing "CAREER" is genuinely refused in SCIENCE_SANDBOX
-            // and the mode names say which.
             return GateVerdict.Fail(
                 CommandErrorCode.CareerModeRequired,
                 $"this save is a {GameWords.Phrase(actual)} game");

@@ -23,6 +23,20 @@ namespace Gonogo.KSP.Gates
             Quantity = Game.Modes.CAREER.ToString(),
         };
 
+        /// <summary>The save has a research tree and science points: a career or a science game.</summary>
+        public static CommandRequirement ResearchMode => new CommandRequirement
+        {
+            Kind = KspGateEvaluators.Kinds.GameMode,
+            Quantity = string.Join(
+                GameModeGate.Alternatives,
+                Game.Modes.CAREER.ToString(),
+                Game.Modes.SCIENCE_SANDBOX.ToString()),
+        };
+
+        /// <summary>Whether this mode has a research tree and science points (career and science, not sandbox).</summary>
+        public static bool HasResearchTree(Game.Modes? mode) =>
+            mode == Game.Modes.CAREER || mode == Game.Modes.SCIENCE_SANDBOX;
+
         /// <summary>A <c>GameVariables</c> limit at one facility's current tier.</summary>
         public static CommandRequirement FacilityLimit(SpaceCenterFacility facility, string quantity) =>
             new CommandRequirement

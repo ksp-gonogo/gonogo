@@ -36,7 +36,8 @@ namespace Gonogo.KSP.Gates
         {
             var table = new Dictionary<string, CommandRequirement[]>();
 
-            // Every career-write command needs a career save. That is a
+            // Every career-write command except tech research needs a career
+            // save (research also runs in a science game). That is a
             // permanent property of the game rather than a state that changes,
             // and undeclared it arrives as the same ModeUnavailable as "the
             // crew cap is full", leaving an operator unable to tell a control
@@ -45,7 +46,6 @@ namespace Gonogo.KSP.Gates
             {
                 CareerCommandProvider.ActivateStrategyCommand,
                 CareerCommandProvider.DeactivateStrategyCommand,
-                CareerCommandProvider.UnlockTechCommand,
                 CareerCommandProvider.AcceptContractCommand,
                 CareerCommandProvider.DeclineContractCommand,
                 CareerCommandProvider.CancelContractCommand,
@@ -91,7 +91,7 @@ namespace Gonogo.KSP.Gates
             };
             table[CareerCommandProvider.UnlockTechCommand] = new[]
             {
-                CareerGates.CareerMode,
+                CareerGates.ResearchMode,
                 ItemGates.For(ItemGates.Kinds.TechUnlock, ItemGates.Arguments.TechId),
             };
             table[CareerCommandProvider.DeactivateStrategyCommand] = new[]

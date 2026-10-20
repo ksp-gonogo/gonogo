@@ -642,6 +642,42 @@ namespace Sitrep.Host.Tests
             Assert.Equal(expectedMax, parameter["maxAltitude"]);
         }
 
+        [Fact]
+        public void AScienceSaveReportsTheTechTreeAndScienceAndNothingOfTheEconomy()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 100.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["career"] = new Dictionary<string, object?>
+                    {
+                        ["balances"] = new Dictionary<string, object?>
+                        {
+                            ["funds"] = null,
+                            ["reputation"] = null,
+                            ["science"] = 42.0,
+                        },
+                        ["tech"] = new Dictionary<string, object?>
+                        {
+                            ["unlockedCount"] = 1,
+                            ["unlockedIds"] = new List<object?> { "start" },
+                        },
+                    },
+                },
+            };
+
+            var status = Assert.IsType<Dictionary<string, object?>>(CareerViewProvider.BuildCareer(snapshot));
+
+            var balances = Assert.IsType<Dictionary<string, object?>>(status["balances"]);
+            Assert.Equal(42.0, balances["science"]);
+            Assert.Null(balances["funds"]);
+            Assert.Null(balances["reputation"]);
+            Assert.NotNull(status["tech"]);
+            Assert.Null(status["contracts"]);
+            Assert.Null(status["strategies"]);
+        }
+
         [Theory]
         [InlineData("SANDBOX", GameMode.Sandbox)]
         [InlineData("CAREER", GameMode.Career)]

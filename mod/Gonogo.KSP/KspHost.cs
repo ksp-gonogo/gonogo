@@ -4259,18 +4259,18 @@ namespace Gonogo.KSP
         /// the VAB and SPH craft folders
         /// (<c>ShipConstruction.GetShipsPathFor</c>), each <c>.craft</c> file's
         /// metadata read via the stock <c>CraftProfileInfo</c> loader. Career-
-        /// gated (the saved-ships widgets are career-facing; a sandbox has no
-        /// funds affordance to spend on unlocking parts) and rate-limited to
+        /// gated (the saved-ships widgets are research-facing; a sandbox has
+        /// every part from the start, so there is nothing to unlock) and rate-limited to
         /// <see cref="SavedShipsRescan"/> - between scans the cached
         /// list is returned so the disk isn't touched every tick, and no scan
         /// runs at all while <paramref name="wanted"/> is false. Returns
-        /// <c>null</c> - the whole list - outside career or before a save folder
+        /// <c>null</c> - the whole list - outside career and science or before a save folder
         /// exists, so the provider reads "no data yet."
         /// </summary>
         private static List<object?>? BuildSavedShips(double ut, bool wanted)
         {
             var game = HighLogic.CurrentGame;
-            if (game == null || game.Mode != Game.Modes.CAREER)
+            if (game == null || !CareerGates.HasResearchTree(game.Mode))
             {
                 _cachedSavedShips = null;
                 SavedShipsRescan.Forget();
@@ -4384,8 +4384,8 @@ namespace Gonogo.KSP
             }
 
             var game = HighLogic.CurrentGame;
-            var career = game != null && game.Mode == Game.Modes.CAREER;
-            if (!career)
+            var researched = Gates.CareerGates.HasResearchTree(game?.Mode);
+            if (!researched)
             {
                 return loaded.Count;
             }
@@ -4395,6 +4395,9 @@ namespace Gonogo.KSP
                 return null;
             }
 
+            // Part purchases are paid in funds, which a science game does not have.
+            var purchases = game!.Mode == Game.Modes.CAREER;
+
             var count = 0;
             foreach (var part in loaded)
             {
@@ -4403,7 +4406,8 @@ namespace Gonogo.KSP
                     continue;
                 }
 
-                if (ResearchAndDevelopment.PartTechAvailable(part) && ResearchAndDevelopment.PartModelPurchased(part))
+                if (ResearchAndDevelopment.PartTechAvailable(part)
+                    && (!purchases || ResearchAndDevelopment.PartModelPurchased(part)))
                 {
                     count++;
                 }
@@ -4445,12 +4449,11 @@ namespace Gonogo.KSP
         /// zero funds," which is exactly the kind of fabricated-sentinel
         /// this class's every other <c>Build*</c> helper refuses to do (see
         /// <see cref="BuildResources"/>'s doc comment for the same
-        /// discipline). <c>Game.Modes.SCIENCE_SANDBOX</c> is treated the
-        /// same as Sandbox here - it has <c>ResearchAndDevelopment</c> but
-        /// no <c>Funding</c>/<c>ContractSystem</c>/<c>StrategySystem</c>/
-        /// <c>ScenarioUpgradeableFacilities</c>, so gating the whole group
-        /// on genuine <c>CAREER</c> mode is the correct "all or nothing"
-        /// read, not a missed case.</para>
+        /// discipline). <c>Game.Modes.SCIENCE_SANDBOX</c> has
+        /// <c>ResearchAndDevelopment</c> but no <c>Funding</c>/
+        /// <c>ContractSystem</c>/<c>StrategySystem</c>/
+        /// <c>ScenarioUpgradeableFacilities</c>, so it reports only the
+        /// science balance and the tech tree.</para>
         /// </summary>
         private static string? BuildGameMode()
         {
@@ -4472,13 +4475,23 @@ namespace Gonogo.KSP
         private static Dictionary<string, object?>? BuildCareer()
         {
             var game = HighLogic.CurrentGame;
-            if (game == null || game.Mode != Game.Modes.CAREER)
+            if (game == null || !CareerGates.HasResearchTree(game.Mode))
             {
                 return null;
             }
 
             var career = new Dictionary<string, object?>();
             TryBuildGroup(career, "balances", BuildCareerBalances);
+            if (game.Mode != Game.Modes.CAREER)
+            {
+                // A science game has the research tree and its science balance
+                // and nothing else of a career: no funds, reputation, contracts,
+                // strategies or upgradeable buildings, so those groups are left
+                // out rather than read as empty.
+                TryBuildGroup(career, "tech", BuildCareerTech);
+                return career;
+            }
+
             TryBuildGroup(career, "facilities", BuildCareerFacilities);
             TryBuildGroup(career, "contracts", BuildCareerContracts);
             TryBuildGroup(career, "strategies", BuildCareerStrategies);

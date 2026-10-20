@@ -411,7 +411,7 @@ namespace Gonogo.KSP
         /// <c>PadInfrastructure</c> tag, which is what the parts that behave like
         /// clamps without being one carry.</para>
         ///
-        /// <para>Outside career every part is placeable, so the locked and
+        /// <para>Outside career and science every part is placeable, so the locked and
         /// unpurchased lists are empty rather than absent: nothing is withheld, and
         /// that is an answer.</para>
         /// </summary>
@@ -422,9 +422,9 @@ namespace Gonogo.KSP
             var unpurchased = new List<string>();
             var mass = 0.0;
             var measured = false;
-            var career = HighLogic.CurrentGame != null
-                && HighLogic.CurrentGame.Mode == Game.Modes.CAREER
-                && ResearchAndDevelopment.Instance != null;
+            var mode = HighLogic.CurrentGame?.Mode;
+            var researched = Gates.CareerGates.HasResearchTree(mode) && ResearchAndDevelopment.Instance != null;
+            var purchases = mode == Game.Modes.CAREER;
 
             foreach (var partNode in root.GetNodes("PART"))
             {
@@ -441,9 +441,9 @@ namespace Gonogo.KSP
                     continue;
                 }
 
-                if (career)
+                if (researched)
                 {
-                    WithheldList(available, locked, unpurchased)?.Add(name);
+                    WithheldList(available, locked, unpurchased, purchases)?.Add(name);
                 }
 
                 if (IsClamp(available))
@@ -467,10 +467,11 @@ namespace Gonogo.KSP
             record.MassExcludingClamps = measured ? mass : (double?)null;
         }
 
-        private static List<string>? WithheldList(AvailablePart part, List<string> locked, List<string> unpurchased)
+        private static List<string>? WithheldList(
+            AvailablePart part, List<string> locked, List<string> unpurchased, bool purchases)
         {
             if (!ResearchAndDevelopment.PartTechAvailable(part)) return locked;
-            if (!ResearchAndDevelopment.PartModelPurchased(part)) return unpurchased;
+            if (purchases && !ResearchAndDevelopment.PartModelPurchased(part)) return unpurchased;
             return null;
         }
 
