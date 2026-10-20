@@ -20,6 +20,7 @@ import "./goNoGo/GoNoGoComponent"; // app-level component: registers on import
 import "./notes/NotesComponent"; // app-level component: registers on import
 import App from "./App";
 import { kspHostSeeded } from "./dataSources"; // importing it triggers all data source self-registration
+import { stampBootRole } from "./screens/bootIdentity";
 import { bootsWithoutDirectMod } from "./screens/isStationRoute";
 import { setConsentBatchPrompt } from "./uplinks/consent";
 import { promptForConsents } from "./uplinks/consentModal";
@@ -31,6 +32,7 @@ import { probeUplinkRoster } from "./uplinks/rosterProbe";
 import { BUILD_TIME, VERSION } from "./version";
 
 setAppVersion(VERSION, BUILD_TIME);
+stampBootRole();
 
 // The Axiom transport is opt-in and consent-gated, it is NOT installed
 // here. The main screen installs/removes it via AnalyticsConsentHost while

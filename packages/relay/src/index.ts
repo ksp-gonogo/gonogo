@@ -39,6 +39,10 @@ const axiomConsent = new AxiomConsentController({
       : null,
 });
 
+// Stable id for this relay process's lifetime, used only to tag log entries so a single relay's lines are filterable in Axiom.
+const relayId = randomUUID();
+logger.setIdentity({ role: "relay", id: relayId, peerId: relayId });
+
 logger.info(`gonogo relay v${VERSION} (build ${BUILD_TIME})`);
 
 const fastify = Fastify({ logger: true });
@@ -168,10 +172,6 @@ if (config.skipCoturn) {
 } else {
   await turn.begin();
 }
-
-// Stable id for this relay process's lifetime, used only to tag log entries so a single relay's lines are filterable in Axiom.
-const relayId = randomUUID();
-logger.setIdentity({ role: "relay", id: relayId, peerId: relayId });
 
 registerTurnRoutes(fastify, {
   getCoturn: () => turn.handle,
