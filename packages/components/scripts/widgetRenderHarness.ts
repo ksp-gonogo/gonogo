@@ -194,6 +194,8 @@ export interface SizeMode {
    * body does not overflow (nothing to scroll), so it is safe on any widget.
    */
   scroll?: number;
+  /** Mount the widget as the dashboard does, so badges contributed into its `<id>.badges` slot reach the panel header. See `ProbePayload.asDashboard`. */
+  asDashboard?: boolean;
   /**
    * Restrict the mode to a subset of fixtures. Useful for click-driven
    * modes that only make sense against specific scenarios (e.g. the
@@ -2338,6 +2340,7 @@ async function renderOneWidget(
         size: mode,
         profile,
         gridCell: gridCell && !fullContent,
+        asDashboard: mode.asDashboard,
       });
       await page.setViewportSize(viewportFor(payload.pxW));
       try {

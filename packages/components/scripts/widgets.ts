@@ -1206,6 +1206,22 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "default-10x12", w: 10, h: 12 },
       // wide landscape.
       { name: "wide-14x10", w: 14, h: 10 },
+      // The full-width tile a main screen gives it, wide enough that the header shows the comms link badge contributed into it.
+      {
+        name: "full-width-24x12",
+        w: 24,
+        h: 12,
+        asDashboard: true,
+        forFixtures: ["kerbin-orbit-no-contact-held"],
+      },
+      // The default tile, whose header folds that badge into the status dot.
+      {
+        name: "dashboard-10x12",
+        w: 10,
+        h: 12,
+        asDashboard: true,
+        forFixtures: ["kerbin-orbit-no-contact-held"],
+      },
       /*
        * The selection payoff: clicks the Munar Transfer Stage's own orbit
        * ring (a relayed CommNet route, home -> Comsat Relay-1 -> Munar
