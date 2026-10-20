@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Contract;
 using Sitrep.Host;
 using Sitrep.Host.Flight;
@@ -191,6 +192,36 @@ namespace Sitrep.Host.Tests
             var report = Assert.Single(rig.Reports);
             Assert.Contains(VesselA, report);
             Assert.Contains("Crashed", report);
+        }
+
+        [Fact]
+        public void ACrashSignalledBeforeTheSampleThatFirstShowsTheVesselStillPublishesStartedThenEnded()
+        {
+            var rig = new Rig();
+            rig.Sampler.SignalEnd(VesselA, "Alpha", FlightEndReason.Crashed, 6.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 6.0));
+
+            var started = Assert.Single(rig.Started.Calls);
+            Assert.Equal(VesselA, ((FlightStarted)started.Payload!).VesselId);
+            var ended = Assert.Single(rig.Ended.Calls);
+            Assert.Equal(FlightEndReason.Crashed, ((FlightEnded)ended.Payload!).Reason);
+            Assert.Equal(0, rig.Sampler.EndsWithoutStart);
+            Assert.Empty(rig.Reports);
+        }
+
+        [Fact]
+        public void ACrashOnTheFirstSampleAfterARevertPublishesStartedThenEndedAndStaysEnded()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 100.0));
+            rig.Sampler.SignalEnd(VesselB, "Beta", FlightEndReason.Crashed, 40.0);
+            rig.Sampler.Sample(SnapshotFor(VesselB, 40.0, "Beta"));
+
+            Assert.Contains(rig.Ended.Calls, c => ((FlightEnded)c.Payload!).VesselId == VesselB
+                && ((FlightEnded)c.Payload!).Reason == FlightEndReason.Crashed);
+            Assert.DoesNotContain(rig.Ended.Calls, c => ((FlightEnded)c.Payload!).VesselId == VesselB
+                && ((FlightEnded)c.Payload!).Reason == FlightEndReason.Reverted);
+            Assert.Equal(1, rig.Started.Calls.Count(c => ((FlightStarted)c.Payload!).VesselId == VesselB));
         }
 
         [Fact]

@@ -182,12 +182,14 @@ namespace Sitrep.Host.Flight
         /// </summary>
         public void Sample(KspSnapshot snapshot)
         {
+            var currentId = VesselViewProvider.TryGetActiveVesselId(snapshot);
+            var endedThisTick = new HashSet<string>();
+
             while (_pendingEnds.TryDequeue(out var end))
             {
-                ApplyEnd(end.VesselId, end.VesselName, end.Reason, end.Ut);
+                ApplyEnd(end.VesselId, end.VesselName, end.Reason, end.Ut, currentId, snapshot);
+                endedThisTick.Add(end.VesselId);
             }
-
-            var currentId = VesselViewProvider.TryGetActiveVesselId(snapshot);
 
             // Rewind detection -- mirrors VesselEpochSampler.Sample exactly
             // (see that class's doc comment for the full rationale): by the
@@ -209,7 +211,7 @@ namespace Sitrep.Host.Flight
                 // that is an artifact of the rewind, not a genuine switch.
                 _lastVesselId = currentId;
 
-                if (currentId != null)
+                if (currentId != null && !endedThisTick.Contains(currentId))
                 {
                     StartNewFlight(currentId, snapshot);
                 }
@@ -286,8 +288,26 @@ namespace Sitrep.Host.Flight
             PublishVesselChanged(currentId, snapshot, _lastVesselId);
         }
 
-        private void ApplyEnd(string vesselId, string vesselName, FlightEndReason reason, double ut)
+        private void ApplyEnd(
+            string vesselId,
+            string vesselName,
+            FlightEndReason reason,
+            double ut,
+            string? currentId,
+            KspSnapshot snapshot)
         {
+            var seenMidWay = false;
+            if (!_startedUtByVesselId.ContainsKey(vesselId) && vesselId == currentId)
+            {
+                // The end was signalled before any sample showed this vessel
+                // (a flight that began from a load or revert and ended within
+                // the same tick), yet the snapshot says it is the vessel in
+                // focus. It was flown, so it gets its start now.
+                StartNewFlight(vesselId, snapshot);
+                _lastVesselId = vesselId;
+                seenMidWay = true;
+            }
+
             if (!_startedUtByVesselId.ContainsKey(vesselId))
             {
                 // A craft nobody flew this session (a vessel destroyed out of
@@ -307,6 +327,10 @@ namespace Sitrep.Host.Flight
                 _activeVesselId = null;
                 _activeVesselName = "";
             }
+
+            // A flight met mid-way on a rewind tick ended after the rewind
+            // target, so it is not on the abandoned branch the revert erases.
+            if (seenMidWay) return;
 
             _lastEndedVesselId = vesselId;
             _lastEndedVesselName = vesselName;
