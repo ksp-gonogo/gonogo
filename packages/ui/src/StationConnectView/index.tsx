@@ -29,6 +29,8 @@ import {
   ReconnectMsg,
   RelayStage,
   StageList,
+  StageSlot,
+  StatusSlot,
 } from "./StationConnectView.styles";
 
 export {
@@ -183,22 +185,26 @@ export function StationConnectView({
             trying in the background.
           </ErrorMsg>
         )}
-        <StatusIndicator
-          tone={statusTone(
-            connStatus,
-            hostNotFound,
-            everConnected,
-            brokerUnreachable,
+        <StatusSlot>
+          {!(relayStage && connStatus === "reconnecting") && (
+            <StatusIndicator
+              tone={statusTone(
+                connStatus,
+                hostNotFound,
+                everConnected,
+                brokerUnreachable,
+              )}
+              live
+            >
+              {describeConnStatus(
+                connStatus,
+                hostNotFound,
+                everConnected,
+                brokerUnreachable,
+              )}
+            </StatusIndicator>
           )}
-          live
-        >
-          {describeConnStatus(
-            connStatus,
-            hostNotFound,
-            everConnected,
-            brokerUnreachable,
-          )}
-        </StatusIndicator>
+        </StatusSlot>
         <RelayStage>
           {relayStage}
           {relayStage && waiting && progress?.entered.host !== undefined && (
@@ -208,9 +214,11 @@ export function StationConnectView({
             </>
           )}
         </RelayStage>
-        {waiting && progress && progress.attempt > 0 && (
-          <ProgressList progress={progress} now={now} />
-        )}
+        <StageSlot>
+          {waiting && progress && progress.attempt > 0 && (
+            <ProgressList progress={progress} now={now} />
+          )}
+        </StageSlot>
         <DiagnosticsRow>
           <DiagnosticsButton type="button" onClick={onDownloadLogs}>
             Download logs

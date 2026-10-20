@@ -53,6 +53,7 @@ export const ConnectBox = styled.div`
 
 export const ConnectRow = styled.div`
   display: flex;
+  align-items: stretch;
   gap: 8px;
 
   @media (max-width: 480px) {
@@ -61,7 +62,8 @@ export const ConnectRow = styled.div`
 `;
 
 export const HostInput = styled.input`
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-text-faint);
   border-radius: 4px;
@@ -92,6 +94,10 @@ export const HostInput = styled.input`
 `;
 
 export const ConnectButton = styled.button`
+  flex: none;
+  min-width: 8.5em;
+  white-space: nowrap;
+  text-align: center;
   background: var(--color-info-muted);
   border: 1px solid var(--color-info-mark);
   border-radius: 4px;
@@ -136,11 +142,18 @@ export const ReconnectMsg = styled.p`
 `;
 
 export const RelayStage = styled(LiveRegion)`
-  &:not(:empty) {
-    margin-top: var(--gap-section-compact);
-  }
+  margin-top: var(--gap-section-compact);
+  min-height: 1.4em;
   color: var(--color-info-text);
   font-size: var(--font-size-sm);
+`;
+
+export const StatusSlot = styled.div`
+  min-height: 3.6em;
+`;
+
+export const StageSlot = styled.div`
+  min-height: 7em;
 `;
 
 export const DiagnosticsRow = styled.div`

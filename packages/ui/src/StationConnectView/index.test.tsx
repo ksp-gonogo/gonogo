@@ -347,3 +347,27 @@ describe("connect status helpers", () => {
     expect(statusTone("idle", false, false)).toBe("neutral");
   });
 });
+
+describe("relay stage and the status banner", () => {
+  it("hides the reconnecting banner while the relay stage line is showing", () => {
+    vi.useFakeTimers({
+      now: 1_000_000 + 16_000,
+      toFake: ["Date", "setInterval"],
+    });
+    render(
+      <StationConnectView
+        {...baseProps}
+        connStatus="reconnecting"
+        relayLookup="used"
+        progress={{
+          startedAt: 1_000_000,
+          attempt: 1,
+          entered: { broker: 1_000_000, host: 1_000_500 },
+        }}
+      />,
+    );
+    expect(screen.getByText(/switching to the relay/)).not.toBeNull();
+    expect(screen.queryByText(/Reconnecting: the host or broker/)).toBeNull();
+    vi.useRealTimers();
+  });
+});
