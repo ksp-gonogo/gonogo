@@ -51,9 +51,9 @@ Only needed for stations that can't connect directly. The relay runs inside the 
 | Port | Protocol | Purpose |
 | --- | --- | --- |
 | `3478` | TCP and UDP | Relay connections |
-| `49160-49169` | UDP | Relay sessions: a relayed station holds 2 of them at a time, so 10 serve up to 5 internet players |
+| `49160-49179` | UDP | Relay sessions: a relayed station holds a few ports, one per network interface on each of its connections that uses the relay |
 
-Plan on 2 session ports per internet player plus `3478`: the default 10 cover up to 5 players. Forward the whole range: the relay picks session ports at random within it, so forwarding only the first few is not safe. Some routers want one entry per port, so eleven in all. Don't forward `3002` (the relay's status port, published on `127.0.0.1` only so it stays on this computer) or `8080` (a remote station loads the app from the public site, not from your machine).
+Some routers want one entry per port, so about twenty in all. Don't forward `3002` (the relay's status port, published on `127.0.0.1` only so it stays on this computer) or `8080` (a remote station loads the app from the public site, not from your machine).
 
 Give the main screen computer a fixed address on your LAN first (a reservation in the router is easiest). If its address changes, every forward silently points at nothing.
 
@@ -91,5 +91,5 @@ To work out a route between two devices, each asks a public Google or Cloudflare
 - The relay answers only the gonogo app's own pages (the public site is always allowed). A main screen served from another address or site needs that origin in `RELAY_APP_ORIGINS` (comma-separated)
 - `GET /health`, `/version` and `/ice-config` on port 3002 report the relay status, the image version and the relay address and credentials the main screen reads on boot
 - To run the relay on its own on a public host, use the `ghcr.io/ksp-gonogo/gonogo-relay` image with the same ports and `RELAY_PUBLIC=1`. Keep `3002` closed to the internet
-- `TURN_MIN_PORT` and `TURN_MAX_PORT` widen the relay session range for more than 5 relayed stations (2 ports each); publish and forward the same range
+- `TURN_MIN_PORT` and `TURN_MAX_PORT` widen the relay session range for more relayed stations; publish and forward the same range
 - The relay offers a UDP relay address only. `TURN_TCP=1` adds a TCP one for stations behind a network that blocks UDP, which doubles the ports each relayed connection holds

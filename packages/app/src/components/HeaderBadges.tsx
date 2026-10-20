@@ -32,16 +32,14 @@ function HeaderBadgeList() {
   return (
     <Cluster justify="start" align="center" role="status" aria-live="polite">
       {badges.map((badge) => {
-        const { label, tone, title, held } = badgeFace(badge);
+        const { label, tone, title } = badgeFace(badge);
         return (
           <Tooltip
             key={`${badge.contributionId}:${badge.id}`}
             text={title}
             focusable
           >
-            <Badge tone={tone} held={held}>
-              {label}
-            </Badge>
+            <Badge tone={tone}>{label}</Badge>
           </Tooltip>
         );
       })}

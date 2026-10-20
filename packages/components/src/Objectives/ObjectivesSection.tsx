@@ -1,11 +1,5 @@
-import type { HeldGrade } from "@ksp-gonogo/sitrep-sdk";
-import {
-  HeldFigure,
-  heldGradeOf,
-  heldWord,
-  VisuallyHidden,
-} from "@ksp-gonogo/ui-kit";
-import type { CSSProperties, ReactNode } from "react";
+import { VisuallyHidden } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
 import type { ObjectiveSection, ObjectiveState } from "./types";
 
 const STATE_GLYPH: Record<ObjectiveState, string> = {
@@ -16,28 +10,18 @@ const STATE_GLYPH: Record<ObjectiveState, string> = {
 };
 
 /** Renders one source's items, or nothing when empty so the frame's fallback can show. */
-export function ObjectivesSection({
-  items,
-  renderAlarm,
-  held,
-}: ObjectiveSection) {
+export function ObjectivesSection({ items, renderAlarm }: ObjectiveSection) {
   if (items.length === 0) return null;
-  const grade = heldGradeOf(held);
   return (
     <ul aria-label="Objectives" style={LIST}>
       {items.map((o) => (
         <li key={o.id} style={ITEM}>
-          <StateGlyph
-            glyph={
-              <span
-                style={{ ...GLYPH, color: STATE_COLOR[o.state] }}
-                aria-hidden="true"
-              >
-                {STATE_GLYPH[o.state]}
-              </span>
-            }
-            held={grade}
-          />
+          <span
+            style={{ ...GLYPH, color: STATE_COLOR[o.state] }}
+            aria-hidden="true"
+          >
+            {STATE_GLYPH[o.state]}
+          </span>
           <div style={TEXT}>
             <span
               style={
@@ -58,15 +42,6 @@ export function ObjectivesSection({
       ))}
     </ul>
   );
-}
-
-/** An item's state glyph, carrying the held square while the source's reading is held. */
-function StateGlyph({
-  glyph,
-  held,
-}: Readonly<{ glyph: ReactNode; held: HeldGrade | undefined }>) {
-  if (held === undefined) return <>{glyph}</>;
-  return <HeldFigure caption={heldWord(held)}>{glyph}</HeldFigure>;
 }
 
 const STATE_COLOR: Record<ObjectiveState, string> = {

@@ -36,11 +36,11 @@ export interface CoturnOptions {
   /** Min relay port. Defaults to 49160. */
   minPort?: number;
   /**
-   * Max relay port. Defaults to 49169: coturn holds one relay port per
+   * Max relay port. Defaults to 49179: coturn holds one relay port per
    * allocation, and a browser makes one allocation per local network for each
-   * connection that is handed the relay, so a relayed station holds 2 ports
-   * and the default window serves up to 5 internet players. Consumer routers
-   * want one port-forward entry per port, which keeps the range small. To serve more relayed stations, widen it with
+   * connection that is handed the relay, so a relayed station holds a few
+   * ports. Consumer routers want one port-forward entry per port, which keeps
+   * the range small. To serve more relayed stations, widen it with
    * `TURN_MIN_PORT`/`TURN_MAX_PORT` (see `config.ts`) and widen the matching
    * docker-compose mapping and router forwards to the same window.
    */
@@ -95,7 +95,7 @@ const DEFAULT_PORT = 3478;
 const LOG_LINES_PER_WINDOW = 20;
 const LOG_WINDOW_MS = 10_000;
 const DEFAULT_MIN_PORT = 49160;
-const DEFAULT_MAX_PORT = 49169;
+const DEFAULT_MAX_PORT = 49179;
 
 /**
  * Peer address ranges coturn refuses to relay to when `denyPrivatePeers` is

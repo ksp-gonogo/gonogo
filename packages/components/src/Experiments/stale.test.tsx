@@ -83,9 +83,7 @@ describe("Experiments when the science channels are held", () => {
       expect(screen.getByText("Mystery Goo™ Containment Unit")).toBeTruthy(),
     );
     // Control: without it a widget that always marked would pass.
-    expect(
-      screen.getByText("DATA").querySelector("[data-held-mark]"),
-    ).toBeNull();
+    expect(screen.queryAllByText("OFFLINE")).toHaveLength(0);
     expect(screen.getByRole("button", { name: /Transmit/ })).toBeEnabled();
 
     goStale(fixture);
@@ -94,14 +92,8 @@ describe("Experiments when the science channels are held", () => {
     expect(screen.getByText("DATA")).toBeTruthy();
     expect(screen.getByText("Mobile Processing Lab MPL-LG-2")).toBeTruthy();
     expect(screen.getByText("OPERATIONAL")).toBeTruthy();
-    // Each row's own badges carry its held state, and no grade word is drawn as a pill of its own.
-    expect(
-      screen.getByText("DATA").querySelector("[data-held-mark]"),
-    ).not.toBeNull();
-    expect(
-      screen.getByText("OPERATIONAL").querySelector("[data-held-mark]"),
-    ).not.toBeNull();
-    expect(screen.queryByText("OFFLINE")).toBeNull();
+    // One mark per row that carries held state: the instrument's and the lab's.
+    expect(screen.getAllByText("OFFLINE")).toHaveLength(2);
     // Still shown and live: the command refuses an instrument that has nothing left to send.
     expect(screen.getByRole("button", { name: /Transmit/ })).toBeEnabled();
     expect(visibleText(container)).toContain("Transmit");

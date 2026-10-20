@@ -236,7 +236,7 @@ describe("Panel panelBadges", () => {
     expect(screen.getByText("OFFLINE")).toBeTruthy();
   });
 
-  it("draws a contributed badge fed a bare held grade with its own words and the held square, never the grade's word", () => {
+  it("draws a contributed badge fed a bare held grade as the grade's own word, not the verdict it was derived from", () => {
     render(
       <Panel
         panelTitle="Fixture"
@@ -250,10 +250,8 @@ describe("Panel panelBadges", () => {
         ]}
       />,
     );
-    expect(
-      screen.getByText("No control").querySelector("[data-held-mark]"),
-    ).not.toBeNull();
-    expect(screen.queryByText("HELD")).toBeNull();
+    expect(screen.getByText("HELD")).toBeTruthy();
+    expect(screen.queryByText("No control")).toBeNull();
   });
 
   it("draws a contributed badge fed a held Reading, taking its grade off it", () => {
@@ -270,10 +268,8 @@ describe("Panel panelBadges", () => {
         ]}
       />,
     );
-    expect(screen.getByText("No control")).toHaveTextContent(
-      "No control, RECORDED",
-    );
-    expect(screen.queryByText("RECORDED")).toBeNull();
+    expect(screen.getByText("RECORDED")).toBeTruthy();
+    expect(screen.queryByText("No control")).toBeNull();
   });
 
   it("leaves a contributed badge alone when the Reading it carries is not held", () => {
@@ -294,7 +290,7 @@ describe("Panel panelBadges", () => {
     expect(screen.queryByText("HELD")).toBeNull();
   });
 
-  it("sets a held badge's hover text to its words and the grade, unless one is already given", () => {
+  it("sets a held badge's hover text to the verdict it replaced, unless one is already given", () => {
     render(
       <Panel
         panelTitle="Fixture"
@@ -310,9 +306,66 @@ describe("Panel panelBadges", () => {
     );
     expect(
       screen
-        .getByText("No control")
+        .getByText("HELD")
         .closest("[data-tooltip]")
         ?.getAttribute("data-tooltip"),
     ).toBe("No control: HELD");
+  });
+});
+
+/**
+ * The toolbar's full flex-basis only starts a new line in a wrapping row, and
+ * the two rules live in different styled components. jsdom does no layout, so
+ * this asserts both declarations.
+ */
+describe("Panel toolbar occupies its own header line", () => {
+  it("wraps the header row, so a full-basis toolbar starts a new line instead of competing with the title", () => {
+    render(
+      <Panel
+        panelTitle="MAP VIEW"
+        panelToolbar={<button type="button">Follow</button>}
+      >
+        <p>content</p>
+      </Panel>,
+    );
+    const header = document.querySelector("[data-panel-header]");
+    expect(header).not.toBeNull();
+    expect(getComputedStyle(header as Element).flexWrap).toBe("wrap");
+  });
+
+  it("gives the toolbar a full basis, so it takes the new line rather than sharing the title's", () => {
+    render(
+      <Panel
+        panelTitle="MAP VIEW"
+        panelToolbar={<button type="button">Follow</button>}
+      >
+        <p>content</p>
+      </Panel>,
+    );
+    const toolbar = screen
+      .getByRole("button", { name: "Follow" })
+      .closest("div");
+    expect(toolbar).not.toBeNull();
+    expect(getComputedStyle(toolbar as Element).flexBasis).toBe("100%");
+  });
+});
+
+describe("Panel panelTrend", () => {
+  it("draws the trend strip outside the scrolling body, after it", () => {
+    render(
+      <Panel
+        panelTitle="SMA"
+        panelTrend={() => <span>trend</span>}
+        sections={<span>680 km</span>}
+      />,
+    );
+    const strip = document.querySelector("[data-panel-trend]");
+    const body = document.querySelector("[data-panel-body]");
+    expect(strip).not.toBeNull();
+    expect(body?.contains(strip)).toBe(false);
+    expect(
+      (body as Node).compareDocumentPosition(strip as Node) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

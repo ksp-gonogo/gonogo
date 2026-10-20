@@ -6,7 +6,7 @@ import {
   useCommand,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
-import { EmptyState, heldMarking, Panel, Section } from "@ksp-gonogo/ui-kit";
+import { EmptyState, heldGradeOf, Panel, Section } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { emptyStateText } from "../robotics";
 import { BREAKING_GROUND } from "../uplink";
@@ -145,7 +145,7 @@ function RoboticsConsoleComponent({
       servos={servos}
       selected={selected}
       positionReadings={positionReadings}
-      flagsMarked={heldMarking(roboticsReading)}
+      held={heldGradeOf(roboticsReading)}
       rows={h ?? 8}
       onSelect={setSelectedId}
       setTarget={setTarget}

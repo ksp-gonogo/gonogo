@@ -2,10 +2,10 @@ import {
   Badge,
   Button,
   Cluster,
+  type heldGradeOf,
   Inline,
   Panel,
   ReadoutCaption,
-  type ReckoningMarking,
   Section,
   SelectableRow,
   Text,
@@ -28,8 +28,8 @@ export interface RoboticsConsoleViewProps {
   selected: ServoInfo;
   /** The field readings a servo's drawn positions come from. */
   positionReadings: (s: ServoInfo) => PositionReadings;
-  /** The held marking of the servo list while it has stopped arriving; the flags are the toggles' words, so the toggles carry it. */
-  flagsMarked: ReckoningMarking | null;
+  /** The grade the servo list is held at while it has stopped arriving; the flags and the list's words are text, so the panel carries the mark. */
+  held: ReturnType<typeof heldGradeOf>;
   /** Grid rows; below six only the readout and target stepper fit. */
   rows: number;
   onSelect: (partId: string) => void;
@@ -71,7 +71,7 @@ export function RoboticsConsoleView({
   servos,
   selected,
   positionReadings,
-  flagsMarked,
+  held,
   rows,
   onSelect,
   setTarget,
@@ -86,6 +86,11 @@ export function RoboticsConsoleView({
   return (
     <Panel
       panelTitle="ROBOTICS"
+      panelBadges={
+        held === undefined
+          ? undefined
+          : [{ id: "read", label: "Reading", held }]
+      }
       sections={[
         <Section key="readout" full>
           <Cluster justify="start" align="baseline" wrap>
@@ -183,7 +188,6 @@ export function RoboticsConsoleView({
                     ? "The motor state is not reported"
                     : "This part has no motor"
                 }
-                marked={flagsMarked}
                 onClick={() =>
                   selected.motorEngaged !== null &&
                   setMotor(selected.partId, !selected.motorEngaged)
@@ -202,7 +206,6 @@ export function RoboticsConsoleView({
                 tone="warn"
                 disabled={selected.locked === null}
                 disabledReason="The lock state is not reported"
-                marked={flagsMarked}
                 onClick={() =>
                   selected.locked !== null &&
                   setLock(selected.partId, !selected.locked)

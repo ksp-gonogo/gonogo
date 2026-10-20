@@ -444,8 +444,6 @@ export interface ObjectiveSlotSection {
   items: ObjectiveSlotItem[];
   /** Draws a control at the end of an item's row, such as a button that sets an alarm for it. Return `null` for an item that has none. */
   renderAlarm?: (item: ObjectiveSlotItem) => import("react").ReactNode;
-  /** The reading the items come from, or its held grade. While it is held, each item's state is drawn with the held square. */
-  held?: HeldGrade | Reading<unknown>;
 }
 
 /**

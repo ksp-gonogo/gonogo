@@ -289,20 +289,17 @@ describe("Experiments: the experiments.instruments contribution slot", () => {
     );
     const contributedRow = () =>
       screen.getByText("SAR Altimetry Sensor").closest("li") as HTMLElement;
-    const heldMarkOnData = () =>
-      within(contributedRow())
-        .getByText("DATA")
-        .querySelector("[data-held-mark]");
     // Control: a row that was always marked would pass the held assertion below.
-    expect(heldMarkOnData()).toBeNull();
+    expect(within(contributedRow()).queryByText("OFFLINE")).toBeNull();
 
     act(() => {
       fixture.store.setTransportConnected(false);
       fixture.store.beginFrame();
     });
 
-    await waitFor(() => expect(heldMarkOnData()).not.toBeNull());
-    expect(within(contributedRow()).queryByText("OFFLINE")).toBeNull();
+    await waitFor(() =>
+      expect(within(contributedRow()).getByText("OFFLINE")).toBeTruthy(),
+    );
     // Still drawn with its flags: a held row is the last known state, not nothing.
     expect(within(contributedRow()).getByText("DATA")).toBeTruthy();
   });

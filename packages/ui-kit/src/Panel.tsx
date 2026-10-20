@@ -21,7 +21,7 @@ import {
 import styled, { css } from "styled-components";
 import { AugmentSlot, useWidgetSegmentBound } from "./AugmentSlot";
 import { Badge } from "./Badge";
-import { type BadgeFace, badgeFace } from "./badgeFace";
+import { badgeFace } from "./badgeFace";
 import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 import { FramedDisplay } from "./FramedDisplay";
 import { fitBox, fitMask } from "./fitBox";
@@ -42,7 +42,7 @@ import {
   severityFromStreamStatus,
   severityRank,
 } from "./status/severity";
-import { formatStreamStatus, heldWord } from "./status/streamStatusWord";
+import { formatStreamStatus } from "./status/streamStatusWord";
 import { useStatusBreakdown } from "./status/useStatusBreakdown";
 import { useStatusContribution } from "./status/useStatusContribution";
 import { useStatusSummary } from "./status/useStatusSummary";
@@ -1748,24 +1748,16 @@ const PanelHoverTitlePill = styled(VisuallyHidden)`
   }
 `;
 
-/** What a header badge says in the panel's summary: its words, and the held grade's word while it is held. */
-function summaryLabel(face: BadgeFace): string {
-  return face.held === undefined
-    ? face.label
-    : `${face.label}: ${heldWord(face.held)}`;
-}
-
 /** The most severe stateful badge, for a tree with no status store to summarise them. */
 function worstBadge(
   badges: readonly PanelBadge[],
 ): { severity: Severity; label: string } | null {
   let worst: { severity: Severity; label: string } | null = null;
   for (const entry of badges) {
-    const face = badgeFace(entry);
-    const { tone } = face;
+    const { label, tone } = badgeFace(entry);
     if (tone === undefined || tone === "neutral") continue;
     if (worst === null || severityRank(tone) > severityRank(worst.severity)) {
-      worst = { severity: tone, label: summaryLabel(face) };
+      worst = { severity: tone, label };
     }
   }
   return worst;
@@ -1786,12 +1778,11 @@ function PanelBadgeReports({ badges }: { badges: readonly PanelBadge[] }) {
 }
 
 function PanelBadgeReport({ entry }: { entry: PanelBadge }) {
-  const face = badgeFace(entry);
-  const { tone } = face;
+  const { label, tone } = badgeFace(entry);
   useStatusContribution(
     tone === undefined || tone === "neutral"
       ? null
-      : { id: entry.id, severity: tone, label: summaryLabel(face) },
+      : { id: entry.id, severity: tone, label },
   );
   return null;
 }
@@ -1889,18 +1880,16 @@ function PanelRootImpl({
     badges.length === 0
       ? null
       : badges.map((b) => {
-          const face = badgeFace(b);
-          const { label, tone, title } = face;
+          const { label, tone, title } = badgeFace(b);
           return (
             <Tooltip key={b.id} text={title} focusable>
               <Badge
                 tone={tone}
-                held={face.held}
                 /* A decorative chip stays out of the collapsed header's dot summary. */
                 report={
                   tone === undefined || tone === "neutral"
                     ? undefined
-                    : { id: b.id, label: summaryLabel(face) }
+                    : { id: b.id }
                 }
               >
                 {label}

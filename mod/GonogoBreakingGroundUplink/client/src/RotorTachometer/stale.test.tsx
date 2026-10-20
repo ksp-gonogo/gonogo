@@ -98,23 +98,17 @@ describe("RotorTachometer: a rotor list that has stopped arriving", () => {
     expect(visibleText(container)).not.toContain("No rotors");
   });
 
-  it("marks the cap and the toggles whose flags are held", async () => {
+  it("marks the cap and says the flags behind the toggles are held", async () => {
     const { fixture, container } = mountWithRotor("rt-stale-flags");
     await waitFor(() => expect(visibleText(container)).toContain("130"));
-    const motorMark = () =>
-      screen
-        .getByRole("button", { name: /Motor/ })
-        .querySelector("[data-held-mark]");
-    // The control: current flags carry no mark.
-    expect(motorMark()).toBeNull();
+    // The control: current readings carry no panel badge.
+    expect(screen.queryByText("OFFLINE")).toBeNull();
 
     act(() => {
       fixture.store.setTransportConnected(false);
     });
 
-    // The flags are the toggles' words, so each toggle carries the mark, and no grade word is drawn on its own.
-    await waitFor(() => expect(motorMark()).not.toBeNull());
-    expect(screen.queryByText("OFFLINE")).toBeNull();
+    await waitFor(() => expect(screen.getByText("OFFLINE")).toBeTruthy());
     // The cap is a figure of its own, marked where it is drawn.
     const cap = screen.getByText("200").closest("[data-held]");
     expect(cap).not.toBeNull();
