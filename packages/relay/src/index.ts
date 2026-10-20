@@ -177,6 +177,7 @@ registerTurnRoutes(fastify, {
   getCoturn: () => turn.handle,
   getPendingReason: () => turn.pendingReason,
   turnExpected: !config.skipCoturn,
+  publicUrl: config.publicUrl,
 });
 
 fastify.get("/version", async () => ({

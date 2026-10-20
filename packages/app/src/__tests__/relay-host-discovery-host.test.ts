@@ -203,7 +203,7 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     const { PeerHostService } = await import("../peer/PeerHostService");
     const service = new PeerHostService();
     // React StrictMode runs the (un-awaited) effect body twice:
-    // start → stop → start. start() suspends at `await fetchHostIceServers()`
+    // start → stop → start. start() suspends at `await fetchRelayIceConfig()`
     // before constructing the Peer, so both starts can race into openPeer().
     void service.start();
     service.stop();

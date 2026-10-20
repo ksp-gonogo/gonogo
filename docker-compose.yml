@@ -10,9 +10,11 @@ services:
       context: .
       dockerfile: packages/relay/Dockerfile
     ports:
-      # Loopback only: the main screen's browser on this machine is the relay's
-      # one HTTP client, and /ice-config hands out TURN credentials.
-      - "127.0.0.1:3002:3002"
+      # Loopback only by default: the main screen's browser on this machine is
+      # the relay's one HTTP client, and /ice-config hands out TURN
+      # credentials. To let a station on another network fetch them from its
+      # link, set RELAY_HTTP_BIND=0.0.0.0 and RELAY_PUBLIC_URL below.
+      - "${RELAY_HTTP_BIND:-127.0.0.1}:3002:3002"
       # TURN signalling. Both UDP and TCP for client compatibility.
       - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/udp"
       - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/tcp"
@@ -40,6 +42,12 @@ services:
       # comma-separated origins, e.g. a main screen opened at this machine's
       # LAN address: http://<lan-address>:5173
       RELAY_APP_ORIGINS: ${RELAY_APP_ORIGINS:-}
+      # The address stations on other networks reach port 3002 at, e.g.
+      # https://relay.example.com. Setting it puts the relay in the station
+      # link and QR once the Add station check passes, and anyone holding the
+      # link can then read the time-limited TURN credentials. Empty keeps the
+      # relay out of the link.
+      RELAY_PUBLIC_URL: ${RELAY_PUBLIC_URL:-}
       # TURN ports, kept in step with the published `ports:` above. Change
       # them here (or in `.env`) rather than in coturnManager.ts, and widen
       # the router forwards to match.

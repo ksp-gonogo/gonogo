@@ -49,6 +49,8 @@ export interface StationConnectViewProps {
   brokerUnreachable?: boolean;
   /** The station stopped retrying: the broker answered but the main screen's data channel never opened, so the two devices have no direct path. Connecting again starts a fresh set of attempts. */
   hostChannelFailed?: boolean;
+  /** What the relay named in the station's link did. `none`: the link names no relay. `unreachable`: it was named and could not be fetched from. `used`: its relay entries were in the station's ICE config. */
+  relayLookup?: "none" | "pending" | "used" | "unreachable";
   /** This station reached "connected" at least once this session. */
   everConnected: boolean;
   /** Fired on every keystroke in the host-code input. */
@@ -69,6 +71,7 @@ export function StationConnectView({
   hostNotFound,
   brokerUnreachable = false,
   hostChannelFailed = false,
+  relayLookup = "none",
   everConnected,
   onHostInputChange,
   onConnect,
@@ -134,9 +137,26 @@ export function StationConnectView({
         )}
         {!brokerUnreachable && !hostNotFound && hostChannelFailed && (
           <ErrorMsg role="alert">
-            Couldn&apos;t reach the main screen directly, and no relay is set up
-            for this connection. Move this device onto the same network as the
-            main screen, or set up the relay, then press Connect to try again.
+            {relayLookup === "unreachable" ? (
+              <>
+                Couldn&apos;t reach the main screen directly, and the relay in
+                this link did not answer. Check that the relay is running and
+                reachable from this network, then press Connect to try again.
+              </>
+            ) : relayLookup === "used" ? (
+              <>
+                Couldn&apos;t reach the main screen, even through the relay in
+                this link. Check that the main screen is open and its relay
+                ports are forwarded, then press Connect to try again.
+              </>
+            ) : (
+              <>
+                Couldn&apos;t reach the main screen directly, and this link
+                names no relay. Move this device onto the same network as the
+                main screen, or open the link from the Add station panel once
+                its relay check passes, then press Connect to try again.
+              </>
+            )}
           </ErrorMsg>
         )}
         {!brokerUnreachable &&

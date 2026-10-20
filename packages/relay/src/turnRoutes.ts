@@ -15,6 +15,8 @@ export interface TurnRoutesOptions {
   getPendingReason?: () => string | null;
   /** True when this relay is meant to run coturn (`SKIP_COTURN` unset), so a missing or dead one is a fault. */
   turnExpected: boolean;
+  /** The address stations on other networks reach this relay at, named in `/ice-config` when the operator published one. */
+  publicUrl?: string | null;
 }
 
 /**
@@ -50,7 +52,7 @@ export function iceServersFor(
  */
 export function registerTurnRoutes(
   fastify: FastifyInstance,
-  { getCoturn, getPendingReason, turnExpected }: TurnRoutesOptions,
+  { getCoturn, getPendingReason, turnExpected, publicUrl }: TurnRoutesOptions,
 ): void {
   const live = (): CoturnHandle | null => {
     const handle = getCoturn();
@@ -78,7 +80,9 @@ export function registerTurnRoutes(
    * The credentials live only in this process's memory and rotate on every
    * restart, so a client with stale credentials re-fetches this endpoint.
    * Stations do not fetch it: they pair against the host's relay candidates
-   * over the broker's signalling channel.
+   * over the broker's signalling channel, unless their link names this relay
+   * through `publicUrl`, in which case they fetch it before their first
+   * attempt.
    */
   fastify.get("/ice-config", async (_req, reply) => {
     const handle = live();
@@ -88,6 +92,9 @@ export function registerTurnRoutes(
         reason: getPendingReason?.() ?? "coturn is not running",
       });
     }
-    return { iceServers: iceServersFor(handle) };
+    return {
+      iceServers: iceServersFor(handle),
+      ...(publicUrl ? { publicUrl } : {}),
+    };
   });
 }

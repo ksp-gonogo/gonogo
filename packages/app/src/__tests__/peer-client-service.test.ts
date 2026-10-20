@@ -1183,6 +1183,65 @@ describe("PeerClientService: relay-ice-servers application", () => {
     expect(peer._options.config?.iceServers).toEqual(STUN_SERVERS);
   });
 
+  describe("relay named in the station link", () => {
+    const turn: RTCIceServer[] = [
+      { urls: ["turn:relay.example.com:3478"], username: "u", credential: "c" },
+    ];
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it("fetches the relay's entries before the first Peer is created", async () => {
+      const fetchMock = vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ iceServers: turn, publicUrl: "https://r.test" }),
+          ),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+      FakePeer.instances.length = 0;
+      const svc = new PeerClientService();
+      const states: string[] = [];
+      svc.onRelayLookup((s) => states.push(s));
+
+      svc.connect("AB3K", "https://r.test");
+      expect(FakePeer.instances).toHaveLength(0);
+      await vi.waitFor(() => expect(FakePeer.instances).toHaveLength(1));
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://r.test/ice-config",
+        expect.anything(),
+      );
+      expect(FakePeer.instances[0]._options.config?.iceServers).toEqual([
+        ...STUN_SERVERS,
+        ...turn,
+      ]);
+      expect(states).toEqual(["none", "pending", "used"]);
+    });
+
+    it("falls back to the STUN list and says the relay was unreachable when the fetch fails", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => {
+          throw new Error("blocked");
+        }),
+      );
+      FakePeer.instances.length = 0;
+      const svc = new PeerClientService();
+      const states: string[] = [];
+      svc.onRelayLookup((s) => states.push(s));
+
+      svc.connect("AB3K", "https://r.test");
+      await vi.waitFor(() => expect(FakePeer.instances).toHaveLength(1));
+
+      expect(FakePeer.instances[0]._options.config?.iceServers).toEqual(
+        STUN_SERVERS,
+      );
+      expect(states).toEqual(["none", "pending", "unreachable"]);
+    });
+  });
+
   it("drops iceServers that arrive on a connection the station has torn down", () => {
     const { svc } = connectedSvc();
     const host = fromHost(svc);

@@ -44,4 +44,15 @@ describe("loadConfig", () => {
       /RELAY_APP_ORIGINS entry "198.51.100.20"/,
     );
   });
+
+  it("publishes no address unless RELAY_PUBLIC_URL is set, and refuses one that is not http(s)", () => {
+    expect(loadConfig({}).publicUrl).toBeNull();
+    expect(
+      loadConfig({ RELAY_PUBLIC_URL: " https://relay.example.com/ " })
+        .publicUrl,
+    ).toBe("https://relay.example.com");
+    expect(() => loadConfig({ RELAY_PUBLIC_URL: "relay.example.com" })).toThrow(
+      /RELAY_PUBLIC_URL "relay.example.com"/,
+    );
+  });
 });

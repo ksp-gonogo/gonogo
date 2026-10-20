@@ -6,7 +6,7 @@ import Peer, { type DataConnection } from "peerjs";
 import type { RunningUplink } from "../uplinks/loaderState";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
-import { STUN_SERVERS, withStun } from "./iceServers";
+import { fetchRelayIceConfig, withStun } from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
@@ -44,6 +44,14 @@ const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
  * direct path, which a further identical attempt does not change.
  */
 const MAX_HOST_CHANNEL_ATTEMPTS = 4;
+
+/**
+ * What the relay named in the station's link did: `none` when the link names
+ * no relay, `pending` while its `/ice-config` is being fetched, `used` when
+ * its relay entries are in the station's ICE config, `unreachable` when the
+ * fetch failed.
+ */
+export type RelayLookupState = "none" | "pending" | "used" | "unreachable";
 
 /** PeerJS error shape: `.type` is the discriminator. */
 interface PeerJsError extends Error {
@@ -139,6 +147,7 @@ type ClientEventMap = {
   writeRefused: [refused: string];
   brokerReachable: [reachable: boolean];
   hostChannelFailed: [failed: boolean];
+  relayLookup: [state: RelayLookupState];
   // Sitrep telemetry-stream forwarding: see protocol.ts's `sitrep-frame`/
   // `sitrep-command-*` doc comment. `sitrepFrame` carries the host-relayed
   // `ServerMessage` verbatim (unwrapped from its `sitrep-frame` envelope);
@@ -200,6 +209,12 @@ export class PeerClientService {
   /** Attempts in a row that reached the host stage and never opened the data channel. */
   private hostChannelStalls = 0;
   private hostChannelFailed = false;
+  /** The relay address from the station's link, or null. */
+  private linkRelayUrl: string | null = null;
+  private relayLookup: RelayLookupState = "none";
+  private relayLookupPromise: Promise<void> | null = null;
+  /** Bumped by every `connect`, so a lookup that settles after a newer connect starts does not open a second Peer. */
+  private connectEpoch = 0;
   // Relay TURN creds from the latest `relay-ice-servers` broadcast. Applied to
   // the station's own Peer (see applyRelayIceServers) AND exposed here so an
   // Uplink's station broker can feed them to a media connection of its own,
@@ -286,7 +301,12 @@ export class PeerClientService {
     });
   }
 
-  connect(code: string) {
+  /**
+   * `relayUrl` is the relay address from the station's link. Omitted, the
+   * relay of an earlier call is kept, so pressing Connect again on the
+   * connect screen reuses it.
+   */
+  connect(code: string, relayUrl?: string | null) {
     // `code` is the operator-typed share code. Derive the host's broker peer
     // id (`gonogo-host-<CODE>`) once and hold it as the reconnect target.
     this.shareCode = code;
@@ -298,7 +318,49 @@ export class PeerClientService {
     this.hostChannelStalls = 0;
     this.setHostChannelFailed(false);
     this.connectProgress = { startedAt: Date.now(), attempt: 0, entered: {} };
+    this.connectEpoch += 1;
+    if (relayUrl !== undefined) this.linkRelayUrl = relayUrl;
+    this.startRelayLookup();
     this.openPeer();
+  }
+
+  /**
+   * Fetch the linked relay's entries so the first offer already carries
+   * them: a station whose direct paths all fail would otherwise never reach
+   * the host, the only other source of these entries being the host's own
+   * channel. A failed fetch leaves the STUN-only path.
+   */
+  private startRelayLookup(): void {
+    const relayUrl = this.linkRelayUrl;
+    if (!relayUrl) {
+      this.relayLookupPromise = null;
+      this.setRelayLookup("none");
+      return;
+    }
+    this.setRelayLookup("pending");
+    const lookup = fetchRelayIceConfig(relayUrl).then((config) => {
+      if (this.relayLookupPromise !== lookup) return;
+      this.relayLookupPromise = null;
+      if (config && config.iceServers.length > 0) {
+        this.applyRelayIceServers(config.iceServers);
+        this.setRelayLookup("used");
+      } else {
+        this.setRelayLookup("unreachable");
+      }
+    });
+    this.relayLookupPromise = lookup;
+  }
+
+  private setRelayLookup(state: RelayLookupState): void {
+    if (this.relayLookup === state) return;
+    this.relayLookup = state;
+    this.events.emit("relayLookup", state);
+  }
+
+  onRelayLookup(cb: (state: RelayLookupState) => void): () => void {
+    const unsub = this.events.on("relayLookup", cb);
+    cb(this.relayLookup);
+    return unsub;
   }
 
   /**
@@ -309,6 +371,14 @@ export class PeerClientService {
    */
   private openPeer() {
     if (!this.hostPeerId) return;
+    const lookup = this.relayLookupPromise;
+    if (lookup) {
+      const epoch = this.connectEpoch;
+      void lookup.then(() => {
+        if (epoch === this.connectEpoch) this.openPeer();
+      });
+      return;
+    }
     const { entered } = this.connectProgress;
     if (entered.host !== undefined && entered.data === undefined) {
       this.hostChannelStalls += 1;
@@ -342,17 +412,17 @@ export class PeerClientService {
       entered: { broker: Date.now() },
     };
     this.events.emit("connectProgress", this.connectProgress);
-    // Stations start on the public STUN list alone. TURN is never
-    // configured here: the station does not know the relay's URL, and a
-    // `turn:localhost:3478` default means the phone itself. The host's TURN
-    // entries arrive later as `relay-ice-servers`.
+    // Stations start on the public STUN list plus whatever TURN entries they
+    // already hold: those of the relay named in the link, or an earlier
+    // `relay-ice-servers` from the host. There is no relay default, since
+    // `turn:localhost:3478` means the phone itself.
     //
     // `key: "gonogo"` puts the station in our private namespace on the
     // public broker. MUST match PeerHostService, a station with a different
     // key is invisible to the host on the broker even if the ids match.
     const peer = new Peer(this.stationPeerId, {
       ...peerBrokerOptions(),
-      config: { iceServers: STUN_SERVERS },
+      config: { iceServers: withStun(this.relayIceServers) },
     });
     this.peer = peer;
     peer.on("open", () => {

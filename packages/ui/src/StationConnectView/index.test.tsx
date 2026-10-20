@@ -135,6 +135,37 @@ describe("StationConnectView", () => {
     expect(onConnect).toHaveBeenCalledWith("AB3K");
   });
 
+  it("tells a relay that did not answer from a link that names none", () => {
+    const { rerender } = render(
+      <StationConnectView
+        {...baseProps}
+        connStatus="disconnected"
+        hostChannelFailed
+        relayLookup="unreachable"
+      />,
+    );
+    expect(
+      screen.getByText(/relay in this link did not answer/i),
+    ).not.toBeNull();
+    rerender(
+      <StationConnectView
+        {...baseProps}
+        connStatus="disconnected"
+        hostChannelFailed
+      />,
+    );
+    expect(screen.getByText(/this link names no relay/i)).not.toBeNull();
+    rerender(
+      <StationConnectView
+        {...baseProps}
+        connStatus="disconnected"
+        hostChannelFailed
+        relayLookup="used"
+      />,
+    );
+    expect(screen.getByText(/even through the relay/i)).not.toBeNull();
+  });
+
   it("renders the injected name editor slot", () => {
     render(
       <StationConnectView

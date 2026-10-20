@@ -57,6 +57,8 @@ function StationLinkPanel() {
   // restart (the broker still holds the stale slot). Surfaced as a status so
   // the operator knows why a just-restarted host isn't accepting stations yet.
   const [reclaiming, setReclaiming] = useState(peerHostService.isReclaiming());
+  // Whether the relay answered the Add station check from outside; the link carries its public address only then.
+  const [relayReachable, setRelayReachable] = useState(false);
   useEffect(() => {
     const unsubId = peerHostService.onPeerIdChange(setPeerId);
     const unsubShareCode = peerHostService.onShareCodeChange(setShareCode);
@@ -81,6 +83,7 @@ function StationLinkPanel() {
   }
 
   const { addresses, qr } = stationAddresses({
+    relayUrl: relayReachable ? peerHostService.relayPublicUrl : null,
     code: shareCode,
     origin: globalThis.location.origin,
     baseUrl: import.meta.env.BASE_URL,
@@ -119,7 +122,7 @@ function StationLinkPanel() {
         />
       </QrRow>
       {addresses.length > 1 && <UrlWhen>The QR code opens {qr.label}</UrlWhen>}
-      <TurnStatus />
+      <TurnStatus onReachable={setRelayReachable} />
       <StationPaths />
       <Hint>
         Scan to open <code>/station</code> on another device, it&apos;ll
@@ -236,7 +239,11 @@ function pathText(path: ConnectionPath | null): string {
  * relay restarts without spam, and gives the user a fresh check after
  * they fix a port-forward without having to close + reopen the modal.
  */
-function TurnStatus() {
+function TurnStatus({
+  onReachable,
+}: {
+  onReachable: (reachable: boolean) => void;
+}) {
   const [state, setState] = useState<
     | { kind: "probing" }
     | { kind: "ok"; result: Extract<TurnProbeResult, { ok: true }> }
@@ -251,6 +258,7 @@ function TurnStatus() {
         iceServers: peerHostService.iceServers,
       });
       if (cancelled) return;
+      onReachable(result.ok);
       setState(result.ok ? { kind: "ok", result } : { kind: "fail", result });
     };
     void run();
@@ -259,7 +267,7 @@ function TurnStatus() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [onReachable]);
 
   const tone =
     state.kind === "ok" ? "go" : state.kind === "fail" ? "warn" : "info";

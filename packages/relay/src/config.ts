@@ -39,6 +39,13 @@ export interface RelayConfig {
    * address, or a fork's own site. From `RELAY_APP_ORIGINS`, comma-separated.
    */
   appOrigins: string[];
+  /**
+   * The address a station on another network reaches this relay's HTTP port
+   * at, from `RELAY_PUBLIC_URL`. Null when the operator has not published
+   * the port, and then no station link names this relay. A station on the
+   * public build (https) can only fetch from an https address.
+   */
+  publicUrl: string | null;
 }
 
 /** Defaults live here rather than in `startCoturn` so one file answers
@@ -78,6 +85,24 @@ function appOrigins(raw: string | undefined): string[] {
   });
 }
 
+/** `RELAY_PUBLIC_URL` as an origin; one that is not an http(s) origin throws, since a quietly dropped one leaves the link without a relay and nothing saying why. */
+function publicUrl(raw: string | undefined): string | null {
+  const entry = raw?.trim();
+  if (!entry) return null;
+  let url: URL | null = null;
+  try {
+    url = new URL(entry);
+  } catch {
+    url = null;
+  }
+  if (!url || (url.protocol !== "http:" && url.protocol !== "https:")) {
+    throw new Error(
+      `RELAY_PUBLIC_URL "${entry}" is not an http(s) address such as https://relay.example.com`,
+    );
+  }
+  return url.origin;
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayConfig {
   return {
     port: Number(env.PORT ?? 3002),
@@ -88,5 +113,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayConfig {
     skipCoturn: env.SKIP_COTURN === "1" || env.SKIP_COTURN === "true",
     publicRelay: env.RELAY_PUBLIC === "1" || env.RELAY_PUBLIC === "true",
     appOrigins: appOrigins(env.RELAY_APP_ORIGINS),
+    publicUrl: publicUrl(env.RELAY_PUBLIC_URL),
   };
 }

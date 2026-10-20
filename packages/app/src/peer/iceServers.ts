@@ -8,11 +8,11 @@ import { logger } from "@ksp-gonogo/logger";
  * screen) fetches `/ice-config` once on boot to learn the credentials
  * and the public IP coturn is advertising.
  *
- * Stations don't fetch this themselves: a station is handed the relay's
- * server entries by the host once connected. A station Peer starts with the
- * STUN list alone, never a relay default: `turn:localhost:3478` means the phone
- * itself when read on a phone, which costs four useless STUN/TURN timeouts
- * per attempt.
+ * A station fetches it only from a relay its link names (`?relay=`). Without
+ * one a station Peer starts with the STUN list alone and is handed the relay's
+ * server entries by the host once connected; it never assumes a relay default,
+ * because `turn:localhost:3478` means the phone itself when read on a phone,
+ * which costs four useless STUN/TURN timeouts per attempt.
  */
 
 export interface IceConfig {
@@ -38,40 +38,65 @@ export function withStun(turnServers: RTCIceServer[]): RTCIceServer[] {
 const DEFAULT_RELAY_URL = "http://localhost:3002";
 const FETCH_TIMEOUT_MS = 4_000;
 
+/** What a relay's `/ice-config` answers. */
+export interface RelayIceConfig {
+  iceServers: RTCIceServer[];
+  /** The address the relay asks stations to reach it at, or null when its operator has not published one. */
+  publicUrl: string | null;
+}
+
 /**
- * Fetch the host's ICE config from the relay's `/ice-config` endpoint.
- * Returns `[]` if the fetch fails, the host falls back to direct +
- * STUN-only behaviour, and the readiness UI surfaces the failure.
+ * Fetch ICE config from a relay's `/ice-config` endpoint: the main screen
+ * asks its own relay, a station asks the one named in its link. Returns null
+ * if the fetch fails, so the caller falls back to direct + STUN-only
+ * behaviour, and the readiness UI surfaces the failure.
  */
-export async function fetchHostIceServers(): Promise<RTCIceServer[]> {
-  const url = relayBaseUrl();
+export async function fetchRelayIceConfig(
+  baseUrl: string,
+): Promise<RelayIceConfig | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
-    const res = await fetch(`${url}/ice-config`, { signal: controller.signal });
+    const res = await fetch(`${baseUrl}/ice-config`, {
+      signal: controller.signal,
+    });
     if (!res.ok) {
       logger.warn(`[ice] relay /ice-config returned ${res.status}`);
-      return [];
+      return null;
     }
     const body: unknown = await res.json();
-    const iceServers: unknown =
-      typeof body === "object" && body !== null
-        ? Reflect.get(body, "iceServers")
-        : undefined;
+    const fields = typeof body === "object" && body !== null ? body : {};
+    const iceServers: unknown = Reflect.get(fields, "iceServers");
     if (!Array.isArray(iceServers)) {
       logger.warn("[ice] relay /ice-config response missing iceServers");
-      return [];
+      return null;
     }
-    return iceServers as IceConfig["iceServers"];
+    const publicUrl: unknown = Reflect.get(fields, "publicUrl");
+    return {
+      iceServers: iceServers as IceConfig["iceServers"],
+      publicUrl: typeof publicUrl === "string" && publicUrl ? publicUrl : null,
+    };
   } catch (err) {
     logger.warn(
-      `[ice] relay /ice-config fetch failed: host will run without TURN (${
+      `[ice] relay /ice-config fetch failed: running without TURN (${
         err instanceof Error ? err.message : String(err)
       })`,
     );
-    return [];
+    return null;
   } finally {
     clearTimeout(timer);
+  }
+}
+
+/** A relay address taken from a station link: an http(s) origin, trailing slash dropped; null for anything else. */
+export function parseRelayUrl(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.origin;
+  } catch {
+    return null;
   }
 }
 

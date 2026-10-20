@@ -61,6 +61,16 @@ The relay finds your public address on its own at startup. If it guesses wrong (
 
 If the main screen runs from a source checkout with `pnpm dev`, put `TURN_EXTERNAL_IP=<your public IP>` in the repo-root `.env`, since dev mode defaults to the LAN address.
 
+## Letting a station fetch the relay details first (optional)
+
+By default a station learns the relay's details only after it has connected to the main screen once, so a station that can't connect directly never gets them. To fix that, publish the relay's status port so the station link can carry the relay's address:
+
+1. Choose an address stations can reach port `3002` at. The public site is served over https, so a station opened from it can only fetch from an https address: put a reverse proxy with a certificate in front of `3002`
+2. Set `RELAY_HTTP_BIND=0.0.0.0` and `RELAY_PUBLIC_URL=https://<that address>` in the repo-root `.env` (or on the container), then restart it
+3. When the status line in the Add station panel goes green, the link and QR code include the relay address
+
+Anyone holding that link can read the relay's time-limited credentials, not only stations you approve. Leave both settings unset to keep port `3002` on this computer and the relay out of the link. A station whose link names a relay that doesn't answer falls back to the normal route and says so if it can't connect.
+
 ## A station won't connect
 
 - **Is the main screen tab open and awake?** If it closed or the computer slept, every station stops
@@ -78,7 +88,7 @@ To work out a route between two devices, each asks a public Google or Cloudflare
 ## For people running their own build
 
 - The main screen looks for the relay at `http://localhost:3002`. A build with the relay on another machine sets `VITE_RELAY_URL` to its address at build time
-- The relay answers only the gonogo app's own pages. A main screen served from another address or site needs that origin in `RELAY_APP_ORIGINS` (comma-separated)
+- The relay answers only the gonogo app's own pages (the public site is always allowed). A main screen served from another address or site needs that origin in `RELAY_APP_ORIGINS` (comma-separated)
 - `GET /health`, `/version` and `/ice-config` on port 3002 report the relay status, the image version and the relay address and credentials the main screen reads on boot
 - To run the relay on its own on a public host, use the `ghcr.io/ksp-gonogo/gonogo-relay` image with the same ports and `RELAY_PUBLIC=1`. Keep `3002` closed to the internet
 - `TURN_MIN_PORT` and `TURN_MAX_PORT` widen the relay session range for more relayed stations; publish and forward the same range

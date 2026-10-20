@@ -22,7 +22,12 @@ import { BundleFetchCache, rebaseBundleUrl } from "./BundleFetchCache";
 import { type ConnectionPath, readConnectionPath } from "./connectionPath";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
-import { fetchHostIceServers, STUN_SERVERS, withStun } from "./iceServers";
+import {
+  fetchRelayIceConfig,
+  relayBaseUrl,
+  STUN_SERVERS,
+  withStun,
+} from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { PeerMessage } from "./protocol";
@@ -563,6 +568,8 @@ export class PeerHostService {
    *  was constructed with. Empty `[]` means the fetch failed or no
    *  relay is configured. */
   iceServers: RTCIceServer[] = [];
+  /** The address the relay publishes for stations on other networks, or null when it publishes none. */
+  relayPublicUrl: string | null = null;
   private flightListChangeUnsub: (() => void) | null = null;
   /**
    * TURN-on-demand escalation flag. False by default: the host starts
@@ -644,7 +651,9 @@ export class PeerHostService {
     // wouldn't make it into the offer. If the fetch fails we get an
     // empty array and run direct/STUN-only; the readiness UI tells the
     // operator about it.
-    this.iceServers = await fetchHostIceServers();
+    const config = await fetchRelayIceConfig(relayBaseUrl());
+    this.iceServers = config?.iceServers ?? [];
+    this.relayPublicUrl = config?.publicUrl ?? null;
     // Page-lifecycle listeners are registered ONCE per service lifetime
     // (idempotent guard) so a StrictMode start→stop→start cycle, or a
     // reclaim that re-opens the Peer: doesn't stack duplicate handlers.
@@ -674,7 +683,7 @@ export class PeerHostService {
     // A Peer is already live. This guards the StrictMode double-start race:
     // PeerHostProvider's effect fires start() without awaiting, so a
     // mount→unmount→mount runs start→stop→start, and because start() suspends
-    // at `await fetchHostIceServers()` BEFORE creating the Peer, two start()s
+    // at `await fetchRelayIceConfig()` BEFORE creating the Peer, two start()s
     // can both reach openPeer(). Without this guard the second would leak the
     // first Peer (same derived id) and trip a permanent unavailable-id reclaim
     // loop. The reclaim + regenerate paths both null `this.peer` before
@@ -2815,10 +2824,12 @@ export class PeerHostService {
 
   private async refreshIceConfig(): Promise<void> {
     if (!this.peer) return;
-    const next = await fetchHostIceServers();
+    const config = await fetchRelayIceConfig(relayBaseUrl());
+    const next = config?.iceServers ?? [];
     // Empty fetch = relay unreachable. Don't clobber working creds with
     // nothing: TURN-relayed paths in flight would lose their refresh.
     if (next.length === 0) return;
+    this.relayPublicUrl = config?.publicUrl ?? null;
     if (areIceServersEqual(this.iceServers, next)) return;
     this.iceServers = next;
     // TURN-on-demand: only patch the host Peer's config when TURN is already

@@ -39,6 +39,24 @@ describe("turn routes (fastify.inject)", () => {
     await app.close();
   });
 
+  it("names the published relay address in /ice-config only when one is set", async () => {
+    const app = Fastify();
+    registerTurnRoutes(app, {
+      getCoturn: () => handle(() => true),
+      turnExpected: true,
+      publicUrl: "https://relay.example.com",
+    });
+    await app.ready();
+    const ice = await app.inject({ method: "GET", url: "/ice-config" });
+    expect(ice.json().publicUrl).toBe("https://relay.example.com");
+    await app.close();
+
+    const plain = await buildApp(() => handle(() => true));
+    const none = await plain.inject({ method: "GET", url: "/ice-config" });
+    expect(none.json()).not.toHaveProperty("publicUrl");
+    await plain.close();
+  });
+
   it("answers 503 from both routes once coturn has died", async () => {
     let alive = true;
     const app = await buildApp(() => handle(() => alive));
