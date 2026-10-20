@@ -6,6 +6,7 @@ export default {
     "crash.lastCrash",
     "dv.stages",
     "dv.summary",
+    "spaceCenter.scene",
     "trackingStation.bodies",
     "vessel.identity",
     "vessel.orbit",
