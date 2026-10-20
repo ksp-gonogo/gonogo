@@ -1696,6 +1696,33 @@ describe("the body a contribution resolves", () => {
     expect(contribution?.compute(bare)).toBeNull();
   });
 
+  it("classifies the descent fresh after its data went absent, as a recovery leaves it", () => {
+    const payloads = payloadsFor(EARTH);
+    const low = (touchdown: number) => ({
+      ...payloads,
+      "vessel.surface": { heightFromTerrain: value("m", 800) },
+      "vessel.landing": {
+        ...payloads["vessel.landing"],
+        projectedTouchdownSpeed: value("m/s", touchdown),
+      },
+    });
+    const contribution = getContributionsForSlot("plots").find(
+      (c) => c.id === "core:descent-profile",
+    );
+    const badge = (topics: ReturnType<typeof topicsFor>) =>
+      (
+        contribution?.compute(topics) as { layers: PlotLayer[] }[] | null
+      )?.[0]?.layers.find((l) => l.id === "urgency");
+    const text = (layer: PlotLayer | undefined) =>
+      layer?.kind === "caption" ? layer.text : undefined;
+    expect(text(badge(topicsFor(EARTH, [], low(8))))).toBe("URGENT");
+    expect(text(badge(topicsFor(EARTH, [], low(5.5))))).toBe("URGENT");
+    const gone = topicsFor(EARTH, [], low(5.5));
+    gone["vessel.landing"] = { state: "absent", atUt: value("ut", 100) };
+    expect(badge(gone)).toBeUndefined();
+    expect(text(badge(topicsFor(EARTH, [], low(5.5))))).toBe("CAUTION");
+  });
+
   it("centres the touchdown reticle for a body no table knows", () => {
     expect(layerIds("core:touchdown-reticle", EARTH)).toContain("site");
   });

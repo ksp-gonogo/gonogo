@@ -1,6 +1,7 @@
 import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
-import type { PlotLayer, Tone } from "@ksp-gonogo/sitrep-sdk";
+import type { PlotLayer, Tone, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  observedAt,
   projectDescent,
   relativeDensityCurve,
   terminalVelocityCurve,
@@ -35,6 +36,34 @@ export function classifyUrgency(
   if (band === "SAFE") return "safe";
   if (band === "DIVERT" && altitude <= CRITICAL_ALTITUDE_M) return "urgent";
   return "caution";
+}
+
+const URGENCY_RANK: Record<ProfileUrgency, number> = {
+  safe: 0,
+  caution: 1,
+  urgent: 2,
+};
+
+/**
+ * How far below a band edge, as a fraction of the edge, the touchdown speed must fall before a more urgent tier is given up. Under full chutes the projected speed scatters 5.25 to 6.34 m/s sample to sample about a real descent of 5.7 to 6.5, so 15% of the 6 m/s edge (0.9 m/s) clears the scatter.
+ */
+const URGENCY_RELEASE_MARGIN = 0.15;
+
+/**
+ * The tier to show, given the one shown last (`undefined` for none). Rising to a more urgent tier happens on the first sample past the band edge; a tier is given up only once the speed is below its edge by the release margin, so scatter on an edge does not flip the badge.
+ */
+export function holdUrgency(
+  held: ProfileUrgency | undefined,
+  touchdownSpeed: number,
+  altitude: number,
+): ProfileUrgency {
+  const now = classifyUrgency(touchdownSpeed, altitude);
+  if (held === undefined || URGENCY_RANK[now] >= URGENCY_RANK[held]) return now;
+  const credited = classifyUrgency(
+    touchdownSpeed / (1 - URGENCY_RELEASE_MARGIN),
+    altitude,
+  );
+  return URGENCY_RANK[credited] < URGENCY_RANK[held] ? credited : held;
 }
 
 /** Urgency in the framework's severity words, the only thing a layer may name; the palette belongs to the drawing host. */
@@ -98,6 +127,8 @@ export interface DescentProfileInputs {
   dragToWeight?: number | null;
   /** Surface gravity, m/s^2; without it there is no predicted trace at all rather than one against a guessed body. */
   surfaceGravity?: number | null;
+  /** The tier to draw, already held against the previous sample; classified from the touchdown speed alone when absent. */
+  urgency?: ProfileUrgency;
   /** True airspeed as a Mach number; above Mach 1 the transonic drag rise is still to come, so the projection is an estimate. */
   mach?: number | null;
 }
@@ -172,7 +203,7 @@ export function buildDescentLayers(
   const vtGround = inputs.projectedTouchdownSpeed as number;
   const vtNow = inputs.terminalVelocity as number;
 
-  const urgency = classifyUrgency(vtGround, altitude);
+  const urgency = inputs.urgency ?? classifyUrgency(vtGround, altitude);
   const tone = URGENCY_TONE[urgency];
   const layers: PlotLayer[] = [];
 
@@ -367,6 +398,46 @@ export function buildDescentLayers(
   return layers;
 }
 
+/** What the badge showed last and the descent it was shown for. */
+interface ShownUrgency {
+  vesselId: string | null;
+  /** The game time of the sample the tier was judged from. */
+  at: Value<"ut"> | null;
+  tier: ProfileUrgency;
+}
+
+/** Where a sample sits: which vessel, at what game time. */
+interface DescentSample {
+  vesselId: string | null;
+  at: Value<"ut"> | null;
+}
+
+/**
+ * The tier to show for a sample, held against the tier shown for the previous sample of the same descent. A different vessel, or a sample earlier in game time than the last one (a revert, a quickload, a replayed timeline) is a different descent, so its first sample is classified fresh.
+ */
+export function nextShownUrgency(
+  shown: ShownUrgency | null,
+  sample: DescentSample,
+  touchdownSpeed: number,
+  altitude: number,
+): ShownUrgency {
+  const sameDescent =
+    shown !== null &&
+    shown.vesselId === sample.vesselId &&
+    (shown.at === null || sample.at === null || !sample.at.lessThan(shown.at));
+  return {
+    ...sample,
+    tier: holdUrgency(
+      sameDescent ? shown.tier : undefined,
+      touchdownSpeed,
+      altitude,
+    ),
+  };
+}
+
+/** The badge's memory, which lives with the contribution: its `compute` is shared by every widget showing the plot. Cleared whenever the descent data is absent. */
+let shownUrgency: ShownUrgency | null = null;
+
 /**
  * The descent profile, contributed as a whole plot through `CORE_UPLINK_CLIENT`, the same route a third party uses.
  *
@@ -387,6 +458,10 @@ CORE_UPLINK_CLIENT.registerContribution({
     const surface = lastValue(topics["vessel.surface"]);
     const landing = lastValue(topics["vessel.landing"]);
     const body = parentBodyFromTopics(topics);
+    const sample: DescentSample = {
+      vesselId: lastValue(topics["vessel.identity"])?.vesselId ?? null,
+      at: observedAt(topics["vessel.landing"]) ?? null,
+    };
     // The burn datum as the widget derives it: the lowest point above terrain, falling back to CoM radar altitude when `vessel.surface` is null.
     const height =
       surface?.heightFromTerrain?.magnitude ??
@@ -409,7 +484,17 @@ CORE_UPLINK_CLIENT.registerContribution({
       mach: flight?.mach?.magnitude ?? null,
     };
     const frame = descentFrame(inputs);
-    if (!frame) return null;
+    if (!frame) {
+      shownUrgency = null;
+      return null;
+    }
+    shownUrgency = nextShownUrgency(
+      shownUrgency,
+      sample,
+      inputs.projectedTouchdownSpeed as number,
+      frame.altitude,
+    );
+    inputs.urgency = shownUrgency.tier;
     return [
       {
         subject: "descent-profile",

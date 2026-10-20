@@ -1,9 +1,11 @@
-import type { PlotLayer } from "@ksp-gonogo/sitrep-sdk";
+import { type PlotLayer, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   buildDescentLayers,
   classifyUrgency,
   descentFrame,
+  holdUrgency,
+  nextShownUrgency,
 } from "./descentLayers";
 import { touchdownBand } from "./hazardVerdict";
 
@@ -311,5 +313,54 @@ describe("buildDescentLayers", () => {
     expect(anchorOf("urgency")).toBe("bottom-right");
     expect(captions.map((l) => l.anchor)).not.toContain("bottom-left");
     expect(captions.map((l) => l.anchor)).not.toContain("top-left");
+  });
+});
+
+describe("holdUrgency", () => {
+  it("rises to a more urgent tier on the first sample past the band edge", () => {
+    expect(holdUrgency("caution", 6.01, 800)).toBe("urgent");
+    expect(holdUrgency("safe", 2.01, 800)).toBe("caution");
+    expect(holdUrgency(undefined, 6.01, 800)).toBe("urgent");
+  });
+
+  it("keeps a tier through scatter just under its band edge", () => {
+    expect(holdUrgency("urgent", 5.5, 800)).toBe("urgent");
+    expect(holdUrgency("caution", 1.8, 800)).toBe("caution");
+  });
+
+  it("gives a tier up once the speed is clear of the edge by the margin", () => {
+    expect(holdUrgency("urgent", 5.0, 800)).toBe("caution");
+    expect(holdUrgency("caution", 1.5, 800)).toBe("safe");
+  });
+
+  it("falls straight past an intermediate tier when the speed is well clear of both", () => {
+    expect(holdUrgency("urgent", 1.0, 800)).toBe("safe");
+  });
+});
+
+describe("nextShownUrgency", () => {
+  const at = (ut: number, vesselId = "v1") => ({
+    vesselId,
+    at: value("ut", ut),
+  });
+  const urgent = nextShownUrgency(null, at(100), 8, 800);
+
+  it("holds a tier within one descent", () => {
+    expect(nextShownUrgency(urgent, at(101), 5.5, 800).tier).toBe("urgent");
+  });
+
+  it("classifies fresh after a revert into a gentle descent", () => {
+    expect(urgent.tier).toBe("urgent");
+    expect(nextShownUrgency(urgent, at(40), 5.5, 800).tier).toBe("caution");
+  });
+
+  it("classifies fresh for another vessel", () => {
+    expect(nextShownUrgency(urgent, at(101, "v2"), 5.5, 800).tier).toBe(
+      "caution",
+    );
+  });
+
+  it("classifies fresh after the descent data went absent", () => {
+    expect(nextShownUrgency(null, at(101), 5.5, 800).tier).toBe("caution");
   });
 });
