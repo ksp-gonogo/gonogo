@@ -11,6 +11,7 @@ import {
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { ReactElement } from "react";
 import { describe, expect, it } from "vitest";
+import { Badge } from "./Badge";
 import { Button } from "./Button";
 import { ControlDelayStream } from "./CommandDelay/ControlDelayStream";
 import { Countdown } from "./Countdown";
@@ -151,6 +152,11 @@ const PAINTERS: Record<string, (grade: HeldGrade | undefined) => ReactElement> =
         }}
       />
     ),
+    "Badge, held": (grade) => (
+      <Badge tone="go" held={held(value("s", 90), grade)}>
+        COMMS LINKED
+      </Badge>
+    ),
     "Button, marked": (grade) => (
       <Button marked={derivedMarking(held(value("s", 90), grade))}>
         SAS ON
@@ -223,6 +229,7 @@ function kitSources(): Record<string, string> {
  * two definitions are named with the painters that use them.
  */
 const DRAWN_BY: Record<string, readonly string[]> = {
+  "./Badge.tsx": ["Badge, held"],
   "./Button.tsx": ["Button, marked"],
   "./HeldMark.tsx": ["Meter, caller's label", "Countdown", "UnitInput"],
   "./instrumentCurrency.tsx": ["Dial", "Dial, half face", "Tape"],

@@ -1,31 +1,35 @@
-import type { BadgeEntry, Tone } from "@ksp-gonogo/sitrep-sdk";
+import type { BadgeEntry, HeldGrade, Tone } from "@ksp-gonogo/sitrep-sdk";
+import { heldTone } from "./heldTone";
 import { heldGradeOf } from "./readingCurrency";
-import { severityFromStreamStatus } from "./status/severity";
 import { heldWord } from "./status/streamStatusWord";
 
 /**
- * What a badge entry draws: its words, its tone and its tooltip. Useful for
- * telling the operator the state of a widget at a glance. Returned by
- * {@link badgeFace}.
+ * What a badge entry draws: its words, its tone, its tooltip and whether it is
+ * held. Useful for telling the operator the state of a widget at a glance.
+ * Returned by {@link badgeFace}.
  *
  * @category Badge
  */
 export interface BadgeFace {
-  /** The words the badge shows: the held grade's word where the entry is held, its own label otherwise. */
+  /** The words the badge shows: the entry's own `label`, held or not. */
   label: string;
-  /** The badge's tone. `undefined` draws it neutral. */
+  /** The badge's tone: the entry's own, or its held tone while the entry is held. `undefined` draws it neutral. */
   tone: Tone | undefined;
   /** The hover text. `undefined` where there is none. */
   title: string | undefined;
+  /** The held grade while the entry's reading is held, for the badge's `held` prop. Absent while it is current. */
+  held?: HeldGrade;
 }
 
 /**
- * How a `BadgeEntry` reads once its `held` grade is taken into account. With
+ * How a `BadgeEntry` reads once its `held` reading is taken into account. With
  * no held grade it returns the entry's own `label`, `tone` and `title`. With
- * one, the grade's word and severity replace the label and tone, and the
- * title keeps the replaced label (`"<label>: <word>"`) unless the entry set
- * its own. Useful for showing the operator a widget's badge the same way the
- * panel header does. Used by the panel header and the screen header badges.
+ * one, the label stays, the tone becomes its held tone (`go` and `info` read
+ * `caution`, every other tone is kept), the title names the grade
+ * (`"<label>: <word>"`) unless the entry set its own, and `held` carries the
+ * grade so the badge draws its held square. Useful for showing the operator a
+ * widget's badge the same way the panel header does. Used by the panel header
+ * and the screen header badges.
  *
  * @category Badge
  */
@@ -34,10 +38,10 @@ export function badgeFace(entry: BadgeEntry & { title?: string }): BadgeFace {
   if (grade === undefined) {
     return { label: entry.label, tone: entry.tone, title: entry.title };
   }
-  const label = heldWord(grade);
   return {
-    label,
-    tone: severityFromStreamStatus(grade),
-    title: entry.title ?? `${entry.label}: ${label}`,
+    label: entry.label,
+    tone: heldTone(entry.tone),
+    title: entry.title ?? `${entry.label}: ${heldWord(grade)}`,
+    held: grade,
   };
 }

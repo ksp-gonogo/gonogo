@@ -121,15 +121,17 @@ describe("VesselCatalog header badge", () => {
       fixture.emit("trackingStation.catalog", CRAFT);
     });
     await waitFor(() => expect(visibleText(container)).toContain("All Linked"));
+    const heldMark = () =>
+      screen.getByText("All Linked").querySelector("[data-held-mark]");
+    expect(heldMark()).toBeNull();
 
     act(() => {
       fixture.store.setTransportConnected(false);
       fixture.store.beginFrame();
     });
 
-    // A held badge shows its grade's word in place of the verdict it can no longer vouch for.
-    await waitFor(() =>
-      expect(visibleText(container)).not.toContain("All Linked"),
-    );
+    // A held badge keeps its verdict and carries the held mark, never a grade word on its own.
+    await waitFor(() => expect(heldMark()).not.toBeNull());
+    expect(screen.queryByText("OFFLINE")).toBeNull();
   });
 });

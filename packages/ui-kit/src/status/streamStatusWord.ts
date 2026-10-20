@@ -56,7 +56,7 @@ export function formatStreamStatus(status: StreamStatusValue): string | null {
  * The word for a held reading's grade, the same word {@link formatStreamStatus}
  * gives the status of that name, or `HELD` when no grade is given, as for a
  * value combined from several readings. Useful for telling the operator in a
- * word why a figure is held. Used by {@link HeldBadge} and the target picker's
+ * word why a figure is held. Used by {@link Badge} and the target picker's
  * rows.
  *
  * @category Badge
