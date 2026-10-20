@@ -480,6 +480,12 @@ jobs:
       - if: matrix.shard == 1
         run: pnpm --filter @ksp-gonogo/components aspect-gate
 
+      # Sticky bar gate: scrolls a filtered widget's body and requires the
+      # title and filter bar to hide the rows under them, judged on pixels.
+      # Needs the browser and built dists this job has and the unit legs lack.
+      - if: matrix.shard == 1
+        run: pnpm --filter @ksp-gonogo/components sticky-bar-gate
+
   # Min-size gate: mounts EVERY registered widget at the `minSize` it itself
   # declares and fails when its title ellipsises, its content is clipped with
   # nothing to scroll, or text paints outside the tile.
