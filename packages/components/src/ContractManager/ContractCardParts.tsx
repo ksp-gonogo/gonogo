@@ -1,6 +1,6 @@
 import { formatCompactCurrency } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { HeldFigure, heldWord, NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
+import { HeldBadge, NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
 import type { heldGrade } from "../shared/heldGrade";
 import { type ContractEntry, formatDeadline } from "./contracts";
 import {
@@ -30,7 +30,7 @@ function OfferExpiry({
   );
 }
 
-/** A card's title-row trailer: the deadline of an accepted contract or the expiry of an offer, carrying the held mark while the board is held. */
+/** A card's title-row trailer: the deadline of an accepted contract or the expiry of an offer, and the held mark while the board is held. */
 export function ContractDeadline({
   contract,
   offered,
@@ -43,20 +43,23 @@ export function ContractDeadline({
   universalTime: number | undefined;
   boardHeld: ReturnType<typeof heldGrade>;
 }>) {
-  const deadline = offered ? (
-    <OfferExpiry expireUt={contract.expireUt} universalTime={universalTime} />
-  ) : (
-    formatDeadline(contract.deadlineUt, universalTime)
-  );
   return (
-    <span style={DEADLINE_STYLE}>
-      {boardHeld === undefined ? (
-        deadline
-      ) : (
+    <>
+      <span style={DEADLINE_STYLE}>
+        {offered ? (
+          <OfferExpiry
+            expireUt={contract.expireUt}
+            universalTime={universalTime}
+          />
+        ) : (
+          formatDeadline(contract.deadlineUt, universalTime)
+        )}
+      </span>
+      {boardHeld !== undefined && (
         /* On the card, in the operator's eyeline while they look at its Cancel. */
-        <HeldFigure caption={heldWord(boardHeld)}>{deadline}</HeldFigure>
+        <HeldBadge grade={boardHeld} subject="Contract board" size="sm" />
       )}
-    </span>
+    </>
   );
 }
 

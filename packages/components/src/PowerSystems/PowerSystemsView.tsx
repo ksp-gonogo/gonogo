@@ -14,6 +14,7 @@ import {
   WidgetScopeProvider,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
+import { heldGrade } from "../shared/heldGrade";
 import { magnitudeOf } from "../shared/magnitude";
 import { ContributionSection } from "./ContributionSection";
 import { netRate } from "./chargeRate";
@@ -78,6 +79,7 @@ export function PowerSystemsComponent({
    * Held rates and levels are kept: a blank cell would read as a vessel with no load.
    */
   const partsReading = useTelemetry("vessel.parts");
+  const partsHeld = heldGrade(partsReading);
 
   const { resource, pickerResources, pick } = useResourcePick(
     config?.defaultResource ?? "ElectricCharge",
@@ -223,6 +225,11 @@ export function PowerSystemsComponent({
       <Panel
         panelTitle="POWER SYSTEMS"
         compactTitle={["POWER"]}
+        panelBadges={
+          partsHeld === undefined
+            ? undefined
+            : [{ id: "read", label: "Reading", held: partsHeld }]
+        }
         panelAside={
           <Select
             style={RESOURCE_SELECT}

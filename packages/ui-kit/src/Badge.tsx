@@ -1,16 +1,10 @@
-import type { HeldGrade, Reading, Tone } from "@ksp-gonogo/sitrep-sdk";
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { fitBox } from "./fitBox";
-import { heldTone } from "./heldTone";
-import { heldGradeOf } from "./readingCurrency";
-import { RECKONING_MARK } from "./reckoningMarkSpec";
 import type { Severity } from "./status/severity";
-import { heldWord } from "./status/streamStatusWord";
 import { useStatusContribution } from "./status/useStatusContribution";
-import { useTooltip } from "./Tooltip";
 import { TONE_MARK, TONE_TEXT } from "./tone";
-import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
  * Badge text size: `sm` for dense rows and table cells, `md` (the default)
@@ -57,16 +51,6 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
    * draws as usual.
    */
   report?: { id: string; label?: string };
-  /**
-   * The reading the badge's state comes from, or that reading's held grade.
-   * While it is held the badge keeps its words, takes its held tone (`go` and
-   * `info` read `caution`, every other tone is kept) and carries the held
-   * square on its top right corner; its panel summary takes the same tone. The
-   * grade's word is spoken after the badge's words and shown on hover; a
-   * caller that wraps a held badge in its own {@link Tooltip} names the grade
-   * in that tooltip's text. A current reading, or none, changes nothing.
-   */
-  held?: HeldGrade | Reading<unknown>;
   /** The badge's words, drawn uppercase. */
   children: ReactNode;
 }
@@ -91,20 +75,17 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
  *
  * @category Badge
  * @categoryDescription Badge
- * Small marks that name a state: a badge in a tone, a status dot, and the
- * stream's connection status in words.
+ * Small marks that name a state: a badge in a tone, the held badge, a status
+ * dot, and the stream's connection status in words.
  */
 export function Badge({
-  tone: ownTone,
+  tone,
   size = "md",
   live = false,
   report,
-  held,
   children,
   ...rest
 }: BadgeProps) {
-  const grade = heldGradeOf(held);
-  const tone = grade === undefined ? ownTone : heldTone(ownTone);
   const severity: Severity | undefined =
     tone === undefined || tone === "neutral" ? undefined : tone;
   const reportLabel =
@@ -123,32 +104,11 @@ export function Badge({
   const liveAttrs = live
     ? ({ role: "status", "aria-live": "polite" } as const)
     : {};
-  const heldCaption = grade === undefined ? null : heldWord(grade);
-  // A caller's Tooltip around the badge owns the hover, and must name the grade itself.
-  const wrapped = Reflect.get(rest, "data-tooltip") !== undefined;
-  const { anchor, tip } = useTooltip(wrapped ? null : heldCaption);
 
   return (
-    <>
-      <Badge__Body
-        $severity={severity}
-        $size={size}
-        {...liveAttrs}
-        {...anchor}
-        {...rest}
-      >
-        {children}
-        {heldCaption !== null && (
-          <>
-            <Badge__HeldMark aria-hidden="true" data-held-mark="" />
-            <VisuallyHidden data-unit-currency="">
-              , {heldCaption}
-            </VisuallyHidden>
-          </>
-        )}
-      </Badge__Body>
-      {tip}
-    </>
+    <Badge__Body $severity={severity} $size={size} {...liveAttrs} {...rest}>
+      {children}
+    </Badge__Body>
   );
 }
 
@@ -219,7 +179,6 @@ const Badge__Body = styled.span<{
   $size: BadgeSize;
 }>`
   display: inline-block;
-  position: relative;
   /* Sized by its own text, never stretched to a taller flex sibling. */
   align-self: center;
   ${fitBox("badge")}
@@ -236,17 +195,4 @@ const Badge__Body = styled.span<{
   ${({ $size }) => SIZE_STYLES[$size]}
   ${({ $severity }) =>
     $severity === undefined ? DECORATIVE_STYLE : SEVERITY_STYLES[$severity]}
-`;
-
-/** The held square, centred on the badge's top right corner so it sits on the border rather than among the words. */
-const Badge__HeldMark = styled.span`
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: ${RECKONING_MARK.held.domSize};
-  height: ${RECKONING_MARK.held.domSize};
-  transform: translate(45%, -45%);
-  background: ${RECKONING_MARK.held.color};
-  box-shadow: 0 0 0 1px var(--color-surface-panel);
-  pointer-events: none;
 `;

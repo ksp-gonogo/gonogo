@@ -1,4 +1,3 @@
-import type { HeldGrade, Reading } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType, ReactNode } from "react";
 
 export type ObjectivesConfig = Record<string, never>;
@@ -27,8 +26,6 @@ export interface ObjectiveSection {
    * contracts source supplies one.
    */
   renderAlarm?: (item: ObjectiveItem) => ReactNode;
-  /** The reading the items come from, or its held grade. While it is held, each item's state is drawn with the held square. */
-  held?: HeldGrade | Reading<unknown>;
 }
 
 /**

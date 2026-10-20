@@ -5,8 +5,7 @@ import {
   Card,
   CommandButton,
   type CommandButtonHandle,
-  HeldFigure,
-  heldWord,
+  HeldBadge,
   Inline,
   Text,
   Tooltip,
@@ -62,16 +61,17 @@ function experimentOnPart(instrument: TitledInstrument): string {
   return `${experimentName(instrument)} on ${instrument.partTitle}`;
 }
 
-/** Holds a badge's height, so a row of badges never sits tighter than one control. */
+/** Holds a badge's height whether or not the instrument has any state to badge. */
 const BADGE_SLOT = { minHeight: "var(--control-height)" } as const;
 
 /** Holds the controls' height whether or not this instrument offers any, so every card is the same height. */
 const ACTION_SLOT = { minHeight: "var(--control-height)" } as const;
 
 /**
- * A single science-instrument card: the part's name, its state badges when it
- * has any, a data line (the experiment and whether it holds data) and the
- * Deploy/Transmit controls, or Start/Stop for a continuous instrument. Reads no telemetry, so the same row draws a stock
+ * A single science-instrument card. Every card has the same four slots in the
+ * same places: the part's name, state badges, a data line (the experiment and
+ * whether it holds data) and the Deploy/Transmit controls, or Start/Stop for a
+ * continuous instrument. Reads no telemetry, so the same row draws a stock
  * instrument and a contributed one.
  */
 export function ScienceExperimentRow({
@@ -161,18 +161,6 @@ export function ScienceExperimentRow({
         )}
     </Inline>
   );
-  // A held badge's hover names the grade, beside what the badge means.
-  const said = (meaning: string): string =>
-    heldGrade === undefined ? meaning : `${meaning}. ${heldWord(heldGrade)}`;
-  // The row's badges carry its held state; a row that draws none carries it on its data line instead.
-  const hasBadge =
-    instrument.hasData ||
-    (continuous && typeof instrument.running === "boolean") ||
-    (!continuous && instrument.deployed) ||
-    (!continuous &&
-      !instrument.rerunnable &&
-      instrument.rerunnableKnown !== false) ||
-    instrument.inoperable;
   return (
     <Card
       as="li"
@@ -182,74 +170,69 @@ export function ScienceExperimentRow({
       }
       footer={actions}
     >
-      {hasBadge && (
-        <Inline wrap style={BADGE_SLOT} data-badges="">
-          {instrument.hasData && (
-            <Tooltip text={said(BADGE_MEANING.data)}>
-              <Badge held={heldGrade} tone="go">
-                DATA
-              </Badge>
-            </Tooltip>
-          )}
-          {continuous && instrument.running === true && (
+      <Inline wrap style={BADGE_SLOT}>
+        {instrument.hasData && (
+          <Tooltip text={BADGE_MEANING.data}>
+            <Badge tone="go">DATA</Badge>
+          </Tooltip>
+        )}
+        {continuous && instrument.running === true && (
+          <Tooltip
+            text={
+              instrument.producing === false
+                ? BADGE_MEANING.runningIdle
+                : BADGE_MEANING.running
+            }
+          >
+            <Badge tone={instrument.producing === false ? "caution" : "go"}>
+              RUNNING
+            </Badge>
+          </Tooltip>
+        )}
+        {continuous && instrument.running === false && (
+          <Tooltip text={BADGE_MEANING.stopped}>
+            <Badge>STOPPED</Badge>
+          </Tooltip>
+        )}
+        {!continuous && instrument.deployed && (
+          <Tooltip text={BADGE_MEANING.deployed}>
+            <Badge>DEPLOYED</Badge>
+          </Tooltip>
+        )}
+        {/* An experiment whose reusability is unknown is not one-shot, and a continuous one is not run once. */}
+        {!continuous &&
+          !instrument.rerunnable &&
+          instrument.rerunnableKnown !== false && (
             <Tooltip
-              text={said(
-                instrument.producing === false
-                  ? BADGE_MEANING.runningIdle
-                  : BADGE_MEANING.running,
-              )}
+              text={
+                instrument.resettable === true
+                  ? BADGE_MEANING.oneShotResettable
+                  : instrument.resettable === false
+                    ? BADGE_MEANING.oneShotFinal
+                    : BADGE_MEANING.oneShot
+              }
             >
-              <Badge
-                held={heldGrade}
-                tone={instrument.producing === false ? "caution" : "go"}
-              >
-                RUNNING
-              </Badge>
+              <Badge>ONE-SHOT</Badge>
             </Tooltip>
           )}
-          {continuous && instrument.running === false && (
-            <Tooltip text={said(BADGE_MEANING.stopped)}>
-              <Badge held={heldGrade}>STOPPED</Badge>
-            </Tooltip>
-          )}
-          {!continuous && instrument.deployed && (
-            <Tooltip text={said(BADGE_MEANING.deployed)}>
-              <Badge held={heldGrade}>DEPLOYED</Badge>
-            </Tooltip>
-          )}
-          {/* An experiment whose reusability is unknown is not one-shot, and a continuous one is not run once. */}
-          {!continuous &&
-            !instrument.rerunnable &&
-            instrument.rerunnableKnown !== false && (
-              <Tooltip
-                text={said(
-                  instrument.resettable === true
-                    ? BADGE_MEANING.oneShotResettable
-                    : instrument.resettable === false
-                      ? BADGE_MEANING.oneShotFinal
-                      : BADGE_MEANING.oneShot,
-                )}
-              >
-                <Badge held={heldGrade}>ONE-SHOT</Badge>
-              </Tooltip>
-            )}
-          {instrument.inoperable && (
-            <Tooltip text={said(BADGE_MEANING.inoperable)}>
-              <Badge held={heldGrade} tone="nogo">
-                INOPERABLE
-              </Badge>
-            </Tooltip>
-          )}
-        </Inline>
-      )}
-      <Text level="muted" size="xs">
-        {!underPart && experimentName(instrument)}
-        {instrument.dataKnown !== false && (
-          <DataState
-            text={`${underPart ? "" : " · "}${instrument.hasData ? "Holds data" : "No data"}`}
-            held={hasBadge ? undefined : heldGrade}
+        {instrument.inoperable && (
+          <Tooltip text={BADGE_MEANING.inoperable}>
+            <Badge tone="nogo">INOPERABLE</Badge>
+          </Tooltip>
+        )}
+        {heldGrade !== undefined && (
+          <HeldBadge
+            grade={heldGrade}
+            subject={
+              underPart ? experimentOnPart(instrument) : instrument.partTitle
+            }
           />
         )}
+      </Inline>
+      <Text level="muted" size="xs">
+        {!underPart && experimentName(instrument)}
+        {instrument.dataKnown !== false &&
+          `${underPart ? "" : " · "}${instrument.hasData ? "Holds data" : "No data"}`}
       </Text>
       {continuous && instrument.running === true && instrument.runIssue && (
         <Text level="muted" size="xs">
@@ -263,13 +246,4 @@ export function ScienceExperimentRow({
       </Text>
     </Card>
   );
-}
-
-/** The row's data line, marked as a held figure where the row has no badge to carry its held state. */
-function DataState({
-  text,
-  held,
-}: Readonly<{ text: string; held: HeldGrade | undefined }>) {
-  if (held === undefined) return <>{text}</>;
-  return <HeldFigure caption={heldWord(held)}>{text}</HeldFigure>;
 }

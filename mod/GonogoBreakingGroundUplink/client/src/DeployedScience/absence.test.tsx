@@ -165,20 +165,17 @@ describe("DeployedScience: a progress held over a dropped link", () => {
     expect(root()?.querySelector("[data-held-mark]")).not.toBeNull();
   });
 
-  it("marks the base's power pill itself held, with no grade pill beside it", async () => {
+  it("marks the base's power state held beside its pill, which is words and not a figure", async () => {
     const { fixture } = mount([flatEntry()]);
     await screen.findByRole("meter", { name: "Seismometer" });
-    const heldMark = () =>
-      screen.getByRole("status").querySelector("[data-held-mark]");
-    expect(heldMark()).toBeNull();
+    expect(screen.queryByText(/^offline$/i)).toBeNull();
 
     act(() => {
       fixture.store.setTransportConnected(false);
       fixture.store.beginFrame();
     });
 
-    await waitFor(() => expect(heldMark()).not.toBeNull());
-    expect(screen.queryByText(/^offline$/i)).toBeNull();
+    expect(await screen.findByText(/^offline$/i)).toBeInTheDocument();
   });
 });
 

@@ -5,10 +5,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { CommandButtonHandle, CommandReplyLike } from "@ksp-gonogo/ui-kit";
-import {
-  expectNoA11yViolations,
-  unannouncedHeldMarks,
-} from "@ksp-gonogo/ui-kit/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -61,49 +58,6 @@ function instrument(
 }
 
 describe("ScienceExperimentRow", () => {
-  it("draws no empty badge line for an instrument with no state to badge", () => {
-    const { container, rerender } = renderRow(
-      <ScienceExperimentRow instrument={instrument({ hasData: true })} />,
-    );
-    // The control: a row with a badge keeps its badge line.
-    expect(container.querySelector("[data-badges]")).not.toBeNull();
-
-    rerender(
-      <ul>
-        <ScienceExperimentRow instrument={instrument()} />
-      </ul>,
-    );
-    expect(container.querySelector("[data-badges]")).toBeNull();
-  });
-
-  it("names the grade on every held badge, a running instrument's included", () => {
-    const { container } = renderRow(
-      <ScienceExperimentRow
-        instrument={instrument({
-          continuous: true,
-          running: true,
-          hasData: true,
-          inoperable: true,
-        })}
-        heldGrade="held"
-      />,
-    );
-    expect(container.querySelectorAll("[data-held-mark]").length).toBe(3);
-    expect(unannouncedHeldMarks(container)).toEqual([]);
-  });
-
-  it("marks a held instrument with no badge on its data line", () => {
-    renderRow(
-      <ScienceExperimentRow
-        instrument={instrument({ dataKnown: true })}
-        heldGrade="held"
-      />,
-    );
-    expect(
-      screen.getByText(/No data/).querySelector("[data-held-mark]"),
-    ).not.toBeNull();
-  });
-
   it("does not call an instrument one-shot when the wire never said whether it reruns", () => {
     renderRow(
       <ScienceExperimentRow
