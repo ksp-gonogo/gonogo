@@ -897,28 +897,20 @@ export class SerialDeviceService {
    */
   async destroy(): Promise<void> {
     this.detachNavigatorListeners();
-    /*
-     * Every transport is asked to disconnect before the first await, so a
-     * caller that follows `destroy()` straight away with `autoReconnect()`
-     * (a StrictMode remount does) finds each one already disconnected rather
-     * than being undone by a disconnect still waiting its turn.
-     */
-    await Promise.all(
-      Array.from(this.managed.values(), async (managed) => {
-        if (managed.renderTimer !== null) {
-          clearTimeout(managed.renderTimer);
-          managed.renderTimer = null;
-        }
-        try {
-          await managed.transport.disconnect();
-        } catch (err) {
-          logger.warn(
-            `[SerialDeviceService] transport.disconnect failed for ${managed.instance.id}`,
-            { err: String(err) },
-          );
-        }
-      }),
-    );
+    for (const managed of Array.from(this.managed.values())) {
+      if (managed.renderTimer !== null) {
+        clearTimeout(managed.renderTimer);
+        managed.renderTimer = null;
+      }
+      try {
+        await managed.transport.disconnect();
+      } catch (err) {
+        logger.warn(
+          `[SerialDeviceService] transport.disconnect failed for ${managed.instance.id}`,
+          { err: String(err) },
+        );
+      }
+    }
   }
 
   private register(instance: DeviceInstance, deviceType: DeviceType): void {

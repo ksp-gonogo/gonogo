@@ -1,19 +1,18 @@
 import type { Screen } from "@ksp-gonogo/core";
 import { safeRandomUuid } from "@ksp-gonogo/core";
 import { LocalStorageStore } from "@ksp-gonogo/data";
-import type { InputBinding } from "@ksp-gonogo/serial";
 import type { Layout } from "react-grid-layout";
 import type { DashboardItem } from "../components/Dashboard";
 
 /**
- * Named dashboards: "Launch", "Orbit", "Rendezvous", etc.: scoped per-screen
- * (main vs station). A profile bundles the items + the layout. The dashboard
- * always belongs to one profile, the current one, and every change to it is
- * written straight into that profile; switching profiles swaps the whole
+ * Named dashboard snapshots: "Launch", "Orbit", "Rendezvous", etc.:
+ * scoped per-screen (main vs station). A profile bundles the items + the
+ * layout; loading one into the dashboard swaps the whole
  * state in a single tick via `useDashboardState.replaceState`.
  *
  * Storage is partitioned by screen so main and station have independent
- * profile libraries.
+ * profile libraries. Profile snapshots are duplicated into localStorage;
+ * nothing is shared through the active-dashboard key.
  */
 
 /**
@@ -70,86 +69,31 @@ export interface MissionProfile {
    */
   autoSwitch?: boolean;
   /**
-   * The input that switches to this profile when pressed: a keyboard key, a
-   * gamepad button or a serial device input. At most one profile per screen
-   * holds a given input.
-   */
-  inputBinding?: InputBinding;
-  /**
-   * True for the one unnamed layout created by the first change made with no
-   * profile current. It keeps being autosaved; renaming it makes it an
-   * ordinary profile.
+   * True for a layout kept automatically because loading another one would
+   * have replaced it before it was saved. Renaming it or overwriting it makes
+   * it an ordinary saved layout.
    */
   draft?: boolean;
   /** ms: lets the UI sort by recency and detect "did I change this?". */
   updatedAt: number;
 }
 
-/** What an unnamed autosaved layout is called until it is renamed. */
-export const DRAFT_NAME = "Unsaved layout";
+/** How many automatically kept layouts are held; the oldest go first. */
+export const MAX_DRAFTS = 5;
 
-/** The name given to a screen's base dashboard when it is migrated into a profile. */
-const MIGRATED_BASE_NAME = "Layout";
-
-/** Bumped when the stored shape changes; see `migrate`. */
-const SCHEMA_VERSION = 2;
+/** What a layout is, ignoring the grid bookkeeping fields react-grid-layout adds. */
+function fingerprint(items: DashboardItem[], layout: Layout): string {
+  const byId = (a: { i: string }, b: { i: string }) => a.i.localeCompare(b.i);
+  return JSON.stringify([
+    [...items].sort(byId),
+    layout.map(({ i, x, y, w, h }) => ({ i, x, y, w, h })).sort(byId),
+  ]);
+}
 
 type Listener = () => void;
 
 function storageKeyFor(screen: Screen): string {
   return `gonogo.missionProfiles.${screen}`;
-}
-
-function currentKeyFor(screen: Screen): string {
-  return `gonogo.missionProfiles.current.${screen}`;
-}
-
-function schemaKeyFor(screen: Screen): string {
-  return `gonogo.missionProfiles.schema.${screen}`;
-}
-
-/** The dashboard slots each screen used before profiles held the working layout. */
-function legacyKeysFor(screen: Screen): Array<{
-  key: string;
-  scene: BindableScene | null;
-}> {
-  return [
-    { key: `gonogo:dashboard:${screen}`, scene: null },
-    ...BINDABLE_SCENES.map((scene) => ({
-      key: `gonogo:dashboard:${screen}:${scene}`,
-      scene,
-    })),
-  ];
-}
-
-function readLegacyDashboard(
-  storage: Storage,
-  key: string,
-): { items: DashboardItem[]; layout: Layout } | null {
-  try {
-    const raw = storage.getItem(key);
-    if (!raw) return null;
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) return null;
-    const { items, layout } = parsed as {
-      items?: unknown;
-      layout?: unknown;
-    };
-    return {
-      items: Array.isArray(items)
-        ? items.filter(
-            (it): it is DashboardItem =>
-              typeof it === "object" &&
-              it !== null &&
-              typeof it.i === "string" &&
-              typeof it.componentId === "string",
-          )
-        : [],
-      layout: Array.isArray(layout) ? layout : [],
-    };
-  } catch {
-    return null;
-  }
 }
 
 function generateId(): string {
@@ -163,50 +107,16 @@ export class MissionProfilesService {
   private profiles: MissionProfile[] = [];
   private listeners = new Set<Listener>();
   private store: LocalStorageStore<MissionProfile[]>;
-  private currentStore: LocalStorageStore<string | null>;
-  private schemaStore: LocalStorageStore<number>;
   private screen: Screen;
-  private storage: Storage;
-  private currentId: string | null = null;
 
   constructor(screen: Screen, storage: Storage = globalThis.localStorage) {
     this.screen = screen;
-    this.storage = storage;
     this.store = new LocalStorageStore<MissionProfile[]>({
       key: storageKeyFor(screen),
       defaults: [],
       storage,
     });
-    this.currentStore = new LocalStorageStore<string | null>({
-      key: currentKeyFor(screen),
-      defaults: null,
-      storage,
-    });
-    this.schemaStore = new LocalStorageStore<number>({
-      key: schemaKeyFor(screen),
-      defaults: 0,
-      storage,
-    });
     this.load();
-    this.migrate();
-  }
-
-  /** The profile the dashboard belongs to, or null when none is current. */
-  getCurrentId(): string | null {
-    return this.currentId;
-  }
-
-  getCurrent(): MissionProfile | undefined {
-    return this.currentId ? this.get(this.currentId) : undefined;
-  }
-
-  /** Makes a profile the one the dashboard belongs to; null leaves none current. */
-  setCurrent(id: string | null): void {
-    const next = id !== null && this.get(id) ? id : null;
-    if (next === this.currentId) return;
-    this.currentId = next;
-    this.currentStore.set(next);
-    this.emit();
   }
 
   list(): readonly MissionProfile[] {
@@ -242,44 +152,35 @@ export class MissionProfilesService {
   }
 
   /**
-   * Writes the dashboard into a profile as the autosave does: unlike `update`
-   * it never renames and leaves the unnamed flag as it is.
+   * Keeps a dashboard that is about to be replaced, so a layout the operator
+   * arranged and never saved can be loaded back from the layouts list. Does
+   * nothing for an empty dashboard or one already held by a saved layout.
+   * Returns the layout kept, if any.
    */
-  writeContent(id: string, items: DashboardItem[], layout: Layout): void {
-    const idx = this.profiles.findIndex((p) => p.id === id);
-    if (idx < 0) return;
-    this.profiles[idx] = {
-      ...this.profiles[idx],
-      items,
-      layout,
-      updatedAt: Date.now(),
-    };
-    this.persist();
-    this.emit();
-  }
-
-  /**
-   * Creates the one unnamed layout and makes it current. A previous unnamed
-   * layout is kept as an ordinary profile rather than dropped, so there is
-   * never more than one flagged at a time.
-   */
-  createDraft(items: DashboardItem[], layout: Layout): MissionProfile {
-    this.profiles = this.profiles.map((p) =>
-      p.draft ? { ...p, draft: undefined } : p,
-    );
+  saveDraft(items: DashboardItem[], layout: Layout): MissionProfile | null {
+    if (items.length === 0) return null;
+    const print = fingerprint(items, layout);
+    if (this.profiles.some((p) => fingerprint(p.items, p.layout) === print)) {
+      return null;
+    }
     const draft: MissionProfile = {
       id: generateId(),
-      name: DRAFT_NAME,
+      name: "Unsaved layout",
       screen: this.screen,
       items,
       layout,
       draft: true,
       updatedAt: Date.now(),
     };
+    const drafts = this.profiles
+      .filter((p) => p.draft)
+      .sort((a, b) => a.updatedAt - b.updatedAt);
+    const dropped = new Set(
+      drafts.slice(0, Math.max(0, drafts.length - (MAX_DRAFTS - 1))),
+    );
+    this.profiles = this.profiles.filter((p) => !dropped.has(p));
     this.profiles.push(draft);
-    this.currentId = draft.id;
     this.persist();
-    this.currentStore.set(draft.id);
     this.emit();
     return draft;
   }
@@ -306,40 +207,10 @@ export class MissionProfilesService {
       next.sceneBindings = undefined;
     }
     if (next.autoSwitch !== true) next.autoSwitch = undefined;
-    if (patch.name) next.draft = undefined;
+    if (patch.name || patch.items || patch.layout) next.draft = undefined;
     this.profiles[idx] = next;
     this.persist();
     this.emit();
-  }
-
-  /**
-   * Binds an input to a profile, or clears it with null. An input already
-   * bound to another profile moves here; that profile is returned so the
-   * caller can say so.
-   */
-  bindInput(
-    id: string,
-    binding: InputBinding | null,
-  ): { movedFrom: MissionProfile | null } {
-    let movedFrom: MissionProfile | null = null;
-    this.profiles = this.profiles.map((p) => {
-      if (p.id === id) {
-        return { ...p, inputBinding: binding ?? undefined };
-      }
-      const held = p.inputBinding;
-      if (
-        binding &&
-        held?.deviceId === binding.deviceId &&
-        held.inputId === binding.inputId
-      ) {
-        movedFrom = p;
-        return { ...p, inputBinding: undefined };
-      }
-      return p;
-    });
-    this.persist();
-    this.emit();
-    return { movedFrom };
   }
 
   /**
@@ -359,10 +230,6 @@ export class MissionProfilesService {
     this.profiles = this.profiles.filter((p) => p.id !== id);
     if (this.profiles.length !== before) {
       this.persist();
-      if (this.currentId === id) {
-        this.currentId = null;
-        this.currentStore.set(null);
-      }
       this.emit();
     }
   }
@@ -381,17 +248,9 @@ export class MissionProfilesService {
             typeof p?.id === "string" && typeof p?.name === "string",
         )
         .map((saved) => {
-          const p = {
-            ...(Array.isArray(saved.layout) ? saved : { ...saved, layout: [] }),
-          };
-          const held = p.inputBinding;
-          if (
-            held &&
-            (typeof held.deviceId !== "string" ||
-              typeof held.inputId !== "string")
-          ) {
-            p.inputBinding = undefined;
-          }
+          const p = Array.isArray(saved.layout)
+            ? saved
+            : { ...saved, layout: [] };
           // Drop unknown scene names quietly: `kc.scene` could in theory
           // emit values we haven't seen yet, but a tagged binding for an
           // unknown scene would never resolve, so it's noise.
@@ -407,87 +266,6 @@ export class MissionProfilesService {
           return p;
         });
     }
-    const current = this.currentStore.get();
-    this.currentId =
-      typeof current === "string" && this.get(current) ? current : null;
-  }
-
-  /**
-   * Brings an older store forward, once per schema bump and whenever an old
-   * per-scene dashboard slot is found (a restored backup can bring one back).
-   * Each slot becomes an ordinary profile: a scene's slot is named after the
-   * scene and bound to it with auto-switch, so a scene keeps the arrangement
-   * it had without a prompt, and the screen's base slot becomes the current
-   * profile. Kept unnamed layouts stop being flagged, so the flag marks only
-   * the one the autosave is writing.
-   */
-  private migrate(): void {
-    let changed = false;
-    if (this.schemaStore.get() < SCHEMA_VERSION) {
-      this.profiles = this.profiles.map((p) =>
-        p.draft ? { ...p, draft: undefined } : p,
-      );
-      this.schemaStore.set(SCHEMA_VERSION);
-      changed = true;
-    }
-
-    const found = legacyKeysFor(this.screen).flatMap(({ key, scene }) => {
-      const dashboard = readLegacyDashboard(this.storage, key);
-      return dashboard ? [{ key, scene, dashboard }] : [];
-    });
-    for (const { scene, dashboard } of found.sort(
-      (a, b) => Number(a.scene === null) - Number(b.scene === null),
-    )) {
-      if (scene) this.migrateSceneSlot(scene, dashboard);
-      else this.migrateBaseSlot(dashboard);
-      changed = true;
-    }
-    if (changed) this.persist();
-    for (const { key } of found) {
-      try {
-        this.storage.removeItem(key);
-      } catch {
-        // storage unavailable: the slot is converted either way.
-      }
-    }
-  }
-
-  private migrateSceneSlot(
-    scene: BindableScene,
-    dashboard: { items: DashboardItem[]; layout: Layout },
-  ): void {
-    const alreadyBound = this.profiles.some((p) =>
-      p.sceneBindings?.includes(scene),
-    );
-    this.profiles.push({
-      id: generateId(),
-      name: `${SCENE_LABELS[scene]} layout`,
-      screen: this.screen,
-      items: dashboard.items,
-      layout: dashboard.layout,
-      sceneBindings: alreadyBound ? undefined : [scene],
-      autoSwitch: alreadyBound ? undefined : true,
-      updatedAt: Date.now(),
-    });
-  }
-
-  private migrateBaseSlot(dashboard: {
-    items: DashboardItem[];
-    layout: Layout;
-  }): void {
-    if (dashboard.items.length === 0) return;
-    const base: MissionProfile = {
-      id: generateId(),
-      name: MIGRATED_BASE_NAME,
-      screen: this.screen,
-      items: dashboard.items,
-      layout: dashboard.layout,
-      updatedAt: Date.now(),
-    };
-    this.profiles.push(base);
-    if (this.currentId) return;
-    this.currentId = base.id;
-    this.currentStore.set(base.id);
   }
 
   private persist(): void {

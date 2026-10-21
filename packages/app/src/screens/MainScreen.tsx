@@ -55,6 +55,7 @@ import {
 } from "../components/ComponentOverlay";
 import type { DashboardConfig } from "../components/Dashboard";
 import { Dashboard } from "../components/Dashboard";
+import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
 import { FullscreenFab } from "../components/FullscreenFab";
 import { HeaderBadges } from "../components/HeaderBadges";
@@ -70,15 +71,11 @@ import { FirstRunSetupHost } from "../firstRun/FirstRunSetupHost";
 import { GoNoGoHostProvider, GoNoGoHostService } from "../goNoGo";
 import { createManeuverTriggerHost } from "../maneuverTriggers";
 import {
-  LayoutHistoryControl,
   MissionProfilesFab,
   MissionProfilesProvider,
   MissionProfilesService,
-  ProfileSwitchBanner,
-  profileInputOptions,
   SceneSwitchPrompt,
   useMissionProfilesService,
-  useProfileDashboard,
 } from "../missionProfiles";
 import { createNotesHost } from "../notes/createNotesHost";
 import { NotesHostProvider } from "../notes/NotesHostContext";
@@ -105,6 +102,7 @@ import { SitrepVantageSessions } from "../telemetry/SitrepVantageSessions";
 import { HostUplinksAnnouncer } from "../uplinks/HostUplinksAnnouncer";
 import { UplinkHealthRetry } from "../uplinks/UplinkHealthRetry";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
+import { dashboardKeyForScene } from "./dashboardKey";
 
 const EMPTY_DASHBOARD: DashboardConfig = { items: [], layout: [] };
 
@@ -419,21 +417,21 @@ function MainDashboard({
 }) {
   const { scene, inFlight, hasGameSignal } = useGameContext();
   const profiles = useMissionProfilesService();
-  const { dashboard, controller } = useProfileDashboard(
-    profiles,
+  const dashboard = useDashboardState(
+    dashboardKeyForScene(screen, scene),
     EMPTY_DASHBOARD,
+    { onDiscard: (items, layout) => profiles.saveDraft(items, layout) },
   );
 
   useEffect(() => {
     const dispatcher = new InputDispatcher({
       service: serialService,
       getItems: dashboard.getItems,
-      ...profileInputOptions(profiles, controller, serialService),
     });
     return () => {
       dispatcher.dispose();
     };
-  }, [serialService, dashboard.getItems, profiles, controller]);
+  }, [serialService, dashboard.getItems]);
 
   return (
     <OverlayProvider
@@ -468,7 +466,12 @@ function MainDashboard({
             <StationLinkFab />
             <FullscreenFab bottom={264} />
             <SettingsFab bottom={324} />
-            <MissionProfilesFab bottom={384} dashboard={controller} />
+            <MissionProfilesFab
+              bottom={384}
+              currentItems={dashboard.items}
+              currentLayout={dashboard.layout}
+              onLoad={(p) => dashboard.replaceState(p.items, p.layout)}
+            />
             <MainAlarmsFab />
           </FabClusterProvider>
           <ReplaySessionBanner />
@@ -495,9 +498,9 @@ function MainDashboard({
             <ModVersionBanner />
             <StationBuildMismatchNotice host={peerHostService} />
             <StationApprovalPrompt host={peerHostService} />
-            <SceneSwitchPrompt dashboard={controller} />
-            <ProfileSwitchBanner dashboard={controller} />
-            <LayoutHistoryControl dashboard={controller} />
+            <SceneSwitchPrompt
+              onLoad={(items, layout) => dashboard.replaceState(items, layout)}
+            />
           </BannerStack>
           <PushedDashboardOverlay />
         </Layout>

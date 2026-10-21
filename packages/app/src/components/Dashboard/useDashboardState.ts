@@ -4,12 +4,51 @@ import type { Layout, LayoutItem } from "react-grid-layout";
 import type { DashboardConfig, DashboardItem } from "./index";
 import { COLS, firstFreeSlot } from "./layoutNormalization";
 
+interface PersistedState {
+  items: DashboardItem[];
+  layout: Layout;
+}
+
+function loadState(key: string): PersistedState | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const state = parsed as PersistedState;
+    // One entry that is not an item must not cost the operator every other widget on the layout.
+    const items = Array.isArray(state.items)
+      ? state.items.filter(
+          (it): it is DashboardItem =>
+            typeof it === "object" &&
+            it !== null &&
+            typeof it.i === "string" &&
+            typeof it.componentId === "string",
+        )
+      : [];
+    return {
+      items,
+      layout: Array.isArray(state.layout) ? state.layout : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveState(key: string, state: PersistedState): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(state));
+  } catch {
+    // quota / private browsing: in-memory state is authoritative.
+  }
+}
+
 /**
- * Owns the items + layout state for a Dashboard instance. Screens (MainScreen
- * / StationScreen) call this hook and pass the result into `<Dashboard>` as
- * props, so other consumers (notably the InputDispatcher) can subscribe to
- * item changes without reaching into Dashboard internals. Saving is the
- * caller's: `onChange` fires after every change to the items or the layout.
+ * Owns the items + layout state for a Dashboard instance and persists it
+ * under `storageKey`. Screens (MainScreen / StationScreen) call this hook
+ * and pass the result into `<Dashboard>` as props, so other consumers
+ * (notably the InputDispatcher) can subscribe to item changes
+ * without reaching into Dashboard internals.
  */
 export interface DashboardState {
   items: DashboardItem[];
@@ -38,47 +77,99 @@ export interface DashboardState {
   subscribeItems: (cb: (items: DashboardItem[]) => void) => () => void;
   /** Always returns the latest items without going through React render. */
   getItems: () => readonly DashboardItem[];
-  /** Replace items + layout wholesale (switching to another profile). */
+  /** Replace items + layout wholesale (mission-profile load). */
   replaceState: (items: DashboardItem[], layout: Layout) => void;
 }
 
 export interface DashboardStateOptions {
-  /** Called after every change to the items or the layout, never on mount. */
-  onChange?: (items: DashboardItem[], layout: Layout) => void;
+  /**
+   * Called with the items and layout that `replaceState` is about to overwrite
+   * when the dashboard has any, so the caller can keep them.
+   */
+  onDiscard?: (items: DashboardItem[], layout: Layout) => void;
 }
 
 export function useDashboardState(
+  storageKey: string | undefined,
   initial: DashboardConfig,
   options: DashboardStateOptions = {},
 ): DashboardState {
-  const [items, setItemsInner] = useState<DashboardItem[]>(initial.items);
-  const [layout, setLayout] = useState<Layout>(initial.layout);
+  // Read once: a ref's initial value is evaluated on every render, a state initialiser is not.
+  const [saved] = useState<PersistedState | null>(() =>
+    storageKey ? loadState(storageKey) : null,
+  );
+
+  const [items, setItemsInner] = useState<DashboardItem[]>(
+    saved?.items ?? initial.items,
+  );
+  const [layout, setLayout] = useState<Layout>(saved?.layout ?? initial.layout);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
 
-  const onChangeRef = useRef(options.onChange);
-  onChangeRef.current = options.onChange;
+  const onDiscardRef = useRef(options.onDiscard);
+  onDiscardRef.current = options.onDiscard;
 
   const itemListeners = useRef(new Set<(items: DashboardItem[]) => void>());
   const hasMountedRef = useRef(false);
+  // The key the current items belong to. Updated only *after* a key change has
+  // loaded/seeded the incoming key, so the persist effect below never writes
+  // the outgoing scene's items under the incoming scene's key.
+  const activeKeyRef = useRef(storageKey);
+  const storageKeyRef = useRef(storageKey);
+  storageKeyRef.current = storageKey;
+  /* Set when the whole dashboard is replaced while a key change is still
+     waiting for its effect below. A child's effect runs before this hook's, so
+     a layout loaded because of the scene change arrives first, and loading the
+     incoming key's saved layout after it would undo it. */
+  const replacedForKeyRef = useRef<string | undefined>(undefined);
 
-  /*
-   * Side effects (saving + external subscribers) run from an effect, NOT
-   * inside the setState updater: StrictMode double-invokes updaters to
-   * detect impurity, which would duplicate writes and subscriber callbacks.
-   */
+  // Side effects (persistence + external subscribers) run from an effect, NOT
+  // inside the setState updater: StrictMode double-invokes updaters to
+  // detect impurity, which would duplicate writes and subscriber callbacks.
+  // Persist to the *active* key (not the prop) so a mid-render scene switch
+  // can't clobber the new scene's slot with the old scene's items.
   useEffect(() => {
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
       return;
     }
-    onChangeRef.current?.(items, layout);
+    const key = activeKeyRef.current;
+    if (key) saveState(key, { items, layout });
     itemListeners.current.forEach((cb) => {
       cb(items);
     });
   }, [items, layout]);
+
+  // Scene-scoped key changed (e.g. the operator entered a different KSP
+  // scene): load that key's saved layout, or seed it from the current
+  // dashboard so a never-visited scene starts populated rather than empty.
+  // The outgoing scene's edits are already persisted under its own key by the
+  // effect above, so nothing is lost.
+  useEffect(() => {
+    if (storageKey === activeKeyRef.current) return;
+    activeKeyRef.current = storageKey;
+    const replaced = replacedForKeyRef.current === storageKey;
+    replacedForKeyRef.current = undefined;
+    // The replacement is already in state and is saved under the incoming key by the effect above.
+    if (replaced) return;
+    const next = storageKey ? loadState(storageKey) : null;
+    if (next) {
+      setItemsInner(next.items);
+      setLayout(next.layout);
+      return;
+    }
+    if (storageKey) {
+      // Seed the new key from what's on screen now; keep showing it.
+      saveState(storageKey, {
+        items: itemsRef.current,
+        layout: layoutRef.current,
+      });
+    }
+  }, [storageKey]);
 
   const handleLayoutChange = useCallback((next: Layout) => {
     setLayout(next);
@@ -181,12 +272,26 @@ export function useDashboardState(
   const getItems = useCallback(() => itemsRef.current, []);
 
   /**
-   * Replace items + layout wholesale. Used when switching to another profile
-   * so the dashboard snaps to a saved state in one tick. Loses in-flight
-   * drag/resize state by design.
+   * Replace items + layout wholesale. Used by the mission-profile loader
+   * so a profile swap snaps the dashboard to a saved state in one tick.
+   * Loses in-flight drag/resize state by design. What it overwrites goes to
+   * `onDiscard` first.
    */
   const replaceState = useCallback(
     (nextItems: DashboardItem[], nextLayout: Layout) => {
+      const keyPending = storageKeyRef.current !== activeKeyRef.current;
+      // With a key change still pending, what is on screen is saved under the outgoing key and the incoming key's saved dashboard is what the replacement overwrites.
+      const discarded = keyPending
+        ? storageKeyRef.current
+          ? loadState(storageKeyRef.current)
+          : null
+        : { items: itemsRef.current, layout: layoutRef.current };
+      if (discarded && discarded.items.length > 0) {
+        onDiscardRef.current?.(discarded.items, discarded.layout);
+      }
+      if (keyPending) {
+        replacedForKeyRef.current = storageKeyRef.current;
+      }
       setItemsInner(nextItems);
       setLayout(nextLayout);
     },

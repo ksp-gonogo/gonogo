@@ -61,17 +61,6 @@ describe("the keyboard needs no device creating", () => {
     await svc.destroy();
   });
 
-  it("is still connected after a screen remount, which tears the service down and brings it straight back", async () => {
-    const svc = freshService();
-    await svc.autoReconnect();
-
-    const tearDown = svc.destroy();
-    await svc.autoReconnect();
-    await tearDown;
-
-    expect(svc.getStatus("keyboard")).toBe("connected");
-  });
-
   it("routes a key press to the mapped action through the normal dispatcher", async () => {
     const svc = freshService();
     const spy = vi.fn();

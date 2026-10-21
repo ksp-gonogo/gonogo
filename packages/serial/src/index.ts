@@ -4,7 +4,6 @@ export {
   hasGamepad,
   hasWebSerial,
 } from "./capabilities";
-export { describeInputBinding } from "./describeInputBinding";
 export { detectGamepadPack } from "./detectGamepadPack";
 export { GamepadGlyph } from "./GamepadGlyph";
 export {

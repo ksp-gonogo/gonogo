@@ -1,4 +1,3 @@
-export { LayoutHistoryControl } from "./LayoutHistoryControl";
 export {
   MissionProfilesProvider,
   useMissionProfiles,
@@ -12,8 +11,4 @@ export {
   type MissionProfile,
   MissionProfilesService,
 } from "./MissionProfilesService";
-export type { ProfileDashboard } from "./ProfileDashboard";
-export { ProfileSwitchBanner } from "./ProfileSwitchBanner";
-export { profileInputOptions } from "./profileInputs";
 export { SceneSwitchPrompt } from "./SceneSwitchPrompt";
-export { useProfileDashboard } from "./useProfileDashboard";

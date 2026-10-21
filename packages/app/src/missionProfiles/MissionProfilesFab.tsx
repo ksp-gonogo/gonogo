@@ -1,43 +1,47 @@
 import { ScreenProvider, useScreen } from "@ksp-gonogo/core";
-import {
-  SerialDeviceProvider,
-  useSerialDeviceService,
-} from "@ksp-gonogo/serial";
 import { Fab, LayersIcon, useModal } from "@ksp-gonogo/ui";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
+import type { Layout } from "react-grid-layout";
+import type { DashboardItem } from "../components/Dashboard";
 import {
   MissionProfilesProvider,
   useMissionProfilesService,
 } from "./MissionProfilesContext";
 import { MissionProfilesModal } from "./MissionProfilesModal";
-import type { ProfileDashboard } from "./ProfileDashboard";
+import type { MissionProfile } from "./MissionProfilesService";
 
 export interface MissionProfilesFabProps {
   bottom?: number;
-  dashboard: ProfileDashboard;
+  currentItems: DashboardItem[];
+  currentLayout: Layout;
+  onLoad: (profile: MissionProfile) => void;
 }
 
 export function MissionProfilesFab({
   bottom = 384,
-  dashboard,
+  currentItems,
+  currentLayout,
+  onLoad,
 }: MissionProfilesFabProps) {
   const { open, close } = useModal();
   const service = useMissionProfilesService();
-  const serialService = useSerialDeviceService();
   const screen = useScreen();
 
   function handleClick() {
     // Modal portal renders above the service provider tree; re-wrap so hooks inside the modal content resolve the service + screen correctly.
     const id = open(
       <MissionProfilesProvider service={service}>
-        <SerialDeviceProvider service={serialService}>
-          <ScreenProvider value={screen}>
-            <MissionProfilesModal
-              dashboard={dashboard}
-              onClose={() => close(id)}
-            />
-          </ScreenProvider>
-        </SerialDeviceProvider>
+        <ScreenProvider value={screen}>
+          <MissionProfilesModal
+            currentItems={currentItems}
+            currentLayout={currentLayout}
+            onLoad={(profile) => {
+              onLoad(profile);
+              close(id);
+            }}
+            onClose={() => close(id)}
+          />
+        </ScreenProvider>
       </MissionProfilesProvider>,
       { title: "Dashboard layouts" },
     );

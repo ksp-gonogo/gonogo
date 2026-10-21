@@ -32,6 +32,7 @@ import {
 } from "../components/ComponentOverlay";
 import type { DashboardConfig } from "../components/Dashboard";
 import { Dashboard } from "../components/Dashboard";
+import { useDashboardState } from "../components/Dashboard/useDashboardState";
 import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
 import { FullscreenFab } from "../components/FullscreenFab";
 import { HeaderBadges } from "../components/HeaderBadges";
@@ -44,14 +45,10 @@ import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { downloadLogs } from "../logs/downloadLogs";
 import { ManeuverTriggerClientService } from "../maneuverTriggers";
 import {
-  LayoutHistoryControl,
   MissionProfilesFab,
   MissionProfilesProvider,
   MissionProfilesService,
-  ProfileSwitchBanner,
-  profileInputOptions,
   SceneSwitchPrompt,
-  useProfileDashboard,
 } from "../missionProfiles";
 import { HostDisconnectBanner } from "../peer/HostDisconnectBanner";
 import { HostVersionBanner } from "../peer/HostVersionBanner";
@@ -144,9 +141,10 @@ export function StationScreen() {
   const [missionProfiles] = useState(
     () => new MissionProfilesService("station"),
   );
-  const { dashboard, controller } = useProfileDashboard(
-    missionProfiles,
+  const dashboard = useDashboardState(
+    "gonogo:dashboard:station",
     DEFAULT_CONFIG,
+    { onDiscard: (items, layout) => missionProfiles.saveDraft(items, layout) },
   );
   const [alarmClient] = useState(() => new AlarmClientService(client));
   const [maneuverTriggerClient] = useState(
@@ -178,12 +176,11 @@ export function StationScreen() {
     const dispatcher = new InputDispatcher({
       service: serialService,
       getItems: dashboard.getItems,
-      ...profileInputOptions(missionProfiles, controller, serialService),
     });
     return () => {
       dispatcher.dispose();
     };
-  }, [serialService, dashboard.getItems, missionProfiles, controller]);
+  }, [serialService, dashboard.getItems]);
 
   useEffect(() => {
     // Reopen the serial ports this origin is already authorised for, with no
@@ -451,7 +448,11 @@ export function StationScreen() {
                                 <SettingsFab bottom={324} />
                                 <MissionProfilesFab
                                   bottom={384}
-                                  dashboard={controller}
+                                  currentItems={dashboard.items}
+                                  currentLayout={dashboard.layout}
+                                  onLoad={(p) =>
+                                    dashboard.replaceState(p.items, p.layout)
+                                  }
                                 />
                                 <AlarmsFab
                                   bottom={444}
@@ -481,9 +482,11 @@ export function StationScreen() {
                                 <HostVersionBanner client={client} />
                                 <FlightOutcomeBanner />
                                 <HomeFallbackNotice />
-                                <SceneSwitchPrompt dashboard={controller} />
-                                <ProfileSwitchBanner dashboard={controller} />
-                                <LayoutHistoryControl dashboard={controller} />
+                                <SceneSwitchPrompt
+                                  onLoad={(items, layout) =>
+                                    dashboard.replaceState(items, layout)
+                                  }
+                                />
                               </BannerStack>
                             </Layout>
                           </AlarmsLauncherBridge>

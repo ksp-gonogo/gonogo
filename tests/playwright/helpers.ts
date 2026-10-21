@@ -85,10 +85,7 @@ export function dashboardWithWidget(
 
 export async function seedContext(
   context: BrowserContext,
-  dashboardKey:
-    | "gonogo:dashboard:main"
-    | "gonogo:dashboard:station"
-    | "gonogo:dashboard:pilot",
+  dashboardKey: "gonogo:dashboard:main" | "gonogo:dashboard:station",
   dashboard: ReturnType<typeof dashboardWithWidget>,
   sitrepPort: number = PORTS.sitrepReplay,
 ): Promise<void> {
@@ -105,26 +102,7 @@ export async function seedContext(
     }) => {
       try {
         localStorage.setItem("gonogo.datasource.sitrep", sitrepCfg);
-        // The screen's dashboard is its current profile.
-        const screen = dashboardKey.split(":")[2];
-        const { items, layout } = JSON.parse(dashboard);
-        localStorage.setItem(
-          `gonogo.missionProfiles.${screen}`,
-          JSON.stringify([
-            {
-              id: "seeded",
-              name: "Seeded layout",
-              screen,
-              items,
-              layout,
-              updatedAt: 1,
-            },
-          ]),
-        );
-        localStorage.setItem(
-          `gonogo.missionProfiles.current.${screen}`,
-          JSON.stringify("seeded"),
-        );
+        localStorage.setItem(dashboardKey, dashboard);
         // Mark the first-run setup auto-open as seen so it doesn't pop the Settings modal over the dashboard on a fresh boot.
         localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
       } catch {
