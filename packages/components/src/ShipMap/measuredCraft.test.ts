@@ -6,7 +6,7 @@ import lfv2WavePower from "./__fixtures__/lfv2-wave-power-23parts.json";
 import lfv2WaveProbe from "./__fixtures__/lfv2-wave-probe-14parts.json";
 import { renderPartShape } from "./partShape";
 import { type ProjectedPart, project } from "./shipLayout";
-import { buildShipMapPart, pickLateralAxis } from "./shipTopology";
+import { buildShipMapPart } from "./shipTopology";
 
 /*
  * Craft whose mesh boxes and rotations were measured in the game. The probe is
@@ -30,11 +30,16 @@ const BUILT_IN_CONTACT = CRAFT.slice(0, 2);
 /** A touch closer than this counts as contact: rounding in the fixtures and the gap KSP leaves at an attach node. */
 const CONTACT_TOLERANCE_M = 0.02;
 
+/** The angle each craft was measured at in the game: across the vessel's X axis, and for the probe across Z. */
+const MEASURED_VIEW = new Map<Fixture, number>([
+  [lfv2WaveProbe as Fixture, Math.PI / 2],
+]);
+
 function layout(fixture: Fixture): ProjectedPart[] {
   const topo = fixture["v.topology"];
-  const { useX } = pickLateralAxis(topo.parts);
+  const view = MEASURED_VIEW.get(fixture) ?? 0;
   return project(
-    topo.parts.map((p) => buildShipMapPart(p, undefined, undefined, useX)),
+    topo.parts.map((p) => buildShipMapPart(p, undefined, undefined, view)),
   ).projected;
 }
 

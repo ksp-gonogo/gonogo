@@ -121,6 +121,64 @@ describe.each(CRAFT_SET)("captured craft %s", (name) => {
   });
 });
 
+describe.each([
+  "learstar-orbiter",
+  "learstar-a1",
+])("captured plane %s wings", (name) => {
+  const wings = project(craftParts(wireOf(name))).projected.filter(
+    (p) => p.type === "fin" && p.tipSign != null,
+  );
+
+  it("points every wing's tip away from the spine and its leading edge toward the nose", () => {
+    for (const wing of wings) {
+      const tipLat = (wing.tipSign ?? 1) * Math.cos(wing.rotationRad);
+      const leadAxial = Math.cos(wing.rotationRad);
+      expect(leadAxial, wing.name).toBeGreaterThanOrEqual(-1e-9);
+      if (
+        Math.abs(wing.lat) > 0.5 &&
+        Math.abs(Math.cos(wing.rotationRad)) > 0.1
+      ) {
+        expect(Math.sign(tipLat), `${wing.name} at ${wing.lat}`).toBe(
+          Math.sign(wing.lat),
+        );
+      }
+    }
+  });
+
+  it("draws a mirrored pair of wings as mirror images", () => {
+    for (const wing of wings.filter((w) => w.lat < -0.5)) {
+      const twin = wings.find(
+        (o) =>
+          o.name === wing.name &&
+          Math.abs(o.lat + wing.lat) < 0.05 &&
+          Math.abs(o.axial - wing.axial) < 0.05,
+      );
+      if (!twin) continue;
+      expect(twin.rotationRad, wing.name).toBeCloseTo(-wing.rotationRad, 2);
+      expect(twin.tipSign, wing.name).toBe(-(wing.tipSign ?? 1));
+      expect(twin.latHalfExtent, wing.name).toBeCloseTo(wing.latHalfExtent, 2);
+    }
+  });
+});
+
+describe("captured plane Learstar", () => {
+  it("draws the small wing parts along the main wing's sweep", () => {
+    const { projected } = project(craftParts(wireOf("learstar-orbiter")));
+    const main = projected.filter((p) => p.name === "sweptWing2");
+    const elevons = projected.filter((p) => p.name === "elevon5");
+    expect(main).toHaveLength(2);
+    expect(elevons).toHaveLength(4);
+    for (const piece of [...main, ...elevons]) {
+      // Every one of them has its leading edge facing the nose and its tip outboard.
+      expect(Math.cos(piece.rotationRad), piece.name).toBeGreaterThan(0);
+      expect(
+        Math.sign((piece.tipSign ?? 0) * Math.cos(piece.rotationRad)),
+        piece.name,
+      ).toBe(Math.sign(piece.lat));
+    }
+  });
+});
+
 describe("captured craft with a closed fairing", () => {
   it("classifies the fairing as a shell and paints it over the payload", () => {
     const { projected } = project(craftParts(wireOf("comsat-lx-fairing")));
@@ -153,14 +211,24 @@ describe("captured craft deploy states", () => {
     );
   });
 
-  it("draws the gear stand only on gear that is down", () => {
-    const stands = (name: string) =>
+  it("draws a foot only on gear that is down, and folded gear as an outline", () => {
+    const feet = (name: string) =>
       (
         renderShipMapToSvg(craftParts(wireOf(name))).match(
-          /data-role="gear-stand"/g,
+          /data-role="gear-foot"/g,
         ) ?? []
       ).length;
-    expect(stands("learstar-orbiter")).toBe(0);
-    expect(stands("learstar-orbiter-gear-down")).toBe(3);
+    expect(feet("learstar-orbiter")).toBe(0);
+    expect(feet("learstar-orbiter-gear-down")).toBe(3);
+  });
+});
+
+describe("captured two-stage lander", () => {
+  const svg = renderShipMapToSvg(craftParts(wireOf("two-stage-lander")));
+  const count = (pattern: RegExp) => (svg.match(pattern) ?? []).length;
+
+  it("draws each of its four extended legs as a strut with a foot and no stray mark beside it", () => {
+    expect(count(/data-role="gear-foot"/g)).toBe(4);
+    expect(count(/data-role="gear-stand"/g)).toBe(0);
   });
 });

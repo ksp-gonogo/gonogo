@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
 import lfv2WaveProbe from "./__fixtures__/lfv2-wave-probe-14parts.json";
 import { ShipDiagram } from "./ShipDiagram";
-import { buildShipMapPart, pickLateralAxis } from "./shipTopology";
+import { buildShipMapPart } from "./shipTopology";
+import { pickView } from "./shipView";
 
 /** A captured topology fixture; its free-text note is declared because an undeclared key fails the cast. */
 interface Fixture {
@@ -15,8 +16,8 @@ interface Fixture {
 
 function partsOf(fixture: Fixture) {
   const topo = fixture["v.topology"];
-  const { useX } = pickLateralAxis(topo.parts);
-  return topo.parts.map((p) => buildShipMapPart(p, undefined, undefined, useX));
+  const view = pickView(topo.parts);
+  return topo.parts.map((p) => buildShipMapPart(p, undefined, undefined, view));
 }
 
 describe("the expand icon on a dense cluster", () => {

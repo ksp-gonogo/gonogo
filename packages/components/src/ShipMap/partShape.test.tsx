@@ -60,3 +60,36 @@ describe("a parachute's state half", () => {
     expect(right / left).toBeCloseTo(1, 2);
   });
 });
+
+function gear(gearDown: boolean): string {
+  return renderToStaticMarkup(
+    renderPartShape(
+      "gear",
+      BOX,
+      CENTER,
+      "var(--color-info-mark)",
+      false,
+      1,
+      1,
+      undefined,
+      gearDown,
+    ),
+  );
+}
+
+describe("a landing leg", () => {
+  it("draws a leg that is down as a strut and a foot, with nothing painted for its box", () => {
+    const markup = gear(true);
+    expect(markup).toContain('data-role="gear-foot"');
+    expect(markup).toContain("<line");
+    const boxes = markup.match(/<rect[^>]*>/g) ?? [];
+    for (const box of boxes) expect(box).toContain('fill="transparent"');
+  });
+
+  it("draws a leg that is folded as a dashed outline of the box it folds into", () => {
+    const markup = gear(false);
+    expect(markup).not.toContain('data-role="gear-foot"');
+    expect(markup).not.toContain("<line");
+    expect(markup).toContain("stroke-dasharray");
+  });
+});

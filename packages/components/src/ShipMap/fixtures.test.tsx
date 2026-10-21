@@ -4,11 +4,8 @@ import fuellinePrelaunch from "./__fixtures__/fuelline-tester-22parts-prelaunch.
 import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
 import roverBAlone from "./__fixtures__/rover-b-alone-28parts.json";
 import roverMerged from "./__fixtures__/rover-merged-56parts.json";
-import {
-  buildShipMapPart,
-  pickLateralAxis,
-  type ShipMapPart,
-} from "./shipTopology";
+import { buildShipMapPart, type ShipMapPart } from "./shipTopology";
+import { pickView } from "./shipView";
 
 /** Invariants encoded by raw topology payloads captured from live KSP sessions, pinning the wire shape a future capture must match. */
 
@@ -18,8 +15,8 @@ interface Fixture {
 
 function loadParts(fixture: Fixture): ShipMapPart[] {
   const topo = fixture["v.topology"];
-  const { useX } = pickLateralAxis(topo.parts);
-  return topo.parts.map((p) => buildShipMapPart(p, undefined, undefined, useX));
+  const view = pickView(topo.parts);
+  return topo.parts.map((p) => buildShipMapPart(p, undefined, undefined, view));
 }
 
 describe("Ship Map fixtures", () => {
@@ -77,11 +74,11 @@ describe("Ship Map fixtures", () => {
       fuellinePostStage2,
     ]) {
       const topo = (fixture as Fixture)["v.topology"];
-      const { useX } = pickLateralAxis(topo.parts);
-      expect(typeof useX).toBe("boolean");
+      const view = pickView(topo.parts);
+      expect(typeof view).toBe("number");
       // Every part's axial is orgPos[1] (Y).
       const sample = topo.parts[0];
-      const built = buildShipMapPart(sample, undefined, undefined, useX);
+      const built = buildShipMapPart(sample, undefined, undefined, view);
       expect(built.axial).toBe(sample.orgPos[1]);
     }
   });

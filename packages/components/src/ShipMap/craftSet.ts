@@ -5,11 +5,8 @@ import {
 } from "@ksp-gonogo/data";
 import type { VesselParts } from "@ksp-gonogo/sitrep-sdk";
 import { wrapTopicPayload } from "@ksp-gonogo/sitrep-sdk";
-import {
-  buildShipMapPart,
-  pickLateralAxis,
-  type ShipMapPart,
-} from "./shipTopology";
+import { buildShipMapPart, type ShipMapPart } from "./shipTopology";
+import { pickView, turnedView } from "./shipView";
 
 /** The names of the captured `vessel.parts` frames under `__fixtures__/craftset`. */
 export const CRAFT_SET = [
@@ -37,8 +34,8 @@ export interface CraftWire {
   }[];
 }
 
-/** A captured frame turned into the parts the Ship Map draws, by the same adapters the widget runs. */
-export function craftParts(wire: CraftWire): ShipMapPart[] {
+/** A captured frame turned into the parts the Ship Map draws, by the same adapters the widget runs. `turn` presses of the rotate control are applied to the default view. */
+export function craftParts(wire: CraftWire, turn = 0): ShipMapPart[] {
   const parts = wrapTopicPayload<VesselParts>(
     "vessel.parts",
     structuredClone({ parts: wire.parts }) as never,
@@ -46,13 +43,13 @@ export function craftParts(wire: CraftWire): ShipMapPart[] {
   const topology = deriveTopologyFromVesselParts(parts);
   const state = buildPartStateByFlightId(parts);
   const resources = buildResourcesByFlightId(parts);
-  const { useX } = pickLateralAxis(topology.parts);
+  const angle = turnedView(pickView(topology.parts), turn);
   return topology.parts.map((p) =>
     buildShipMapPart(
       p,
       undefined,
       resources.get(p.flightId),
-      useX,
+      angle,
       state.get(p.flightId),
     ),
   );

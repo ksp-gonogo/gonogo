@@ -44,7 +44,14 @@ interface Props {
     actionLabel: string,
     partTitle: string,
   ) => void;
+  /** Presses of the rotate control the view is turned from its default. */
+  turn?: number;
+  /** Sets the turn. Omitted, the rotate control does not appear. */
+  onTurn?: (turn: number) => void;
 }
+
+/** The diagram is too small to hold the rotate control beside the reset one under this width, in px. */
+const ROTATE_MIN_WIDTH = 220;
 
 export function ShipDiagram({
   parts,
@@ -56,6 +63,8 @@ export function ShipDiagram({
   partMeters,
   partMeta,
   onInvokePartAction,
+  turn = 0,
+  onTurn,
 }: Readonly<Props>) {
   const [hovered, setHovered] = useState<ShipMapPart | null>(null);
   const [openClusterId, setOpenClusterId] = useState<string | null>(null);
@@ -140,6 +149,36 @@ export function ShipDiagram({
       >
         Reset
       </TextButton>
+      {onTurn && width >= ROTATE_MIN_WIDTH && (
+        <div style={ROTATE_GROUP}>
+          <TextButton
+            type="button"
+            onClick={() => onTurn(turn - 1)}
+            aria-label="Rotate view left"
+            style={ROTATE_BUTTON}
+          >
+            {"Turn <"}
+          </TextButton>
+          <TextButton
+            type="button"
+            onClick={() => onTurn(turn + 1)}
+            aria-label="Rotate view right"
+            style={ROTATE_BUTTON}
+          >
+            {"Turn >"}
+          </TextButton>
+          {turn !== 0 && (
+            <TextButton
+              type="button"
+              onClick={() => onTurn(0)}
+              aria-label="Default view angle"
+              style={ROTATE_BUTTON}
+            >
+              Default
+            </TextButton>
+          )}
+        </div>
+      )}
       <ShipDiagramSvg
         parts={parts}
         width={width}
@@ -217,6 +256,17 @@ const RESET_BUTTON: CSSProperties = {
   borderRadius: "var(--radius-regular)",
   textDecoration: "none",
 };
+
+const ROTATE_GROUP: CSSProperties = {
+  position: "absolute",
+  top: "6px",
+  right: "6px",
+  display: "flex",
+  gap: "var(--gap-related)",
+  zIndex: RESET_BUTTON.zIndex,
+};
+
+const ROTATE_BUTTON: CSSProperties = { ...RESET_BUTTON, position: "static" };
 
 // Static, not the menu's own absolute, so it stays in the layer's flow and the layer can be measured.
 const MENU_IN_LAYER: CSSProperties = { position: "static" };

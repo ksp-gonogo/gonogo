@@ -48,6 +48,9 @@ function domeHalfPoints(
   return `${edge},${baseY} ${edge},${shoulderY} ${along.join(" ")} ${mid},${baseY}`;
 }
 
+/** The share of a wing's chord cut from the leading edge at its tip. */
+const FIN_TIP_TAPER = 0.2;
+
 export function renderPartShape(
   type: PartType,
   box: ScreenBox,
@@ -57,6 +60,7 @@ export function renderPartShape(
   zoom: number,
   outerSign: number,
   chuteState?: string,
+  gearDown = true,
 ) {
   const stroke = isHot
     ? "var(--color-tag-yellow-fg)"
@@ -172,10 +176,10 @@ export function renderPartShape(
       );
     }
     case "fin": {
-      /* Stylised swept winglet fitted to the bounding box (no mesh outline): aft is screen-down and KSP winglets sweep aft, so a vertical root edge on the spine side, a swept leading edge, a short tip chord and the full-span trailing edge along the bottom. */
+      /* A wing drawn from its bounding box alone, which carries no sweep: the leading edge is screen-up, the full-chord root edge is on the side away from `outerSign` and the tip chord is cut slightly short from the leading edge, so the tip side and the nose-ward edge both read without implying a sweep the box does not hold. */
       const rootX = outerSign >= 0 ? x : x + w;
       const tipX = outerSign >= 0 ? x + w : x;
-      const tipLeadY = y + h * 0.7;
+      const tipLeadY = y + h * FIN_TIP_TAPER;
       return (
         <polygon
           points={`${rootX},${y} ${tipX},${tipLeadY} ${tipX},${y + h} ${rootX},${y + h}`}
@@ -270,7 +274,23 @@ export function renderPartShape(
       );
     }
     case "gear": {
-      // The strut runs along the box's long side, with the foot at its far end.
+      // Folded away, a leg or gear shows only the box it folds into.
+      if (!gearDown) {
+        return (
+          <rect
+            x={x}
+            y={y}
+            width={w}
+            height={h}
+            fill="transparent"
+            stroke={fill}
+            strokeWidth={Math.max(strokeWidth, 1 / zoom)}
+            strokeDasharray={`${3 / zoom} ${2 / zoom}`}
+            opacity={0.6}
+          />
+        );
+      }
+      // Down, the strut runs along the box's long side with the foot at its far end; the box itself holds the folded strut and collider, so it is not drawn.
       const vertical = h >= w;
       const long = vertical ? h : w;
       const short = vertical ? w : h;
@@ -286,10 +306,8 @@ export function renderPartShape(
             y={y}
             width={w}
             height={h}
-            fill={fill}
-            stroke={stroke}
-            strokeWidth={strokeWidth}
-            opacity={0.3}
+            fill="transparent"
+            stroke="none"
           />
           <line
             x1={x1}
@@ -302,6 +320,7 @@ export function renderPartShape(
             opacity={opacity}
           />
           <circle
+            data-role="gear-foot"
             cx={x2}
             cy={y2 - (vertical ? footR : 0)}
             r={footR}

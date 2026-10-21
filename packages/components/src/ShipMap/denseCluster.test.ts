@@ -5,7 +5,8 @@ import lfv2Wave from "./__fixtures__/lfv2-wave-19parts.json";
 import lfv2WaveProbe from "./__fixtures__/lfv2-wave-probe-14parts.json";
 import { findDenseClusters } from "./denseCluster";
 import { project } from "./shipLayout";
-import { buildShipMapPart, pickLateralAxis } from "./shipTopology";
+import { buildShipMapPart } from "./shipTopology";
+import { pickView } from "./shipView";
 
 /** A captured topology fixture; its free-text note is declared because an undeclared key fails the cast. */
 interface Fixture {
@@ -15,9 +16,9 @@ interface Fixture {
 
 function projected(fixture: Fixture) {
   const topo = fixture["v.topology"];
-  const { useX } = pickLateralAxis(topo.parts);
+  const view = pickView(topo.parts);
   return project(
-    topo.parts.map((p) => buildShipMapPart(p, undefined, undefined, useX)),
+    topo.parts.map((p) => buildShipMapPart(p, undefined, undefined, view)),
   ).projected;
 }
 

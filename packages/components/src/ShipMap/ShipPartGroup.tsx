@@ -53,7 +53,13 @@ export function ShipPartGroup({
     h: Math.abs(c.y - a.y),
   };
   const center = toBase(p.lat, p.axial);
-  const outerSign = p.lat >= 0 ? 1 : -1;
+  const outerSign = p.tipSign ?? (p.lat >= 0 ? 1 : -1);
+  const shapeType = p.type === "fin" && p.tipSign == null ? "other" : p.type;
+  const gearDown = !p.partState?.some(
+    (m) =>
+      m.type === "landingGear" &&
+      (m.state === "retracted" || m.state === "retracting"),
+  );
   const showFuel = p.type === "tank" || p.type === "booster";
 
   // Screen-space centre of this part, the anchor for the focus tooltip and the action popover.
@@ -97,7 +103,7 @@ export function ShipPartGroup({
   return (
     <PartGroup transform={rotateTransform} {...interactiveProps}>
       {renderPartShape(
-        p.type,
+        shapeType,
         box,
         center,
         fill,
@@ -105,6 +111,7 @@ export function ShipPartGroup({
         cam.zoom,
         outerSign,
         chuteStateOf(p.partState),
+        gearDown,
       )}
       {renderPartStateOverlays(p.partState, box, cam.zoom, throttle)}
       {tint && (

@@ -31,6 +31,8 @@ export function ShipMapBody({
   partMeters,
   partMeta,
   onInvokePartAction,
+  turn,
+  onTurn,
 }: {
   topology: VesselTopology | undefined;
   parts: ShipMapPart[];
@@ -46,6 +48,10 @@ export function ShipMapBody({
   partMeters: Map<string, ShipMapPartMeterEntry[]>;
   partMeta: Map<string, ShipMapPartMetaEntry[]>;
   onInvokePartAction: InvokePartAction;
+  /** Presses of the rotate control the view is turned from its default. */
+  turn: number;
+  /** Sets the number of presses the view is turned from its default. */
+  onTurn: (turn: number) => void;
 }) {
   if (!topology) {
     return (
@@ -82,6 +88,8 @@ export function ShipMapBody({
           partMeters={partMeters}
           partMeta={partMeta}
           onInvokePartAction={onInvokePartAction}
+          turn={turn}
+          onTurn={onTurn}
         />
         {overlayContext && (
           <div style={OVERLAY_LAYER}>

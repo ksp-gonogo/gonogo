@@ -13,7 +13,7 @@ export const ENGINE_FLAME_BODY_FRACTION = 0.4;
 
 /**
  * Indicators driven by live part state: engine flame,
- * deploy chevron, gear stand. Returns null before any live state, so a
+ * deploy chevron, open cargo bay. Returns null before any live state, so a
  * pre-push part looks inactive rather than stale-deployed. Drawn in
  * part-local coordinates inside the part's rotation transform.
  */
@@ -55,8 +55,6 @@ function overlayFor(
       return m.state === "deploying" || m.state === "retracting"
         ? renderAnimatingChevron(box, m.state, zoom)
         : null;
-    case "landingGear":
-      return m.state === "extended" ? renderLandingGearStand(box, zoom) : null;
     default:
       return null;
   }
@@ -108,26 +106,6 @@ function renderAnimatingChevron(
         opacity={0.85}
       />
     </g>
-  );
-}
-
-function renderLandingGearStand(box: ScreenBox, zoom: number): React.ReactNode {
-  // A short tick under the body box: gear is down.
-  const { x, y, w, h } = box;
-  const standH = Math.max(3 / zoom, h * 0.18);
-  return (
-    <line
-      key="gear-stand"
-      data-role="gear-stand"
-      x1={x + w * 0.3}
-      y1={y + h}
-      x2={x + w * 0.7}
-      y2={y + h + standH}
-      stroke="var(--color-go-text)"
-      strokeWidth={2 / zoom}
-      strokeLinecap="round"
-      pointerEvents="none"
-    />
   );
 }
 

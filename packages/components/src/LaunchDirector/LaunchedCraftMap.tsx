@@ -4,11 +4,8 @@ import type { CatalogEntry } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, SelectableRow } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import { ShipDiagramSvg } from "../ShipMap/ShipDiagramSvg";
-import {
-  buildShipMapPart,
-  pickLateralAxis,
-  type ShipMapPart,
-} from "../ShipMap/shipTopology";
+import { buildShipMapPart, type ShipMapPart } from "../ShipMap/shipTopology";
+import { pickView } from "../ShipMap/shipView";
 import {
   CraftDiagramFrame,
   CraftDiagramLayer,
@@ -98,9 +95,9 @@ export function CraftDiagram({
 }) {
   const parts: ShipMapPart[] = useMemo(() => {
     if (!topology) return [];
-    const { useX } = pickLateralAxis(topology.parts);
+    const view = pickView(topology.parts);
     return topology.parts.map((p) =>
-      buildShipMapPart(p, null, resourcesByFlightId?.get(p.flightId), useX),
+      buildShipMapPart(p, null, resourcesByFlightId?.get(p.flightId), view),
     );
   }, [topology, resourcesByFlightId]);
 

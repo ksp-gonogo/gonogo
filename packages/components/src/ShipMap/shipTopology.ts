@@ -57,6 +57,12 @@ export interface ShipMapPart {
   latHalfExtent: number;
   /** Half-height of the part's box in the diagram, along its projected up direction, in metres. */
   axialHalfExtent: number;
+  /**
+   * For a wing or fin drawn from its planform: which side of the drawn box,
+   * before the part's rotation, the tip is on (1 right, -1 left). Absent for a
+   * part that is not a plate, which is drawn as a plain box.
+   */
+  tipSign?: 1 | -1;
   /** `Part.mass` from topology: dry mass, no resources. Null when unread. */
   dryMass: number | null;
   /** `Part.inverseStage` from topology. Null when unread. */
@@ -104,28 +110,6 @@ export function normaliseResources(
     out.push({ n: name, a: slot.amount, c: slot.maxAmount });
   }
   return out;
-}
-
-/**
- * Pick whichever lateral axis (X or Z) has the wider spread, so the side view
- * shows the silhouette rather than edge-on. Y is the vessel's spine.
- */
-export function pickLateralAxis(parts: readonly TopologyPart[]): {
-  useX: boolean;
-} {
-  if (parts.length === 0) return { useX: true };
-  let xMin = Infinity;
-  let xMax = -Infinity;
-  let zMin = Infinity;
-  let zMax = -Infinity;
-  for (const p of parts) {
-    const [x, , z] = p.orgPos;
-    if (x < xMin) xMin = x;
-    if (x > xMax) xMax = x;
-    if (z < zMin) zMin = z;
-    if (z > zMax) zMax = z;
-  }
-  return { useX: xMax - xMin >= zMax - zMin };
 }
 
 type Vec3 = { x: number; y: number; z: number };
@@ -212,18 +196,125 @@ function rotate(axes: PartAxes, v: Vec3): Vec3 {
   };
 }
 
+/** The vessel-frame centre of the part's mesh box: its origin plus the box's own offset, turned by the part's rotation. */
+export function partMeshCenter(part: TopologyPart): [number, number, number] {
+  const axes = partAxes(part);
+  const offset = rotate(axes, part.bounds.center ?? { x: 0, y: 0, z: 0 });
+  return [
+    part.orgPos[0] + offset.x,
+    part.orgPos[1] + offset.y,
+    part.orgPos[2] + offset.z,
+  ];
+}
+
+/** The lateral component of a vessel-frame vector in a view turned `view` radians about the spine. */
+export function lateralOf(v: Vec3, view: number): number {
+  return v.x * Math.cos(view) + v.z * Math.sin(view);
+}
+
+/** The depth component, along the view direction, of a vessel-frame vector in a view turned `view` radians about the spine. */
+export function depthOf(v: Vec3, view: number): number {
+  return -v.x * Math.sin(view) + v.z * Math.cos(view);
+}
+
+interface Planform {
+  rotationRad: number;
+  tipSign: 1 | -1;
+}
+
+/** A chord whose axial share of its length is under this lies across the screen. */
+const CHORD_ACROSS_SCREEN = 0.1;
+/** A plate counts as a wing when its thin side is under this share of its next longest side. */
+const PLATE_THICKNESS_RATIO = 0.35;
+/** The root edge sits at the part's origin when the box centre is offset from it by at least this share of the span. */
+const ROOT_OFFSET_SHARE = 0.1;
+/** Two sides differ in how far the origin sits from their middle by at least this much to name the span. */
+const SPAN_OFFSET_MARGIN = 0.15;
+
+/**
+ * The drawn frame of a wing or fin: a plate seen in its own planform. The thin
+ * side is the plate's normal; of the other two, the span is the one whose
+ * middle lies furthest from the part's origin (the root), and the chord the
+ * other. The drawn box is turned so its screen-up is the chord's leading
+ * direction, the way the craft's nose points, and the tip is on the side the
+ * span runs away from the root. Null for a part that is not a plate.
+ */
+function planformOf(
+  part: TopologyPart,
+  axes: PartAxes,
+  view: number,
+  partLat: number,
+): Planform | null {
+  const size = part.bounds.size;
+  const offset = part.bounds.center ?? { x: 0, y: 0, z: 0 };
+  const sides = [
+    { dir: axes.right, size: size.x, mid: offset.x },
+    { dir: axes.up, size: size.y, mid: offset.y },
+    { dir: axes.forward, size: size.z, mid: offset.z },
+  ].sort((a, b) => a.size - b.size);
+  const [thin, first, second] = sides;
+  if (thin.size > second.size * PLATE_THICKNESS_RATIO || second.size < 1e-6) {
+    return null;
+  }
+  const rootness = (s: { size: number; mid: number }) =>
+    Math.abs(s.mid) / Math.max(s.size, 1e-6);
+  const project = (dir: Vec3) => ({ lat: lateralOf(dir, view), axial: dir.y });
+  const outward = partLat >= 0 ? 1 : -1;
+  let span = first;
+  let chord = second;
+  const offsetGap = rootness(second) - rootness(first);
+  const secondIsSpan =
+    Math.abs(offsetGap) > SPAN_OFFSET_MARGIN
+      ? offsetGap > 0
+      : Math.abs(project(second.dir).lat) > Math.abs(project(first.dir).lat);
+  if (secondIsSpan) {
+    span = second;
+    chord = first;
+  }
+  const spanDir = project(span.dir);
+  const chordDir = project(chord.dir);
+  const spanSign =
+    rootness(span) >= ROOT_OFFSET_SHARE
+      ? Math.sign(span.mid)
+      : spanDir.lat * outward >= 0
+        ? 1
+        : -1;
+  const tip = { lat: spanDir.lat * spanSign, axial: spanDir.axial * spanSign };
+  // The nose is screen-up, so the leading edge is the chord's side that points up it; a chord lying across the screen has no such side, and takes the outboard one so a mirrored pair stays mirrored.
+  const leadSign =
+    Math.abs(chordDir.axial) > CHORD_ACROSS_SCREEN
+      ? Math.sign(chordDir.axial)
+      : chordDir.lat * outward >= 0
+        ? 1
+        : -1;
+  const lead = {
+    lat: chordDir.lat * leadSign,
+    axial: chordDir.axial * leadSign,
+  };
+  const chordLength = Math.hypot(lead.lat, lead.axial);
+  const rotationRad = chordLength < 0.1 ? 0 : Math.atan2(lead.lat, lead.axial);
+  const rightLat = Math.cos(rotationRad);
+  const rightAxial = -Math.sin(rotationRad);
+  const along = tip.lat * rightLat + tip.axial * rightAxial;
+  return {
+    rotationRad,
+    tipSign: along >= 0 ? 1 : -1,
+  };
+}
+
 /**
  * Build a `ShipMapPart` from one topology entry and the live slice. The
- * caller picks the lateral axis once per vessel via `pickLateralAxis`.
+ * caller picks the view once per vessel (`pickView`, turned by the operator's
+ * rotation): the angle in radians about the spine at which the diagram looks
+ * at the craft, 0 putting the vessel's X axis across the screen.
  */
 export function buildShipMapPart(
   part: TopologyPart,
   thermal: PartThermal | null | undefined,
   resources: PartResources | undefined,
-  useX: boolean,
+  view: number,
   partState?: PartState | null,
 ): ShipMapPart {
-  const orgPos = part.orgPos;
   const ecFlow = resources?.ElectricCharge?.flow;
   const ecFlowSign: "producer" | "consumer" | null =
     typeof ecFlow === "number" && Math.abs(ecFlow) > 1e-6
@@ -233,16 +324,21 @@ export function buildShipMapPart(
       : null;
   const size = part.bounds.size;
   const axes = partAxes(part);
-  const latOf = (v: Vec3) => (useX ? v.x : v.z);
-  const depthOf = (v: Vec3) => (useX ? v.z : v.x);
+  const latOf = (v: Vec3) => lateralOf(v, view);
   /* Rotation is `atan2(lateral, axial)` from screen-up. When both projected components are near zero the part points along the depth axis, where atan2 flips on the sign of -0, so it renders unrotated. */
   const upLat = latOf(axes.up);
   const upAxial = axes.up.y;
-  const rotationRad =
+  const upRotation =
     upLat * upLat + upAxial * upAxial < 0.01 ? 0 : Math.atan2(upLat, upAxial);
   // `bounds.center` is part-local, so it turns with the part before it is added to `orgPos`.
-  const center = part.bounds.center ?? { x: 0, y: 0, z: 0 };
-  const meshOffset = rotate(axes, center);
+  const meshCentre = partMeshCenter(part);
+  const lat = lateralOf(
+    { x: meshCentre[0], y: meshCentre[1], z: meshCentre[2] },
+    view,
+  );
+  const type = classifyPart(part, resources);
+  const planform = type === "fin" ? planformOf(part, axes, view, lat) : null;
+  const rotationRad = planform?.rotationRad ?? upRotation;
   /*
    * The box is drawn upright and then turned by `rotationRad`, so its height
    * runs along the projected up direction and its width across it. Each
@@ -256,20 +352,23 @@ export function buildShipMapPart(
     (size.y / 2) * Math.abs(dLat * latOf(axes.up) + dAxial * axes.up.y) +
     (size.z / 2) *
       Math.abs(dLat * latOf(axes.forward) + dAxial * axes.forward.y);
-  const type = classifyPart(part, resources);
   return {
     flightId: part.flightId,
     parentFlightId: part.parentFlightId,
     name: part.name,
     title: part.title,
     type,
-    lat: (useX ? orgPos[0] : orgPos[2]) + latOf(meshOffset),
-    axial: orgPos[1] + meshOffset.y,
-    depth: (useX ? orgPos[2] : orgPos[0]) + depthOf(meshOffset),
+    lat,
+    axial: meshCentre[1],
+    depth: depthOf(
+      { x: meshCentre[0], y: meshCentre[1], z: meshCentre[2] },
+      view,
+    ),
     rotationRad,
     size,
     latHalfExtent: halfExtentAlong(cos, -sin),
     axialHalfExtent: halfExtentAlong(sin, cos),
+    tipSign: planform?.tipSign,
     dryMass: part.dryMass,
     stage: part.inverseStage,
     maxTemp: part.maxTemp,

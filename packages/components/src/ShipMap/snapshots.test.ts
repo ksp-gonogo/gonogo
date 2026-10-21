@@ -16,11 +16,8 @@ import roverMerged from "./__fixtures__/rover-merged-56parts.json";
 import syntheticRadialOffsets from "./__fixtures__/synthetic-radial-offsets-16parts.json";
 import wingedLander from "./__fixtures__/winged-lander-31parts.json";
 import { renderShipMapToSvg } from "./render";
-import {
-  buildShipMapPart,
-  pickLateralAxis,
-  type ShipMapPart,
-} from "./shipTopology";
+import { buildShipMapPart, type ShipMapPart } from "./shipTopology";
+import { pickView } from "./shipView";
 
 /**
  * SVG output snapshots of the ship diagram, through the same
@@ -54,13 +51,13 @@ function fixtureToParts(
   sidecar?: PartStateSidecar,
 ): ShipMapPart[] {
   const topo = fixture["v.topology"];
-  const { useX } = pickLateralAxis(topo.parts);
+  const view = pickView(topo.parts);
   return topo.parts.map((p) => {
     const modules = sidecar?.[String(p.flightId)];
     const partState: PartState | undefined = modules
       ? { seq: 0, modules }
       : undefined;
-    return buildShipMapPart(p, undefined, undefined, useX, partState);
+    return buildShipMapPart(p, undefined, undefined, view, partState);
   });
 }
 

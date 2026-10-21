@@ -18,9 +18,9 @@ import type {
 import { renderShipMapToSvg } from "../src/ShipMap/render";
 import {
   buildShipMapPart,
-  pickLateralAxis,
   type ShipMapPart,
 } from "../src/ShipMap/shipTopology";
+import { pickView } from "../src/ShipMap/shipView";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = resolve(HERE, "../src/ShipMap/__fixtures__");
@@ -84,13 +84,13 @@ function fixtureToShipMapParts(
   sidecar?: PartStateSidecar,
 ): ShipMapPart[] {
   const topo = fixture["v.topology"];
-  const { useX } = pickLateralAxis(topo.parts);
+  const view = pickView(topo.parts);
   return topo.parts.map((p) => {
     const modules = sidecar?.[String(p.flightId)];
     const partState: PartState | undefined = modules
       ? { seq: 0, modules }
       : undefined;
-    return buildShipMapPart(p, undefined, undefined, useX, partState);
+    return buildShipMapPart(p, undefined, undefined, view, partState);
   });
 }
 

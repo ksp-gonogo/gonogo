@@ -21,11 +21,11 @@ import read from "./ship-map.declarations.g";
 import { computeShipLayout } from "./shipLayout";
 import {
   buildShipMapPart,
-  pickLateralAxis,
   type ShipMapPart,
   type ShipMapPartMetaEntry,
   type ShipMapPartMeterEntry,
 } from "./shipTopology";
+import { pickView, turnedView, VIEW_STEPS_PER_TURN } from "./shipView";
 import type { ShipMapOverlayContext } from "./slots";
 
 const topics = defineTopicManifest({
@@ -51,11 +51,21 @@ export type { ShipMapOverlayContext } from "./slots";
 export type { ShipMapPartMetaEntry, ShipMapPartMeterEntry };
 
 interface ShipMapConfig {
-  /** Reserved so saved layouts survive when options land. */
-  _reserved?: never;
+  /** Presses of the rotate control the view is turned from its default, 0 to 7. A presentation setting of this widget, never sent to the game. */
+  turn?: number;
 }
 
-function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
+function ShipMapComponent({
+  config,
+  onConfigChange,
+}: Readonly<ComponentProps<ShipMapConfig>>) {
+  const turn = normaliseTurn(config?.turn);
+  const setTurn = useCallback(
+    (next: number) => {
+      onConfigChange?.({ ...(config ?? {}), turn: normaliseTurn(next) });
+    },
+    [config, onConfigChange],
+  );
   // The mod's channel engine is change-gated, so no seq-driven refetch is needed.
   const topology = useTopology();
   /**
@@ -104,21 +114,25 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
     [metaContributions],
   );
 
-  // Axis pick happens once per topology rebuild so every part shares one lateral basis.
+  // The default angle is found once per topology rebuild, and every part shares the one view.
+  const baseView = useMemo(
+    () => (topology ? pickView(topology.parts) : 0),
+    [topology],
+  );
   const parts: ShipMapPart[] = useMemo(() => {
     if (!topology) return [];
-    const { useX } = pickLateralAxis(topology.parts);
+    const view = turnedView(baseView, turn);
     return topology.parts.map((p) => {
       const live = liveByFlightId.get(p.flightId);
       return buildShipMapPart(
         p,
         live?.thermal,
         live?.resources,
-        useX,
+        view,
         live?.partState,
       );
     });
-  }, [topology, liveByFlightId]);
+  }, [topology, liveByFlightId, baseView, turn]);
 
   // A state-backed ref so the effect re-attaches when DiagramWrap mounts, which happens only once topology exists.
   const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
@@ -207,8 +221,18 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
         partMeters={partMeters}
         partMeta={partMeta}
         onInvokePartAction={onInvokePartAction}
+        turn={turn}
+        onTurn={setTurn}
       />
     </Box>
+  );
+}
+
+function normaliseTurn(turn: number | undefined): number {
+  if (typeof turn !== "number" || !Number.isFinite(turn)) return 0;
+  return (
+    ((Math.round(turn) % VIEW_STEPS_PER_TURN) + VIEW_STEPS_PER_TURN) %
+    VIEW_STEPS_PER_TURN
   );
 }
 
@@ -224,7 +248,7 @@ registerComponent<ShipMapConfig>({
   id: "ship-map",
   name: "Ship Map",
   description:
-    "A side view of your vessel part by part, each part tinted by its heat, with fill bars on tanks and boosters and the hottest part picked out.",
+    "A view of your vessel part by part, side-on for a rocket and from above for a plane, turnable in steps,, each part tinted by its heat, with fill bars on tanks and boosters and the hottest part picked out.",
   tags: ["telemetry", "ship"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 5, h: 5 },

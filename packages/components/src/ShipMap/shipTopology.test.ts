@@ -110,7 +110,7 @@ describe("classifyPart", () => {
       }),
       undefined,
       undefined,
-      true, // useX
+      0, // view
     );
     expect(p.rotationRad).toBe(0);
   });
@@ -125,7 +125,7 @@ describe("classifyPart", () => {
       }),
       undefined,
       undefined,
-      true,
+      0,
     );
     expect(p.rotationRad).toBeCloseTo(Math.PI / 6, 2);
   });
@@ -157,7 +157,7 @@ describe("mesh-centre offset frame", () => {
       }),
       undefined,
       undefined,
-      true, // useX
+      0, // view
     );
     expect(p.lat).toBeCloseTo(1.4, 9);
     expect(p.axial).toBeCloseTo(-0.4, 9);
@@ -179,7 +179,7 @@ describe("mesh-centre offset frame", () => {
         }),
         undefined,
         undefined,
-        true,
+        0,
       );
     const west = mount([-1, 0, 0]);
     const east = mount([1, 0, 0]);
@@ -199,7 +199,7 @@ describe("mesh-centre offset frame", () => {
       }),
       undefined,
       undefined,
-      true,
+      0,
     );
     expect(Math.hypot(p.lat, p.axial, p.depth)).toBeCloseTo(
       Math.hypot(center.x, center.y, center.z),
@@ -220,7 +220,7 @@ describe("mesh-centre offset frame", () => {
         }),
         undefined,
         undefined,
-        true,
+        0,
       );
     const first = at([0, 0, 1]);
     const turned = at([Math.SQRT1_2, 0, Math.SQRT1_2]);
@@ -244,7 +244,7 @@ describe("mesh-centre offset frame", () => {
       }),
       undefined,
       undefined,
-      true,
+      0,
     );
     expect(p.lat).toBeCloseTo(0, 9);
     expect(p.axial).toBeCloseTo(-2.90283102, 9);
@@ -264,7 +264,7 @@ describe("mesh-centre offset frame", () => {
       }),
       undefined,
       undefined,
-      true,
+      0,
     );
     expect(Number.isFinite(p.lat)).toBe(true);
     expect(Number.isFinite(p.axial)).toBe(true);
@@ -285,7 +285,7 @@ describe("mesh-centre offset frame", () => {
       }),
       undefined,
       undefined,
-      true,
+      0,
     );
     expect(p.lat).toBeCloseTo(1.1, 9);
     expect(p.axial).toBeCloseTo(2.2, 9);
@@ -300,7 +300,7 @@ describe("drawn extent", () => {
       part({ bounds: { size: { x: 1.25, y: 0.68, z: 1.1 } } }),
       undefined,
       undefined,
-      true,
+      0,
     );
     expect(p.latHalfExtent).toBeCloseTo(0.625, 9);
     expect(p.axialHalfExtent).toBeCloseTo(0.34, 9);
@@ -317,7 +317,7 @@ describe("drawn extent", () => {
       }),
       undefined,
       undefined,
-      true,
+      0,
     );
     expect(p.latHalfExtent).toBeCloseTo(
       0.75 * Math.cos(turn) + 0.05 * Math.sin(turn),
@@ -337,7 +337,7 @@ describe("drawn extent", () => {
       }),
       undefined,
       undefined,
-      true,
+      0,
     );
     expect(p.rotationRad).toBeCloseTo(Math.PI / 2, 9);
     expect(p.axialHalfExtent).toBeCloseTo(0.4, 9);
