@@ -51,7 +51,10 @@ export interface MissionControl {
   close(): Promise<void>;
 }
 
-async function postReplay(path: string, body: unknown): Promise<ReplayState> {
+export async function postReplay(
+  path: string,
+  body: unknown,
+): Promise<ReplayState> {
   const res = await fetch(`${REPLAY_URL}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -67,7 +70,7 @@ const replay: ReplayControl = {
     (await (await fetch(`${REPLAY_URL}/replay/state`)).json()) as ReplayState,
 };
 
-function dashboardOf(widgets: readonly ReplayWidget[]) {
+export function dashboardOf(widgets: readonly ReplayWidget[]) {
   let y = 0;
   const items = [];
   const layout = [];
@@ -86,7 +89,7 @@ function dashboardOf(widgets: readonly ReplayWidget[]) {
 }
 
 /* The scene comes off the recording's `game-state`, and each scene keeps its own layout, so the base and the flight slot are both seeded. */
-async function seedScreen(
+export async function seedScreen(
   context: BrowserContext,
   screen: "main" | "station",
   dashboard: string,

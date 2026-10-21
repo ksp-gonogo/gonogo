@@ -14,6 +14,7 @@
       "!**/dist",
       "!.claude",
       "!**/__generated__",
+      "!tests/fixtures/uplink-bundles",
       "!**/client/docs/widgets.json",
       "!**/client/docs/spec.json",
       "!**/client/docs/assets/.uplink-tools-renders.json",

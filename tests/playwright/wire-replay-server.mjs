@@ -14,6 +14,14 @@
  * carried is not acknowledged. `ping` gets its `pong`, so a paused replay is a
  * quiet stream and not a dead one.
  *
+ * The recording's `system.uplinks` roster names each installed Uplink's client
+ * bundle at a CDN. A folder under `tests/fixtures/uplink-bundles/<id>/` holding
+ * `<id>.client.txt` (the client, stored as text) and its `gonogo-uplink.json` sidecar is served here instead,
+ * at `/uplink-bundles/<id>/<file>`, and the roster a screen is sent points at
+ * it with `expectedClientHash` set to that bundle's own hash. An installed
+ * Uplink with no folder is sent as unavailable, so a screen never goes to the
+ * network for it.
+ *
  * Control, over HTTP on the same port (JSON bodies):
  *
  *   POST /replay/load     { fixture }  path to a .jsonl, relative to the repo
@@ -23,6 +31,8 @@
  *                                      the recording's first frame
  *   GET  /replay/state                 { fixture, cursorMs, durationMs, clients }
  */
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,6 +41,55 @@ import { deliveredAt, readWireFixture } from "./wire-fixture.mjs";
 
 const PORT = Number.parseInt(process.env.WIRE_REPLAY_PORT ?? "18098", 10);
 const REPO_ROOT = resolve(fileURLToPath(import.meta.url), "../../..");
+
+const UPLINKS_TOPIC = "system.uplinks";
+const BUNDLE_DIR = resolve(REPO_ROOT, "tests/fixtures/uplink-bundles");
+const BUNDLE_ROUTE = /^\/uplink-bundles\/([\w-]+)\/([\w.-]+)$/;
+
+/** The `sha256-` plus hex form of a bundle's bytes, as the app's loader computes it. */
+function sha256Integrity(bytes) {
+  return `sha256-${createHash("sha256").update(bytes).digest("hex")}`;
+}
+
+/** The fixture bundle for Uplink `id`, or `null` when no folder holds one. */
+function fixtureBundle(id) {
+  const file = resolve(BUNDLE_DIR, id, `${id}.client.txt`);
+  return existsSync(file) ? readFileSync(file) : null;
+}
+
+/** `frame` with each installed Uplink's client served from this server; see the module comment. */
+function withServedBundles(frame, port) {
+  if (frame.type !== "stream-data" || frame.topic !== UPLINKS_TOPIC) {
+    return frame;
+  }
+  const uplinks = frame.payload?.uplinks;
+  if (!Array.isArray(uplinks)) return frame;
+  return {
+    ...frame,
+    payload: {
+      ...frame.payload,
+      uplinks: uplinks.map((entry) => {
+        if (!entry.clientSource) return entry;
+        const bundle = fixtureBundle(entry.id);
+        if (bundle === null) {
+          return {
+            ...entry,
+            available: false,
+            reason: "no client bundle in this replay",
+          };
+        }
+        return {
+          ...entry,
+          expectedClientHash: sha256Integrity(bundle),
+          clientSource: {
+            url: `http://localhost:${port}/uplink-bundles/${entry.id}/${entry.id}.client.js`,
+            devPath: null,
+          },
+        };
+      }),
+    },
+  };
+}
 
 function isAck(frame) {
   return frame.type === "event" && frame.name === "subscribed";
@@ -67,7 +126,9 @@ export function startWireReplayServer({ port = PORT } = {}) {
   const clients = new Map();
 
   function send(ws, frame) {
-    if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(frame));
+    if (ws.readyState === ws.OPEN) {
+      ws.send(JSON.stringify(withServedBundles(frame, port)));
+    }
   }
 
   function load(path) {
@@ -119,6 +180,22 @@ export function startWireReplayServer({ port = PORT } = {}) {
       res.end(JSON.stringify(body));
     };
     try {
+      const bundle = BUNDLE_ROUTE.exec(req.url ?? "");
+      if (req.method === "GET" && bundle) {
+        /* The bundle is kept as .txt so source scans do not read a built file. */
+        const stored = bundle[2].replace(/\.client\.js$/, ".client.txt");
+        const file = resolve(BUNDLE_DIR, bundle[1], stored);
+        if (!file.startsWith(`${BUNDLE_DIR}/`) || !existsSync(file)) {
+          return reply(404, { error: "no such bundle file" });
+        }
+        res.writeHead(200, {
+          "Content-Type": bundle[2].endsWith(".json")
+            ? "application/json"
+            : "text/javascript",
+          "Access-Control-Allow-Origin": "*",
+        });
+        return res.end(readFileSync(file));
+      }
       if (req.url === "/health") return reply(200, { ok: true });
       if (req.url === "/replay/state") return reply(200, state());
       if (req.method === "POST" && req.url === "/replay/load") {

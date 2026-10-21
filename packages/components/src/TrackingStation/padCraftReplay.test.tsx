@@ -46,7 +46,7 @@ async function selectPadCraft() {
 
 describe("TrackingStation: a craft on the pad", () => {
   it("shows the crew and link the craft reports, not 'unknown'", async () => {
-    await mountAt(3);
+    await mountAt(6);
     const panel = await selectPadCraft();
 
     expect(panel).toHaveTextContent(/Crew\s*0\/0/);

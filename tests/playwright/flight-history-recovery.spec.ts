@@ -1,7 +1,8 @@
 /**
  * A flight that ends in a recovery is stored and listed in Flight history,
- * whether the craft was in contact when it was recovered or the mod held the
- * flight's end until a link returned and released it at the Space Center.
+ * whether the craft was in contact when it was recovered or out of contact
+ * after a blackout: a recovery is news from the ground, so the flight's end
+ * reaches every screen at once either way.
  */
 import { expect, test } from "@playwright/test";
 import { bootMissionControl } from "./mission-control";
@@ -10,12 +11,12 @@ const CASES = [
   {
     name: "recovered while in contact",
     fixture: "tests/fixtures/wire/recovery-connected.jsonl",
-    vessel: "LFV-2 Wave Probe",
+    vessel: "LFV-2 Wave",
   },
   {
-    name: "recovered out of contact, the end released at the Space Center",
+    name: "recovered out of contact",
     fixture: "tests/fixtures/wire/recovery-held-then-released.jsonl",
-    vessel: "LFV-2 Wave Aerocam Probe",
+    vessel: "LFV-2 Wave",
   },
 ];
 
