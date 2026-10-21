@@ -95,7 +95,7 @@ describe("MainScreen smoke", () => {
     ).toContain("Command centre vantage: No vantage yet");
   });
 
-  it("swaps to the Space Center layout when the stream says the game is at KSC", async () => {
+  it("keeps each scene's old layout: a stored scene slot switches in when the game enters that scene", async () => {
     localStorage.setItem(
       "gonogo:dashboard:main",
       JSON.stringify({
@@ -118,6 +118,12 @@ describe("MainScreen smoke", () => {
     await waitFor(() =>
       expect(transport.isSubscribed("spaceCenter.scene")).toBe(true),
     );
+    await act(async () => {
+      transport.emit("spaceCenter.scene", { scene: "Flight" });
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
     await act(async () => {
       transport.emit("spaceCenter.scene", { scene: "SpaceCenter" });
     });

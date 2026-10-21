@@ -40,7 +40,10 @@ function Harness({
   config: DashboardConfig;
   storageKey: string;
 }) {
-  const s = useDashboardState(storageKey, config);
+  const s = useDashboardState(config, {
+    onChange: (items, layout) =>
+      localStorage.setItem(storageKey, JSON.stringify({ items, layout })),
+  });
   return (
     <Dashboard
       items={s.items}

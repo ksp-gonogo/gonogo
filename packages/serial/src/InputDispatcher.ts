@@ -13,6 +13,16 @@ export interface InputMappingSource {
   readonly inputMappings?: Record<string, InputBinding | null>;
 }
 
+/**
+ * Minimal shape the dispatcher needs from each saved dashboard layout that a
+ * press of an input switches to, structural for the same reason as
+ * `InputMappingSource`.
+ */
+export interface ProfileInputSource {
+  readonly id: string;
+  readonly inputBinding?: InputBinding | null;
+}
+
 interface Options {
   /**
    * Live source of dashboard items. The dispatcher holds a reference and
@@ -21,6 +31,14 @@ interface Options {
    */
   getItems: () => readonly InputMappingSource[];
   service: SerialDeviceService;
+  /** Live source of the layouts that an input switches to; read on every event. */
+  getProfileBindings?: () => readonly ProfileInputSource[];
+  /** Called once per press of an input bound to a layout, with the layout's id. */
+  onProfileInput?: (
+    profileId: string,
+    deviceId: string,
+    inputId: string,
+  ) => void;
 }
 
 /**
@@ -29,6 +47,7 @@ interface Options {
  *   transport.inject / real bytes
  *        → SerialDeviceService.onInput
  *        → InputDispatcher.handleInput
+ *        → for each layout whose input was pressed, onProfileInput
  *        → for each dashboard item with a matching mapping,
  *            dispatchAction(instanceId, actionId, payload)
  *        → handler returns { key: value, ... }
@@ -39,11 +58,15 @@ interface Options {
 export class InputDispatcher {
   private readonly getItems: () => readonly InputMappingSource[];
   private readonly service: SerialDeviceService;
+  private readonly getProfileBindings: () => readonly ProfileInputSource[];
+  private readonly onProfileInput: NonNullable<Options["onProfileInput"]>;
   private readonly unsubInput: () => void;
 
   constructor(opts: Options) {
     this.getItems = opts.getItems;
     this.service = opts.service;
+    this.getProfileBindings = opts.getProfileBindings ?? (() => []);
+    this.onProfileInput = opts.onProfileInput ?? (() => {});
     this.unsubInput = this.service.onInput((deviceId, event) => {
       this.handleInput(deviceId, event);
     });
@@ -55,6 +78,17 @@ export class InputDispatcher {
 
   private handleInput(deviceId: string, event: InputEvent): void {
     if (this.service.isCaptureMode()) return;
+    if (event.value === true) {
+      for (const profile of this.getProfileBindings()) {
+        const binding = profile.inputBinding;
+        if (
+          binding?.deviceId === deviceId &&
+          binding.inputId === event.inputId
+        ) {
+          this.onProfileInput(profile.id, deviceId, event.inputId);
+        }
+      }
+    }
     const items = this.getItems();
     for (const item of items) {
       const mappings = item.inputMappings;

@@ -14,14 +14,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Dashboard, type DashboardConfig } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 
-function Harness({
-  config,
-  storageKey,
-}: {
-  config: DashboardConfig;
-  storageKey: string;
-}) {
-  const s = useDashboardState(storageKey, config);
+function Harness({ config }: { config: DashboardConfig }) {
+  const s = useDashboardState(config);
   return (
     <Dashboard
       items={s.items}
@@ -88,7 +82,6 @@ describe("Dashboard widget error boundary", () => {
 
     renderWithProviders(
       <Harness
-        storageKey="test-error-boundary"
         config={{
           items: [{ i: "x", componentId: "boomer" }],
           layout: [{ i: "x", x: 0, y: 0, w: 3, h: 3 }],
@@ -120,7 +113,6 @@ describe("Dashboard widget error boundary", () => {
 
     renderWithProviders(
       <Harness
-        storageKey="test-error-boundary-retry"
         config={{
           items: [{ i: "x", componentId: "togglable" }],
           layout: [{ i: "x", x: 0, y: 0, w: 3, h: 3 }],

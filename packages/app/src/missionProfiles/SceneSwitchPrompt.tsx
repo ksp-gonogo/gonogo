@@ -1,24 +1,23 @@
 import { useGameContext } from "@ksp-gonogo/core";
 import { FabPrompt } from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
-import type { Layout } from "react-grid-layout";
-import type { DashboardItem } from "../components/Dashboard";
 import { useMissionProfilesService } from "./MissionProfilesContext";
 import {
   type BindableScene,
   type MissionProfile,
   SCENE_PHRASES,
 } from "./MissionProfilesService";
+import type { ProfileDashboard } from "./ProfileDashboard";
 
 interface SceneSwitchPromptProps {
-  /** Called when the profile is loaded, either via the prompt or auto-switch. */
-  onLoad: (items: DashboardItem[], layout: Layout) => void;
+  /** Switches the dashboard, either via the prompt or auto-switch. */
+  dashboard: ProfileDashboard;
 }
 
 /**
  * Watches `kc.scene` and shows a sausage-shaped prompt next to the
  * dashboard FAB whenever a fresh scene transition arrives that matches
- * a tagged Mission Profile. Tap the prompt → atomic dashboard swap;
+ * a tagged Mission Profile. Tap the prompt → the profile becomes current;
  * dismiss → it goes away and won't return until the next *new* scene
  * transition.
  *
@@ -29,13 +28,14 @@ interface SceneSwitchPromptProps {
  * switch *to* a profile when entering a tagged scene". The scene reads
  * as Unknown until the first telemetry frame arrives, so the first known
  * scene is the starting point rather than a transition: reloading the
- * page never prompts for the scene the game is already in.
+ * page never prompts for the scene the game is already in (a screen with no current
+ * layout still opens on the layout bound to it with auto-switch).
  *
  * Designed to live inside a `BannerStack`, so positioning is in-flow,
  * no `bottom` prop. The stack owns viewport placement.
  */
 export function SceneSwitchPrompt({
-  onLoad,
+  dashboard,
 }: Readonly<SceneSwitchPromptProps>) {
   const { scene } = useGameContext();
   const svc = useMissionProfilesService();
@@ -51,7 +51,18 @@ export function SceneSwitchPrompt({
     const previous = previousSceneRef.current;
     previousSceneRef.current = scene;
 
-    if (previous === null) return;
+    if (previous === null) {
+      /* With no current layout there is nothing to keep, so the scene's own layout opens straight away. */
+      const bound =
+        svc.getCurrentId() === null ? svc.findForScene(scene) : null;
+      if (bound?.autoSwitch) {
+        dashboard.switchTo(bound.id, {
+          kind: "scene",
+          scene: scene as BindableScene,
+        });
+      }
+      return;
+    }
     if (scene === previous) return;
 
     const profile = svc.findForScene(scene);
@@ -60,23 +71,34 @@ export function SceneSwitchPrompt({
       return;
     }
 
+    if (profile.id === svc.getCurrentId()) {
+      setActive(null);
+      return;
+    }
+
     if (profile.autoSwitch) {
-      onLoad(profile.items, profile.layout);
+      dashboard.switchTo(profile.id, {
+        kind: "scene",
+        scene: scene as BindableScene,
+      });
       setActive(null);
       return;
     }
 
     setActive({ scene: scene as BindableScene, profile });
-  }, [scene, svc, onLoad]);
+  }, [scene, svc, dashboard]);
 
   if (!active) return null;
 
   return (
     <FabPrompt
       label={`Now ${SCENE_PHRASES[active.scene]}: switch to ${active.profile.name}?`}
-      acceptLabel={`Load layout ${active.profile.name}`}
+      acceptLabel={`Switch to layout ${active.profile.name}`}
       onAccept={() => {
-        onLoad(active.profile.items, active.profile.layout);
+        dashboard.switchTo(active.profile.id, {
+          kind: "scene",
+          scene: active.scene,
+        });
         setActive(null);
       }}
       onDismiss={() => setActive(null)}
