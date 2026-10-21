@@ -8,6 +8,9 @@ import { debugPeer, logger } from "@ksp-gonogo/logger";
  */
 const UNAVAILABLE_ID_RETRY_MS = 8_000;
 
+/** Ceiling for the retry gap as consecutive attempts time out without an answer. */
+const SILENT_RETRY_CEILING_MS = 15_000;
+
 /** PeerJS error shape: `.type` is the one load-bearing field we read. */
 interface PeerJsError extends Error {
   type?: string;
@@ -58,6 +61,8 @@ export class RetryPolicy {
   /** ms override applied to the next retry. Set by error-type-specific
    *  handling; cleared back to `retryIntervalMs` after one use. */
   private nextRetryOverrideMs: number | null = null;
+  /** Consecutive attempts that ended by deadline with no answer at all. */
+  private silentAttempts = 0;
 
   constructor(private readonly deps: RetryPolicyDeps) {}
 
@@ -65,12 +70,28 @@ export class RetryPolicy {
   beginConnect(): void {
     this.intentionalDisconnect = false;
     this.retryStart = null;
+    this.silentAttempts = 0;
   }
 
   /** Mark a successful conn open so future retries get a fresh time budget. */
   onConnected(): void {
     this.retryStart = null;
     this.lastErrorType = null;
+    this.silentAttempts = 0;
+  }
+
+  /**
+   * An attempt ran out of time with no connection, error or close. The next
+   * retry waits longer each time in a row, up to a ceiling, so a main screen
+   * that is not up yet is not hammered while the loop keeps going.
+   */
+  handleAttemptTimeout(): void {
+    this.silentAttempts += 1;
+    this.nextRetryOverrideMs = Math.min(
+      this.deps.retryIntervalMs * 2 ** this.silentAttempts,
+      Math.max(SILENT_RETRY_CEILING_MS, this.deps.retryIntervalMs),
+    );
+    this.handleUnexpectedClose();
   }
 
   /**

@@ -59,7 +59,11 @@ const { FakePeer } = vi.hoisted(() => {
       return conn;
     }
 
-    destroy() {}
+    destroyed = false;
+
+    destroy() {
+      this.destroyed = true;
+    }
   }
 
   return { FakePeer, FakeDataConnection };
@@ -223,7 +227,7 @@ describe("PeerClientService", () => {
       const { conn } = connectToFakeHost(svc);
       const before = FakePeer.instances.length;
       conn.emit("close");
-      vi.advanceTimersByTime(60_000);
+      vi.advanceTimersByTime(5_000);
       expect(FakePeer.instances.length).toBe(before + 1);
       svc.disconnect();
     } finally {
@@ -601,6 +605,64 @@ describe("PeerClientService reconnect loop", () => {
 
     driveOpen(FakePeer.instances[10]);
     expect(FakePeer.instances[10]._lastConnectTarget).toBe("gonogo-host-Z6HK");
+  });
+
+  it("keeps retrying past a silent broker and connects once the main appears", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 10 * 60_000,
+      attemptDeadlineMs: 1_000,
+    });
+    const failed: boolean[] = [];
+    svc.onHostChannelFailed((f) => failed.push(f));
+    svc.connect("Z6HK");
+
+    // Attempt 1: the broker answers EXPIRE; every later offer gets no reply.
+    FakePeer.instances[0].emit("open");
+    FakePeer.instances[0].emit(
+      "error",
+      Object.assign(new Error("Could not connect to peer gonogo-host-Z6HK"), {
+        type: "peer-unavailable",
+      }),
+    );
+    vi.advanceTimersByTime(50);
+    expect(FakePeer.instances).toHaveLength(2);
+
+    for (let i = 1; i < 8; i += 1) {
+      FakePeer.instances[i].emit("open");
+      // No reply: the deadline fires, then the backoff gap (at most 15 s) passes.
+      let waited = 0;
+      while (FakePeer.instances.length === i + 1) {
+        vi.advanceTimersByTime(100);
+        waited += 100;
+        expect(waited).toBeLessThanOrEqual(1_000 + 15_000);
+      }
+      expect(FakePeer.instances).toHaveLength(i + 2);
+    }
+    expect(failed).not.toContain(true);
+    // Every superseded peer was destroyed, only the latest is live.
+    const all = FakePeer.instances;
+    expect(all.slice(0, -1).every((p) => p.destroyed)).toBe(true);
+    expect(all[all.length - 1].destroyed).toBe(false);
+
+    driveOpen(all[all.length - 1]);
+    expect(svc.getConnStatus()).toBe("connected");
+    // The connected attempt leaves no deadline behind to tear it down.
+    vi.advanceTimersByTime(5_000);
+    expect(FakePeer.instances).toHaveLength(all.length);
+    expect(all[all.length - 1].destroyed).toBe(false);
+  });
+
+  it("leaves no timers once disconnected mid-attempt", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 60_000,
+      attemptDeadlineMs: 1_000,
+    });
+    svc.connect("Z6HK");
+    FakePeer.instances[0].emit("open");
+    svc.disconnect();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("separates a broker this browser can't reach from a host that isn't there", () => {

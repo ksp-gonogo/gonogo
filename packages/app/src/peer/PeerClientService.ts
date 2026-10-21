@@ -39,6 +39,14 @@ const DEFAULT_RETRY_INTERVAL_MS = 2_000;
 const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
 
 /**
+ * How long one attempt may run with no connection, error or close before it is
+ * torn down and the next is scheduled. The public broker never answers an offer
+ * to an id it does not hold, so silence is the normal result of reaching for a
+ * main screen that is not up yet. Long enough for a relayed connection to open.
+ */
+const DEFAULT_ATTEMPT_DEADLINE_MS = 10_000;
+
+/**
  * Consecutive attempts that reached the broker but never opened the host's
  * data channel before the station stops retrying and says so. The broker
  * answering while the channel stays shut means the two devices have no
@@ -103,6 +111,8 @@ export { attachIceDiagnostics };
 export interface PeerClientOptions {
   retryIntervalMs?: number;
   retryTimeoutMs?: number;
+  /** Per-attempt deadline, see `DEFAULT_ATTEMPT_DEADLINE_MS`. */
+  attemptDeadlineMs?: number;
   /**
    * Explicit PeerJS id for this station. Defaults to the persistent
    * localStorage-backed id from `getStationPeerId()`. Override for tests.
@@ -173,6 +183,8 @@ export class PeerClientService {
   private conn: DataConnection | null = null;
   private lastHostMessageAt = 0;
   private silenceTimer: ReturnType<typeof setInterval> | null = null;
+  private attemptTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly attemptDeadlineMs: number;
   /** The host's broker peer id, derived from the operator-typed share-code
    *  (`gonogo-host-<CODE>`) in `connect()`. Stable across the session and
    *  read by `openPeer()` as the reconnect target, a host that refreshed
@@ -282,8 +294,10 @@ export class PeerClientService {
   constructor({
     retryIntervalMs = DEFAULT_RETRY_INTERVAL_MS,
     retryTimeoutMs = DEFAULT_RETRY_TIMEOUT_MS,
+    attemptDeadlineMs = DEFAULT_ATTEMPT_DEADLINE_MS,
     peerId,
   }: PeerClientOptions = {}) {
+    this.attemptDeadlineMs = attemptDeadlineMs;
     this.fixedPeerIdOverride = peerId ?? null;
     this.stationPeerId = peerId ?? getStationPeerId();
     this.stationKey = getStationKey();
@@ -466,6 +480,7 @@ export class PeerClientService {
       config: { iceServers: withStun(this.relayIceServers) },
     });
     this.peer = peer;
+    this.armAttemptDeadline(peer);
     peer.on("open", () => {
       if (this.peer !== peer) return;
       // Reaching `open` means the broker answered and holds our id, so any earlier "can't reach the broker" verdict is stale.
@@ -548,6 +563,7 @@ export class PeerClientService {
     conn.on("open", () => {
       if (!current()) return;
       logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
+      this.clearAttemptDeadline();
       this.retryPolicy.onConnected();
       this.hostChannelStalls = 0;
       this.enterStage("data");
@@ -598,7 +614,33 @@ export class PeerClientService {
     }, 1_000);
   }
 
+  private armAttemptDeadline(peer: Peer): void {
+    this.clearAttemptDeadline();
+    this.attemptTimer = setTimeout(() => {
+      this.attemptTimer = null;
+      if (this.peer !== peer) return;
+      logger.info("[PeerClient] attempt got no answer: retrying");
+      /* A host that never answers an offer looks the same as a main screen
+         that is not up. Only an ICE negotiation already under way marks the
+         attempt as a real stall for the channel-failure count. */
+      const pc = (this.conn as { peerConnection?: RTCPeerConnection } | null)
+        ?.peerConnection;
+      if (!pc || pc.iceConnectionState === "new") {
+        this.hostMissingOnLastAttempt = true;
+      }
+      this.retryPolicy.handleAttemptTimeout();
+    }, this.attemptDeadlineMs);
+  }
+
+  private clearAttemptDeadline(): void {
+    if (this.attemptTimer !== null) {
+      clearTimeout(this.attemptTimer);
+      this.attemptTimer = null;
+    }
+  }
+
   private tearDownPeer() {
+    this.clearAttemptDeadline();
     if (this.silenceTimer !== null) {
       clearInterval(this.silenceTimer);
       this.silenceTimer = null;
