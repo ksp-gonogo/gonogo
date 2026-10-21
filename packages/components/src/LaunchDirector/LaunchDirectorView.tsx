@@ -7,6 +7,11 @@ import { magnitudeOf } from "../shared/magnitude";
 import { BoundPresses } from "./actions";
 import { parseCrew } from "./crew";
 import { InFlightPanel } from "./InFlightPanel";
+import {
+  CRAFT_MAP_MIN_COLS,
+  CRAFT_MAP_MIN_ROWS,
+  LaunchedCraftMap,
+} from "./LaunchedCraftMap";
 import { PadSection } from "./PadSection";
 import { awayBodyNames, orderPads, padSummary, parseLaunchSites } from "./pads";
 import { craftForPad, parseSavedShips } from "./ships";
@@ -104,6 +109,8 @@ export function LaunchDirectorComponent({
   // Which pad row is open; null means the first pad in prioritised order stands in. Derived, so a pad that leaves cannot leave a dead selection.
   const [pickedPad, setPickedPad] = useState<string | null>(null);
   const [selectedCrew, setSelectedCrew] = useState<Set<string>>(new Set());
+  // Which launched craft's map is open; derived like the pad, so a craft that leaves cannot leave a dead selection.
+  const [pickedCraft, setPickedCraft] = useState<string | null>(null);
   const activePad = pads.find((p) => p.name === pickedPad) ?? pads[0];
   const selectedSite = activePad?.name ?? "";
   const scene = sceneRecord?.scene;
@@ -117,6 +124,11 @@ export function LaunchDirectorComponent({
   const rows = h ?? 9;
   const cols = w ?? 7;
   const showSubtitle = rows >= 4;
+  const showCraftMap = cols >= CRAFT_MAP_MIN_COLS && rows >= CRAFT_MAP_MIN_ROWS;
+  const mappedCraft =
+    flyable.find((v) => v.vesselId === pickedCraft)?.vesselId ??
+    flyable[0]?.vesselId ??
+    null;
 
   // Plain object, not a hook, so it can sit above the early return.
   const slotContext: LaunchDirectorSlotContext = {
@@ -255,6 +267,15 @@ export function LaunchDirectorComponent({
               />
             )}
           </Section>,
+          showCraftMap ? (
+            <Section key="craft-map" full>
+              <LaunchedCraftMap
+                vessels={flyable}
+                selectedId={mappedCraft}
+                onSelect={setPickedCraft}
+              />
+            </Section>
+          ) : null,
         ]}
       />
     </BoundPresses.Provider>

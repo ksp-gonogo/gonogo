@@ -2690,6 +2690,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "TrackingStationCatalog": {
     entries: "CatalogEntry[]",
   },
+  "TrackingStationVesselParts": {
+    parts: "VesselPart[]",
+  },
   "TrackingStationVesselResources": {
     resources: "*ResourceAmount",
   },

@@ -175,6 +175,9 @@ public static class RtConfig
                 // reusing ResourceAmount so a client reads a craft's resources
                 // the same way whether or not it is the one being flown.
                 typeof(TrackingStationVesselResources),
+                // trackingStation.vessel.<guid>.parts: one craft's part tree, the
+                // VesselPart rows vessel.parts carries, for any craft in the save.
+                typeof(TrackingStationVesselParts),
                 // currency.<guid>.* source-attributed currency events: a discrete
                 // per-vessel delta revealed at its SOURCE vessel's light-time, so an
                 // operator cannot infer a distant event from the instant career total.

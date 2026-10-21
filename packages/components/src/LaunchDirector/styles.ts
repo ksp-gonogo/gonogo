@@ -291,3 +291,35 @@ export const VesselSwitchHint = styled.div`
   color: var(--color-text-faint);
   line-height: var(--line-height-body);
 `;
+
+export const CraftMapLayout = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--gap-related);
+  align-items: start;
+`;
+
+export const CraftDiagramFrame = styled.div`
+  position: relative;
+  aspect-ratio: 1;
+  min-height: 160px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-regular);
+  background: var(--color-surface-app);
+  overflow: hidden;
+`;
+
+/** Out of flow, so the drawing's measured size cannot widen the frame it was measured from. */
+export const CraftDiagramLayer = styled.div`
+  position: absolute;
+  inset: 0;
+`;
+
+export const CraftNoParts = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-faint);
+`;

@@ -38,7 +38,7 @@ import type {
  * and the diagram keeps the plain-number shape it was written against.
  */
 export function deriveTopologyFromVesselParts(
-  wire: VesselParts,
+  wire: Pick<VesselParts, "parts">,
 ): VesselTopology {
   const parts: TopologyPart[] = wire.parts.map(deriveTopologyPart);
   const root = wire.parts.find((p) => p.parentId == null);
@@ -180,7 +180,7 @@ export function derivePartResources(
  *  `r.resourceFor[fid]` subscription. Empty map when `wire` hasn't arrived
  *  yet. */
 export function buildResourcesByFlightId(
-  wire: VesselParts | undefined,
+  wire: Pick<VesselParts, "parts"> | undefined,
 ): Map<number, PartResources> {
   const out = new Map<number, PartResources>();
   if (!wire) return out;

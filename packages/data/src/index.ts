@@ -71,6 +71,7 @@ export * from "./hooks/usePartsLive";
 export * from "./hooks/useSeriesReadings";
 export * from "./hooks/useTopicFields";
 export * from "./hooks/useTopology";
+export * from "./hooks/useTrackedVesselTopology";
 // `buildResourcesByFlightId`: the pure per-flightId resources lookup
 // `usePartsLive` builds internally, also needed by ShipMap's built-in
 // `ship-map.part-meters` contribution (a plain function of the same

@@ -80,6 +80,35 @@ namespace Sitrep.Host
             };
         }
 
+        /// <summary>
+        /// The <c>trackingStation.vessel.&lt;guid&gt;.parts</c> wire payload for one
+        /// craft, from the same raw part rows <c>KspHost.BuildTopology</c> writes for
+        /// <c>vessel.parts</c> (or <c>ProtoVesselTopology</c> writes for an unloaded
+        /// craft). Null when there are no rows to map, so a craft whose read failed
+        /// publishes nothing rather than an empty tree.
+        /// </summary>
+        public static Dictionary<string, object?>? BuildTrackedPartsWire(IEnumerable<object?>? rawTopology) =>
+            BuildTrackedParts(rawTopology) is { } parts ? ToWire(parts) : null;
+
+        public static TrackingStationVesselParts? BuildTrackedParts(IEnumerable<object?>? rawTopology)
+        {
+            if (rawTopology == null)
+            {
+                return null;
+            }
+
+            var parts = new List<VesselPart>();
+            foreach (var rawEntry in rawTopology)
+            {
+                if (rawEntry is IDictionary<string, object?> raw)
+                {
+                    parts.Add(MapPart(raw));
+                }
+            }
+
+            return parts.Count == 0 ? null : new TrackingStationVesselParts { Parts = parts };
+        }
+
         private static VesselPart MapPart(IDictionary<string, object?> raw)
         {
             return new VesselPart
@@ -234,6 +263,11 @@ namespace Sitrep.Host
         {
             ["parts"] = parts.Parts.Select(ToWire).ToList<object?>(),
             ["meta"] = ToWire(parts.Meta),
+        };
+
+        private static Dictionary<string, object?> ToWire(TrackingStationVesselParts parts) => new Dictionary<string, object?>
+        {
+            ["parts"] = parts.Parts.Select(ToWire).ToList<object?>(),
         };
 
         private static Dictionary<string, object?> ToWire(VesselPart part) => new Dictionary<string, object?>

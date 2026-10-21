@@ -142,7 +142,8 @@ export function ShipDiagramSvg({
     <svg
       width={width}
       height={height}
-      role={interactive ? "graphics-document" : "img"}
+      // A cluster's expand control is focusable, and an img role may not hold one.
+      role={interactive || clusters.length > 0 ? "graphics-document" : "img"}
       aria-label="Ship diagram"
       style={ROOT_SVG_STYLE}
     >

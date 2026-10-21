@@ -12,8 +12,9 @@ namespace Gonogo.KSP
     /// fleet-capture tick, reads every <c>FlightGlobals.Vessels</c> vessel's own
     /// routed signal delay (<see cref="FleetCommsReader"/>), sets the per-vessel
     /// node delay via <see cref="IUplinkHost.SetVesselDelay"/>, and emits the
-    /// craft's link figures on <c>.link</c> and its tanks on <c>.resources</c>,
-    /// each delayed by that craft's own signal delay.
+    /// craft's link figures on <c>.link</c>, its tanks on <c>.resources</c> and
+    /// its part tree on <c>.parts</c>, each delayed by that craft's own signal
+    /// delay.
     ///
     /// <para>This is the KSP-facing hookup of the mechanism proven engine-side by
     /// <c>FleetDelayTestUplink</c> (which is snapshot-driven; this reads live
@@ -53,6 +54,7 @@ namespace Gonogo.KSP
     {
         private const string LinkSuffix = ".link";
         private const string ResourcesSuffix = ".resources";
+        private const string PartsSuffix = ".parts";
 
         /// <summary>
         /// Resource rows read per second across the fleet. This is the one
@@ -216,6 +218,7 @@ namespace Gonogo.KSP
                     // on this source cannot tell those apart. A tracker watching
                     // one probe pays for one probe.
                     Resources = ReadResources(vessel, id, ut),
+                    Parts = ReadParts(vessel, id),
                 });
             }
             return new FleetCapture { Ut = ut, Vessels = captures };
@@ -287,7 +290,37 @@ namespace Gonogo.KSP
             return TrackingStationVesselResourcesBuilder.Build(resources);
         }
 
-        /// <summary>COURIER-THREAD handle: set each vessel's node delay and emit its link and tanks.</summary>
+        /// <summary>
+        /// MAIN-THREAD: one vessel's part rows, or null when nobody is watching
+        /// this craft's parts or its parts cannot be read. Gated per vessel for
+        /// the same reason as <see cref="ReadResources"/>, and more so: a loaded
+        /// craft's read walks every part's resources and modules.
+        ///
+        /// <para>Loaded craft read their live parts through the same walk
+        /// <c>vessel.parts</c> uses; unloaded ones read their
+        /// <c>ProtoPartSnapshot</c>s (<see cref="ProtoVesselTopology"/>).</para>
+        /// </summary>
+        private List<object?>? ReadParts(Vessel vessel, string id)
+        {
+            if (_host == null || !_host.IsAnyTopicSubscribed(SystemViewProvider.VesselPrefix + id + PartsSuffix))
+            {
+                return null;
+            }
+
+            try
+            {
+                return vessel.loaded && vessel.parts != null
+                    ? KspHost.BuildTopology(vessel)
+                    : ProtoVesselTopology.Build(vessel.protoVessel);
+            }
+            catch (System.Exception ex)
+            {
+                GonogoLog.WarnLimited("fleet parts read failed for vessel " + id + ", omitting", ex);
+                return null;
+            }
+        }
+
+        /// <summary>COURIER-THREAD handle: set each vessel's node delay and emit its link, tanks and parts.</summary>
         internal void HandleOnCourier(object? captured)
         {
             if (captured is not FleetCapture cap || _vesselSource == null)
@@ -322,6 +355,10 @@ namespace Gonogo.KSP
                 {
                     _vesselSource.Publisher(v.Id + ResourcesSuffix).Publish(v.Resources, cap.Ut);
                 }
+                if (VesselPartsViewProvider.BuildTrackedPartsWire(v.Parts) is { } parts)
+                {
+                    _vesselSource.Publisher(v.Id + PartsSuffix).Publish(parts, cap.Ut);
+                }
             }
         }
 
@@ -344,6 +381,7 @@ namespace Gonogo.KSP
             public Journey? Journey { get; set; }
             public bool? Connected { get; set; }
             public Dictionary<string, object?>? Resources { get; set; }
+            public List<object?>? Parts { get; set; }
         }
     }
 }

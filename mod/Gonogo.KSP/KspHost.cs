@@ -6852,7 +6852,7 @@ namespace Gonogo.KSP
         /// bad part can't blank the whole list, matching the part-walk
         /// discipline in <see cref="BuildPartsPower"/>/<see cref="BuildPartsRobotics"/>.
         /// </summary>
-        private static List<object?>? BuildTopology(Vessel vessel)
+        internal static List<object?>? BuildTopology(Vessel vessel)
         {
             var parts = vessel.parts;
             if (parts == null || parts.Count == 0)

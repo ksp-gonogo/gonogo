@@ -67,6 +67,18 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void TrackedVesselPartsTypeMirrorsProviderWireShape()
+        {
+            var vessel = (Dictionary<string, object?>)Snapshot().Values["vessel"]!;
+            var topology = (List<object?>)vessel["topology"]!;
+            var root = Assert.IsType<Dictionary<string, object?>>(VesselPartsViewProvider.BuildTrackedPartsWire(topology));
+
+            AssertKeysMatchType(typeof(TrackingStationVesselParts), root);
+            var parts = Assert.IsType<List<object?>>(root["parts"]);
+            AssertPartMirrors(Assert.IsType<Dictionary<string, object?>>(Assert.Single(parts)));
+        }
+
+        [Fact]
         public void PayloadTypeIsTaggedWithItsTopic()
         {
             AssertTopicTag(typeof(VesselParts), "vessel.parts", expectArray: false);

@@ -31,6 +31,7 @@ namespace Sitrep.Host.IntegrationTests
         [InlineData("fleet.abc-123", "system")]              // no field segment -> not a per-vessel topic
         [InlineData("extension.abc-123.field", "fleet.abc-123")] // an Uplink's own declared namespace, same node
         [InlineData("trackingStation.vessel.abc-123.link", "fleet.abc-123")] // the tracking station's per-craft namespace, same node
+        [InlineData("trackingStation.vessel.abc-123.parts", "fleet.abc-123")] // a craft's part tree is delayed and frozen on that craft's own link
         public void NodeForTopicRoutesFleetTopicsToPerVesselNodes(string topic, string expectedNode)
         {
             // Through a REGISTERED engine: every namespace except core's own

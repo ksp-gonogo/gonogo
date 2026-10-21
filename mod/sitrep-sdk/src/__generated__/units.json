@@ -2616,6 +2616,9 @@
     "TrackingStationCatalog": {
       "entries": "CatalogEntry[]"
     },
+    "TrackingStationVesselParts": {
+      "parts": "VesselPart[]"
+    },
     "TrackingStationVesselResources": {
       "resources": "*ResourceAmount"
     },

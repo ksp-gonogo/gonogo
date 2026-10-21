@@ -5,6 +5,7 @@ import awaiting from "./__fixtures__/awaiting.json";
 import inFlightAscent from "./__fixtures__/in-flight-at-12-km.json";
 import inFlightCrash from "./__fixtures__/in-flight-crash.json";
 import inTrackingStation from "./__fixtures__/in-tracking-station.json";
+import launchedCraftParts from "./__fixtures__/launched-craft-parts.json";
 import padOccupied from "./__fixtures__/pad-occupied.json";
 import preLaunchInsufficient from "./__fixtures__/pre-launch-insufficient-funds.json";
 import preLaunchMixed from "./__fixtures__/pre-launch-mixed.json";
@@ -26,6 +27,7 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "in-flight-at-12-km": inFlightAscent,
   "in-flight-crash": inFlightCrash,
   "in-tracking-station": inTrackingStation,
+  "launched-craft-parts": launchedCraftParts,
 };
 
 const config = getWidget("launch-director");

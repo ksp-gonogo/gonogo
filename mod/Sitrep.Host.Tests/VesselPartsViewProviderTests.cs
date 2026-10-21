@@ -236,6 +236,73 @@ namespace Sitrep.Host.Tests
             Assert.Equal("vessel:" + Guid, parts.Meta.Source);
         }
 
+        [Fact]
+        public void TrackedPartsAreNullWithNoRows()
+        {
+            Assert.Null(VesselPartsViewProvider.BuildTrackedParts(null));
+            Assert.Null(VesselPartsViewProvider.BuildTrackedParts(new List<object?>()));
+            Assert.Null(VesselPartsViewProvider.BuildTrackedPartsWire(new List<object?>()));
+        }
+
+        [Fact]
+        public void TrackedPartsKeepTheTreeAndGeometry()
+        {
+            var parts = VesselPartsViewProvider.BuildTrackedParts(new List<object?>
+            {
+                RawPart("1", null),
+                RawPart("2", "1"),
+            })!;
+
+            Assert.Equal(new[] { "1", "2" }, parts.Parts.Select(p => p.Id));
+            Assert.Equal("1", parts.Parts[1].ParentId);
+            Assert.Equal(1.0, parts.Parts[0].Up!.Y);
+            Assert.Equal(1.0, parts.Parts[0].Bounds.Size.X);
+        }
+
+        [Fact]
+        public void AnUnloadedCraftsRowsCarryNoLiveState()
+        {
+            var row = new Dictionary<string, object?>
+            {
+                ["id"] = "7",
+                ["parentId"] = null,
+                ["name"] = "solidBooster.sm.v2",
+                ["title"] = "RT-10 Hammer",
+                ["position"] = new double[] { 0.0, -2.0, 0.0 },
+                ["up"] = new double[] { 0.0, 1.0, 0.0 },
+                ["forward"] = new double[] { 0.0, 0.0, 1.0 },
+                ["bounds"] = new Dictionary<string, object?>
+                {
+                    ["size"] = new double[] { 1.25, 7.5, 1.25 },
+                    ["center"] = null,
+                },
+                ["dryMass"] = 0.75,
+                ["inverseStage"] = 0,
+                ["maxTemp"] = 2000.0,
+                ["category"] = "Engine",
+                ["categoryOrdinal"] = 2,
+                ["modules"] = new List<object?> { "ModuleEngines" },
+                ["resources"] = new Dictionary<string, object?>
+                {
+                    ["SolidFuel"] = new Dictionary<string, object?> { ["amount"] = 375.0, ["maxAmount"] = 375.0 },
+                },
+            };
+
+            var wire = VesselPartsViewProvider.BuildTrackedPartsWire(new List<object?> { row })!;
+            Assert.False(wire.ContainsKey("meta"));
+
+            var part = Assert.Single(VesselPartsViewProvider.BuildTrackedParts(new List<object?> { row })!.Parts);
+            Assert.Null(part.CurrentTemp);
+            Assert.Null(part.SkinTemp);
+            Assert.Null(part.FuelLineTargetId);
+            Assert.Null(part.Bounds.Center);
+            Assert.Empty(part.ModuleStates);
+            Assert.Empty(part.ActionBindings);
+            var fuel = part.Resources["SolidFuel"];
+            Assert.Equal(375.0, fuel.MaxAmount);
+            Assert.Null(fuel.Flow);
+        }
+
         // ----------------------------------------------------------------
 
         private static KspSnapshot TopologySnapshot(params IDictionary<string, object?>[] parts) => new KspSnapshot

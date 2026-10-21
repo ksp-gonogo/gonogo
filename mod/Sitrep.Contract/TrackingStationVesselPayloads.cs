@@ -73,3 +73,39 @@ public class TrackingStationVesselResources
     /// </summary>
     public Dictionary<string, ResourceAmount> Resources { get; set; } = new Dictionary<string, ResourceAmount>();
 }
+
+/// <summary>
+/// One craft's part tree on <c>trackingStation.vessel.&lt;guid&gt;.parts</c>,
+/// as the command centre last heard it: each part's position, axes and box in
+/// the craft's own frame, the same <see cref="VesselPart"/> rows
+/// <c>vessel.parts</c> carries for the active craft, for any craft in the
+/// save. Published only while something subscribes to that craft's topic.
+///
+/// <para>How exact it is depends on whether the craft is loaded. A loaded
+/// craft (the active one, or one within physics range of it) is read from its
+/// live parts, exactly as <c>vessel.parts</c> reads it. An unloaded craft is
+/// read from its saved part snapshots: positions and orientations are the
+/// saved ones and exact, but each part's box is measured on the part's stock
+/// model, so a part showing a non-default variant can be drawn at the wrong
+/// size, and the craft carries no temperatures, no flow rates, no module
+/// states, no action-group bindings and no fuel-line targets.</para>
+///
+/// <para>Delayed by that craft's own signal delay. While the craft is out of
+/// contact the reading is held at its last-known value, and a craft never
+/// heard from since the topic was opened has none.</para>
+/// <internal>Loaded craft read through KspHost's topology walk, unloaded ones
+/// through ProtoVesselTopology. Subscription-gated per craft in
+/// FleetChannels, so only a craft someone has open is measured.</internal>
+/// </summary>
+/// <category>Solar system and fleet</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class TrackingStationVesselParts
+{
+    /// <summary>Every part on the craft, in the craft's part-list order. Never
+    /// null; a reading that cannot be taken publishes nothing rather than an
+    /// empty or partial list.</summary>
+    public List<VesselPart> Parts { get; set; } = new();
+}
