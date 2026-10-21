@@ -7566,6 +7566,58 @@ namespace Sitrep.Host
         // Server-side reveal gate (spec §4 / §7.3 Steps 1–3), Courier-thread-only
 
         /// <summary>
+        /// Latch the withdrawal of the active vessel's topics when a publish
+        /// announces a recovery, whether or not anything subscribes to the
+        /// announcement itself.
+        /// </summary>
+        private void NoteRecoveryAnnounced(PublishJob publish)
+        {
+            if (publish.Topic == Sitrep.Host.Flight.FlightTopics.EndedTopic && IsRecoveryNews(publish.Topic, publish.Payload))
+            {
+                _recoveryWithdrawalPending = true;
+            }
+        }
+
+        /// <summary>
+        /// Records the withdrawal of an active vessel topic straight through the
+        /// freeze while a recovery's scene change is pending. A recovery is a
+        /// scene change: the craft is gone from the active vessel's topics
+        /// whatever its link was doing, since the withdrawal is the ground's own,
+        /// not the craft's to send. Returns whether the sample was handled.
+        /// </summary>
+        private bool TryWithdrawAfterRecovery(string topic, object? value, double ut)
+        {
+            if (!_recoveryWithdrawalPending || NodeFor(topic) != NodeId)
+            {
+                return false;
+            }
+
+            if (value != null)
+            {
+                if (topic == VesselViewProvider.IdentityTopic)
+                {
+                    _recoveryWithdrawalPending = false;
+                }
+                return false;
+            }
+
+            if (!_channelDeclarations.TryGetValue(topic, out var withdrawn) || withdrawn.Delay != DelayRole.Delayed)
+            {
+                return false;
+            }
+
+            RecordThrough(topic, value, ut, ExemptStampFor(topic));
+            return true;
+        }
+
+        /*
+         * Set when a recovery is announced and cleared when the next active
+         * vessel's identity arrives: while set, the active vessel's Delayed
+         * topics are withdrawn straight through the freeze. Courier-thread-only.
+         */
+        private bool _recoveryWithdrawalPending;
+
+        /// <summary>
         /// Route one emit decision through the reveal gate, the single funnel
         /// every <see cref="Courier.Record"/> now goes through, replacing the
         /// bare Record calls in <see cref="ProcessTick"/>/<see cref="ProcessPublish"/>.
@@ -7604,6 +7656,11 @@ namespace Sitrep.Host
                 // A recovery is done at a centre, so the news comes from the
                 // ground and no craft link carries or withholds it.
                 RecordThrough(topic, value, ut, ExemptStampFor(topic));
+                return;
+            }
+
+            if (TryWithdrawAfterRecovery(topic, value, ut))
+            {
                 return;
             }
 
@@ -9340,6 +9397,7 @@ namespace Sitrep.Host
                 LogHost("timeline reset at UT " + tick.Ut.ToString("F2", ic) + ", " + why + ": " + ResetDelivery(tick.Ut, tick.Save, pendingBefore, dispatchersBefore));
                 RecomputeChannelBirthFromArchive();
                 _failedCommands.Clear();
+                _recoveryWithdrawalPending = false;
                 BroadcastTimelineReset();
                 TimelineResetChangedSave = folderChanged;
                 NotifyTimelineResetListeners();
@@ -9450,6 +9508,11 @@ namespace Sitrep.Host
                 }
             }
             _handlePublishes = null;
+
+            foreach (var announced in handlePublishes)
+            {
+                NoteRecoveryAnnounced(announced);
+            }
 
             // AUTHORITATIVE delay refresh (§7.3 Step 2): source the reveal-gate
             // delay from the server-side SignalDelay capability every tick,
@@ -9783,6 +9846,7 @@ namespace Sitrep.Host
         /// <param name="nowUt">The UT the publish is being processed at: the clock's position for a queued publish, and the tick's own UT for one a handle made during that tick, before the clock reaches it.</param>
         private void ProcessPublish(PublishJob publish, double nowUt)
         {
+            NoteRecoveryAnnounced(publish);
             if (!_subscriptions.IsSubscribed(publish.Topic))
             {
                 return;
