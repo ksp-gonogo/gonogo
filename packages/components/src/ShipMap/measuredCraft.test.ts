@@ -1,8 +1,10 @@
 import type { VesselTopology } from "@ksp-gonogo/core";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import lfv2Wave from "./__fixtures__/lfv2-wave-19parts.json";
 import lfv2WavePower from "./__fixtures__/lfv2-wave-power-23parts.json";
 import lfv2WaveProbe from "./__fixtures__/lfv2-wave-probe-14parts.json";
+import { renderPartShape } from "./partShape";
 import { type ProjectedPart, project } from "./shipLayout";
 import { buildShipMapPart, pickLateralAxis } from "./shipTopology";
 
@@ -155,5 +157,159 @@ describe("measured craft lfv2-wave", () => {
       0.16,
       2,
     );
+  });
+});
+
+/** Pixels per metre for the shape checks, large enough that no minimum-size floor in the drawing applies. */
+const SHAPE_SCALE = 100;
+
+interface Extent {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+function sampleBezier(pts: number[][], steps = 40): number[][] {
+  const out: number[][] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    let level = pts;
+    while (level.length > 1) {
+      level = level
+        .slice(1)
+        .map((q, k) => q.map((v, d) => v * t + level[k][d] * (1 - t)));
+    }
+    out.push(level[0]);
+  }
+  return out;
+}
+
+/** One attribute of a tag as a number. */
+function numAttr(tag: string, attr: string): number {
+  return Number(new RegExp(`\\s${attr}="([^"]+)"`).exec(tag)?.[1]);
+}
+
+function rectPoints(tag: string): number[][] {
+  const [x, y, w, h] = ["x", "y", "width", "height"].map((a) =>
+    numAttr(tag, a),
+  );
+  return [
+    [x, y],
+    [x + w, y + h],
+  ];
+}
+
+function ellipsePoints(tag: string): number[][] {
+  const isCircle = tag.startsWith("<circle");
+  const cx = numAttr(tag, "cx");
+  const cy = numAttr(tag, "cy");
+  const rx = numAttr(tag, isCircle ? "r" : "rx");
+  const ry = numAttr(tag, isCircle ? "r" : "ry");
+  return [
+    [cx - rx, cy - ry],
+    [cx + rx, cy + ry],
+  ];
+}
+
+function polygonPoints(tag: string): number[][] {
+  const nums =
+    /points="([^"]+)"/
+      .exec(tag)?.[1]
+      .split(/[\s,]+/)
+      .map(Number) ?? [];
+  const points: number[][] = [];
+  for (let i = 0; i < nums.length; i += 2) points.push([nums[i], nums[i + 1]]);
+  return points;
+}
+
+function pathPoints(tag: string): number[][] {
+  const d = /\sd="([^"]+)"/.exec(tag)?.[1] ?? "";
+  const points: number[][] = [];
+  let cur = [0, 0];
+  for (const [, cmd, args] of d.matchAll(/([MLCQ])\s*([^MLCQZ]*)/g)) {
+    const n = args
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number);
+    const per = cmd === "C" ? 6 : cmd === "Q" ? 4 : 2;
+    for (let i = 0; i < n.length; i += per) {
+      const seg: number[][] = [];
+      for (let k = 0; k < per; k += 2) seg.push([n[i + k], n[i + k + 1]]);
+      if (cmd === "C" || cmd === "Q")
+        points.push(...sampleBezier([cur, ...seg]));
+      if (cmd !== "C" && cmd !== "Q") points.push(seg[0]);
+      cur = seg[seg.length - 1];
+    }
+  }
+  return points;
+}
+
+const POINTS_OF_TAG: Record<string, (tag: string) => number[][]> = {
+  rect: rectPoints,
+  ellipse: ellipsePoints,
+  circle: ellipsePoints,
+  polygon: polygonPoints,
+  path: pathPoints,
+};
+
+/** Points on every outline in the markup: the corners, ellipse extremes and the sampled curves of a path. */
+function outlinePoints(markup: string): number[][] {
+  return [
+    ...markup.matchAll(/<(rect|ellipse|circle|polygon|path)\b[^>]*>/g),
+  ].flatMap(([tag, name]) => POINTS_OF_TAG[name](tag));
+}
+
+function extentOf(points: number[][]): Extent {
+  const xs = points.map((q) => q[0]);
+  const ys = points.map((q) => q[1]);
+  return {
+    minX: Math.min(...xs),
+    minY: Math.min(...ys),
+    maxX: Math.max(...xs),
+    maxY: Math.max(...ys),
+  };
+}
+
+describe.each(CRAFT)("measured craft %s drawn shapes", (_name, fixture) => {
+  it("fills the part's box, so the neighbour above or beside it touches", () => {
+    const off: string[] = [];
+    for (const p of layout(fixture)) {
+      const w = (p.body.latMax - p.body.latMin) * SHAPE_SCALE;
+      const h = (p.body.axialMax - p.body.axialMin) * SHAPE_SCALE;
+      const box = {
+        x: p.body.latMin * SHAPE_SCALE,
+        y: -p.body.axialMax * SHAPE_SCALE,
+        w,
+        h,
+      };
+      const center = { x: box.x + w / 2, y: box.y + h / 2 };
+      const markup = renderToStaticMarkup(
+        renderPartShape(
+          p.type,
+          box,
+          center,
+          "#fff",
+          false,
+          1,
+          p.lat >= 0 ? 1 : -1,
+        ),
+      );
+      const e = extentOf(outlinePoints(markup));
+      const slack = 0.5;
+      const drawnW = e.maxX - e.minX;
+      const drawnH = e.maxY - e.minY;
+      if (
+        Math.abs(drawnW - w) > slack ||
+        Math.abs(drawnH - h) > slack ||
+        Math.abs(e.minY - box.y) > slack ||
+        Math.abs(e.maxY - (box.y + h)) > slack
+      ) {
+        off.push(
+          `${p.name} (${p.type}): drawn ${drawnW.toFixed(1)}x${drawnH.toFixed(1)} from y ${e.minY.toFixed(1)}, box ${w.toFixed(1)}x${h.toFixed(1)} from y ${box.y.toFixed(1)}`,
+        );
+      }
+    }
+    expect(off).toEqual([]);
   });
 });

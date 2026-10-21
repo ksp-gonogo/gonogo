@@ -1,6 +1,22 @@
 import type { ScreenBox } from "./partOverlays";
 import type { PartType } from "./shipTopology";
 
+/**
+ * An outline that rises from the shoulders at `shoulderY` to a peak that
+ * reaches `y` exactly. A cubic whose control points sit at `y` only reaches a
+ * third of the way up, so they are raised until the curve itself touches it.
+ */
+function domePath(
+  x0: number,
+  x1: number,
+  y: number,
+  baseY: number,
+  shoulderY: number,
+) {
+  const control = y - (shoulderY - y) / 3;
+  return `M ${x0} ${baseY} L ${x0} ${shoulderY} C ${x0} ${control} ${x1} ${control} ${x1} ${shoulderY} L ${x1} ${baseY} Z`;
+}
+
 export function renderPartShape(
   type: PartType,
   box: ScreenBox,
@@ -78,9 +94,9 @@ export function renderPartShape(
         />
       );
     case "decoupler": {
-      // Stack decouplers (wide, short) are thin discs; radial ones (tall, narrow) take the full body extent to bridge the gap to the side stack.
+      // A stack decoupler (wide, short) is a disc as thick as its box, floored so a very thin one stays visible; a radial one (tall, narrow) takes the full box.
       if (w >= h) {
-        const thickness = Math.max(4 / zoom, Math.min(h, 12 / zoom));
+        const thickness = Math.max(4 / zoom, h);
         return (
           <rect
             x={x}
@@ -139,12 +155,14 @@ export function renderPartShape(
       );
     }
     case "rcs":
+      // Control parts include flat discs (reaction wheels, processors) as well as thruster blocks, so the outline is a stadium over the whole box.
       return (
-        <ellipse
-          cx={cx}
-          cy={cy}
-          rx={Math.max(2, w * 0.45)}
-          ry={Math.max(2, h * 0.45)}
+        <rect
+          x={x}
+          y={y}
+          width={w}
+          height={h}
+          rx={Math.min(w, h) / 2}
           fill={fill}
           stroke={stroke}
           strokeWidth={strokeWidth}
@@ -165,10 +183,9 @@ export function renderPartShape(
       );
     }
     case "nose-cone": {
-      // Cubic Bezier with both control points at y, tangent to the top edge at the peak.
       return (
         <path
-          d={`M ${x} ${y + h} L ${x} ${y + h * 0.4} C ${x} ${y} ${x + w} ${y} ${x + w} ${y + h * 0.4} L ${x + w} ${y + h} Z`}
+          d={domePath(x, x + w, y, y + h, y + h * 0.4)}
           fill={fill}
           stroke={stroke}
           strokeWidth={strokeWidth}
@@ -195,12 +212,10 @@ export function renderPartShape(
       );
     }
     case "parachute": {
-      // Stowed canister: a squat dome, inset because the canister is smaller than its mounted footprint.
-      const inset = w * 0.18;
-      const baseY = y + h * 0.85;
+      // Stowed canister: a domed cap over its whole mesh box.
       return (
         <path
-          d={`M ${x + inset},${baseY} L ${x + inset},${y + h * 0.45} C ${x + inset},${y} ${x + w - inset},${y} ${x + w - inset},${y + h * 0.45} L ${x + w - inset},${baseY} Z`}
+          d={domePath(x, x + w, y, y + h, y + h * 0.45)}
           fill={fill}
           stroke={stroke}
           strokeWidth={strokeWidth}
