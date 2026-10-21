@@ -776,6 +776,12 @@ function compareCommittedShapes(
     return undefined;
   }
   for (const entry of verdict.stale) out.push(describeStale(entry));
+  for (const file of verdict.notDrawn) {
+    out.push(
+      `${file}: ${SHAPE_RECORD_FILE} records a picture this code no longer ` +
+        "draws. Run `uplink-tools docs` on Linux to drop it from the record",
+    );
+  }
   if (verdict.unrecorded.length > 0) {
     console.warn(
       `\n  warning: ${verdict.unrecorded.length} asset(s) have no recorded ` +

@@ -350,6 +350,26 @@ describe("compareShapes", () => {
     expect(verdict.stale.map((s) => s.file)).toEqual(["a.png"]);
     expect(verdict.unrecorded).toEqual(["b.png"]);
   });
+
+  it("names a recorded picture that is no longer drawn", () => {
+    const record = {
+      version: SHAPE_RECORD_VERSION,
+      engine: "chromium",
+      assets: { "a.png": shape("aaaa"), "gone.png": shape("dddd") },
+    };
+    const verdict = compareShapes(record, rendered, "chromium");
+    expect(verdict.notDrawn).toEqual(["gone.png"]);
+    expect(verdict.stale).toEqual([]);
+  });
+
+  it("lists nothing as not drawn when every record is still drawn", () => {
+    const record = {
+      version: SHAPE_RECORD_VERSION,
+      engine: "chromium",
+      assets: { "a.png": shape("aaaa") },
+    };
+    expect(compareShapes(record, rendered, "chromium").notDrawn).toEqual([]);
+  });
 });
 
 describe("describeStale", () => {

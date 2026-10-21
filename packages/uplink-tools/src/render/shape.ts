@@ -405,7 +405,7 @@ export async function writeShapeRecord(
 
 /**
  * What {@link compareShapes} found: the pictures that changed, the ones with no
- * recorded shape and, when the record cannot be compared at all, the reason.
+ * recorded shape, the recorded ones no longer drawn and, when the record cannot be compared at all, the reason.
  * Useful for telling the author which committed pictures are stale. Returned by
  * `compareShapes` and read by the `docs` command's check.
  *
@@ -416,6 +416,8 @@ export interface ShapeVerdict {
   stale: { file: string; was: AssetShape; now: AssetShape }[];
   /** Assets with no recorded shape, so nothing can be said about them. */
   unrecorded: string[];
+  /** Assets with a recorded shape whose picture the code no longer draws. */
+  notDrawn: string[];
   /** Set when the record cannot be compared at all, with the reason. */
   incomparable?: string;
 }
@@ -434,12 +436,17 @@ export function compareShapes(
   engine: string,
 ): ShapeVerdict {
   if (!record) {
-    return { stale: [], unrecorded: [...rendered.keys()].sort() };
+    return {
+      stale: [],
+      unrecorded: [...rendered.keys()].sort(),
+      notDrawn: [],
+    };
   }
   if (record.version !== SHAPE_RECORD_VERSION) {
     return {
       stale: [],
       unrecorded: [],
+      notDrawn: [],
       incomparable:
         `the record is version ${record.version} and this build writes ` +
         `${SHAPE_RECORD_VERSION}, so the two walks are not the same walk. ` +
@@ -450,6 +457,7 @@ export function compareShapes(
     return {
       stale: [],
       unrecorded: [],
+      notDrawn: [],
       incomparable:
         `the record was taken in ${record.engine} and this run used ${engine}. ` +
         "Shapes agree across engines by design, but a mismatch here means one " +
@@ -468,7 +476,10 @@ export function compareShapes(
     }
     if (was.hash !== now.hash) stale.push({ file, was, now });
   }
-  return { stale, unrecorded };
+  const notDrawn = Object.keys(record.assets)
+    .filter((file) => !rendered.has(file))
+    .sort();
+  return { stale, unrecorded, notDrawn };
 }
 
 /**

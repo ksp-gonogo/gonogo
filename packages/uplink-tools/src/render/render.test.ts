@@ -1225,7 +1225,7 @@ describe("naming a whole-page restyle", () => {
       now: ReturnType<typeof shape>;
     }[],
     unrecorded: string[] = [],
-  ) => ({ stale, unrecorded });
+  ) => ({ stale, unrecorded, notDrawn: [] });
 
   it("fires when every recorded asset moved and none moved in tree or text", () => {
     const note = wholePageRestyle(

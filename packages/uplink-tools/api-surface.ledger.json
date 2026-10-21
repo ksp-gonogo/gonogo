@@ -460,6 +460,10 @@
         "note": "Removed from the root barrel: render internals that no Uplink author calls"
       },
       {
+        "key": "uplink-tools . ShapeVerdict#notDrawn",
+        "note": "Recorded pictures the code no longer draws, which the docs check now fails on"
+      },
+      {
         "key": "uplink-tools . display",
         "note": "Removed from the root barrel: render internals that no Uplink author calls"
       },
