@@ -670,21 +670,22 @@ namespace Sitrep.Host.IntegrationTests
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
 
             var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
-            // Both science.* channels, INCLUDING lab even
-            // though this particular recording never populates it (no
-            // science lab onboard).
-            // Subscribing to it proves out ChannelEngine's own "born"
+            // All three science.* channels, INCLUDING lab/deployed even
+            // though this particular recording never populates them (no
+            // science lab or Breaking Ground deployed experiment onboard).
+            // Subscribing to them proves out ChannelEngine's own "born"
             // semantics (see its doc comment around _born): a channel whose
             // mapper NEVER returns a non-null value is never "born" and
             // therefore emits ZERO wire frames: not a tombstone, not a
             // null-payload keyframe, nothing at all. So a widget backed by
-            // science.lab against THIS fixture will see silence
+            // science.lab/deployed against THIS fixture will see silence
             // indistinguishable from "not subscribed", not an explicit
             // null/absent signal: asserted below rather than assumed.
             var topics = new[]
             {
                 ScienceViewProvider.ExperimentsTopic,
                 ScienceViewProvider.LabTopic,
+                BreakingGroundViewProvider.DeployedTopic,
             };
 
             var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestScienceUplink(), new TestBreakingGroundUplink() }, topics);
@@ -714,11 +715,14 @@ namespace Sitrep.Host.IntegrationTests
             Assert.True(situations.Count >= 2, $"expected experiments across >=2 distinct situations, saw: {string.Join(", ", situations)}");
 
             var labStream = ParseStreamFrames(capture.Frames, ScienceViewProvider.LabTopic);
+            var deployedStream = ParseStreamFrames(capture.Frames, BreakingGroundViewProvider.DeployedTopic);
             Assert.True(labStream.Count == 0, "expected ZERO science.lab frames, this recording never carries a lab, so the channel is never 'born' (see ChannelEngine's _born doc comment) and should stay silent, not tombstone");
+            Assert.True(deployedStream.Count == 0, "expected ZERO deployed.bases frames, this recording never carries a deployed experiment, so the channel is never 'born' and should stay silent, not tombstone");
 
             _output.WriteLine(
                 $"science fixture: {experimentsStream.Count} science.experiments frames, {experimentEntries.Count} experiment entries, " +
-                $"situations {{{string.Join(",", situations)}}}; science.lab {labStream.Count} frames: zero (never captured this session, channel never born) as expected.");
+                $"situations {{{string.Join(",", situations)}}}; science.lab {labStream.Count} frames; " +
+                $"deployed.bases {deployedStream.Count} frames: both zero (never captured this session, channel never born) as expected.");
 
             WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
         }
@@ -793,7 +797,7 @@ namespace Sitrep.Host.IntegrationTests
         /// encoding exactly (see its doc comment / <c>Gonogo.KSP.KspHost.
         /// BuildDeployedScience</c>'s doc comment for the authoritative
         /// field list) and replays it through the real
-        /// <see cref="BreakingGroundViewProvider.BuildStations"/> mapper via the
+        /// <see cref="BreakingGroundViewProvider.BuildDeployed"/> mapper via the
         /// same <see cref="ReplayAndCaptureAsync"/> plumbing every other
         /// fixture in this file uses. The resulting wire shape is therefore
         /// the provider's genuine mapping output, not a hand-guessed shape,
@@ -806,68 +810,81 @@ namespace Sitrep.Host.IntegrationTests
         {
             const string fixtureFileName = "reference-wire-fixture-deployed-synthetic.json";
             var session = BuildSyntheticDeployedScienceSession();
-            var munTopic = BreakingGroundViewProvider.StationPrefix + MunStation + BreakingGroundViewProvider.StationReportSuffix;
-            var minmusTopic = BreakingGroundViewProvider.StationPrefix + MinmusStation + BreakingGroundViewProvider.StationReportSuffix;
-            var topics = new[] { munTopic, minmusTopic };
+            var topics = new[] { BreakingGroundViewProvider.DeployedTopic };
 
             var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestBreakingGroundUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
 
-            // Each station's payload is one object on its own topic, parsed from
-            // the raw StreamData payloads like every other science-adjacent
+            // BreakingGroundViewProvider.BuildDeployed's payload IS the entry
+            // list itself (see BuildList), not a wrapping dict, parse the raw
+            // StreamData payloads, same as every other science-adjacent
             // channel in this file.
-            var munStream = ParseStreamFrames(capture.Frames, munTopic);
-            var minmusStream = ParseStreamFrames(capture.Frames, minmusTopic);
-            Assert.True(munStream.Count > 0, "expected at least one frame on the Mun station's topic");
-            Assert.True(minmusStream.Count > 0, "expected at least one frame on the Minmus station's topic");
+            var deployedStream = ParseStreamFrames(capture.Frames, BreakingGroundViewProvider.DeployedTopic);
+            Assert.True(deployedStream.Count > 0, "expected at least one deployed.bases frame");
 
-            var mun = Assert.IsAssignableFrom<IDictionary<string, object?>>(munStream[0].Payload);
-            var minmus = Assert.IsAssignableFrom<IDictionary<string, object?>>(minmusStream[0].Payload);
+            var deployedEntries = deployedStream
+                .SelectMany(sd => (sd.Payload as IEnumerable<object?>) ?? Array.Empty<object?>())
+                .OfType<IDictionary<string, object?>>()
+                .ToList();
+            /*
+             * The 3 authored entries land once. T=0 is the channel's opening
+             * keyframe; T=15 carries identical content and is inside the 30s
+             * keyframe interval, so the change-gate suppresses it: comparing
+             * the rebuilt payload by reference would read every sample as
+             * changed and re-emit it regardless.
+             */
+            Assert.Equal(3, deployedEntries.Count);
 
-            // Two distinct stations, neither the active vessel, each with its own
-            // experiments and its own name.
-            Assert.Equal("Mun Surface Science Base", mun["stationName"]);
-            Assert.Equal("Minmus Flats Outpost", minmus["stationName"]);
-            var munExperiments = Assert.IsAssignableFrom<IEnumerable<object?>>(mun["experiments"]).OfType<IDictionary<string, object?>>().ToList();
-            var minmusExperiments = Assert.IsAssignableFrom<IEnumerable<object?>>(minmus["experiments"]).OfType<IDictionary<string, object?>>().ToList();
-            Assert.Equal(2, munExperiments.Count);
-            Assert.Single(minmusExperiments);
+            // Two distinct deployed-cluster vessels, neither the active
+            // vessel: the exact regression shape ScienceViewProviderTests'
+            // BuildDeployedMapsGroundExperimentsFromSeparateNonActiveVessels
+            // guards at the C# unit level, now proven over the real wire.
+            var vesselNames = deployedEntries
+                .Select(e => e.TryGetValue("vesselName", out var v) ? v as string : null)
+                .Where(v => !string.IsNullOrEmpty(v))
+                .Distinct()
+                .ToList();
+            Assert.Equal(2, vesselNames.Count);
 
             // One experiment still transmitting (completed but not yet 100%).
-            Assert.Contains(munExperiments, e =>
+            Assert.Contains(deployedEntries, e =>
                 e.TryGetValue("scienceCompletedPercentage", out var comp) && comp is double compD && compD > 0 && compD < 100 &&
                 e.TryGetValue("scienceTransmittedPercentage", out var trans) && trans is double transD && transD > 0 && transD < 100);
 
             // One experiment fully complete and fully transmitted.
-            Assert.Contains(munExperiments, e =>
+            Assert.Contains(deployedEntries, e =>
                 e.TryGetValue("scienceCompletedPercentage", out var comp) && comp is double compD && compD == 100 &&
                 e.TryGetValue("scienceTransmittedPercentage", out var trans) && trans is double transD && transD == 100);
 
-            // The Mun station can send home and holds nothing back; the Minmus one
-            // cannot, and is holding a backlog.
-            Assert.Equal(true, mun["sendPathHome"]);
-            Assert.Equal(false, minmus["sendPathHome"]);
-            Assert.Equal(14.5, minmusExperiments[0]["storedData"]);
+            // Varied power/connection states: at least one fully powered +
+            // connected, at least one unpowered + disconnected.
+            Assert.Contains(deployedEntries, e =>
+                (e.TryGetValue("powerState", out var ps) ? ps as string : null) == "Powered" &&
+                (e.TryGetValue("connectionState", out var cs) ? cs as string : null) == "Connected");
+            Assert.Contains(deployedEntries, e =>
+                (e.TryGetValue("powerState", out var ps) ? ps as string : null) == "NoPower" &&
+                (e.TryGetValue("connectionState", out var cs) ? cs as string : null) == "NotConnected");
 
-            // Every experiment carries the full documented field set.
-            foreach (var entry in munExperiments.Concat(minmusExperiments))
+            // Every entry carries the full documented field set.
+            foreach (var entry in deployedEntries)
             {
+                Assert.False(string.IsNullOrEmpty(entry.TryGetValue("vesselName", out var vn) ? vn as string : null));
                 Assert.False(string.IsNullOrEmpty(entry.TryGetValue("partName", out var pn) ? pn as string : null));
+                Assert.False(string.IsNullOrEmpty(entry.TryGetValue("body", out var b) ? b as string : null));
+                Assert.False(string.IsNullOrEmpty(entry.TryGetValue("situation", out var sit) ? sit as string : null));
+                Assert.False(string.IsNullOrEmpty(entry.TryGetValue("biome", out var bi) ? bi as string : null));
                 Assert.False(string.IsNullOrEmpty(entry.TryGetValue("experimentId", out var eid) ? eid as string : null));
                 Assert.True(entry.TryGetValue("scienceValue", out var sv) && sv is double);
                 Assert.True(entry.TryGetValue("scienceLimit", out var sl) && sl is double);
-                Assert.True(entry.TryGetValue("storedData", out var sd) && sd is double);
                 Assert.True(entry.TryGetValue("deployedOnGround", out var dog) && dog is bool);
             }
 
             _output.WriteLine(
-                $"synthetic deployed-science fixture: {munStream.Count} + {minmusStream.Count} station frames across 2 stations " +
+                $"synthetic deployed-science fixture: {deployedStream.Count} deployed.bases frames, " +
+                $"{deployedEntries.Count} deployed entries across {vesselNames.Count} distinct vessels " +
                 "(real-shape synthetic: values hand-authored, wire shape produced by the real BreakingGroundViewProvider mapper).");
             WriteFixture(fixtureFileName, "(hand-authored synthetic snapshot: no source recording file)", session.Entries.Count, topics, capture);
         }
-
-        private const string MunStation = "7f1d0c9e-0000-4000-8000-0000000000a1";
-        private const string MinmusStation = "7f1d0c9e-0000-4000-8000-0000000000b2";
 
         /// <summary>
         /// Builds the hand-authored synthetic <see cref="RecordedSession"/>
@@ -914,57 +931,65 @@ namespace Sitrep.Host.IntegrationTests
             };
         }
 
-        private static Dictionary<string, object?> SyntheticExperiment(
-            string stationId,
-            string stationName,
-            string body,
-            string biome,
-            string partName,
-            string experimentId,
-            double completed,
-            double transmitted,
-            double value,
-            double storedData,
-            bool sendPathHome,
-            DeployedPowerState power) => new Dictionary<string, object?>
-            {
-                ["stationId"] = stationId,
-                ["stationName"] = stationName,
-                ["stationBody"] = body,
-                ["stationSituation"] = "LANDED",
-                ["stationBiome"] = biome,
-                ["partName"] = partName,
-                ["experimentId"] = experimentId,
-                ["scienceCompletedPercentage"] = completed,
-                ["scienceTransmittedPercentage"] = transmitted,
-                ["scienceValue"] = value,
-                ["scienceLimit"] = 30.0,
-                ["storedData"] = storedData,
-                ["power"] = (int)power,
-                ["powerAvailable"] = power == DeployedPowerState.Powered ? 30 : 0,
-                ["powerRequired"] = 20,
-                ["sendPathHome"] = sendPathHome,
-                ["dataSendFailed"] = !sendPathHome,
-                ["deployedOnGround"] = true,
-            };
-
         private static List<object?> BuildSyntheticDeployedScienceRaw()
         {
             return new List<object?>
             {
-                // Mun station, experiment 1: still transmitting (completed past
-                // halfway, transmitted percentage lags completion, the normal
-                // in-progress relay state).
-                SyntheticExperiment(MunStation, "Mun Surface Science Base", "Mun", "Highlands", "Atmospheric Fluid Spectro-Variometer",
-                    "surfaceExperimentAtmosphericFluidSpectroVariometer", 62.5, 30.0, 18.75, 0.0, true, DeployedPowerState.Powered),
-                // Mun station, experiment 2: fully complete and fully transmitted
-                // (the "done" state).
-                SyntheticExperiment(MunStation, "Mun Surface Science Base", "Mun", "Highlands", "Seismic Accelerometer",
-                    "surfaceExperimentSeismicAccelerometer", 100.0, 100.0, 30.0, 0.0, true, DeployedPowerState.Powered),
-                // Minmus station: a separate controller vessel with no path home,
-                // holding a backlog (a brownout or no-relay-in-view state).
-                SyntheticExperiment(MinmusStation, "Minmus Flats Outpost", "Minmus", "Flats", "Barometer",
-                    "surfaceExperimentBarometer", 15.0, 0.0, 4.5, 14.5, false, DeployedPowerState.Unpowered),
+                // Mun cluster, experiment 1: still transmitting (completed
+                // past halfway, transmitted percentage lags completion, the
+                // normal in-progress relay state).
+                new Dictionary<string, object?>
+                {
+                    ["vesselName"] = "Mun Surface Science Base",
+                    ["partName"] = "Atmospheric Fluid Spectro-Variometer",
+                    ["body"] = "Mun",
+                    ["situation"] = "LANDED",
+                    ["biome"] = "Highlands",
+                    ["experimentId"] = "surfaceExperimentAtmosphericFluidSpectroVariometer",
+                    ["scienceCompletedPercentage"] = 62.5,
+                    ["scienceTransmittedPercentage"] = 30.0,
+                    ["scienceValue"] = 18.75,
+                    ["scienceLimit"] = 30.0,
+                    ["powerState"] = "Powered",
+                    ["connectionState"] = "Connected",
+                    ["deployedOnGround"] = true,
+                },
+                // Mun cluster, experiment 2: fully complete and fully
+                // transmitted (the "done" state).
+                new Dictionary<string, object?>
+                {
+                    ["vesselName"] = "Mun Surface Science Base",
+                    ["partName"] = "Seismic Accelerometer",
+                    ["body"] = "Mun",
+                    ["situation"] = "LANDED",
+                    ["biome"] = "Highlands",
+                    ["experimentId"] = "surfaceExperimentSeismicAccelerometer",
+                    ["scienceCompletedPercentage"] = 100.0,
+                    ["scienceTransmittedPercentage"] = 100.0,
+                    ["scienceValue"] = 30.0,
+                    ["scienceLimit"] = 30.0,
+                    ["powerState"] = "Powered",
+                    ["connectionState"] = "Connected",
+                    ["deployedOnGround"] = true,
+                },
+                // Minmus cluster: a separate vessel entirely, unpowered and
+                // disconnected (a brownout/no-relay-in-view state).
+                new Dictionary<string, object?>
+                {
+                    ["vesselName"] = "Minmus Flats Outpost",
+                    ["partName"] = "Barometer",
+                    ["body"] = "Minmus",
+                    ["situation"] = "LANDED",
+                    ["biome"] = "Flats",
+                    ["experimentId"] = "surfaceExperimentBarometer",
+                    ["scienceCompletedPercentage"] = 15.0,
+                    ["scienceTransmittedPercentage"] = 0.0,
+                    ["scienceValue"] = 4.5,
+                    ["scienceLimit"] = 30.0,
+                    ["powerState"] = "NoPower",
+                    ["connectionState"] = "NotConnected",
+                    ["deployedOnGround"] = true,
+                },
             };
         }
 

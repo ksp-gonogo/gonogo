@@ -16,7 +16,7 @@ namespace Sitrep.Host.Tests
     /// Locks the P0.5 typing change for the Breaking Ground uplink's
     /// <c>robotics.*</c>/<c>deployed.*</c> channels: proves the named
     /// <c>Sitrep.Contract</c> payload types (<see cref="ServoEntry"/>,
-    /// <see cref="RoboticsAvailability"/>, <see cref="DeployedStation"/>) mirror,
+    /// <see cref="RoboticsAvailability"/>, <see cref="DeployedEntry"/>) mirror,
     /// field name for field name, camelCase wire key for camelCase wire key,
     /// type for type, the exact serialized shape
     /// <see cref="BreakingGroundViewProvider"/> already emits. This is a
@@ -27,10 +27,10 @@ namespace Sitrep.Host.Tests
     ///
     /// <para>Split out of <c>PartsContractShapeTests</c> (<see cref="ServoEntry"/>/
     /// <see cref="RoboticsAvailability"/>) and <c>ScienceContractShapeTests</c>
-    /// (<see cref="DeployedStation"/>) alongside the Breaking Ground uplink
-    /// extraction. The two robotics types are tagged via <c>[SitrepTopic]</c>
-    /// as documented on each type; a station is published on a per-station
-    /// namespace and carries no tag.</para>
+    /// (<see cref="DeployedEntry"/>) alongside the Breaking Ground uplink
+    /// extraction: all three are bare arrays (or, for
+    /// <see cref="RoboticsAvailability"/>, a single wrapper object), tagged
+    /// via <c>[SitrepTopic]</c> as documented on each type.</para>
     /// </summary>
     public class BreakingGroundContractShapeTests
     {
@@ -86,7 +86,7 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void DeployedStationTypeMirrorsProviderWireShape()
+        public void DeployedEntryTypeMirrorsProviderWireShape()
         {
             var snapshot = new KspSnapshot
             {
@@ -97,33 +97,25 @@ namespace Sitrep.Host.Tests
                     {
                         new Dictionary<string, object?>
                         {
-                            ["stationId"] = "7f1d0c9e-0000-4000-8000-000000000001",
-                            ["stationName"] = "Probodobodyne Experiment Control Station",
-                            ["stationBody"] = "Mun",
-                            ["stationSituation"] = "LANDED",
-                            ["stationBiome"] = "Highlands",
+                            ["vesselName"] = "Probodobodyne Experiment Control Station",
                             ["partName"] = "Atmospheric Fluid Spectro-Variometer",
+                            ["body"] = "Mun",
+                            ["situation"] = "LANDED",
+                            ["biome"] = "Highlands",
                             ["experimentId"] = "surfaceExperimentAtmosphericFluidSpectroVariometer",
                             ["scienceCompletedPercentage"] = 42.5,
                             ["scienceTransmittedPercentage"] = 10.0,
                             ["scienceValue"] = 8.0,
                             ["scienceLimit"] = 20.0,
-                            ["storedData"] = 12.0,
-                            ["power"] = (int)DeployedPowerState.Powered,
-                            ["powerAvailable"] = 30,
-                            ["powerRequired"] = 20,
-                            ["sendPathHome"] = true,
-                            ["dataSendFailed"] = false,
+                            ["powerState"] = "Powered",
+                            ["connectionState"] = "Connected",
                             ["deployedOnGround"] = true,
                         },
                     },
                 },
             };
 
-            var stations = BreakingGroundViewProvider.BuildStations(snapshot);
-
-            var station = Assert.Single(Assert.IsType<Dictionary<string, Dictionary<string, object?>>>(stations)).Value;
-            AssertEntryMirrors(typeof(DeployedStation), station);
+            AssertArrayEntriesMirror(typeof(DeployedEntry), BreakingGroundViewProvider.BuildDeployed(snapshot));
         }
 
         [Fact]
@@ -131,6 +123,7 @@ namespace Sitrep.Host.Tests
         {
             AssertTopicTag(typeof(ServoEntry), "robotics.servos", expectArray: true);
             AssertTopicTag(typeof(RoboticsAvailability), "robotics.available", expectArray: false);
+            AssertTopicTag(typeof(DeployedEntry), "deployed.bases", expectArray: true);
         }
 
         private static void AssertTopicTag(Type type, string expectedTopic, bool expectArray)
@@ -272,27 +265,12 @@ namespace Sitrep.Host.Tests
             {
                 var prop = props[key];
                 var expected = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-                if (expected.IsEnum)
-                {
-                    // An enum travels as its ordinal.
-                    expected = Enum.GetUnderlyingType(expected);
-                }
 
                 if (prop.PropertyType.IsValueType)
                 {
                     Assert.True(
                         Nullable.GetUnderlyingType(prop.PropertyType) != null,
                         $"{entryType.Name}.{prop.Name} must be nullable to mirror SnapshotDict's null-on-absence rule.");
-                }
-
-                if (value is not null && IsListOfEntries(prop.PropertyType, out var elementType))
-                {
-                    var emittedList = Assert.IsType<List<object?>>(value);
-                    foreach (var element in emittedList)
-                    {
-                        AssertEntryMirrors(elementType, Assert.IsType<Dictionary<string, object?>>(element));
-                    }
-                    continue;
                 }
 
                 if (value is not null)
@@ -302,18 +280,6 @@ namespace Sitrep.Host.Tests
                         $"{entryType.Name}.{prop.Name} is {expected.Name} but the provider emitted {value.GetType().Name} for \"{key}\".");
                 }
             }
-        }
-
-        /* A typed list on the contract is a plain list of dictionaries on the wire, each of which mirrors the element type in turn. */
-        private static bool IsListOfEntries(Type propertyType, out Type elementType)
-        {
-            elementType = typeof(object);
-            if (!propertyType.IsGenericType || propertyType.GetGenericTypeDefinition() != typeof(List<>))
-            {
-                return false;
-            }
-            elementType = propertyType.GetGenericArguments()[0];
-            return true;
         }
 
         private static Dictionary<string, PropertyInfo> PropsByCamelCaseName(Type type) => type

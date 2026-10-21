@@ -4,16 +4,11 @@
  */
 
 export type {
+  DeployedBase,
   DeployedExperiment,
   DeployedExperimentContext,
-  DeployedStation,
-  StationListing,
 } from "./DeployedScience";
-export {
-  DeployedScienceComponent,
-  parseStation,
-  stationsFromCatalog,
-} from "./DeployedScience";
+export { DeployedScienceComponent, parseBases } from "./DeployedScience";
 export type {
   RoboticsConsoleActions,
   ServoInfo,

@@ -6066,17 +6066,17 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The Breaking Ground deployed experiments in the save, loaded or not, each
-        /// carrying the facts of the station it reports through.
+        /// The Breaking Ground deployed experiments in the save, loaded or not.
         ///
-        /// <para>Once deployed, a cluster's parts are their own ground vessels, not
-        /// part of the craft being flown, so this walks the game rather than the
+        /// <para>Once deployed, each cluster is its own ground vessel, not part
+        /// of the craft being flown, so this walks the game rather than the
         /// active vessel. A loaded experiment is read off its
-        /// <c>ModuleGroundExperiment</c>. Breaking Ground keeps every cluster in
-        /// <c>DeployedScience.Instance</c> whether its vessel is loaded or not, and
-        /// goes on generating science for the unloaded ones, so an experiment whose
-        /// vessel is not loaded is read from there. Both carry the same station
-        /// facts through <see cref="AddStationFacts"/>.</para>
+        /// <c>ModuleGroundExperiment</c>, which alone carries the game's own
+        /// power and connection sentences. Breaking Ground keeps every cluster in
+        /// <c>DeployedScience.Instance</c> whether its vessel is loaded or not,
+        /// and goes on generating science for the unloaded ones, so an experiment
+        /// whose vessel is not loaded is read from there, with those two
+        /// sentences absent.</para>
         ///
         /// <para>Null when Breaking Ground is not installed and nothing loaded
         /// carries one of its experiments: the whole group omitted. With it
@@ -6093,7 +6093,9 @@ namespace Gonogo.KSP
         /// <c>ScienceCompletedPercentage</c>/<c>ScienceTransmittedPercentage</c>
         /// (float fields), <c>ScienceValue</c>/<c>ScienceLimit</c> (float
         /// get-properties); inherited from <c>ModuleGroundSciencePart</c>:
-        /// <c>DeployedOnGround</c> (bool get-property). Off the cluster
+        /// <c>PowerState</c>/<c>ConnectionState</c> (string fields - the
+        /// "has power / has comms" readout) and <c>DeployedOnGround</c>
+        /// (bool get-property). Off the cluster
         /// (<c>ScienceClusterData</c> -> <c>DeployedScienceCluster</c>):
         /// <c>PowerAvailable</c>/<c>PowerRequired</c> (int get-properties,
         /// Breaking Ground's own power units) alongside the booleans
@@ -6117,6 +6119,13 @@ namespace Gonogo.KSP
                 {
                     continue;
                 }
+
+                var vesselName = GameWords.VesselName(vessel);
+                var situation = vessel.situation.ToString();
+                var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
+                var body = orbit?.referenceBody;
+                var bodyName = body != null ? body.bodyName : null;
+                var biome = ResolveBiome(vessel, body);
 
                 foreach (var part in parts)
                 {
@@ -6152,21 +6161,31 @@ namespace Gonogo.KSP
                         }
                         var clusterType = cluster?.GetType();
                         list ??= new List<object?>();
-                        var loadedEntry = new Dictionary<string, object?>
+                        list.Add(new Dictionary<string, object?>
                         {
+                            ["vesselName"] = vesselName,
                             ["partName"] = partName,
+                            ["body"] = bodyName,
+                            ["situation"] = situation,
+                            ["biome"] = biome,
                             ["experimentId"] = ReflectString(type, module, "experimentId"),
                             ["scienceCompletedPercentage"] = ReflectDouble(type, module, "ScienceCompletedPercentage"),
                             ["scienceTransmittedPercentage"] = ReflectDouble(type, module, "ScienceTransmittedPercentage"),
                             ["scienceValue"] = ReflectDouble(type, module, "ScienceValue"),
                             ["scienceLimit"] = ReflectDouble(type, module, "ScienceLimit"),
-                            // Null when the cluster read FAILED: a power state
-                            // derived from a cluster we could not read is a
-                            // guess, and DerivePowerState's first branch would
-                            // otherwise call it NotConnected.
+                            // Localised prose, kept for display only. The two
+                            // derived fields below are what a client branches on.
+                            ["powerState"] = ReflectString(type, module, "PowerState"),
+                            ["connectionState"] = ReflectString(type, module, "ConnectionState"),
+                            // Both null when the cluster read FAILED: a power
+                            // state derived from a cluster we could not read is
+                            // a guess, and DerivePowerState's first branch
+                            // would otherwise call it NotConnected.
                             ["power"] = clusterRead
                                 ? (int?)DerivePowerState(type, module, cluster)
                                 : null,
+                            ["controllerConnected"] = BreakingGroundReads.ControllerConnected(
+                                clusterRead, cluster),
                             // Breaking Ground's own integral power units, summed
                             // over the cluster's parts. Null with no cluster to
                             // read: a zero here is a dark cluster, not an absent one.
@@ -6177,9 +6196,7 @@ namespace Gonogo.KSP
                                 ? ReflectInt(clusterType, cluster, "PowerRequired")
                                 : null,
                             ["deployedOnGround"] = ReflectBool(type, module, "DeployedOnGround"),
-                        };
-                        AddStationFacts(loadedEntry, cluster as DeployedScienceCluster, part.persistentId);
-                        list.Add(loadedEntry);
+                        });
                     }
                 }
             }
@@ -6246,10 +6263,16 @@ namespace Gonogo.KSP
             DeployedScienceExperiment experiment,
             Vessel? vessel)
         {
+            var orbit = vessel?.orbitDriver != null ? vessel.orbitDriver.orbit : null;
+            var body = cluster.DeployedBody ?? orbit?.referenceBody;
             var limit = (double)experiment.ScienceLimit;
-            var entry = new Dictionary<string, object?>
+            return new Dictionary<string, object?>
             {
+                ["vesselName"] = vessel != null ? GameWords.VesselName(vessel) : null,
                 ["partName"] = vessel != null ? ProtoPartTitle(vessel, sciencePart.PartId) : null,
+                ["body"] = body != null ? body.bodyName : null,
+                ["situation"] = vessel?.situation.ToString(),
+                ["biome"] = vessel != null ? ResolveBiome(vessel, body) : null,
                 ["experimentId"] = string.IsNullOrEmpty(experiment.ExperimentId) ? null : experiment.ExperimentId,
                 // The same two ratios ModuleGroundExperiment shows, from the same figures.
                 ["scienceCompletedPercentage"] = limit > 0 ? experiment.TotalScienceGenerated / limit * 100.0 : 0.0,
@@ -6259,41 +6282,11 @@ namespace Gonogo.KSP
                 ["scienceValue"] = (double)experiment.ScienceValue,
                 ["scienceLimit"] = limit,
                 ["power"] = (int?)DerivePowerState(sciencePart.Enabled, sciencePart.DeployedOnGround, cluster.IsPowered, cluster.ControllerPartEnabled),
+                ["controllerConnected"] = true,
                 ["powerAvailable"] = cluster.PowerAvailable,
                 ["powerRequired"] = cluster.PowerRequired,
                 ["deployedOnGround"] = sciencePart.DeployedOnGround,
             };
-            AddStationFacts(entry, cluster, sciencePart.PartId);
-            return entry;
-        }
-
-        /// <summary>
-        /// The facts that belong to the station an experiment reports through
-        /// rather than to the experiment: the controller vessel that keys it, that
-        /// vessel's place, whether its science has a path home, whether the last
-        /// send failed, and the data this one experiment is holding unsent.
-        ///
-        /// <para>The experiment's own vessel has no CommNet connection (its type,
-        /// <c>DeployedSciencePart</c>, never gets one), so the link is the
-        /// controller's. An experiment whose controller cannot be placed carries no
-        /// <c>stationId</c> and belongs to no station.</para>
-        /// </summary>
-        private static void AddStationFacts(Dictionary<string, object?> entry, DeployedScienceCluster? cluster, uint partPersistentId)
-        {
-            var controller = DeployedStationLink.ControllerVessel(cluster);
-            if (controller != null)
-            {
-                var orbit = controller.orbitDriver != null ? controller.orbitDriver.orbit : null;
-                var body = cluster?.DeployedBody ?? orbit?.referenceBody;
-                entry["stationId"] = controller.id.ToString();
-                entry["stationName"] = GameWords.VesselName(controller);
-                entry["stationBody"] = body != null ? body.bodyName : null;
-                entry["stationSituation"] = controller.situation.ToString();
-                entry["stationBiome"] = ResolveBiome(controller, body);
-            }
-            entry["sendPathHome"] = DeployedStationLink.SendPathHome(controller, CommsCoreUplink.SignalDelayConfig);
-            entry["dataSendFailed"] = cluster?.DataSendFailed;
-            entry["storedData"] = DeployedStationLink.StoredData(cluster, partPersistentId);
         }
 
         /// <summary>The display title of the vessel's part snapshot with <paramref name="persistentId"/>, or null when it has none.</summary>

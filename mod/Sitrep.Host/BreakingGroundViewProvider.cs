@@ -32,14 +32,13 @@ namespace Sitrep.Host
     ///     "brakePercentage", "currentExtension", "targetExtension",
     ///     "counterClockwise", "maxTorque" (rotor entries only, null otherwise) }, ... ] | null
     /// snapshot.Values["parts"]["roboticsAvailable"] = bool?  // any BG servo on THIS vessel, null if a part could not be read
-    /// snapshot.Values["deployedScience"] = [ { "partName", "experimentId", "scienceCompletedPercentage",
+    /// snapshot.Values["deployedScience"] = [ { "vesselName", "partName", "body", "situation",
+    ///     "biome", "experimentId", "scienceCompletedPercentage",
     ///     "scienceTransmittedPercentage", "scienceValue", "scienceLimit",
+    ///     "powerState", "connectionState" (localised PROSE, display only),
     ///     "power" (int? DeployedPowerState, what a client branches on),
-    ///     "powerAvailable", "powerRequired", "deployedOnGround",
-    ///     "storedData", "dataSendFailed", "sendPathHome",
-    ///     "stationId" (the controller vessel's guid, absent when it cannot be
-    ///     placed), "stationName", "stationBody", "stationSituation",
-    ///     "stationBiome" }, ... ] | null
+    ///     "controllerConnected" (bool?), "powerAvailable", "powerRequired",
+    ///     "deployedOnGround" }, ... ] | null
     /// </code>
     ///
     /// <para><b>partId</b> is Gonogo.KSP's <c>Part.flightID</c>, stringified,
@@ -50,15 +49,7 @@ namespace Sitrep.Host
     {
         public const string RoboticsTopic = "robotics.servos";
         public const string RoboticsAvailableTopic = "robotics.available";
-        /// <summary>The prefix of the per-station namespace; the key after it is the controller vessel's guid.</summary>
-        public const string StationPrefix = "deployed.station.";
-
-        /// <summary>
-        /// The field a station publishes under its key. A per-vessel topic needs a
-        /// field after the key: a bare <c>deployed.station.&lt;guid&gt;</c> would be
-        /// timed on the active craft's node, not the station's.
-        /// </summary>
-        public const string StationReportSuffix = ".report";
+        public const string DeployedTopic = "deployed.bases";
 
         public static object? BuildRobotics(KspSnapshot? snapshot)
         {
@@ -143,17 +134,11 @@ namespace Sitrep.Host
         };
 
         /// <summary>
-        /// Every deployed-science station in the save, keyed by the guid of its
-        /// controller vessel, each as the wire payload for
-        /// <c>deployed.station.&lt;guid&gt;.report</c>. <c>null</c> when the snapshot has
-        /// no <c>"deployedScience"</c> list (Breaking Ground absent, or not read);
-        /// an empty map is a complete roster with no station in it.
-        ///
-        /// <para>An experiment with no <c>"stationId"</c> belongs to no station and is
-        /// left out: with no controller vessel it has no link to be timed on, and a
-        /// station invented for it would be one that can never be heard from.</para>
+        /// Every deployed experiment in the save. <c>null</c> when the snapshot
+        /// has no <c>"deployedScience"</c> list (Breaking Ground absent, or not
+        /// read); an empty list is a complete roster with no experiments in it.
         /// </summary>
-        public static Dictionary<string, Dictionary<string, object?>>? BuildStations(KspSnapshot? snapshot)
+        public static object? BuildDeployed(KspSnapshot? snapshot)
         {
             if (snapshot?.Values == null)
             {
@@ -165,72 +150,35 @@ namespace Sitrep.Host
                 return null;
             }
 
-            var order = new List<string>();
-            var groups = new Dictionary<string, List<IDictionary<string, object?>>>(StringComparer.Ordinal);
+            var result = new List<object?>();
             foreach (var rawEntry in list)
             {
-                if (rawEntry is not IDictionary<string, object?> entry)
+                if (rawEntry is IDictionary<string, object?> entry)
                 {
-                    continue;
+                    result.Add(BuildDeployedEntry(entry));
                 }
-
-                var stationId = SnapshotDict.GetString(entry, "stationId");
-                if (string.IsNullOrEmpty(stationId))
-                {
-                    continue;
-                }
-
-                if (!groups.TryGetValue(stationId!, out var group))
-                {
-                    group = new List<IDictionary<string, object?>>();
-                    groups[stationId!] = group;
-                    order.Add(stationId!);
-                }
-                group.Add(entry);
             }
-
-            var stations = new Dictionary<string, Dictionary<string, object?>>(StringComparer.Ordinal);
-            foreach (var stationId in order)
-            {
-                stations[stationId] = BuildDeployedStation(groups[stationId]);
-            }
-            return stations;
+            return result;
         }
 
-        /* Station-level fields are cluster facts every experiment of the cluster repeats, so the first entry stands for them. */
-        private static Dictionary<string, object?> BuildDeployedStation(List<IDictionary<string, object?>> entries)
+        private static Dictionary<string, object?> BuildDeployedEntry(IDictionary<string, object?> raw) => new Dictionary<string, object?>
         {
-            var first = entries[0];
-            var experiments = new List<object?>(entries.Count);
-            foreach (var raw in entries)
-            {
-                experiments.Add(BuildDeployedStationExperiment(raw));
-            }
-
-            return new Dictionary<string, object?>
-            {
-                ["stationName"] = SnapshotDict.GetString(first, "stationName"),
-                ["body"] = SnapshotDict.GetString(first, "stationBody"),
-                ["situation"] = SnapshotDict.GetString(first, "stationSituation"),
-                ["biome"] = SnapshotDict.GetString(first, "stationBiome"),
-                ["power"] = SnapshotDict.GetInt(first, "power"),
-                ["powerAvailable"] = SnapshotDict.GetInt(first, "powerAvailable"),
-                ["powerRequired"] = SnapshotDict.GetInt(first, "powerRequired"),
-                ["sendPathHome"] = SnapshotDict.GetBool(first, "sendPathHome"),
-                ["dataSendFailed"] = SnapshotDict.GetBool(first, "dataSendFailed"),
-                ["experiments"] = experiments,
-            };
-        }
-
-        private static Dictionary<string, object?> BuildDeployedStationExperiment(IDictionary<string, object?> raw) => new Dictionary<string, object?>
-        {
+            ["vesselName"] = SnapshotDict.GetString(raw, "vesselName"),
             ["partName"] = SnapshotDict.GetString(raw, "partName"),
+            ["body"] = SnapshotDict.GetString(raw, "body"),
+            ["situation"] = SnapshotDict.GetString(raw, "situation"),
+            ["biome"] = SnapshotDict.GetString(raw, "biome"),
             ["experimentId"] = SnapshotDict.GetString(raw, "experimentId"),
             ["scienceCompletedPercentage"] = SnapshotDict.GetDouble(raw, "scienceCompletedPercentage"),
             ["scienceTransmittedPercentage"] = SnapshotDict.GetDouble(raw, "scienceTransmittedPercentage"),
             ["scienceValue"] = SnapshotDict.GetDouble(raw, "scienceValue"),
             ["scienceLimit"] = SnapshotDict.GetDouble(raw, "scienceLimit"),
-            ["storedData"] = SnapshotDict.GetDouble(raw, "storedData"),
+            ["powerState"] = SnapshotDict.GetString(raw, "powerState"),
+            ["power"] = SnapshotDict.GetInt(raw, "power"),
+            ["controllerConnected"] = SnapshotDict.GetBool(raw, "controllerConnected"),
+            ["powerAvailable"] = SnapshotDict.GetInt(raw, "powerAvailable"),
+            ["powerRequired"] = SnapshotDict.GetInt(raw, "powerRequired"),
+            ["connectionState"] = SnapshotDict.GetString(raw, "connectionState"),
             ["deployedOnGround"] = SnapshotDict.GetBool(raw, "deployedOnGround"),
         };
     }
