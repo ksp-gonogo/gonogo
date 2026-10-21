@@ -54,11 +54,12 @@ namespace Sitrep.Host.Tests.Comms
             Assert.False(Reaches(Far, connected: false));
         }
 
-        /// <summary>Every ground station is the home centre's antenna, so home hears exactly the craft whose route ends at one.</summary>
+        /// <summary>Every ground station is the home centre's antenna, so home hears exactly the craft whose route ends at one and carries the direction asked about.</summary>
         [Fact]
         public void TheHomeCentreHearsACraftWhoseRouteEndsAtAnyGroundStation()
         {
-            Assert.True(Reaches(Home, unroutable: true));
+            Assert.True(Reaches(Home));
+            Assert.False(Reaches(Home, unroutable: true));
             Assert.False(Reaches(Home, offTheGround: true));
             Assert.True(Reaches(Far, offTheGround: true));
         }

@@ -239,74 +239,91 @@ namespace Sitrep.Host.CommandCentres
         }
 
         /// <summary>
-        /// Every subject node each active centre knows it has no route to, the
-        /// complete set for this pass: a command from a listed centre to a listed
-        /// node is refused at dispatch rather than quoted a delay.
+        /// Every subject node whose route from an active centre does not carry both
+        /// ways, with the directions it does carry, the complete set for this pass:
+        /// a command from a centre that cannot send to a node is refused at dispatch
+        /// rather than quoted a delay, and a centre that cannot hear one is sent
+        /// nothing from it.
         ///
         /// <para>Every centre but home is listed against a craft it has no route
-        /// of its own to. The home centre's reach to a craft is that craft's own
-        /// link home, which the engine already holds, so it is never listed. A
-        /// ground station that is not home hears a craft only over its own route:
-        /// left unlisted it read the node default, which is the home centre's
-        /// signal delay, and was sent a craft it could not hear on home's clock. A
-        /// crewed centre always reaches its own craft. The home command's ledger
-        /// is listed for a centre <see cref="OffTheGroundNetwork"/> names, and
-        /// every ground station stands on that network.</para>
+        /// of its own to, carrying neither way. The home centre's reach to a craft is
+        /// that craft's own link home, which the engine already holds, so it is listed
+        /// only for a direction that link does not carry. A ground station that is not
+        /// home hears a craft only over its own route: left unlisted it read the node
+        /// default, which is the home centre's signal delay, and was sent a craft it
+        /// could not hear on home's clock. A crewed centre always reaches its own
+        /// craft. The home command's ledger is listed, carrying neither way, for a
+        /// centre <see cref="OffTheGroundNetwork"/> names, and every ground station
+        /// stands on that network.</para>
         /// </summary>
         /// <param name="activeCentres">The registry's currently-active centres.</param>
         /// <param name="homeCentreId">The centre the roster marks home, or null.</param>
         /// <param name="subjectGuids">The fleet subject vessel guids <see cref="Populate"/> walks.</param>
         /// <param name="activeGuid">The active craft's guid, or null when nothing is active.</param>
         /// <param name="routeDelay">The same routing callback <see cref="Populate"/> takes.</param>
+        /// <param name="routeCarries">The directions the route to a subject carries, from a centre toward it, or both where the route has nothing to say.</param>
         /// <param name="reachesGround">The same reach callback <see cref="OffTheGroundNetwork"/> takes.</param>
-        public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Unroutable(
+        public IReadOnlyDictionary<string, IReadOnlyDictionary<string, CommsDirection>> Carried(
             IReadOnlyList<ICommandCentre> activeCentres,
             string? homeCentreId,
             IReadOnlyList<string> subjectGuids,
             string? activeGuid,
             Func<ICommandCentre, string, double?> routeDelay,
+            Func<ICommandCentre, string, CommsDirection> routeCarries,
             Func<ICommandCentre, bool?> reachesGround)
         {
-            var unroutable = new Dictionary<string, List<string>>();
-            void Add(string centreId, string node)
+            var carried = new Dictionary<string, Dictionary<string, CommsDirection>>();
+            void Add(string centreId, string node, CommsDirection direction)
             {
-                if (!unroutable.TryGetValue(centreId, out var nodes))
+                if (!carried.TryGetValue(centreId, out var nodes))
                 {
-                    nodes = new List<string>();
-                    unroutable[centreId] = nodes;
+                    nodes = new Dictionary<string, CommsDirection>();
+                    carried[centreId] = nodes;
                 }
-                nodes.Add(node);
+                nodes[node] = direction;
+            }
+
+            CommsDirection Judge(ICommandCentre centre, string guid)
+            {
+                if (centre.Id == homeCentreId)
+                {
+                    return routeCarries(centre, guid);
+                }
+                return routeDelay(centre, guid) == null ? CommsDirection.None : routeCarries(centre, guid);
             }
 
             foreach (var centre in activeCentres)
             {
-                if (centre.Id == homeCentreId)
-                {
-                    continue;
-                }
-
                 foreach (var guid in subjectGuids)
                 {
-                    if (IsOwnCraft(centre, guid) || routeDelay(centre, guid) != null)
+                    if (IsOwnCraft(centre, guid))
                     {
                         continue;
                     }
-                    Add(centre.Id, FleetNode(guid));
+                    var direction = Judge(centre, guid);
+                    if (direction != CommsDirection.Both)
+                    {
+                        Add(centre.Id, FleetNode(guid), direction);
+                    }
                 }
 
-                if (activeGuid != null && !IsOwnCraft(centre, activeGuid) && routeDelay(centre, activeGuid) == null)
+                if (activeGuid != null && !IsOwnCraft(centre, activeGuid))
                 {
-                    Add(centre.Id, ChannelEngine.NodeId);
+                    var direction = Judge(centre, activeGuid);
+                    if (direction != CommsDirection.Both)
+                    {
+                        Add(centre.Id, ChannelEngine.NodeId, direction);
+                    }
                 }
             }
 
             foreach (var centreId in OffTheGroundNetwork(activeCentres, homeCentreId, reachesGround))
             {
-                Add(centreId, ChannelEngine.HomeCommandNode);
+                Add(centreId, ChannelEngine.HomeCommandNode, CommsDirection.None);
             }
 
-            var result = new Dictionary<string, IReadOnlyCollection<string>>();
-            foreach (var row in unroutable)
+            var result = new Dictionary<string, IReadOnlyDictionary<string, CommsDirection>>();
+            foreach (var row in carried)
             {
                 result[row.Key] = row.Value;
             }

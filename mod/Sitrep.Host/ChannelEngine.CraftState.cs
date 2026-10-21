@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host.Comms;
 using Sitrep.Propagation.Contacts;
@@ -179,7 +180,7 @@ namespace Sitrep.Host
                 foreach (var centre in _activeCentreIds)
                 {
                     var seconds = stamp.For(centre);
-                    if (!_reach.Reaches(centre, node, FleetNodePrefix, modelled, connected, home))
+                    if (!_reach.Reaches(centre, node, FleetNodePrefix, modelled, connected, home, CommsDirection.Reverse))
                     {
                         continue;
                     }

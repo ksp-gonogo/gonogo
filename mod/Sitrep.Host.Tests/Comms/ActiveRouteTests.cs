@@ -19,7 +19,7 @@ namespace Sitrep.Host.Tests.Comms
         {
             var route = new List<CommsRouteHop>
             {
-                new CommsRouteHop(5.0, true, CommsNodeHandle.Of(A), CommsNodeHandle.Of(B)),
+                new CommsRouteHop(5.0, true, CommsNodeHandle.Of(A), CommsNodeHandle.Of(B), CommsDirection.Both),
             };
 
             var hops = ActiveRoute.Hops(route, Name)!;

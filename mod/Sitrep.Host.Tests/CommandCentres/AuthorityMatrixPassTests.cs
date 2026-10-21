@@ -96,35 +96,56 @@ namespace Sitrep.Host.Tests.CommandCentres
                 new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel),
             };
 
-            var unroutable = new AuthorityMatrixPass().Unroutable(
+            var unroutable = new AuthorityMatrixPass().Carried(
                 centres,
                 "ksc",
                 new[] { "G", "H" },
                 "G",
                 (centre, guid) => centre.Id == "vessel:F" && guid == "H" ? 6.0 : (double?)null,
+                (_, __) => CommsDirection.Both,
                 _ => true);
 
             Assert.Equal(new[] { "ground:gs1", "vessel:F", "vessel:G" }, unroutable.Keys.OrderBy(k => k));
-            Assert.Equal(new[] { "fleet.G", ChannelEngine.NodeId }, unroutable["vessel:F"]);
-            Assert.Equal(new[] { "fleet.H" }, unroutable["vessel:G"]);
+            Assert.Equal(new[] { "fleet.G", ChannelEngine.NodeId }, unroutable["vessel:F"].Keys);
+            Assert.Equal(new[] { "fleet.H" }, unroutable["vessel:G"].Keys);
             // A ground station that is not home has no route of its own to either
             // craft, so it is listed against both and is not sent them on home's clock.
-            Assert.Equal(new[] { "fleet.G", "fleet.H", ChannelEngine.NodeId }, unroutable["ground:gs1"]);
+            Assert.Equal(new[] { "fleet.G", "fleet.H", ChannelEngine.NodeId }, unroutable["ground:gs1"].Keys);
+            Assert.All(unroutable["ground:gs1"].Values, carried => Assert.Equal(CommsDirection.None, carried));
             Assert.False(unroutable.ContainsKey("ksc"));
         }
 
         [Fact]
         public void Unroutable_ListsTheHomeLedgerForACentreOffTheGroundNetwork()
         {
-            var unroutable = new AuthorityMatrixPass().Unroutable(
+            var unroutable = new AuthorityMatrixPass().Carried(
                 new ICommandCentre[] { new FakeCommandCentre("vessel:F", CommandCentreKind.CrewedVessel) },
                 "ksc",
                 new string[0],
                 null,
                 (_, __) => 1.0,
+                (_, __) => CommsDirection.Both,
                 _ => false);
 
-            Assert.Equal(new[] { ChannelEngine.HomeCommandNode }, unroutable["vessel:F"]);
+            Assert.Equal(new[] { ChannelEngine.HomeCommandNode }, unroutable["vessel:F"].Keys);
+        }
+
+        [Fact]
+        public void Carried_ListsARouteThatCarriesOneWayWithTheDirectionItCarries()
+        {
+            var centres = new ICommandCentre[] { new FakeCommandCentre("ksc"), new FakeCommandCentre("ground:gs1") };
+
+            var carried = new AuthorityMatrixPass().Carried(
+                centres,
+                "ksc",
+                new[] { "G" },
+                null,
+                (_, __) => 5.0,
+                (centre, __) => centre.Id == "ground:gs1" ? CommsDirection.Forward : centre.Id == "ksc" ? CommsDirection.Reverse : CommsDirection.Both,
+                _ => true);
+
+            Assert.Equal(CommsDirection.Forward, carried["ground:gs1"]["fleet.G"]);
+            Assert.Equal(CommsDirection.Reverse, carried["ksc"]["fleet.G"]);
         }
 
         [Fact]

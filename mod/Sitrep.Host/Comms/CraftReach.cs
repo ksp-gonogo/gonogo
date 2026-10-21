@@ -44,8 +44,9 @@ namespace Sitrep.Host.Comms
         /// with every craft. Otherwise a crewed centre always hears its own craft,
         /// and no other centre hears a craft whose link is down. The home centre
         /// hears a craft whose route ends at any ground station, since every
-        /// ground station is its antenna. Any other centre hears a craft its own
-        /// route reaches.</para>
+        /// ground station is its antenna, unless that route does not carry the
+        /// direction asked about. Any other centre hears a craft its own route
+        /// reaches.</para>
         /// </summary>
         /// <param name="centre">The centre's id.</param>
         /// <param name="vesselId">The craft's bare guid.</param>
@@ -53,7 +54,7 @@ namespace Sitrep.Host.Comms
         /// <param name="craftConnected">Whether the craft's link is up.</param>
         /// <param name="homeCentre">The home centre's id, or null while there is none.</param>
         /// <param name="offTheGround">Whether the craft's route ends somewhere other than a ground station.</param>
-        /// <param name="unroutable">Whether the centre's own route finding found no path to the craft.</param>
+        /// <param name="unroutable">Whether the centre's own route finding found no path to the craft that carries the direction asked about.</param>
         public static bool Reaches(
             string centre,
             string vesselId,
@@ -75,7 +76,7 @@ namespace Sitrep.Host.Comms
             {
                 return false;
             }
-            return string.Equals(centre, homeCentre, StringComparison.Ordinal) ? !offTheGround : !unroutable;
+            return string.Equals(centre, homeCentre, StringComparison.Ordinal) ? !offTheGround && !unroutable : !unroutable;
         }
     }
 }

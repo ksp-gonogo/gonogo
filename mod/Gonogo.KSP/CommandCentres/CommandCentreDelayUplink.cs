@@ -174,7 +174,7 @@ namespace Gonogo.KSP.CommandCentres
         /// station's own dish, by way of a far relay whenever the craft was
         /// talking to a different station.</para>
         /// </summary>
-        /// <param name="routeToCraft">One-way seconds from a centre to a craft's guid, told whether the centre is home, or null when nothing routes.</param>
+        /// <param name="routeToCraft">The route from a centre to a craft's guid, told whether the centre is home: its one-way seconds and the directions it carries, or null when nothing routes.</param>
         /// <param name="routeBetweenCentres">One-way seconds between two centres, or null when nothing routes.</param>
         /// <param name="secondsToHome">A non-ground centre's path home, or null when it has none to measure.</param>
         /// <param name="reachesGround">Whether a crewed centre's route ends at a ground station, or null for any other kind.</param>
@@ -183,7 +183,7 @@ namespace Gonogo.KSP.CommandCentres
             HomeCommand home,
             IReadOnlyList<string> subjectGuids,
             string? activeGuid,
-            Func<ICommandCentre, string, bool, double?> routeToCraft,
+            Func<ICommandCentre, string, bool, CentreRoute?> routeToCraft,
             Func<ICommandCentre, ICommandCentre, double?> routeBetweenCentres,
             Func<ICommandCentre, double?> secondsToHome,
             Func<ICommandCentre, bool?> reachesGround)
@@ -195,16 +195,18 @@ namespace Gonogo.KSP.CommandCentres
 
             // The active craft's row is the same route as its fleet row, so a pair already
             // solved for the fleet is read back rather than solved a second time.
-            var routed = new Dictionary<(string CentreId, string Guid), double?>();
-            double? Routed(ICommandCentre centre, string guid)
+            var routed = new Dictionary<(string CentreId, string Guid), CentreRoute?>();
+            CentreRoute? Solved(ICommandCentre centre, string guid)
             {
-                if (!routed.TryGetValue((centre.Id, guid), out var seconds))
+                if (!routed.TryGetValue((centre.Id, guid), out var route))
                 {
-                    seconds = routeToCraft(centre, guid, homeId != null && centre.Id == homeId);
-                    routed[(centre.Id, guid)] = seconds;
+                    route = routeToCraft(centre, guid, homeId != null && centre.Id == homeId);
+                    routed[(centre.Id, guid)] = route;
                 }
-                return seconds;
+                return route;
             }
+            double? Routed(ICommandCentre centre, string guid) => Solved(centre, guid)?.Seconds;
+            CommsDirection Carries(ICommandCentre centre, string guid) => Solved(centre, guid)?.Carries ?? CommsDirection.Both;
 
             var pass = new AuthorityMatrixPass();
             pass.Populate(centres, subjectGuids, Routed, Row);
@@ -224,7 +226,7 @@ namespace Gonogo.KSP.CommandCentres
             return new LedgerCapture
             {
                 Rows = rows,
-                Unroutable = pass.Unroutable(centres, homeId, subjectGuids, activeGuid, Routed, reachesGround),
+                Carried = pass.Carried(centres, homeId, subjectGuids, activeGuid, Routed, Carries, reachesGround),
             };
         }
 
@@ -283,7 +285,7 @@ namespace Gonogo.KSP.CommandCentres
             (_host as IActiveRouteHost)?.SetActiveVesselRoutes(cap.ActiveRoutes);
             var reach = _host as ICommandReachWriter;
             reach?.SetAuthorityDelays(fleetRows);
-            reach?.SetUnroutable(cap.Unroutable);
+            reach?.SetCarried(cap.Carried);
             reach?.SetOffTheGround(cap.OffTheGround);
             (_host as ICentreRouteWriter)?.SetCentreRoutes(
                 centreRoutes.ToDictionary(r => r.Key, r => (IReadOnlyCollection<string>)r.Value));
@@ -320,7 +322,7 @@ namespace Gonogo.KSP.CommandCentres
         /// receive the command at all. The matrix pass reads null as "write no
         /// row for this pair".</para>
         /// </summary>
-        private static double? RouteDelay(
+        private static CentreRoute? RouteDelay(
             ICommsBackend? backend,
             ICommandCentre centre,
             bool centreIsHome,
@@ -340,7 +342,7 @@ namespace Gonogo.KSP.CommandCentres
             if (centreIsHome)
             {
                 var (oneWay, _) = FleetCommsReader.ReadVessel(vessel, config);
-                return oneWay;
+                return oneWay == null ? (CentreRoute?)null : new CentreRoute(oneWay.Value, HomeCarries(backend, vessel, config, solves));
             }
 
             var from = (centre as KspCommandCentre)?.Node;
@@ -361,7 +363,30 @@ namespace Gonogo.KSP.CommandCentres
                     routesOut[centre.Id] = ActiveRoute.Reversed(hops);
                 }
             }
-            return seconds;
+            return seconds == null
+                ? (CentreRoute?)null
+                : new CentreRoute(seconds.Value, route == null ? CommsDirection.Both : RouteDirection.Of(route));
+        }
+
+        /// <summary>
+        /// The directions a craft's own route to the ground carries, read from the
+        /// ground station that route ends at, as the home centre sees them: a
+        /// command travels the route in reverse. Both where the backend cannot name
+        /// the end of the route, since the craft's own link home is what already
+        /// answers for it.
+        /// </summary>
+        private static CommsDirection HomeCarries(ICommsBackend? backend, Vessel vessel, SignalDelayConfig? config, SolveCounter solves)
+        {
+            var from = vessel.connection?.Comm;
+            var end = backend?.ControlPathTerminus(vessel)?.As<CommNode>();
+            if (from == null || end == null)
+            {
+                return CommsDirection.Both;
+            }
+
+            solves.Count++;
+            var (seconds, route) = FleetCommsReader.ReadNodeRoute(backend, from, end, config);
+            return seconds == null || route == null ? CommsDirection.Both : RouteDirection.Flip(RouteDirection.Of(route));
         }
 
         /// <summary>
@@ -549,6 +574,22 @@ namespace Gonogo.KSP.CommandCentres
             public int Count;
         }
 
+        /// <summary>A centre's route to a craft: its one-way seconds and the directions it carries a signal in, from the centre toward the craft.</summary>
+        internal readonly struct CentreRoute
+        {
+            public CentreRoute(double seconds, CommsDirection carries)
+            {
+                Seconds = seconds;
+                Carries = carries;
+            }
+
+            public double Seconds { get; }
+
+            public CommsDirection Carries { get; }
+
+            public static implicit operator CentreRoute(double seconds) => new CentreRoute(seconds, CommsDirection.Both);
+        }
+
         internal sealed class AuthorityRow
         {
             public string Vantage = "";
@@ -559,8 +600,8 @@ namespace Gonogo.KSP.CommandCentres
         internal sealed class LedgerCapture
         {
             public List<AuthorityRow> Rows = new List<AuthorityRow>();
-            public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Unroutable =
-                new Dictionary<string, IReadOnlyCollection<string>>();
+            public IReadOnlyDictionary<string, IReadOnlyDictionary<string, CommsDirection>> Carried =
+                new Dictionary<string, IReadOnlyDictionary<string, CommsDirection>>();
             public IReadOnlyDictionary<string, IReadOnlyList<CommsHop>> ActiveRoutes =
                 new Dictionary<string, IReadOnlyList<CommsHop>>();
             public IReadOnlyCollection<string> OffTheGround = new List<string>();

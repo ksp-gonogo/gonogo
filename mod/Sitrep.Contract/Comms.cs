@@ -814,21 +814,23 @@ public readonly struct CommsRouteHop
     /// <param name="distanceMeters">Straight-line distance between the two endpoints, in metres.</param>
     /// <param name="touchesHome">True when either endpoint is a ground station.</param>
     public CommsRouteHop(double distanceMeters, bool touchesHome)
-        : this(distanceMeters, touchesHome, fromHandle: null, toHandle: null)
+        : this(distanceMeters, touchesHome, fromHandle: null, toHandle: null, CommsDirection.Both)
     {
     }
 
-    /// <summary>A hop carrying the backend's own handles for its two endpoints.</summary>
+    /// <summary>A hop carrying the backend's own handles for its two endpoints and the directions it can carry a signal in.</summary>
     /// <param name="distanceMeters">Straight-line distance between the two endpoints, in metres.</param>
     /// <param name="touchesHome">True when either endpoint is a ground station.</param>
     /// <param name="fromHandle">The origin endpoint's node, or null.</param>
     /// <param name="toHandle">The destination endpoint's node, or null.</param>
-    public CommsRouteHop(double distanceMeters, bool touchesHome, CommsNodeHandle? fromHandle, CommsNodeHandle? toHandle)
+    /// <param name="carries">The directions the hop can carry a signal in, relative to the way the route runs.</param>
+    public CommsRouteHop(double distanceMeters, bool touchesHome, CommsNodeHandle? fromHandle, CommsNodeHandle? toHandle, CommsDirection carries)
     {
         DistanceMeters = distanceMeters;
         TouchesHome = touchesHome;
         FromHandle = fromHandle;
         ToHandle = toHandle;
+        Carries = carries;
     }
 
     /// <summary>Straight-line distance between the hop's two endpoints, in metres.</summary>
@@ -844,6 +846,40 @@ public readonly struct CommsRouteHop
     /// <summary>This hop's destination endpoint's node, or null when the caller
     /// had none to give.</summary>
     public CommsNodeHandle? ToHandle { get; }
+
+    /// <summary>
+    /// The directions this hop can carry a signal in, relative to the way the
+    /// route runs: <see cref="CommsDirection.Forward"/> is from
+    /// <see cref="FromHandle"/> toward <see cref="ToHandle"/>. A backend whose
+    /// links always work both ways leaves it at <see cref="CommsDirection.Both"/>.
+    /// </summary>
+    public CommsDirection Carries { get; }
+}
+
+/// <summary>
+/// The directions a link or a whole route can carry a signal in, taken relative
+/// to the way a route runs from its first node to its last. A route solved from
+/// a command centre to a craft carries a command in
+/// <see cref="Forward"/> and telemetry in <see cref="Reverse"/>.
+///
+/// <para>A backend reports it on each <see cref="CommsRouteHop"/>. A route
+/// carries a direction only when every one of its hops does.</para>
+/// </summary>
+/// <category>Uplink API</category>
+[System.Flags]
+public enum CommsDirection
+{
+    /// <summary>Neither direction carries a signal.</summary>
+    None = 0,
+
+    /// <summary>A signal travels from the route's first node toward its last.</summary>
+    Forward = 1,
+
+    /// <summary>A signal travels from the route's last node back toward its first.</summary>
+    Reverse = 2,
+
+    /// <summary>Both directions carry a signal.</summary>
+    Both = Forward | Reverse,
 }
 
 /// <summary>
@@ -914,6 +950,14 @@ public interface ICommsBackend : ISitrepProvider
     /// null for an unrecognised or missing node, for the same node at both ends, and for
     /// an unreachable end. An empty list means routed with nothing to
     /// measure. Main thread only.</para>
+    ///
+    /// <para>Each hop reports in <see cref="CommsRouteHop.Carries"/> which
+    /// directions it can carry a signal in, relative to the way the route runs
+    /// from <paramref name="from"/> to <paramref name="to"/>. Gonogo refuses a
+    /// command along a route that does not carry <see cref="CommsDirection.Forward"/>,
+    /// and hears nothing back along one that does not carry
+    /// <see cref="CommsDirection.Reverse"/>. A backend whose links always work
+    /// both ways reports <see cref="CommsDirection.Both"/>.</para>
     /// <internal>
     /// On the interface because routing is the elected backend's rule, not a
     /// stock method core can call for it: RealAntennas overrides

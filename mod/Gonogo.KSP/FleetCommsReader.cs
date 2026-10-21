@@ -354,7 +354,8 @@ namespace Gonogo.KSP
                     (link.a.precisePosition - link.b.precisePosition).magnitude,
                     link.b.isHome || link.a.isHome,
                     CommsNodeHandle.Of(link.a),
-                    CommsNodeHandle.Of(link.b)));
+                    CommsNodeHandle.Of(link.b),
+                    CommsDirection.Both));
             }
             return hops;
         }

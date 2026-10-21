@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Sitrep.Contract;
 using Sitrep.Host.Comms;
 using Xunit;
 
@@ -17,12 +18,12 @@ namespace Sitrep.Host.Tests.Comms
         private static ReachLedger Ledger(string? unroutableCentre = null, string? unroutableNode = null, params string[] offTheGround)
         {
             var ledger = new ReachLedger();
-            var unroutable = new Dictionary<string, HashSet<string>>();
+            var carried = new Dictionary<string, Dictionary<string, CommsDirection>>();
             if (unroutableCentre != null && unroutableNode != null)
             {
-                unroutable[unroutableCentre] = new HashSet<string> { unroutableNode };
+                carried[unroutableCentre] = new Dictionary<string, CommsDirection> { [unroutableNode] = CommsDirection.None };
             }
-            ledger.ReplaceUnroutable(unroutable);
+            ledger.ReplaceCarried(carried);
             ledger.ReplaceOffTheGround(offTheGround);
             return ledger;
         }
@@ -39,7 +40,7 @@ namespace Sitrep.Host.Tests.Comms
         {
             var ledger = Ledger(Far, Prefix + "probe", offTheGround ? new[] { "probe" } : new string[0]);
 
-            var sent = ledger.Reaches(centre, Prefix + "probe", Prefix, true, connected, Home);
+            var sent = ledger.Reaches(centre, Prefix + "probe", Prefix, true, connected, Home, CommsDirection.Forward);
 
             Assert.Equal(CentreReach.Reaches(centre, "probe", true, connected, Home, offTheGround, centre == Far), sent);
         }
@@ -49,8 +50,8 @@ namespace Sitrep.Host.Tests.Comms
         {
             var ledger = Ledger(null, null, "probe");
 
-            Assert.False(ledger.Reaches(Home, Prefix + "probe", Prefix, true, true, Home));
-            Assert.True(ledger.Reaches(Far, Prefix + "probe", Prefix, true, true, Home));
+            Assert.False(ledger.Reaches(Home, Prefix + "probe", Prefix, true, true, Home, CommsDirection.Forward));
+            Assert.True(ledger.Reaches(Far, Prefix + "probe", Prefix, true, true, Home, CommsDirection.Forward));
         }
 
         [Fact]
@@ -58,8 +59,8 @@ namespace Sitrep.Host.Tests.Comms
         {
             var ledger = Ledger();
 
-            Assert.True(ledger.Reaches("vessel:probe", Prefix + "probe", Prefix, true, false, Home));
-            Assert.False(ledger.Reaches(Far, Prefix + "probe", Prefix, true, false, Home));
+            Assert.True(ledger.Reaches("vessel:probe", Prefix + "probe", Prefix, true, false, Home, CommsDirection.Forward));
+            Assert.False(ledger.Reaches(Far, Prefix + "probe", Prefix, true, false, Home, CommsDirection.Forward));
         }
 
         [Fact]
@@ -67,9 +68,39 @@ namespace Sitrep.Host.Tests.Comms
         {
             var ledger = Ledger(Far, "system");
 
-            Assert.True(ledger.Reaches(Home, "system", Prefix, true, true, Home));
-            Assert.False(ledger.Reaches(Home, "system", Prefix, true, false, Home));
-            Assert.False(ledger.Reaches(Far, "system", Prefix, true, true, Home));
+            Assert.True(ledger.Reaches(Home, "system", Prefix, true, true, Home, CommsDirection.Forward));
+            Assert.False(ledger.Reaches(Home, "system", Prefix, true, false, Home, CommsDirection.Forward));
+            Assert.False(ledger.Reaches(Far, "system", Prefix, true, true, Home, CommsDirection.Forward));
+        }
+
+        [Theory]
+        [InlineData(CommsDirection.Forward, true, false)]
+        [InlineData(CommsDirection.Reverse, false, true)]
+        [InlineData(CommsDirection.Both, true, true)]
+        [InlineData(CommsDirection.None, false, false)]
+        public void ARouteThatCarriesOneWayLetsACommandOrTelemetryThroughButNotBoth(CommsDirection carried, bool sends, bool hears)
+        {
+            var ledger = new ReachLedger();
+            ledger.ReplaceCarried(new Dictionary<string, Dictionary<string, CommsDirection>>
+            {
+                [Far] = new Dictionary<string, CommsDirection> { [Prefix + "probe"] = carried },
+            });
+
+            Assert.Equal(sends, ledger.Reaches(Far, Prefix + "probe", Prefix, true, true, Home, CommsDirection.Forward));
+            Assert.Equal(hears, ledger.Reaches(Far, Prefix + "probe", Prefix, true, true, Home, CommsDirection.Reverse));
+        }
+
+        [Fact]
+        public void TheHomeCentreIsJudgedByTheDirectionsOfItsOwnRouteToo()
+        {
+            var ledger = new ReachLedger();
+            ledger.ReplaceCarried(new Dictionary<string, Dictionary<string, CommsDirection>>
+            {
+                [Home] = new Dictionary<string, CommsDirection> { [Prefix + "probe"] = CommsDirection.Reverse },
+            });
+
+            Assert.False(ledger.Reaches(Home, Prefix + "probe", Prefix, true, true, Home, CommsDirection.Forward));
+            Assert.True(ledger.Reaches(Home, Prefix + "probe", Prefix, true, true, Home, CommsDirection.Reverse));
         }
     }
 }

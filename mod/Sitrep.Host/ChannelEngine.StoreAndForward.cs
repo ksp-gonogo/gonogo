@@ -1592,11 +1592,11 @@ namespace Sitrep.Host
             {
                 if (_engine._laneCraftNodes.TryGetValue(to, out var toNode) && !_engine._laneCraftNodes.ContainsKey(from))
                 {
-                    return Ledger(from, _engine.LinkNodeOf(to, toNode));
+                    return Ledger(from, _engine.LinkNodeOf(to, toNode), CommsDirection.Forward);
                 }
                 if (_engine._laneCraftNodes.TryGetValue(from, out var fromNode) && !_engine._laneCraftNodes.ContainsKey(to))
                 {
-                    return Ledger(to, _engine.LinkNodeOf(from, fromNode));
+                    return Ledger(to, _engine.LinkNodeOf(from, fromNode), CommsDirection.Reverse);
                 }
                 var links = _engine._deliveryInputs.Links;
                 return GroundNetwork.Shortest(from, to, _engine.HomeCentre(), _engine._activeGroundIds, links.LivePath);
@@ -1611,8 +1611,10 @@ namespace Sitrep.Host
                 return GroundNetwork.Shortest(from, to, _engine.HomeCentre(), _engine._activeGroundIds, links.LiveLink);
             }
 
-            private double? Ledger(string vantage, string node) =>
-                _engine.CanSend(vantage, node) ? _engine._network.DelayTo(vantage, node) : (double?)null;
+            private double? Ledger(string vantage, string node, CommsDirection direction) =>
+                direction == CommsDirection.Forward
+                    ? (_engine.CanSend(vantage, node) ? _engine.UplinkDelayTo(vantage, node) : (double?)null)
+                    : (_engine.CanHear(vantage, node) ? _engine._network.DelayTo(vantage, node) : (double?)null);
         }
     }
 }

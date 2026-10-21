@@ -3364,22 +3364,45 @@ namespace Sitrep.Host
         }
 
         /*
-         * The subject nodes each centre has no route to, as of the last
-         * SetUnroutable. Courier-thread-only, like every ledger write, and read
+         * The directions each centre's route to a subject node carries, as of the
+         * last SetCarried. Courier-thread-only, like every ledger write, and read
          * by ProcessDispatchCommand on the same thread.
          */
         private readonly Comms.ReachLedger _reach = new Comms.ReachLedger();
 
-        public void SetUnroutable(IReadOnlyDictionary<string, IReadOnlyCollection<string>> nodesByCentre)
+        /*
+         * The one-way seconds a command is quoted to a node whose route carries it
+         * but not what comes back. The pair's ledger row says "never" so nothing
+         * heard from the node reaches that centre, which leaves the row no seconds
+         * to time the command by.
+         */
+        private Dictionary<(string Centre, string Node), double> _uplinkOnlySeconds = new Dictionary<(string, string), double>();
+
+        public void SetCarried(IReadOnlyDictionary<string, IReadOnlyDictionary<string, CommsDirection>> nodesByCentre)
         {
-            var next = new Dictionary<string, HashSet<string>>();
+            var next = new Dictionary<string, Dictionary<string, CommsDirection>>();
+            var uplinkOnly = new Dictionary<(string, string), double>();
             foreach (var row in nodesByCentre)
             {
-                next[row.Key] = new HashSet<string>(row.Value, StringComparer.Ordinal);
+                var nodes = new Dictionary<string, CommsDirection>(StringComparer.Ordinal);
+                foreach (var node in row.Value)
+                {
+                    nodes[node.Key] = node.Value;
+                    if (node.Value.HasFlag(CommsDirection.Forward) && !node.Value.HasFlag(CommsDirection.Reverse))
+                    {
+                        var seconds = _network.DelayTo(row.Key, node.Key);
+                        if (!double.IsInfinity(seconds) && !double.IsNaN(seconds))
+                        {
+                            uplinkOnly[(row.Key, node.Key)] = seconds;
+                        }
+                    }
+                }
+                next[row.Key] = nodes;
             }
+            _uplinkOnlySeconds = uplinkOnly;
 
             /*
-             * A centre with no route to a node is delivered nothing from it. With
+             * A centre that cannot hear a node is delivered nothing from it. With
              * no row of its own the pair fell through to the node's default, which
              * is the home centre's light-time, so a centre that could not hear a
              * craft at all was sent its telemetry on home's clock. The row says
@@ -3390,15 +3413,16 @@ namespace Sitrep.Host
              * measures it, in this same handle; the row is cleared here only if
              * nothing has replaced it.
              */
-            var previous = _reach.ReplaceUnroutable(next);
+            var previous = _reach.ReplaceCarried(next);
             foreach (var row in previous)
             {
                 next.TryGetValue(row.Key, out var still);
                 foreach (var node in row.Value)
                 {
-                    if ((still == null || !still.Contains(node)) && double.IsPositiveInfinity(_network.DelayTo(row.Key, node)))
+                    var stillSilent = still != null && still.TryGetValue(node.Key, out var carried) && !carried.HasFlag(CommsDirection.Reverse);
+                    if (!stillSilent && double.IsPositiveInfinity(_network.DelayTo(row.Key, node.Key)))
                     {
-                        _network.ClearDelay(row.Key, node);
+                        _network.ClearDelay(row.Key, node.Key);
                     }
                 }
             }
@@ -3406,10 +3430,21 @@ namespace Sitrep.Host
             {
                 foreach (var node in row.Value)
                 {
-                    _network.SetDelay(row.Key, node, double.PositiveInfinity);
+                    if (!node.Value.HasFlag(CommsDirection.Reverse))
+                    {
+                        _network.SetDelay(row.Key, node.Key, double.PositiveInfinity);
+                    }
                 }
             }
         }
+
+        /// <summary>
+        /// The one-way seconds a command from <paramref name="vantage"/> is quoted to
+        /// <paramref name="node"/>: the pair's ledger row, or the pass's own figure
+        /// where that row is held at "never" because nothing comes back.
+        /// </summary>
+        internal double UplinkDelayTo(string vantage, string node) =>
+            _uplinkOnlySeconds.TryGetValue((vantage, node), out var seconds) ? seconds : _network.DelayTo(vantage, node);
 
         /*
          * Centre-to-centre pairs with a routed path as of the last SetCentreRoutes,
@@ -8084,7 +8119,15 @@ namespace Sitrep.Host
         /// half can be down. Courier-thread-only.
         /// </summary>
         internal bool CanSend(string vantage, string node) =>
-            _reach.Reaches(vantage, node, FleetNodePrefix, _deliveryInputs.NetworkModelled, SubjectConnected(node), HomeCentre());
+            _reach.Reaches(vantage, node, FleetNodePrefix, _deliveryInputs.NetworkModelled, SubjectConnected(node), HomeCentre(), CommsDirection.Forward);
+
+        /// <summary>
+        /// Whether what <paramref name="node"/> sends reaches <paramref name="vantage"/>:
+        /// the same rule as <see cref="CanSend"/> read in the direction a craft's
+        /// telemetry, spans and reports travel. Courier-thread-only.
+        /// </summary>
+        internal bool CanHear(string vantage, string node) =>
+            _reach.Reaches(vantage, node, FleetNodePrefix, _deliveryInputs.NetworkModelled, SubjectConnected(node), HomeCentre(), CommsDirection.Reverse);
 
         /// <summary>
         /// Rewrite the delay ledger for this tick, after
@@ -10115,7 +10158,7 @@ namespace Sitrep.Host
             // CaptureSignalDelay). Used for the pending-uplink prediction here
             // and, via the Courier's own DelayTo fallback below, for the actual
             // round-trip. NaN/Inf/<=0 already collapse to 0 inside SetDefaultDelay.
-            var uplinkDelay = plannedSeconds ?? _network.DelayTo(job.Vantage, node);
+            var uplinkDelay = plannedSeconds ?? UplinkDelayTo(job.Vantage, node);
 
             var requestId = NextRequestId();
 

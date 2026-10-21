@@ -136,27 +136,27 @@ namespace Gonogo.KSP.Tests.CommandCentres
         }
 
         /// <summary>
-        /// The pairs a pass found no route for reach the engine as one set every pass,
+        /// The routes a pass found that do not carry both ways reach the engine as one set every pass,
         /// empty included, so a centre that regains its route is no longer refused.
         /// </summary>
         [Fact]
-        public void TheUnroutablePairsAreHandedOverAsOneSetEveryPass()
+        public void TheRoutesThatDoNotCarryBothWaysAreHandedOverAsOneSetEveryPass()
         {
             var host = new RecordingUplinkHost();
             var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
             uplink.Register(host);
 
             var capture = Capture();
-            capture.Unroutable = new Dictionary<string, IReadOnlyCollection<string>>
+            capture.Carried = new Dictionary<string, IReadOnlyDictionary<string, CommsDirection>>
             {
-                ["vessel:F"] = new[] { AuthorityMatrixPass.FleetNode("G") },
+                ["vessel:F"] = new Dictionary<string, CommsDirection> { [AuthorityMatrixPass.FleetNode("G")] = CommsDirection.Reverse },
             };
             uplink.ApplyLedgerOnCourier(capture);
             uplink.ApplyLedgerOnCourier(Capture());
 
-            Assert.Equal(2, host.Unroutable.Count);
-            Assert.Equal(new[] { AuthorityMatrixPass.FleetNode("G") }, host.Unroutable[0]["vessel:F"]);
-            Assert.Empty(host.Unroutable[1]);
+            Assert.Equal(2, host.Carried.Count);
+            Assert.Equal(CommsDirection.Reverse, host.Carried[0]["vessel:F"][AuthorityMatrixPass.FleetNode("G")]);
+            Assert.Empty(host.Carried[1]);
         }
 
         /// <summary>
@@ -264,16 +264,16 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread) => throw new NotSupportedException();
             public void SetVesselDelay(string vesselId, double oneWaySeconds) => throw new NotSupportedException();
             public List<List<(string, string, double)>> AuthorityDelays { get; } = new List<List<(string, string, double)>>();
-            public List<IReadOnlyDictionary<string, IReadOnlyCollection<string>>> Unroutable { get; } =
-                new List<IReadOnlyDictionary<string, IReadOnlyCollection<string>>>();
+            public List<IReadOnlyDictionary<string, IReadOnlyDictionary<string, CommsDirection>>> Carried { get; } =
+                new List<IReadOnlyDictionary<string, IReadOnlyDictionary<string, CommsDirection>>>();
             public List<Dictionary<string, double>> ActiveVesselDelays { get; } = new List<Dictionary<string, double>>();
 
             public List<Dictionary<string, double>> HomeCommandDelays { get; } = new List<Dictionary<string, double>>();
 
             public void SetAuthorityDelays(IReadOnlyCollection<(string CentreId, string VesselId, double OneWaySeconds)> rows) =>
                 AuthorityDelays.Add(rows.Select(r => (r.CentreId, r.VesselId, r.OneWaySeconds)).ToList());
-            public void SetUnroutable(IReadOnlyDictionary<string, IReadOnlyCollection<string>> nodesByCentre) =>
-                Unroutable.Add(nodesByCentre);
+            public void SetCarried(IReadOnlyDictionary<string, IReadOnlyDictionary<string, CommsDirection>> nodesByCentre) =>
+                Carried.Add(nodesByCentre);
             public List<IReadOnlyCollection<string>> OffTheGround { get; } = new List<IReadOnlyCollection<string>>();
             public void SetOffTheGround(IReadOnlyCollection<string> vesselIds) => OffTheGround.Add(vesselIds);
             public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds) => throw new NotSupportedException();

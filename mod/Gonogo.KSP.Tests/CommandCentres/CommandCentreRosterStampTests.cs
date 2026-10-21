@@ -112,6 +112,27 @@ namespace Gonogo.KSP.Tests.CommandCentres
             Assert.DoesNotContain(ledger.Rows, r => r.Vantage == "ground:Baikerbanur" && r.Node == Sitrep.Host.ChannelEngine.NodeId);
         }
 
+        /// <summary>A route the pass solved that carries only the craft's telemetry is handed over with that direction, beside its delay row.</summary>
+        [Fact]
+        public void ARouteThatCarriesOneWayIsHandedOverWithTheDirectionItCarries()
+        {
+            var centres = new ICommandCentre[] { new FixedCentre("ground:Baikerbanur"), new FixedCentre("ground:Crater Rim") };
+
+            var ledger = CommandCentreDelayUplink.BuildLedger(
+                centres,
+                HomeCommand.NotIdentified,
+                new[] { "m1" },
+                null,
+                (centre, guid, isHome) => isHome ? new CommandCentreDelayUplink.CentreRoute(39.0, CommsDirection.Both) : new CommandCentreDelayUplink.CentreRoute(509.0, CommsDirection.Reverse),
+                (from, to) => null,
+                centre => null,
+                centre => null);
+
+            Assert.Equal(509.0, Assert.Single(ledger.Rows, r => r.Vantage == "ground:Crater Rim" && r.Node == "fleet.m1").Seconds);
+            Assert.Equal(CommsDirection.Reverse, ledger.Carried["ground:Crater Rim"]["fleet.m1"]);
+            Assert.False(ledger.Carried.ContainsKey("ground:Baikerbanur"));
+        }
+
         private static CommandCentreDelayUplink Uplink(PublishRecordingHost host, params string[] centreIds) =>
             Uplink(host, HomeCommand.NotIdentified, centreIds);
 
