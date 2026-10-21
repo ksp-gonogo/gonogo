@@ -173,6 +173,8 @@ export type ShipMapPartType =
   | "fairing"
   | "clamp"
   | "fuel-line"
+  | "docking-port"
+  | "strut"
   | "other";
 
 /**

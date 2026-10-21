@@ -1,0 +1,2507 @@
+{
+  "parts": [
+    {
+      "id": "3646309746",
+      "parentId": null,
+      "name": "mk2LanderCabin.v2",
+      "title": "Mk2 Lander Can",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "bounds": {
+        "size": {
+          "x": 2.5,
+          "y": 1.282,
+          "z": 2.824
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.212,
+          "z": -0.016
+        }
+      },
+      "dryMass": 1.261,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 311.17,
+      "category": "Pods",
+      "categoryOrdinal": 6,
+      "modules": [
+        "ModuleCommand",
+        "ModuleReactionWheel",
+        "ModuleColorChanger",
+        "ModuleScienceExperiment",
+        "ModuleScienceContainer",
+        "FlagDecal",
+        "ModuleDataTransmitter",
+        "ModuleProbeControlPoint",
+        "ModulePartVariants",
+        "ModuleAnimateGeneric",
+        "ModuleCargoPart",
+        "ModuleInventoryPart",
+        "MechJebCore",
+        "KOSNameTag",
+        "ModuleTripLogger"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": {
+          "amount": 100,
+          "maxAmount": 100,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "MonoPropellant": {
+          "amount": 40,
+          "maxAmount": 40,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1400993808",
+      "parentId": "3646309746",
+      "name": "dockingPort2",
+      "title": "Clamp-O-Tron Docking Port",
+      "position": {
+        "x": 0,
+        "y": 0.752,
+        "z": 0
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "bounds": {
+        "size": {
+          "x": 1.151,
+          "y": 0.575,
+          "z": 1.151
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.004,
+          "z": 0
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 311.176,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleDockingNode",
+        "ModuleCargoPart",
+        "ModuleColorChanger",
+        "MuMechModuleHullCameraZoom",
+        "DPSoundFX",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3068716257",
+      "parentId": "3646309746",
+      "name": "SurfAntenna",
+      "title": "Communotron 16-S",
+      "position": {
+        "x": 0.655,
+        "y": 0.801,
+        "z": 0.655
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0.707,
+        "y": 0,
+        "z": 0.707
+      },
+      "bounds": {
+        "size": {
+          "x": 1.196,
+          "y": 0.11,
+          "z": 0.12
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.015,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 311.196,
+      "category": "Communication",
+      "categoryOrdinal": 9,
+      "modules": ["ModuleDataTransmitter", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "839541123",
+      "parentId": "3646309746",
+      "name": "HighGainAntenna5",
+      "title": "HG-5 High Gain Antenna",
+      "position": {
+        "x": -0.666,
+        "y": 0.751,
+        "z": -0.385
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 1.0,
+        "y": 0,
+        "z": -0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 1.267,
+          "y": 0.462,
+          "z": 0.517
+        },
+        "center": {
+          "x": -0.594,
+          "y": 0.034,
+          "z": 0.006
+        }
+      },
+      "dryMass": 0.07,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 311.136,
+      "category": "none",
+      "categoryOrdinal": -1,
+      "modules": [
+        "ModuleDeployableAntenna",
+        "ModuleDataTransmitter",
+        "ModuleCargoPart",
+        "KOSNameTag",
+        "ModuleTripLogger"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "antenna",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2133449401",
+      "parentId": "3646309746",
+      "name": "batteryPack",
+      "title": "Z-100 Rechargeable Battery Pack",
+      "position": {
+        "x": 0,
+        "y": 0.752,
+        "z": 0.894
+      },
+      "up": {
+        "x": -0.0,
+        "y": -0.0,
+        "z": 1.0
+      },
+      "forward": {
+        "x": 0,
+        "y": -1.0,
+        "z": -0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 0.275,
+          "y": 0.413,
+          "z": 0.288
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.034,
+          "z": -0.108
+        }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 311.353,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": {
+          "amount": 100,
+          "maxAmount": 100,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "4279610632",
+      "parentId": "3646309746",
+      "name": "batteryPack",
+      "title": "Z-100 Rechargeable Battery Pack",
+      "position": {
+        "x": 0.894,
+        "y": 0.752,
+        "z": 0.0
+      },
+      "up": {
+        "x": 1.0,
+        "y": -0.0,
+        "z": 0.0
+      },
+      "forward": {
+        "x": 0,
+        "y": -1.0,
+        "z": -0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 0.275,
+          "y": 0.413,
+          "z": 0.288
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.034,
+          "z": -0.108
+        }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 311.353,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": {
+          "amount": 100,
+          "maxAmount": 100,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "4247310979",
+      "parentId": "3646309746",
+      "name": "batteryPack",
+      "title": "Z-100 Rechargeable Battery Pack",
+      "position": {
+        "x": -0.0,
+        "y": 0.752,
+        "z": -0.894
+      },
+      "up": {
+        "x": -0.0,
+        "y": -0.0,
+        "z": -1.0
+      },
+      "forward": {
+        "x": 0,
+        "y": -1.0,
+        "z": -0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 0.275,
+          "y": 0.413,
+          "z": 0.288
+        },
+        "center": {
+          "x": 0,
+          "y": 0.034,
+          "z": -0.108
+        }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 311.353,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": {
+          "amount": 100,
+          "maxAmount": 100,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "2122878037",
+      "parentId": "3646309746",
+      "name": "batteryPack",
+      "title": "Z-100 Rechargeable Battery Pack",
+      "position": {
+        "x": -0.894,
+        "y": 0.752,
+        "z": 0.0
+      },
+      "up": {
+        "x": -1.0,
+        "y": -0.0,
+        "z": -0.0
+      },
+      "forward": {
+        "x": 0,
+        "y": -1.0,
+        "z": -0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 0.275,
+          "y": 0.413,
+          "z": 0.288
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.034,
+          "z": -0.108
+        }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 311.353,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": {
+          "amount": 100,
+          "maxAmount": 100,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1081631934",
+      "parentId": "3646309746",
+      "name": "largeAdapter2",
+      "title": "Rockomax Brand Adapter 02",
+      "position": {
+        "x": 0,
+        "y": -0.593,
+        "z": 0
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "bounds": {
+        "size": {
+          "x": 2.5,
+          "y": 0.382,
+          "z": 2.5
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.0,
+          "z": 0
+        }
+      },
+      "dryMass": 0.08,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 311.131,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1611650212",
+      "parentId": "1081631934",
+      "name": "advSasModule",
+      "title": "Advanced Inline Stabilizer",
+      "position": {
+        "x": 0,
+        "y": -0.981,
+        "z": -0.0
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "bounds": {
+        "size": {
+          "x": 1.351,
+          "y": 0.399,
+          "z": 1.351
+        },
+        "center": {
+          "x": 0,
+          "y": -0.0,
+          "z": 0
+        }
+      },
+      "dryMass": 0.1,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 311.003,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": ["ModuleReactionWheel", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2711315345",
+      "parentId": "1611650212",
+      "name": "fuelTankSmall",
+      "title": "FL-T200 Fuel Tank",
+      "position": {
+        "x": 0,
+        "y": -1.735,
+        "z": -0.0
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 1.166,
+          "z": 1.25
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.125,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.999,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 90,
+          "maxAmount": 90,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "Oxidizer": {
+          "amount": 110,
+          "maxAmount": 110,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "730553973",
+      "parentId": "2711315345",
+      "name": "radialDecoupler",
+      "title": "TT-38K Radial Decoupler",
+      "position": {
+        "x": 0.449,
+        "y": -1.562,
+        "z": -0.449
+      },
+      "up": {
+        "x": -0.0,
+        "y": 1,
+        "z": 0.0
+      },
+      "forward": {
+        "x": -0.707,
+        "y": -0.0,
+        "z": -0.707
+      },
+      "bounds": {
+        "size": {
+          "x": 0.278,
+          "y": 1.134,
+          "z": 0.389
+        },
+        "center": {
+          "x": -0.088,
+          "y": 0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.025,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 310.997,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4086508849",
+      "parentId": "730553973",
+      "name": "fuelTankSmall",
+      "title": "FL-T200 Fuel Tank",
+      "position": {
+        "x": 1.007,
+        "y": -1.582,
+        "z": -1.007
+      },
+      "up": {
+        "x": -0.0,
+        "y": 1,
+        "z": 0.0
+      },
+      "forward": {
+        "x": -0.707,
+        "y": -0.0,
+        "z": -0.707
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 1.166,
+          "z": 1.25
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.125,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 310.994,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 90,
+          "maxAmount": 90,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "Oxidizer": {
+          "amount": 110,
+          "maxAmount": 110,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1103637587",
+      "parentId": "4086508849",
+      "name": "noseCone",
+      "title": "Aerodynamic Nose Cone",
+      "position": {
+        "x": 1.007,
+        "y": -1.027,
+        "z": -1.007
+      },
+      "up": {
+        "x": 0.0,
+        "y": 1,
+        "z": -0.0
+      },
+      "forward": {
+        "x": -0.966,
+        "y": 0.0,
+        "z": -0.259
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 0.669,
+          "z": 1.25
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.306,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.03,
+      "inverseStage": 1,
+      "maxTemp": 2400,
+      "currentTemp": 310.995,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "98333474",
+      "parentId": "4086508849",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": {
+        "x": 1.325,
+        "y": -1.494,
+        "z": -0.455
+      },
+      "up": {
+        "x": -0.0,
+        "y": 1,
+        "z": -0.0
+      },
+      "forward": {
+        "x": 0.866,
+        "y": 0.0,
+        "z": -0.5
+      },
+      "bounds": {
+        "size": {
+          "x": 0.65,
+          "y": 0.185,
+          "z": 0.601
+        },
+        "center": {
+          "x": -0.265,
+          "y": 0.0,
+          "z": -0.243
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 310.994,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3818159748",
+      "parentId": "4086508849",
+      "name": "landingLeg1-2",
+      "title": "LT-2 Landing Strut",
+      "position": {
+        "x": 1.543,
+        "y": -1.979,
+        "z": -1.543
+      },
+      "up": {
+        "x": -0.406,
+        "y": 0.819,
+        "z": 0.406
+      },
+      "forward": {
+        "x": 0.579,
+        "y": 0.574,
+        "z": -0.579
+      },
+      "bounds": {
+        "size": {
+          "x": 0.494,
+          "y": 1.433,
+          "z": 1.152
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.742,
+          "z": 0.433
+        }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 310.992,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelDeployment",
+        "ModuleWheelLock",
+        "ModuleWheelBogey",
+        "ModuleWheelDamage",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "landingGear",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2800284322",
+      "parentId": "4086508849",
+      "name": "liquidEngine3.v2",
+      "title": "LV-909 \"Terrier\" Liquid Fuel Engine",
+      "position": {
+        "x": 1.007,
+        "y": -2.137,
+        "z": -1.007
+      },
+      "up": {
+        "x": 0.0,
+        "y": 1,
+        "z": -0.0
+      },
+      "forward": {
+        "x": -1.0,
+        "y": 0.0,
+        "z": -0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 1.269,
+          "y": 0.83,
+          "z": 1.269
+        },
+        "center": {
+          "x": -0.0,
+          "y": -0.403,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.5,
+      "inverseStage": 2,
+      "maxTemp": 2000,
+      "currentTemp": 310.985,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleGimbal",
+        "ModuleJettison",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "ModulePartVariants",
+        "FXModuleAnimateThrottle",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "Oxidizer": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2314256466",
+      "parentId": "2711315345",
+      "name": "radialDecoupler",
+      "title": "TT-38K Radial Decoupler",
+      "position": {
+        "x": -0.449,
+        "y": -1.562,
+        "z": -0.449
+      },
+      "up": {
+        "x": 0.0,
+        "y": 1,
+        "z": 0.0
+      },
+      "forward": {
+        "x": -0.707,
+        "y": -0.0,
+        "z": 0.707
+      },
+      "bounds": {
+        "size": {
+          "x": 0.278,
+          "y": 1.134,
+          "z": 0.389
+        },
+        "center": {
+          "x": -0.088,
+          "y": -0.0,
+          "z": 0
+        }
+      },
+      "dryMass": 0.025,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 311.018,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2884135269",
+      "parentId": "2314256466",
+      "name": "fuelTankSmall",
+      "title": "FL-T200 Fuel Tank",
+      "position": {
+        "x": -1.007,
+        "y": -1.582,
+        "z": -1.007
+      },
+      "up": {
+        "x": 0.0,
+        "y": 1,
+        "z": 0.0
+      },
+      "forward": {
+        "x": -0.707,
+        "y": -0.0,
+        "z": 0.707
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 1.166,
+          "z": 1.25
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.125,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 311.023,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 90,
+          "maxAmount": 90,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "Oxidizer": {
+          "amount": 110,
+          "maxAmount": 110,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "3671781388",
+      "parentId": "2884135269",
+      "name": "noseCone",
+      "title": "Aerodynamic Nose Cone",
+      "position": {
+        "x": -1.007,
+        "y": -1.027,
+        "z": -1.007
+      },
+      "up": {
+        "x": 0.0,
+        "y": 1,
+        "z": 0.0
+      },
+      "forward": {
+        "x": -0.259,
+        "y": 0.0,
+        "z": 0.966
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 0.669,
+          "z": 1.25
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.306,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.03,
+      "inverseStage": 1,
+      "maxTemp": 2400,
+      "currentTemp": 311.034,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4149667928",
+      "parentId": "2884135269",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": {
+        "x": -0.455,
+        "y": -1.494,
+        "z": -1.325
+      },
+      "up": {
+        "x": -0.0,
+        "y": 1,
+        "z": 0.0
+      },
+      "forward": {
+        "x": -0.5,
+        "y": 0.0,
+        "z": -0.866
+      },
+      "bounds": {
+        "size": {
+          "x": 0.65,
+          "y": 0.185,
+          "z": 0.601
+        },
+        "center": {
+          "x": -0.265,
+          "y": 0.0,
+          "z": -0.243
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 311.009,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3416010393",
+      "parentId": "2884135269",
+      "name": "landingLeg1-2",
+      "title": "LT-2 Landing Strut",
+      "position": {
+        "x": -1.543,
+        "y": -1.979,
+        "z": -1.543
+      },
+      "up": {
+        "x": 0.406,
+        "y": 0.819,
+        "z": 0.406
+      },
+      "forward": {
+        "x": -0.579,
+        "y": 0.574,
+        "z": -0.579
+      },
+      "bounds": {
+        "size": {
+          "x": 0.494,
+          "y": 1.433,
+          "z": 1.152
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.742,
+          "z": 0.433
+        }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 311.047,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelDeployment",
+        "ModuleWheelLock",
+        "ModuleWheelBogey",
+        "ModuleWheelDamage",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "landingGear",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2209400103",
+      "parentId": "2884135269",
+      "name": "liquidEngine3.v2",
+      "title": "LV-909 \"Terrier\" Liquid Fuel Engine",
+      "position": {
+        "x": -1.007,
+        "y": -2.137,
+        "z": -1.007
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "bounds": {
+        "size": {
+          "x": 1.269,
+          "y": 0.83,
+          "z": 1.269
+        },
+        "center": {
+          "x": -0.0,
+          "y": -0.403,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.5,
+      "inverseStage": 2,
+      "maxTemp": 2000,
+      "currentTemp": 311.036,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleGimbal",
+        "ModuleJettison",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "ModulePartVariants",
+        "FXModuleAnimateThrottle",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "Oxidizer": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "3284046323",
+      "parentId": "2711315345",
+      "name": "radialDecoupler",
+      "title": "TT-38K Radial Decoupler",
+      "position": {
+        "x": -0.449,
+        "y": -1.562,
+        "z": 0.449
+      },
+      "up": {
+        "x": 0.0,
+        "y": 1,
+        "z": -0.0
+      },
+      "forward": {
+        "x": 0.707,
+        "y": -0.0,
+        "z": 0.707
+      },
+      "bounds": {
+        "size": {
+          "x": 0.278,
+          "y": 1.134,
+          "z": 0.389
+        },
+        "center": {
+          "x": -0.088,
+          "y": -0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.025,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 311.018,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1994127695",
+      "parentId": "3284046323",
+      "name": "fuelTankSmall",
+      "title": "FL-T200 Fuel Tank",
+      "position": {
+        "x": -1.007,
+        "y": -1.582,
+        "z": 1.007
+      },
+      "up": {
+        "x": 0.0,
+        "y": 1,
+        "z": -0.0
+      },
+      "forward": {
+        "x": 0.707,
+        "y": -0.0,
+        "z": 0.707
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 1.166,
+          "z": 1.25
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.125,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 311.024,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 90,
+          "maxAmount": 90,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "Oxidizer": {
+          "amount": 110,
+          "maxAmount": 110,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "2232534155",
+      "parentId": "1994127695",
+      "name": "noseCone",
+      "title": "Aerodynamic Nose Cone",
+      "position": {
+        "x": -1.007,
+        "y": -1.027,
+        "z": 1.007
+      },
+      "up": {
+        "x": 0.0,
+        "y": 1,
+        "z": -0.0
+      },
+      "forward": {
+        "x": 0.966,
+        "y": -0.0,
+        "z": 0.259
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 0.669,
+          "z": 1.25
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.306,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.03,
+      "inverseStage": 1,
+      "maxTemp": 2400,
+      "currentTemp": 311.037,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1330076678",
+      "parentId": "1994127695",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": {
+        "x": -1.325,
+        "y": -1.494,
+        "z": 0.455
+      },
+      "up": {
+        "x": 0.0,
+        "y": 1,
+        "z": 0.0
+      },
+      "forward": {
+        "x": -0.866,
+        "y": 0.0,
+        "z": 0.5
+      },
+      "bounds": {
+        "size": {
+          "x": 0.65,
+          "y": 0.185,
+          "z": 0.601
+        },
+        "center": {
+          "x": -0.265,
+          "y": 0.0,
+          "z": -0.243
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 311.028,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3253218808",
+      "parentId": "1994127695",
+      "name": "landingLeg1-2",
+      "title": "LT-2 Landing Strut",
+      "position": {
+        "x": -1.543,
+        "y": -1.979,
+        "z": 1.543
+      },
+      "up": {
+        "x": 0.406,
+        "y": 0.819,
+        "z": -0.406
+      },
+      "forward": {
+        "x": -0.579,
+        "y": 0.574,
+        "z": 0.579
+      },
+      "bounds": {
+        "size": {
+          "x": 0.494,
+          "y": 1.433,
+          "z": 1.152
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.742,
+          "z": 0.433
+        }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 311.049,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelDeployment",
+        "ModuleWheelLock",
+        "ModuleWheelBogey",
+        "ModuleWheelDamage",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "landingGear",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "468204950",
+      "parentId": "1994127695",
+      "name": "liquidEngine3.v2",
+      "title": "LV-909 \"Terrier\" Liquid Fuel Engine",
+      "position": {
+        "x": -1.007,
+        "y": -2.137,
+        "z": 1.007
+      },
+      "up": {
+        "x": -0.0,
+        "y": 1,
+        "z": 0.0
+      },
+      "forward": {
+        "x": 1.0,
+        "y": 0.0,
+        "z": -0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 1.269,
+          "y": 0.83,
+          "z": 1.269
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.403,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.5,
+      "inverseStage": 2,
+      "maxTemp": 2000,
+      "currentTemp": 311.04,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleGimbal",
+        "ModuleJettison",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "ModulePartVariants",
+        "FXModuleAnimateThrottle",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "Oxidizer": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "3428185198",
+      "parentId": "2711315345",
+      "name": "radialDecoupler",
+      "title": "TT-38K Radial Decoupler",
+      "position": {
+        "x": 0.449,
+        "y": -1.562,
+        "z": 0.449
+      },
+      "up": {
+        "x": -0.0,
+        "y": 1,
+        "z": -0.0
+      },
+      "forward": {
+        "x": 0.707,
+        "y": -0.0,
+        "z": -0.707
+      },
+      "bounds": {
+        "size": {
+          "x": 0.278,
+          "y": 1.134,
+          "z": 0.389
+        },
+        "center": {
+          "x": -0.088,
+          "y": 0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.025,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 310.997,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2488692454",
+      "parentId": "3428185198",
+      "name": "fuelTankSmall",
+      "title": "FL-T200 Fuel Tank",
+      "position": {
+        "x": 1.007,
+        "y": -1.582,
+        "z": 1.007
+      },
+      "up": {
+        "x": -0.0,
+        "y": 1,
+        "z": -0.0
+      },
+      "forward": {
+        "x": 0.707,
+        "y": -0.0,
+        "z": -0.707
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 1.166,
+          "z": 1.25
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.125,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 310.994,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 90,
+          "maxAmount": 90,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "Oxidizer": {
+          "amount": 110,
+          "maxAmount": 110,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "3371877404",
+      "parentId": "2488692454",
+      "name": "noseCone",
+      "title": "Aerodynamic Nose Cone",
+      "position": {
+        "x": 1.007,
+        "y": -1.027,
+        "z": 1.007
+      },
+      "up": {
+        "x": -0.0,
+        "y": 1,
+        "z": -0.0
+      },
+      "forward": {
+        "x": 0.259,
+        "y": 0.0,
+        "z": -0.966
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 0.669,
+          "z": 1.25
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.306,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.03,
+      "inverseStage": 1,
+      "maxTemp": 2400,
+      "currentTemp": 310.993,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3140947947",
+      "parentId": "2488692454",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": {
+        "x": 0.455,
+        "y": -1.494,
+        "z": 1.325
+      },
+      "up": {
+        "x": 0.0,
+        "y": 1,
+        "z": -0.0
+      },
+      "forward": {
+        "x": 0.5,
+        "y": 0.0,
+        "z": 0.866
+      },
+      "bounds": {
+        "size": {
+          "x": 0.65,
+          "y": 0.185,
+          "z": 0.601
+        },
+        "center": {
+          "x": -0.265,
+          "y": 0.0,
+          "z": -0.243
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 311.009,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2111000658",
+      "parentId": "2488692454",
+      "name": "landingLeg1-2",
+      "title": "LT-2 Landing Strut",
+      "position": {
+        "x": 1.543,
+        "y": -1.979,
+        "z": 1.543
+      },
+      "up": {
+        "x": -0.406,
+        "y": 0.819,
+        "z": -0.406
+      },
+      "forward": {
+        "x": 0.579,
+        "y": 0.574,
+        "z": 0.579
+      },
+      "bounds": {
+        "size": {
+          "x": 0.494,
+          "y": 1.433,
+          "z": 1.152
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.742,
+          "z": 0.433
+        }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 310.99,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelDeployment",
+        "ModuleWheelLock",
+        "ModuleWheelBogey",
+        "ModuleWheelDamage",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "landingGear",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1729488282",
+      "parentId": "2488692454",
+      "name": "liquidEngine3.v2",
+      "title": "LV-909 \"Terrier\" Liquid Fuel Engine",
+      "position": {
+        "x": 1.007,
+        "y": -2.137,
+        "z": 1.007
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": -1.0
+      },
+      "bounds": {
+        "size": {
+          "x": 1.269,
+          "y": 0.83,
+          "z": 1.269
+        },
+        "center": {
+          "x": -0.0,
+          "y": -0.403,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.5,
+      "inverseStage": 2,
+      "maxTemp": 2000,
+      "currentTemp": 310.984,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleGimbal",
+        "ModuleJettison",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "ModulePartVariants",
+        "FXModuleAnimateThrottle",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "Oxidizer": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1274965052",
+      "parentId": "2711315345",
+      "name": "sepMotor1",
+      "title": "Sepratron I",
+      "position": {
+        "x": 0.0,
+        "y": -1.669,
+        "z": -0.619
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      },
+      "bounds": {
+        "size": {
+          "x": 0.178,
+          "y": 0.538,
+          "z": 0.341
+        },
+        "center": {
+          "x": -0.0,
+          "y": -0.006,
+          "z": 0.097
+        }
+      },
+      "dryMass": 0.013,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 310.995,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "SolidFuel": {
+          "amount": 8,
+          "maxAmount": 8,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2038635063",
+      "parentId": "2711315345",
+      "name": "sepMotor1",
+      "title": "Sepratron I",
+      "position": {
+        "x": -0.619,
+        "y": -1.669,
+        "z": -0.0
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": -1.0,
+        "y": 0,
+        "z": -0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 0.178,
+          "y": 0.538,
+          "z": 0.341
+        },
+        "center": {
+          "x": -0.0,
+          "y": -0.006,
+          "z": 0.097
+        }
+      },
+      "dryMass": 0.013,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 311.013,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "SolidFuel": {
+          "amount": 8,
+          "maxAmount": 8,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "3079513789",
+      "parentId": "2711315345",
+      "name": "sepMotor1",
+      "title": "Sepratron I",
+      "position": {
+        "x": 0,
+        "y": -1.669,
+        "z": 0.619
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "bounds": {
+        "size": {
+          "x": 0.178,
+          "y": 0.538,
+          "z": 0.341
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.006,
+          "z": 0.097
+        }
+      },
+      "dryMass": 0.013,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 310.995,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "SolidFuel": {
+          "amount": 8,
+          "maxAmount": 8,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2276951078",
+      "parentId": "2711315345",
+      "name": "sepMotor1",
+      "title": "Sepratron I",
+      "position": {
+        "x": 0.619,
+        "y": -1.669,
+        "z": -0.0
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 1.0,
+        "y": 0,
+        "z": -0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 0.178,
+          "y": 0.538,
+          "z": 0.341
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.006,
+          "z": 0.097
+        }
+      },
+      "dryMass": 0.013,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 310.995,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "SolidFuel": {
+          "amount": 8,
+          "maxAmount": 8,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "171671576",
+      "parentId": "2711315345",
+      "name": "liquidEngine3.v2",
+      "title": "LV-909 \"Terrier\" Liquid Fuel Engine",
+      "position": {
+        "x": 0,
+        "y": -2.291,
+        "z": -0.0
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "bounds": {
+        "size": {
+          "x": 1.269,
+          "y": 0.83,
+          "z": 1.269
+        },
+        "center": {
+          "x": 0,
+          "y": -0.403,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.5,
+      "inverseStage": 0,
+      "maxTemp": 2000,
+      "currentTemp": 310.996,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleGimbal",
+        "ModuleJettison",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "ModulePartVariants",
+        "FXModuleAnimateThrottle",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "Oxidizer": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1976405985",
+      "parentId": "1081631934",
+      "name": "telescopicLadderBay",
+      "title": "Kelus-LV Bay Mobility Enhancer",
+      "position": {
+        "x": -0.0,
+        "y": -0.46,
+        "z": -1.164
+      },
+      "up": {
+        "x": -0.0,
+        "y": 1.0,
+        "z": 0.017
+      },
+      "forward": {
+        "x": -1.0,
+        "y": -0.0,
+        "z": 0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 1.052,
+          "y": 3.042,
+          "z": 0.51
+        },
+        "center": {
+          "x": 0.342,
+          "y": -1.177,
+          "z": 0.004
+        }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 311.16,
+      "category": "Utility",
+      "categoryOrdinal": 4,
+      "modules": [
+        "RetractableLadder",
+        "ModuleCargoPart",
+        "ModuleLight",
+        "RetractableLadderLightController",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3051145361",
+      "parentId": "1081631934",
+      "name": "rtg",
+      "title": "PB-NUK Radioisotope Thermoelectric Generator",
+      "position": {
+        "x": 0.0,
+        "y": -0.879,
+        "z": 1.025
+      },
+      "up": {
+        "x": 0.0,
+        "y": -0.982,
+        "z": 0.19
+      },
+      "forward": {
+        "x": -0.0,
+        "y": -0.19,
+        "z": -0.982
+      },
+      "bounds": {
+        "size": {
+          "x": 0.337,
+          "y": 0.656,
+          "z": 0.389
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.0,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.08,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 311.054,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleGenerator",
+        "ModuleCoreHeat",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": true
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "812063607",
+      "parentId": "1081631934",
+      "name": "rtg",
+      "title": "PB-NUK Radioisotope Thermoelectric Generator",
+      "position": {
+        "x": 1.025,
+        "y": -0.879,
+        "z": -0.0
+      },
+      "up": {
+        "x": 0.19,
+        "y": -0.982,
+        "z": -0.0
+      },
+      "forward": {
+        "x": -0.982,
+        "y": -0.19,
+        "z": 0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 0.337,
+          "y": 0.656,
+          "z": 0.389
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.08,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 311.054,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleGenerator",
+        "ModuleCoreHeat",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": true
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "790980968",
+      "parentId": "1081631934",
+      "name": "rtg",
+      "title": "PB-NUK Radioisotope Thermoelectric Generator",
+      "position": {
+        "x": -0.0,
+        "y": -0.879,
+        "z": -1.025
+      },
+      "up": {
+        "x": -0.0,
+        "y": -0.982,
+        "z": -0.19
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.19,
+        "z": 0.982
+      },
+      "bounds": {
+        "size": {
+          "x": 0.337,
+          "y": 0.656,
+          "z": 0.389
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.0,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.08,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 311.054,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleGenerator",
+        "ModuleCoreHeat",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": true
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1226135386",
+      "parentId": "1081631934",
+      "name": "rtg",
+      "title": "PB-NUK Radioisotope Thermoelectric Generator",
+      "position": {
+        "x": -1.025,
+        "y": -0.879,
+        "z": 0.0
+      },
+      "up": {
+        "x": -0.19,
+        "y": -0.982,
+        "z": 0.0
+      },
+      "forward": {
+        "x": 0.982,
+        "y": -0.19,
+        "z": -0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 0.337,
+          "y": 0.656,
+          "z": 0.389
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.08,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 311.067,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleGenerator",
+        "ModuleCoreHeat",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": true
+        }
+      },
+      "moduleStates": []
+    }
+  ]
+}

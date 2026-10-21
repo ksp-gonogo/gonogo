@@ -17,6 +17,8 @@ export const CRAFT_SET = [
   "learstar-a1",
   "butterfly-rover",
   "two-stage-lander",
+  "two-stage-lander-legs-retracted",
+  "seahawk-gear-up",
   "station-core",
   "station-core-panels-extended",
   "comsat-lx-fairing",

@@ -1,0 +1,2563 @@
+{
+  "parts": [
+    {
+      "id": "2354188357",
+      "parentId": null,
+      "name": "Mark2Cockpit",
+      "title": "Mk1 Inline Cockpit",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 1.938,
+          "z": 1.61
+        },
+        "center": {
+          "x": -0.0,
+          "y": -0.0,
+          "z": -0.18
+        }
+      },
+      "dryMass": 1,
+      "inverseStage": -1,
+      "maxTemp": 1100,
+      "currentTemp": 313.065,
+      "category": "Pods",
+      "categoryOrdinal": 6,
+      "modules": [
+        "ModuleCommand",
+        "ModuleReactionWheel",
+        "ModuleScienceExperiment",
+        "ModuleScienceContainer",
+        "FlagDecal",
+        "ModuleDataTransmitter",
+        "ModuleColorChanger",
+        "ModuleCargoPart",
+        "ModuleInventoryPart",
+        "MechJebCore",
+        "KOSNameTag",
+        "ModuleTripLogger"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": {
+          "amount": 50,
+          "maxAmount": 50,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "MonoPropellant": {
+          "amount": 0,
+          "maxAmount": 7.5,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "2981081139",
+      "parentId": "2354188357",
+      "name": "MK1CrewCabin",
+      "title": "Mk1 Crew Cabin",
+      "position": {
+        "x": 0,
+        "y": -1.875,
+        "z": 0.0
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 1.938,
+          "z": 1.25
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.91,
+      "inverseStage": -1,
+      "maxTemp": 1000,
+      "currentTemp": 313.07,
+      "category": "Utility",
+      "categoryOrdinal": 4,
+      "modules": [
+        "ModuleScienceExperiment",
+        "ModuleScienceContainer",
+        "ModuleDataTransmitter",
+        "ModuleColorChanger",
+        "ModuleCargoPart",
+        "ModuleInventoryPart",
+        "KOSNameTag",
+        "ModuleTripLogger"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3016476599",
+      "parentId": "2981081139",
+      "name": "wingConnector5",
+      "title": "Wing Connector Type E",
+      "position": {
+        "x": 0.0,
+        "y": -1.542,
+        "z": -1.085
+      },
+      "up": {
+        "x": 0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 2.0,
+          "y": 1.313,
+          "z": 0.188
+        },
+        "center": {
+          "x": -0.938,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.09,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "290886960",
+      "parentId": "3016476599",
+      "name": "StandardCtrlSrf",
+      "title": "Elevon 1",
+      "position": {
+        "x": 0.9,
+        "y": -1.941,
+        "z": -1.06
+      },
+      "up": {
+        "x": 0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": 0.062,
+        "z": 0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 1.825,
+          "y": 0.519,
+          "z": 0.188
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.216,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.1,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3375819161",
+      "parentId": "3016476599",
+      "name": "wingConnector5",
+      "title": "Wing Connector Type E",
+      "position": {
+        "x": 2.3,
+        "y": -1.542,
+        "z": -1.085
+      },
+      "up": {
+        "x": 0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 2.0,
+          "y": 1.313,
+          "z": 0.188
+        },
+        "center": {
+          "x": -0.938,
+          "y": -0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.087,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3166555224",
+      "parentId": "3375819161",
+      "name": "StandardCtrlSrf",
+      "title": "Elevon 1",
+      "position": {
+        "x": 3.3,
+        "y": -1.941,
+        "z": -1.06
+      },
+      "up": {
+        "x": 0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": -0.0,
+        "y": 0.062,
+        "z": 0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 1.825,
+          "y": 0.519,
+          "z": 0.188
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.216,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.119,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1477655918",
+      "parentId": "3375819161",
+      "name": "wingConnector5",
+      "title": "Wing Connector Type E",
+      "position": {
+        "x": 4.2,
+        "y": -1.542,
+        "z": -1.085
+      },
+      "up": {
+        "x": 0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 2.0,
+          "y": 1.313,
+          "z": 0.188
+        },
+        "center": {
+          "x": -0.938,
+          "y": -0.0,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.116,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1484274571",
+      "parentId": "1477655918",
+      "name": "StandardCtrlSrf",
+      "title": "Elevon 1",
+      "position": {
+        "x": 5.1,
+        "y": -1.941,
+        "z": -1.06
+      },
+      "up": {
+        "x": 0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": -0.0,
+        "y": 0.062,
+        "z": 0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 1.825,
+          "y": 0.519,
+          "z": 0.188
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.216,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.165,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1509647514",
+      "parentId": "1477655918",
+      "name": "miniFuselage",
+      "title": "Mk0 Liquid Fuel Fuselage",
+      "position": {
+        "x": 6.3,
+        "y": -1.542,
+        "z": -1.085
+      },
+      "up": {
+        "x": 0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 0.625,
+          "y": 1.0,
+          "z": 0.625
+        },
+        "center": {
+          "x": -0.0,
+          "y": -0.0,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.025,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.112,
+      "category": "Propulsion",
+      "categoryOrdinal": 0,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 50,
+          "maxAmount": 50,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "3080910768",
+      "parentId": "1509647514",
+      "name": "standardNoseCone",
+      "title": "Small Nose Cone",
+      "position": {
+        "x": 6.3,
+        "y": -0.825,
+        "z": -1.13
+      },
+      "up": {
+        "x": 0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": 0.062,
+        "z": 0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 0.625,
+          "y": 0.686,
+          "z": 0.625
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.062,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.108,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleAnimateHeat", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3010353824",
+      "parentId": "1509647514",
+      "name": "standardNoseCone",
+      "title": "Small Nose Cone",
+      "position": {
+        "x": 6.3,
+        "y": -2.259,
+        "z": -1.04
+      },
+      "up": {
+        "x": -0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "forward": {
+        "x": -0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 0.625,
+          "y": 0.686,
+          "z": 0.625
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.062,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.156,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleAnimateHeat", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "337328198",
+      "parentId": "3016476599",
+      "name": "nacelleBody",
+      "title": "Engine Nacelle",
+      "position": {
+        "x": 2.1,
+        "y": -1.686,
+        "z": -0.567
+      },
+      "up": {
+        "x": 0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": 1.0,
+        "y": -0.0,
+        "z": -0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 1.388,
+          "y": 1.938,
+          "z": 1.388
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.15,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.095,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleResourceIntake",
+        "ModuleAnimateHeat",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "IntakeAir": {
+          "amount": 5,
+          "maxAmount": 5,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "LiquidFuel": {
+          "amount": 120.0,
+          "maxAmount": 150,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1645338605",
+      "parentId": "337328198",
+      "name": "RotorEngine.02",
+      "title": "R121 Turboshaft Engine",
+      "position": {
+        "x": 2.1,
+        "y": -0.751,
+        "z": -0.626
+      },
+      "up": {
+        "x": 0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": 0.062,
+        "z": 0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 1.257,
+          "y": 0.879,
+          "z": 1.25
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.41,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.672,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.089,
+      "category": "Robotics",
+      "categoryOrdinal": 16,
+      "modules": [
+        "ModuleDynamicNodes",
+        "ModuleRoboticServoRotor",
+        "ModuleResourceIntake",
+        "ModuleAlternator",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "IntakeAir": {
+          "amount": 3,
+          "maxAmount": 3,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "ElectricCharge": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "397982647",
+      "parentId": "1645338605",
+      "name": "noseconeVS",
+      "title": "Very Small Nosecone",
+      "position": {
+        "x": 2.1,
+        "y": 0.09,
+        "z": -0.678
+      },
+      "up": {
+        "x": 0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": -0.904,
+        "y": 0.027,
+        "z": 0.426
+      },
+      "bounds": {
+        "size": {
+          "x": 0.417,
+          "y": 0.33,
+          "z": 0.417
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.152,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.004,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.082,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "145953661",
+      "parentId": "1645338605",
+      "name": "mediumPropeller",
+      "title": "Propeller Blade Type B",
+      "position": {
+        "x": 1.912,
+        "y": -0.008,
+        "z": -0.583
+      },
+      "up": {
+        "x": 0.427,
+        "y": 0.056,
+        "z": 0.903
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "bounds": {
+        "size": {
+          "x": 1.02,
+          "y": 0.182,
+          "z": 0.114
+        },
+        "center": {
+          "x": -0.495,
+          "y": 0.001,
+          "z": -0.008
+        }
+      },
+      "dryMass": 0.035,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.083,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2072234386",
+      "parentId": "1645338605",
+      "name": "mediumPropeller",
+      "title": "Propeller Blade Type B",
+      "position": {
+        "x": 2.189,
+        "y": -0.002,
+        "z": -0.484
+      },
+      "up": {
+        "x": 0.904,
+        "y": -0.027,
+        "z": -0.426
+      },
+      "forward": {
+        "x": -0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "bounds": {
+        "size": {
+          "x": 1.02,
+          "y": 0.182,
+          "z": 0.114
+        },
+        "center": {
+          "x": -0.495,
+          "y": 0.001,
+          "z": -0.008
+        }
+      },
+      "dryMass": 0.035,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.083,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1362923343",
+      "parentId": "1645338605",
+      "name": "mediumPropeller",
+      "title": "Propeller Blade Type B",
+      "position": {
+        "x": 2.288,
+        "y": -0.019,
+        "z": -0.761
+      },
+      "up": {
+        "x": -0.427,
+        "y": -0.056,
+        "z": -0.903
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "bounds": {
+        "size": {
+          "x": 1.02,
+          "y": 0.182,
+          "z": 0.114
+        },
+        "center": {
+          "x": -0.495,
+          "y": 0.001,
+          "z": -0.008
+        }
+      },
+      "dryMass": 0.035,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.093,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "391973873",
+      "parentId": "1645338605",
+      "name": "mediumPropeller",
+      "title": "Propeller Blade Type B",
+      "position": {
+        "x": 2.011,
+        "y": -0.026,
+        "z": -0.86
+      },
+      "up": {
+        "x": -0.904,
+        "y": 0.027,
+        "z": 0.426
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "bounds": {
+        "size": {
+          "x": 1.02,
+          "y": 0.182,
+          "z": 0.114
+        },
+        "center": {
+          "x": -0.495,
+          "y": 0.001,
+          "z": -0.008
+        }
+      },
+      "dryMass": 0.035,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.093,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1396026390",
+      "parentId": "337328198",
+      "name": "noseConeAdapter",
+      "title": "NCS Adapter",
+      "position": {
+        "x": 2.1,
+        "y": -3.371,
+        "z": -0.462
+      },
+      "up": {
+        "x": -0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "forward": {
+        "x": -0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 1.938,
+          "z": 1.25
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.187,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.1,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.107,
+      "category": "Propulsion",
+      "categoryOrdinal": 0,
+      "modules": ["ModuleAnimateHeat", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 64.0,
+          "maxAmount": 80,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1883052932",
+      "parentId": "1396026390",
+      "name": "standardNoseCone",
+      "title": "Small Nose Cone",
+      "position": {
+        "x": 2.1,
+        "y": -4.743,
+        "z": -0.376
+      },
+      "up": {
+        "x": -0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "forward": {
+        "x": -0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 0.625,
+          "y": 0.686,
+          "z": 0.625
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.062,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.11,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleAnimateHeat", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3634591423",
+      "parentId": "337328198",
+      "name": "GearSmall",
+      "title": "LY-35 Medium Landing Gear",
+      "position": {
+        "x": 2.1,
+        "y": -2.054,
+        "z": -0.043
+      },
+      "up": {
+        "x": 0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "forward": {
+        "x": 0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "bounds": {
+        "size": {
+          "x": 1.568,
+          "y": 1.26,
+          "z": 1.785
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.271,
+          "z": -0.024
+        }
+      },
+      "dryMass": 0.25,
+      "inverseStage": -1,
+      "maxTemp": 2600,
+      "currentTemp": 313.086,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelSteering",
+        "ModuleWheelBrakes",
+        "ModuleWheelDeployment",
+        "FXModuleConstrainPosition",
+        "FXModuleLookAtConstraint",
+        "ModuleStatusLight",
+        "ModuleTestSubject",
+        "ModuleLight",
+        "ModuleWheelDamage",
+        "ModuleDragModifier",
+        "ModuleDragModifier",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "landingGear",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1912835027",
+      "parentId": "2981081139",
+      "name": "wingConnector5",
+      "title": "Wing Connector Type E",
+      "position": {
+        "x": 0,
+        "y": -1.542,
+        "z": -1.085
+      },
+      "up": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": 0.062,
+        "z": 0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 2.0,
+          "y": 1.313,
+          "z": 0.188
+        },
+        "center": {
+          "x": -0.938,
+          "y": 0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.092,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "866238379",
+      "parentId": "1912835027",
+      "name": "StandardCtrlSrf",
+      "title": "Elevon 1",
+      "position": {
+        "x": -0.9,
+        "y": -1.941,
+        "z": -1.06
+      },
+      "up": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": -0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 1.825,
+          "y": 0.519,
+          "z": 0.188
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.216,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.11,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2655956944",
+      "parentId": "1912835027",
+      "name": "wingConnector5",
+      "title": "Wing Connector Type E",
+      "position": {
+        "x": -2.3,
+        "y": -1.542,
+        "z": -1.085
+      },
+      "up": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": 0.062,
+        "z": 0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 2.0,
+          "y": 1.313,
+          "z": 0.188
+        },
+        "center": {
+          "x": -0.938,
+          "y": -0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.064,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3951854883",
+      "parentId": "2655956944",
+      "name": "StandardCtrlSrf",
+      "title": "Elevon 1",
+      "position": {
+        "x": -3.3,
+        "y": -1.941,
+        "z": -1.06
+      },
+      "up": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": -0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 1.825,
+          "y": 0.519,
+          "z": 0.188
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.216,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.105,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2744153973",
+      "parentId": "2655956944",
+      "name": "wingConnector5",
+      "title": "Wing Connector Type E",
+      "position": {
+        "x": -4.2,
+        "y": -1.542,
+        "z": -1.085
+      },
+      "up": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": 0.062,
+        "z": 0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 2.0,
+          "y": 1.313,
+          "z": 0.188
+        },
+        "center": {
+          "x": -0.938,
+          "y": -0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.1,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2665994176",
+      "parentId": "2744153973",
+      "name": "StandardCtrlSrf",
+      "title": "Elevon 1",
+      "position": {
+        "x": -5.1,
+        "y": -1.941,
+        "z": -1.06
+      },
+      "up": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": -0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 1.825,
+          "y": 0.519,
+          "z": 0.188
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.216,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.158,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2527267426",
+      "parentId": "2744153973",
+      "name": "miniFuselage",
+      "title": "Mk0 Liquid Fuel Fuselage",
+      "position": {
+        "x": -6.3,
+        "y": -1.542,
+        "z": -1.085
+      },
+      "up": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": 0.062,
+        "z": 0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 0.625,
+          "y": 1.0,
+          "z": 0.625
+        },
+        "center": {
+          "x": -0.0,
+          "y": -0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.025,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.12,
+      "category": "Propulsion",
+      "categoryOrdinal": 0,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 50,
+          "maxAmount": 50,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "2831261280",
+      "parentId": "2527267426",
+      "name": "standardNoseCone",
+      "title": "Small Nose Cone",
+      "position": {
+        "x": -6.3,
+        "y": -0.825,
+        "z": -1.13
+      },
+      "up": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": -0.0,
+        "y": 0.062,
+        "z": 0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 0.625,
+          "y": 0.686,
+          "z": 0.625
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.062,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.111,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleAnimateHeat", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "909988095",
+      "parentId": "2527267426",
+      "name": "standardNoseCone",
+      "title": "Small Nose Cone",
+      "position": {
+        "x": -6.3,
+        "y": -2.259,
+        "z": -1.04
+      },
+      "up": {
+        "x": 0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 0.625,
+          "y": 0.686,
+          "z": 0.625
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.062,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.153,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleAnimateHeat", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1167217272",
+      "parentId": "1912835027",
+      "name": "nacelleBody",
+      "title": "Engine Nacelle",
+      "position": {
+        "x": -2.1,
+        "y": -1.686,
+        "z": -0.567
+      },
+      "up": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": -1.0,
+        "y": -0.0,
+        "z": -0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 1.388,
+          "y": 1.938,
+          "z": 1.388
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.15,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.102,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleResourceIntake",
+        "ModuleAnimateHeat",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "IntakeAir": {
+          "amount": 5,
+          "maxAmount": 5,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "LiquidFuel": {
+          "amount": 120.0,
+          "maxAmount": 150,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "2963231600",
+      "parentId": "1167217272",
+      "name": "RotorEngine.02",
+      "title": "R121 Turboshaft Engine",
+      "position": {
+        "x": -2.1,
+        "y": -0.751,
+        "z": -0.626
+      },
+      "up": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": -0.0,
+        "y": 0.062,
+        "z": 0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 1.257,
+          "y": 0.879,
+          "z": 1.25
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.41,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.672,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.095,
+      "category": "Robotics",
+      "categoryOrdinal": 16,
+      "modules": [
+        "ModuleDynamicNodes",
+        "ModuleRoboticServoRotor",
+        "ModuleResourceIntake",
+        "ModuleAlternator",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "IntakeAir": {
+          "amount": 3,
+          "maxAmount": 3,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        },
+        "ElectricCharge": {
+          "amount": 0,
+          "maxAmount": 0,
+          "flow": 0,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "53638056",
+      "parentId": "2963231600",
+      "name": "mediumPropeller",
+      "title": "Propeller Blade Type B",
+      "position": {
+        "x": -1.934,
+        "y": -0.022,
+        "z": -0.797
+      },
+      "up": {
+        "x": -0.602,
+        "y": -0.05,
+        "z": -0.797
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "bounds": {
+        "size": {
+          "x": 1.02,
+          "y": 0.182,
+          "z": 0.114
+        },
+        "center": {
+          "x": -0.495,
+          "y": -0.001,
+          "z": -0.008
+        }
+      },
+      "dryMass": 0.035,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.095,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2804083789",
+      "parentId": "2963231600",
+      "name": "mediumPropeller",
+      "title": "Propeller Blade Type B",
+      "position": {
+        "x": -2.225,
+        "y": -0.024,
+        "z": -0.838
+      },
+      "up": {
+        "x": -0.799,
+        "y": 0.038,
+        "z": 0.601
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "bounds": {
+        "size": {
+          "x": 1.02,
+          "y": 0.182,
+          "z": 0.114
+        },
+        "center": {
+          "x": -0.495,
+          "y": -0.001,
+          "z": -0.008
+        }
+      },
+      "dryMass": 0.035,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.09,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4176819409",
+      "parentId": "2963231600",
+      "name": "mediumPropeller",
+      "title": "Propeller Blade Type B",
+      "position": {
+        "x": -2.266,
+        "y": -0.006,
+        "z": -0.547
+      },
+      "up": {
+        "x": 0.602,
+        "y": 0.05,
+        "z": 0.797
+      },
+      "forward": {
+        "x": -0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "bounds": {
+        "size": {
+          "x": 1.02,
+          "y": 0.182,
+          "z": 0.114
+        },
+        "center": {
+          "x": -0.495,
+          "y": -0.001,
+          "z": -0.008
+        }
+      },
+      "dryMass": 0.035,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.084,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3962771322",
+      "parentId": "2963231600",
+      "name": "mediumPropeller",
+      "title": "Propeller Blade Type B",
+      "position": {
+        "x": -1.975,
+        "y": -0.003,
+        "z": -0.506
+      },
+      "up": {
+        "x": 0.799,
+        "y": -0.038,
+        "z": -0.601
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "bounds": {
+        "size": {
+          "x": 1.02,
+          "y": 0.182,
+          "z": 0.114
+        },
+        "center": {
+          "x": -0.495,
+          "y": -0.001,
+          "z": -0.008
+        }
+      },
+      "dryMass": 0.035,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.086,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2872493828",
+      "parentId": "2963231600",
+      "name": "noseconeVS",
+      "title": "Very Small Nosecone",
+      "position": {
+        "x": -2.1,
+        "y": 0.09,
+        "z": -0.678
+      },
+      "up": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": -0.799,
+        "y": 0.038,
+        "z": 0.601
+      },
+      "bounds": {
+        "size": {
+          "x": 0.417,
+          "y": 0.33,
+          "z": 0.417
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.152,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.004,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.088,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "802210952",
+      "parentId": "1167217272",
+      "name": "noseConeAdapter",
+      "title": "NCS Adapter",
+      "position": {
+        "x": -2.1,
+        "y": -3.371,
+        "z": -0.462
+      },
+      "up": {
+        "x": 0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 1.938,
+          "z": 1.25
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.187,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.1,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.122,
+      "category": "Propulsion",
+      "categoryOrdinal": 0,
+      "modules": ["ModuleAnimateHeat", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": {
+          "amount": 64.0,
+          "maxAmount": 80,
+          "flow": null,
+          "nominalFlow": null,
+          "unratedProcess": null
+        }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1132958383",
+      "parentId": "802210952",
+      "name": "standardNoseCone",
+      "title": "Small Nose Cone",
+      "position": {
+        "x": -2.1,
+        "y": -4.743,
+        "z": -0.376
+      },
+      "up": {
+        "x": 0.0,
+        "y": -0.998,
+        "z": 0.062
+      },
+      "forward": {
+        "x": 0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 0.625,
+          "y": 0.686,
+          "z": 0.625
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.062,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.128,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleAnimateHeat", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "155566204",
+      "parentId": "1167217272",
+      "name": "GearSmall",
+      "title": "LY-35 Medium Landing Gear",
+      "position": {
+        "x": -2.1,
+        "y": -2.054,
+        "z": -0.043
+      },
+      "up": {
+        "x": -0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "forward": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "bounds": {
+        "size": {
+          "x": 1.568,
+          "y": 1.24,
+          "z": 1.785
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.281,
+          "z": -0.024
+        }
+      },
+      "dryMass": 0.25,
+      "inverseStage": -1,
+      "maxTemp": 2600,
+      "currentTemp": 313.091,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelSteering",
+        "ModuleWheelBrakes",
+        "ModuleWheelDeployment",
+        "FXModuleConstrainPosition",
+        "FXModuleLookAtConstraint",
+        "ModuleStatusLight",
+        "ModuleTestSubject",
+        "ModuleLight",
+        "ModuleWheelDamage",
+        "ModuleDragModifier",
+        "ModuleDragModifier",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "landingGear",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1496639481",
+      "parentId": "1912835027",
+      "name": "sensorThermometer",
+      "title": "2HOT Thermometer",
+      "position": {
+        "x": -0.0,
+        "y": -1.337,
+        "z": -1.018
+      },
+      "up": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": -0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 0.091,
+          "y": 0.27,
+          "z": 0.074
+        },
+        "center": {
+          "x": -0.0,
+          "y": -0.002,
+          "z": -0.021
+        }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 313.085,
+      "category": "Science",
+      "categoryOrdinal": 5,
+      "modules": [
+        "ModuleEnviroSensor",
+        "ModuleScienceExperiment",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2456908164",
+      "parentId": "1912835027",
+      "name": "sensorBarometer",
+      "title": "PresMat Barometer",
+      "position": {
+        "x": 0.0,
+        "y": -1.739,
+        "z": -1.029
+      },
+      "up": {
+        "x": -0.0,
+        "y": 0.998,
+        "z": -0.062
+      },
+      "forward": {
+        "x": -0.0,
+        "y": -0.062,
+        "z": -0.998
+      },
+      "bounds": {
+        "size": {
+          "x": 0.175,
+          "y": 0.249,
+          "z": 0.127
+        },
+        "center": {
+          "x": -0.0,
+          "y": 0.007,
+          "z": -0.044
+        }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 313.084,
+      "category": "Science",
+      "categoryOrdinal": 5,
+      "modules": [
+        "ModuleEnviroSensor",
+        "ModuleScienceExperiment",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2565781241",
+      "parentId": "2981081139",
+      "name": "elevon2",
+      "title": "Elevon 2",
+      "position": {
+        "x": -0.6,
+        "y": -1.545,
+        "z": -0.448
+      },
+      "up": {
+        "x": -0.0,
+        "y": 1,
+        "z": 0.0
+      },
+      "forward": {
+        "x": -0.707,
+        "y": -0.0,
+        "z": 0.707
+      },
+      "bounds": {
+        "size": {
+          "x": 1.825,
+          "y": 0.747,
+          "z": 0.188
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.33,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.06,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.038,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1583951087",
+      "parentId": "2981081139",
+      "name": "elevon2",
+      "title": "Elevon 2",
+      "position": {
+        "x": 0.6,
+        "y": -1.545,
+        "z": -0.448
+      },
+      "up": {
+        "x": 0.0,
+        "y": 1,
+        "z": 0.0
+      },
+      "forward": {
+        "x": -0.707,
+        "y": 0.0,
+        "z": -0.707
+      },
+      "bounds": {
+        "size": {
+          "x": 1.825,
+          "y": 0.747,
+          "z": 0.188
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.33,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.06,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.038,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "836071207",
+      "parentId": "2981081139",
+      "name": "controller1000",
+      "title": "KAL-1000 Controller",
+      "position": {
+        "x": 0,
+        "y": -1.475,
+        "z": -0.6
+      },
+      "up": {
+        "x": 0.0,
+        "y": 1,
+        "z": -0.0
+      },
+      "forward": {
+        "x": -0.0,
+        "y": 0.0,
+        "z": 1
+      },
+      "bounds": {
+        "size": {
+          "x": 0.279,
+          "y": 0.417,
+          "z": 0.205
+        },
+        "center": {
+          "x": 0.0,
+          "y": -0.0,
+          "z": -0.053
+        }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.063,
+      "category": "Robotics",
+      "categoryOrdinal": 16,
+      "modules": ["ModuleRoboticController", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1264062159",
+      "parentId": "2981081139",
+      "name": "airplaneTailB",
+      "title": "Tail Connector B",
+      "position": {
+        "x": 0,
+        "y": -2.813,
+        "z": 0.0
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 4.709,
+          "z": 1.25
+        },
+        "center": {
+          "x": -0.0,
+          "y": -2.217,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.2,
+      "inverseStage": -1,
+      "maxTemp": 2200,
+      "currentTemp": 312.995,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleAnimateHeat", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2440584220",
+      "parentId": "1264062159",
+      "name": "winglet3",
+      "title": "Delta-Deluxe Winglet",
+      "position": {
+        "x": 0,
+        "y": -6.113,
+        "z": -0.9
+      },
+      "up": {
+        "x": -0.0,
+        "y": 1,
+        "z": -0.0
+      },
+      "forward": {
+        "x": -1.0,
+        "y": 0.0,
+        "z": -0.0
+      },
+      "bounds": {
+        "size": {
+          "x": 1.587,
+          "y": 2.254,
+          "z": 0.087
+        },
+        "center": {
+          "x": -0.27,
+          "y": 0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.078,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.014,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1959104864",
+      "parentId": "2981081139",
+      "name": "tailfin",
+      "title": "Tail Fin",
+      "position": {
+        "x": -0.1,
+        "y": -6.075,
+        "z": -0.5
+      },
+      "up": {
+        "x": 0.0,
+        "y": 1,
+        "z": 0.0
+      },
+      "forward": {
+        "x": 0.174,
+        "y": -0.0,
+        "z": 0.985
+      },
+      "bounds": {
+        "size": {
+          "x": 1.99,
+          "y": 2.575,
+          "z": 0.146
+        },
+        "center": {
+          "x": 0.876,
+          "y": 0.057,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.125,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.11,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3186504131",
+      "parentId": "2981081139",
+      "name": "tailfin",
+      "title": "Tail Fin",
+      "position": {
+        "x": 0.1,
+        "y": -6.075,
+        "z": -0.5
+      },
+      "up": {
+        "x": -0.0,
+        "y": 1,
+        "z": 0.0
+      },
+      "forward": {
+        "x": 0.174,
+        "y": 0.0,
+        "z": -0.985
+      },
+      "bounds": {
+        "size": {
+          "x": 1.99,
+          "y": 2.575,
+          "z": 0.146
+        },
+        "center": {
+          "x": 0.876,
+          "y": 0.057,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.125,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 313.104,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1272821204",
+      "parentId": "2354188357",
+      "name": "noseCone",
+      "title": "Aerodynamic Nose Cone",
+      "position": {
+        "x": 0,
+        "y": 0.938,
+        "z": -0.0
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "bounds": {
+        "size": {
+          "x": 1.25,
+          "y": 0.669,
+          "z": 1.25
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.306,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.03,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 312.942,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4160297490",
+      "parentId": "2354188357",
+      "name": "SmallGearBay",
+      "title": "LY-10 Small Landing Gear",
+      "position": {
+        "x": 0,
+        "y": 0.5,
+        "z": 0.6
+      },
+      "up": {
+        "x": 0.0,
+        "y": 0.087,
+        "z": -0.996
+      },
+      "forward": {
+        "x": 0.0,
+        "y": 0.996,
+        "z": 0.087
+      },
+      "bounds": {
+        "size": {
+          "x": 0.99,
+          "y": 1.003,
+          "z": 1.248
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.272,
+          "z": 0.055
+        }
+      },
+      "dryMass": 0.045,
+      "inverseStage": -1,
+      "maxTemp": 2600,
+      "currentTemp": 312.961,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelSteering",
+        "ModuleWheelBrakes",
+        "ModuleStatusLight",
+        "ModuleWheelDeployment",
+        "FXModuleConstrainPosition",
+        "FXModuleLookAtConstraint",
+        "ModuleTestSubject",
+        "ModuleLight",
+        "ModuleWheelDamage",
+        "ModuleDragModifier",
+        "ModuleDragModifier",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "landingGear",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "3451855062",
+      "parentId": "2354188357",
+      "name": "SurfAntenna",
+      "title": "Communotron 16-S",
+      "position": {
+        "x": -0.2,
+        "y": 0.8,
+        "z": -0.5
+      },
+      "up": {
+        "x": -0.707,
+        "y": -0.0,
+        "z": -0.707
+      },
+      "forward": {
+        "x": 0.707,
+        "y": 0.0,
+        "z": -0.707
+      },
+      "bounds": {
+        "size": {
+          "x": 1.196,
+          "y": 0.11,
+          "z": 0.12
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": -0.0
+        }
+      },
+      "dryMass": 0.015,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.045,
+      "category": "Communication",
+      "categoryOrdinal": 9,
+      "modules": ["ModuleDataTransmitter", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3224614016",
+      "parentId": "2354188357",
+      "name": "SurfAntenna",
+      "title": "Communotron 16-S",
+      "position": {
+        "x": 0.2,
+        "y": 0.8,
+        "z": -0.5
+      },
+      "up": {
+        "x": 0.707,
+        "y": -0.0,
+        "z": -0.707
+      },
+      "forward": {
+        "x": -0.707,
+        "y": -0.0,
+        "z": -0.707
+      },
+      "bounds": {
+        "size": {
+          "x": 1.196,
+          "y": 0.11,
+          "z": 0.12
+        },
+        "center": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      "dryMass": 0.015,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 313.045,
+      "category": "Communication",
+      "categoryOrdinal": 9,
+      "modules": ["ModuleDataTransmitter", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    }
+  ]
+}

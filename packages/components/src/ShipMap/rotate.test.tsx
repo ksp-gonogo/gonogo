@@ -41,6 +41,19 @@ function layoutOf(container: HTMLElement): string {
 }
 
 describe("the Ship Map rotate control", () => {
+  it("leaves the look of Reset and Turn to the kit's button, so hover and focus change them", async () => {
+    mount({ turn: 1 });
+    await screen.findByRole("button", { name: "Rotate view right" });
+    for (const name of [
+      "Reset view",
+      "Rotate view left",
+      "Rotate view right",
+    ]) {
+      const style = screen.getByRole("button", { name }).getAttribute("style");
+      expect(style ?? "", name).not.toMatch(/background|color|border/);
+    }
+  });
+
   it("turns the view a step each way and saves it in the widget's own config", async () => {
     const user = userEvent.setup();
     const { onConfigChange } = mount({ turn: 3 });

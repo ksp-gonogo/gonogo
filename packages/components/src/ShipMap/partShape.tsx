@@ -51,6 +51,20 @@ function domeHalfPoints(
 /** The share of a wing's chord cut from the leading edge at its tip. */
 const FIN_TIP_TAPER = 0.2;
 
+/** Shapes a part carries beyond its box, in the same pixel space as the box. */
+export interface PartMarks {
+  /** A folded leg's strut, between the two ends of a capsule `width` across. */
+  stowedStrut?: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    width: number;
+  };
+  /** Where a structural strut attaches. */
+  anchor?: { x: number; y: number };
+}
+
 export function renderPartShape(
   type: PartType,
   box: ScreenBox,
@@ -61,6 +75,7 @@ export function renderPartShape(
   outerSign: number,
   chuteState?: string,
   gearDown = true,
+  marks: PartMarks = {},
 ) {
   const stroke = isHot
     ? "var(--color-tag-yellow-fg)"
@@ -276,6 +291,22 @@ export function renderPartShape(
     case "gear": {
       // Folded away, a leg or gear shows only the box it folds into.
       if (!gearDown) {
+        const strut = marks.stowedStrut;
+        if (strut) {
+          return (
+            <line
+              data-role="gear-stowed"
+              x1={strut.x1}
+              y1={strut.y1}
+              x2={strut.x2}
+              y2={strut.y2}
+              stroke={fill}
+              strokeWidth={Math.max(strut.width, 2 / zoom)}
+              strokeLinecap="round"
+              opacity={opacity}
+            />
+          );
+        }
         return (
           <rect
             x={x}
@@ -298,7 +329,8 @@ export function renderPartShape(
       const x1 = vertical ? cx : x;
       const y1 = vertical ? y : cy;
       const x2 = vertical ? cx : x + long;
-      const y2 = vertical ? y + h : cy;
+      // The strut ends at the middle of the foot, so its round cap stays under it.
+      const y2 = vertical ? y + h - footR : cy;
       return (
         <g>
           <rect
@@ -322,7 +354,7 @@ export function renderPartShape(
           <circle
             data-role="gear-foot"
             cx={x2}
-            cy={y2 - (vertical ? footR : 0)}
+            cy={y2}
             r={footR}
             fill={fill}
             stroke={stroke}
@@ -330,6 +362,50 @@ export function renderPartShape(
             opacity={opacity}
           />
         </g>
+      );
+    }
+    case "docking-port": {
+      // A collar with its capture face inset in it, lighter than the body.
+      const inset = Math.min(w, h) * 0.22;
+      return (
+        <g data-role="docking-port">
+          <rect
+            x={x}
+            y={y}
+            width={w}
+            height={h}
+            rx={Math.min(w, h) * 0.12}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            opacity={opacity}
+          />
+          <rect
+            x={x + inset}
+            y={y + inset}
+            width={Math.max(w - inset * 2, 0)}
+            height={Math.max(h - inset * 2, 0)}
+            rx={Math.min(w, h) * 0.08}
+            fill="var(--color-text-primary)"
+            opacity={0.35}
+          />
+        </g>
+      );
+    }
+    case "strut": {
+      // A strut is a link to a part the wire does not name, so only where it attaches is drawn.
+      const at = marks.anchor;
+      return (
+        <circle
+          data-role="strut-anchor"
+          cx={at?.x ?? cx}
+          cy={at?.y ?? cy}
+          r={2.5 / zoom}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          opacity={opacity}
+        />
       );
     }
     case "fairing":

@@ -232,3 +232,83 @@ describe("captured two-stage lander", () => {
     expect(count(/data-role="gear-stand"/g)).toBe(0);
   });
 });
+
+describe("captured two-stage lander with its legs stowed", () => {
+  const parts = craftParts(wireOf("two-stage-lander-legs-retracted"));
+  const legs = parts.filter((p) => p.type === "gear");
+  const svg = renderShipMapToSvg(parts);
+
+  it("draws each stowed leg as the thin strut it is, upright against the tank", () => {
+    expect(legs).toHaveLength(4);
+    for (const leg of legs) {
+      const strut = leg.stowedStrut;
+      expect(strut, leg.name).toBeDefined();
+      if (!strut) continue;
+      const length = Math.hypot(strut.x2 - strut.x1, strut.y2 - strut.y1);
+      expect(length + strut.width, leg.name).toBeLessThan(1.8);
+      expect(strut.width, leg.name).toBeLessThan(0.55);
+      // The leg folds up along the lander, so on screen it stands within 10 degrees of upright.
+      const sin = Math.sin(leg.rotationRad);
+      const cos = Math.cos(leg.rotationRad);
+      const lat = (strut.x2 - strut.x1) * cos + (strut.y2 - strut.y1) * sin;
+      const axial = -(strut.x2 - strut.x1) * sin + (strut.y2 - strut.y1) * cos;
+      expect(Math.abs(lat) / Math.hypot(lat, axial), leg.name).toBeLessThan(
+        Math.sin((10 * Math.PI) / 180),
+      );
+    }
+  });
+
+  it("draws the stowed legs solid, not as the dashed outline of the box they fold into", () => {
+    expect((svg.match(/data-role="gear-stowed"/g) ?? []).length).toBe(4);
+    expect(svg).not.toMatch(/<rect[^>]*stroke-dasharray/);
+  });
+});
+
+describe("captured two-stage lander legs", () => {
+  it("ends each strut inside its foot, so no cap pokes out as a second dot", () => {
+    const svg = renderShipMapToSvg(craftParts(wireOf("two-stage-lander")));
+    const pairs = [
+      ...svg.matchAll(
+        /<line [^>]*x2="([^"]+)" y2="([^"]+)"[^>]*stroke-width="([^"]+)"[^>]*><\/line><circle data-role="gear-foot" cx="([^"]+)" cy="([^"]+)" r="([^"]+)"/g,
+      ),
+    ].map((m) => m.slice(1).map(Number));
+    expect(pairs).toHaveLength(4);
+    for (const [x2, y2, width, cx, cy, r] of pairs) {
+      expect(Math.hypot(x2 - cx, y2 - cy) + width / 2).toBeLessThanOrEqual(
+        r + 1e-6,
+      );
+    }
+  });
+});
+
+describe("captured docking port", () => {
+  const parts = craftParts(wireOf("two-stage-lander"));
+  const port = parts.find((p) => p.name === "dockingPort2");
+
+  it("is a port, not a decoupler, so it is neither the staging colour nor a stage line", () => {
+    expect(port?.type).toBe("docking-port");
+    expect(project(parts).stages).not.toContain(port?.axial);
+    const svg = renderShipMapToSvg(parts);
+    const drawn = svg.match(/<g data-role="docking-port"[\s\S]*?<\/g>/)?.[0];
+    expect(drawn).toBeDefined();
+    expect(drawn).not.toContain("--color-warn-mark");
+  });
+
+  it("is drawn at the size of its mesh box", () => {
+    expect(port?.latHalfExtent).toBeCloseTo(0.576, 2);
+    expect(port?.axialHalfExtent).toBeCloseTo(0.288, 2);
+  });
+});
+
+describe("captured Learstar orbiter turned", () => {
+  it.each([
+    0, 1, 2, 5, 6, 7,
+  ])("draws its three structural struts as an attachment mark at step %i, not as a loose box", (turn) => {
+    const parts = craftParts(wireOf("learstar-orbiter"), turn);
+    const struts = parts.filter((p) => p.name === "strutConnector");
+    expect(struts).toHaveLength(3);
+    for (const strut of struts) expect(strut.type).toBe("strut");
+    const svg = renderShipMapToSvg(parts);
+    expect((svg.match(/data-role="strut-anchor"/g) ?? []).length).toBe(3);
+  });
+});

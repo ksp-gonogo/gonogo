@@ -23,6 +23,10 @@ export type PartType =
   /** Landing legs and landing gear: a strut with a foot, since the mesh box also holds the folded strut. */
   | "gear"
   | "fuel-line"
+  /** A docking port: a collar at the end of a part, not a stage separator. */
+  | "docking-port"
+  /** A structural strut: a link between two parts, whose mesh box is the unstretched model and says nothing of the link. */
+  | "strut"
   /** A closed fairing: a shell over the parts it covers, drawn last so they show through it. */
   | "fairing"
   /** Launch clamps: pad towers that fall away at liftoff, drawn as a faint outline rather than a part. */
@@ -63,6 +67,15 @@ export interface ShipMapPart {
    * part that is not a plate, which is drawn as a plain box.
    */
   tipSign?: 1 | -1;
+  /**
+   * For a landing leg or gear with its strut folded away: the stowed strut
+   * as a capsule, in metres in the drawn box's frame (x across, y up the
+   * box, from the box centre). Absent when the part is not a thin strut
+   * (a wheel folded into a bay), which is drawn as the outline of its box.
+   */
+  stowedStrut?: StowedStrut;
+  /** For a structural strut: where it attaches, in metres in the drawn box's frame from the box centre. */
+  anchor?: { x: number; y: number };
   /** `Part.mass` from topology: dry mass, no resources. Null when unread. */
   dryMass: number | null;
   /** `Part.inverseStage` from topology. Null when unread. */
@@ -85,6 +98,15 @@ export interface ShipMapPart {
    * means unknown, not all retracted.
    */
   partState?: PartStateModule[];
+}
+
+/** A folded leg's strut: a capsule of diameter `width` between two points, in metres in the drawn box's frame (x across, y up). */
+export interface StowedStrut {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  width: number;
 }
 
 export type {
@@ -215,6 +237,42 @@ export function lateralOf(v: Vec3, view: number): number {
 /** The depth component, along the view direction, of a vessel-frame vector in a view turned `view` radians about the spine. */
 export function depthOf(v: Vec3, view: number): number {
   return -v.x * Math.sin(view) + v.z * Math.cos(view);
+}
+
+/** A folded strut is thin when its thinnest side is under this share of its middle side. */
+const STOWED_STRUT_THINNESS = 0.5;
+
+/**
+ * The strut of a folded landing leg inside its mesh box. The leg is a stick
+ * lying in the plane of the box's two longest sides, hinged at the part's
+ * origin, so it runs corner to corner from the one nearest the origin; its
+ * thickness is the third side. A capsule of that diameter fits the box when
+ * its ends sit half a diameter in from the corners. Null when the thinnest
+ * side is not much thinner than the middle one, which is a wheel in its bay.
+ * Points are returned in part-local metres from the box centre.
+ */
+function stowedStrutLocal(
+  size: Vec3,
+  centre: Vec3,
+): { from: Vec3; to: Vec3; width: number } | null {
+  const sides = (["x", "y", "z"] as const)
+    .map((axis) => ({ axis, size: size[axis] }))
+    .sort((a, b) => b.size - a.size);
+  const [long, middle, thin] = sides;
+  if (thin.size > middle.size * STOWED_STRUT_THINNESS) return null;
+  const from: Vec3 = { x: 0, y: 0, z: 0 };
+  const to: Vec3 = { x: 0, y: 0, z: 0 };
+  for (const side of [long, middle]) {
+    const lo = centre[side.axis] - side.size / 2;
+    const hi = centre[side.axis] + side.size / 2;
+    // The face nearer the origin is where the leg is hinged.
+    const [near, far] = Math.abs(lo) <= Math.abs(hi) ? [lo, hi] : [hi, lo];
+    const inset = Math.min(thin.size / 2, side.size / 2);
+    const toward = Math.sign(far - near);
+    from[side.axis] = near + toward * inset - centre[side.axis];
+    to[side.axis] = far - toward * inset - centre[side.axis];
+  }
+  return { from, to, width: thin.size };
 }
 
 interface Planform {
@@ -352,6 +410,33 @@ export function buildShipMapPart(
     (size.y / 2) * Math.abs(dLat * latOf(axes.up) + dAxial * axes.up.y) +
     (size.z / 2) *
       Math.abs(dLat * latOf(axes.forward) + dAxial * axes.forward.y);
+  /* A point in the part's own frame, relative to its box centre, as a position in the drawn box's frame: turned into the diagram plane, then back through the part's own on-screen rotation. */
+  const inBoxFrame = (local: Vec3) => {
+    const v = rotate(axes, local);
+    const screenLat = latOf(v);
+    return {
+      x: screenLat * cos - v.y * sin,
+      y: screenLat * sin + v.y * cos,
+    };
+  };
+  const centre = part.bounds.center ?? { x: 0, y: 0, z: 0 };
+  const stowed = type === "gear" ? stowedStrutLocal(size, centre) : null;
+  let stowedStrut: StowedStrut | undefined;
+  if (stowed) {
+    const from = inBoxFrame(stowed.from);
+    const to = inBoxFrame(stowed.to);
+    stowedStrut = {
+      x1: from.x,
+      y1: from.y,
+      x2: to.x,
+      y2: to.y,
+      width: stowed.width,
+    };
+  }
+  const anchor =
+    type === "strut"
+      ? inBoxFrame({ x: -centre.x, y: -centre.y, z: -centre.z })
+      : undefined;
   return {
     flightId: part.flightId,
     parentFlightId: part.parentFlightId,
@@ -369,6 +454,8 @@ export function buildShipMapPart(
     latHalfExtent: halfExtentAlong(cos, -sin),
     axialHalfExtent: halfExtentAlong(sin, cos),
     tipSign: planform?.tipSign,
+    stowedStrut,
+    anchor,
     dryMass: part.dryMass,
     stage: part.inverseStage,
     maxTemp: part.maxTemp,

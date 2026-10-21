@@ -8428,7 +8428,7 @@
       },
       {
         "key": "sitrep-sdk . ShipMapPartType",
-        "note": "gear, fairing and clamp join the shapes a part can be drawn as"
+        "note": "gear, fairing, clamp, docking-port and strut join the shapes a part can be drawn as"
       },
       {
         "key": "sitrep-sdk . SlotRegistry#\"administration-building.screen-body\"",
@@ -10308,7 +10308,7 @@
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartType",
-        "note": "gear, fairing and clamp join the shapes a part can be drawn as"
+        "note": "gear, fairing, clamp, docking-port and strut join the shapes a part can be drawn as"
       },
       {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"administration-building.screen-body\"",

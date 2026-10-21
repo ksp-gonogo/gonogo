@@ -43,6 +43,8 @@ export function classifyPart(
   // Landing legs and landing gear fold away on a strut; a driven wheel is a disc.
   const hasGearStrut = modules.some((m) => m.includes("ModuleWheelDeployment"));
   const isFuelLine = modules.some((m) => m.includes("CModuleFuelLine"));
+  const isStrut = modules.some((m) => m.includes("CModuleStrut"));
+  const isDockingPort = modules.some((m) => m.includes("ModuleDockingNode"));
 
   const hasSolidFuel =
     !!resources &&
@@ -60,6 +62,8 @@ export function classifyPart(
   if (hasWheel) return hasGearStrut ? "gear" : "wheel";
   // Fuel-line bounds wrap the whole conduit run, so they bail out before the resource-based tank fallback.
   if (isFuelLine) return "fuel-line";
+  if (isStrut) return "strut";
+  if (isDockingPort) return "docking-port";
   if (hasDecouple) return "decoupler";
   if (hasRCSMod) return "rcs";
   if (hasCommand) return "capsule";

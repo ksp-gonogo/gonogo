@@ -5,7 +5,12 @@ import { styled } from "styled-components";
 import { chuteStateOf } from "./partChute";
 import { partAriaLabel, renderResourceFill } from "./partMeters";
 import { renderPartStateOverlays } from "./partOverlays";
-import { colorFor, heatTintFor, renderPartShape } from "./partShape";
+import {
+  colorFor,
+  heatTintFor,
+  type PartMarks,
+  renderPartShape,
+} from "./partShape";
 import type { ShipDiagramSvgProps } from "./ShipDiagramSvg";
 import type { ProjectedPart } from "./shipLayout";
 import type { ShipMapPartMeterEntry } from "./shipTopology";
@@ -60,6 +65,25 @@ export function ShipPartGroup({
       m.type === "landingGear" &&
       (m.state === "retracted" || m.state === "retracting"),
   );
+  const pxPerMetre = Math.abs(toBase(1, 0).x - toBase(0, 0).x);
+  // A point in the drawn box's frame, in metres from its centre with y up, as a point in the diagram.
+  const inBox = (x: number, y: number) => ({
+    x: center.x + x * pxPerMetre,
+    y: center.y - y * pxPerMetre,
+  });
+  const marks: PartMarks = {};
+  if (p.stowedStrut) {
+    const from = inBox(p.stowedStrut.x1, p.stowedStrut.y1);
+    const to = inBox(p.stowedStrut.x2, p.stowedStrut.y2);
+    marks.stowedStrut = {
+      x1: from.x,
+      y1: from.y,
+      x2: to.x,
+      y2: to.y,
+      width: p.stowedStrut.width * pxPerMetre,
+    };
+  }
+  if (p.anchor) marks.anchor = inBox(p.anchor.x, p.anchor.y);
   const showFuel = p.type === "tank" || p.type === "booster";
 
   // Screen-space centre of this part, the anchor for the focus tooltip and the action popover.
@@ -112,6 +136,7 @@ export function ShipPartGroup({
         outerSign,
         chuteStateOf(p.partState),
         gearDown,
+        marks,
       )}
       {renderPartStateOverlays(p.partState, box, cam.zoom, throttle)}
       {tint && (

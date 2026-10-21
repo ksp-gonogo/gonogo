@@ -1,7 +1,7 @@
 import {
+  Button,
   Floating,
   PanZoomViewport,
-  TextButton,
   useElementSize,
   usePanZoom,
 } from "@ksp-gonogo/ui-kit";
@@ -141,41 +141,45 @@ export function ShipDiagram({
       label="Ship diagram view"
       onMouseMove={onWrapperMouseMove}
     >
-      <TextButton
+      <Button
+        size="sm"
         type="button"
         onClick={resetView}
         aria-label="Reset view"
         style={RESET_BUTTON}
       >
         Reset
-      </TextButton>
+      </Button>
       {onTurn && width >= ROTATE_MIN_WIDTH && (
         <div style={ROTATE_GROUP}>
-          <TextButton
+          <Button
+            size="sm"
             type="button"
             onClick={() => onTurn(turn - 1)}
             aria-label="Rotate view left"
             style={ROTATE_BUTTON}
           >
             {"Turn <"}
-          </TextButton>
-          <TextButton
+          </Button>
+          <Button
+            size="sm"
             type="button"
             onClick={() => onTurn(turn + 1)}
             aria-label="Rotate view right"
             style={ROTATE_BUTTON}
           >
             {"Turn >"}
-          </TextButton>
+          </Button>
           {turn !== 0 && (
-            <TextButton
+            <Button
+              size="sm"
               type="button"
               onClick={() => onTurn(0)}
               aria-label="Default view angle"
               style={ROTATE_BUTTON}
             >
               Default
-            </TextButton>
+            </Button>
           )}
         </div>
       )}
@@ -248,13 +252,6 @@ const RESET_BUTTON: CSSProperties = {
   left: "6px",
   // Local ordering inside Root, above the diagram svg.
   zIndex: 10,
-  fontSize: "var(--font-size-compact)",
-  padding: "var(--inset-control)",
-  background: "var(--color-surface-raised)",
-  color: "var(--color-go-text)",
-  border: "1px solid var(--color-border-strong)",
-  borderRadius: "var(--radius-regular)",
-  textDecoration: "none",
 };
 
 const ROTATE_GROUP: CSSProperties = {
