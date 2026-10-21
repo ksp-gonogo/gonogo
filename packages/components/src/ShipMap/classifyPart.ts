@@ -27,9 +27,21 @@ export function classifyPart(
       m.includes("AeroSurface") ||
       m.includes("ControlSurface"),
   );
-  // Cargo bays carry ModuleLiftingSurface for body lift but are boxes, not wings.
+  /*
+   * Mk2 and Mk3 fuselages, cabins, cockpits and docking ports, cargo bays and
+   * heat shields all carry ModuleLiftingSurface for body lift, and are boxes,
+   * not wings. A lifting surface is a wing or fin only on an aerodynamic part;
+   * a part with no category at all keeps the module as the evidence.
+   */
+  const isAeroPart =
+    part.categoryOrdinal == null ||
+    part.categoryOrdinal === KspPartCategory.Aero;
   const hasCargoBay = modules.some((m) => m.includes("CargoBay"));
+  const isFairing = modules.some((m) => m.includes("ProceduralFairing"));
+  const isLaunchClamp = modules.some((m) => m.includes("LaunchClamp"));
   const hasWheel = modules.some((m) => m.includes("ModuleWheelBase"));
+  // Landing legs and landing gear fold away on a strut; a driven wheel is a disc.
+  const hasGearStrut = modules.some((m) => m.includes("ModuleWheelDeployment"));
   const isFuelLine = modules.some((m) => m.includes("CModuleFuelLine"));
 
   const hasSolidFuel =
@@ -41,9 +53,11 @@ export function classifyPart(
   // Nose cones share the Aero category with wings but not the shape, and have no dedicated module.
   const isNoseCone = part.name.toLowerCase().includes("nose");
 
+  if (isLaunchClamp) return "clamp";
+  if (isFairing) return "fairing";
   if (hasEngine && hasSolidFuel) return "booster";
   if (hasEngine) return "engine";
-  if (hasWheel) return "wheel";
+  if (hasWheel) return hasGearStrut ? "gear" : "wheel";
   // Fuel-line bounds wrap the whole conduit run, so they bail out before the resource-based tank fallback.
   if (isFuelLine) return "fuel-line";
   if (hasDecouple) return "decoupler";
@@ -52,7 +66,7 @@ export function classifyPart(
   if (hasSolar) return "solar";
   if (hasParachute) return "parachute";
   if (isNoseCone) return "nose-cone";
-  if (hasFin && !hasCargoBay) return "fin";
+  if (hasFin && isAeroPart && !hasCargoBay) return "fin";
   if (hasAnyResource) return "tank";
 
   // Fall back to KSP's `PartCategories` enum, then name/title heuristics.

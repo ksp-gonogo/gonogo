@@ -7516,13 +7516,10 @@ namespace Gonogo.KSP
         /// drills (<see cref="ModuleResourceHarvester"/>'s inherited
         /// <c>BaseConverter.IsActivated</c>), and landing gear
         /// (<c>ModuleWheels.ModuleWheelDeployment.stateString</c>, the wheel
-        /// FSM's own state name). <c>cargoBay</c> (a defined
-        /// <c>PartStateModule.type</c> vocabulary value) is deliberately not
-        /// captured: <c>ModuleCargoBay</c> delegates its deploy animation to
-        /// a configurable <c>IScalarModule</c> index rather than exposing a
-        /// direct state field/enum, so there is no single decompile-stable
-        /// API to read (flagged rather than guessed, matching this mod's
-        /// existing "FLAG explicitly" convention for unresolved APIs).
+        /// FSM's own state name), and cargo bays (<see cref="MapCargoBayState"/>:
+        /// <c>ModuleCargoBay</c> has no state field of its own, it points at
+        /// the <c>IScalarModule</c> that animates its doors, so the state is
+        /// that module's position against the bay's <c>closedPosition</c>).
         /// </summary>
         private static List<object?> BuildPartModuleStates(Part part)
         {
@@ -7719,6 +7716,30 @@ namespace Gonogo.KSP
                 GonogoLog.WarnLimited("vessel.parts moduleStates landing gear read failed, skipping", ex);
             }
 
+            try
+            {
+                var bays = part.Modules.GetModules<ModuleCargoBay>();
+                if (bays != null)
+                {
+                    foreach (var bay in bays)
+                    {
+                        if (bay == null)
+                        {
+                            continue;
+                        }
+                        var bayState = MapCargoBayState(part, bay);
+                        if (bayState != null)
+                        {
+                            result.Add(ModuleStateEntry("cargoBay", bayState));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                GonogoLog.WarnLimited("vessel.parts moduleStates cargo bay read failed, skipping", ex);
+            }
+
             return result;
         }
 
@@ -7751,6 +7772,49 @@ namespace Gonogo.KSP
                     // "broken" state (only the parachute bucket does).
                     return "unknown";
             }
+        }
+
+        /// <summary>
+        /// A cargo bay's doors from the position of the <c>IScalarModule</c> its
+        /// <c>DeployModuleIndex</c> names, against <c>closedPosition</c>: at it the
+        /// bay is "retracted" (closed), at the opposite end "extended" (open). While
+        /// the doors move, a <c>ModuleAnimateGeneric</c> says which way: its
+        /// <c>animSwitch</c> is true when the toggle last sent it back to its start
+        /// pose, which is the closed pose when <c>closedPosition</c> is 0. A module
+        /// that is not a <c>ModuleAnimateGeneric</c> gives no direction, and a
+        /// position between the two ends with nothing moving is "unknown". Null when
+        /// the bay has no animated doors to read: a procedural fairing carries a
+        /// <c>ModuleCargoBay</c> whose deploy index names no scalar module.
+        /// </summary>
+        private static string? MapCargoBayState(Part part, ModuleCargoBay bay)
+        {
+            var scalar = part.Modules.GetModule(bay.DeployModuleIndex) as IScalarModule;
+            if (scalar == null)
+            {
+                return null;
+            }
+
+            if (scalar.IsMoving())
+            {
+                var animate = scalar as ModuleAnimateGeneric;
+                if (animate == null)
+                {
+                    return "unknown";
+                }
+                var closing = animate.animSwitch == (bay.closedPosition < 0.5f);
+                return closing ? "retracting" : "deploying";
+            }
+
+            var position = scalar.GetScalar;
+            if (Math.Abs(position - bay.closedPosition) < 0.01f)
+            {
+                return "retracted";
+            }
+            if (Math.Abs(position - (1f - bay.closedPosition)) < 0.01f)
+            {
+                return "extended";
+            }
+            return "unknown";
         }
 
         private static string MapParachuteState(ModuleParachute.deploymentStates state)

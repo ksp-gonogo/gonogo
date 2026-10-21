@@ -8427,6 +8427,10 @@
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
       },
       {
+        "key": "sitrep-sdk . ShipMapPartType",
+        "note": "gear, fairing and clamp join the shapes a part can be drawn as"
+      },
+      {
         "key": "sitrep-sdk . SlotRegistry#\"administration-building.screen-body\"",
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
@@ -10301,6 +10305,10 @@
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartMetaEntry#value?",
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartType",
+        "note": "gear, fairing and clamp join the shapes a part can be drawn as"
       },
       {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"administration-building.screen-body\"",

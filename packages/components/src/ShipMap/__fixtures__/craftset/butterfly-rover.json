@@ -1,0 +1,1052 @@
+{
+  "parts": [
+    {
+      "id": "913140373",
+      "parentId": null,
+      "name": "mk2LanderCabin.v2",
+      "title": "Mk2 Lander Can",
+      "position": { "x": 0, "y": 0, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 1.282, "z": 2.824 },
+        "center": { "x": 0.0, "y": 0.212, "z": -0.016 }
+      },
+      "dryMass": 1.261,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 312.462,
+      "category": "Pods",
+      "categoryOrdinal": 6,
+      "modules": [
+        "ModuleCommand",
+        "ModuleReactionWheel",
+        "ModuleColorChanger",
+        "ModuleScienceExperiment",
+        "ModuleScienceContainer",
+        "FlagDecal",
+        "ModuleDataTransmitter",
+        "ModuleProbeControlPoint",
+        "ModulePartVariants",
+        "ModuleAnimateGeneric",
+        "ModuleCargoPart",
+        "ModuleInventoryPart",
+        "MechJebCore",
+        "KOSNameTag",
+        "ModuleTripLogger"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 100, "maxAmount": 100 },
+        "MonoPropellant": { "amount": 0, "maxAmount": 40 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "3879288709",
+      "parentId": "913140373",
+      "name": "telescopicLadderBay",
+      "title": "Kelus-LV Bay Mobility Enhancer",
+      "position": { "x": -0.0, "y": -0.402, "z": -1.3 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": -1.0, "y": 0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.998, "y": 0.23, "z": 0.51 },
+        "center": { "x": 0.369, "y": 0.091, "z": 0.004 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.396,
+      "category": "Utility",
+      "categoryOrdinal": 4,
+      "modules": [
+        "RetractableLadder",
+        "ModuleCargoPart",
+        "ModuleLight",
+        "RetractableLadderLightController",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1124373719",
+      "parentId": "913140373",
+      "name": "smallCargoContainer",
+      "title": "SEQ-3 Cargo Storage Unit",
+      "position": { "x": -0.6, "y": 0, "z": -1 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.538, "y": 0.702, "z": 0.538 },
+        "center": { "x": -0.0, "y": -0.0, "z": 0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 312.368,
+      "category": "Cargo",
+      "categoryOrdinal": 15,
+      "modules": ["ModuleCargoPart", "ModuleInventoryPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4225657231",
+      "parentId": "1124373719",
+      "name": "longAntenna",
+      "title": "Communotron 16",
+      "position": { "x": -0.7, "y": 0.7, "z": -1 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.078, "y": 0.418, "z": 0.068 },
+        "center": { "x": 0.0, "y": 0.177, "z": 0.0 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.415,
+      "category": "Communication",
+      "categoryOrdinal": 9,
+      "modules": [
+        "ModuleDeployableAntenna",
+        "ModuleDataTransmitter",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "antenna",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "320503239",
+      "parentId": "1124373719",
+      "name": "roverWheel1",
+      "title": "RoveMax Model M1",
+      "position": { "x": -1.2, "y": -0.6, "z": -1 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.003, "y": 1.03, "z": 1.03 },
+        "center": { "x": -0.04, "y": 0.099, "z": -0.0 }
+      },
+      "dryMass": 0.075,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 312.405,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelSteering",
+        "ModuleWheelMotor",
+        "ModuleWheelBrakes",
+        "ModuleWheelDamage",
+        "FXModuleLookAtConstraint",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "442248778",
+      "parentId": "1124373719",
+      "name": "sensorThermometer",
+      "title": "2HOT Thermometer",
+      "position": { "x": -0.5, "y": 0.5, "z": -1.2 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.091, "y": 0.27, "z": 0.074 },
+        "center": { "x": 0.0, "y": -0.002, "z": -0.021 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 312.366,
+      "category": "Science",
+      "categoryOrdinal": 5,
+      "modules": [
+        "ModuleEnviroSensor",
+        "ModuleScienceExperiment",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4242978234",
+      "parentId": "913140373",
+      "name": "smallCargoContainer",
+      "title": "SEQ-3 Cargo Storage Unit",
+      "position": { "x": 0.6, "y": 0, "z": -1 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.538, "y": 0.702, "z": 0.538 },
+        "center": { "x": 0.0, "y": -0.0, "z": 0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 312.367,
+      "category": "Cargo",
+      "categoryOrdinal": 15,
+      "modules": ["ModuleCargoPart", "ModuleInventoryPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3932149727",
+      "parentId": "4242978234",
+      "name": "longAntenna",
+      "title": "Communotron 16",
+      "position": { "x": 0.7, "y": 0.7, "z": -1 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.078, "y": 0.418, "z": 0.068 },
+        "center": { "x": 0.0, "y": 0.177, "z": -0.0 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.416,
+      "category": "Communication",
+      "categoryOrdinal": 9,
+      "modules": [
+        "ModuleDeployableAntenna",
+        "ModuleDataTransmitter",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "antenna",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2402438973",
+      "parentId": "4242978234",
+      "name": "roverWheel1",
+      "title": "RoveMax Model M1",
+      "position": { "x": 1.2, "y": -0.6, "z": -1 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": -1 },
+      "bounds": {
+        "size": { "x": 1.003, "y": 1.03, "z": 1.03 },
+        "center": { "x": -0.04, "y": 0.099, "z": -0.0 }
+      },
+      "dryMass": 0.075,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 312.426,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelSteering",
+        "ModuleWheelMotor",
+        "ModuleWheelBrakes",
+        "ModuleWheelDamage",
+        "FXModuleLookAtConstraint",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3267446671",
+      "parentId": "4242978234",
+      "name": "sensorBarometer",
+      "title": "PresMat Barometer",
+      "position": { "x": 0.5, "y": 0.5, "z": -1.2 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.175, "y": 0.249, "z": 0.127 },
+        "center": { "x": 0.0, "y": 0.007, "z": -0.044 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 312.357,
+      "category": "Science",
+      "categoryOrdinal": 5,
+      "modules": [
+        "ModuleEnviroSensor",
+        "ModuleScienceExperiment",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2230550305",
+      "parentId": "913140373",
+      "name": "ksp.r.largeBatteryPack",
+      "title": "Z-400 Rechargeable Battery",
+      "position": { "x": -0.5, "y": 0.5, "z": -1 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 1.0, "y": -0.0, "z": 0.0 },
+      "bounds": {
+        "size": { "x": 0.5, "y": 0.65, "z": 0.364 },
+        "center": { "x": 0.0, "y": -0.02, "z": -0.103 }
+      },
+      "dryMass": 0.02,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 312.473,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 400, "maxAmount": 400 } },
+      "moduleStates": []
+    },
+    {
+      "id": "322192908",
+      "parentId": "913140373",
+      "name": "ksp.r.largeBatteryPack",
+      "title": "Z-400 Rechargeable Battery",
+      "position": { "x": 0.5, "y": 0.5, "z": -1 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -1.0, "y": -0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.5, "y": 0.65, "z": 0.364 },
+        "center": { "x": 0.0, "y": -0.02, "z": -0.103 }
+      },
+      "dryMass": 0.02,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 312.473,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 400, "maxAmount": 400 } },
+      "moduleStates": []
+    },
+    {
+      "id": "3834185380",
+      "parentId": "913140373",
+      "name": "FanShroud.01",
+      "title": "S-062 Fan Shroud",
+      "position": { "x": -1.1, "y": 0.5, "z": -1 },
+      "up": { "x": -0.0, "y": -0.0, "z": 1.0 },
+      "forward": { "x": 0, "y": 1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.67, "y": 0.399, "z": 0.67 },
+        "center": { "x": -0.0, "y": -0.0, "z": -0.0 }
+      },
+      "dryMass": 0.04,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.397,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "986495015",
+      "parentId": "3834185380",
+      "name": "rotor.01s",
+      "title": "EM-16S Light Duty Rotor",
+      "position": { "x": -1.1, "y": 0.5, "z": -1.2 },
+      "up": { "x": -0.0, "y": -0.0, "z": 1.0 },
+      "forward": { "x": 0, "y": 1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.417, "y": 0.35, "z": 0.417 },
+        "center": { "x": 0.0, "y": 0.175, "z": 0.0 }
+      },
+      "dryMass": 0.022,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.362,
+      "category": "Robotics",
+      "categoryOrdinal": 16,
+      "modules": [
+        "ModuleDynamicNodes",
+        "ModuleRoboticServoRotor",
+        "ModulePartVariants",
+        "ModuleResourceAutoShiftState",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1630592397",
+      "parentId": "986495015",
+      "name": "noseconeTiny",
+      "title": "Tiny Nosecone",
+      "position": { "x": -1.1, "y": 0.5, "z": -0.857 },
+      "up": { "x": -0.0, "y": 0.0, "z": 1.0 },
+      "forward": { "x": 0.0, "y": 1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.201, "y": 0.165, "z": 0.201 },
+        "center": { "x": -0.0, "y": 0.076, "z": 0.0 }
+      },
+      "dryMass": 0.001,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.357,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1103800397",
+      "parentId": "986495015",
+      "name": "smallFanBlade",
+      "title": "R-062 Ducted Fan Blade",
+      "position": { "x": -1.1, "y": 0.601, "z": -0.924 },
+      "up": { "x": -1.0, "y": -0.0, "z": -0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": -1 },
+      "bounds": {
+        "size": { "x": 0.224, "y": 0.101, "z": 0.046 },
+        "center": { "x": -0.1, "y": -0.0, "z": -0.0 }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 312.381,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1589555371",
+      "parentId": "986495015",
+      "name": "smallFanBlade",
+      "title": "R-062 Ducted Fan Blade",
+      "position": { "x": -1.201, "y": 0.5, "z": -0.924 },
+      "up": { "x": 0.0, "y": -1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": -0.0, "z": -1 },
+      "bounds": {
+        "size": { "x": 0.224, "y": 0.101, "z": 0.046 },
+        "center": { "x": -0.1, "y": -0.0, "z": 0.0 }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 312.381,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1495397052",
+      "parentId": "986495015",
+      "name": "smallFanBlade",
+      "title": "R-062 Ducted Fan Blade",
+      "position": { "x": -1.1, "y": 0.399, "z": -0.924 },
+      "up": { "x": 1, "y": 0.0, "z": 0.0 },
+      "forward": { "x": 0.0, "y": -0.0, "z": -1 },
+      "bounds": {
+        "size": { "x": 0.224, "y": 0.101, "z": 0.046 },
+        "center": { "x": -0.1, "y": -0.0, "z": 0.0 }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 312.381,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3147412765",
+      "parentId": "986495015",
+      "name": "smallFanBlade",
+      "title": "R-062 Ducted Fan Blade",
+      "position": { "x": -0.999, "y": 0.5, "z": -0.924 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.0, "y": -0.0, "z": -1 },
+      "bounds": {
+        "size": { "x": 0.224, "y": 0.101, "z": 0.046 },
+        "center": { "x": -0.1, "y": -0.0, "z": -0.0 }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 312.381,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2680151539",
+      "parentId": "3834185380",
+      "name": "noseconeVS",
+      "title": "Very Small Nosecone",
+      "position": { "x": -1.1, "y": 0.5, "z": -1.1 },
+      "up": { "x": 0.0, "y": -0.0, "z": -1.0 },
+      "forward": { "x": 1.0, "y": 0.0, "z": 0.0 },
+      "bounds": {
+        "size": { "x": 0.417, "y": 0.33, "z": 0.417 },
+        "center": { "x": -0.0, "y": 0.152, "z": -0.0 }
+      },
+      "dryMass": 0.004,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.365,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1199722470",
+      "parentId": "913140373",
+      "name": "FanShroud.01",
+      "title": "S-062 Fan Shroud",
+      "position": { "x": 1.1, "y": 0.5, "z": -1 },
+      "up": { "x": 0, "y": -0.0, "z": 1.0 },
+      "forward": { "x": 0, "y": 1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.67, "y": 0.399, "z": 0.67 },
+        "center": { "x": -0.0, "y": 0.0, "z": -0.0 }
+      },
+      "dryMass": 0.04,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.397,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3629951726",
+      "parentId": "1199722470",
+      "name": "rotor.01s",
+      "title": "EM-16S Light Duty Rotor",
+      "position": { "x": 1.1, "y": 0.5, "z": -1.2 },
+      "up": { "x": 0, "y": -0.0, "z": 1.0 },
+      "forward": { "x": 0, "y": 1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.417, "y": 0.35, "z": 0.417 },
+        "center": { "x": 0.0, "y": 0.175, "z": 0.0 }
+      },
+      "dryMass": 0.022,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.362,
+      "category": "Robotics",
+      "categoryOrdinal": 16,
+      "modules": [
+        "ModuleDynamicNodes",
+        "ModuleRoboticServoRotor",
+        "ModulePartVariants",
+        "ModuleResourceAutoShiftState",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3339673403",
+      "parentId": "3629951726",
+      "name": "noseconeTiny",
+      "title": "Tiny Nosecone",
+      "position": { "x": 1.1, "y": 0.5, "z": -0.857 },
+      "up": { "x": -0.0, "y": 0.0, "z": 1.0 },
+      "forward": { "x": 0.0, "y": 1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.201, "y": 0.165, "z": 0.201 },
+        "center": { "x": -0.0, "y": 0.076, "z": -0.0 }
+      },
+      "dryMass": 0.001,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.357,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1879172111",
+      "parentId": "3629951726",
+      "name": "smallFanBlade",
+      "title": "R-062 Ducted Fan Blade",
+      "position": { "x": 1.1, "y": 0.399, "z": -0.924 },
+      "up": { "x": 1.0, "y": -0.0, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 0.224, "y": 0.101, "z": 0.046 },
+        "center": { "x": -0.1, "y": -0.0, "z": 0.0 }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 312.381,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1181576659",
+      "parentId": "3629951726",
+      "name": "smallFanBlade",
+      "title": "R-062 Ducted Fan Blade",
+      "position": { "x": 1.201, "y": 0.5, "z": -0.924 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": -1 },
+      "bounds": {
+        "size": { "x": 0.224, "y": 0.101, "z": 0.046 },
+        "center": { "x": -0.1, "y": -0.0, "z": 0.0 }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 312.381,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1537203350",
+      "parentId": "3629951726",
+      "name": "smallFanBlade",
+      "title": "R-062 Ducted Fan Blade",
+      "position": { "x": 1.1, "y": 0.601, "z": -0.924 },
+      "up": { "x": -1.0, "y": 0.0, "z": -0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": -1 },
+      "bounds": {
+        "size": { "x": 0.224, "y": 0.101, "z": 0.046 },
+        "center": { "x": -0.1, "y": 0.0, "z": -0.0 }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 312.381,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2548970165",
+      "parentId": "3629951726",
+      "name": "smallFanBlade",
+      "title": "R-062 Ducted Fan Blade",
+      "position": { "x": 0.999, "y": 0.5, "z": -0.924 },
+      "up": { "x": -0.0, "y": -1, "z": -0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": -1 },
+      "bounds": {
+        "size": { "x": 0.224, "y": 0.101, "z": 0.046 },
+        "center": { "x": -0.1, "y": -0.0, "z": 0.0 }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 312.381,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleControlSurface",
+        "ModulePartVariants",
+        "ModuleMirrorPlacement",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1409059989",
+      "parentId": "1199722470",
+      "name": "noseconeVS",
+      "title": "Very Small Nosecone",
+      "position": { "x": 1.1, "y": 0.5, "z": -1.1 },
+      "up": { "x": 0, "y": -0.0, "z": -1.0 },
+      "forward": { "x": -1.0, "y": 0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.417, "y": 0.33, "z": 0.417 },
+        "center": { "x": -0.0, "y": 0.152, "z": 0.0 }
+      },
+      "dryMass": 0.004,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.365,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1618329150",
+      "parentId": "913140373",
+      "name": "roverWheel1",
+      "title": "RoveMax Model M1",
+      "position": { "x": -1, "y": -0.6, "z": 0.9 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": -0.0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.003, "y": 1.044, "z": 1.042 },
+        "center": { "x": -0.04, "y": 0.087, "z": -0.0 }
+      },
+      "dryMass": 0.075,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 312.415,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelSteering",
+        "ModuleWheelMotor",
+        "ModuleWheelBrakes",
+        "ModuleWheelDamage",
+        "FXModuleLookAtConstraint",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1797277315",
+      "parentId": "913140373",
+      "name": "roverWheel1",
+      "title": "RoveMax Model M1",
+      "position": { "x": 1, "y": -0.6, "z": 0.9 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": -0.0, "y": 0, "z": -1 },
+      "bounds": {
+        "size": { "x": 1.003, "y": 1.06, "z": 1.06 },
+        "center": { "x": -0.04, "y": 0.086, "z": -0.0 }
+      },
+      "dryMass": 0.075,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 312.408,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelSteering",
+        "ModuleWheelMotor",
+        "ModuleWheelBrakes",
+        "ModuleWheelDamage",
+        "FXModuleLookAtConstraint",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3034055402",
+      "parentId": "913140373",
+      "name": "solarPanels1",
+      "title": "SP-W 3x2 Photovoltaic Panels",
+      "position": { "x": -0.6, "y": 0.5, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": -0.0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.042, "y": 1.151, "z": 1.106 },
+        "center": { "x": -0.423, "y": -0.081, "z": 0.002 }
+      },
+      "dryMass": 0.025,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.202,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleDeployableSolarPanel",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "solarPanel",
+          "state": "extended",
+          "tracking": true,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "419248802",
+      "parentId": "913140373",
+      "name": "solarPanels1",
+      "title": "SP-W 3x2 Photovoltaic Panels",
+      "position": { "x": 0.6, "y": 0.5, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": -0.0, "y": 0, "z": -1 },
+      "bounds": {
+        "size": { "x": 1.042, "y": 1.149, "z": 1.109 },
+        "center": { "x": -0.423, "y": -0.083, "z": -0.001 }
+      },
+      "dryMass": 0.025,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.202,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleDeployableSolarPanel",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "solarPanel",
+          "state": "extended",
+          "tracking": true,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1926200167",
+      "parentId": "913140373",
+      "name": "RobotArmScanner.S2",
+      "title": "SPRT Medium Scanning Arm",
+      "position": { "x": -0.4, "y": 0.7, "z": 0.9 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.663, "y": 0.42, "z": 1.522 },
+        "center": { "x": 0.135, "y": 0.21, "z": -0.605 }
+      },
+      "dryMass": 0.14,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.4,
+      "category": "Science",
+      "categoryOrdinal": 5,
+      "modules": [
+        "ModuleRobotArmScanner",
+        "ModuleScienceExperiment",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1559475692",
+      "parentId": "913140373",
+      "name": "GooExperiment",
+      "title": "Mystery Goo\u2122 Containment Unit ",
+      "position": { "x": 0, "y": 0.6, "z": -1 },
+      "up": { "x": 1, "y": 0.0, "z": 0.0 },
+      "forward": { "x": 0.0, "y": -1, "z": 0.0 },
+      "bounds": {
+        "size": { "x": 0.255, "y": 0.697, "z": 0.337 },
+        "center": { "x": -0.001, "y": 0.0, "z": -0.168 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 312.424,
+      "category": "Science",
+      "categoryOrdinal": 5,
+      "modules": [
+        "ModuleAnimateGeneric",
+        "ModuleScienceExperiment",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2397828226",
+      "parentId": "913140373",
+      "name": "spotLight1",
+      "title": "Illuminator Mk1",
+      "position": { "x": -0.8, "y": 0.7, "z": 1.0 },
+      "up": { "x": 0.009, "y": 0.25, "z": -0.968 },
+      "forward": { "x": 0.998, "y": -0.067, "z": -0.009 },
+      "bounds": {
+        "size": { "x": 0.39, "y": 0.383, "z": 0.499 },
+        "center": { "x": -0.0, "y": 0.033, "z": 0.032 }
+      },
+      "dryMass": 0.015,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.482,
+      "category": "none",
+      "categoryOrdinal": -1,
+      "modules": ["ModuleLight", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "56739162",
+      "parentId": "913140373",
+      "name": "spotLight1",
+      "title": "Illuminator Mk1",
+      "position": { "x": 0.8, "y": 0.7, "z": 1.0 },
+      "up": { "x": -0.009, "y": 0.25, "z": -0.968 },
+      "forward": { "x": -0.998, "y": -0.067, "z": -0.009 },
+      "bounds": {
+        "size": { "x": 0.39, "y": 0.383, "z": 0.499 },
+        "center": { "x": 0.0, "y": 0.033, "z": 0.032 }
+      },
+      "dryMass": 0.015,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.482,
+      "category": "none",
+      "categoryOrdinal": -1,
+      "modules": ["ModuleLight", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2179762373",
+      "parentId": "913140373",
+      "name": "controller1000",
+      "title": "KAL-1000 Controller",
+      "position": { "x": 0, "y": 0.7, "z": -0.6 },
+      "up": { "x": 0.0, "y": -0.0, "z": -1.0 },
+      "forward": { "x": 0.0, "y": -1.0, "z": 0.0 },
+      "bounds": {
+        "size": { "x": 0.279, "y": 0.417, "z": 0.205 },
+        "center": { "x": -0.0, "y": 0.0, "z": -0.053 }
+      },
+      "dryMass": 0.01,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 312.473,
+      "category": "Robotics",
+      "categoryOrdinal": 16,
+      "modules": ["ModuleRoboticController", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    }
+  ]
+}

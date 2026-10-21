@@ -77,7 +77,11 @@ export * from "./hooks/useTrackedVesselTopology";
 // `ship-map.part-meters` contribution (a plain function of the same
 // `vessel.parts` Topic payload, evaluated outside React by the contribution
 // aggregator, so it can't go through the hook).
-export { buildResourcesByFlightId } from "./hooks/vesselPartsAdapter";
+export {
+  buildPartStateByFlightId,
+  buildResourcesByFlightId,
+  deriveTopologyFromVesselParts,
+} from "./hooks/vesselPartsAdapter";
 export * from "./replaySession/ReplaySessionBanner";
 export * from "./replaySession/ReplaySessionController";
 export * from "./replaySession/ReplaySessionProvider";

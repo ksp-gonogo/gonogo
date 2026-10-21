@@ -1,0 +1,2156 @@
+{
+  "parts": [
+    {
+      "id": "4071693618",
+      "parentId": null,
+      "name": "mk1-3pod",
+      "title": "Mk1-3 Command Pod",
+      "position": { "x": 0, "y": 0, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.446, "y": 1.847, "z": 2.446 },
+        "center": { "x": -0.0, "y": 0.35, "z": -0.0 }
+      },
+      "dryMass": 2.412,
+      "inverseStage": -1,
+      "maxTemp": 1400,
+      "currentTemp": 306.193,
+      "category": "Pods",
+      "categoryOrdinal": 6,
+      "modules": [
+        "ModuleCommand",
+        "ModuleReactionWheel",
+        "ModuleColorChanger",
+        "ModuleScienceExperiment",
+        "ModuleScienceContainer",
+        "FlagDecal",
+        "ModuleConductionMultiplier",
+        "ModuleDataTransmitter",
+        "ModuleProbeControlPoint",
+        "ModuleLiftingSurface",
+        "ModuleRCSFX",
+        "ModuleInventoryPart",
+        "MechJebCore",
+        "KOSNameTag",
+        "ModuleTripLogger"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 150, "maxAmount": 150 },
+        "MonoPropellant": { "amount": 30, "maxAmount": 30 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1040905917",
+      "parentId": "4071693618",
+      "name": "parachuteLarge",
+      "title": "Mk16-XL Parachute",
+      "position": { "x": 0, "y": 1.195, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.233, "y": 0.666, "z": 1.233 },
+        "center": { "x": 0.0, "y": 0.265, "z": -0.0 }
+      },
+      "dryMass": 0.3,
+      "inverseStage": 0,
+      "maxTemp": 2500,
+      "currentTemp": 306.203,
+      "category": "Utility",
+      "categoryOrdinal": 4,
+      "modules": [
+        "ModuleParachute",
+        "ModuleTestSubject",
+        "ModuleDragModifier",
+        "ModuleDragModifier",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "parachute",
+          "state": "stowed",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "403370040",
+      "parentId": "4071693618",
+      "name": "HeatShield2",
+      "title": "Heat Shield (2.5m)",
+      "position": { "x": 0, "y": -0.513, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.609, "y": 0.551, "z": 2.609 },
+        "center": { "x": -0.0, "y": -0.1, "z": 0 }
+      },
+      "dryMass": 0.5,
+      "inverseStage": -1,
+      "maxTemp": 3300,
+      "currentTemp": 306.177,
+      "category": "Thermal",
+      "categoryOrdinal": 12,
+      "modules": [
+        "ModuleJettison",
+        "ModuleDecouple",
+        "ModuleAblator",
+        "ModuleColorChanger",
+        "ModuleTestSubject",
+        "ModuleLiftingSurface",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "Ablator": { "amount": 400, "maxAmount": 800 } },
+      "moduleStates": []
+    },
+    {
+      "id": "63323413",
+      "parentId": "403370040",
+      "name": "Decoupler.2",
+      "title": "TD-25 Decoupler",
+      "position": { "x": 0, "y": -0.613, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 0.32, "z": 2.5 },
+        "center": { "x": 0.0, "y": -0.0, "z": 0 }
+      },
+      "dryMass": 0.16,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 306.173,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleDecouple",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1229494997",
+      "parentId": "63323413",
+      "name": "Rockomax16.BW",
+      "title": "Rockomax X200-16 Fuel Tank",
+      "position": { "x": 0, "y": -1.633, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 1.921, "z": 2.5 },
+        "center": { "x": -0.0, "y": -0.0, "z": -0.0 }
+      },
+      "dryMass": 1,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 306.167,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 720, "maxAmount": 720 },
+        "Oxidizer": { "amount": 880, "maxAmount": 880 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1133242969",
+      "parentId": "1229494997",
+      "name": "ksp.r.largeBatteryPack",
+      "title": "Z-400 Rechargeable Battery",
+      "position": { "x": -1.208, "y": -1.565, "z": 0.0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 1.0, "y": 0, "z": 0.0 },
+      "bounds": {
+        "size": { "x": 0.5, "y": 0.65, "z": 0.364 },
+        "center": { "x": 0.0, "y": -0.02, "z": -0.103 }
+      },
+      "dryMass": 0.02,
+      "inverseStage": 1,
+      "maxTemp": 1200,
+      "currentTemp": 306.206,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 400, "maxAmount": 400 } },
+      "moduleStates": []
+    },
+    {
+      "id": "877323725",
+      "parentId": "1229494997",
+      "name": "ksp.r.largeBatteryPack",
+      "title": "Z-400 Rechargeable Battery",
+      "position": { "x": 1.208, "y": -1.565, "z": -0.0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": -1.0, "y": 0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.5, "y": 0.65, "z": 0.364 },
+        "center": { "x": 0.0, "y": -0.02, "z": -0.103 }
+      },
+      "dryMass": 0.02,
+      "inverseStage": 1,
+      "maxTemp": 1200,
+      "currentTemp": 306.206,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 400, "maxAmount": 400 } },
+      "moduleStates": []
+    },
+    {
+      "id": "3774952739",
+      "parentId": "1229494997",
+      "name": "solarPanels5",
+      "title": "OX-STAT Photovoltaic Panels",
+      "position": { "x": -1.207, "y": -2.243, "z": 0.0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": -1.0, "y": 0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.347, "y": 0.475, "z": 0.064 },
+        "center": { "x": 0.0, "y": -0.0, "z": 0.034 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": 1,
+      "maxTemp": 1200,
+      "currentTemp": 306.188,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleDeployableSolarPanel",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "solarPanel",
+          "state": "extended",
+          "tracking": false,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "3070770012",
+      "parentId": "1229494997",
+      "name": "solarPanels5",
+      "title": "OX-STAT Photovoltaic Panels",
+      "position": { "x": 1.207, "y": -2.243, "z": -0.0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 1.0, "y": 0, "z": 0.0 },
+      "bounds": {
+        "size": { "x": 0.347, "y": 0.475, "z": 0.064 },
+        "center": { "x": -0.0, "y": -0.0, "z": 0.034 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": 1,
+      "maxTemp": 1200,
+      "currentTemp": 306.188,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleDeployableSolarPanel",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "solarPanel",
+          "state": "extended",
+          "tracking": false,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "4179208057",
+      "parentId": "1229494997",
+      "name": "landingLeg1-2",
+      "title": "LT-2 Landing Strut",
+      "position": { "x": -0.0, "y": -2.722, "z": 1.473 },
+      "up": { "x": 0.0, "y": 0.819, "z": -0.574 },
+      "forward": { "x": -0.0, "y": 0.574, "z": 0.819 },
+      "bounds": {
+        "size": { "x": 0.494, "y": 1.433, "z": 1.152 },
+        "center": { "x": 0.0, "y": 0.742, "z": 0.433 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 306.179,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelDeployment",
+        "ModuleWheelLock",
+        "ModuleWheelBogey",
+        "ModuleWheelDamage",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "landingGear",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1577558496",
+      "parentId": "1229494997",
+      "name": "landingLeg1-2",
+      "title": "LT-2 Landing Strut",
+      "position": { "x": 1.276, "y": -2.722, "z": -0.737 },
+      "up": { "x": -0.497, "y": 0.819, "z": 0.287 },
+      "forward": { "x": 0.709, "y": 0.574, "z": -0.41 },
+      "bounds": {
+        "size": { "x": 0.494, "y": 1.433, "z": 1.152 },
+        "center": { "x": 0.0, "y": 0.742, "z": 0.433 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 306.178,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelDeployment",
+        "ModuleWheelLock",
+        "ModuleWheelBogey",
+        "ModuleWheelDamage",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "landingGear",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "3843439121",
+      "parentId": "1229494997",
+      "name": "landingLeg1-2",
+      "title": "LT-2 Landing Strut",
+      "position": { "x": -1.276, "y": -2.722, "z": -0.737 },
+      "up": { "x": 0.497, "y": 0.819, "z": 0.287 },
+      "forward": { "x": -0.709, "y": 0.574, "z": -0.41 },
+      "bounds": {
+        "size": { "x": 0.494, "y": 1.433, "z": 1.152 },
+        "center": { "x": 0.0, "y": 0.742, "z": 0.433 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 306.182,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelDeployment",
+        "ModuleWheelLock",
+        "ModuleWheelBogey",
+        "ModuleWheelDamage",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "landingGear",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "3723718664",
+      "parentId": "1229494997",
+      "name": "ladder1",
+      "title": "Pegasus I Mobility Enhancer",
+      "position": { "x": -0.0, "y": -1.144, "z": -1.208 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -1.0, "y": 0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.284, "y": 0.351, "z": 0.328 },
+        "center": { "x": -0.031, "y": -0.005, "z": 0.0 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 306.18,
+      "category": "Utility",
+      "categoryOrdinal": 4,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3412300743",
+      "parentId": "1229494997",
+      "name": "telescopicLadderBay",
+      "title": "Kelus-LV Bay Mobility Enhancer",
+      "position": { "x": 0.0, "y": -1.697, "z": -1.211 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -1.0, "y": 0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.998, "y": 0.23, "z": 0.51 },
+        "center": { "x": 0.369, "y": 0.091, "z": 0.004 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 306.264,
+      "category": "Utility",
+      "categoryOrdinal": 4,
+      "modules": [
+        "RetractableLadder",
+        "ModuleCargoPart",
+        "ModuleLight",
+        "RetractableLadderLightController",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1339266713",
+      "parentId": "1229494997",
+      "name": "mediumDishAntenna",
+      "title": "Communotron DTS-M1",
+      "position": { "x": -0.618, "y": -1.876, "z": -1.07 },
+      "up": { "x": -0.5, "y": -0.0, "z": -0.866 },
+      "forward": { "x": 0.0, "y": -1.0, "z": 0.0 },
+      "bounds": {
+        "size": { "x": 0.229, "y": 0.081, "z": 0.955 },
+        "center": { "x": 0.005, "y": 0.009, "z": -0.042 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 306.182,
+      "category": "Communication",
+      "categoryOrdinal": 9,
+      "modules": [
+        "ModuleDeployableAntenna",
+        "ModuleDataTransmitter",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "antenna",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1210768179",
+      "parentId": "1229494997",
+      "name": "liquidEngine2-2.v2",
+      "title": "RE-L10 \"Poodle\" Liquid Fuel Engine",
+      "position": { "x": 0, "y": -2.553, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.525, "y": 2.677, "z": 2.525 },
+        "center": { "x": 0.0, "y": -1.338, "z": 0.0 }
+      },
+      "dryMass": 1.75,
+      "inverseStage": 2,
+      "maxTemp": 2000,
+      "currentTemp": 306.183,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleJettison",
+        "ModuleGimbal",
+        "FXModuleLookAtConstraint",
+        "FXModuleAnimateThrottle",
+        "FXModuleAnimateThrottle",
+        "ModuleAlternator",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 0, "maxAmount": 0 },
+        "LiquidFuel": { "amount": 0, "maxAmount": 0 },
+        "Oxidizer": { "amount": 0, "maxAmount": 0 }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "3230860376",
+      "parentId": "1210768179",
+      "name": "Decoupler.2",
+      "title": "TD-25 Decoupler",
+      "position": { "x": 0, "y": -4.153, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 0.32, "z": 2.5 },
+        "center": { "x": 0.0, "y": -0.0, "z": 0 }
+      },
+      "dryMass": 0.16,
+      "inverseStage": 3,
+      "maxTemp": 2000,
+      "currentTemp": 306.176,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleDecouple",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2432244015",
+      "parentId": "3230860376",
+      "name": "Rockomax64.BW",
+      "title": "Rockomax Jumbo-64 Fuel Tank",
+      "position": { "x": 0, "y": -7.983, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 7.548, "z": 2.774 },
+        "center": { "x": -0.0, "y": -0.0, "z": 0.002 }
+      },
+      "dryMass": 4,
+      "inverseStage": 3,
+      "maxTemp": 2000,
+      "currentTemp": 306.166,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 2880, "maxAmount": 2880 },
+        "Oxidizer": { "amount": 3520, "maxAmount": 3520 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "4293512935",
+      "parentId": "2432244015",
+      "name": "Rockomax32.BW",
+      "title": "Rockomax X200-32 Fuel Tank",
+      "position": { "x": 0, "y": -13.573, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 3.797, "z": 2.5 },
+        "center": { "x": -0.0, "y": 0.0, "z": -0.0 }
+      },
+      "dryMass": 2,
+      "inverseStage": 3,
+      "maxTemp": 2000,
+      "currentTemp": 306.17,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 1440, "maxAmount": 1440 },
+        "Oxidizer": { "amount": 1760, "maxAmount": 1760 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "2202320227",
+      "parentId": "4293512935",
+      "name": "liquidEngineMainsail.v2",
+      "title": "RE-M3 \"Mainsail\" Liquid Fuel Engine",
+      "position": { "x": 0, "y": -16.499, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.503, "y": 3.02, "z": 2.5 },
+        "center": { "x": -0.0, "y": -0.458, "z": 0.0 }
+      },
+      "dryMass": 6,
+      "inverseStage": 7,
+      "maxTemp": 2000,
+      "currentTemp": 306.178,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModulePartVariants",
+        "ModuleEngines",
+        "ModuleJettison",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleAlternator",
+        "ModuleSurfaceFX",
+        "ModuleTestSubject",
+        "FXModuleLookAtConstraint",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 0, "maxAmount": 0 },
+        "LiquidFuel": { "amount": 0, "maxAmount": 0 },
+        "Oxidizer": { "amount": 0, "maxAmount": 0 }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "535074996",
+      "parentId": "4293512935",
+      "name": "radialDecoupler1-2",
+      "title": "Hydraulic Detachment Manifold",
+      "position": { "x": 0, "y": -14.373, "z": -1.2 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -1.0, "y": -0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.333, "y": 1.796, "z": 0.818 },
+        "center": { "x": -0.086, "y": -0.0, "z": 0 }
+      },
+      "dryMass": 0.4,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 306.173,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1204061105",
+      "parentId": "535074996",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": 0.0, "y": -14.472, "z": -1.989 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -1.0, "y": -0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 306.169,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "861567137",
+      "parentId": "1204061105",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": 0.0, "y": -12.578, "z": -1.989 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 306.168,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "4166935241",
+      "parentId": "861567137",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": 0.0, "y": -10.683, "z": -1.989 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 306.168,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "514768831",
+      "parentId": "4166935241",
+      "name": "pointyNoseConeB",
+      "title": "Advanced Nose Cone - Type B",
+      "position": { "x": 0.0, "y": -9.077, "z": -1.989 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.639, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.07, "z": -0.0 }
+      },
+      "dryMass": 0.075,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 306.182,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleAnimateHeat",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "854676378",
+      "parentId": "1204061105",
+      "name": "liquidEngine2",
+      "title": "LV-T45 \"Swivel\" Liquid Fuel Engine",
+      "position": { "x": 0.0, "y": -16.286, "z": -1.989 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 1.256, "y": 1.687, "z": 1.256 },
+        "center": { "x": -0.0, "y": 0.057, "z": -0.0 }
+      },
+      "dryMass": 1.5,
+      "inverseStage": 7,
+      "maxTemp": 2000,
+      "currentTemp": 306.174,
+      "category": "none",
+      "categoryOrdinal": -1,
+      "modules": [
+        "ModuleEngines",
+        "ModuleJettison",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleAlternator",
+        "ModuleSurfaceFX",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 0, "maxAmount": 0 },
+        "LiquidFuel": { "amount": 0, "maxAmount": 0 },
+        "Oxidizer": { "amount": 0, "maxAmount": 0 }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "3591217595",
+      "parentId": "1204061105",
+      "name": "fuelLine",
+      "title": "FTX-2 External Fuel Duct",
+      "position": { "x": 0.595, "y": -14.926, "z": -1.829 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.259, "y": -0.0, "z": -0.966 },
+      "bounds": {
+        "size": { "x": 0.325, "y": 0.245, "z": 0.69 },
+        "center": { "x": -0.053, "y": -0.0, "z": -0.263 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 306.171,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleFuelLine",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": "4293512935",
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "510484597",
+      "parentId": "4293512935",
+      "name": "radialDecoupler1-2",
+      "title": "Hydraulic Detachment Manifold",
+      "position": { "x": 0.0, "y": -14.373, "z": 1.2 },
+      "up": { "x": 0, "y": 1, "z": 0.0 },
+      "forward": { "x": 1.0, "y": 0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.333, "y": 1.796, "z": 0.818 },
+        "center": { "x": -0.086, "y": 0.0, "z": 0.0 }
+      },
+      "dryMass": 0.4,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 306.173,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "695871985",
+      "parentId": "510484597",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": 0.0, "y": -14.472, "z": 1.989 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 1.0, "y": -0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 306.169,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1431352248",
+      "parentId": "695871985",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": 0.0, "y": -12.578, "z": 1.989 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 306.168,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "329275784",
+      "parentId": "1431352248",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": 0.0, "y": -10.683, "z": 1.989 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 306.168,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "3885564499",
+      "parentId": "329275784",
+      "name": "pointyNoseConeB",
+      "title": "Advanced Nose Cone - Type B",
+      "position": { "x": 0.0, "y": -9.077, "z": 1.989 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.639, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.07, "z": 0.0 }
+      },
+      "dryMass": 0.075,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 306.182,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleAnimateHeat",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2116021693",
+      "parentId": "695871985",
+      "name": "liquidEngine2",
+      "title": "LV-T45 \"Swivel\" Liquid Fuel Engine",
+      "position": { "x": 0.0, "y": -16.286, "z": 1.989 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.256, "y": 1.687, "z": 1.256 },
+        "center": { "x": 0.0, "y": 0.057, "z": 0.0 }
+      },
+      "dryMass": 1.5,
+      "inverseStage": 7,
+      "maxTemp": 2000,
+      "currentTemp": 306.174,
+      "category": "none",
+      "categoryOrdinal": -1,
+      "modules": [
+        "ModuleEngines",
+        "ModuleJettison",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleAlternator",
+        "ModuleSurfaceFX",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 0, "maxAmount": 0 },
+        "LiquidFuel": { "amount": 0, "maxAmount": 0 },
+        "Oxidizer": { "amount": 0, "maxAmount": 0 }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1333935042",
+      "parentId": "695871985",
+      "name": "fuelLine",
+      "title": "FTX-2 External Fuel Duct",
+      "position": { "x": -0.595, "y": -14.926, "z": 1.829 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.259, "y": -0.0, "z": 0.966 },
+      "bounds": {
+        "size": { "x": 0.325, "y": 0.245, "z": 0.69 },
+        "center": { "x": -0.053, "y": 0.0, "z": -0.263 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 306.171,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleFuelLine",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": "4293512935",
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2333595660",
+      "parentId": "4293512935",
+      "name": "radialDecoupler1-2",
+      "title": "Hydraulic Detachment Manifold",
+      "position": { "x": -1.061, "y": -14.361, "z": 0.613 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.5, "y": -0.0, "z": 0.866 },
+      "bounds": {
+        "size": { "x": 0.333, "y": 1.796, "z": 0.818 },
+        "center": { "x": -0.086, "y": -0.0, "z": 0.0 }
+      },
+      "dryMass": 0.4,
+      "inverseStage": 6,
+      "maxTemp": 2000,
+      "currentTemp": 306.173,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2048902048",
+      "parentId": "2333595660",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": -1.744, "y": -14.459, "z": 1.007 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.5, "y": -0.0, "z": 0.866 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 6,
+      "maxTemp": 2000,
+      "currentTemp": 306.169,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "3960080337",
+      "parentId": "2048902048",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": -1.744, "y": -12.565, "z": 1.007 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.866, "y": -0.0, "z": -0.5 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 6,
+      "maxTemp": 2000,
+      "currentTemp": 306.169,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "4252753879",
+      "parentId": "3960080337",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": -1.744, "y": -10.671, "z": 1.007 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.866, "y": 0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 6,
+      "maxTemp": 2000,
+      "currentTemp": 306.169,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "236048018",
+      "parentId": "4252753879",
+      "name": "pointyNoseConeB",
+      "title": "Advanced Nose Cone - Type B",
+      "position": { "x": -1.744, "y": -9.064, "z": 1.007 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.866, "y": 0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.639, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.07, "z": -0.0 }
+      },
+      "dryMass": 0.075,
+      "inverseStage": 6,
+      "maxTemp": 2000,
+      "currentTemp": 306.188,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleAnimateHeat",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2409117743",
+      "parentId": "2048902048",
+      "name": "liquidEngine2",
+      "title": "LV-T45 \"Swivel\" Liquid Fuel Engine",
+      "position": { "x": -1.744, "y": -16.273, "z": 1.007 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.866, "y": 0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 1.256, "y": 1.687, "z": 1.256 },
+        "center": { "x": -0.0, "y": 0.057, "z": 0.0 }
+      },
+      "dryMass": 1.5,
+      "inverseStage": 7,
+      "maxTemp": 2000,
+      "currentTemp": 306.174,
+      "category": "none",
+      "categoryOrdinal": -1,
+      "modules": [
+        "ModuleEngines",
+        "ModuleJettison",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleAlternator",
+        "ModuleSurfaceFX",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 0, "maxAmount": 0 },
+        "LiquidFuel": { "amount": 0, "maxAmount": 0 },
+        "Oxidizer": { "amount": 0, "maxAmount": 0 }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1935323874",
+      "parentId": "2048902048",
+      "name": "fuelLine",
+      "title": "FTX-2 External Fuel Duct",
+      "position": { "x": -2.046, "y": -14.931, "z": 0.484 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.866, "y": -0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 0.942, "y": 0.245, "z": 0.527 },
+        "center": { "x": -0.362, "y": 0.0, "z": -0.167 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 6,
+      "maxTemp": 2000,
+      "currentTemp": 306.17,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleFuelLine",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": "973637062",
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4256591183",
+      "parentId": "4293512935",
+      "name": "radialDecoupler1-2",
+      "title": "Hydraulic Detachment Manifold",
+      "position": { "x": 1.061, "y": -14.361, "z": -0.613 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.5, "y": -0.0, "z": -0.866 },
+      "bounds": {
+        "size": { "x": 0.333, "y": 1.796, "z": 0.818 },
+        "center": { "x": -0.086, "y": 0.0, "z": 0.0 }
+      },
+      "dryMass": 0.4,
+      "inverseStage": 6,
+      "maxTemp": 2000,
+      "currentTemp": 306.173,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2115781664",
+      "parentId": "4256591183",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": 1.744, "y": -14.459, "z": -1.007 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.5, "y": 0.0, "z": -0.866 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 6,
+      "maxTemp": 2000,
+      "currentTemp": 306.169,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "3435331605",
+      "parentId": "2115781664",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": 1.744, "y": -12.565, "z": -1.007 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.866, "y": -0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 6,
+      "maxTemp": 2000,
+      "currentTemp": 306.168,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "457285976",
+      "parentId": "3435331605",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": 1.744, "y": -10.671, "z": -1.007 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.866, "y": 0.0, "z": -0.5 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 6,
+      "maxTemp": 2000,
+      "currentTemp": 306.168,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1819580114",
+      "parentId": "457285976",
+      "name": "pointyNoseConeB",
+      "title": "Advanced Nose Cone - Type B",
+      "position": { "x": 1.744, "y": -9.064, "z": -1.007 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.866, "y": 0.0, "z": -0.5 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.639, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.07, "z": 0.0 }
+      },
+      "dryMass": 0.075,
+      "inverseStage": 6,
+      "maxTemp": 2000,
+      "currentTemp": 306.182,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleAnimateHeat",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1451234015",
+      "parentId": "2115781664",
+      "name": "liquidEngine2",
+      "title": "LV-T45 \"Swivel\" Liquid Fuel Engine",
+      "position": { "x": 1.744, "y": -16.273, "z": -1.007 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.866, "y": 0.0, "z": -0.5 },
+      "bounds": {
+        "size": { "x": 1.256, "y": 1.687, "z": 1.256 },
+        "center": { "x": 0.0, "y": 0.057, "z": 0.0 }
+      },
+      "dryMass": 1.5,
+      "inverseStage": 7,
+      "maxTemp": 2000,
+      "currentTemp": 306.174,
+      "category": "none",
+      "categoryOrdinal": -1,
+      "modules": [
+        "ModuleEngines",
+        "ModuleJettison",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleAlternator",
+        "ModuleSurfaceFX",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 0, "maxAmount": 0 },
+        "LiquidFuel": { "amount": 0, "maxAmount": 0 },
+        "Oxidizer": { "amount": 0, "maxAmount": 0 }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2490423225",
+      "parentId": "2115781664",
+      "name": "fuelLine",
+      "title": "FTX-2 External Fuel Duct",
+      "position": { "x": 2.046, "y": -14.931, "z": -0.484 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.866, "y": -0.0, "z": -0.5 },
+      "bounds": {
+        "size": { "x": 0.942, "y": 0.245, "z": 0.527 },
+        "center": { "x": -0.362, "y": -0.0, "z": -0.167 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 6,
+      "maxTemp": 2000,
+      "currentTemp": 306.171,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleFuelLine",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": "1654959802",
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1959527139",
+      "parentId": "4293512935",
+      "name": "radialDecoupler1-2",
+      "title": "Hydraulic Detachment Manifold",
+      "position": { "x": -1.08, "y": -14.361, "z": -0.623 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.5, "y": -0.0, "z": 0.866 },
+      "bounds": {
+        "size": { "x": 0.333, "y": 1.796, "z": 0.818 },
+        "center": { "x": -0.086, "y": -0.0, "z": 0.0 }
+      },
+      "dryMass": 0.4,
+      "inverseStage": 5,
+      "maxTemp": 2000,
+      "currentTemp": 306.173,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "973637062",
+      "parentId": "1959527139",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": -1.763, "y": -14.459, "z": -1.018 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.5, "y": -0.0, "z": 0.866 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 5,
+      "maxTemp": 2000,
+      "currentTemp": 306.169,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "2273924154",
+      "parentId": "973637062",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": -1.763, "y": -12.565, "z": -1.018 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.866, "y": -0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 5,
+      "maxTemp": 2000,
+      "currentTemp": 306.169,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "2242253764",
+      "parentId": "2273924154",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": -1.763, "y": -10.671, "z": -1.018 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.866, "y": 0.0, "z": -0.5 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 5,
+      "maxTemp": 2000,
+      "currentTemp": 306.169,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "3957619306",
+      "parentId": "2242253764",
+      "name": "pointyNoseConeB",
+      "title": "Advanced Nose Cone - Type B",
+      "position": { "x": -1.763, "y": -9.064, "z": -1.018 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.866, "y": 0.0, "z": -0.5 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.639, "z": 1.25 },
+        "center": { "x": -0.0, "y": 0.07, "z": -0.0 }
+      },
+      "dryMass": 0.075,
+      "inverseStage": 5,
+      "maxTemp": 2000,
+      "currentTemp": 306.189,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleAnimateHeat",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "929258269",
+      "parentId": "973637062",
+      "name": "liquidEngine2",
+      "title": "LV-T45 \"Swivel\" Liquid Fuel Engine",
+      "position": { "x": -1.763, "y": -16.274, "z": -1.018 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.866, "y": 0.0, "z": -0.5 },
+      "bounds": {
+        "size": { "x": 1.256, "y": 1.687, "z": 1.256 },
+        "center": { "x": 0.0, "y": 0.057, "z": 0.0 }
+      },
+      "dryMass": 1.5,
+      "inverseStage": 7,
+      "maxTemp": 2000,
+      "currentTemp": 306.174,
+      "category": "none",
+      "categoryOrdinal": -1,
+      "modules": [
+        "ModuleEngines",
+        "ModuleJettison",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleAlternator",
+        "ModuleSurfaceFX",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 0, "maxAmount": 0 },
+        "LiquidFuel": { "amount": 0, "maxAmount": 0 },
+        "Oxidizer": { "amount": 0, "maxAmount": 0 }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1845759970",
+      "parentId": "973637062",
+      "name": "fuelLine",
+      "title": "FTX-2 External Fuel Duct",
+      "position": { "x": -1.46, "y": -14.912, "z": -1.542 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.866, "y": -0.0, "z": -0.5 },
+      "bounds": {
+        "size": { "x": 0.914, "y": 0.245, "z": 0.565 },
+        "center": { "x": -0.348, "y": -0.0, "z": -0.184 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 5,
+      "maxTemp": 2000,
+      "currentTemp": 306.171,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleFuelLine",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": "1204061105",
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1367196122",
+      "parentId": "4293512935",
+      "name": "radialDecoupler1-2",
+      "title": "Hydraulic Detachment Manifold",
+      "position": { "x": 1.08, "y": -14.361, "z": 0.623 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.5, "y": -0.0, "z": -0.866 },
+      "bounds": {
+        "size": { "x": 0.333, "y": 1.796, "z": 0.818 },
+        "center": { "x": -0.086, "y": -0.0, "z": 0.0 }
+      },
+      "dryMass": 0.4,
+      "inverseStage": 5,
+      "maxTemp": 2000,
+      "currentTemp": 306.173,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1654959802",
+      "parentId": "1367196122",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": 1.763, "y": -14.459, "z": 1.018 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.5, "y": -0.0, "z": -0.866 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 5,
+      "maxTemp": 2000,
+      "currentTemp": 306.169,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "2945694166",
+      "parentId": "1654959802",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": 1.763, "y": -12.565, "z": 1.018 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.866, "y": -0.0, "z": -0.5 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 5,
+      "maxTemp": 2000,
+      "currentTemp": 306.168,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1806973868",
+      "parentId": "2945694166",
+      "name": "fuelTank",
+      "title": "FL-T400 Fuel Tank",
+      "position": { "x": 1.763, "y": -10.671, "z": 1.018 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.866, "y": 0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.949, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.035, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": 5,
+      "maxTemp": 2000,
+      "currentTemp": 306.168,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 180, "maxAmount": 180 },
+        "Oxidizer": { "amount": 220, "maxAmount": 220 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "3025052457",
+      "parentId": "1806973868",
+      "name": "pointyNoseConeB",
+      "title": "Advanced Nose Cone - Type B",
+      "position": { "x": 1.763, "y": -9.064, "z": 1.018 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.866, "y": 0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.639, "z": 1.25 },
+        "center": { "x": -0.0, "y": 0.07, "z": 0.0 }
+      },
+      "dryMass": 0.075,
+      "inverseStage": 5,
+      "maxTemp": 2000,
+      "currentTemp": 306.182,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": [
+        "ModuleAnimateHeat",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4224167481",
+      "parentId": "1654959802",
+      "name": "liquidEngine2",
+      "title": "LV-T45 \"Swivel\" Liquid Fuel Engine",
+      "position": { "x": 1.763, "y": -16.274, "z": 1.018 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.866, "y": 0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 1.256, "y": 1.687, "z": 1.256 },
+        "center": { "x": 0, "y": 0.057, "z": 0.0 }
+      },
+      "dryMass": 1.5,
+      "inverseStage": 7,
+      "maxTemp": 2000,
+      "currentTemp": 306.174,
+      "category": "none",
+      "categoryOrdinal": -1,
+      "modules": [
+        "ModuleEngines",
+        "ModuleJettison",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleAlternator",
+        "ModuleSurfaceFX",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 0, "maxAmount": 0 },
+        "LiquidFuel": { "amount": 0, "maxAmount": 0 },
+        "Oxidizer": { "amount": 0, "maxAmount": 0 }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2565897545",
+      "parentId": "1654959802",
+      "name": "fuelLine",
+      "title": "FTX-2 External Fuel Duct",
+      "position": { "x": 1.46, "y": -14.912, "z": 1.542 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.866, "y": -0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 0.914, "y": 0.245, "z": 0.565 },
+        "center": { "x": -0.348, "y": 0.0, "z": -0.184 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 5,
+      "maxTemp": 2000,
+      "currentTemp": 306.171,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleFuelLine",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": "695871985",
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "110475392",
+      "parentId": "4293512935",
+      "name": "R8winglet",
+      "title": "AV-R8 Winglet",
+      "position": { "x": -1.773, "y": -13.885, "z": 0.0 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.629, "y": 2.016, "z": 0.106 },
+        "center": { "x": -0.074, "y": -0.034, "z": -0.0 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 3,
+      "maxTemp": 2400,
+      "currentTemp": 306.171,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "26289495",
+      "parentId": "4293512935",
+      "name": "R8winglet",
+      "title": "AV-R8 Winglet",
+      "position": { "x": -0.886, "y": -13.885, "z": 1.535 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.866, "y": 0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 1.629, "y": 2.016, "z": 0.106 },
+        "center": { "x": -0.074, "y": -0.034, "z": -0.0 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 3,
+      "maxTemp": 2400,
+      "currentTemp": 306.171,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2501532938",
+      "parentId": "4293512935",
+      "name": "R8winglet",
+      "title": "AV-R8 Winglet",
+      "position": { "x": 0.886, "y": -13.885, "z": 1.535 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.866, "y": 0, "z": -0.5 },
+      "bounds": {
+        "size": { "x": 1.629, "y": 2.016, "z": 0.106 },
+        "center": { "x": -0.074, "y": -0.034, "z": -0.0 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 3,
+      "maxTemp": 2400,
+      "currentTemp": 306.171,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2684427433",
+      "parentId": "4293512935",
+      "name": "R8winglet",
+      "title": "AV-R8 Winglet",
+      "position": { "x": 1.773, "y": -13.885, "z": -0.0 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": -1 },
+      "bounds": {
+        "size": { "x": 1.629, "y": 2.016, "z": 0.106 },
+        "center": { "x": -0.074, "y": -0.034, "z": -0.0 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 3,
+      "maxTemp": 2400,
+      "currentTemp": 306.171,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2502852395",
+      "parentId": "4293512935",
+      "name": "R8winglet",
+      "title": "AV-R8 Winglet",
+      "position": { "x": 0.886, "y": -13.885, "z": -1.535 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.866, "y": 0.0, "z": -0.5 },
+      "bounds": {
+        "size": { "x": 1.629, "y": 2.016, "z": 0.106 },
+        "center": { "x": -0.074, "y": -0.034, "z": -0.0 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 3,
+      "maxTemp": 2400,
+      "currentTemp": 306.171,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2118275297",
+      "parentId": "4293512935",
+      "name": "R8winglet",
+      "title": "AV-R8 Winglet",
+      "position": { "x": -0.886, "y": -13.885, "z": -1.535 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.866, "y": 0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 1.629, "y": 2.016, "z": 0.106 },
+        "center": { "x": -0.074, "y": -0.034, "z": -0.0 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 3,
+      "maxTemp": 2400,
+      "currentTemp": 306.171,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "719205903",
+      "parentId": "4293512935",
+      "name": "launchClamp1",
+      "title": "TT18-A Launch Stability Enhancer",
+      "position": { "x": 2.034, "y": -16.619, "z": 0.0 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -1.0, "y": 0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 1.136, "y": 10.529, "z": 2.394 },
+        "center": { "x": -0.001, "y": -3.502, "z": -0.322 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 7,
+      "maxTemp": 2000,
+      "currentTemp": 306.234,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "LaunchClamp",
+        "ModuleGenerator",
+        "ModuleTestSubject",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": []
+    },
+    {
+      "id": "3812666619",
+      "parentId": "4293512935",
+      "name": "launchClamp1",
+      "title": "TT18-A Launch Stability Enhancer",
+      "position": { "x": -1.017, "y": -16.619, "z": -1.762 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.5, "y": 0.0, "z": 0.866 },
+      "bounds": {
+        "size": { "x": 1.552, "y": 10.529, "z": 2.603 },
+        "center": { "x": 0.001, "y": -3.502, "z": -0.426 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 7,
+      "maxTemp": 2000,
+      "currentTemp": 306.243,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "LaunchClamp",
+        "ModuleGenerator",
+        "ModuleTestSubject",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": []
+    },
+    {
+      "id": "3954537292",
+      "parentId": "4293512935",
+      "name": "launchClamp1",
+      "title": "TT18-A Launch Stability Enhancer",
+      "position": { "x": -1.017, "y": -16.619, "z": 1.762 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.5, "y": 0.0, "z": -0.866 },
+      "bounds": {
+        "size": { "x": 1.552, "y": 10.529, "z": 2.601 },
+        "center": { "x": 0.001, "y": -3.502, "z": -0.425 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 7,
+      "maxTemp": 2000,
+      "currentTemp": 306.244,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "LaunchClamp",
+        "ModuleGenerator",
+        "ModuleTestSubject",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": []
+    },
+    {
+      "id": "2038587495",
+      "parentId": "63323413",
+      "name": "ladder1",
+      "title": "Pegasus I Mobility Enhancer",
+      "position": { "x": -0.0, "y": -0.672, "z": -1.243 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -1.0, "y": 0, "z": 0.0 },
+      "bounds": {
+        "size": { "x": 0.284, "y": 0.351, "z": 0.328 },
+        "center": { "x": -0.031, "y": -0.005, "z": -0.0 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 306.183,
+      "category": "Utility",
+      "categoryOrdinal": 4,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    }
+  ]
+}

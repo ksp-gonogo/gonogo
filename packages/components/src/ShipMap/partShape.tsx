@@ -269,6 +269,82 @@ export function renderPartShape(
         </g>
       );
     }
+    case "gear": {
+      // The strut runs along the box's long side, with the foot at its far end.
+      const vertical = h >= w;
+      const long = vertical ? h : w;
+      const short = vertical ? w : h;
+      const footR = Math.max(short * 0.2, 1.5 / zoom);
+      const x1 = vertical ? cx : x;
+      const y1 = vertical ? y : cy;
+      const x2 = vertical ? cx : x + long;
+      const y2 = vertical ? y + h : cy;
+      return (
+        <g>
+          <rect
+            x={x}
+            y={y}
+            width={w}
+            height={h}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            opacity={0.3}
+          />
+          <line
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+            stroke={fill}
+            strokeWidth={Math.max(short * 0.12, 2 / zoom)}
+            strokeLinecap="round"
+            opacity={opacity}
+          />
+          <circle
+            cx={x2}
+            cy={y2 - (vertical ? footR : 0)}
+            r={footR}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            opacity={opacity}
+          />
+        </g>
+      );
+    }
+    case "fairing":
+      return (
+        <rect
+          x={x}
+          y={y}
+          width={w}
+          height={h}
+          rx={Math.min(w, h) * 0.2}
+          fill={fill}
+          stroke={
+            isHot ? "var(--color-tag-yellow-fg)" : "var(--color-text-dim)"
+          }
+          strokeWidth={Math.max(strokeWidth, 1 / zoom)}
+          opacity={0.45}
+        />
+      );
+    case "clamp":
+      return (
+        <rect
+          x={x}
+          y={y}
+          width={w}
+          height={h}
+          fill="none"
+          stroke={
+            isHot ? "var(--color-tag-yellow-fg)" : "var(--color-text-dim)"
+          }
+          strokeWidth={Math.max(strokeWidth, 1 / zoom)}
+          strokeDasharray={`${4 / zoom} ${3 / zoom}`}
+          opacity={0.6}
+        />
+      );
     default:
       return (
         <rect

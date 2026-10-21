@@ -50,10 +50,13 @@ function overlayFor(
       return m.state === "deploying" || m.state === "retracting"
         ? renderAnimatingChevron(box, m.state, zoom)
         : null;
+    case "cargoBay":
+      if (m.state === "extended") return renderCargoBayOpenMark(box, zoom);
+      return m.state === "deploying" || m.state === "retracting"
+        ? renderAnimatingChevron(box, m.state, zoom)
+        : null;
     case "landingGear":
       return m.state === "extended" ? renderLandingGearStand(box, zoom) : null;
-    case "cargoBay":
-      return m.state === "extended" ? renderCargoBayOpenMark(box, zoom) : null;
     default:
       return null;
   }
@@ -129,22 +132,24 @@ function renderLandingGearStand(box: ScreenBox, zoom: number): React.ReactNode {
 }
 
 function renderCargoBayOpenMark(box: ScreenBox, zoom: number): React.ReactNode {
-  // Dashed inset rect: cargo-bay doors are open.
+  // The hold seen through its open doors: a dark well with a dashed rim, the doors being the lighter strips either side.
   const { x, y, w, h } = box;
-  const inset = Math.min(w, h) * 0.12;
+  const insetX = w * 0.2;
+  const insetY = Math.min(w, h) * 0.1;
   return (
     <rect
       key="cargo-bay-open"
       data-role="cargo-bay-open"
-      x={x + inset}
-      y={y + inset}
-      width={w - inset * 2}
-      height={h - inset * 2}
-      fill="none"
+      x={x + insetX}
+      y={y + insetY}
+      width={w - insetX * 2}
+      height={h - insetY * 2}
+      fill="var(--color-surface-raised)"
+      fillOpacity={0.85}
       stroke="var(--color-go-text)"
       strokeWidth={1.5 / zoom}
       strokeDasharray={`${4 / zoom} ${3 / zoom}`}
-      opacity={0.8}
+      opacity={0.9}
       pointerEvents="none"
     />
   );

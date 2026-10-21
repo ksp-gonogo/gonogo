@@ -66,6 +66,24 @@ export function computeShipLayout(
   };
 }
 
+/**
+ * Half-sizes, in metres, of the axis-aligned box a part covers in the diagram
+ * once its upright box is turned by `rotationRad`. `latHalfExtent` and
+ * `axialHalfExtent` are measured across and along the part's own up direction,
+ * so a part turned off the spine reaches further than either on screen.
+ */
+export function drawnHalfExtent(p: ShipMapPart): {
+  lat: number;
+  axial: number;
+} {
+  const c = Math.abs(Math.cos(p.rotationRad));
+  const s = Math.abs(Math.sin(p.rotationRad));
+  return {
+    lat: p.latHalfExtent * c + p.axialHalfExtent * s,
+    axial: p.latHalfExtent * s + p.axialHalfExtent * c,
+  };
+}
+
 /** Metre-space margin below an active engine for its flame, the same fraction of the body its flame draws. */
 function engineFlameReach(p: ShipMapPart, axialExtent: number): number {
   if (p.type !== "engine") return 0;
@@ -99,17 +117,25 @@ export function project(parts: readonly ShipMapPart[]) {
     if (parent) edges.push({ a: p, b: parent });
   }
 
+  /* A launch clamp is a pad tower beside or below the craft; it is left out of the fit unless nothing else is there, so it does not shrink the vessel. */
+  const fitted = projected.some((p) => p.type !== "clamp")
+    ? projected.filter((p) => p.type !== "clamp")
+    : projected;
   let minL = Infinity;
   let maxL = -Infinity;
   let minA = Infinity;
   let maxA = -Infinity;
-  for (const p of projected) {
-    minL = Math.min(minL, p.body.latMin);
-    maxL = Math.max(maxL, p.body.latMax);
+  for (const p of fitted) {
+    const half = drawnHalfExtent(p);
+    minL = Math.min(minL, p.lat - half.lat);
+    maxL = Math.max(maxL, p.lat + half.lat);
     // Flames escape the body box, so the same fraction of the metre-space extent is reserved or they clip at fit zoom.
     const axialExtent = p.body.axialMax - p.body.axialMin;
-    minA = Math.min(minA, p.body.axialMin - engineFlameReach(p, axialExtent));
-    maxA = Math.max(maxA, p.body.axialMax);
+    minA = Math.min(
+      minA,
+      p.axial - half.axial - engineFlameReach(p, axialExtent),
+    );
+    maxA = Math.max(maxA, p.axial + half.axial);
   }
   const w = Math.max(maxL - minL, 1);
   const h = Math.max(maxA - minA, 1);
@@ -133,4 +159,24 @@ function withBody(p: ShipMapPart): ProjectedPart {
     },
     spineDist: Math.abs(p.lat),
   };
+}
+
+/**
+ * The parts in the order they are painted, back to front by depth, quantised
+ * to the mm so float noise does not disturb the tiebreak. Parts at the same
+ * depth draw outermost first so the central column overlaps on top. A fairing
+ * is a shell over the parts it covers, so it draws after all of them. Fuel
+ * lines are left out: they render as arrows in a separate top layer.
+ */
+export function paintOrder(parts: readonly ProjectedPart[]): ProjectedPart[] {
+  return parts
+    .filter((p) => p.type !== "fuel-line")
+    .sort((a, b) => {
+      if ((a.type === "fairing") !== (b.type === "fairing")) {
+        return a.type === "fairing" ? 1 : -1;
+      }
+      const depthOrder =
+        Math.round(a.depth * 1000) - Math.round(b.depth * 1000);
+      return depthOrder !== 0 ? depthOrder : b.spineDist - a.spineDist;
+    });
 }

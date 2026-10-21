@@ -1,4 +1,4 @@
-import type { ProjectedPart } from "./shipLayout";
+import { drawnHalfExtent, type ProjectedPart } from "./shipLayout";
 
 /** A cluster needs at least this many parts: fewer are readable where they sit. */
 export const MIN_CLUSTER_SIZE = 4;
@@ -29,11 +29,12 @@ interface Extent {
 }
 
 function extentOf(p: ProjectedPart): Extent {
+  const half = drawnHalfExtent(p);
   return {
-    latMin: p.lat - p.latHalfExtent,
-    latMax: p.lat + p.latHalfExtent,
-    axialMin: p.axial - p.axialHalfExtent,
-    axialMax: p.axial + p.axialHalfExtent,
+    latMin: p.lat - half.lat,
+    latMax: p.lat + half.lat,
+    axialMin: p.axial - half.axial,
+    axialMax: p.axial + half.axial,
   };
 }
 
@@ -60,7 +61,8 @@ export function findDenseClusters(
   const byId = new Map(parts.map((p) => [p.flightId, p]));
   const childrenOf = new Map<number, ProjectedPart[]>();
   for (const p of parts) {
-    if (p.parentFlightId == null || p.type === "fuel-line") continue;
+    if (p.parentFlightId == null) continue;
+    if (p.type === "fuel-line" || p.type === "clamp") continue;
     const parent = byId.get(p.parentFlightId);
     if (!parent) continue;
     const parentWidth = parent.latHalfExtent * 2;

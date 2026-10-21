@@ -20,7 +20,13 @@ export type PartType =
   | "solar"
   | "parachute"
   | "wheel"
+  /** Landing legs and landing gear: a strut with a foot, since the mesh box also holds the folded strut. */
+  | "gear"
   | "fuel-line"
+  /** A closed fairing: a shell over the parts it covers, drawn last so they show through it. */
+  | "fairing"
+  /** Launch clamps: pad towers that fall away at liftoff, drawn as a faint outline rather than a part. */
+  | "clamp"
   | "other";
 
 /**

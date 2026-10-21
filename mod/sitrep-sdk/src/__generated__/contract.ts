@@ -11236,8 +11236,7 @@ export interface PartModuleState
 {
 	/**
 	* Discriminator: `solarPanel` / `radiator` / `antenna` / `parachute` /
-	* `engine` / `drill` / `landingGear`. `cargoBay` is a defined vocabulary value
-	* that no module currently produces.
+	* `engine` / `drill` / `landingGear` / `cargoBay`.
 	*/
 	type: string;
 	/**
@@ -11245,7 +11244,8 @@ export interface PartModuleState
 	* `PartModuleState.type` rather than each module's own enum spelling.
 	*
 	* - `extended` / `retracted` / `deploying` / `retracting`, for anything that
-	*   animates: solar panels, radiators, antennas, landing gear.
+	*   animates: solar panels, radiators, antennas, landing gear, cargo bay doors
+	*   (`retracted` is closed, `extended` is open).
 	* - `stowed` / `armed` / `extended` / `broken`, the parachute lifecycle.
 	*   `armed` means staged and waiting for its atmospheric trigger, which is not
 	*   the same as deployed.

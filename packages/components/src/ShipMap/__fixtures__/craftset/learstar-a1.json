@@ -1,0 +1,2694 @@
+{
+  "parts": [
+    {
+      "id": "2743549794",
+      "parentId": null,
+      "name": "mk2Cockpit.Standard",
+      "title": "Mk2 Cockpit",
+      "position": { "x": 0, "y": 0, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 4.532, "z": 1.529 },
+        "center": { "x": -0.0, "y": 1.016, "z": -0.014 }
+      },
+      "dryMass": 1.906,
+      "inverseStage": -1,
+      "maxTemp": 1400,
+      "currentTemp": 308.405,
+      "category": "Pods",
+      "categoryOrdinal": 6,
+      "modules": [
+        "ModuleCommand",
+        "ModuleReactionWheel",
+        "ModuleScienceExperiment",
+        "ModuleScienceContainer",
+        "FlagDecal",
+        "ModuleLiftingSurface",
+        "ModuleDataTransmitter",
+        "ModuleColorChanger",
+        "ModuleCargoPart",
+        "ModuleInventoryPart",
+        "MechJebCore",
+        "KOSNameTag",
+        "ModuleTripLogger"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 150, "maxAmount": 150 },
+        "MonoPropellant": { "amount": 15, "maxAmount": 15 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "2865849581",
+      "parentId": "2743549794",
+      "name": "mk2CrewCabin",
+      "title": "MK2 Crew Cabin",
+      "position": { "x": 0, "y": -2.188, "z": -0.0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 1.875, "z": 1.5 },
+        "center": { "x": 0, "y": 0.0, "z": -0.0 }
+      },
+      "dryMass": 1.85,
+      "inverseStage": -1,
+      "maxTemp": 1400,
+      "currentTemp": 308.399,
+      "category": "Utility",
+      "categoryOrdinal": 4,
+      "modules": [
+        "ModuleScienceExperiment",
+        "ModuleScienceContainer",
+        "ModuleLiftingSurface",
+        "ModuleColorChanger",
+        "ModuleCargoPart",
+        "ModuleInventoryPart",
+        "KOSNameTag",
+        "ModuleTripLogger"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4057251746",
+      "parentId": "2865849581",
+      "name": "mk2DockingPort",
+      "title": "Mk2 Clamp-O-Tron",
+      "position": { "x": 0, "y": -3.75, "z": -0.0 },
+      "up": { "x": 0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 1.251, "z": 1.704 },
+        "center": { "x": -0.0, "y": 0.0, "z": -0.102 }
+      },
+      "dryMass": 0.3,
+      "inverseStage": -1,
+      "maxTemp": 2500,
+      "currentTemp": 308.409,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleDockingNode",
+        "ModuleAnimateGeneric",
+        "ModuleLiftingSurface",
+        "ModuleCargoPart",
+        "ModuleColorChanger",
+        "MuMechModuleHullCameraZoom",
+        "DPSoundFX",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "MonoPropellant": { "amount": 75, "maxAmount": 75 } },
+      "moduleStates": []
+    },
+    {
+      "id": "503832905",
+      "parentId": "4057251746",
+      "name": "mk2CargoBayS",
+      "title": "Mk2 Cargo Bay CRG-04",
+      "position": { "x": 0, "y": -5.312, "z": -0.0 },
+      "up": { "x": 0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 1.875, "z": 1.5 },
+        "center": { "x": 0, "y": 0.0, "z": 0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": -1,
+      "maxTemp": 2500,
+      "currentTemp": 308.426,
+      "category": "Payload",
+      "categoryOrdinal": 13,
+      "modules": [
+        "ModuleLiftingSurface",
+        "ModuleAnimateGeneric",
+        "ModuleCargoBay",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "cargoBay",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "243549198",
+      "parentId": "503832905",
+      "name": "mk2CargoBayS",
+      "title": "Mk2 Cargo Bay CRG-04",
+      "position": { "x": 0, "y": -7.187, "z": -0.0 },
+      "up": { "x": 0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 1.875, "z": 1.5 },
+        "center": { "x": 0, "y": 0.0, "z": -0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": -1,
+      "maxTemp": 2500,
+      "currentTemp": 308.419,
+      "category": "Payload",
+      "categoryOrdinal": 13,
+      "modules": [
+        "ModuleLiftingSurface",
+        "ModuleAnimateGeneric",
+        "ModuleCargoBay",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "cargoBay",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2729437799",
+      "parentId": "243549198",
+      "name": "mk2CargoBayS",
+      "title": "Mk2 Cargo Bay CRG-04",
+      "position": { "x": 0, "y": -9.062, "z": -0.0 },
+      "up": { "x": 0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 1.875, "z": 1.5 },
+        "center": { "x": -0.0, "y": 0.0, "z": -0.0 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": -1,
+      "maxTemp": 2500,
+      "currentTemp": 308.41,
+      "category": "Payload",
+      "categoryOrdinal": 13,
+      "modules": [
+        "ModuleLiftingSurface",
+        "ModuleAnimateGeneric",
+        "ModuleCargoBay",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "cargoBay",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "4144619508",
+      "parentId": "2729437799",
+      "name": "dockingPort2",
+      "title": "Clamp-O-Tron Docking Port",
+      "position": { "x": 0, "y": -10.0, "z": -0.0 },
+      "up": { "x": 0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.151, "y": 0.575, "z": 1.151 },
+        "center": { "x": 0, "y": -0.004, "z": 0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 308.422,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleDockingNode",
+        "ModuleCargoPart",
+        "ModuleColorChanger",
+        "MuMechModuleHullCameraZoom",
+        "DPSoundFX",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2045269407",
+      "parentId": "2729437799",
+      "name": "mk2FuselageShortMono",
+      "title": "Mk2 Monopropellant Tank",
+      "position": { "x": 0, "y": -10.937, "z": -0.0 },
+      "up": { "x": 0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 1.875, "z": 1.5 },
+        "center": { "x": 0, "y": -0.0, "z": -0.0 }
+      },
+      "dryMass": 0.29,
+      "inverseStage": -1,
+      "maxTemp": 2500,
+      "currentTemp": 308.386,
+      "category": "Propulsion",
+      "categoryOrdinal": 0,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "MonoPropellant": { "amount": 300, "maxAmount": 300 } },
+      "moduleStates": []
+    },
+    {
+      "id": "1181781608",
+      "parentId": "2045269407",
+      "name": "mk2SpacePlaneAdapter",
+      "title": "Mk2 to 1.25m Adapter",
+      "position": { "x": 0, "y": -12.812, "z": -0.0 },
+      "up": { "x": -0.0, "y": -1.0, "z": -0.0 },
+      "forward": { "x": 0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 1.906, "z": 1.5 },
+        "center": { "x": 0.0, "y": 0.016, "z": 0 }
+      },
+      "dryMass": 0.29,
+      "inverseStage": -1,
+      "maxTemp": 2500,
+      "currentTemp": 308.403,
+      "category": "Propulsion",
+      "categoryOrdinal": 0,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 135, "maxAmount": 135 },
+        "Oxidizer": { "amount": 0, "maxAmount": 165 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "4248091945",
+      "parentId": "1181781608",
+      "name": "JetEngine",
+      "title": "J-33 \"Wheesley\" Turbofan Engine",
+      "position": { "x": 0, "y": -14.723, "z": -0.0 },
+      "up": { "x": 0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 1.39, "z": 1.25 },
+        "center": { "x": -0.0, "y": 0.34, "z": -0.0 }
+      },
+      "dryMass": 1.5,
+      "inverseStage": 0,
+      "maxTemp": 2000,
+      "currentTemp": 308.387,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEnginesFX",
+        "ModuleAnimateHeat",
+        "ModuleAnimateGeneric",
+        "ModuleAlternator",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 0.08, "maxAmount": 0.08 },
+        "IntakeAir": { "amount": 0, "maxAmount": 0 },
+        "LiquidFuel": { "amount": 0, "maxAmount": 0 }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "3322557555",
+      "parentId": "1181781608",
+      "name": "delta.small",
+      "title": "Small Delta Wing",
+      "position": { "x": -0.0, "y": -13.341, "z": -0.636 },
+      "up": { "x": -0.0, "y": 0.998, "z": -0.067 },
+      "forward": { "x": -1.0, "y": 0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 1.938, "y": 2.25, "z": 0.188 },
+        "center": { "x": -0.906, "y": 0.312, "z": 0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.408,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "332393537",
+      "parentId": "3322557555",
+      "name": "StandardCtrlSrf",
+      "title": "Elevon 1",
+      "position": { "x": 0.0, "y": -14.028, "z": -1.534 },
+      "up": { "x": 0.0, "y": 0.998, "z": -0.067 },
+      "forward": { "x": 1.0, "y": -0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 1.825, "y": 0.519, "z": 0.188 },
+        "center": { "x": 0.0, "y": -0.216, "z": 0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.382,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2494491478",
+      "parentId": "1181781608",
+      "name": "radialLiquidEngine1-2",
+      "title": "Mk-55 \"Thud\" Liquid Fuel Engine",
+      "position": { "x": 0.741, "y": -12.732, "z": -0.474 },
+      "up": { "x": 0.01, "y": 0.998, "z": -0.06 },
+      "forward": { "x": 0.5, "y": -0.057, "z": -0.864 },
+      "bounds": {
+        "size": { "x": 1.003, "y": 1.832, "z": 0.771 },
+        "center": { "x": 0.0, "y": -0.005, "z": 0.233 }
+      },
+      "dryMass": 0.9,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 308.396,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 0, "maxAmount": 0 },
+        "Oxidizer": { "amount": 0, "maxAmount": 0 }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "38581731",
+      "parentId": "1181781608",
+      "name": "radialLiquidEngine1-2",
+      "title": "Mk-55 \"Thud\" Liquid Fuel Engine",
+      "position": { "x": -0.741, "y": -12.732, "z": -0.474 },
+      "up": { "x": -0.01, "y": 0.998, "z": -0.06 },
+      "forward": { "x": -0.5, "y": -0.057, "z": -0.864 },
+      "bounds": {
+        "size": { "x": 1.003, "y": 1.832, "z": 0.771 },
+        "center": { "x": 0, "y": -0.005, "z": 0.233 }
+      },
+      "dryMass": 0.9,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 308.396,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 0, "maxAmount": 0 },
+        "Oxidizer": { "amount": 0, "maxAmount": 0 }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1509392945",
+      "parentId": "1181781608",
+      "name": "airScoop",
+      "title": "XM-G50 Radial Air Intake",
+      "position": { "x": -0.872, "y": -12.599, "z": 0.666 },
+      "up": { "x": 0.502, "y": 0.082, "z": -0.861 },
+      "forward": { "x": -0.041, "y": 0.997, "z": 0.071 },
+      "bounds": {
+        "size": { "x": 1.224, "y": 0.743, "z": 2.053 },
+        "center": { "x": 0, "y": 0.24, "z": 0.039 }
+      },
+      "dryMass": 0.02,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 308.418,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleResourceIntake", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "IntakeAir": { "amount": 2, "maxAmount": 2 } },
+      "moduleStates": []
+    },
+    {
+      "id": "1230565821",
+      "parentId": "1181781608",
+      "name": "airScoop",
+      "title": "XM-G50 Radial Air Intake",
+      "position": { "x": 0.872, "y": -12.599, "z": 0.666 },
+      "up": { "x": -0.502, "y": 0.082, "z": -0.861 },
+      "forward": { "x": 0.041, "y": 0.997, "z": 0.071 },
+      "bounds": {
+        "size": { "x": 1.224, "y": 0.743, "z": 2.053 },
+        "center": { "x": -0.0, "y": 0.24, "z": 0.039 }
+      },
+      "dryMass": 0.02,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 308.418,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleResourceIntake", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "IntakeAir": { "amount": 2, "maxAmount": 2 } },
+      "moduleStates": []
+    },
+    {
+      "id": "2210208100",
+      "parentId": "1181781608",
+      "name": "omsEngine",
+      "title": "O-10 \"Puff\" MonoPropellant Fuel Engine",
+      "position": { "x": -0.315, "y": -13.434, "z": 0.546 },
+      "up": { "x": -0.041, "y": 0.997, "z": 0.071 },
+      "forward": { "x": -0.498, "y": -0.082, "z": 0.863 },
+      "bounds": {
+        "size": { "x": 0.49, "y": 1.096, "z": 0.614 },
+        "center": { "x": 0.0, "y": -0.24, "z": 0.19 }
+      },
+      "dryMass": 0.09,
+      "inverseStage": 0,
+      "maxTemp": 2000,
+      "currentTemp": 308.43,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEnginesFX",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "MonoPropellant": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "3990118509",
+      "parentId": "1181781608",
+      "name": "omsEngine",
+      "title": "O-10 \"Puff\" MonoPropellant Fuel Engine",
+      "position": { "x": 0.315, "y": -13.434, "z": 0.546 },
+      "up": { "x": 0.041, "y": 0.997, "z": 0.071 },
+      "forward": { "x": 0.498, "y": -0.082, "z": 0.863 },
+      "bounds": {
+        "size": { "x": 0.49, "y": 1.096, "z": 0.614 },
+        "center": { "x": -0.0, "y": -0.24, "z": 0.19 }
+      },
+      "dryMass": 0.09,
+      "inverseStage": 0,
+      "maxTemp": 2000,
+      "currentTemp": 308.43,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEnginesFX",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "MonoPropellant": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "908730263",
+      "parentId": "1181781608",
+      "name": "omsEngine",
+      "title": "O-10 \"Puff\" MonoPropellant Fuel Engine",
+      "position": { "x": -0.313, "y": -13.507, "z": -0.542 },
+      "up": { "x": -0.041, "y": 0.997, "z": -0.071 },
+      "forward": { "x": -0.498, "y": -0.082, "z": -0.863 },
+      "bounds": {
+        "size": { "x": 0.49, "y": 1.096, "z": 0.614 },
+        "center": { "x": 0.0, "y": -0.24, "z": 0.19 }
+      },
+      "dryMass": 0.09,
+      "inverseStage": 0,
+      "maxTemp": 2000,
+      "currentTemp": 308.43,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEnginesFX",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "MonoPropellant": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1083033807",
+      "parentId": "1181781608",
+      "name": "omsEngine",
+      "title": "O-10 \"Puff\" MonoPropellant Fuel Engine",
+      "position": { "x": 0.313, "y": -13.507, "z": -0.542 },
+      "up": { "x": 0.041, "y": 0.997, "z": -0.071 },
+      "forward": { "x": 0.498, "y": -0.082, "z": -0.863 },
+      "bounds": {
+        "size": { "x": 0.49, "y": 1.096, "z": 0.614 },
+        "center": { "x": -0.0, "y": -0.24, "z": 0.19 }
+      },
+      "dryMass": 0.09,
+      "inverseStage": 0,
+      "maxTemp": 2000,
+      "currentTemp": 308.43,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEnginesFX",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "MonoPropellant": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "3009188151",
+      "parentId": "2045269407",
+      "name": "GearSmall",
+      "title": "LY-35 Medium Landing Gear",
+      "position": { "x": -1.559, "y": -10.356, "z": 0.109 },
+      "up": { "x": 0, "y": -0.0, "z": -1.0 },
+      "forward": { "x": 0.0, "y": 1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 1.568, "y": 1.24, "z": 1.785 },
+        "center": { "x": 0.0, "y": 0.281, "z": -0.024 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": -1,
+      "maxTemp": 2600,
+      "currentTemp": 308.377,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelSteering",
+        "ModuleWheelBrakes",
+        "ModuleWheelDeployment",
+        "FXModuleConstrainPosition",
+        "FXModuleLookAtConstraint",
+        "ModuleStatusLight",
+        "ModuleTestSubject",
+        "ModuleLight",
+        "ModuleWheelDamage",
+        "ModuleDragModifier",
+        "ModuleDragModifier",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "landingGear",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1235960216",
+      "parentId": "2045269407",
+      "name": "GearSmall",
+      "title": "LY-35 Medium Landing Gear",
+      "position": { "x": 1.559, "y": -10.356, "z": 0.109 },
+      "up": { "x": -0.0, "y": -0.0, "z": -1.0 },
+      "forward": { "x": -0.0, "y": 1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 1.567, "y": 1.24, "z": 1.785 },
+        "center": { "x": -0.0, "y": 0.281, "z": -0.024 }
+      },
+      "dryMass": 0.25,
+      "inverseStage": -1,
+      "maxTemp": 2600,
+      "currentTemp": 308.377,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelSteering",
+        "ModuleWheelBrakes",
+        "ModuleWheelDeployment",
+        "FXModuleConstrainPosition",
+        "FXModuleLookAtConstraint",
+        "ModuleStatusLight",
+        "ModuleTestSubject",
+        "ModuleLight",
+        "ModuleWheelDamage",
+        "ModuleDragModifier",
+        "ModuleDragModifier",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "landingGear",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "232844388",
+      "parentId": "2045269407",
+      "name": "sweptWing2",
+      "title": "Swept Wing Type B",
+      "position": { "x": -1.25, "y": -11.13, "z": 0.0 },
+      "up": { "x": -0.0, "y": -1.0, "z": -0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 3.875, "y": 4.125, "z": 0.188 },
+        "center": { "x": -1.875, "y": 0.0, "z": -0.0 }
+      },
+      "dryMass": 0.226,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.391,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1848092308",
+      "parentId": "232844388",
+      "name": "linearRcs",
+      "title": "Place-Anywhere 7 Linear RCS Port",
+      "position": { "x": -5.0, "y": -10.774, "z": -0.0 },
+      "up": { "x": -1.0, "y": 0.0, "z": -0.0 },
+      "forward": { "x": -0.0, "y": -1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.247, "y": 0.227, "z": 0.247 },
+        "center": { "x": 0.0, "y": -0.014, "z": 0.0 }
+      },
+      "dryMass": 0.02,
+      "inverseStage": -1,
+      "maxTemp": 2600,
+      "currentTemp": 308.398,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "70444371",
+      "parentId": "232844388",
+      "name": "RCSBlock.v2",
+      "title": "RV-105 RCS Thruster Block",
+      "position": { "x": -5.057, "y": -10.481, "z": 0.001 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.311, "y": 0.39, "z": 0.444 },
+        "center": { "x": -0.097, "y": 0.0, "z": 0.0 }
+      },
+      "dryMass": 0.04,
+      "inverseStage": -1,
+      "maxTemp": 1500,
+      "currentTemp": 308.395,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModulePartVariants",
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1146723528",
+      "parentId": "232844388",
+      "name": "elevon5",
+      "title": "Elevon 5",
+      "position": { "x": -3.926, "y": -11.667, "z": 0.0 },
+      "up": { "x": 0.447, "y": 0.894, "z": 0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.373, "y": 0.747, "z": 0.188 },
+        "center": { "x": 0.0, "y": -0.33, "z": 0.0 }
+      },
+      "dryMass": 0.08,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.379,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1121416440",
+      "parentId": "232844388",
+      "name": "elevon5",
+      "title": "Elevon 5",
+      "position": { "x": -2.087, "y": -12.587, "z": 0.0 },
+      "up": { "x": 0.447, "y": 0.894, "z": 0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.374, "y": 0.747, "z": 0.188 },
+        "center": { "x": -0.0, "y": -0.33, "z": -0.0 }
+      },
+      "dryMass": 0.08,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.379,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2418345",
+      "parentId": "2045269407",
+      "name": "sweptWing2",
+      "title": "Swept Wing Type B",
+      "position": { "x": 1.25, "y": -11.13, "z": -0.0 },
+      "up": { "x": 0.0, "y": -1.0, "z": -0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 3.875, "y": 4.125, "z": 0.188 },
+        "center": { "x": -1.875, "y": -0.0, "z": -0.0 }
+      },
+      "dryMass": 0.226,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.392,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1076516369",
+      "parentId": "2418345",
+      "name": "linearRcs",
+      "title": "Place-Anywhere 7 Linear RCS Port",
+      "position": { "x": 5.0, "y": -10.774, "z": 0 },
+      "up": { "x": 1.0, "y": 0.0, "z": 0.0 },
+      "forward": { "x": 0.0, "y": -1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.247, "y": 0.227, "z": 0.247 },
+        "center": { "x": 0.0, "y": -0.014, "z": -0.0 }
+      },
+      "dryMass": 0.02,
+      "inverseStage": -1,
+      "maxTemp": 2600,
+      "currentTemp": 308.404,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2601462519",
+      "parentId": "2418345",
+      "name": "RCSBlock.v2",
+      "title": "RV-105 RCS Thruster Block",
+      "position": { "x": 5.057, "y": -10.481, "z": -0.001 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 0.311, "y": 0.39, "z": 0.444 },
+        "center": { "x": -0.097, "y": 0.0, "z": 0.0 }
+      },
+      "dryMass": 0.04,
+      "inverseStage": -1,
+      "maxTemp": 1500,
+      "currentTemp": 308.406,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModulePartVariants",
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3814138301",
+      "parentId": "2418345",
+      "name": "elevon5",
+      "title": "Elevon 5",
+      "position": { "x": 3.926, "y": -11.667, "z": -0.0 },
+      "up": { "x": -0.447, "y": 0.894, "z": 0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 2.374, "y": 0.747, "z": 0.188 },
+        "center": { "x": 0.0, "y": -0.33, "z": 0.0 }
+      },
+      "dryMass": 0.08,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.379,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2835652573",
+      "parentId": "2418345",
+      "name": "elevon5",
+      "title": "Elevon 5",
+      "position": { "x": 2.087, "y": -12.587, "z": -0.0 },
+      "up": { "x": -0.447, "y": 0.894, "z": 0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 2.374, "y": 0.747, "z": 0.188 },
+        "center": { "x": -0.0, "y": -0.33, "z": -0.0 }
+      },
+      "dryMass": 0.08,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.379,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3878870622",
+      "parentId": "2729437799",
+      "name": "structuralWing2",
+      "title": "Structural Wing Type B",
+      "position": { "x": -1.25, "y": -9.748, "z": 0.0 },
+      "up": { "x": 0.045, "y": -0.999, "z": -0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 3.812, "y": 2.25, "z": 0.188 },
+        "center": { "x": -1.844, "y": 0.312, "z": -0.0 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.397,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3381073992",
+      "parentId": "3878870622",
+      "name": "solarPanels1",
+      "title": "SP-W 3x2 Photovoltaic Panels",
+      "position": { "x": -4.745, "y": -9.37, "z": -0.094 },
+      "up": { "x": 0.045, "y": -0.999, "z": -0.0 },
+      "forward": { "x": 0.999, "y": 0.045, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.199, "y": 0.566, "z": 0.548 },
+        "center": { "x": -0.002, "y": 0.009, "z": -0.0 }
+      },
+      "dryMass": 0.025,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 308.394,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleDeployableSolarPanel",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "solarPanel",
+          "state": "retracted",
+          "tracking": false,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2785809994",
+      "parentId": "3878870622",
+      "name": "solarPanels1",
+      "title": "SP-W 3x2 Photovoltaic Panels",
+      "position": { "x": -4.7, "y": -9.366, "z": 0.094 },
+      "up": { "x": 0.045, "y": -0.999, "z": 0.0 },
+      "forward": { "x": -0.999, "y": -0.045, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.199, "y": 0.566, "z": 0.548 },
+        "center": { "x": -0.002, "y": 0.009, "z": -0.0 }
+      },
+      "dryMass": 0.025,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 308.394,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleDeployableSolarPanel",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "solarPanel",
+          "state": "retracted",
+          "tracking": false,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2014852230",
+      "parentId": "2729437799",
+      "name": "structuralWing2",
+      "title": "Structural Wing Type B",
+      "position": { "x": 1.25, "y": -9.748, "z": -0.0 },
+      "up": { "x": -0.045, "y": -0.999, "z": 0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 3.812, "y": 2.25, "z": 0.188 },
+        "center": { "x": -1.844, "y": 0.313, "z": -0.0 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.406,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2887515419",
+      "parentId": "2014852230",
+      "name": "solarPanels1",
+      "title": "SP-W 3x2 Photovoltaic Panels",
+      "position": { "x": 4.745, "y": -9.37, "z": 0.094 },
+      "up": { "x": -0.045, "y": -0.999, "z": 0.0 },
+      "forward": { "x": -0.999, "y": 0.045, "z": 0.0 },
+      "bounds": {
+        "size": { "x": 0.199, "y": 0.566, "z": 0.548 },
+        "center": { "x": -0.002, "y": 0.009, "z": 0.0 }
+      },
+      "dryMass": 0.025,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 308.425,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleDeployableSolarPanel",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "solarPanel",
+          "state": "retracted",
+          "tracking": false,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "4165085750",
+      "parentId": "2014852230",
+      "name": "solarPanels1",
+      "title": "SP-W 3x2 Photovoltaic Panels",
+      "position": { "x": 4.7, "y": -9.366, "z": -0.094 },
+      "up": { "x": -0.045, "y": -0.999, "z": -0.0 },
+      "forward": { "x": 0.999, "y": -0.045, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.199, "y": 0.566, "z": 0.548 },
+        "center": { "x": -0.002, "y": 0.009, "z": -0.0 }
+      },
+      "dryMass": 0.025,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 308.406,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleDeployableSolarPanel",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "solarPanel",
+          "state": "retracted",
+          "tracking": false,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1090675725",
+      "parentId": "2729437799",
+      "name": "structuralWing2",
+      "title": "Structural Wing Type B",
+      "position": { "x": -1.251, "y": -8.606, "z": 0.0 },
+      "up": { "x": 0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 3.813, "y": 2.25, "z": 0.188 },
+        "center": { "x": -1.844, "y": 0.313, "z": -0.0 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.408,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1140409103",
+      "parentId": "1090675725",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": { "x": -4.998, "y": -9.229, "z": 0.0 },
+      "up": { "x": 0.894, "y": 0.447, "z": 0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.196, "y": 0.226, "z": 0.114 },
+        "center": { "x": -0.031, "y": 0.021, "z": 0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 308.409,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1771890645",
+      "parentId": "2729437799",
+      "name": "structuralWing2",
+      "title": "Structural Wing Type B",
+      "position": { "x": 1.251, "y": -8.606, "z": -0.0 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 3.813, "y": 2.25, "z": 0.188 },
+        "center": { "x": -1.844, "y": 0.313, "z": -0.0 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.408,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3316936181",
+      "parentId": "1771890645",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": { "x": 4.998, "y": -9.229, "z": -0.0 },
+      "up": { "x": -0.894, "y": 0.447, "z": -0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 0.196, "y": 0.226, "z": 0.114 },
+        "center": { "x": -0.031, "y": 0.021, "z": -0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 308.409,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3049622389",
+      "parentId": "2729437799",
+      "name": "radialDecoupler2",
+      "title": "TT-70 Radial Decoupler",
+      "position": { "x": 0.0, "y": -9.073, "z": 0.702 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 1.0, "y": -0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.884, "y": 1.74, "z": 0.703 },
+        "center": { "x": -0.276, "y": 0.013, "z": 0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.386,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3309317865",
+      "parentId": "3049622389",
+      "name": "Size3LargeTank",
+      "title": "Kerbodyne S3-14400 Tank",
+      "position": { "x": 0.0, "y": -8.735, "z": 3.21 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 3.984, "y": 7.54, "z": 3.75 },
+        "center": { "x": 0, "y": -0.0, "z": -0.0 }
+      },
+      "dryMass": 9,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.372,
+      "category": "Propulsion",
+      "categoryOrdinal": 0,
+      "modules": ["ModulePartVariants", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 6480, "maxAmount": 6480 },
+        "Oxidizer": { "amount": 7920, "maxAmount": 7920 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1467872450",
+      "parentId": "3309317865",
+      "name": "Size3LargeTank",
+      "title": "Kerbodyne S3-14400 Tank",
+      "position": { "x": 0.0, "y": -1.255, "z": 3.21 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 3.984, "y": 7.54, "z": 3.75 },
+        "center": { "x": 0, "y": -0.0, "z": 0.0 }
+      },
+      "dryMass": 9,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.37,
+      "category": "Propulsion",
+      "categoryOrdinal": 0,
+      "modules": ["ModulePartVariants", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 6480, "maxAmount": 6480 },
+        "Oxidizer": { "amount": 7920, "maxAmount": 7920 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "3861328398",
+      "parentId": "1467872450",
+      "name": "Size3MediumTank",
+      "title": "Kerbodyne S3-7200 Tank",
+      "position": { "x": 0.0, "y": 4.422, "z": 3.21 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 3.75, "y": 3.928, "z": 3.75 },
+        "center": { "x": 0, "y": -0.003, "z": -0.0 }
+      },
+      "dryMass": 4.5,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.375,
+      "category": "Propulsion",
+      "categoryOrdinal": 0,
+      "modules": ["ModulePartVariants", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 3240, "maxAmount": 3240 },
+        "Oxidizer": { "amount": 3960, "maxAmount": 3960 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "3529071493",
+      "parentId": "3861328398",
+      "name": "vernierEngine",
+      "title": "Vernor Engine",
+      "position": { "x": 0.0, "y": 6.133, "z": 5.074 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 1.0, "y": 0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.175, "y": 0.644, "z": 0.266 },
+        "center": { "x": -0.039, "y": -0.164, "z": 0.0 }
+      },
+      "dryMass": 0.08,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.409,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3353523765",
+      "parentId": "3861328398",
+      "name": "vernierEngine",
+      "title": "Vernor Engine",
+      "position": { "x": 1.864, "y": 6.133, "z": 3.21 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 0.175, "y": 0.644, "z": 0.266 },
+        "center": { "x": -0.039, "y": -0.164, "z": 0.0 }
+      },
+      "dryMass": 0.08,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.409,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3897751543",
+      "parentId": "3861328398",
+      "name": "vernierEngine",
+      "title": "Vernor Engine",
+      "position": { "x": -0.0, "y": 6.133, "z": 1.346 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -1.0, "y": 0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.175, "y": 0.644, "z": 0.266 },
+        "center": { "x": -0.039, "y": -0.164, "z": 0.0 }
+      },
+      "dryMass": 0.08,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.409,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1278292057",
+      "parentId": "3861328398",
+      "name": "vernierEngine",
+      "title": "Vernor Engine",
+      "position": { "x": -1.864, "y": 6.133, "z": 3.21 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.175, "y": 0.644, "z": 0.266 },
+        "center": { "x": -0.039, "y": -0.164, "z": 0.0 }
+      },
+      "dryMass": 0.08,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.409,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "297173285",
+      "parentId": "3861328398",
+      "name": "Size3To2Adapter.v2",
+      "title": "Kerbodyne ADTP-2-3",
+      "position": { "x": -0.0, "y": 7.453, "z": 3.21 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 3.75, "y": 2.312, "z": 3.75 },
+        "center": { "x": 0.0, "y": 0.038, "z": -0.0 }
+      },
+      "dryMass": 1.875,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.437,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": ["ModulePartVariants", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {
+        "LiquidFuel": { "amount": 0, "maxAmount": 1350 },
+        "Oxidizer": { "amount": 0, "maxAmount": 1650 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "1248636611",
+      "parentId": "297173285",
+      "name": "rocketNoseCone.v2",
+      "title": "Protective Rocket Nose Cone Mk7",
+      "position": { "x": 0.0, "y": 8.404, "z": 3.21 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 2.358, "z": 2.5 },
+        "center": { "x": 0, "y": 0.906, "z": 0.0 }
+      },
+      "dryMass": 0.2,
+      "inverseStage": 1,
+      "maxTemp": 2400,
+      "currentTemp": 308.465,
+      "category": "none",
+      "categoryOrdinal": -1,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "275474727",
+      "parentId": "1467872450",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": { "x": -1.849, "y": -1.251, "z": 3.21 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.585, "y": 0.978, "z": 0.389 },
+        "center": { "x": -0.232, "y": -0.397, "z": -0.137 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.375,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2744170418",
+      "parentId": "1467872450",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": { "x": 1.849, "y": -1.251, "z": 3.21 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 0.585, "y": 0.978, "z": 0.388 },
+        "center": { "x": -0.232, "y": -0.396, "z": -0.137 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.379,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2146474946",
+      "parentId": "1467872450",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": { "x": -1.865, "y": -1.483, "z": 3.21 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.512, "y": 0.185, "z": 0.263 },
+        "center": { "x": -0.196, "y": 0.0, "z": 0.074 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.38,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "793885255",
+      "parentId": "1467872450",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": { "x": 1.865, "y": -1.483, "z": 3.21 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 0.512, "y": 0.185, "z": 0.267 },
+        "center": { "x": -0.196, "y": 0.0, "z": 0.076 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.375,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4068731977",
+      "parentId": "3309317865",
+      "name": "fuelLine",
+      "title": "FTX-2 External Fuel Duct",
+      "position": { "x": -0.0, "y": -7.188, "z": 1.364 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -1.0, "y": -0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.678, "y": 0.727, "z": 0.148 },
+        "center": { "x": -0.23, "y": -0.241, "z": 0.005 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.396,
+      "category": "FuelTank",
+      "categoryOrdinal": 7,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleFuelLine",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": "243549198",
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1239903475",
+      "parentId": "3309317865",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": { "x": -1.604, "y": -8.934, "z": 2.284 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.5, "y": -0.0, "z": 0.866 },
+      "bounds": {
+        "size": { "x": 1.727, "y": 0.631, "z": 1.529 },
+        "center": { "x": -0.803, "y": -0.223, "z": -0.707 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.385,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1892083487",
+      "parentId": "3309317865",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": { "x": 1.611, "y": -8.732, "z": 2.28 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.5, "y": 0.0, "z": -0.866 },
+      "bounds": {
+        "size": { "x": 2.114, "y": 0.761, "z": 1.302 },
+        "center": { "x": -0.997, "y": -0.288, "z": 0.594 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.389,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2550163624",
+      "parentId": "3309317865",
+      "name": "radialDecoupler2",
+      "title": "TT-70 Radial Decoupler",
+      "position": { "x": -1.833, "y": -8.661, "z": 3.21 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.884, "y": 1.74, "z": 0.703 },
+        "center": { "x": -0.276, "y": 0.013, "z": 0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 2,
+      "maxTemp": 2000,
+      "currentTemp": 308.39,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3650134706",
+      "parentId": "2550163624",
+      "name": "MassiveBooster",
+      "title": "S1 SRB-KD25k \"Kickback\" Solid Fuel Booster",
+      "position": { "x": -2.833, "y": -8.861, "z": 2.51 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.866, "y": -0.0, "z": -0.5 },
+      "bounds": {
+        "size": { "x": 1.582, "y": 14.865, "z": 1.52 },
+        "center": { "x": -0.0, "y": -0.0, "z": 0.0 }
+      },
+      "dryMass": 4.5,
+      "inverseStage": 4,
+      "maxTemp": 2200,
+      "currentTemp": 308.382,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEnginesFX",
+        "FXModuleAnimateThrottle",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "ModulePartVariants",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "SolidFuel": { "amount": 2500, "maxAmount": 2500 } },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1092022685",
+      "parentId": "3650134706",
+      "name": "noseCone",
+      "title": "Aerodynamic Nose Cone",
+      "position": { "x": -2.833, "y": -1.431, "z": 2.51 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.5, "y": -0.0, "z": 0.866 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 0.669, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.306, "z": 0.0 }
+      },
+      "dryMass": 0.03,
+      "inverseStage": 4,
+      "maxTemp": 2400,
+      "currentTemp": 308.394,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "852364797",
+      "parentId": "1092022685",
+      "name": "sepMotor1",
+      "title": "Sepratron I",
+      "position": { "x": -2.793, "y": -1.72, "z": 3.11 },
+      "up": { "x": -0.999, "y": 0.052, "z": -0.0 },
+      "forward": { "x": 0.052, "y": 0.999, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.178, "y": 0.538, "z": 0.341 },
+        "center": { "x": 0.0, "y": -0.006, "z": 0.097 }
+      },
+      "dryMass": 0.013,
+      "inverseStage": 2,
+      "maxTemp": 2000,
+      "currentTemp": 308.428,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "SolidFuel": { "amount": 0.8, "maxAmount": 8 } },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2581919271",
+      "parentId": "2550163624",
+      "name": "MassiveBooster",
+      "title": "S1 SRB-KD25k \"Kickback\" Solid Fuel Booster",
+      "position": { "x": -2.833, "y": -8.861, "z": 3.71 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.906, "y": -0.0, "z": 0.423 },
+      "bounds": {
+        "size": { "x": 1.582, "y": 14.865, "z": 1.52 },
+        "center": { "x": -0.0, "y": 0.0, "z": 0.0 }
+      },
+      "dryMass": 4.5,
+      "inverseStage": 4,
+      "maxTemp": 2200,
+      "currentTemp": 308.399,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEnginesFX",
+        "FXModuleAnimateThrottle",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "ModulePartVariants",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "SolidFuel": { "amount": 2500, "maxAmount": 2500 } },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2692161429",
+      "parentId": "2581919271",
+      "name": "noseCone",
+      "title": "Aerodynamic Nose Cone",
+      "position": { "x": -2.833, "y": -1.431, "z": 3.71 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.423, "y": 0.0, "z": 0.906 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 0.669, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.306, "z": 0.0 }
+      },
+      "dryMass": 0.03,
+      "inverseStage": 4,
+      "maxTemp": 2400,
+      "currentTemp": 308.421,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1383776354",
+      "parentId": "3309317865",
+      "name": "radialDecoupler2",
+      "title": "TT-70 Radial Decoupler",
+      "position": { "x": 1.833, "y": -8.661, "z": 3.21 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 0.884, "y": 1.74, "z": 0.703 },
+        "center": { "x": -0.276, "y": 0.013, "z": -0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": 2,
+      "maxTemp": 2000,
+      "currentTemp": 308.388,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3485005651",
+      "parentId": "1383776354",
+      "name": "MassiveBooster",
+      "title": "S1 SRB-KD25k \"Kickback\" Solid Fuel Booster",
+      "position": { "x": 2.833, "y": -8.861, "z": 3.91 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.866, "y": -0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 1.582, "y": 14.865, "z": 1.52 },
+        "center": { "x": 0.0, "y": 0.0, "z": 0.0 }
+      },
+      "dryMass": 4.5,
+      "inverseStage": 4,
+      "maxTemp": 2200,
+      "currentTemp": 308.395,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEnginesFX",
+        "FXModuleAnimateThrottle",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "ModulePartVariants",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "SolidFuel": { "amount": 2500, "maxAmount": 2500 } },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1782741551",
+      "parentId": "3485005651",
+      "name": "noseCone",
+      "title": "Aerodynamic Nose Cone",
+      "position": { "x": 2.833, "y": -1.431, "z": 3.91 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.5, "y": -0.0, "z": -0.866 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 0.669, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.306, "z": 0.0 }
+      },
+      "dryMass": 0.03,
+      "inverseStage": 4,
+      "maxTemp": 2400,
+      "currentTemp": 308.412,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1996704125",
+      "parentId": "1782741551",
+      "name": "sepMotor1",
+      "title": "Sepratron I",
+      "position": { "x": 2.793, "y": -1.72, "z": 3.31 },
+      "up": { "x": 0.999, "y": 0.052, "z": 0.0 },
+      "forward": { "x": -0.052, "y": 0.999, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.178, "y": 0.538, "z": 0.341 },
+        "center": { "x": -0.0, "y": -0.006, "z": 0.097 }
+      },
+      "dryMass": 0.013,
+      "inverseStage": 2,
+      "maxTemp": 2000,
+      "currentTemp": 308.451,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEngines",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "SolidFuel": { "amount": 0.8, "maxAmount": 8 } },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1545128272",
+      "parentId": "1383776354",
+      "name": "MassiveBooster",
+      "title": "S1 SRB-KD25k \"Kickback\" Solid Fuel Booster",
+      "position": { "x": 2.833, "y": -8.861, "z": 2.71 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.906, "y": -0.0, "z": -0.423 },
+      "bounds": {
+        "size": { "x": 1.582, "y": 14.865, "z": 1.52 },
+        "center": { "x": 0.0, "y": 0.0, "z": 0.0 }
+      },
+      "dryMass": 4.5,
+      "inverseStage": 4,
+      "maxTemp": 2200,
+      "currentTemp": 308.382,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEnginesFX",
+        "FXModuleAnimateThrottle",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "ModulePartVariants",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "SolidFuel": { "amount": 2500, "maxAmount": 2500 } },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1042171979",
+      "parentId": "1545128272",
+      "name": "noseCone",
+      "title": "Aerodynamic Nose Cone",
+      "position": { "x": 2.833, "y": -1.431, "z": 2.71 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.423, "y": 0.0, "z": -0.906 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 0.669, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.306, "z": 0.0 }
+      },
+      "dryMass": 0.03,
+      "inverseStage": 4,
+      "maxTemp": 2400,
+      "currentTemp": 308.392,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "539297012",
+      "parentId": "3309317865",
+      "name": "launchClamp1",
+      "title": "TT18-A Launch Stability Enhancer",
+      "position": { "x": 2.308, "y": -13.321, "z": 1.878 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": -0.866, "y": 0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 1.552, "y": 9.013, "z": 2.601 },
+        "center": { "x": -0.001, "y": -2.744, "z": -0.425 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 3,
+      "maxTemp": 2000,
+      "currentTemp": 308.416,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "LaunchClamp",
+        "ModuleGenerator",
+        "ModuleTestSubject",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": []
+    },
+    {
+      "id": "2503020481",
+      "parentId": "3309317865",
+      "name": "launchClamp1",
+      "title": "TT18-A Launch Stability Enhancer",
+      "position": { "x": -2.308, "y": -13.321, "z": 1.878 },
+      "up": { "x": -0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.866, "y": 0.0, "z": 0.5 },
+      "bounds": {
+        "size": { "x": 1.552, "y": 9.013, "z": 2.603 },
+        "center": { "x": -0.001, "y": -2.744, "z": -0.426 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 3,
+      "maxTemp": 2000,
+      "currentTemp": 308.416,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "LaunchClamp",
+        "ModuleGenerator",
+        "ModuleTestSubject",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": []
+    },
+    {
+      "id": "1430355823",
+      "parentId": "3309317865",
+      "name": "launchClamp1",
+      "title": "TT18-A Launch Stability Enhancer",
+      "position": { "x": 0.0, "y": -13.321, "z": 5.876 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 1.136, "y": 9.013, "z": 2.394 },
+        "center": { "x": 0.001, "y": -2.744, "z": -0.322 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": 3,
+      "maxTemp": 2000,
+      "currentTemp": 308.428,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "LaunchClamp",
+        "ModuleGenerator",
+        "ModuleTestSubject",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": []
+    },
+    {
+      "id": "3321770133",
+      "parentId": "3309317865",
+      "name": "vernierEngine",
+      "title": "Vernor Engine",
+      "position": { "x": 0.0, "y": -11.007, "z": 5.068 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 1.0, "y": -0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.175, "y": 0.644, "z": 0.266 },
+        "center": { "x": -0.039, "y": -0.164, "z": 0.0 }
+      },
+      "dryMass": 0.08,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.401,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3417840828",
+      "parentId": "3309317865",
+      "name": "vernierEngine",
+      "title": "Vernor Engine",
+      "position": { "x": 1.608, "y": -11.007, "z": 2.282 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.5, "y": 0.0, "z": -0.866 },
+      "bounds": {
+        "size": { "x": 0.175, "y": 0.644, "z": 0.266 },
+        "center": { "x": -0.039, "y": -0.164, "z": 0.0 }
+      },
+      "dryMass": 0.08,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.401,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "387852164",
+      "parentId": "3309317865",
+      "name": "vernierEngine",
+      "title": "Vernor Engine",
+      "position": { "x": -1.608, "y": -11.007, "z": 2.282 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.5, "y": -0.0, "z": 0.866 },
+      "bounds": {
+        "size": { "x": 0.175, "y": 0.644, "z": 0.266 },
+        "center": { "x": -0.039, "y": -0.164, "z": 0.0 }
+      },
+      "dryMass": 0.08,
+      "inverseStage": 1,
+      "maxTemp": 2000,
+      "currentTemp": 308.401,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4088113295",
+      "parentId": "3309317865",
+      "name": "Size3AdvancedEngine",
+      "title": "Kerbodyne KR-2L+ \"Rhino\" Liquid Fuel Engine",
+      "position": { "x": 0.0, "y": -13.963, "z": 3.21 },
+      "up": { "x": 0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 3.769, "y": 4.052, "z": 3.769 },
+        "center": { "x": 0.0, "y": -0.527, "z": -0.0 }
+      },
+      "dryMass": 9,
+      "inverseStage": 4,
+      "maxTemp": 2000,
+      "currentTemp": 308.389,
+      "category": "Engine",
+      "categoryOrdinal": 8,
+      "modules": [
+        "ModuleEnginesFX",
+        "ModuleGimbal",
+        "FXModuleAnimateThrottle",
+        "ModuleAlternator",
+        "FlagDecal",
+        "ModuleJettison",
+        "ModuleTestSubject",
+        "ModuleSurfaceFX",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 0.24, "maxAmount": 0.24 },
+        "LiquidFuel": { "amount": 0, "maxAmount": 0 },
+        "Oxidizer": { "amount": 0, "maxAmount": 0 }
+      },
+      "moduleStates": [
+        {
+          "type": "engine",
+          "state": "inactive",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2442112347",
+      "parentId": "243549198",
+      "name": "sweptWing1",
+      "title": "Swept Wing Type A",
+      "position": { "x": -1.25, "y": -7.298, "z": 0.0 },
+      "up": { "x": 0, "y": 1, "z": 0.0 },
+      "forward": { "x": 0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 3.813, "y": 4.125, "z": 0.188 },
+        "center": { "x": -1.844, "y": 0.0, "z": -0.0 }
+      },
+      "dryMass": 0.113,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.411,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "968714870",
+      "parentId": "243549198",
+      "name": "sweptWing1",
+      "title": "Swept Wing Type A",
+      "position": { "x": 1.25, "y": -7.298, "z": -0.0 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": 0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 3.813, "y": 4.125, "z": 0.188 },
+        "center": { "x": -1.844, "y": -0.0, "z": -0.0 }
+      },
+      "dryMass": 0.113,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.411,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleLiftingSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1148727518",
+      "parentId": "503832905",
+      "name": "dockingPort2",
+      "title": "Clamp-O-Tron Docking Port",
+      "position": { "x": 0, "y": -4.375, "z": -0.0 },
+      "up": { "x": 0.0, "y": -1.0, "z": -0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.151, "y": 0.575, "z": 1.151 },
+        "center": { "x": 0, "y": -0.004, "z": 0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 308.433,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleDockingNode",
+        "ModuleCargoPart",
+        "ModuleColorChanger",
+        "MuMechModuleHullCameraZoom",
+        "DPSoundFX",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3246832082",
+      "parentId": "4057251746",
+      "name": "batteryPack",
+      "title": "Z-100 Rechargeable Battery Pack",
+      "position": { "x": -0.789, "y": -4.375, "z": 0.0 },
+      "up": { "x": -1.0, "y": -0.0, "z": 0 },
+      "forward": { "x": 0, "y": 1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.275, "y": 0.413, "z": 0.288 },
+        "center": { "x": -0.0, "y": 0.034, "z": -0.108 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 308.432,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 100, "maxAmount": 100 } },
+      "moduleStates": []
+    },
+    {
+      "id": "1043002442",
+      "parentId": "4057251746",
+      "name": "batteryPack",
+      "title": "Z-100 Rechargeable Battery Pack",
+      "position": { "x": 0.789, "y": -4.375, "z": -0.0 },
+      "up": { "x": 1.0, "y": -0.0, "z": -0.0 },
+      "forward": { "x": 0, "y": 1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.275, "y": 0.413, "z": 0.288 },
+        "center": { "x": -0.0, "y": 0.034, "z": -0.108 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 308.432,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 100, "maxAmount": 100 } },
+      "moduleStates": []
+    },
+    {
+      "id": "1085092608",
+      "parentId": "2865849581",
+      "name": "R8winglet",
+      "title": "AV-R8 Winglet",
+      "position": { "x": -1.791, "y": -1.959, "z": 0.0 },
+      "up": { "x": 0.0, "y": 1, "z": -0.0 },
+      "forward": { "x": 0.0, "y": 0.0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.629, "y": 2.016, "z": 0.106 },
+        "center": { "x": -0.074, "y": -0.034, "z": -0.0 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.381,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2906489282",
+      "parentId": "2865849581",
+      "name": "R8winglet",
+      "title": "AV-R8 Winglet",
+      "position": { "x": 1.791, "y": -1.959, "z": -0.0 },
+      "up": { "x": -0.0, "y": 1, "z": 0.0 },
+      "forward": { "x": -0.0, "y": -0.0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 1.629, "y": 2.016, "z": 0.106 },
+        "center": { "x": -0.074, "y": -0.034, "z": -0.0 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": -1,
+      "maxTemp": 2400,
+      "currentTemp": 308.381,
+      "category": "Aero",
+      "categoryOrdinal": 3,
+      "modules": ["ModuleControlSurface", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1379703664",
+      "parentId": "2743549794",
+      "name": "SmallGearBay",
+      "title": "LY-10 Small Landing Gear",
+      "position": { "x": 0.0, "y": -0.5, "z": 0.7 },
+      "up": { "x": 0, "y": -0.026, "z": -1.0 },
+      "forward": { "x": 0, "y": 1.0, "z": -0.026 },
+      "bounds": {
+        "size": { "x": 0.99, "y": 0.945, "z": 1.248 },
+        "center": { "x": -0.0, "y": 0.301, "z": 0.055 }
+      },
+      "dryMass": 0.045,
+      "inverseStage": -1,
+      "maxTemp": 2600,
+      "currentTemp": 308.392,
+      "category": "Ground",
+      "categoryOrdinal": 11,
+      "modules": [
+        "ModuleWheelBase",
+        "ModuleWheelSuspension",
+        "ModuleWheelSteering",
+        "ModuleWheelBrakes",
+        "ModuleStatusLight",
+        "ModuleWheelDeployment",
+        "FXModuleConstrainPosition",
+        "FXModuleLookAtConstraint",
+        "ModuleTestSubject",
+        "ModuleLight",
+        "ModuleWheelDamage",
+        "ModuleDragModifier",
+        "ModuleDragModifier",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": [
+        {
+          "type": "landingGear",
+          "state": "retracted",
+          "tracking": null,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "222649260",
+      "parentId": "2743549794",
+      "name": "linearRcs",
+      "title": "Place-Anywhere 7 Linear RCS Port",
+      "position": { "x": 1.127, "y": -0.019, "z": -0.0 },
+      "up": { "x": 0.986, "y": 0.169, "z": 0.0 },
+      "forward": { "x": 0.169, "y": -0.986, "z": -0.003 },
+      "bounds": {
+        "size": { "x": 0.247, "y": 0.227, "z": 0.247 },
+        "center": { "x": 0.0, "y": -0.014, "z": -0.0 }
+      },
+      "dryMass": 0.02,
+      "inverseStage": -1,
+      "maxTemp": 2600,
+      "currentTemp": 308.419,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "967731596",
+      "parentId": "2743549794",
+      "name": "linearRcs",
+      "title": "Place-Anywhere 7 Linear RCS Port",
+      "position": { "x": -1.127, "y": -0.019, "z": 0.0 },
+      "up": { "x": -0.986, "y": 0.169, "z": -0.0 },
+      "forward": { "x": -0.169, "y": -0.986, "z": 0.003 },
+      "bounds": {
+        "size": { "x": 0.247, "y": 0.227, "z": 0.247 },
+        "center": { "x": -0.0, "y": -0.014, "z": 0.0 }
+      },
+      "dryMass": 0.02,
+      "inverseStage": -1,
+      "maxTemp": 2600,
+      "currentTemp": 308.419,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "270895357",
+      "parentId": "2743549794",
+      "name": "RCSBlock.v2",
+      "title": "RV-105 RCS Thruster Block",
+      "position": { "x": 1.253, "y": -0.423, "z": -0.001 },
+      "up": { "x": -0.07, "y": 0.998, "z": 0.001 },
+      "forward": { "x": -0.0, "y": 0.001, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 0.311, "y": 0.39, "z": 0.444 },
+        "center": { "x": -0.097, "y": 0.0, "z": 0.0 }
+      },
+      "dryMass": 0.04,
+      "inverseStage": -1,
+      "maxTemp": 1500,
+      "currentTemp": 308.412,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModulePartVariants",
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3271831315",
+      "parentId": "2743549794",
+      "name": "RCSBlock.v2",
+      "title": "RV-105 RCS Thruster Block",
+      "position": { "x": -1.253, "y": -0.423, "z": 0.001 },
+      "up": { "x": 0.07, "y": 0.998, "z": -0.001 },
+      "forward": { "x": 0.0, "y": 0.001, "z": 1.0 },
+      "bounds": {
+        "size": { "x": 0.311, "y": 0.39, "z": 0.444 },
+        "center": { "x": -0.097, "y": 0.0, "z": 0.0 }
+      },
+      "dryMass": 0.04,
+      "inverseStage": -1,
+      "maxTemp": 1500,
+      "currentTemp": 308.412,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": [
+        "ModulePartVariants",
+        "ModuleRCSFX",
+        "FXModuleAnimateRCS",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1324025243",
+      "parentId": "2743549794",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": { "x": 0.0, "y": 1.025, "z": 0.586 },
+      "up": { "x": -0.0, "y": 0.958, "z": -0.287 },
+      "forward": { "x": 1.0, "y": 0.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.704, "y": 0.31, "z": 0.156 },
+        "center": { "x": -0.292, "y": -0.062, "z": -0.021 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 308.388,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    }
+  ]
+}

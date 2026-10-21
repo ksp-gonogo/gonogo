@@ -5,7 +5,7 @@ import { CLUSTER_GAP_PX, findDenseClusters } from "./denseCluster";
 import { FuelLineArrow } from "./FuelLineArrow";
 import { anyMeterHeld, HeldHatchPattern, NO_METERS } from "./partMeters";
 import { ShipPartGroup } from "./ShipPartGroup";
-import { computeShipBaseScale, project } from "./shipLayout";
+import { computeShipBaseScale, paintOrder, project } from "./shipLayout";
 import type { ShipMapPart, ShipMapPartMeterEntry } from "./shipTopology";
 
 export {
@@ -82,16 +82,10 @@ export function ShipDiagramSvg({
     () => project(parts),
     [parts],
   );
-  /* Painter's algorithm: back-to-front by depth, quantised to the mm so float noise does not disturb the tiebreak. Parts at the same depth draw outermost first so the central column overlaps on top. Fuel lines render as arrows in a separate top layer. Kept across renders that change nothing about the parts. */
+  // Kept across renders that change nothing about the parts.
   const { drawOrder, fuelLines, partsById } = useMemo(
     () => ({
-      drawOrder: [...projected]
-        .filter((p) => p.type !== "fuel-line")
-        .sort((a, b) => {
-          const depthOrder =
-            Math.round(a.depth * 1000) - Math.round(b.depth * 1000);
-          return depthOrder !== 0 ? depthOrder : b.spineDist - a.spineDist;
-        }),
+      drawOrder: paintOrder(projected),
       fuelLines: projected.filter((p) => p.type === "fuel-line"),
       partsById: new Map(projected.map((p) => [p.flightId, p])),
     }),

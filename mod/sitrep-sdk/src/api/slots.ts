@@ -169,6 +169,9 @@ export type ShipMapPartType =
   | "solar"
   | "parachute"
   | "wheel"
+  | "gear"
+  | "fairing"
+  | "clamp"
   | "fuel-line"
   | "other";
 

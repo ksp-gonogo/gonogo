@@ -331,12 +331,7 @@ public class PartModuleState
 {
     /// <summary>Discriminator: <c>solarPanel</c> / <c>radiator</c> /
     /// <c>antenna</c> / <c>parachute</c> / <c>engine</c> / <c>drill</c> /
-    /// <c>landingGear</c>. <c>cargoBay</c> is a defined vocabulary value that
-    /// no module currently produces.
-    /// <internal>
-    /// See KspHost.BuildPartModuleStates' doc comment for why cargoBay has no
-    /// module.
-    /// </internal>
+    /// <c>landingGear</c> / <c>cargoBay</c>.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "";
@@ -348,7 +343,8 @@ public class PartModuleState
     /// <list type="bullet">
     /// <item><c>extended</c> / <c>retracted</c> / <c>deploying</c> /
     /// <c>retracting</c>, for anything that animates: solar panels, radiators,
-    /// antennas, landing gear.</item>
+    /// antennas, landing gear, cargo bay doors (<c>retracted</c> is closed,
+    /// <c>extended</c> is open).</item>
     /// <item><c>stowed</c> / <c>armed</c> / <c>extended</c> / <c>broken</c>, the
     /// parachute lifecycle. <c>armed</c> means staged and waiting for its
     /// atmospheric trigger, which is not the same as deployed.</item>

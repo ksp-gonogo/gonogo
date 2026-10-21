@@ -1,0 +1,699 @@
+{
+  "parts": [
+    {
+      "id": "1392940317",
+      "parentId": null,
+      "name": "mk2LanderCabin.v2",
+      "title": "Mk2 Lander Can",
+      "position": { "x": 0, "y": 0, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 1.282, "z": 2.824 },
+        "center": { "x": -0.0, "y": 0.212, "z": -0.016 }
+      },
+      "dryMass": 1.261,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 310.633,
+      "category": "Pods",
+      "categoryOrdinal": 6,
+      "modules": [
+        "ModuleCommand",
+        "ModuleReactionWheel",
+        "ModuleColorChanger",
+        "ModuleScienceExperiment",
+        "ModuleScienceContainer",
+        "FlagDecal",
+        "ModuleDataTransmitter",
+        "ModuleProbeControlPoint",
+        "ModulePartVariants",
+        "ModuleAnimateGeneric",
+        "ModuleCargoPart",
+        "ModuleInventoryPart",
+        "MechJebCore",
+        "KOSNameTag",
+        "ModuleTripLogger"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {
+        "ElectricCharge": { "amount": 100, "maxAmount": 100 },
+        "MonoPropellant": { "amount": 40, "maxAmount": 40 }
+      },
+      "moduleStates": []
+    },
+    {
+      "id": "3262716631",
+      "parentId": "1392940317",
+      "name": "crewCabin",
+      "title": "PPD-10 Hitchhiker Storage Container",
+      "position": { "x": 0, "y": -1.39, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.632, "y": 1.984, "z": 2.632 },
+        "center": { "x": 0.0, "y": 0.0, "z": 0 }
+      },
+      "dryMass": 2.07,
+      "inverseStage": -1,
+      "maxTemp": 1000,
+      "currentTemp": 310.436,
+      "category": "Utility",
+      "categoryOrdinal": 4,
+      "modules": [
+        "ModuleColorChanger",
+        "ModuleScienceExperiment",
+        "ModuleScienceContainer",
+        "FlagDecal",
+        "ModuleInventoryPart",
+        "KOSNameTag",
+        "ModuleTripLogger"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3391226720",
+      "parentId": "3262716631",
+      "name": "largeAdapter2",
+      "title": "Rockomax Brand Adapter 02",
+      "position": { "x": 0, "y": -2.567, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 2.5, "y": 0.382, "z": 2.5 },
+        "center": { "x": 0, "y": 0.0, "z": 0 }
+      },
+      "dryMass": 0.08,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.485,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": ["ModulePartVariants", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2548742822",
+      "parentId": "3391226720",
+      "name": "advSasModule",
+      "title": "Advanced Inline Stabilizer",
+      "position": { "x": 0, "y": -2.955, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.351, "y": 0.399, "z": 1.351 },
+        "center": { "x": 0.0, "y": -0.0, "z": 0 }
+      },
+      "dryMass": 0.1,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.481,
+      "category": "Control",
+      "categoryOrdinal": 1,
+      "modules": ["ModuleReactionWheel", "ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2099320108",
+      "parentId": "2548742822",
+      "name": "stationHub",
+      "title": "Rockomax HubMax Multi-Point Connector",
+      "position": { "x": 0, "y": -4.066, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.846, "y": 1.846, "z": 1.846 },
+        "center": { "x": 0, "y": -0.0, "z": -0.0 }
+      },
+      "dryMass": 1.5,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.478,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3508663825",
+      "parentId": "2099320108",
+      "name": "dockingPort2",
+      "title": "Clamp-O-Tron Docking Port",
+      "position": { "x": 0, "y": -4.066, "z": -0.912 },
+      "up": { "x": 0, "y": -0.0, "z": -1.0 },
+      "forward": { "x": 0, "y": 1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 1.151, "y": 0.575, "z": 1.151 },
+        "center": { "x": 0.0, "y": -0.004, "z": 0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.481,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleDockingNode",
+        "ModuleCargoPart",
+        "ModuleColorChanger",
+        "MuMechModuleHullCameraZoom",
+        "DPSoundFX",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4055023652",
+      "parentId": "2099320108",
+      "name": "dockingPort2",
+      "title": "Clamp-O-Tron Docking Port",
+      "position": { "x": 0, "y": -4.066, "z": 0.912 },
+      "up": { "x": 0, "y": -0.0, "z": 1.0 },
+      "forward": { "x": 0, "y": 1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 1.151, "y": 0.575, "z": 1.151 },
+        "center": { "x": 0, "y": -0.004, "z": 0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.481,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleDockingNode",
+        "ModuleCargoPart",
+        "ModuleColorChanger",
+        "MuMechModuleHullCameraZoom",
+        "DPSoundFX",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4164735771",
+      "parentId": "2099320108",
+      "name": "dockingPort2",
+      "title": "Clamp-O-Tron Docking Port",
+      "position": { "x": 0.912, "y": -4.066, "z": 0 },
+      "up": { "x": 1.0, "y": -0.0, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.151, "y": 0.575, "z": 1.151 },
+        "center": { "x": 0.0, "y": -0.004, "z": 0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.481,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleDockingNode",
+        "ModuleCargoPart",
+        "ModuleColorChanger",
+        "MuMechModuleHullCameraZoom",
+        "DPSoundFX",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1310340605",
+      "parentId": "2099320108",
+      "name": "dockingPort2",
+      "title": "Clamp-O-Tron Docking Port",
+      "position": { "x": -0.912, "y": -4.066, "z": 0 },
+      "up": { "x": -1.0, "y": -0.0, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.151, "y": 0.575, "z": 1.151 },
+        "center": { "x": 0.0, "y": -0.004, "z": -0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.481,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleDockingNode",
+        "ModuleCargoPart",
+        "ModuleColorChanger",
+        "MuMechModuleHullCameraZoom",
+        "DPSoundFX",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "2301493686",
+      "parentId": "2099320108",
+      "name": "dockingPort2",
+      "title": "Clamp-O-Tron Docking Port",
+      "position": { "x": 0, "y": -4.978, "z": 0 },
+      "up": { "x": 0, "y": -1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": -1 },
+      "bounds": {
+        "size": { "x": 1.151, "y": 0.575, "z": 1.151 },
+        "center": { "x": -0.0, "y": -0.004, "z": 0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.481,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleDockingNode",
+        "ModuleCargoPart",
+        "ModuleColorChanger",
+        "MuMechModuleHullCameraZoom",
+        "DPSoundFX",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1790557137",
+      "parentId": "3391226720",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": { "x": 0.0, "y": -2.449, "z": -1.133 },
+      "up": { "x": 0, "y": 0.438, "z": -0.899 },
+      "forward": { "x": -1, "y": 0, "z": 0.0 },
+      "bounds": {
+        "size": { "x": 0.742, "y": 0.801, "z": 0.114 },
+        "center": { "x": -0.311, "y": -0.308, "z": 0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.477,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "168625868",
+      "parentId": "3391226720",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": { "x": -1.133, "y": -2.449, "z": -0.0 },
+      "up": { "x": -0.899, "y": 0.438, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.742, "y": 0.801, "z": 0.114 },
+        "center": { "x": -0.311, "y": -0.308, "z": -0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.477,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3417132666",
+      "parentId": "3391226720",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": { "x": 0, "y": -2.449, "z": 1.133 },
+      "up": { "x": 0, "y": 0.438, "z": 0.899 },
+      "forward": { "x": 1, "y": 0, "z": 0.0 },
+      "bounds": {
+        "size": { "x": 0.742, "y": 0.801, "z": 0.114 },
+        "center": { "x": -0.311, "y": -0.308, "z": 0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.477,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "3274009640",
+      "parentId": "3391226720",
+      "name": "strutConnector",
+      "title": "EAS-4 Strut Connector",
+      "position": { "x": 1.133, "y": -2.449, "z": 0.0 },
+      "up": { "x": 0.899, "y": 0.438, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": -1.0 },
+      "bounds": {
+        "size": { "x": 0.742, "y": 0.801, "z": 0.114 },
+        "center": { "x": -0.311, "y": -0.308, "z": -0.0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.477,
+      "category": "Structural",
+      "categoryOrdinal": 2,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "547753571",
+      "parentId": "3262716631",
+      "name": "RelayAntenna5",
+      "title": "RA-2 Relay Antenna",
+      "position": { "x": 0, "y": -1.336, "z": 1.151 },
+      "up": { "x": 0, "y": 0.0, "z": 1.0 },
+      "forward": { "x": 0, "y": -1.0, "z": 0.0 },
+      "bounds": {
+        "size": { "x": 1.0, "y": 0.959, "z": 0.999 },
+        "center": { "x": -0.0, "y": 0.478, "z": -0.0 }
+      },
+      "dryMass": 0.15,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.493,
+      "category": "Communication",
+      "categoryOrdinal": 9,
+      "modules": [
+        "ModuleDataTransmitter",
+        "ModuleCargoPart",
+        "KOSNameTag",
+        "ModuleTripLogger"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "4147006758",
+      "parentId": "3262716631",
+      "name": "largeSolarPanel",
+      "title": "Gigantor XL Solar Array",
+      "position": { "x": 1.207, "y": -1.417, "z": 0.0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": -1 },
+      "bounds": {
+        "size": { "x": 0.366, "y": 2.293, "z": 0.524 },
+        "center": { "x": -0.111, "y": 0, "z": 0 }
+      },
+      "dryMass": 0.3,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 310.404,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleDeployableSolarPanel",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "solarPanel",
+          "state": "retracted",
+          "tracking": false,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "1651372718",
+      "parentId": "3262716631",
+      "name": "largeSolarPanel",
+      "title": "Gigantor XL Solar Array",
+      "position": { "x": -1.207, "y": -1.417, "z": 0.0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0.0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 0.366, "y": 2.293, "z": 0.524 },
+        "center": { "x": -0.111, "y": 0, "z": 0.0 }
+      },
+      "dryMass": 0.3,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 310.407,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": [
+        "ModuleDeployableSolarPanel",
+        "ModuleCargoPart",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 0, "maxAmount": 0 } },
+      "moduleStates": [
+        {
+          "type": "solarPanel",
+          "state": "retracted",
+          "tracking": false,
+          "flameout": null
+        }
+      ]
+    },
+    {
+      "id": "2411738870",
+      "parentId": "1392940317",
+      "name": "batteryBank",
+      "title": "Z-1k Rechargeable Battery Bank",
+      "position": { "x": 0, "y": 0.863, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.25, "y": 0.22, "z": 1.25 },
+        "center": { "x": 0.0, "y": 0.0, "z": 0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.655,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 1000, "maxAmount": 1000 } },
+      "moduleStates": []
+    },
+    {
+      "id": "2411362118",
+      "parentId": "2411738870",
+      "name": "dockingPort2",
+      "title": "Clamp-O-Tron Docking Port",
+      "position": { "x": 0, "y": 0.974, "z": 0 },
+      "up": { "x": 0, "y": 1, "z": 0 },
+      "forward": { "x": 0, "y": 0, "z": 1 },
+      "bounds": {
+        "size": { "x": 1.151, "y": 0.575, "z": 1.151 },
+        "center": { "x": 0.0, "y": -0.004, "z": 0 }
+      },
+      "dryMass": 0.05,
+      "inverseStage": -1,
+      "maxTemp": 2000,
+      "currentTemp": 310.689,
+      "category": "Coupling",
+      "categoryOrdinal": 14,
+      "modules": [
+        "ModuleDockingNode",
+        "ModuleCargoPart",
+        "ModuleColorChanger",
+        "MuMechModuleHullCameraZoom",
+        "DPSoundFX",
+        "KOSNameTag"
+      ],
+      "fuelLineTargetId": null,
+      "resources": {},
+      "moduleStates": []
+    },
+    {
+      "id": "1526139957",
+      "parentId": "1392940317",
+      "name": "batteryPack",
+      "title": "Z-100 Rechargeable Battery Pack",
+      "position": { "x": 0.0, "y": 0.752, "z": -0.783 },
+      "up": { "x": 0, "y": -0.0, "z": -1.0 },
+      "forward": { "x": 0, "y": -1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.275, "y": 0.413, "z": 0.288 },
+        "center": { "x": 0.0, "y": 0.034, "z": -0.108 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 310.8,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 100, "maxAmount": 100 } },
+      "moduleStates": []
+    },
+    {
+      "id": "2531201621",
+      "parentId": "1392940317",
+      "name": "batteryPack",
+      "title": "Z-100 Rechargeable Battery Pack",
+      "position": { "x": -0.679, "y": 0.752, "z": -0.392 },
+      "up": { "x": -0.866, "y": -0.0, "z": -0.5 },
+      "forward": { "x": 0, "y": -1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.275, "y": 0.413, "z": 0.288 },
+        "center": { "x": -0.0, "y": 0.034, "z": -0.108 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 310.827,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 100, "maxAmount": 100 } },
+      "moduleStates": []
+    },
+    {
+      "id": "4115302664",
+      "parentId": "1392940317",
+      "name": "batteryPack",
+      "title": "Z-100 Rechargeable Battery Pack",
+      "position": { "x": -0.679, "y": 0.752, "z": 0.392 },
+      "up": { "x": -0.866, "y": -0.0, "z": 0.5 },
+      "forward": { "x": 0, "y": -1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.275, "y": 0.413, "z": 0.288 },
+        "center": { "x": -0.0, "y": 0.034, "z": -0.108 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 310.84,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 100, "maxAmount": 100 } },
+      "moduleStates": []
+    },
+    {
+      "id": "2240788090",
+      "parentId": "1392940317",
+      "name": "batteryPack",
+      "title": "Z-100 Rechargeable Battery Pack",
+      "position": { "x": 0, "y": 0.752, "z": 0.783 },
+      "up": { "x": 0.0, "y": -0.0, "z": 1.0 },
+      "forward": { "x": 0, "y": -1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.275, "y": 0.413, "z": 0.288 },
+        "center": { "x": 0.0, "y": 0.034, "z": -0.108 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 310.8,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 100, "maxAmount": 100 } },
+      "moduleStates": []
+    },
+    {
+      "id": "2708729855",
+      "parentId": "1392940317",
+      "name": "batteryPack",
+      "title": "Z-100 Rechargeable Battery Pack",
+      "position": { "x": 0.679, "y": 0.752, "z": 0.392 },
+      "up": { "x": 0.866, "y": -0.0, "z": 0.5 },
+      "forward": { "x": 0, "y": -1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.275, "y": 0.413, "z": 0.288 },
+        "center": { "x": 0.0, "y": 0.034, "z": -0.108 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 310.8,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 100, "maxAmount": 100 } },
+      "moduleStates": []
+    },
+    {
+      "id": "2369336224",
+      "parentId": "1392940317",
+      "name": "batteryPack",
+      "title": "Z-100 Rechargeable Battery Pack",
+      "position": { "x": 0.679, "y": 0.752, "z": -0.392 },
+      "up": { "x": 0.866, "y": -0.0, "z": -0.5 },
+      "forward": { "x": 0, "y": -1.0, "z": -0.0 },
+      "bounds": {
+        "size": { "x": 0.275, "y": 0.413, "z": 0.288 },
+        "center": { "x": -0.0, "y": 0.034, "z": -0.108 }
+      },
+      "dryMass": 0.005,
+      "inverseStage": -1,
+      "maxTemp": 1200,
+      "currentTemp": 310.8,
+      "category": "Electrical",
+      "categoryOrdinal": 10,
+      "modules": ["ModuleCargoPart", "KOSNameTag"],
+      "fuelLineTargetId": null,
+      "resources": { "ElectricCharge": { "amount": 100, "maxAmount": 100 } },
+      "moduleStates": []
+    }
+  ]
+}
