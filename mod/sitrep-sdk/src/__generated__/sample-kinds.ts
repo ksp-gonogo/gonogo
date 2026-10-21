@@ -38,7 +38,6 @@ export const GENERATED_CHANNEL_KINDS = {
   "comms.signal": "continuous",
   "crash.hasRecent": "discrete",
   "crash.lastCrash": "event",
-  "deployed.bases": "continuous",
   "dv.stages": "continuous",
   "dv.summary": "continuous",
   "eva.crew": "discrete",

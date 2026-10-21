@@ -141,8 +141,9 @@ property that is absent was not stated.
 ## Channels not listed here
 
 - Channels named per subject, such as \`trackingStation.vessel.<id>.<field>\`,
-  \`currency.<id>.<currency>\` and per-vessel part actions. The mod creates them
-  while the game runs, one set per subject, so they cannot be listed here.
+  \`currency.<id>.<currency>\`, \`deployed.station.<id>.report\` and per-vessel
+  part actions. The mod creates them while the game runs, one set per subject,
+  so they cannot be listed here.
   Subscribe to one by its full name, with the subject's id filled in
 - Each installed Uplink's own channels and commands, which that Uplink
   documents
@@ -897,7 +898,6 @@ const NAMESPACE_SUMMARIES = {
   comms:
     "Antenna links, contacts and what the active vessel can be commanded to do",
   crash: "The most recent vessel crash",
-  deployed: "Deployed Breaking Ground bases",
   dv: "Delta-v per stage and in total for the active vessel",
   eva: "Kerbals outside a craft",
   flight: "Flight start, end and vessel changes",

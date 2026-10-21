@@ -651,24 +651,26 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "DeactivateStrategyArgs": {
     strategyId: "id",
   },
-  "DeployedEntry": {
+  "DeployedStation": {
     biome: "text",
     body: "text",
-    connectionState: "text",
-    controllerConnected: "flag",
-    deployedOnGround: "flag",
-    experimentId: "id",
-    partName: "text",
+    dataSendFailed: "flag",
     power: "enum",
     powerAvailable: "count",
     powerRequired: "count",
-    powerState: "text",
+    sendPathHome: "flag",
+    situation: "text",
+    stationName: "text",
+  },
+  "DeployedStationExperiment": {
+    deployedOnGround: "flag",
+    experimentId: "id",
+    partName: "text",
     scienceCompletedPercentage: "%",
     scienceLimit: "science",
     scienceTransmittedPercentage: "%",
     scienceValue: "science",
-    situation: "text",
-    vesselName: "text",
+    storedData: "Mit",
   },
   "DockAlignment": {
     distance: "m",
@@ -1859,25 +1861,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     vesselType: "id",
     what: "text",
   },
-  "deployed.bases": {
-    biome: "text",
-    body: "text",
-    connectionState: "text",
-    controllerConnected: "flag",
-    deployedOnGround: "flag",
-    experimentId: "id",
-    partName: "text",
-    power: "enum",
-    powerAvailable: "count",
-    powerRequired: "count",
-    powerState: "text",
-    scienceCompletedPercentage: "%",
-    scienceLimit: "science",
-    scienceTransmittedPercentage: "%",
-    scienceValue: "science",
-    situation: "text",
-    vesselName: "text",
-  },
   "dv.stages": {
     burnTime: "s",
     dryMass: "t",
@@ -2577,6 +2560,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "DelayedObservation": {
     state: "StateVector",
   },
+  "DeployedStation": {
+    experiments: "DeployedStationExperiment[]",
+  },
   "DockAlignment": {
     meta: "PayloadMeta",
   },
@@ -3043,7 +3029,7 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
     situationOrdinal: "KspRosterStatus",
     standing: "CrewStanding",
   },
-  "DeployedEntry": {
+  "DeployedStation": {
     power: "DeployedPowerState",
   },
   "FlightCurrent": {
@@ -3185,9 +3171,6 @@ export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "comms.signal": {
     quantity: "SignalQuantity",
-  },
-  "deployed.bases": {
-    power: "DeployedPowerState",
   },
   "flight.current": {
     phase: "Situation",

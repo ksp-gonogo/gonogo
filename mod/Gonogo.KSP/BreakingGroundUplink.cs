@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Expansions;
 using Gonogo.KSP.Gates;
@@ -26,10 +27,9 @@ namespace Gonogo.KSP
     /// <c>KspHost.BuildParts</c> populates for <see cref="PartsUplink"/>'s
     /// power channel: robotics and power are captured by the same sampler
     /// call, so sharing that snapshot key avoids introducing a new sampler
-    /// seam), and deployed science still reads
-    /// <c>Values["science"]["deployed"]</c> (<c>KspHost.BuildScience</c>'s raw
-    /// dict, fed by <c>KspHost.BuildDeployedScience</c>'s global
-    /// <c>FlightGlobals.Vessels</c> walk). The KSP-free mapping itself lives in
+    /// seam), and deployed science reads the top-level
+    /// <c>Values["deployedScience"]</c> (<c>KspHost.BuildDeployedScience</c>'s
+    /// global <c>FlightGlobals.Vessels</c> walk). The KSP-free mapping itself lives in
     /// <see cref="BreakingGroundViewProvider"/>. Only which Uplink registers
     /// the channel sources + commands changed.</para>
     ///
@@ -54,6 +54,15 @@ namespace Gonogo.KSP
     public sealed class BreakingGroundUplink : ISitrepUplink
     {
         private readonly IRoboticsActuator _actuator;
+
+        private IUplinkHost? _host;
+        private IDynamicChannelSource? _stationSource;
+
+        /// <summary>
+        /// The same host, when it can also take a route's hops rather than only the
+        /// scalar delay. Null leaves a station's delay on its scalar tier.
+        /// </summary>
+        private IVesselJourneyWriter? _journeyWriter;
 
         private readonly ExpansionHealth _expansion = new ExpansionHealth(
             () => ExpansionsLoader.IsExpansionInstalled("Serenity"),
@@ -113,17 +122,6 @@ namespace Gonogo.KSP
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
                 },
-                new ChannelDeclaration
-                {
-                    Kind = SampleKind.Continuous,
-                    Requires = new[] { CareerGates.PartModuleResearched(CareerGates.Modules.GroundExperiment) },
-                    Topic = BreakingGroundViewProvider.DeployedTopic,
-                    Delivery = Delivery.LossyLatest,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    // Global across the whole save, but still a
-                    // vessel/craft-sourced surface: rides the delay clock.
-                    Delay = DelayRole.Delayed,
-                },
             },
             // Robotics actuation is an uplink to the craft, so every command
             // rides light-time like the vessel.control.* ones. Declared on the
@@ -152,7 +150,20 @@ namespace Gonogo.KSP
         {
             host.AddChannelSource(BreakingGroundViewProvider.RoboticsTopic, BreakingGroundViewProvider.BuildRobotics);
             host.AddChannelSource(BreakingGroundViewProvider.RoboticsAvailableTopic, BreakingGroundViewProvider.BuildRoboticsAvailable);
-            host.AddChannelSource(BreakingGroundViewProvider.DeployedTopic, BreakingGroundViewProvider.BuildDeployed);
+            _host = host;
+            _journeyWriter = host as IVesselJourneyWriter;
+            _stationSource = host.RegisterDynamicNamespace(BreakingGroundViewProvider.StationPrefix, new ChannelDeclaration
+            {
+                Kind = SampleKind.Continuous,
+                Requires = new[] { CareerGates.PartModuleResearched(CareerGates.Modules.GroundExperiment) },
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                Delay = DelayRole.Delayed,
+                // Each station records on its controller vessel's own node, so its
+                // science reveals at that vessel's delay and freezes on its link.
+                PerVesselNode = true,
+            });
+            host.AddSampledSource(CaptureStationsOnMain, HandleStationsOnCourier, BreakingGroundViewProvider.StationPrefix);
 
             host.AddCommandHandler<ServoSetAngleArgs, CommandResult>(RoboticsCommandProvider.ServoSetAngleCommand, args => RoboticsCommandProvider.HandleServoSetAngle(_actuator, args));
             host.AddCommandHandler<ServoSetExtensionArgs, CommandResult>(RoboticsCommandProvider.ServoSetExtensionCommand, args => RoboticsCommandProvider.HandleServoSetExtension(_actuator, args));
@@ -164,6 +175,83 @@ namespace Gonogo.KSP
             host.AddCommandHandler<ServoSetEnabledArgs, CommandResult>(RoboticsCommandProvider.RotorSetMotorCommand, args => RoboticsCommandProvider.HandleRotorSetMotor(_actuator, args));
             host.AddCommandHandler<ServoSetEnabledArgs, CommandResult>(RoboticsCommandProvider.RotorSetLockCommand, args => RoboticsCommandProvider.HandleRotorSetLock(_actuator, args));
             host.AddCommandHandler<RotorReverseArgs, CommandResult>(RoboticsCommandProvider.RotorReverseCommand, args => RoboticsCommandProvider.HandleRotorReverse(_actuator, args));
+        }
+
+        /// <summary>
+        /// MAIN-THREAD: each station's wire payload, with its controller vessel's own
+        /// routed delay and link. The delay is read here rather than borrowed from the
+        /// fleet's per-craft capture, which runs only while a craft's own topics are
+        /// watched.
+        /// </summary>
+        internal object? CaptureStationsOnMain(KspSnapshot? snapshot)
+        {
+            var stations = BreakingGroundViewProvider.BuildStations(snapshot);
+            if (stations == null)
+            {
+                return null;
+            }
+
+            var config = CommsCoreUplink.SignalDelayConfig;
+            var captures = new List<StationCapture>(stations.Count);
+            foreach (var pair in stations)
+            {
+                var capture = new StationCapture { Id = pair.Key, Payload = pair.Value };
+                if (Guid.TryParse(pair.Key, out var vesselId) && FlightGlobals.FindVessel(vesselId) is { } controller)
+                {
+                    var (oneWay, connected) = FleetCommsReader.ReadVessel(controller, config);
+                    capture.OneWaySeconds = oneWay;
+                    capture.Connected = connected;
+                    capture.Journey = FleetCommsReader.ReadVesselJourney(controller, config);
+                }
+                captures.Add(capture);
+            }
+            return new StationsCapture { Ut = snapshot != null ? snapshot.Ut : 0.0, Stations = captures };
+        }
+
+        /// <summary>
+        /// COURIER-THREAD: report each station's delay and link, then publish it.
+        /// The link goes first so that a station whose path has just gone is already
+        /// frozen when its reading is published, the same order the fleet keeps.
+        /// </summary>
+        internal void HandleStationsOnCourier(object? captured)
+        {
+            if (captured is not StationsCapture cap || _stationSource == null)
+            {
+                return;
+            }
+
+            foreach (var station in cap.Stations)
+            {
+                if (station.OneWaySeconds.HasValue)
+                {
+                    _host?.SetVesselDelay(station.Id, station.OneWaySeconds.Value);
+                    // Written second: the scalar retires any journey already held.
+                    if (station.Journey != null)
+                    {
+                        _journeyWriter?.SetVesselJourney(station.Id, station.Journey);
+                    }
+                }
+                if (station.Connected is { } connected)
+                {
+                    _host?.SetVesselConnectivity(station.Id, connected);
+                }
+                _stationSource.Publisher(station.Id + BreakingGroundViewProvider.StationReportSuffix).Publish(station.Payload, cap.Ut);
+            }
+        }
+
+        private sealed class StationsCapture
+        {
+            public double Ut { get; set; }
+            public List<StationCapture> Stations { get; set; } = new List<StationCapture>();
+        }
+
+        private sealed class StationCapture
+        {
+            public string Id { get; set; } = "";
+            public Dictionary<string, object?> Payload { get; set; } = new Dictionary<string, object?>();
+            public double? OneWaySeconds { get; set; }
+            public bool? Connected { get; set; }
+            public Journey? Journey { get; set; }
         }
 
         private static CommandDeclaration Command(string command, string subject) => new CommandDeclaration

@@ -611,24 +611,26 @@
     "DeactivateStrategyArgs": {
       "strategyId": "id"
     },
-    "DeployedEntry": {
+    "DeployedStation": {
       "biome": "text",
       "body": "text",
-      "connectionState": "text",
-      "controllerConnected": "flag",
-      "deployedOnGround": "flag",
-      "experimentId": "id",
-      "partName": "text",
+      "dataSendFailed": "flag",
       "power": "enum",
       "powerAvailable": "count",
       "powerRequired": "count",
-      "powerState": "text",
+      "sendPathHome": "flag",
+      "situation": "text",
+      "stationName": "text"
+    },
+    "DeployedStationExperiment": {
+      "deployedOnGround": "flag",
+      "experimentId": "id",
+      "partName": "text",
       "scienceCompletedPercentage": "%",
       "scienceLimit": "science",
       "scienceTransmittedPercentage": "%",
       "scienceValue": "science",
-      "situation": "text",
-      "vesselName": "text"
+      "storedData": "Mit"
     },
     "DockAlignment": {
       "distance": "m",
@@ -1814,25 +1816,6 @@
       "vesselType": "id",
       "what": "text"
     },
-    "deployed.bases": {
-      "biome": "text",
-      "body": "text",
-      "connectionState": "text",
-      "controllerConnected": "flag",
-      "deployedOnGround": "flag",
-      "experimentId": "id",
-      "partName": "text",
-      "power": "enum",
-      "powerAvailable": "count",
-      "powerRequired": "count",
-      "powerState": "text",
-      "scienceCompletedPercentage": "%",
-      "scienceLimit": "science",
-      "scienceTransmittedPercentage": "%",
-      "scienceValue": "science",
-      "situation": "text",
-      "vesselName": "text"
-    },
     "dv.stages": {
       "burnTime": "s",
       "dryMass": "t",
@@ -2503,6 +2486,9 @@
     "DelayedObservation": {
       "state": "StateVector"
     },
+    "DeployedStation": {
+      "experiments": "DeployedStationExperiment[]"
+    },
     "DockAlignment": {
       "meta": "PayloadMeta"
     },
@@ -2958,7 +2944,7 @@
       "situationOrdinal": "KspRosterStatus",
       "standing": "CrewStanding"
     },
-    "DeployedEntry": {
+    "DeployedStation": {
       "power": "DeployedPowerState"
     },
     "FlightCurrent": {
@@ -3098,9 +3084,6 @@
     },
     "comms.signal": {
       "quantity": "SignalQuantity"
-    },
-    "deployed.bases": {
-      "power": "DeployedPowerState"
     },
     "flight.current": {
       "phase": "Situation"
