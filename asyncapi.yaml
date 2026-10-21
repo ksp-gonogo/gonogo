@@ -15835,8 +15835,21 @@ components:
             - "null"
           x-sitrep-unit: flag
           description: |-
-            Whether a kerbal on EVA can collect the experiment's data (KSP's
-            `ModuleScienceExperiment.dataIsCollectable`).
+            Whether a kerbal on EVA can take the experiment's data out of the part
+            (KSP's `ModuleScienceExperiment.dataIsCollectable`). A part-config setting
+            that says nothing about whether data is stored now: see
+            `InstrumentEntry.holdsData`.
+        holdsData:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether the experiment module stores data right now, from at least one
+            result being held (KSP's `ModuleScienceExperiment.GetData()` is not empty).
+            This, not `InstrumentEntry.dataIsCollectable`, is what a client branches on
+            to offer transmitting the data. `null` where the module's store could not be
+            read.
         continuous:
           type:
             - boolean

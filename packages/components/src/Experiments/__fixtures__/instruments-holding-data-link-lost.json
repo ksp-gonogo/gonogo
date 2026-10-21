@@ -3,7 +3,7 @@
     "shows": "A probe core with a crew report and a Mystery Goo canister holding data and a barometer not yet run, shown after the link has dropped so every reading is held rather than current.",
     "scenario": "instruments-holding-data-link-lost",
     "synthetic": true,
-    "notes": "SYNTHETIC. The wire shape InstrumentEntry actually declares (partName / experimentId / dataIsCollectable, partId a string) instead of the legacy partTitle / expId / hasData every other fixture here carries, and the first one where an instrument HOLDS something: two of the three read as collectable, the goo canister has been run and is not rerunnable, and science.experiments is non-empty so the vessel-wide data total in the subtitle has a figure to sum. Both were previously unrenderable from a fixture: the canonical parse branch was never fed, and an empty experiments list made sumExperimentDataAmount return 0, which suppresses the total entirely. science.lab is deliberately absent: this is a probe vessel, so the lab section stays away and the instrument list is the whole picture. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
+    "notes": "SYNTHETIC. The wire shape InstrumentEntry actually declares (partName / experimentId / holdsData, partId a string) instead of the legacy partTitle / expId / hasData every other fixture here carries, and the first one where an instrument HOLDS something: two of the three hold data, the goo canister has been run and is not rerunnable, and science.experiments is non-empty so the vessel-wide data total in the subtitle has a figure to sum. Both were previously unrenderable from a fixture: the canonical parse branch was never fed, and an empty experiments list made sumExperimentDataAmount return 0, which suppresses the total entirely. science.lab is deliberately absent: this is a probe vessel, so the lab section stays away and the instrument list is the whole picture. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
   },
   "_stream": {
     "pinnedUt": 10,
@@ -19,7 +19,7 @@
             "inoperable": false,
             "rerunnable": true,
             "resettable": true,
-            "dataIsCollectable": true
+            "holdsData": true
           },
           {
             "partId": "1071315383",
@@ -29,7 +29,7 @@
             "inoperable": true,
             "rerunnable": false,
             "resettable": false,
-            "dataIsCollectable": true
+            "holdsData": true
           },
           {
             "partId": "342573834",
@@ -39,7 +39,7 @@
             "inoperable": false,
             "rerunnable": true,
             "resettable": true,
-            "dataIsCollectable": false
+            "holdsData": false
           }
         ]
       },

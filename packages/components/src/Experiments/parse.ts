@@ -18,7 +18,7 @@ function asOptionalFlag(value: unknown): boolean | undefined {
 
 /**
  * Parses `science.instruments`. The wire's `partName`, `experimentId` and
- * `dataIsCollectable` become the widget's `partTitle`, `expId` and `hasData`;
+ * `holdsData` become the widget's `partTitle`, `expId` and `hasData`;
  * `partId` normalises to a string.
  */
 export function parseInstruments(raw: unknown): TitledInstrument[] | null {
@@ -37,8 +37,9 @@ export function parseInstruments(raw: unknown): TitledInstrument[] | null {
       expId: typeof e.experimentId === "string" ? e.experimentId : "",
       expTitle: typeof e.title === "string" && e.title ? e.title : undefined,
       deployed: e.deployed === true,
-      hasData: e.dataIsCollectable === true,
-      dataKnown: typeof e.dataIsCollectable === "boolean",
+      evaCollectable: asOptionalFlag(e.dataIsCollectable),
+      hasData: e.holdsData === true,
+      dataKnown: typeof e.holdsData === "boolean",
       rerunnable: e.rerunnable === true,
       rerunnableKnown: typeof e.rerunnable === "boolean",
       inoperable: e.inoperable === true,

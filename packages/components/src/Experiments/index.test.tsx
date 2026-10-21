@@ -84,7 +84,7 @@ describe("ExperimentsComponent", () => {
           partName: "Mystery Goo",
           experimentId: "mysteryGoo",
           deployed: true,
-          dataIsCollectable: true,
+          holdsData: true,
           rerunnable: false,
           inoperable: false,
         },
@@ -93,7 +93,7 @@ describe("ExperimentsComponent", () => {
           partName: "Mystery Goo",
           experimentId: "mysteryGoo",
           deployed: false,
-          dataIsCollectable: false,
+          holdsData: false,
           rerunnable: false,
           inoperable: true,
         },
@@ -102,7 +102,7 @@ describe("ExperimentsComponent", () => {
           partName: "Thermometer",
           experimentId: "temperatureScan",
           deployed: false,
-          dataIsCollectable: false,
+          holdsData: false,
           rerunnable: true,
           inoperable: false,
         },
@@ -134,7 +134,7 @@ describe("ExperimentsComponent", () => {
           partName: "Mystery Goo",
           experimentId: "mysteryGoo",
           deployed: true,
-          dataIsCollectable: true,
+          holdsData: true,
           rerunnable: false,
           inoperable: false,
         },
@@ -159,7 +159,7 @@ describe("ExperimentsComponent", () => {
           partName: "Mystery Goo",
           experimentId: "mysteryGoo",
           deployed: false,
-          dataIsCollectable: false,
+          holdsData: false,
           rerunnable: true,
           inoperable: false,
         },
@@ -188,7 +188,7 @@ describe("ExperimentsComponent", () => {
           partName: "Thermometer",
           experimentId: "temperatureScan",
           deployed: true,
-          dataIsCollectable: true,
+          holdsData: true,
           rerunnable: true,
           inoperable: false,
         },
@@ -258,7 +258,7 @@ describe("ExperimentsComponent", () => {
           partName: "Thermometer",
           experimentId: "temperatureScan",
           deployed: true,
-          dataIsCollectable: true,
+          holdsData: true,
           rerunnable: true,
           inoperable: false,
         },
@@ -304,7 +304,7 @@ describe("ExperimentsComponent", () => {
           partName: "Burned Sensor",
           experimentId: "x",
           deployed: false,
-          dataIsCollectable: false,
+          holdsData: false,
           rerunnable: false,
           inoperable: true,
         },
@@ -315,6 +315,65 @@ describe("ExperimentsComponent", () => {
     );
     expect(screen.queryByText("Deploy")).not.toBeInTheDocument();
     expect(screen.queryByText("Transmit")).not.toBeInTheDocument();
+  });
+
+  /*
+   * Rows as the game wrote them: a stock magnetometer is collectable by config
+   * from the start, and a deployed experiment whose config forbids EVA
+   * collection still holds the data it ran.
+   */
+  const RIG_ROW = {
+    partId: "1567990544",
+    partName: "Mk2 Lander Can",
+    experimentId: "magnetometer",
+    title: "Magnetometer Report",
+    inoperable: false,
+    rerunnable: true,
+    resettable: true,
+    continuous: false,
+  };
+
+  it("offers Deploy and not Transmit for an empty stock instrument whose config is collectable", async () => {
+    const fixture = newFixture();
+    renderOfficer(fixture);
+    act(() => {
+      fixture.emit("science.instruments", [
+        {
+          ...RIG_ROW,
+          deployed: false,
+          dataIsCollectable: true,
+          holdsData: false,
+        },
+      ]);
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Mk2 Lander Can")).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "Deploy" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Transmit" })).toBeNull();
+    expect(screen.getByText(/No data/)).toBeInTheDocument();
+  });
+
+  it("offers Transmit for a deployed instrument holding data whose config is not collectable", async () => {
+    const fixture = newFixture();
+    renderOfficer(fixture);
+    act(() => {
+      fixture.emit("science.instruments", [
+        {
+          ...RIG_ROW,
+          deployed: true,
+          dataIsCollectable: false,
+          holdsData: true,
+        },
+      ]);
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Mk2 Lander Can")).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole("button", { name: "Transmit" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Holds data/)).toBeInTheDocument();
   });
 });
 
@@ -332,7 +391,7 @@ describe("parseInstruments", () => {
         partName: "Goo",
         experimentId: "mysteryGoo",
         deployed: true,
-        dataIsCollectable: false,
+        holdsData: false,
         rerunnable: false,
         inoperable: false,
       },
@@ -343,7 +402,7 @@ describe("parseInstruments", () => {
         partId: 2,
         experimentId: "temp",
         deployed: false,
-        dataIsCollectable: false,
+        holdsData: false,
         rerunnable: true,
         inoperable: false,
       },
@@ -392,7 +451,7 @@ describe("sumExperimentDataAmount", () => {
           deployed: false,
           inoperable: false,
           rerunnable: true,
-          dataIsCollectable: false,
+          holdsData: false,
         },
         {
           partId: "2",
@@ -402,7 +461,7 @@ describe("sumExperimentDataAmount", () => {
           deployed: false,
           inoperable: false,
           rerunnable: false,
-          dataIsCollectable: false,
+          holdsData: false,
         },
       ]);
     });

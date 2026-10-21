@@ -128,7 +128,8 @@ namespace Sitrep.Host.Tests
                                 ["inoperable"] = false,
                                 ["rerunnable"] = false,
                                 ["resettable"] = true,
-                                ["dataIsCollectable"] = true,
+                                ["dataIsCollectable"] = false,
+                                ["holdsData"] = true,
                             },
                             new Dictionary<string, object?>
                             {
@@ -140,7 +141,8 @@ namespace Sitrep.Host.Tests
                                 ["inoperable"] = null,
                                 ["rerunnable"] = true,
                                 ["resettable"] = false,
-                                ["dataIsCollectable"] = false,
+                                ["dataIsCollectable"] = true,
+                                ["holdsData"] = false,
                             },
                         },
                     },
@@ -160,14 +162,16 @@ namespace Sitrep.Host.Tests
             Assert.Equal(false, first.Inoperable);
             Assert.Equal(false, first.Rerunnable);
             Assert.Equal(true, first.Resettable);
-            Assert.Equal(true, first.DataIsCollectable);
+            Assert.Equal(false, first.DataIsCollectable);
+            Assert.Equal(true, first.HoldsData);
 
             var second = list[1];
             Assert.Equal("67890", second.PartId);
             Assert.Null(second.Title);
             Assert.Null(second.Deployed);
             Assert.Equal(true, second.Rerunnable);
-            Assert.Equal(false, second.DataIsCollectable);
+            Assert.Equal(true, second.DataIsCollectable);
+            Assert.Equal(false, second.HoldsData);
         }
 
         [Fact]

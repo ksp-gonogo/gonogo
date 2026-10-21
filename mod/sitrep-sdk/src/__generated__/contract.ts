@@ -6769,10 +6769,20 @@ export interface InstrumentEntry
 	*/
 	resettable?: boolean | null;
 	/**
-	* Whether a kerbal on EVA can collect the experiment's data (KSP's
-	* `ModuleScienceExperiment.dataIsCollectable`).
+	* Whether a kerbal on EVA can take the experiment's data out of the part
+	* (KSP's `ModuleScienceExperiment.dataIsCollectable`). A part-config setting
+	* that says nothing about whether data is stored now: see
+	* `InstrumentEntry.holdsData`.
 	*/
 	dataIsCollectable?: boolean | null;
+	/**
+	* Whether the experiment module stores data right now, from at least one
+	* result being held (KSP's `ModuleScienceExperiment.GetData()` is not empty).
+	* This, not `InstrumentEntry.dataIsCollectable`, is what a client branches on
+	* to offer transmitting the data. `null` where the module's store could not be
+	* read.
+	*/
+	holdsData?: boolean | null;
 	/**
 	* Whether the instrument runs over time once switched on, rather than being
 	* deployed once. A continuous instrument has no deploy or transmit: it is

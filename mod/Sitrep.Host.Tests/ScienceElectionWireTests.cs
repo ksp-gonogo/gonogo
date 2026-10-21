@@ -71,6 +71,7 @@ namespace Sitrep.Host.Tests
                             ["rerunnable"] = true,
                             ["resettable"] = false,
                             ["dataIsCollectable"] = true,
+                            ["holdsData"] = false,
                         },
                     },
                     ["sensors"] = new List<object?>

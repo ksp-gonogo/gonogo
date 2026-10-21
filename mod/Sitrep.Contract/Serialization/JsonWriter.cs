@@ -839,6 +839,10 @@ namespace Sitrep.Contract.Serialization
             sb.Append(':');
             AppendNullableBool(sb, e.DataIsCollectable);
             sb.Append(',');
+            AppendString(sb, "holdsData");
+            sb.Append(':');
+            AppendNullableBool(sb, e.HoldsData);
+            sb.Append(',');
             AppendString(sb, "continuous");
             sb.Append(':');
             AppendNullableBool(sb, e.Continuous);

@@ -27,7 +27,7 @@ const CONTINUOUS = {
   inoperable: false,
   rerunnable: null,
   resettable: null,
-  dataIsCollectable: false,
+  holdsData: false,
   continuous: true,
 };
 
@@ -106,7 +106,7 @@ describe("Experiments: continuous instruments", () => {
           inoperable: false,
           rerunnable: true,
           resettable: true,
-          dataIsCollectable: false,
+          holdsData: false,
           continuous: false,
         },
       ]);

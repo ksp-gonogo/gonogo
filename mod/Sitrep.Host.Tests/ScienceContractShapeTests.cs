@@ -67,6 +67,7 @@ namespace Sitrep.Host.Tests
                 ["rerunnable"] = false,
                 ["resettable"] = true,
                 ["dataIsCollectable"] = true,
+                ["holdsData"] = false,
             });
 
             AssertTypeMirrorsEntry(typeof(InstrumentEntry), ScienceViewProvider.BuildInstruments(snapshot));

@@ -5848,6 +5848,14 @@ namespace Gonogo.KSP
                     }
                     catch { title = null; }
 
+                    bool? holdsData;
+                    try
+                    {
+                        var stored = exp.GetData();
+                        holdsData = stored != null && stored.Length > 0;
+                    }
+                    catch { holdsData = null; }
+
                     list ??= new List<object?>();
                     list.Add(new Dictionary<string, object?>
                     {
@@ -5860,6 +5868,7 @@ namespace Gonogo.KSP
                         ["rerunnable"] = exp.rerunnable,
                         ["resettable"] = exp.resettable,
                         ["dataIsCollectable"] = exp.dataIsCollectable,
+                        ["holdsData"] = holdsData,
                         // Every stock experiment is deployed once; none runs over time.
                         ["continuous"] = false,
                     });

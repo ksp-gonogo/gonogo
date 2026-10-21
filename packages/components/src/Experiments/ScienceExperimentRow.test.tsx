@@ -302,11 +302,63 @@ describe("ScienceExperimentRow", () => {
     expect(screen.queryByText("Transmit")).not.toBeInTheDocument();
   });
 
-  it("does not render Deploy once the instrument is already deployed or has data", () => {
+  it("does not render Deploy for a one-shot instrument that is already deployed", () => {
     renderRow(
-      <ScienceExperimentRow instrument={instrument({ deployed: true })} />,
+      <ScienceExperimentRow
+        instrument={instrument({ deployed: true, rerunnable: false })}
+        deployCmd={handle(() => Promise.resolve(OK))}
+      />,
     );
     expect(screen.queryByText("Deploy")).not.toBeInTheDocument();
+  });
+
+  it("says a held result can be collected on EVA only when the part's config allows it", () => {
+    const { rerender } = renderRow(
+      <ScienceExperimentRow
+        instrument={instrument({ hasData: true, evaCollectable: true })}
+      />,
+    );
+    expect(
+      screen.getByText(/Holds data · EVA collectable/),
+    ).toBeInTheDocument();
+
+    rerender(
+      <ul>
+        <ScienceExperimentRow
+          instrument={instrument({ hasData: true, evaCollectable: false })}
+        />
+      </ul>,
+    );
+    expect(screen.queryByText(/EVA collectable/)).toBeNull();
+    expect(screen.getByText(/Holds data/)).toBeInTheDocument();
+  });
+
+  it("offers Deploy again on a deployed instrument that can be rerun", () => {
+    renderRow(
+      <ScienceExperimentRow
+        instrument={instrument({ deployed: true, rerunnable: true })}
+        deployCmd={handle(() => Promise.resolve(OK))}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Deploy" })).toBeInTheDocument();
+  });
+
+  it("offers Transmit and not Deploy for a one-shot instrument holding data", () => {
+    renderRow(
+      <ScienceExperimentRow
+        instrument={instrument({
+          deployed: true,
+          rerunnable: false,
+          hasData: true,
+        })}
+        deployCmd={handle(() => Promise.resolve(OK))}
+        transmitCmd={handle<TransmitReply>(() => Promise.resolve(TRANSMITTED))}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Transmit" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Deploy" })).toBeNull();
   });
 
   // The full badge set is wider than the row, so the cluster must wrap rather than crush the name.

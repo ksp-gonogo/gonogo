@@ -293,10 +293,21 @@ public class InstrumentEntry
     [SitrepUnit(Units.Flag)]
     public bool? Resettable { get; set; }
 
-    /// <summary>Whether a kerbal on EVA can collect the experiment's data
-    /// (KSP's <c>ModuleScienceExperiment.dataIsCollectable</c>).</summary>
+    /// <summary>Whether a kerbal on EVA can take the experiment's data out of
+    /// the part (KSP's <c>ModuleScienceExperiment.dataIsCollectable</c>). A
+    /// part-config setting that says nothing about whether data is stored now:
+    /// see <see cref="HoldsData"/>.</summary>
     [SitrepUnit(Units.Flag)]
     public bool? DataIsCollectable { get; set; }
+
+    /// <summary>Whether the experiment module stores data right now, from at
+    /// least one result being held (KSP's
+    /// <c>ModuleScienceExperiment.GetData()</c> is not empty). This, not
+    /// <see cref="DataIsCollectable"/>, is what a client branches on to offer
+    /// transmitting the data. <c>null</c> where the module's store could not be
+    /// read.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? HoldsData { get; set; }
 
     /// <summary>
     /// Whether the instrument runs over time once switched on, rather than

@@ -116,3 +116,26 @@ describe("parseLab run state", () => {
     });
   });
 });
+
+describe("parseInstruments holds data", () => {
+  it("reads holdsData, never the EVA-collectable config flag, for what the part holds now", () => {
+    const parsed = parseInstruments([
+      // A stock instrument, empty: collectable by config, holds nothing
+      { partId: 1, holdsData: false, dataIsCollectable: true },
+      // A deployed experiment holding data whose config forbids EVA collection
+      { partId: 2, holdsData: true, dataIsCollectable: false },
+    ]);
+    expect(parsed?.map((p) => p.hasData)).toEqual([false, true]);
+    expect(parsed?.map((p) => p.dataKnown)).toEqual([true, true]);
+    expect(parsed?.map((p) => p.evaCollectable)).toEqual([true, false]);
+  });
+
+  it("marks the data fact unknown when the wire carries no holdsData", () => {
+    const parsed = parseInstruments([
+      { partId: 1, dataIsCollectable: true },
+      { partId: 2, holdsData: null },
+    ]);
+    expect(parsed?.map((p) => p.hasData)).toEqual([false, false]);
+    expect(parsed?.map((p) => p.dataKnown)).toEqual([false, false]);
+  });
+});

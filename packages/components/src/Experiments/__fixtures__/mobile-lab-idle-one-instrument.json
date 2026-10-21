@@ -11,7 +11,7 @@
       "partName": "Mystery Goo\u2122 Containment Unit",
       "experimentId": "mysteryGoo",
       "deployed": false,
-      "dataIsCollectable": false,
+      "holdsData": false,
       "rerunnable": false,
       "inoperable": false
     }
@@ -41,7 +41,7 @@
             "partName": "Mystery Goo\u2122 Containment Unit",
             "experimentId": "mysteryGoo",
             "deployed": false,
-            "dataIsCollectable": false,
+            "holdsData": false,
             "rerunnable": false,
             "inoperable": false
           }

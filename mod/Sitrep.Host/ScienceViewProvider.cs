@@ -29,7 +29,7 @@ namespace Sitrep.Host
     ///     "labValue", "deployed", "inoperable", "situation" }, ... ] | null
     ///   "instruments": [ { "partId", "partName", "experimentId", "title",
     ///     "deployed", "inoperable", "rerunnable", "resettable",
-    ///     "dataIsCollectable" }, ... ] | null
+    ///     "dataIsCollectable", "holdsData" }, ... ] | null
     ///   "lab": [ { "partName", "dataStored", "dataStorage", "storedScience",
     ///     "processingData", "statusText", "scientistCount", "scienceRate",
     ///     "isOperational" }, ... ] | null
@@ -195,6 +195,7 @@ namespace Sitrep.Host
             Rerunnable = SnapshotDict.GetBool(raw, "rerunnable"),
             Resettable = SnapshotDict.GetBool(raw, "resettable"),
             DataIsCollectable = SnapshotDict.GetBool(raw, "dataIsCollectable"),
+            HoldsData = SnapshotDict.GetBool(raw, "holdsData"),
             Continuous = SnapshotDict.GetBool(raw, "continuous"),
             Running = SnapshotDict.GetBool(raw, "running"),
             Producing = SnapshotDict.GetBool(raw, "producing"),

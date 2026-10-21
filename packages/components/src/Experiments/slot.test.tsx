@@ -62,7 +62,7 @@ async function renderFullList(): Promise<void> {
         deployed: INSTRUMENT.deployed,
         inoperable: INSTRUMENT.inoperable,
         rerunnable: INSTRUMENT.rerunnable,
-        dataIsCollectable: INSTRUMENT.hasData,
+        holdsData: INSTRUMENT.hasData,
       },
     ]);
     fixture.emit("science.experiments", [

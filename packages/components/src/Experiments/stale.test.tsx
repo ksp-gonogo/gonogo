@@ -44,7 +44,7 @@ function emitScience(fixture: ReturnType<typeof setupStreamFixture>): void {
         deployed: false,
         inoperable: false,
         rerunnable: false,
-        dataIsCollectable: true,
+        holdsData: true,
       },
     ]);
     fixture.emit("science.lab", [

@@ -48,7 +48,7 @@ describe("Experiments: genuinely runs off the stream", () => {
           inoperable: false,
           rerunnable: false,
           resettable: false,
-          dataIsCollectable: true,
+          holdsData: true,
         },
       ]);
       fixture.emit("science.lab", [
@@ -93,7 +93,7 @@ describe("Experiments: instruments whose reusability the wire leaves unknown", (
     inoperable: false,
     rerunnable: null,
     resettable: null,
-    dataIsCollectable: false,
+    holdsData: false,
   });
 
   it("lists experiments under their part named once, by their own title or id, and none as one-shot", async () => {

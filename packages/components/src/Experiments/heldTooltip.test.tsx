@@ -27,7 +27,7 @@ function mountWithTotal() {
         deployed: false,
         inoperable: false,
         rerunnable: false,
-        dataIsCollectable: true,
+        holdsData: true,
       },
     ]);
   });

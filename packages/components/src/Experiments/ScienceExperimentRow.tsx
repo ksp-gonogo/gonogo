@@ -130,8 +130,7 @@ export function ScienceExperimentRow({
         )}
       {!continuous &&
         !instrument.inoperable &&
-        !instrument.deployed &&
-        !instrument.hasData &&
+        (!instrument.deployed || instrument.rerunnable) &&
         deployCmd && (
           <CommandButton
             size="sm"
@@ -246,7 +245,7 @@ export function ScienceExperimentRow({
         {!underPart && experimentName(instrument)}
         {instrument.dataKnown !== false && (
           <DataState
-            text={`${underPart ? "" : " · "}${instrument.hasData ? "Holds data" : "No data"}`}
+            text={`${underPart ? "" : " · "}${dataText(instrument)}`}
             held={hasBadge ? undefined : heldGrade}
           />
         )}
@@ -263,6 +262,14 @@ export function ScienceExperimentRow({
       </Text>
     </Card>
   );
+}
+
+/** What the row says about stored data; an instrument holding data also says whether a kerbal on EVA can collect it. */
+function dataText(instrument: TitledInstrument): string {
+  if (!instrument.hasData) return "No data";
+  return instrument.evaCollectable === true
+    ? "Holds data · EVA collectable"
+    : "Holds data";
 }
 
 /** The row's data line, marked as a held figure where the row has no badge to carry its held state. */

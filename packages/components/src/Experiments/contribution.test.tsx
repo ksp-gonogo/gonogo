@@ -54,7 +54,7 @@ const STOCK_WIRE = {
   deployed: false,
   inoperable: false,
   rerunnable: false,
-  dataIsCollectable: false,
+  holdsData: false,
 };
 
 const renderedTrees: Array<() => void> = [];
@@ -128,9 +128,7 @@ describe("Experiments: the experiments.instruments contribution slot", () => {
     const fixture = renderWithContributions();
     act(() => {
       // Same `hasData` as the scanner, so only the source separates the two rows.
-      fixture.emit("science.instruments", [
-        { ...STOCK_WIRE, dataIsCollectable: true },
-      ]);
+      fixture.emit("science.instruments", [{ ...STOCK_WIRE, holdsData: true }]);
     });
 
     await waitFor(() =>

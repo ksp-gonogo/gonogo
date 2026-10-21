@@ -71,6 +71,7 @@ namespace Sitrep.Host.Tests
             nameof(InstrumentEntry.Rerunnable),
             nameof(InstrumentEntry.Resettable),
             nameof(InstrumentEntry.DataIsCollectable),
+            nameof(InstrumentEntry.HoldsData),
             // Source-agnostic run state: every science backend either has continuous instruments or states that it has none.
             nameof(InstrumentEntry.Continuous),
             nameof(InstrumentEntry.Running),
