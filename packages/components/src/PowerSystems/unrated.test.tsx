@@ -71,6 +71,7 @@ describe("PowerTotals", () => {
     drawUnknown: false,
     flowMeasured: true,
     netFigure: value("units/s", 5),
+    netUnit: "units/s",
     netTone: "neutral" as const,
     totalProduced: 5,
     totalConsumed: 0,
@@ -98,6 +99,7 @@ describe("PowerTotals NET cell", () => {
         drawUnknown={false}
         flowMeasured
         netFigure={value("EC/s", -0.03)}
+        netUnit="EC/s"
         netTone="warn"
         unratedCount={0}
         totalProduced={0}
@@ -110,5 +112,9 @@ describe("PowerTotals NET cell", () => {
     const figure = screen.getByText("NET").nextElementSibling as HTMLElement;
     expect(figure.textContent).toContain("EC/s");
     expect(getComputedStyle(figure).whiteSpace).not.toBe("nowrap");
+    const number = figure.querySelector("span") as HTMLElement;
+    expect(number.textContent).toBe("-0.03");
+    expect(getComputedStyle(number).whiteSpace).toBe("nowrap");
+    expect(number.contains(figure.querySelector("[data-unit]"))).toBe(false);
   });
 });

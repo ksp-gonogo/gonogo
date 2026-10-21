@@ -1058,6 +1058,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     widgetId: "power-systems",
     fixturesPath: "PowerSystems/__fixtures__",
     outPath: "renders/power-systems-widget",
+    mustFitBoxes: true,
     modes: [
       // The tiny size: the net rate of the picked resource, no title.
       { name: "tiny-3x3", w: 3, h: 3 },

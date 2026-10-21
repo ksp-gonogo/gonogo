@@ -16,7 +16,7 @@ import {
 import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { ContributionSection } from "./ContributionSection";
-import { netRate } from "./chargeRate";
+import { netRate, netUnit } from "./chargeRate";
 import type { PowerSystemsConfig } from "./config";
 import { type NetTone, netToneWithUnrated, splitCamel } from "./flow";
 import { OtherDrawRow } from "./OtherDrawRow";
@@ -256,6 +256,7 @@ export function PowerSystemsComponent({
                   ? readingOf(partsReading, () => netRate(resource, shownNet))
                   : null
               }
+              netUnit={netUnit(resource)}
               drawUnknown={drawUnknown}
               flowMeasured={flowMeasured}
               net={shownNet}

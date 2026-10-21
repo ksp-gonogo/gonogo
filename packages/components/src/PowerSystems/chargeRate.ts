@@ -24,7 +24,12 @@ registerUnit({
   word: "electric charge per second",
 });
 
-/** A resource's net rate as a figure: electric charge in EC/s, any other resource in units per second. */
+/** The unit a resource's net rate is drawn in: EC/s for electric charge, units per second for any other resource. */
+export function netUnit(resource: string) {
+  return resource === "ElectricCharge" ? "EC/s" : "units/s";
+}
+
+/** A resource's net rate as a figure, in the unit {@link netUnit} names. */
 export function netRate(resource: string, net: number) {
   return resource === "ElectricCharge"
     ? value("EC/s", net)

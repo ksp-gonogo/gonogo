@@ -1,4 +1,10 @@
-import { NULL_DISPLAY, Text, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  NULL_DISPLAY,
+  Text,
+  Tooltip,
+  Unit,
+  UnitSharedFormat,
+} from "@ksp-gonogo/ui-kit";
 import type { ComponentProps } from "react";
 import { formatUnits, type NetTone } from "./flow";
 import { UNKNOWN_DRAW_TEXT } from "./OtherDrawRow";
@@ -10,6 +16,7 @@ import {
   NET_LABEL_COLOUR,
   NET_VALUE,
   NO_BREAK,
+  STORED_PART,
   STORED_VALUE,
   TOTALS,
   TOTALS_CELL,
@@ -24,6 +31,7 @@ import {
  */
 export function PowerTotals({
   netFigure,
+  netUnit,
   drawUnknown,
   flowMeasured,
   net,
@@ -37,6 +45,8 @@ export function PowerTotals({
 }: Readonly<{
   /** The net rate as the figure the cell draws, null while the net is unknown rather than zero. */
   netFigure: ComponentProps<typeof Unit>["value"] | null;
+  /** The symbol NET is drawn in, set apart from the figure so a narrow cell can put it on a second line. */
+  netUnit: string;
   /** The stored charge is not moving, so the net and the total draw cannot be read: both show as unknown. */
   drawUnknown: boolean;
   /** Whether any part reports a measured flow; without one PROD is unknown too. */
@@ -60,10 +70,13 @@ export function PowerTotals({
         </span>
         <Text size="sm" style={NET_VALUE}>
           {netFigure !== null ? (
-            <>
-              {net >= 0 ? "+" : ""}
-              <Unit value={netFigure} decimals={2} />
-            </>
+            <UnitSharedFormat>
+              <span style={NO_BREAK}>
+                {net >= 0 ? "+" : ""}
+                <Unit value={netFigure} decimals={2} hideUnitInGroup />
+              </span>{" "}
+              <Unit>{netUnit}</Unit>
+            </UnitSharedFormat>
           ) : drawUnknown ? (
             <UnknownFigure label="Net rate unknown" />
           ) : (
@@ -121,8 +134,8 @@ export function PowerTotals({
         <div style={TOTALS_CELL}>
           <span style={CELL_LABEL}>STORED</span>
           <Text size="sm" style={STORED_VALUE}>
-            <span style={NO_BREAK}>{formatUnits(storage.amount)}</span>{" "}
-            <span style={NO_BREAK}>/ {formatUnits(storage.maxAmount)}</span>
+            <span style={STORED_PART}>{formatUnits(storage.amount)}</span>{" "}
+            <span style={STORED_PART}>/ {formatUnits(storage.maxAmount)}</span>
           </Text>
         </div>
       )}

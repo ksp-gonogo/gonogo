@@ -247,6 +247,13 @@ export interface WidgetRenderConfig {
    * pixels in the real engine, since a transparent box still takes the pointer.
    */
   stickyBarMustBackRows?: boolean;
+  /**
+   * Fail the render when a bordered or filled box in the widget has content
+   * running past its right edge, in every mode. For a widget of stat cells
+   * whose figures must stay inside them. Off by default: other widgets draw
+   * boxes with overhanging content that nobody has checked.
+   */
+  mustFitBoxes?: boolean;
 }
 
 /** A viewport size the screen harness renders a screen at. Unlike a widget
@@ -433,6 +440,7 @@ export async function renderWidgets(
       );
 
       await proveOverlapDetectorWorks(page);
+      await proveOverrunDetectorWorks(page);
       await proveClipDetectorWorks(page);
       await proveTinyFitAuditWorks(page);
       await proveA11yDetectorWorks(page);
@@ -574,6 +582,21 @@ export async function renderWidgets(
             "shrunk below its content: it keeps painting at its natural size and " +
             "the content lands on whatever follows it. Two chart captions are a legend chip " +
             "and a threshold label given the same corner of the plot.)",
+        );
+      }
+    }
+
+    if (findings.overruns.length > 0) {
+      const message =
+        `${findings.overruns.length} box(es) with content running past their right edge:\n  ` +
+        findings.overruns.join("\n  ");
+      if (process.env.PROBE_ALLOW_OVERRUN === "1") {
+        console.warn(`\n[warn] ${message}`);
+      } else {
+        throw new Error(
+          `${message}\n(Set PROBE_ALLOW_OVERRUN=1 to render anyway. A figure ` +
+            "that does not fit its cell should shrink or wrap inside it, never " +
+            "hang over the border.)",
         );
       }
     }
@@ -1229,6 +1252,81 @@ export async function surveyClippedContent(page: Page): Promise<string[]> {
     },
     [CLIP_TOLERANCE_PX, HTML_NS] as const,
   );
+}
+
+/**
+ * Every drawn box (a border or a fill) under `#root` whose content runs past
+ * its own right edge while the box lets it show, so a figure hangs out of the
+ * cell that is meant to hold it, or a mark sits on the border.
+ *
+ * Separate from {@link findOverlappingSections}, which compares siblings and
+ * so cannot see a single child wider than its parent. A box that hides or
+ * scrolls its overflow is somebody's decision and is skipped; so is SVG.
+ */
+async function findOverrunningBoxes(page: Page): Promise<string[]> {
+  return page.evaluate(
+    ([tolerance, htmlNs]) => {
+      const host = document.getElementById("root");
+      if (!host) return [] as string[];
+      const out: string[] = [];
+      for (const el of Array.from(host.querySelectorAll("*"))) {
+        if (el.namespaceURI !== htmlNs) continue;
+        const cs = getComputedStyle(el);
+        if (cs.overflowX !== "visible") continue;
+        const drawn =
+          parseFloat(cs.borderRightWidth) > 0 ||
+          (cs.backgroundColor !== "rgba(0, 0, 0, 0)" &&
+            cs.backgroundColor !== "transparent");
+        if (!drawn || el.clientWidth <= 2) continue;
+        const over = el.scrollWidth - el.clientWidth;
+        if (over <= tolerance) continue;
+        const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
+        if (text === "") continue;
+        out.push(
+          `<${el.tagName.toLowerCase()}> "${text.slice(0, 40)}" runs ${over}px past the right edge of its box`,
+        );
+      }
+      return out;
+    },
+    [1, HTML_NS] as const,
+  );
+}
+
+/**
+ * Plants a box a figure runs out of, a box that hides its overflow and a box
+ * the figure fits, and refuses to start unless only the first is reported.
+ */
+async function proveOverrunDetectorWorks(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const host = document.getElementById("root");
+    if (!host) throw new Error("Probe: #root missing before the overrun check");
+    const box = document.createElement("div");
+    box.id = "overrun-detector-selfcheck";
+    const base = "width:60px;border:1px solid #888;white-space:nowrap;";
+    box.innerHTML = `
+      <div id="fires-overrun" style="${base}">-5.08 EC/s and more</div>
+      <div id="quiet-hidden" style="${base}overflow:hidden">-5.08 EC/s hidden</div>
+      <div id="quiet-fits" style="${base}">-5.08</div>`;
+    host.appendChild(box);
+  });
+  const found = await findOverrunningBoxes(page);
+  await page.evaluate(() =>
+    document.getElementById("overrun-detector-selfcheck")?.remove(),
+  );
+  // The report names the box by its text, so the three are told apart by what they hold.
+  const fired = found.some((f) => f.includes("and more"));
+  if (!fired) {
+    throw new Error(
+      "The box-overrun detector is BLIND: a figure wider than its bordered box was not reported, so a clean run proves nothing about the widgets.\n" +
+        `What it did report: ${found.length === 0 ? "nothing" : found.join("; ")}`,
+    );
+  }
+  if (found.length !== 1) {
+    throw new Error(
+      "The box-overrun detector reported a box that hides its overflow or fits its content:\n  " +
+        found.join("\n  "),
+    );
+  }
 }
 
 /**
@@ -2144,6 +2242,8 @@ interface RenderFindings {
   crushedGraphics: string[];
   /** Stacked siblings painting into the same pixels. */
   overlaps: string[];
+  /** Drawn boxes whose content runs past their own right edge. */
+  overruns: string[];
   /** Elements a clipping ancestor hides entirely (the inverse of `overlaps`). */
   clipped: string[];
   /** Renders that never happened: a throw out of `__renderProbe`. */
@@ -2230,6 +2330,7 @@ function noFindings(): RenderFindings {
   return {
     crushedGraphics: [],
     overlaps: [],
+    overruns: [],
     clipped: [],
     clipSurvey: [],
     fontFallbacks: [],
@@ -2506,6 +2607,13 @@ async function renderOneWidget(
         findings.overlaps.push(
           `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${overlap}`,
         );
+      }
+      if (config.mustFitBoxes) {
+        for (const overrun of await findOverrunningBoxes(page)) {
+          findings.overruns.push(
+            `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${overrun}`,
+          );
+        }
       }
       for (const hidden of await findClippedContent(page)) {
         findings.clipped.push(
