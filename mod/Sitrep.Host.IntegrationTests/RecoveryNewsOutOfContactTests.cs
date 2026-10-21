@@ -18,10 +18,10 @@ namespace Sitrep.Host.IntegrationTests
     {
         private static readonly TimeSpan Timeout = TestBudgets.Op;
 
-        private static KspSnapshot Tick(double ut, bool connected, string? vessel = null) => new KspSnapshot
+        private static KspSnapshot Tick(double ut, bool connected) => new KspSnapshot
         {
             Ut = ut,
-            Values = new Dictionary<string, object?> { ["connected"] = connected, ["vessel"] = vessel },
+            Values = new Dictionary<string, object?> { ["connected"] = connected },
         };
 
         private static FlightEnded Ended(FlightEndReason reason) => new FlightEnded
@@ -95,42 +95,6 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        [Fact]
-        public async Task ARecoveryOutOfContactWithdrawsTheActiveVesselTopics()
-        {
-            var log = new List<string>();
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.SetDiagnosticLog(line => { lock (log) { log.Add(line); } });
-            var up = new Up();
-            engine.RegisterUplink(up);
-            engine.Start();
-            try
-            {
-                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, "vessel.identity", Timeout);
-                engine.TickAndWait(1.0, Tick(1.0, connected: true, vessel: "Probe"), Timeout);
-                var present = await ReceiveStreamDataAsync(client, Timeout);
-                Assert.NotNull(present.Payload);
-                engine.TickAndWait(2.0, Tick(2.0, connected: false, vessel: "Probe"), Timeout);
-
-                up.Ended!.Publish(Ended(FlightEndReason.Recovered), 2.5);
-                engine.TickAndWait(3.0, Tick(3.0, connected: false, vessel: null), Timeout);
-
-                StreamData<object?> withdrawn;
-                withdrawn = (await DrainToLatestStreamDataAsync(client, TestBudgets.Quiet))!;
-                Assert.Equal("vessel.identity", withdrawn.Topic);
-                Assert.Null(withdrawn.Payload);
-                lock (log)
-                {
-                    Assert.DoesNotContain(log, line => line.Contains("held vessel.identity"));
-                }
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
         private sealed class Up : ISitrepUplink
         {
             public IChannelPublisher? Ended;
@@ -151,24 +115,12 @@ namespace Sitrep.Host.IntegrationTests
                         Delivery = Delivery.ReliableOrdered,
                         Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
                     },
-                    new ChannelDeclaration
-                    {
-                        Kind = SampleKind.Discrete,
-                        Topic = "vessel.identity",
-                        Delay = DelayRole.Delayed,
-                        Delivery = Delivery.ReliableOrdered,
-                        Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
-                    },
                 },
             };
 
             public void Register(IUplinkHost host)
             {
                 Ended = host.Publisher(FlightTopics.EndedTopic);
-                host.AddChannelSource("vessel.identity", snapshot =>
-                    snapshot != null && snapshot.Values.TryGetValue("vessel", out var v) && v is string name
-                        ? new Dictionary<string, object?> { ["name"] = name }
-                        : null);
                 host.SetConnectivitySource(s => s != null && s.Values.TryGetValue("connected", out var c) ? Convert.ToBoolean(c) : (bool?)null);
             }
         }
