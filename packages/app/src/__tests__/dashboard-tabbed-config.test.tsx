@@ -26,7 +26,15 @@ function DashboardHarness({
   config: DashboardConfig;
   storageKey: string;
 }) {
-  const s = useDashboardState(storageKey, config);
+  /* A reload starts from what the previous mount saved, as a screen does from its profile. */
+  const [initial] = useState<DashboardConfig>(() => {
+    const saved = localStorage.getItem(storageKey);
+    return saved ? JSON.parse(saved) : config;
+  });
+  const s = useDashboardState(initial, {
+    onChange: (items, layout) =>
+      localStorage.setItem(storageKey, JSON.stringify({ items, layout })),
+  });
   return (
     <Dashboard
       items={s.items}

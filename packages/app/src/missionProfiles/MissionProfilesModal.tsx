@@ -1,10 +1,14 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Button, FilterChip, Input, Switch } from "@ksp-gonogo/ui";
-import { SectionTitle, Stack, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  LiveRegion,
+  SectionTitle,
+  Stack,
+  Tooltip,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
-import type { Layout } from "react-grid-layout";
 import styled from "styled-components";
-import type { DashboardItem } from "../components/Dashboard";
 import {
   useMissionProfiles,
   useMissionProfilesService,
@@ -15,49 +19,47 @@ import {
   type MissionProfile,
   SCENE_LABELS,
 } from "./MissionProfilesService";
+import type { ProfileDashboard } from "./ProfileDashboard";
+import { ProfileInputSlot } from "./ProfileInputSlot";
+import { useHistoryState } from "./useProfileDashboard";
 
 interface MissionProfilesModalProps {
-  /** Current dashboard state: used for the "save current as..." button. */
-  currentItems: DashboardItem[];
-  currentLayout: Layout;
-  /** Called when the user loads a profile. */
-  onLoad: (profile: MissionProfile) => void;
+  /** The dashboard the layouts belong to: switched, copied and undone from here. */
+  dashboard: ProfileDashboard;
   /** Closes the modal. */
   onClose?: () => void;
 }
 
 /**
- * Mission Profiles: named dashboard snapshots. Capture the current
- * layout with a name and reload it later; useful for "Launch → Orbit →
- * Rendezvous" flows where the optimal widget set changes sharply
- * between mission phases.
+ * Mission Profiles: named dashboards. Every change to the dashboard saves
+ * into the current layout; a layout can be copied under a new name and
+ * switched to later. Useful for "Launch → Orbit → Rendezvous" flows where the
+ * optimal widget set changes sharply between mission phases.
  */
 export function MissionProfilesModal({
-  currentItems,
-  currentLayout,
-  onLoad,
+  dashboard,
   onClose,
 }: Readonly<MissionProfilesModalProps>) {
   const svc = useMissionProfilesService();
   const profiles = useMissionProfiles();
+  const currentId = svc.getCurrentId();
+  const { canUndo, canRedo } = useHistoryState(dashboard);
   const [newName, setNewName] = useState("");
   const [newBindings, setNewBindings] = useState<BindableScene[]>([]);
   const [newAutoSwitch, setNewAutoSwitch] = useState(false);
-  const [pendingLoad, setPendingLoad] = useState<MissionProfile | null>(null);
   const [pendingDelete, setPendingDelete] = useState<MissionProfile | null>(
     null,
   );
   const [editingScenesId, setEditingScenesId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const [inputNotice, setInputNotice] = useState<string | null>(null);
 
   const handleSaveCurrent = () => {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    svc.save(
+    dashboard.saveAs(
       trimmed,
-      currentItems,
-      currentLayout,
       newBindings,
       newBindings.length > 0 && newAutoSwitch,
     );
@@ -84,15 +86,8 @@ export function MissionProfilesModal({
   };
 
   const handleLoad = (profile: MissionProfile) => {
-    onLoad(profile);
+    dashboard.switchTo(profile.id);
     onClose?.();
-  };
-
-  const handleOverwrite = (profile: MissionProfile) => {
-    svc.update(profile.id, {
-      items: currentItems,
-      layout: currentLayout,
-    });
   };
 
   const handleDelete = (profile: MissionProfile) => {
@@ -113,33 +108,9 @@ export function MissionProfilesModal({
     setRenameDraft("");
   };
 
-  // Extracted to avoid a triple-nested ternary inside the JSX, each row is
-  // in exactly one of three states (confirming-load, confirming-delete, or
-  // default), and splitting it out keeps the render tree readable.
+  // Extracted to keep the JSX readable: a row is either confirming a delete
+  // or showing its ordinary actions.
   function renderRowActions(p: MissionProfile): React.ReactNode {
-    if (pendingLoad?.id === p.id) {
-      return (
-        <>
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={() => setPendingLoad(null)}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            type="button"
-            onClick={() => {
-              setPendingLoad(null);
-              handleLoad(p);
-            }}
-          >
-            Confirm load
-          </Button>
-        </>
-      );
-    }
     if (pendingDelete?.id === p.id) {
       return (
         <>
@@ -164,18 +135,13 @@ export function MissionProfilesModal({
     }
     return (
       <>
-        <Tooltip text="Replace the current dashboard with this layout">
-          <Button type="button" onClick={() => setPendingLoad(p)}>
-            Load
-          </Button>
-        </Tooltip>
-        <Tooltip text="Overwrite this layout with the current dashboard">
+        <Tooltip text="Make this the layout the dashboard shows and saves into">
           <Button
-            variant="ghost"
             type="button"
-            onClick={() => handleOverwrite(p)}
+            disabled={p.id === currentId}
+            onClick={() => handleLoad(p)}
           >
-            Overwrite
+            Switch to
           </Button>
         </Tooltip>
         <Button
@@ -200,7 +166,35 @@ export function MissionProfilesModal({
     <Wrap>
       <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3" $rule>
-          Save current dashboard
+          Current layout
+        </SectionTitle>
+        <CurrentRow>
+          <ProfileName>
+            {profiles.find((p) => p.id === currentId)?.name ?? "No layout yet"}
+          </ProfileName>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={!canUndo}
+            onClick={() => dashboard.undo()}
+          >
+            Undo
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={!canRedo}
+            onClick={() => dashboard.redo()}
+          >
+            Redo
+          </Button>
+        </CurrentRow>
+        <Hint>
+          Every change to the dashboard saves into the current layout. Undo and
+          Redo step back through changes and layout switches.
+        </Hint>
+        <SectionTitle as="h3" $rule>
+          Save as a new layout
         </SectionTitle>
         <SaveRow>
           <Input
@@ -257,19 +251,20 @@ export function MissionProfilesModal({
           </Tooltip>
         </BindingsField>
         <Hint>
-          A layout can follow several scenes. Captures the current widget
-          layout. Load it back later to swap the whole dashboard at once. Tagged
-          scenes show a load prompt at the bottom of the screen when KSP enters
-          that scene, or auto-load if "Switch automatically" is on.
+          Copies the dashboard under a name and switches to the copy. A layout
+          can follow several scenes: tagged scenes show a switch prompt at the
+          bottom of the screen when KSP enters that scene, or switch straight
+          away if "Switch automatically" is on.
         </Hint>
       </Stack>
 
       <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3" $rule>
-          Saved layouts
+          All layouts
         </SectionTitle>
+        <InputNotice>{inputNotice}</InputNotice>
         {profiles.length === 0 ? (
-          <Empty>No saved layouts yet for this screen</Empty>
+          <Empty>No layouts yet for this screen</Empty>
         ) : (
           <List>
             {profiles.map((p) => (
@@ -294,12 +289,14 @@ export function MissionProfilesModal({
                     <ProfileName>{p.name}</ProfileName>
                   )}
                   <ProfileMeta>
-                    {p.draft ? "Kept before a switch · " : ""}
+                    {p.id === currentId ? "Current · " : ""}
+                    {p.draft ? "Unnamed · " : ""}
                     {p.items.length} widget{p.items.length === 1 ? "" : "s"} ·{" "}
                     <Unit value={value("irl:s", ageSeconds(p.updatedAt))} /> ago
                   </ProfileMeta>
                 </ProfileHeader>
                 <ProfileActions>{renderRowActions(p)}</ProfileActions>
+                <ProfileInputSlot profile={p} onNotice={setInputNotice} />
                 <BindingsRow>
                   <BindingsLabel>
                     {boundScenesText(p.sceneBindings)}
@@ -345,13 +342,6 @@ export function MissionProfilesModal({
                     />
                   </AutoSwitchRow>
                 </Tooltip>
-                {pendingLoad?.id === p.id && (
-                  <Warning role="alert">
-                    Loading will replace the current dashboard with{" "}
-                    <b>{p.name}</b>. Unsaved changes will be lost unless you
-                    save them as a profile first.
-                  </Warning>
-                )}
               </ProfileRow>
             ))}
           </List>
@@ -387,6 +377,18 @@ const Wrap = styled.div`
   flex-direction: column;
   gap: var(--gap-section);
   min-width: 420px;
+`;
+
+const InputNotice = styled(LiveRegion)`
+  display: block;
+  font-size: var(--font-size-compact);
+  color: var(--color-info-text);
+`;
+
+const CurrentRow = styled.div`
+  display: flex;
+  gap: var(--gap-related);
+  align-items: center;
 `;
 
 const SaveRow = styled.div`
@@ -451,15 +453,6 @@ const DangerButton = styled(Button)`
   background: var(--color-nogo-muted);
   border-color: var(--color-nogo-mark);
   color: var(--color-nogo-text);
-`;
-
-const Warning = styled.div`
-  background: var(--color-nogo-muted);
-  border: 1px solid var(--color-nogo-muted);
-  border-radius: var(--radius-regular);
-  padding: var(--inset-surface);
-  color: var(--color-nogo-text);
-  font-size: var(--font-size-compact);
 `;
 
 const BindingsField = styled.div`

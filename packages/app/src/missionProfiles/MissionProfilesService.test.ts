@@ -206,4 +206,191 @@ describe("MissionProfilesService", () => {
       expect(svc.list()[0].sceneBindings).toBeUndefined();
     });
   });
+
+  describe("the current profile", () => {
+    it("starts with none and remembers the one set across instances", () => {
+      const a = new MissionProfilesService("main", storage);
+      expect(a.getCurrentId()).toBeNull();
+      const p = a.save("Launch", ITEMS, LAYOUT);
+      a.setCurrent(p.id);
+      expect(new MissionProfilesService("main", storage).getCurrentId()).toBe(
+        p.id,
+      );
+    });
+
+    it("keeps it per screen", () => {
+      const main = new MissionProfilesService("main", storage);
+      const station = new MissionProfilesService("station", storage);
+      main.setCurrent(main.save("Launch", ITEMS, LAYOUT).id);
+      expect(station.getCurrentId()).toBeNull();
+    });
+
+    it("has none after the current profile is deleted", () => {
+      const svc = new MissionProfilesService("main", storage);
+      const p = svc.save("Launch", ITEMS, LAYOUT);
+      svc.setCurrent(p.id);
+      svc.remove(p.id);
+      expect(svc.getCurrentId()).toBeNull();
+    });
+
+    it("ignores a stored current id that names nothing", () => {
+      storage.setItem("gonogo.missionProfiles.current.main", '"gone"');
+      expect(new MissionProfilesService("main", storage).getCurrentId()).toBe(
+        null,
+      );
+    });
+  });
+
+  describe("the unnamed layout", () => {
+    it("is created current and flagged, and renaming makes it ordinary", () => {
+      const svc = new MissionProfilesService("main", storage);
+      const draft = svc.createDraft(ITEMS, LAYOUT);
+      expect(svc.getCurrentId()).toBe(draft.id);
+      expect(draft.name).toBe("Unsaved layout");
+      expect(draft.draft).toBe(true);
+
+      svc.update(draft.id, { name: "Docking" });
+      expect(svc.get(draft.id)?.draft).toBeUndefined();
+    });
+
+    it("keeps its flag while the autosave writes into it", () => {
+      const svc = new MissionProfilesService("main", storage);
+      const draft = svc.createDraft(ITEMS, LAYOUT);
+      svc.writeContent(draft.id, [], []);
+      expect(svc.get(draft.id)?.draft).toBe(true);
+    });
+
+    it("is never joined by a second flagged layout", () => {
+      const svc = new MissionProfilesService("main", storage);
+      const first = svc.createDraft(ITEMS, LAYOUT);
+      svc.setCurrent(null);
+      const second = svc.createDraft(ITEMS, LAYOUT);
+      expect(svc.list().filter((p) => p.draft)).toEqual([
+        expect.objectContaining({ id: second.id }),
+      ]);
+      expect(svc.get(first.id)).toBeDefined();
+    });
+  });
+
+  describe("migrating a store from before profiles held the working layout", () => {
+    const stored = (items: DashboardItem[]) =>
+      JSON.stringify({ items, layout: LAYOUT.slice(0, items.length) });
+    const one = (i: string): DashboardItem[] => [
+      { i, componentId: "fuel-status" },
+    ];
+
+    it("turns each scene slot into a profile named for the scene, bound to it and switching on its own", () => {
+      storage.setItem("gonogo:dashboard:main:Flight", stored(one("a")));
+      storage.setItem("gonogo:dashboard:main:SpaceCenter", stored(one("b")));
+
+      const svc = new MissionProfilesService("main", storage);
+
+      const flight = svc.list().find((p) => p.name === "Flight layout");
+      expect(flight?.items).toEqual(one("a"));
+      expect(flight?.sceneBindings).toEqual(["Flight"]);
+      expect(flight?.autoSwitch).toBe(true);
+      const centre = svc.list().find((p) => p.name === "Space Center layout");
+      expect(centre?.sceneBindings).toEqual(["SpaceCenter"]);
+      expect(svc.findForScene("Flight")?.id).toBe(flight?.id);
+    });
+
+    it("keeps a slot as a named profile when a profile is already bound to that scene", () => {
+      const early = new MissionProfilesService("main", storage);
+      const mine = early.save("Ascent", ITEMS, LAYOUT, ["Flight"]);
+      storage.setItem("gonogo:dashboard:main:Flight", stored(one("a")));
+
+      const svc = new MissionProfilesService("main", storage);
+
+      const flight = svc.list().find((p) => p.name === "Flight layout");
+      expect(flight?.items).toEqual(one("a"));
+      expect(flight?.sceneBindings).toBeUndefined();
+      expect(flight?.autoSwitch).toBeUndefined();
+      expect(svc.findForScene("Flight")?.id).toBe(mine.id);
+    });
+
+    it("makes the screen's base slot the current profile, named Layout", () => {
+      storage.setItem("gonogo:dashboard:main", stored(one("a")));
+
+      const svc = new MissionProfilesService("main", storage);
+
+      expect(svc.getCurrent()?.name).toBe("Layout");
+      expect(svc.getCurrent()?.items).toEqual(one("a"));
+      expect(svc.getCurrent()?.sceneBindings).toBeUndefined();
+    });
+
+    it("migrates the station's single slot the same way", () => {
+      storage.setItem("gonogo:dashboard:station", stored(one("s")));
+
+      const svc = new MissionProfilesService("station", storage);
+
+      expect(svc.getCurrent()?.items).toEqual(one("s"));
+    });
+
+    it("leaves another screen's slots alone", () => {
+      storage.setItem("gonogo:dashboard:pilot:Flight", stored(one("p")));
+
+      const svc = new MissionProfilesService("main", storage);
+
+      expect(svc.list()).toEqual([]);
+      expect(storage.getItem("gonogo:dashboard:pilot:Flight")).not.toBeNull();
+    });
+
+    it("converts each slot once, and removes it", () => {
+      storage.setItem("gonogo:dashboard:main:Flight", stored(one("a")));
+      new MissionProfilesService("main", storage);
+
+      const again = new MissionProfilesService("main", storage);
+
+      expect(
+        again.list().filter((p) => p.name === "Flight layout"),
+      ).toHaveLength(1);
+      expect(storage.getItem("gonogo:dashboard:main:Flight")).toBeNull();
+    });
+
+    it("keeps the unnamed layouts the old drafts left, as ordinary profiles", () => {
+      storage.setItem(
+        "gonogo.missionProfiles.main",
+        JSON.stringify([
+          {
+            id: "d1",
+            name: "Unsaved layout",
+            screen: "main",
+            items: ITEMS,
+            layout: LAYOUT,
+            draft: true,
+            updatedAt: 5,
+          },
+          {
+            id: "d2",
+            name: "Unsaved layout",
+            screen: "main",
+            items: ITEMS,
+            layout: LAYOUT,
+            draft: true,
+            updatedAt: 6,
+          },
+        ]),
+      );
+
+      const svc = new MissionProfilesService("main", storage);
+
+      expect(
+        svc
+          .list()
+          .map((p) => p.id)
+          .sort(),
+      ).toEqual(["d1", "d2"]);
+      expect(svc.list().some((p) => p.draft)).toBe(false);
+      expect(svc.getCurrentId()).toBeNull();
+    });
+
+    it("does not clear the flag of a layout created after migrating", () => {
+      const first = new MissionProfilesService("main", storage);
+      first.createDraft(ITEMS, LAYOUT);
+
+      const again = new MissionProfilesService("main", storage);
+
+      expect(again.list().filter((p) => p.draft)).toHaveLength(1);
+    });
+  });
 });

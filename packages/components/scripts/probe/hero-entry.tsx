@@ -4,7 +4,7 @@
  * replays the committed flight.
  *
  * The dashboard is the app's `Dashboard` driven by its `useDashboardState`
- * against a saved layout in `localStorage`, so the tiles are placed, clipped and
+ * on a saved layout, so the tiles are placed, clipped and
  * headed exactly as they are on a screen. The only thing standing in for the
  * game is the stream: a `setupStreamFixture` store the replay writes to.
  */
@@ -84,8 +84,6 @@ declare global {
   }
 }
 
-const STORAGE_KEY = "gonogo:dashboard:main";
-
 /**
  * What a render-only stylesheet needs to take the screen's chrome away the way
  * a screen with its tile headers and top strip hidden looks: the drag bar and
@@ -119,9 +117,13 @@ const noopAlarm = {
   manager: { find: () => null, remove: () => {} },
 };
 
-/** The saved layout the app's own hook reads, through the app's own storage key. */
-function SavedDashboard({ chrome }: { chrome: HeroSpec["chrome"] }) {
-  const dashboard = useDashboardState(STORAGE_KEY, { items: [], layout: [] });
+/** The saved layout, held by the app's own hook. */
+function SavedDashboard({ spec }: { spec: HeroSpec }) {
+  const { chrome } = spec;
+  const dashboard = useDashboardState({
+    items: spec.items,
+    layout: spec.layout,
+  });
   return (
     <main
       aria-label="Mission control"
@@ -175,13 +177,6 @@ window.__hero = {
     const chromeStyle = document.getElementById("hero-chrome");
     if (chromeStyle)
       chromeStyle.textContent = spec.chrome === "clean" ? CLEAN_CHROME : "";
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        items: spec.items,
-        layout: spec.layout,
-      }),
-    );
     for (const item of spec.items) {
       if (!getComponent(item.componentId))
         throw new Error(`Hero: widget "${item.componentId}" is not registered`);
@@ -215,7 +210,7 @@ window.__hero = {
                 <SettingsProvider service={settingsService}>
                   <SerialDeviceProvider service={serialService}>
                     <AlarmsLauncherProvider {...noopAlarm}>
-                      <SavedDashboard chrome={spec.chrome} />
+                      <SavedDashboard spec={spec} />
                     </AlarmsLauncherProvider>
                   </SerialDeviceProvider>
                 </SettingsProvider>
