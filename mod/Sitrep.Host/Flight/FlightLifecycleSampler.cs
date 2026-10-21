@@ -302,7 +302,16 @@ namespace Sitrep.Host.Flight
                 // The end was signalled before any sample showed this vessel
                 // (a flight that began from a load or revert and ended within
                 // the same tick), yet the snapshot says it is the vessel in
-                // focus. It was flown, so it gets its start now.
+                // focus. It was flown, so it gets its start now. A flight still
+                // open on another vessel belongs to the timeline this load or
+                // revert replaced, so it ends Reverted before the new start
+                // takes its place as the open flight.
+                if (_activeVesselId != null && _activeVesselId != vesselId)
+                {
+                    PublishEnded(_activeVesselId, _activeVesselName, FlightEndReason.Reverted, ut);
+                    _activeVesselId = null;
+                    _activeVesselName = "";
+                }
                 StartNewFlight(vesselId, snapshot);
                 _lastVesselId = vesselId;
                 seenMidWay = true;

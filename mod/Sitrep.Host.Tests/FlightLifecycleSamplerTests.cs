@@ -222,6 +222,26 @@ namespace Sitrep.Host.Tests
             Assert.DoesNotContain(rig.Ended.Calls, c => ((FlightEnded)c.Payload!).VesselId == VesselB
                 && ((FlightEnded)c.Payload!).Reason == FlightEndReason.Reverted);
             Assert.Equal(1, rig.Started.Calls.Count(c => ((FlightStarted)c.Payload!).VesselId == VesselB));
+            AssertEndedOnce(rig, VesselA, FlightEndReason.Reverted);
+        }
+
+        [Fact]
+        public void ANeverSeenVesselCrashingOnItsFirstTickWithoutARewindStillEndsTheOpenFlightReverted()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 100.0));
+            rig.Sampler.SignalEnd(VesselB, "Beta", FlightEndReason.Crashed, 101.0);
+            rig.Sampler.Sample(SnapshotFor(VesselB, 101.0, "Beta"));
+
+            AssertEndedOnce(rig, VesselA, FlightEndReason.Reverted);
+            AssertEndedOnce(rig, VesselB, FlightEndReason.Crashed);
+        }
+
+        private static void AssertEndedOnce(Rig rig, string vesselId, FlightEndReason reason)
+        {
+            var ends = rig.Ended.Calls.Select(c => (FlightEnded)c.Payload!).Where(e => e.VesselId == vesselId).ToList();
+            Assert.Single(ends);
+            Assert.Equal(reason, ends[0].Reason);
         }
 
         [Fact]

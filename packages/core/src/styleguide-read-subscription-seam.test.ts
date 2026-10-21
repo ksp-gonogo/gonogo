@@ -41,10 +41,11 @@ const SCAN_ROOTS = ["packages", "mod"];
 const SEAM = "mod/sitrep-sdk/src/spine/subscribe-read.ts";
 
 /**
- * How few callers means the seam has been abandoned rather than adopted. Eight
- * call it today: `useStream`, `useTelemetry`, `useDataSeries`,
- * `useOptionalVesselIdentity`, `OrbitView`, `NotesComponent`, the
- * contributions runtime and the processor evaluator. A rewrite that quietly
+ * How few callers means the seam has been abandoned rather than adopted. Nine
+ * source files call it today: `useStream`, `useTelemetry`, `useDataSeries`,
+ * the optional stream read behind `OrbitView`, the tag-value read behind
+ * `NotesComponent`, the contributions runtime, the processor evaluator, the
+ * capability lock and the telemetry provider's topic holds. A rewrite that quietly
  * went back to resolving per call site would leave the negative half below
  * passing over a tree where nothing holds a reckoner's inputs up.
  */
