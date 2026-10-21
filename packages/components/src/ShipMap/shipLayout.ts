@@ -1,4 +1,4 @@
-import { CANOPY_SHAPES, ENGINE_FLAME_BODY_FRACTION } from "./partOverlays";
+import { ENGINE_FLAME_BODY_FRACTION } from "./partOverlays";
 import type { ShipMapPart } from "./shipTopology";
 
 export interface BodyBox {
@@ -75,14 +75,6 @@ function engineFlameReach(p: ShipMapPart, axialExtent: number): number {
   return firing ? axialExtent * ENGINE_FLAME_BODY_FRACTION : 0;
 }
 
-/** Metre-space margin above a parachute for its canopy, reserved only for the states that render one. */
-function parachuteCanopyReach(p: ShipMapPart, latExtent: number): number {
-  if (p.type !== "parachute") return 0;
-  const state = p.partState?.find((m) => m.type === "parachute")?.state;
-  const canopy = state === undefined ? undefined : CANOPY_SHAPES.get(state);
-  return canopy ? latExtent * canopy.height : 0;
-}
-
 export function project(parts: readonly ShipMapPart[]) {
   if (parts.length === 0) {
     return {
@@ -114,11 +106,10 @@ export function project(parts: readonly ShipMapPart[]) {
   for (const p of projected) {
     minL = Math.min(minL, p.body.latMin);
     maxL = Math.max(maxL, p.body.latMax);
-    // Flames and canopies escape the body box, so the same fraction of the metre-space extent is reserved or they clip at fit zoom.
+    // Flames escape the body box, so the same fraction of the metre-space extent is reserved or they clip at fit zoom.
     const axialExtent = p.body.axialMax - p.body.axialMin;
-    const latExtent = p.body.latMax - p.body.latMin;
     minA = Math.min(minA, p.body.axialMin - engineFlameReach(p, axialExtent));
-    maxA = Math.max(maxA, p.body.axialMax + parachuteCanopyReach(p, latExtent));
+    maxA = Math.max(maxA, p.body.axialMax);
   }
   const w = Math.max(maxL - minL, 1);
   const h = Math.max(maxA - minA, 1);

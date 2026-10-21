@@ -12,6 +12,8 @@ export interface RenderShipMapOptions {
   /** `ShipMapPart.flightId`, stringified, of the one part to ring. */
   highlightPartId?: string | null;
   highlightColor?: string;
+  /** The id of the dense cluster whose expanded box is drawn open. */
+  openClusterId?: string | null;
   /** Background painted behind the diagram. Defaults to the app surface colour. */
   background?: string;
 }
@@ -40,6 +42,7 @@ export function renderShipMapToSvg(
           height,
           highlightPartId: opts.highlightPartId ?? null,
           highlightColor: opts.highlightColor,
+          openClusterId: opts.openClusterId ?? null,
         }),
       ),
     );
@@ -77,6 +80,8 @@ const SVG_STYLE_BLOCK = `<style><![CDATA[
   --color-go-text: #cfe;
   --color-warn-mark: #ff8c00;
   --color-nogo-mark: #ff4d4d;
+  --color-go-mark: #3c8050;
+  --color-neutral-mark: #858585;
   --color-info-mark: #7cf;
   --color-tag-yellow-fg: #ffeb3b;
   --color-tag-yellow-border: #6a5a2a;

@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 import { useId, useMemo } from "react";
+import { ClusterLayer } from "./ClusterLayer";
+import { CLUSTER_GAP_PX, findDenseClusters } from "./denseCluster";
 import { FuelLineArrow } from "./FuelLineArrow";
 import { anyMeterHeld, HeldHatchPattern, NO_METERS } from "./partMeters";
 import { ShipPartGroup } from "./ShipPartGroup";
@@ -51,6 +53,10 @@ export interface ShipDiagramSvgProps {
    * bars, which is what render paths outside the contribution framework get.
    */
   partMeters?: ReadonlyMap<string, readonly ShipMapPartMeterEntry[]>;
+  /** The id of the dense cluster whose expanded box is open, or null for none. */
+  openClusterId?: string | null;
+  /** Fired when the expand icon beside a cluster is pressed, with its id, or null to close. Omit for a static render, which still draws the icon and any open box. */
+  onToggleCluster?: (id: string | null) => void;
 }
 
 /**
@@ -69,6 +75,8 @@ export function ShipDiagramSvg({
   onPartActivate,
   throttle = 1,
   partMeters,
+  openClusterId = null,
+  onToggleCluster,
 }: Readonly<ShipDiagramSvgProps>) {
   const { projected, bounds, stages, edges } = useMemo(
     () => project(parts),
@@ -115,6 +123,10 @@ export function ShipDiagramSvg({
   }
 
   const baseScale = computeShipBaseScale(bounds, width, height);
+  const clusters = findDenseClusters(
+    projected,
+    CLUSTER_GAP_PX / (baseScale * cam.zoom),
+  );
 
   const toBase = (lat: number, axial: number) => ({
     x: width / 2 + (lat - bounds.cx) * baseScale,
@@ -223,6 +235,22 @@ export function ShipDiagramSvg({
           );
         })}
       </g>
+      {clusters.length > 0 && (
+        <ClusterLayer
+          clusters={clusters}
+          toScreen={(lat, axial) => {
+            const b = toBase(lat, axial);
+            return {
+              x: b.x * cam.zoom + cam.panX,
+              y: b.y * cam.zoom + cam.panY,
+            };
+          }}
+          width={width}
+          height={height}
+          openId={openClusterId}
+          onToggle={(id) => onToggleCluster?.(id)}
+        />
+      )}
     </svg>
   );
 }

@@ -17,6 +17,37 @@ function domePath(
   return `M ${x0} ${baseY} L ${x0} ${shoulderY} C ${x0} ${control} ${x1} ${control} ${x1} ${shoulderY} L ${x1} ${baseY} Z`;
 }
 
+/** One half of a dome, cut down its middle: the sampled outline of the left or right half, closed straight across the base. */
+function domeHalfPoints(
+  x0: number,
+  x1: number,
+  y: number,
+  baseY: number,
+  shoulderY: number,
+  half: "left" | "right",
+): string {
+  const control = y - (shoulderY - y) / 3;
+  const mid = (x0 + x1) / 2;
+  const points: string[] = [];
+  const steps = 24;
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const u = 1 - t;
+    const px =
+      u ** 3 * x0 + 3 * u * u * t * x0 + 3 * u * t * t * x1 + t ** 3 * x1;
+    const py =
+      u ** 3 * shoulderY +
+      3 * u * u * t * control +
+      3 * u * t * t * control +
+      t ** 3 * shoulderY;
+    if (half === "left" ? px <= mid : px >= mid) points.push(`${px},${py}`);
+  }
+  // The right half's samples run from the peak out to the shoulder, so reversed they follow the outline from the shoulder in.
+  const along = half === "left" ? points : points.reverse();
+  const edge = half === "left" ? x0 : x1;
+  return `${edge},${baseY} ${edge},${shoulderY} ${along.join(" ")} ${mid},${baseY}`;
+}
+
 export function renderPartShape(
   type: PartType,
   box: ScreenBox,
@@ -25,6 +56,7 @@ export function renderPartShape(
   isHot: boolean,
   zoom: number,
   outerSign: number,
+  chuteState?: string,
 ) {
   const stroke = isHot
     ? "var(--color-tag-yellow-fg)"
@@ -212,15 +244,29 @@ export function renderPartShape(
       );
     }
     case "parachute": {
-      // Stowed canister: a domed cap over its whole mesh box.
+      // A domed canister over its whole mesh box, split down its long axis: the half toward the craft's centre line stays blue and the outer half takes the state colour, so the state shows even where the craft overlaps the inner half. A stowed chute stays all blue, so a two-tone chute always means there is some state to read.
+      const shoulderY = y + h * 0.45;
+      const stateColor = chuteStateColor(chuteState);
+      const stateHalf = outerSign >= 0 ? "right" : "left";
       return (
-        <path
-          d={domePath(x, x + w, y, y + h, y + h * 0.45)}
-          fill={fill}
-          stroke={stroke}
-          strokeWidth={strokeWidth}
-          opacity={opacity}
-        />
+        <g>
+          <path
+            d={domePath(x, x + w, y, y + h, shoulderY)}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            opacity={opacity}
+          />
+          {stateColor && (
+            <polygon
+              data-role="parachute-state-half"
+              data-state={chuteState}
+              points={domeHalfPoints(x, x + w, y, y + h, shoulderY, stateHalf)}
+              fill={stateColor}
+              opacity={opacity}
+            />
+          )}
+        </g>
       );
     }
     default:
@@ -236,6 +282,22 @@ export function renderPartShape(
           opacity={opacity * 0.85}
         />
       );
+  }
+}
+
+/** The colour of the state half of a parachute for each state the wire carries, or undefined for a stowed chute, which stays all blue. */
+function chuteStateColor(state: string | undefined): string | undefined {
+  switch (state) {
+    case "armed":
+      return "var(--color-warn-mark)";
+    case "extended":
+      return "var(--color-go-mark)";
+    case "broken":
+      return "var(--color-nogo-mark)";
+    case "unknown":
+      return "var(--color-neutral-mark)";
+    default:
+      return undefined;
   }
 }
 
@@ -260,7 +322,7 @@ export function colorFor(type: PartType): string {
     case "solar":
       return "var(--color-info-mark)";
     case "parachute":
-      return "var(--color-nogo-mark)";
+      return "var(--color-info-mark)";
     case "wheel":
       return "var(--color-text-muted)";
     default:

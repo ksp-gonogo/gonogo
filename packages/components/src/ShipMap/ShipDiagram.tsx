@@ -58,6 +58,7 @@ export function ShipDiagram({
   onInvokePartAction,
 }: Readonly<Props>) {
   const [hovered, setHovered] = useState<ShipMapPart | null>(null);
+  const [openClusterId, setOpenClusterId] = useState<string | null>(null);
   // In viewport coordinates, where the portalled tooltip is placed.
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
   // The open part and its canvas-local anchor, re-read against the canvas on every re-place so the menu follows a scrolled part.
@@ -165,6 +166,8 @@ export function ShipDiagram({
             : undefined
         }
         partMeters={partMeters}
+        openClusterId={openClusterId}
+        onToggleCluster={setOpenClusterId}
       />
 
       {hovered && (

@@ -438,20 +438,68 @@ describe("ShipDiagram", () => {
     ).toHaveLength(0);
   });
 
-  it("renders a parachute canopy when partState reports deploying", () => {
+  describe.each([
+    [
+      "armed",
+      "var(--color-warn-mark)",
+      "armed, waiting for its deploy trigger",
+    ],
+    ["extended", "var(--color-go-mark)", "deployed"],
+    ["broken", "var(--color-nogo-mark)", "cut away"],
+    ["unknown", "var(--color-neutral-mark)", "state not recognised"],
+  ])("a parachute that is %s", (state, color, words) => {
     const chute: ShipMapPart[] = [
       {
         ...PARTS[0],
         type: "parachute",
-        partState: [{ type: "parachute", state: "deploying" }],
+        partState: [{ type: "parachute", state }],
+      },
+    ];
+
+    it("is split, blue on the outer half and the state's colour on the other", () => {
+      const { container } = render(
+        <ShipDiagram parts={chute} width={400} height={400} />,
+      );
+      const half = container.querySelector(
+        '[data-role="parachute-state-half"]',
+      );
+      expect(half?.getAttribute("fill")).toBe(color);
+      expect(
+        container
+          .querySelector('[data-role="parachute-state-half"]')
+          ?.parentElement?.querySelector("path")
+          ?.getAttribute("fill"),
+      ).toBe("var(--color-info-mark)");
+      expect(
+        container.querySelector('g[data-role="parachute-canopy"]'),
+      ).toBeNull();
+    });
+
+    it("names the full state in its tooltip and accessible name", () => {
+      const { container } = render(
+        <ShipDiagram parts={chute} width={400} height={400} />,
+      );
+      const part = container.querySelector('g[role="button"]') as Element;
+      expect(part.getAttribute("aria-label")).toContain(words);
+      fireEvent.pointerEnter(part);
+      expect(visibleText(document.body)).toContain(words);
+    });
+  });
+
+  it("draws a stowed parachute all blue", () => {
+    const chute: ShipMapPart[] = [
+      {
+        ...PARTS[0],
+        type: "parachute",
+        partState: [{ type: "parachute", state: "stowed" }],
       },
     ];
     const { container } = render(
       <ShipDiagram parts={chute} width={400} height={400} />,
     );
     expect(
-      container.querySelectorAll('g[data-role="parachute-canopy"]'),
-    ).toHaveLength(1);
+      container.querySelector('[data-role="parachute-state-half"]'),
+    ).toBeNull();
   });
 
   it("renders a deploy-chevron when a solar panel is mid-animation", () => {

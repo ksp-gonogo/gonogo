@@ -1,6 +1,7 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { resourceColor, TONE_MARK } from "@ksp-gonogo/ui-kit";
 import type React from "react";
+import { CHUTE_STATE_TEXT, chuteStateOf } from "./partChute";
 import type { ScreenBox } from "./partOverlays";
 import type { ShipMapPart, ShipMapPartMeterEntry } from "./shipTopology";
 
@@ -168,6 +169,8 @@ export function partAriaLabel(
 ): string {
   const name = p.title || p.name;
   const bits: string[] = [name, p.type];
+  const chute = chuteStateOf(p.partState);
+  if (chute) bits.push(CHUTE_STATE_TEXT.get(chute) ?? chute);
   if (p.dryMass != null) bits.push(`${p.dryMass.toFixed(2)} tonnes`);
   for (const m of meters) {
     const ratio = fillRatio(m);

@@ -12,21 +12,7 @@ export interface ScreenBox {
 export const ENGINE_FLAME_BODY_FRACTION = 0.4;
 
 /**
- * A parachute canopy per deploy state, as multiples of the part's width: it
- * grows from armed through deploying to extended. States with no entry draw no
- * canopy.
- */
-export const CANOPY_SHAPES: ReadonlyMap<
-  string,
-  { width: number; height: number; opacity: number }
-> = new Map([
-  ["armed", { width: 0.6, height: 0.08, opacity: 0.5 }],
-  ["deploying", { width: 1.5, height: 0.45, opacity: 0.85 }],
-  ["extended", { width: 2.4, height: 0.8, opacity: 0.95 }],
-]);
-
-/**
- * Indicators driven by live part state: engine flame, parachute canopy,
+ * Indicators driven by live part state: engine flame,
  * deploy chevron, gear stand. Returns null before any live state, so a
  * pre-push part looks inactive rather than stale-deployed. Drawn in
  * part-local coordinates inside the part's rotation transform.
@@ -58,8 +44,6 @@ function overlayFor(
       return m.state === "active" && throttle > 0
         ? renderEngineFlame(box, zoom)
         : null;
-    case "parachute":
-      return renderParachuteCanopy(box, m.state);
     case "solarPanel":
     case "radiator":
     case "antenna":
@@ -90,32 +74,6 @@ function renderEngineFlame(box: ScreenBox, zoom: number): React.ReactNode {
         points={inner}
         fill="var(--color-tag-yellow-fg)"
         opacity={0.95}
-      />
-    </g>
-  );
-}
-
-function renderParachuteCanopy(box: ScreenBox, state: string): React.ReactNode {
-  const canopy = CANOPY_SHAPES.get(state);
-  if (!canopy) return null;
-  const { x, y, w } = box;
-  const cx = x + w / 2;
-  const canopyW = w * canopy.width;
-  const canopyH = w * canopy.height;
-  const baseY = y;
-  const apexY = baseY - canopyH;
-  const left = cx - canopyW / 2;
-  const right = cx + canopyW / 2;
-  return (
-    <g
-      key={`parachute-canopy-${state}`}
-      data-role="parachute-canopy"
-      pointerEvents="none"
-    >
-      <path
-        d={`M ${left},${baseY} Q ${cx},${apexY - canopyH * 0.3} ${right},${baseY} Z`}
-        fill="var(--color-nogo-mark)"
-        opacity={canopy.opacity}
       />
     </g>
   );

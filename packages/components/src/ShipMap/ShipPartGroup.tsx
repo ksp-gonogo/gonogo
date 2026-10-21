@@ -2,6 +2,7 @@ import type React from "react";
 // SVG <g> focus ring via `:focus-visible`, which inline style and no ui-kit primitive can express.
 // biome-ignore lint/style/noRestrictedImports: SVG <g> focus ring, no inline/primitive equivalent (see above)
 import { styled } from "styled-components";
+import { chuteStateOf } from "./partChute";
 import { partAriaLabel, renderResourceFill } from "./partMeters";
 import { renderPartStateOverlays } from "./partOverlays";
 import { colorFor, heatTintFor, renderPartShape } from "./partShape";
@@ -95,7 +96,16 @@ export function ShipPartGroup({
 
   return (
     <PartGroup transform={rotateTransform} {...interactiveProps}>
-      {renderPartShape(p.type, box, center, fill, isHot, cam.zoom, outerSign)}
+      {renderPartShape(
+        p.type,
+        box,
+        center,
+        fill,
+        isHot,
+        cam.zoom,
+        outerSign,
+        chuteStateOf(p.partState),
+      )}
       {renderPartStateOverlays(p.partState, box, cam.zoom, throttle)}
       {tint && (
         <rect
@@ -182,7 +192,7 @@ function partTransform(
   return `rotate(${rotateDeg.toFixed(2)} ${cx} ${cy})`;
 }
 
-const PartGroup = styled.g`
+export const PartGroup = styled.g`
   outline: none;
   .focus-ring {
     visibility: hidden;

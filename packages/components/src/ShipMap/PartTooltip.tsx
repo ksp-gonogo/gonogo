@@ -11,6 +11,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { PartActionCount } from "./PartActionMenu";
+import { CHUTE_STATE_TEXT, chuteStateOf } from "./partChute";
 import { METER_STATUS_COLOR } from "./partMeters";
 import type {
   ShipMapPart,
@@ -38,6 +39,7 @@ export function PartTooltip({
   const otherResources =
     hovered.resources?.filter((r) => !meteredResourceNames.has(r.n)) ?? [];
   const maxTemperatureK = hovered.maxTemperatureK ?? hovered.maxTemp;
+  const chuteState = chuteStateOf(hovered.partState);
   return (
     <Floating anchor={pointer} style={TOOLTIP}>
       <div style={TOOLTIP_TITLE}>{hovered.title || hovered.name}</div>
@@ -63,6 +65,14 @@ export function PartTooltip({
             <Unit value={value("K", hovered.temperatureK)} decimals={0} />
             {" / "}
             <Unit value={value("K", maxTemperatureK)} decimals={0} />
+          </span>
+        </div>
+      ) : null}
+      {chuteState ? (
+        <div style={TOOLTIP_ROW}>
+          <span>parachute</span>
+          <span style={TOOLTIP_ROW_VALUE}>
+            {CHUTE_STATE_TEXT.get(chuteState) ?? chuteState}
           </span>
         </div>
       ) : null}
