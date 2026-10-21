@@ -1,4 +1,4 @@
-import { useTelemetry } from "@ksp-gonogo/core";
+import { useTelemetry, useTimeContexts } from "@ksp-gonogo/core";
 import { collapseControlStateLevel } from "@ksp-gonogo/sitrep-client";
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { SignalLossBanner, type SignalState } from "@ksp-gonogo/ui";
@@ -22,9 +22,10 @@ import { useEffect, useRef, useState } from "react";
  *    0 no control, 1 partial, 2 full. Stays on the frozen
  *    `vessel.comms` struct: control state should freeze at last-known.
  *
- * Until the stream reports these topics (warmup, no vessel active, or no
- * provider mounted) we stay in the "connected" state so the banner stays
- * hidden: the banner is for genuine blackouts, not absence of data.
+ * With no stream mounted, or no vessel active, we stay in the "connected" state
+ * so the banner stays hidden: the banner is for genuine blackouts, not absence
+ * of data. A link report still on its way is the "awaiting" state, shown once it
+ * has been missing for a moment.
  *
  * Elapsed time is measured from the moment the state last left "connected".
  * A 1s interval ticks a render to keep the timer label fresh.
@@ -37,8 +38,27 @@ import { useEffect, useRef, useState } from "react";
  */
 const NO_SIGNAL_STRENGTH_EPSILON = value("ratio", 1e-6);
 
+/**
+ * How long the link report must be missing before the banner says it is
+ * awaited, so a link that answers at once never flashes it.
+ */
+const AWAITING_GRACE_MS = 1500;
+
 export function SignalLossIndicator() {
   const linkReading = useTelemetry("comms.link");
+  const { owltSeconds } = useTimeContexts();
+  const linkPending = linkReading.state === "pending";
+  const [graceElapsed, setGraceElapsed] = useState(false);
+  useEffect(() => {
+    if (!linkPending) {
+      setGraceElapsed(false);
+      return;
+    }
+    const id = setTimeout(() => {
+      setGraceElapsed(true);
+    }, AWAITING_GRACE_MS);
+    return () => clearTimeout(id);
+  }, [linkPending]);
   const commsReading = useTelemetry("vessel.comms");
   // FAIL-OPEN FIX, not merely a migration. An indicator whose loss gate stops
   // gating either never shows loss or always does, and both are worse than what
@@ -77,19 +97,22 @@ export function SignalLossIndicator() {
     if (connected === true) setHasConfirmedConnection(true);
   }, [connected]);
 
-  const state = deriveState(
-    connected,
-    signalStrength,
-    controlState,
-    hasConfirmedConnection,
-  );
+  const state: SignalState =
+    linkPending && graceElapsed
+      ? "awaiting"
+      : deriveState(
+          connected,
+          signalStrength,
+          controlState,
+          hasConfirmedConnection,
+        );
 
   const lostSinceRef = useRef<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   // Reset the "since" timestamp whenever we cross in/out of "connected".
   useEffect(() => {
-    if (state === "connected") {
+    if (state === "connected" || state === "awaiting") {
       lostSinceRef.current = null;
       return;
     }
@@ -101,7 +124,7 @@ export function SignalLossIndicator() {
   // Periodic re-render for the timer label. Only while a banner is visible,
   // no point ticking when we're healthy.
   useEffect(() => {
-    if (state === "connected") return;
+    if (state === "connected" || state === "awaiting") return;
     const id = setInterval(() => {
       setNow(Date.now());
     }, 1000);
@@ -113,7 +136,13 @@ export function SignalLossIndicator() {
   const elapsedMs =
     lostSinceRef.current === null ? 0 : Math.max(0, now - lostSinceRef.current);
 
-  return <SignalLossBanner state={state} elapsedMs={elapsedMs} />;
+  return (
+    <SignalLossBanner
+      state={state}
+      elapsedMs={elapsedMs}
+      expectedIn={owltSeconds > 0 ? owltSeconds : undefined}
+    />
+  );
 }
 
 /**

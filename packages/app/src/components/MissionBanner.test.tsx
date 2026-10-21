@@ -463,6 +463,34 @@ describe("MissionBanner signal delay", () => {
     await expectNoA11yViolations(container);
   });
 
+  it("says it is awaiting the first signal until the link's first report arrives, never a dash or a zero", async () => {
+    const atDelay = unitMarkup(187.4);
+    const fixture = setupDelayedStream();
+    render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    fixture.emit("commandCentre.roster", MULTI_ROSTER, KSC);
+    fixture.emit("spaceCenter.scene", { scene: "Flight" }, KSC);
+    fixture.emit(
+      "comms.delay",
+      { oneWaySeconds: 187.4, source: CommsDelaySource.SignalDelay },
+      KSC,
+    );
+    await screen.findByText("Delay");
+
+    expect(delayValue()?.textContent).toContain("Awaiting first signal");
+    expect(delayValue()?.textContent).not.toContain(NULL_DISPLAY);
+    expect(delayValue()?.innerHTML).not.toContain(unitMarkup(0));
+
+    fixture.linkAt(true, 0, 187.4, KSC);
+    await waitFor(() => {
+      expect(delayValue()?.innerHTML).toContain(atDelay);
+    });
+    expect(delayValue()?.textContent).not.toContain("Awaiting");
+  });
+
   it("says disconnected when there is no path, never a zero or the held delay", async () => {
     const atDelay = unitMarkup(187.4);
     const fixture = setupDelayedStream();

@@ -1,21 +1,38 @@
+import { AwaitingSignal } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { BannerPill } from "./BannerPill";
 
-export type SignalState = "connected" | "partial" | "lost";
+export type SignalState = "connected" | "partial" | "lost" | "awaiting";
 
 export interface SignalLossBannerProps {
   state: SignalState;
   /** Milliseconds since the signal state left "connected". Ignored when state is "connected". */
   elapsedMs: number;
+  /** Seconds until the first link report is expected, when the state is "awaiting" and the delay is known. */
+  expectedIn?: number;
 }
 
 /**
  * Presentational banner for signal-state indication. Fixed-position pill at
- * the top of the viewport; renders nothing when signal is healthy. Meant to
+ * the top of the viewport; renders nothing when signal is healthy. "awaiting"
+ * is the first report still crossing the distance, which is not a lost link. Meant to
  * be dropped at the root of each screen, no data wiring, pure props in.
  */
-export function SignalLossBanner({ state, elapsedMs }: SignalLossBannerProps) {
+export function SignalLossBanner({
+  state,
+  elapsedMs,
+  expectedIn,
+}: SignalLossBannerProps) {
   if (state === "connected") return null;
+  if (state === "awaiting") {
+    return (
+      <BannerPill accent="var(--color-text-muted)">
+        <Label>
+          <AwaitingSignal expectedIn={expectedIn} />
+        </Label>
+      </BannerPill>
+    );
+  }
 
   const label = state === "lost" ? "SIGNAL LOSS" : "PARTIAL CONTROL";
   return (
@@ -39,7 +56,7 @@ function formatElapsed(ms: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
 }
 
-const SEVERITY_COLOR: Record<Exclude<SignalState, "connected">, string> = {
+const SEVERITY_COLOR: Record<"lost" | "partial", string> = {
   lost: "var(--color-nogo-mark)",
   partial: "var(--color-warn-mark)",
 };

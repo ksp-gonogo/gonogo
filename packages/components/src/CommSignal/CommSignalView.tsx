@@ -1,7 +1,12 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { useContributions, useTelemetry } from "@ksp-gonogo/core";
+import {
+  useContributions,
+  useTelemetry,
+  useTimeContexts,
+} from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  AwaitingSignal,
   Cluster,
   EmptyState,
   Grid,
@@ -29,9 +34,6 @@ import {
   signalCaption,
 } from "./signalVerdict";
 import { useSignalVerdict } from "./useSignalVerdict";
-
-/** Said while the craft's first word is still crossing the distance, which is not a lost link. */
-export const AWAITING_FIRST_SIGNAL = "Awaiting first signal";
 
 /** The figure beside the bars. Nulled when the link is held, including the control label, which is read off the held `vessel.comms`. */
 function signalHeadline({
@@ -73,6 +75,8 @@ export function CommSignalComponent({
     strengthTip,
   } = useSignalVerdict();
   // Reckonable, but read observed-only because it is drawn in the verdicts' styling.
+  const { owltSeconds } = useTimeContexts();
+  const firstSignalIn = owltSeconds > 0 ? owltSeconds : undefined;
   const delayReading = useTelemetry("comms.delay");
   const delay =
     delayReading.state === "observed"
@@ -133,7 +137,11 @@ export function CommSignalComponent({
         sections={
           <Section>
             <EmptyState>
-              {awaitingFirstSignal ? AWAITING_FIRST_SIGNAL : "No signal data"}
+              {awaitingFirstSignal ? (
+                <AwaitingSignal expectedIn={firstSignalIn} />
+              ) : (
+                "No signal data"
+              )}
             </EmptyState>
           </Section>
         }

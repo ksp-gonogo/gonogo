@@ -11,6 +11,7 @@ import {
   useOwnCraftVantage,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 import {
+  AwaitingSignal,
   Countdown,
   NULL_DISPLAY,
   Text,
@@ -26,6 +27,7 @@ type SignalDelayState =
   | { kind: "delay"; seconds: number }
   | { kind: "via-home"; seconds: number }
   | { kind: "disconnected" }
+  | { kind: "awaiting"; seconds: number | undefined }
   | { kind: "unknown"; spoken: string };
 
 /**
@@ -36,6 +38,9 @@ const VIA_HOME_LABEL = "via home";
 
 const LINK_UNKNOWN = "Signal delay unknown, no link report yet";
 const NOT_REPORTED = "Signal delay from this command centre is not reported";
+
+/** `"awaiting"` while the link's first report is still on its way, and `undefined` when it has none to give. */
+type LinkConnected = boolean | "awaiting" | undefined;
 
 /**
  * The header's delay decision, as arithmetic over what the screen knows about
@@ -51,7 +56,8 @@ const NOT_REPORTED = "Signal delay from this command centre is not reported";
  *
  * A link reported down wins over every number, because the number held through
  * a blackout is right for the clock and would be a falsehood in a readout. A
- * link not yet observed is not a link that is up, and gets no number either.
+ * link not yet reported is awaited, which is neither up nor down and gets no
+ * number, only the time its first report is expected in when that is known.
  *
  * A craft is no distance from itself, so a centre that is the craft reads zero
  * whatever the link home says.
@@ -69,10 +75,13 @@ function deriveSignalDelay({
   isHome: boolean;
   homeSeconds: number | undefined;
   centreDelays: ReadonlyMap<string, number> | undefined;
-  linkConnected: boolean | undefined;
+  linkConnected: LinkConnected;
 }): SignalDelayState {
   if (isOwnCraft) return { kind: "delay", seconds: 0 };
   if (linkConnected === false) return { kind: "disconnected" };
+  if (linkConnected === "awaiting") {
+    return { kind: "awaiting", seconds: homeSeconds };
+  }
   if (linkConnected === undefined) {
     return { kind: "unknown", spoken: LINK_UNKNOWN };
   }
@@ -214,8 +223,9 @@ function PilotSignalDelay({ wrap }: { wrap: Wrap | undefined }) {
  * Observed only: silence is evidence about a link, so a held "connected" is
  * not one. The same read `SignalLossIndicator` and `CommSignal` take.
  */
-function useLinkConnected(): boolean | undefined {
+function useLinkConnected(): LinkConnected {
   const linkReading = useTelemetry("comms.link");
+  if (linkReading.state === "pending") return "awaiting";
   return linkReading.state === "observed"
     ? (linkReading.value.connected ?? undefined)
     : undefined;
@@ -295,6 +305,15 @@ function SignalDelayFigure({ state }: { state: SignalDelayState }) {
           <VisuallyHidden>Signal delay: </VisuallyHidden>
           <Text tone="warn" size="xs">
             disconnected
+          </Text>
+        </>
+      );
+    case "awaiting":
+      return (
+        <>
+          <VisuallyHidden>Signal delay: </VisuallyHidden>
+          <Text level="muted" size="xs">
+            <AwaitingSignal expectedIn={state.seconds} />
           </Text>
         </>
       );

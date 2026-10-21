@@ -16017,6 +16017,18 @@
         "note": "Places in the stack, which fix its width"
       },
       {
+        "key": "ui-kit . AwaitingSignal",
+        "note": "The notice that a link report has not arrived yet, with the time it is expected in"
+      },
+      {
+        "key": "ui-kit . AwaitingSignalProps",
+        "note": "Props of the awaiting notice"
+      },
+      {
+        "key": "ui-kit . AwaitingSignalProps#expectedIn?",
+        "note": "Seconds from mounting until the first report is expected"
+      },
+      {
         "key": "ui-kit . AxisScale",
         "note": "linear or log y scale, moved here unchanged"
       },
