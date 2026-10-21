@@ -136,7 +136,7 @@ export function ScienceExperimentRow({
           <CommandButton
             size="sm"
             handle={deployCmd}
-            args={{ partId: instrument.partId }}
+            args={{ partId: instrument.partId, experimentId: instrument.expId }}
             commandLabel={`Deploy ${experimentOnPart(instrument)}`}
             label="Deploy"
             pendingLabel="Deploying..."
@@ -149,7 +149,7 @@ export function ScienceExperimentRow({
           <CommandButton
             size="sm"
             handle={transmitCmd}
-            args={{ partId: instrument.partId }}
+            args={{ partId: instrument.partId, experimentId: instrument.expId }}
             commandLabel={`Transmit ${experimentOnPart(instrument)}`}
             label="Transmit"
             confirmLabel="Confirm transmit"

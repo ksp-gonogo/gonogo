@@ -172,7 +172,7 @@ describe("ExperimentsComponent", () => {
         (c) => c.command === "science.experiment.deploy",
       );
       expect(sent).toBeDefined();
-      expect(sent?.args).toEqual({ partId: "42" });
+      expect(sent?.args).toEqual({ partId: "42", experimentId: "mysteryGoo" });
     });
   });
 
@@ -208,7 +208,10 @@ describe("ExperimentsComponent", () => {
         (c) => c.command === "science.experiment.transmit",
       );
       expect(sent).toBeDefined();
-      expect(sent?.args).toEqual({ partId: "99" });
+      expect(sent?.args).toEqual({
+        partId: "99",
+        experimentId: "temperatureScan",
+      });
     });
   });
 

@@ -116,6 +116,55 @@ describe("ScienceExperimentRow", () => {
     ]);
   });
 
+  it("names the second experiment of a two-experiment part on Deploy and Transmit", async () => {
+    const user = userEvent.setup();
+    const deploy = vi.fn(() => Promise.resolve(OK));
+    const transmit = vi.fn(() => Promise.resolve(TRANSMITTED));
+    const part = { partId: "7", partTitle: "Probodobodyne OKTO" };
+    renderRow(
+      <>
+        <ScienceExperimentRow
+          underPart
+          instrument={instrument({
+            ...part,
+            expId: "temperatureScan",
+            expTitle: "Temperature Scan",
+          })}
+        />
+        <ScienceExperimentRow
+          underPart
+          instrument={instrument({
+            ...part,
+            expId: "barometerScan",
+            expTitle: "Atmospheric Pressure Scan",
+          })}
+          deployCmd={handle(deploy)}
+        />
+        <ScienceExperimentRow
+          underPart
+          instrument={instrument({
+            ...part,
+            expId: "barometerScan",
+            expTitle: "Atmospheric Pressure Scan",
+            hasData: true,
+          })}
+          transmitCmd={handle<TransmitReply>(transmit)}
+        />
+      </>,
+    );
+    await user.click(screen.getByRole("button", { name: "Deploy" }));
+    await user.click(screen.getByRole("button", { name: "Transmit" }));
+    await user.click(screen.getByRole("button", { name: /Confirm transmit/i }));
+    expect(deploy).toHaveBeenCalledWith(
+      { partId: "7", experimentId: "barometerScan" },
+      expect.anything(),
+    );
+    expect(transmit).toHaveBeenCalledWith(
+      { partId: "7", experimentId: "barometerScan" },
+      expect.anything(),
+    );
+  });
+
   it("renders the instrument's name", () => {
     renderRow(
       <ScienceExperimentRow
@@ -153,7 +202,7 @@ describe("ScienceExperimentRow", () => {
     );
     await user.click(screen.getByRole("button", { name: "Deploy" }));
     expect(send).toHaveBeenCalledWith(
-      { partId: "42" },
+      { partId: "42", experimentId: "mysteryGoo" },
       { label: "Deploy mysteryGoo on Mystery Goo" },
     );
   });
@@ -172,7 +221,7 @@ describe("ScienceExperimentRow", () => {
 
     await user.click(screen.getByRole("button", { name: /Confirm transmit/i }));
     expect(send).toHaveBeenCalledWith(
-      { partId: "99" },
+      { partId: "99", experimentId: "mysteryGoo" },
       { label: "Transmit mysteryGoo on Mystery Goo" },
     );
   });

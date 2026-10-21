@@ -54,6 +54,9 @@ namespace Sitrep.Host.Tests
 
             ScienceCommandProvider.HandleTransmit(actuator, new ExperimentActionArgs { PartId = "1", ExperimentId = "" });
             Assert.Null(actuator.LastTransmitExperimentId);
+
+            ScienceCommandProvider.HandleTransmit(actuator, new ExperimentActionArgs { PartId = "1", ExperimentId = "barometerScan" });
+            Assert.Equal("barometerScan", actuator.LastTransmitExperimentId);
         }
 
         [Fact]
