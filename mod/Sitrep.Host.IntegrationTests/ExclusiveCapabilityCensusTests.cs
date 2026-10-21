@@ -185,6 +185,18 @@ namespace Sitrep.Host.IntegrationTests
                     + "to answer NO VESSEL rather than fall back to KSP's own active "
                     + "one, which Sitrep.Core.Tests/UplinkActiveVesselScopeTests holds "
                     + "across every Uplink."),
+            new Entry(
+                "craftKnowledge",
+                "Gonogo.KSP/ContactPlanUplink.cs",
+                FedByGatedCapture: false,
+                Excuse: Excuse.NoUplinkProvider,
+                WhyNoBehaviouralCase: "No Uplink registers a provider: core ships the only one, as "
+                    + "the capability's Vanilla, because what each command centre has heard and "
+                    + "seen is the mod's own record rather than a model a mod could hold a rival "
+                    + "opinion about. The board it answers from is written by the contact plan's "
+                    + "courier after every look at the game, and that look is an UNGATED sampled "
+                    + "source, so no subscription can starve it. An Uplink registering a provider "
+                    + "makes this line stale and fails."),
         };
 
         /// <summary>

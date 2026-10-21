@@ -45,6 +45,7 @@ namespace Sitrep.Host.Tests
             "Sitrep.Contract.ISnapshotSampler",
             "Sitrep.Contract.IUplinkSettings",
             "Sitrep.Contract.IActiveVessel",
+            "Sitrep.Contract.ICraftKnowledge",
             "Sitrep.Contract.IDelayedScienceSink",
         };
 

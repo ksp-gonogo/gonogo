@@ -931,6 +931,9 @@ namespace Sitrep.Host.Comms
             }
         }
 
+        /// <summary>What each centre knows of where each craft is, for the <c>craftKnowledge</c> capability. Any thread.</summary>
+        public CraftKnowledgeBoard Knowledge { get; } = new CraftKnowledgeBoard();
+
         /// <summary>The home centre's judgement of the craft as it has reached <paramref name="centre"/>. Courier thread only.</summary>
         internal HomeVerdict? VerdictHeardAt(string centre, string nodeId) => _hearing?.VerdictAt(centre, nodeId);
 
@@ -1104,6 +1107,7 @@ namespace Sitrep.Host.Comms
             NoteGroundCentres(looked);
             SayCentreReports(looked);
             JudgeAtHome(looked.Ut);
+            Knowledge.Note(listening, _hearing, looked.Craft.Sight);
             KeepHeardForSave(listening);
             // What is kept for a save is now what the centres were given back and have heard since.
             System.Threading.Volatile.Write(ref _restore, null);

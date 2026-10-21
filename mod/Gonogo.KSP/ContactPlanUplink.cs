@@ -17,7 +17,7 @@ namespace Gonogo.KSP
     /// radio and every ground station, read off the live scene on the main
     /// thread. The planning and the publishing are the source's.
     /// </summary>
-    public sealed class ContactPlanUplink : ISitrepUplink, IContactGame
+    public sealed class ContactPlanUplink : ISitrepUplink, IUplinkCapabilityDeclarer, IContactGame
     {
         private readonly CommandCentreRegistry _centres;
         private readonly ContactPlanSource _source;
@@ -62,6 +62,17 @@ namespace Gonogo.KSP
             Channels = ContactPlanSource.Channels(),
             Commands = ContactPlanSource.Commands(),
         };
+
+        public void DeclareCapabilities(Kernel kernel)
+        {
+            kernel.RegisterCapability(new CapabilityDescriptor
+            {
+                Id = CraftKnowledgeCapability.Id,
+                Exclusive = true,
+                SpineCritical = false,
+                Vanilla = _ => _source.Knowledge,
+            });
+        }
 
         public void Register(IUplinkHost host)
         {

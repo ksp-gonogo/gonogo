@@ -103,8 +103,10 @@ namespace Sitrep.Host.Comms
                 IReadOnlyList<string>? known = null,
                 IReadOnlyDictionary<string, double>? keeps = null,
                 IReadOnlyDictionary<string, CraftEnd>? ends = null,
-                IReadOnlyDictionary<string, CrewAtEnd>? endCrews = null)
+                IReadOnlyDictionary<string, CrewAtEnd>? endCrews = null,
+                IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? sight = null)
             {
+                Sight = sight;
                 Ends = ends ?? new Dictionary<string, CraftEnd>();
                 EndCrews = endCrews ?? new Dictionary<string, CrewAtEnd>();
                 Keeps = keeps ?? new Dictionary<string, double>();
@@ -115,6 +117,9 @@ namespace Sitrep.Host.Comms
                 Sightings = sightings ?? new Sighted[0];
                 Known = known ?? present;
             }
+
+            /// <summary>Each object the centres can place by sight, by node id, with its signal delay to each centre that has a line to it now; null when nothing can be placed by sight.</summary>
+            public IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? Sight { get; }
 
             /// <summary>The objects whose place was seen afresh this pass, each with how long its light takes to reach each centre.</summary>
             public IReadOnlyList<Sighted> Sightings { get; }
@@ -327,7 +332,7 @@ namespace Sitrep.Host.Comms
             }
             ForgetEnds(ut);
             StatesRecordedBudget.Record(states.Count + sightings.Count, ut);
-            return new Batch(ut, present, states, gone, sightings, known, keeps, ends, endCrews);
+            return new Batch(ut, present, states, gone, sightings, known, keeps, ends, endCrews, sight);
         }
 
         /// <summary>
