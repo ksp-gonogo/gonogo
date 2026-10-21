@@ -23,8 +23,9 @@ services:
       # in this window, so the whole range must be mappable to the host.
       # Same TURN_MIN_PORT / TURN_MAX_PORT the relay passes to coturn, so
       # widening the window is one pair of env vars rather than a source
-      # edit. Sized at 10 ports by default: a relayed station holds
-      # 2 of them, so the window serves up to 5 internet players. Consumer routers (Google Wi-Fi etc.) want one
+      # edit. Sized at 10 ports by default: a relayed station on a
+      # single-network device holds 2 of them (one more pair per extra network
+      # adapter, such as a VPN), so the window serves up to 5 such players. Consumer routers (Google Wi-Fi etc.) want one
       # port-forward entry per port, so the range stays small.
       - "${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49169}:${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49169}/udp"
     environment:
@@ -53,6 +54,9 @@ services:
       TURN_PORT: ${TURN_PORT:-3478}
       TURN_MIN_PORT: ${TURN_MIN_PORT:-49160}
       TURN_MAX_PORT: ${TURN_MAX_PORT:-49169}
+      # Set to 1 to also offer a TCP relay address, for stations on a network
+      # that blocks UDP. Doubles the ports each relayed connection holds.
+      TURN_TCP: ${TURN_TCP:-}
       # Axiom log shipping. Empty default → no transport installed
       # (matches the browser pattern). Set in `.env` next to this file
       # to opt in.

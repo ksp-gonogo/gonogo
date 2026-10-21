@@ -1,5 +1,4 @@
 // A full-page route, not a widget: viewport-height layout, safe-area insets, breakpoints, coarse-pointer targets and pseudo-class rules that no style object or page-scale primitive expresses.
-import { LiveRegion } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 /*
@@ -141,7 +140,7 @@ export const ReconnectMsg = styled.p`
   font-size: 12px !important;
 `;
 
-export const RelayStage = styled(LiveRegion)`
+export const RelayStage = styled.div`
   margin-top: var(--gap-section-compact);
   min-height: 1.4em;
   color: var(--color-info-text);

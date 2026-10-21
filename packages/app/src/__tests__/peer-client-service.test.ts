@@ -577,6 +577,32 @@ describe("PeerClientService reconnect loop", () => {
     expect(FakePeer.instances).toHaveLength(2);
   });
 
+  it("keeps retrying while the host is not on the broker, then connects when it appears", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 60_000,
+    });
+    const failed: boolean[] = [];
+    svc.onHostChannelFailed((f) => failed.push(f));
+
+    svc.connect("Z6HK");
+    const missing = () =>
+      Object.assign(new Error("Could not connect to peer gonogo-host-Z6HK"), {
+        type: "peer-unavailable",
+      });
+    for (let i = 0; i < 10; i += 1) {
+      const peer = FakePeer.instances[i];
+      peer.emit("open");
+      peer.emit("error", missing());
+      vi.advanceTimersByTime(50);
+    }
+    expect(FakePeer.instances).toHaveLength(11);
+    expect(failed).not.toContain(true);
+
+    driveOpen(FakePeer.instances[10]);
+    expect(FakePeer.instances[10]._lastConnectTarget).toBe("gonogo-host-Z6HK");
+  });
+
   it("separates a broker this browser can't reach from a host that isn't there", () => {
     const svc = new PeerClientService({
       retryIntervalMs: 50,
@@ -626,6 +652,41 @@ describe("PeerClientService reconnect loop", () => {
     const late: boolean[] = [];
     svc.onBrokerReachable((r) => late.push(r));
     expect(late).toEqual([false]);
+  });
+
+  it("reconnects when the page is restored from the back/forward cache", () => {
+    // Services from earlier tests still listen on window, so assert on this one's own status.
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 60_000,
+    });
+    const statuses: ConnStatus[] = [];
+    svc.onConnectionStatus((s) => statuses.push(s));
+    svc.connect("HOST");
+    driveOpen(FakePeer.instances[0]);
+    expect(statuses.at(-1)).toBe("connected");
+    statuses.length = 0;
+
+    window.dispatchEvent(new Event("pagehide"));
+    // A fresh load rather than a cache restore is left to the connect screen.
+    window.dispatchEvent(new PageTransitionEvent("pageshow"));
+    expect(statuses).toEqual([]);
+
+    window.dispatchEvent(
+      new PageTransitionEvent("pageshow", { persisted: true }),
+    );
+    expect(statuses).toContain("connecting");
+    const peer = FakePeer.instances.at(-1);
+    if (!peer) throw new Error("no peer opened");
+    driveOpen(peer);
+    expect(statuses.at(-1)).toBe("connected");
+
+    svc.disconnect();
+    statuses.length = 0;
+    window.dispatchEvent(
+      new PageTransitionEvent("pageshow", { persisted: true }),
+    );
+    expect(statuses).toEqual([]);
   });
 
   it("disconnect() stops any pending retry", () => {

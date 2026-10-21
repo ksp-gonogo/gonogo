@@ -209,6 +209,8 @@ export class PeerClientService {
   private brokerReachable: boolean | null = null;
   /** Attempts in a row that reached the host stage and never opened the data channel. */
   private hostChannelStalls = 0;
+  /** Set when the last attempt ended because the broker had no such host, which is a wait for the main rather than a stalled channel. */
+  private hostMissingOnLastAttempt = false;
   private hostChannelFailed = false;
   /** The relay address from the station's link, or null. */
   private linkRelayUrl: string | null = null;
@@ -317,6 +319,15 @@ export class PeerClientService {
    */
   private readonly onPageHide = () => this.tearDownPeer();
 
+  /*
+   * A page restored from the back/forward cache keeps its JS state but has had
+   * its Peer torn down by pagehide, so it would look connected and be dead.
+   */
+  private readonly onPageShow = (event: PageTransitionEvent) => {
+    if (!event.persisted || !this.hostPeerId || this.shareCode === null) return;
+    this.connect(this.shareCode);
+  };
+
   /**
    * `relayUrl` is the relay address from the station's link. Omitted, the
    * relay of an earlier call is kept, so pressing Connect again on the
@@ -326,6 +337,8 @@ export class PeerClientService {
     if (typeof window !== "undefined") {
       window.removeEventListener("pagehide", this.onPageHide);
       window.addEventListener("pagehide", this.onPageHide);
+      window.removeEventListener("pageshow", this.onPageShow);
+      window.addEventListener("pageshow", this.onPageShow);
     }
     // `code` is the operator-typed share code. Derive the host's broker peer
     // id (`gonogo-host-<CODE>`) once and hold it as the reconnect target.
@@ -400,7 +413,13 @@ export class PeerClientService {
       return;
     }
     const { entered } = this.connectProgress;
-    if (entered.host !== undefined && entered.data === undefined) {
+    const hostMissing = this.hostMissingOnLastAttempt;
+    this.hostMissingOnLastAttempt = false;
+    if (
+      !hostMissing &&
+      entered.host !== undefined &&
+      entered.data === undefined
+    ) {
       this.hostChannelStalls += 1;
       this.markRelayNeeded();
       this.connectProgress = { ...this.connectProgress, viaRelay: true };
@@ -486,6 +505,7 @@ export class PeerClientService {
         err.type === "peer-unavailable" &&
         this.hostPeerId
       ) {
+        this.hostMissingOnLastAttempt = true;
         this.events.emit("hostUnavailable", this.hostPeerId);
       }
       this.retryPolicy.handlePeerError(err);
@@ -1710,6 +1730,7 @@ export class PeerClientService {
   disconnect() {
     if (typeof window !== "undefined") {
       window.removeEventListener("pagehide", this.onPageHide);
+      window.removeEventListener("pageshow", this.onPageShow);
     }
     this.retryPolicy.cancel();
     this.tearDownPeer();

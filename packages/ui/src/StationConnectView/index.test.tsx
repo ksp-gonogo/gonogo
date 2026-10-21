@@ -291,6 +291,26 @@ describe("connect progress", () => {
     expect(screen.getByText(/Connected through the relay/)).not.toBeNull();
   });
 
+  it("announces the relay stage without the ticking seconds", () => {
+    vi.useFakeTimers({ now: T0 + 2_000, toFake: ["Date", "setInterval"] });
+    render(
+      <StationConnectView
+        {...baseProps}
+        connStatus="connecting"
+        relayLookup="used"
+        progress={{
+          startedAt: T0,
+          attempt: 1,
+          entered: { broker: T0, host: T0 + 500 },
+        }}
+      />,
+    );
+    const region = screen.getByText(/Trying a direct connection/);
+    expect(region.getAttribute("role")).toBe("status");
+    expect(region.textContent).toBe("Trying a direct connection...");
+    expect(region.parentElement?.textContent).toMatch(/\d/);
+  });
+
   it("does not mention the relay for a station whose link names none", () => {
     vi.useFakeTimers({ now: T0 + 8_000, toFake: ["Date", "setInterval"] });
     render(

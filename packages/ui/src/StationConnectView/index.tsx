@@ -4,7 +4,7 @@
  */
 
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Unit } from "@ksp-gonogo/ui-kit";
+import { LiveRegion, Unit } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useState } from "react";
 import { StatusIndicator } from "../StatusIndicator";
 import {
@@ -206,7 +206,7 @@ export function StationConnectView({
           )}
         </StatusSlot>
         <RelayStage>
-          {relayStage}
+          <LiveRegion as="span">{relayStage}</LiveRegion>
           {relayStage && waiting && progress?.entered.host !== undefined && (
             <>
               {" "}

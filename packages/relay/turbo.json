@@ -1,0 +1,11 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // composeEnv.test.ts holds the compose file's environment block to the variables config.ts reads.
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/docker-compose.yml"]
+    }
+  }
+}
