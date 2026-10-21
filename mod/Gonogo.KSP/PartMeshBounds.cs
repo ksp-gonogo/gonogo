@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// A part's box in its own frame: the union of the bounds of every mesh
+    /// A part's box in its own frame: the union of the vertices of every mesh
     /// under the part's <c>model</c> transform, active or not, so an engine's
     /// hidden shroud still counts and a deploy animation changes nothing.
     ///
@@ -52,17 +53,15 @@ namespace Gonogo.KSP
                     continue;
                 }
 
-                var bounds = filter.sharedMesh.bounds;
                 var toPartFromMesh = toPart * renderer.transform.localToWorldMatrix;
-                for (var i = 0; i < 8; i++)
+                var vertices = VerticesOf(filter.sharedMesh);
+                if (vertices != null)
                 {
-                    var corner = bounds.center + Vector3.Scale(bounds.extents, new Vector3(
-                        (i & 1) == 0 ? -1f : 1f,
-                        (i & 2) == 0 ? -1f : 1f,
-                        (i & 4) == 0 ? -1f : 1f));
-                    var p = toPartFromMesh.MultiplyPoint3x4(corner);
-                    lo = Vector3.Min(lo, p);
-                    hi = Vector3.Max(hi, p);
+                    MeshExtent.GrowOverPoints(vertices, toPartFromMesh, ref lo, ref hi);
+                }
+                else
+                {
+                    MeshExtent.GrowOverCorners(filter.sharedMesh.bounds, toPartFromMesh, ref lo, ref hi);
                 }
 
                 found = true;
@@ -76,6 +75,34 @@ namespace Gonogo.KSP
             center = (lo + hi) * 0.5f;
             size = hi - lo;
             return true;
+        }
+
+        /*
+         * A mesh's vertices never change, so they are copied out once per mesh;
+         * `Mesh.vertices` allocates a new array on every call. A mesh that is
+         * not readable is remembered as null and measured by its bounds.
+         */
+        private static readonly ConditionalWeakTable<Mesh, Vector3[]?> VertexCache = new();
+
+        private static Vector3[]? VerticesOf(Mesh mesh)
+        {
+            if (VertexCache.TryGetValue(mesh, out var cached))
+            {
+                return cached;
+            }
+
+            Vector3[]? vertices = null;
+            if (mesh.isReadable)
+            {
+                vertices = mesh.vertices;
+                if (vertices.Length == 0)
+                {
+                    vertices = null;
+                }
+            }
+
+            VertexCache.Add(mesh, vertices);
+            return vertices;
         }
 
         /// <summary>
