@@ -134,6 +134,11 @@ export const DYNAMIC_WHOLE_TOPIC_PREFIXES: readonly string[] = [
    * for parts nobody has open.
    */
   "vessel.partActions.",
+  /*
+   * spaceCenter.craft.<facility>.<file>.parts: one saved craft file's part
+   * tree. The mod measures a craft file only while its topic is subscribed.
+   */
+  "spaceCenter.craft.",
 ];
 
 const dynamicPrefixes = DYNAMIC_WHOLE_TOPIC_PREFIXES as string[];

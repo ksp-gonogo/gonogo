@@ -196,6 +196,8 @@ namespace Gonogo.KSP
                 // capability, the same reasoning CommandCentreDelayUplink
                 // below is registered directly for.
                 RegisterCoreUplink(_engine, new FleetChannels());
+                // The spaceCenter.craft.<facility>.<file>.parts namespace and the record of when each craft file was last launched.
+                RegisterCoreUplink(_engine, new CraftFileChannels());
                 // Command centres: the stock home-node + crewed-
                 // vessel sources feed BOTH set-vantage validation (the engine's own
                 // registry) AND the per-(authority, subject) delay pass + roster

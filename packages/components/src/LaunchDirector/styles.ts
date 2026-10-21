@@ -299,10 +299,12 @@ export const CraftMapLayout = styled.div`
   align-items: start;
 `;
 
+/* Portrait, because craft are tall, and sticky so the whole craft stays in view while a long craft list scrolls beside it. */
 export const CraftDiagramFrame = styled.div`
-  position: relative;
-  aspect-ratio: 1;
-  min-height: 160px;
+  position: sticky;
+  top: 0;
+  aspect-ratio: 3 / 4;
+  min-height: 200px;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   background: var(--color-surface-app);

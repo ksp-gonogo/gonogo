@@ -24,7 +24,7 @@ import {
 
 /**
  * The open pad's craft, each greyed out while its funds or parts block it, and
- * a search box that narrows the list by name. The picked craft's `detail`
+ * a search box that narrows the list by name, in the order given. The picked craft's `detail`
  * (its crew and launch control) opens directly beneath its own row.
  */
 export function ShipPicker({
@@ -33,6 +33,7 @@ export function ShipPicker({
   onSelectShip,
   fundsAvailable,
   detail,
+  showLaunched = false,
 }: {
   padCraft: readonly SavedShip[];
   selectedShip: string | null;
@@ -40,6 +41,8 @@ export function ShipPicker({
   fundsAvailable: number;
   /** Shown under the selected craft's row while it is in the list. */
   detail?: ReactNode;
+  /** Marks each craft that has been launched, and says when the time came from a vessel of the same name. */
+  showLaunched?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
@@ -89,6 +92,11 @@ export function ShipPicker({
                       ) : (
                         <Unit value={value("t", s.totalMass)} decimals={1} />
                       )}
+                      {showLaunched &&
+                        s.lastLaunched !== null &&
+                        (s.lastLaunchedByName
+                          ? " · launched (by name)"
+                          : " · launched")}
                     </ShipDetails>
                   </ShipMeta>
                   <ShipCost>

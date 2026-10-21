@@ -373,6 +373,71 @@ public class SavedShipEntry
     /// <summary>Parts referenced by the craft that are not yet unlocked/purchased (<c>CraftProfileInfo.UnavailableShipParts</c>); an empty array when the craft is buildable as-is.</summary>
     [SitrepUnit(Units.Text)]
     public string[]? MissingParts { get; set; }
+
+    /// <summary>
+    /// Universal time of the most recent launch from this craft file. KSP keeps
+    /// no launch date on a craft file, so Gonogo records one each time a launch
+    /// is made from it, by the console or by the editor's own Launch button.
+    /// For a craft launched before Gonogo kept that record, the launch time of
+    /// the newest vessel in the save whose name matches the craft name, and
+    /// <see cref="LastLaunchedByName"/> is <c>true</c>. Absent when the craft
+    /// has never been launched.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? LastLaunchedUt { get; set; }
+
+    /// <summary>
+    /// Whether <see cref="LastLaunchedUt"/> was found by matching the craft name
+    /// against the vessels in the save rather than from a recorded launch, so a
+    /// vessel the player renamed or a different craft sharing the name can
+    /// stand in for it. Absent when <see cref="LastLaunchedUt"/> is absent.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? LastLaunchedByName { get; set; }
+}
+
+/// <summary>
+/// One saved craft file's part tree on
+/// <c>spaceCenter.craft.&lt;facility&gt;.&lt;file&gt;.parts</c>: each part's
+/// position, axes and box in the craft's own frame, the same
+/// <see cref="VesselPart"/> rows <c>vessel.parts</c> carries for the active
+/// craft. <c>&lt;facility&gt;</c> is <c>VAB</c> or <c>SPH</c> and
+/// <c>&lt;file&gt;</c> is the file name without its extension, the one
+/// <c>spaceCenter.savedShips</c> reports as <c>file</c>, with every character
+/// other than a letter, digit, <c>_</c> or <c>-</c> written as <c>%</c> and
+/// the two hexadecimal digits of each of its UTF-8 bytes, so a name holding a
+/// dot or a space is still one topic segment. The facility is part of the topic
+/// because a VAB file and an SPH file can share a name. Published only while
+/// something subscribes to that craft's topic.
+///
+/// <para>Read from the craft file's saved parts, not from loaded ones: each
+/// part's position and orientation are the saved ones and exact, but its box is
+/// measured on the part's stock model with its saved variant's meshes. The rows carry stored resource
+/// amounts and module names, and no temperatures, flow rates, module states,
+/// action-group bindings or fuel-line targets.</para>
+///
+/// <para>A record in the save, held at the home command like
+/// <c>spaceCenter.savedShips</c>: each command centre reads it after its own
+/// delay home, and a blackout of the active vessel never withholds it. It
+/// changes only when the file is saved over.</para>
+/// <internal>
+/// Built by Gonogo.KSP.CraftFileChannels through CraftFileTopology, from the
+/// craft file's part nodes with prefab-measured boxes (the unloaded-vessel
+/// walk, ProtoVesselTopology, is the same idea over proto parts). Nothing is
+/// instantiated.
+/// </internal>
+/// </summary>
+/// <category>Space center</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CraftFileParts
+{
+    /// <summary>Every part in the craft file, in file order. Never null; a file
+    /// that cannot be read publishes nothing rather than an empty or partial
+    /// list.</summary>
+    public List<VesselPart> Parts { get; set; } = new();
 }
 
 /// <summary>

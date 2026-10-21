@@ -52,6 +52,7 @@ function readFixture() {
       trueNow: stringList(block, "trueNow"),
       heldAtHome: stringList(block, "heldAtHome"),
       trueNowPrefixes: stringList(block, "trueNowPrefixes"),
+      heldAtHomePrefixes: stringList(block, "heldAtHomePrefixes"),
       addressed: stringList(block, "addressed"),
     },
   };
@@ -67,6 +68,7 @@ const HELD_AT_HOME = "uplinktest.ledger";
 const LINK_TRUE_NOW = "comms.linkMargin";
 const SECOND_TRUE_NOW = "comms.dataRate";
 const DYNAMIC_TRUE_NOW = "uplinktest.live.alpha";
+const DYNAMIC_HELD = "uplinktest.craftfile.alpha";
 const ADDRESSED = "uplinktest.said";
 const DELAYED = "vessel.flight";
 
@@ -131,6 +133,23 @@ describe("an Uplink channel's delay role, carried on system.uplinks", () => {
     store.beginFrame();
 
     expect(store.sample(DYNAMIC_TRUE_NOW)?.validAt).toBe(UT_NOW);
+  });
+
+  it("reads a topic under a held-at-home dynamic namespace at the home node's delivery", () => {
+    const { store, deliver } = connect({ delayRoles: fixture.delayRoles });
+    deliver(DYNAMIC_HELD, { parts: [] }, UT_NOW);
+    store.beginFrame();
+
+    expect(store.sample(DYNAMIC_HELD)?.validAt).toBe(UT_NOW);
+  });
+
+  it("holds a held-at-home dynamic namespace back from a mod that sends no such list", () => {
+    const { heldAtHomePrefixes: _, ...older } = fixture.delayRoles;
+    const { store, deliver } = connect({ delayRoles: older });
+    deliver(DYNAMIC_HELD, { parts: [] }, UT_NOW);
+    store.beginFrame();
+
+    expect(store.sample(DYNAMIC_HELD)).toBeUndefined();
   });
 
   it("reads an addressed sample when it is delivered, with no light-time taken off", () => {

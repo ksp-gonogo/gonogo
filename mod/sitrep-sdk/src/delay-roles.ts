@@ -79,7 +79,7 @@ export type HeldAtHomeTopic = GeneratedHeldAtHomeTopic;
  * How the running mod says each Topic is delayed, as carried on the
  * `delayRoles` field of `system.uplinks`. It covers Uplink Topics as well as
  * Gonogo's own. A Topic in none of the sets, and not under a prefix in
- * `trueNowPrefixes`, is delayed. Useful for reading an Uplink's Topics in the
+ * `trueNowPrefixes` or `heldAtHomePrefixes`, is delayed. Useful for reading an Uplink's Topics in the
  * right delay lane. Returned by {@link readDeclaredDelayRoles} and taken by
  * {@link delayLaneOf}.
  *
@@ -92,6 +92,13 @@ export interface DeclaredDelayRoles {
   readonly heldAtHome: ReadonlySet<string>;
   /** Prefixes under which every Topic is read with no signal delay. */
   readonly trueNowPrefixes: readonly string[];
+  /**
+   * Prefixes under which every Topic is held at the home command centre, such
+   * as one record per saved craft. The mod applies each centre's delay home
+   * before it sends them, so they are read as received. A mod that predates the
+   * list sends none.
+   */
+  readonly heldAtHomePrefixes?: readonly string[];
   /**
    * Addressed Topics: those whose values are each sent to one particular
    * command centre, such as that centre's own contact plan. The mod delivers
@@ -140,6 +147,7 @@ export function readDeclaredDelayRoles(
     trueNow: new Set(trueNow),
     heldAtHome: new Set(heldAtHome),
     trueNowPrefixes,
+    heldAtHomePrefixes: stringsOf(raw.heldAtHomePrefixes) ?? [],
     addressed: new Set(stringsOf(raw.addressed) ?? []),
   };
 }
@@ -196,7 +204,9 @@ export function delayLaneOf(
   ) {
     return "true-now";
   }
-  return roles.trueNowPrefixes.some((prefix) => topic.startsWith(prefix))
+  const heldPrefixes = roles.heldAtHomePrefixes ?? [];
+  return roles.trueNowPrefixes.some((prefix) => topic.startsWith(prefix)) ||
+    heldPrefixes.some((prefix) => topic.startsWith(prefix))
     ? "true-now"
     : "delayed";
 }

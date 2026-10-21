@@ -504,6 +504,7 @@ namespace Gonogo.KSP
             && type != VesselType.Unknown
             && type != VesselType.DeployedScienceController
             && type != VesselType.DeployedSciencePart
+            && type != VesselType.DeployedGroundPart
             && type != VesselType.DroppedPart;
     }
 }

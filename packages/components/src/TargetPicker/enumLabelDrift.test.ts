@@ -75,6 +75,8 @@ describe("T3: label arrays stay index-aligned with the generated SDK enums", () 
       "DeployedSciencePart",
       "DroppedPart",
       "Unknown",
+      "Plane",
+      "DeployedGroundPart",
     ]);
   });
 

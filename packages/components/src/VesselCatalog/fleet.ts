@@ -26,6 +26,7 @@ const CRAFT_VESSEL_TYPES: ReadonlySet<VesselType> = new Set([
   VesselType.Rover,
   VesselType.Base,
   VesselType.Relay,
+  VesselType.Plane,
 ]);
 
 /** `Unknown` means the producer could not classify the vessel this tick, not that it is not a craft, so it stays on the roster. */

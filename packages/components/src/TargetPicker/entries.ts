@@ -26,6 +26,8 @@ export const VESSEL_TYPE_LABELS: readonly string[] = [
   "DeployedSciencePart",
   "DroppedPart",
   "Unknown",
+  "Plane",
+  "DeployedGroundPart",
 ];
 
 /** Derived from the generated SDK enum, so it tracks the C# declaration order. */

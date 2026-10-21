@@ -8,6 +8,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect } from "react";
 import { ArmedButton } from "./ArmedButton";
+import { CraftDiagram, SavedCraftDiagram } from "./CraftDiagram";
 import { CrewPicker } from "./CrewPicker";
 import { type CrewMember, crewReading } from "./crew";
 import { FlyVesselMenu } from "./FlyVesselMenu";
@@ -21,6 +22,7 @@ import { ShipPicker } from "./ShipPicker";
 import { launchFacilityArg, type SavedShip } from "./ships";
 import type { LaunchDirectorSlotContext } from "./slots";
 import {
+  CraftMapLayout,
   EmptyNote,
   LaunchControls,
   PadActions,
@@ -54,6 +56,8 @@ interface PadSectionProps {
   funds: number | undefined;
   /** The tile's height in grid rows; decides whether the crew grid stands open. */
   rows: number;
+  /** The tile is large enough to draw the picked craft's side view beside the craft list. */
+  split: boolean;
   /** Too narrow for a pad's name and its occupancy on one line, so the occupancy sits beneath. */
   narrow: boolean;
   launchCmd: CommandButtonHandle & Pick<UseCommandResult, "check">;
@@ -165,6 +169,7 @@ function OpenPad({
   onToggleCrew,
   fundsAvailable,
   rows,
+  split,
   launchCmd,
   recoverCmd,
   revertEditorCmd,
@@ -217,12 +222,13 @@ function OpenPad({
   const manifest = (crew ?? [])
     .filter((k) => crewReading(k) === "available" && selectedCrew.has(k.name))
     .map((k) => k.name);
-  return (
+  const picker = (
     <ShipPicker
       padCraft={padCraft}
       selectedShip={selectedShip}
       onSelectShip={onSelectShip}
       fundsAvailable={fundsAvailable}
+      showLaunched={split}
       detail={
         ship && (
           <PadColumn>
@@ -250,6 +256,21 @@ function OpenPad({
         )
       }
     />
+  );
+  if (!split) return picker;
+  return (
+    <CraftMapLayout>
+      {picker}
+      {ship ? (
+        <SavedCraftDiagram
+          key={`${launchFacilityArg(ship)}/${ship.file}`}
+          facility={launchFacilityArg(ship)}
+          file={ship.file}
+        />
+      ) : (
+        <CraftDiagram topology={undefined} />
+      )}
+    </CraftMapLayout>
   );
 }
 

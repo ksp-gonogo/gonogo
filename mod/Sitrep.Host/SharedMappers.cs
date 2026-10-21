@@ -85,6 +85,8 @@ namespace Sitrep.Host
                 "deployedsciencecontroller" => Sitrep.Contract.VesselType.DeployedScienceController,
                 "deployedsciencepart" => Sitrep.Contract.VesselType.DeployedSciencePart,
                 "droppedpart" => Sitrep.Contract.VesselType.DroppedPart,
+                "plane" => Sitrep.Contract.VesselType.Plane,
+                "deployedgroundpart" => Sitrep.Contract.VesselType.DeployedGroundPart,
                 _ => Sitrep.Contract.VesselType.Unknown,
             };
         }

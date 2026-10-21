@@ -362,6 +362,9 @@ public static class RtConfig
                 // spaceCenter.crewRoster / spaceCenter.savedShips / spaceCenter.partsAvailable
                 typeof(CrewRosterEntry),
                 typeof(SavedShipEntry),
+                // spaceCenter.craft.<facility>.<file>.parts: one saved craft's part tree,
+                // the VesselPart rows vessel.parts carries.
+                typeof(CraftFileParts),
                 typeof(SpaceCenterPartsAvailable),
                 // spaceCenter.pois: the map points-of-interest union
                 typeof(SpaceCenterPoiEntry),

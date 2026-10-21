@@ -106,6 +106,12 @@ public enum VesselType
 
     /// <summary>KSP's own unknown type, or a type this contract does not recognise.</summary>
     Unknown,
+
+    /// <summary>A spaceplane or aircraft.</summary>
+    Plane,
+
+    /// <summary>A part deployed on the ground by Breaking Ground that is neither a controller nor a science part.</summary>
+    DeployedGroundPart,
 }
 
 /// <summary>

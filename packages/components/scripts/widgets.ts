@@ -762,26 +762,28 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "tall-5x14", w: 5, h: 14 },
       // Wide landscape: buttons and rows have horizontal breathing room.
       { name: "wide-10x7", w: 10, h: 7 },
-      // Launched craft and the picked one's side view: just below the size that shows it, and well above.
+      // The open pad's craft in launch order with the picked one's side view: just below the size that shows it, and well above.
       {
         name: "craft-map-8x12",
         w: 8,
         h: 12,
-        forFixtures: ["launched-craft-parts"],
+        forFixtures: ["pad-craft-parts"],
       },
       {
         name: "craft-map-14x16",
         w: 14,
         h: 16,
-        forFixtures: ["launched-craft-parts"],
+        clicks: [{ selector: "[data-ship-row]" }],
+        forFixtures: ["pad-craft-parts"],
       },
-      // A craft never heard from: the map draws the absence dash.
+      // A craft the mod has sent no parts for: the map draws the absence dash.
       {
         name: "craft-map-no-data-14x16",
         w: 14,
         h: 16,
-        clicks: [{ selector: '[data-craft-row="v-relay"]' }],
-        forFixtures: ["launched-craft-parts"],
+        // The fourth craft in launch order, which the fixture sends no parts for.
+        clicks: [{ selector: "div:nth-child(4) > [data-ship-row]" }],
+        forFixtures: ["pad-craft-parts"],
       },
       // A greyed-out craft row under the pointer: the row's own tip gives the reason.
       {

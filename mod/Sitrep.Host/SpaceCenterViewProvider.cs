@@ -86,6 +86,8 @@ namespace Sitrep.Host
     ///                                    and sends back as ksp.launch's facility arg
     ///       "requiresFunds": double  : CraftProfileInfo.totalCost
     ///       "missingParts":  List&lt;object?&gt; of string: UnavailableShipParts
+    ///       "lastLaunchedUt": double? : the recorded or name-matched last launch, absent if never launched
+    ///       "lastLaunchedByName": bool? : true when lastLaunchedUt came from a vessel name match
     ///     }
     ///   "partsAvailable": int         : count of buildable parts (provider wraps to { count })
     /// }
@@ -457,6 +459,8 @@ namespace Sitrep.Host
                 ["facilityOrdinal"] = SnapshotDict.GetInt(raw, "facilityOrdinal"),
                     ["requiresFunds"] = SnapshotDict.GetDouble(raw, "requiresFunds"),
                     ["missingParts"] = GetStringList(raw, "missingParts"),
+                    ["lastLaunchedUt"] = SnapshotDict.GetDouble(raw, "lastLaunchedUt"),
+                    ["lastLaunchedByName"] = SnapshotDict.GetBool(raw, "lastLaunchedByName"),
                 });
             }
 

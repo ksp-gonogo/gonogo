@@ -50,6 +50,8 @@ namespace Gonogo.KSP.Tests
             // match, so the check born from an unregistered fleet uplink could not
             // see the fleet uplink.
             "FleetChannels",
+            // The part trees of saved craft files and the launch record: ships inside Gonogo.dll, constructed by the addon beside FleetChannels.
+            "CraftFileChannels",
         };
 
         private static readonly Regex UplinkClass = new Regex(

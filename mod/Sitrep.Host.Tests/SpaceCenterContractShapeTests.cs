@@ -144,6 +144,8 @@ namespace Sitrep.Host.Tests
                                 ["facility"] = "VAB",
                                 ["requiresFunds"] = 12345.0,
                                 ["missingParts"] = new List<object?> { "someMissingPart" },
+                                ["lastLaunchedUt"] = 2400.0,
+                                ["lastLaunchedByName"] = true,
                             },
                         },
                     },

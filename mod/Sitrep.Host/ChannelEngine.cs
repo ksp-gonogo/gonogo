@@ -172,7 +172,7 @@ namespace Sitrep.Host
             {
                 return AddressedNode;
             }
-            if (_heldAtHomeTopics.Contains(topic))
+            if (_heldAtHomeTopics.Contains(topic) || UnderHeldAtHomePrefix(topic))
             {
                 return HomeCommandNode;
             }
@@ -1309,6 +1309,23 @@ namespace Sitrep.Host
         // same single-writer-before-start discipline as the prefixes above.
         private readonly HashSet<string> _heldAtHomeTopics = new HashSet<string>(StringComparer.Ordinal);
 
+        // Prefixes of the dynamic namespaces that declared
+        // ChannelDeclaration.HeldAtHome: every topic under one records on
+        // HomeCommandNode. Same single-writer-before-start discipline.
+        private readonly List<string> _heldAtHomePrefixes = new List<string>();
+
+        private bool UnderHeldAtHomePrefix(string topic)
+        {
+            foreach (var prefix in _heldAtHomePrefixes)
+            {
+                if (topic.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         // Per-prefix listeners registered via IDynamicChannelSource.OnSubscribed
         // (Gap A of the terminal-integrity adversarial review), invoked from
         // ProcessSubscribe, on the COURIER thread, once per individual session
@@ -2441,7 +2458,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Every registered channel's delay role, as the client reads its lane from:
-        /// <c>{ trueNow, heldAtHome, trueNowPrefixes, addressed }</c>, each sorted
+        /// <c>{ trueNow, heldAtHome, trueNowPrefixes, heldAtHomePrefixes, addressed }</c>, each sorted
         /// ordinally.
         ///
         /// <para>Built from what this engine actually routes by rather than from what
@@ -2490,6 +2507,7 @@ namespace Sitrep.Host
             }
 
             var heldAtHome = new List<string>(_heldAtHomeTopics);
+            var heldAtHomePrefixes = new List<string>(_heldAtHomePrefixes);
             // Delayed, and already delivered to each listener after its own
             // journey, so a client must not take the active craft's light-time
             // off them a second time.
@@ -2497,6 +2515,7 @@ namespace Sitrep.Host
             trueNow.Sort(StringComparer.Ordinal);
             heldAtHome.Sort(StringComparer.Ordinal);
             trueNowPrefixes.Sort(StringComparer.Ordinal);
+            heldAtHomePrefixes.Sort(StringComparer.Ordinal);
             addressed.Sort(StringComparer.Ordinal);
 
             _delayRolesPayload = new Dictionary<string, object?>
@@ -2504,6 +2523,7 @@ namespace Sitrep.Host
                 ["trueNow"] = trueNow,
                 ["heldAtHome"] = heldAtHome,
                 ["trueNowPrefixes"] = trueNowPrefixes,
+                ["heldAtHomePrefixes"] = heldAtHomePrefixes,
                 ["addressed"] = addressed,
             };
             _delayRolesDeclarationCount = _channelDeclarations.Count;
@@ -3994,6 +4014,20 @@ namespace Sitrep.Host
             {
                 throw new ArgumentException(UndefinedKind("namespace \"" + prefix + "\"", template.Kind), nameof(template));
             }
+            if (template.HeldAtHome && template.Delay == DelayRole.TrueNow)
+            {
+                throw new ArgumentException(
+                    "namespace \"" + prefix + "\" declares HeldAtHome and DelayRole.TrueNow, which contradict:"
+                    + " a fact held at home reaches each vantage after its delay to home, and TrueNow says it reaches every vantage at once",
+                    nameof(template));
+            }
+            if (template.HeldAtHome && template.PerVesselNode)
+            {
+                throw new ArgumentException(
+                    "namespace \"" + prefix + "\" declares HeldAtHome and PerVesselNode, which contradict:"
+                    + " a fact held at home is recorded at the home command, not on a craft's own node",
+                    nameof(template));
+            }
             var registrant = _currentRegisteringUplinkId ?? "";
             if (_dynamicNamespaceOwner.TryGetValue(prefix, out var holder) && holder != registrant)
             {
@@ -4005,6 +4039,10 @@ namespace Sitrep.Host
             if (template.PerVesselNode && !_perVesselNamespacePrefixes.Contains(prefix))
             {
                 _perVesselNamespacePrefixes.Add(prefix);
+            }
+            if (template.HeldAtHome && !_heldAtHomePrefixes.Contains(prefix))
+            {
+                _heldAtHomePrefixes.Add(prefix);
             }
             return new DynamicChannelSource(this, prefix);
         }

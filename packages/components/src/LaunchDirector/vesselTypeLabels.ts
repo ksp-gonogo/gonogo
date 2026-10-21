@@ -18,4 +18,6 @@ export const VESSEL_TYPE_LABELS: readonly string[] = [
   "DeployedSciencePart",
   "DroppedPart",
   "Unknown",
+  "Plane",
+  "DeployedGroundPart",
 ];

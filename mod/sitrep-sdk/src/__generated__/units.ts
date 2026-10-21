@@ -1181,6 +1181,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     facility: "text",
     facilityOrdinal: "enum",
     file: "text",
+    lastLaunchedByName: "flag",
+    lastLaunchedUt: "ut",
     missingParts: "text",
     name: "text",
     partCount: "count",
@@ -2139,6 +2141,8 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     facility: "text",
     facilityOrdinal: "enum",
     file: "text",
+    lastLaunchedByName: "flag",
+    lastLaunchedUt: "ut",
     missingParts: "text",
     name: "text",
     partCount: "count",
@@ -2554,6 +2558,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "ControlFrame": {
     settableFrames: "ControlFrameOption[]",
+  },
+  "CraftFileParts": {
+    parts: "VesselPart[]",
   },
   "CraftLoad": {
     measured: "CraftFileRecord",
@@ -3580,6 +3587,8 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     12: "DeployedSciencePart",
     13: "DroppedPart",
     14: "Unknown",
+    15: "Plane",
+    16: "DeployedGroundPart",
   },
   "WarpMode": {
     0: "High",

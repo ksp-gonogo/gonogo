@@ -1,77 +1,30 @@
 import type { PartResources, VesselTopology } from "@ksp-gonogo/core";
-import { useTrackedVesselTopology } from "@ksp-gonogo/data";
-import type { CatalogEntry } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, SelectableRow } from "@ksp-gonogo/ui-kit";
+import { useCraftFileTopology } from "@ksp-gonogo/data";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import { ShipDiagramSvg } from "../ShipMap/ShipDiagramSvg";
 import { buildShipMapPart, type ShipMapPart } from "../ShipMap/shipTopology";
 import { pickView } from "../ShipMap/shipView";
-import {
-  CraftDiagramFrame,
-  CraftDiagramLayer,
-  CraftMapLayout,
-  CraftNoParts,
-  PadList,
-  SectionLabel,
-  VesselSwitchMeta,
-  VesselSwitchName,
-} from "./styles";
-import { VESSEL_TYPE_LABELS } from "./vesselTypeLabels";
+import { CraftDiagramFrame, CraftDiagramLayer, CraftNoParts } from "./styles";
 
 /** The smallest tile that fits a readable map beside the craft names. */
 export const CRAFT_MAP_MIN_COLS = 9;
 export const CRAFT_MAP_MIN_ROWS = 12;
 
 /**
- * The launched craft, and a side view of the one picked. The view is drawn
- * from the mod's per-craft part tree, so it is as current as the command
- * centre's last word from that craft. It offers no part actions: those act on
- * the vessel being flown.
+ * The side view of one saved craft file, drawn from the part tree the mod reads
+ * out of the file. It opens the file's part topic for as long as it is mounted,
+ * which is what has the mod measure the craft. Draws the absence dash until the
+ * tree arrives.
  */
-export function LaunchedCraftMap({
-  vessels,
-  selectedId,
-  onSelect,
+export function SavedCraftDiagram({
+  facility,
+  file,
 }: {
-  vessels: readonly CatalogEntry[];
-  /** The craft whose map is drawn; null draws none. */
-  selectedId: string | null;
-  onSelect: (vesselId: string) => void;
+  facility: string;
+  file: string;
 }) {
-  if (vessels.length === 0) return null;
-  return (
-    <>
-      <SectionLabel>Launched craft</SectionLabel>
-      <CraftMapLayout>
-        <PadList role="group" aria-label="Launched craft">
-          {vessels.map((v) => (
-            <SelectableRow
-              key={v.vesselId}
-              selectedLook="outline"
-              data-craft-row={v.vesselId}
-              selected={v.vesselId === selectedId}
-              onClick={() => onSelect(v.vesselId)}
-            >
-              <VesselSwitchName>
-                <span>{v.name}</span>
-                <VesselSwitchMeta>
-                  {VESSEL_TYPE_LABELS[v.vesselType] ?? "Unknown"}
-                </VesselSwitchMeta>
-              </VesselSwitchName>
-            </SelectableRow>
-          ))}
-        </PadList>
-        {selectedId && (
-          <TrackedCraftDiagram key={selectedId} guid={selectedId} />
-        )}
-      </CraftMapLayout>
-    </>
-  );
-}
-
-/** Opens the craft's part topic for as long as it is mounted, which is what has the mod measure it. */
-function TrackedCraftDiagram({ guid }: { guid: string }) {
-  const tracked = useTrackedVesselTopology(guid);
+  const tracked = useCraftFileTopology(facility, file);
   return (
     <CraftDiagram
       topology={tracked?.topology}

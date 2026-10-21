@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "shows": "Three launched craft below the pads: the LFV-2 Wave and the Wave Probe with their part trees heard, and Kerbin Relay A never heard from.",
-    "scenario": "launched-craft-parts",
-    "notes": "Each part tree is the one `trackingStation.vessel.<guid>.parts` carries, built from the Ship Map's own LFV-2 Wave and Wave Probe captures with the live fields (temperatures, flows, module states) left out as an unloaded craft sends them. The relay has no parts emit, so picking it draws the absence dash. At 9 columns by 12 rows and up the first craft is picked and its side view drawn beside the list; below that the widget is as it was."
+    "shows": "A pad's launchable craft in last-launched order: two launched craft first, then the two never launched by name, with the open pad's SPH craft left out.",
+    "scenario": "pad-craft-parts",
+    "notes": "Each part tree is the one `spaceCenter.craft.<facility>.<file>.parts` carries, built from the Ship Map's own LFV-2 Wave and Wave Probe captures with the live fields (temperatures, flows, module states) left out, as a craft file carries them. The Wave Probe's launch time was found by matching the craft name against a vessel in the save. The part trees are emitted before any craft is picked, so the render harness replays them once a click has picked a craft and so subscribed to its topic (`replayAfterClicks`). Relay A and Alpha Lifter have never been launched, and Relay A has no parts emit, so picking it draws the absence dash. At 9 columns by 12 rows and up the picked craft's side view is drawn beside the list; below that the widget lists the craft as it did before."
   },
   "_stream": {
     "pinnedUt": 10,
@@ -60,6 +60,67 @@
         }
       },
       {
+        "channel": "spaceCenter.savedShips",
+        "value": [
+          {
+            "name": "Kerbin Relay A",
+            "file": "Relay A",
+            "partCount": 9,
+            "totalMass": 2.1,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 6200,
+            "missingParts": []
+          },
+          {
+            "name": "Alpha Lifter",
+            "file": "Alpha Lifter",
+            "partCount": 14,
+            "totalMass": 6.4,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 9800,
+            "missingParts": []
+          },
+          {
+            "name": "LFV-2 Wave Probe",
+            "file": "Wave Probe",
+            "partCount": 22,
+            "totalMass": 11.8,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 14100,
+            "missingParts": [],
+            "lastLaunchedUt": 1900000,
+            "lastLaunchedByName": true
+          },
+          {
+            "name": "LFV-2 Wave",
+            "file": "LFV-2 Wave",
+            "partCount": 31,
+            "totalMass": 17.5,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 21800,
+            "missingParts": [],
+            "lastLaunchedUt": 2400000,
+            "lastLaunchedByName": false
+          },
+          {
+            "name": "Aeris 3A",
+            "file": "Aeris 3A",
+            "partCount": 28,
+            "totalMass": 4.9,
+            "facility": "SPH",
+            "facilityOrdinal": 2,
+            "requiresFunds": 7400,
+            "missingParts": [],
+            "lastLaunchedUt": 2150000,
+            "lastLaunchedByName": false
+          }
+        ]
+      },
+      {
         "channel": "trackingStation.catalog",
         "value": {
           "entries": [
@@ -88,7 +149,7 @@
         }
       },
       {
-        "channel": "trackingStation.vessel.v-wave.parts",
+        "channel": "spaceCenter.craft.VAB.LFV-2%20Wave.parts",
         "value": {
           "parts": [
             {
@@ -1125,7 +1186,7 @@
         }
       },
       {
-        "channel": "trackingStation.vessel.v-wave-probe.parts",
+        "channel": "spaceCenter.craft.VAB.Wave%20Probe.parts",
         "value": {
           "parts": [
             {
@@ -1894,6 +1955,7 @@
           ]
         }
       }
-    ]
+    ],
+    "replayAfterClicks": true
   }
 }

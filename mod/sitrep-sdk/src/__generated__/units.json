@@ -1141,6 +1141,8 @@
       "facility": "text",
       "facilityOrdinal": "enum",
       "file": "text",
+      "lastLaunchedByName": "flag",
+      "lastLaunchedUt": "ut",
       "missingParts": "text",
       "name": "text",
       "partCount": "count",
@@ -2094,6 +2096,8 @@
       "facility": "text",
       "facilityOrdinal": "enum",
       "file": "text",
+      "lastLaunchedByName": "flag",
+      "lastLaunchedUt": "ut",
       "missingParts": "text",
       "name": "text",
       "partCount": "count",
@@ -2480,6 +2484,9 @@
     },
     "ControlFrame": {
       "settableFrames": "ControlFrameOption[]"
+    },
+    "CraftFileParts": {
+      "parts": "VesselPart[]"
     },
     "CraftLoad": {
       "measured": "CraftFileRecord"
@@ -3457,7 +3464,9 @@
       "11": "DeployedScienceController",
       "12": "DeployedSciencePart",
       "13": "DroppedPart",
-      "14": "Unknown"
+      "14": "Unknown",
+      "15": "Plane",
+      "16": "DeployedGroundPart"
     },
     "WarpMode": {
       "0": "High",

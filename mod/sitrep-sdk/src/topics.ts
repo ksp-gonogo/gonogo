@@ -149,7 +149,8 @@ export interface SystemUplinksTopicPayloadMap {
     /**
      * How every registered Topic is delayed, core and Uplink alike, each list
      * sorted. `trueNow` and `heldAtHome` name Topics; `trueNowPrefixes` names
-     * namespaces whose Topics are all true now and are not listed one by one.
+     * namespaces whose Topics are all true now and `heldAtHomePrefixes` those
+     * whose Topics are all held at home, neither listed one by one.
      * `addressed` names Topics whose samples are each sent to a named audience
      * and arrive already delayed by their own journey. A Topic in none of the
      * lists is delayed by the link's signal delay. Absent when the running
@@ -159,6 +160,7 @@ export interface SystemUplinksTopicPayloadMap {
       trueNow: string[];
       heldAtHome: string[];
       trueNowPrefixes: string[];
+      heldAtHomePrefixes?: string[];
       addressed?: string[];
     };
     /**

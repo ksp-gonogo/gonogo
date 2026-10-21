@@ -50,7 +50,7 @@ namespace Sitrep.Host.IntegrationTests
                 using var fixture = JsonDocument.Parse(File.ReadAllText(FixturePath));
                 var expected = fixture.RootElement.GetProperty("delayRoles");
 
-                foreach (var list in new[] { "trueNow", "heldAtHome", "trueNowPrefixes", "addressed" })
+                foreach (var list in new[] { "trueNow", "heldAtHome", "trueNowPrefixes", "heldAtHomePrefixes", "addressed" })
                 {
                     Assert.Equal(Strings(expected, list), Strings(roles.RootElement, list));
                 }
@@ -60,6 +60,7 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.Contains(DelayRolesTestUplink.LinkTrueNowTopic, trueNow);
                 Assert.Contains(DelayRolesTestUplink.SecondTrueNowTopic, trueNow);
                 Assert.Equal(new[] { DelayRolesTestUplink.HeldAtHomeTopic }, heldAtHome);
+                Assert.Equal(new[] { DelayRolesTestUplink.HeldPrefix }, Strings(roles.RootElement, "heldAtHomePrefixes"));
                 Assert.DoesNotContain(DelayRolesTestUplink.HeldAtHomeTopic, trueNow);
                 Assert.DoesNotContain(DelayRolesTestUplink.DelayedTopic, trueNow.Concat(heldAtHome));
                 Assert.DoesNotContain(DelayRolesTestUplink.LivePrefix + "alpha", trueNow);
@@ -113,6 +114,7 @@ namespace Sitrep.Host.IntegrationTests
             public const string SecondTrueNowTopic = "comms.dataRate";
             public const string DelayedTopic = "uplinktest.craftState";
             public const string LivePrefix = "uplinktest.live.";
+            public const string HeldPrefix = "uplinktest.craftfile.";
             public const string AddressedTopic = "uplinktest.said";
 
             public UplinkHealth Health() => UplinkHealth.Healthy;
@@ -148,6 +150,7 @@ namespace Sitrep.Host.IntegrationTests
                     host.AddChannelSource(channel.Topic, _ => null);
                 }
                 host.RegisterDynamicNamespace(LivePrefix, Declare(LivePrefix, DelayRole.TrueNow));
+                host.RegisterDynamicNamespace(HeldPrefix, Declare(HeldPrefix, DelayRole.Delayed, heldAtHome: true));
                 ((Sitrep.Host.Commcast.IAddressedStreamHost)host).DeclareAddressedTopic(AddressedTopic);
             }
         }

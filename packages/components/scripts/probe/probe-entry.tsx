@@ -107,6 +107,12 @@ export interface StreamFixtureBlock {
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
   emits: StreamEmit[];
   /**
+   * Replays, after the mode's clicks, each emit whose topic nothing had
+   * subscribed to when it came and a click has since opened, such as the part
+   * tree of the craft a click picked. A topic still unsubscribed is dropped.
+   */
+  replayAfterClicks?: boolean;
+  /**
    * What the craft does when a command is sent, by command name: the emits that
    * follow it, optionally after a delay. Without it the stub answers every
    * command with nothing, so a control that reads its state back from telemetry
@@ -649,6 +655,7 @@ async function mountInto(
     for (const e of history) streamFixture.emit(e.channel, e.value, e.meta);
     await rafTick();
   }
+  const unsubscribedEmits: StreamEmit[] = [];
   if (streamFixture && streamBlock) {
     // `StubTransport.emit` is subscription-gated (silently DROPS a sample for
     // a topic nothing has subscribed to yet; see that method's own doc
@@ -673,6 +680,9 @@ async function mountInto(
     // reads simply times out and is emitted-then-dropped, exactly as before.
     for (const e of streamBlock.emits) {
       await waitForSubscription(streamFixture.transport, e.channel);
+      if (!streamFixture.transport.isSubscribed(e.channel)) {
+        unsubscribedEmits.push(e);
+      }
       streamFixture.emit(e.channel, e.value, e.meta);
       await rafTick();
     }
@@ -721,6 +731,15 @@ async function mountInto(
       );
       await settle(c.awaitMs ?? 100);
     }
+  }
+
+  if (streamFixture && streamBlock?.replayAfterClicks) {
+    for (const e of unsubscribedEmits) {
+      if (!streamFixture.transport.isSubscribed(e.channel)) continue;
+      streamFixture.emit(e.channel, e.value, e.meta);
+      await rafTick();
+    }
+    await settle(200);
   }
 
   // Hovers come after the clicks, so a mode may open a panel and then put the

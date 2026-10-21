@@ -13,13 +13,13 @@ namespace Gonogo.KSP
     /// <para>A snapshot's <c>position</c> and <c>rotation</c> are the part's
     /// <c>orgPos</c> and <c>orgRot</c>, saved as-is, so placement and axes are
     /// exact. The box is not: an unloaded part has no model of its own, so it is
-    /// measured on the part's prefab, which is the default variant. Temperatures,
-    /// flow rates, module states, action bindings and fuel-line targets need the
+    /// measured on the part's prefab, of the saved variant. Temperatures,
+    /// flow rates, other module states, action bindings and fuel-line targets need the
     /// live part and are left out.</para>
     /// </summary>
     internal static class ProtoVesselTopology
     {
-        private struct PrefabBox
+        internal struct PrefabBox
         {
             public bool HasMesh;
             public Vector3 Center;
@@ -39,8 +39,9 @@ namespace Gonogo.KSP
             }
 
             var list = new List<object?>(snapshots.Count);
-            foreach (var pps in snapshots)
+            for (var index = 0; index < snapshots.Count; index++)
             {
+                var pps = snapshots[index];
                 if (pps == null)
                 {
                     continue;
@@ -48,7 +49,7 @@ namespace Gonogo.KSP
 
                 try
                 {
-                    list.Add(BuildPart(pps, snapshots));
+                    list.Add(BuildPart(pps, snapshots, index));
                 }
                 catch (Exception ex)
                 {
@@ -59,16 +60,17 @@ namespace Gonogo.KSP
             return list;
         }
 
-        private static Dictionary<string, object?> BuildPart(ProtoPartSnapshot pps, List<ProtoPartSnapshot> snapshots)
+        private static Dictionary<string, object?> BuildPart(ProtoPartSnapshot pps, List<ProtoPartSnapshot> snapshots, int index)
         {
             var info = pps.partInfo;
             var prefab = info?.partPrefab;
-            var box = Measure(info?.name, prefab);
+            var box = Measure(info?.name, prefab, pps.moduleVariantName);
 
             string? parentId = null;
-            if (pps.parentIdx >= 0 && pps.parentIdx < snapshots.Count)
+            var parentIndex = PartTreeRules.ParentIndex(index, pps.parentIdx, snapshots.Count);
+            if (parentIndex >= 0)
             {
-                var parent = snapshots[pps.parentIdx];
+                var parent = snapshots[parentIndex];
                 if (parent != null && parent.flightID != 0)
                 {
                     parentId = parent.flightID.ToString();
@@ -84,6 +86,18 @@ namespace Gonogo.KSP
                     if (module != null && !string.IsNullOrEmpty(module.moduleName))
                     {
                         modules.Add(module.moduleName);
+                    }
+                }
+            }
+
+            var moduleStates = new List<object?>();
+            if (pps.modules != null)
+            {
+                foreach (var module in pps.modules)
+                {
+                    if (DeployableState(module) is { } state)
+                    {
+                        moduleStates.Add(state);
                     }
                 }
             }
@@ -126,25 +140,58 @@ namespace Gonogo.KSP
                 ["category"] = info != null ? info.category.ToString() : null,
                 ["categoryOrdinal"] = info != null ? (int)info.category : (int?)null,
                 ["modules"] = modules,
+                ["moduleStates"] = moduleStates,
                 ["resources"] = resources,
             };
         }
 
-        private static PrefabBox Measure(string? partName, Part? prefab)
+        /// <summary>
+        /// A solar panel's, radiator's or antenna's deploy state from the module's
+        /// saved <c>deployState</c>, in the words a loaded part reports. Null for
+        /// every other module, whose state is not saved in a form read here.
+        /// </summary>
+        private static Dictionary<string, object?>? DeployableState(ProtoPartModuleSnapshot module)
+        {
+            string? type = module?.moduleName switch
+            {
+                "ModuleDeployableSolarPanel" => "solarPanel",
+                "ModuleDeployableRadiator" => "radiator",
+                "ModuleDeployableAntenna" => "antenna",
+                _ => null,
+            };
+            var saved = module?.moduleValues?.GetValue("deployState");
+            if (type == null || saved == null
+                || !Enum.TryParse<ModuleDeployablePart.DeployState>(saved, out var state))
+            {
+                return null;
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["type"] = type,
+                ["state"] = KspHost.MapDeployState(state),
+                ["tracking"] = null,
+                ["flameout"] = null,
+            };
+        }
+
+        /// <summary>The box of the part named <paramref name="partName"/>, measured once on its prefab.</summary>
+        internal static PrefabBox Measure(string? partName, Part? prefab, string? variantName)
         {
             if (partName == null || prefab == null)
             {
                 return default;
             }
 
-            if (PrefabBoxes.TryGetValue(partName, out var cached))
+            var key = partName + "|" + variantName;
+            if (PrefabBoxes.TryGetValue(key, out var cached))
             {
                 return cached;
             }
 
             var box = new PrefabBox();
-            box.HasMesh = PartMeshBounds.TryMeasure(prefab, out box.Center, out box.Size);
-            PrefabBoxes[partName] = box;
+            box.HasMesh = PartMeshBounds.TryMeasure(prefab, variantName, out box.Center, out box.Size);
+            PrefabBoxes[key] = box;
             return box;
         }
 

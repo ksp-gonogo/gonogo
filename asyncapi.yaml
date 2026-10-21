@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 45.4.0
+  version: 45.5.0
   description: |-
     The WebSocket API of the Gonogo mod: 87 telemetry channels a client
     subscribes to and 69 commands it sends, each with its payload and what it
@@ -18770,6 +18770,29 @@ components:
             Parts referenced by the craft that are not yet unlocked/purchased
             (`CraftProfileInfo.UnavailableShipParts`); an empty array when the craft is
             buildable as-is.
+        lastLaunchedUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            Universal time of the most recent launch from this craft file. KSP keeps no
+            launch date on a craft file, so Gonogo records one each time a launch is
+            made from it, by the console or by the editor's own Launch button. For a
+            craft launched before Gonogo kept that record, the launch time of the newest
+            vessel in the save whose name matches the craft name, and
+            `SavedShipEntry.lastLaunchedByName` is `true`. Absent when the craft has
+            never been launched.
+        lastLaunchedByName:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether `SavedShipEntry.lastLaunchedUt` was found by matching the craft name
+            against the vessels in the save rather than from a recorded launch, so a
+            vessel the player renamed or a different craft sharing the name can stand in
+            for it. Absent when `SavedShipEntry.lastLaunchedUt` is absent.
     ScetAddressableTopic:
       type: object
       description: |-
@@ -23606,6 +23629,14 @@ components:
         - const: 14
           title: Unknown
           description: KSP's own unknown type, or a type this contract does not recognise.
+        - const: 15
+          title: Plane
+          description: A spaceplane or aircraft.
+        - const: 16
+          title: DeployedGroundPart
+          description: |-
+            A part deployed on the ground by Breaking Ground that is neither a
+            controller nor a science part.
     WarpMode:
       type: integer
       description: |-

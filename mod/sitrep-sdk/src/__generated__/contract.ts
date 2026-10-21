@@ -7775,6 +7775,56 @@ export interface SavedShipEntry
 	* buildable as-is.
 	*/
 	missingParts?: string[] | null;
+	/**
+	* Universal time of the most recent launch from this craft file. KSP keeps no
+	* launch date on a craft file, so Gonogo records one each time a launch is
+	* made from it, by the console or by the editor's own Launch button. For a
+	* craft launched before Gonogo kept that record, the launch time of the newest
+	* vessel in the save whose name matches the craft name, and
+	* `SavedShipEntry.lastLaunchedByName` is `true`. Absent when the craft has
+	* never been launched.
+	*/
+	lastLaunchedUt?: Value<"ut"> | null;
+	/**
+	* Whether `SavedShipEntry.lastLaunchedUt` was found by matching the craft name
+	* against the vessels in the save rather than from a recorded launch, so a
+	* vessel the player renamed or a different craft sharing the name can stand in
+	* for it. Absent when `SavedShipEntry.lastLaunchedUt` is absent.
+	*/
+	lastLaunchedByName?: boolean | null;
+}
+/**
+* One saved craft file's part tree on
+* `spaceCenter.craft.<facility>.<file>.parts`: each part's position, axes and
+* box in the craft's own frame, the same `VesselPart` rows `vessel.parts`
+* carries for the active craft. `<facility>` is `VAB` or `SPH` and `<file>` is
+* the file name without its extension, the one `spaceCenter.savedShips`
+* reports as `file`, with every character other than a letter, digit, `_` or
+* `-` written as `%` and the two hexadecimal digits of each of its UTF-8
+* bytes, so a name holding a dot or a space is still one topic segment. The
+* facility is part of the topic because a VAB file and an SPH file can share a
+* name. Published only while something subscribes to that craft's topic.
+*
+* Read from the craft file's saved parts, not from loaded ones: each part's
+* position and orientation are the saved ones and exact, but its box is
+* measured on the part's stock model with its saved variant's meshes. The rows
+* carry stored resource amounts and module names, and no temperatures, flow
+* rates, module states, action-group bindings or fuel-line targets.
+*
+* A record in the save, held at the home command like
+* `spaceCenter.savedShips`: each command centre reads it after its own delay
+* home, and a blackout of the active vessel never withholds it. It changes
+* only when the file is saved over.
+*
+* @category Space center
+*/
+export interface CraftFileParts
+{
+	/**
+	* Every part in the craft file, in file order. Never null; a file that cannot
+	* be read publishes nothing rather than an empty or partial list.
+	*/
+	parts: VesselPart[];
 }
 /**
 * A wrapper carrying the count of parts the player can place right now
@@ -8932,10 +8982,11 @@ export interface TrackingStationVesselResources
 * active one, or one within physics range of it) is read from its live parts,
 * exactly as `vessel.parts` reads it. An unloaded craft is read from its saved
 * part snapshots: positions and orientations are the saved ones and exact, but
-* each part's box is measured on the part's stock model, so a part showing a
-* non-default variant can be drawn at the wrong size, and the craft carries no
-* temperatures, no flow rates, no module states, no action-group bindings and
-* no fuel-line targets.
+* each part's box is measured on the part's stock model with its saved
+* variant's meshes, and the craft carries no temperatures, no flow rates, no
+* action-group bindings and no fuel-line targets. Its module states are
+* limited to the deploy state of solar panels, radiators and antennas; gear,
+* cargo bays, engines, parachutes and drills carry none.
 *
 * Delayed by that craft's own signal delay. While the craft is out of contact
 * the reading is held at its last-known value, and a craft never heard from
@@ -9985,7 +10036,14 @@ export enum VesselType {
 	/** A part dropped from a vessel, such as a piece of ground equipment. */
 	DroppedPart = 13,
 	/** KSP's own unknown type, or a type this contract does not recognise. */
-	Unknown = 14
+	Unknown = 14,
+	/** A spaceplane or aircraft. */
+	Plane = 15,
+	/**
+	* A part deployed on the ground by Breaking Ground that is neither a
+	* controller nor a science part.
+	*/
+	DeployedGroundPart = 16
 }
 /**
 * How an orbit patch begins or ends, KSP's `Orbit.PatchTransitionType` (read

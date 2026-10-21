@@ -4269,6 +4269,68 @@ namespace Gonogo.KSP
         /// </summary>
         private static List<object?>? BuildSavedShips(double ut, bool wanted)
         {
+            var ships = ScanSavedShips(ut, wanted);
+            return ships == null ? null : WithLastLaunched(ships);
+        }
+
+        /// <summary>
+        /// The scanned craft with each one's last launch added: the recorded launch
+        /// of its file, else the launch time of the newest vessel in the save whose
+        /// name is the craft's, marked as matched by name. Applied on every read
+        /// rather than into the scan's cache, so a launch shows without a rescan.
+        /// </summary>
+        private static List<object?> WithLastLaunched(List<object?> scanned)
+        {
+            var vessels = new List<KeyValuePair<string, double>>();
+            var protoVessels = HighLogic.CurrentGame?.flightState?.protoVessels;
+            if (protoVessels != null)
+            {
+                foreach (var proto in protoVessels)
+                {
+                    if (proto == null)
+                    {
+                        continue;
+                    }
+
+                    var vesselName = GameWords.VesselName(proto.vesselName);
+                    if (!string.IsNullOrEmpty(vesselName))
+                    {
+                        vessels.Add(new KeyValuePair<string, double>(vesselName, proto.launchTime));
+                    }
+                }
+            }
+
+            var ships = new List<object?>(scanned.Count);
+            foreach (var entry in scanned)
+            {
+                if (entry is not Dictionary<string, object?> raw)
+                {
+                    ships.Add(entry);
+                    continue;
+                }
+
+                var copy = new Dictionary<string, object?>(raw);
+                var name = raw.TryGetValue("name", out var n) ? n as string : null;
+                var file = raw.TryGetValue("file", out var f) ? f as string : null;
+                var facility = raw.TryGetValue("facility", out var fa) ? fa as string : null;
+                if (facility != null && file != null && name != null)
+                {
+                    var recorded = CraftLaunchLog.Current.Recorded(facility, file, name);
+                    var matched = recorded == null ? CraftLaunchLog.NewestVesselLaunch(vessels, name) : null;
+                    if (recorded != null || matched != null)
+                    {
+                        copy["lastLaunchedUt"] = recorded ?? matched;
+                        copy["lastLaunchedByName"] = recorded == null;
+                    }
+                }
+                ships.Add(copy);
+            }
+
+            return ships;
+        }
+
+        private static List<object?>? ScanSavedShips(double ut, bool wanted)
+        {
             var game = HighLogic.CurrentGame;
             if (game == null || !CareerGates.HasResearchTree(game.Mode))
             {
@@ -6909,7 +6971,7 @@ namespace Gonogo.KSP
 
             var up = part.orgRot * Vector3.up;
             var forward = part.orgRot * Vector3.forward;
-            var hasMesh = PartMeshBounds.TryMeasure(part, out var meshCenter, out var meshSize);
+            var hasMesh = PartMeshBounds.TryMeasure(part, part.variants?.SelectedVariant?.Name, out var meshCenter, out var meshSize);
 
             return new Dictionary<string, object?>
             {
@@ -7754,7 +7816,7 @@ namespace Gonogo.KSP
             };
         }
 
-        private static string MapDeployState(ModuleDeployablePart.DeployState state)
+        internal static string MapDeployState(ModuleDeployablePart.DeployState state)
         {
             switch (state)
             {

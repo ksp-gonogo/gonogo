@@ -366,8 +366,10 @@ namespace Sitrep.Contract
         /// <para>Requires <see cref="Delay"/> to be <see
         /// cref="DelayRole.Delayed"/>. A <see cref="DelayRole.TrueNow"/>
         /// channel reaches every command centre at once, which contradicts
-        /// this flag, so Gonogo refuses an Uplink that declares both. Ignored on a dynamic namespace template: a per-vessel
-        /// namespace is by definition not held at home.</para>
+        /// this flag, so Gonogo refuses an Uplink that declares both. On a dynamic
+        /// namespace template it holds every topic under the prefix at home, and
+        /// the template cannot also declare <see cref="PerVesselNode"/>, which
+        /// records on a craft's own node.</para>
         ///
         /// <para>Never frozen by a blackout. The home command cannot lose
         /// contact with its own ledger, so an out-of-contact active vessel does

@@ -146,6 +146,11 @@ const UNOBSERVED_FAMILIES: readonly {
     reason: "read only once a craft is selected and its side bar shows",
   },
   {
+    widgetId: "launch-director",
+    pattern: "spaceCenter.craft.<facility>.<segment>.parts",
+    reason: "read only once a craft is picked and its side view shows",
+  },
+  {
     widgetId: "ground-track",
     pattern: "<domain>.available",
     reason: "one per registered map point-of-interest provider",

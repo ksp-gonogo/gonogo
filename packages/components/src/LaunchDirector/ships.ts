@@ -1,4 +1,9 @@
-import { KSP_EDITOR_FACILITY_NAMES } from "@ksp-gonogo/sitrep-sdk";
+import {
+  isValue,
+  KSP_EDITOR_FACILITY_NAMES,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 import type { LaunchSiteEntry } from "./pads";
 
@@ -15,6 +20,17 @@ export interface SavedShip {
   facilityOrdinal: number | null;
   requiresFunds: number | null;
   missingParts: string[];
+  /** The universal time of the craft's most recent launch, null when it has never been launched. */
+  lastLaunched: Value<"ut"> | null;
+  /** True when {@link lastLaunched} came from a vessel in the save sharing the craft's name rather than from a recorded launch. */
+  lastLaunchedByName: boolean;
+}
+
+function launchTime(raw: unknown): Value<"ut"> | null {
+  if (isValue(raw)) return raw as Value<"ut">;
+  return typeof raw === "number" && Number.isFinite(raw)
+    ? value("ut", raw)
+    : null;
 }
 
 export function parseSavedShips(raw: unknown): SavedShip[] | null {
@@ -39,9 +55,33 @@ export function parseSavedShips(raw: unknown): SavedShip[] | null {
       missingParts: Array.isArray(e.missingParts)
         ? e.missingParts.filter((p): p is string => typeof p === "string")
         : [],
+      lastLaunched: launchTime(e.lastLaunchedUt),
+      lastLaunchedByName: e.lastLaunchedByName === true,
     });
   }
   return out;
+}
+
+/**
+ * The craft most recently launched first, then the ones never launched in
+ * name order. A craft with no launch time sorts with the never-launched ones,
+ * so a craft is never ranked on a time that is not a fact.
+ */
+export function sortByLastLaunched(
+  ships: readonly SavedShip[],
+): readonly SavedShip[] {
+  return [...ships].sort(byLastLaunched);
+}
+
+function byLastLaunched(a: SavedShip, b: SavedShip): number {
+  const { lastLaunched: first } = a;
+  const { lastLaunched: second } = b;
+  if (first === null && second === null) return a.name.localeCompare(b.name);
+  if (first === null) return 1;
+  if (second === null) return -1;
+  if (first.greaterThan(second)) return -1;
+  if (second.greaterThan(first)) return 1;
+  return a.name.localeCompare(b.name);
 }
 
 /**

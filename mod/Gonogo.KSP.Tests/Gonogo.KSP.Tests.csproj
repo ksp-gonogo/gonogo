@@ -158,6 +158,12 @@
          to GameEvents and is NOT here, the same carve-out as CommNetOcclusion.cs
          and PlanOwner.cs above. -->
     <Compile Include="..\Gonogo.KSP\EvaParentage.cs" />
+    <!-- CraftLaunchLog.cs and CraftFileTree.cs name no KSP type: the book of when each
+         craft file was last launched, and the part-tree rules for reading a craft file. -->
+    <Compile Include="..\Gonogo.KSP\CraftLaunchLog.cs" />
+    <Compile Include="..\Gonogo.KSP\CraftFileTree.cs" />
+    <Compile Include="..\Gonogo.KSP\VariantMeshRule.cs" />
+    <Compile Include="..\Gonogo.KSP\PartTreeRules.cs" />
   </ItemGroup>
 
   <!-- PendingCreditRow.cs was split out of PendingCreditLedger.cs specifically so this row/enum
@@ -287,6 +293,7 @@
          which reads HighLogic, ShipConstruction and ConfigNode straight from
          Assembly-CSharp, so it is gated the same way. -->
     <Compile Remove="CraftCatalogueBackendTests.cs" />
+    <Compile Remove="CraftLaunchLogPersistenceTests.cs" />
     <!-- ActiveVessel/ is otherwise unconditional (EvaParentageTests names no KSP
          type at all), so only its ConfigNode half needs dropping here; it is
          re-added under the gate below beside the other round-trip suites. -->
@@ -357,6 +364,10 @@
          seam and the only place the kerbal-to-craft relation reaches the save. -->
     <Compile Include="..\Gonogo.KSP\EvaParentagePersistence.cs" />
     <Compile Include="ActiveVessel\EvaParentagePersistenceTests.cs" />
+    <!-- CraftLaunchLogPersistence.cs is the same ConfigNode round-trip over the KSP-free
+         CraftLaunchLog compiled above. -->
+    <Compile Include="..\Gonogo.KSP\CraftLaunchLogPersistence.cs" />
+    <Compile Include="CraftLaunchLogPersistenceTests.cs" />
     <!-- ActiveVesselScope.cs is here to RESOLVE, not to run: CommNetBackend.cs
          below calls it for the vessel whose link it reports, so the type has to
          exist. Its own reads are FlightGlobals fields and GameEvents

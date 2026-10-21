@@ -760,6 +760,49 @@ namespace Sitrep.Host.Tests
             Assert.Equal(2, plane["facilityOrdinal"]);
         }
 
+        [Fact]
+        public void BuildSavedShipsCarriesTheLastLaunchAndHowItWasFound()
+        {
+            var list = Assert.IsType<List<object?>>(SpaceCenterViewProvider.BuildSavedShips(new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["savedShips"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Recorded",
+                                ["lastLaunchedUt"] = 2400.5,
+                                ["lastLaunchedByName"] = false,
+                            },
+                            new Dictionary<string, object?>
+                            {
+                                ["name"] = "Matched",
+                                ["lastLaunchedUt"] = 1900.0,
+                                ["lastLaunchedByName"] = true,
+                            },
+                            new Dictionary<string, object?> { ["name"] = "Never" },
+                        },
+                    },
+                },
+            }));
+
+            var recorded = Assert.IsType<Dictionary<string, object?>>(list[0]);
+            Assert.Equal(2400.5, recorded["lastLaunchedUt"]);
+            Assert.Equal(false, recorded["lastLaunchedByName"]);
+            var matched = Assert.IsType<Dictionary<string, object?>>(list[1]);
+            Assert.Equal(1900.0, matched["lastLaunchedUt"]);
+            Assert.Equal(true, matched["lastLaunchedByName"]);
+
+            // A craft never launched carries neither: absent, not a zero launch time.
+            var never = Assert.IsType<Dictionary<string, object?>>(list[2]);
+            Assert.Null(never["lastLaunchedUt"]);
+            Assert.Null(never["lastLaunchedByName"]);
+        }
+
         /// <summary>
         /// A saved craft the capture reported with no facility ordinal carries
         /// <c>null</c>, not a guessed editor. The client passes the raw name

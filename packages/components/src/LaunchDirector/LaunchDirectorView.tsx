@@ -5,16 +5,12 @@ import { Panel, Section, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { BoundPresses } from "./actions";
+import { CRAFT_MAP_MIN_COLS, CRAFT_MAP_MIN_ROWS } from "./CraftDiagram";
 import { parseCrew } from "./crew";
 import { InFlightPanel } from "./InFlightPanel";
-import {
-  CRAFT_MAP_MIN_COLS,
-  CRAFT_MAP_MIN_ROWS,
-  LaunchedCraftMap,
-} from "./LaunchedCraftMap";
 import { PadSection } from "./PadSection";
 import { awayBodyNames, orderPads, padSummary, parseLaunchSites } from "./pads";
-import { craftForPad, parseSavedShips } from "./ships";
+import { craftForPad, parseSavedShips, sortByLastLaunched } from "./ships";
 import type { LaunchDirectorSlotContext } from "./slots";
 import { FundsReadout } from "./styles";
 import { TrackingStationPanel } from "./TrackingStationPanel";
@@ -109,8 +105,6 @@ export function LaunchDirectorComponent({
   // Which pad row is open; null means the first pad in prioritised order stands in. Derived, so a pad that leaves cannot leave a dead selection.
   const [pickedPad, setPickedPad] = useState<string | null>(null);
   const [selectedCrew, setSelectedCrew] = useState<Set<string>>(new Set());
-  // Which launched craft's map is open; derived like the pad, so a craft that leaves cannot leave a dead selection.
-  const [pickedCraft, setPickedCraft] = useState<string | null>(null);
   const activePad = pads.find((p) => p.name === pickedPad) ?? pads[0];
   const selectedSite = activePad?.name ?? "";
   const scene = sceneRecord?.scene;
@@ -119,16 +113,14 @@ export function LaunchDirectorComponent({
   const fundsAvailable = chargesFunds
     ? (careerFunds ?? 0)
     : Number.POSITIVE_INFINITY;
-  const padCraft = craftForPad(activePad, ships);
 
   const rows = h ?? 9;
   const cols = w ?? 7;
   const showSubtitle = rows >= 4;
+  // A large tile draws the picked craft beside the list, which is then in launch order.
   const showCraftMap = cols >= CRAFT_MAP_MIN_COLS && rows >= CRAFT_MAP_MIN_ROWS;
-  const mappedCraft =
-    flyable.find((v) => v.vesselId === pickedCraft)?.vesselId ??
-    flyable[0]?.vesselId ??
-    null;
+  const launchable = craftForPad(activePad, ships);
+  const padCraft = showCraftMap ? sortByLastLaunched(launchable) : launchable;
 
   // Plain object, not a hook, so it can sit above the early return.
   const slotContext: LaunchDirectorSlotContext = {
@@ -257,6 +249,7 @@ export function LaunchDirectorComponent({
                 fundsAvailable={fundsAvailable}
                 funds={careerFunds ?? undefined}
                 rows={rows}
+                split={showCraftMap}
                 narrow={cols <= NARROW_MAX_COLS}
                 launchCmd={launchCmd}
                 recoverCmd={recoverCmd}
@@ -267,15 +260,6 @@ export function LaunchDirectorComponent({
               />
             )}
           </Section>,
-          showCraftMap ? (
-            <Section key="craft-map" full>
-              <LaunchedCraftMap
-                vessels={flyable}
-                selectedId={mappedCraft}
-                onSelect={setPickedCraft}
-              />
-            </Section>
-          ) : null,
         ]}
       />
     </BoundPresses.Provider>

@@ -16,7 +16,7 @@ export default {
     "vessel.flight",
     "vessel.identity",
   ],
-  optionalChannelFamilies: ["trackingStation.vessel.<guid>.parts"],
+  optionalChannelFamilies: ["spaceCenter.craft.<facility>.<segment>.parts"],
   commands: [
     "ksp.launch",
     "ksp.recover",

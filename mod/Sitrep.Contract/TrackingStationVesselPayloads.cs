@@ -86,9 +86,11 @@ public class TrackingStationVesselResources
 /// live parts, exactly as <c>vessel.parts</c> reads it. An unloaded craft is
 /// read from its saved part snapshots: positions and orientations are the
 /// saved ones and exact, but each part's box is measured on the part's stock
-/// model, so a part showing a non-default variant can be drawn at the wrong
-/// size, and the craft carries no temperatures, no flow rates, no module
-/// states, no action-group bindings and no fuel-line targets.</para>
+/// model with its saved variant's meshes, and the craft carries no
+/// temperatures, no flow rates, no action-group bindings and no fuel-line
+/// targets. Its module states are limited to the deploy state of solar panels,
+/// radiators and antennas; gear, cargo bays, engines, parachutes and drills
+/// carry none.</para>
 ///
 /// <para>Delayed by that craft's own signal delay. While the craft is out of
 /// contact the reading is held at its last-known value, and a craft never

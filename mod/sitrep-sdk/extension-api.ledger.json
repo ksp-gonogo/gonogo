@@ -11873,6 +11873,10 @@
         "note": "the useDataSources element type, now on the facade as well as the spine"
       },
       {
+        "key": "sitrep-sdk . DeclaredDelayRoles#heldAtHomePrefixes?",
+        "note": "optional list of namespaces whose Topics are all held at the home command centre"
+      },
+      {
         "key": "sitrep-sdk . Dep",
         "note": "Dep is exported from the root, since it is named in an author-facing signature"
       },
@@ -14813,6 +14817,10 @@
         "note": "reachable through the spine's DataSourceState"
       },
       {
+        "key": "sitrep-sdk ./spine ~DeclaredDelayRoles#heldAtHomePrefixes?",
+        "note": "same member through the spine re-export"
+      },
+      {
         "key": "sitrep-sdk ./spine ~DeclaredSampleKinds",
         "note": "The sample kinds the mod sends on system.uplinks, by topic and by namespace prefix"
       },
@@ -15235,6 +15243,10 @@
       {
         "key": "sitrep-sdk ./testing ~DataSourceState#status",
         "note": "the useDataSources element type, now on the facade as well as the spine"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~DeclaredDelayRoles#heldAtHomePrefixes?",
+        "note": "same member through the testing re-export"
       },
       {
         "key": "sitrep-sdk ./testing ~DeclaredSampleKinds",

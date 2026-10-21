@@ -303,6 +303,25 @@ namespace Sitrep.Host.Tests
             Assert.Null(fuel.Flow);
         }
 
+        [Fact]
+        public void ACraftFilesPartTreeKeepsTheTreeAndHasNoLiveState()
+        {
+            Assert.Null(VesselPartsViewProvider.BuildCraftFilePartsWire(null));
+            Assert.Null(VesselPartsViewProvider.BuildCraftFilePartsWire(new List<object?>()));
+
+            var wire = VesselPartsViewProvider.BuildCraftFilePartsWire(new List<object?>
+            {
+                RawPart("1", null),
+                RawPart("2", "1"),
+            })!;
+
+            Assert.False(wire.ContainsKey("meta"));
+            var parts = Assert.IsType<List<object?>>(wire["parts"]);
+            var child = Assert.IsType<Dictionary<string, object?>>(parts[1]);
+            Assert.Equal("2", child["id"]);
+            Assert.Equal("1", child["parentId"]);
+        }
+
         // ----------------------------------------------------------------
 
         private static KspSnapshot TopologySnapshot(params IDictionary<string, object?>[] parts) => new KspSnapshot
