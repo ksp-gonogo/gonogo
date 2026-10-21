@@ -42,6 +42,12 @@ public class CommandCentreEntry
     /// <c>"ground:&lt;name&gt;"</c> or <c>"vessel:&lt;guid&gt;"</c>.
     /// Every ground station is <c>"ground:&lt;name&gt;"</c>, the home one included:
     /// which centre is home is <see cref="IsHome"/>, never a special id.
+    /// The <c>&lt;name&gt;</c> is the home node name as the active comms provider names it,
+    /// so the same station has a different id under a different provider. The space
+    /// centre is <c>"ground:Kerbin: KSC"</c> with stock CommNet and
+    /// <c>"ground:Kerbal Space Center"</c> with a provider that names its home nodes by
+    /// display name. Read the id from the
+    /// <c>commandCentre.roster</c> entry and never hard-code or build it.
     /// Ground stations that share a name are told apart as
     /// <c>"ground:&lt;name&gt;#2"</c>, <c>"#3"</c> and so on.
     /// </summary>

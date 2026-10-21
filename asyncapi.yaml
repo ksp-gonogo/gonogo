@@ -11089,7 +11089,12 @@ components:
             Stable centre id, the one `SetVantage.centreId` takes: `"ground:<name>"` or
             `"vessel:<guid>"`. Every ground station is `"ground:<name>"`, the home one
             included: which centre is home is `CommandCentreEntry.isHome`, never a
-            special id. Ground stations that share a name are told apart as
+            special id. The `<name>` is the home node name as the active comms provider
+            names it, so the same station has a different id under a different provider.
+            The space centre is `"ground:Kerbin: KSC"` with stock CommNet and
+            `"ground:Kerbal Space Center"` with a provider that names its home nodes by
+            display name. Read the id from the `commandCentre.roster` entry and never
+            hard-code or build it. Ground stations that share a name are told apart as
             `"ground:<name>#2"`, `"#3"` and so on.
         displayName:
           type:
