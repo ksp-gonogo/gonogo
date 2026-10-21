@@ -654,7 +654,7 @@ namespace Sitrep.Host.Comms
                 // changed and its orbit did not: the same craft going the same
                 // way, listed and linked as it is now.
                 var fresh = StateOf(node, look, ut, kernel);
-                var relisted = last.State.ReadAgain(ut, fresh.ValidUntilUt, fresh.Plannable, fresh.Links).WithRetarget(fresh.Retarget).Named(fresh.Name).Listed(listed);
+                var relisted = last.State.ReadAgain(ut, fresh.ValidUntilUt, fresh.Plannable, fresh.Links).WithRetarget(fresh.Retarget).WithCapability(fresh.Capability).Named(fresh.Name).Listed(listed);
                 if (!last.State.Settled)
                 {
                     relisted = relisted.Unsettled();
@@ -666,7 +666,7 @@ namespace Sitrep.Host.Comms
             // one is read afresh each time.
             var read = StateOf(node, look, ut, kernel);
             var afresh = read.Secular != null || last.State.Secular != null;
-            var again = (afresh ? read : last.State.ReadAgain(ut, read.ValidUntilUt, read.Plannable, read.Links).WithRetarget(read.Retarget).Named(read.Name))
+            var again = (afresh ? read : last.State.ReadAgain(ut, read.ValidUntilUt, read.Plannable, read.Links).WithRetarget(read.Retarget).WithCapability(read.Capability).Named(read.Name))
                 .Listed(listed);
             _read[node.Id] = new Read(afresh ? node : last.Node, again);
             return again;
@@ -763,7 +763,7 @@ namespace Sitrep.Host.Comms
         }
 
         private static CraftState StateOf(ContactGameNode node, ContactGameLook look, double ut, Kernel? kernel) =>
-            Unnamed(node, look, ut, kernel).Named(node.DisplayName);
+            Unnamed(node, look, ut, kernel).Named(node.DisplayName).WithCapability(node.Capability);
 
         private static CraftState Unnamed(ContactGameNode node, ContactGameLook look, double ut, Kernel? kernel)
         {

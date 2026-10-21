@@ -51,6 +51,9 @@ namespace Sitrep.Host.Comms
         /// <summary>The craft's entry on <c>commandCentre.roster</c> while it is a command centre, or null.</summary>
         public CommandCentreEntry? Centre { get; set; }
 
+        /// <summary>What the craft could do to leave its path, as last read while it was loaded, or null when it has not been.</summary>
+        public CraftCapability? Capability { get; set; }
+
         public static ContactGameNode OrbitingCraft(
             string id, int bodyIndex, OrbitElements orbit, CommsNodeHandle? radio = null, string? displayName = null) =>
             new ContactGameNode(id, bodyIndex, orbit, null, false, radio, displayName);

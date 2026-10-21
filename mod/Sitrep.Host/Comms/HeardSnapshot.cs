@@ -471,8 +471,30 @@ namespace Sitrep.Host.Comms
                 ["links"] = links,
                 ["strengths"] = strengths,
                 ["linkModels"] = models,
+                ["capability"] = CapabilityOf(state.Capability),
             };
         }
+
+        /// <summary>What a craft could do, as the save keeps it, or null where nothing of it was read. A save's own layout, not the wire's.</summary>
+        private static Dictionary<string, object?>? CapabilityOf(CraftCapability? capability) =>
+            capability == null
+                ? null
+                : new Dictionary<string, object?>
+                {
+                    ["deltaV"] = capability.DeltaVMs,
+                    ["maxAcceleration"] = capability.MaxAccelerationMs2,
+                    ["airspeed"] = capability.AirspeedMs,
+                    ["drivenWithoutPropellant"] = capability.DrivenWithoutPropellant,
+                };
+
+        private static CraftCapability? CapabilityFrom(Dictionary<string, object?> map) =>
+            Get(map, "capability") is Dictionary<string, object?> saved
+                ? new CraftCapability(
+                    Get(saved, "deltaV") as double?,
+                    Get(saved, "maxAcceleration") as double?,
+                    Get(saved, "airspeed") as double?,
+                    Get(saved, "drivenWithoutPropellant") is bool driven && driven)
+                : null;
 
         private static CraftState StateFrom(
             Dictionary<string, object?> map,
@@ -504,7 +526,7 @@ namespace Sitrep.Host.Comms
             var settled = !(Get(map, "settled") is bool s) || s;
 
             var centre = Get(map, "centre") is Dictionary<string, object?> entry ? CentreFrom(entry) : null;
-            return Moving(map, id, capturedUt, bodyIndex, plannable, settled, links, roster).Named(name).Listed(roster).AsCentre(centre);
+            return Moving(map, id, capturedUt, bodyIndex, plannable, settled, links, roster).Named(name).Listed(roster).WithCapability(CapabilityFrom(map)).AsCentre(centre);
         }
 
         /// <summary>How a gone craft left the game, as saved; a save that does not say is one that never learned.</summary>

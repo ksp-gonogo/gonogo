@@ -158,6 +158,21 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
+        /// What the craft could do to leave the path it is reckoned on, as read
+        /// with this state, or null when nothing of it was read. Heard only: a
+        /// sighting never carries it.
+        /// </summary>
+        public CraftCapability? Capability { get; private set; }
+
+        /// <summary>This state, carrying what the craft could do as it was read with it.</summary>
+        public CraftState WithCapability(CraftCapability? capability)
+        {
+            var carried = (CraftState)MemberwiseClone();
+            carried.Capability = capability;
+            return carried;
+        }
+
+        /// <summary>
         /// Stands for where the craft is going: two states carrying the same
         /// object are of the same craft on the same orbit, or at the same place
         /// on the surface, and differ only in their links and in when they were
@@ -209,11 +224,11 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public CraftState ReadAgain(
             double capturedUt, double? validUntilUt, bool plannable, IReadOnlyDictionary<string, CraftLink> links) =>
-            new CraftState(Id, capturedUt, true, BodyIndex, Orbit, Surface, Secular, validUntilUt, plannable, links, Motion, true, Name, Roster).WithRetarget(Retarget);
+            new CraftState(Id, capturedUt, true, BodyIndex, Orbit, Surface, Secular, validUntilUt, plannable, links, Motion, true, Name, Roster).WithRetarget(Retarget).WithCapability(Capability);
 
         /// <summary>This state, marked as read while the craft's orbit was still changing.</summary>
         public CraftState Unsettled() =>
-            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, false, Name, Roster).WithRetarget(Retarget);
+            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, false, Name, Roster).WithRetarget(Retarget).WithCapability(Capability);
 
         /// <summary>
         /// This craft as it was last heard, where it was seen to be at
@@ -229,6 +244,7 @@ namespace Sitrep.Host.Comms
                 Id, seenUt, true, from.BodyIndex, from.Orbit, from.Surface, from.Secular, from.ValidUntilUt, from.Plannable, Links, from.Motion, from.Settled, Name, roster);
             seen.Centre = Centre;
             seen.Retarget = Retarget;
+            seen.Capability = Capability;
             return seen;
         }
 
@@ -255,11 +271,11 @@ namespace Sitrep.Host.Comms
 
         /// <summary>This state, carrying the craft's name as it was read with it.</summary>
         public CraftState Named(string? name) =>
-            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, Settled, name, Roster).WithRetarget(Retarget);
+            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, Settled, name, Roster).WithRetarget(Retarget).WithCapability(Capability);
 
         /// <summary>This state, carrying the craft's roster entry as it was read with it.</summary>
         public CraftState Listed(IReadOnlyDictionary<string, object?>? roster) =>
-            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, Settled, Name, roster).WithRetarget(Retarget);
+            new CraftState(Id, CapturedUt, Exists, BodyIndex, Orbit, Surface, Secular, ValidUntilUt, Plannable, Links, Motion, Settled, Name, roster).WithRetarget(Retarget).WithCapability(Capability);
 
         /// <summary>
         /// A craft that carries no radio: it exists and is listed, and no

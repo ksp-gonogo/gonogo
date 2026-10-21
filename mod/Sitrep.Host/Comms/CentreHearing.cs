@@ -253,6 +253,26 @@ namespace Sitrep.Host.Comms
             return CentreContact.Of(centre, known, heard, reach);
         }
 
+        /// <summary>
+        /// What <paramref name="centre"/> knows of where the craft is, or null
+        /// when it knows nothing of it or knows it is gone: see <see cref="CraftFix"/>.
+        /// </summary>
+        public CraftFix? FixAt(string centre, string nodeId)
+        {
+            if (!_ears.TryGetValue(centre, out var ear) || !ear.Known.TryGetValue(nodeId, out var known) || !known.Exists)
+            {
+                return null;
+            }
+            var contact = ContactAt(centre, nodeId);
+            var inContact = contact?.State == CentreContactState.InContact;
+            var lastKnown = known.CapturedUt;
+            if (known.Settled && contact?.LastContactUt is double lastContact && lastContact > lastKnown)
+            {
+                lastKnown = lastContact;
+            }
+            return new CraftFix(known, inContact, lastKnown);
+        }
+
         /// <summary>What <paramref name="centre"/> knows of its contact with every craft it knows anything of, by node id.</summary>
         public Dictionary<string, CentreContact> ContactsAt(string centre)
         {

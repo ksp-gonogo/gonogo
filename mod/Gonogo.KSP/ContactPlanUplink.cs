@@ -23,6 +23,7 @@ namespace Gonogo.KSP
         private readonly ContactPlanSource _source;
         private readonly DeliveryInputs _inputs;
         private readonly System.Func<HomeCommand> _home;
+        private readonly CraftCapabilityReader _capabilities = new CraftCapabilityReader();
         private KspVisibilityGeometryFactory? _surface;
         private bool? _listStood;
 
@@ -301,17 +302,23 @@ namespace Gonogo.KSP
                     var point = _surface.SurfacePointOf(vessel.mainBody, comm);
                     if (point != null)
                     {
-                        nodes.Add(AsCentre(ContactGameNode.LandedCraft(id, bodyIndex, point.Value, CommsNodeHandle.Of(comm), GameWords.VesselName(vessel)), centreOf));
+                        nodes.Add(Capable(AsCentre(ContactGameNode.LandedCraft(id, bodyIndex, point.Value, CommsNodeHandle.Of(comm), GameWords.VesselName(vessel)), centreOf), vessel));
                     }
                     continue;
                 }
                 var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
                 if (orbit != null)
                 {
-                    nodes.Add(AsCentre(
-                        ContactGameNode.OrbitingCraft(id, bodyIndex, KspVisibilityGeometryFactory.ElementsOf(orbit), CommsNodeHandle.Of(comm), GameWords.VesselName(vessel)),
-                        centreOf));
+                    nodes.Add(Capable(
+                        AsCentre(
+                            ContactGameNode.OrbitingCraft(id, bodyIndex, KspVisibilityGeometryFactory.ElementsOf(orbit), CommsNodeHandle.Of(comm), GameWords.VesselName(vessel)),
+                            centreOf),
+                        vessel));
                 }
+            }
+            if (stands)
+            {
+                _capabilities.KeepOnly(listed);
             }
 
             foreach (var centre in active)
@@ -412,6 +419,13 @@ namespace Gonogo.KSP
             {
                 return true;
             }
+        }
+
+        /// <summary>The craft's node, carrying what the craft could do to leave its path.</summary>
+        private ContactGameNode Capable(ContactGameNode node, Vessel vessel)
+        {
+            node.Capability = _capabilities.Read(vessel);
+            return node;
         }
 
         /// <summary>The craft's node, carrying its roster entry when the craft is a command centre.</summary>
