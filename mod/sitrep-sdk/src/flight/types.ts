@@ -1,3 +1,4 @@
+import type { FlightEndReason } from "../__generated__/contract";
 import type { DataKey, StreamStatusValue } from "../api/types";
 import type { BandKind, Reading, ReckoningBasis } from "../reading";
 import type { TopicId } from "../topics";
@@ -363,6 +364,12 @@ export interface FlightRecord {
    */
   outcome?: FlightOutcome;
   /**
+   * Why the flight ended, as the `flight.ended` notice named it. Absent while the
+   * flight is open and for a recording that stopped without one, such as the
+   * operator leaving the flight scene.
+   */
+  endReason?: FlightEndReason;
+  /**
    * The UT, in seconds, of the first captured frame, set only by a recorder
    * that works in UT. A graph of such a record queries its range with these:
    * `launchedAt` and `lastSampleAt` are wall-clock milliseconds.
@@ -497,6 +504,12 @@ export interface MissionMeta {
    * automatically, but can still be deleted by hand. Absent means not starred.
    */
   starred?: boolean;
+  /**
+   * Why the flight ended, as the `flight.ended` notice named it. Absent for a
+   * recording that stopped without one, such as the operator leaving the flight
+   * scene, and for a mission recorded before it was kept.
+   */
+  endReason?: FlightEndReason;
   /**
    * User-authored chapters / markers, as `FlightChapterRecord`. Its
    * `startMs`/`endMs` are literal milliseconds elapsed since `firstFrameUt`,

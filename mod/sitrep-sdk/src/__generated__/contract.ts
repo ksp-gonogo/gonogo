@@ -4063,7 +4063,7 @@ export enum FlightEndReason {
 	* The game rewound (a revert or a quickload) to before the flight's end, or
 	* the flight was still open when the rewind happened. Also sent for a flight
 	* that had already ended by crash or recovery on the timeline the rewind
-	* discarded.
+	* discarded, in case its first end never reached the client.
 	*/
 	Reverted = 2,
 	/**
@@ -4097,14 +4097,14 @@ export enum FlightEndReason {
 export interface FlightCurrent
 {
 	/**
-	* The stable flight id: KSP's `Vessel.id` GUID as a string, the same value as
-	* `FlightCurrent.vesselId` and as `VesselIdentity.VesselId` and
-	* `CrashReport.VesselId`, so it joins against those directly.
+	* The id of the flight the active vessel is flying, an opaque string the mod
+	* makes up when the flight starts. A revert to launch starts a new flight for
+	* the same vessel, so this changes while `FlightCurrent.vesselId` does not.
 	*/
 	flightId: string;
 	/**
-	* KSP's `Vessel.id` GUID of the active vessel, as a string. Always equal to
-	* `FlightCurrent.flightId`.
+	* KSP's `Vessel.id` GUID of the active vessel, as a string. Joins against
+	* `VesselIdentity.VesselId` and `CrashReport.VesselId`.
 	*/
 	vesselId: string;
 	/** The active vessel's display name. */
@@ -4120,22 +4120,22 @@ export interface FlightCurrent
 * by the signal delay like any value about a craft, sent when a new flight
 * begins. A flight is new when its vessel id has not been started before in
 * this game session (a launch, or a first switch onto a vessel), and every
-* vessel active just after a revert or a quickload starts a new flight, even
-* one with the same id.
+* vessel active just after a revert or a quickload starts a new flight with an
+* id of its own, even one with the same vessel id.
 *
 * A client that subscribes while a flight is already open receives that
 * flight's `flight.started`, carrying its original start `FlightStarted.ut`. A
-* repeat with an unchanged `FlightStarted.ut` is the same flight announced
-* again; a new `FlightStarted.ut` for the same vessel id is a new flight after
-* a rewind.
+* repeat with an unchanged `FlightStarted.flightId` is the same flight
+* announced again; a new `FlightStarted.flightId` for the same vessel id is a
+* new flight after a rewind.
 *
 * @category Flights
 */
 export interface FlightStarted
 {
 	/**
-	* The stable flight id: KSP's `Vessel.id` GUID as a string. Always equal to
-	* `FlightStarted.vesselId`.
+	* The id of the flight that began, an opaque string the mod makes up. A flight
+	* begun by a revert has an id of its own, never the reverted flight's.
 	*/
 	flightId: string;
 	/** KSP's `Vessel.id` GUID of the vessel flying this flight, as a string. */
@@ -4162,16 +4162,20 @@ export interface FlightStarted
 * it is sent nothing. A centre that saw the craft go has the end in its
 * `trackingStation.catalog`.
 *
-* Debris, flags and vessels of unknown type never end a flight.
+* Debris, flags and vessels of unknown type never end a flight. Leaving the
+* flight scene or switching to another vessel does not end one either: the
+* flight stays open, and `flight.current` names it again when its vessel is
+* flown again.
+*
+* A revert sends one end for every flight still open, and an end for the last
+* flight that ended by a crash or a recovery after the revert target. A client
+* that already holds an end for a flight keeps it.
 *
 * @category Flights
 */
 export interface FlightEnded
 {
-	/**
-	* The id of the flight that ended: KSP's `Vessel.id` GUID as a string. Always
-	* equal to `FlightEnded.vesselId`.
-	*/
+	/** The id of the flight that ended, as `FlightStarted.flightId` carried it. */
 	flightId: string;
 	/** KSP's `Vessel.id` GUID of the vessel whose flight ended, as a string. */
 	vesselId: string;
@@ -4202,10 +4206,7 @@ export interface FlightEnded
 */
 export interface FlightVesselChanged
 {
-	/**
-	* The flight now active: KSP's `Vessel.id` GUID as a string. Always equal to
-	* `FlightVesselChanged.vesselId`.
-	*/
+	/** The id of the flight now active, as `FlightStarted.flightId` carried it. */
 	flightId: string;
 	/** KSP's `Vessel.id` GUID of the vessel focus moved to, as a string. */
 	vesselId: string;

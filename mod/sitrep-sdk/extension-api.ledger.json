@@ -11913,6 +11913,10 @@
         "note": "The Topics the framework reads for a widget, keyed by the hook or component that reads them, which a scan of a widget's reads leaves out"
       },
       {
+        "key": "sitrep-sdk . FlightRecord#endReason?",
+        "note": "New: why a recorded flight ended, absent for one that stopped without an end notice"
+      },
+      {
         "key": "sitrep-sdk . FlightRecord#firstValidUt?",
         "note": "New: the earliest instant a recorded sample is valid at, which across a signal delay is before the first frame arrived"
       },
@@ -11931,6 +11935,10 @@
       {
         "key": "sitrep-sdk . HEALTH_STATE_NAMES",
         "note": "published because UplinkHealthStateName is keyed on it"
+      },
+      {
+        "key": "sitrep-sdk . MissionMeta#endReason?",
+        "note": "New: why a recorded mission's flight ended, absent for one that stopped without an end notice"
       },
       {
         "key": "sitrep-sdk . MissionMeta#firstValidUt?",
@@ -14839,6 +14847,10 @@
       {
         "key": "sitrep-sdk ./spine ~GeneratedReckonableFieldMap",
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#endReason?",
+        "note": "New: why a recorded mission's flight ended, absent for one that stopped without an end notice"
       },
       {
         "key": "sitrep-sdk ./spine ~MissionMeta#firstValidUt?",

@@ -120,7 +120,13 @@ function end(rig: Rig, ut: number, flightId: string, reason = 0): void {
  * mirroring how the mod publishes both every sample while a flight is
  * active. Flushes one coalesced frame.
  */
-function tickFrame(rig: Rig, ut: number, vesselId: string, name: string): void {
+function tickFrame(
+  rig: Rig,
+  ut: number,
+  vesselId: string,
+  name: string,
+  flightId = vesselId,
+): void {
   act(() => {
     rig.transport.emit(
       "vessel.identity",
@@ -129,7 +135,7 @@ function tickFrame(rig: Rig, ut: number, vesselId: string, name: string): void {
     );
     rig.transport.emit(
       "flight.current",
-      { flightId: vesselId, vesselId, vesselName: name, phase: 0 },
+      { flightId, vesselId, vesselName: name, phase: 0 },
       { validAt: ut, deliveredAt: ut },
     );
     rig.clock.scrubTo(ut);
@@ -592,7 +598,7 @@ describe("AutoRecordController", () => {
     // Ut the mod stamped them (a revert-target Ut, which can be BEHIND the
     // pre-revert highwater mark from the client's clock perspective too).
     end(rig, 2, "vA", 2 /* Reverted */);
-    start(rig, 2, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    start(rig, 2, { flightId: "vA-2", vesselId: "vA", vesselName: "Alpha" });
 
     const flights = await rig.source.listFlights();
     expect(flights).toHaveLength(1);
@@ -606,7 +612,7 @@ describe("AutoRecordController", () => {
     // A further tick on the post-revert flight, then ending it (master off,
     // same component instance) proves the revert really did open a SECOND,
     // independent mission.
-    tickFrame(rig, 5, "vA", "Alpha");
+    tickFrame(rig, 5, "vA", "Alpha", "vA-2");
     act(() => {
       rerender(
         <TelemetryProvider client={rig.client} store={rig.store}>
@@ -617,5 +623,102 @@ describe("AutoRecordController", () => {
 
     const finalFlights = await rig.source.listFlights();
     expect(finalFlights).toHaveLength(2);
+  });
+
+  it("stores the reason a flight ended on the mission", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled />
+      </TelemetryProvider>,
+    );
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    end(rig, 10, "vA", 1 /* Crashed */);
+
+    const flights = await rig.source.listFlights();
+    expect(flights).toHaveLength(1);
+    expect(flights[0]?.endReason).toBe(1);
+  });
+
+  it("leaves the reason absent for a recording that stopped without an end notice", async () => {
+    const rig = buildRig();
+    const tree = (scene: "Flight" | "SpaceCenter") => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene={scene} />
+      </TelemetryProvider>
+    );
+    const { rerender } = render(tree("Flight"));
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    act(() => rerender(tree("SpaceCenter")));
+
+    const flights = await rig.source.listFlights();
+    expect(flights).toHaveLength(1);
+    expect(flights[0]?.endReason).toBeUndefined();
+  });
+
+  it("puts a reason announced after the operator left the flight scene on the mission already stored", async () => {
+    const rig = buildRig();
+    const tree = (scene: "Flight" | "SpaceCenter") => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene={scene} />
+      </TelemetryProvider>
+    );
+    const { rerender } = render(tree("Flight"));
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    act(() => rerender(tree("SpaceCenter")));
+    expect(await rig.source.listFlights()).toHaveLength(1);
+
+    end(rig, 60, "vA", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      const flights = await rig.source.listFlights();
+      expect(flights).toHaveLength(1);
+      expect(flights[0]?.endReason).toBe(0);
+    });
+  });
+
+  it("keeps a crash as the end of its flight when a revert announces the same flight again, and records the flight the revert starts apart", async () => {
+    // The shape the rig recorded: a crash 11 s into the flight, then Revert
+    // to Launch from the Flight Results dialog, which announced the crashed
+    // flight a second time as Reverted. The second flight is the one a revert
+    // starts. The stub stream delivers each topic in time order, so the
+    // revert's frames sit after the crash here instead of at the revert target.
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled />
+      </TelemetryProvider>,
+    );
+    const crashed = "d08d78ab-0000-0000-0000-000000000001";
+    const reverted = "d08d78ab-0000-0000-0000-000000000002";
+    const vesselId = "d08d78ab-0000-0000-0000-000000000000";
+
+    start(rig, 91235.99, {
+      flightId: crashed,
+      vesselId,
+      vesselName: "ComSat Lx",
+    });
+    tickFrame(rig, 91240, vesselId, "ComSat Lx", crashed);
+    end(rig, 91246.99, crashed, 1 /* Crashed */);
+    end(rig, 91247.26, crashed, 2 /* Reverted */);
+    start(rig, 91247.26, {
+      flightId: reverted,
+      vesselId,
+      vesselName: "ComSat Lx",
+    });
+    tickFrame(rig, 91250, vesselId, "ComSat Lx", reverted);
+
+    expect(getAutoRecordStatus().recording).toBe(true);
+    end(rig, 91260, reverted, 2 /* Reverted */);
+
+    const flights = await rig.source.listFlights();
+    expect(flights).toHaveLength(2);
+    expect(flights.map((f) => f.endReason).sort()).toEqual([1, 2]);
   });
 });

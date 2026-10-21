@@ -33,7 +33,7 @@ public enum FlightEndReason
     /// The game rewound (a revert or a quickload) to before the flight's end,
     /// or the flight was still open when the rewind happened. Also sent for a
     /// flight that had already ended by crash or recovery on the timeline the
-    /// rewind discarded.
+    /// rewind discarded, in case its first end never reached the client.
     /// </summary>
     Reverted,
 
@@ -68,14 +68,14 @@ public enum FlightEndReason
 public class FlightCurrent
 {
     /// <summary>
-    /// The stable flight id: KSP's <c>Vessel.id</c> GUID as a string, the same
-    /// value as <see cref="VesselId"/> and as <c>VesselIdentity.VesselId</c>
-    /// and <c>CrashReport.VesselId</c>, so it joins against those directly.
+    /// The id of the flight the active vessel is flying, an opaque string the mod
+    /// makes up when the flight starts. A revert to launch starts a new flight for
+    /// the same vessel, so this changes while <see cref="VesselId"/> does not.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string FlightId { get; set; } = "";
 
-    /// <summary>KSP's <c>Vessel.id</c> GUID of the active vessel, as a string. Always equal to <see cref="FlightId"/>.</summary>
+    /// <summary>KSP's <c>Vessel.id</c> GUID of the active vessel, as a string. Joins against <c>VesselIdentity.VesselId</c> and <c>CrashReport.VesselId</c>.</summary>
     [SitrepUnit(Units.Id)]
     public string VesselId { get; set; } = "";
 
@@ -94,12 +94,13 @@ public class FlightCurrent
 /// about a craft, sent when a new flight begins. A flight is new when its vessel id
 /// has not been started before in this game session (a launch, or a first
 /// switch onto a vessel), and every vessel active just after a revert or a
-/// quickload starts a new flight, even one with the same id.
+/// quickload starts a new flight with an id of its own, even one with the same
+/// vessel id.
 /// <para>A client that subscribes while a flight is already open receives
 /// that flight's <c>flight.started</c>, carrying its original start
-/// <see cref="Ut"/>. A repeat with an unchanged <see cref="Ut"/> is the same
-/// flight announced again; a new <see cref="Ut"/> for the same vessel id is a
-/// new flight after a rewind.</para>
+/// <see cref="Ut"/>. A repeat with an unchanged <see cref="FlightId"/> is the
+/// same flight announced again; a new <see cref="FlightId"/> for the same vessel
+/// id is a new flight after a rewind.</para>
 /// </summary>
 /// <category>Flights</category>
 [SitrepContract]
@@ -109,7 +110,7 @@ public class FlightCurrent
 [SitrepTopic("flight.started")]
 public class FlightStarted
 {
-    /// <summary>The stable flight id: KSP's <c>Vessel.id</c> GUID as a string. Always equal to <see cref="VesselId"/>.</summary>
+    /// <summary>The id of the flight that began, an opaque string the mod makes up. A flight begun by a revert has an id of its own, never the reverted flight's.</summary>
     [SitrepUnit(Units.Id)]
     public string FlightId { get; set; } = "";
 
@@ -138,7 +139,13 @@ public class FlightStarted
 /// contact, whichever craft is being flown, and a centre that had no route to
 /// it is sent nothing. A centre that saw the craft go has the end in its
 /// <c>trackingStation.catalog</c>.</para>
-/// <para>Debris, flags and vessels of unknown type never end a flight.</para>
+/// <para>Debris, flags and vessels of unknown type never end a flight. Leaving
+/// the flight scene or switching to another vessel does not end one either: the
+/// flight stays open, and <c>flight.current</c> names it again when its vessel
+/// is flown again.</para>
+/// <para>A revert sends one end for every flight still open, and an end for the
+/// last flight that ended by a crash or a recovery after the revert target. A
+/// client that already holds an end for a flight keeps it.</para>
 /// </summary>
 /// <category>Flights</category>
 [SitrepContract]
@@ -148,7 +155,7 @@ public class FlightStarted
 [SitrepTopic("flight.ended")]
 public class FlightEnded
 {
-    /// <summary>The id of the flight that ended: KSP's <c>Vessel.id</c> GUID as a string. Always equal to <see cref="VesselId"/>.</summary>
+    /// <summary>The id of the flight that ended, as <see cref="FlightStarted.FlightId"/> carried it.</summary>
     [SitrepUnit(Units.Id)]
     public string FlightId { get; set; } = "";
 
@@ -188,7 +195,7 @@ public class FlightEnded
 [SitrepTopic("flight.vesselChanged")]
 public class FlightVesselChanged
 {
-    /// <summary>The flight now active: KSP's <c>Vessel.id</c> GUID as a string. Always equal to <see cref="VesselId"/>.</summary>
+    /// <summary>The id of the flight now active, as <see cref="FlightStarted.FlightId"/> carried it.</summary>
     [SitrepUnit(Units.Id)]
     public string FlightId { get; set; } = "";
 

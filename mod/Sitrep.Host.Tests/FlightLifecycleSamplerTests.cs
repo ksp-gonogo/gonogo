@@ -57,9 +57,11 @@ namespace Sitrep.Host.Tests
 
             public readonly List<string> Reports = new();
 
+            private int _minted;
+
             public Rig()
             {
-                Sampler = new FlightLifecycleSampler(Current, Started, Ended, VesselChanged, () => StartedHasAudience, Reports.Add);
+                Sampler = new FlightLifecycleSampler(Current, Started, Ended, VesselChanged, () => StartedHasAudience, Reports.Add, () => "flight-" + (++_minted));
             }
         }
 
@@ -90,14 +92,14 @@ namespace Sitrep.Host.Tests
 
             var started = Assert.Single(rig.Started.Calls);
             var payload = Assert.IsType<FlightStarted>(started.Payload);
-            Assert.Equal(VesselA, payload.FlightId);
+            Assert.Equal("flight-1", payload.FlightId);
             Assert.Equal(VesselA, payload.VesselId);
             Assert.Equal("Alpha", payload.VesselName);
             Assert.Equal(0.0, started.Ut);
 
             var current = Assert.Single(rig.Current.Calls);
             var currentPayload = Assert.IsType<FlightCurrent>(current.Payload);
-            Assert.Equal(VesselA, currentPayload.FlightId);
+            Assert.Equal("flight-1", currentPayload.FlightId);
             Assert.Equal(Situation.Flying, currentPayload.Phase);
 
             Assert.Empty(rig.Ended.Calls);
@@ -405,7 +407,7 @@ namespace Sitrep.Host.Tests
 
             var started = Assert.Single(rig.Started.Calls);
             var payload = Assert.IsType<FlightStarted>(started.Payload);
-            Assert.Equal(VesselA, payload.FlightId);
+            Assert.Equal("flight-1", payload.FlightId);
             Assert.Equal("Alpha", payload.VesselName);
         }
 
@@ -515,6 +517,91 @@ namespace Sitrep.Host.Tests
             Assert.Equal(2, rig.Started.Calls.Count);
             Assert.Equal(0.0, Assert.IsType<FlightStarted>(rig.Started.Calls[0].Payload).Ut);
             Assert.Equal(0.5, Assert.IsType<FlightStarted>(rig.Started.Calls[1].Payload).Ut);
+        }
+
+        [Fact]
+        public void ARevertToTheSameVesselStartsAFlightWithAnIdOfItsOwn()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 10.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.5, name: "Alpha"));
+
+            var first = (FlightStarted)rig.Started.Calls[0].Payload!;
+            var second = (FlightStarted)rig.Started.Calls[1].Payload!;
+            Assert.Equal(VesselA, first.VesselId);
+            Assert.Equal(VesselA, second.VesselId);
+            Assert.NotEqual(first.FlightId, second.FlightId);
+
+            var ended = Assert.IsType<FlightEnded>(Assert.Single(rig.Ended.Calls).Payload);
+            Assert.Equal(first.FlightId, ended.FlightId);
+            Assert.Equal(second.FlightId, ((FlightCurrent)rig.Current.Calls[^1].Payload!).FlightId);
+        }
+
+        [Fact]
+        public void ARevertWhoseFirstTickShowsNoVesselStillStartsANewFlightOnTheNextVessel()
+        {
+            // The scene reloads on a revert, so the first tick after the rewind can have no active vessel.
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 10.0, name: "Alpha"));
+            rig.Sampler.Sample(NoVesselSnapshot(0.5));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.6, name: "Alpha"));
+
+            Assert.Equal(2, rig.Started.Calls.Count);
+            var second = (FlightStarted)rig.Started.Calls[1].Payload!;
+            Assert.Equal(VesselA, second.VesselId);
+            Assert.NotEqual(((FlightStarted)rig.Started.Calls[0].Payload!).FlightId, second.FlightId);
+            Assert.Equal(second.FlightId, ((FlightCurrent)rig.Current.Calls[^1].Payload!).FlightId);
+            AssertEndedOnce(rig, VesselA, FlightEndReason.Reverted);
+        }
+
+        [Fact]
+        public void ACrashThenARevertKeepsTheCrashAndStartsANewFlightForTheSameVessel()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.SignalEnd(VesselA, "Alpha", FlightEndReason.Crashed, 20.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 20.1, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.5, name: "Alpha"));
+
+            var crashedFlight = ((FlightStarted)rig.Started.Calls[0].Payload!).FlightId;
+            var newFlight = ((FlightStarted)rig.Started.Calls[1].Payload!).FlightId;
+            Assert.NotEqual(crashedFlight, newFlight);
+
+            var ends = rig.Ended.Calls.Select(c => (FlightEnded)c.Payload!).ToList();
+            Assert.Equal(FlightEndReason.Crashed, ends[0].Reason);
+            Assert.Equal(crashedFlight, ends[0].FlightId);
+            Assert.DoesNotContain(ends, e => e.FlightId == newFlight);
+            Assert.All(ends.Skip(1), e => Assert.Equal(crashedFlight, e.FlightId));
+        }
+
+        [Fact]
+        public void ARevertEndsEveryFlightStillOpenNotOnlyTheOneInFocus()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 5.0, name: "Bravo"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.5, name: "Alpha"));
+
+            AssertEndedOnce(rig, VesselA, FlightEndReason.Reverted);
+            AssertEndedOnce(rig, VesselB, FlightEndReason.Reverted);
+
+            // Focus moving onto the vessel left behind is a flight of its own after the rewind.
+            rig.Sampler.Sample(SnapshotFor(VesselB, 1.0, name: "Bravo"));
+            Assert.Equal(1, rig.Started.Calls.Count(c => ((FlightStarted)c.Payload!).VesselId == VesselB && ((FlightStarted)c.Payload!).Ut == 1.0));
+        }
+
+        [Fact]
+        public void ASecondLossSignalledForAFlightThatAlreadyEndedPublishesNothing()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.SignalEnd(VesselA, "Alpha", FlightEndReason.Crashed, 5.0);
+            rig.Sampler.SignalEnd(VesselA, "Alpha", FlightEndReason.Destroyed, 5.0);
+            rig.Sampler.Sample(NoVesselSnapshot(6.0));
+
+            AssertEndedOnce(rig, VesselA, FlightEndReason.Crashed);
         }
 
         [Fact]

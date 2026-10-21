@@ -142,14 +142,14 @@ export class MissionStore {
   }
 
   /**
-   * Patches `starred`/`chapters` on one mission's meta row, a
+   * Patches `starred`/`chapters`/`endReason` on one mission's meta row, a
    * `META_STORE`-only transaction, never touching the (potentially large)
    * `FIXTURE_STORE` blob. Read-modify-write since IndexedDB has no partial
    * `put`; no-ops (resolves without writing) when the mission doesn't exist.
    */
   async updateMissionMeta(
     id: string,
-    patch: Partial<Pick<MissionMeta, "starred" | "chapters">>,
+    patch: Partial<Pick<MissionMeta, "starred" | "chapters" | "endReason">>,
   ): Promise<void> {
     const db = await this.open();
     return new Promise<void>((resolve, reject) => {

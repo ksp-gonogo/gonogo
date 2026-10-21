@@ -1,4 +1,5 @@
 import { type GameScene, getDataSource } from "@ksp-gonogo/core";
+import { logger } from "@ksp-gonogo/logger";
 import {
   type ReplayFixture,
   type StreamRecorder,
@@ -7,6 +8,7 @@ import {
 import {
   type FlightCurrent,
   type FlightEnded,
+  type FlightEndReason,
   type FlightStarted,
   magnitudeOf,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -81,16 +83,19 @@ export interface AutoRecordControllerProps {
  *
  * **Boundary approach: mod-native, not a client heuristic:** delimits
  * recordings on the mod's own `flight.started`/`flight.ended` events. The mod
- * mints the flight id (`Vessel.id`) and does all boundary detection
+ * mints the flight id (a revert to launch starts a new flight for the same
+ * vessel, with an id of its own) and does all boundary detection
  * server-side, revert included, so this controller is a thin, event-driven
  * mirror. A client-side guess off `vesselName` + `missionTime` + a
  * revert threshold can only approximate any of that:
  *
  * - `flight.started` closes whatever session is open and starts a fresh
  *   one for the new flight.
- * - `flight.ended` (recovered/crashed/reverted/destroyed: the reason
- *   itself isn't needed here, only "this flight is over") closes the
- *   session for that same flight id. Because `flight.ended` is `Delayed`
+ * - `flight.ended` (recovered/crashed/reverted/destroyed) closes the
+ *   session for that same flight id and stores its reason on the mission, or
+ *   on the mission already stored when the recording stopped at a scene
+ *   change. A second end for a flight already closed, such as the revert
+ *   after a crash, is ignored, so the first reason stands. Because `flight.ended` is `Delayed`
  *   (rides the signal delay reveal clock, same class as `crash.lastCrash`),
  *   it arrives right after the last pre-crash frame the operator actually
  *   sees: so the recording captures the full flight up to the crash with
@@ -108,10 +113,9 @@ export interface AutoRecordControllerProps {
  * fixture shape has no way to append into a flight it has already closed: a
  * second mission row for what the mod considers logically one flight.
  *
- * A re-announce is told from a genuinely new flight by `(flightId, ut)`, not
- * by id alone: a revert republishes `flight.started` for the same vessel id
- * and that one is a new flight, distinguished only by carrying the
- * revert-target UT where a re-announce carries the original launch instant.
+ * A re-announce is told from a genuinely new flight by `(flightId, ut)`: a
+ * revert starts a flight with an id of its own, at the revert-target UT, where
+ * a re-announce repeats the id and the original launch instant.
  */
 export function AutoRecordController({
   missionHistoryEnabled = true,
@@ -128,6 +132,8 @@ export function AutoRecordController({
   const activeFlightStartedUtRef = useRef<number | null>(null);
   const activeVesselNameRef = useRef<string>("");
   const activeLaunchedAtRef = useRef<number>(0);
+  /** The mission the tracked flight was last stored as, so an end announced after the recording stopped can still be put on it. */
+  const savedMissionIdRef = useRef<string | null>(null);
   const prevSceneRef = useRef<GameScene>(scene);
   const missionHistoryEnabledRef = useRef(missionHistoryEnabled);
   missionHistoryEnabledRef.current = missionHistoryEnabled;
@@ -147,44 +153,49 @@ export function AutoRecordController({
    * recorded, and does not wait for the write. A part that cannot be stored is
    * reported, and the parts after it are stored all the same.
    */
-  const storePart = useCallback((fixture: ReplayFixture): void => {
-    const recorded = missionRef.current;
-    const record = buildMissionRecord({
-      vesselName: activeVesselNameRef.current,
-      launchedAt: activeLaunchedAtRef.current,
-      fixture,
-      id: recorded?.meta.id,
-    });
-    if (!record) return;
-    const meta = recorded
-      ? withMissionPart(recorded.meta, record.meta)
-      : record.meta;
-    const part = recorded?.nextPart ?? 0;
-    missionRef.current = { meta, nextPart: part + 1 };
-    const src = getSource();
-    /*
-     * `getSource()` is a cast, so the method is checked and not only the
-     * source: during an abnormal teardown the registered "missionHistory"
-     * source may not be the real one, and calling a missing method would throw
-     * and mask the error that caused the teardown.
-     */
-    if (typeof src?.saveMissionPart !== "function") return;
-    src.saveMissionPart(meta, part, fixture).then(
-      () => {
-        // A part of the same flight being stored does not undo the loss of an earlier one.
-        if (failedMissionIdRef.current === meta.id) return;
-        failedMissionIdRef.current = null;
-        setAutoRecordSaveFailure(null);
-      },
-      (error: unknown) => {
-        failedMissionIdRef.current = meta.id;
-        setAutoRecordSaveFailure({
-          vesselName: meta.vesselName,
-          cause: error instanceof Error ? error.message : String(error),
-        });
-      },
-    );
-  }, []);
+  const storePart = useCallback(
+    (fixture: ReplayFixture, endReason?: FlightEndReason): void => {
+      const recorded = missionRef.current;
+      const record = buildMissionRecord({
+        vesselName: activeVesselNameRef.current,
+        launchedAt: activeLaunchedAtRef.current,
+        fixture,
+        id: recorded?.meta.id,
+        endReason,
+      });
+      if (!record) return;
+      savedMissionIdRef.current = record.meta.id;
+      const meta = recorded
+        ? withMissionPart(recorded.meta, record.meta)
+        : record.meta;
+      const part = recorded?.nextPart ?? 0;
+      missionRef.current = { meta, nextPart: part + 1 };
+      const src = getSource();
+      /*
+       * `getSource()` is a cast, so the method is checked and not only the
+       * source: during an abnormal teardown the registered "missionHistory"
+       * source may not be the real one, and calling a missing method would throw
+       * and mask the error that caused the teardown.
+       */
+      if (typeof src?.saveMissionPart !== "function") return;
+      src.saveMissionPart(meta, part, fixture).then(
+        () => {
+          // A part of the same flight being stored does not undo the loss of an earlier one.
+          if (failedMissionIdRef.current === meta.id) return;
+          failedMissionIdRef.current = null;
+          setAutoRecordSaveFailure(null);
+        },
+        (error: unknown) => {
+          failedMissionIdRef.current = meta.id;
+          setAutoRecordSaveFailure({
+            vesselName: meta.vesselName,
+            cause: error instanceof Error ? error.message : String(error),
+          });
+        },
+      );
+    },
+    [],
+  );
 
   /**
    * Synchronous stop (grabs whatever's buffered) + fire-and-forget async
@@ -194,9 +205,9 @@ export function AutoRecordController({
    * the IndexedDB write trails behind.
    */
   const finishAndSave = useCallback(
-    (r: StreamRecorder): void => {
+    (r: StreamRecorder, endReason?: FlightEndReason): void => {
       if (!r.recording) return;
-      storePart(r.stop());
+      storePart(r.stop(), endReason);
       missionRef.current = null;
       partStartedAtRef.current = null;
       setAutoRecordStatus({
@@ -257,6 +268,7 @@ export function AutoRecordController({
           return;
         }
         finishAndSave(recorder);
+        savedMissionIdRef.current = null;
         activeFlightIdRef.current = payload.flightId;
         activeFlightStartedUtRef.current = startedUt;
         activeVesselNameRef.current = payload.vesselName;
@@ -273,18 +285,39 @@ export function AutoRecordController({
     ),
   );
 
+  /** Puts a flight's end reason on the mission its recording was already stored as. */
+  const storeReasonOnSavedMission = useCallback(
+    (endReason: FlightEndReason): void => {
+      const id = savedMissionIdRef.current;
+      const src = getSource();
+      if (!id || typeof src?.setFlightEndReason !== "function") return;
+      src.setFlightEndReason(id, endReason).catch((error: unknown) => {
+        logger.warn("[AutoRecordController] end reason not stored", {
+          err: String(error),
+        });
+      });
+    },
+    [],
+  );
+
   useOptionalStreamEvent<FlightEnded>(
     "flight.ended",
     useCallback(
       (payload) => {
         if (!recorder) return;
         if (payload.flightId !== activeFlightIdRef.current) return;
-        finishAndSave(recorder);
+        if (recorder.recording) {
+          finishAndSave(recorder, payload.reason);
+        } else {
+          // The recording stopped when the scene changed, before the end was announced.
+          storeReasonOnSavedMission(payload.reason);
+        }
+        savedMissionIdRef.current = null;
         // Nothing is tracked once the flight is over, so neither the master switch nor a later tick can start recording it again.
         activeFlightIdRef.current = null;
         activeFlightStartedUtRef.current = null;
       },
-      [recorder, finishAndSave],
+      [recorder, finishAndSave, storeReasonOnSavedMission],
     ),
   );
 

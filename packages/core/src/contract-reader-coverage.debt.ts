@@ -73,7 +73,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
   "field:eva.crew.kerbals": "no reader found",
   "field:flight.current.phase": "no reader found",
   "field:flight.current.vesselId": "no reader found",
-  "field:flight.ended.reason": "no reader found",
   "field:flight.ended.vesselId": "no reader found",
   "field:flight.vesselChanged.flightId": "no reader found",
   "field:flight.vesselChanged.previousVesselId": "no reader found",

@@ -51,8 +51,7 @@ function useSourceFlight(sourceId: string): FlightRecord | null {
  * Default (no-`sourceId`) variant: derives the current flight straight off
  * the mod-native flight-lifecycle stream (`flight.started`) instead of
  * the retired client-side `FlightDetector` heuristic. The mod mints the
- * flight id (`Vessel.id`, the same currency `VesselIdentity.VesselId`
- * already uses) and does the revert/switch detection server-side; see
+ * flight id and does the revert/switch detection server-side; see
  * `Sitrep.Host.Flight.FlightLifecycleSampler`: so this hook is a thin,
  * event-driven mirror: every `flight.started` becomes the new current
  * flight.
@@ -62,9 +61,8 @@ function useSourceFlight(sourceId: string): FlightRecord | null {
  * is normally already flying by the time a browser connects), so the same
  * flight can arrive more than once and the repeats must not mint a fresh
  * record with a fresh `launchedAt`. `(flightId, ut)` is what tells the two
- * apart: a revert republishes for the same vessel id and is a new flight,
- * carrying the revert-target UT where a re-announce carries the original
- * launch instant.
+ * apart: a revert starts a flight with an id of its own, at the revert-target
+ * UT, where a re-announce repeats the id and the original launch instant.
  *
  * Degrades to `null`, never throws, whenever no `TelemetryProvider` is
  * mounted (every station screen today; see `useOptionalStreamEvent`) or

@@ -53,10 +53,12 @@ namespace Sitrep.Host.Flight
     /// kerbal stepped out of, so the id does not move and no flight changes
     /// hands for the walk outside.</para>
     ///
-    /// <para><b>Flight id:</b> the mod-minted "stable id" the spec calls for
-    /// is simply <c>Vessel.id</c> (as a string), the exact currency
-    /// <c>VesselIdentity.VesselId</c>/<c>CrashReport.VesselId</c> already use.
-    /// No separate id space; <c>FlightId == VesselId</c> always.</para>
+    /// <para><b>Flight id:</b> minted per flight and opaque, never the vessel's
+    /// id. A revert to launch keeps the vessel's <c>Vessel.id</c> while starting a
+    /// new flight, so the two cannot be the same value: a flight is told from the
+    /// one a revert replaced by its id alone. The vessel's own id is on every
+    /// event as <c>VesselId</c>, the key that joins against
+    /// <c>VesselIdentity.VesselId</c> and <c>CrashReport.VesselId</c>.</para>
     ///
     /// <para><b>An open flight is announced to whoever has not heard it, not
     /// once per flight.</b> KSP is normally already running when the browser
@@ -98,6 +100,13 @@ namespace Sitrep.Host.Flight
         private string? _activeVesselId;
         private string _activeVesselName = "";
 
+        private readonly Func<string> _mintFlightId;
+
+        // Every vessel this session has started a flight for, keyed by vessel id.
+        // A rewind empties it (the timeline it described is gone), so a vessel
+        // that is active afterwards, whatever its id, starts a flight of its own.
+        private readonly Dictionary<string, FlightRecord> _flights = new Dictionary<string, FlightRecord>();
+
         // The most recently ended flight (crash/recovery via ApplyEnd, OR a
         // PRIOR revert), tracked independent of _activeVesselId's null-out,
         // see Sample's rewind branch doc comment for why: an end signalled
@@ -113,19 +122,9 @@ namespace Sitrep.Host.Flight
         // Ut AFTER this end is unrelated (the end safely predates the
         // reverted-to point) and leaves it alone.
         private string? _lastEndedVesselId;
+        private string? _lastEndedFlightId;
         private string _lastEndedVesselName = "";
         private double _lastEndedUt;
-
-        // Every vessel id this session has announced as started, against the UT
-        // it started at. Monotonically-growing -- deliberately never
-        // .Remove()'d on end (see the class doc comment's started-vs-
-        // vesselChanged note): a destroyed/recovered Vessel.id can never
-        // become the reported active vessel again in stock KSP, so treating
-        // "ever started" as permanent-for-session is strictly safer than
-        // trying to track open/closed and risking a spurious double-start. The
-        // UT is what a re-announce carries, so switching focus back onto a
-        // vessel that launched an hour ago still reports the hour-old launch.
-        private readonly Dictionary<string, double> _startedUtByVesselId = new Dictionary<string, double>();
 
         // The flight id the CURRENT audience has been sent a flight.started
         // for. Cleared the moment nothing is subscribed, because who is in the
@@ -137,14 +136,17 @@ namespace Sitrep.Host.Flight
         private long _endsWithoutStart;
 
         /// <param name="report">Told, once per occurrence, why an end signal was not published.</param>
+        /// <param name="mintFlightId">Makes the id of each new flight. Defaults to a fresh GUID.</param>
         public FlightLifecycleSampler(
             IChannelPublisher current,
             IChannelPublisher started,
             IChannelPublisher ended,
             IChannelPublisher vesselChanged,
             Func<bool> startedHasAudience,
-            Action<string>? report = null)
+            Action<string>? report = null,
+            Func<string>? mintFlightId = null)
         {
+            _mintFlightId = mintFlightId ?? (() => Guid.NewGuid().ToString());
             _current = current;
             _started = started;
             _ended = ended;
@@ -203,7 +205,7 @@ namespace Sitrep.Host.Flight
 
             if (isRewind)
             {
-                EndRevertedFlight(snapshot.Ut);
+                EndRevertedFlights(snapshot.Ut, endedThisTick);
 
                 // Resync WITHOUT further switch-detection this tick -- a
                 // rewind's loaded state can ordinarily show a DIFFERENT
@@ -231,25 +233,42 @@ namespace Sitrep.Host.Flight
             PublishCurrent(snapshot, currentId);
         }
 
-        private void EndRevertedFlight(double ut)
+        /// <summary>
+        /// A rewind discards the timeline every open flight was flying on, so
+        /// each ends Reverted, and no vessel's flight carries over: whatever is
+        /// active afterwards starts a new one, even with the vessel id it had.
+        /// </summary>
+        private void EndRevertedFlights(double ut, HashSet<string> endedThisTick)
         {
-            if (_activeVesselId != null)
+            foreach (var flight in _flights.Values)
             {
-                PublishEnded(_activeVesselId, _activeVesselName, FlightEndReason.Reverted, ut);
-                _activeVesselId = null;
-                _activeVesselName = "";
-                return;
+                if (flight.Open)
+                {
+                    PublishEnded(flight, FlightEndReason.Reverted, ut);
+                    flight.Open = false;
+                }
             }
+            _activeVesselId = null;
+            _activeVesselName = "";
+
+            // An end applied this very tick belongs to the flight the sample
+            // that follows is about, so it keeps its record.
+            foreach (var vesselId in new List<string>(_flights.Keys))
+            {
+                if (!endedThisTick.Contains(vesselId)) _flights.Remove(vesselId);
+            }
+
             if (_lastEndedVesselId == null || !(_lastEndedUt >= ut)) return;
 
             // The most recent end (crash/recovery) happened ON the
-            // abandoned branch this rewind erases -- retroactively
-            // re-announce it as Reverted at the revert-target Ut, so
-            // the operator (who may never have seen the original end
-            // reveal at all) still learns this flight is over, and
-            // why. See the field's own doc comment.
-            PublishEnded(_lastEndedVesselId, _lastEndedVesselName, FlightEndReason.Reverted, ut);
+            // abandoned branch this rewind erases. The end may never have
+            // been revealed to an operator at a signal delay, and this
+            // sampler cannot see the reveal buffer, so it is announced
+            // again as Reverted at the revert-target Ut. A client that
+            // already holds the first end for that flight keeps it.
+            PublishEnded(_lastEndedFlightId!, _lastEndedVesselId, _lastEndedVesselName, FlightEndReason.Reverted, ut);
             _lastEndedVesselId = null;
+            _lastEndedFlightId = null;
             _lastEndedVesselName = "";
         }
 
@@ -258,7 +277,7 @@ namespace Sitrep.Host.Flight
             if (_lastVesselId == null)
             {
                 // Cold start (first-ever observation this session).
-                if (_startedUtByVesselId.ContainsKey(currentId))
+                if (_flights.ContainsKey(currentId))
                 {
                     _activeVesselId = currentId;
                     _activeVesselName = ReadVesselName(snapshot) ?? _activeVesselName;
@@ -269,7 +288,7 @@ namespace Sitrep.Host.Flight
             }
             if (currentId == _lastVesselId) return;
 
-            if (_startedUtByVesselId.ContainsKey(currentId))
+            if (_flights.TryGetValue(currentId, out var known))
             {
                 _activeVesselId = currentId;
                 _activeVesselName = ReadVesselName(snapshot) ?? _activeVesselName;
@@ -280,12 +299,11 @@ namespace Sitrep.Host.Flight
                 // AnnounceStartedIfUnheard stays quiet for them. It still
                 // fires for whoever subscribes after this, because an
                 // empty audience clears this the same as any other.
-                _announcedStartedFlightId = currentId;
-                PublishVesselChanged(currentId, snapshot, _lastVesselId);
+                _announcedStartedFlightId = known.FlightId;
+                PublishVesselChanged(known, snapshot, _lastVesselId);
                 return;
             }
-            StartNewFlight(currentId, snapshot);
-            PublishVesselChanged(currentId, snapshot, _lastVesselId);
+            PublishVesselChanged(StartNewFlight(currentId, snapshot), snapshot, _lastVesselId);
         }
 
         private void ApplyEnd(
@@ -297,7 +315,7 @@ namespace Sitrep.Host.Flight
             KspSnapshot snapshot)
         {
             var seenMidWay = false;
-            if (!_startedUtByVesselId.ContainsKey(vesselId) && vesselId == currentId)
+            if (!_flights.ContainsKey(vesselId) && vesselId == currentId)
             {
                 // The end was signalled before any sample showed this vessel
                 // (a flight that began from a load or revert and ended within
@@ -308,7 +326,7 @@ namespace Sitrep.Host.Flight
                 // takes its place as the open flight.
                 if (_activeVesselId != null && _activeVesselId != vesselId)
                 {
-                    PublishEnded(_activeVesselId, _activeVesselName, FlightEndReason.Reverted, ut);
+                    EndOpenFlight(_activeVesselId, FlightEndReason.Reverted, ut);
                     _activeVesselId = null;
                     _activeVesselName = "";
                 }
@@ -317,7 +335,7 @@ namespace Sitrep.Host.Flight
                 seenMidWay = true;
             }
 
-            if (!_startedUtByVesselId.ContainsKey(vesselId))
+            if (!_flights.TryGetValue(vesselId, out var flight))
             {
                 // A craft nobody flew this session (a vessel destroyed out of
                 // focus, say) has no flight to end, and one the sampler did
@@ -330,7 +348,11 @@ namespace Sitrep.Host.Flight
                 return;
             }
 
-            PublishEnded(vesselId, vesselName, reason, ut);
+            // A vessel the game reports lost twice (a crash, then its destruction) ends one flight.
+            if (!flight.Open) return;
+
+            flight.Open = false;
+            PublishEnded(flight, vesselName, reason, ut);
             if (_activeVesselId == vesselId)
             {
                 _activeVesselId = null;
@@ -342,20 +364,23 @@ namespace Sitrep.Host.Flight
             if (seenMidWay) return;
 
             _lastEndedVesselId = vesselId;
+            _lastEndedFlightId = flight.FlightId;
             _lastEndedVesselName = vesselName;
             _lastEndedUt = ut;
         }
 
-        private void StartNewFlight(string vesselId, KspSnapshot snapshot)
+        private FlightRecord StartNewFlight(string vesselId, KspSnapshot snapshot)
         {
             _activeVesselId = vesselId;
             _activeVesselName = ReadVesselName(snapshot) ?? "";
-            _startedUtByVesselId[vesselId] = snapshot.Ut;
+            var flight = new FlightRecord(_mintFlightId(), vesselId, snapshot.Ut, _activeVesselName);
+            _flights[vesselId] = flight;
 
             // This is news to everyone, including an audience that was already
             // told about the flight this one replaces (a revert's restart).
             _announcedStartedFlightId = null;
             AnnounceStartedIfUnheard();
+            return flight;
         }
 
         /// <summary>
@@ -381,28 +406,28 @@ namespace Sitrep.Host.Flight
             }
 
             if (_activeVesselId == null
-                || _announcedStartedFlightId == _activeVesselId
-                || !_startedUtByVesselId.TryGetValue(_activeVesselId, out var startedUt))
+                || !_flights.TryGetValue(_activeVesselId, out var flight)
+                || _announcedStartedFlightId == flight.FlightId)
             {
                 return;
             }
 
-            _announcedStartedFlightId = _activeVesselId;
+            _announcedStartedFlightId = flight.FlightId;
             _started.Publish(new FlightStarted
             {
-                FlightId = _activeVesselId,
-                VesselId = _activeVesselId,
+                FlightId = flight.FlightId,
+                VesselId = flight.VesselId,
                 VesselName = _activeVesselName,
-                Ut = startedUt,
-            }, startedUt);
+                Ut = flight.StartUt,
+            }, flight.StartUt);
         }
 
-        private void PublishVesselChanged(string vesselId, KspSnapshot snapshot, string? previousVesselId)
+        private void PublishVesselChanged(FlightRecord flight, KspSnapshot snapshot, string? previousVesselId)
         {
             _vesselChanged.Publish(new FlightVesselChanged
             {
-                FlightId = vesselId,
-                VesselId = vesselId,
+                FlightId = flight.FlightId,
+                VesselId = flight.VesselId,
                 VesselName = _activeVesselName,
                 PreviousVesselId = previousVesselId,
                 Ut = snapshot.Ut,
@@ -414,11 +439,24 @@ namespace Sitrep.Host.Flight
         /// so the end reaches each centre at that craft's delay and none that had
         /// no route to it. A recovery and a rewind are the ground's own news.
         /// </summary>
-        private void PublishEnded(string vesselId, string vesselName, FlightEndReason reason, double ut)
+        private void EndOpenFlight(string vesselId, FlightEndReason reason, double ut)
+        {
+            if (!_flights.TryGetValue(vesselId, out var flight) || !flight.Open) return;
+            flight.Open = false;
+            PublishEnded(flight, reason, ut);
+        }
+
+        private void PublishEnded(FlightRecord flight, FlightEndReason reason, double ut)
+            => PublishEnded(flight.FlightId, flight.VesselId, flight.VesselName, reason, ut);
+
+        private void PublishEnded(FlightRecord flight, string vesselName, FlightEndReason reason, double ut)
+            => PublishEnded(flight.FlightId, flight.VesselId, vesselName, reason, ut);
+
+        private void PublishEnded(string flightId, string vesselId, string vesselName, FlightEndReason reason, double ut)
         {
             var ended = new FlightEnded
             {
-                FlightId = vesselId,
+                FlightId = flightId,
                 VesselId = vesselId,
                 VesselName = vesselName,
                 Reason = reason,
@@ -442,11 +480,16 @@ namespace Sitrep.Host.Flight
                 return;
             }
 
+            // No record means no flight has started for this vessel, so there is no id to name.
+            if (!_flights.TryGetValue(vesselId, out var flight)) return;
+
+            var name = ReadVesselName(snapshot) ?? _activeVesselName;
+            flight.VesselName = name;
             _current.Publish(new FlightCurrent
             {
-                FlightId = vesselId,
+                FlightId = flight.FlightId,
                 VesselId = vesselId,
-                VesselName = ReadVesselName(snapshot) ?? _activeVesselName,
+                VesselName = name,
                 Phase = ReadSituation(snapshot),
             }, snapshot.Ut);
         }
@@ -475,6 +518,23 @@ namespace Sitrep.Host.Flight
         {
             var identity = GetVesselIdentityGroup(snapshot);
             return SharedMappers.ParseSituation(identity != null ? SnapshotDict.GetString(identity, "situation") : null);
+        }
+
+        private sealed class FlightRecord
+        {
+            public readonly string FlightId;
+            public readonly string VesselId;
+            public readonly double StartUt;
+            public string VesselName;
+            public bool Open = true;
+
+            public FlightRecord(string flightId, string vesselId, double startUt, string vesselName)
+            {
+                FlightId = flightId;
+                VesselId = vesselId;
+                StartUt = startUt;
+                VesselName = vesselName;
+            }
         }
 
         private readonly struct EndSignal

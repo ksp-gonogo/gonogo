@@ -1,8 +1,13 @@
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import { DEFAULT_KEEP_COUNT, Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
-import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  DEFAULT_KEEP_COUNT,
+  FlightEndReason,
+  Quality,
+  Staleness,
+} from "@ksp-gonogo/sitrep-sdk";
+import { render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -97,6 +102,35 @@ describe("FlightsManager", () => {
     });
 
     await expectNoA11yViolations(container);
+  });
+
+  it("shows why each flight ended, and a dash for one that stopped without a reason", async () => {
+    const store = freshStore();
+    registerDataSource(new MissionHistorySource(store));
+    await seedMission(store, {
+      vesselName: "Crashed One",
+      endReason: FlightEndReason.Crashed,
+    });
+    await seedMission(store, {
+      vesselName: "Reverted One",
+      endReason: FlightEndReason.Reverted,
+    });
+    await seedMission(store, { vesselName: "Open One" });
+
+    render(<FlightsManager />);
+
+    const rowOf = async (name: string) =>
+      (await screen.findByText(name)).closest("tr") as HTMLElement;
+    expect(
+      within(await rowOf("Crashed One")).getByText("Crashed"),
+    ).toBeTruthy();
+    expect(
+      within(await rowOf("Reverted One")).getByText("Reverted"),
+    ).toBeTruthy();
+    const open = within(await rowOf("Open One"));
+    expect(open.queryByText("Crashed")).toBeNull();
+    expect(open.queryByText("Reverted")).toBeNull();
+    expect(screen.getByRole("columnheader", { name: "Ended" })).toBeTruthy();
   });
 
   it("toggles a flight's starred state", async () => {

@@ -1,4 +1,5 @@
 import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
+import type { FlightEndReason } from "@ksp-gonogo/sitrep-sdk";
 import type { MissionMeta, MissionRecord } from "../storage/MissionStore";
 
 export function makeMissionId(): string {
@@ -22,6 +23,8 @@ export function buildMissionRecord(params: {
   fixture: ReplayFixture;
   /** The mission this fixture is a later part of. Omitted, a new id is made. */
   id?: string;
+  /** Why the flight ended, when the end is known. */
+  endReason?: FlightEndReason;
 }): MissionRecord | null {
   const { fixture } = params;
   if (fixture.frames.length === 0) return null;
@@ -56,6 +59,7 @@ export function buildMissionRecord(params: {
     lastFrameUt,
     ...(Number.isFinite(firstValidUt) ? { firstValidUt, lastValidUt } : {}),
     frameCount: fixture.frames.length,
+    ...(params.endReason === undefined ? {} : { endReason: params.endReason }),
   };
   return { meta, fixture };
 }
@@ -98,5 +102,6 @@ export function withMissionPart(
     ...(validFrom.length === 0 ? {} : { firstValidUt: Math.min(...validFrom) }),
     ...(validTo.length === 0 ? {} : { lastValidUt: Math.max(...validTo) }),
     frameCount: mission.frameCount + part.frameCount,
+    ...(part.endReason === undefined ? {} : { endReason: part.endReason }),
   };
 }

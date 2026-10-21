@@ -11,7 +11,11 @@ import {
   resolveValueTopic,
   type TimelineStore,
 } from "@ksp-gonogo/sitrep-client";
-import { getKeepCount, ListenerSet } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type FlightEndReason,
+  getKeepCount,
+  ListenerSet,
+} from "@ksp-gonogo/sitrep-sdk";
 import { getTopicFieldCatalog } from "../schema/topicFieldCatalog";
 import type {
   MissionMeta,
@@ -226,6 +230,22 @@ export class MissionHistorySource implements DataSource {
     this.flightListSubscribers.fire();
   }
 
+  /**
+   * Records why a stored mission's flight ended, for a flight whose recording
+   * stopped before the end was announced (the operator left the flight scene
+   * and the vessel was recovered later). Does nothing when the mission is gone
+   * or already holds a reason.
+   */
+  async setFlightEndReason(
+    id: string,
+    endReason: FlightEndReason,
+  ): Promise<void> {
+    const meta = await this.missionStore.getMissionMeta(id);
+    if (!meta || meta.endReason !== undefined) return;
+    await this.missionStore.updateMissionMeta(id, { endReason });
+    this.flightListSubscribers.fire();
+  }
+
   async addChapter(
     missionId: string,
     chapter: Omit<FlightChapterRecord, "id"> & { id?: string },
@@ -345,6 +365,7 @@ function missionMetaToFlightRecord(meta: MissionMeta): FlightRecord {
     // `recovery.lastSummary`. Wiring outcome capture into StreamRecorder (or
     // MissionMeta) is a real, separate follow-up, not silently dropped.
     outcome: undefined,
+    endReason: meta.endReason,
     firstFrameUt: meta.firstFrameUt,
     lastFrameUt: meta.lastFrameUt,
     firstValidUt: meta.firstValidUt,

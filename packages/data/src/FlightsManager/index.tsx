@@ -1,6 +1,7 @@
 import { getDataSource, type Screen } from "@ksp-gonogo/core";
 import {
   DEFAULT_KEEP_COUNT,
+  FlightEndReason,
   getKeepCount,
   setKeepCount,
   value,
@@ -45,6 +46,21 @@ function formatFlightDuration(
   lastSampleAt: number,
 ): string {
   return writeQuantity(value("irl:s", (lastSampleAt - launchedAt) / 1000));
+}
+
+const END_REASON_LABELS: Record<FlightEndReason, string> = {
+  [FlightEndReason.Recovered]: "Recovered",
+  [FlightEndReason.Crashed]: "Crashed",
+  [FlightEndReason.Reverted]: "Reverted",
+  [FlightEndReason.Destroyed]: "Destroyed",
+  [FlightEndReason.Terminated]: "Terminated",
+};
+
+/** A flight that stopped recording without an end notice has no reason, and reads as absent. */
+function endReasonLabel(reason: FlightEndReason | undefined): string {
+  return reason === undefined
+    ? NULL_DISPLAY
+    : (END_REASON_LABELS[reason] ?? NULL_DISPLAY);
 }
 
 /** Funds and science are absent in a save that awards neither, and read as absent rather than as +0. */
@@ -364,6 +380,7 @@ export function FlightsManager({
                 <Th>Launched</Th>
                 <Th>Duration</Th>
                 <Th>Samples</Th>
+                <Th>Ended</Th>
                 <Th>
                   <SrOnly>Actions</SrOnly>
                 </Th>
@@ -430,6 +447,7 @@ export function FlightsManager({
                         {formatFlightDuration(f.launchedAt, f.lastSampleAt)}
                       </Td>
                       <Td>{f.sampleCount.toLocaleString()}</Td>
+                      <Td>{endReasonLabel(f.endReason)}</Td>
                       <Td>
                         <RowActions>
                           <GraphButton
@@ -488,7 +506,7 @@ export function FlightsManager({
                     </Tr>
                     {isExpanded && (
                       <Tr $current={false}>
-                        <Td colSpan={7} style={{ padding: 0 }}>
+                        <Td colSpan={8} style={{ padding: 0 }}>
                           <ChaptersEditor
                             flight={f}
                             onChange={() => void reload()}
