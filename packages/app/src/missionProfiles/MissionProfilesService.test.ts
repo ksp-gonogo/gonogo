@@ -294,6 +294,30 @@ describe("MissionProfilesService", () => {
       expect(svc.findForScene("Flight")?.id).toBe(flight?.id);
     });
 
+    it("keeps the old slot when storage refuses the converted profiles", () => {
+      storage.setItem("gonogo:dashboard:main:Flight", stored(one("a")));
+      const full = new Proxy(storage, {
+        get(target, prop) {
+          if (prop === "setItem") {
+            return (k: string, v: string) => {
+              if (k === "gonogo.missionProfiles.main") {
+                throw new DOMException("full", "QuotaExceededError");
+              }
+              target.setItem(k, v);
+            };
+          }
+          const value = Reflect.get(target, prop);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+
+      new MissionProfilesService("main", full);
+
+      expect(storage.getItem("gonogo:dashboard:main:Flight")).not.toBeNull();
+      const retry = new MissionProfilesService("main", storage);
+      expect(retry.list().map((p) => p.name)).toEqual(["Flight layout"]);
+    });
+
     it("keeps a slot as a named profile when a profile is already bound to that scene", () => {
       const early = new MissionProfilesService("main", storage);
       const mine = early.save("Ascent", ITEMS, LAYOUT, ["Flight"]);

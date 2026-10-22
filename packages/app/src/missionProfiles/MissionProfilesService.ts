@@ -516,6 +516,8 @@ export class MissionProfilesService {
       changed = true;
     }
     if (changed) this.persist();
+    // The store swallows a refused write, so the slots go only once the converted profiles read back.
+    if (found.length > 0 && !this.isPersisted()) return;
     /*
      * The converted slots' contents are recorded before any is removed: a slot
      * whose removal fails is skipped on the next load instead of converted
@@ -571,6 +573,14 @@ export class MissionProfilesService {
     if (this.currentId) return;
     this.currentId = base.id;
     this.currentStore.set(base.id);
+  }
+
+  private isPersisted(): boolean {
+    const saved = this.store.get();
+    return (
+      Array.isArray(saved) &&
+      this.profiles.every((p) => saved.some((s) => s?.id === p.id))
+    );
   }
 
   private persist(): void {
