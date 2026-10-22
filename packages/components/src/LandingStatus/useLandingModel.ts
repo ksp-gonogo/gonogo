@@ -22,6 +22,7 @@ import { currencyOf } from "../shared/currencyOf";
 import { bare, vecMagnitude } from "../shared/dockAngles";
 import { bodyAtIndex } from "../shared/streamBody";
 import { useBodyName } from "../shared/useBodyName";
+import { type ContactLoss, useContactLoss } from "../shared/useContactLoss";
 import { deriveBoard, type LandingBoard } from "./board";
 import { isBurning } from "./burnEffect";
 import { deriveActiveBurnParams } from "./burnParams";
@@ -50,6 +51,8 @@ export interface LandingModel {
   landed: boolean;
   /** Even the optimal burn arrives above a survivable speed. */
   noLandingVector: boolean;
+  /** The centre's contact with the craft has run past its overdue time, or the craft is declared lost. */
+  contactLoss: ContactLoss | null;
   availableDv: Value<"m/s"> | undefined;
   /** Which ΔV total `availableDv` is: the one for the air the craft is in now, or the vacuum one when the game gave no current figure. Undefined when the game gave neither. */
   availableDvBasis: "ACT" | "VAC" | undefined;
@@ -269,6 +272,7 @@ export function useLandingModel(): LandingModel {
       : null;
 
   const atmosphereAware = landing?.terminalVelocity != null;
+  const contactLoss = useContactLoss();
   const board = deriveBoard({
     solutionState: solution.state,
     atmospheric,
@@ -348,6 +352,7 @@ export function useLandingModel(): LandingModel {
     solution,
     landed,
     noLandingVector,
+    contactLoss,
     availableDv,
     availableDvBasis,
     requiredDv,

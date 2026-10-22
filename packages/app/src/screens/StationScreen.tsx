@@ -32,7 +32,10 @@ import {
 } from "../components/ComponentOverlay";
 import type { DashboardConfig } from "../components/Dashboard";
 import { Dashboard } from "../components/Dashboard";
-import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
+import {
+  ContactLossBanner,
+  FlightOutcomeBanner,
+} from "../components/FlightOutcomeBanner";
 import { FullscreenFab } from "../components/FullscreenFab";
 import { HeaderBadges } from "../components/HeaderBadges";
 import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
@@ -480,6 +483,7 @@ export function StationScreen() {
                                 <SustainedFailureBanner />
                                 <HostVersionBanner client={client} />
                                 <FlightOutcomeBanner />
+                                <ContactLossBanner />
                                 <HomeFallbackNotice />
                                 <SceneSwitchPrompt dashboard={controller} />
                                 <ProfileSwitchBanner dashboard={controller} />
