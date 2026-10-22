@@ -104,8 +104,9 @@ export function CommSignalComponent({
         : undefined;
 
   const identityReading = useTelemetry("vessel.identity");
+  // A name does not go out of date, so the last one received still names the craft through a blackout.
   const vesselName =
-    identityReading.state === "observed"
+    identityReading.state === "observed" || identityReading.state === "held"
       ? identityReading.value.name
       : undefined;
   const vesselLabel =
