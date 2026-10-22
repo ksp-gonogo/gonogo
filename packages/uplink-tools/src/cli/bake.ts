@@ -24,10 +24,14 @@
  * likes without compiling the plugin again, since there is no hash to go stale.
  */
 
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { parseFlags } from "./flags";
+
+/** The port `bundle --serve` is given for a build baked past its published version. */
+export const DEV_SERVE_PORT = 5390;
 
 export const BAKE_USAGE = `uplink-tools bake [options]
 
@@ -49,7 +53,13 @@ export const BAKE_USAGE = `uplink-tools bake [options]
                      --bundle, the app loads the client with no hash to check
                      and says it is an unvouched development client
   --uplink <dir>     the Uplink's directory, the one holding uplink.json
-                     (default: found by walking up from the current directory)`;
+                     (default: found by walking up from the current directory)
+
+  With --bundle, on a tree past a published <id>-v<version> tag (the checked-out commit is
+  not that tag), the dev path http://localhost:${DEV_SERVE_PORT}/<id>.client.js is baked, since
+  client.url serves the published client and not this one. Serve it with
+  \`uplink-tools bundle --serve ${DEV_SERVE_PORT}\`. A release workflow, a tag on the checked-out commit and an
+  explicit --dev-path keep what they say.`;
 
 export interface BakeInputs {
   /** The directory holding `uplink.json`. */
@@ -103,6 +113,46 @@ function readJson(path: string): Record<string, unknown> {
       `${path} is not readable JSON: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
+}
+
+const gitLines = (cwd: string, args: string[]): string[] | undefined => {
+  const ran = spawnSync("git", args, { cwd, encoding: "utf8" });
+  return ran.status === 0 ? ran.stdout.split("\n").filter(Boolean) : undefined;
+};
+
+/**
+ * The dev path a bundle-hashing bake uses when the tree is past the version its
+ * `client.url` names, or `undefined` when the release shape is right. The URL
+ * names a published client that never changes, so a plugin baked from a later
+ * tree would vouch for a hash that URL cannot serve. That is the case when a
+ * `<id>-v<version>` tag exists and the checked-out commit is not it. No tag yet, no repository, a
+ * release workflow (which builds the tag it names) and an explicit tag all keep
+ * the release shape. Useful for stopping an untagged build from shipping an
+ * address that fails the app's integrity check. Used by the `bake` and
+ * `release` commands.
+ */
+export function devPathPastPublishedVersion(
+  uplinkDir: string,
+  assertedTag?: string,
+): { devPath: string; notice: string } | undefined {
+  if (assertedTag || process.env.GITHUB_ACTIONS) return undefined;
+  const declared = readJson(join(uplinkDir, "uplink.json"));
+  const id = text(declared.id);
+  const pkgPath = join(uplinkDir, "client", "package.json");
+  const version = existsSync(pkgPath) ? text(readJson(pkgPath).version) : "";
+  if (!id || !version || !text(asRecord(declared.client).url)) return undefined;
+  const tag = `${id}-v${version}`;
+  const published = gitLines(uplinkDir, ["tag", "--list", tag]);
+  if (!published?.includes(tag)) return undefined;
+  const here = gitLines(uplinkDir, ["tag", "--points-at", "HEAD"]);
+  if (here === undefined || here.includes(tag)) return undefined;
+  return {
+    devPath: `http://localhost:${DEV_SERVE_PORT}/${id}.client.js`,
+    notice:
+      `${id}: this tree is past ${tag}, so the published client at client.url is not this one. ` +
+      `Baking the dev path instead, served by \`uplink-tools bundle --serve ${DEV_SERVE_PORT}\`. ` +
+      "Tag the version, or move it, to bake the release shape.",
+  };
 }
 
 export function bakeUplink(inputs: BakeInputs): BakeResult {
@@ -302,10 +352,18 @@ export function bake(
     );
   }
   const bundle = values.get("--bundle");
+  let devPath = values.get("--dev-path") ?? process.env.GONOGO_UPLINK_DEV_PATH;
+  if (bundle !== undefined && !devPath) {
+    const past = devPathPastPublishedVersion(uplinkDir);
+    if (past) {
+      console.log(past.notice);
+      devPath = past.devPath;
+    }
+  }
   const result = bakeUplink({
     uplinkDir,
     bundle: bundle === undefined ? undefined : resolve(cwd, bundle),
-    devPath: values.get("--dev-path") ?? process.env.GONOGO_UPLINK_DEV_PATH,
+    devPath,
   });
   console.log(describeBake(result));
   return 0;
