@@ -243,16 +243,23 @@ export class MissionProfilesService {
 
   /**
    * Writes the dashboard into a profile as the autosave does: unlike `update`
-   * it never renames and leaves the unnamed flag as it is.
+   * it never renames and leaves the unnamed flag as it is. A write that only
+   * records the grid settling keeps `updatedAt`, so it does not change which
+   * profile a scene prefers.
    */
-  writeContent(id: string, items: DashboardItem[], layout: Layout): void {
+  writeContent(
+    id: string,
+    items: DashboardItem[],
+    layout: Layout,
+    { touch = true }: { touch?: boolean } = {},
+  ): void {
     const idx = this.profiles.findIndex((p) => p.id === id);
     if (idx < 0) return;
     this.profiles[idx] = {
       ...this.profiles[idx],
       items,
       layout,
-      updatedAt: Date.now(),
+      updatedAt: touch ? Date.now() : this.profiles[idx].updatedAt,
     };
     this.persist();
     this.emit();
