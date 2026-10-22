@@ -1131,7 +1131,7 @@ describe("AlarmHostService", () => {
       expect(svc.snapshot().alarms[0].state).toBe("fired");
     });
 
-    it("settles to fired when the game's UT steps back, so the operator can still acknowledge it", async () => {
+    it("goes back to pending when the game's UT steps back behind the fire, so no banner counts down to a time already past", async () => {
       const { svc, telemetry } = makeService();
       const alarm = svc.addAlarm({
         name: "Burn",
@@ -1141,12 +1141,11 @@ describe("AlarmHostService", () => {
       fireFromMod(telemetry, alarm.id);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");
-      // A quickload puts the game a day behind the instant the banner opened on.
+      // A quickload puts the game a day behind the instant the alarm fired.
       telemetry.set("t.universalTime", 50000 - 86400);
       await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].state).toBe("fired");
-      svc.acknowledgeAlarm(alarm.id);
-      expect(svc.snapshot().alarms).toHaveLength(0);
+      expect(svc.snapshot().alarms[0].state).toBe("pending");
+      expect(svc.snapshot().alarms[0].matchSinceUT).toBeNull();
     });
   });
 

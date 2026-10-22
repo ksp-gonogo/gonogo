@@ -45,6 +45,9 @@ import { WarpObserver } from "./WarpObserver";
  *   - `AlarmPeerBridge`: peer event wiring and broadcasts.
  */
 
+/** How far behind the latch the clock may read before the fire is taken as belonging to a timeline that is gone: view-time jitter is well inside it. */
+const REWIND_TOLERANCE_SECONDS = 1;
+
 const STORAGE_KEY = "gonogo.alarms.list";
 const WARP_MARGIN_STORAGE_KEY = "gonogo.alarms.warpSafetyMargin";
 const SCET_ARMED_STORAGE_KEY = "gonogo.alarms.scetArmed";
@@ -637,6 +640,7 @@ export class AlarmHostService {
     if (ut !== null) {
       let changed = false;
       for (const alarm of this.alarms) {
+        if (this.rearmIfRewound(alarm, ut)) changed = true;
         const late = this.unevaluated.delete(alarm.id);
         if (this.commitState(alarm, settleState(alarm, ut), late)) {
           changed = true;
@@ -652,6 +656,24 @@ export class AlarmHostService {
     // quickload clears it, a fire retires a row).
     this.scetBridge.reconcile();
     this.emit();
+  }
+
+  /**
+   * An alarm that fired in a timeline the game has since left goes back to
+   * pending, with the mod owed a fresh arm: a quickload or a revert puts the clock
+   * behind the instant the alarm was latched, so the fire has not happened yet and
+   * its banner, counting down to a time already past, describes nothing. Returns
+   * whether the alarm changed.
+   */
+  private rearmIfRewound(alarm: Alarm, ut: number): boolean {
+    if (!hasFired(alarm.state) || alarm.matchSinceUT == null) return false;
+    if (ut >= alarm.matchSinceUT - REWIND_TOLERANCE_SECONDS) return false;
+    alarm.state = "pending";
+    alarm.matchSinceUT = null;
+    alarm.eventUT = undefined;
+    alarm.actionsWithheld = undefined;
+    this.scetBridge.owe(alarm);
+    return true;
   }
 
   /**
