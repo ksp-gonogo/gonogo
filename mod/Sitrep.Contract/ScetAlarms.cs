@@ -142,6 +142,14 @@ public enum ScetAlarmState
     /// watching. A kerbal on EVA counts as the craft they stepped out of.
     /// </summary>
     Cancelled,
+
+    /// <summary>
+    /// The copy of this alarm in the game's own alarm clock (see
+    /// <see cref="ScetAlarm.GameAlarmId"/>) was deleted in the game, so the
+    /// alarm is deleted too. Remove the row. Arming the same id again is
+    /// refused while the game holds this row.
+    /// </summary>
+    DeletedInGame,
 }
 
 /// <summary>
@@ -536,6 +544,16 @@ public class ScetAlarm
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string ActsOn { get; set; } = "";
+    /// <summary>
+    /// The <see cref="GameAlarm.Id"/> of this alarm's copy in the game's own
+    /// alarm clock, or null when it has none.
+    ///
+    /// <para>Only an alarm on a universal time is copied into the game, and
+    /// only while the game runs an alarm clock. The copy leaves time warp to
+    /// this alarm. Deleting either one deletes the other.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public long? GameAlarmId { get; set; }
 }
 
 /// <summary>

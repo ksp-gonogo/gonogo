@@ -1077,6 +1077,33 @@ describe("AlarmsModal unreachable", () => {
   });
 });
 
+describe("AlarmsModal game alarm clock", () => {
+  it("marks an alarm the mod copied into the game's alarm clock", async () => {
+    const alarm: Alarm = {
+      id: "a-copied",
+      name: "Circularise",
+      trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
+      state: "pending",
+      createdBy: "main",
+      createdAt: 1_700_000_000_000,
+    };
+    render(
+      <AlarmsModal
+        useSnapshot={() => ({
+          ...makeSnapshot([alarm]),
+          scetInGameClock: ["a-copied"],
+        })}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await screen.findByText("Circularise");
+    expect(screen.getByText("IN GAME CLOCK")).toBeInTheDocument();
+  });
+});
+
 describe("AlarmsModal where actions run", () => {
   function staging(trigger: Alarm["trigger"]): Alarm {
     return {

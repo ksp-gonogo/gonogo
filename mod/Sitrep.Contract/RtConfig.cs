@@ -213,6 +213,10 @@ public static class RtConfig
                 typeof(ScetAddressableTopic),
                 typeof(ScetAlarmArmArgs),
                 typeof(ScetAlarmDisarmArgs),
+                // alarm.game.list, alarm.game.craft.<guid>.list and alarm.game.delete
+                typeof(GameAlarm),
+                typeof(GameAlarmList),
+                typeof(GameAlarmDeleteArgs),
                 typeof(TrackingStationDismissArgs),
                 // commcast command args
                 typeof(CommcastGroupOpenArgs),

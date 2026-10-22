@@ -2417,6 +2417,17 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "actsOn");
             sb.Append(':');
             AppendString(sb, a.ActsOn ?? "");
+            sb.Append(',');
+            AppendString(sb, "gameAlarmId");
+            sb.Append(':');
+            if (a.GameAlarmId.HasValue)
+            {
+                AppendInteger(sb, a.GameAlarmId.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
             sb.Append('}');
         }
 

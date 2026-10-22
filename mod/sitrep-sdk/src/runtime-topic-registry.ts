@@ -139,6 +139,11 @@ export const DYNAMIC_WHOLE_TOPIC_PREFIXES: readonly string[] = [
    * tree. The mod measures a craft file only while its topic is subscribed.
    */
   "spaceCenter.craft.",
+  /*
+   * alarm.game.craft.<guid>.list: the game alarms whose time the game works
+   * out from that craft, revealed after the signal delay from it.
+   */
+  "alarm.game.craft.",
 ];
 
 const dynamicPrefixes = DYNAMIC_WHOLE_TOPIC_PREFIXES as string[];

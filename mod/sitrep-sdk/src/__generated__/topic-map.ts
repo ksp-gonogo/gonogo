@@ -57,6 +57,7 @@ import type {
   FlightEnded,
   FlightStarted,
   FlightVesselChanged,
+  GameAlarmList,
   GameDlc,
   InstrumentEntry,
   IsruConverterEntry,
@@ -112,6 +113,8 @@ import type {
 export interface GeneratedTopicPayloadMap {
   /** One SCET alarm (an alarm on the craft's own clock, spacecraft event time) as the game holds it: the `alarm.activeList` Topic is a bare array of these. */
   "alarm.activeList": ScetAlarm[];
+  /** The game's alarm clock as every command centre sees it at once: the `alarm.game.list` Topic. */
+  "alarm.game.list": GameAlarmList;
   /** The notice that an alarm judged on the craft's own clock (a SCET alarm, for spacecraft event time) has fired and the warp has been stopped. */
   "alarm.scet.fired": ScetAlarmFired;
   /** One Topic a SCET (spacecraft event time) threshold alarm may be armed against: a row of the `alarm.scet.topics` channel. */
@@ -288,6 +291,7 @@ export interface GeneratedTopicPayloadMap {
 
 export const GENERATED_TOPIC_IDS = [
   "alarm.activeList",
+  "alarm.game.list",
   "alarm.scet.fired",
   "alarm.scet.topics",
   "career.facilities",
