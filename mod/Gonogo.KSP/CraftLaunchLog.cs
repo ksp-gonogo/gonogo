@@ -139,6 +139,15 @@ namespace Gonogo.KSP
             return newest;
         }
 
+        /// <summary>
+        /// The launch time of a vessel in the save, or null when it has none yet.
+        /// KSP rewrites a vessel's launch time to the current universal time on
+        /// every update while it still sits on its pad, so a value read from one is
+        /// the moment of reading, not a launch.
+        /// </summary>
+        public static double? VesselLaunchTime(bool stillOnItsPad, double launchTime) =>
+            stillOnItsPad || double.IsNaN(launchTime) || double.IsInfinity(launchTime) ? (double?)null : launchTime;
+
         private static void Keep(Dictionary<string, double> into, string key, double ut)
         {
             if (!into.TryGetValue(key, out var kept) || ut > kept)

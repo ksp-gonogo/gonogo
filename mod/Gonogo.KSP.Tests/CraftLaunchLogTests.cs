@@ -143,5 +143,13 @@ namespace Gonogo.KSP.Tests
 
             Assert.Equal(500.0, log.Recorded("VAB", "Wave", "Wave"));
         }
+
+        [Fact]
+        public void AVesselStillOnItsPadHasNoLaunchTimeBecauseKspKeepsItAtTheClock()
+        {
+            Assert.Null(CraftLaunchLog.VesselLaunchTime(stillOnItsPad: true, launchTime: 89132.84));
+            Assert.Equal(88954.58, CraftLaunchLog.VesselLaunchTime(stillOnItsPad: false, launchTime: 88954.58));
+            Assert.Null(CraftLaunchLog.VesselLaunchTime(stillOnItsPad: false, launchTime: double.NaN));
+        }
     }
 }

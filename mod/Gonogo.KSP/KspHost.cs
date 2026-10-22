@@ -4292,9 +4292,10 @@ namespace Gonogo.KSP
                     }
 
                     var vesselName = GameWords.VesselName(proto.vesselName);
-                    if (!string.IsNullOrEmpty(vesselName))
+                    var launched = CraftLaunchLog.VesselLaunchTime(proto.situation == Vessel.Situations.PRELAUNCH, proto.launchTime);
+                    if (!string.IsNullOrEmpty(vesselName) && launched != null)
                     {
-                        vessels.Add(new KeyValuePair<string, double>(vesselName, proto.launchTime));
+                        vessels.Add(new KeyValuePair<string, double>(vesselName, launched.Value));
                     }
                 }
             }
