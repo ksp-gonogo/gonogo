@@ -3331,6 +3331,9 @@ export class TimelineStore {
     if (!this.transportConnected) return "disconnected";
     if (this.gameShown.state === "loading") return "loading";
     if (this.gameShown.state === "no-game") return "no-game";
+    if (this.predatesLossOfLink(topic, point.validAt, token)) {
+      return "last-before-blackout";
+    }
     return this.heartbeats.isOverdue(
       topic,
       this.clock.certaintyHorizonUt(),
@@ -3339,6 +3342,32 @@ export class TimelineStore {
     )
       ? "held"
       : "live";
+  }
+
+  /**
+   * Whether `topic` is a reading of the active vessel that was taken before the
+   * vessel's link home was lost. The ground's view of a craft freezes at the last
+   * thing it heard, and a craft with no route is sent nothing at all, so nothing
+   * arrives to say the readings are old: the loss itself, on `comms.connectivity`,
+   * is the only word. A reading taken after the loss means frames are still
+   * reaching the ground and is current.
+   */
+  private predatesLossOfLink(
+    topic: string,
+    validAt: number,
+    token: FrameToken,
+  ): boolean {
+    if (
+      !topic.startsWith("vessel.") ||
+      this.laneForTopic(topic) !== "delayed"
+    ) {
+      return false;
+    }
+    const link = this.sample<{ connected?: boolean | null }>(
+      "comms.connectivity",
+      token,
+    );
+    return link?.payload?.connected === false && validAt < link.validAt;
   }
 
   /**
