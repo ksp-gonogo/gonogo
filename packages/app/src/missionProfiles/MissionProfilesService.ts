@@ -108,6 +108,10 @@ function schemaKeyFor(screen: Screen): string {
   return `gonogo.missionProfiles.schema.${screen}`;
 }
 
+function migratedKeyFor(screen: Screen): string {
+  return `gonogo.missionProfiles.migrated.${screen}`;
+}
+
 /** The dashboard slots each screen used before profiles held the working layout. */
 function legacyKeysFor(screen: Screen): Array<{
   key: string;
@@ -165,6 +169,7 @@ export class MissionProfilesService {
   private store: LocalStorageStore<MissionProfile[]>;
   private currentStore: LocalStorageStore<string | null>;
   private schemaStore: LocalStorageStore<number>;
+  private migratedStore: LocalStorageStore<Record<string, string>>;
   private screen: Screen;
   private storage: Storage;
   private currentId: string | null = null;
@@ -185,6 +190,11 @@ export class MissionProfilesService {
     this.schemaStore = new LocalStorageStore<number>({
       key: schemaKeyFor(screen),
       defaults: 0,
+      storage,
+    });
+    this.migratedStore = new LocalStorageStore<Record<string, string>>({
+      key: migratedKeyFor(screen),
+      defaults: {},
       storage,
     });
     this.load();
@@ -431,11 +441,20 @@ export class MissionProfilesService {
       changed = true;
     }
 
+    const migrated = this.migratedStore.get() ?? {};
     const found = legacyKeysFor(this.screen).flatMap(({ key, scene }) => {
       const dashboard = readLegacyDashboard(this.storage, key);
       return dashboard ? [{ key, scene, dashboard }] : [];
     });
-    for (const { scene, dashboard } of found.sort(
+    const rawOf = (key: string) => {
+      try {
+        return this.storage.getItem(key) ?? "";
+      } catch {
+        return "";
+      }
+    };
+    const pending = found.filter(({ key }) => migrated[key] !== rawOf(key));
+    for (const { scene, dashboard } of pending.sort(
       (a, b) => Number(a.scene === null) - Number(b.scene === null),
     )) {
       if (scene) this.migrateSceneSlot(scene, dashboard);
@@ -443,13 +462,23 @@ export class MissionProfilesService {
       changed = true;
     }
     if (changed) this.persist();
+    /*
+     * The converted slots' contents are recorded before any is removed: a slot
+     * whose removal fails is skipped on the next load instead of converted
+     * again, while a slot with different contents (a restored backup) is not.
+     */
+    const stillHeld: Record<string, string> = {};
+    for (const { key } of found) stillHeld[key] = rawOf(key);
+    if (found.length > 0) this.migratedStore.set(stillHeld);
     for (const { key } of found) {
       try {
         this.storage.removeItem(key);
+        delete stillHeld[key];
       } catch {
         // storage unavailable: the slot is converted either way.
       }
     }
+    if (found.length > 0) this.migratedStore.set(stillHeld);
   }
 
   private migrateSceneSlot(
