@@ -489,6 +489,7 @@ describe("LaunchDirectorComponent", () => {
         padSite("LaunchPad", "KSC Pad", {
           padOccupied: true,
           padVesselTitle: "Kerbal X",
+          padVesselId: "5b1d7f0e-0000-4000-8000-000000000001",
         }),
       ]);
     });
@@ -499,10 +500,33 @@ describe("LaunchDirectorComponent", () => {
     await user.click(screen.getByText(/Confirm recover/i));
     await waitFor(() => {
       const sent = stream.transport.sentCommands.find(
-        (c) => c.command === "ksp.recover",
+        (c) => c.command === "ksp.recoverVessel",
       );
-      expect(sent).toMatchObject({ vantage: "meta" });
+      expect(sent).toMatchObject({
+        vantage: "meta",
+        args: { vesselId: "5b1d7f0e-0000-4000-8000-000000000001" },
+      });
     });
+    expect(
+      stream.transport.sentCommands.some((c) => c.command === "ksp.recover"),
+    ).toBe(false);
+  });
+
+  it("draws no Recover for a pad vessel the mod gave no id for, and still offers the revert", async () => {
+    renderWidget();
+    act(() => {
+      stream.emit("spaceCenter.savedShips", []);
+      stream.emit("spaceCenter.launchSites", [
+        padSite("LaunchPad", "KSC Pad", {
+          padOccupied: true,
+          padVesselTitle: "Kerbal X",
+        }),
+      ]);
+    });
+
+    expect(await screen.findByText(/On pad: Kerbal X/i)).toBeInTheDocument();
+    expect(screen.queryByText("Recover")).not.toBeInTheDocument();
+    expect(screen.getByText(/Revert to VAB/i)).toBeInTheDocument();
   });
 
   it("reverts a craft standing on a runway to the SPH, not the VAB", async () => {

@@ -33,7 +33,8 @@
             "bodyIndex": 1,
             "isStock": true,
             "padOccupied": true,
-            "padVesselTitle": "Kerbal X"
+            "padVesselTitle": "Kerbal X",
+            "padVesselId": "5b1d7f0e-0000-4000-8000-000000000001"
           }
         ]
       },

@@ -62,7 +62,8 @@ interface PadSectionProps {
   /** Too narrow for a pad's name and its occupancy on one line, so the occupancy sits beneath. */
   narrow: boolean;
   launchCmd: CommandButtonHandle & Pick<UseCommandResult, "check">;
-  recoverCmd: CommandButtonHandle;
+  /** Recovers the vessel on a pad by id, which the pad's occupant is not the active craft for. */
+  recoverVesselCmd: CommandButtonHandle;
   revertEditorCmd: CommandButtonHandle;
   switchCmd: CommandButtonHandle;
   /** The fleet the operator can fly from here, none when the roster has not arrived. */
@@ -172,24 +173,27 @@ function OpenPad({
   rows,
   split,
   launchCmd,
-  recoverCmd,
+  recoverVesselCmd,
   revertEditorCmd,
 }: PadSectionProps & { site: LaunchSiteEntry }) {
   if (site.occupied === true) {
     // The craft on a runway came from the SPH; anything else is taken to be a pad's VAB craft.
     const editor = site.facility === "SPH" ? "SPH" : "VAB";
     return (
-      /* Both commands act on the one vessel KSP has at PRELAUNCH. */
       <PadActions>
-        <ArmedButton
-          bindAs="recover"
-          kind="recover"
-          handle={recoverCmd}
-          commandLabel="Recover"
-          label="Recover"
-          confirmLabel="Confirm recover"
-          pendingLabel="Recovering..."
-        />
+        {/* The vessel on a pad is not the active one, so it is recovered by its id. */}
+        {site.occupantId !== null && (
+          <ArmedButton
+            bindAs="recover"
+            kind="recover"
+            handle={recoverVesselCmd}
+            args={{ vesselId: site.occupantId }}
+            commandLabel="Recover"
+            label="Recover"
+            confirmLabel="Confirm recover"
+            pendingLabel="Recovering..."
+          />
+        )}
         <ArmedButton
           bindAs="revert-to-editor"
           kind="revert"

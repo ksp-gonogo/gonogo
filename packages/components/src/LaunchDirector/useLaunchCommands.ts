@@ -12,6 +12,9 @@ export function useLaunchCommands() {
   // LAUNCH is a delayed command to the pad; the other scene ops are KSC-desk actions at the meta-vantage.
   const launchCmd = useCommand("ksp.launch");
   const recoverCmd = useCommand("ksp.recover", { vantage: META_VANTAGE });
+  const recoverVesselCmd = useCommand("ksp.recoverVessel", {
+    vantage: META_VANTAGE,
+  });
   const revertLaunchCmd = useCommand("ksp.revertToLaunch", {
     vantage: META_VANTAGE,
   });
@@ -46,6 +49,7 @@ export function useLaunchCommands() {
     boundPresses,
     launchCmd,
     recoverCmd,
+    recoverVesselCmd,
     revertLaunchCmd,
     revertEditorCmd,
     toTrackingCmd,

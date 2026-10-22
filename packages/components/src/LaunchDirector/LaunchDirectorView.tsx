@@ -93,6 +93,7 @@ export function LaunchDirectorComponent({
     boundPresses,
     launchCmd,
     recoverCmd,
+    recoverVesselCmd,
     revertLaunchCmd,
     revertEditorCmd,
     toTrackingCmd,
@@ -262,7 +263,7 @@ export function LaunchDirectorComponent({
                 split={showCraftMap}
                 narrow={cols <= NARROW_MAX_COLS}
                 launchCmd={launchCmd}
-                recoverCmd={recoverCmd}
+                recoverVesselCmd={recoverVesselCmd}
                 revertEditorCmd={revertEditorCmd}
                 switchCmd={switchCmd}
                 flyable={flyable}

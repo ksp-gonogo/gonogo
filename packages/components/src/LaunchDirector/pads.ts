@@ -21,6 +21,8 @@ export interface LaunchSiteEntry {
   occupied: boolean | null;
   /** The occupying vessel's name; `null` whenever {@link occupied} is not true. */
   occupantName: string | null;
+  /** The occupying vessel's id, the one a recovery names; `null` whenever {@link occupied} is not true or the mod sent none. */
+  occupantId: string | null;
 }
 
 /**
@@ -54,6 +56,10 @@ export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
       occupantName:
         typeof e.padVesselTitle === "string" && e.padVesselTitle
           ? e.padVesselTitle
+          : null,
+      occupantId:
+        typeof e.padVesselId === "string" && e.padVesselId
+          ? e.padVesselId
           : null,
     });
   }

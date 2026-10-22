@@ -21,6 +21,7 @@ export default {
   commands: [
     "ksp.launch",
     "ksp.recover",
+    "ksp.recoverVessel",
     "ksp.revertToEditor",
     "ksp.revertToLaunch",
     "ksp.switchVessel",
