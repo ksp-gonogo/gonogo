@@ -347,6 +347,41 @@ describe("MissionProfilesService", () => {
       expect(storage.getItem("gonogo:dashboard:main:Flight")).toBeNull();
     });
 
+    it("does not convert a slot twice when removing it failed", () => {
+      storage.setItem("gonogo:dashboard:main:Flight", stored(one("a")));
+      const stuck = new Proxy(storage, {
+        get(target, prop) {
+          if (prop === "removeItem") {
+            return () => {
+              throw new DOMException("denied", "SecurityError");
+            };
+          }
+          const value = Reflect.get(target, prop);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+
+      new MissionProfilesService("main", stuck);
+      const again = new MissionProfilesService("main", storage);
+
+      expect(
+        again.list().filter((p) => p.name === "Flight layout"),
+      ).toHaveLength(1);
+      expect(storage.getItem("gonogo:dashboard:main:Flight")).toBeNull();
+    });
+
+    it("converts a slot a restored backup brings back with different contents", () => {
+      storage.setItem("gonogo:dashboard:main:Flight", stored(one("a")));
+      new MissionProfilesService("main", storage);
+      storage.setItem("gonogo:dashboard:main:Flight", stored(one("z")));
+
+      const again = new MissionProfilesService("main", storage);
+
+      expect(
+        again.list().filter((p) => p.name === "Flight layout"),
+      ).toHaveLength(2);
+    });
+
     it("keeps the unnamed layouts the old drafts left, as ordinary profiles", () => {
       storage.setItem(
         "gonogo.missionProfiles.main",
@@ -391,6 +426,77 @@ describe("MissionProfilesService", () => {
       const again = new MissionProfilesService("main", storage);
 
       expect(again.list().filter((p) => p.draft)).toHaveLength(1);
+    });
+  });
+
+  describe("two tabs of one screen", () => {
+    function tellOtherTab(storage: Storage) {
+      globalThis.dispatchEvent(
+        Object.assign(new Event("storage"), {
+          key: "gonogo.missionProfiles.main",
+          storageArea: storage,
+        }),
+      );
+    }
+
+    it("keeps a layout saved in one tab when the other tab writes next", () => {
+      const storage = memoryStorage();
+      const tabA = new MissionProfilesService("main", storage);
+      const tabB = new MissionProfilesService("main", storage);
+      const mine = tabB.save("Docking", ITEMS, LAYOUT);
+      const theirs = tabA.save("Launch", ITEMS, LAYOUT);
+      tellOtherTab(storage);
+
+      tabB.update(mine.id, { name: "Docking 2" });
+      tellOtherTab(storage);
+
+      for (const tab of [tabA, tabB]) {
+        expect(
+          tab
+            .list()
+            .map((p) => p.name)
+            .sort(),
+        ).toEqual(["Docking 2", "Launch"]);
+      }
+      expect(
+        new MissionProfilesService("main", storage).get(theirs.id),
+      ).toBeDefined();
+      tabA.dispose();
+      tabB.dispose();
+    });
+
+    it("keeps the newer copy of a profile edited in both tabs", () => {
+      vi.useFakeTimers();
+      const storage = memoryStorage();
+      const tabA = new MissionProfilesService("main", storage);
+      const profile = tabA.save("Orbit", ITEMS, LAYOUT);
+      const tabB = new MissionProfilesService("main", storage);
+      vi.setSystemTime(Date.now() + 1000);
+      tabA.update(profile.id, { name: "Orbit A" });
+      vi.setSystemTime(Date.now() + 1000);
+      tabB.update(profile.id, { name: "Orbit B" });
+      tellOtherTab(storage);
+
+      expect(tabA.get(profile.id)?.name).toBe("Orbit B");
+      expect(tabB.get(profile.id)?.name).toBe("Orbit B");
+      tabA.dispose();
+      tabB.dispose();
+      vi.useRealTimers();
+    });
+
+    it("tells subscribers when the other tab's layout arrives", () => {
+      const storage = memoryStorage();
+      const tabA = new MissionProfilesService("main", storage);
+      const tabB = new MissionProfilesService("main", storage);
+      const listener = vi.fn();
+      tabA.subscribe(listener);
+      tabB.save("Launch", ITEMS, LAYOUT);
+      tellOtherTab(storage);
+
+      expect(listener).toHaveBeenCalled();
+      expect(tabA.list().map((p) => p.name)).toEqual(["Launch"]);
+      tabA.dispose();
+      tabB.dispose();
     });
   });
 });

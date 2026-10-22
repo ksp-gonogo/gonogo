@@ -108,6 +108,10 @@ function schemaKeyFor(screen: Screen): string {
   return `gonogo.missionProfiles.schema.${screen}`;
 }
 
+function migratedKeyFor(screen: Screen): string {
+  return `gonogo.missionProfiles.migrated.${screen}`;
+}
+
 /** The dashboard slots each screen used before profiles held the working layout. */
 function legacyKeysFor(screen: Screen): Array<{
   key: string;
@@ -165,6 +169,7 @@ export class MissionProfilesService {
   private store: LocalStorageStore<MissionProfile[]>;
   private currentStore: LocalStorageStore<string | null>;
   private schemaStore: LocalStorageStore<number>;
+  private migratedStore: LocalStorageStore<Record<string, string>>;
   private screen: Screen;
   private storage: Storage;
   private currentId: string | null = null;
@@ -187,8 +192,19 @@ export class MissionProfilesService {
       defaults: 0,
       storage,
     });
+    this.migratedStore = new LocalStorageStore<Record<string, string>>({
+      key: migratedKeyFor(screen),
+      defaults: {},
+      storage,
+    });
     this.load();
     this.migrate();
+    globalThis.addEventListener?.("storage", this.onStorage);
+  }
+
+  /** Stops listening for another tab's writes. */
+  dispose(): void {
+    globalThis.removeEventListener?.("storage", this.onStorage);
   }
 
   /** The profile the dashboard belongs to, or null when none is current. */
@@ -243,16 +259,23 @@ export class MissionProfilesService {
 
   /**
    * Writes the dashboard into a profile as the autosave does: unlike `update`
-   * it never renames and leaves the unnamed flag as it is.
+   * it never renames and leaves the unnamed flag as it is. A write that only
+   * records the grid settling keeps `updatedAt`, so it does not change which
+   * profile a scene prefers.
    */
-  writeContent(id: string, items: DashboardItem[], layout: Layout): void {
+  writeContent(
+    id: string,
+    items: DashboardItem[],
+    layout: Layout,
+    { touch = true }: { touch?: boolean } = {},
+  ): void {
     const idx = this.profiles.findIndex((p) => p.id === id);
     if (idx < 0) return;
     this.profiles[idx] = {
       ...this.profiles[idx],
       items,
       layout,
-      updatedAt: Date.now(),
+      updatedAt: touch ? Date.now() : this.profiles[idx].updatedAt,
     };
     this.persist();
     this.emit();
@@ -372,44 +395,85 @@ export class MissionProfilesService {
     return () => this.listeners.delete(cb);
   }
 
-  private load(): void {
-    const stored = this.store.get();
-    if (Array.isArray(stored)) {
-      this.profiles = stored
-        .filter(
-          (p): p is MissionProfile =>
-            typeof p?.id === "string" && typeof p?.name === "string",
-        )
-        .map((saved) => {
-          const p = {
-            ...(Array.isArray(saved.layout) ? saved : { ...saved, layout: [] }),
-          };
-          const held = p.inputBinding;
-          if (
-            held &&
-            (typeof held.deviceId !== "string" ||
-              typeof held.inputId !== "string")
-          ) {
-            p.inputBinding = undefined;
-          }
-          // Drop unknown scene names quietly: `kc.scene` could in theory
-          // emit values we haven't seen yet, but a tagged binding for an
-          // unknown scene would never resolve, so it's noise.
-          if (Array.isArray(p.sceneBindings)) {
-            const filtered = p.sceneBindings.filter((s): s is BindableScene =>
-              (BINDABLE_SCENES as readonly string[]).includes(s),
-            );
-            return {
-              ...p,
-              sceneBindings: filtered.length > 0 ? filtered : undefined,
-            };
-          }
-          return p;
-        });
+  /**
+   * Another tab of this screen wrote the profile list. Folds it into this
+   * tab's list per profile, the newer `updatedAt` winning, so a layout saved
+   * in either tab survives the other's next write. A profile held only here
+   * is kept and written back, since a removal in the other tab cannot be told
+   * from a profile this tab has just made.
+   */
+  private onStorage = (event: Event): void => {
+    const { key, storageArea } = event as StorageEvent;
+    if (key !== null && key !== storageKeyFor(this.screen)) return;
+    if (storageArea && storageArea !== this.storage) return;
+    const remote = this.readStored();
+    const merged = [...this.profiles];
+    let changed = false;
+    let remoteBehind = false;
+    for (const theirs of remote) {
+      const idx = merged.findIndex((p) => p.id === theirs.id);
+      if (idx < 0) {
+        merged.push(theirs);
+        changed = true;
+        continue;
+      }
+      const ours = merged[idx];
+      if (theirs.updatedAt > ours.updatedAt) {
+        merged[idx] = theirs;
+        changed = true;
+        continue;
+      }
+      if (theirs.updatedAt < ours.updatedAt) remoteBehind = true;
     }
+    if (merged.some((p) => !remote.some((r) => r.id === p.id))) {
+      remoteBehind = true;
+    }
+    this.profiles = merged;
+    if (remoteBehind) this.persist();
+    if (changed) this.emit();
+  };
+
+  private load(): void {
+    this.profiles = this.readStored();
     const current = this.currentStore.get();
     this.currentId =
       typeof current === "string" && this.get(current) ? current : null;
+  }
+
+  private readStored(): MissionProfile[] {
+    const stored = this.store.get();
+    if (!Array.isArray(stored)) return [];
+    return stored
+      .filter(
+        (p): p is MissionProfile =>
+          typeof p?.id === "string" && typeof p?.name === "string",
+      )
+      .map((saved) => {
+        const p = {
+          ...(Array.isArray(saved.layout) ? saved : { ...saved, layout: [] }),
+        };
+        const held = p.inputBinding;
+        if (
+          held &&
+          (typeof held.deviceId !== "string" ||
+            typeof held.inputId !== "string")
+        ) {
+          p.inputBinding = undefined;
+        }
+        // Drop unknown scene names quietly: `kc.scene` could in theory
+        // emit values we haven't seen yet, but a tagged binding for an
+        // unknown scene would never resolve, so it's noise.
+        if (Array.isArray(p.sceneBindings)) {
+          const filtered = p.sceneBindings.filter((s): s is BindableScene =>
+            (BINDABLE_SCENES as readonly string[]).includes(s),
+          );
+          return {
+            ...p,
+            sceneBindings: filtered.length > 0 ? filtered : undefined,
+          };
+        }
+        return p;
+      });
   }
 
   /**
@@ -431,11 +495,20 @@ export class MissionProfilesService {
       changed = true;
     }
 
+    const migrated = this.migratedStore.get() ?? {};
     const found = legacyKeysFor(this.screen).flatMap(({ key, scene }) => {
       const dashboard = readLegacyDashboard(this.storage, key);
       return dashboard ? [{ key, scene, dashboard }] : [];
     });
-    for (const { scene, dashboard } of found.sort(
+    const rawOf = (key: string) => {
+      try {
+        return this.storage.getItem(key) ?? "";
+      } catch {
+        return "";
+      }
+    };
+    const pending = found.filter(({ key }) => migrated[key] !== rawOf(key));
+    for (const { scene, dashboard } of pending.sort(
       (a, b) => Number(a.scene === null) - Number(b.scene === null),
     )) {
       if (scene) this.migrateSceneSlot(scene, dashboard);
@@ -443,13 +516,23 @@ export class MissionProfilesService {
       changed = true;
     }
     if (changed) this.persist();
+    /*
+     * The converted slots' contents are recorded before any is removed: a slot
+     * whose removal fails is skipped on the next load instead of converted
+     * again, while a slot with different contents (a restored backup) is not.
+     */
+    const stillHeld: Record<string, string> = {};
+    for (const { key } of found) stillHeld[key] = rawOf(key);
+    if (found.length > 0) this.migratedStore.set(stillHeld);
     for (const { key } of found) {
       try {
         this.storage.removeItem(key);
+        delete stillHeld[key];
       } catch {
         // storage unavailable: the slot is converted either way.
       }
     }
+    if (found.length > 0) this.migratedStore.set(stillHeld);
   }
 
   private migrateSceneSlot(
