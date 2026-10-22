@@ -31,6 +31,8 @@ export type ContactStatus =
   | {
       /** Which of the four states this is. */
       kind: "none";
+      /** Why the plan predicts no contact, when it says: `"unpowered"` for an addressee with no electric charge aboard. */
+      reason?: "unpowered";
     };
 
 /**

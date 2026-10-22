@@ -414,7 +414,8 @@
       "a": "id",
       "b": "id",
       "horizonUt": "ut",
-      "lowConfidence": "flag"
+      "lowConfidence": "flag",
+      "noReachReason": "id"
     },
     "CommsContactWindow": {
       "closeUt": "ut",

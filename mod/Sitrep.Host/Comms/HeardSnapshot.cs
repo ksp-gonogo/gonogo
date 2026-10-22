@@ -439,9 +439,14 @@ namespace Sitrep.Host.Comms
             var links = new Dictionary<string, object?>(StringComparer.Ordinal);
             var strengths = new Dictionary<string, object?>(StringComparer.Ordinal);
             var models = new Dictionary<string, object?>(StringComparer.Ordinal);
+            var noReach = new Dictionary<string, object?>(StringComparer.Ordinal);
             foreach (var link in state.Links)
             {
                 links[link.Key] = link.Value.MaxRangeMeters;
+                if (link.Value.NoReachReason != null)
+                {
+                    noReach[link.Key] = link.Value.NoReachReason;
+                }
                 if (link.Value.Strength is IPersistableLinkStrength persistable)
                 {
                     strengths[link.Key] = new Dictionary<string, object?> { ["model"] = persistable.ModelId, ["data"] = pool.Compact(persistable.Describe()) };
@@ -471,6 +476,7 @@ namespace Sitrep.Host.Comms
                 ["links"] = links,
                 ["strengths"] = strengths,
                 ["linkModels"] = models,
+                ["noReach"] = noReach,
                 ["capability"] = CapabilityOf(state.Capability),
             };
         }
@@ -516,7 +522,8 @@ namespace Sitrep.Host.Comms
                     links[link.Key] = new CraftLink(
                         link.Value as double?,
                         Restored(map, "linkModels", link.Key, restoreLink, shared),
-                        Restored(map, "strengths", link.Key, restoreStrength, shared));
+                        Restored(map, "strengths", link.Key, restoreStrength, shared),
+                        Get(map, "noReach") is Dictionary<string, object?> reasons && reasons.TryGetValue(link.Key, out var reason) ? reason as string : null);
                 }
             }
             var roster = Get(map, "roster") is Dictionary<string, object?> listed ? Listed(listed) : null;

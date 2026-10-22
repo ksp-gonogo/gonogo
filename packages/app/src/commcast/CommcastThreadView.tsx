@@ -11,7 +11,7 @@ import {
 } from "./CommcastContext";
 import type { CommcastLog } from "./CommcastLog";
 import { CommcastMessageRow } from "./CommcastMessageRow";
-import { nextContactUt } from "./commcastSendStatus";
+import { nextContactUt, noReachReasonOf } from "./commcastSendStatus";
 import {
   COMMCAST_TONE,
   Commcast__Bar,
@@ -80,6 +80,10 @@ export function CommcastThreadView({
   const unreachable = gone.map(nameFor);
   const plan = useContactPlan();
   const backInSeconds = backIn(plan, me.vantageId, gone, utNow);
+  const noReachReason =
+    plan && me.vantageId !== undefined
+      ? noReachReasonOf(plan, me.vantageId, gone)
+      : undefined;
   return (
     <>
       {/*
@@ -137,6 +141,7 @@ export function CommcastThreadView({
             noPath={noPath}
             unreachable={unreachable}
             backInSeconds={backInSeconds}
+            noReachReason={noReachReason}
             separations={separations}
           />
         }

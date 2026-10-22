@@ -104,6 +104,8 @@ const OMITTED_WHEN_NULL = new Set([
   // JsonWriter.AppendCommsContactWindow writes a dish only where the link model named one: a window on an omni or a stock antenna carries neither.
   "CommsContactWindow.fromDish",
   "CommsContactWindow.toDish",
+  // JsonWriter.AppendCommsContactPair writes it only for a pair whose reach model named why nothing reaches.
+  "CommsContactPair.noReachReason",
   // JsonWriter.AppendCommandResult writes neither key on a success, rather than putting an empty refusal shape on every ack.
   "CommandResult.breach",
   "CommandResult.detail",
