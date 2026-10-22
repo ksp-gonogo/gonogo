@@ -87,6 +87,12 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
             }
 
+            var ambiguous = PartIdRule.AmbiguousRefusal(partId, CountParts(vessel, partId));
+            if (ambiguous != null)
+            {
+                return ambiguous;
+            }
+
             var part = FindPart(vessel, partId);
             if (part == null)
             {
@@ -250,6 +256,19 @@ namespace Gonogo.KSP
         /// loads into flight, so the sentinel is skipped rather than matched
         /// against the string <c>"0"</c>.
         /// </summary>
+        private static int CountParts(Vessel vessel, string partId)
+        {
+            var count = 0;
+            foreach (var part in vessel.parts)
+            {
+                if (part != null && part.flightID != 0 && part.flightID.ToString() == partId)
+                {
+                    count++;
+                }
+            }
+            return count;
+        }
+
         private static Part? FindPart(Vessel vessel, string partId)
         {
             foreach (var part in vessel.parts)
