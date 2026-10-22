@@ -538,6 +538,7 @@ namespace Sitrep.Host
                     job.OnWarned?.Invoke(noRoute);
                 }
             }
+            SettleAtOnce(now);
             job.Done?.Set();
             return true;
         }
@@ -547,6 +548,25 @@ namespace Sitrep.Host
             "This centre's plan has no route to the craft, so the command waits here with no release time"
             + (expiresAtUt == null ? "" : " and is dropped at UT " + expiresAtUt.Value.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " if none appears")
             + ". The link readings can still say connected: they come from the game's own network, not from the plan.";
+
+        /// <summary>
+        /// Lets what is due at this very instant happen now, so a command whose
+        /// route has no delay is sent, run and answered inside the dispatch rather
+        /// than on the next two ticks. Ticks follow the game's sample cadence, one
+        /// a second at normal speed, so waiting for them put every such command
+        /// two seconds from its answer. Bounded: each pass can only act on what the
+        /// last one made due at the same instant (the send, the arrival, the reply).
+        /// </summary>
+        private void SettleAtOnce(double now)
+        {
+            for (var pass = 0; pass < SettlePasses; pass++)
+            {
+                _delivery.Tick(now);
+                _clock.AdvanceTo(now);
+            }
+        }
+
+        private const int SettlePasses = 4;
 
         /// <summary>What a journey report says of a continuous input dropped where it would have waited.</summary>
         internal const string ContinuousInputDropped = "it would have waited here, and a continuous input is not held";
