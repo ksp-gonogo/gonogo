@@ -216,3 +216,44 @@ describe("radio across a relayed clock", () => {
     expect(early.length).toBeGreaterThan(0);
   });
 });
+
+describe("RadioClock under a game rate", () => {
+  it("holds still while the game is paused, with no step back to log", () => {
+    let wall = 0;
+    const present = new RadioClock({
+      source: () => 1000,
+      nowWall: () => wall,
+      rate: () => 0,
+    });
+    for (let i = 0; i < 8; i++) {
+      expect(present.now()).toBe(1000);
+      wall += 1;
+    }
+    expect(present.stats().absorbed).toBe(0);
+    expect(present.stats().discontinuities).toBe(0);
+  });
+
+  it("never runs ahead of the raw estimate when the warp drops to 1x", () => {
+    let wall = 0;
+    let rate = 1000;
+    let raw = 10000;
+    const present = new RadioClock({
+      source: () => raw,
+      nowWall: () => wall,
+      rate: () => rate,
+    });
+    expect(present.now()).toBe(10000);
+    wall = 1;
+    raw = 11000;
+    expect(present.now()).toBe(11000);
+    // Warp stops: the raw estimate now advances one game second per wall second.
+    rate = 1;
+    wall = 2;
+    raw = 11001;
+    expect(present.now()).toBe(11001);
+    wall = 3;
+    raw = 11002;
+    expect(present.now()).toBe(11002);
+    expect(present.stats().discontinuities).toBe(0);
+  });
+});
