@@ -51,13 +51,13 @@ namespace Gonogo.DevTools
     /// it goes on to load the save, so no log line means no way to tell the two
     /// apart.
     ///
-    /// The cfg is read via a short poll loop rather than a single
-    /// <c>File.Exists</c> check: on a heavily-modded boot a syncthing write/sync
-    /// landing right around launch can still be in flight when this addon's
-    /// <c>Start()</c> fires.
-    /// A single-shot check racing that write is the leading suspect for a
-    /// prior silent failure - polling for up to <see cref="CfgPollTimeoutSeconds"/>
-    /// closes that window while still logging loudly if the file never shows up.
+    /// The cfg is watched for the whole process, polled every
+    /// <see cref="CfgPollIntervalSeconds"/>: a syncthing write landing around
+    /// launch is picked up whenever it arrives, and a later request loads again
+    /// without a relaunch, from the main menu or the Space Center. A request is
+    /// identified by an optional <c>id=&lt;string&gt;</c> line, else by the file's
+    /// last-write time; each id is acted on once, however long the file stays on
+    /// disk, and a new id loads again.
     ///
     /// <para><b>recommended workflow (also the crash-safe one):</b> launch KSP
     /// with no <c>dev-autoload.cfg</c> present, wait for the main menu to
@@ -70,8 +70,8 @@ namespace Gonogo.DevTools
     /// not lean on that guard.</para>
     ///
     /// <c>once: false</c> means KSP re-instantiates this every time the main
-    /// menu scene loads; a process-wide <see cref="_attempted"/> guard ensures
-    /// the auto-load is only ever attempted once per KSP process.
+    /// menu scene loads; a process-wide guard keeps one watcher alive, which
+    /// survives scene changes.
     /// </summary>
     [KSPAddon(KSPAddon.Startup.MainMenu, once: false)]
     public sealed class GonogoDevAutoLoad : MonoBehaviour
@@ -82,17 +82,17 @@ namespace Gonogo.DevTools
         /// The .sfs loaded when the cfg names no <c>file=</c>: KSP's rolling
         /// autosave, and the only thing this addon could ever load before.
         /// </summary>
-        private const string DefaultSfsFile = "persistent";
+        private const string DefaultSfsFile = AutoLoadRequest.DefaultSfsFile;
 
         /// <summary>
-        /// Process-wide guard: even though <c>once: false</c> re-instantiates
-        /// this on every return to the main menu, the auto-load is only ever
-        /// attempted once per KSP process.
+        /// The one live watcher. <c>once: false</c> re-instantiates this on every
+        /// return to the main menu, and a second watcher would act on a request twice.
         /// </summary>
-        private static bool _attempted;
+        private static GonogoDevAutoLoad? _watcher;
+
+        private static readonly AutoLoadWatch Requests = new AutoLoadWatch();
 
         private const float CfgPollIntervalSeconds = 0.5f;
-        private const float CfgPollTimeoutSeconds = 20f;
 
         /// <summary>
         /// Crash fix: MainMenu is not done initialising the instant this
@@ -108,7 +108,7 @@ namespace Gonogo.DevTools
         /// rather than failing to load.
         ///
         /// This unconditional delay runs every time, before anything else in
-        /// <see cref="AutoLoadRoutine"/>: including before the cfg-presence
+        /// <see cref="WatchRoutine"/>: including before the cfg-presence
         /// poll: regardless of whether the request file is already present.
         /// It is what makes the addon safe against a pre-staged request and
         /// is what the intended workflow relies on: launch KSP with no
@@ -136,24 +136,27 @@ namespace Gonogo.DevTools
 
         private void Start()
         {
-            Debug.Log(LogPrefix + "Start() fired on MainMenu (_attempted=" + _attempted + ")");
+            Debug.Log(LogPrefix + "Start() fired on MainMenu (watching=" + (_watcher != null) + ")");
 
-            if (_attempted)
+            if (_watcher != null)
             {
-                Debug.Log(LogPrefix + "already attempted auto-load this process; skipping");
+                Debug.Log(LogPrefix + "a watcher is already running this process; skipping");
+                Destroy(gameObject);
                 return;
             }
 
-            _attempted = true;
-            StartCoroutine(AutoLoadRoutine());
+            _watcher = this;
+            DontDestroyOnLoad(gameObject);
+            StartCoroutine(WatchRoutine());
         }
 
         /// <summary>
-        /// Resolves the cfg, polls for it to appear, parses it, verifies the
-        /// save exists on disk, and hands off to <see cref="LoadSave"/>.
-        /// Every branch that returns without loading logs why.
+        /// Resolves the cfg path, then watches it for the life of the process. Each request
+        /// with an id not yet acted on is parsed, checked against the save on disk and handed
+        /// to <see cref="LoadSave"/>; every branch that does not load logs why and goes back
+        /// to watching.
         /// </summary>
-        private IEnumerator AutoLoadRoutine()
+        private IEnumerator WatchRoutine()
         {
             // Let the main menu finish this frame before driving the load
             // machinery - running it directly from Start() throws an NRE
@@ -201,127 +204,81 @@ namespace Gonogo.DevTools
             }
 
             var configPath = Path.Combine(assemblyDir, "PluginData", "dev-autoload.cfg");
-            Debug.Log(LogPrefix + "resolved cfg path: " + configPath);
+            Debug.Log(LogPrefix + "watching for a request at: " + configPath);
 
-            var waited = 0f;
-            var loggedWaiting = false;
-            while (!File.Exists(configPath))
+            while (true)
             {
-                if (waited >= CfgPollTimeoutSeconds)
+                var request = ReadNewRequest(configPath);
+                if (request == null)
                 {
-                    Debug.Log(LogPrefix + "cfg not found at " + configPath + " after " + CfgPollTimeoutSeconds
-                        + "s of polling - giving up (this is the production-safe default: no cfg means no auto-load)");
-                    yield break;
+                    yield return new WaitForSecondsRealtime(CfgPollIntervalSeconds);
+                    continue;
                 }
 
-                if (!loggedWaiting)
-                {
-                    Debug.Log(LogPrefix + "cfg not present yet at " + configPath + "; polling up to "
-                        + CfgPollTimeoutSeconds + "s in case it's still being written/synced");
-                    loggedWaiting = true;
-                }
+                yield return HandleRequest(request);
 
+                // Pause after every request, loaded or not, so a scene that is
+                // still switching has begun to leave before the next poll.
                 yield return new WaitForSecondsRealtime(CfgPollIntervalSeconds);
-                waited += CfgPollIntervalSeconds;
             }
+        }
 
-            if (loggedWaiting)
-            {
-                Debug.Log(LogPrefix + "cfg appeared at " + configPath + " after " + waited + "s of polling");
-            }
-
-            string[] lines;
+        /// <summary>
+        /// The request now on disk if its id has not been acted on, else null. Claims the id
+        /// before anything is done with it, so a request that throws half way is not retried.
+        /// </summary>
+        private static AutoLoadRequest? ReadNewRequest(string configPath)
+        {
             try
             {
-                lines = File.ReadAllLines(configPath);
+                if (!File.Exists(configPath))
+                {
+                    return null;
+                }
+
+                var lines = File.ReadAllLines(configPath);
+                var stamp = File.GetLastWriteTimeUtc(configPath).Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var request = AutoLoadRequest.Parse(lines, stamp);
+                if (!Requests.TryClaim(request.Id))
+                {
+                    return null;
+                }
+
+                Debug.Log(LogPrefix + "request id='" + request.Id + "' cfg raw contents (" + lines.Length + " line(s)): ["
+                    + string.Join(" | ", lines) + "]");
+                return request;
             }
             catch (Exception ex)
             {
                 Debug.LogError(LogPrefix + "failed reading cfg at " + configPath + ": " + ex);
-                yield break;
+                return null;
             }
+        }
 
-            Debug.Log(LogPrefix + "cfg raw contents (" + lines.Length + " line(s)): ["
-                + string.Join(" | ", lines) + "]");
-
-            // Line 1 (first non-empty) = save name. An optional later
-            // non-empty line of "flight" asks us to resume into the FLIGHT
-            // scene focusing the save's active vessel (via
-            // FlightDriver.StartAndFocusVessel) instead of the default
-            // Space Center - Game.Start() alone always lands at the Space
-            // Center even for a save whose active vessel is flyable, so
-            // flight-scene Topics (vessel.parts, dv.*, thermal, ...) can't be
-            // validated without this. Absent -> Space Center, unchanged.
-            //
-            // An optional "file=<name>" line picks WHICH .sfs inside the save
-            // folder to load, defaulting to "persistent" (the save's rolling
-            // autosave, and the only thing this could load before). A quicksave
-            // is just another .sfs beside it, so `file=quicksave #3` loads
-            // `saves/<save>/quicksave #3.sfs`. The value is everything after
-            // the FIRST '=', trimmed but otherwise untouched, so a name
-            // containing spaces needs no quoting or escaping.
-            string? saveName = null;
-            var sfsFile = DefaultSfsFile;
-            var restoreFlight = false;
-            var newSandboxRequested = false;
-            foreach (var line in lines)
-            {
-                var trimmed = line.Trim();
-                if (trimmed.Length == 0)
-                {
-                    continue;
-                }
-
-                if (saveName == null)
-                {
-                    saveName = trimmed;
-                    continue;
-                }
-                if (string.Equals(trimmed, "flight", StringComparison.OrdinalIgnoreCase))
-                {
-                    restoreFlight = true;
-                    continue;
-                }
-                if (string.Equals(trimmed, "newsandbox", StringComparison.OrdinalIgnoreCase))
-                {
-                    newSandboxRequested = true;
-                    continue;
-                }
-                if (!trimmed.StartsWith("file=", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                var requested = trimmed.Substring("file=".Length).Trim();
-                if (requested.Length == 0)
-                {
-                    Debug.LogWarning(LogPrefix + "cfg line '" + trimmed + "' names an empty file; keeping the default '"
-                        + DefaultSfsFile + "'");
-                    continue;
-                }
-                sfsFile = requested;
-            }
+        private IEnumerator HandleRequest(AutoLoadRequest request)
+        {
+            var saveName = request.SaveName;
+            var sfsFile = request.SfsFile;
 
             if (string.IsNullOrEmpty(saveName))
             {
-                Debug.LogError(LogPrefix + "cfg at " + configPath + " parsed to no save name (empty or whitespace-only file?)");
+                Debug.LogError(LogPrefix + "cfg parsed to no save name (empty or whitespace-only file?)");
                 yield break;
             }
 
             // A file= value is pasted straight into a path, so it must name a
-            // sibling .sfs inside the save folder and nothing else - no
-            // directory separators, no "..", no drive-qualified path. Reject
+            // sibling .sfs inside the save folder and nothing else. Reject
             // rather than sanitise: a request that meant to escape the folder
             // is a mistake worth seeing in the log, not one worth guessing at.
-            if (sfsFile.IndexOfAny(new[] { '/', '\\', ':' }) >= 0 || sfsFile.Contains(".."))
+            if (!AutoLoadRequest.IsSiblingFile(sfsFile))
             {
                 Debug.LogError(LogPrefix + "REFUSED: file='" + sfsFile
                     + "' must name a .sfs inside the save folder (no path separators, no '..')");
                 yield break;
             }
 
-            Debug.Log(LogPrefix + "parsed saveName='" + saveName + "' file='" + sfsFile + "' restoreFlight=" + restoreFlight
-                + " newSandboxRequested=" + newSandboxRequested);
+            Debug.Log(LogPrefix + "parsed saveName='" + saveName + "' file='" + sfsFile + "' restoreFlight=" + request.RestoreFlight
+                + " newSandboxRequested=" + request.NewSandbox);
 
             // HARD SAFETY RULE: "Unnamed" is off limits and can never be
             // auto-loaded. This gate is unconditional and must be impossible
@@ -335,27 +292,35 @@ namespace Gonogo.DevTools
             var savesDir = KSPUtil.ApplicationRootPath + "saves/" + saveName;
             var sfsPath = savesDir + "/" + sfsFile + ".sfs";
             var saveExists = Directory.Exists(savesDir) && File.Exists(sfsPath);
-            if (!CanLoadOrCreate(saveExists, newSandboxRequested, sfsFile, savesDir, sfsPath))
+            if (!CanLoadOrCreate(saveExists, request.NewSandbox, sfsFile, savesDir, sfsPath))
             {
                 yield break;
             }
 
-            // Re-assert unpause right before triggering the load, in case the
-            // game got re-zeroed during the cfg poll (belt-and-braces).
             if (Time.timeScale == 0f)
             {
                 Time.timeScale = 1f;
             }
 
+            // A reload from a scene that is already the target would pass the
+            // readiness checks below at once, while the old scene is still up.
+            var sceneLoaded = false;
+            void OnSceneLoaded(GameScenes scene)
+            {
+                sceneLoaded = true;
+            }
+
+            var reloading = HighLogic.LoadedScene == GameScenes.SPACECENTER || HighLogic.LoadedScene == GameScenes.FLIGHT;
+            GameEvents.onLevelWasLoadedGUIReady.Add(OnSceneLoaded);
             bool enteredFlight;
             bool triggered;
             if (saveExists)
             {
-                triggered = LoadSave(saveName!, sfsFile, restoreFlight, out enteredFlight);
+                triggered = LoadSave(saveName!, sfsFile, request.RestoreFlight, out enteredFlight);
             }
             else
             {
-                if (restoreFlight)
+                if (request.RestoreFlight)
                 {
                     Debug.Log(LogPrefix + "'flight' was also requested but is ignored for a freshly created sandbox (no protoVessels to restore)");
                 }
@@ -365,30 +330,27 @@ namespace Gonogo.DevTools
 
             if (!triggered)
             {
+                GameEvents.onLevelWasLoadedGUIReady.Remove(OnSceneLoaded);
                 yield break;
             }
+
+            var waitedForScene = 0f;
+            while (reloading && !sceneLoaded && waitedForScene < FlightReadyTimeoutSeconds)
+            {
+                yield return new WaitForSecondsRealtime(FlightReadyPollIntervalSeconds);
+                waitedForScene += FlightReadyPollIntervalSeconds;
+            }
+
+            GameEvents.onLevelWasLoadedGUIReady.Remove(OnSceneLoaded);
 
             // LoadSave only QUEUED the scene transition (HighLogic.LoadScene,
             // reached either directly via FlightDriver.StartAndFocusVessel or
             // indirectly via Game.Start()) - it does not block until the new
-            // scene is actually up. Returning here would let this
-            // MonoBehaviour and its coroutine be destroyed with the MainMenu
-            // scene the instant Unity tore it down, racing that transition: on
-            // a heavily-modded boot the FLIGHT scene can take many seconds to
-            // finish restoring the vessel, and this addon's
-            // "auto-load done" log line - the signal the test harness waits
-            // on before driving the game further - fired long before that,
-            // producing exactly the broken scene this addon exists to avoid
-            // (empty space, no vessel, HUD/SAS icons stacked in the corner).
-            // Survive the scene swap and wait for the real readiness signal.
-            DontDestroyOnLoad(gameObject);
+            // scene is actually up, and for flight the vessel restore runs on
+            // for many seconds after. The "auto-load done" log line is what the
+            // test harness waits on, so it must come from the real readiness
+            // signal. This object is DontDestroyOnLoad, so it outlives the scene swap.
             yield return WaitUntilSceneReady(enteredFlight);
-
-            // Job done either way (confirmed ready, or gave up after logging
-            // why) - nothing further for this addon to do. Clean up the
-            // DontDestroyOnLoad object rather than leaving an inert
-            // MonoBehaviour attached for the rest of the KSP process.
-            Destroy(gameObject);
         }
 
         /// <summary>
@@ -654,7 +616,7 @@ namespace Gonogo.DevTools
         /// Creates a brand-new sandbox game and queues a load straight to the
         /// space center, for the case where the requested save name doesn't
         /// exist on disk yet (gated on the <c>newsandbox</c> cfg line - see
-        /// <see cref="AutoLoadRoutine"/>). Verified against the decompiled
+        /// <see cref="WatchRoutine"/>). Verified against the decompiled
         /// <c>GamePersistence.CreateNewGame</c>: it builds the save directory,
         /// constructs the <c>Game</c> object (mode/parameters/scenario modules)
         /// and persists it to disk, but does not assign
