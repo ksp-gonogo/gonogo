@@ -751,6 +751,59 @@ describe("PeerClientService reconnect loop", () => {
     expect(statuses).toEqual([]);
   });
 
+  it("does not reconnect a station that was taken over or refused when the page is restored", () => {
+    const stops: Array<(conn: FakeConnection) => void> = [
+      (conn) => conn.emit("data", { type: "station-superseded" }),
+      (conn) =>
+        conn.emit("data", { type: "station-approval", state: "refused" }),
+    ];
+    for (const stop of stops) {
+      const svc = new PeerClientService({
+        retryIntervalMs: 50,
+        retryTimeoutMs: 60_000,
+      });
+      svc.connect("HOST");
+      const peer = FakePeer.instances.at(-1);
+      if (!peer) throw new Error("no peer opened");
+      driveOpen(peer);
+      if (!peer._lastConn) throw new Error("no connection");
+      stop(peer._lastConn);
+      const statuses: ConnStatus[] = [];
+      svc.onConnectionStatus((s) => statuses.push(s));
+
+      window.dispatchEvent(new Event("pagehide"));
+      window.dispatchEvent(
+        new PageTransitionEvent("pageshow", { persisted: true }),
+      );
+      expect(statuses).toEqual([]);
+      expect(svc.getConnStatus()).toBe("disconnected");
+      svc.disconnect();
+    }
+  });
+
+  it("does not reconnect a station that stopped on a host channel that never opens when the page is restored", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 10,
+      retryTimeoutMs: 60_000,
+    });
+    svc.connect("HOST");
+    for (let i = 0; i < 10; i++) {
+      const peer = FakePeer.instances[FakePeer.instances.length - 1];
+      peer.emit("open");
+      peer._lastConn?.emit("close");
+      vi.advanceTimersByTime(11);
+    }
+    expect(svc.getConnStatus()).toBe("disconnected");
+    const statuses: ConnStatus[] = [];
+    svc.onConnectionStatus((s) => statuses.push(s));
+    window.dispatchEvent(new Event("pagehide"));
+    window.dispatchEvent(
+      new PageTransitionEvent("pageshow", { persisted: true }),
+    );
+    expect(statuses).toEqual([]);
+    svc.disconnect();
+  });
+
   it("disconnect() stops any pending retry", () => {
     const svc = new PeerClientService({
       retryIntervalMs: 50,
