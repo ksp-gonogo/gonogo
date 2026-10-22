@@ -82,6 +82,27 @@ namespace Sitrep.Host.Crash
             return true;
         }
 
+        /// <summary>The vessel died by hitting the ground: the game raised the collision itself, which
+        /// is the cause, with no per-part impact to pair it with. Held for <see cref="Drain"/> like
+        /// <see cref="Death"/>, whose repeat rules it follows, and the cause is the collision when no
+        /// earlier impact already named one.</summary>
+        public bool DeathByCollision(string vesselId, TRecord record, TImpact collision, double ut)
+        {
+            if (_held.TryGetValue(vesselId, out var already))
+            {
+                already.Impact ??= collision;
+                return false;
+            }
+
+            if (!Death(vesselId, record, ut))
+            {
+                return false;
+            }
+
+            _held[vesselId].Impact ??= collision;
+            return true;
+        }
+
         /// <summary>The vessel's flight ended some other way, such as a recovery, which the
         /// producer publishes at once. Returns false when a death of the vessel is held or
         /// was published within the window, so the one ending is not published twice; a

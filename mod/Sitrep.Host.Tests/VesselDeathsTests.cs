@@ -39,6 +39,49 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void a_death_by_hitting_the_ground_is_named_a_collision_with_no_part_impact_beside_it()
+        {
+            var deaths = Deaths();
+
+            Assert.True(deaths.DeathByCollision(Craft, "pod", "Ground", 100));
+
+            var death = Assert.Single(deaths.Drain(100.1));
+            Assert.Equal("Ground", death.Impact);
+        }
+
+        [Fact]
+        public void a_part_impact_that_already_named_the_death_keeps_the_cause_it_gave()
+        {
+            var deaths = Deaths();
+            deaths.Impact(Craft, "Crash", 99.5);
+
+            deaths.DeathByCollision(Craft, "pod", "Ground", 100);
+
+            Assert.Equal("Crash", Assert.Single(deaths.Drain(100.1)).Impact);
+        }
+
+        [Fact]
+        public void a_collision_death_and_the_destruction_stock_raises_for_it_are_one_death()
+        {
+            var deaths = Deaths();
+
+            Assert.True(deaths.DeathByCollision(Craft, "pod", "Ground", 100));
+            Assert.False(deaths.Death(Craft, "pod", 100));
+            Assert.Single(deaths.Drain(100.1));
+        }
+
+        [Fact]
+        public void a_collision_reported_after_the_destruction_still_names_the_cause()
+        {
+            var deaths = Deaths();
+            deaths.Death(Craft, "pod", 100);
+
+            Assert.False(deaths.DeathByCollision(Craft, "pod", "Ground", 100));
+
+            Assert.Equal("Ground", Assert.Single(deaths.Drain(100.1)).Impact);
+        }
+
+        [Fact]
         public void a_second_death_of_the_same_vessel_reports_that_it_was_dropped()
         {
             var deaths = Deaths();

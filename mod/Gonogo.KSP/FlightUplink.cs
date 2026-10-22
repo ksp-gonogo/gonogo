@@ -163,9 +163,9 @@ namespace Gonogo.KSP
         /// is decoupled. The same death <see cref="OnVesselWillDestroy"/> reports
         /// when <c>Vessel.Die</c> runs, and the only report when it does not.
         /// </summary>
-        private void OnVesselExplodeGroundCollision(Vessel vessel) => NoteDeath(vessel);
+        private void OnVesselExplodeGroundCollision(Vessel vessel) => NoteDeath(vessel, collision: true);
 
-        private void NoteDeath(Vessel vessel)
+        private void NoteDeath(Vessel vessel, bool collision = false)
         {
             try
             {
@@ -178,7 +178,15 @@ namespace Gonogo.KSP
                 {
                     return;
                 }
-                _deaths.Death(vessel.id.ToString(), GameWords.VesselName(vessel), Planetarium.GetUniversalTime());
+                var id = vessel.id.ToString();
+                var name = GameWords.VesselName(vessel);
+                var ut = Planetarium.GetUniversalTime();
+                if (collision)
+                {
+                    _deaths.DeathByCollision(id, name, Impacted, ut);
+                    return;
+                }
+                _deaths.Death(id, name, ut);
             }
             catch (Exception ex)
             {
