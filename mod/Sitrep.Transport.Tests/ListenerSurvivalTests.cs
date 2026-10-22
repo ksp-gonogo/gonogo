@@ -73,9 +73,23 @@ namespace Sitrep.Transport.Tests
                 threadAbort ? ThreadAbort() : new InvalidOperationException("accept failed"));
 
             var connected = new TaskCompletionSource<IWebSocketConnection>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var rebound = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var wentDown = 0;
+            server.ListeningChanged += listening =>
+            {
+                if (!listening)
+                {
+                    Volatile.Write(ref wentDown, 1);
+                    return;
+                }
+
+                if (Volatile.Read(ref wentDown) == 1) rebound.TrySetResult();
+            };
             server.Start(socket => socket.OnOpen = () => connected.TrySetResult(socket));
             try
             {
+                // The faulted socket is closed before the new one binds, so a client arriving earlier is reset
+                await rebound.Task.WaitAsync(Timeout);
                 var uri = new Uri($"ws://127.0.0.1:{server.Port}/");
                 using var client = new ClientWebSocket();
                 using var cts = new CancellationTokenSource(Timeout);
