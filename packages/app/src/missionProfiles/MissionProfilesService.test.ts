@@ -36,6 +36,18 @@ describe("MissionProfilesService", () => {
     storage = memoryStorage();
   });
 
+  it("leaves every key where it is when the layout being bound is gone", () => {
+    const svc = new MissionProfilesService("main", storage);
+    const p = svc.save("Launch", ITEMS, LAYOUT);
+    const key = { deviceId: "keyboard", inputId: "KeyK" };
+    svc.bindInput(p.id, key);
+
+    const { movedFrom } = svc.bindInput("missing", key);
+
+    expect(movedFrom).toBeNull();
+    expect(svc.get(p.id)?.inputBinding).toEqual(key);
+  });
+
   it("starts empty for a fresh screen", () => {
     const svc = new MissionProfilesService("main", storage);
     expect(svc.list()).toEqual([]);
