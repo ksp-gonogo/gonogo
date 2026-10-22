@@ -137,7 +137,17 @@ function OrbitViewComponent({
   // The trajectory shape comes from the propagation seam, never from `sma` and `ecc` here, so an integrating provider changes what is drawn.
   const trajectory: OrbitTrajectory | null = useOrbitPlaneTrajectory(orbit);
 
-  const { isOrbiting } = useIsOrbiting(orbitHeld ? apsisShape : undefined);
+  const {
+    isOrbiting,
+    apoapsis: shapeApoapsis,
+    threshold: atmosphereTop,
+  } = useIsOrbiting(orbitHeld ? apsisShape : undefined);
+  // On a path that never leaves the air, drag decides where the craft goes, so an apoapsis inside the atmosphere is no plan.
+  const apoapsisInAir =
+    isOrbiting === false &&
+    atmosphereTop > 0 &&
+    shapeApoapsis !== undefined &&
+    shapeApoapsis < atmosphereTop;
   // Single-body subscription, avoiding the all-bodies fanout of useCelestialBodies.
   const { angleDeg: rotationAngleDeg, rotates } = useBodyRotation(
     typeof parentBodyName === "string" ? parentBodyName : null,
@@ -212,6 +222,7 @@ function OrbitViewComponent({
         showEccentricityRows: layout.showEccentricityAndPeriod,
         apsides,
         noApsidesHere: apsides === "invalid",
+        apoapsisInAir,
         apoapsisAltitude: current(solve?.apoapsisAlt),
         periapsisAltitude: current(solve?.periapsisAlt),
         timeToAp: current(countdownOf(solveReading, (s) => s.timeToAp)),

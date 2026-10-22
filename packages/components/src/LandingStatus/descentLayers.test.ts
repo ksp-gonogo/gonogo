@@ -338,6 +338,18 @@ describe("holdUrgency", () => {
   });
 });
 
+describe("urgency under a settled canopy", () => {
+  it("is not urgent for a descent at terminal speed under open parachutes whose speed scatters over the divert edge", () => {
+    expect(classifyUrgency(6.34, 800)).toBe("urgent");
+    expect(classifyUrgency(6.34, 800, true)).toBe("caution");
+    expect(holdUrgency("urgent", 5.7, 800, true)).toBe("caution");
+  });
+
+  it("is still urgent when the settled speed is well past the divert edge", () => {
+    expect(classifyUrgency(29, 800, true)).toBe("urgent");
+  });
+});
+
 describe("nextShownUrgency", () => {
   const at = (ut: number, vesselId = "v1") => ({
     vesselId,

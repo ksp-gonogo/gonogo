@@ -31,10 +31,17 @@ export type ProfileUrgency = "safe" | "caution" | "urgent";
 export function classifyUrgency(
   touchdownSpeed: number,
   altitude: number,
+  steadyUnderCanopy = false,
 ): ProfileUrgency {
   const band = touchdownBand(touchdownSpeed);
   if (band === "SAFE") return "safe";
-  if (band === "DIVERT" && altitude <= CRITICAL_ALTITUDE_M) return "urgent";
+  // A craft settled at its terminal speed under open canopies has nothing left to act on, so only a speed clear of the divert edge by the release margin is urgent, not the scatter about it.
+  const clearOfEdge =
+    !steadyUnderCanopy ||
+    touchdownBand(touchdownSpeed / (1 + URGENCY_RELEASE_MARGIN)) === "DIVERT";
+  if (band === "DIVERT" && altitude <= CRITICAL_ALTITUDE_M && clearOfEdge) {
+    return "urgent";
+  }
   return "caution";
 }
 
@@ -56,12 +63,14 @@ export function holdUrgency(
   held: ProfileUrgency | undefined,
   touchdownSpeed: number,
   altitude: number,
+  steadyUnderCanopy = false,
 ): ProfileUrgency {
-  const now = classifyUrgency(touchdownSpeed, altitude);
+  const now = classifyUrgency(touchdownSpeed, altitude, steadyUnderCanopy);
   if (held === undefined || URGENCY_RANK[now] >= URGENCY_RANK[held]) return now;
   const credited = classifyUrgency(
     touchdownSpeed / (1 - URGENCY_RELEASE_MARGIN),
     altitude,
+    steadyUnderCanopy,
   );
   return URGENCY_RANK[credited] < URGENCY_RANK[held] ? credited : held;
 }
@@ -420,6 +429,7 @@ export function nextShownUrgency(
   sample: DescentSample,
   touchdownSpeed: number,
   altitude: number,
+  steadyUnderCanopy = false,
 ): ShownUrgency {
   const sameDescent =
     shown !== null &&
@@ -431,6 +441,7 @@ export function nextShownUrgency(
       sameDescent ? shown.tier : undefined,
       touchdownSpeed,
       altitude,
+      steadyUnderCanopy,
     ),
   };
 }
@@ -493,6 +504,8 @@ CORE_UPLINK_CLIENT.registerContribution({
       sample,
       inputs.projectedTouchdownSpeed as number,
       frame.altitude,
+      landing?.descentRegime === "at-terminal" &&
+        landing?.parachuteDeployment === "deployed",
     );
     inputs.urgency = shownUrgency.tier;
     return [
