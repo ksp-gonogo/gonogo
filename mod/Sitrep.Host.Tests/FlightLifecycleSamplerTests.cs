@@ -577,6 +577,21 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void ACrashOnTheAbandonedBranchDrainedWithTheRevertTickStillLeavesTheNewFlightStarted()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 19.0, name: "Alpha"));
+            rig.Sampler.SignalEnd(VesselA, "Alpha", FlightEndReason.Crashed, 20.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.5, name: "Alpha"));
+
+            Assert.Equal(2, rig.Started.Calls.Count);
+            var newFlight = ((FlightStarted)rig.Started.Calls[1].Payload!).FlightId;
+            Assert.Equal(newFlight, ((FlightCurrent)rig.Current.Calls[^1].Payload!).FlightId);
+            Assert.DoesNotContain(rig.Ended.Calls, c => ((FlightEnded)c.Payload!).FlightId == newFlight);
+        }
+
+        [Fact]
         public void ARevertEndsEveryFlightStillOpenNotOnlyTheOneInFocus()
         {
             var rig = new Rig();
