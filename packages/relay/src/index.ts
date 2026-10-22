@@ -12,6 +12,7 @@ import { registerBootstrapConfigRoutes } from "./bootstrapConfig.js";
 import { loadConfig } from "./config.js";
 import { startCoturn } from "./coturnManager.js";
 import { discoverPublicIp } from "./discoverPublicIp.js";
+import { defaultGateway, gatewayCandidates, PortMapper } from "./portMapper.js";
 import { registerTurnRoutes } from "./turnRoutes.js";
 import { TurnSupervisor } from "./turnSupervisor.js";
 import { BUILD_TIME, VERSION } from "./version.js";
@@ -173,12 +174,25 @@ if (config.skipCoturn) {
   await turn.begin();
 }
 
+const portMapper =
+  config.skipCoturn || config.skipPortMapping
+    ? null
+    : new PortMapper({
+        gateways: gatewayCandidates(config.routerIp, defaultGateway()),
+        turnPort: config.turnPort,
+        minPort: config.turnMinPort,
+        maxPort: config.turnMaxPort,
+        log: (msg) => bridgeInfo(`port mapping: ${msg}`),
+      });
+void portMapper?.start();
+
 registerTurnRoutes(fastify, {
   getCoturn: () => turn.handle,
   getPendingReason: () => turn.pendingReason,
   turnExpected: !config.skipCoturn,
   publicUrl: config.publicUrl,
   tcpRelay: config.turnTcp,
+  getPortMapping: () => portMapper?.status ?? null,
 });
 
 fastify.get("/version", async () => ({
@@ -205,6 +219,7 @@ bridgeInfo(`relay listening on :${config.port}`);
 
 const shutdown = async () => {
   bridgeInfo("shutting down");
+  await portMapper?.stop();
   await turn.stop();
   await fastify.close();
   await exitNow(0);

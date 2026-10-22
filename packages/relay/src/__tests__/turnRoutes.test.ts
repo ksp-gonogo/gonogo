@@ -39,6 +39,22 @@ describe("turn routes (fastify.inject)", () => {
     await app.close();
   });
 
+  it("reports how opening the router ports went, only when the relay tries", async () => {
+    const app = Fastify();
+    registerTurnRoutes(app, {
+      getCoturn: () => handle(() => true),
+      turnExpected: true,
+      getPortMapping: () => ({ state: "refused", message: "Router said no." }),
+    });
+    await app.ready();
+    const health = await app.inject({ method: "GET", url: "/health" });
+    expect(health.json().portMapping).toEqual({
+      state: "refused",
+      message: "Router said no.",
+    });
+    await app.close();
+  });
+
   it("names the published relay address in /ice-config only when one is set", async () => {
     const app = Fastify();
     registerTurnRoutes(app, {
