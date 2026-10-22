@@ -9,7 +9,7 @@ import {
 import {
   type FlightCurrent,
   type FlightEnded,
-  type FlightEndReason,
+  FlightEndReason,
   type FlightStarted,
   type FlightVesselChanged,
   magnitudeOf,
@@ -273,7 +273,10 @@ export function AutoRecordController({
     ): void => {
       if (!r.recording) return;
       storePart(r.stop(), endReason, joinedVesselName, joinedVesselId);
-      if (endReason === undefined) parkTrackedFlight();
+      // A flight that ended Docked can still be flown again by the craft that comes off the dock.
+      if (endReason === undefined || endReason === FlightEndReason.Docked) {
+        parkTrackedFlight();
+      }
       missionRef.current = null;
       partStartedAtRef.current = null;
       setAutoRecordStatus({
@@ -329,6 +332,28 @@ export function AutoRecordController({
     finishAndSave(recorder);
   }, [gameState, recorder, finishAndSave]);
 
+  /** Takes the Docked ending off the mission a resumed flight was recorded into, and carries its recording on. */
+  const reopenDockedMission = useCallback((flightId: string): void => {
+    const mission = missionRef.current;
+    if (mission) {
+      const {
+        endReason: _end,
+        joinedVesselId: _joinedId,
+        joinedVesselName: _joined,
+        ...open
+      } = mission.meta;
+      missionRef.current = { ...mission, meta: open };
+    }
+    const id = savedMissionIdsRef.current.get(flightId);
+    const src = getSource();
+    if (!id || typeof src?.reopenFlight !== "function") return;
+    void src.reopenFlight(id).catch((error: unknown) => {
+      logger.warn("[AutoRecordController] flight not reopened", {
+        err: String(error),
+      });
+    });
+  }, []);
+
   useOptionalStreamEvent<FlightStarted>(
     "flight.started",
     useCallback(
@@ -345,6 +370,22 @@ export function AutoRecordController({
           return;
         }
         finishAndSave(recorder);
+        const resumed = payload.resumesAfterDock
+          ? parkedFlightsRef.current.get(payload.flightId)
+          : undefined;
+        if (resumed) {
+          // The craft that came off a dock is the one that docked: its flight, and its row, carry on.
+          resumeParkedFlight(payload.flightId);
+          reopenDockedMission(payload.flightId);
+          if (!missionHistoryEnabledRef.current) return;
+          recorder.start();
+          setAutoRecordStatus({
+            recording: true,
+            vesselName: activeVesselNameRef.current,
+            frameCount: recorder.frameCount,
+          });
+          return;
+        }
         activeFlightIdRef.current = payload.flightId;
         activeFlightStartedUtRef.current = startedUt;
         activeVesselNameRef.current = payload.vesselName;
@@ -370,7 +411,7 @@ export function AutoRecordController({
           frameCount: recorder.frameCount,
         });
       },
-      [recorder, finishAndSave],
+      [recorder, finishAndSave, resumeParkedFlight, reopenDockedMission],
     ),
   );
 
@@ -411,7 +452,9 @@ export function AutoRecordController({
       joinedVesselId?: string,
     ): void => {
       const id = savedMissionIdsRef.current.get(flightId);
-      savedMissionIdsRef.current.delete(flightId);
+      if (endReason !== FlightEndReason.Docked) {
+        savedMissionIdsRef.current.delete(flightId);
+      }
       const src = getSource();
       if (!id || typeof src?.setFlightEndReason !== "function") return;
       src
@@ -430,7 +473,9 @@ export function AutoRecordController({
     useCallback(
       (payload) => {
         if (!recorder) return;
-        parkedFlightsRef.current.delete(payload.flightId);
+        if (payload.reason !== FlightEndReason.Docked) {
+          parkedFlightsRef.current.delete(payload.flightId);
+        }
         if (payload.flightId !== activeFlightIdRef.current) {
           // A flight the operator left for another vessel ends on its own.
           storeReasonOnSavedMission(
@@ -448,7 +493,9 @@ export function AutoRecordController({
             payload.joinedVesselName ?? undefined,
             payload.joinedVesselId ?? undefined,
           );
-          savedMissionIdsRef.current.delete(payload.flightId);
+          if (payload.reason !== FlightEndReason.Docked) {
+            savedMissionIdsRef.current.delete(payload.flightId);
+          }
         } else {
           // The recording stopped when the scene changed, before the end was announced.
           storeReasonOnSavedMission(
@@ -457,12 +504,13 @@ export function AutoRecordController({
             payload.joinedVesselName ?? undefined,
             payload.joinedVesselId ?? undefined,
           );
+          if (payload.reason === FlightEndReason.Docked) parkTrackedFlight();
         }
         // Nothing is tracked once the flight is over, so neither the master switch nor a later tick can start recording it again.
         activeFlightIdRef.current = null;
         activeFlightStartedUtRef.current = null;
       },
-      [recorder, finishAndSave, storeReasonOnSavedMission],
+      [recorder, finishAndSave, storeReasonOnSavedMission, parkTrackedFlight],
     ),
   );
 

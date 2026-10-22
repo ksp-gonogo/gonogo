@@ -787,6 +787,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "FlightStarted": {
     flightId: "id",
+    resumesAfterDock: "flag",
     ut: "ut",
     vesselId: "id",
     vesselName: "text",
@@ -1986,6 +1987,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "flight.started": {
     flightId: "id",
+    resumesAfterDock: "flag",
     ut: "ut",
     vesselId: "id",
     vesselName: "text",

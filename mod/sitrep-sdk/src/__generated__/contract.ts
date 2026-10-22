@@ -4283,6 +4283,14 @@ export interface FlightStarted
 	* or the revert-target UT for a flight started by a rewind.
 	*/
 	ut: Value<"ut">;
+	/**
+	* True when this is a flight that ended `FlightEndReason.Docked` and is now
+	* flying again, because the craft that came off an undock or a Claw release is
+	* the one that docked: `FlightStarted.flightId` and `FlightStarted.ut` are the
+	* original flight's, and `FlightStarted.vesselId` is the new vessel's. Its
+	* earlier Docked end no longer stands.
+	*/
+	resumesAfterDock: boolean;
 }
 /**
 * An event that is always delivered, in the order it happened, and held back

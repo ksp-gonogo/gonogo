@@ -65,7 +65,7 @@ namespace Sitrep.Host.Tests
             }
         }
 
-        private static KspSnapshot SnapshotFor(string vesselId, double ut, string name = "Alpha", string situation = "FLYING", string? evaKerbal = null) => new KspSnapshot
+        private static KspSnapshot SnapshotFor(string vesselId, double ut, string name = "Alpha", string situation = "FLYING", string? evaKerbal = null, string? rootPartId = null) => new KspSnapshot
         {
             Ut = ut,
             Values = new Dictionary<string, object?>
@@ -78,6 +78,7 @@ namespace Sitrep.Host.Tests
                         ["name"] = name,
                         ["situation"] = situation,
                         ["evaKerbal"] = evaKerbal,
+                        ["rootPartId"] = rootPartId,
                     },
                 },
             },
@@ -678,6 +679,143 @@ namespace Sitrep.Host.Tests
             rig.Sampler.Sample(NoVesselSnapshot(6.0));
 
             AssertEndedOnce(rig, VesselA, FlightEndReason.Crashed);
+        }
+
+        private const string VesselC = "cccccccc-0000-0000-0000-000000000000";
+
+        private static (Rig Rig, string BravoFlight) DockedBravoIntoAlpha()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha", rootPartId: "root-a"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 5.0, name: "Bravo", rootPartId: "root-b"));
+            var bravoFlight = ((FlightStarted)rig.Started.Calls[1].Payload!).FlightId;
+            rig.Sampler.SignalDocked(VesselB, "Bravo", VesselA, "Alpha", 9.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 9.1, name: "Alpha", rootPartId: "root-a"));
+            return (rig, bravoFlight);
+        }
+
+        [Fact]
+        public void TheCraftThatComesOffAnUndockFliesTheFlightThatDockedAgain()
+        {
+            var (rig, bravoFlight) = DockedBravoIntoAlpha();
+            var bravoStart = ((FlightStarted)rig.Started.Calls[1].Payload!).Ut;
+
+            rig.Sampler.Sample(SnapshotFor(VesselC, 12.0, name: "Bravo", rootPartId: "root-b"));
+
+            var resumed = (FlightStarted)rig.Started.Calls[^1].Payload!;
+            Assert.Equal(bravoFlight, resumed.FlightId);
+            Assert.Equal(VesselC, resumed.VesselId);
+            Assert.Equal(bravoStart, resumed.Ut);
+            Assert.True(resumed.ResumesAfterDock);
+            var changed = (FlightVesselChanged)rig.VesselChanged.Calls[^1].Payload!;
+            Assert.Equal(bravoFlight, changed.FlightId);
+            Assert.Equal(VesselC, changed.VesselId);
+            Assert.Equal(bravoFlight, ((FlightCurrent)rig.Current.Calls[^1].Payload!).FlightId);
+        }
+
+        [Fact]
+        public void ACraftGrabbedByTheClawAndReleasedFliesItsFlightAgainLikeAnUndockedOne()
+        {
+            // A claw grab is the same absorption as a dock (Part.Couple, no onVesselDocking), and
+            // the release the same split (Part.Undock with the saved root), so both reach the
+            // sampler as a Docked end and a vessel with a new id and the old root part.
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha", rootPartId: "root-a"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 5.0, name: "Spare X", rootPartId: "root-x"));
+            var spareFlight = ((FlightStarted)rig.Started.Calls[1].Payload!).FlightId;
+            rig.Sampler.SignalDocked(VesselB, "Spare X", VesselA, "Alpha", 9.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 9.1, name: "Alpha", rootPartId: "root-a"));
+
+            // Release: the craft comes back with a vessel id of its own, and its focus is taken.
+            rig.Sampler.Sample(SnapshotFor(VesselC, 30.0, name: "Spare X", rootPartId: "root-x"));
+
+            var ended = rig.Ended.Calls.Select(c => (FlightEnded)c.Payload!).Single();
+            Assert.Equal(FlightEndReason.Docked, ended.Reason);
+            Assert.Equal(spareFlight, ended.FlightId);
+            var resumed = (FlightStarted)rig.Started.Calls[^1].Payload!;
+            Assert.Equal(spareFlight, resumed.FlightId);
+            Assert.Equal(VesselC, resumed.VesselId);
+            Assert.True(resumed.ResumesAfterDock);
+        }
+
+        [Fact]
+        public void ACraftWhoseRootPartNeverDockedThisSessionStartsAFlightOfItsOwn()
+        {
+            var (rig, bravoFlight) = DockedBravoIntoAlpha();
+
+            rig.Sampler.Sample(SnapshotFor(VesselC, 12.0, name: "Charlie", rootPartId: "root-x"));
+
+            var started = (FlightStarted)rig.Started.Calls[^1].Payload!;
+            Assert.NotEqual(bravoFlight, started.FlightId);
+            Assert.False(started.ResumesAfterDock);
+        }
+
+        [Fact]
+        public void ACraftDockedBeforeTheGameWasLoadedStartsAFlightOfItsOwnWhenItComesOffAnUndock()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha", rootPartId: "root-a"));
+
+            rig.Sampler.Sample(SnapshotFor(VesselB, 5.0, name: "Bravo", rootPartId: "root-b"));
+
+            Assert.All(rig.Started.Calls, c => Assert.False(((FlightStarted)c.Payload!).ResumesAfterDock));
+            Assert.Equal(2, rig.Started.Calls.Count);
+        }
+
+        [Fact]
+        public void ACraftThatDocksAndUndocksTwiceKeepsOneFlightId()
+        {
+            var (rig, bravoFlight) = DockedBravoIntoAlpha();
+            rig.Sampler.Sample(SnapshotFor(VesselC, 12.0, name: "Bravo", rootPartId: "root-b"));
+            rig.Sampler.SignalDocked(VesselC, "Bravo", VesselA, "Alpha", 20.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 20.1, name: "Alpha", rootPartId: "root-a"));
+            const string VesselD = "dddddddd-0000-0000-0000-000000000000";
+
+            rig.Sampler.Sample(SnapshotFor(VesselD, 30.0, name: "Bravo", rootPartId: "root-b"));
+
+            var dockedEnds = rig.Ended.Calls.Select(c => (FlightEnded)c.Payload!).Where(e => e.Reason == FlightEndReason.Docked).ToList();
+            Assert.Equal(2, dockedEnds.Count);
+            Assert.All(dockedEnds, e => Assert.Equal(bravoFlight, e.FlightId));
+            var resumed = (FlightStarted)rig.Started.Calls[^1].Payload!;
+            Assert.Equal(bravoFlight, resumed.FlightId);
+            Assert.Equal(VesselD, resumed.VesselId);
+            Assert.True(resumed.ResumesAfterDock);
+        }
+
+        [Fact]
+        public void EachCraftOfADockedStackResumesItsOwnFlightWhenItComesOff()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha", rootPartId: "root-a"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 5.0, name: "Bravo", rootPartId: "root-b"));
+            var bravoFlight = ((FlightStarted)rig.Started.Calls[1].Payload!).FlightId;
+            rig.Sampler.Sample(SnapshotFor(VesselC, 6.0, name: "Charlie", rootPartId: "root-c"));
+            var charlieFlight = ((FlightStarted)rig.Started.Calls[2].Payload!).FlightId;
+            rig.Sampler.SignalDocked(VesselB, "Bravo", VesselA, "Alpha", 9.0);
+            rig.Sampler.SignalDocked(VesselC, "Charlie", VesselA, "Alpha", 9.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 9.1, name: "Alpha", rootPartId: "root-a"));
+            const string VesselD = "dddddddd-0000-0000-0000-000000000000";
+            const string VesselE = "eeeeeeee-0000-0000-0000-000000000000";
+
+            rig.Sampler.Sample(SnapshotFor(VesselE, 20.0, name: "Charlie", rootPartId: "root-c"));
+            rig.Sampler.Sample(SnapshotFor(VesselD, 30.0, name: "Bravo", rootPartId: "root-b"));
+
+            var resumed = rig.Started.Calls.Select(c => (FlightStarted)c.Payload!).Where(f => f.ResumesAfterDock).ToList();
+            Assert.Equal(new[] { charlieFlight, bravoFlight }, resumed.Select(f => f.FlightId).ToArray());
+        }
+
+        [Fact]
+        public void ARewindForgetsWhatDocked()
+        {
+            var (rig, bravoFlight) = DockedBravoIntoAlpha();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 1.0, name: "Alpha", rootPartId: "root-a"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 1.1, name: "Alpha", rootPartId: "root-a"));
+
+            rig.Sampler.Sample(SnapshotFor(VesselC, 12.0, name: "Bravo", rootPartId: "root-b"));
+
+            var started = (FlightStarted)rig.Started.Calls[^1].Payload!;
+            Assert.NotEqual(bravoFlight, started.FlightId);
+            Assert.False(started.ResumesAfterDock);
         }
 
         [Fact]

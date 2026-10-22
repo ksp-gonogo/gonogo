@@ -753,6 +753,100 @@ describe("AutoRecordController", () => {
     });
   });
 
+  it("gives a docked flight its row back when the craft that docked comes off an undock", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene="Flight" />
+      </TelemetryProvider>,
+    );
+
+    start(rig, 0, { flightId: "gB", vesselId: "vB", vesselName: "Bravo" });
+    tickFrame(rig, 5, "vB", "Bravo", "gB");
+    act(() => {
+      rig.transport.emit(
+        "flight.ended",
+        {
+          flightId: "gB",
+          vesselId: "vB",
+          vesselName: "Bravo",
+          reason: 5 /* Docked */,
+          ut: 9,
+          joinedVesselId: "vA",
+          joinedVesselName: "Alpha",
+        },
+        { validAt: 9, deliveredAt: 9 },
+      );
+      rig.clock.scrubTo(9);
+      rig.raf.flush();
+    });
+    await vi.waitFor(async () => {
+      const [row] = await rig.source.listFlights();
+      expect(row?.endReason).toBe(5);
+    });
+
+    // The craft comes off the undock with a vessel id of its own, and the flight it docked with.
+    act(() => {
+      rig.transport.emit(
+        "flight.started",
+        {
+          flightId: "gB",
+          vesselId: "vC",
+          vesselName: "Bravo",
+          ut: 0,
+          resumesAfterDock: true,
+        },
+        { validAt: 12, deliveredAt: 12 },
+      );
+      rig.clock.scrubTo(12);
+      rig.raf.flush();
+    });
+    tickFrame(rig, 14, "vC", "Bravo", "gB");
+    tickFrame(rig, 15, "vC", "Bravo", "gB");
+    expect(getAutoRecordStatus().recording).toBe(true);
+    end(rig, 20, "gB", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      const flights = await rig.source.listFlights();
+      expect(flights).toHaveLength(1);
+      expect(flights[0]?.endReason).toBe(0);
+      expect(flights[0]?.joinedVesselName).toBeUndefined();
+      expect(flights[0]?.lastFrameUt).toBeGreaterThanOrEqual(15);
+    });
+  });
+
+  it("starts a row of its own for a resumed flight this page never saw dock", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene="Flight" />
+      </TelemetryProvider>,
+    );
+
+    act(() => {
+      rig.transport.emit(
+        "flight.started",
+        {
+          flightId: "gB",
+          vesselId: "vC",
+          vesselName: "Bravo",
+          ut: 0,
+          resumesAfterDock: true,
+        },
+        { validAt: 12, deliveredAt: 12 },
+      );
+      rig.clock.scrubTo(12);
+      rig.raf.flush();
+    });
+    tickFrame(rig, 14, "vC", "Bravo", "gB");
+    end(rig, 20, "gB", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      expect(await rig.source.listFlights()).toHaveLength(1);
+    });
+    expect(getAutoRecordStatus().recording).toBe(false);
+  });
+
   it("resumes the tracked flight when the operator leaves the Flight scene and returns to the same vessel", async () => {
     const rig = buildRig();
     const tree = (scene: "Flight" | "SpaceCenter") => (

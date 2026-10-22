@@ -280,6 +280,20 @@ export class MissionHistorySource implements DataSource {
     return done;
   }
 
+  /**
+   * Takes the end off a stored mission whose flight is flying again, which is
+   * what a craft coming off a dock does to the flight that ended when it
+   * docked.
+   */
+  async reopenFlight(id: string): Promise<void> {
+    await this.missionStore.updateMissionMeta(id, {
+      endReason: undefined,
+      joinedVesselId: undefined,
+      joinedVesselName: undefined,
+    });
+    this.flightListSubscribers.fire();
+  }
+
   async addChapter(
     missionId: string,
     chapter: Omit<FlightChapterRecord, "id"> & { id?: string },

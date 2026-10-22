@@ -732,6 +732,9 @@ namespace Gonogo.KSP
                 // Set only for the vessel a kerbal's EVA is reported under, so the
                 // flight reading can say the kerbal is outside.
                 ["evaKerbal"] = ReferenceEquals(vessel, ActiveVesselScope.Current) ? ActiveVesselScope.EvaKerbalName : null,
+                // The flightID of the root part: it outlasts a dock and an undock, which
+                // give the craft a new vessel id.
+                ["rootPartId"] = vessel.rootPart != null ? vessel.rootPart.flightID.ToString() : null,
             };
         }
 

@@ -747,6 +747,7 @@
     },
     "FlightStarted": {
       "flightId": "id",
+      "resumesAfterDock": "flag",
       "ut": "ut",
       "vesselId": "id",
       "vesselName": "text"
@@ -1941,6 +1942,7 @@
     },
     "flight.started": {
       "flightId": "id",
+      "resumesAfterDock": "flag",
       "ut": "ut",
       "vesselId": "id",
       "vesselName": "text"

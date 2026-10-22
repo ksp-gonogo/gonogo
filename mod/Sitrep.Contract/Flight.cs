@@ -140,6 +140,15 @@ public class FlightStarted
     /// <summary>Universal time this flight began: when the vessel was first observed active, or the revert-target UT for a flight started by a rewind.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
+
+    /// <summary>
+    /// True when this is a flight that ended <see cref="FlightEndReason.Docked"/> and is now
+    /// flying again, because the craft that came off an undock or a Claw release is the one
+    /// that docked: <see cref="FlightId"/> and <see cref="Ut"/> are the original flight's, and
+    /// <see cref="VesselId"/> is the new vessel's. Its earlier Docked end no longer stands.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool ResumesAfterDock { get; set; }
 }
 
 /// <summary>

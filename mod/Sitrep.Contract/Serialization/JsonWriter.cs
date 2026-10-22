@@ -1301,7 +1301,7 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.FlightStarted"/> to the wire
-        /// object <c>{ flightId, vesselId, vesselName, ut }</c>. See the
+        /// object <c>{ flightId, vesselId, vesselName, ut, resumesAfterDock }</c>. See the
         /// <c>case</c> in <see cref="AppendValue"/>.
         /// </summary>
         private static void AppendFlightStarted(StringBuilder sb, Sitrep.Contract.FlightStarted f)
@@ -1322,6 +1322,11 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "ut");
             sb.Append(':');
             AppendNumber(sb, f.Ut);
+            sb.Append(',');
+            AppendString(sb, "resumesAfterDock");
+            sb.Append(':');
+            sb.Append(f.ResumesAfterDock ? "true" : "false");
+            
             sb.Append('}');
         }
 

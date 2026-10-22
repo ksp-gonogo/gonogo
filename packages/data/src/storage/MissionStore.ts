@@ -152,7 +152,16 @@ export class MissionStore {
    */
   async updateMissionMeta(
     id: string,
-    patch: Partial<Pick<MissionMeta, "starred" | "chapters" | "endReason">>,
+    patch: Partial<
+      Pick<
+        MissionMeta,
+        | "starred"
+        | "chapters"
+        | "endReason"
+        | "joinedVesselId"
+        | "joinedVesselName"
+      >
+    >,
   ): Promise<void> {
     const db = await this.open();
     return new Promise<void>((resolve, reject) => {

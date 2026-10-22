@@ -11,7 +11,7 @@ namespace Sitrep.Core.Tests
     /// </summary>
     public class FlightEndedWireTests
     {
-        private static JsonElement Write(FlightEnded ended)
+        private static JsonElement Write(object ended)
         {
             var msg = new StreamData<object?>
             {
@@ -68,6 +68,16 @@ namespace Sitrep.Core.Tests
 
             Assert.Equal(JsonValueKind.Null, el.GetProperty("joinedVesselId").ValueKind);
             Assert.Equal(JsonValueKind.Null, el.GetProperty("joinedVesselName").ValueKind);
+        }
+
+        [Fact]
+        public void AFlightResumedAfterADockSaysSoOnTheWire()
+        {
+            var resumed = Write(new FlightStarted { FlightId = "f1", VesselId = "v3", VesselName = "Bravo", Ut = 5.0, ResumesAfterDock = true });
+            var fresh = Write(new FlightStarted { FlightId = "f2", VesselId = "v4", VesselName = "Charlie", Ut = 6.0 });
+
+            Assert.True(resumed.GetProperty("resumesAfterDock").GetBoolean());
+            Assert.False(fresh.GetProperty("resumesAfterDock").GetBoolean());
         }
     }
 }

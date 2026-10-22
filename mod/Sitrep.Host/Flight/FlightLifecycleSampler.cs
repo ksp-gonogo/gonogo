@@ -120,6 +120,11 @@ namespace Sitrep.Host.Flight
         // that is active afterwards, whatever its id, starts a flight of its own.
         private readonly Dictionary<string, FlightRecord> _flights = new Dictionary<string, FlightRecord>();
 
+        // Flights that ended Docked, by the flightID of the root part of the craft that
+        // docked. A part keeps its flightID through a dock, an undock and a save, so the
+        // craft that comes off an undock or a Claw release is recognised by it.
+        private readonly Dictionary<string, FlightRecord> _dockedFlights = new Dictionary<string, FlightRecord>();
+
         // The most recently ended flight (crash/recovery via ApplyEnd, OR a
         // PRIOR revert), tracked independent of _activeVesselId's null-out,
         // see Sample's rewind branch doc comment for why: an end signalled
@@ -340,6 +345,7 @@ namespace Sitrep.Host.Flight
             }
             _activeVesselId = null;
             _activeVesselName = "";
+            _dockedFlights.Clear();
 
             // An end applied this very tick belongs to the flight the sample
             // that follows is about, so it keeps its record.
@@ -393,7 +399,7 @@ namespace Sitrep.Host.Flight
                 PublishVesselChanged(known, snapshot, _lastVesselId);
                 return;
             }
-            PublishVesselChanged(StartNewFlight(currentId, snapshot), snapshot, _lastVesselId);
+            PublishVesselChanged(ResumeDockedFlight(currentId, snapshot) ?? StartNewFlight(currentId, snapshot), snapshot, _lastVesselId);
         }
 
         private void ApplyEnd(EndSignal end, string? currentId, KspSnapshot snapshot)
@@ -445,6 +451,10 @@ namespace Sitrep.Host.Flight
 
             flight.Open = false;
             PublishEnded(flight.FlightId, vesselId, vesselName, reason, ut, end.JoinedVesselId, end.JoinedVesselName);
+            if (reason == FlightEndReason.Docked && flight.RootPartId != null)
+            {
+                _dockedFlights[flight.RootPartId] = flight;
+            }
             if (_activeVesselId == vesselId)
             {
                 _activeVesselId = null;
@@ -466,6 +476,7 @@ namespace Sitrep.Host.Flight
             _activeVesselId = vesselId;
             _activeVesselName = ReadVesselName(snapshot) ?? "";
             var flight = new FlightRecord(_mintFlightId(), vesselId, startUt ?? snapshot.Ut, _activeVesselName);
+            flight.RootPartId = ReadRootPartId(snapshot);
             _flights[vesselId] = flight;
 
             // This is news to everyone, including an audience that was already
@@ -511,7 +522,35 @@ namespace Sitrep.Host.Flight
                 VesselId = flight.VesselId,
                 VesselName = _activeVesselName,
                 Ut = flight.StartUt,
+                ResumesAfterDock = flight.ResumesAfterDock,
             }, flight.StartUt);
+        }
+
+        /// <summary>
+        /// A vessel nobody has flown whose root part is the one that docked earlier is that
+        /// craft coming back off an undock or a Claw release, so it flies the flight that
+        /// ended Docked again, with the vessel id it has now.
+        /// </summary>
+        private FlightRecord? ResumeDockedFlight(string vesselId, KspSnapshot snapshot)
+        {
+            var root = ReadRootPartId(snapshot);
+            if (root == null || !_dockedFlights.TryGetValue(root, out var docked))
+            {
+                return null;
+            }
+
+            _dockedFlights.Remove(root);
+            _activeVesselId = vesselId;
+            _activeVesselName = ReadVesselName(snapshot) ?? docked.VesselName;
+            var resumed = new FlightRecord(docked.FlightId, vesselId, docked.StartUt, _activeVesselName)
+            {
+                RootPartId = root,
+                ResumesAfterDock = true,
+            };
+            _flights[vesselId] = resumed;
+            _announcedStartedFlightId = null;
+            AnnounceStartedIfUnheard();
+            return resumed;
         }
 
         private void PublishVesselChanged(FlightRecord flight, KspSnapshot snapshot, string? previousVesselId)
@@ -615,6 +654,13 @@ namespace Sitrep.Host.Flight
             return string.IsNullOrEmpty(name) ? null : name;
         }
 
+        private static string? ReadRootPartId(KspSnapshot snapshot)
+        {
+            var identity = GetVesselIdentityGroup(snapshot);
+            var id = identity != null ? SnapshotDict.GetString(identity, "rootPartId") : null;
+            return string.IsNullOrEmpty(id) ? null : id;
+        }
+
         private static Situation ReadSituation(KspSnapshot snapshot)
         {
             var identity = GetVesselIdentityGroup(snapshot);
@@ -628,6 +674,8 @@ namespace Sitrep.Host.Flight
             public readonly double StartUt;
             public string VesselName;
             public bool Open = true;
+            public string? RootPartId;
+            public bool ResumesAfterDock;
 
             public FlightRecord(string flightId, string vesselId, double startUt, string vesselName)
             {
