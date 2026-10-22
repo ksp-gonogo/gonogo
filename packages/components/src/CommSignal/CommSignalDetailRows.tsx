@@ -18,12 +18,15 @@ import { CAPTION_LABEL_STYLE, TONE_TEXT_COLOR } from "./tones";
 export function CommSignalDetailRows({
   control,
   delay,
+  linkUp,
   noSignal,
   quantity,
   linkRate,
 }: {
   control: ControlDescription;
   delay: Value<"s"> | null | undefined;
+  /** False when the link is reported down. The delay is the figure for a working link, so it is not drawn for one reading down. */
+  linkUp: boolean;
   /** Withholds the control row, which is read off the held `vessel.comms`. */
   noSignal?: boolean;
   /** What the strength measures; the row is left out where the headline figure already says it. */
@@ -52,7 +55,7 @@ export function CommSignalDetailRows({
       >
         {noSignal ? NULL_DISPLAY : control.label}
       </Text>
-      {delayVisibility(delay) !== "hidden" && (
+      {linkUp && delayVisibility(delay) !== "hidden" && (
         <>
           <Text level="muted" size="xs" style={CAPTION_LABEL_STYLE}>
             Delay
