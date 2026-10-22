@@ -305,8 +305,6 @@ function createScope(parent: Scope | undefined): Scope {
 
     attach() {
       root.family.add(scope);
-      // Reports that arrived while detached, as strict mode's re-run of the children's effects does ahead of this one, settled nothing.
-      for (const key of held.keys()) root.sweep(key);
     },
 
     detach() {
