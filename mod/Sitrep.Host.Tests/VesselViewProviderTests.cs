@@ -2596,6 +2596,30 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildCrewSaysWhichPartEachKerbalSitsIn()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                misc: new Dictionary<string, object?> { ["crewCount"] = 2 },
+                crew: new Dictionary<string, object?>
+                {
+                    ["capacity"] = 6,
+                    ["members"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["name"] = "Bob Kerman", ["partId"] = "2660085125", ["partTitle"] = "Mk1-3 Command Pod" },
+                        new Dictionary<string, object?> { ["name"] = "Valentina Kerman" },
+                    },
+                });
+
+            var crew = VesselViewProvider.BuildCrew(snapshot)!;
+
+            Assert.Equal("2660085125", crew.Crew[0].PartId);
+            Assert.Equal("Mk1-3 Command Pod", crew.Crew[0].PartTitle);
+            Assert.Null(crew.Crew[1].PartId);
+            Assert.Null(crew.Crew[1].PartTitle);
+        }
+
+        [Fact]
         public void BuildCrewReturnsNullWhenNoVessel()
         {
             Assert.Null(VesselViewProvider.BuildCrew(new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() }));

@@ -687,6 +687,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     name: "text",
     packedVolumeLimit: "1",
     packedVolumeUsed: "1",
+    partId: "id",
+    partTitle: "text",
     rosterStatus: "text",
     slots: "count",
     trait: "text",

@@ -316,6 +316,38 @@ describe("CrewStatusComponent", () => {
     expect(screen.getByText("1 on EVA")).toBeInTheDocument();
   });
 
+  it("shows which part each kerbal sits in, so a transfer between pods reads as a move", async () => {
+    const fixture = newFixture();
+    renderCrew(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 2,
+        capacity: 6,
+        crew: [
+          { name: "Bob Kerman", partId: "1", partTitle: "Mk1-3 Command Pod" },
+          {
+            name: "Valentina Kerman",
+            partId: "2",
+            partTitle: "Hitchhiker Storage Container",
+          },
+        ],
+      });
+      fixture.emit("vessel.identity", { vesselType: VesselType.Ship });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Bob Kerman")).toBeInTheDocument(),
+    );
+    const bob = screen.getByText("Bob Kerman").closest("li") as HTMLElement;
+    const valentina = screen
+      .getByText("Valentina Kerman")
+      .closest("li") as HTMLElement;
+    expect(within(bob).getByText("Mk1-3 Command Pod")).toBeInTheDocument();
+    expect(
+      within(valentina).getByText("Hitchhiker Storage Container"),
+    ).toBeInTheDocument();
+  });
+
   it("says nothing of EVA while nobody is outside", async () => {
     const fixture = newFixture();
     renderCrew(fixture);

@@ -1713,6 +1713,7 @@ namespace Gonogo.KSP
         {
             var members = new List<object?>();
             var roster = vessel.GetVesselCrew();
+            var seats = ReadCrewSeats(vessel);
             if (roster != null)
             {
                 foreach (var member in roster)
@@ -1730,6 +1731,11 @@ namespace Gonogo.KSP
                         ["type"] = member.type.ToString(),
                         ["rosterStatus"] = member.rosterStatus.ToString(),
                     };
+                    if (member.name != null && seats.TryGetValue(member.name, out var seat))
+                    {
+                        crewRow["partId"] = seat.Id;
+                        crewRow["partTitle"] = seat.Title;
+                    }
                     /*
                      * What this kerbal is personally carrying, read from their
                      * own inventory module rather than from an EVA part. A
@@ -1748,6 +1754,53 @@ namespace Gonogo.KSP
                 ["capacity"] = vessel.GetCrewCapacity(),
                 ["members"] = members,
             };
+        }
+
+        /// <summary>The part a kerbal is seated in: its <c>flightID</c> and its title.</summary>
+        private readonly struct CrewSeat
+        {
+            public CrewSeat(string id, string title)
+            {
+                Id = id;
+                Title = title;
+            }
+
+            public string Id { get; }
+            public string Title { get; }
+        }
+
+        /// <summary>Which part each kerbal aboard sits in, by name, read off each part's own crew list.</summary>
+        private static Dictionary<string, CrewSeat> ReadCrewSeats(Vessel vessel)
+        {
+            var seats = new Dictionary<string, CrewSeat>(StringComparer.Ordinal);
+            try
+            {
+                var parts = vessel.parts;
+                if (parts == null)
+                {
+                    return seats;
+                }
+                foreach (var part in parts)
+                {
+                    var crew = part?.protoModuleCrew;
+                    if (crew == null)
+                    {
+                        continue;
+                    }
+                    foreach (var kerbal in crew)
+                    {
+                        if (kerbal?.name != null)
+                        {
+                            seats[kerbal.name] = new CrewSeat(part!.flightID.ToString(), part.partInfo?.title ?? "");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                GonogoLog.WarnLimited("crew seat read failed, omitting", ex);
+            }
+            return seats;
         }
 
         /// <summary>

@@ -42,6 +42,14 @@ public class CrewMember
     [SitrepUnit(Units.Text)]
     public string? RosterStatus { get; set; }
 
+    /// <summary>The <c>flightID</c> of the part this kerbal is seated in, as a string, the same id <c>vessel.parts</c> carries. Null when the seat could not be read.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? PartId { get; set; }
+
+    /// <summary>The title of the part this kerbal is seated in, such as <c>"Mk1-3 Command Pod"</c>, so a transfer between two pods shows as a move. Null when the seat could not be read.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? PartTitle { get; set; }
+
     /// <summary>
     /// What this kerbal is personally carrying, from their own
     /// <c>ModuleInventoryPart</c>.
