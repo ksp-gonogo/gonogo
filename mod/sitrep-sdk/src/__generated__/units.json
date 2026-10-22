@@ -861,6 +861,7 @@
       "longitude": "°",
       "name": "text",
       "padOccupied": "flag",
+      "padVesselId": "id",
       "padVesselTitle": "text"
     },
     "LimitBreach": {
@@ -1066,6 +1067,9 @@
     },
     "RecentLogArgs": {
       "maxLines": "count"
+    },
+    "RecoverVesselArgs": {
+      "vesselId": "id"
     },
     "RecoveryCrewEntry": {
       "isTourist": "flag",
@@ -2102,6 +2106,7 @@
       "longitude": "°",
       "name": "text",
       "padOccupied": "flag",
+      "padVesselId": "id",
       "padVesselTitle": "text"
     },
     "spaceCenter.partsAvailable": {

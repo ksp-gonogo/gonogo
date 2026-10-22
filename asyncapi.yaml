@@ -4,7 +4,7 @@ info:
   version: 45.6.0
   description: |-
     The WebSocket API of the Gonogo mod: 88 telemetry channels a client
-    subscribes to and 70 commands it sends, each with its payload and what it
+    subscribes to and 71 commands it sends, each with its payload and what it
     means, all over one socket.
 
     ## Frames the mod sends
@@ -1609,6 +1609,26 @@ channels:
         $ref: "#/components/messages/commandRequest.ksp.recover"
       commandResponse:
         $ref: "#/components/messages/commandResponse.ksp.recover"
+  ksp.recoverVessel:
+    address: ksp.recoverVessel
+    description: |-
+      Recover a vessel standing at the Space Center by id, the way the Space
+      Center's own Recover button does: the game books the recovery refund, the
+      science and the crew's return exactly as it does for a flight recovery. A
+      vessel on a launch site is one of these. Fails with
+      `CommandErrorCode.WrongScene` outside the Space Center,
+      `CommandErrorCode.NotFound` for an id that matches no vessel, and
+      `CommandErrorCode.NotClearToProceed` for a vessel that is not landed on the
+      home world, is not tracked as ours, or in a game that does not permit
+      recovery.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.ksp.recoverVessel"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.ksp.recoverVessel"
   ksp.revertAvailability:
     address: ksp.revertAvailability
     description: |-
@@ -4016,6 +4036,20 @@ operations:
         $ref: "#/channels/ksp.recover"
       messages:
         - $ref: "#/channels/ksp.recover/messages/commandResponse"
+  dispatch:ksp.recoverVessel:
+    action: send
+    channel:
+      $ref: "#/channels/ksp.recoverVessel"
+    title: Dispatch ksp.recoverVessel
+    tags:
+      - name: ksp
+    messages:
+      - $ref: "#/channels/ksp.recoverVessel/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/ksp.recoverVessel"
+      messages:
+        - $ref: "#/channels/ksp.recoverVessel/messages/commandResponse"
   dispatch:ksp.revertToEditor:
     action: send
     channel:
@@ -6068,6 +6102,21 @@ components:
                 const: ksp.recover
               args:
                 $ref: "#/components/schemas/NoCommandArgs"
+    commandRequest.ksp.recoverVessel:
+      name: command-request
+      title: Dispatch ksp.recoverVessel
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `ksp.recoverVessel`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: ksp.recoverVessel
+              args:
+                $ref: "#/components/schemas/RecoverVesselArgs"
     commandRequest.ksp.revertToEditor:
       name: command-request
       title: Dispatch ksp.revertToEditor
@@ -7075,6 +7124,19 @@ components:
         $ref: "#/components/correlationIds/requestId"
       payload:
         description: The `command-response` envelope for `ksp.recover`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
+    commandResponse.ksp.recoverVessel:
+      name: command-response
+      title: Reply to ksp.recoverVessel
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `ksp.recoverVessel`, with its typed `result`.
         allOf:
           - $ref: "#/components/schemas/CommandResponse"
           - properties:
@@ -16971,6 +17033,16 @@ components:
             Name of the vessel holding this site (`LaunchSiteEntry.padOccupied` true),
             the one the game names in its own refusal; null when the site is clear or
             occupancy is unknown.
+        padVesselId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            Id of the vessel holding this site (`LaunchSiteEntry.padOccupied` true):
+            KSP's `Vessel.id` guid as a string, as `trackingStation.catalog` carries it,
+            the id `ksp.recoverVessel` takes. Null when the site is clear or occupancy
+            is unknown.
     LimitBreach:
       type: object
       description: |-
@@ -18344,6 +18416,27 @@ components:
           description: |-
             The most lines to return. The mod keeps a few hundred; asking for more
             returns what it has. Zero or negative returns none.
+    RecoverVesselArgs:
+      type: object
+      description: |-
+        Recover a vessel standing at the Space Center by id, the way the Space
+        Center's own Recover button does: the game books the recovery refund, the
+        science and the crew's return exactly as it does for a flight recovery. A
+        vessel on a launch site is one of these. Fails with
+        `CommandErrorCode.WrongScene` outside the Space Center,
+        `CommandErrorCode.NotFound` for an id that matches no vessel, and
+        `CommandErrorCode.NotClearToProceed` for a vessel that is not landed on the
+        home world, is not tracked as ours, or in a game that does not permit
+        recovery.
+      required:
+        - vesselId
+      properties:
+        vesselId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The vessel to recover: KSP's `Vessel.id` guid as a string, as
+            `trackingStation.catalog` and a launch site's `padVesselId` carry it.
     RecoveryCrewEntry:
       type: object
       description: |-

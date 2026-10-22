@@ -901,6 +901,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     longitude: "°",
     name: "text",
     padOccupied: "flag",
+    padVesselId: "id",
     padVesselTitle: "text",
   },
   "LimitBreach": {
@@ -1106,6 +1107,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "RecentLogArgs": {
     maxLines: "count",
+  },
+  "RecoverVesselArgs": {
+    vesselId: "id",
   },
   "RecoveryCrewEntry": {
     isTourist: "flag",
@@ -2147,6 +2151,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     longitude: "°",
     name: "text",
     padOccupied: "flag",
+    padVesselId: "id",
     padVesselTitle: "text",
   },
   "spaceCenter.partsAvailable": {

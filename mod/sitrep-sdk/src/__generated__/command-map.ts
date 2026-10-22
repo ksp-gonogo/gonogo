@@ -71,6 +71,7 @@ import type {
   NoCommandArgs,
   RecentLog,
   RecentLogArgs,
+  RecoverVesselArgs,
   RemoveManeuverNodeArgs,
   RevertToEditorArgs,
   RotorReverseArgs,
@@ -145,6 +146,8 @@ export interface GeneratedCommandArgsMap {
   "ksp.launch": LaunchArgs;
   /** Recover the active vessel. */
   "ksp.recover": NoCommandArgs;
+  /** Recover a vessel standing at the Space Center by id, the way the Space Center's own Recover button does: the game books the recovery refund, the science and the crew's return exactly as it does for a flight recovery. */
+  "ksp.recoverVessel": RecoverVesselArgs;
   /** Revert the flight back into the VAB or SPH. */
   "ksp.revertToEditor": RevertToEditorArgs;
   /** Revert the flight to its launch. */
@@ -288,6 +291,8 @@ export interface GeneratedCommandReplyMap {
   "ksp.launch": CommandResult;
   /** Recover the active vessel. */
   "ksp.recover": CommandResult;
+  /** Recover a vessel standing at the Space Center by id, the way the Space Center's own Recover button does: the game books the recovery refund, the science and the crew's return exactly as it does for a flight recovery. */
+  "ksp.recoverVessel": CommandResult;
   /** Revert the flight back into the VAB or SPH. */
   "ksp.revertToEditor": CommandResult;
   /** Revert the flight to its launch. */
@@ -422,6 +427,7 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "commcast.radio.transmit": "CommandResult",
   "ksp.launch": "CommandResult",
   "ksp.recover": "CommandResult",
+  "ksp.recoverVessel": "CommandResult",
   "ksp.revertToEditor": "CommandResult",
   "ksp.revertToLaunch": "CommandResult",
   "ksp.switchVessel": "CommandResult",
@@ -533,6 +539,7 @@ export const GENERATED_COMMAND_RAIL = {
   "commcast.radio.transmit": { replies: true, delayed: false },
   "ksp.launch": { replies: true, delayed: false },
   "ksp.recover": { replies: true, delayed: false },
+  "ksp.recoverVessel": { replies: true, delayed: false },
   "ksp.revertToEditor": { replies: true, delayed: false },
   "ksp.revertToLaunch": { replies: true, delayed: false },
   "ksp.switchVessel": { replies: true, delayed: false },
@@ -606,6 +613,7 @@ export const GENERATED_COMMAND_IDS = [
   "commcast.radio.transmit",
   "ksp.launch",
   "ksp.recover",
+  "ksp.recoverVessel",
   "ksp.revertToEditor",
   "ksp.revertToLaunch",
   "ksp.switchVessel",

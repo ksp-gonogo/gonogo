@@ -478,6 +478,72 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// Recovers a vessel standing at the Space Center by its id, with the
+        /// call the Space Center's own Recover button makes
+        /// (<c>ShipConstruction.RecoverVesselFromFlight</c> over the save's
+        /// flight state, then a save): it fires <c>onVesselRecovered</c>, which
+        /// is where stock books the recovery refund, the science and the
+        /// crew's return, then removes the vessel from the save so the pad
+        /// reads clear.
+        ///
+        /// <para>Refuses outside the Space Center, for an id that matches no
+        /// vessel, for a vessel that is not landed on the home world or not
+        /// tracked as ours, and in a game that bars recovery. The active
+        /// vessel is <see cref="Recover"/>'s: stock recovers it by loading the
+        /// Space Center first.</para>
+        /// </summary>
+        public CommandResult RecoverVessel(string vesselId)
+        {
+            var scene = HighLogic.LoadedScene;
+            if (scene != GameScenes.SPACECENTER)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(scene)} scene");
+            }
+
+            var game = HighLogic.CurrentGame;
+            if (game?.flightState == null || FlightGlobals.fetch == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+
+            if (game.Mode == Game.Modes.MISSION_BUILDER)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.NotClearToProceed, "this game does not permit recovering a vessel");
+            }
+
+            Vessel? found = null;
+            foreach (var candidate in FlightGlobals.Vessels)
+            {
+                if (candidate != null && string.Equals(candidate.id.ToString(), vesselId, StringComparison.OrdinalIgnoreCase))
+                {
+                    found = candidate;
+                    break;
+                }
+            }
+            if (found == null || found.protoVessel == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound);
+            }
+
+            if (found.DiscoveryInfo != null && found.DiscoveryInfo.Level != DiscoveryLevels.Owned)
+            {
+                return CommandResult.Fail(CommandErrorCode.NotClearToProceed, "the vessel is not tracked as ours");
+            }
+
+            if (!found.IsRecoverable)
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.NotClearToProceed, "the vessel is not landed on the home world");
+            }
+
+            ShipConstruction.RecoverVesselFromFlight(found.protoVessel, game.flightState);
+            GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
+            return CommandResult.Ok();
+        }
+
+        /// <summary>
         /// Loads a saved craft onto a launch site via
         /// <c>FlightDriver.StartWithNewLaunch(craftPath, flagUrl, site, manifest)</c>
         /// (decompile-confirmed signature), the same call KSP's own launch path

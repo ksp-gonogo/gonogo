@@ -234,6 +234,7 @@ public static class RtConfig
                 typeof(FireCrewArgs),
                 typeof(RevertToEditorArgs),
                 typeof(SwitchVesselArgs),
+                typeof(RecoverVesselArgs),
                 typeof(LaunchArgs),
                 typeof(ServoSetAngleArgs),
                 typeof(ServoSetExtensionArgs),

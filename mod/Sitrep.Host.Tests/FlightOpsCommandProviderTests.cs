@@ -132,6 +132,43 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void HandleRecoverVesselPassesTheVesselIdThrough()
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = FlightOpsCommandProvider.HandleRecoverVessel(actuator, new RecoverVesselArgs { VesselId = "guid-42" });
+
+            Assert.Equal("guid-42", actuator.LastRecoverVesselId);
+            Assert.True(result.Success);
+        }
+
+        [Fact]
+        public void HandleRecoverVesselRejectsAnEmptyIdBeforeEverCallingTheActuator()
+        {
+            var actuator = new FakeFlightOpsActuator();
+
+            var result = FlightOpsCommandProvider.HandleRecoverVessel(actuator, new RecoverVesselArgs { VesselId = "" });
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
+            Assert.Null(actuator.LastRecoverVesselId);
+        }
+
+        [Fact]
+        public void HandleRecoverVesselSurfacesTheActuatorsRefusal()
+        {
+            var actuator = new FakeFlightOpsActuator
+            {
+                RecoverVesselResult = CommandResult.Fail(CommandErrorCode.NotFound),
+            };
+
+            var result = FlightOpsCommandProvider.HandleRecoverVessel(actuator, new RecoverVesselArgs { VesselId = "gone" });
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
+        }
+
+        [Fact]
         public void HandleSwitchVesselRejectsAnEmptyIdBeforeEverCallingTheActuator()
         {
             var actuator = new FakeFlightOpsActuator();

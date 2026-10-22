@@ -73,6 +73,10 @@ public class LaunchSiteEntry
     /// <summary>Name of the vessel holding this site (<see cref="PadOccupied"/> true), the one the game names in its own refusal; null when the site is clear or occupancy is unknown.</summary>
     [SitrepUnit(Units.Text)]
     public string? PadVesselTitle { get; set; }
+
+    /// <summary>Id of the vessel holding this site (<see cref="PadOccupied"/> true): KSP's <c>Vessel.id</c> guid as a string, as <c>trackingStation.catalog</c> carries it, the id <c>ksp.recoverVessel</c> takes. Null when the site is clear or occupancy is unknown.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? PadVesselId { get; set; }
 }
 
 /// <summary>

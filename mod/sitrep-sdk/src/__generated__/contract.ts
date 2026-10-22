@@ -4268,6 +4268,27 @@ export interface SwitchVesselArgs
 	vesselId: string;
 }
 /**
+* Recover a vessel standing at the Space Center by id, the way the Space
+* Center's own Recover button does: the game books the recovery refund, the
+* science and the crew's return exactly as it does for a flight recovery. A
+* vessel on a launch site is one of these. Fails with
+* `CommandErrorCode.WrongScene` outside the Space Center,
+* `CommandErrorCode.NotFound` for an id that matches no vessel, and
+* `CommandErrorCode.NotClearToProceed` for a vessel that is not landed on the
+* home world, is not tracked as ours, or in a game that does not permit
+* recovery.
+*
+* @category Command arguments
+*/
+export interface RecoverVesselArgs
+{
+	/**
+	* The vessel to recover: KSP's `Vessel.id` guid as a string, as
+	* `trackingStation.catalog` and a launch site's `padVesselId` carry it.
+	*/
+	vesselId: string;
+}
+/**
 * Load a saved craft onto a launch site. The craft is identified by
 * `LaunchArgs.shipName` plus the `LaunchArgs.facility` it was saved from
 * (`"VAB"` or `"SPH"`, case-insensitive); Gonogo finds the `.craft` file
@@ -7668,6 +7689,13 @@ export interface LaunchSiteEntry
 	* occupancy is unknown.
 	*/
 	padVesselTitle?: string | null;
+	/**
+	* Id of the vessel holding this site (`LaunchSiteEntry.padOccupied` true):
+	* KSP's `Vessel.id` guid as a string, as `trackingStation.catalog` carries it,
+	* the id `ksp.recoverVessel` takes. Null when the site is clear or occupancy
+	* is unknown.
+	*/
+	padVesselId?: string | null;
 }
 /**
 * The single current KSP game scene. `SpaceCenterScene.scene` carries exactly

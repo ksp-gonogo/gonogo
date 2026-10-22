@@ -66,6 +66,7 @@ namespace Gonogo.KSP
                 Command(FlightOpsCommandProvider.ToSpaceCenterCommand),
                 Command(FlightOpsCommandProvider.SwitchVesselCommand),
                 Command(FlightOpsCommandProvider.RecoverCommand),
+                Command(FlightOpsCommandProvider.RecoverVesselCommand),
                 Command(FlightOpsCommandProvider.LaunchCommand),
             },
         };
@@ -82,6 +83,7 @@ namespace Gonogo.KSP
             host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.ToSpaceCenterCommand, args => FlightOpsCommandProvider.HandleToSpaceCenter(_actuator, args));
             host.AddCommandHandler<SwitchVesselArgs, CommandResult>(FlightOpsCommandProvider.SwitchVesselCommand, args => FlightOpsCommandProvider.HandleSwitchVessel(_actuator, args));
             host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.RecoverCommand, args => FlightOpsCommandProvider.HandleRecover(_actuator, args));
+            host.AddCommandHandler<RecoverVesselArgs, CommandResult>(FlightOpsCommandProvider.RecoverVesselCommand, args => FlightOpsCommandProvider.HandleRecoverVessel(_actuator, args));
             host.AddCommandHandler<LaunchArgs, CommandResult>(FlightOpsCommandProvider.LaunchCommand, args => FlightOpsCommandProvider.HandleLaunch(_actuator, args));
         }
 

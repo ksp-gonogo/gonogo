@@ -56,6 +56,30 @@ public class SwitchVesselArgs
 }
 
 /// <summary>
+/// Recover a vessel standing at the Space Center by id, the way the Space
+/// Center's own Recover button does: the game books the recovery refund, the
+/// science and the crew's return exactly as it does for a flight recovery. A
+/// vessel on a launch site is one of these. Fails with
+/// <see cref="CommandErrorCode.WrongScene"/> outside the Space Center,
+/// <see cref="CommandErrorCode.NotFound"/> for an id that matches no vessel,
+/// and <see cref="CommandErrorCode.NotClearToProceed"/> for a vessel that is
+/// not landed on the home world, is not tracked as ours, or in a game that
+/// does not permit recovery.
+/// </summary>
+/// <category>Command arguments</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+[SitrepCommand("ksp.recoverVessel", Delay = DelayRole.TrueNow)]
+public class RecoverVesselArgs
+{
+    /// <summary>The vessel to recover: KSP's <c>Vessel.id</c> guid as a string, as <c>trackingStation.catalog</c> and a launch site's <c>padVesselId</c> carry it.</summary>
+    [SitrepUnit(Units.Id)]
+    public string VesselId { get; set; } = "";
+}
+
+/// <summary>
 /// Load a saved craft onto a launch site. The craft
 /// is identified by <see cref="ShipName"/> plus the <see cref="Facility"/> it
 /// was saved from (<c>"VAB"</c> or <c>"SPH"</c>, case-insensitive); Gonogo

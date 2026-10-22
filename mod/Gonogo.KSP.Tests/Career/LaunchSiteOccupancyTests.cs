@@ -16,6 +16,30 @@ namespace Gonogo.KSP.Tests.Career
             new SiteVessel(landedAt, name, debris);
 
         [Fact]
+        public void TheHolderIdIsTheIdOfTheVesselTheHolderNames()
+        {
+            var vessels = new[]
+            {
+                new SiteVessel("LaunchPad", "Old", false, "id-old"),
+                new SiteVessel("LaunchPad", "Lander", false, "id-lander"),
+                new SiteVessel("LaunchPad", "Chunk", true, "id-chunk"),
+                new SiteVessel("Runway", "Plane", false, "id-plane"),
+            };
+
+            Assert.Equal("Lander", LaunchSiteOccupancy.Holder("LaunchPad", vessels));
+            Assert.Equal("id-lander", LaunchSiteOccupancy.HolderId("LaunchPad", vessels));
+            Assert.Equal("id-plane", LaunchSiteOccupancy.HolderId("Runway", vessels));
+        }
+
+        [Fact]
+        public void AClearSiteHasNoHolderId()
+        {
+            var vessels = new[] { new SiteVessel("Runway", "Plane", false, "id-plane") };
+
+            Assert.Null(LaunchSiteOccupancy.HolderId("LaunchPad", vessels));
+        }
+
+        [Fact]
         public void AnEmptySaveLeavesEverySiteClear()
         {
             Assert.Null(LaunchSiteOccupancy.Holder("LaunchPad", new List<SiteVessel>()));

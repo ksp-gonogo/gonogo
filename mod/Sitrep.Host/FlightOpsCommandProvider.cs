@@ -29,6 +29,7 @@ namespace Sitrep.Host
         public const string ToSpaceCenterCommand = "ksp.toSpaceCenter";
         public const string SwitchVesselCommand = "ksp.switchVessel";
         public const string RecoverCommand = "ksp.recover";
+        public const string RecoverVesselCommand = "ksp.recoverVessel";
         public const string LaunchCommand = "ksp.launch";
 
         public static CommandResult HandleRevertToLaunch(IFlightOpsActuator actuator, object? _) =>
@@ -82,6 +83,21 @@ namespace Sitrep.Host
 
         public static CommandResult HandleRecover(IFlightOpsActuator actuator, object? _) =>
             actuator.Recover();
+
+        /// <summary>
+        /// A missing/empty vessel id can never resolve to a saved vessel, so it
+        /// fails as <see cref="CommandErrorCode.NotFound"/> here, as
+        /// <see cref="HandleSwitchVessel"/> does; a well-formed id that matches
+        /// no vessel is the actuator's own <see cref="CommandErrorCode.NotFound"/>.
+        /// </summary>
+        public static CommandResult HandleRecoverVessel(IFlightOpsActuator actuator, RecoverVesselArgs args)
+        {
+            if (args == null || string.IsNullOrEmpty(args.VesselId))
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound);
+            }
+            return actuator.RecoverVessel(args.VesselId);
+        }
 
         /// <summary>
         /// Arg-gates a launch without touching KSP: an empty ship name can

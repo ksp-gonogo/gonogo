@@ -8,16 +8,20 @@ namespace Gonogo.KSP.Career
     /// </summary>
     internal readonly struct SiteVessel
     {
-        public SiteVessel(string? landedAt, string? name, bool isDebris)
+        public SiteVessel(string? landedAt, string? name, bool isDebris, string? id = null)
         {
             LandedAt = landedAt;
             Name = name;
             IsDebris = isDebris;
+            Id = id;
         }
 
         public string? LandedAt { get; }
         public string? Name { get; }
         public bool IsDebris { get; }
+
+        /// <summary>The vessel's <c>Vessel.id</c> guid as a string, the id the vessel commands take.</summary>
+        public string? Id { get; }
     }
 
     /// <summary>
@@ -39,14 +43,27 @@ namespace Gonogo.KSP.Career
         /// </summary>
         public static string? Holder(string? site, IEnumerable<SiteVessel> vessels)
         {
+            var holder = HolderVessel(site, vessels);
+            return holder == null ? null : holder.Value.Name ?? "";
+        }
+
+        /// <summary>
+        /// The id of the vessel <see cref="Holder"/> names, or null when the
+        /// site is clear or the holder carries no id.
+        /// </summary>
+        public static string? HolderId(string? site, IEnumerable<SiteVessel> vessels) =>
+            HolderVessel(site, vessels)?.Id;
+
+        private static SiteVessel? HolderVessel(string? site, IEnumerable<SiteVessel> vessels)
+        {
             if (string.IsNullOrEmpty(site) || vessels == null) return null;
 
-            string? holder = null;
+            SiteVessel? holder = null;
             foreach (var vessel in vessels)
             {
                 if (vessel.LandedAt == null || !vessel.LandedAt.Contains(site)) continue;
                 if (vessel.IsDebris) continue;
-                holder = vessel.Name ?? "";
+                holder = vessel;
             }
             return holder;
         }

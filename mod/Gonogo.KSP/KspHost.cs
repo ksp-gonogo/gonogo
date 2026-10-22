@@ -3880,6 +3880,7 @@ namespace Gonogo.KSP
                         ["isStock"] = true,
                         ["padOccupied"] = saved == null ? null : (object?)(holder != null),
                         ["padVesselTitle"] = holder,
+                        ["padVesselId"] = saved == null ? null : LaunchSiteOccupancy.HolderId(name, saved),
                         ["latitude"] = latitude,
                         ["longitude"] = longitude,
                     });
@@ -3930,6 +3931,7 @@ namespace Gonogo.KSP
                     ["isStock"] = isStock,
                     ["padOccupied"] = saved == null ? null : (object?)(siteHolder != null),
                     ["padVesselTitle"] = siteHolder,
+                    ["padVesselId"] = saved == null ? null : LaunchSiteOccupancy.HolderId(name, saved),
                     ["latitude"] = spawnLatitude,
                     ["longitude"] = spawnLongitude,
                 });
@@ -3963,7 +3965,7 @@ namespace Gonogo.KSP
                     continue;
                 }
 
-                saved.Add(new SiteVessel(proto.landedAt, GameWords.VesselName(proto.vesselName), proto.vesselType <= VesselType.Debris));
+                saved.Add(new SiteVessel(proto.landedAt, GameWords.VesselName(proto.vesselName), proto.vesselType <= VesselType.Debris, proto.vesselID.ToString()));
             }
 
             return saved;

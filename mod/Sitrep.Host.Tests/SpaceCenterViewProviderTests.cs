@@ -50,6 +50,7 @@ namespace Sitrep.Host.Tests
                                 ["isStock"] = true,
                                 ["padOccupied"] = true,
                                 ["padVesselTitle"] = "Kerbal X",
+                                ["padVesselId"] = "5b1d7f0e-0000-4000-8000-000000000001",
                             },
                             // No spawn-point keys: a site whose coordinate is unset
                             // must carry lat/lon null (never a fabricated 0), and
@@ -94,6 +95,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(true, pad["isStock"]);
             Assert.Equal(true, pad["padOccupied"]);
             Assert.Equal("Kerbal X", pad["padVesselTitle"]);
+            Assert.Equal("5b1d7f0e-0000-4000-8000-000000000001", pad["padVesselId"]);
 
             var runway = Assert.IsType<Dictionary<string, object?>>(list[1]);
             Assert.Equal("Runway", runway["name"]);
@@ -103,6 +105,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(true, runway["isStock"]);
             Assert.Equal(false, runway["padOccupied"]);
             Assert.Null(runway["padVesselTitle"]);
+            Assert.Null(runway["padVesselId"]);
 
             var mh = Assert.IsType<Dictionary<string, object?>>(list[2]);
             Assert.Equal("Woomerang", mh["name"]);

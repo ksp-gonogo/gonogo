@@ -44,6 +44,7 @@ namespace Sitrep.Host
     ///       "isStock":        bool    : PSystemSetup.IsStockLaunchSite
     ///       "padOccupied":    bool?   : stock-pad occupancy (null off the stock pad)
     ///       "padVesselTitle": string? : occupying vessel name (null when none)
+    ///       "padVesselId":    string? : occupying vessel's Vessel.id guid (null when none)
     ///       "latitude":       double? : first spawn point with latlonaltSet, null if none
     ///       "longitude":      double? : paired with latitude
     ///     }
@@ -195,6 +196,7 @@ namespace Sitrep.Host
                     ["isStock"] = SnapshotDict.GetBool(raw, "isStock"),
                     ["padOccupied"] = SnapshotDict.GetBool(raw, "padOccupied"),
                     ["padVesselTitle"] = SnapshotDict.GetString(raw, "padVesselTitle"),
+                    ["padVesselId"] = SnapshotDict.GetString(raw, "padVesselId"),
                 });
             }
 

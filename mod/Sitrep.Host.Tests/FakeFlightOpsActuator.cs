@@ -20,6 +20,7 @@ namespace Sitrep.Host.Tests
         public int ToSpaceCenterCallCount;
         public string? LastSwitchVesselId;
         public int RecoverCallCount;
+        public string? LastRecoverVesselId;
         public string? LastLaunchShipName;
         public EditorFacilityKind? LastLaunchFacility;
         public string? LastLaunchSite;
@@ -31,6 +32,7 @@ namespace Sitrep.Host.Tests
         public CommandResult ToSpaceCenterResult = CommandResult.Ok();
         public CommandResult SwitchVesselResult = CommandResult.Ok();
         public CommandResult RecoverResult = CommandResult.Ok();
+        public CommandResult RecoverVesselResult = CommandResult.Ok();
         public CommandResult LaunchResult = CommandResult.Ok();
 
         public CommandResult RevertToLaunch()
@@ -67,6 +69,12 @@ namespace Sitrep.Host.Tests
         {
             RecoverCallCount++;
             return RecoverResult;
+        }
+
+        public CommandResult RecoverVessel(string vesselId)
+        {
+            LastRecoverVesselId = vesselId;
+            return RecoverVesselResult;
         }
 
         public CommandResult Launch(string shipName, EditorFacilityKind facility, string site, IReadOnlyList<string> crew)

@@ -155,6 +155,14 @@ namespace Gonogo.KSP.Gates
                 CareerGates.ClearToSave,
             };
 
+            // A vessel parked at the Space Center is recovered by id from the
+            // Space Center itself: FlightGlobals.ClearToSave judges the active
+            // flight, and there is none to judge here.
+            table[FlightOpsCommandProvider.RecoverVesselCommand] = new[]
+            {
+                CareerGates.Scene(GameScenes.SPACECENTER),
+            };
+
             /*
              * Launch's scene rule, plus the two PreFlightTests that need no
              * built ship. The pad being occupied is the case that used to wedge

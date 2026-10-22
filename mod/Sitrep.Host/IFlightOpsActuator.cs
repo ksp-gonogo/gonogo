@@ -59,6 +59,13 @@ namespace Sitrep.Host
         CommandResult Recover();
 
         /// <summary>
+        /// Recovers the vessel whose <c>Vessel.id</c> is
+        /// <paramref name="vesselId"/> from the Space Center, the vessel
+        /// standing on a launch site included.
+        /// </summary>
+        CommandResult RecoverVessel(string vesselId);
+
+        /// <summary>
         /// Loads a saved craft (<paramref name="shipName"/> saved from
         /// <paramref name="facility"/>) onto <paramref name="site"/>, seating
         /// <paramref name="crew"/> into free craft seats (empty = unmanned).
