@@ -203,6 +203,10 @@ namespace Gonogo.KSP
         private readonly FlyByWireLease _fbwLease = new FlyByWireLease();
 
         private static double Now => UnityEngine.Time.realtimeSinceStartup;
+
+        /// <summary>A commanded throttle still to be asserted inside the next control pass, once.</summary>
+        private float? _throttlePending;
+
         private Vessel? _attachedVessel;
         private readonly FlightInputCallback _flyByWireCallback;
 
@@ -385,8 +389,14 @@ namespace Gonogo.KSP
             {
                 return CommandResult.Fail(refusal.Value.Code, refusal.Value.Detail);
             }
-            FlightInputHandler.state.mainThrottle = (float)value;
-            return CommandResult.Ok();
+            var requested = (float)value;
+            FlightInputHandler.state.mainThrottle = requested;
+            // The control state the engines read, written here as well and then read back: KSP's own input pass can leave the static above at the player's value, which the engines never see.
+            vessel.ctrlState.mainThrottle = requested;
+            // And once more inside the next control pass, where the value is part of the state the craft is handed.
+            _throttlePending = requested;
+            AttachFlyByWire(vessel);
+            return ThrottleWrite.Verify(value, vessel.ctrlState.mainThrottle);
         }
 
         /// <summary>
@@ -559,8 +569,16 @@ namespace Gonogo.KSP
             {
                 DisarmFlyByWire();
             }
+            if (_throttlePending is float throttle)
+            {
+                _throttlePending = null;
+                st.mainThrottle = throttle;
+                FlightInputHandler.state.mainThrottle = throttle;
+            }
             if (!_fbw.Enabled)
             {
+                // Nothing else holds the callback on: a throttle command alone must not leave the player's axes overridden.
+                DetachFlyByWire();
                 return;
             }
             st.pitch = _fbw.Pitch;
