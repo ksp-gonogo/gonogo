@@ -922,8 +922,10 @@ namespace Gonogo.KSP
                     Degrade = DegradeFor(backend),
                 };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                FleetCommsReader.ReportIfSkew(backend, ex);
+
                 // NULL-SAFE capture: a backend read that threw on a transient /
                 // unloaded vessel yields no comms capture THIS tick (last-known
                 // stays) rather than an exception that would fail-soft the whole
@@ -961,15 +963,16 @@ namespace Gonogo.KSP
         private static string SourceOf(Vessel? active) =>
             active != null ? "vessel:" + active.id : "game";
 
-        private static CommsDegrade DegradeFor(ICommsBackend backend)
+        internal static CommsDegrade DegradeFor(ICommsBackend backend)
         {
             ICommsDegradeModel model;
             try
             {
                 model = backend.DegradeModel();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                FleetCommsReader.ReportIfSkew(backend, ex);
                 model = CommsDegradeModels.Unknown;
             }
             return CommsDegradeModels.ToPayload(model);

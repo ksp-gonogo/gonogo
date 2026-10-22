@@ -32,6 +32,21 @@ namespace Gonogo.KSP
         internal static Action<object, Exception>? ProviderFault { get; set; }
 
         /// <summary>
+        /// Reports <paramref name="error"/> through <see cref="ProviderFault"/> when it
+        /// means <paramref name="provider"/> was built for another contract, and does
+        /// nothing for any other failure. Called from every place that swallows a
+        /// backend's exception, so a mismatched backend is quarantined whichever read
+        /// fails first.
+        /// </summary>
+        internal static void ReportIfSkew(object? provider, Exception error)
+        {
+            if (provider != null && UplinkBinarySkew.IsSkew(error))
+            {
+                ProviderFault?.Invoke(provider, error);
+            }
+        }
+
+        /// <summary>
         /// Routed one-way signal delay (null = no measurable path) + connectivity
         /// for a single vessel. Fail-soft: any torn-down-state throw yields
         /// (null, null), a link that could not be read.
@@ -334,11 +349,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                if (backend != null && UplinkBinarySkew.IsSkew(ex))
-                {
-                    ProviderFault?.Invoke(backend, ex);
-                }
-
+                ReportIfSkew(backend, ex);
                 GonogoLog.WarnLimited("FleetCommsReader.ReadNodePath failed (treating as no path)", ex);
                 return (null, null);
             }

@@ -153,7 +153,8 @@ namespace Gonogo.KSP.Tests.Comms
 
             public override ICommsOcclusionModel OcclusionModel() => throw new NotSupportedException();
 
-            public override ICommsDegradeModel DegradeModel() => throw new NotSupportedException();
+            public override ICommsDegradeModel DegradeModel() =>
+                throw new MissingMethodException("void Sitrep.Contract.CommsDegradeModels..ctor()");
 
             protected override CommsSubject Subject() => throw new NotSupportedException();
 
@@ -186,6 +187,47 @@ namespace Gonogo.KSP.Tests.Comms
             {
                 FleetCommsReader.ProviderFault = previous;
                 GonogoLog.Capture = null;
+            }
+        }
+
+        [Fact]
+        public void ADegradeReadOnABackendBuiltForAnotherContract_IsReportedAsAFault()
+        {
+            var backend = new SkewedBackend();
+            var faults = new List<object>();
+            var previous = FleetCommsReader.ProviderFault;
+            FleetCommsReader.ProviderFault = (provider, _) => faults.Add(provider);
+            try
+            {
+                CommsCoreUplink.DegradeFor(backend);
+
+                Assert.Same(backend, Assert.Single(faults));
+            }
+            finally
+            {
+                FleetCommsReader.ProviderFault = previous;
+            }
+        }
+
+        [Fact]
+        public void ReportIfSkew_RaisesAFaultOnlyForAMissingMemberOrType()
+        {
+            var faults = new List<Exception>();
+            var previous = FleetCommsReader.ProviderFault;
+            FleetCommsReader.ProviderFault = (_, error) => faults.Add(error);
+            try
+            {
+                var provider = new object();
+                FleetCommsReader.ReportIfSkew(provider, new InvalidOperationException("torn down"));
+                FleetCommsReader.ReportIfSkew(null, new MissingMethodException("void X..ctor()"));
+                Assert.Empty(faults);
+
+                FleetCommsReader.ReportIfSkew(provider, new TypeLoadException("Sitrep.Contract.Gone"));
+                Assert.IsType<TypeLoadException>(Assert.Single(faults));
+            }
+            finally
+            {
+                FleetCommsReader.ProviderFault = previous;
             }
         }
 
