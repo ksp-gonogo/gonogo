@@ -169,7 +169,64 @@ namespace Sitrep.Core
                 return SequenceEqual(seqA, seqB, depth, ref budget);
             }
 
+            if (TypedPayloadEqual(a, b, depth, ref budget) is { } typed)
+            {
+                return typed;
+            }
+
             return a.Equals(b);
+        }
+
+        /*
+         * A typed payload (a contract class an uplink publishes as it built it,
+         * rather than as a dictionary) compares by its public properties. It has
+         * no Equals of its own, so Object.Equals would call two identical
+         * payloads different on every consideration and the channel would emit
+         * one frame per capture of an unchanged value. Null means "not such a
+         * payload", and the caller falls back to Equals.
+         */
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Reflection.PropertyInfo[]> Properties =
+            new System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Reflection.PropertyInfo[]>();
+
+        private static bool? TypedPayloadEqual(object a, object b, int depth, ref int budget)
+        {
+            var type = a.GetType();
+            if (type != b.GetType() || !type.IsClass)
+            {
+                return null;
+            }
+            var properties = Properties.GetOrAdd(type, TypedProperties);
+            if (properties.Length == 0)
+            {
+                return null;
+            }
+            foreach (var property in properties)
+            {
+                if (!Equal(property.GetValue(a), property.GetValue(b), depth + 1, ref budget))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static System.Reflection.PropertyInfo[] TypedProperties(System.Type type)
+        {
+            // A type that decides its own equality keeps it.
+            var equals = type.GetMethod("Equals", new[] { typeof(object) });
+            if (equals != null && equals.DeclaringType != typeof(object))
+            {
+                return System.Array.Empty<System.Reflection.PropertyInfo>();
+            }
+            var found = new List<System.Reflection.PropertyInfo>();
+            foreach (var property in type.GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+            {
+                if (property.CanRead && property.GetIndexParameters().Length == 0)
+                {
+                    found.Add(property);
+                }
+            }
+            return found.ToArray();
         }
 
         private static bool SequenceEqual(IEnumerable a, IEnumerable b, int depth, ref int budget)

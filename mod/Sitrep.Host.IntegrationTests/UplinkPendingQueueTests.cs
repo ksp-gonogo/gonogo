@@ -304,9 +304,8 @@ namespace Sitrep.Host.IntegrationTests
                     FreezeGateTestUplink.Snapshot(1.0, connected: true),
                     Timeout);
 
-                var afterDispatchFrame = await ReceiveStreamDataAsync(client, Timeout);
-                var afterDispatchPayload = Assert.IsType<Dictionary<string, object?>>(afterDispatchFrame.Payload);
-                Assert.Empty(Assert.IsType<List<object?>>(afterDispatchPayload["pending"]));
+                // The queue is still empty, so there is nothing new to send: the engine's own copy is the answer, not a repeat frame.
+                Assert.Empty(Assert.IsType<PendingUplinkQueue>(engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Pending);
             }
             finally
             {
