@@ -18,11 +18,10 @@ export function profileInputOptions(
 ) {
   return {
     getProfileBindings: () => profiles.list(),
-    onProfileInput: (profileId: string, deviceId: string, inputId: string) => {
+    onProfileInput: (profileId: string, deviceId: string, inputId: string) =>
       dashboard.switchTo(profileId, {
         kind: "input",
         inputLabel: describeInputBinding(serial, { deviceId, inputId }),
-      });
-    },
+      }),
   };
 }
