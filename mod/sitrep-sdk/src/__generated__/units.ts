@@ -1265,6 +1265,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     id: "id",
     vantage: "id",
   },
+  "ScienceArrival": {
+    completedAt: "ut",
+    dataAmount: "Mit",
+    startedAt: "ut",
+    subjectId: "id",
+    title: "text",
+  },
   "ScienceCreditEvent": {
     amount: "science",
     subjectId: "id",
@@ -2099,6 +2106,13 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     partName: "text",
     readout: "text",
     type: "id",
+  },
+  "science.transmissions": {
+    completedAt: "ut",
+    dataAmount: "Mit",
+    startedAt: "ut",
+    subjectId: "id",
+    title: "text",
   },
   "spaceCenter.astronautComplex": {
     activeCrew: "count",

@@ -205,6 +205,7 @@ describe("collection Topics in the generated contract", () => {
       "science.instruments",
       "science.lab",
       "science.sensors",
+      "science.transmissions",
       "spaceCenter.crewRoster",
       "spaceCenter.launchSites",
       "spaceCenter.pois",

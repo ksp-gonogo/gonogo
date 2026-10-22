@@ -278,6 +278,8 @@ public static class RtConfig
                 typeof(ExperimentBreakdownEntry),
                 // science.archive per-subject career-wide archive entry
                 typeof(ArchiveEntry),
+                // science.transmissions, one finished transmission
+                typeof(ScienceArrival),
                 // system.* channel payloads + entries
                 // system.uplink.pending, the in-transit command queue snapshot
                 // (engine-declared channel, no [SitrepTopic]; hand-declared in

@@ -223,6 +223,17 @@ namespace Gonogo.KSP
                 withData.DumpData(stored);
             }
 
+            // Each result has left once the ones queued before it and its own packets have.
+            for (var i = 0; i < data.Length; i++)
+            {
+                ScienceTransmissions.Log.Expect(
+                    data[i].subjectID,
+                    data[i].title,
+                    amounts[i],
+                    startedAt,
+                    startedAt + StreamSeconds(transmitter, amounts.GetRange(0, i + 1)));
+            }
+
             return CommandResult<ScienceTransmission>.Ok(new ScienceTransmission
             {
                 SubjectId = data[0].subjectID ?? string.Empty,

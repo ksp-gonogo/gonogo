@@ -950,3 +950,49 @@ public class ArchiveEntry
     [SitrepUnit(Units.Dimensionless)]
     public double? SubjectValue { get; set; }
 }
+
+/// <summary>
+/// One entry of the <c>science.transmissions</c> Topic payload: a science result
+/// that has finished leaving the vessel's transmitter. The payload is a bare
+/// array of the most recent entries, oldest first, and is delayed like the
+/// vessel it comes from: an entry reaches each command centre one signal delay
+/// after <see cref="CompletedAt"/>, never earlier, so its presence is the
+/// result having arrived at that centre.
+///
+/// <para>An entry exists only once its transmission is complete. A transmission
+/// still being sent has no entry, and a centre that did not start it learns of
+/// it on arrival.</para>
+/// </summary>
+/// <category>Science</category>
+[SitrepContract]
+[SitrepTopic("science.transmissions", isArray: true)]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class ScienceArrival
+{
+    /// <summary>The research subject's id (<c>ScienceSubject.id</c>), the same
+    /// key <c>science.archive</c> lists it under.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? SubjectId { get; set; }
+
+    /// <summary>The result's title, for example "Crew Report from Kerbin's
+    /// Shores". Null when the transmitter's data could not be read.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Title { get; set; }
+
+    /// <summary>The amount of data sent.</summary>
+    [SitrepUnit(Units.Mits)]
+    public double? DataAmount { get; set; }
+
+    /// <summary>Universal Time at the vessel when the transmitter was handed the
+    /// result. Null when the transmission was not started by a command and the
+    /// start was not seen.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? StartedAt { get; set; }
+
+    /// <summary>Universal Time at the vessel when the last packet left it. The
+    /// entry reaches a command centre one signal delay after this.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double CompletedAt { get; set; }
+}

@@ -30,6 +30,8 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
 import { heldGrade } from "../shared/heldGrade";
+import { ArrivalsSection } from "./ArrivalsSection";
+import { ARRIVALS_TOPIC, arrivalsOf } from "./arrivals";
 import read from "./experiments.declarations.g";
 import {
   byPart,
@@ -166,6 +168,9 @@ function ExperimentsBody({
   const labRaw = stillTrue(labReading, undefined);
   const allLabs = parseLab(labRaw);
   const labHeld = heldGrade(labReading);
+  const arrivalsReading = useTelemetry(ARRIVALS_TOPIC);
+  const arrivals = arrivalsOf(stillTrue(arrivalsReading, undefined));
+  const arrivalsHeld = heldGrade(arrivalsReading);
 
   const contributedInstruments = useContributions("experiments.instruments");
 
@@ -320,6 +325,11 @@ function ExperimentsBody({
               startCmd={startLabCmd}
               stopCmd={stopLabCmd}
             />
+          </Section>
+        ),
+        showSubtitle && arrivals !== null && arrivals.length > 0 && (
+          <Section key="arrivals" full gap="related-dense" title="Sent home">
+            <ArrivalsSection arrivals={arrivals} heldGrade={arrivalsHeld} />
           </Section>
         ),
         sectionNodes.length === 0 && contributedNodes.length === 0 ? (

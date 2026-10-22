@@ -7429,6 +7429,46 @@ export interface ArchiveEntry
 	subjectValue?: Value<"1"> | null;
 }
 /**
+* One entry of the `science.transmissions` Topic payload: a science result
+* that has finished leaving the vessel's transmitter. The payload is a bare
+* array of the most recent entries, oldest first, and is delayed like the
+* vessel it comes from: an entry reaches each command centre one signal delay
+* after `ScienceArrival.completedAt`, never earlier, so its presence is the
+* result having arrived at that centre.
+*
+* An entry exists only once its transmission is complete. A transmission still
+* being sent has no entry, and a centre that did not start it learns of it on
+* arrival.
+*
+* @category Science
+*/
+export interface ScienceArrival
+{
+	/**
+	* The research subject's id (`ScienceSubject.id`), the same key
+	* `science.archive` lists it under.
+	*/
+	subjectId?: string | null;
+	/**
+	* The result's title, for example "Crew Report from Kerbin's Shores". Null
+	* when the transmitter's data could not be read.
+	*/
+	title?: string | null;
+	/** The amount of data sent. */
+	dataAmount?: Value<"Mit"> | null;
+	/**
+	* Universal Time at the vessel when the transmitter was handed the result.
+	* Null when the transmission was not started by a command and the start was
+	* not seen.
+	*/
+	startedAt?: Value<"ut"> | null;
+	/**
+	* Universal Time at the vessel when the last packet left it. The entry reaches
+	* a command centre one signal delay after this.
+	*/
+	completedAt: Value<"ut">;
+}
+/**
 * Every setting the mod and its Uplinks declared, what each holds now, and
 * whether the settings file on the KSP machine holds the same.
 *

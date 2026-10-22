@@ -62,6 +62,7 @@ namespace Sitrep.Host
         public const string SensorsTopic = "science.sensors";
         public const string ExperimentBreakdownTopic = "science.experimentBreakdown";
         public const string ArchiveTopic = "science.archive";
+        public const string TransmissionsTopic = "science.transmissions";
 
         public static List<ExperimentEntry>? BuildExperiments(KspSnapshot? snapshot) =>
             BuildList(snapshot, "experiments", BuildExperimentEntry);

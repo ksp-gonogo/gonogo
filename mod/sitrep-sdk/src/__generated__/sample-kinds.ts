@@ -62,6 +62,7 @@ export const GENERATED_CHANNEL_KINDS = {
   "science.instruments": "discrete",
   "science.lab": "continuous",
   "science.sensors": "discrete",
+  "science.transmissions": "discrete",
   "settings.gonogo": "discrete",
   "spaceCenter.astronautComplex": "discrete",
   "spaceCenter.crewRoster": "discrete",

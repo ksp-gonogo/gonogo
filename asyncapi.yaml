@@ -1,9 +1,9 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 46.0.0
+  version: 46.1.0
   description: |-
-    The WebSocket API of the Gonogo mod: 87 telemetry channels a client
+    The WebSocket API of the Gonogo mod: 88 telemetry channels a client
     subscribes to and 71 commands it sends, each with its payload and what it
     means, all over one socket.
 
@@ -2241,6 +2241,30 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.science.sensors"
+      event:
+        $ref: "#/components/messages/event"
+  science.transmissions:
+    address: science.transmissions
+    description: |-
+      One entry of the `science.transmissions` Topic payload: a science result
+      that has finished leaving the vessel's transmitter. The payload is a bare
+      array of the most recent entries, oldest first, and is delayed like the
+      vessel it comes from: an entry reaches each command centre one signal delay
+      after `ScienceArrival.completedAt`, never earlier, so its presence is the
+      result having arrived at that centre.
+
+      An entry exists only once its transmission is complete. A transmission still
+      being sent has no entry, and a centre that did not start it learns of it on
+      arrival.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: delayed
+    x-sitrep-sample-kind: discrete
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.science.transmissions"
       event:
         $ref: "#/components/messages/event"
   session:
@@ -5340,6 +5364,17 @@ operations:
     messages:
       - $ref: "#/channels/science.sensors/messages/streamData"
       - $ref: "#/channels/science.sensors/messages/event"
+  read:science.transmissions:
+    action: receive
+    channel:
+      $ref: "#/channels/science.transmissions"
+    title: Read science.transmissions
+    description: Delivered only after `subscribe` names `science.transmissions` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: science
+    messages:
+      - $ref: "#/channels/science.transmissions/messages/streamData"
+      - $ref: "#/channels/science.transmissions/messages/event"
   read:settings.gonogo:
     action: receive
     channel:
@@ -8615,6 +8650,21 @@ components:
                 type: array
                 items:
                   $ref: "#/components/schemas/SensorEntry"
+    streamData.science.transmissions:
+      name: stream-data
+      title: A frame on science.transmissions
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `science.transmissions`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: science.transmissions
+              payload:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScienceArrival"
     streamData.settings.gonogo:
       name: stream-data
       title: A frame on settings.gonogo
@@ -19549,6 +19599,59 @@ components:
             Reading differs from the threshold. The inverse of
             `ScetAlarmThresholdOp.Equal`, and just as much a knife edge on anything
             continuous.
+    ScienceArrival:
+      type: object
+      description: |-
+        One entry of the `science.transmissions` Topic payload: a science result
+        that has finished leaving the vessel's transmitter. The payload is a bare
+        array of the most recent entries, oldest first, and is delayed like the
+        vessel it comes from: an entry reaches each command centre one signal delay
+        after `ScienceArrival.completedAt`, never earlier, so its presence is the
+        result having arrived at that centre.
+
+        An entry exists only once its transmission is complete. A transmission still
+        being sent has no entry, and a centre that did not start it learns of it on
+        arrival.
+      required:
+        - completedAt
+      properties:
+        subjectId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The research subject's id (`ScienceSubject.id`), the same key
+            `science.archive` lists it under.
+        title:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The result's title, for example "Crew Report from Kerbin's Shores". Null
+            when the transmitter's data could not be read.
+        dataAmount:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: Mit
+          description: The amount of data sent.
+        startedAt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            Universal Time at the vessel when the transmitter was handed the result.
+            Null when the transmission was not started by a command and the start was
+            not seen.
+        completedAt:
+          type: number
+          x-sitrep-unit: ut
+          description: |-
+            Universal Time at the vessel when the last packet left it. The entry reaches
+            a command centre one signal delay after this.
     ScienceTransmission:
       type: object
       description: |-

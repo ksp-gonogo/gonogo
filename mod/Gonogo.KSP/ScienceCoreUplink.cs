@@ -67,6 +67,9 @@ namespace Gonogo.KSP
 
         private Kernel? _kernel;
 
+        /// <summary>Follows the active vessel's transmitters across ticks. Courier thread only, apart from <see cref="TransmitterWatch.HasRuns"/>.</summary>
+        private readonly TransmitterWatch _watch = new TransmitterWatch();
+
         public ScienceCoreUplink(IScienceActuator actuator)
         {
             _actuator = actuator;
@@ -158,6 +161,17 @@ namespace Gonogo.KSP
                     Delay = DelayRole.Delayed,
                     HeldAtHome = true,
                 },
+                new ChannelDeclaration
+                {
+                    Kind = SampleKind.Discrete,
+                    Requires = Requirement.None,
+                    Topic = ScienceViewProvider.TransmissionsTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // Recorded at the vessel the moment the last packet leaves it, so each
+                    // command centre sees the result arrive one signal delay later.
+                    Delay = DelayRole.Delayed,
+                },
             },
             // Experiment actuation is a genuine uplink to the craft (deploy runs
             // an experiment ON the vessel; transmit drives its onboard
@@ -207,6 +221,27 @@ namespace Gonogo.KSP
             // Career-wide R&D archive is provider-agnostic stock bookkeeping, wired
             // straight to the static builder rather than through the elected backend.
             host.AddChannelSource(ScienceViewProvider.ArchiveTopic, ScienceViewProvider.BuildArchive);
+
+            var arrivals = host.Publisher(ScienceViewProvider.TransmissionsTopic);
+            host.AddSampledSource(
+                snapshot => snapshot == null ? null : TransmitterPoll.CaptureOnMain(snapshot.Ut, _watch.HasRuns),
+                captured =>
+                {
+                    if (captured is not TransmitterPollCapture poll)
+                    {
+                        return;
+                    }
+
+                    foreach (var done in _watch.Observe(poll.Readings, poll.Aboard, poll.Ut))
+                    {
+                        ScienceTransmissions.Log.ExpectObserved(done.SubjectId, done.Title, done.Mits, done.StartedAt, done.CompletedAt);
+                    }
+
+                    if (ScienceTransmissions.Log.Release(poll.Ut) is double completedUt)
+                    {
+                        arrivals.Publish(ScienceTransmissions.Log.ToWire(), completedUt);
+                    }
+                });
 
             host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.DeployCommand, args => Backend().DeployExperiment(args));
             host.AddCommandHandler<ExperimentActionArgs, CommandResult>(ScienceCommandProvider.TransmitCommand, args => Backend().TransmitExperiment(args));

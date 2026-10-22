@@ -73,6 +73,7 @@ import type {
   ScetAddressableTopic,
   ScetAlarm,
   ScetAlarmFired,
+  ScienceArrival,
   SensorEntry,
   ServoEntry,
   SettingsModel,
@@ -214,6 +215,8 @@ export interface GeneratedTopicPayloadMap {
   "science.lab": LabEntry[];
   /** One entry in the `science.sensors` Topic payload: a single environmental-sensor module (`ModuleEnviroSensor`: thermometer, barometer, gravioli detector, accelerometer, and any modded sensor sharing the module) on the active vessel. */
   "science.sensors": SensorEntry[];
+  /** One entry of the `science.transmissions` Topic payload: a science result that has finished leaving the vessel's transmitter. */
+  "science.transmissions": ScienceArrival[];
   /** Every setting the mod and its Uplinks declared, what each holds now, and whether the settings file on the KSP machine holds the same. */
   "settings.gonogo": SettingsModel;
   /** The Astronaut Complex hire tab, the rolling pool of applicants the operator can recruit, plus the roster-cap context a hire is gated on. */
@@ -339,6 +342,7 @@ export const GENERATED_TOPIC_IDS = [
   "science.instruments",
   "science.lab",
   "science.sensors",
+  "science.transmissions",
   "settings.gonogo",
   "spaceCenter.astronautComplex",
   "spaceCenter.crewRoster",
@@ -394,6 +398,7 @@ export const GENERATED_COLLECTION_TOPIC_IDS = [
   "science.instruments",
   "science.lab",
   "science.sensors",
+  "science.transmissions",
   "spaceCenter.crewRoster",
   "spaceCenter.launchSites",
   "spaceCenter.pois",

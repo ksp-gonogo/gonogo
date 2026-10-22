@@ -5,6 +5,7 @@ export default {
     "science.experiments",
     "science.instruments",
     "science.lab",
+    "science.transmissions",
     "vessel.parts",
   ],
   optionalChannelFamilies: [],
