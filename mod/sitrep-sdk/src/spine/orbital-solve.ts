@@ -367,7 +367,59 @@ export function solveSelfOrbit(
     );
     return { ...solve, timeToAp, timeToPe, ...nextApsis(timeToAp, timeToPe) };
   }
+  /*
+   * Past the end of the patch these elements describe, on a current reading. The
+   * predicted end of a patch can fall a fraction of a second before the wire
+   * moves the craft to the next one, and the model declines from that instant,
+   * which blanked the figures for the gap. Until the wire says otherwise the
+   * craft is still on this patch's orbit: its apsides, period and shape are the
+   * patch's own, solved at the instant the patch ends, with the countdowns run
+   * on from there by the time since.
+   */
+  const patchEnd = patchEndOf(elements);
+  if (
+    observedAtUt != null &&
+    patchEnd !== undefined &&
+    mag(viewUt) >= patchEnd &&
+    declinedAtPatchEnd(reckoning)
+  ) {
+    const solve = solveOrbitAt(elements, patchEnd, radius);
+    const past = mag(viewUt) - patchEnd;
+    const timeToAp = countdownAt(
+      solve.timeToAp ?? Number.NaN,
+      past,
+      solve.period,
+    );
+    const timeToPe = countdownAt(
+      solve.timeToPe ?? Number.NaN,
+      past,
+      solve.period,
+    );
+    return { ...solve, timeToAp, timeToPe, ...nextApsis(timeToAp, timeToPe) };
+  }
   return null;
+}
+
+/** The instant the elements' own patch ends, or `undefined` when no end is predicted. */
+function patchEndOf(elements: SelfOrbitElements): number | undefined {
+  // Read off the wire object rather than typed, so the published element type is the one it was.
+  const encounter: unknown = Reflect.get(elements, "encounter");
+  if (typeof encounter !== "object" || encounter === null) return undefined;
+  const at = mag(Reflect.get(encounter, "transitionUt"));
+  return Number.isFinite(at) ? at : undefined;
+}
+
+function declinedAtPatchEnd(
+  reckoning:
+    | { readonly status: "declined"; readonly declined: ReckoningDecline }
+    | { readonly status: string },
+): boolean {
+  return (
+    reckoning.status === "declined" &&
+    "declined" in reckoning &&
+    reckoning.declined.reason === "beyond-horizon" &&
+    reckoning.declined.input === "@vessel.orbit"
+  );
 }
 
 /**
