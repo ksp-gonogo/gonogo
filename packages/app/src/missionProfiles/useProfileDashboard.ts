@@ -5,7 +5,11 @@ import {
   useDashboardState,
 } from "../components/Dashboard/useDashboardState";
 import type { MissionProfilesService } from "./MissionProfilesService";
-import { type DashboardSnapshot, ProfileDashboard } from "./ProfileDashboard";
+import {
+  type DashboardSnapshot,
+  type HistoryStep,
+  ProfileDashboard,
+} from "./ProfileDashboard";
 
 export interface ProfileDashboardHandle {
   dashboard: DashboardState;
@@ -56,14 +60,24 @@ export function useProfileDashboard(
   return { dashboard, controller };
 }
 
-/** Whether the controller has something to undo or redo, live. */
+/** What the controller would undo and redo next, live; null for a direction with nothing to step through. */
 export function useHistoryState(controller: ProfileDashboard): {
   canUndo: boolean;
   canRedo: boolean;
+  undoStep: HistoryStep | null;
+  redoStep: HistoryStep | null;
 } {
   const key = useSyncExternalStore(
     (cb) => controller.subscribe(cb),
-    () => `${controller.canUndo()}:${controller.canRedo()}`,
+    () => `${controller.undoStep() ?? ""}:${controller.redoStep() ?? ""}`,
   );
-  return { canUndo: key.startsWith("true"), canRedo: key.endsWith("true") };
+  const [undo, redo] = key.split(":");
+  const undoStep = undo === "" ? null : (undo as HistoryStep);
+  const redoStep = redo === "" ? null : (redo as HistoryStep);
+  return {
+    canUndo: undoStep !== null,
+    canRedo: redoStep !== null,
+    undoStep,
+    redoStep,
+  };
 }

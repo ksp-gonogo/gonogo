@@ -446,7 +446,9 @@ function MainDashboard({
       <MainAlarmsLauncherScope>
         <Layout as="main" aria-label="Mission control">
           <UplinkIntegrityBanner />
-          <MissionBanner />
+          <MissionBanner
+            actions={<LayoutHistoryControl dashboard={controller} />}
+          />
           {screen === "pilot" && !inFlight ? (
             <NoActiveVessel hasGameSignal={hasGameSignal} scene={scene} />
           ) : null}
@@ -501,7 +503,6 @@ function MainDashboard({
             <StationApprovalPrompt host={peerHostService} />
             <SceneSwitchPrompt dashboard={controller} />
             <ProfileSwitchBanner dashboard={controller} />
-            <LayoutHistoryControl dashboard={controller} />
           </BannerStack>
           <PushedDashboardOverlay />
         </Layout>

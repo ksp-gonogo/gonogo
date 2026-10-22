@@ -20,6 +20,8 @@ import { VantageControl } from "./VantageControl";
  * needed to reserve the space). `VantageControl` renders itself differently on
  * each; nothing else here branches.
  *
+ * `actions` are the screen's header controls, drawn at the top right.
+ *
  * The strip itself is deliberately not a live region: the time field updates
  * roughly once a second off the live view clock, and an
  * `aria-live`/`role="status"` around it would announce every tick to a screen
@@ -37,7 +39,7 @@ import { VantageControl } from "./VantageControl";
  * back to the centre mission control stands at. Either way it is only there
  * while a craft is flying.
  */
-export function MissionBanner() {
+export function MissionBanner({ actions }: Readonly<{ actions?: ReactNode }>) {
   return (
     <Banner role="group" aria-label="Mission status">
       <BannerField label="UT">
@@ -49,6 +51,7 @@ export function MissionBanner() {
       <VesselField />
       <SignalDelayField />
       <GameStatusField />
+      {actions ? <Actions>{actions}</Actions> : null}
     </Banner>
   );
 }
@@ -158,6 +161,14 @@ function GameStatusField() {
     </GameStatus>
   );
 }
+
+const Actions = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-related);
+  margin-left: auto;
+  min-width: 0;
+`;
 
 const VesselName = styled.span`
   max-width: 24ch;

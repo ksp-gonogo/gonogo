@@ -1,99 +1,102 @@
+import { IconButton, RecallIcon, Tooltip } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import {
   useMissionProfiles,
   useMissionProfilesService,
 } from "./MissionProfilesContext";
-import type { ProfileDashboard } from "./ProfileDashboard";
+import type { HistoryStep, ProfileDashboard } from "./ProfileDashboard";
 import { useHistoryState } from "./useProfileDashboard";
 
 interface LayoutHistoryControlProps {
   dashboard: ProfileDashboard;
 }
 
+const STEP_WORDS: Record<HistoryStep, string> = {
+  change: "layout change",
+  switch: "layout switch",
+};
+
+function stepLabel(verb: string, step: HistoryStep | null): string {
+  return step ? `${verb} ${STEP_WORDS[step]}` : verb;
+}
+
 /**
- * Undo and Redo for the dashboard, beside the name of the layout it is
- * saving into. Steps back through widget changes and layout switches. Shown
- * once there is something to step through.
+ * The name of the layout the dashboard is saving into, with Undo and Redo
+ * beside it, as actions in the screen header. Both step through widget
+ * changes and layout switches and stay disabled while there is nothing to
+ * step through.
  */
 export function LayoutHistoryControl({
   dashboard,
 }: Readonly<LayoutHistoryControlProps>) {
   const svc = useMissionProfilesService();
   const profiles = useMissionProfiles();
-  const { canUndo, canRedo } = useHistoryState(dashboard);
-  if (!canUndo && !canRedo) return null;
+  const { canUndo, canRedo, undoStep, redoStep } = useHistoryState(dashboard);
   const name = profiles.find((p) => p.id === svc.getCurrentId())?.name;
 
   return (
     <Wrap role="group" aria-label="Layout history">
-      {name ? <Name>{name}</Name> : null}
+      {name ? (
+        <Tooltip text={name} focusable>
+          <Name>{name}</Name>
+        </Tooltip>
+      ) : null}
       <HistoryButton
         type="button"
+        aria-label={stepLabel("Undo", undoStep)}
         disabled={!canUndo}
         onClick={() => dashboard.undo()}
       >
-        Undo
+        <RecallIcon />
       </HistoryButton>
       <HistoryButton
         type="button"
+        aria-label={stepLabel("Redo", redoStep)}
         disabled={!canRedo}
         onClick={() => dashboard.redo()}
       >
-        Redo
+        <Mirrored>
+          <RecallIcon />
+        </Mirrored>
       </HistoryButton>
     </Wrap>
   );
 }
 
 const Wrap = styled.div`
-  height: 40px;
   display: inline-flex;
-  align-items: stretch;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-pill);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
-  font-family: inherit;
-
-  @media (pointer: coarse) {
-    height: 48px;
-  }
+  align-items: center;
+  gap: var(--gap-related);
+  min-width: 0;
 `;
 
 const Name = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: var(--inset-prompt-button);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-compact);
+  max-width: 20ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-value);
 `;
 
-const HistoryButton = styled.button`
-  appearance: none;
-  border: 0;
-  border-left: 1px solid var(--color-border-subtle);
-  background: transparent;
+/** Redo is the undo arrow turned the other way round. */
+const Mirrored = styled.span`
+  display: inline-flex;
+  transform: scaleX(-1);
+`;
+
+const HistoryButton = styled(IconButton)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--color-text-primary);
-  font-family: inherit;
-  font-size: var(--font-size-compact);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: var(--inset-prompt-button);
-  cursor: pointer;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-regular);
 
-  &:hover:not(:disabled) {
-    background: var(--color-border-subtle);
-  }
-
-  &:disabled {
-    color: var(--color-text-faint);
-    cursor: default;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-info-mark);
-    outline-offset: -2px;
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--color-border-subtle);
+    }
   }
 `;

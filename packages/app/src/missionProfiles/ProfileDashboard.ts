@@ -38,6 +38,14 @@ type HistoryEntry =
       fromState: DashboardSnapshot;
     };
 
+/** What an undo or redo step covers: edits to the widgets, or a change of layout. */
+export type HistoryStep = "change" | "switch";
+
+function stepOf(entry: HistoryEntry | undefined): HistoryStep | null {
+  if (!entry) return null;
+  return entry.kind === "edit" ? "change" : "switch";
+}
+
 /** Changes closer together than this are one autosave and one undo step. */
 export const AUTOSAVE_DELAY_MS = 400;
 
@@ -119,6 +127,17 @@ export class ProfileDashboard {
 
   canRedo(): boolean {
     return this.redoStack.length > 0;
+  }
+
+  /** What undo would step back over, or null when there is nothing to undo. */
+  undoStep(): HistoryStep | null {
+    if (this.pending !== null) return "change";
+    return stepOf(this.undoStack[this.undoStack.length - 1]);
+  }
+
+  /** What redo would step forward over, or null when there is nothing to redo. */
+  redoStep(): HistoryStep | null {
+    return stepOf(this.redoStack[this.redoStack.length - 1]);
   }
 
   /** The dashboard changed on screen: autosave it into the current profile. */

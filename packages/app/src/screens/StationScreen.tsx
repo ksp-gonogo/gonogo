@@ -393,7 +393,13 @@ export function StationScreen() {
                           >
                             <Layout as="main" aria-label="Station dashboard">
                               <UplinkIntegrityBanner />
-                              <MissionBanner />
+                              <MissionBanner
+                                actions={
+                                  <LayoutHistoryControl
+                                    dashboard={controller}
+                                  />
+                                }
+                              />
                               <StationUplinkLoader>
                                 <RootProviders screen="station">
                                   <Dashboard
@@ -487,7 +493,6 @@ export function StationScreen() {
                                 <HomeFallbackNotice />
                                 <SceneSwitchPrompt dashboard={controller} />
                                 <ProfileSwitchBanner dashboard={controller} />
-                                <LayoutHistoryControl dashboard={controller} />
                               </BannerStack>
                             </Layout>
                           </AlarmsLauncherBridge>
