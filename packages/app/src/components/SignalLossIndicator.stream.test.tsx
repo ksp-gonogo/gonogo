@@ -66,13 +66,13 @@ function CommsProbe() {
   );
 }
 
-function setupDelayedStream(delaySeconds: number) {
+function setupDelayedStream(delaySeconds: number, warpRate = 1) {
   const wall = createFakeWallClock();
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const clock = new ViewClock({
     nowWall: wall.now,
-    warpRate: () => 1,
+    warpRate: () => warpRate,
     delaySeconds: () => delaySeconds,
   });
   const store = new TimelineStore(clock);
@@ -243,5 +243,49 @@ describe("SignalLossIndicator: genuinely runs off a DELAYED, UNPINNED stream", (
     });
 
     await waitFor(() => expect(screen.getByText("SIGNAL LOSS")).toBeTruthy());
+  });
+
+  it("counts the blackout timer in game time, so a warp does not stall it", async () => {
+    const fixture = setupDelayedStream(0, 1000);
+
+    render(
+      <fixture.Provider>
+        <SignalLossIndicator />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("comms.link", { connected: true }, 0);
+      fixture.emit(
+        "vessel.comms",
+        { connected: true, signalStrength: 0.8, controlState: 2 },
+        0,
+      );
+    });
+    act(() => {
+      fixture.store.beginFrame();
+    });
+    act(() => {
+      fixture.emit("comms.link", { connected: false }, 10);
+    });
+    act(() => {
+      fixture.wall.advanceBy(0.01);
+      fixture.store.beginFrame();
+      fixture.store.clock.emitFrame();
+    });
+    await waitFor(() => expect(screen.getByText("SIGNAL LOSS")).toBeTruthy());
+
+    // Ten wall seconds at 1000x is 10000 game seconds, so the timer reads 2h 46min rather than seconds.
+    act(() => {
+      fixture.wall.advanceBy(10);
+      fixture.emit("comms.link", { connected: false }, 10010);
+      fixture.store.beginFrame();
+      fixture.store.clock.emitFrame();
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toMatch(
+        /T\+\s*2\s*h\s*46\s*min/,
+      ),
+    );
   });
 });
