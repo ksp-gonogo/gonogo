@@ -134,7 +134,7 @@ export class ProfileDashboard {
     ) {
       this.shown = next;
       const id = this.service.getCurrentId();
-      if (id) this.service.writeContent(id, items, layout, { touch: false });
+      if (id) this.service.writeContent(id, items, layout);
       return;
     }
     if (this.pending === null) {

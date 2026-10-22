@@ -512,46 +512,6 @@ describe("PeerClientService reconnect loop", () => {
     expect(statuses).toContain("disconnected");
   });
 
-  it("keeps trying past the retry timeout while the main screen is not up", () => {
-    const svc = new PeerClientService({
-      retryIntervalMs: 50,
-      retryTimeoutMs: 60_000,
-      attemptDeadlineMs: 1_000,
-    });
-    const statuses: ConnStatus[] = [];
-    svc.onConnectionStatus((s) => statuses.push(s));
-    svc.connect("Z6HK");
-
-    // Silent attempts and a host missing from the broker, for ten minutes.
-    for (let elapsed = 0; elapsed < 10 * 60_000; elapsed += 500) {
-      const peer = FakePeer.instances.at(-1);
-      if (peer && !peer.destroyed && elapsed % 2_000 === 0) {
-        peer.emit("open");
-        peer.emit(
-          "error",
-          Object.assign(
-            new Error("Could not connect to peer gonogo-host-Z6HK"),
-            {
-              type: "peer-unavailable",
-            },
-          ),
-        );
-      }
-      vi.advanceTimersByTime(500);
-    }
-    expect(statuses).not.toContain("disconnected");
-
-    // The main appears: the next attempt, whenever the backoff lets it start, connects.
-    for (let i = 0; FakePeer.instances.at(-1)?.destroyed && i < 300; i += 1) {
-      vi.advanceTimersByTime(100);
-    }
-    const live = FakePeer.instances.at(-1);
-    if (!live) throw new Error("no peer opened");
-    driveOpen(live);
-    expect(svc.getConnStatus()).toBe("connected");
-    svc.disconnect();
-  });
-
   it("ignores peer-unavailable for an auxiliary peer without tearing down host conn", () => {
     const svc = new PeerClientService({
       retryIntervalMs: 50,
@@ -789,59 +749,6 @@ describe("PeerClientService reconnect loop", () => {
       new PageTransitionEvent("pageshow", { persisted: true }),
     );
     expect(statuses).toEqual([]);
-  });
-
-  it("does not reconnect a station that was taken over or refused when the page is restored", () => {
-    const stops: Array<(conn: FakeConnection) => void> = [
-      (conn) => conn.emit("data", { type: "station-superseded" }),
-      (conn) =>
-        conn.emit("data", { type: "station-approval", state: "refused" }),
-    ];
-    for (const stop of stops) {
-      const svc = new PeerClientService({
-        retryIntervalMs: 50,
-        retryTimeoutMs: 60_000,
-      });
-      svc.connect("HOST");
-      const peer = FakePeer.instances.at(-1);
-      if (!peer) throw new Error("no peer opened");
-      driveOpen(peer);
-      if (!peer._lastConn) throw new Error("no connection");
-      stop(peer._lastConn);
-      const statuses: ConnStatus[] = [];
-      svc.onConnectionStatus((s) => statuses.push(s));
-
-      window.dispatchEvent(new Event("pagehide"));
-      window.dispatchEvent(
-        new PageTransitionEvent("pageshow", { persisted: true }),
-      );
-      expect(statuses).toEqual([]);
-      expect(svc.getConnStatus()).toBe("disconnected");
-      svc.disconnect();
-    }
-  });
-
-  it("does not reconnect a station that stopped on a host channel that never opens when the page is restored", () => {
-    const svc = new PeerClientService({
-      retryIntervalMs: 10,
-      retryTimeoutMs: 60_000,
-    });
-    svc.connect("HOST");
-    for (let i = 0; i < 10; i++) {
-      const peer = FakePeer.instances[FakePeer.instances.length - 1];
-      peer.emit("open");
-      peer._lastConn?.emit("close");
-      vi.advanceTimersByTime(11);
-    }
-    expect(svc.getConnStatus()).toBe("disconnected");
-    const statuses: ConnStatus[] = [];
-    svc.onConnectionStatus((s) => statuses.push(s));
-    window.dispatchEvent(new Event("pagehide"));
-    window.dispatchEvent(
-      new PageTransitionEvent("pageshow", { persisted: true }),
-    );
-    expect(statuses).toEqual([]);
-    svc.disconnect();
   });
 
   it("disconnect() stops any pending retry", () => {

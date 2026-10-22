@@ -53,13 +53,6 @@ export interface RelayConfig {
    * public build (https) can only fetch from an https address.
    */
   publicUrl: string | null;
-  /**
-   * The router's address, from `ROUTER_IP`, when the relay should ask only that
-   * one to open its ports. Null lets the relay look for the router itself.
-   */
-  routerIp: string | null;
-  /** Do not ask the router to open the relay ports (`PORT_MAPPING=0`). */
-  skipPortMapping: boolean;
 }
 
 /** Defaults live here rather than in `startCoturn` so one file answers
@@ -129,7 +122,5 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayConfig {
     publicRelay: env.RELAY_PUBLIC === "1" || env.RELAY_PUBLIC === "true",
     appOrigins: appOrigins(env.RELAY_APP_ORIGINS),
     publicUrl: publicUrl(env.RELAY_PUBLIC_URL),
-    routerIp: env.ROUTER_IP?.trim() || null,
-    skipPortMapping: env.PORT_MAPPING === "0" || env.PORT_MAPPING === "false",
   };
 }

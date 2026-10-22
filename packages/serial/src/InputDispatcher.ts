@@ -79,7 +79,6 @@ export class InputDispatcher {
   private handleInput(deviceId: string, event: InputEvent): void {
     if (this.service.isCaptureMode()) return;
     if (event.value === true) {
-      // The first layout holding the input takes the press, so a press is one switch.
       for (const profile of this.getProfileBindings()) {
         const binding = profile.inputBinding;
         if (
@@ -87,7 +86,6 @@ export class InputDispatcher {
           binding.inputId === event.inputId
         ) {
           this.onProfileInput(profile.id, deviceId, event.inputId);
-          break;
         }
       }
     }

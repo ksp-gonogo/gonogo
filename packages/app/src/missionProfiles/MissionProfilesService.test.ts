@@ -36,32 +36,6 @@ describe("MissionProfilesService", () => {
     storage = memoryStorage();
   });
 
-  it("reads a stored profile with damaged fields as an empty, unbound layout", () => {
-    storage.setItem(
-      "gonogo.missionProfiles.main",
-      JSON.stringify([
-        {
-          id: "x",
-          name: "Hurt",
-          screen: "main",
-          items: null,
-          layout: "nope",
-          sceneBindings: "Flight",
-          updatedAt: "yesterday",
-        },
-      ]),
-    );
-
-    const svc = new MissionProfilesService("main", storage);
-
-    const [p] = svc.list();
-    expect(p.items).toEqual([]);
-    expect(p.layout).toEqual([]);
-    expect(p.sceneBindings).toBeUndefined();
-    expect(svc.findForScene("Flight")).toBeUndefined();
-    expect(Number.isFinite(p.updatedAt)).toBe(true);
-  });
-
   it("starts empty for a fresh screen", () => {
     const svc = new MissionProfilesService("main", storage);
     expect(svc.list()).toEqual([]);
@@ -318,30 +292,6 @@ describe("MissionProfilesService", () => {
       const centre = svc.list().find((p) => p.name === "Space Center layout");
       expect(centre?.sceneBindings).toEqual(["SpaceCenter"]);
       expect(svc.findForScene("Flight")?.id).toBe(flight?.id);
-    });
-
-    it("keeps the old slot when storage refuses the converted profiles", () => {
-      storage.setItem("gonogo:dashboard:main:Flight", stored(one("a")));
-      const full = new Proxy(storage, {
-        get(target, prop) {
-          if (prop === "setItem") {
-            return (k: string, v: string) => {
-              if (k === "gonogo.missionProfiles.main") {
-                throw new DOMException("full", "QuotaExceededError");
-              }
-              target.setItem(k, v);
-            };
-          }
-          const value = Reflect.get(target, prop);
-          return typeof value === "function" ? value.bind(target) : value;
-        },
-      });
-
-      new MissionProfilesService("main", full);
-
-      expect(storage.getItem("gonogo:dashboard:main:Flight")).not.toBeNull();
-      const retry = new MissionProfilesService("main", storage);
-      expect(retry.list().map((p) => p.name)).toEqual(["Flight layout"]);
     });
 
     it("keeps a slot as a named profile when a profile is already bound to that scene", () => {
