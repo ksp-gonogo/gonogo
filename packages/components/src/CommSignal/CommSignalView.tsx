@@ -60,6 +60,7 @@ export function CommSignalComponent({
   const {
     connected,
     noSignal,
+    streamLost,
     nothingHasArrived,
     noRoute,
     pct,
@@ -253,6 +254,7 @@ export function CommSignalComponent({
                   bars={bars}
                   tone={noSignal ? "neutral" : control.tone}
                   noSignal={noSignal}
+                  streamLost={streamLost}
                 />
                 <SignalHeadline
                   headline={headlineWithTip}
