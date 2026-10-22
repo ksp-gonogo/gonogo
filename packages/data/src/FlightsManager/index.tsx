@@ -36,16 +36,15 @@ function formatDate(ms: number): string {
   return new Date(ms).toLocaleString();
 }
 
-// The kit's ladder, not a fourth copy of it. The WALL-CLOCK one: both
-// timestamps come from `Date.now()` (`formatDate` above reads them straight
-// into a `Date`), so this is how long the recorder ran on the desk, not how
-// long the flight lasted on Kerbin. `irl:s` carries that distinction as the
-// value's own dimension.
+// The kit's ladder, not a fourth copy of it. The span is GAME time: a stored
+// mission's end is dated from its frames' universal times (see
+// `missionMetaToFlightRecord`), so a flight flown under 50x warp reads fifty
+// times its time at the desk. `s` carries that as the value's own dimension.
 function formatFlightDuration(
   launchedAt: number,
   lastSampleAt: number,
 ): string {
-  return writeQuantity(value("irl:s", (lastSampleAt - launchedAt) / 1000));
+  return writeQuantity(value("s", (lastSampleAt - launchedAt) / 1000));
 }
 
 const END_REASON_LABELS: Record<FlightEndReason, string> = {
@@ -378,7 +377,7 @@ export function FlightsManager({
                 </ThStar>
                 <Th>Vessel</Th>
                 <Th>Launched</Th>
-                <Th>Duration</Th>
+                <Th title="Game time, not time at the desk">Duration</Th>
                 <Th>Samples</Th>
                 <Th>Ended</Th>
                 <Th>
