@@ -15,8 +15,8 @@ namespace Sitrep.Contract.TestSupport
         /// Asks <paramref name="items"/> for every item of <paramref name="requirement"/>
         /// and evaluates each one, as the gate report does.
         ///
-        /// <para>Fails when the requirement does not name exactly one need (the
-        /// report keys items on one argument and asks nothing else), when the
+        /// <para>Fails when the requirement names no need (the report keys items
+        /// on the arguments the needs name), when the
         /// implementation is not also the <see cref="ICommandGateEvaluator"/> for
         /// that kind, when an item is empty or named twice, and when an item's
         /// verdict is missing or an Abstain: the argument was supplied, so there
@@ -32,9 +32,9 @@ namespace Sitrep.Contract.TestSupport
             var name = items.GetType().Name;
 
             Assert.True(
-                requirement.Needs != null && requirement.Needs.Length == 1,
-                "a requirement whose items are sampled names exactly one need: the gate report keys "
-                + "each item on that one argument, and a requirement needing more would abstain on every item");
+                requirement.Needs != null && requirement.Needs.Length >= 1,
+                "a requirement whose items are sampled names at least one need: the gate report keys "
+                + "each item on the arguments its needs name");
             var evaluator = items as ICommandGateEvaluator;
             Assert.True(
                 evaluator != null && evaluator.Kind == requirement.Kind,
@@ -52,7 +52,7 @@ namespace Sitrep.Contract.TestSupport
                 Assert.True(seen.Add(value), name + ".Items named \"" + value + "\" twice");
                 asked.Add(value);
 
-                var verdict = evaluator!.Evaluate(requirement, new OneArgument(requirement.Needs![0], value));
+                var verdict = evaluator!.Evaluate(requirement, new ItemArguments(GateItemKey.ArgumentOf(requirement.Needs!), value));
                 Assert.True(verdict != null, name + " returned no verdict for \"" + value + "\"");
                 Assert.True(
                     verdict!.Outcome != GateOutcome.Abstain,
@@ -92,22 +92,16 @@ namespace Sitrep.Contract.TestSupport
             return new List<string>(seen);
         }
 
-        private sealed class OneArgument : IGateArguments
+        private sealed class ItemArguments : IGateArguments
         {
-            private readonly string _path;
-            private readonly string _value;
+            private readonly Dictionary<string, object> _bag;
 
-            public OneArgument(string path, string value)
+            public ItemArguments(string argument, string value)
             {
-                _path = path;
-                _value = value;
+                _bag = GateItemKey.Arguments(argument, value);
             }
 
-            public bool TryGet(string path, out object value)
-            {
-                value = _value;
-                return string.Equals(path, _path, StringComparison.Ordinal);
-            }
+            public bool TryGet(string path, out object value) => _bag.TryGetValue(path, out value!);
         }
     }
 }

@@ -35,12 +35,44 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void ARequirementNeedingTwoArgumentsCannotBeSampledPerItem()
+        public void ARequirementNamingNoNeedCannotBeSampledPerItem()
         {
-            var twoNeeds = new CommandRequirement { Kind = PriceGate.PriceKind, Needs = new[] { "itemId", "factor" } };
+            var noNeeds = new CommandRequirement { Kind = PriceGate.PriceKind, Needs = new string[0] };
 
             Assert.ThrowsAny<XunitException>(
-                () => GateItemsConformance.AssertItemsAreAskable(new PriceGate(), twoNeeds));
+                () => GateItemsConformance.AssertItemsAreAskable(new PriceGate(), noNeeds));
+        }
+
+        [Fact]
+        public void AnItemNamedByTwoArgumentsIsAskedWithBothSupplied()
+        {
+            var pair = new CommandRequirement { Kind = PairGate.PairKind, Needs = new[] { "partId", "experimentId" } };
+
+            var asked = GateItemsConformance.AssertItemsAreAskable(new PairGate(), pair);
+
+            Assert.Equal(new[] { GateItemKey.ValueOf("part-1", "first"), GateItemKey.ValueOf("part-1", "second") }, asked);
+        }
+
+        [Fact]
+        public void AGateThatNeedsBothArgumentsAbstainsWhenOnlyOneIsSuppliedSoItsItemsMustBeWrittenWithBoth()
+        {
+            var pair = new CommandRequirement { Kind = PairGate.PairKind, Needs = new[] { "partId", "experimentId" } };
+
+            Assert.ThrowsAny<XunitException>(
+                () => GateItemsConformance.AssertItemsAreAskable(new PairGate { NameOnlyTheParts = true }, pair));
+        }
+
+        [Fact]
+        public void TheKeyOfAnItemRoundTripsThroughTheArgumentsACallWouldCarry()
+        {
+            var argument = GateItemKey.ArgumentOf(new[] { "partId", "experimentId" });
+            var bag = GateItemKey.Arguments(argument, GateItemKey.ValueOf("77", "barometerScan"));
+
+            Assert.Equal("partId+experimentId", argument);
+            Assert.Equal("77", bag["partId"]);
+            Assert.Equal("barometerScan", bag["experimentId"]);
+            Assert.Equal("itemId", GateItemKey.ArgumentOf(new[] { "itemId" }));
+            Assert.Equal("dear", GateItemKey.Arguments("itemId", "dear")["itemId"]);
         }
 
         [Fact]
@@ -99,6 +131,29 @@ namespace Sitrep.Host.Tests
                 return (item as string) == "dear"
                     ? GateVerdict.Fail(CommandErrorCode.InsufficientFunds, "costs more than the career holds")
                     : GateVerdict.Pass();
+            }
+        }
+
+        private sealed class PairGate : ICommandGateEvaluator, ICommandGateItems
+        {
+            public const string PairKind = "probe-pair";
+
+            /// <summary>Names an item by the part alone, which a gate keyed on a part and an experiment cannot judge.</summary>
+            public bool NameOnlyTheParts { get; set; }
+
+            public string Kind => PairKind;
+
+            public IEnumerable<string> Items(CommandRequirement requirement) => NameOnlyTheParts
+                ? new[] { "part-1" }
+                : new[] { GateItemKey.ValueOf("part-1", "first"), GateItemKey.ValueOf("part-1", "second") };
+
+            public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
+            {
+                if (!arguments.TryGet("partId", out _) || !arguments.TryGet("experimentId", out _))
+                {
+                    return new GateVerdict { Outcome = GateOutcome.Abstain };
+                }
+                return GateVerdict.Pass();
             }
         }
     }

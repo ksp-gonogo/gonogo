@@ -289,3 +289,54 @@ describe("selectCommandGate", () => {
     expect(gate?.detail).toBeUndefined();
   });
 });
+
+describe("selectCommandGate for an item named by two arguments", () => {
+  const gates: CommandGateReport = {
+    gates: [
+      {
+        command: "science.experiment.deploy",
+        verdict: { outcome: GateOutcome.Abstain, detail: "" },
+        itemSets: [
+          {
+            argument: "partId+experimentId",
+            items: [
+              {
+                value: "77\u001fbarometerScan",
+                verdict: {
+                  outcome: GateOutcome.Fail,
+                  errorCode: CommandErrorCode.WrongState,
+                  detail: "the experiment has already been run",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    channels: [],
+  };
+
+  it("blocks the call naming that part and that experiment, and no other experiment of the part", () => {
+    expect(
+      selectCommandGate(gates, "science.experiment.deploy", {
+        partId: "77",
+        experimentId: "barometerScan",
+      }),
+    ).toMatchObject({
+      blocked: true,
+      detail: "the experiment has already been run",
+    });
+    expect(
+      selectCommandGate(gates, "science.experiment.deploy", {
+        partId: "77",
+        experimentId: "temperatureScan",
+      }),
+    ).toMatchObject({ blocked: false });
+  });
+
+  it("leaves a call that names only one of the two on the command's own verdict", () => {
+    expect(
+      selectCommandGate(gates, "science.experiment.deploy", { partId: "77" }),
+    ).toMatchObject({ blocked: false });
+  });
+});

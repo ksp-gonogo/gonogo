@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Gonogo.KSP.Gates;
 using Sitrep.Host;
@@ -27,7 +28,7 @@ namespace Gonogo.KSP.Tests.Career
         [Fact]
         public void EveryDeclaredGateKindHasAnEvaluator()
         {
-            var kinds = KspGateEvaluators.All(new NoJudge(), (_, _) => new LaunchReach()).Select(e => e.Kind).ToList();
+            var kinds = KspGateEvaluators.All(new NoJudge(), (_, _) => new LaunchReach(), new NoInstruments()).Select(e => e.Kind).ToList();
 
             var orphans = GateDeclarations.All()
                 .SelectMany(entry => entry.Value.Select(r => new { Command = entry.Key, r.Kind }))
@@ -48,7 +49,7 @@ namespace Gonogo.KSP.Tests.Career
             // ChannelEngine.AddGateEvaluator throws on this, and it would throw
             // at startup rather than here. Which of two evaluators wins would
             // otherwise depend on registration order.
-            var kinds = KspGateEvaluators.All(new NoJudge(), (_, _) => new LaunchReach()).Select(e => e.Kind).ToList();
+            var kinds = KspGateEvaluators.All(new NoJudge(), (_, _) => new LaunchReach(), new NoInstruments()).Select(e => e.Kind).ToList();
             Assert.Equal(kinds.Count, kinds.Distinct().Count());
             Assert.DoesNotContain(kinds, string.IsNullOrWhiteSpace);
         }
@@ -184,7 +185,7 @@ namespace Gonogo.KSP.Tests.Career
         public void EveryDeclaredRequirementIsAskableInAdvance()
         {
             var requirements = GateDeclarations.All().SelectMany(e => e.Value).ToList();
-            var itemKinds = KspGateEvaluators.All(new NoJudge(), (_, _) => new LaunchReach())
+            var itemKinds = KspGateEvaluators.All(new NoJudge(), (_, _) => new LaunchReach(), new NoInstruments())
                 .Where(e => e is Sitrep.Contract.ICommandGateItems)
                 .Select(e => e.Kind)
                 .ToList();
@@ -199,7 +200,6 @@ namespace Gonogo.KSP.Tests.Career
             Assert.All(requirements, r =>
             {
                 if (r.Needs.Length == 0 || r.NeedsVantage) return;
-                Assert.Single(r.Needs);
                 Assert.Contains(r.Kind, itemKinds);
             });
         }
@@ -258,6 +258,13 @@ namespace Gonogo.KSP.Tests.Career
                 var expected = entry.Key.StartsWith("robotics.rotor.") ? "ModuleRoboticServoRotor" : "ModuleRoboticServoHinge";
                 Assert.Contains(expected, requirement.Quantity);
             }
+        }
+
+        private sealed class NoInstruments : IInstrumentJudge
+        {
+            public Sitrep.Contract.CommandResult JudgeDeploy(string partId, string? experimentId) => throw new System.NotSupportedException();
+
+            public IEnumerable<string> Experiments() => new string[0];
         }
 
         private sealed class NoJudge : ICareerItemJudge

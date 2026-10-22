@@ -46,7 +46,7 @@ namespace Gonogo.KSP.Gates
     internal static class KspGateEvaluators
     {
         public static IEnumerable<ICommandGateEvaluator> All(
-            ICareerItemJudge careerItems, Func<string, string, LaunchReach> launchReach)
+            ICareerItemJudge careerItems, Func<string, string, LaunchReach> launchReach, IInstrumentJudge instruments)
         {
             yield return new LaunchAuthorityGate(launchReach);
             yield return new GameModeGate();
@@ -60,6 +60,7 @@ namespace Gonogo.KSP.Gates
             yield return new OrbitDisplayGate();
             yield return new TechResearchedGate();
             yield return new PartModuleResearchedGate();
+            yield return new InstrumentDeployGate(instruments);
             foreach (var perItem in ItemGates.All(careerItems)) yield return perItem;
         }
 
@@ -77,6 +78,7 @@ namespace Gonogo.KSP.Gates
             public const string OrbitDisplay = "orbit-display";
             public const string TechResearched = "tech-researched";
             public const string PartModuleResearched = "part-module-researched";
+            public const string InstrumentDeploy = "instrument-deploy";
         }
 
         /// <summary>Quantities the facility gates understand, spelled once for the same reason.</summary>

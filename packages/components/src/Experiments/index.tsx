@@ -49,6 +49,7 @@ import {
   sumExperimentDataAmount,
 } from "./parse";
 import { ScienceExperimentRow } from "./ScienceExperimentRow";
+import { useClearOutcomesOnNewFlight } from "./useClearOutcomesOnNewFlight";
 
 export type { ExperimentsInstrumentSlotContext } from "@ksp-gonogo/sitrep-sdk";
 
@@ -152,6 +153,16 @@ function ExperimentsBody({
   const stopCmd = useCommand("science.experiment.stop");
   const startLabCmd = useCommand("science.lab.start");
   const stopLabCmd = useCommand("science.lab.stop");
+  // What the commands above were told belongs to the flight they were sent in.
+  const flightReading = useTelemetry("flight.current");
+  useClearOutcomesOnNewFlight(stillTrue(flightReading, undefined)?.flightId, [
+    deployCmd,
+    transmitCmd,
+    startCmd,
+    stopCmd,
+    startLabCmd,
+    stopLabCmd,
+  ]);
   const transmissions = useTransmissions();
   useRailEntry(transmissions);
   // The result has left the craft once its last packet has, and lands one light-time later.

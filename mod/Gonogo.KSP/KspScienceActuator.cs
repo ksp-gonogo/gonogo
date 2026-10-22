@@ -49,7 +49,17 @@ namespace Gonogo.KSP
         /// bug in the other direction: it returned Ok having deployed
         /// nothing.</para>
         /// </summary>
-        public CommandResult DeployExperiment(string partId, string? experimentId)
+        public CommandResult DeployExperiment(string partId, string? experimentId) =>
+            Deploy(partId, experimentId, run: true);
+
+        /// <summary>
+        /// What <see cref="DeployExperiment"/> would answer for this experiment, asked without
+        /// running it, so a gate publishes the refusal the press would get and restates no rule.
+        /// </summary>
+        internal static CommandResult JudgeDeploy(string partId, string? experimentId) =>
+            Deploy(partId, experimentId, run: false);
+
+        private static CommandResult Deploy(string partId, string? experimentId, bool run)
         {
             if (!TryResolveExperiments(partId, experimentId, out var experiments, out var error))
             {
@@ -69,7 +79,10 @@ namespace Gonogo.KSP
                     var refusal = DeployRefusal(exp);
                     if (refusal == null)
                     {
-                        exp.DeployExperiment();
+                        if (run)
+                        {
+                            exp.DeployExperiment();
+                        }
                         return CommandResult.Ok();
                     }
                     firstRefusal ??= refusal;

@@ -241,6 +241,18 @@ namespace Gonogo.KSP.Gates
             {
                 table[command] = new[] { CareerGates.PartModuleResearched(CareerGates.Modules.ServoRotor) };
             }
+            // Whether this experiment would be run, asked of the actuator's own
+            // judge. A part carries several experiments, so an item is a part and
+            // an experiment together.
+            table[ScienceCommandProvider.DeployCommand] = new[]
+            {
+                new CommandRequirement
+                {
+                    Kind = KspGateEvaluators.Kinds.InstrumentDeploy,
+                    Needs = new[] { InstrumentDeployGate.Arguments.PartId, InstrumentDeployGate.Arguments.ExperimentId },
+                },
+            };
+
             return table;
         }
     }

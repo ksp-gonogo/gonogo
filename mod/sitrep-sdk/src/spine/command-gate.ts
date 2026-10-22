@@ -93,6 +93,26 @@ export function hasItemVerdict(
 }
 
 /**
+ * The value naming the item a call refers to under one item set. A set keyed on
+ * one argument names its items by that argument's value. One keyed on several
+ * (a part and an experiment) has their names joined with `+`, and names an item
+ * by the values joined with the unit separator, in the same order.
+ */
+function itemKey(
+  argument: string,
+  named: Record<string, unknown>,
+): string | undefined {
+  const values: string[] = [];
+  for (const name of argument.split("+")) {
+    const value = named[name];
+    if (typeof value !== "string" && typeof value !== "number")
+      return undefined;
+    values.push(String(value));
+  }
+  return values.join("\u001f");
+}
+
+/**
  * The verdict for the items a call names, when the gate depends on which item
  * that is and the mod published one. Each item set is keyed on its own
  * argument (a launch has a site and a vehicle), and the first set holding a
@@ -107,9 +127,9 @@ function itemVerdict(
   if (typeof args !== "object" || args === null) return undefined;
   const named = args as Record<string, unknown>;
   for (const set of entry.itemSets ?? []) {
-    const value = named[set.argument];
-    if (typeof value !== "string" && typeof value !== "number") continue;
-    const found = set.items.find((item) => item.value === String(value));
+    const key = itemKey(set.argument, named);
+    if (key === undefined) continue;
+    const found = set.items.find((item) => item.value === key);
     if (found) return found.verdict;
   }
   return undefined;

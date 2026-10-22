@@ -4892,8 +4892,8 @@ namespace Sitrep.Host
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var requirement in RequirementsFor(command))
             {
-                if (requirement.Needs == null || requirement.Needs.Length != 1) continue;
-                if (requirement.Needs[0] != argument) continue;
+                if (requirement.Needs == null || requirement.Needs.Length == 0) continue;
+                if (GateItemKey.ArgumentOf(requirement.Needs) != argument) continue;
                 if (!_gateEvaluators.TryGetValue(requirement.Kind ?? "", out var evaluator)) continue;
                 if (!(evaluator is ICommandGateItems itemSource)) continue;
                 IEnumerable<string>? named;
@@ -4971,10 +4971,10 @@ namespace Sitrep.Host
             var inputs = new Dictionary<string, List<GateInput>>(StringComparer.Ordinal);
             foreach (var requirement in RequirementsFor(command))
             {
-                if (requirement.Needs == null || requirement.Needs.Length != 1) continue;
+                if (requirement.Needs == null || requirement.Needs.Length == 0) continue;
                 if (!_gateEvaluators.TryGetValue(requirement.Kind ?? "", out var evaluator)) continue;
                 if (!(evaluator is ICommandGateItems)) continue;
-                var argument = requirement.Needs[0];
+                var argument = GateItemKey.ArgumentOf(requirement.Needs);
                 if (!driven.ContainsKey(argument))
                 {
                     arguments.Add(argument);
@@ -5069,7 +5069,7 @@ namespace Sitrep.Host
 
         private void AskItem(ItemCommand state, string value, Dictionary<string, GateVerdict> memo)
         {
-            var bag = new Dictionary<string, object> { [state.Argument] = value };
+            var bag = GateItemKey.Arguments(state.Argument, value);
             var verdict = EvaluateGatesHere(state.Command, new GateArguments(bag), memo);
             if (verdict.Outcome == GateOutcome.Pass || verdict.Outcome == GateOutcome.Abstain)
             {

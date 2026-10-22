@@ -92,6 +92,24 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// An item named by two arguments (a part and one of its experiments) is
+        /// asked with both supplied and published under the two names joined, so the
+        /// experiment the gate refuses goes dark and the part's other one stays live.
+        /// </summary>
+        [Fact]
+        public async Task AnItemNamedByTwoArgumentsIsPublishedUnderBothNamesAndRefusesOnlyThatPair()
+        {
+            var uplink = new ItemGateProbeUplink { Paired = true };
+            var entry = await SampleOnce(uplink);
+
+            var set = Sets(entry).Single(s => (string)s["argument"]! == "partId+experimentId");
+            var refused = Assert.Single(Items(set));
+            Assert.Equal(GateItemKey.ValueOf("part-1", "second"), refused["value"]);
+            var verdict = Assert.IsType<Dictionary<string, object?>>(refused["verdict"]);
+            Assert.Equal((double)(int)GateOutcome.Fail, verdict["outcome"]);
+        }
+
+        /// <summary>
         /// A requirement an Uplink contributes that nothing can evaluate refuses
         /// that Uplink with a reason an operator can read, and the engine starts
         /// with everything else.
@@ -178,6 +196,7 @@ namespace Sitrep.Host.IntegrationTests
             public const string Command = "probe.item";
             public const string StaticKind = "probe-static";
             public const string PriceKind = "probe-price";
+            public const string PairKind = "probe-pair";
             public const string Argument = "itemId";
             public const string CheapItem = "cheap";
             public const string DearItem = "dear";
@@ -188,6 +207,7 @@ namespace Sitrep.Host.IntegrationTests
             public bool RefuseOutright { get; set; }
             public bool RefuseLast { get; set; }
             public string? SecondArgument { get; set; }
+            public bool Paired { get; set; }
             public int ItemsAsked { get; private set; }
 
             public UplinkHealth Health() => UplinkHealth.Healthy;
@@ -222,6 +242,10 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     requires.Add(new CommandRequirement { Kind = PriceKind, Needs = new[] { SecondArgument } });
                 }
+                if (Paired)
+                {
+                    requires.Add(new CommandRequirement { Kind = PairKind, Needs = new[] { "partId", "experimentId" } });
+                }
                 return requires.ToArray();
             }
 
@@ -229,6 +253,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 host.AddGateEvaluator(new StaticGate(this));
                 host.AddGateEvaluator(new PriceGate(this));
+                host.AddGateEvaluator(new PairGate());
                 host.AddCommandHandler<object?, CommandResult>(Command, _ => CommandResult.Ok());
             }
 
@@ -244,6 +269,27 @@ namespace Sitrep.Host.IntegrationTests
                     _owner.RefuseOutright || requirement.Quantity == "last"
                         ? GateVerdict.Fail("not in this save")
                         : GateVerdict.Pass();
+            }
+
+            /// <summary>Refuses one experiment of one part and passes its sibling, which a gate keyed on the part alone could not.</summary>
+            private sealed class PairGate : ICommandGateEvaluator, ICommandGateItems
+            {
+                public string Kind => PairKind;
+
+                public IEnumerable<string> Items(CommandRequirement requirement) => new[]
+                {
+                    GateItemKey.ValueOf("part-1", "first"),
+                    GateItemKey.ValueOf("part-1", "second"),
+                };
+
+                public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
+                {
+                    arguments.TryGet("partId", out var part);
+                    arguments.TryGet("experimentId", out var experiment);
+                    return (part as string) == "part-1" && (experiment as string) == "second"
+                        ? GateVerdict.Fail(CommandErrorCode.WrongState, "already run")
+                        : GateVerdict.Pass();
+                }
             }
 
             private sealed class PriceGate : ICommandGateEvaluator, ICommandGateItems

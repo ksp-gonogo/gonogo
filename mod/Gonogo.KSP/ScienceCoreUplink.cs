@@ -271,6 +271,7 @@ namespace Gonogo.KSP
         {
             Command = command,
             Subject = subject,
+            Requires = GateDeclarations.For(command),
         };
     }
 }

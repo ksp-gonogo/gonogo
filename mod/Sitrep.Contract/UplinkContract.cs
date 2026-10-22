@@ -922,14 +922,16 @@ namespace Sitrep.Contract
     /// </summary>
     ///
     /// <remarks>
-    /// <para>The gate report asks each item in turn, with the requirement's one
-    /// <see cref="CommandRequirement.Needs"/> path set to the item's value, and
+    /// <para>The gate report asks each item in turn, with the requirement's
+    /// <see cref="CommandRequirement.Needs"/> paths set to the item's value, and
     /// publishes every verdict that is not a Pass on
     /// <see cref="CommandGate.Items"/>, so a control can show an item as
     /// refused before it is pressed, with the verdict sending it would
     /// return.</para>
     ///
-    /// <para>Only a requirement that names exactly one need is asked. Name the
+    /// <para>A requirement with one need names its items by that argument's value.
+    /// One with several (a part and an experiment) names each item by all of them,
+    /// written with <see cref="GateItemKey"/>. Name the
     /// items a control could plausibly offer right now (the nodes still to be
     /// researched, not the whole tree): each is evaluated on the main thread at
     /// the gate sampling interval.</para>

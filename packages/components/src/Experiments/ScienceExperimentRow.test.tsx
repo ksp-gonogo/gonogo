@@ -1,4 +1,5 @@
 import {
+  CommandErrorCode,
   type CommandReply,
   railTagsForCommand,
   value,
@@ -341,6 +342,59 @@ describe("ScienceExperimentRow", () => {
       />,
     );
     expect(screen.getByRole("button", { name: "Deploy" })).toBeInTheDocument();
+  });
+
+  it("draws Deploy dark with the mod's reason, and sends nothing, when the gate for this experiment blocks it", async () => {
+    const send = vi.fn(() => Promise.resolve(OK));
+    renderRow(
+      <ScienceExperimentRow
+        instrument={instrument({
+          deployed: true,
+          rerunnable: true,
+          hasData: true,
+        })}
+        deployCmd={{
+          ...handle(send),
+          gateFor: (args) =>
+            typeof args === "object" &&
+            args !== null &&
+            "partId" in args &&
+            args.partId === "1"
+              ? {
+                  blocked: true,
+                  errorCode: CommandErrorCode.WrongState,
+                  detail: "the experiment has already been run",
+                }
+              : undefined,
+        }}
+      />,
+    );
+
+    const deploy = screen.getByText("Deploy").closest("button") as HTMLElement;
+    expect(deploy).toHaveAttribute("data-command-phase", "blocked");
+    expect(deploy).toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(deploy);
+    expect(send).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(/the experiment has already been run/),
+    ).toBeInTheDocument();
+  });
+
+  it("leaves Deploy live when the gate has nothing to say about this experiment", () => {
+    renderRow(
+      <ScienceExperimentRow
+        instrument={instrument({ deployed: true, rerunnable: true })}
+        deployCmd={{
+          ...handle(() => Promise.resolve(OK)),
+          gateFor: () => undefined,
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Deploy" })).not.toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
   });
 
   it("offers Transmit and not Deploy for a one-shot instrument holding data", () => {

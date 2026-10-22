@@ -2,6 +2,7 @@
 export default {
   optionalChannels: [
     "comms.delay",
+    "flight.current",
     "science.experiments",
     "science.instruments",
     "science.lab",
