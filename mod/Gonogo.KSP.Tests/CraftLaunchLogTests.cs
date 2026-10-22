@@ -102,5 +102,46 @@ namespace Gonogo.KSP.Tests
             Assert.Null(CraftLaunchLog.NewestVesselLaunch(vessels, "Never Flown"));
             Assert.Null(CraftLaunchLog.NewestVesselLaunch(Enumerable.Empty<KeyValuePair<string, double>>(), "LFV-2 Wave"));
         }
+
+        [Fact]
+        public void ALaunchOnATimelineThatAnotherLoadLeftBehindIsForgotten()
+        {
+            var log = new CraftLaunchLog();
+            log.Adopt(new object());
+            log.RecordLaunch("VAB", "Wave", "Wave", 500.0);
+
+            // A quickload or an older save of the same folder is a different game.
+            log.Adopt(new object());
+            log.Restore(new CraftLaunchLog.LaunchEntry("VAB", "Wave", true, 100.0));
+
+            Assert.Equal(100.0, log.Recorded("VAB", "Wave", "Wave"));
+        }
+
+        [Fact]
+        public void ALoadWhoseSaveHoldsNoLaunchLeavesNoneBehind()
+        {
+            var log = new CraftLaunchLog();
+            log.Adopt(new object());
+            log.RecordLaunch("VAB", "Wave", "Wave", 500.0);
+
+            log.Adopt(new object());
+
+            Assert.Null(log.Recorded("VAB", "Wave", "Wave"));
+            Assert.Empty(log.Entries);
+        }
+
+        [Fact]
+        public void ASceneChangeWithinOneGameKeepsTheLaunchesRecorded()
+        {
+            var log = new CraftLaunchLog();
+            var game = new object();
+            log.Adopt(game);
+            log.RecordLaunch("VAB", "Wave", "Wave", 500.0);
+
+            log.Adopt(game);
+            log.Restore(new CraftLaunchLog.LaunchEntry("VAB", "Wave", true, 400.0));
+
+            Assert.Equal(500.0, log.Recorded("VAB", "Wave", "Wave"));
+        }
     }
 }

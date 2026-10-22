@@ -29,6 +29,7 @@ namespace Gonogo.KSP
 
         private readonly Dictionary<string, double> _byFile = new Dictionary<string, double>(StringComparer.Ordinal);
         private readonly Dictionary<string, double> _byShipName = new Dictionary<string, double>(StringComparer.Ordinal);
+        private WeakReference? _owner;
 
         /// <summary>Every recorded launch, for the save to write.</summary>
         public IEnumerable<LaunchEntry> Entries
@@ -73,6 +74,27 @@ namespace Gonogo.KSP
         public void Restore(LaunchEntry entry)
         {
             Keep(entry.ByFile ? _byFile : _byShipName, Key(entry.Facility, entry.Name), entry.Ut);
+        }
+
+        /// <summary>
+        /// Makes the book the record of <paramref name="game"/>, the loaded save: a
+        /// different game from the last one adopted empties it, so a launch made on
+        /// a timeline that a quickload, a revert or another save has left behind is
+        /// not carried into this one. The same game, which is every scene change
+        /// within one session, keeps what was recorded.
+        /// </summary>
+        public void Adopt(object? game)
+        {
+            if (game == null)
+            {
+                return;
+            }
+
+            if (_owner == null || !ReferenceEquals(_owner.Target, game))
+            {
+                Clear();
+                _owner = new WeakReference(game);
+            }
         }
 
         public void Clear()
