@@ -6,11 +6,13 @@ import {
 } from "@ksp-gonogo/serial";
 import { Fab, SettingsIcon, useModal } from "@ksp-gonogo/ui";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
+import { useEffect } from "react";
 import styled from "styled-components";
 import { requestFirstRunSetup } from "../firstRun/firstRunRequest";
 import { ModalTelemetryBridge } from "../telemetry/ModalTelemetryBridge";
 import { SettingsProvider, useSettingsService } from "./SettingsContext";
 import { SettingsModal } from "./SettingsModal";
+import { onSettingsRequested } from "./settingsRequest";
 
 /**
  * Settings FAB: the modal portal renders outside this provider tree, so we
@@ -40,7 +42,7 @@ export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
   const serialIssue = serialStatus === "partial" || serialStatus === "error";
   const hasIssue = dataSourceIssue || serialIssue;
 
-  function handleClick() {
+  function openSettings(initialTabId?: string) {
     let modalId = "";
     // Settings closes before the setup opens: two aria-modal dialogs must never be up at once.
     const runSetupAgain = () => {
@@ -52,7 +54,10 @@ export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
         <SettingsProvider service={service}>
           <ScreenProvider value={screen}>
             <SerialDeviceProvider service={serialService}>
-              <SettingsModal onRunSetupAgain={runSetupAgain} />
+              <SettingsModal
+                initialTabId={initialTabId}
+                onRunSetupAgain={runSetupAgain}
+              />
             </SerialDeviceProvider>
           </ScreenProvider>
         </SettingsProvider>
@@ -61,13 +66,15 @@ export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
     );
   }
 
+  useEffect(() => onSettingsRequested(openSettings));
+
   return (
     <Tooltip
       text={hasIssue ? "Something in settings needs attention" : "Settings"}
     >
       <Fab
         bottom={bottom}
-        onClick={handleClick}
+        onClick={() => openSettings()}
         aria-label={
           hasIssue ? "Settings (something needs attention)" : "Settings"
         }

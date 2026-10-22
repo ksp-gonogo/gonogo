@@ -32,10 +32,12 @@ import { useSyncExternalStore } from "react";
 import {
   getUplinkOutcomes,
   integrityFailures,
+  otherQuarantineCount,
   subscribeUplinkOutcomes,
   type UplinkLoadOutcome,
 } from "./loaderState";
 import { UplinkIntegrityDetail } from "./UplinkIntegrityDetail";
+import { UplinkQuarantineLine } from "./UplinkQuarantineLine";
 import { canOverrideSkew, UplinkSkewOverride } from "./UplinkSkewOverride";
 
 function FailedUplink({
@@ -81,7 +83,21 @@ export function UplinkIntegrityBanner() {
     getUplinkOutcomes,
   );
   const failed = integrityFailures(outcomes);
-  if (failed.length === 0) return null;
+  const others = otherQuarantineCount(outcomes);
+  // Unknown until a load pass has settled, and then no line rather than a zero.
+  const otherLine =
+    others !== null && others > 0 ? (
+      <UplinkQuarantineLine count={others} following={failed.length > 0} />
+    ) : null;
+  if (failed.length === 0) {
+    return (
+      otherLine && (
+        <Notice as="section" tone="warn" aria-label="Uplinks quarantined">
+          {otherLine}
+        </Notice>
+      )
+    );
+  }
 
   const declared = failed.filter(canOverrideSkew);
   const measured = failed.filter((o) => !canOverrideSkew(o));
@@ -138,6 +154,7 @@ export function UplinkIntegrityBanner() {
             ))}
           </Stack>
         )}
+        {otherLine}
       </Stack>
     </Notice>
   );
