@@ -9,16 +9,19 @@ export function SignalBars({
   bars,
   tone,
   noSignal,
+  streamLost,
 }: {
   bars: number | null;
   tone: Tone;
   noSignal?: boolean;
+  /** The connection to the game dropped, which says nothing of the craft's own link. */
+  streamLost?: boolean;
 }) {
   return (
     <div
       role="img"
       /* "0 of 4" is itself a verdict, so a withheld glyph announces the badge's wording instead. */
-      aria-label={signalBarsLabel(bars, noSignal)}
+      aria-label={signalBarsLabel(bars, noSignal, streamLost)}
       style={{
         display: "flex",
         alignItems: "flex-end",
@@ -69,8 +72,12 @@ export function SignalHeadline({
   );
 }
 
-function signalBarsLabel(bars: number | null, noSignal: boolean | undefined) {
-  if (noSignal) return "No signal";
+function signalBarsLabel(
+  bars: number | null,
+  noSignal: boolean | undefined,
+  streamLost: boolean | undefined,
+) {
+  if (noSignal) return streamLost === true ? "Stream lost" : "No signal";
   if (bars === null) return "Signal unknown";
   return `Signal ${bars} of 4`;
 }

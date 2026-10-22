@@ -26,12 +26,15 @@ function observed(payload: unknown) {
   } as const;
 }
 
-function held(payload: unknown) {
+function held(
+  payload: unknown,
+  grade: "disconnected" | "last-before-blackout" = "disconnected",
+) {
   return {
     state: "held",
     value: payload,
     asOfUt: value("ut", 100),
-    grade: "disconnected",
+    grade,
     reckoning: { status: "none" },
   } as const;
 }
@@ -93,8 +96,11 @@ describe("the built-in contributions draw a held value as held", () => {
         "vessel.comms": observed({}),
       });
     expect(badges(observed({ connected: true }))).toEqual([]);
+    expect(
+      badges(held({ connected: true }, "last-before-blackout")),
+    ).toMatchObject([{ label: "No signal" }]);
     expect(badges(held({ connected: true }))).toMatchObject([
-      { label: "No signal" },
+      { label: "Stream lost" },
     ]);
   });
 
