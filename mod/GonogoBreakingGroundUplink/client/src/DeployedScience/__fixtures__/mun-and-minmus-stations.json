@@ -1,0 +1,116 @@
+{
+  "_meta": {
+    "shows": "Two deployed stations at once: a Mun station in contact and sending its science home, and a Minmus station the command centre has lost contact with.",
+    "synthetic": true,
+    "notes": "SYNTHETIC. The point is the pair: each station is timed on its own controller vessel's link, so the Mun station reads current while the Minmus station, out of contact, shows when it was last heard and the data it was holding unsent. The active craft is somewhere else entirely and plays no part. The Mun station has 6 of 4 power units, the Minmus station 5 of 3. The Minmus report is drawn without a send verdict: whether a station can send means something only while its report is current, and a station out of contact has none."
+  },
+  "_scene": {
+    "widget": "deployed-science",
+    "hero": true,
+    "caption": "A Mun station in contact above a Minmus station out of contact, with the time it was last heard and its unsent data",
+    "modes": ["default", "min"],
+    "paints": ["Mun", "Minmus", "In contact", "Out of contact"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "game.dlc",
+        "payload": {
+          "breakingGround": true,
+          "makingHistory": true
+        }
+      },
+      {
+        "topic": "trackingStation.catalog",
+        "payload": {
+          "entries": [
+            {
+              "vesselId": "3f0a7c1e-0000-4000-8000-00000000a001",
+              "name": "Mun Deployed Base",
+              "vesselType": 11,
+              "situation": 1,
+              "bodyIndex": 0,
+              "commsConnected": true,
+              "contact": 0,
+              "lastContactUt": 1000000
+            },
+            {
+              "vesselId": "3f0a7c1e-0000-4000-8000-00000000b002",
+              "name": "Minmus Flats Station",
+              "vesselType": 11,
+              "situation": 1,
+              "bodyIndex": 1,
+              "commsConnected": false,
+              "contact": 1,
+              "lastContactUt": 968400
+            }
+          ]
+        }
+      },
+      {
+        "topic": "deployed.station.3f0a7c1e-0000-4000-8000-00000000a001.report",
+        "payload": {
+          "stationName": "Mun Deployed Base",
+          "body": "Mun",
+          "situation": "LANDED",
+          "biome": "Highlands",
+          "power": 0,
+          "powerAvailable": 6,
+          "powerRequired": 4,
+          "sendPathHome": true,
+          "dataSendFailed": false,
+          "experiments": [
+            {
+              "partName": "Seismometer",
+              "experimentId": "seismic",
+              "scienceCompletedPercentage": 75,
+              "scienceTransmittedPercentage": 87,
+              "scienceValue": 45,
+              "scienceLimit": 60,
+              "storedData": 0.0,
+              "deployedOnGround": true
+            },
+            {
+              "partName": "Mystery Goo",
+              "experimentId": "goo",
+              "scienceCompletedPercentage": 40,
+              "scienceTransmittedPercentage": 25,
+              "scienceValue": 12,
+              "scienceLimit": 30,
+              "storedData": 0.0,
+              "deployedOnGround": true
+            }
+          ]
+        }
+      },
+      {
+        "topic": "deployed.station.3f0a7c1e-0000-4000-8000-00000000b002.report",
+        "payload": {
+          "stationName": "Minmus Flats Station",
+          "body": "Minmus",
+          "situation": "LANDED",
+          "biome": "Flats",
+          "power": 0,
+          "powerAvailable": 5,
+          "powerRequired": 3,
+          "sendPathHome": null,
+          "dataSendFailed": null,
+          "experiments": [
+            {
+              "partName": "Ion Detector",
+              "experimentId": "ion",
+              "scienceCompletedPercentage": 18,
+              "scienceTransmittedPercentage": 0,
+              "scienceValue": 4,
+              "scienceLimit": 22,
+              "storedData": 14.5,
+              "deployedOnGround": true
+            }
+          ]
+        },
+        "validAt": 968400
+      }
+    ]
+  }
+}

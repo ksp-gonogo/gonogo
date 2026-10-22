@@ -5,16 +5,14 @@ using Xunit;
 namespace Gonogo.KSP.Tests
 {
     /// <summary>
-    /// The two Breaking Ground reads that could not express the null their own
+    /// The Breaking Ground read decisions that must express the null their own
     /// contract declares (<see cref="BreakingGroundReads"/>).
     ///
-    /// <para>Both were reported as a definite <c>false</c> when the reflective
-    /// read behind them failed: <c>robotics.available</c> said "No robotic
-    /// parts on this vessel" about a craft that has them, and
-    /// <c>controllerConnected</c> painted a deployed base red as
-    /// <c>Unpowered</c>. The surrounding walks need a live <c>Vessel</c> and
-    /// cannot be entered headlessly, which is why the decisions are carved out
-    /// here, the same way <c>ServoCapture</c> was.</para>
+    /// <para>Each was at risk of reporting a definite <c>false</c> when the read
+    /// behind it failed: <c>robotics.available</c> said "No robotic parts on this
+    /// vessel" about a craft that has them. The surrounding walks need a live
+    /// <c>Vessel</c> and cannot be entered headlessly, which is why the decisions
+    /// are carved out here, the same way <c>ServoCapture</c> was.</para>
     /// </summary>
     public class BreakingGroundReadsTests
     {
@@ -152,29 +150,38 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
-        public void ControllerConnectedIsFalseWhenTheClusterReadFineAndWasNull()
+        public void SendPathHomeIsTrueWhenTheControllerHasSignalAndAHopHome()
         {
-            // An experiment genuinely sitting unattached: a real answer.
-            Assert.False(BreakingGroundReads.ControllerConnected(clusterRead: true, cluster: null));
+            Assert.True(BreakingGroundReads.SendPathHome(
+                noCommsModel: false, connectionPresent: true, signalStrength: 0.4, lastHopHome: true));
         }
 
         [Fact]
-        public void ControllerConnectedIsTrueWhenAClusterWasRead()
+        public void SendPathHomeIsFalseWhenTheGameWouldRefuseToSend()
         {
-            Assert.True(
-                BreakingGroundReads.ControllerConnected(clusterRead: true, cluster: new object()));
+            Assert.False(BreakingGroundReads.SendPathHome(
+                noCommsModel: false, connectionPresent: false, signalStrength: null, lastHopHome: null));
+            Assert.False(BreakingGroundReads.SendPathHome(
+                noCommsModel: false, connectionPresent: true, signalStrength: 0.0, lastHopHome: true));
+            Assert.False(BreakingGroundReads.SendPathHome(
+                noCommsModel: false, connectionPresent: true, signalStrength: 0.4, lastHopHome: false));
         }
 
         [Fact]
-        public void ControllerConnectedIsNullWhenTheClusterReadFAILED()
+        public void SendPathHomeIsNullWhenAReadDidNotAnswer()
         {
-            /*
-             * The defect: `cluster != null` answered a definite "not connected"
-             * for a read that never happened, and DerivePowerState's first
-             * branch turned that into NotConnected, so a powered base rendered
-             * red.
-             */
-            Assert.Null(BreakingGroundReads.ControllerConnected(clusterRead: false, cluster: null));
+            // An unread signal is not a refusal: reporting it as no path would show a station stranded that the game lets send.
+            Assert.Null(BreakingGroundReads.SendPathHome(
+                noCommsModel: false, connectionPresent: true, signalStrength: null, lastHopHome: true));
+            Assert.Null(BreakingGroundReads.SendPathHome(
+                noCommsModel: false, connectionPresent: null, signalStrength: null, lastHopHome: null));
+        }
+
+        [Fact]
+        public void SendPathHomeIsAlwaysTrueInASaveWithNoCommsModel()
+        {
+            Assert.True(BreakingGroundReads.SendPathHome(
+                noCommsModel: true, connectionPresent: null, signalStrength: null, lastHopHome: null));
         }
     }
 }

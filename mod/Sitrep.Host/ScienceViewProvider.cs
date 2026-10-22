@@ -12,11 +12,9 @@ namespace Sitrep.Host
     /// "experimentBreakdown"]</c> (<c>Gonogo.KSP.KspHost.BuildScience</c>'s raw
     /// dict) and republishes each sub-group through <see cref="SnapshotDict"/>'s
     /// readers so every scalar gets the same R1/F-1 non-finite-is-absent rule
-    /// every other provider in this assembly applies. The sibling Breaking
-    /// Ground <c>deployed.bases</c> channel that used to live here (reading
-    /// the same raw <c>Values["science"]</c> group's <c>"deployed"</c> sub-key)
-    /// moved to <see cref="BreakingGroundViewProvider"/> alongside the
-    /// DLC-gated bundled uplink.
+    /// every other provider in this assembly applies. Breaking Ground's
+    /// deployed stations are mapped by <see cref="BreakingGroundViewProvider"/>
+    /// alongside the DLC-gated bundled uplink.
     ///
     /// <para><b>Raw snapshot encoding (Gonogo.KSP.KspHost.BuildScience must
     /// populate exactly this shape at <c>Values["science"]</c>: entirely
