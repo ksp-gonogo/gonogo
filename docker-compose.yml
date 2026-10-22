@@ -57,6 +57,10 @@ services:
       # Set to 1 to also offer a TCP relay address, for stations on a network
       # that blocks UDP. Doubles the ports each relayed connection holds.
       TURN_TCP: ${TURN_TCP:-}
+      # The router's address, when the relay cannot find it to ask it to open
+      # the ports above. PORT_MAPPING=0 stops it asking.
+      ROUTER_IP: ${ROUTER_IP:-}
+      PORT_MAPPING: ${PORT_MAPPING:-}
       # Axiom log shipping. Empty default → no transport installed
       # (matches the browser pattern). Set in `.env` next to this file
       # to opt in.
