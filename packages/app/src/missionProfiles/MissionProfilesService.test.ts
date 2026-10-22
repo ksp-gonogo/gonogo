@@ -36,6 +36,32 @@ describe("MissionProfilesService", () => {
     storage = memoryStorage();
   });
 
+  it("reads a stored profile with damaged fields as an empty, unbound layout", () => {
+    storage.setItem(
+      "gonogo.missionProfiles.main",
+      JSON.stringify([
+        {
+          id: "x",
+          name: "Hurt",
+          screen: "main",
+          items: null,
+          layout: "nope",
+          sceneBindings: "Flight",
+          updatedAt: "yesterday",
+        },
+      ]),
+    );
+
+    const svc = new MissionProfilesService("main", storage);
+
+    const [p] = svc.list();
+    expect(p.items).toEqual([]);
+    expect(p.layout).toEqual([]);
+    expect(p.sceneBindings).toBeUndefined();
+    expect(svc.findForScene("Flight")).toBeUndefined();
+    expect(Number.isFinite(p.updatedAt)).toBe(true);
+  });
+
   it("starts empty for a fresh screen", () => {
     const svc = new MissionProfilesService("main", storage);
     expect(svc.list()).toEqual([]);
