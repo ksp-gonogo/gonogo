@@ -187,18 +187,8 @@ namespace Sitrep.Host.Flight
             var currentId = VesselViewProvider.TryGetActiveVesselId(snapshot);
             var endedThisTick = new HashSet<string>();
 
-            var utWentBack = _lastUt.HasValue && snapshot.Ut < _lastUt.Value;
-
             while (_pendingEnds.TryDequeue(out var end))
             {
-                // An end stamped after this tick's UT happened on the timeline the
-                // rewind discards. It closes the flight it names, but the flight the
-                // rewind starts for the same vessel is not the one it ended.
-                if (utWentBack && end.Ut > snapshot.Ut)
-                {
-                    ApplyEnd(end.VesselId, end.VesselName, end.Reason, end.Ut, null, snapshot);
-                    continue;
-                }
                 ApplyEnd(end.VesselId, end.VesselName, end.Reason, end.Ut, currentId, snapshot);
                 endedThisTick.Add(end.VesselId);
             }
@@ -210,7 +200,7 @@ namespace Sitrep.Host.Flight
             // tick, so any publish from here is guaranteed to land on the
             // already-reset timeline. See this class's own doc comment for
             // why that guarantee is exactly what makes revert-handling safe.
-            var isRewind = utWentBack;
+            var isRewind = _lastUt.HasValue && snapshot.Ut < _lastUt.Value;
             _lastUt = snapshot.Ut;
 
             if (isRewind)

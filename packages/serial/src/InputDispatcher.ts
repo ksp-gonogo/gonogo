@@ -33,16 +33,12 @@ interface Options {
   service: SerialDeviceService;
   /** Live source of the layouts that an input switches to; read on every event. */
   getProfileBindings?: () => readonly ProfileInputSource[];
-  /**
-   * Called once per press of an input bound to a layout, with the layout's id.
-   * Returns true when the press switched layouts, which consumes it: widgets
-   * of the new layout mapped to the same input do not also fire.
-   */
+  /** Called once per press of an input bound to a layout, with the layout's id. */
   onProfileInput?: (
     profileId: string,
     deviceId: string,
     inputId: string,
-  ) => boolean | void;
+  ) => void;
 }
 
 /**
@@ -83,19 +79,15 @@ export class InputDispatcher {
   private handleInput(deviceId: string, event: InputEvent): void {
     if (this.service.isCaptureMode()) return;
     if (event.value === true) {
-      let switched = false;
       for (const profile of this.getProfileBindings()) {
         const binding = profile.inputBinding;
         if (
           binding?.deviceId === deviceId &&
           binding.inputId === event.inputId
         ) {
-          if (this.onProfileInput(profile.id, deviceId, event.inputId)) {
-            switched = true;
-          }
+          this.onProfileInput(profile.id, deviceId, event.inputId);
         }
       }
-      if (switched) return;
     }
     const items = this.getItems();
     for (const item of items) {

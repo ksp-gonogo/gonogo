@@ -68,10 +68,6 @@ export class RetryPolicy {
 
   /** Reset transient state when the consumer kicks off a fresh connect cycle. */
   beginConnect(): void {
-    if (this.retryTimer !== null) {
-      clearTimeout(this.retryTimer);
-      this.retryTimer = null;
-    }
     this.intentionalDisconnect = false;
     this.retryStart = null;
     this.silentAttempts = 0;

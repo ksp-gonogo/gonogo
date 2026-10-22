@@ -93,8 +93,9 @@ namespace Sitrep.Host.Tests
             AssertTypeMirrorsEntry(typeof(LabEntry), ScienceViewProvider.BuildLab(snapshot));
         }
 
-        // DeployedStation ("deployed.station.<guid>.report") is exercised in
-        // BreakingGroundContractShapeTests, alongside BreakingGroundViewProvider.
+        // DeployedEntry ("deployed.bases") is exercised in
+        // BreakingGroundContractShapeTests, alongside BreakingGroundViewProvider,
+        // the two moved together out of ScienceViewProvider.
 
         [Fact]
         public void SensorEntryTypeMirrorsProviderWireShape()

@@ -28,7 +28,7 @@ namespace Sitrep.Host.Science
     /// no provider declares those channels itself (the same
     /// shared-namespace-single-declaration rule comms follows).</para>
     ///
-    /// <para><c>deployed.station.&lt;guid&gt;.report</c> is deliberately not part of this capability:
+    /// <para><c>deployed.bases</c> is deliberately not part of this capability:
     /// Breaking Ground deployed science lives on the <c>deployed.*</c> prefix
     /// owned by the DLC-gated <c>Gonogo.KSP.BreakingGroundUplink</c> alongside
     /// <c>robotics.*</c>, and it has no equivalent in any science-modelling mod

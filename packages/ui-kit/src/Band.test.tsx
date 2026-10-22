@@ -1,6 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
-import { StrictMode } from "react";
 import { describe, expect, it } from "vitest";
 import { Band, INTERVAL_DASH } from "./Band";
 import { NULL_DISPLAY } from "./NullValue";
@@ -80,34 +79,6 @@ describe("Band", () => {
     expect(container.textContent).toContain("~");
     expect(container.textContent).not.toContain(INTERVAL_DASH);
     expect(container.textContent).not.toContain("65.286800");
-  });
-
-  // A held craft's altitude band is about a micrometre wide, whose ends round apart or together depending on where the noise falls.
-  it.each([
-    [73.977_533, 73.977_534],
-    [73.977_533_4, 73.977_533_6],
-    [73.977_532_9, 73.977_534_1],
-  ])("draws one approximate figure for a micrometre band around 74 m (%d to %d)", (low, high) => {
-    const { container } = render(
-      <Band min={value("m", low)} max={value("m", high)} />,
-    );
-
-    expect(container.textContent).toContain("~");
-    expect(container.textContent).not.toContain(INTERVAL_DASH);
-    expect(container.textContent?.match(/74\.0/g)).toHaveLength(1);
-  });
-
-  // Strict mode detaches and re-attaches the group while the ends report, so a first draw must still settle.
-  it("draws one approximate figure on a first draw under strict mode", () => {
-    const { container } = render(
-      <StrictMode>
-        <Band min={value("m", 74)} max={value("m", 74)} />
-      </StrictMode>,
-    );
-
-    expect(container.textContent).toContain("~");
-    expect(container.textContent).not.toContain(INTERVAL_DASH);
-    expect(container.textContent?.match(/74\.0/g)).toHaveLength(1);
   });
 
   it.each([

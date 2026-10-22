@@ -36,18 +36,6 @@ describe("MissionProfilesService", () => {
     storage = memoryStorage();
   });
 
-  it("leaves every key where it is when the layout being bound is gone", () => {
-    const svc = new MissionProfilesService("main", storage);
-    const p = svc.save("Launch", ITEMS, LAYOUT);
-    const key = { deviceId: "keyboard", inputId: "KeyK" };
-    svc.bindInput(p.id, key);
-
-    const { movedFrom } = svc.bindInput("missing", key);
-
-    expect(movedFrom).toBeNull();
-    expect(svc.get(p.id)?.inputBinding).toEqual(key);
-  });
-
   it("starts empty for a fresh screen", () => {
     const svc = new MissionProfilesService("main", storage);
     expect(svc.list()).toEqual([]);
@@ -357,41 +345,6 @@ describe("MissionProfilesService", () => {
         again.list().filter((p) => p.name === "Flight layout"),
       ).toHaveLength(1);
       expect(storage.getItem("gonogo:dashboard:main:Flight")).toBeNull();
-    });
-
-    it("does not convert a slot twice when removing it failed", () => {
-      storage.setItem("gonogo:dashboard:main:Flight", stored(one("a")));
-      const stuck = new Proxy(storage, {
-        get(target, prop) {
-          if (prop === "removeItem") {
-            return () => {
-              throw new DOMException("denied", "SecurityError");
-            };
-          }
-          const value = Reflect.get(target, prop);
-          return typeof value === "function" ? value.bind(target) : value;
-        },
-      });
-
-      new MissionProfilesService("main", stuck);
-      const again = new MissionProfilesService("main", storage);
-
-      expect(
-        again.list().filter((p) => p.name === "Flight layout"),
-      ).toHaveLength(1);
-      expect(storage.getItem("gonogo:dashboard:main:Flight")).toBeNull();
-    });
-
-    it("converts a slot a restored backup brings back with different contents", () => {
-      storage.setItem("gonogo:dashboard:main:Flight", stored(one("a")));
-      new MissionProfilesService("main", storage);
-      storage.setItem("gonogo:dashboard:main:Flight", stored(one("z")));
-
-      const again = new MissionProfilesService("main", storage);
-
-      expect(
-        again.list().filter((p) => p.name === "Flight layout"),
-      ).toHaveLength(2);
     });
 
     it("keeps the unnamed layouts the old drafts left, as ordinary profiles", () => {

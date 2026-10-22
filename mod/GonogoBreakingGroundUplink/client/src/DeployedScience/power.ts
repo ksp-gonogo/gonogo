@@ -1,11 +1,11 @@
 import type { Tone } from "@ksp-gonogo/sitrep-sdk";
-import type { DeployedStation } from "./parseStation";
+import type { DeployedBase } from "./parseBases";
 
 type PowerState = "powered" | "unpowered" | "unknown";
 
-export function powerState(station: DeployedStation): PowerState {
-  if (station.powered === null) return "unknown";
-  return station.powered ? "powered" : "unpowered";
+export function powerState(base: DeployedBase): PowerState {
+  if (base.powered === null) return "unknown";
+  return base.powered ? "powered" : "unpowered";
 }
 
 export const POWER_LABEL: Record<PowerState, string> = {
@@ -22,8 +22,8 @@ export const POWER_TONE: Record<PowerState, Tone> = {
 };
 
 /** The produced-over-required power balance, or null unless both sides arrived. */
-export function powerBalance(station: DeployedStation): string | null {
-  const { powerAvailable, powerRequired } = station;
+export function powerBalance(base: DeployedBase): string | null {
+  const { powerAvailable, powerRequired } = base;
   if (powerAvailable === null || powerRequired === null) return null;
   return `Power ${Math.round(powerAvailable)}/${Math.round(powerRequired)}`;
 }

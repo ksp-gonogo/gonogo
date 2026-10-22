@@ -362,7 +362,6 @@ export class PeerClientService {
     this.hostPeerId = deriveHostPeerId(code);
     logger.setIdentity({ hostPeerId: this.hostPeerId });
     this.retryPolicy.beginConnect();
-    this.tearDownPeer();
     this.hostChannelStalls = 0;
     this.setHostChannelFailed(false);
     this.connectProgress = { startedAt: Date.now(), attempt: 0, entered: {} };

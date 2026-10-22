@@ -8207,14 +8207,6 @@
         "note": "DeployedExperimentContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
       {
-        "key": "sitrep-sdk . DeployedScienceExperiment#backlog",
-        "note": "a deployed experiment carries the data it holds unsent, in Mits, in place of the share of its science not yet transmitted"
-      },
-      {
-        "key": "sitrep-sdk . DeployedScienceExperiment#stored",
-        "note": "Removed: the figure was a share of the science value derived from two percentages; the data an experiment is actually holding is backlog"
-      },
-      {
         "key": "sitrep-sdk . EXTENSION_API_VERSION",
         "note": "Its type is now `string` rather than the literal. The release freeze records the surface and then moves this number, so a literal type made every release a change to the surface it had just frozen; a caller compares it or prints it, and is unaffected"
       },
@@ -10113,14 +10105,6 @@
       {
         "key": "sitrep-sdk ./testing ~DeployedExperimentContext#held",
         "note": "DeployedExperimentContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~DeployedScienceExperiment#backlog",
-        "note": "a deployed experiment carries the data it holds unsent, in Mits, in place of the share of its science not yet transmitted"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~DeployedScienceExperiment#stored",
-        "note": "Removed: the figure was a share of the science value derived from two percentages; the data an experiment is actually holding is backlog"
       },
       {
         "key": "sitrep-sdk ./testing ~FleetRosterUpdatesContext",
@@ -13105,10 +13089,6 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
-        "key": "sitrep-sdk ./registry ~DeployedScienceExperiment#backlog",
-        "note": "a deployed experiment carries the data it holds unsent, in Mits, in place of the share of its science not yet transmitted"
-      },
-      {
         "key": "sitrep-sdk ./registry ~DeployedScienceExperiment#collecting",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
@@ -13130,6 +13110,10 @@
       },
       {
         "key": "sitrep-sdk ./registry ~DeployedScienceExperiment#progress",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~DeployedScienceExperiment#stored",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {

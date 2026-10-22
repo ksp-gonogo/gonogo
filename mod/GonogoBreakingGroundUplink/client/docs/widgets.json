@@ -3,23 +3,21 @@
     {
       "id": "deployed-science",
       "name": "Deployed Science",
-      "description": "Whether each Breaking Ground deployed station's science is reaching home and when it was last heard, with its power balance and per-experiment science progress, reported even while you fly something else. Read-only.",
+      "description": "Power balance and per-experiment science progress for Breaking Ground deployed surface bases on every body, reported even while you fly something else. Read-only.",
       "tags": [
         "telemetry",
         "science"
       ],
-      "channels": [
-        "trackingStation.catalog",
-        "game.dlc"
-      ],
+      "channels": [],
       "optionalChannels": [],
       "commands": [],
       "channelFamilies": [],
-      "optionalChannelFamilies": [
-        "deployed.station.<vesselId>.report"
-      ],
+      "optionalChannelFamilies": [],
       "readsFromConfig": false,
-      "dataRequirements": [],
+      "dataRequirements": [
+        "deployed.bases",
+        "game.dlc.breakingGround"
+      ],
       "fields": [],
       "actions": [],
       "augmentSlots": [
