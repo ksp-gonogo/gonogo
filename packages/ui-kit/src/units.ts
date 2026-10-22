@@ -1333,7 +1333,10 @@ export function pinGroupKey(token: string): string {
     : ladderGroupKey(token);
 }
 
-/** How many digits it takes for two distinct readings to read as distinct. */
+/** The most digits a separating band may print beyond what the display prints by default. */
+const MAX_SEPARATING_EXTRA_DECIMALS = 3;
+
+/** The most digits any separating band prints. */
 const MAX_SEPARATING_DECIMALS = 6;
 
 /** One reading of a group, as the rules below compare them. */
@@ -1365,6 +1368,9 @@ function baseMeasure(reading: number, unit: string): number {
  * - Equal readings are left alone
  * - It only ever widens: a coarser count can round two ends apart across a
  *   boundary the interval never reaches (`47.471` to `47.529` as `47 - 48`)
+ * - It widens by at most three digits past the default: ends closer than that
+ *   are a width the display cannot honestly show, and whether they round apart
+ *   would depend on where the noise falls
  */
 export function separatingDecimals(
   members: readonly FormatMember[],
@@ -1414,12 +1420,16 @@ export function separatingDecimals(
       break;
     }
   }
-  for (let decimals = from; decimals <= MAX_SEPARATING_DECIMALS; decimals++) {
+  const widest = Math.min(
+    MAX_SEPARATING_DECIMALS,
+    from + MAX_SEPARATING_EXTRA_DECIMALS,
+  );
+  for (let decimals = from; decimals <= widest; decimals++) {
     if (separatesAt(decimals)) {
       return decimals;
     }
   }
-  // Readings no precision here can separate get the kind's default, as genuinely equal readings do.
+  // Readings that need more digits than the cap are noise-wide; they get the kind's default and read as one figure, as genuinely equal readings do.
   return undefined;
 }
 
