@@ -41,6 +41,25 @@ namespace Gonogo.KSP
         private FlightLifecycleSampler? _sampler;
         private bool _subscribed;
 
+        // Main thread only. A dock or a grab keeps one of the two craft as the
+        // vessel and destroys the other without raising onVesselWillDestroy, so the
+        // absorbed craft is told by its persistent id changing while a couple is in
+        // progress, and its end is signalled when the destroy that follows names it.
+        private bool _coupling;
+        private readonly Dictionary<uint, JoinedCraft> _absorbed = new Dictionary<uint, JoinedCraft>();
+
+        private readonly struct JoinedCraft
+        {
+            public JoinedCraft(string vesselId, string vesselName)
+            {
+                VesselId = vesselId;
+                VesselName = vesselName;
+            }
+
+            public string VesselId { get; }
+            public string VesselName { get; }
+        }
+
         private static ChannelDeclaration EventChannel(string topic) => new ChannelDeclaration
         {
             Kind = SampleKind.Event,
@@ -126,6 +145,10 @@ namespace Gonogo.KSP
             GameEvents.onVesselRecovered.Add(OnVesselRecovered);
             GameEvents.onVesselTerminated.Add(OnVesselTerminated);
             GameEvents.onCrewBoardVessel.Add(OnCrewBoardVessel);
+            GameEvents.onPartCouple.Add(OnPartCouple);
+            GameEvents.onPartCoupleComplete.Add(OnPartCoupleComplete);
+            GameEvents.onVesselPersistentIdChanged.Add(OnVesselPersistentIdChanged);
+            GameEvents.onVesselDestroy.Add(OnVesselDestroy);
             // The hooks live for the whole process: Register runs once, before the
             // main menu, and a flight can end in any scene the player reaches.
         }
@@ -206,6 +229,75 @@ namespace Gonogo.KSP
             if (vessel != null)
             {
                 BoardedVessels.Note(vessel.id.ToString(), Planetarium.GetUniversalTime());
+            }
+        }
+
+        /// <summary>MAIN-THREAD: two parts are being coupled, a dock or a grab by a claw.</summary>
+        private void OnPartCouple(GameEvents.FromToAction<Part, Part> action)
+        {
+            _coupling = true;
+        }
+
+        /// <summary>MAIN-THREAD: the couple is done, so no absorbed craft is still waiting for its destroy.</summary>
+        private void OnPartCoupleComplete(GameEvents.FromToAction<Part, Part> action)
+        {
+            _coupling = false;
+            _absorbed.Clear();
+        }
+
+        /// <summary>
+        /// MAIN-THREAD: a vessel's persistent id changed from <paramref name="absorbedPid"/> to
+        /// <paramref name="survivorPid"/>. While a couple is in progress that is the absorbed craft
+        /// naming the one it joined, which is looked up now, before the merge is finished.
+        /// </summary>
+        private void OnVesselPersistentIdChanged(uint absorbedPid, uint survivorPid)
+        {
+            try
+            {
+                if (!_coupling || absorbedPid == survivorPid || _absorbed.ContainsKey(absorbedPid))
+                {
+                    return;
+                }
+                var vessels = FlightGlobals.Vessels;
+                for (var i = 0; i < vessels.Count; i++)
+                {
+                    var candidate = vessels[i];
+                    if (candidate != null && candidate.persistentId == survivorPid)
+                    {
+                        _absorbed[absorbedPid] = new JoinedCraft(candidate.id.ToString(), GameWords.VesselName(candidate));
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                GonogoLog.Error("flight dock capture failed", ex);
+            }
+        }
+
+        /// <summary>
+        /// MAIN-THREAD: a vessel was destroyed. One that a couple absorbed ends its flight as
+        /// Docked. A death raised through <c>onVesselWillDestroy</c> is a different path and
+        /// never reaches this one for an absorbed craft.
+        /// </summary>
+        private void OnVesselDestroy(Vessel vessel)
+        {
+            try
+            {
+                if (vessel == null || _sampler == null || !_absorbed.TryGetValue(vessel.persistentId, out var joined))
+                {
+                    return;
+                }
+                _absorbed.Remove(vessel.persistentId);
+                if (!CrashPayload.ShouldPublish(vessel.vesselType.ToString()))
+                {
+                    return;
+                }
+                _sampler.SignalDocked(vessel.id.ToString(), GameWords.VesselName(vessel), joined.VesselId, joined.VesselName, Planetarium.GetUniversalTime());
+            }
+            catch (Exception ex)
+            {
+                GonogoLog.Error("flight dock end failed", ex);
             }
         }
 

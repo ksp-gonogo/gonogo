@@ -4197,7 +4197,13 @@ export enum FlightEndReason {
 	* The player ended the vessel from the Tracking Station. It was neither lost
 	* nor recovered.
 	*/
-	Terminated = 4
+	Terminated = 4,
+	/**
+	* The vessel docked with, or was grabbed by, another craft, and the game kept
+	* the other craft as the one vessel. The craft it joined is named on
+	* `FlightEnded.joinedVesselId` and `FlightEnded.joinedVesselName`.
+	*/
+	Docked = 5
 }
 /**
 * Which flight is active and what phase it is in, for the vessel gonogo is
@@ -4321,6 +4327,16 @@ export interface FlightEnded
 	* revert-target UT, not the moment the player chose to revert.
 	*/
 	ut: Value<"ut">;
+	/**
+	* KSP's `Vessel.id` GUID of the craft the vessel joined, as a string. Null
+	* unless `FlightEnded.reason` is `FlightEndReason.Docked`.
+	*/
+	joinedVesselId?: string | null;
+	/**
+	* The display name of the craft the vessel joined. Null unless
+	* `FlightEnded.reason` is `FlightEndReason.Docked`.
+	*/
+	joinedVesselName?: string | null;
 }
 /**
 * An event that is always delivered, in the order it happened, and held back

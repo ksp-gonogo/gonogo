@@ -184,7 +184,18 @@ namespace Sitrep.Host.Flight
         /// </summary>
         public void SignalEnd(string vesselId, string vesselName, FlightEndReason reason, double ut)
         {
-            _pendingEnds.Enqueue(new EndSignal(vesselId, vesselName, reason, ut));
+            _pendingEnds.Enqueue(new EndSignal(vesselId, vesselName, reason, ut, null, null));
+        }
+
+        /// <summary>
+        /// Called from a MAIN-THREAD GameEvent handler when the vessel's craft joined
+        /// another one and the game kept the other as the one vessel. Ends the
+        /// flight as <see cref="FlightEndReason.Docked"/>, naming the craft it joined.
+        /// A vessel nobody flew this session has no flight to end and is not reported.
+        /// </summary>
+        public void SignalDocked(string vesselId, string vesselName, string joinedVesselId, string joinedVesselName, double ut)
+        {
+            _pendingEnds.Enqueue(new EndSignal(vesselId, vesselName, FlightEndReason.Docked, ut, joinedVesselId, joinedVesselName));
         }
 
         /// <summary>
@@ -218,10 +229,10 @@ namespace Sitrep.Host.Flight
                 // rewind starts for the same vessel is not the one it ended.
                 if (utWentBack && end.Ut > snapshot.Ut)
                 {
-                    ApplyEnd(end.VesselId, end.VesselName, end.Reason, end.Ut, null, snapshot);
+                    ApplyEnd(end, null, snapshot);
                     continue;
                 }
-                ApplyEnd(end.VesselId, end.VesselName, end.Reason, end.Ut, currentId, snapshot);
+                ApplyEnd(end, currentId, snapshot);
                 endedThisTick.Add(end.VesselId);
             }
 
@@ -385,14 +396,12 @@ namespace Sitrep.Host.Flight
             PublishVesselChanged(StartNewFlight(currentId, snapshot), snapshot, _lastVesselId);
         }
 
-        private void ApplyEnd(
-            string vesselId,
-            string vesselName,
-            FlightEndReason reason,
-            double ut,
-            string? currentId,
-            KspSnapshot snapshot)
+        private void ApplyEnd(EndSignal end, string? currentId, KspSnapshot snapshot)
         {
+            var vesselId = end.VesselId;
+            var vesselName = end.VesselName;
+            var reason = end.Reason;
+            var ut = end.Ut;
             var seenMidWay = false;
             if (!_flights.ContainsKey(vesselId) && vesselId == currentId)
             {
@@ -416,6 +425,10 @@ namespace Sitrep.Host.Flight
 
             if (!_flights.TryGetValue(vesselId, out var flight))
             {
+                // A craft nobody flew that was absorbed by a dock is the ordinary
+                // case of docking with a station piece or a target, not a gap.
+                if (reason == FlightEndReason.Docked) return;
+
                 // A craft nobody flew this session (a vessel destroyed out of
                 // focus, say) has no flight to end, and one the sampler did
                 // not see start would otherwise vanish without a trace.
@@ -431,7 +444,7 @@ namespace Sitrep.Host.Flight
             if (!flight.Open) return;
 
             flight.Open = false;
-            PublishEnded(flight, vesselName, reason, ut);
+            PublishEnded(flight.FlightId, vesselId, vesselName, reason, ut, end.JoinedVesselId, end.JoinedVesselName);
             if (_activeVesselId == vesselId)
             {
                 _activeVesselId = null;
@@ -528,10 +541,7 @@ namespace Sitrep.Host.Flight
         private void PublishEnded(FlightRecord flight, FlightEndReason reason, double ut)
             => PublishEnded(flight.FlightId, flight.VesselId, flight.VesselName, reason, ut);
 
-        private void PublishEnded(FlightRecord flight, string vesselName, FlightEndReason reason, double ut)
-            => PublishEnded(flight.FlightId, flight.VesselId, vesselName, reason, ut);
-
-        private void PublishEnded(string flightId, string vesselId, string vesselName, FlightEndReason reason, double ut)
+        private void PublishEnded(string flightId, string vesselId, string vesselName, FlightEndReason reason, double ut, string? joinedVesselId = null, string? joinedVesselName = null)
         {
             var ended = new FlightEnded
             {
@@ -540,6 +550,8 @@ namespace Sitrep.Host.Flight
                 VesselName = vesselName,
                 Reason = reason,
                 Ut = ut,
+                JoinedVesselId = joinedVesselId,
+                JoinedVesselName = joinedVesselName,
             };
             if ((reason == FlightEndReason.Crashed || reason == FlightEndReason.Destroyed) && _ended is ICraftSaidPublisher said)
             {
@@ -632,13 +644,17 @@ namespace Sitrep.Host.Flight
             public readonly string VesselName;
             public readonly FlightEndReason Reason;
             public readonly double Ut;
+            public readonly string? JoinedVesselId;
+            public readonly string? JoinedVesselName;
 
-            public EndSignal(string vesselId, string vesselName, FlightEndReason reason, double ut)
+            public EndSignal(string vesselId, string vesselName, FlightEndReason reason, double ut, string? joinedVesselId, string? joinedVesselName)
             {
                 VesselId = vesselId;
                 VesselName = vesselName;
                 Reason = reason;
                 Ut = ut;
+                JoinedVesselId = joinedVesselId;
+                JoinedVesselName = joinedVesselName;
             }
         }
     }

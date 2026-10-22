@@ -1327,8 +1327,8 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.FlightEnded"/> to the wire
-        /// object <c>{ flightId, vesselId, vesselName, reason, ut }</c>
-        /// (<c>reason</c> as its <see cref="Sitrep.Contract.FlightEndReason"/>
+        /// object <c>{ flightId, vesselId, vesselName, reason, ut, joinedVesselId,
+        /// joinedVesselName }</c> (<c>reason</c> as its <see cref="Sitrep.Contract.FlightEndReason"/>
         /// integer ordinal). See the <c>case</c> in <see cref="AppendValue"/>.
         /// </summary>
         private static void AppendFlightEnded(StringBuilder sb, Sitrep.Contract.FlightEnded f)
@@ -1353,6 +1353,14 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "ut");
             sb.Append(':');
             AppendNumber(sb, f.Ut);
+            sb.Append(',');
+            AppendString(sb, "joinedVesselId");
+            sb.Append(':');
+            AppendNullableString(sb, f.JoinedVesselId);
+            sb.Append(',');
+            AppendString(sb, "joinedVesselName");
+            sb.Append(':');
+            AppendNullableString(sb, f.JoinedVesselName);
             sb.Append('}');
         }
 

@@ -15291,6 +15291,12 @@ components:
           description: |-
             The player ended the vessel from the Tracking Station. It was neither lost
             nor recovered.
+        - const: 5
+          title: Docked
+          description: |-
+            The vessel docked with, or was grabbed by, another craft, and the game kept
+            the other craft as the one vessel. The craft it joined is named on
+            `FlightEnded.joinedVesselId` and `FlightEnded.joinedVesselName`.
     FlightEnded:
       type: object
       description: |-
@@ -15347,6 +15353,22 @@ components:
           description: |-
             Universal time the flight ended. For `FlightEndReason.Reverted` this is the
             revert-target UT, not the moment the player chose to revert.
+        joinedVesselId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            KSP's `Vessel.id` GUID of the craft the vessel joined, as a string. Null
+            unless `FlightEnded.reason` is `FlightEndReason.Docked`.
+        joinedVesselName:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The display name of the craft the vessel joined. Null unless
+            `FlightEnded.reason` is `FlightEndReason.Docked`.
     FlightStarted:
       type: object
       description: |-

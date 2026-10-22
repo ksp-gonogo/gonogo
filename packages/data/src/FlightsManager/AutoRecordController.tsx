@@ -178,7 +178,12 @@ export function AutoRecordController({
    * reported, and the parts after it are stored all the same.
    */
   const storePart = useCallback(
-    (fixture: ReplayFixture, endReason?: FlightEndReason): void => {
+    (
+      fixture: ReplayFixture,
+      endReason?: FlightEndReason,
+      joinedVesselName?: string,
+      joinedVesselId?: string,
+    ): void => {
       const recorded = missionRef.current;
       const record = buildMissionRecord({
         vesselName: activeVesselNameRef.current,
@@ -188,6 +193,8 @@ export function AutoRecordController({
         fixture,
         id: recorded?.meta.id,
         endReason,
+        joinedVesselId,
+        joinedVesselName,
       });
       if (!record) return;
       const flightId = activeFlightIdRef.current;
@@ -258,9 +265,14 @@ export function AutoRecordController({
    * the IndexedDB write trails behind.
    */
   const finishAndSave = useCallback(
-    (r: StreamRecorder, endReason?: FlightEndReason): void => {
+    (
+      r: StreamRecorder,
+      endReason?: FlightEndReason,
+      joinedVesselName?: string,
+      joinedVesselId?: string,
+    ): void => {
       if (!r.recording) return;
-      storePart(r.stop(), endReason);
+      storePart(r.stop(), endReason, joinedVesselName, joinedVesselId);
       if (endReason === undefined) parkTrackedFlight();
       missionRef.current = null;
       partStartedAtRef.current = null;
@@ -392,16 +404,23 @@ export function AutoRecordController({
 
   /** Puts a flight's end reason on the mission its recording was already stored as. */
   const storeReasonOnSavedMission = useCallback(
-    (flightId: string, endReason: FlightEndReason): void => {
+    (
+      flightId: string,
+      endReason: FlightEndReason,
+      joinedVesselName?: string,
+      joinedVesselId?: string,
+    ): void => {
       const id = savedMissionIdsRef.current.get(flightId);
       savedMissionIdsRef.current.delete(flightId);
       const src = getSource();
       if (!id || typeof src?.setFlightEndReason !== "function") return;
-      src.setFlightEndReason(id, endReason).catch((error: unknown) => {
-        logger.warn("[AutoRecordController] end reason not stored", {
-          err: String(error),
+      src
+        .setFlightEndReason(id, endReason, joinedVesselName, joinedVesselId)
+        .catch((error: unknown) => {
+          logger.warn("[AutoRecordController] end reason not stored", {
+            err: String(error),
+          });
         });
-      });
     },
     [],
   );
@@ -414,15 +433,30 @@ export function AutoRecordController({
         parkedFlightsRef.current.delete(payload.flightId);
         if (payload.flightId !== activeFlightIdRef.current) {
           // A flight the operator left for another vessel ends on its own.
-          storeReasonOnSavedMission(payload.flightId, payload.reason);
+          storeReasonOnSavedMission(
+            payload.flightId,
+            payload.reason,
+            payload.joinedVesselName ?? undefined,
+            payload.joinedVesselId ?? undefined,
+          );
           return;
         }
         if (recorder.recording) {
-          finishAndSave(recorder, payload.reason);
+          finishAndSave(
+            recorder,
+            payload.reason,
+            payload.joinedVesselName ?? undefined,
+            payload.joinedVesselId ?? undefined,
+          );
           savedMissionIdsRef.current.delete(payload.flightId);
         } else {
           // The recording stopped when the scene changed, before the end was announced.
-          storeReasonOnSavedMission(payload.flightId, payload.reason);
+          storeReasonOnSavedMission(
+            payload.flightId,
+            payload.reason,
+            payload.joinedVesselName ?? undefined,
+            payload.joinedVesselId ?? undefined,
+          );
         }
         // Nothing is tracked once the flight is over, so neither the master switch nor a later tick can start recording it again.
         activeFlightIdRef.current = null;

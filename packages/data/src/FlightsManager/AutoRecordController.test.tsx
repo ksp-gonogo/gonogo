@@ -1151,4 +1151,40 @@ describe("AutoRecordController", () => {
       expect(flights[0]?.endReason).toBe(0);
     });
   });
+
+  it("stores the craft a docked flight joined on its mission", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled />
+      </TelemetryProvider>,
+    );
+
+    start(rig, 0, { flightId: "vB", vesselId: "vB", vesselName: "Bravo" });
+    tickFrame(rig, 5, "vB", "Bravo");
+    act(() => {
+      rig.transport.emit(
+        "flight.ended",
+        {
+          flightId: "vB",
+          vesselId: "vB",
+          vesselName: "Bravo",
+          reason: 5 /* Docked */,
+          ut: 9,
+          joinedVesselId: "vA",
+          joinedVesselName: "Alpha",
+        },
+        { validAt: 9, deliveredAt: 9 },
+      );
+      rig.clock.scrubTo(9);
+      rig.raf.flush();
+    });
+
+    await vi.waitFor(async () => {
+      const flights = await rig.source.listFlights();
+      expect(flights[0]?.endReason).toBe(5);
+      expect(flights[0]?.joinedVesselId).toBe("vA");
+      expect(flights[0]?.joinedVesselName).toBe("Alpha");
+    });
+  });
 });

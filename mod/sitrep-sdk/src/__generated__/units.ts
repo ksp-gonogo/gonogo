@@ -778,6 +778,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "FlightEnded": {
     flightId: "id",
+    joinedVesselId: "id",
+    joinedVesselName: "text",
     reason: "enum",
     ut: "ut",
     vesselId: "id",
@@ -1975,6 +1977,8 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "flight.ended": {
     flightId: "id",
+    joinedVesselId: "id",
+    joinedVesselName: "text",
     reason: "enum",
     ut: "ut",
     vesselId: "id",
@@ -3455,6 +3459,7 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     2: "Reverted",
     3: "Destroyed",
     4: "Terminated",
+    5: "Docked",
   },
   "GameAlarmKind": {
     0: "Time",

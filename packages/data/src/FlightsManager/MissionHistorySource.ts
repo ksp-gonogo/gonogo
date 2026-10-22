@@ -247,6 +247,8 @@ export class MissionHistorySource implements DataSource {
   async setFlightEndReason(
     id: string,
     endReason: FlightEndReason,
+    joinedVesselName?: string,
+    joinedVesselId?: string,
   ): Promise<void> {
     await this.inOrder(id, async () => {
       const meta = await this.missionStore.getMissionMeta(id);
@@ -258,7 +260,11 @@ export class MissionHistorySource implements DataSource {
         return;
       }
       if (meta.endReason !== undefined) return;
-      await this.missionStore.updateMissionMeta(id, { endReason });
+      await this.missionStore.updateMissionMeta(id, {
+        endReason,
+        ...(joinedVesselId === undefined ? {} : { joinedVesselId }),
+        ...(joinedVesselName === undefined ? {} : { joinedVesselName }),
+      });
       this.flightListSubscribers.fire();
     });
   }
@@ -396,6 +402,8 @@ function missionMetaToFlightRecord(meta: MissionMeta): FlightRecord {
     outcome: undefined,
     endReason: meta.endReason,
     evaKerbals: meta.evaKerbals,
+    joinedVesselId: meta.joinedVesselId,
+    joinedVesselName: meta.joinedVesselName,
     firstFrameUt: meta.firstFrameUt,
     lastFrameUt: meta.lastFrameUt,
     firstValidUt: meta.firstValidUt,

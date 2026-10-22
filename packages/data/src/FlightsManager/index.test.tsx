@@ -187,6 +187,21 @@ describe("FlightsManager", () => {
     expect(within(bravo).queryByText(/^EVA:/)).toBeNull();
   });
 
+  it("shows a docked flight with the craft it joined", async () => {
+    const store = freshStore();
+    registerDataSource(new MissionHistorySource(store));
+    await seedMission(store, {
+      vesselName: "Bravo",
+      endReason: FlightEndReason.Docked,
+      joinedVesselName: "Alpha",
+    });
+
+    render(<FlightsManager />);
+
+    const row = (await screen.findByText("Bravo")).closest("tr") as HTMLElement;
+    expect(within(row).getByText("Docked with Alpha")).toBeTruthy();
+  });
+
   it("toggles a flight's starred state", async () => {
     const user = userEvent.setup();
     const store = freshStore();

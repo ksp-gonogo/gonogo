@@ -11965,6 +11965,14 @@
         "note": "New: the earliest instant a recorded sample is valid at, which across a signal delay is before the first frame arrived"
       },
       {
+        "key": "sitrep-sdk . FlightRecord#joinedVesselId?",
+        "note": "New: the id of the craft a docked flight joined, absent for any other end"
+      },
+      {
+        "key": "sitrep-sdk . FlightRecord#joinedVesselName?",
+        "note": "New: the craft a docked flight joined, absent for any other end"
+      },
+      {
         "key": "sitrep-sdk . FlightRecord#lastValidUt?",
         "note": "New: the latest instant a recorded sample is valid at"
       },
@@ -12003,6 +12011,14 @@
       {
         "key": "sitrep-sdk . MissionMeta#firstValidUt?",
         "note": "New: the earliest instant a recorded sample is valid at, which across a signal delay is before the first frame arrived"
+      },
+      {
+        "key": "sitrep-sdk . MissionMeta#joinedVesselId?",
+        "note": "New: the id of the craft a docked flight joined, absent for any other end"
+      },
+      {
+        "key": "sitrep-sdk . MissionMeta#joinedVesselName?",
+        "note": "New: the craft a docked flight joined, absent for any other end"
       },
       {
         "key": "sitrep-sdk . MissionMeta#lastValidUt?",
@@ -14951,6 +14967,14 @@
       {
         "key": "sitrep-sdk ./spine ~MissionMeta#firstValidUt?",
         "note": "New: the earliest instant a recorded sample is valid at, which across a signal delay is before the first frame arrived"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#joinedVesselId?",
+        "note": "New: the id of the craft a docked flight joined, absent for any other end"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#joinedVesselName?",
+        "note": "New: the craft a docked flight joined, absent for any other end"
       },
       {
         "key": "sitrep-sdk ./spine ~MissionMeta#lastValidUt?",

@@ -56,13 +56,19 @@ const END_REASON_LABELS: Record<FlightEndReason, string> = {
   [FlightEndReason.Reverted]: "Reverted",
   [FlightEndReason.Destroyed]: "Destroyed",
   [FlightEndReason.Terminated]: "Terminated",
+  [FlightEndReason.Docked]: "Docked",
 };
 
 /** A flight whose end has not been announced, or never reached this page, reads as not known, never as a dash that could stand for a reason. */
-function endReasonLabel(reason: FlightEndReason | undefined): string {
-  return reason === undefined
-    ? "Not known"
-    : (END_REASON_LABELS[reason] ?? "Not known");
+function endReasonLabel(
+  reason: FlightEndReason | undefined,
+  joinedVesselName?: string,
+): string {
+  if (reason === undefined) return "Not known";
+  const label = END_REASON_LABELS[reason] ?? "Not known";
+  return reason === FlightEndReason.Docked && joinedVesselName
+    ? `${label} with ${joinedVesselName}`
+    : label;
 }
 
 /** Funds and science are absent in a save that awards neither, and read as absent rather than as +0. */
@@ -479,7 +485,7 @@ export function FlightsManager({
                       <Td>
                         {row.stillFlying
                           ? "Still flying"
-                          : endReasonLabel(f.endReason)}
+                          : endReasonLabel(f.endReason, f.joinedVesselName)}
                       </Td>
                       <Td>
                         <RowActions>

@@ -738,6 +738,8 @@
     },
     "FlightEnded": {
       "flightId": "id",
+      "joinedVesselId": "id",
+      "joinedVesselName": "text",
       "reason": "enum",
       "ut": "ut",
       "vesselId": "id",
@@ -1930,6 +1932,8 @@
     },
     "flight.ended": {
       "flightId": "id",
+      "joinedVesselId": "id",
+      "joinedVesselName": "text",
       "reason": "enum",
       "ut": "ut",
       "vesselId": "id",
@@ -3332,7 +3336,8 @@
       "1": "Crashed",
       "2": "Reverted",
       "3": "Destroyed",
-      "4": "Terminated"
+      "4": "Terminated",
+      "5": "Docked"
     },
     "GameAlarmKind": {
       "0": "Time",

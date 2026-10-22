@@ -600,6 +600,58 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void ADockEndsTheAbsorbedCraftsFlightAsDockedNamingTheCraftItJoined()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 5.0, name: "Bravo"));
+            rig.Sampler.SignalDocked(VesselB, "Bravo", VesselA, "Alpha", 9.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 9.1, name: "Alpha"));
+
+            var bravoFlight = ((FlightStarted)rig.Started.Calls[1].Payload!).FlightId;
+            var ended = Assert.IsType<FlightEnded>(Assert.Single(rig.Ended.Calls).Payload);
+            Assert.Equal(bravoFlight, ended.FlightId);
+            Assert.Equal(FlightEndReason.Docked, ended.Reason);
+            Assert.Equal(VesselA, ended.JoinedVesselId);
+            Assert.Equal("Alpha", ended.JoinedVesselName);
+            Assert.Equal(0, rig.Sampler.EndsWithoutStart);
+
+            // Focus moved onto the craft that was kept, whose own flight carries on.
+            var changed = Assert.IsType<FlightVesselChanged>(rig.VesselChanged.Calls[^1].Payload);
+            Assert.Equal(VesselA, changed.VesselId);
+        }
+
+        [Fact]
+        public void ADockWithACraftNobodyFlewPublishesNothingAndIsNotCountedAsAGap()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.SignalDocked(VesselB, "Bravo", VesselA, "Alpha", 3.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 3.1, name: "Alpha"));
+
+            Assert.Empty(rig.Ended.Calls);
+            Assert.Equal(0, rig.Sampler.EndsWithoutStart);
+            Assert.Empty(rig.Reports);
+        }
+
+        [Fact]
+        public void ARevertToBeforeADockEndsTheDockedFlightAgainAsRevertedWithoutAJoinedCraft()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 5.0, name: "Bravo"));
+            rig.Sampler.SignalDocked(VesselB, "Bravo", VesselA, "Alpha", 9.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 9.1, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 4.0, name: "Bravo"));
+
+            var reverted = rig.Ended.Calls.Select(c => (FlightEnded)c.Payload!)
+                .Where(e => e.Reason == FlightEndReason.Reverted && e.VesselId == VesselB).ToList();
+            var again = Assert.Single(reverted);
+            Assert.Null(again.JoinedVesselId);
+            Assert.Null(again.JoinedVesselName);
+        }
+
+        [Fact]
         public void ARevertEndsEveryFlightStillOpenNotOnlyTheOneInFocus()
         {
             var rig = new Rig();

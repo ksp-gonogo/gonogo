@@ -42,6 +42,13 @@ public enum FlightEndReason
 
     /// <summary>The player ended the vessel from the Tracking Station. It was neither lost nor recovered.</summary>
     Terminated,
+
+    /// <summary>
+    /// The vessel docked with, or was grabbed by, another craft, and the game kept the
+    /// other craft as the one vessel. The craft it joined is named on
+    /// <see cref="FlightEnded.JoinedVesselId"/> and <see cref="FlightEnded.JoinedVesselName"/>.
+    /// </summary>
+    Docked,
 }
 
 /// <summary>
@@ -182,6 +189,14 @@ public class FlightEnded
     /// <summary>Universal time the flight ended. For <see cref="FlightEndReason.Reverted"/> this is the revert-target UT, not the moment the player chose to revert.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
+
+    /// <summary>KSP's <c>Vessel.id</c> GUID of the craft the vessel joined, as a string. Null unless <see cref="Reason"/> is <see cref="FlightEndReason.Docked"/>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? JoinedVesselId { get; set; }
+
+    /// <summary>The display name of the craft the vessel joined. Null unless <see cref="Reason"/> is <see cref="FlightEndReason.Docked"/>.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? JoinedVesselName { get; set; }
 }
 
 /// <summary>

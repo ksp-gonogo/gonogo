@@ -29,6 +29,9 @@ export function buildMissionRecord(params: {
   endReason?: FlightEndReason;
   /** The kerbals who went on EVA from the vessel so far, in the order they went. */
   evaKerbals?: readonly string[];
+  /** The craft a docked flight joined. */
+  joinedVesselId?: string;
+  joinedVesselName?: string;
 }): MissionRecord | null {
   const { fixture } = params;
   if (fixture.frames.length === 0) return null;
@@ -70,6 +73,12 @@ export function buildMissionRecord(params: {
     ...(params.evaKerbals?.length
       ? { evaKerbals: [...params.evaKerbals] }
       : {}),
+    ...(params.joinedVesselId === undefined
+      ? {}
+      : { joinedVesselId: params.joinedVesselId }),
+    ...(params.joinedVesselName === undefined
+      ? {}
+      : { joinedVesselName: params.joinedVesselName }),
   };
   return { meta, fixture };
 }
@@ -116,5 +125,11 @@ export function withMissionPart(
     frameCount: mission.frameCount + part.frameCount,
     ...(part.endReason === undefined ? {} : { endReason: part.endReason }),
     ...(part.evaKerbals === undefined ? {} : { evaKerbals: part.evaKerbals }),
+    ...(part.joinedVesselId === undefined
+      ? {}
+      : { joinedVesselId: part.joinedVesselId }),
+    ...(part.joinedVesselName === undefined
+      ? {}
+      : { joinedVesselName: part.joinedVesselName }),
   };
 }
