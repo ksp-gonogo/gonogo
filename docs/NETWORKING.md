@@ -55,6 +55,8 @@ Only needed for stations that can't connect directly. The relay runs inside the 
 
 Plan on 2 session ports per internet player plus `3478`: the default 10 cover up to 5 players. Forward the whole range: the relay picks session ports at random within it, so forwarding only the first few is not safe. Some routers want one entry per port, so eleven in all. Don't forward `3002` (the relay's status port, published on `127.0.0.1` only so it stays on this computer) or `8080` (a remote station loads the app from the public site, not from your machine).
 
+The relay first asks your router to open these ports itself (NAT-PMP). When that works, the Add station window needs nothing from you, and the relay deletes the forwards when it stops. If the window says the router refused or did not answer, forward the ports by hand as above. A router that does not answer is often one that has the feature switched off in its settings, or sits at an address the relay did not try: set `ROUTER_IP=<your router's address>` on the container (the "Default Gateway" in `ipconfig` on Windows), and add `PORT_MAPPING=0` to stop the relay asking at all.
+
 Give the main screen computer a fixed address on your LAN first (a reservation in the router is easiest). If its address changes, every forward silently points at nothing.
 
 The relay finds your public address on its own at startup. If it guesses wrong (more than one internet connection, IPv6, a changing address on a dynamic DNS name), set `TURN_EXTERNAL_IP=<your public IP>` on the container. If your provider puts you behind carrier-grade NAT, forwarding can't help, because the main screen has no public address to reach.
