@@ -240,6 +240,33 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
+        /// A threshold alarm on an apsis countdown has to be able to fire during a
+        /// rails warp, where the published wire carries none: the simulation reads
+        /// KSP's live figure for its own comparison.
+        /// </summary>
+        [Fact]
+        public void ThePublishedWireHasNoCountdownOnRailsButTheSimulationsReadingDoes()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                orbit: RawOrbit(0.01, 1234.5, 2345.6),
+                physics: new Dictionary<string, object?> { ["mode"] = "OnRails" },
+                bodies: KerbinAndMun());
+
+            var published = Assert.IsType<Dictionary<string, object?>>(VesselViewProvider.BuildOrbitWire(snapshot));
+            Assert.Null(published["timeToAp"]);
+
+            var read = Assert.IsType<Dictionary<string, object?>>(VesselViewProvider.BuildOrbitReadingWire(snapshot));
+            Assert.Equal(1234.5, read["timeToAp"]);
+            Assert.Equal(2345.6, read["timeToPe"]);
+
+            var reader = new Sitrep.Host.Alarms.SnapshotScetStateReader(snapshot, Sitrep.Host.Alarms.ScetThresholdSources.CoreOnly);
+            var reading = reader.Read("vessel:" + VesselGuid, "vessel.orbit", "timeToAp");
+            Assert.Equal(Sitrep.Host.Alarms.ScetReadingStatus.Observed, reading.Status);
+            Assert.Equal(1234.5, reading.Value);
+        }
+
+        /// <summary>
         /// Where KSP has no next apsis the countdown is null, never 0: a hyperbolic
         /// orbit has no apoapsis (KSP says +Infinity) and, once its periapsis has
         /// passed, no periapsis either (KSP says a negative number).

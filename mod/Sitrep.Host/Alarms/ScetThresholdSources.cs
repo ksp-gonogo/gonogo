@@ -47,7 +47,7 @@ namespace Sitrep.Host.Alarms
             new Dictionary<string, Func<KspSnapshot?, object?>>(StringComparer.Ordinal)
             {
                 [VesselViewProvider.IdentityTopic] = VesselViewProvider.BuildIdentityWire,
-                [VesselViewProvider.OrbitTopic] = VesselViewProvider.BuildOrbitWire,
+                [VesselViewProvider.OrbitTopic] = VesselViewProvider.BuildOrbitReadingWire,
                 [VesselViewProvider.OrbitTruthTopic] = VesselViewProvider.BuildOrbitTruthWire,
                 [VesselViewProvider.FlightTopic] = VesselViewProvider.BuildFlightWire,
                 [VesselViewProvider.AttitudeTopic] = VesselViewProvider.BuildAttitudeWire,
