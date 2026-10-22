@@ -4585,9 +4585,9 @@ namespace Gonogo.KSP
 
             return new Dictionary<string, object?>
             {
-                ["funds"] = funding != null ? (double?)funding.Funds : null,
-                ["reputation"] = reputation != null ? (double?)reputation.reputation : null,
-                ["science"] = rnd != null ? (double?)rnd.Science : null,
+                ["funds"] = funding != null ? (double?)BalanceRounding.Round(funding.Funds) : null,
+                ["reputation"] = reputation != null ? (double?)BalanceRounding.Round(reputation.reputation) : null,
+                ["science"] = rnd != null ? (double?)BalanceRounding.Round(rnd.Science) : null,
             };
         }
 
