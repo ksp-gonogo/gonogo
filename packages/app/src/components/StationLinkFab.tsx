@@ -16,6 +16,7 @@ import {
   CONNECTION_PATH_LABEL,
   type ConnectionPath,
 } from "../peer/connectionPath";
+import { relayBaseUrl } from "../peer/iceServers";
 import { peerHostService } from "../peer/PeerHostService";
 import { probeTurn, type TurnProbeResult } from "../peer/probeTurn";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
@@ -277,8 +278,38 @@ function TurnStatus({
       {state.kind === "ok" &&
         "Relay ready for stations that can't connect directly"}
       {state.kind === "fail" && describeProbeFailure(state.result)}
+      {state.kind === "fail" && state.result.reason === "timeout" && (
+        <PortMappingNote />
+      )}
     </StatusIndicator>
   );
+}
+
+/** What the relay's own attempt to open its ports on the router came to, when that did not work. */
+function PortMappingNote() {
+  const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${relayBaseUrl()}/health`, { signal: controller.signal })
+      .then((res) => res.json())
+      .then((body: unknown) => {
+        const mapping =
+          typeof body === "object" && body !== null
+            ? Reflect.get(body, "portMapping")
+            : null;
+        if (typeof mapping !== "object" || mapping === null) return;
+        const text = Reflect.get(mapping, "message");
+        if (
+          Reflect.get(mapping, "state") !== "mapped" &&
+          typeof text === "string"
+        ) {
+          setMessage(text);
+        }
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+  return message ? <> {message}</> : null;
 }
 
 const RELAY_NEEDED =
