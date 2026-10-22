@@ -10,6 +10,8 @@ namespace Gonogo.KSP
         public CommandResult JudgeDeploy(string partId, string? experimentId) =>
             KspScienceActuator.JudgeDeploy(partId, experimentId);
 
+        public CommandResult JudgeTransmitter() => KspScienceActuator.JudgeTransmitter();
+
         public IEnumerable<string> Experiments()
         {
             var vessel = ActiveVesselScope.Current;

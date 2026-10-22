@@ -253,6 +253,14 @@ namespace Gonogo.KSP.Gates
                 },
             };
 
+            // Whether anything aboard can carry a result home: the game refuses a
+            // transmit with no usable, in-range comms device, whatever the link
+            // reading says, and it needs no argument to say so.
+            table[ScienceCommandProvider.TransmitCommand] = new[]
+            {
+                new CommandRequirement { Kind = KspGateEvaluators.Kinds.TransmitterAvailable },
+            };
+
             return table;
         }
     }

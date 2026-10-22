@@ -264,6 +264,8 @@ namespace Gonogo.KSP.Tests.Career
         {
             public Sitrep.Contract.CommandResult JudgeDeploy(string partId, string? experimentId) => throw new System.NotSupportedException();
 
+            public Sitrep.Contract.CommandResult JudgeTransmitter() => throw new System.NotSupportedException();
+
             public IEnumerable<string> Experiments() => new string[0];
         }
 

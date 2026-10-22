@@ -213,17 +213,10 @@ namespace Gonogo.KSP
                     CommandErrorCode.WrongState, "no experiment on this part is holding data");
             }
 
-            // GetBestTransmitter already honours CommNet and only returns one
-            // that CanTransmit, so a null here and a busy one are the same fact
-            // from the vessel's side: nothing aboard can carry the payload.
-            var transmitter = ScienceUtil.GetBestTransmitter(vessel);
-            if (transmitter == null || !transmitter.CanTransmit())
+            var transmitter = BestTransmitter(vessel, out var unusable);
+            if (transmitter == null)
             {
-                return CommandResult.Fail(
-                    CommandErrorCode.NoConnection,
-                    transmitter == null
-                        ? "no usable comms device aboard"
-                        : "the antenna cannot transmit right now");
+                return unusable!;
             }
 
             var startedAt = Planetarium.GetUniversalTime();
@@ -255,6 +248,44 @@ namespace Gonogo.KSP
                 StreamSeconds = StreamSeconds(transmitter, amounts),
                 DataAmount = amounts.Sum(),
             });
+        }
+
+        /// <summary>
+        /// The transmitter the game itself would send a result through, or null with the refusal
+        /// that says why none can. <c>GetBestTransmitter</c> already honours CommNet and only
+        /// returns one that can transmit, so a null and a busy one are the same fact from the
+        /// vessel's side: nothing aboard can carry the payload.
+        /// </summary>
+        private static IScienceDataTransmitter? BestTransmitter(Vessel vessel, out CommandResult? unusable)
+        {
+            var transmitter = ScienceUtil.GetBestTransmitter(vessel);
+            if (transmitter == null || !transmitter.CanTransmit())
+            {
+                unusable = CommandResult.Fail(
+                    CommandErrorCode.NoConnection,
+                    transmitter == null
+                        ? "no usable comms device aboard"
+                        : "the antenna cannot transmit right now");
+                return null;
+            }
+
+            unusable = null;
+            return transmitter;
+        }
+
+        /// <summary>
+        /// What a transmit would answer for the active vessel's transmitters, asked without sending
+        /// anything, so a gate publishes the refusal the press would get.
+        /// </summary>
+        internal static CommandResult JudgeTransmitter()
+        {
+            var vessel = ActiveVesselScope.Current;
+            if (vessel == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+
+            return BestTransmitter(vessel, out var unusable) == null ? unusable! : CommandResult.Ok();
         }
 
         /// <summary>

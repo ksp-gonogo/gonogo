@@ -61,6 +61,7 @@ namespace Gonogo.KSP.Gates
             yield return new TechResearchedGate();
             yield return new PartModuleResearchedGate();
             yield return new InstrumentDeployGate(instruments);
+            yield return new TransmitterAvailableGate(instruments);
             foreach (var perItem in ItemGates.All(careerItems)) yield return perItem;
         }
 
@@ -79,6 +80,7 @@ namespace Gonogo.KSP.Gates
             public const string TechResearched = "tech-researched";
             public const string PartModuleResearched = "part-module-researched";
             public const string InstrumentDeploy = "instrument-deploy";
+            public const string TransmitterAvailable = "transmitter-available";
         }
 
         /// <summary>Quantities the facility gates understand, spelled once for the same reason.</summary>

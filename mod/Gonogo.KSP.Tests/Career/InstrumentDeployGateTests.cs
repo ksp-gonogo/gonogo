@@ -73,6 +73,39 @@ namespace Gonogo.KSP.Tests.Career
                 asked);
         }
 
+        [Fact]
+        public void ATransmitWithNothingAboardToSendItIsRefusedInAdvanceWithTheGamesOwnWords()
+        {
+            var judge = new Judge
+            {
+                Transmitter = CommandResult.Fail(CommandErrorCode.NoConnection, "no usable comms device aboard"),
+            };
+            var gate = new TransmitterAvailableGate(judge);
+
+            var verdict = gate.Evaluate(
+                new CommandRequirement { Kind = KspGateEvaluators.Kinds.TransmitterAvailable },
+                new Bag(new Dictionary<string, object>()));
+
+            Assert.Equal(GateOutcome.Fail, verdict.Outcome);
+            Assert.Equal(CommandErrorCode.NoConnection, verdict.ErrorCode);
+            Assert.Equal("no usable comms device aboard", verdict.Detail);
+        }
+
+        [Fact]
+        public void ATransmitTheGameWouldCarryPassesAndNeedsNoArgument()
+        {
+            var gate = new TransmitterAvailableGate(new Judge());
+
+            var verdict = gate.Evaluate(
+                new CommandRequirement { Kind = KspGateEvaluators.Kinds.TransmitterAvailable },
+                new Bag(new Dictionary<string, object>()));
+
+            Assert.Equal(GateOutcome.Pass, verdict.Outcome);
+            var declared = Assert.Single(GateDeclarations.For("science.experiment.transmit"));
+            Assert.Equal(KspGateEvaluators.Kinds.TransmitterAvailable, declared.Kind);
+            Assert.Empty(declared.Needs ?? new string[0]);
+        }
+
         private static IGateArguments Arguments(string? part, string experiment)
         {
             var bag = new Dictionary<string, object> { ["experimentId"] = experiment };
@@ -100,6 +133,10 @@ namespace Gonogo.KSP.Tests.Career
                 Asked.Add((partId, experimentId));
                 return Refuse == null ? CommandResult.Ok() : CommandResult.Fail(CommandErrorCode.WrongState, Refuse);
             }
+
+            public CommandResult Transmitter { get; set; } = CommandResult.Ok();
+
+            public CommandResult JudgeTransmitter() => Transmitter;
 
             public IEnumerable<string> Experiments() => new[]
             {

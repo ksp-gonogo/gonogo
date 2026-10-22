@@ -70,3 +70,51 @@ describe("Experiments: Deploy follows the mod's gate for that experiment", () =>
     expect(sibling.querySelector('[data-command-phase="blocked"]')).toBeNull();
   });
 });
+
+describe("Experiments: Transmit follows the mod's gate while the link reads up", () => {
+  it("draws Transmit blocked with the game's reason when nothing aboard can carry the result, whatever the link says", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+    const { unmount } = render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "exp-xmit-gate" }}>
+          <ExperimentsComponent id="exp-xmit-gate" w={6} h={12} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    renderedTrees.push(unmount);
+    act(() => {
+      fixture.emit("comms.connectivity", { connected: true });
+      fixture.emit("science.experiments", []);
+      fixture.emit("science.instruments", [
+        {
+          ...instrument("temperatureScan", "Temperature Scan"),
+          holdsData: true,
+        },
+      ]);
+      fixture.emit("system.uplink.gates", {
+        gates: [
+          {
+            command: "science.experiment.transmit",
+            verdict: {
+              outcome: 1,
+              errorCode: "noConnection",
+              detail: "no usable comms device aboard",
+            },
+            itemSets: [],
+          },
+        ],
+        channels: [],
+      });
+    });
+
+    await waitFor(() =>
+      expect(
+        document.querySelectorAll('[data-command-phase="blocked"]'),
+      ).not.toHaveLength(0),
+    );
+    const transmit = screen
+      .getByText("Transmit")
+      .closest("button") as HTMLElement;
+    expect(transmit).toHaveAttribute("data-command-phase", "blocked");
+  });
+});
