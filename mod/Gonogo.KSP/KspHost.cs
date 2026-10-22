@@ -4259,12 +4259,11 @@ namespace Gonogo.KSP
         /// the VAB and SPH craft folders
         /// (<c>ShipConstruction.GetShipsPathFor</c>), each <c>.craft</c> file's
         /// metadata read via the stock <c>CraftProfileInfo</c> loader. Career-
-        /// gated (the saved-ships widgets are research-facing; a sandbox has
-        /// every part from the start, so there is nothing to unlock) and rate-limited to
+        /// read in every game mode and rate-limited to
         /// <see cref="SavedShipsRescan"/> - between scans the cached
         /// list is returned so the disk isn't touched every tick, and no scan
         /// runs at all while <paramref name="wanted"/> is false. Returns
-        /// <c>null</c> - the whole list - outside career and science or before a save folder
+        /// <c>null</c> - the whole list - with no game loaded or before a save folder
         /// exists, so the provider reads "no data yet."
         /// </summary>
         private static List<object?>? BuildSavedShips(double ut, bool wanted)
@@ -4332,7 +4331,7 @@ namespace Gonogo.KSP
         private static List<object?>? ScanSavedShips(double ut, bool wanted)
         {
             var game = HighLogic.CurrentGame;
-            if (game == null || !CareerGates.HasResearchTree(game.Mode))
+            if (game == null)
             {
                 _cachedSavedShips = null;
                 SavedShipsRescan.Forget();
