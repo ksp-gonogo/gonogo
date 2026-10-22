@@ -149,7 +149,10 @@ export function DeployedStationCard({ listing }: { listing: StationListing }) {
           </Badge>
         </Cluster>
         <Text level="muted" style={XS2_STYLE}>
-          {listing.lastContactUt === null ? (
+          {listing.contact === CatalogContact.InContact ? (
+            // The catalog dates an entry in contact from when its listing last changed, which is not a running time.
+            "Heard now"
+          ) : listing.lastContactUt === null ? (
             "No contact on record"
           ) : (
             <>

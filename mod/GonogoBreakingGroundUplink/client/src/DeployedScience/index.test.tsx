@@ -178,6 +178,26 @@ describe("DeployedScienceComponent", () => {
     expect(within(minmus).getByText(/14\.5/)).toBeInTheDocument();
   });
 
+  it("says a station in contact is heard now rather than dating it from when contact began", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
+    await emitStations(fixture, [
+      {
+        entry: {
+          vesselId: MUN_STATION,
+          name: "Mun Base",
+          contact: CatalogContact.InContact,
+          lastContactUt: 10,
+        },
+        report: stationReport({ stationName: "Mun Base" }),
+      },
+    ]);
+    const mun = await screen.findByRole("group", { name: "Mun Base" });
+
+    expect(within(mun).getByText("Heard now")).toBeInTheDocument();
+    expect(within(mun).queryByText(/Last heard/)).toBeNull();
+  });
+
   it("says no contact is on record rather than inventing a last-heard time", async () => {
     const fixture = newFixture();
     renderDeployed(fixture);
