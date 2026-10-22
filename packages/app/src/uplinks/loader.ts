@@ -834,6 +834,9 @@ async function loadThirdParty(
         observed: manifest.integrity,
         expected: roster.expectedClientHash,
         vouchedBy: ["installed-mod"],
+        ...(manifest.version && manifest.version === roster.version
+          ? { sameVersion: manifest.version }
+          : {}),
       },
     );
   }

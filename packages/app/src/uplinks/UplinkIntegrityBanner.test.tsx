@@ -370,4 +370,69 @@ describe("UplinkIntegrityBanner", () => {
       await expectNoA11yViolations(container);
     });
   });
+
+  describe("a mod and a client of the same version built from different clients", () => {
+    const sameVersion = (): UplinkLoadOutcome => ({
+      id: "widget-k",
+      name: "Widget K",
+      version: "1.0.0-rc.3",
+      status: "quarantined",
+      reason: "manifest-declared integrity != mod-vouched",
+      integrity: tampered({
+        subject: "manifest",
+        vouchedBy: ["installed-mod"],
+        sameVersion: "1.0.0-rc.3",
+      }),
+    });
+
+    it("says the mod was built from a different client and what to do, not that it was tampered with", () => {
+      record(sameVersion());
+
+      render(<UplinkIntegrityBanner />);
+
+      expect(
+        screen.getByText(
+          "The installed mod was built from a different client than the one served. Both say 1.0.0-rc.3",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText("Reinstall the mod and its Uplinks from one release."),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Integrity failure")).not.toBeInTheDocument();
+    });
+
+    it("still shouts an integrity failure for a bundle whose bytes are not the vouched ones", () => {
+      record({
+        ...sameVersion(),
+        integrity: tampered({ sameVersion: "1.0.0-rc.3" }),
+      });
+
+      render(<UplinkIntegrityBanner />);
+
+      expect(screen.getByText("Integrity failure")).toBeInTheDocument();
+      expect(
+        screen.queryByText(/built from a different client/),
+      ).not.toBeInTheDocument();
+    });
+
+    it("still shouts an integrity failure for a manifest of another version", () => {
+      record({
+        ...sameVersion(),
+        integrity: tampered({
+          subject: "manifest",
+          vouchedBy: ["installed-mod"],
+        }),
+      });
+
+      render(<UplinkIntegrityBanner />);
+
+      expect(screen.getByText("Integrity failure")).toBeInTheDocument();
+    });
+
+    it("has no a11y violations", async () => {
+      record(sameVersion());
+      const { container } = render(<UplinkIntegrityBanner />);
+      await expectNoA11yViolations(container);
+    });
+  });
 });

@@ -29,6 +29,7 @@
 
 import { Badge, Cluster, Notice, Stack, Text } from "@ksp-gonogo/ui-kit";
 import { useSyncExternalStore } from "react";
+import { isBuildMismatch } from "./integrity";
 import {
   getUplinkOutcomes,
   integrityFailures,
@@ -100,7 +101,12 @@ export function UplinkIntegrityBanner() {
   }
 
   const declared = failed.filter(canOverrideSkew);
-  const measured = failed.filter((o) => !canOverrideSkew(o));
+  const mismatched = failed.filter(
+    (o) => o.integrity !== undefined && isBuildMismatch(o.integrity),
+  );
+  const measured = failed.filter(
+    (o) => !canOverrideSkew(o) && !mismatched.includes(o),
+  );
 
   return (
     <Notice as="section" tone="nogo" aria-label="Uplink integrity">
@@ -111,7 +117,11 @@ export function UplinkIntegrityBanner() {
             for a compat gate. */}
         <Cluster justify="start" gap="related-dense" wrap>
           <Badge tone={measured.length > 0 ? "nogo" : "warn"}>
-            {measured.length > 0 ? "Integrity failure" : "Hash disagreement"}
+            {measured.length > 0
+              ? "Integrity failure"
+              : declared.length > 0
+                ? "Hash disagreement"
+                : "Version mismatch"}
           </Badge>
           <Text tone={measured.length > 0 ? "nogo" : "warn"} weight="semibold">
             {failed.length === 1
@@ -130,6 +140,13 @@ export function UplinkIntegrityBanner() {
               CDN.
             </Text>
             {measured.map((outcome) => (
+              <FailedUplink key={outcome.id} outcome={outcome} />
+            ))}
+          </Stack>
+        )}
+        {mismatched.length > 0 && (
+          <Stack gap="related-comfortable">
+            {mismatched.map((outcome) => (
               <FailedUplink key={outcome.id} outcome={outcome} />
             ))}
           </Stack>
