@@ -237,7 +237,8 @@ function phaseOf(
   return "ahead";
 }
 
-function pastCutoff(
+/** Whether the view clock is behind the end of the node's burn window, or its instant where no window is modelled. */
+export function pastCutoff(
   node: ParsedManeuverNode,
   currentUT: Value<"ut"> | undefined,
 ): boolean {
