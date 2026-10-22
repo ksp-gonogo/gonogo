@@ -221,6 +221,50 @@ describe("CrewStatusComponent", () => {
     expect(screen.queryByText(/EVA/)).not.toBeInTheDocument();
   });
 
+  it("lists a kerbal on EVA from the craft, as out, beside who is aboard", async () => {
+    const fixture = newFixture();
+    renderCrew(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 1,
+        capacity: 2,
+        crew: [{ name: "Dunbal Kerman" }],
+      });
+      fixture.emit("vessel.identity", { vesselType: VesselType.Lander });
+      fixture.emit("eva.crew", {
+        count: 1,
+        kerbals: [{ name: "Maxwell Kerman", situation: "FLYING" }],
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Maxwell Kerman")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("Dunbal Kerman")).toBeInTheDocument();
+    expect(screen.getByText("1 on EVA")).toBeInTheDocument();
+    const out = screen.getByText("Maxwell Kerman").closest("li");
+    expect(within(out as HTMLElement).getByText("EVA")).toBeInTheDocument();
+  });
+
+  it("says nothing of EVA while nobody is outside", async () => {
+    const fixture = newFixture();
+    renderCrew(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 1,
+        capacity: 2,
+        crew: [{ name: "Dunbal Kerman" }],
+      });
+      fixture.emit("vessel.identity", { vesselType: VesselType.Lander });
+      fixture.emit("eva.crew", { count: 0, kerbals: [] });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Dunbal Kerman")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/EVA/)).not.toBeInTheDocument();
+  });
+
   /** On EVA the active vessel is the kerbal, so the header names them above their suit meters. */
   describe("EVA header names the kerbal", () => {
     function evaOnSuit(fixture: ReturnType<typeof newFixture>) {

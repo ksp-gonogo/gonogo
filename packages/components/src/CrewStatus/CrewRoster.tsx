@@ -9,6 +9,7 @@ import {
   Inline,
   Meter,
   MeterStack,
+  ReadoutCaption,
   Stack,
   Truncate,
 } from "@ksp-gonogo/ui-kit";
@@ -193,3 +194,26 @@ function CrewAvatarCell({
     </FramedDisplay>
   );
 }
+
+/** The kerbals outside the craft, named and marked as out. */
+export function EvaCrewList({ names }: Readonly<{ names: readonly string[] }>) {
+  return (
+    <Stack as="ul" style={EVA_LIST_STYLE}>
+      {names.map((name) => (
+        <Card
+          as="li"
+          key={name}
+          title={<Truncate>{name}</Truncate>}
+          titleRight={<ReadoutCaption>EVA</ReadoutCaption>}
+        />
+      ))}
+    </Stack>
+  );
+}
+
+const EVA_LIST_STYLE = {
+  listStyle: "none",
+  margin: "var(--gap-related-comfortable) 0 0",
+  padding: 0,
+  gap: "var(--gap-section)",
+} as const;

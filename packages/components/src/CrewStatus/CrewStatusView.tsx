@@ -14,6 +14,7 @@ import { useMemo } from "react";
 import {
   AVATAR_MEASURE_SEED,
   avatarCellSizePx,
+  EvaCrewList,
   renderRoster,
 } from "./CrewRoster";
 import type { CrewStatusConfig } from "./config";
@@ -69,12 +70,27 @@ export function CrewStatusComponent(
   // Read here as well as in the roster's own rows so the EVA solo-row check can see this kerbal's meters.
   const meterContributions = useContributions("meters");
 
+  // Kerbals outside the craft are part of its crew, so they are listed beside who is aboard and counted with them.
+  const evaReading = crewStatusTopics.useTelemetry("eva.crew");
+  const evaCrew = stillTrue(evaReading, undefined);
+  const outsideNames =
+    isEVA === true
+      ? []
+      : (evaCrew?.kerbals ?? []).flatMap((kerbal) =>
+          kerbal.name ? [kerbal.name] : [],
+        );
+
   const names = toCrewNames(crewRaw);
   const known =
     crewCount !== undefined || crewCapacity !== undefined || names.length > 0;
 
   // The headcount lives in the header badge; this line carries only the EVA marker.
-  const crewSummary = known && isEVA === true ? "EVA" : "";
+  const crewSummary =
+    known && isEVA === true
+      ? "EVA"
+      : outsideNames.length > 0
+        ? `${outsideNames.length} on EVA`
+        : "";
 
   // On EVA the header names the kerbal; with no single resolved name yet it falls back to a bare "EVA".
   const evaKerbalName =
@@ -124,6 +140,7 @@ export function CrewStatusComponent(
                 : undefined,
             })}
           </div>
+          {outsideNames.length > 0 && <EvaCrewList names={outsideNames} />}
         </Section>
       }
     />
