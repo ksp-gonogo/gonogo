@@ -69,6 +69,36 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
+        /// The public constructors of every public class and struct that is not a
+        /// seam, keyed by full name. A seam's constructors are already part of
+        /// <see cref="Compute"/>, and an enum, a static class or a type with no
+        /// public constructor has nothing for a plugin to call.
+        /// </summary>
+        internal static Dictionary<string, string[]> ComputeConstructors(Assembly assembly)
+        {
+            var constructors = new SortedDictionary<string, string[]>(StringComparer.Ordinal);
+            foreach (var type in assembly.GetTypes())
+            {
+                if (!(type.IsPublic || type.IsNestedPublic) || IsSeam(type) || type.IsEnum
+                    || (type.IsAbstract && type.IsSealed) || type.Name.Contains('<'))
+                {
+                    continue;
+                }
+
+                var signatures = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
+                    .Select(c => "ctor(" + string.Join(",", c.GetParameters().Select(p => p.ParameterType.ToString())) + ")")
+                    .OrderBy(x => x, StringComparer.Ordinal)
+                    .ToArray();
+                if (signatures.Length > 0)
+                {
+                    constructors[type.FullName ?? type.Name] = signatures;
+                }
+            }
+
+            return new Dictionary<string, string[]>(constructors);
+        }
+
+        /// <summary>
         /// One <c>"Name(params):Return|kind"</c> string per public or protected
         /// member declared on <paramref name="type"/>, sorted. The kind is
         /// <c>abstract</c> (an implementer must supply it), <c>virtual</c> (it

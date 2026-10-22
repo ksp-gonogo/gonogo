@@ -1050,7 +1050,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -2239,7 +2240,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -3612,7 +3614,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -4984,7 +4987,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -6350,7 +6354,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -7687,7 +7692,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -8982,7 +8988,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -10198,7 +10205,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -11360,7 +11368,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -12500,7 +12509,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -13637,7 +13647,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -15301,7 +15312,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -17025,7 +17037,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -18756,7 +18769,8 @@
           ]
         },
         "Topics": null,
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -20907,7 +20921,8 @@
             "array:False"
           ]
         },
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -23100,7 +23115,8 @@
             "array:False"
           ]
         },
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -25411,7 +25427,8 @@
             "array:False"
           ]
         },
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -27765,7 +27782,8 @@
             "array:False"
           ]
         },
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -30106,7 +30124,8 @@
             "array:False"
           ]
         },
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -32442,7 +32461,8 @@
             "array:False"
           ]
         },
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -34728,7 +34748,8 @@
             "array:False"
           ]
         },
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -37014,7 +37035,8 @@
             "array:False"
           ]
         },
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -39229,7 +39251,8 @@
             "array:False"
           ]
         },
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -41399,7 +41422,8 @@
             "array:False"
           ]
         },
-        "Seams": null
+        "Seams": null,
+        "Constructors": null
       }
     },
     {
@@ -43835,7 +43859,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -46336,7 +46361,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -48954,7 +48980,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -51689,7 +51716,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -54448,7 +54476,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -57199,7 +57228,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -59966,7 +59996,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -62728,7 +62759,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -65504,7 +65536,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -68242,7 +68275,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -70985,7 +71019,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -73734,7 +73769,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -76482,7 +76518,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -79235,7 +79272,8 @@
             "DeclareSettings(Sitrep.Contract.IUplinkSettings):System.Void|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -82045,7 +82083,8 @@
             "implements:Sitrep.Contract.ICommandGateEvaluator|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -84840,7 +84879,8 @@
             "implements:Sitrep.Contract.ICommandGateEvaluator|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -87629,7 +87669,8 @@
             "implements:Sitrep.Contract.ICommandGateEvaluator|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
@@ -90417,12 +90458,13 @@
             "implements:Sitrep.Contract.ICommandGateEvaluator|abstract",
             "role:plugin|plain"
           ]
-        }
+        },
+        "Constructors": null
       }
     },
     {
       "Major": 45,
-      "Note": "Frozen at v45.0. A craft's link can be not yet reported: connected on comms.link and comms.connectivity is null while no craft is on screen and before its first reading, never a false that reads as a lost link.",
+      "Note": "Frozen at v45.0. A craft\u0027s link can be not yet reported: connected on comms.link and comms.connectivity is null while no craft is on screen and before its first reading, never a false that reads as a lost link.",
       "Breaks": [
         "member-removed:Sitrep.Contract.CommsConnectivity.Connected:System.Boolean",
         "member-removed:Sitrep.Contract.CommsLink.Connected:System.Boolean"
@@ -93267,6 +93309,970 @@
             "Evaluate(Sitrep.Contract.CommandRequirement,Sitrep.Contract.IGateArguments,System.String):Sitrep.Contract.GateVerdict|abstract",
             "implements:Sitrep.Contract.ICommandGateEvaluator|abstract",
             "role:plugin|plain"
+          ]
+        },
+        "Constructors": {
+          "Sitrep.Contract.ActionBinding": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ActionGroupState": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ActivateStrategyArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.AddManeuverNodeArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.AmbiguousResolutionError": [
+            "ctor(System.String,System.Collections.Generic.IReadOnlyList\u00601[System.String])"
+          ],
+          "Sitrep.Contract.ArchiveEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.AstronautComplexInfo": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.AtmosphereEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.BodyEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.BodyState": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.BodyStatesReply": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.BodyStatesRequest": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CapabilityDescriptor": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CareerBalances": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CareerContract": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CareerContractParameter": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CareerContracts": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CareerFacilities": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CareerFacility": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CareerMode": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CareerStatus": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CareerStrategies": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CareerStrategy": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CareerTech": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CareerTechNode": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CareerTechPart": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CatalogEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CentreDelayEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CentreSeparationEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ChannelDeclaration": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ChannelEmissionEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ChannelEmissionReport": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ChannelGate": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ClaimRequest": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ClosestApproach": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandAccepted": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandCentreActiveVesselDelay": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandCentreEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandCentreSeparation": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandDeclaration": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandFaultException": [
+            "ctor(Sitrep.Contract.FaultCode,System.String)"
+          ],
+          "Sitrep.Contract.CommandGate": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandGateItem": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandGateItemSet": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandGateReport": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandGroupRequest": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandRequest\u00601": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandRequirement": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandResponse\u00601": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandResult": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandResult\u00601": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommandSubjectViolation": [
+            "ctor(System.String,System.String)"
+          ],
+          "Sitrep.Contract.CommcastAuthor": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommcastGroupAddArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommcastGroupOpenArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommcastMessageAckArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommcastMessageSendArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommcastRadioBatch": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommcastRadioTransmitArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommcastSendReceipt": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommcastTraffic": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommcastTransmissionRow": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsCommandCentre": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsConnectivity": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsContactPair": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsContactWindow": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsContacts": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsControl": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsDegrade": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsDelay": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsHop": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsJourney": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsJourneyEvent": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsLink": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsLinkState": [
+            "ctor(System.Boolean,Sitrep.Contract.CommsControlGrade,System.Double,Sitrep.Contract.SignalQuantity)"
+          ],
+          "Sitrep.Contract.CommsLinkView": [
+            "ctor(Sitrep.Contract.CommsNodeView,Sitrep.Contract.CommsNodeView,System.Object)"
+          ],
+          "Sitrep.Contract.CommsMeasuredPath": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsNetwork": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsNetworkEdge": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsNetworkNode": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsNextLoss": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsNodeView": [
+            "ctor(Sitrep.Contract.CommsNodeHandle,System.String,System.String,System.Boolean,System.Boolean,Sitrep.Contract.Vector3d)"
+          ],
+          "Sitrep.Contract.CommsOcclusion": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsOcclusionBody": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsPath": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsRetargetWindow": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsRoute": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsRouteHold": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsRouteHop": [
+            "ctor(System.Double,System.Boolean)",
+            "ctor(System.Double,System.Boolean,Sitrep.Contract.CommsNodeHandle,Sitrep.Contract.CommsNodeHandle,Sitrep.Contract.CommsDirection)"
+          ],
+          "Sitrep.Contract.CommsRoutes": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsSignal": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CommsSubject": [
+            "ctor(System.String)"
+          ],
+          "Sitrep.Contract.ContactHopFacts": [
+            "ctor(System.Double,Sitrep.Contract.SignalQuantity,System.Collections.Generic.Dictionary\u00602[System.String,System.Object])"
+          ],
+          "Sitrep.Contract.ContactHopGeometry": [
+            "ctor(Sitrep.Contract.Vector3d,Sitrep.Contract.Vector3d,Sitrep.Contract.IContactPositions)"
+          ],
+          "Sitrep.Contract.ContractActionArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ControlFrame": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ControlFrameOption": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CraftFileParts": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CraftFileRecord": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CraftKnowledgeReading": [
+            "ctor(Sitrep.Contract.CraftKnowledgeState,System.Nullable\u00601[Sitrep.Contract.HeldGrade],System.Nullable\u00601[System.Double],System.Nullable\u00601[System.Double],System.Boolean)"
+          ],
+          "Sitrep.Contract.CrashFlightStats": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CrashPartLost": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CrashRecent": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CrashReport": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CrewMember": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CrewRosterEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.CrewStandingReading": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.DeactivateStrategyArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.DependencyCycleError": [
+            "ctor(System.Collections.Generic.IReadOnlyList\u00601[System.String])"
+          ],
+          "Sitrep.Contract.DependencyNode": [
+            "ctor(System.String,System.Collections.Generic.IReadOnlyList\u00601[System.String])"
+          ],
+          "Sitrep.Contract.DeployedEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.DishAim": [
+            "ctor(System.String,System.String)"
+          ],
+          "Sitrep.Contract.DishPair": [
+            "ctor(System.String,System.String)"
+          ],
+          "Sitrep.Contract.DockAlignment": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.EmissionPolicy": [
+            "ctor(System.Double,Sitrep.Contract.EmissionQuantum,System.Double,System.Double)"
+          ],
+          "Sitrep.Contract.ErrorMsg": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.EvaCrew": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.EvaKerbal": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.EventMsg": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ExperimentActionArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ExperimentBreakdownEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ExperimentEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.FireCrewArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.FlightCurrent": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.FlightEnded": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.FlightStarted": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.FlightVesselChanged": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.GameDlc": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.GameState": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.GateCheckRequest": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.GateInput": [
+            "ctor(System.String,System.Func\u00601[System.Object])"
+          ],
+          "Sitrep.Contract.GateVerdict": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.Hello": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.HireApplicantArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.InstrumentEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.InventoryItem": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.InventoryStore": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.InvokePartActionArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.IsruConverterEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.IsruDrillEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.IsruResourceFlow": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.Kernel": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.KspSnapshot": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.LabEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.LaunchArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.LaunchSiteEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.LimitBreach": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.LockedValue": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ManeuverNode": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.MaxRangeReachModel": [
+            "ctor(System.String,System.String,System.Nullable\u00601[System.Double])"
+          ],
+          "Sitrep.Contract.Meta": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.MissingUnlock": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.MissionObjectiveEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.MissionStatus": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ModSettingRow": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ModSettingsModel": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.NoCommandArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.OrbitElements": [
+            "ctor(System.Double,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double)"
+          ],
+          "Sitrep.Contract.OrbitEncounter": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.OrbitEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.OrbitPatch": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.OrbitPayloadMeta": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.PartActionEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.PartActions": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.PartBounds": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.PartModuleState": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.PartResourceFlow": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.PartsPower": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.PathBreak": [
+            "ctor(System.String,System.Double,System.Double)"
+          ],
+          "Sitrep.Contract.PayloadMeta": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.PendingUplink": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.PendingUplinkQueue": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.PerfBudget": [
+            "ctor(System.String,System.Double,System.Double,System.String,System.Action\u00601[System.String])"
+          ],
+          "Sitrep.Contract.Ping": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.Pong": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.PropagationDepartureKnot": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.PropagationHorizon": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ProviderContext": [
+            "ctor(System.String,System.Func\u00602[System.String,System.Object],System.Func\u00602[System.String,System.Object])"
+          ],
+          "Sitrep.Contract.ProviderExtensionBagAttribute": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ProviderRegistration": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ProviderVersions": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RadiusExtremes": [
+            "ctor(System.Double,System.Double)"
+          ],
+          "Sitrep.Contract.RatedDegradeModel": [
+            "ctor(System.String,System.String,System.Nullable\u00601[System.Double])"
+          ],
+          "Sitrep.Contract.RecentLog": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RecentLogArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RecoveryCrewEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RecoveryPartEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RecoveryRecent": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RecoveryReport": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RecoveryResourceEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RecoveryScienceEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RemoveManeuverNodeArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ReputationLossEvent": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ResolutionNotice": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ResolveOptions": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ResolveResult": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ResourceAmount": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RevertAvailability": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RevertToEditorArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RoboticsAvailability": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RotorReverseArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RotorSetBrakeArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RotorSetRpmLimitArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RotorSetTorqueLimitArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.RunStateChange": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SaveSettingsArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SavedShipEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ScaledRadiusOcclusionModel": [
+            "ctor(System.String,System.String,System.Double,System.Double)"
+          ],
+          "Sitrep.Contract.ScetAddressableTopic": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ScetAlarm": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ScetAlarmAction": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ScetAlarmArmArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ScetAlarmCondition": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ScetAlarmDisarmArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ScetAlarmFired": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ScetThresholdSource": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ScienceCreditEvent": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ScienceTransmission": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SecularOrbit": [
+            "ctor(Sitrep.Contract.OrbitElements,System.Double,System.Double,System.Double,System.Nullable\u00601[System.Double],Sitrep.Contract.SecularBasis)"
+          ],
+          "Sitrep.Contract.SensorEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.Serialization.InvalidEnvelopeException": [
+            "ctor(System.String,System.String,System.Exception)"
+          ],
+          "Sitrep.Contract.Serialization.UnknownEnvelopeTypeException": [
+            "ctor(System.String)",
+            "ctor(System.String,System.Exception)",
+            "ctor(System.String,System.String,System.String,System.String)"
+          ],
+          "Sitrep.Contract.ServoEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ServoSetAngleArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ServoSetEnabledArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ServoSetExtensionArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SetActionGroupArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SetControlAxesArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SetControlFrameArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SetEnabledArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SetFlyByWireArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SetPausedArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SetSasModeArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SetTargetArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SetThrottleArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SetVantage": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SetWarpIndexArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SettingsChange": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SettingsDeclarationFailure": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SettingsModel": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SettingsPersistence": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SettingsRowState": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SitrepCommandAttribute": [
+            "ctor(System.String)"
+          ],
+          "Sitrep.Contract.SitrepContractAttribute": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SitrepControlChannelAttribute": [
+            "ctor(System.String,System.String,System.Type,System.String)"
+          ],
+          "Sitrep.Contract.SitrepDeterministicWhileAttribute": [
+            "ctor(System.String)"
+          ],
+          "Sitrep.Contract.SitrepEntryKeyAttribute": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SitrepFrameAttribute": [
+            "ctor(System.String)"
+          ],
+          "Sitrep.Contract.SitrepOmittedWhenNullAttribute": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SitrepReckonableAttribute": [
+            "ctor(System.String,System.String[])"
+          ],
+          "Sitrep.Contract.SitrepReckonableOnAttribute": [
+            "ctor(System.String,System.String,System.String,System.String[])"
+          ],
+          "Sitrep.Contract.SitrepRequiresAttribute": [
+            "ctor(System.String)"
+          ],
+          "Sitrep.Contract.SitrepSampleKindAttribute": [
+            "ctor(Sitrep.Contract.SampleKind)"
+          ],
+          "Sitrep.Contract.SitrepStaticAttribute": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SitrepTopicAttribute": [
+            "ctor(System.String,System.Boolean)"
+          ],
+          "Sitrep.Contract.SitrepUnitAttribute": [
+            "ctor(System.String)"
+          ],
+          "Sitrep.Contract.SitrepUplinkAttribute": [
+            "ctor(System.String,System.Int32,System.Int32)"
+          ],
+          "Sitrep.Contract.SpaceCenterPartsAvailable": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SpaceCenterPoiEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SpaceCenterScene": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SpineCapabilityUnsatisfiedError": [
+            "ctor(System.String)"
+          ],
+          "Sitrep.Contract.StageDeltaVEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.StageDeltaVSummary": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.StateVector": [
+            "ctor(Sitrep.Contract.Vector3d,Sitrep.Contract.Vector3d)"
+          ],
+          "Sitrep.Contract.StreamBinary": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.StreamData\u00601": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.Subscribe": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SwitchVesselArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.SystemBodies": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.TargetAvailable": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.TargetListEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ThermalHottestPart": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.TimeCalendar": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.TrackingStationCatalog": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.TrackingStationDismissArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.TrackingStationVesselLink": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.TrackingStationVesselParts": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.TrackingStationVesselResources": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.UnitDescriptor\u002BMaps": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.UnlockTechArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.UnreachableCentreEntry": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.Unsubscribe": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.UpdateManeuverNodeArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.UpgradeFacilityArgs": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.UplinkActionReply": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.UplinkCancelRequest": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.UplinkClientSource": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.UplinkHealth": [
+            "ctor(Sitrep.Contract.UplinkHealthState,System.String)",
+            "ctor(Sitrep.Contract.UplinkHealthState,System.String,System.Collections.Generic.IReadOnlyList\u00601[Sitrep.Contract.UplinkHealthFact])"
+          ],
+          "Sitrep.Contract.UplinkHealthFact": [
+            "ctor(System.String,System.String)"
+          ],
+          "Sitrep.Contract.UplinkManifest": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.UplinkResendRequest": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.UplinkSettingRow": [
+            "ctor(System.String,Sitrep.Contract.SettingKind,System.String,System.String,System.String)"
+          ],
+          "Sitrep.Contract.Vec3": [
+            "ctor()",
+            "ctor(System.Double,System.Double,System.Double)"
+          ],
+          "Sitrep.Contract.Vector3d": [
+            "ctor(System.Double,System.Double,System.Double)"
+          ],
+          "Sitrep.Contract.VersionRange": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselAttitude": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselComms": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselControl": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselCrew": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselFlight": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselIdentity": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselInventory": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselLanding": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselLight": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselManeuver": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselOrbit": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselOrbitTruth": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselPart": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselParts": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselPhysicsMode": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselPropulsion": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselResources": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselStructure": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselSurface": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselTarget": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.VesselThermal": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.ViewerContext": [
+            "ctor(System.String,System.String)"
+          ],
+          "Sitrep.Contract.WarpState": [
+            "ctor()"
+          ],
+          "Sitrep.Contract.WriteModSettingArgs": [
+            "ctor()"
           ]
         }
       }

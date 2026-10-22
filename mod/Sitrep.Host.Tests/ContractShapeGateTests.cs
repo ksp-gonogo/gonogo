@@ -163,6 +163,22 @@ namespace Sitrep.Host.Tests
             /// rather than inventing breaks against earlier Majors.</para>
             /// </summary>
             public Dictionary<string, string[]>? Seams { get; set; }
+
+            /// <summary>
+            /// The public constructors of every public concrete type in the contract,
+            /// keyed by full name and valued as sorted <c>"ctor(ParameterTypes)"</c>
+            /// strings, for the types <see cref="Seams"/> does not already describe.
+            ///
+            /// <para>A plugin that builds a contract value, such as a comms route hop
+            /// returned from a backend, is compiled against the exact constructor it
+            /// calls. Adding a parameter, or removing an overload, breaks it at its
+            /// first call even though no wire member moved. A removed or changed
+            /// constructor is a removal like any other.</para>
+            ///
+            /// <para>Nullable like <see cref="Topics"/>: null means the dimension was
+            /// never recorded, so <see cref="ComputeRemovals"/> skips it.</para>
+            /// </summary>
+            public Dictionary<string, string[]>? Constructors { get; set; }
         }
 
         private sealed class Ledger
@@ -658,6 +674,18 @@ namespace Sitrep.Host.Tests
                 removals.AddRange(ContractSeamSurface.Breaks(from.Seams, to.Seams));
             }
 
+            if (from.Constructors is not null && to.Constructors is not null)
+            {
+                foreach (var (typeName, fromConstructors) in from.Constructors)
+                {
+                    to.Constructors.TryGetValue(typeName, out var toConstructors);
+                    foreach (var constructor in fromConstructors.Except(toConstructors ?? Array.Empty<string>(), StringComparer.Ordinal))
+                    {
+                        removals.Add($"constructor-removed:{typeName}.{constructor}");
+                    }
+                }
+            }
+
             foreach (var enumName in from.Enums.Keys.Except(to.Enums.Keys))
             {
                 removals.Add("enum-removed:" + enumName);
@@ -716,6 +744,63 @@ namespace Sitrep.Host.Tests
                 ComputeRemovals(floor, changed));
             Assert.Empty(ComputeRemovals(new Shape(), changed));
             Assert.Empty(ComputeRemovals(floor, floor));
+        }
+
+        /// <summary>
+        /// A changed public constructor is a removal: the one the plugin was compiled
+        /// against is gone from the new shape. An added overload is not, and a floor
+        /// that never recorded constructors is not diffed on them.
+        /// </summary>
+        [Fact]
+        public void GateSelfTest_ComputeRemovalsCatchesAChangedConstructor()
+        {
+            var floor = new Shape
+            {
+                Constructors = new Dictionary<string, string[]>
+                {
+                    ["Hop"] = new[] { "ctor(System.Double,System.Boolean,System.String)" },
+                },
+            };
+            var widened = new Shape
+            {
+                Constructors = new Dictionary<string, string[]>
+                {
+                    ["Hop"] = new[] { "ctor(System.Double,System.Boolean,System.String,System.Int32)" },
+                },
+            };
+            var overloaded = new Shape
+            {
+                Constructors = new Dictionary<string, string[]>
+                {
+                    ["Hop"] = new[]
+                    {
+                        "ctor(System.Double,System.Boolean,System.String)",
+                        "ctor(System.Double,System.Boolean,System.String,System.Int32)",
+                    },
+                },
+            };
+
+            Assert.Equal(
+                new[] { "constructor-removed:Hop.ctor(System.Double,System.Boolean,System.String)" },
+                ComputeRemovals(floor, widened));
+            Assert.Equal(
+                new[] { "constructor-removed:Hop.ctor(System.Double,System.Boolean,System.String)" },
+                ComputeRemovals(floor, new Shape { Constructors = new Dictionary<string, string[]>() }));
+            Assert.Empty(ComputeRemovals(floor, overloaded));
+            Assert.Empty(ComputeRemovals(new Shape(), widened));
+        }
+
+        /// <summary>
+        /// The current Major's frozen floor records constructors, because a floor
+        /// that never did would let the dimension above skip silently.
+        /// </summary>
+        [Fact]
+        public void TheCurrentMajorsFloorRecordsConstructors()
+        {
+            var entry = LoadLedger().Majors.Single(e => e.Major == ContractVersion.Major);
+
+            Assert.NotNull(entry.Shape.Constructors);
+            Assert.Contains("ctor(System.Double,System.Boolean)", entry.Shape.Constructors!["Sitrep.Contract.CommsRouteHop"]);
         }
 
         /// <summary>
@@ -1040,6 +1125,7 @@ namespace Sitrep.Host.Tests
                 Enums = new Dictionary<string, string[]>(new SortedDictionary<string, string[]>(enumShapes, StringComparer.Ordinal)),
                 Topics = new Dictionary<string, string[]>(new SortedDictionary<string, string[]>(topicShapes, StringComparer.Ordinal)),
                 Seams = ContractSeamSurface.Compute(assembly),
+                Constructors = ContractSeamSurface.ComputeConstructors(assembly),
             };
         }
 
