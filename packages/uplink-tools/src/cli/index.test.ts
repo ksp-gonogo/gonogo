@@ -85,6 +85,96 @@ const uplinkDir = (declared: Record<string, unknown> = {}) => {
 const baked = (dir: string, file: string) =>
   readFileSync(join(dir, "mod", file), "utf8");
 
+const git = (cwd: string, ...args: string[]) =>
+  execFileSync(
+    "git",
+    ["-c", "user.name=t", "-c", "user.email=t@example.test", ...args],
+    { cwd, stdio: "pipe", encoding: "utf8" },
+  );
+
+/** An Uplink in a repository whose `x-v1.4.0` tag names its version, with the checked-out commit one past it. */
+const uplinkPastItsTag = () => {
+  const dir = uplinkDir();
+  git(dir, "init", "-q");
+  git(dir, "add", ".");
+  git(dir, "commit", "-q", "-m", "release");
+  git(dir, "tag", "x-v1.4.0");
+  writeFileSync(join(dir, "client", "notes.txt"), "the client moved on\n");
+  git(dir, "add", ".");
+  git(dir, "commit", "-q", "-m", "change");
+  const bundle = join(dir, "x.client.js");
+  writeFileSync(bundle, "export const marker = 2;\n");
+  return { dir, bundle };
+};
+
+const bakeWith = (
+  dir: string,
+  bundle: string,
+  env: Record<string, string> = {},
+  extra: string[] = [],
+) =>
+  execFileSync(process.execPath, [BIN, "bake", "--bundle", bundle, ...extra], {
+    cwd: dir,
+    encoding: "utf8",
+    env: { ...process.env, GITHUB_ACTIONS: "", ...env },
+  });
+
+describe("uplink-tools bake past a published version", () => {
+  it("never pairs the released Url with the hash of a client that Url cannot serve", () => {
+    const { dir, bundle } = uplinkPastItsTag();
+
+    const out = bakeWith(dir, bundle);
+
+    expect(baked(dir, "ExpectedClientHash.g.cs")).toMatch(
+      /sha256-[0-9a-f]{64}/,
+    );
+    expect(baked(dir, "ClientSource.g.cs")).toContain(
+      'DevPath = "http://localhost:5390/x.client.js";',
+    );
+    expect(out).toContain("past x-v1.4.0");
+    expect(out).toContain("bundle --serve 5390");
+  });
+
+  it("bakes the release shape on the commit the tag names", () => {
+    const { dir, bundle } = uplinkPastItsTag();
+    git(dir, "checkout", "-q", "x-v1.4.0");
+
+    bakeWith(dir, bundle);
+
+    expect(baked(dir, "ClientSource.g.cs")).toContain('DevPath = "";');
+  });
+
+  it("bakes the release shape when no tag names the version yet", () => {
+    const { dir, bundle } = uplinkPastItsTag();
+    git(dir, "tag", "-d", "x-v1.4.0");
+
+    bakeWith(dir, bundle);
+
+    expect(baked(dir, "ClientSource.g.cs")).toContain('DevPath = "";');
+  });
+
+  it("bakes the release shape in a release workflow, which builds a tag it names itself", () => {
+    const { dir, bundle } = uplinkPastItsTag();
+
+    bakeWith(dir, bundle, { GITHUB_ACTIONS: "true" });
+
+    expect(baked(dir, "ClientSource.g.cs")).toContain('DevPath = "";');
+  });
+
+  it("leaves a dev path the author gave alone", () => {
+    const { dir, bundle } = uplinkPastItsTag();
+
+    bakeWith(dir, bundle, {}, [
+      "--dev-path",
+      "http://localhost:5173/x.client.js",
+    ]);
+
+    expect(baked(dir, "ClientSource.g.cs")).toContain(
+      'DevPath = "http://localhost:5173/x.client.js";',
+    );
+  });
+});
+
 describe("uplink-tools bake", () => {
   it("writes where the client lives, who wrote it and the bundle's hash, from inside the Uplink", () => {
     const dir = uplinkDir();
