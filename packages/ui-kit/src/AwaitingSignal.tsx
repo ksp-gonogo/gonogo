@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { hasHost } from "@ksp-gonogo/sitrep-sdk";
+import { useCountdown } from "./CommandDelay/InFlightList";
 import { Countdown } from "./Countdown";
 import { Text } from "./Text";
 
@@ -26,35 +27,37 @@ export interface AwaitingSignalProps {
  * only not heard from yet, with the time left until the report is due when the
  * delay is known. Used by Comm Signal and the signal delay readout.
  *
- * The time counts down from the moment the notice mounts and is dropped once it
- * reaches zero, so a late report is not shown as a promise.
+ * The time counts down in game time from the moment the notice mounts, so it
+ * stands still while the game is paused and falls at the warp rate under time
+ * warp. It is dropped once it reaches zero, so a late report is not shown as a
+ * promise.
  *
  * @category EmptyState
  */
 export function AwaitingSignal({ expectedIn }: AwaitingSignalProps) {
   const total = expectedIn ?? 0;
   const counting = Number.isFinite(total) && total > 0;
-  const [elapsed, setElapsed] = useState(0);
-  useEffect(() => {
-    if (!counting) return;
-    const startedAt = Date.now();
-    const id = setInterval(() => {
-      setElapsed((Date.now() - startedAt) / 1000);
-    }, 1000);
-    return () => clearInterval(id);
-  }, [counting]);
-  const remaining = counting ? total - elapsed : 0;
   return (
     <>
       Awaiting first signal
-      {remaining > 0 && (
-        <>
-          {" "}
-          <Text level="muted">
-            <Countdown value={Math.ceil(remaining)} />
-          </Text>
-        </>
-      )}
+      {counting && hasHost() && <ClockedRemaining total={total} />}
+    </>
+  );
+}
+
+/** The time left, counted down on the game clock the host provides. With no host there is no game clock, and no time is drawn. */
+function ClockedRemaining({ total }: { total: number }) {
+  return <Remaining seconds={useCountdown(total) ?? 0} />;
+}
+
+function Remaining({ seconds }: { seconds: number }) {
+  if (!(seconds > 0)) return null;
+  return (
+    <>
+      {" "}
+      <Text level="muted">
+        <Countdown value={Math.ceil(seconds)} />
+      </Text>
     </>
   );
 }
