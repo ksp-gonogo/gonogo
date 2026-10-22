@@ -1,5 +1,6 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  MissionDate,
   NULL_DISPLAY,
   SearchBox,
   SelectableRow,
@@ -41,7 +42,7 @@ export function ShipPicker({
   fundsAvailable: number;
   /** Shown under the selected craft's row while it is in the list. */
   detail?: ReactNode;
-  /** Marks each craft that has been launched, and says when the time came from a vessel of the same name. */
+  /** Marks each craft that has been launched with its date, and says when the time came from a vessel of the same name. */
   showLaunched?: boolean;
 }) {
   const [query, setQuery] = useState("");
@@ -92,11 +93,13 @@ export function ShipPicker({
                       ) : (
                         <Unit value={value("t", s.totalMass)} decimals={1} />
                       )}
-                      {showLaunched &&
-                        s.lastLaunched !== null &&
-                        (s.lastLaunchedByName
-                          ? " · launched (by name)"
-                          : " · launched")}
+                      {showLaunched && s.lastLaunched !== null && (
+                        <>
+                          {" · launched "}
+                          <MissionDate value={s.lastLaunched} />
+                          {s.lastLaunchedByName && " (by name)"}
+                        </>
+                      )}
                     </ShipDetails>
                   </ShipMeta>
                   <ShipCost>

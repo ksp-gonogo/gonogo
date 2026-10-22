@@ -66,8 +66,20 @@ describe("LaunchDirector: the open pad's craft and the picked craft's side view"
     const rows = [...document.querySelectorAll("[data-ship-row]")];
     expect(rows[0].textContent).toContain("launched");
     expect(rows[0].textContent).not.toContain("by name");
-    expect(rows[1].textContent).toContain("launched (by name)");
+    expect(rows[1].textContent).toContain("(by name)");
     expect(rows[2].textContent).not.toContain("launched");
+  });
+
+  it("says when each craft was launched, in the game's date format", async () => {
+    const { emit } = mount(14, 16);
+    emit((e) => !isParts(e));
+    await screen.findByText("LFV-2 Wave");
+
+    const rows = [...document.querySelectorAll("[data-ship-row]")];
+    expect(rows[0].textContent).toMatch(/launched Y\d+ D\d+ \d\d:\d\d:\d\d/);
+    expect(rows[1].textContent).toMatch(
+      /launched Y\d+ D\d+ \d\d:\d\d:\d\d \(by name\)/,
+    );
   });
 
   it("narrows the list as the operator types, then shows the picked craft's parts", async () => {
