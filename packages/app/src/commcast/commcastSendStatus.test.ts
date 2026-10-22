@@ -2,7 +2,6 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   nextContactUt,
-  noReachReasonOf,
   type PlannedContact,
   sendStatusFor,
 } from "./commcastSendStatus";
@@ -25,44 +24,6 @@ describe("sendStatusFor", () => {
       contact: { kind: "back-in", seconds: back },
       arrival: "likely-lost",
     });
-  });
-});
-
-describe("sendStatusFor with a reason", () => {
-  it("carries the reason the plan gives for the missing contact", () => {
-    expect(sendStatusFor(["Jeb's Lander"], undefined, "unpowered")).toEqual({
-      contact: { kind: "none", reason: "unpowered" },
-      arrival: "likely-lost",
-    });
-  });
-});
-
-describe("noReachReasonOf", () => {
-  const ut = (n: number) => value("ut", n);
-  const plan: PlannedContact[] = [
-    {
-      a: "vessel:probe",
-      b: "ground:ksc",
-      horizonUt: ut(20_000),
-      windows: [],
-      noReachReason: "unpowered",
-    },
-    { a: "vessel:lander", b: "ground:ksc", horizonUt: ut(20_000), windows: [] },
-  ];
-
-  it("names the reason when the pair between this vantage and an addressee has one", () => {
-    expect(noReachReasonOf(plan, "ground:ksc", ["vessel:probe"])).toBe(
-      "unpowered",
-    );
-  });
-
-  it("names none for a pair that has no reason, and for a pair the plan does not hold", () => {
-    expect(
-      noReachReasonOf(plan, "ground:ksc", ["vessel:lander"]),
-    ).toBeUndefined();
-    expect(
-      noReachReasonOf(plan, "ground:ksc", ["vessel:other"]),
-    ).toBeUndefined();
   });
 });
 

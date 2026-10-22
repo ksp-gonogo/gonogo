@@ -180,7 +180,6 @@ function LandingStatusComponent({
     solution,
     landed,
     noLandingVector,
-    contactLoss,
     board,
     clocks,
     live,
@@ -299,7 +298,6 @@ function LandingStatusComponent({
       descending={descending}
       predicted={landing !== undefined}
       crashed={crash !== undefined}
-      contactLoss={contactLoss}
       noLandingVector={noLandingVector}
       impactSpeed={solution.bestSpeedAtImpact}
       burning={model.burning}

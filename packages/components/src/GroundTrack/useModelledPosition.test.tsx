@@ -49,13 +49,8 @@ function orbitSampledAt(validAt: number) {
 interface Drawn {
   held: number | undefined;
   modelled: number | undefined;
-  spread: readonly { lat: number; lon: number }[] | null | undefined;
 }
-let drawn: Drawn = {
-  held: undefined,
-  modelled: undefined,
-  spread: undefined,
-};
+let drawn: Drawn = { held: undefined, modelled: undefined };
 
 /** Reads what GroundTrack reads to place the two marks, and nothing else. */
 function Probe() {
@@ -73,11 +68,7 @@ function Probe() {
     lon: position?.longitude,
     receivedUt: view?.magnitude,
   });
-  drawn = {
-    held: position?.longitude?.magnitude,
-    modelled: modelled?.lon,
-    spread: modelled?.spread,
-  };
+  drawn = { held: position?.longitude?.magnitude, modelled: modelled?.lon };
   return null;
 }
 
@@ -161,68 +152,5 @@ describe("useModelledPosition", () => {
       expect(separation).toBeGreaterThan(GROUND_RATE * (DELAY - 1));
       expect(separation).toBeLessThan(GROUND_RATE * (DELAY + 2));
     }
-  });
-
-  it("hands over the ground the craft may be on when the orbit's departure envelope states a spread, centred on the modelled place", async () => {
-    const wall = createFakeWallClock();
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    const clock = new ViewClock({
-      nowWall: wall.now,
-      warpRate: () => 1,
-      delaySeconds: () => DELAY,
-    });
-    const store = new TimelineStore(clock, {
-      dynamicWholeTopicPrefixes: DYNAMIC_WHOLE_TOPIC_PREFIXES,
-    });
-    clock.suspendFrames();
-    render(
-      <TelemetryProvider client={client} store={store}>
-        <Probe />
-      </TelemetryProvider>,
-    );
-    const frame = () => {
-      clock.emitFrame();
-      store.beginFrame();
-    };
-    const orbit = orbitSampledAt(U0) as Record<string, unknown>;
-    const withEnvelope = {
-      ...orbit,
-      horizon: {
-        kind: 2,
-        trajectoryKind: 2,
-        untilUt: U0 + 1800,
-        departure: [
-          { untilUt: U0 + 1800, metres: 60_000, metresPerSecond: 40 },
-        ],
-      },
-    };
-    await act(async () => {
-      const at = { validAt: U0, deliveredAt: U0 };
-      transport.emit(
-        "trackingStation.bodies",
-        payloadOf("trackingStation.bodies"),
-        at,
-      );
-      transport.emit("vessel.identity", payloadOf("vessel.identity"), at);
-      transport.emit("vessel.orbit", withEnvelope, at);
-      transport.emit("vessel.flight", payloadOf("vessel.flight"), at);
-      frame();
-      await scheduledFrame();
-    });
-    act(() => wall.advanceBy(DELAY + 300));
-    await act(async () => {
-      frame();
-      await scheduledFrame();
-    });
-
-    const spread = drawn.spread ?? [];
-    expect(drawn.modelled).toBeDefined();
-    expect(spread.length).toBeGreaterThan(20);
-    const first = spread[0].lon;
-    const last = spread[spread.length - 1].lon;
-    expect(last).toBeGreaterThan(first);
-    expect(drawn.modelled ?? 0).toBeGreaterThan(first);
-    expect(drawn.modelled ?? 0).toBeLessThan(last);
   });
 });

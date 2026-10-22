@@ -7,7 +7,6 @@ export default {
     "dv.stages",
     "dv.summary",
     "trackingStation.bodies",
-    "trackingStation.catalog",
     "vessel.identity",
     "vessel.orbit",
     "vessel.propulsion",

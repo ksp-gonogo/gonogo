@@ -12290,16 +12290,6 @@ components:
             the turned dish would close the link, and the other end could already
             receive. A message held at the turning node may use one; nothing else does.
             Empty when no dish would be turned or the backend turns none.
-        noReachReason:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            Why this pair has no reach and so no windows, from CommsNoReachReasons:
-            `"unpowered"` when either craft has no electric charge aboard. Absent when
-            the pair has reach or no reason is known. Useful for telling the operator a
-            missing window is the craft's power, not its orbit.
         lowConfidence:
           type: boolean
           x-sitrep-unit: flag

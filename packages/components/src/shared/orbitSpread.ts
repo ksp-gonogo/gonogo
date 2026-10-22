@@ -25,14 +25,13 @@ export interface OrbitSpread {
 }
 
 /** Points along the arc; a quarter of an orbit still reads as a curve. */
-export const SPREAD_SAMPLES = 33;
+const SPREAD_SAMPLES = 33;
 
 /**
  * Where the craft's position spread lies along its orbit, read off the model's
  * band on the mean anomaly. Useful for drawing how far along the orbit the
  * craft could be, once the orbit has been carried forward from its last
- * observation. Used by the orbit diagram, the System View and the ground
- * track.
+ * observation. Used by the orbit diagram.
  *
  * `undefined` where the reading carries no band: no model, a model that offers
  * none, or a view past the horizon the provider stated. The band is in mean
@@ -75,41 +74,4 @@ export function orbitSpread(
     anomalies.push(nu);
   }
   return { anomalies, halfWidth: half.in("°") };
-}
-
-/** The spread is drawn this many line widths thick, so it reads as a band about the line it follows. */
-export const SPREAD_STROKE_SCALE = 3;
-
-/** A spread shorter than this many pixels says nothing a viewer can see, so it is not drawn. */
-export const SPREAD_MIN_PX = 1;
-
-/** The length of a polyline through `points`, in the units the points are in. */
-export function polylineLength(
-  points: readonly { x: number; y: number }[],
-): number {
-  let length = 0;
-  for (let i = 1; i < points.length; i++) {
-    length += Math.hypot(
-      points[i].x - points[i - 1].x,
-      points[i].y - points[i - 1].y,
-    );
-  }
-  return length;
-}
-
-/**
- * The spread's points where they make an arc a viewer can see, or null where
- * any is not finite or the arc is shorter than a pixel. `unitsPerPx` is how
- * many of the points' units one screen pixel covers. Never padded to a minimum
- * width, since that would claim more spread than the reading carries.
- */
-export function visibleSpreadPoints<P extends { x: number; y: number }>(
-  points: readonly P[],
-  unitsPerPx: number,
-): readonly P[] | null {
-  if (points.some((p) => !Number.isFinite(p.x) || !Number.isFinite(p.y))) {
-    return null;
-  }
-  if (polylineLength(points) / unitsPerPx < SPREAD_MIN_PX) return null;
-  return points;
 }

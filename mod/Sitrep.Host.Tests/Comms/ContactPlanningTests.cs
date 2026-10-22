@@ -314,34 +314,5 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Contains("\"closeUt\":1.5", json);
             Assert.Contains("\"lowConfidence\":false", json);
         }
-
-        [Fact]
-        public void ThePlanSerialisesTheReasonAPairHasNoReachOnlyWhenItHasOne()
-        {
-            var payload = new CommsContacts
-            {
-                HorizonUt = 2.0,
-                Pairs =
-                {
-                    new CommsContactPair { A = "ground:ksc", B = "vessel:a", HorizonUt = 2.0, NoReachReason = CommsNoReachReasons.Unpowered },
-                    new CommsContactPair { A = "ground:ksc", B = "vessel:b", HorizonUt = 2.0 },
-                },
-            };
-
-            var json = Sitrep.Contract.Serialization.EnvelopeCodec.WriteStreamData(new StreamData<object?>
-            {
-                Type = "stream-data",
-                Topic = "comms.contacts",
-                Payload = payload,
-                Meta = new Meta
-                {
-                    Source = "s", ValidAt = 0, Seq = 1, DeliveredAt = 0, Vantage = "v",
-                    Quality = Quality.OnRails, Active = true, Staleness = Staleness.Fresh, TimelineEpoch = 0,
-                },
-            });
-
-            Assert.Contains("\"noReachReason\":\"unpowered\"", json);
-            Assert.Equal(1, System.Text.RegularExpressions.Regex.Matches(json, "noReachReason").Count);
-        }
     }
 }

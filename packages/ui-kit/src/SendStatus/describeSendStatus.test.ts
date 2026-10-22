@@ -47,15 +47,4 @@ describe("describeSendStatus", () => {
       /^No contact, back in 3min · 16min 40s signal delay\nHeld until .+, arrives .+$/,
     );
   });
-
-  it("says why there is no contact when the plan knows the addressee has no power", () => {
-    expect(
-      describeSendStatus({
-        contact: { kind: "none", reason: "unpowered" },
-        arrival: "likely-lost",
-      }),
-    ).toBe(
-      "No contact, no electric charge aboard · no signal path\nLikely lost",
-    );
-  });
 });

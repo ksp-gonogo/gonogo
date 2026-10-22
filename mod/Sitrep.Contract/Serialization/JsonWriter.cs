@@ -1961,13 +1961,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "lowConfidence");
             sb.Append(':');
             AppendBool(sb, p.LowConfidence);
-            if (p.NoReachReason != null)
-            {
-                sb.Append(',');
-                AppendString(sb, "noReachReason");
-                sb.Append(':');
-                AppendString(sb, p.NoReachReason);
-            }
             sb.Append('}');
         }
 

@@ -82,7 +82,7 @@ namespace Sitrep.Host.Comms
             {
                 var a = Pairs[i];
                 var b = other.Pairs[i];
-                if (a.A != b.A || a.B != b.B || a.MaxRangeMeters != b.MaxRangeMeters || a.NoReachReason != b.NoReachReason || !Equals(a.Link, b.Link))
+                if (a.A != b.A || a.B != b.B || a.MaxRangeMeters != b.MaxRangeMeters || !Equals(a.Link, b.Link))
                 {
                     return false;
                 }
@@ -396,7 +396,6 @@ namespace Sitrep.Host.Comms
                     B = pair.B,
                     HorizonUt = pair.HorizonUt,
                     LowConfidence = rough.Contains(pair.A) || rough.Contains(pair.B),
-                    NoReachReason = pair.NoReachReason,
                 };
                 foreach (var window in pair.Windows)
                 {

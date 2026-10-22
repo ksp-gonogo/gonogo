@@ -2531,13 +2531,6 @@ export interface CommsContactPair
 	*/
 	retargetWindows: CommsRetargetWindow[];
 	/**
-	* Why this pair has no reach and so no windows, from CommsNoReachReasons:
-	* `"unpowered"` when either craft has no electric charge aboard. Absent when
-	* the pair has reach or no reason is known. Useful for telling the operator a
-	* missing window is the craft's power, not its orbit.
-	*/
-	noReachReason?: string;
-	/**
 	* True while either end was last heard of with its orbit still changing. It is
 	* reckoned on the orbit it reported mid-burn, which it has since left, so
 	* these windows are a rough guide until its next report.

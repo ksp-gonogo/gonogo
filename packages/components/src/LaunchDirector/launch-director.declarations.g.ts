@@ -5,7 +5,6 @@ export default {
     "career.status",
     "crash.hasRecent",
     "crash.lastCrash",
-    "recovery.lastSummary",
     "spaceCenter.crewRoster",
     "spaceCenter.launchSites",
     "spaceCenter.savedShips",

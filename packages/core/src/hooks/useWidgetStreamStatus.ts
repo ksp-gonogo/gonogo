@@ -11,7 +11,6 @@ import {
   widgetDeclaredTopics,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { useTelemetry } from "./useTelemetry";
 
 /**
  * The grades a whole widget can honestly be badged with, as opposed to the
@@ -67,17 +66,7 @@ export function useWidgetStreamStatus(
 ): StreamStatusValue | null {
   const store = useTelemetryStoreOptional();
   // Keyed on the ids themselves: a config object changes identity on every edit.
-  // Outside the flight scene there is no active vessel, so the last vessel's Topics, held at a
-  // blackout grade by a craft left out of contact, describe nothing on screen.
-  const sceneReading = useTelemetry("spaceCenter.scene");
-  const scene =
-    sceneReading.state === "observed" || sceneReading.state === "held"
-      ? sceneReading.value.scene
-      : undefined;
-  const noActiveVessel = typeof scene === "string" && scene !== "Flight";
-  const topicKey = widgetDeclaredTopics(def, config)
-    .filter((topic) => !(noActiveVessel && topic.startsWith("vessel.")))
-    .join("\n");
+  const topicKey = widgetDeclaredTopics(def, config).join("\n");
   const topics = useMemo(
     () => (topicKey === "" ? [] : topicKey.split("\n")),
     [topicKey],

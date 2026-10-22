@@ -55,10 +55,7 @@ import {
 } from "../components/ComponentOverlay";
 import type { DashboardConfig } from "../components/Dashboard";
 import { Dashboard } from "../components/Dashboard";
-import {
-  ContactLossBanner,
-  FlightOutcomeBanner,
-} from "../components/FlightOutcomeBanner";
+import { FlightOutcomeBanner } from "../components/FlightOutcomeBanner";
 import { FullscreenFab } from "../components/FullscreenFab";
 import { HeaderBadges } from "../components/HeaderBadges";
 import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
@@ -496,7 +493,6 @@ function MainDashboard({
             <SustainedFailureBanner />
             <SceneChangeBanner />
             <FlightOutcomeBanner />
-            <ContactLossBanner />
             <HomeFallbackNotice />
             <ModVersionBanner />
             <StationBuildMismatchNotice host={peerHostService} />

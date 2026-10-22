@@ -54,7 +54,6 @@ const PREDICTING_FILES = [
   "packages/components/src/LandingStatus/descentLayers.ts",
   "packages/components/src/LandingStatus/solveLanding.ts",
   "packages/components/src/GroundTrack/useGroundTrackPrediction.ts",
-  "packages/components/src/GroundTrack/modelledSpread.ts",
   "packages/components/src/GroundTrack/useModelledPosition.ts",
   "packages/components/src/ManeuverPlanner/planning.ts",
   "packages/components/src/TrackingStation/recordedFlownCraft.ts",

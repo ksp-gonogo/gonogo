@@ -18,7 +18,6 @@ import {
   paintCrosshair,
   paintMapBase,
   paintPrediction,
-  paintSpread,
   paintTrail,
   paintVesselMarker,
   sizedContext,
@@ -26,7 +25,6 @@ import {
 import { groupBaseLayersByUplink } from "./orderBaseLayers";
 import type { BaseSurfaceLayer } from "./paintBaseSurface";
 import type { useBaseLayers } from "./useBaseLayers";
-import type { ModelledPosition } from "./useModelledPosition";
 import type { TrajectoryPoint } from "./useTrajectoryBuffer";
 import { shouldSuppressVanillaBase } from "./vanillaSuppression";
 
@@ -53,7 +51,7 @@ interface MapPaintingInputs {
   /** See `MapTelemetry.positionHeld`. */
   positionHeld: boolean;
   /** See `MapTelemetry.modelledPosition`. */
-  modelledPosition: ModelledPosition | null;
+  modelledPosition: { lat: number; lon: number } | null;
 }
 
 /**
@@ -285,24 +283,6 @@ export function useMapPainting({
       }
       // The observation is held wherever it is not the current marker: the kit draws it as the held square, beside a modelled position where there is one.
       paintCrosshair(ctx, x, y, true);
-      if (modelled !== undefined && modelledPosition?.spread) {
-        // Each point in the repeat of the world nearest the modelled one, so a stretch across the antimeridian stays one line.
-        paintSpread(
-          ctx,
-          modelledPosition.spread.map((g) => {
-            const m = adjustedMap(WORLD_W, WORLD_H, g.lat, g.lon);
-            return worldToScreen(
-              nearestRepeatX(m.x, modelled.x) +
-                (nearestRepeatX(modelled.x, wx) - modelled.x) +
-                shift,
-              m.y,
-              camera,
-              w,
-              h,
-            );
-          }),
-        );
-      }
       const modelledAt =
         modelled === undefined
           ? undefined

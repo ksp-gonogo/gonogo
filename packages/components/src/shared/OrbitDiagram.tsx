@@ -17,11 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // biome-ignore lint/style/noRestrictedImports: SVG <circle> focus ring (a :focus-visible stroke on a shape), which neither an inline style nor a primitive can render
 import styled from "styled-components";
 
-import {
-  type OrbitSpread,
-  SPREAD_STROKE_SCALE,
-  visibleSpreadPoints,
-} from "./orbitSpread";
+import type { OrbitSpread } from "./orbitSpread";
 
 export type OrbitDiagramVariant = "full" | "mini";
 
@@ -879,9 +875,16 @@ function OrbitDiagramScene({
 /** The body's disc must be this many pixels across its radius before its spin marker is named, so the word has room beside the dot. */
 const SPIN_LABEL_MIN_DISC_PX = 36;
 
+/** The spread arc is drawn this many line widths thick, so it reads as a band about the orbit line. */
+const SPREAD_STROKE_SCALE = 3;
+
+/** An arc shorter than this many pixels says nothing a viewer can see, so it is not drawn. */
+const SPREAD_MIN_PX = 1;
+
 /**
  * The spread as an SVG path along the orbit, in the orbit's own frame, or null
- * where it is absent or shorter than a pixel.
+ * where it is absent or shorter than a pixel. Never padded to a minimum width,
+ * since that would claim more spread than the reading carries.
  */
 function spreadArc(
   spread: OrbitSpread | null,
@@ -890,14 +893,21 @@ function spreadArc(
   vbPerPx: number,
 ): string | null {
   if (spread === null) return null;
-  const points = visibleSpreadPoints(
-    spread.anomalies.map((nu) => {
-      const p = orbitalToCartesian(trueAnomalyToRadius(sma, ecc, nu), nu);
-      return { x: p.x, y: -p.y };
-    }),
-    vbPerPx,
-  );
-  if (points === null) return null;
+  const points = spread.anomalies.map((nu) => {
+    const p = orbitalToCartesian(trueAnomalyToRadius(sma, ecc, nu), nu);
+    return { x: p.x, y: -p.y };
+  });
+  if (points.some((p) => !Number.isFinite(p.x) || !Number.isFinite(p.y))) {
+    return null;
+  }
+  let length = 0;
+  for (let i = 1; i < points.length; i++) {
+    length += Math.hypot(
+      points[i].x - points[i - 1].x,
+      points[i].y - points[i - 1].y,
+    );
+  }
+  if (length / vbPerPx < SPREAD_MIN_PX) return null;
   return points
     .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(2)},${p.y.toFixed(2)}`)
     .join(" ");

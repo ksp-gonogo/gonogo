@@ -325,28 +325,3 @@ export const CraftNoParts = styled.div`
   justify-content: center;
   color: var(--color-text-faint);
 `;
-
-export const LastRecovery__Block = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-line);
-  padding: var(--inset-chip);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-regular);
-  font-size: var(--font-size-compact);
-  font-variant-numeric: tabular-nums;
-`;
-
-export const LastRecovery__Label = styled.span`
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-`;
-
-export const LastRecovery__Figures = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gap-line) var(--gap-related-compact);
-  color: var(--color-text-dim);
-`;

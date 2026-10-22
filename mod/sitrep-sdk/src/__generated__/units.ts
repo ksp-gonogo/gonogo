@@ -455,7 +455,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     b: "id",
     horizonUt: "ut",
     lowConfidence: "flag",
-    noReachReason: "id",
   },
   "CommsContactWindow": {
     closeUt: "ut",

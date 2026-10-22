@@ -191,69 +191,6 @@ describe("useWidgetStreamStatus", () => {
     expect(screen.getByText("status:none")).toBeTruthy();
   });
 
-  /**
-   * The Launch & Recovery header read "BLACKOUT" with the pad idle and nothing flying: a craft left
-   * in orbit out of contact kept the last vessel Topics at their blackout grade, and the widget
-   * declares them. With no active vessel in the scene there is no craft to be dark.
-   */
-  describe("outside the flight scene", () => {
-    function SceneProbe() {
-      const status = useWidgetStreamStatus({
-        channels: ["vessel.flight", "spaceCenter.launchSites"],
-      });
-      return (
-        <>
-          <Reads topic="vessel.flight" />
-          <Reads topic="spaceCenter.launchSites" />
-          <Reads topic="spaceCenter.scene" />
-          <div>status:{status ?? "none"}</div>
-        </>
-      );
-    }
-
-    const darkVessel = (transport: StubTransport) => {
-      transport.emit(
-        "vessel.flight",
-        { altitudeAsl: 38400 },
-        { staleness: Staleness.LastBeforeBlackout },
-      );
-    };
-
-    it("does not badge a blackout of the last vessel's Topics at the Space Center", async () => {
-      const transport = new StubTransport();
-      render(
-        <Host transport={transport}>
-          <SceneProbe />
-        </Host>,
-      );
-      act(() => {
-        transport.emit("spaceCenter.scene", { scene: "SpaceCenter" });
-        darkVessel(transport);
-      });
-      await screen.findByText("spaceCenter.scene:observed");
-      await screen.findByText("vessel.flight:held");
-
-      expect(screen.getByText("status:none")).toBeTruthy();
-    });
-
-    it("still badges the blackout while the vessel is the one being flown", async () => {
-      const transport = new StubTransport();
-      render(
-        <Host transport={transport}>
-          <SceneProbe />
-        </Host>,
-      );
-      act(() => {
-        transport.emit("spaceCenter.scene", { scene: "Flight" });
-        darkVessel(transport);
-      });
-
-      await waitFor(() =>
-        expect(screen.getByText("status:last-before-blackout")).toBeTruthy(),
-      );
-    });
-  });
-
   it("ignores families: one dark craft must not badge a widget that spans them all", async () => {
     const transport = new StubTransport();
     function FamilyProbe() {

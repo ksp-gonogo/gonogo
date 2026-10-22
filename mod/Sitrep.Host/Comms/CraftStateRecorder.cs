@@ -779,12 +779,10 @@ namespace Sitrep.Host.Comms
                 {
                     continue;
                 }
-                var reach = CommsElection.ReachModel(kernel, node.Radio, other.Radio);
                 links[other.Id] = new CraftLink(
-                    reach.MaxRangeMeters,
+                    CommsElection.ReachModel(kernel, node.Radio, other.Radio).MaxRangeMeters,
                     CommsElection.LinkModel(kernel, node.Radio, other.Radio, ut),
-                    CommsElection.LinkStrength(kernel, node.Radio, other.Radio, ut),
-                    (reach as ICommsNoReachReason)?.NoReachReason);
+                    CommsElection.LinkStrength(kernel, node.Radio, other.Radio, ut));
             }
             var retarget = CommsElection.RetargetModel(kernel, node.Radio, ut);
             if (node.Surface != null)

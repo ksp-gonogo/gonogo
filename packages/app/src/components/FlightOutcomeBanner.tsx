@@ -1,4 +1,3 @@
-import { useContactLoss } from "@ksp-gonogo/components";
 import { useTelemetry } from "@ksp-gonogo/core";
 import { useFlight } from "@ksp-gonogo/data";
 import { useViewClockOptional } from "@ksp-gonogo/sitrep-client";
@@ -14,7 +13,6 @@ import {
   SectionTitle,
   Unit,
   VisuallyHidden,
-  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -270,68 +268,6 @@ export function FlightOutcomeBanner() {
         {shown ? announcement(shown) : ""}
       </VisuallyHidden>
       {shown && <OutcomeBanner outcome={shown} onOpen={openDetail} />}
-    </>
-  );
-}
-
-/**
- * Announces the active vessel as overdue or presumed lost when the catalog says the centre has stopped hearing it. A craft that crashed out of contact is dropped on purpose under the delay model, so the centre cannot know it was destroyed and this banner never says so.
- */
-export function ContactLossBanner() {
-  const loss = useContactLoss();
-  const identityReading = useTelemetry("vessel.identity");
-  const identity =
-    identityReading.state === "observed" || identityReading.state === "held"
-      ? identityReading.value
-      : undefined;
-  const name = str(identity?.name) || "Untitled";
-  const phase = loss?.phase ?? null;
-  const [announced, setAnnounced] = useState<string | null>(null);
-  const [expiresAt, setExpiresAt] = useState<number | null>(null);
-  const key = phase === null ? null : `${identity?.vesselId}:${phase}`;
-
-  useEffect(() => {
-    if (key === null) {
-      setAnnounced(null);
-      setExpiresAt(null);
-      return;
-    }
-    if (key === announced) return;
-    setAnnounced(key);
-    setExpiresAt(Date.now() + VISIBLE_MS);
-  }, [key, announced]);
-
-  useEffect(() => {
-    if (expiresAt === null) return;
-    const id = setTimeout(
-      () => setExpiresAt(null),
-      Math.max(0, expiresAt - Date.now()),
-    );
-    return () => clearTimeout(id);
-  }, [expiresAt]);
-
-  const shown = loss !== null && expiresAt !== null ? loss : null;
-  const since =
-    shown?.sinceUt != null
-      ? `no contact since ${writeQuantity(shown.sinceUt)}`
-      : "no contact";
-  const label = shown?.phase === "lost" ? "PRESUMED LOST" : "OVERDUE";
-  return (
-    <>
-      <VisuallyHidden role="status" aria-live="polite">
-        {shown ? `${label}: ${name}, ${since}` : ""}
-      </VisuallyHidden>
-      {shown && (
-        <ContactLossBox $lost={shown.phase === "lost"}>
-          <BannerLabel
-            $variant={shown.phase === "lost" ? "crashed" : "overdue"}
-          >
-            {label}
-          </BannerLabel>
-          <BannerVessel>{name}</BannerVessel>
-          <BannerStat>{since}</BannerStat>
-        </ContactLossBox>
-      )}
     </>
   );
 }
@@ -742,25 +678,11 @@ const CrashBanner = styled.button`
   }
 `;
 
-const ContactLossBox = styled.div<{ $lost: boolean }>`
-  ${bannerBase}
-  cursor: default;
-  border: 1px solid
-    ${({ $lost }) =>
-      $lost ? "var(--color-nogo-text)" : "var(--color-warn-text)"};
-`;
-
-const BannerLabel = styled.span<{
-  $variant: "recovered" | "crashed" | "overdue";
-}>`
+const BannerLabel = styled.span<{ $variant: "recovered" | "crashed" }>`
   font-size: var(--font-size-caption);
   letter-spacing: 0.12em;
   color: ${({ $variant }) =>
-    $variant === "crashed"
-      ? "var(--color-nogo-text)"
-      : $variant === "overdue"
-        ? "var(--color-warn-text)"
-        : "var(--color-go-text)"};
+    $variant === "crashed" ? "var(--color-nogo-text)" : "var(--color-go-text)"};
   font-weight: 700;
 `;
 

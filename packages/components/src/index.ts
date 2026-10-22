@@ -38,7 +38,6 @@ export * from "./shared/AlarmsLauncher";
 export * from "./shared/RequiresGuard";
 export * from "./shared/SeatGuard";
 export * from "./shared/seatAvailability";
-export * from "./shared/useContactLoss";
 export * from "./shared/WarpIntent";
 export * from "./TargetPicker";
 export * from "./ThermalStatus";

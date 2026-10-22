@@ -25,9 +25,8 @@ import {
   type ShipMapPartMetaEntry,
   type ShipMapPartMeterEntry,
 } from "./shipTopology";
-import { turnedView, VIEW_STEPS_PER_TURN } from "./shipView";
+import { pickView, turnedView, VIEW_STEPS_PER_TURN } from "./shipView";
 import type { ShipMapOverlayContext } from "./slots";
-import { useBaseView } from "./useBaseView";
 
 const topics = defineTopicManifest({
   channels: [
@@ -115,8 +114,11 @@ function ShipMapComponent({
     [metaContributions],
   );
 
-  // The default angle is found when a craft appears, and every part shares the one view.
-  const baseView = useBaseView(topology);
+  // The default angle is found once per topology rebuild, and every part shares the one view.
+  const baseView = useMemo(
+    () => (topology ? pickView(topology.parts) : 0),
+    [topology],
+  );
   const parts: ShipMapPart[] = useMemo(() => {
     if (!topology) return [];
     const view = turnedView(baseView, turn);
@@ -246,7 +248,7 @@ registerComponent<ShipMapConfig>({
   id: "ship-map",
   name: "Ship Map",
   description:
-    "A view of your vessel part by part, side-on for a rocket and from above for a plane, turnable in steps, each part tinted by its heat, with fill bars on tanks and boosters and the hottest part picked out.",
+    "A view of your vessel part by part, side-on for a rocket and from above for a plane, turnable in steps,, each part tinted by its heat, with fill bars on tanks and boosters and the hottest part picked out.",
   tags: ["telemetry", "ship"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 5, h: 5 },

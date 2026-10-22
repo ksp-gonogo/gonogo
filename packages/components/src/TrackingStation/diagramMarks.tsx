@@ -16,7 +16,7 @@ import type { Placement } from "./projection";
 import { InteractiveMarker } from "./SystemEntitiesLayer";
 
 /** The active vessel's own ring, thinner than a body orbit so the two classes read apart. */
-export const ACTIVE_VESSEL_ORBIT_STROKE_WIDTH = 1;
+const ACTIVE_VESSEL_ORBIT_STROKE_WIDTH = 1;
 
 /** The target's curve, the colour its dot wears on the diagram. */
 const TARGET_ORBIT_COLOUR = "var(--color-nogo-mark)";

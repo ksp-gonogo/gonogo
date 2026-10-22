@@ -217,8 +217,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/GroundTrack/index.tsx": 6,
   // 3: `predictGroundTrack` is plain-number geometry, so the reference's latitude and longitude unwrap once in `predictionRef`, and the horizon, reckoned as Values, unwraps once in `loopHorizon`.
   "packages/components/src/GroundTrack/useGroundTrackPrediction.ts": 3,
-  // 6: `predictGroundTrack` is plain-number geometry, so the reference latitude, longitude and instant, the reckoned instant, the band half-width, and the elements behind the mean motion unwrap at that boundary.
-  "packages/components/src/GroundTrack/modelledSpread.ts": 6,
   "packages/components/src/GroundTrack/useMapPainting.ts": 2,
   "packages/components/src/GroundTrack/useMapTelemetry.ts": 5,
   // 4: `predictGroundTrack` is plain-number geometry, so the reckoning's instant, the throttle bucket and the `{ ut, lat, lon }` reference unwrap at that boundary.

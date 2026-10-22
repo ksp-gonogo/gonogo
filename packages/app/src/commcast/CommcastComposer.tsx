@@ -22,7 +22,6 @@ export function CommcastComposer({
   noPath,
   unreachable,
   backInSeconds,
-  noReachReason,
   separations,
 }: {
   log: CommcastLog;
@@ -39,12 +38,10 @@ export function CommcastComposer({
   unreachable: readonly string[];
   /** How long until the contact plan has every unreachable member back; undefined when unknown. */
   backInSeconds: Value<"s"> | undefined;
-  /** Why the plan has no contact with the unreachable members, when it says; undefined otherwise. */
-  noReachReason: "unpowered" | undefined;
   separations: ReadonlyMap<RecipientId, number | null>;
 }) {
   const [draft, setDraft] = useState("");
-  const status = sendStatusFor(unreachable, backInSeconds, noReachReason);
+  const status = sendStatusFor(unreachable, backInSeconds);
   const ready =
     draft.trim().length > 0 &&
     utNow !== undefined &&
