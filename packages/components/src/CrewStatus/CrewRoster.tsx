@@ -37,6 +37,7 @@ export function avatarCellSizePx(containerWidthPx: number): number {
 
 export function renderRoster({
   known,
+  outOfContact,
   crewCount,
   names,
   avatarSizePx,
@@ -46,6 +47,8 @@ export function renderRoster({
   suppressNameFor,
 }: {
   known: boolean;
+  /** The craft has no link home, so a roster that never arrived is not one still to come. */
+  outOfContact: boolean;
   crewCount: number | undefined;
   names: string[];
   avatarSizePx: number;
@@ -59,7 +62,13 @@ export function renderRoster({
    *  named this kerbal, and the Card still has other content to show. */
   suppressNameFor?: string;
 }): React.ReactNode {
-  if (!known) return <EmptyState>Waiting for telemetry...</EmptyState>;
+  if (!known) {
+    return outOfContact ? (
+      <EmptyState>Out of contact, who is aboard is not known</EmptyState>
+    ) : (
+      <EmptyState>Waiting for telemetry...</EmptyState>
+    );
+  }
 
   // Only conclude "Unmanned" once the headcount itself has arrived; capacity can land first.
   if (crewCount === undefined) {

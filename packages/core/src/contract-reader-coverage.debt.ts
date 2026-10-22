@@ -56,8 +56,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "always commcast.radio, which Commcast already subscribes to by its own constant",
   "field:comms.commandCentre.bodyIndex": "no reader found",
   "field:comms.commandCentre.id": "no reader found",
-  "field:comms.connectivity.connected":
-    "restates comms.link and vessel.comms, which the comms widgets read",
   "field:comms.connectivity.controlSource":
     "restates comms.link and vessel.comms, which the comms widgets read",
   "field:comms.connectivity.hasLocalControl":

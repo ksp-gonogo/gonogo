@@ -80,6 +80,12 @@ export function CrewStatusComponent(
           kerbal.name ? [kerbal.name] : [],
         );
 
+  // With no roster ever received and no link home, the craft is not being waited on: it cannot be heard.
+  const linkReading = crewStatusTopics.useTelemetry("comms.connectivity");
+  const outOfContact =
+    (linkReading.state === "observed" || linkReading.state === "held") &&
+    linkReading.value.connected === false;
+
   const names = toCrewNames(crewRaw);
   const known =
     crewCount !== undefined || crewCapacity !== undefined || names.length > 0;
@@ -126,6 +132,7 @@ export function CrewStatusComponent(
           <div ref={rosterWidthRef}>
             {renderRoster({
               known,
+              outOfContact,
               crewCount: crewCount?.magnitude,
               names,
               avatarSizePx,

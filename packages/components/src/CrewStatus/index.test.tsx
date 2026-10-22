@@ -221,6 +221,28 @@ describe("CrewStatusComponent", () => {
     expect(screen.queryByText(/EVA/)).not.toBeInTheDocument();
   });
 
+  it("says a craft with no link home is out of contact, not still being waited for", async () => {
+    const fixture = newFixture();
+    renderCrew(fixture);
+    act(() => {
+      fixture.emit("comms.connectivity", {
+        connected: false,
+        controlSource: 0,
+        hasLocalControl: false,
+      });
+      fixture.emit("eva.crew", {
+        count: 1,
+        kerbals: [{ name: "Valentina Kerman" }],
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText(/Out of contact/)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/Waiting for telemetry/)).not.toBeInTheDocument();
+    expect(screen.getByText("Valentina Kerman")).toBeInTheDocument();
+  });
+
   it("lists a kerbal on EVA from the craft, as out, beside who is aboard", async () => {
     const fixture = newFixture();
     renderCrew(fixture);
