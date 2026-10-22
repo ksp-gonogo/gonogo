@@ -8,6 +8,11 @@ export interface RadioClockOptions {
   /** Wall seconds, on the clock the source extrapolates against. */
   nowWall?: () => number;
   /**
+   * Game seconds per wall second right now: 1 at normal speed, the warp rate
+   * under warp, 0 while the game is paused. Defaults to 1.
+   */
+  rate?: () => number;
+  /**
    * The largest backward step read as jitter rather than as a discontinuity.
    *
    * Two seconds: well past any relay stall a working mesh produces, and well
@@ -38,7 +43,8 @@ export interface RadioClockStats {
  * released out of order or early, and a release instant that moves back makes
  * the pacer read a burst as a backlog and skip it.
  *
- * So the present only moves forward at natural rate from the furthest point the
+ * So the present only moves forward at the game's rate (standing still while
+ * paused) from the furthest point the
  * estimate has reached. The furthest point is also the best one: the sample that
  * crossed fastest is the one closest to the true present, and a slower one says
  * nothing newer. A step back beyond `toleranceSeconds` is not jitter but a real
@@ -50,6 +56,7 @@ export class RadioClock {
   /** The last reading was held out, so a run of them is counted once. */
   private absorbing = false;
   private readonly nowWall: () => number;
+  private readonly rate: () => number;
   private readonly toleranceSeconds: number;
   private readonly counts: RadioClockStats = {
     absorbed: 0,
@@ -59,6 +66,7 @@ export class RadioClock {
 
   constructor(private readonly opts: RadioClockOptions) {
     this.nowWall = opts.nowWall ?? (() => performance.now() / 1000);
+    this.rate = opts.rate ?? (() => 1);
     this.toleranceSeconds = opts.toleranceSeconds ?? 2;
   }
 
@@ -72,7 +80,8 @@ export class RadioClock {
       this.anchor = { ut: raw, wall };
       return raw;
     }
-    const held = anchor.ut + (wall - anchor.wall);
+    const rate = this.rate();
+    const held = anchor.ut + (wall - anchor.wall) * (rate >= 0 ? rate : 1);
     if (raw >= held) {
       this.anchor = { ut: raw, wall };
       this.absorbing = false;
