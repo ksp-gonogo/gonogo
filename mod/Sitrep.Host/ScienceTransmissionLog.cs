@@ -52,6 +52,20 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// Takes back a transmission that was expected and then given up, if it has not arrived:
+        /// the transmitter was told to abort, or the result came back aboard. One that has already
+        /// arrived stays, since the centres it was published to have it.
+        /// </summary>
+        public bool Cancel(string? subjectId, double startedAt)
+        {
+            lock (_gate)
+            {
+                return _pending.RemoveAll(e => e.SubjectId == subjectId
+                    && e.StartedAt is double known && Math.Abs(known - startedAt) <= SameStartSeconds) > 0;
+            }
+        }
+
+        /// <summary>
         /// Moves every transmission whose last packet has left by <paramref name="ut"/> from
         /// sending to arrived. Returns the moment the newest of them finished, or null when
         /// none moved, so the caller publishes only on a change and stamps it then.

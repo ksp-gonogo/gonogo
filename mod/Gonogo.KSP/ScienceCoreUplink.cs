@@ -237,6 +237,11 @@ namespace Gonogo.KSP
                         ScienceTransmissions.Log.ExpectObserved(done.SubjectId, done.Title, done.Mits, done.StartedAt, done.CompletedAt);
                     }
 
+                    foreach (var given in _watch.Abandoned)
+                    {
+                        ScienceTransmissions.Log.Cancel(given.SubjectId, given.StartedAt);
+                    }
+
                     if (ScienceTransmissions.Log.Release(poll.Ut) is double completedUt)
                     {
                         arrivals.Publish(ScienceTransmissions.Log.ToWire(), completedUt);

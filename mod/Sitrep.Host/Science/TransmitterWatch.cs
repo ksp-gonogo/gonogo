@@ -81,6 +81,14 @@ namespace Sitrep.Host.Science
     public sealed class TransmitterWatch
     {
         private readonly Dictionary<string, Run> _runs = new Dictionary<string, Run>(StringComparer.Ordinal);
+        private readonly List<FinishedTransmission> _abandoned = new List<FinishedTransmission>();
+
+        /// <summary>
+        /// The results the last <see cref="Observe"/> saw given up: sent by a transmitter that was
+        /// told to abort, or back aboard when it went idle. A caller that recorded one as sent, as a
+        /// command does when it starts, takes it back.
+        /// </summary>
+        public IReadOnlyList<FinishedTransmission> Abandoned => _abandoned;
 
         /// <summary>Whether any transmitter is being followed through a transmission. Safe to read from another thread.</summary>
         public bool HasRuns => _hasRuns;
@@ -98,6 +106,7 @@ namespace Sitrep.Host.Science
             double ut)
         {
             var finished = new List<FinishedTransmission>();
+            _abandoned.Clear();
             foreach (var gone in _runs.Keys.Where(id => readings.All(r => r.Id != id)).ToList())
             {
                 _runs.Remove(gone);
@@ -111,9 +120,20 @@ namespace Sitrep.Host.Science
                     if (run != null)
                     {
                         _runs.Remove(reading.Id);
-                        if (!run.Aborted && run.Current != null && !IsAboard(run.Current, heldAboard))
+                        if (run.Current != null)
                         {
-                            finished.Add(Finish(run.Current, run.StartedAt, ut));
+                            if (!run.Aborted && !IsAboard(run.Current, heldAboard))
+                            {
+                                finished.Add(Finish(run.Current, run.StartedAt, ut));
+                            }
+                            else
+                            {
+                                _abandoned.Add(Finish(run.Current, run.StartedAt, ut));
+                            }
+                        }
+                        if (run.Aborted)
+                        {
+                            _abandoned.AddRange(run.Waiting.Select(w => Finish(w, run.StartedAt, ut)));
                         }
                     }
                     continue;
@@ -129,9 +149,16 @@ namespace Sitrep.Host.Science
                 var queued = new HashSet<object>(reading.Queue.Select(q => q.Identity));
                 foreach (var taken in run.Waiting.Where(w => !queued.Contains(w.Identity)).ToList())
                 {
-                    if (run.Current != null && !run.Aborted && !IsAboard(run.Current, heldAboard))
+                    if (run.Current != null)
                     {
-                        finished.Add(Finish(run.Current, run.StartedAt, ut));
+                        if (!run.Aborted && !IsAboard(run.Current, heldAboard))
+                        {
+                            finished.Add(Finish(run.Current, run.StartedAt, ut));
+                        }
+                        else
+                        {
+                            _abandoned.Add(Finish(run.Current, run.StartedAt, ut));
+                        }
                     }
                     run.Current = taken;
                 }

@@ -129,5 +129,50 @@ namespace Sitrep.Host.Tests
             Assert.True(watch.HasRuns);
             Assert.Equal(new[] { "Mystery Goo" }, watch.Observe(new[] { Idle("b") }, NothingAboard, 109).Select(d => d.Title));
         }
+
+        [Fact]
+        public void AnAbortedTransmissionAndEverythingQueuedBehindItIsReportedAbandoned()
+        {
+            var watch = new TransmitterWatch();
+            Look(watch, Busy(Crew, Goo), 100);
+            Look(watch, Busy(Goo), 101);
+            Look(watch, new TransmitterReading("t", true, true, new List<QueuedData> { Goo }), 103);
+
+            Assert.Empty(Look(watch, Idle(), 104));
+
+            Assert.Equal(new[] { "Crew Report", "Mystery Goo" }, watch.Abandoned.Select(a => a.Title).OrderBy(t => t));
+            Assert.All(watch.Abandoned, a => Assert.Equal(100, a.StartedAt));
+        }
+
+        [Fact]
+        public void AResultBackAboardIsReportedAbandonedAndOneThatWasSentIsNot()
+        {
+            var watch = new TransmitterWatch();
+            Look(watch, Busy(Crew), 100);
+            Look(watch, Busy(), 101);
+
+            Look(watch, Idle(), 104, new List<QueuedData> { Crew });
+
+            Assert.Equal("Crew Report", Assert.Single(watch.Abandoned).Title);
+
+            Look(watch, Busy(Goo), 200);
+            Look(watch, Busy(), 201);
+            Assert.Single(Look(watch, Idle(), 204));
+            Assert.Empty(watch.Abandoned);
+        }
+
+        [Fact]
+        public void ATwoSecondTransmissionIsSeenFinishingOnTheFirstLookAfterItEnds()
+        {
+            var watch = new TransmitterWatch();
+            Look(watch, Busy(Goo), 1719.00);
+            Look(watch, Busy(), 1719.02);
+            Assert.Empty(Look(watch, Busy(), 2000.0 / 1000 + 1717.5));
+
+            var done = Assert.Single(Look(watch, Idle(), 1721.1));
+
+            Assert.Equal(1719.00, done.StartedAt);
+            Assert.Equal(1721.1, done.CompletedAt, 6);
+        }
     }
 }

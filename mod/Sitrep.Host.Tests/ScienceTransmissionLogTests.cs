@@ -109,5 +109,42 @@ namespace Sitrep.Host.Tests
 
             Assert.Equal(2, log.ToWire()!.Count);
         }
+
+        [Fact]
+        public void ATransmissionGivenUpBeforeItArrivedIsTakenBackAndNeverPublished()
+        {
+            var log = new ScienceTransmissionLog();
+            log.Expect("crewReport@Kerbin", "Crew Report", 5, 100, 106);
+
+            Assert.True(log.Cancel("crewReport@Kerbin", 100.3));
+
+            Assert.Null(log.Release(200));
+            Assert.Null(log.ToWire());
+        }
+
+        [Fact]
+        public void ATransmissionThatAlreadyArrivedStaysWhenItIsLaterReportedGivenUp()
+        {
+            var log = new ScienceTransmissionLog();
+            log.Expect("crewReport@Kerbin", "Crew Report", 5, 100, 106);
+            log.Release(107);
+
+            Assert.False(log.Cancel("crewReport@Kerbin", 100));
+
+            Assert.Single(log.ToWire()!);
+        }
+
+        [Fact]
+        public void ACommandedTwoSecondTransmissionArrivesOnTheTickAfterItsStreamEndsAndIsNotListedTwice()
+        {
+            var log = new ScienceTransmissionLog();
+            log.Expect("temperatureScan@KerbinSrfLanded", "Temperature Scan", 8, 1719.0, 1721.07);
+
+            Assert.Null(log.Release(1721.0));
+            log.ExpectObserved("temperatureScan@KerbinSrfLanded", "Temperature Scan", 8, 1719.0, 1721.1);
+
+            Assert.Equal(1721.07, log.Release(1721.1));
+            Assert.Single(log.ToWire()!);
+        }
     }
 }
