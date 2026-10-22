@@ -61,6 +61,27 @@ describe("InputDispatcher", () => {
     vi.useRealTimers();
   });
 
+  it("switches to one layout when two share the pressed input", async () => {
+    const { service, transport } = await makeServiceWithVirtualDevice();
+    const onProfileInput = vi.fn();
+    const binding = { deviceId: "d1", inputId: "a" };
+    const dispatcher = new InputDispatcher({
+      getItems: () => [],
+      service,
+      getProfileBindings: () => [
+        { id: "newer", inputBinding: binding },
+        { id: "older", inputBinding: binding },
+      ],
+      onProfileInput,
+    });
+
+    transport.inject("a", true);
+
+    expect(onProfileInput).toHaveBeenCalledTimes(1);
+    expect(onProfileInput).toHaveBeenCalledWith("newer", "d1", "a");
+    dispatcher.dispose();
+  });
+
   it("routes a serial input event to the mapped action handler", async () => {
     vi.useFakeTimers();
     const { service, transport } = await makeServiceWithVirtualDevice();

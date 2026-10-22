@@ -90,9 +90,10 @@ export class InputDispatcher {
           binding?.deviceId === deviceId &&
           binding.inputId === event.inputId
         ) {
-          if (this.onProfileInput(profile.id, deviceId, event.inputId)) {
-            switched = true;
-          }
+          // The first layout holding the input takes the press, so a press is one switch.
+          switched =
+            this.onProfileInput(profile.id, deviceId, event.inputId) === true;
+          break;
         }
       }
       if (switched) return;
