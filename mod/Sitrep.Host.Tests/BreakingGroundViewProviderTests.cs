@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Host;
 using Xunit;
 using Sitrep.Contract;
@@ -10,8 +12,8 @@ namespace Sitrep.Host.Tests
     /// <see cref="BreakingGroundViewProvider"/>: fake <see cref="KspSnapshot"/>s
     /// carrying the same raw <c>"parts"</c>/<c>"science"</c> encodings
     /// <c>Gonogo.KSP.KspHost.BuildParts</c>/<c>BuildScience</c> produce are
-    /// mapped to <c>robotics.servos</c>/<c>robotics.available</c>/
-    /// <c>deployed.bases</c> and asserted against the same rules the split
+    /// mapped to <c>robotics.servos</c>/<c>robotics.available</c> and the
+    /// per-station <c>deployed.station.&lt;guid&gt;.report</c> and asserted against the same rules the split
     /// providers use: no-vessel/no-data -&gt; null, primitives-only shape,
     /// missing fields -&gt; null never a sentinel.
     ///
@@ -331,31 +333,52 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void BuildDeployedReturnsNullWhenSnapshotHasNoScienceKeyAtAll()
+        public void BuildStationsReturnsNullWhenSnapshotHasNoScienceKeyAtAll()
         {
             var snapshot = new KspSnapshot { Ut = 0.0, Values = new Dictionary<string, object?>() };
 
-            Assert.Null(BreakingGroundViewProvider.BuildDeployed(snapshot));
+            Assert.Null(BreakingGroundViewProvider.BuildStations(snapshot));
         }
 
         [Fact]
-        public void BuildDeployedReturnsNullWhenSnapshotItselfIsNull()
+        public void BuildStationsReturnsNullWhenSnapshotItselfIsNull()
         {
-            Assert.Null(BreakingGroundViewProvider.BuildDeployed(null));
+            Assert.Null(BreakingGroundViewProvider.BuildStations(null));
         }
 
+        private static Dictionary<string, object?> Experiment(
+            string stationId,
+            string stationName,
+            string partName,
+            bool? sendPathHome,
+            double? storedData,
+            bool? dataSendFailed = false) => new Dictionary<string, object?>
+            {
+                ["stationId"] = stationId,
+                ["stationName"] = stationName,
+                ["stationBody"] = "Mun",
+                ["stationSituation"] = "LANDED",
+                ["stationBiome"] = "Highlands",
+                ["partName"] = partName,
+                ["experimentId"] = "surfaceExperiment" + partName.Replace(" ", ""),
+                ["scienceCompletedPercentage"] = 42.5,
+                ["scienceTransmittedPercentage"] = 10.0,
+                ["scienceValue"] = 8.0,
+                ["scienceLimit"] = 20.0,
+                ["storedData"] = storedData,
+                ["power"] = (int)DeployedPowerState.Powered,
+                ["powerAvailable"] = 30,
+                ["powerRequired"] = 20,
+                ["sendPathHome"] = sendPathHome,
+                ["dataSendFailed"] = dataSendFailed,
+                ["deployedOnGround"] = true,
+            };
+
         [Fact]
-        public void BuildDeployedMapsGroundExperimentsFromSeparateNonActiveVessels()
+        public void BuildStationsGroupsExperimentsByTheirControllerVessel()
         {
-            // Regression guard for the "science.deployed always null" bug:
-            // Breaking Ground deployed experiments live on their OWN ground
-            // vessels (a deployed cluster is a peer vessel, never the vessel
-            // the player is flying), so the raw "deployed" list is captured
-            // GLOBALLY across FlightGlobals.Vessels. This fixture carries two
-            // experiments from TWO DIFFERENT deployed-science vessels -
-            // neither of which is the active vessel - and both must map, each
-            // tagged with its own "vesselName". The old capture read only the
-            // active vessel's parts and produced null here.
+            // Two stations with the active craft elsewhere: each is keyed by its own
+            // controller vessel, and an experiment lands in the station it reports through.
             var snapshot = new KspSnapshot
             {
                 Ut = 0.0,
@@ -363,71 +386,81 @@ namespace Sitrep.Host.Tests
                 {
                     ["deployedScience"] = new List<object?>
                     {
-                        new Dictionary<string, object?>
-                        {
-                            ["vesselName"] = "Probodobodyne Experiment Control Station",
-                            ["partName"] = "Atmospheric Fluid Spectro-Variometer",
-                            ["body"] = "Mun",
-                            ["situation"] = "LANDED",
-                            ["biome"] = "Highlands",
-                            ["experimentId"] = "surfaceExperimentAtmosphericFluidSpectroVariometer",
-                            ["scienceCompletedPercentage"] = 42.5,
-                            ["scienceTransmittedPercentage"] = 10.0,
-                            ["scienceValue"] = 8.0,
-                            ["scienceLimit"] = 20.0,
-                            ["powerState"] = "Powered",
-                            ["connectionState"] = "Connected",
-                            ["deployedOnGround"] = true,
-                        },
-                        new Dictionary<string, object?>
-                        {
-                            ["vesselName"] = "Deployed Seismometer Site",
-                            ["partName"] = "Seismic Accelerometer",
-                            ["body"] = "Mun",
-                            ["situation"] = "LANDED",
-                            ["biome"] = "Midlands",
-                            ["experimentId"] = "surfaceExperimentSeismicAccelerometer",
-                            ["scienceCompletedPercentage"] = 0.0,
-                            ["scienceTransmittedPercentage"] = 0.0,
-                            ["scienceValue"] = 12.0,
-                            ["scienceLimit"] = 30.0,
-                            ["powerState"] = "NoPower",
-                            ["connectionState"] = "NotConnected",
-                            ["deployedOnGround"] = true,
-                        },
+                        Experiment("station-a", "Mun Station", "Spectro Variometer", true, 0.0),
+                        Experiment("station-b", "Minmus Station", "Seismic Accelerometer", false, 14.5),
+                        Experiment("station-a", "Mun Station", "Atmospheric Sampler", true, 3.0),
                     },
                 },
             };
 
-            var payload = BreakingGroundViewProvider.BuildDeployed(snapshot);
-            var list = Assert.IsType<List<object?>>(payload);
-            Assert.Equal(2, list.Count);
+            var stations = Assert.IsType<Dictionary<string, Dictionary<string, object?>>>(
+                BreakingGroundViewProvider.BuildStations(snapshot));
 
-            var first = Assert.IsType<Dictionary<string, object?>>(list[0]);
-            Assert.Equal("Probodobodyne Experiment Control Station", first["vesselName"]);
-            Assert.Equal("Atmospheric Fluid Spectro-Variometer", first["partName"]);
-            Assert.Equal("Mun", first["body"]);
-            Assert.Equal("Highlands", first["biome"]);
-            Assert.Equal("surfaceExperimentAtmosphericFluidSpectroVariometer", first["experimentId"]);
-            Assert.Equal(42.5, first["scienceCompletedPercentage"]);
-            Assert.Equal("Powered", first["powerState"]);
-            Assert.Equal("Connected", first["connectionState"]);
-            Assert.Equal(true, first["deployedOnGround"]);
+            Assert.Equal(new[] { "station-a", "station-b" }, stations.Keys.OrderBy(k => k, StringComparer.Ordinal));
 
-            var second = Assert.IsType<Dictionary<string, object?>>(list[1]);
-            Assert.Equal("Deployed Seismometer Site", second["vesselName"]);
-            Assert.Equal("Seismic Accelerometer", second["partName"]);
-            Assert.Equal("NoPower", second["powerState"]);
-            Assert.Equal("NotConnected", second["connectionState"]);
+            var a = stations["station-a"];
+            Assert.Equal("Mun Station", a["stationName"]);
+            Assert.Equal("Mun", a["body"]);
+            Assert.Equal("Highlands", a["biome"]);
+            Assert.Equal((int)DeployedPowerState.Powered, a["power"]);
+            Assert.Equal(true, a["sendPathHome"]);
+            Assert.Equal(2, Assert.IsType<List<object?>>(a["experiments"]).Count);
+
+            var b = stations["station-b"];
+            Assert.Equal(false, b["sendPathHome"]);
+            var stranded = Assert.IsType<Dictionary<string, object?>>(Assert.Single(Assert.IsType<List<object?>>(b["experiments"])));
+            Assert.Equal(14.5, stranded["storedData"]);
         }
 
         [Fact]
-        public void BuildDeployedReturnsNullWhenSubGroupIsAbsentEvenThoughScienceKeyExists()
+        public void BuildStationsKeepsAnUnreadSendPathAsNullNotFalse()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["deployedScience"] = new List<object?>
+                    {
+                        Experiment("station-a", "Mun Station", "Spectro Variometer", sendPathHome: null, storedData: null, dataSendFailed: null),
+                    },
+                },
+            };
+
+            var station = Assert.Single(Assert.IsType<Dictionary<string, Dictionary<string, object?>>>(
+                BreakingGroundViewProvider.BuildStations(snapshot))).Value;
+
+            Assert.Null(station["sendPathHome"]);
+            Assert.Null(station["dataSendFailed"]);
+            var experiment = Assert.IsType<Dictionary<string, object?>>(Assert.Single(Assert.IsType<List<object?>>(station["experiments"])));
+            Assert.Null(experiment["storedData"]);
+        }
+
+        [Fact]
+        public void BuildStationsLeavesOutAnExperimentWithNoControllerVessel()
+        {
+            var unplaced = Experiment("station-a", "x", "Spectro Variometer", true, 0.0);
+            unplaced.Remove("stationId");
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["deployedScience"] = new List<object?> { unplaced },
+                },
+            };
+
+            Assert.Empty(Assert.IsType<Dictionary<string, Dictionary<string, object?>>>(
+                BreakingGroundViewProvider.BuildStations(snapshot)));
+        }
+
+        [Fact]
+        public void BuildStationsReturnsNullWhenSubGroupIsAbsentEvenThoughScienceKeyExists()
         {
             // KspHost's own TryBuildGroup can omit an individual science
             // sub-group (e.g. "deployed" while no cluster exists) without
             // taking out the others - the provider must map that to null,
-            // not throw or fabricate an empty list.
+            // not throw or fabricate an empty map.
             var snapshot = new KspSnapshot
             {
                 Ut = 0.0,
@@ -441,11 +474,11 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            Assert.Null(BreakingGroundViewProvider.BuildDeployed(snapshot));
+            Assert.Null(BreakingGroundViewProvider.BuildStations(snapshot));
         }
 
         [Fact]
-        public void BuildDeployed_AnEmptyRosterIsAnEmptyListNotNull()
+        public void BuildStations_AnEmptyRosterIsAnEmptyMapNotNull()
         {
             // Breaking Ground installed and nothing deployed: a complete answer.
             var snapshot = new KspSnapshot
@@ -454,8 +487,8 @@ namespace Sitrep.Host.Tests
                 Values = new Dictionary<string, object?> { ["deployedScience"] = new List<object?>() },
             };
 
-            var list = Assert.IsType<List<object?>>(BreakingGroundViewProvider.BuildDeployed(snapshot));
-            Assert.Empty(list);
+            Assert.Empty(Assert.IsType<Dictionary<string, Dictionary<string, object?>>>(
+                BreakingGroundViewProvider.BuildStations(snapshot)));
         }
     }
 }

@@ -694,13 +694,13 @@ describe("the element readers are bound by hand and stay true", () => {
   });
 
   it("credits a leaf the bound file reads, and never a leaf it does not", () => {
-    const fields = contractFields(["deployed.bases"]);
-    const byFieldsOfTopic = new Map([["deployed.bases", fields]]);
+    const fields = contractFields(["robotics.servos"]);
+    const byFieldsOfTopic = new Map([["robotics.servos", fields]]);
     const credited: string[] = [];
     creditElementReaders(
       new Map([
         [
-          ELEMENT_READERS.find((r) => r.topic === "deployed.bases")
+          ELEMENT_READERS.find((r) => r.topic === "robotics.servos")
             ?.file as string,
           "export const f = (e: Record<string, string>) => e.partName;",
         ],
@@ -708,7 +708,7 @@ describe("the element readers are bound by hand and stay true", () => {
       byFieldsOfTopic,
       (key) => credited.push(key),
     );
-    expect(credited).toEqual(["deployed.bases.partName"]);
+    expect(credited).toEqual(["robotics.servos.partName"]);
   });
 
   /**

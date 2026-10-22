@@ -514,125 +514,60 @@ public class LabEntry
     public Dictionary<string, object?>? Extensions { get; set; }
 }
 
-/// <summary> One entry in the <c>deployed.bases</c> Topic payload: a
-/// Breaking Ground deployed-science experiment, a science instrument set down
-/// on the surface. The Topic payload is a bare array
-/// (<c>DeployedEntry[]</c>) or <c>null</c> when Breaking Ground is not
-/// installed and no loaded vessel carries a deployed experiment.
+/// <summary>
+/// One Breaking Ground deployed-science station on
+/// <c>deployed.station.&lt;controllerVesselId&gt;.report</c>: the cluster a control
+/// unit runs, its power, whether its science has a path home, and each
+/// experiment it carries. The key is the id of the cluster's controller vessel,
+/// the same guid its <c>trackingStation.catalog</c> entry carries (type
+/// <c>DeployedScienceController</c>), so a client finds every station by
+/// listing that catalog.
 ///
-/// <para>Unlike the <c>science.*</c> channels, <c>deployed.bases</c> covers
-/// the whole save, not just the active vessel: a deployed cluster is its own
-/// ground vessel, so an entry normally describes a vessel other than the
-/// active one, named by <see cref="VesselName"/>. An experiment on a vessel that
-/// is not loaded is read from Breaking Ground's cluster registry and carries
-/// no power or connection sentence. One that belongs to no cluster is listed
-/// only while its vessel is loaded.</para>
+/// <para>Delayed and frozen on the station's own link, not the active craft's:
+/// the controller is its own vessel with its own path home, so a station out of
+/// contact holds its last-known reading while the others, and the craft being
+/// flown, carry on. The reading's own age says when the station was last
+/// heard. A station whose controller vessel cannot be placed has no topic.</para>
 ///
 /// <para>Every field is nullable, and is <c>null</c> whenever the raw value is
-/// absent or could not be read.</para>
+/// absent or could not be read. A backlog is each experiment's
+/// <see cref="DeployedStationExperiment.StoredData"/>; whether it can get home is
+/// <see cref="SendPathHome"/>.</para>
 /// <internal>
-/// The experiment is KSP's <c>ModuleGroundExperiment</c>.
 /// Typing-only mirror of
-/// <c>Sitrep.Host.BreakingGroundViewProvider.BuildDeployedEntry</c>; see
-/// <see cref="ExperimentEntry"/> for the "no wire change, all fields
-/// nullable" rationale. Every module member is read by reflection, which is
-/// why an absent member is a null field rather than a failure.
+/// <c>Sitrep.Host.BreakingGroundViewProvider.BuildDeployedStation</c>; the wire is
+/// written by walking its dictionary. Only the controller vessel carries a
+/// CommNet connection, the experiment vessels (type
+/// <c>DeployedSciencePart</c>) have none, which is why the link is the
+/// controller's.
 /// </internal>
 /// </summary>
 /// <category>Science</category>
 [SitrepContract]
-[SitrepTopic("deployed.bases", isArray: true)]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-public class DeployedEntry
+public class DeployedStation
 {
-    /// <summary>Name of the vessel carrying the experiment (KSP's
-    /// <c>Vessel.vesselName</c>). A deployed cluster is its own vessel, so
-    /// this is normally not the active vessel's name.</summary>
+    /// <summary>Name of the controller vessel (KSP's <c>Vessel.vesselName</c>).</summary>
     [SitrepUnit(Units.Text)]
-    public string? VesselName { get; set; }
+    public string? StationName { get; set; }
 
-    /// <summary>Display title of the experiment part (the part's
-    /// <c>partInfo.title</c>, or its internal name when that is
-    /// missing).</summary>
-    [SitrepUnit(Units.Text)]
-    public string? PartName { get; set; }
-
-    /// <summary>Name of the body the carrying vessel orbits or sits on (its
-    /// orbit's reference body). <c>null</c> when the vessel has no
-    /// orbit.</summary>
+    /// <summary>Name of the body the cluster is deployed on (<c>DeployedScienceCluster.DeployedBody</c>), or of the controller's orbit's reference body when the cluster does not name one.</summary>
     [SitrepUnit(Units.Text)]
     public string? Body { get; set; }
 
-    /// <summary>The carrying vessel's situation, KSP's
-    /// <c>Vessel.situation</c> enum name (for example
-    /// <c>LANDED</c>).</summary>
+    /// <summary>The controller vessel's situation, KSP's <c>Vessel.situation</c> enum name (for example <c>LANDED</c>).</summary>
     [SitrepUnit(Units.Text)]
     public string? Situation { get; set; }
 
-    /// <summary>Biome at the carrying vessel's current position on
-    /// <see cref="Body"/>. <c>null</c> when the body has no biome
-    /// map.</summary>
+    /// <summary>Biome at the controller vessel's position on <see cref="Body"/>. <c>null</c> when the body has no biome map.</summary>
     [SitrepUnit(Units.Text)]
     public string? Biome { get; set; }
 
-    /// <summary>The experiment's id (KSP's
-    /// <c>ModuleGroundExperiment.experimentId</c>).</summary>
-    [SitrepUnit(Units.Id)]
-    public string? ExperimentId { get; set; }
-
-    /// <summary>How far the experiment has progressed, in percent (KSP's
-    /// <c>ModuleGroundExperiment.ScienceCompletedPercentage</c>).</summary>
-    [SitrepUnit(Units.Percent)]
-    public double? ScienceCompletedPercentage { get; set; }
-
-    /// <summary>How much of the experiment's science has been transmitted, in
-    /// percent (KSP's
-    /// <c>ModuleGroundExperiment.ScienceTransmittedPercentage</c>).</summary>
-    [SitrepUnit(Units.Percent)]
-    public double? ScienceTransmittedPercentage { get; set; }
-
-    /// <summary>The science value KSP reports for the experiment
-    /// (<c>ModuleGroundExperiment.ScienceValue</c>).</summary>
-    [SitrepUnit(Units.Science)]
-    public double? ScienceValue { get; set; }
-
-    /// <summary>The experiment's science limit as KSP reports it
-    /// (<c>ModuleGroundExperiment.ScienceLimit</c>). Compare against
-    /// <see cref="ScienceValue"/>.</summary>
-    [SitrepUnit(Units.Science)]
-    public double? ScienceLimit { get; set; }
-
     /// <summary>
-    /// <c>ModuleGroundSciencePart.PowerState</c> verbatim: KSP's own words for
-    /// the power state, for display. Do not branch on this.
-    ///
-    /// <para>It is not an enum name, it is localised prose. The module assigns
-    /// it from <c>Localizer</c> in <c>UpdateModuleUI()</c>, so the value is in
-    /// whatever language the player runs KSP in, and it is only written when
-    /// the part action window refreshes, so it can be a held value.
-    /// <see cref="Power"/> is the field to read.</para>
-    /// </summary>
-    [SitrepUnit(Units.Text)]
-    public string? PowerState { get; set; }
-
-    /// <summary>
-    /// <c>ModuleGroundSciencePart.ConnectionState</c> verbatim, for display.
-    /// Localised prose on the same terms as <see cref="PowerState"/>; read
-    /// <see cref="ControllerConnected"/> instead.
-    /// </summary>
-    [SitrepUnit(Units.Text)]
-    public string? ConnectionState { get; set; }
-
-    /// <summary>
-    /// The cluster's power state, derived from the same facts
-    /// <c>UpdateModuleUI()</c> itself branches on
-    /// (<c>DeployedScienceCluster.IsPowered</c> and
-    /// <c>.ControllerPartEnabled</c>, the module's <c>Enabled</c> and
-    /// <c>DeployedOnGround</c>) rather than parsed out of the sentence that
-    /// method writes. This is the field to branch on, not
-    /// <see cref="PowerState"/>.
+    /// The cluster's power state, derived from the facts the game's own readout
+    /// branches on rather than from its localised sentence.
     ///
     /// <para><c>null</c> when the cluster could not be read at all, which is a
     /// third state and must not be read as either powered or unpowered.</para>
@@ -641,42 +576,94 @@ public class DeployedEntry
     public DeployedPowerState? Power { get; set; }
 
     /// <summary>
-    /// Whether the experiment is attached to a controller cluster at all, the
-    /// fact behind <see cref="ConnectionState"/>'s "Connected"/"Not Connected".
-    /// <c>null</c> when it could not be determined.
-    /// </summary>
-    [SitrepUnit(Units.Flag)]
-    public bool? ControllerConnected { get; set; }
-
-    /// <summary>
     /// Power units the cluster's parts produce
     /// (<c>DeployedScienceCluster.PowerAvailable</c>), against
     /// <see cref="PowerRequired"/>. Breaking Ground's own integral power scale
     /// summed over the cluster's parts: not electric charge, and not a rate.
     /// Available at or above required is what makes the cluster powered.
     ///
-    /// <para><c>null</c> when the cluster could not be read, on the same terms
-    /// as <see cref="Power"/>. Zero is a real reading a live cluster holds
-    /// while its panels are dark, so it must not stand in for absence.</para>
-    /// <internal>
-    /// Read off the same cluster object <c>DerivePowerState</c> already
-    /// resolves through <c>ScienceClusterData</c>, so this costs no extra
-    /// reflection hop.
-    /// </internal>
+    /// <para><c>null</c> when the cluster could not be read. Zero is a real
+    /// reading a live cluster holds while its panels are dark, so it must not
+    /// stand in for absence.</para>
     /// </summary>
     [SitrepUnit(Units.Count)]
     public int? PowerAvailable { get; set; }
 
-    /// <summary>
-    /// Power units the cluster's parts require
-    /// (<c>DeployedScienceCluster.PowerRequired</c>). Same scale and same null
-    /// rule as <see cref="PowerAvailable"/>, the demand side of the balance.
-    /// </summary>
+    /// <summary>Power units the cluster's parts require (<c>DeployedScienceCluster.PowerRequired</c>). Same scale and same null rule as <see cref="PowerAvailable"/>.</summary>
     [SitrepUnit(Units.Count)]
     public int? PowerRequired { get; set; }
 
-    /// <summary>Whether the experiment part is deployed on the ground (KSP's
-    /// <c>ModuleGroundSciencePart.DeployedOnGround</c>).</summary>
+    /// <summary>
+    /// Whether the controller has a path home that can carry science, by the
+    /// rule the game applies when an experiment sends: a connection with signal
+    /// and a last hop to a home command centre. Always <c>true</c> in a save with
+    /// no CommNet. <c>null</c> when the controller's link could not be read.
+    ///
+    /// <para>This is the figure at the sample's own time. A station that has since
+    /// lost its path stops updating, so read how old the reading is before trusting
+    /// a <c>true</c>.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? SendPathHome { get; set; }
+
+    /// <summary>
+    /// Whether the cluster's last attempt to send its science home failed
+    /// (<c>DeployedScienceCluster.DataSendFailed</c>). <c>null</c> when it
+    /// could not be read.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? DataSendFailed { get; set; }
+
+    /// <summary>Every experiment in the cluster, in the cluster's part order. Never null on a published station; an empty list is a cluster with no experiment attached.</summary>
+    public List<DeployedStationExperiment> Experiments { get; set; } = new();
+}
+
+/// <summary>
+/// One experiment of a <see cref="DeployedStation"/>: a science instrument set
+/// down on the surface, with how far it has progressed and how much data it is
+/// holding that has not yet been sent home.
+/// </summary>
+/// <category>Science</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class DeployedStationExperiment
+{
+    /// <summary>Display title of the experiment part (the part's <c>partInfo.title</c>, or its internal name when that is missing).</summary>
+    [SitrepUnit(Units.Text)]
+    public string? PartName { get; set; }
+
+    /// <summary>The experiment's id (<c>DeployedScienceExperiment.ExperimentId</c>).</summary>
+    [SitrepUnit(Units.Id)]
+    public string? ExperimentId { get; set; }
+
+    /// <summary>How far the experiment has progressed, in percent of its science limit.</summary>
+    [SitrepUnit(Units.Percent)]
+    public double? ScienceCompletedPercentage { get; set; }
+
+    /// <summary>How much of the experiment's science has been transmitted, in percent of its science limit.</summary>
+    [SitrepUnit(Units.Percent)]
+    public double? ScienceTransmittedPercentage { get; set; }
+
+    /// <summary>The science value the experiment reports (<c>DeployedScienceExperiment.ScienceValue</c>).</summary>
+    [SitrepUnit(Units.Science)]
+    public double? ScienceValue { get; set; }
+
+    /// <summary>The experiment's science limit. Compare against <see cref="ScienceValue"/>.</summary>
+    [SitrepUnit(Units.Science)]
+    public double? ScienceLimit { get; set; }
+
+    /// <summary>
+    /// Data the experiment holds that has not been transmitted
+    /// (<c>DeployedScienceExperiment.StoredScienceData</c>): the backlog waiting
+    /// for a path home. <c>null</c> when it could not be read, and zero is a real
+    /// empty store.
+    /// </summary>
+    [SitrepUnit(Units.Mits)]
+    public double? StoredData { get; set; }
+
+    /// <summary>Whether the experiment part is deployed on the ground (<c>DeployedSciencePart.DeployedOnGround</c>).</summary>
     [SitrepUnit(Units.Flag)]
     public bool? DeployedOnGround { get; set; }
 }

@@ -1,18 +1,22 @@
 import { DeployedPowerState } from "@ksp-gonogo/sitrep-sdk";
 import {
-  act,
   setupStreamFixture,
   waitFor,
   within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
+import {
+  emitStations,
+  experiment,
+  stationReport,
+} from "../test/deployedStations";
 // Side-effect import: `renderWidget` looks the widget up by id.
 import "./index";
 
-/** Proves a two-experiment Mun cluster renders off the real stream pipeline, grouped by `vesselName`, with its power-unit balance and progress. */
+/** Proves a two-experiment Mun station renders off the real stream pipeline, from the report on its own topic, with its power-unit balance and progress. */
 describe("DeployedScience: stream render golden (delay=0)", () => {
-  it("renders the full deployed-cluster state off the stream pipeline", async () => {
+  it("renders the full deployed-station state off the stream pipeline", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
     });
@@ -24,51 +28,34 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
       wrapper: fixture.Provider,
     });
 
-    act(() => {
-      fixture.emit("game.dlc", { breakingGround: true });
-      fixture.emit("deployed.bases", [
-        {
-          vesselName: "Mun Surface Science Base",
-          partName: "Seismic Accelerometer",
-          body: "Mun",
-          situation: "LANDED",
-          biome: "Highlands",
-          experimentId: "surfaceExperimentSeismicAccelerometer",
-          scienceCompletedPercentage: 75,
-          scienceTransmittedPercentage: 50,
-          scienceValue: 45,
-          scienceLimit: 60,
-          powerState: "Powered",
-          connectionState: "Connected",
-          // The DERIVED ordinal the widget branches on, alongside the prose it ignores.
+    await emitStations(fixture, [
+      {
+        report: stationReport({
+          stationName: "Mun Surface Science Base",
           power: DeployedPowerState.Powered,
-          controllerConnected: true,
           powerAvailable: 5,
           powerRequired: 4,
-          deployedOnGround: true,
-        },
-        {
-          vesselName: "Mun Surface Science Base",
-          partName: "Mystery Goo Experiment",
-          body: "Mun",
-          situation: "LANDED",
-          biome: "Highlands",
-          experimentId: "mysteryGoo",
-          scienceCompletedPercentage: 100,
-          scienceTransmittedPercentage: 100,
-          scienceValue: 12,
-          scienceLimit: 12,
-          powerState: "Powered",
-          connectionState: "Connected",
-          // The DERIVED ordinal the widget branches on, alongside the prose it ignores.
-          power: DeployedPowerState.Powered,
-          controllerConnected: true,
-          powerAvailable: 5,
-          powerRequired: 4,
-          deployedOnGround: true,
-        },
-      ]);
-    });
+          experiments: [
+            experiment({
+              partName: "Seismic Accelerometer",
+              experimentId: "surfaceExperimentSeismicAccelerometer",
+              scienceCompletedPercentage: 75,
+              scienceTransmittedPercentage: 50,
+              scienceValue: 45,
+              scienceLimit: 60,
+            }),
+            experiment({
+              partName: "Mystery Goo Experiment",
+              experimentId: "mysteryGoo",
+              scienceCompletedPercentage: 100,
+              scienceTransmittedPercentage: 100,
+              scienceValue: 12,
+              scienceLimit: 12,
+            }),
+          ],
+        }),
+      },
+    ]);
 
     await waitFor(() => {
       if (!visibleText(container).includes("Seismic Accelerometer")) {

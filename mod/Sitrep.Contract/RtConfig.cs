@@ -268,7 +268,8 @@ public static class RtConfig
                 // science.* channel payload entries
                 typeof(ExperimentEntry),
                 typeof(LabEntry),
-                typeof(DeployedEntry),
+                typeof(DeployedStation),
+                typeof(DeployedStationExperiment),
                 // missions.active payload and its objective rows
                 typeof(MissionStatus),
                 typeof(MissionObjectiveEntry),

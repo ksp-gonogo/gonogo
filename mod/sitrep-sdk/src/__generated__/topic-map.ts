@@ -48,7 +48,6 @@ import type {
   CrashRecent,
   CrashReport,
   CrewRosterEntry,
-  DeployedEntry,
   DockAlignment,
   EvaCrew,
   ExperimentBreakdownEntry,
@@ -169,8 +168,6 @@ export interface GeneratedTopicPayloadMap {
   "crash.hasRecent": CrashRecent;
   /** The last notable crash of the current save. */
   "crash.lastCrash": CrashReport;
-  /** One entry in the `deployed.bases` Topic payload: a Breaking Ground deployed-science experiment, a science instrument set down on the surface. */
-  "deployed.bases": DeployedEntry[];
   /** One ΔV-producing stage of the active vessel, from the game's own stage simulation: the same numbers the in-game ΔV app shows, with atmosphere, ISP, crossfeed and staging all handled by the game. */
   "dv.stages": StageDeltaVEntry[];
   /** The whole-vessel ΔV rollup the game's own ΔV simulation (`VesselDeltaV`) exposes alongside the per-stage `StageDeltaVEntry` list: the ΔV-producing stage count plus the vacuum, sea-level and current totals and total burn time. */
@@ -319,7 +316,6 @@ export const GENERATED_TOPIC_IDS = [
   "comms.signal",
   "crash.hasRecent",
   "crash.lastCrash",
-  "deployed.bases",
   "dv.stages",
   "dv.summary",
   "eva.crew",
@@ -388,7 +384,6 @@ export const GENERATED_COLLECTION_TOPIC_IDS = [
   "alarm.scet.topics",
   "commandCentre.roster",
   "commandCentre.unreachable",
-  "deployed.bases",
   "dv.stages",
   "isru.converters",
   "isru.drills",
