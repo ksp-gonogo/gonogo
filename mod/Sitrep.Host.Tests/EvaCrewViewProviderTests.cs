@@ -152,5 +152,40 @@ namespace Sitrep.Host.Tests
             Assert.Null(kerbal.ParentVesselId);
             Assert.Equal("kerbal-1", kerbal.KerbalVesselId);
         }
+
+        [Fact]
+        public void AKerbalHoldingASurfaceSampleListsIt()
+        {
+            var holding = Kerbal("kerbal-1");
+            holding["heldData"] = new List<object?>
+            {
+                new Dictionary<string, object?>
+                {
+                    ["subjectId"] = "surfaceSample@MunSrfLandedMidlands",
+                    ["title"] = "Surface Sample from The Mun's Midlands",
+                    ["dataAmount"] = 30.0,
+                },
+            };
+
+            var eva = Assert.IsType<EvaCrew>(VesselViewProvider.BuildEvaCrew(SnapshotWith(holding)));
+
+            var held = Assert.Single(Assert.Single(eva.Kerbals).HeldData!);
+            Assert.Equal("surfaceSample@MunSrfLandedMidlands", held.SubjectId);
+            Assert.Equal("Surface Sample from The Mun's Midlands", held.Title);
+            Assert.Equal(30.0, held.DataAmount);
+        }
+
+        [Fact]
+        public void AKerbalHoldingNothingIsAnEmptyListAndOneNotReadIsNull()
+        {
+            var empty = Kerbal("kerbal-1");
+            empty["heldData"] = new List<object?>();
+            var unread = Kerbal("kerbal-2");
+
+            var eva = Assert.IsType<EvaCrew>(VesselViewProvider.BuildEvaCrew(SnapshotWith(empty, unread)));
+
+            Assert.Empty(eva.Kerbals[0].HeldData!);
+            Assert.Null(eva.Kerbals[1].HeldData);
+        }
     }
 }

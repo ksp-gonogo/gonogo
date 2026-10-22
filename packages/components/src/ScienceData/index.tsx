@@ -27,6 +27,7 @@ import { AboardTab } from "./AboardTab";
 import { ArchiveTab } from "./ArchiveTab";
 import {
   groupArchiveByExperiment,
+  kerbalHeldOf,
   parseArchive,
   parseExperimentBreakdown,
   parseExperiments,
@@ -44,6 +45,7 @@ const topics = defineTopicManifest({
     "science.experimentBreakdown",
     "science.archive",
     "career.status",
+    "eva.crew",
   ],
   optionalChannels: read.optionalChannels,
   fields: [
@@ -55,6 +57,7 @@ const topics = defineTopicManifest({
     "science.experimentBreakdown",
     "science.archive",
     "career.status.balances.science",
+    "eva.crew.kerbals",
   ],
 });
 
@@ -101,6 +104,10 @@ function ScienceDataComponent({
     "science.experimentBreakdown",
   );
 
+  // What a kerbal outside is holding stays held until they hand it over, so the last list received is still the list.
+  const evaCrewReading = useTelemetry("eva.crew");
+  const kerbalHeld = kerbalHeldOf(stillTrue(evaCrewReading, undefined));
+
   const experiments = parseExperiments(experimentsRaw);
   const breakdown = parseExperimentBreakdown(breakdownRaw);
   const archive = parseArchive(archiveRaw);
@@ -140,6 +147,8 @@ function ScienceDataComponent({
           sciDataAmount={sciDataAmount}
           compact={compact}
           ledgerFrom={ledgerFrom}
+          kerbalHeld={kerbalHeld}
+          kerbalFrom={[currencyOf(evaCrewReading)]}
         />
       ),
     },

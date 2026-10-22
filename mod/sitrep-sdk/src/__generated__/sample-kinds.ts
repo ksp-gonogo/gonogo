@@ -71,6 +71,7 @@ export const GENERATED_CHANNEL_KINDS = {
   "spaceCenter.pois": "discrete",
   "spaceCenter.savedShips": "discrete",
   "spaceCenter.scene": "discrete",
+  "surface.sites": "discrete",
   "system.channels": "discrete",
   "system.frame": "discrete",
   "system.units": "discrete",

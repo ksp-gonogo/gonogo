@@ -13,7 +13,11 @@ import {
   useRowFilter,
   useSlotBound,
 } from "@ksp-gonogo/ui-kit";
-import type { ExperimentBreakdownEntry, ParsedExperiment } from "./parsers";
+import type {
+  ExperimentBreakdownEntry,
+  KerbalHeldResult,
+  ParsedExperiment,
+} from "./parsers";
 
 export interface AboardTabProps {
   body: string | undefined;
@@ -28,6 +32,10 @@ export interface AboardTabProps {
   compact: boolean;
   /** What the ledgers were last reported by, so a held ledger draws held figures. */
   ledgerFrom: readonly CarriedCurrency[];
+  /** Results held by kerbals outside the vessel, which no ledger above counts. */
+  kerbalHeld: readonly KerbalHeldResult[];
+  /** What `eva.crew` was last reported by, so a held list draws held figures. */
+  kerbalFrom: readonly CarriedCurrency[];
 }
 
 /** A ledger figure dated by the readings the ledger was read from. */
@@ -163,6 +171,34 @@ function AboardLedger({
   return <EmptyState>No science data aboard</EmptyState>;
 }
 
+/** What kerbals outside the vessel are holding, each under the kerbal who holds it. Renders nothing when none holds a result. */
+function KerbalHeldList({
+  held,
+  from,
+}: Readonly<{
+  held: readonly KerbalHeldResult[];
+  from: readonly CarriedCurrency[];
+}>) {
+  if (held.length === 0) return null;
+  return (
+    <Stack as="ul" aria-label="Science held by kerbals outside the vessel">
+      {held.map((result) => (
+        <li key={result.key}>
+          <Text size="sm">
+            {result.kerbal} holds {result.title}
+            {result.dataAmount !== null && (
+              <>
+                {" · "}
+                <Unit value={datedFrom(from, result.dataAmount)} />
+              </>
+            )}
+          </Text>
+        </li>
+      ))}
+    </Stack>
+  );
+}
+
 /** The active vessel's onboard ledger, with the situation line it was taken in. */
 export function AboardTab({
   body,
@@ -175,6 +211,8 @@ export function AboardTab({
   sciDataAmount,
   compact,
   ledgerFrom,
+  kerbalHeld,
+  kerbalFrom,
 }: Readonly<AboardTabProps>) {
   // An unbound slot gets no detail row at all, rather than an empty one under every row.
   const slotFilled = useSlotBound("science-data.aboard-row");
@@ -231,6 +269,7 @@ export function AboardTab({
       ) : (
         ledger
       )}
+      <KerbalHeldList held={kerbalHeld} from={kerbalFrom} />
     </Stack>
   );
 }

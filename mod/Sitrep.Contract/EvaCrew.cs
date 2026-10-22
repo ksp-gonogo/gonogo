@@ -116,6 +116,40 @@ public class EvaKerbal
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? HelmetUnsafeReason { get; set; }
+
+    /// <summary>
+    /// The science results this kerbal is holding, such as a surface sample or an EVA
+    /// report, which are on no other Topic: <c>science.experiments</c> lists the
+    /// active vessel's results and a kerbal outside is not that vessel. Empty when the
+    /// kerbal holds none, and <c>null</c> when it could not be read, as for a kerbal
+    /// standing on a vessel that is not loaded.
+    /// </summary>
+    public List<EvaHeldData>? HeldData { get; set; }
+}
+
+/// <summary>
+/// One science result a kerbal on EVA is holding, in <see cref="EvaKerbal.HeldData"/>.
+/// </summary>
+/// <category>Crew</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class EvaHeldData
+{
+    /// <summary>The research subject's id (<c>ScienceSubject.id</c>), the same key
+    /// <c>science.archive</c> lists it under.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? SubjectId { get; set; }
+
+    /// <summary>The result's title, for example "Surface Sample from The Mun's
+    /// Midlands".</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Title { get; set; }
+
+    /// <summary>The size of the result.</summary>
+    [SitrepUnit(Units.Mits)]
+    public double? DataAmount { get; set; }
 }
 
 /// <summary>

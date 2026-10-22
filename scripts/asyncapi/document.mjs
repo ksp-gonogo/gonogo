@@ -911,6 +911,7 @@ const NAMESPACE_SUMMARIES = {
   science: "Experiments, the science archive and transmission",
   settings: "The mod's own settings and those of other mods",
   spaceCenter: "Crew, launch sites and parts available at the space centre",
+  surface: "Flags planted on the surface of a body",
   system: "Reference frames, command gates and the uplink queue",
   target: "What the active vessel can target",
   time: "Game time, warp and pause",

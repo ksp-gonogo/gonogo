@@ -1,9 +1,9 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 46.1.0
+  version: 46.2.0
   description: |-
-    The WebSocket API of the Gonogo mod: 88 telemetry channels a client
+    The WebSocket API of the Gonogo mod: 89 telemetry channels a client
     subscribes to and 71 commands it sends, each with its payload and what it
     means, all over one socket.
 
@@ -189,6 +189,8 @@ info:
       description: The mod's own settings and those of other mods
     - name: spaceCenter
       description: Crew, launch sites and parts available at the space centre
+    - name: surface
+      description: Flags planted on the surface of a body
     - name: system
       description: Reference frames, command gates and the uplink queue
     - name: target
@@ -2560,6 +2562,27 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.spaceCenter.scene"
+      event:
+        $ref: "#/components/messages/event"
+  surface.sites:
+    address: surface.sites
+    description: |-
+      One planted flag, on the `surface.sites` Topic: the named site a kerbal has
+      claimed on the surface of a body. The payload is a bare array with one entry
+      per flag in the save, empty when none is planted, and it is delayed like the
+      vessel it is recorded from, so a flag appears at a command centre only once
+      the word of it has had time to reach it.
+
+      A flag has no radio and is not on `trackingStation.catalog`.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: delayed
+    x-sitrep-sample-kind: discrete
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.surface.sites"
       event:
         $ref: "#/components/messages/event"
   system.frame:
@@ -5463,6 +5486,17 @@ operations:
     messages:
       - $ref: "#/channels/spaceCenter.scene/messages/streamData"
       - $ref: "#/channels/spaceCenter.scene/messages/event"
+  read:surface.sites:
+    action: receive
+    channel:
+      $ref: "#/channels/surface.sites"
+    title: Read surface.sites
+    description: Delivered only after `subscribe` names `surface.sites` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: surface
+    messages:
+      - $ref: "#/channels/surface.sites/messages/streamData"
+      - $ref: "#/channels/surface.sites/messages/event"
   read:system.frame:
     action: receive
     channel:
@@ -8777,6 +8811,21 @@ components:
                 const: spaceCenter.scene
               payload:
                 $ref: "#/components/schemas/SpaceCenterScene"
+    streamData.surface.sites:
+      name: stream-data
+      title: A frame on surface.sites
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `surface.sites`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: surface.sites
+              payload:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlantedFlag"
     streamData.system.frame:
       name: stream-data
       title: A frame on system.frame
@@ -14519,6 +14568,30 @@ components:
           items:
             $ref: "#/components/schemas/EvaKerbal"
           description: One entry per kerbal on EVA. Never null; empty when nobody is outside.
+    EvaHeldData:
+      type: object
+      description: One science result a kerbal on EVA is holding, in `EvaKerbal.heldData`.
+      properties:
+        subjectId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The research subject's id (`ScienceSubject.id`), the same key
+            `science.archive` lists it under.
+        title:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The result's title, for example "Surface Sample from The Mun's Midlands".
+        dataAmount:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: Mit
+          description: The size of the result.
     EvaKerbal:
       type: object
       description: |-
@@ -14648,6 +14721,18 @@ components:
           description: |-
             KSP's own words for why the helmet cannot come off, passed through verbatim
             from `KerbalEVA.HelmetUnsafeReason`, or `null` when it can.
+        heldData:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/EvaHeldData"
+          description: |-
+            The science results this kerbal is holding, such as a surface sample or an
+            EVA report, which are on no other Topic: `science.experiments` lists the
+            active vessel's results and a kerbal outside is not that vessel. Empty when
+            the kerbal holds none, and `null` when it could not be read, as for a kerbal
+            standing on a vessel that is not loaded.
     EventMsg:
       type: object
       description: |-
@@ -17988,6 +18073,69 @@ components:
             Anything the client likes, returned unchanged in the reply `Pong` so it can
             tell which ping was answered. May be omitted, in which case the reply
             carries an empty one.
+    PlantedFlag:
+      type: object
+      description: |-
+        One planted flag, on the `surface.sites` Topic: the named site a kerbal has
+        claimed on the surface of a body. The payload is a bare array with one entry
+        per flag in the save, empty when none is planted, and it is delayed like the
+        vessel it is recorded from, so a flag appears at a command centre only once
+        the word of it has had time to reach it.
+
+        A flag has no radio and is not on `trackingStation.catalog`.
+      properties:
+        siteId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: The flag's own vessel id.
+        name:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The name the kerbal gave the site.
+        body:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The name of the body the flag stands on.
+        latitude:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: °
+          description: Body-fixed latitude of the flag in degrees.
+        longitude:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: °
+          description: Body-fixed longitude of the flag in degrees, wrapped to (-180, 180].
+        plantedAt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: Universal Time the flag was planted. Null when it could not be read.
+        plantedBy:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The name of the kerbal who planted it. Null when the flag's module could not
+            be read.
+        plaque:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The text on the site's plaque. Null when the flag's module could not be
+            read, and empty when it has none.
     Pong:
       type: object
       description: The answer to a `Ping`.

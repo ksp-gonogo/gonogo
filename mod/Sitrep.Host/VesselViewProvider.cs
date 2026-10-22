@@ -1350,7 +1350,33 @@ namespace Sitrep.Host
             WillDieWithoutHelmet = GetBool(raw, "willDieWithoutHelmet"),
             CanSafelyRemoveHelmet = GetBool(raw, "canSafelyRemoveHelmet"),
             HelmetUnsafeReason = GetString(raw, "helmetUnsafeReason"),
+            HeldData = BuildHeldData(raw),
         };
+
+        /// <summary>The results a kerbal holds, or null when the capture did not read them, which is not the same as holding none.</summary>
+        private static List<EvaHeldData>? BuildHeldData(IDictionary<string, object?> raw)
+        {
+            if (!raw.TryGetValue("heldData", out var rawItems) || rawItems is not IEnumerable<object?> entries)
+            {
+                return null;
+            }
+
+            var items = new List<EvaHeldData>();
+            foreach (var entry in entries)
+            {
+                if (entry is IDictionary<string, object?> item)
+                {
+                    items.Add(new EvaHeldData
+                    {
+                        SubjectId = GetString(item, "subjectId"),
+                        Title = GetString(item, "title"),
+                        DataAmount = GetDouble(item, "dataAmount"),
+                    });
+                }
+            }
+
+            return items;
+        }
 
         private static CrewMember BuildCrewMember(IDictionary<string, object?> raw) => new CrewMember
         {
@@ -2026,6 +2052,14 @@ namespace Sitrep.Host
             ["willDieWithoutHelmet"] = kerbal.WillDieWithoutHelmet,
             ["canSafelyRemoveHelmet"] = kerbal.CanSafelyRemoveHelmet,
             ["helmetUnsafeReason"] = kerbal.HelmetUnsafeReason,
+            ["heldData"] = kerbal.HeldData?.Select(ToWire).ToList<object?>(),
+        };
+
+        private static Dictionary<string, object?> ToWire(EvaHeldData held) => new Dictionary<string, object?>
+        {
+            ["subjectId"] = held.SubjectId,
+            ["title"] = held.Title,
+            ["dataAmount"] = held.DataAmount,
         };
 
         private static Dictionary<string, object?> ToWire(CrewMember member) => new Dictionary<string, object?>

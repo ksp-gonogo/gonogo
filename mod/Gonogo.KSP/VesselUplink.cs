@@ -152,6 +152,8 @@ namespace Gonogo.KSP
                 // Nobody outside is a real answer, not a gap: the channel
                 // publishes an empty roster rather than going quiet.
                 Channel(VesselViewProvider.EvaCrewTopic, SampleKind.Discrete, absenceIsData: true),
+                // No flag planted is a real answer, not a gap.
+                Channel(SurfaceSitesViewProvider.Topic, SampleKind.Discrete, absenceIsData: true),
                 // Nothing aboard carrying cargo is a real answer, not a gap.
                 Channel(VesselViewProvider.InventoryTopic, SampleKind.Discrete, absenceIsData: true),
                 Channel(VesselViewProvider.StructureTopic, SampleKind.Discrete),
@@ -340,6 +342,7 @@ namespace Gonogo.KSP
             host.AddChannelSource(VesselViewProvider.TargetTopic, VesselViewProvider.BuildTargetWire);
             host.AddChannelSource(VesselViewProvider.CrewTopic, VesselViewProvider.BuildCrewWire);
             host.AddChannelSource(VesselViewProvider.EvaCrewTopic, VesselViewProvider.BuildEvaCrewWire);
+            host.AddChannelSource(SurfaceSitesViewProvider.Topic, SurfaceSitesViewProvider.BuildWire);
             host.AddChannelSource(VesselViewProvider.InventoryTopic, VesselViewProvider.BuildInventoryWire);
             host.AddChannelSource(VesselViewProvider.StructureTopic, VesselViewProvider.BuildStructureWire);
             host.AddChannelSource(VesselViewProvider.WarpTopic, VesselViewProvider.BuildWarpWire);

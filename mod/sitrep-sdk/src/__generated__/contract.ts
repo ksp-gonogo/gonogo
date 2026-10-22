@@ -4032,6 +4032,31 @@ export interface EvaKerbal
 	* from `KerbalEVA.HelmetUnsafeReason`, or `null` when it can.
 	*/
 	helmetUnsafeReason?: string | null;
+	/**
+	* The science results this kerbal is holding, such as a surface sample or an
+	* EVA report, which are on no other Topic: `science.experiments` lists the
+	* active vessel's results and a kerbal outside is not that vessel. Empty when
+	* the kerbal holds none, and `null` when it could not be read, as for a kerbal
+	* standing on a vessel that is not loaded.
+	*/
+	heldData?: EvaHeldData[] | null;
+}
+/**
+* One science result a kerbal on EVA is holding, in `EvaKerbal.heldData`.
+*
+* @category Crew
+*/
+export interface EvaHeldData
+{
+	/**
+	* The research subject's id (`ScienceSubject.id`), the same key
+	* `science.archive` lists it under.
+	*/
+	subjectId?: string | null;
+	/** The result's title, for example "Surface Sample from The Mun's Midlands". */
+	title?: string | null;
+	/** The size of the result. */
+	dataAmount?: Value<"Mit"> | null;
 }
 /**
 * Every kerbal currently outside a craft.
@@ -5748,6 +5773,42 @@ export interface RoboticsAvailability
 	* definitely carries none, null when it could not be surveyed.
 	*/
 	available?: boolean | null;
+}
+/**
+* One planted flag, on the `surface.sites` Topic: the named site a kerbal has
+* claimed on the surface of a body. The payload is a bare array with one entry
+* per flag in the save, empty when none is planted, and it is delayed like the
+* vessel it is recorded from, so a flag appears at a command centre only once
+* the word of it has had time to reach it.
+*
+* A flag has no radio and is not on `trackingStation.catalog`.
+*
+* @category Surface
+*/
+export interface PlantedFlag
+{
+	/** The flag's own vessel id. */
+	siteId?: string | null;
+	/** The name the kerbal gave the site. */
+	name?: string | null;
+	/** The name of the body the flag stands on. */
+	body?: string | null;
+	/** Body-fixed latitude of the flag in degrees. */
+	latitude?: Value<"°"> | null;
+	/** Body-fixed longitude of the flag in degrees, wrapped to (-180, 180]. */
+	longitude?: Value<"°"> | null;
+	/** Universal Time the flag was planted. Null when it could not be read. */
+	plantedAt?: Value<"ut"> | null;
+	/**
+	* The name of the kerbal who planted it. Null when the flag's module could not
+	* be read.
+	*/
+	plantedBy?: string | null;
+	/**
+	* The text on the site's plaque. Null when the flag's module could not be
+	* read, and empty when it has none.
+	*/
+	plaque?: string | null;
 }
 /**
 * The payload for the `recovery.lastSummary` channel: the most recent vessel

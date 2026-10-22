@@ -65,6 +65,7 @@ import type {
   LaunchSiteEntry,
   MissionStatus,
   PartsPower,
+  PlantedFlag,
   RecoveryRecent,
   RecoveryReport,
   RevertAvailability,
@@ -233,6 +234,8 @@ export interface GeneratedTopicPayloadMap {
   "spaceCenter.savedShips": SavedShipEntry[];
   /** The single current KSP game scene. */
   "spaceCenter.scene": SpaceCenterScene;
+  /** One planted flag, on the `surface.sites` Topic: the named site a kerbal has claimed on the surface of a body. */
+  "surface.sites": PlantedFlag[];
   /** The frame the game's own navigation view is expressed in, which is what the player is looking at. */
   "system.frame": ControlFrame;
   /** The list of everything targetable from the active vessel, as the active vessel knows it. */
@@ -351,6 +354,7 @@ export const GENERATED_TOPIC_IDS = [
   "spaceCenter.pois",
   "spaceCenter.savedShips",
   "spaceCenter.scene",
+  "surface.sites",
   "system.frame",
   "target.available",
   "time.calendar",
@@ -403,4 +407,5 @@ export const GENERATED_COLLECTION_TOPIC_IDS = [
   "spaceCenter.launchSites",
   "spaceCenter.pois",
   "spaceCenter.savedShips",
+  "surface.sites",
 ] as const;

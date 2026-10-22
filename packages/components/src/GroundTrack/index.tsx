@@ -62,6 +62,7 @@ import { useMapTelemetry } from "./useMapTelemetry";
 import { useTrajectoryBuffer } from "./useTrajectoryBuffer";
 import { VanillaSuppressionProbe } from "./VanillaSuppressionProbe";
 // Side-effect only: registers the vanilla POI provider MapPoiLayer renders.
+import "./flagPoiProvider";
 import "./vanillaPoiProvider";
 import read from "./ground-track.declarations.g";
 
@@ -486,7 +487,11 @@ registerComponent<GroundTrackConfig>({
   seats: ["mission-control", "pilot"],
   ...read,
   // The point-of-interest providers mount through a registry, so the scan cannot follow what the stock one reads and sends.
-  optionalChannels: [...read.optionalChannels, "spaceCenter.pois"],
+  optionalChannels: [
+    ...read.optionalChannels,
+    "spaceCenter.pois",
+    "surface.sites",
+  ],
   commands: [...read.commands, "vessel.target.set"],
   fields: topics.fields,
   defaultConfig: {

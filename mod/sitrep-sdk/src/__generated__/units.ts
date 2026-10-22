@@ -693,6 +693,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "EvaCrew": {
     count: "count",
   },
+  "EvaHeldData": {
+    dataAmount: "Mit",
+    subjectId: "id",
+    title: "text",
+  },
   "EvaKerbal": {
     canSafelyRemoveHelmet: "flag",
     hasJetpack: "flag",
@@ -1088,6 +1093,16 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "Ping": {
     nonce: "id",
     type: "id",
+  },
+  "PlantedFlag": {
+    body: "text",
+    latitude: "°",
+    longitude: "°",
+    name: "text",
+    plantedAt: "ut",
+    plantedBy: "text",
+    plaque: "text",
+    siteId: "id",
   },
   "Pong": {
     nonce: "id",
@@ -2186,6 +2201,16 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     launchSite: "text",
     scene: "text",
   },
+  "surface.sites": {
+    body: "text",
+    latitude: "°",
+    longitude: "°",
+    name: "text",
+    plantedAt: "ut",
+    plantedBy: "text",
+    plaque: "text",
+    siteId: "id",
+  },
   "system.frame": {
     centreBody: "text",
     kind: "enum",
@@ -2619,6 +2644,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "EvaCrew": {
     kerbals: "EvaKerbal[]",
+  },
+  "EvaKerbal": {
+    heldData: "EvaHeldData[]",
   },
   "EventMsg": {
     meta: "Meta",

@@ -394,6 +394,20 @@ namespace Gonogo.KSP
                             }
                         }
                         values["evaCrew"] = eva;
+
+                        // Every planted flag in the save, empty when there is none.
+                        var sites = new List<object?>();
+                        if (allVessels != null)
+                        {
+                            foreach (var candidate in allVessels)
+                            {
+                                if (candidate != null && candidate.vesselType == VesselType.Flag && candidate.state != Vessel.State.DEAD)
+                                {
+                                    sites.Add(BuildSurfaceSiteEntry(candidate));
+                                }
+                            }
+                        }
+                        values["surfaceSites"] = sites;
                     }
                 }
 
@@ -1929,6 +1943,95 @@ namespace Gonogo.KSP
             TrySet(entry, "willDieWithoutHelmet", () => (object?)eva.WillDieWithoutHelmet());
             TrySet(entry, "canSafelyRemoveHelmet", () => (object?)eva.CanSafelyRemoveHelmet());
             TrySet(entry, "helmetUnsafeReason", () => (object?)eva.HelmetUnsafeReason);
+            TrySet(entry, "heldData", () => BuildEvaHeldData(vessel));
+
+            return entry;
+        }
+
+        /// <summary>
+        /// The science results a kerbal on EVA is holding, read off the experiment and
+        /// container modules of the kerbal's own parts (a surface sample and an EVA report
+        /// are kept by the kerbal, not by the craft they left). An empty list is a kerbal
+        /// holding none.
+        /// </summary>
+        private static object? BuildEvaHeldData(Vessel vessel)
+        {
+            var held = new List<object?>();
+            if (vessel.parts == null)
+            {
+                return held;
+            }
+
+            foreach (var part in vessel.parts)
+            {
+                if (part == null || part.Modules == null)
+                {
+                    continue;
+                }
+
+                foreach (var experiment in part.Modules.GetModules<ModuleScienceExperiment>())
+                {
+                    AddHeldData(held, experiment.GetData());
+                }
+
+                foreach (var container in part.Modules.GetModules<ModuleScienceContainer>())
+                {
+                    AddHeldData(held, container.GetData());
+                }
+            }
+
+            return held;
+        }
+
+        private static void AddHeldData(List<object?> into, ScienceData[]? data)
+        {
+            if (data == null)
+            {
+                return;
+            }
+
+            foreach (var item in data)
+            {
+                if (item == null)
+                {
+                    continue;
+                }
+
+                into.Add(new Dictionary<string, object?>
+                {
+                    ["subjectId"] = item.subjectID,
+                    ["title"] = item.title,
+                    ["dataAmount"] = (double)item.dataAmount,
+                });
+            }
+        }
+
+        /// <summary>
+        /// One planted flag, for the <c>surface.sites</c> channel. The name, place and moment
+        /// come off the vessel, which is there whether or not it is loaded; the plaque and the
+        /// planter live on the flag's own module and are left absent for a flag that is not loaded.
+        /// </summary>
+        private static Dictionary<string, object?> BuildSurfaceSiteEntry(Vessel vessel)
+        {
+            var entry = new Dictionary<string, object?>
+            {
+                ["siteId"] = vessel.id.ToString(),
+                ["name"] = GameWords.VesselName(vessel),
+            };
+            TrySet(entry, "body", () => vessel.mainBody != null ? vessel.mainBody.bodyName : null);
+            TrySet(entry, "latitude", () => (object?)vessel.latitude);
+            TrySet(entry, "longitude", () => (object?)vessel.longitude);
+            TrySet(entry, "plantedAt", () => (object?)vessel.launchTime);
+
+            if (vessel.loaded)
+            {
+                var flag = vessel.rootPart != null ? vessel.rootPart.FindModuleImplementing<FlagSite>() : null;
+                if (flag != null)
+                {
+                    TrySet(entry, "plantedBy", () => flag.placedBy);
+                    TrySet(entry, "plaque", () => flag.PlaqueText);
+                }
+            }
 
             return entry;
         }

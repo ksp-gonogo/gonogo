@@ -9,6 +9,7 @@ import {
   type SpaceCenterPoiEntry,
   stillTrue,
   TargetKind,
+  type Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { commandGateSentence } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -34,6 +35,14 @@ function useBodyNameByIndex(): Map<number, string> {
     }
     return map;
   }, [systemBodies]);
+}
+
+/** A point's wire latitude and longitude as the plain degrees a map projects into pixels. */
+export function plainPosition(
+  latitude: Value<"°">,
+  longitude: Value<"°">,
+): { lat: number; lon: number } {
+  return { lat: latitude.magnitude, lon: longitude.magnitude };
 }
 
 /**
@@ -65,8 +74,10 @@ function toMapPoi(
 
   // Bare numbers, so the dispatch closure carries plain values rather than nullable wire quantities.
   const bodyIndex = entry.bodyIndex;
-  const latitude = entry.latitude.magnitude;
-  const longitude = entry.longitude.magnitude;
+  const { lat: latitude, lon: longitude } = plainPosition(
+    entry.latitude,
+    entry.longitude,
+  );
 
   return {
     id: entry.id,

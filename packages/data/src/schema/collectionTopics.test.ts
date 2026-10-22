@@ -210,6 +210,7 @@ describe("collection Topics in the generated contract", () => {
       "spaceCenter.launchSites",
       "spaceCenter.pois",
       "spaceCenter.savedShips",
+      "surface.sites",
     ]);
   });
 

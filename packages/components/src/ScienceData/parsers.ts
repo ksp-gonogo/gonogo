@@ -1,3 +1,4 @@
+import type { EvaCrew, Value } from "@ksp-gonogo/sitrep-sdk";
 import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 
 /** Fixed-decimal readout with no locale grouping, so the visual gate stays deterministic. */
@@ -172,4 +173,42 @@ export function groupArchiveByExperiment(
     }
     return { body, experiments: Array.from(expMap.values()) };
   });
+}
+
+/** A science result a kerbal outside a craft is holding, and who holds it. */
+export interface KerbalHeldResult {
+  /** Tells this result from every other in the list, so a list keyed on it keeps its rows when the list changes. */
+  key: string;
+  kerbal: string;
+  title: string;
+  /** Size of the result, null when it could not be read. */
+  dataAmount: Value<"Mit"> | null;
+}
+
+/**
+ * The results kerbals are holding, off `eva.crew`. A kerbal whose holdings
+ * could not be read contributes nothing, which says nothing about what it
+ * carries.
+ */
+export function kerbalHeldOf(
+  crew: EvaCrew | null | undefined,
+): KerbalHeldResult[] {
+  const out: KerbalHeldResult[] = [];
+  const seen = new Map<string, number>();
+  for (const kerbal of crew?.kerbals ?? []) {
+    const name = kerbal.name || "A kerbal";
+    for (const held of kerbal.heldData ?? []) {
+      const title = held.title || held.subjectId || "Science result";
+      const base = `${kerbal.kerbalVesselId ?? name}/${held.subjectId ?? title}`;
+      const again = seen.get(base) ?? 0;
+      seen.set(base, again + 1);
+      out.push({
+        key: again === 0 ? base : `${base}#${again}`,
+        kerbal: name,
+        title,
+        dataAmount: held.dataAmount ?? null,
+      });
+    }
+  }
+  return out;
 }

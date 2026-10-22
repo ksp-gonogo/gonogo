@@ -330,6 +330,9 @@ public static class RtConfig
                 typeof(CrewMember),
                 // eva.crew nested roster entry
                 typeof(EvaKerbal),
+                typeof(EvaHeldData),
+                // surface.sites, one planted flag
+                typeof(PlantedFlag),
                 // trackingStation.bodies.statesAt reply entry
                 typeof(BodyState),
                 // science.instruments / science.sensors entries
