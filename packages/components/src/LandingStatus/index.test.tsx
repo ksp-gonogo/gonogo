@@ -332,6 +332,24 @@ describe("LandingStatusComponent", () => {
     expect(visibleText()).not.toMatch(/IMPACT IN/i);
   });
 
+  it("does not call a craft far above the air atmospheric", async () => {
+    renderWidget();
+    act(() => {
+      emitVessel(stream, {
+        body: KERBIN,
+        quality: Quality.Loaded,
+        descent: {
+          heightFromTerrain: 46_600_000,
+          altitudeAsl: 46_600_000,
+          verticalSpeed: 0,
+          surfaceSpeed: 1_000,
+        },
+      });
+    });
+    expect(await screen.findByText(/kerbin · vacuum/i)).toBeInTheDocument();
+    expect(screen.queryByText(/kerbin · atmospheric/i)).toBeNull();
+  });
+
   it("suppresses the vacuum burn numbers on atmospheric bodies", async () => {
     renderWidget();
     act(() => {
