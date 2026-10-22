@@ -96,6 +96,10 @@ namespace Sitrep.Host.Flight
         // discipline ChannelEngine's own Courier-owned fields follow.
         private readonly ConcurrentQueue<EndSignal> _pendingEnds = new ConcurrentQueue<EndSignal>();
 
+        // The same handoff for a craft that came off an undock: it exists from that
+        // moment, whether or not anyone is flying it yet.
+        private readonly ConcurrentQueue<ReleaseSignal> _pendingReleases = new ConcurrentQueue<ReleaseSignal>();
+
         private double? _lastUt;
 
         // Set from the Courier thread when the engine replaces the game's timeline,
@@ -213,6 +217,16 @@ namespace Sitrep.Host.Flight
         public void NoteTimelineReset() => _timelineReplaced = true;
 
         /// <summary>
+        /// Called from a MAIN-THREAD GameEvent handler when a craft comes off an undock. Its flight
+        /// starts there and then, resuming the one that docked when its root part is the one that
+        /// did, rather than when the operator first switches to it.
+        /// </summary>
+        public void SignalReleased(string vesselId, string vesselName, string? rootPartId, double ut)
+        {
+            _pendingReleases.Enqueue(new ReleaseSignal(vesselId, vesselName, rootPartId, ut));
+        }
+
+        /// <summary>
         /// Courier-thread, tick-driven. Order matters: draining
         /// <see cref="_pendingEnds"/> first means a crash/recovery signalled
         /// just before a rewind is applied before the rewind branch below
@@ -239,6 +253,17 @@ namespace Sitrep.Host.Flight
                 }
                 ApplyEnd(end, currentId, snapshot);
                 endedThisTick.Add(end.VesselId);
+            }
+
+            var rewinding = _lastUt.HasValue && snapshot.Ut < _lastUt.Value;
+            while (_pendingReleases.TryDequeue(out var released))
+            {
+                // A craft released on the timeline a rewind discards does not exist on this one.
+                if (rewinding && released.Ut > snapshot.Ut)
+                {
+                    continue;
+                }
+                ApplyRelease(released);
             }
 
             // Rewind detection -- mirrors VesselEpochSampler.Sample exactly
@@ -395,7 +420,7 @@ namespace Sitrep.Host.Flight
                 // AnnounceStartedIfUnheard stays quiet for them. It still
                 // fires for whoever subscribes after this, because an
                 // empty audience clears this the same as any other.
-                _announcedStartedFlightId = known.FlightId;
+                _announcedStartedFlightId = known.Announced ? known.FlightId : null;
                 PublishVesselChanged(known, snapshot, _lastVesselId);
                 return;
             }
@@ -524,6 +549,50 @@ namespace Sitrep.Host.Flight
                 Ut = flight.StartUt,
                 ResumesAfterDock = flight.ResumesAfterDock,
             }, flight.StartUt);
+        }
+
+        private void ApplyRelease(ReleaseSignal released)
+        {
+            if (_flights.ContainsKey(released.VesselId))
+            {
+                return;
+            }
+
+            FlightRecord flight;
+            if (released.RootPartId != null && _dockedFlights.TryGetValue(released.RootPartId, out var docked))
+            {
+                _dockedFlights.Remove(released.RootPartId);
+                flight = new FlightRecord(docked.FlightId, released.VesselId, docked.StartUt, released.VesselName)
+                {
+                    RootPartId = released.RootPartId,
+                    ResumesAfterDock = true,
+                };
+            }
+            else
+            {
+                flight = new FlightRecord(_mintFlightId(), released.VesselId, released.Ut, released.VesselName)
+                {
+                    RootPartId = released.RootPartId,
+                };
+            }
+
+            _flights[released.VesselId] = flight;
+            if (_startedHasAudience())
+            {
+                flight.Announced = true;
+                _started.Publish(new FlightStarted
+                {
+                    FlightId = flight.FlightId,
+                    VesselId = flight.VesselId,
+                    VesselName = flight.VesselName,
+                    Ut = flight.StartUt,
+                    ResumesAfterDock = flight.ResumesAfterDock,
+                }, flight.StartUt);
+            }
+            else
+            {
+                flight.Announced = false;
+            }
         }
 
         /// <summary>
@@ -677,12 +746,31 @@ namespace Sitrep.Host.Flight
             public string? RootPartId;
             public bool ResumesAfterDock;
 
+            // Whether a flight.started for this flight has gone out to the audience that was listening when it began.
+            public bool Announced = true;
+
             public FlightRecord(string flightId, string vesselId, double startUt, string vesselName)
             {
                 FlightId = flightId;
                 VesselId = vesselId;
                 StartUt = startUt;
                 VesselName = vesselName;
+            }
+        }
+
+        private readonly struct ReleaseSignal
+        {
+            public readonly string VesselId;
+            public readonly string VesselName;
+            public readonly string? RootPartId;
+            public readonly double Ut;
+
+            public ReleaseSignal(string vesselId, string vesselName, string? rootPartId, double ut)
+            {
+                VesselId = vesselId;
+                VesselName = vesselName;
+                RootPartId = rootPartId;
+                Ut = ut;
             }
         }
 

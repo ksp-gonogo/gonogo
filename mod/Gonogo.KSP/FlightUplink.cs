@@ -145,6 +145,7 @@ namespace Gonogo.KSP
             GameEvents.onVesselRecovered.Add(OnVesselRecovered);
             GameEvents.onVesselTerminated.Add(OnVesselTerminated);
             GameEvents.onCrewBoardVessel.Add(OnCrewBoardVessel);
+            GameEvents.onVesselsUndocking.Add(OnVesselsUndocking);
             GameEvents.onPartCouple.Add(OnPartCouple);
             GameEvents.onPartCoupleComplete.Add(OnPartCoupleComplete);
             GameEvents.onVesselPersistentIdChanged.Add(OnVesselPersistentIdChanged);
@@ -298,6 +299,27 @@ namespace Gonogo.KSP
             catch (Exception ex)
             {
                 GonogoLog.Error("flight dock end failed", ex);
+            }
+        }
+
+        /// <summary>
+        /// MAIN-THREAD: two craft came apart at a port. The one that is not the vessel that
+        /// stayed gets its flight now, whoever is flying it.
+        /// </summary>
+        private void OnVesselsUndocking(Vessel stayed, Vessel released)
+        {
+            try
+            {
+                if (released == null || _sampler == null || !CrashPayload.ShouldPublish(released.vesselType.ToString()))
+                {
+                    return;
+                }
+                var root = released.rootPart != null ? released.rootPart.flightID.ToString() : null;
+                _sampler.SignalReleased(released.id.ToString(), GameWords.VesselName(released), root, Planetarium.GetUniversalTime());
+            }
+            catch (Exception ex)
+            {
+                GonogoLog.Error("flight undock capture failed", ex);
             }
         }
 

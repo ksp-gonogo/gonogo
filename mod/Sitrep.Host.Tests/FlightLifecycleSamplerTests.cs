@@ -739,6 +739,76 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void ACraftReleasedByAnUndockStartsItsFlightAtOnceWithoutBeingFlown()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha", rootPartId: "root-a"));
+
+            rig.Sampler.SignalReleased(VesselC, "Charlie", "root-c", 4.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 4.1, name: "Alpha", rootPartId: "root-a"));
+
+            var released = (FlightStarted)rig.Started.Calls[^1].Payload!;
+            Assert.Equal(VesselC, released.VesselId);
+            Assert.Equal(4.0, released.Ut);
+            Assert.False(released.ResumesAfterDock);
+            Assert.Empty(rig.VesselChanged.Calls);
+            Assert.Equal(VesselA, ((FlightCurrent)rig.Current.Calls[^1].Payload!).VesselId);
+
+            // Switching to it later only moves focus: its flight was already announced.
+            rig.Sampler.Sample(SnapshotFor(VesselC, 9.0, name: "Charlie", rootPartId: "root-c"));
+
+            Assert.Equal(2, rig.Started.Calls.Count);
+            var changed = (FlightVesselChanged)Assert.Single(rig.VesselChanged.Calls).Payload!;
+            Assert.Equal(released.FlightId, changed.FlightId);
+        }
+
+        [Fact]
+        public void ACraftReleasedByAnUndockResumesTheFlightThatDockedWithoutBeingFlown()
+        {
+            var (rig, bravoFlight) = DockedBravoIntoAlpha();
+
+            rig.Sampler.SignalReleased(VesselC, "Bravo", "root-b", 12.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 12.1, name: "Alpha", rootPartId: "root-a"));
+
+            var resumed = (FlightStarted)rig.Started.Calls[^1].Payload!;
+            Assert.Equal(bravoFlight, resumed.FlightId);
+            Assert.Equal(VesselC, resumed.VesselId);
+            Assert.True(resumed.ResumesAfterDock);
+            Assert.Equal(VesselA, ((FlightCurrent)rig.Current.Calls[^1].Payload!).VesselId);
+        }
+
+        [Fact]
+        public void ACraftReleasedOnTheTimelineARewindDiscardsHasNoFlight()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha", rootPartId: "root-a"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 10.0, name: "Alpha", rootPartId: "root-a"));
+            rig.Sampler.SignalReleased(VesselC, "Charlie", "root-c", 11.0);
+
+            rig.Sampler.Sample(SnapshotFor(VesselA, 1.0, name: "Alpha", rootPartId: "root-a"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 1.1, name: "Alpha", rootPartId: "root-a"));
+
+            Assert.DoesNotContain(rig.Started.Calls, c => ((FlightStarted)c.Payload!).VesselId == VesselC);
+        }
+
+        [Fact]
+        public void AFlightReleasedWithNobodyListeningIsAnnouncedWhenItIsFlownAndSomeoneIsListening()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha", rootPartId: "root-a"));
+            rig.StartedHasAudience = false;
+            rig.Sampler.SignalReleased(VesselC, "Charlie", "root-c", 4.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 4.1, name: "Alpha", rootPartId: "root-a"));
+            Assert.Single(rig.Started.Calls);
+
+            rig.StartedHasAudience = true;
+            rig.Sampler.Sample(SnapshotFor(VesselC, 9.0, name: "Charlie", rootPartId: "root-c"));
+
+            var announced = (FlightStarted)rig.Started.Calls[^1].Payload!;
+            Assert.Equal(VesselC, announced.VesselId);
+        }
+
+        [Fact]
         public void ACraftWhoseRootPartNeverDockedThisSessionStartsAFlightOfItsOwn()
         {
             var (rig, bravoFlight) = DockedBravoIntoAlpha();
