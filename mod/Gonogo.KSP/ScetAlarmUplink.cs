@@ -241,27 +241,6 @@ namespace Gonogo.KSP
         private readonly ScetRosterAudience _audience = new ScetRosterAudience();
 
         /// <summary>
-        /// The copies of Gonogo's alarms in the game's own clock. Its links are
-        /// the save's (see <see cref="GameAlarmLinkScenario"/>), so it is touched
-        /// only on the main thread or under <see cref="_gate"/> from a handler
-        /// that queues rather than edits.
-        /// </summary>
-        private readonly GameAlarmMirror _mirror = new GameAlarmMirror(GameAlarmLinkScenario.Links);
-
-        private readonly GameAlarmPublication _gamePublication = new GameAlarmPublication();
-
-        /// <summary>
-        /// Game alarms an operator deleted from Gonogo, queued by the Courier's
-        /// handler for the next capture, since the clock is main-thread only.
-        /// Guarded by <see cref="_gate"/>.
-        /// </summary>
-        private readonly List<long> _gameDeletes = new List<long>();
-
-        private IChannelPublisher? _gameListPublisher;
-        private IDynamicChannelSource? _gameCraftSource;
-        private Kernel? _kernel;
-
-        /// <summary>
         /// Which Topics the armed thresholds need kept on the record. Guarded by
         /// <see cref="_gate"/>, and asked only when the roster moved: a
         /// reconciliation against an unchanged roster answers nothing.
@@ -310,7 +289,6 @@ namespace Gonogo.KSP
                     Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
                     ViewerFilter = ScetRosterRedaction.ForViewer,
                 },
-                GameAlarmBoard.ListChannel(),
                 new ChannelDeclaration
                 {
                     Kind = SampleKind.Discrete,
@@ -358,7 +336,6 @@ namespace Gonogo.KSP
                 // blackout, which is when a SCET alarm is worth the most.
                 new CommandDeclaration { Command = ArmCommand },
                 new CommandDeclaration { Command = DisarmCommand },
-                new CommandDeclaration { Command = GameAlarmBoard.DeleteCommand },
             },
         };
 
@@ -391,22 +368,11 @@ namespace Gonogo.KSP
                 Exclusive = false,
                 SpineCritical = false,
             });
-
-            // The game's own alarm clock. Not spine-critical: with no clock the
-            // game alarm list says so and Gonogo's alarms carry on uncopied.
-            kernel.RegisterCapability(new CapabilityDescriptor
-            {
-                Id = GameAlarmClockCapability.Id,
-                Exclusive = true,
-                SpineCritical = false,
-                Vanilla = _ => new StockAlarmClockBackend(),
-            });
         }
 
         public void Register(IUplinkHost host)
         {
             _host = host;
-            _kernel = host.Kernel;
             _thresholds = new ScetThresholdSources(host.Kernel);
 
             // The same elected backend the vessel uplink's actuator writes
@@ -419,8 +385,6 @@ namespace Gonogo.KSP
             _rosterPublisher = host.Publisher(RosterTopic);
             _firedPublisher = host.Publisher(FiredTopic);
             _topicsPublisher = host.Publisher(TopicsTopic);
-            _gameListPublisher = host.Publisher(GameAlarmBoard.ListTopic);
-            _gameCraftSource = host.RegisterDynamicNamespace(GameAlarmBoard.CraftPrefix, GameAlarmBoard.CraftNamespace());
 
             // Vantage-resolved, so the roster records WHERE an alarm was armed
             // from rather than where a payload claimed it was: a client that
@@ -430,8 +394,6 @@ namespace Gonogo.KSP
                 ArmCommand, (args, vantage) => HandleArm(args, vantage));
             host.AddVantageCommandHandler<ScetAlarmDisarmArgs, CommandResult>(
                 DisarmCommand, (args, _) => HandleDisarm(args));
-            host.AddCommandHandler<GameAlarmDeleteArgs, CommandResult>(
-                GameAlarmBoard.DeleteCommand, HandleGameDelete);
 
             // UNGATED, deliberately. See the class comment: the capture's effect
             // is the warp stop, and a gate that skipped it while nobody watched
@@ -543,12 +505,6 @@ namespace Gonogo.KSP
                         "alarms watch only the craft being flown, and '" + subject + "' is not it");
                 }
 
-                if (_roster.IsDeletedInGame(args.Id))
-                {
-                    return CommandResult.Fail(
-                        CommandErrorCode.Range, "this alarm was deleted in the game's alarm clock");
-                }
-
                 // An id belongs to exactly one alarm whatever vantage it names,
                 // so a re-arm that moves the vantage REPLACES in place. What
                 // used to need dropping the id from every other roster first is
@@ -567,87 +523,11 @@ namespace Gonogo.KSP
             lock (_gate)
             {
                 _roster.Disarm(args.Id);
-                _mirror.Disarmed(args.Id);
             }
             // Succeeds for an id the host does not hold: a client reconciling its
             // list against the roster disarms what it does not recognise, and
             // "already gone" is the outcome it wanted.
             return new CommandResult { Success = true };
-        }
-
-        private CommandResult HandleGameDelete(GameAlarmDeleteArgs? args)
-        {
-            if (args == null)
-            {
-                return CommandResult.Fail(CommandErrorCode.Range, "a game alarm delete needs the alarm's id");
-            }
-            lock (_gate)
-            {
-                _gameDeletes.Add(args.Id);
-            }
-            return new CommandResult { Success = true };
-        }
-
-        /// <summary>
-        /// The elected game alarm clock, or null on an install where none is
-        /// registered or the kernel has not resolved yet.
-        /// </summary>
-        private IGameAlarmClock? GameClock()
-        {
-            if (_kernel == null)
-            {
-                return null;
-            }
-            try
-            {
-                return _kernel.Query<IGameAlarmClock>(GameAlarmClockCapability.Id);
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// MAIN-THREAD, under <see cref="_gate"/>: bring the game's clock in line
-        /// with the roster and lay the clock out for publishing. Runs after the
-        /// tick has opened, so a rewind has already cleared the roster and the
-        /// copies a quickload restored are not mistaken for ones to delete.
-        /// </summary>
-        private GameAlarmPublishes? SyncGameClock(double ut)
-        {
-            var clock = GameClock();
-            if (clock != null && clock.Available && _gameDeletes.Count > 0)
-            {
-                foreach (var id in _gameDeletes)
-                {
-                    clock.Delete(id);
-                    var gonogoId = _mirror.ForgetGameAlarm(id);
-                    if (gonogoId != null)
-                    {
-                        _roster.MarkDeletedInGame(gonogoId);
-                    }
-                }
-                _gameDeletes.Clear();
-            }
-
-            var outcome = _mirror.Reconcile(_roster.Snapshot(), clock, ut);
-            foreach (var link in outcome.Links)
-            {
-                _roster.SetGameAlarm(link.Key, link.Value);
-            }
-            foreach (var id in outcome.DeletedInGame)
-            {
-                _roster.MarkDeletedInGame(id);
-            }
-
-            var available = clock != null && clock.Available;
-            var view = GameAlarmBoard.Build(available, available ? clock!.Alarms() : null, _mirror.MirrorOf());
-            var host = _host;
-            return _gamePublication.Next(
-                view,
-                host?.IsAnyTopicSubscribed(GameAlarmBoard.ListTopic) ?? false,
-                craft => host?.IsAnyTopicSubscribed(GameAlarmBoard.CraftTopic(craft)) ?? false);
         }
 
         /// <summary>
@@ -684,21 +564,12 @@ namespace Gonogo.KSP
                 List<ScetAlarmActionsDue> actionsDue;
                 var flown = ActiveVesselScope.Current;
                 var game = CommandDeliveryScenario.GameKey;
-                GameAlarmPublishes? gamePublishes = null;
                 lock (_gate)
                 {
                     _roster.ObserveGame(game);
                     _roster.ObserveFlownCraft(flown != null ? "vessel:" + flown.id : null);
                     tick = _roster.BeginTick(ut);
                     _roster.EvaluatePass(tick, ScetAlarmVantage.IsTheSubjectsOwn, _ => state);
-                    try
-                    {
-                        gamePublishes = SyncGameClock(ut);
-                    }
-                    catch (Exception ex)
-                    {
-                        GonogoLog.ErrorLimited("game alarm clock sync failed", ex);
-                    }
                     stopWarp = tick.StopWarp;
                     actionsDue = new List<ScetAlarmActionsDue>(tick.ActionsDue);
                     if (_roster.WatchesContracts())
@@ -736,7 +607,6 @@ namespace Gonogo.KSP
                     Tick = tick,
                     FinishedContracts = finishedContracts,
                     StoppedOnCapture = stopWarp,
-                    GamePublishes = gamePublishes,
                 };
             }
             catch (Exception ex)
@@ -824,34 +694,10 @@ namespace Gonogo.KSP
                 {
                     _firedPublisher?.Publish(notice, publish.Ut);
                 }
-                PublishGameAlarms(publish);
             }
             catch (Exception ex)
             {
                 GonogoLog.ErrorLimited("SCET alarm publish failed", ex);
-            }
-        }
-
-        /// <summary>
-        /// Put the game's clock on the wire: the shared list at once, and each
-        /// craft's own alarms into that craft's namespace, which reveals them at
-        /// each command centre a signal delay later. Courier thread.
-        /// </summary>
-        private void PublishGameAlarms(ScetAlarmPublish publish)
-        {
-            var game = publish.GamePublishes;
-            if (game == null)
-            {
-                return;
-            }
-            if (game.List != null)
-            {
-                _gameListPublisher?.Publish(GameAlarmBoard.ToWire(game.List), publish.Ut);
-            }
-            foreach (var craft in game.Crafts)
-            {
-                _gameCraftSource?.Publisher(craft.Key + GameAlarmBoard.CraftSuffix)
-                    .Publish(GameAlarmBoard.ToWire(craft.Value), publish.Ut);
             }
         }
 
@@ -1028,9 +874,6 @@ namespace Gonogo.KSP
             /// has already acted on, and one alarm would stop the warp twice.
             /// </summary>
             public bool StoppedOnCapture;
-
-            /// <summary>What the game alarm Topics are to carry, or null when the clock could not be read.</summary>
-            public GameAlarmPublishes? GamePublishes;
         }
     }
 }

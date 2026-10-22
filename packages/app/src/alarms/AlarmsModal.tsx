@@ -36,9 +36,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import { DangerButton, List, RowActions, RowMeta } from "./alarmRowStyles";
 import { useVantageName } from "./foreignAlarm";
-import { GameAlarmsSection } from "./GameAlarmsSection";
 import { isReckonedField } from "./reckonedField";
 import type {
   Alarm,
@@ -825,11 +823,6 @@ export function AlarmsModal({
                       {snapshot.onFireRefusals[a.id]}
                     </RowMeta>
                   )}
-                  {snapshot.scetInGameClock?.includes(a.id) && (
-                    <RowMeta>
-                      <Badge size="sm">IN GAME CLOCK</Badge>
-                    </RowMeta>
-                  )}
                   {snapshot.scetUnreachable?.includes(a.id) && (
                     <RowMeta role="status">
                       <Badge tone="warn" size="sm">
@@ -844,8 +837,6 @@ export function AlarmsModal({
           </List>
         )}
       </Stack>
-
-      <GameAlarmsSection contexts={timeContexts} />
 
       {snapshot.scetForeign && snapshot.scetForeign.length > 0 && (
         <Stack as="section" gap="related-comfortable">
@@ -1629,6 +1620,15 @@ const Empty = styled.div`
   padding: var(--inset-empty-modal-list);
 `;
 
+const List = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-related);
+`;
+
 /** Alarm states, mapped onto the kit's tone vocabulary. */
 const ALARM_TONE: Record<Alarm["state"], Tone> = {
   firing: "nogo",
@@ -1636,6 +1636,14 @@ const ALARM_TONE: Record<Alarm["state"], Tone> = {
   pending: "neutral",
   fired: "neutral",
 };
+
+const RowMeta = styled.div`
+  font-size: var(--font-size-compact);
+  color: var(--color-text-muted);
+  code {
+    color: var(--color-go-text);
+  }
+`;
 
 const StateTag = styled.span<{ $state: Alarm["state"] }>`
   text-transform: uppercase;
@@ -1649,6 +1657,29 @@ const StateTag = styled.span<{ $state: Alarm["state"] }>`
         : p.$state === "fired"
           ? "var(--color-text-dim)"
           : "var(--color-go-text)"};
+`;
+
+const RowActions = styled.div`
+  display: flex;
+  gap: var(--gap-related);
+  flex-shrink: 0;
+`;
+
+const DangerButton = styled.button`
+  background: var(--color-nogo-muted);
+  color: var(--color-nogo-text);
+  border: 1px solid var(--color-nogo-muted);
+  padding: var(--inset-control);
+  border-radius: var(--radius-regular);
+  font-size: var(--font-size-compact);
+  cursor: pointer;
+  &:hover {
+    background: var(--color-nogo-muted);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-nogo-mark);
+    outline-offset: 2px;
+  }
 `;
 
 const FireList = styled.div`

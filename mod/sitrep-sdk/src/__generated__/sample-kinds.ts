@@ -10,7 +10,6 @@
 /** Each core channel's sample kind. */
 export const GENERATED_CHANNEL_KINDS = {
   "alarm.activeList": "discrete",
-  "alarm.game.list": "discrete",
   "alarm.scet.fired": "event",
   "alarm.scet.topics": "discrete",
   "career.facilities": "discrete",

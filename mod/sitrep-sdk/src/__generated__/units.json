@@ -732,22 +732,6 @@
       "vesselId": "id",
       "vesselName": "text"
     },
-    "GameAlarm": {
-      "gonogoId": "id",
-      "id": "id",
-      "kind": "enum",
-      "title": "text",
-      "triggered": "flag",
-      "ut": "ut",
-      "vessel": "id",
-      "warp": "enum"
-    },
-    "GameAlarmDeleteArgs": {
-      "id": "id"
-    },
-    "GameAlarmList": {
-      "available": "flag"
-    },
     "GameDlc": {
       "breakingGround": "flag",
       "makingHistory": "flag"
@@ -1174,7 +1158,6 @@
       "actsOn": "id",
       "armedBy": "id",
       "firedAtUt": "ut",
-      "gameAlarmId": "id",
       "id": "id",
       "name": "text",
       "state": "enum",
@@ -1704,16 +1687,12 @@
       "actsOn": "id",
       "armedBy": "id",
       "firedAtUt": "ut",
-      "gameAlarmId": "id",
       "id": "id",
       "name": "text",
       "state": "enum",
       "subject": "id",
       "vantage": "id",
       "withheld": "flag"
-    },
-    "alarm.game.list": {
-      "available": "flag"
     },
     "alarm.scet.fired": {
       "actionsWithheld": "flag",
@@ -2537,9 +2516,6 @@
     "EventMsg": {
       "meta": "Meta"
     },
-    "GameAlarmList": {
-      "alarms": "GameAlarm[]"
-    },
     "GateVerdict": {
       "breach": "LimitBreach",
       "missing": "MissingUnlock[]"
@@ -2746,9 +2722,6 @@
     "alarm.activeList": {
       "condition": "ScetAlarmCondition",
       "onFire": "ScetAlarmAction[]"
-    },
-    "alarm.game.list": {
-      "alarms": "GameAlarm[]"
     },
     "career.facilities": {
       "facilities": "*CareerFacility"
@@ -2994,10 +2967,6 @@
     },
     "FlightEnded": {
       "reason": "FlightEndReason"
-    },
-    "GameAlarm": {
-      "kind": "GameAlarmKind",
-      "warp": "GameAlarmWarp"
     },
     "GateVerdict": {
       "outcome": "GateOutcome"
@@ -3259,20 +3228,6 @@
       "3": "Destroyed",
       "4": "Terminated"
     },
-    "GameAlarmKind": {
-      "0": "Time",
-      "1": "TransferWindow",
-      "2": "SoiChange",
-      "3": "Apoapsis",
-      "4": "Periapsis",
-      "5": "Maneuver",
-      "6": "Other"
-    },
-    "GameAlarmWarp": {
-      "0": "Nothing",
-      "1": "StopWarp",
-      "2": "Pause"
-    },
     "GameMode": {
       "0": "Sandbox",
       "1": "Career",
@@ -3418,8 +3373,7 @@
       "0": "Armed",
       "1": "Fired",
       "2": "Unreachable",
-      "3": "Cancelled",
-      "4": "DeletedInGame"
+      "3": "Cancelled"
     },
     "ScetAlarmThresholdOp": {
       "0": "GreaterThan",
