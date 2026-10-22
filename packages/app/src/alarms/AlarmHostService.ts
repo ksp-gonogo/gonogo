@@ -809,7 +809,9 @@ function settleState(alarm: Alarm, now: number): Alarm["state"] {
   if (alarm.matchSinceUT == null) return alarm.state;
   if (alarm.state === "fired") return "fired";
   if (alarm.state !== "firing") return "firing";
-  return now - alarm.matchSinceUT < 2 ? "firing" : "fired";
+  // A UT behind the latch (a quickload) is outside the window, never inside it.
+  const age = now - alarm.matchSinceUT;
+  return age >= 0 && age < 2 ? "firing" : "fired";
 }
 
 function hasFired(state: Alarm["state"]): boolean {
