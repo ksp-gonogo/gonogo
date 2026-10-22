@@ -104,7 +104,7 @@ describe("FlightsManager", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("shows why each flight ended, and a dash for one that stopped without a reason", async () => {
+  it("shows why each flight ended, and says the end is not known for one that stopped without a reason", async () => {
     const store = freshStore();
     registerDataSource(new MissionHistorySource(store));
     await seedMission(store, {
@@ -130,6 +130,7 @@ describe("FlightsManager", () => {
     const open = within(await rowOf("Open One"));
     expect(open.queryByText("Crashed")).toBeNull();
     expect(open.queryByText("Reverted")).toBeNull();
+    expect(open.getByText("Not known")).toBeTruthy();
     expect(screen.getByRole("columnheader", { name: "Ended" })).toBeTruthy();
   });
 

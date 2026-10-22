@@ -56,11 +56,11 @@ const END_REASON_LABELS: Record<FlightEndReason, string> = {
   [FlightEndReason.Terminated]: "Terminated",
 };
 
-/** A flight that stopped recording without an end notice has no reason, and reads as absent. */
+/** A flight whose end has not been announced, or never reached this page, reads as not known, never as a dash that could stand for a reason. */
 function endReasonLabel(reason: FlightEndReason | undefined): string {
   return reason === undefined
-    ? NULL_DISPLAY
-    : (END_REASON_LABELS[reason] ?? NULL_DISPLAY);
+    ? "Not known"
+    : (END_REASON_LABELS[reason] ?? "Not known");
 }
 
 /** Funds and science are absent in a save that awards neither, and read as absent rather than as +0. */
