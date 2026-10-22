@@ -22,5 +22,14 @@ namespace Gonogo.KSP.Tests
             Assert.DoesNotContain("HasResearchTree", scan, StringComparison.Ordinal);
             Assert.DoesNotContain("game.Mode", scan, StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void the_published_name_is_the_localised_one()
+        {
+            var source = CurrencyDelaySourceText.ReadRelative("KspHost.cs");
+            var scan = CurrencyDelaySourceText.MethodBody(source, ScanDeclaration);
+
+            Assert.Contains("[\"name\"] = GameWords.CraftName(", scan, StringComparison.Ordinal);
+        }
     }
 }

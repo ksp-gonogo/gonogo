@@ -85,10 +85,11 @@ namespace Gonogo.KSP
                     return;
                 }
 
+                var file = Path.GetFileNameWithoutExtension(path);
                 CraftLaunchLog.Current.RecordLaunch(
                     ship.shipFacility.ToString(),
-                    Path.GetFileNameWithoutExtension(path),
-                    ship.shipName,
+                    file,
+                    GameWords.CraftName(ship.shipName, file),
                     Planetarium.GetUniversalTime());
             }
             catch (Exception ex)

@@ -365,7 +365,7 @@ namespace Gonogo.KSP
                     {
                         Modified = modified,
                         Root = root,
-                        ShipName = info.shipName,
+                        ShipName = GameWords.CraftName(info.shipName, Path.GetFileNameWithoutExtension(path)),
                         Facility = (KspEditorFacility)(int)info.shipFacility,
                         PartCount = info.partCount,
                         Mass = info.totalMass,

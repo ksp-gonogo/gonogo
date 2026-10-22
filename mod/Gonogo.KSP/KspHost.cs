@@ -4400,7 +4400,7 @@ namespace Gonogo.KSP
 
                         ships.Add(new Dictionary<string, object?>
                         {
-                            ["name"] = info.shipName,
+                            ["name"] = GameWords.CraftName(info.shipName, Path.GetFileNameWithoutExtension(file)),
                             ["file"] = Path.GetFileNameWithoutExtension(file),
                             ["partCount"] = info.partCount,
                             ["totalMass"] = info.totalMass,

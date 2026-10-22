@@ -59,6 +59,24 @@ namespace Gonogo.KSP.Tests.Localisation
         }
 
         [Fact]
+        public void ASavedStockCraftIsNamedAsTheEditorShowsItAndNotByItsTag()
+        {
+            using var _ = new InstalledLocalizer(new Dictionary<string, string> { [StockCraftTag] = "Kerbal X" });
+
+            Assert.Equal("Kerbal X", GameWords.CraftName(StockCraftTag, "Kerbal X file"));
+        }
+
+        [Fact]
+        public void ASavedCraftWithNoReadableNameIsNamedByItsFile()
+        {
+            using var _ = new InstalledLocalizer(new Dictionary<string, string>());
+
+            Assert.Equal("Probe v2", GameWords.CraftName(StockCraftTag, "Probe v2"));
+            Assert.Equal("Probe v2", GameWords.CraftName("", "Probe v2"));
+            Assert.Equal("My Probe", GameWords.CraftName("My Probe", "Probe v2"));
+        }
+
+        [Fact]
         public void APlayersOwnCraftNameIsLeftAsTheyTypedIt()
         {
             using var _ = new InstalledLocalizer(new Dictionary<string, string>());

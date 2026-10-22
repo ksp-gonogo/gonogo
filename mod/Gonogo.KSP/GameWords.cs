@@ -158,6 +158,18 @@ namespace Gonogo.KSP
             string.IsNullOrEmpty(stored) ? "Vessel" : Name(stored!, stored!);
 
         /// <summary>
+        /// A saved craft's name as the player sees it in the editor: a stock
+        /// craft is stored under a localisation tag, a player's own craft under
+        /// what they typed. <paramref name="fallback"/> (the craft file's name)
+        /// when the file holds no name or a tag the table cannot resolve.
+        /// </summary>
+        public static string CraftName(string? stored, string fallback)
+        {
+            var text = Text(stored);
+            return text.Length == 0 ? fallback : text;
+        }
+
+        /// <summary>
         /// A launch site as the player sees it in game, by the id a launch names
         /// it with, or the id itself when the game has no readable name for it.
         ///
