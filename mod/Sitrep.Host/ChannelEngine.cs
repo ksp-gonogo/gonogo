@@ -7017,54 +7017,6 @@ namespace Sitrep.Host
         /// attribution (<see cref="MarkUplinkUnavailable"/>) can never be
         /// skipped by a poisoned Message getter.
         /// </summary>
-        /// <summary>
-        /// Makes the Uplink that supplied <paramref name="provider"/> unavailable when
-        /// <paramref name="error"/> is a missing member or type, the failure of an
-        /// Uplink built against another contract. The reason names the Uplink, the
-        /// contract it declared and the one this core speaks, so the roster and the
-        /// log say why. Returns whether an Uplink was made unavailable. Core's own
-        /// providers are never quarantined, and an Uplink already unavailable is left
-        /// as it is. Main thread, like every capture-side caller.
-        /// </summary>
-        public bool QuarantineProviderOwner(object provider, Exception error)
-        {
-            if (!UplinkBinarySkew.IsSkew(error))
-            {
-                return false;
-            }
-
-            var assembly = provider.GetType().Assembly;
-            if (ReferenceEquals(assembly, typeof(ChannelEngine).Assembly))
-            {
-                return false;
-            }
-
-            foreach (var registered in _registeredUplinks)
-            {
-                if (!ReferenceEquals(registered.Value.GetType().Assembly, assembly))
-                {
-                    continue;
-                }
-
-                if (_availability.TryGetValue(registered.Key, out var current) && !current.IsAvailable)
-                {
-                    return false;
-                }
-
-                var built = _declaredContract.TryGetValue(registered.Key, out var declared)
-                    ? $"v{declared.Major}.{declared.Minor}"
-                    : "an unknown contract";
-                var core = $"v{Sitrep.Contract.ContractVersion.Major}.{Sitrep.Contract.ContractVersion.Minor}";
-                MarkUplinkUnavailable(
-                    registered.Key,
-                    $"uplink \"{registered.Key}\" was built against contract {built} and does not match core {core}: "
-                    + $"{error.GetType().Name}: {SafeExceptionMessage(error)}");
-                return true;
-            }
-
-            return false;
-        }
-
         private static string SafeExceptionMessage(Exception ex)
         {
             try

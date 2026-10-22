@@ -1,10 +1,6 @@
 import { Stack, Text } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
-import {
-  isBuildMismatch,
-  readIntegrityFailure,
-  type UplinkIntegrityFailure,
-} from "./integrity";
+import { readIntegrityFailure, type UplinkIntegrityFailure } from "./integrity";
 
 /**
  * A sha256 digest is 71 unbroken characters, so it needs somewhere to break and
@@ -38,14 +34,9 @@ export function UplinkIntegrityDetail({
   const reading = readIntegrityFailure(failure);
   return (
     <Stack gap="caption">
-      <Text tone={isBuildMismatch(failure) ? "warn" : "nogo"} size="sm">
+      <Text tone="nogo" size="sm">
         {reading.finding}
       </Text>
-      {reading.advice && (
-        <Text level="muted" size="sm">
-          {reading.advice}
-        </Text>
-      )}
       <HashLine>
         {reading.observed.label}: {reading.observed.hash}
       </HashLine>

@@ -12,12 +12,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import {
-  bakeUplink,
-  describeBake,
-  devPathPastPublishedVersion,
-  findUplinkDir,
-} from "./bake";
+import { bakeUplink, describeBake, findUplinkDir } from "./bake";
 import { dotnet } from "./codegen";
 import { parseFlags } from "./flags";
 import { packageMod } from "./package";
@@ -165,7 +160,7 @@ export async function release(
   const gamedata = str(field(declared, "gamedata"));
   const dllName = str(field(declared, "dll"));
   const url = str(field(field(declared, "client"), "url"));
-  const givenDevPath = values.get("--dev-path") ?? "";
+  const devPath = values.get("--dev-path") ?? "";
   const outValue = values.get("--out");
   const outDir =
     outValue === undefined ? join(uplinkDir, "dist") : resolve(cwd, outValue);
@@ -177,7 +172,7 @@ export async function release(
     );
   }
 
-  const placeholder = givenDevPath ? undefined : placeholderUrlFault(url);
+  const placeholder = devPath ? undefined : placeholderUrlFault(url);
   if (placeholder) throw new Error(placeholder);
 
   const clientDir = join(uplinkDir, "client");
@@ -185,17 +180,11 @@ export async function release(
   const version = existsSync(versionFile)
     ? str(field(JSON.parse(readFileSync(versionFile, "utf8")), "version"))
     : "";
-  const wrongUrl =
-    url && !givenDevPath ? urlVersionFault(url, version) : undefined;
+  const wrongUrl = url && !devPath ? urlVersionFault(url, version) : undefined;
   if (wrongUrl) throw new Error(wrongUrl);
   const tag = values.get("--tag");
   const wrongTag = tag ? tagFault(tag, id, version) : undefined;
   if (wrongTag) throw new Error(wrongTag);
-  const past = givenDevPath
-    ? undefined
-    : devPathPastPublishedVersion(uplinkDir, tag);
-  if (past) console.log(past.notice);
-  const devPath = givenDevPath || past?.devPath || "";
 
   const step = (label: string) => console.log(`\n== ${label}`);
   const tsconfig = join(clientDir, "tsconfig.json");

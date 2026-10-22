@@ -29,16 +29,13 @@
 
 import { Badge, Cluster, Notice, Stack, Text } from "@ksp-gonogo/ui-kit";
 import { useSyncExternalStore } from "react";
-import { isBuildMismatch } from "./integrity";
 import {
   getUplinkOutcomes,
   integrityFailures,
-  otherQuarantineCount,
   subscribeUplinkOutcomes,
   type UplinkLoadOutcome,
 } from "./loaderState";
 import { UplinkIntegrityDetail } from "./UplinkIntegrityDetail";
-import { UplinkQuarantineLine } from "./UplinkQuarantineLine";
 import { canOverrideSkew, UplinkSkewOverride } from "./UplinkSkewOverride";
 
 function FailedUplink({
@@ -84,29 +81,10 @@ export function UplinkIntegrityBanner() {
     getUplinkOutcomes,
   );
   const failed = integrityFailures(outcomes);
-  const others = otherQuarantineCount(outcomes);
-  // Unknown until a load pass has settled, and then no line rather than a zero.
-  const otherLine =
-    others !== null && others > 0 ? (
-      <UplinkQuarantineLine count={others} following={failed.length > 0} />
-    ) : null;
-  if (failed.length === 0) {
-    return (
-      otherLine && (
-        <Notice as="section" tone="warn" aria-label="Uplinks quarantined">
-          {otherLine}
-        </Notice>
-      )
-    );
-  }
+  if (failed.length === 0) return null;
 
   const declared = failed.filter(canOverrideSkew);
-  const mismatched = failed.filter(
-    (o) => o.integrity !== undefined && isBuildMismatch(o.integrity),
-  );
-  const measured = failed.filter(
-    (o) => !canOverrideSkew(o) && !mismatched.includes(o),
-  );
+  const measured = failed.filter((o) => !canOverrideSkew(o));
 
   return (
     <Notice as="section" tone="nogo" aria-label="Uplink integrity">
@@ -117,11 +95,7 @@ export function UplinkIntegrityBanner() {
             for a compat gate. */}
         <Cluster justify="start" gap="related-dense" wrap>
           <Badge tone={measured.length > 0 ? "nogo" : "warn"}>
-            {measured.length > 0
-              ? "Integrity failure"
-              : declared.length > 0
-                ? "Hash disagreement"
-                : "Version mismatch"}
+            {measured.length > 0 ? "Integrity failure" : "Hash disagreement"}
           </Badge>
           <Text tone={measured.length > 0 ? "nogo" : "warn"} weight="semibold">
             {failed.length === 1
@@ -140,13 +114,6 @@ export function UplinkIntegrityBanner() {
               CDN.
             </Text>
             {measured.map((outcome) => (
-              <FailedUplink key={outcome.id} outcome={outcome} />
-            ))}
-          </Stack>
-        )}
-        {mismatched.length > 0 && (
-          <Stack gap="related-comfortable">
-            {mismatched.map((outcome) => (
               <FailedUplink key={outcome.id} outcome={outcome} />
             ))}
           </Stack>
@@ -171,7 +138,6 @@ export function UplinkIntegrityBanner() {
             ))}
           </Stack>
         )}
-        {otherLine}
       </Stack>
     </Notice>
   );

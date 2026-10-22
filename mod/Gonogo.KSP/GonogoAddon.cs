@@ -123,7 +123,6 @@ namespace Gonogo.KSP
                 // comment describes.
                 _engine = new ChannelEngine(BindUri, executeCommandsOnMainThread: true);
                 SharedEngine = _engine;
-                FleetCommsReader.ProviderFault = (provider, error) => _engine?.QuarantineProviderOwner(provider, error);
                 _loadReporter = new GameLoadReporter(_engine);
                 _sampleGate = new SampleGate(_loadReporter.State, _engine.Cadence);
 
@@ -651,7 +650,6 @@ namespace Gonogo.KSP
             ScetAlarmUplink.ConfigureSelectableVantage(null);
             ScetAlarmUplink.ConfigureMainThreadRunner(null);
             SharedEngine = null;
-            FleetCommsReader.ProviderFault = null;
             _loadReporter?.Dispose();
 
             try

@@ -220,11 +220,7 @@ export function bakeRule(build: BuildClient = buildClient): Rule {
           });
           continue;
         }
-        // A build past its published version bakes a dev path on purpose, so it is the hash that says whether the file is stale.
-        const committed = readFileSync(path, "utf8").replace(
-          /DevPath = "[^"]*";/,
-          'DevPath = "";',
-        );
+        const committed = readFileSync(path, "utf8");
         if (committed === content) continue;
         const vouches = hashOf(committed);
         const detail =

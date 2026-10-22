@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using CommNet;
 using Sitrep.Contract;
 using Sitrep.Core;
-using Sitrep.Host;
 using Sitrep.Host.Comms;
 using UnityEngine;
 
@@ -23,14 +22,6 @@ namespace Gonogo.KSP
     /// </summary>
     internal static class FleetCommsReader
     {
-        /// <summary>
-        /// Told about an exception a backend threw that means it was built for
-        /// another contract, with the backend, so its Uplink can be made
-        /// unavailable instead of every read quietly answering "no path". Set by the
-        /// addon to the running engine's quarantine; a test replaces it.
-        /// </summary>
-        internal static Action<object, Exception>? ProviderFault { get; set; }
-
         /// <summary>
         /// Routed one-way signal delay (null = no measurable path) + connectivity
         /// for a single vessel. Fail-soft: any torn-down-state throw yields
@@ -334,11 +325,6 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                if (backend != null && UplinkBinarySkew.IsSkew(ex))
-                {
-                    ProviderFault?.Invoke(backend, ex);
-                }
-
                 GonogoLog.WarnLimited("FleetCommsReader.ReadNodePath failed (treating as no path)", ex);
                 return (null, null);
             }
