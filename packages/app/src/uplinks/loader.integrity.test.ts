@@ -351,8 +351,38 @@ describe("who an integrity failure names", () => {
       observed: "sha256-manifest-disagrees",
       expected: WRONG_HASH,
       vouchedBy: ["installed-mod"],
+      sameVersion: "2.0.0",
     });
     expect(fetchBytes).not.toHaveBeenCalled();
+  });
+
+  it("records no shared version when the sidecar names another version than the mod", async () => {
+    const [outcome] = await load({
+      roster: [
+        {
+          id: "widget-y",
+          version: "2.0.0",
+          available: true,
+          reason: null,
+          expectedClientHash: WRONG_HASH,
+          clientSource: {
+            url: "https://cdn.example/widget-y.client.js",
+            devPath: null,
+          },
+        },
+      ],
+      fetchManifest: async () => ({
+        id: "widget-y",
+        version: "2.1.0",
+        minAppVersion: "1.0.0",
+        apiVersion: "1.2.5",
+        contractMajor: 3,
+        contractMinor: 3,
+        integrity: "sha256-manifest-disagrees",
+      }),
+    });
+
+    expect(outcome.integrity?.sameVersion).toBeUndefined();
   });
 });
 

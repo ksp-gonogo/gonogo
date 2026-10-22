@@ -68,6 +68,19 @@ export interface UplinkIntegrityFailure {
    * than one party and one artifact.
    */
   observedBy?: UplinkIntegrityParty[];
+  /**
+   * The version both the installed mod and the served client's manifest name,
+   * set only on a `manifest` finding where the two versions are equal. Equal
+   * versions with different hashes mean the mod and the client were built from
+   * different sources, which {@link isBuildMismatch} reads as an install to fix
+   * and not as tampering.
+   */
+  sameVersion?: string;
+}
+
+/** Whether this finding is a mod and a served client of one version built from different clients. */
+export function isBuildMismatch(failure: UplinkIntegrityFailure): boolean {
+  return failure.subject === "manifest" && failure.sameVersion !== undefined;
 }
 
 /**
@@ -101,6 +114,8 @@ export interface UplinkIntegritySide {
 export interface UplinkIntegrityReading {
   /** What was found, as a sentence. */
   finding: string;
+  /** What the operator can do about it, where there is something to do. */
+  advice?: string;
   observed: UplinkIntegritySide;
   expected: UplinkIntegritySide;
 }
@@ -132,6 +147,9 @@ function finding(failure: UplinkIntegrityFailure): string {
     ]);
     return `${both.charAt(0).toUpperCase()}${both.slice(1)} name different clients. Nothing has been fetched`;
   }
+  if (isBuildMismatch(failure)) {
+    return `The installed mod was built from a different client than the one served. Both say ${failure.sameVersion}`;
+  }
   if (failure.subject === "manifest") {
     return `The bundle's own manifest declares a different client from the one ${parties} named`;
   }
@@ -144,6 +162,9 @@ export function readIntegrityFailure(
 ): UplinkIntegrityReading {
   return {
     finding: finding(failure),
+    advice: isBuildMismatch(failure)
+      ? "Reinstall the mod and its Uplinks from one release."
+      : undefined,
     observed: {
       label: failure.observedBy
         ? failure.observedBy.map((p) => PARTY_LABEL[p]).join(" and ")
