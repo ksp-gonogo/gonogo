@@ -3,8 +3,8 @@ info:
   title: Gonogo WebSocket API
   version: 45.5.0
   description: |-
-    The WebSocket API of the Gonogo mod: 87 telemetry channels a client
-    subscribes to and 69 commands it sends, each with its payload and what it
+    The WebSocket API of the Gonogo mod: 88 telemetry channels a client
+    subscribes to and 70 commands it sends, each with its payload and what it
     means, all over one socket.
 
     ## Frames the mod sends
@@ -232,6 +232,40 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.alarm.activeList"
+      event:
+        $ref: "#/components/messages/event"
+  alarm.game.delete:
+    address: alarm.game.delete
+    description: |-
+      Removes one alarm from the game's alarm clock, addressed by `GameAlarm.id`.
+
+      Never delayed: it edits the player's clock and nothing aboard a craft.
+      Removing an alarm made for a Gonogo alarm removes that Gonogo alarm too.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.alarm.game.delete"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.alarm.game.delete"
+  alarm.game.list:
+    address: alarm.game.list
+    description: |-
+      The game's alarm clock as every command centre sees it at once: the
+      `alarm.game.list` Topic.
+
+      Holds only the alarms whose time is not worked out from a craft (see
+      `GameAlarm`).
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: reliable-ordered
+    x-sitrep-delay-role: true-now
+    x-sitrep-sample-kind: discrete
+    x-sitrep-keyframe-interval-ut: 3600
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.alarm.game.list"
       event:
         $ref: "#/components/messages/event"
   alarm.scet.arm:
@@ -3707,6 +3741,20 @@ channels:
       event:
         $ref: "#/components/messages/event"
 operations:
+  dispatch:alarm.game.delete:
+    action: send
+    channel:
+      $ref: "#/channels/alarm.game.delete"
+    title: Dispatch alarm.game.delete
+    tags:
+      - name: alarm
+    messages:
+      - $ref: "#/channels/alarm.game.delete/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/alarm.game.delete"
+      messages:
+        - $ref: "#/channels/alarm.game.delete/messages/commandResponse"
   dispatch:alarm.scet.arm:
     action: send
     channel:
@@ -4728,6 +4776,17 @@ operations:
     messages:
       - $ref: "#/channels/alarm.activeList/messages/streamData"
       - $ref: "#/channels/alarm.activeList/messages/event"
+  read:alarm.game.list:
+    action: receive
+    channel:
+      $ref: "#/channels/alarm.game.list"
+    title: Read alarm.game.list
+    description: Delivered only after `subscribe` names `alarm.game.list` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: alarm
+    messages:
+      - $ref: "#/channels/alarm.game.list/messages/streamData"
+      - $ref: "#/channels/alarm.game.list/messages/event"
   read:alarm.scet.fired:
     action: receive
     channel:
@@ -5724,6 +5783,21 @@ components:
       title: Send several delayed commands to one craft as a unit
       payload:
         $ref: "#/components/schemas/CommandGroupRequest"
+    commandRequest.alarm.game.delete:
+      name: command-request
+      title: Dispatch alarm.game.delete
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `alarm.game.delete`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: alarm.game.delete
+              args:
+                $ref: "#/components/schemas/GameAlarmDeleteArgs"
     commandRequest.alarm.scet.arm:
       name: command-request
       title: Dispatch alarm.scet.arm
@@ -6759,6 +6833,19 @@ components:
                 const: vessel.target.set
               args:
                 $ref: "#/components/schemas/SetTargetArgs"
+    commandResponse.alarm.game.delete:
+      name: command-response
+      title: Reply to alarm.game.delete
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `alarm.game.delete`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
     commandResponse.alarm.scet.arm:
       name: command-response
       title: Reply to alarm.scet.arm
@@ -7819,6 +7906,19 @@ components:
                 type: array
                 items:
                   $ref: "#/components/schemas/ScetAlarm"
+    streamData.alarm.game.list:
+      name: stream-data
+      title: A frame on alarm.game.list
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `alarm.game.list`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: alarm.game.list
+              payload:
+                $ref: "#/components/schemas/GameAlarmList"
     streamData.alarm.scet.fired:
       name: stream-data
       title: A frame on alarm.scet.fired
@@ -15408,6 +15508,149 @@ components:
           type: number
           x-sitrep-unit: ut
           description: Universal time of the switch.
+    GameAlarm:
+      type: object
+      description: |-
+        One alarm in the game's own alarm clock, as Gonogo shows it.
+
+        An alarm whose time the game works out from a craft's live state (a sphere
+        of influence change, an apsis, a maneuver node) is a prediction made from
+        that craft, so it travels like that craft's telemetry: it is on
+        `alarm.game.craft.<guid>.list`, reaches each command centre one signal delay
+        after the craft, and stays at its last known state while the craft is out of
+        contact. Every other alarm is on `alarm.game.list` and reaches every command
+        centre at once.
+      required:
+        - id
+        - kind
+        - title
+        - ut
+        - warp
+        - triggered
+      properties:
+        id:
+          type: number
+          x-sitrep-unit: id
+          description: The game's own id for the alarm, which `alarm.game.delete` takes.
+        kind:
+          description: What kind of event the game computes the alarm's time from.
+          allOf:
+            - $ref: "#/components/schemas/GameAlarmKind"
+              x-sitrep-unit: enum
+        title:
+          type: string
+          x-sitrep-unit: text
+          description: The alarm's title as the game shows it.
+        ut:
+          type: number
+          x-sitrep-unit: ut
+          description: The universal time the alarm is due.
+        vessel:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The craft the alarm belongs to, as `"vessel:<guid>"`, or null for an alarm
+            on no craft.
+        warp:
+          description: |-
+            What the game does to time warp when the alarm comes due. Gonogo does not
+            act on it.
+          allOf:
+            - $ref: "#/components/schemas/GameAlarmWarp"
+              x-sitrep-unit: enum
+        triggered:
+          type: boolean
+          x-sitrep-unit: flag
+          description: Whether the alarm has come due.
+        gonogoId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The `ScetAlarm.id` of the Gonogo alarm this game alarm was made for, or null
+            for an alarm the player made in the game. A row with an id here is the same
+            alarm as that Gonogo alarm, so show it once.
+    GameAlarmDeleteArgs:
+      type: object
+      description: |-
+        Removes one alarm from the game's alarm clock, addressed by `GameAlarm.id`.
+
+        Never delayed: it edits the player's clock and nothing aboard a craft.
+        Removing an alarm made for a Gonogo alarm removes that Gonogo alarm too.
+      required:
+        - id
+      properties:
+        id:
+          type: number
+          x-sitrep-unit: id
+          description: The `GameAlarm.id` of the alarm to remove.
+    GameAlarmKind:
+      type: integer
+      description: What kind of event the game's alarm clock computes an alarm's time from.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: Time
+          description: A universal time the player chose, with or without a craft named on it.
+        - const: 1
+          title: TransferWindow
+          description: A transfer window between two bodies, from their orbits alone.
+        - const: 2
+          title: SoiChange
+          description: A craft leaving or entering a sphere of influence on its current trajectory.
+        - const: 3
+          title: Apoapsis
+          description: A craft's next apoapsis.
+        - const: 4
+          title: Periapsis
+          description: A craft's next periapsis.
+        - const: 5
+          title: Maneuver
+          description: A craft's next maneuver node.
+        - const: 6
+          title: Other
+          description: A kind this version of Gonogo does not know, such as one another mod adds.
+    GameAlarmList:
+      type: object
+      description: |-
+        The game's alarm clock as every command centre sees it at once: the
+        `alarm.game.list` Topic.
+
+        Holds only the alarms whose time is not worked out from a craft (see
+        `GameAlarm`).
+      required:
+        - available
+        - alarms
+      properties:
+        available:
+          type: boolean
+          x-sitrep-unit: flag
+          description: |-
+            Whether the game is running an alarm clock in the current scene. While
+            false, `GameAlarmList.alarms` is empty and Gonogo's own alarms are not
+            copied into the game.
+        alarms:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameAlarm"
+          description: The alarms, in order of the time they are due.
+    GameAlarmWarp:
+      type: integer
+      description: What the game does to time warp when one of its alarms comes due.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: Nothing
+          description: Leaves time warp alone.
+        - const: 1
+          title: StopWarp
+          description: Stops time warp.
+        - const: 2
+          title: Pause
+          description: Stops time warp and pauses the game.
     GameDlc:
       type: object
       description: |-
@@ -18967,6 +19210,18 @@ components:
             fires, and are withheld otherwise: a time condition belongs to the game
             rather than to any craft, so after a vessel switch its actions would
             otherwise land on whatever happened to be active.
+        gameAlarmId:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The `GameAlarm.id` of this alarm's copy in the game's own alarm clock, or
+            null when it has none.
+
+            Only an alarm on a universal time is copied into the game, and only while
+            the game runs an alarm clock. The copy leaves time warp to this alarm.
+            Deleting either one deletes the other.
     ScetAlarmAction:
       type: object
       description: |-
@@ -19367,6 +19622,13 @@ components:
             will never fire. An alarm belongs to the craft being flown when it was set,
             whatever its condition reads, and a switch ends every alarm still watching.
             A kerbal on EVA counts as the craft they stepped out of.
+        - const: 4
+          title: DeletedInGame
+          description: |-
+            The copy of this alarm in the game's own alarm clock (see
+            `ScetAlarm.gameAlarmId`) was deleted in the game, so the alarm is deleted
+            too. Remove the row. Arming the same id again is refused while the game
+            holds this row.
     ScetAlarmThresholdOp:
       type: integer
       description: |-

@@ -17,6 +17,7 @@
 /** Every channel the mod declares `DelayRole.TrueNow`. */
 export const GENERATED_TRUENOW_TOPICS = [
   "alarm.activeList",
+  "alarm.game.list",
   "alarm.scet.fired",
   "alarm.scet.topics",
   "comms.occlusion",
