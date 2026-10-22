@@ -202,6 +202,36 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void AsksForASlowerWarpOnTheWayInSoACaptureCannotOvershootTheLeadInstant()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(TimeAlarm("a", ut: 1_000_000, leadSeconds: 3600), "ksc");
+
+            // 200 000 s from the step-down: a rate that covers 100 000 s in one second would pass it between two captures.
+            var far = roster.Evaluate(1_000_000 - 3600 - 200_000);
+            Assert.Equal(100_000, far.MaxWarpRate);
+            Assert.False(far.StopWarp);
+
+            var near = roster.Evaluate(1_000_000 - 3600 - 400);
+            Assert.Equal(200, near.MaxWarpRate);
+
+            // At the lead instant the warp stops outright and nothing is asked of the rate.
+            var stepDown = roster.Evaluate(1_000_000 - 3600);
+            Assert.True(stepDown.StopWarp);
+            Assert.Null(stepDown.MaxWarpRate);
+        }
+
+        [Fact]
+        public void TheSlowestOfSeveralAlarmsSetsTheRate()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(TimeAlarm("far", ut: 100_000), "ksc");
+            roster.Arm(TimeAlarm("soon", ut: 1_000), "ksc");
+
+            Assert.Equal(500, roster.Evaluate(0).MaxWarpRate);
+        }
+
+        [Fact]
         public void AWarpStepOverBothInstantsDoesBothOnTheTickItLands()
         {
             var roster = new ScetAlarmRoster();
