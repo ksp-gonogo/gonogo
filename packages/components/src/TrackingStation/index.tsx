@@ -48,6 +48,7 @@ import {
 } from "react";
 import { countdownOf } from "../shared/countdownOf";
 import { craftOnOrbit } from "../shared/craftOnOrbit";
+import { orbitSpread } from "../shared/orbitSpread";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { useEncounterIn } from "../shared/useEncounterIn";
 import { AlmanacPanel } from "./AlmanacPanel";
@@ -950,6 +951,11 @@ function TrackingStationComponent({
                     <SystemDiagram
                       bodies={bodies}
                       poses={poses}
+                      vesselSpread={
+                        recorded === null
+                          ? orbitSpread(orbitReading, orbitObserved)
+                          : null
+                      }
                       bucketUt={utBucket ?? undefined}
                       parentName={parentName}
                       highlightNames={vesselBody ? [vesselBody] : []}

@@ -6,7 +6,12 @@ import {
 import { Quality, value } from "@ksp-gonogo/sitrep-sdk";
 import { makeMeta } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
-import { orbitSpread } from "./orbitSpread";
+import {
+  orbitSpread,
+  polylineLength,
+  SPREAD_MIN_PX,
+  visibleSpreadPoints,
+} from "./orbitSpread";
 
 const MU = 3.5316e12;
 const SMA = 1_200_000;
@@ -134,5 +139,44 @@ describe("orbitSpread", () => {
   it("offers nothing without observed elements", () => {
     const reading = readingAt(knot(55_000), 1000);
     expect(orbitSpread(reading, undefined)).toBeUndefined();
+  });
+});
+
+describe("visibleSpreadPoints", () => {
+  const line = (length: number) => [
+    { x: 0, y: 0 },
+    { x: length, y: 0 },
+  ];
+
+  it("measures a polyline in its own units", () => {
+    expect(
+      polylineLength([
+        { x: 0, y: 0 },
+        { x: 3, y: 4 },
+        { x: 3, y: 6 },
+      ]),
+    ).toBe(7);
+  });
+
+  it("draws nothing under a pixel and something from a pixel up", () => {
+    expect(visibleSpreadPoints(line(0.99 * SPREAD_MIN_PX), 1)).toBeNull();
+    expect(visibleSpreadPoints(line(SPREAD_MIN_PX), 1)).not.toBeNull();
+  });
+
+  it("counts a pixel in the units the points are in", () => {
+    expect(visibleSpreadPoints(line(10), 20)).toBeNull();
+    expect(visibleSpreadPoints(line(10), 5)).not.toBeNull();
+  });
+
+  it("draws nothing for a point that is not finite", () => {
+    expect(
+      visibleSpreadPoints(
+        [
+          { x: 0, y: 0 },
+          { x: Number.NaN, y: 100 },
+        ],
+        1,
+      ),
+    ).toBeNull();
   });
 });

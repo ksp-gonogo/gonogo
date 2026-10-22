@@ -2,10 +2,15 @@ import { latLonToMap } from "@ksp-gonogo/core";
 import type { TrackSample } from "@ksp-gonogo/sitrep-client";
 import {
   paintVesselMark,
+  RECKONING_MARK,
   splitAtPoleCrossings,
   wrapPath,
 } from "@ksp-gonogo/ui-kit";
 import type { EncounterKind } from "../shared/encounterKind";
+import {
+  SPREAD_STROKE_SCALE,
+  visibleSpreadPoints,
+} from "../shared/orbitSpread";
 import {
   type Camera,
   cameraTransform,
@@ -385,6 +390,33 @@ export function paintVesselMarker(
   paintVesselMark(canvas, ctx, "current", x, y, MAP_MARK.radius, {
     keyline: true,
   });
+}
+
+/**
+ * The band of ground the craft may be on, as a thick line through `points` in
+ * screen pixels, in the colour of a modelled position. Nothing is drawn where
+ * the line is shorter than a pixel.
+ */
+export function paintSpread(
+  ctx: CanvasRenderingContext2D,
+  points: readonly { x: number; y: number }[],
+): void {
+  const drawn = visibleSpreadPoints(points, 1);
+  if (drawn === null) return;
+  ctx.save();
+  ctx.beginPath();
+  drawn.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.strokeStyle = RECKONING_MARK.modelled.color;
+  ctx.globalAlpha = 0.85;
+  ctx.lineWidth = MAP_MARK.trackWidth * SPREAD_STROKE_SCALE;
+  ctx.lineCap = "butt";
+  ctx.lineJoin = "round";
+  ctx.setLineDash([]);
+  ctx.stroke();
+  ctx.restore();
 }
 
 /** The crosshair through a position: solid for a current one, dashed where it is held. */
