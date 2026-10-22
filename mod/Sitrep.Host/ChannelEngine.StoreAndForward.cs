@@ -498,17 +498,31 @@ namespace Sitrep.Host
                 Attempts = 1,
                 Members = job.GroupMembers?.Select(member => member.ClientRequestId).ToList() ?? new List<string> { requestId },
             });
+            // No arrival predicted: the centre's plan knows no route to the craft, whatever the live link says, so the command waits here with no release time.
+            var noRoute = prediction.ArrivalUt == null
+                ? NoRoutePlannedWarning(message.DeleteAtUt)
+                : null;
             if (job.OnAcceptedHeld != null)
             {
-                job.OnAcceptedHeld(oneWay, prediction.ReplyUt, message.DeleteAtUt, null);
+                job.OnAcceptedHeld(oneWay, prediction.ReplyUt, message.DeleteAtUt, noRoute);
             }
             else
             {
                 job.OnAccepted?.Invoke(oneWay);
+                if (noRoute != null)
+                {
+                    job.OnWarned?.Invoke(noRoute);
+                }
             }
             job.Done?.Set();
             return true;
         }
+
+        /// <summary>What the operator is told when a command is held with no route planned to its craft, at the moment it is sent.</summary>
+        internal static string NoRoutePlannedWarning(double? expiresAtUt) =>
+            "This centre's plan has no route to the craft, so the command waits here with no release time"
+            + (expiresAtUt == null ? "" : " and is dropped at UT " + expiresAtUt.Value.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " if none appears")
+            + ". The link readings can still say connected: they come from the game's own network, not from the plan.";
 
         /// <summary>What a journey report says of a continuous input dropped where it would have waited.</summary>
         internal const string ContinuousInputDropped = "it would have waited here, and a continuous input is not held";

@@ -58,6 +58,54 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public void ACommandHeldWithNoRoutePlannedIsAcceptedWithAWarningNamingThat()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new HeldCommandTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                CutRoute(engine);
+                Tick(engine, 0.0);
+
+                string? warning = null;
+                engine.DispatchCommandAndWait(HeldCommandTestUplink.Command, "x", Centre, _ => { }, TestBudgets.Op, onWarned: w => warning = w);
+
+                Assert.NotNull(warning);
+                Assert.Contains("no route to the craft", warning);
+                Assert.Contains("dropped at UT", warning);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public void ACommandWithARoutePlannedCarriesNoWarning()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new HeldCommandTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                OpenRoute(engine);
+                Tick(engine, 0.0);
+
+                string? warning = null;
+                engine.DispatchCommandAndWait(HeldCommandTestUplink.Command, "x", Centre, _ => { }, TestBudgets.Op, onWarned: w => warning = w);
+
+                Assert.Null(warning);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         /// <summary>
         /// Signal delay switched off removes the waiting and not the missing
         /// route: a command held for want of a path is still held, and still
