@@ -74,7 +74,8 @@ namespace Gonogo.KSP
             GameEvents.OnVesselRollout.Add(OnRollout);
         }
 
-        private static void OnRollout(ShipConstruct ship)
+        /* An instance method on purpose: EventData.Add reads the handler's Target, which is null for a static method and throws. */
+        private void OnRollout(ShipConstruct ship)
         {
             try
             {
