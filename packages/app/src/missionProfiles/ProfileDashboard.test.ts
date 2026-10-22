@@ -85,35 +85,6 @@ describe("ProfileDashboard autosave", () => {
     expect(svc.get(draft.id)?.items.map((it) => it.i)).toEqual(["a", "b"]);
   });
 
-  it("does not make a layout the scene's choice by showing it and letting the grid settle", () => {
-    const { svc, dashboard, shown } = setup(snap("a"));
-    const chosen = svc.save(
-      "Flight A",
-      snap("a").items,
-      snap("a").layout,
-      ["Flight"],
-      true,
-    );
-    vi.advanceTimersByTime(1000);
-    const other = svc.save(
-      "Flight B",
-      snap("b").items,
-      snap("b").layout,
-      ["Flight"],
-      true,
-    );
-    vi.advanceTimersByTime(1000);
-    svc.writeContent(chosen.id, chosen.items, chosen.layout);
-    expect(svc.findForScene("Flight")?.id).toBe(chosen.id);
-
-    dashboard.switchTo(other.id);
-    vi.advanceTimersByTime(50);
-    const reshaped = { items: shown().items, layout: [tile("b", 3)] };
-    dashboard.recordChange(reshaped.items, reshaped.layout);
-
-    expect(svc.findForScene("Flight")?.id).toBe(chosen.id);
-  });
-
   it("writes straight into the current profile, never forking it", () => {
     const { svc, dashboard, edit } = setup(snap("a"));
     const p = svc.save("Launch", snap("a").items, snap("a").layout);

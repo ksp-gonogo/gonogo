@@ -243,23 +243,16 @@ export class MissionProfilesService {
 
   /**
    * Writes the dashboard into a profile as the autosave does: unlike `update`
-   * it never renames and leaves the unnamed flag as it is. A write that only
-   * records the grid settling keeps `updatedAt`, so it does not change which
-   * profile a scene prefers.
+   * it never renames and leaves the unnamed flag as it is.
    */
-  writeContent(
-    id: string,
-    items: DashboardItem[],
-    layout: Layout,
-    { touch = true }: { touch?: boolean } = {},
-  ): void {
+  writeContent(id: string, items: DashboardItem[], layout: Layout): void {
     const idx = this.profiles.findIndex((p) => p.id === id);
     if (idx < 0) return;
     this.profiles[idx] = {
       ...this.profiles[idx],
       items,
       layout,
-      updatedAt: touch ? Date.now() : this.profiles[idx].updatedAt,
+      updatedAt: Date.now(),
     };
     this.persist();
     this.emit();
@@ -389,16 +382,7 @@ export class MissionProfilesService {
         )
         .map((saved) => {
           const p = {
-            ...saved,
-            items: Array.isArray(saved.items)
-              ? saved.items.filter(
-                  (it): it is DashboardItem =>
-                    typeof it?.i === "string" &&
-                    typeof it?.componentId === "string",
-                )
-              : [],
-            layout: Array.isArray(saved.layout) ? saved.layout : [],
-            updatedAt: Number.isFinite(saved.updatedAt) ? saved.updatedAt : 0,
+            ...(Array.isArray(saved.layout) ? saved : { ...saved, layout: [] }),
           };
           const held = p.inputBinding;
           if (
@@ -411,9 +395,6 @@ export class MissionProfilesService {
           // Drop unknown scene names quietly: `kc.scene` could in theory
           // emit values we haven't seen yet, but a tagged binding for an
           // unknown scene would never resolve, so it's noise.
-          if (!Array.isArray(p.sceneBindings)) {
-            return { ...p, sceneBindings: undefined };
-          }
           if (Array.isArray(p.sceneBindings)) {
             const filtered = p.sceneBindings.filter((s): s is BindableScene =>
               (BINDABLE_SCENES as readonly string[]).includes(s),
@@ -462,8 +443,6 @@ export class MissionProfilesService {
       changed = true;
     }
     if (changed) this.persist();
-    // The store swallows a refused write, so the slots go only once the converted profiles read back.
-    if (found.length > 0 && !this.isPersisted()) return;
     for (const { key } of found) {
       try {
         this.storage.removeItem(key);
@@ -509,14 +488,6 @@ export class MissionProfilesService {
     if (this.currentId) return;
     this.currentId = base.id;
     this.currentStore.set(base.id);
-  }
-
-  private isPersisted(): boolean {
-    const saved = this.store.get();
-    return (
-      Array.isArray(saved) &&
-      this.profiles.every((p) => saved.some((s) => s?.id === p.id))
-    );
   }
 
   private persist(): void {

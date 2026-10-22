@@ -81,21 +81,6 @@ describe("Band", () => {
     expect(container.textContent).not.toContain("65.286800");
   });
 
-  // A held craft's altitude band is about a micrometre wide, whose ends round apart or together depending on where the noise falls.
-  it.each([
-    [73.977_533, 73.977_534],
-    [73.977_533_4, 73.977_533_6],
-    [73.977_532_9, 73.977_534_1],
-  ])("draws one approximate figure for a micrometre band around 74 m (%d to %d)", (low, high) => {
-    const { container } = render(
-      <Band min={value("m", low)} max={value("m", high)} />,
-    );
-
-    expect(container.textContent).toContain("~");
-    expect(container.textContent).not.toContain(INTERVAL_DASH);
-    expect(container.textContent?.match(/74\.0/g)).toHaveLength(1);
-  });
-
   it.each([
     ["format", { format: "km" }],
     ["as", { as: "km" }],

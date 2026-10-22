@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
 import type { CoturnHandle } from "./coturnManager.js";
-import type { PortMappingStatus } from "./portMapper.js";
 
 /** Minimal ICE-server shape: matches the `/ice-config` response and peerjs's `config.iceServers`. */
 export interface IceServer {
@@ -20,8 +19,6 @@ export interface TurnRoutesOptions {
   publicUrl?: string | null;
   /** Offer a TCP relay address as well as the UDP one. */
   tcpRelay?: boolean;
-  /** Where the relay's attempt to open its ports on the router stands, or null when it makes none. Named in `/health` as `portMapping`. */
-  getPortMapping?: () => PortMappingStatus | null;
 }
 
 /**
@@ -65,7 +62,6 @@ export function registerTurnRoutes(
     turnExpected,
     publicUrl,
     tcpRelay = false,
-    getPortMapping,
   }: TurnRoutesOptions,
 ): void {
   const live = (): CoturnHandle | null => {
@@ -74,20 +70,15 @@ export function registerTurnRoutes(
   };
 
   fastify.get("/health", async (_req, reply) => {
-    const mapping = getPortMapping?.() ?? null;
-    const extra = mapping ? { portMapping: mapping } : {};
     const handle = live();
     if (handle) {
       return {
         status: "ok",
         turn: { externalIp: handle.externalIp, port: handle.port },
-        ...extra,
       };
     }
     const pending = getPendingReason?.() ?? null;
-    if (pending) {
-      return { status: "ok", turn: null, turnUnavailable: pending, ...extra };
-    }
+    if (pending) return { status: "ok", turn: null, turnUnavailable: pending };
     if (turnExpected) {
       return reply.status(503).send({ status: "turn-down", turn: null });
     }

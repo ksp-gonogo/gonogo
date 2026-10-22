@@ -87,8 +87,6 @@ export class RetryPolicy {
    */
   handleAttemptTimeout(): void {
     this.silentAttempts += 1;
-    // Nothing answering is what a main screen that is not up yet looks like, so it never spends the give-up budget.
-    this.retryStart = null;
     this.nextRetryOverrideMs = Math.min(
       this.deps.retryIntervalMs * 2 ** this.silentAttempts,
       Math.max(SILENT_RETRY_CEILING_MS, this.deps.retryIntervalMs),
@@ -138,8 +136,6 @@ export class RetryPolicy {
     if (type === "unavailable-id") {
       this.nextRetryOverrideMs = UNAVAILABLE_ID_RETRY_MS;
     }
-    // A broker that answers with no host on it is a main screen not up yet: keep waiting for it rather than give up.
-    if (type === "peer-unavailable") this.retryStart = null;
     this.lastErrorType = type;
     this.handleUnexpectedClose();
   }

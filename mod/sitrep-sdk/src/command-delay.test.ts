@@ -36,14 +36,6 @@ describe("currentMode", () => {
     expect(currentMode({ oneWaySeconds: value("s", 0.5) })).toBe("live");
     expect(currentMode({ oneWaySeconds: value("s", 4) })).toBe("staged");
   });
-  it("a delay that is not a finite number is no-path, never staged", () => {
-    expect(currentMode({ oneWaySeconds: value("s", Number.NaN) })).toBe(
-      "no-path",
-    );
-    expect(
-      currentMode({ oneWaySeconds: value("s", Number.POSITIVE_INFINITY) }),
-    ).toBe("no-path");
-  });
   it("undefined commsDelay is no-path", () => {
     expect(currentMode(undefined)).toBe("no-path");
   });

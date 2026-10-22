@@ -6,7 +6,6 @@ using System.Security.Cryptography.X509Certificates;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Security.Authentication;
-using System.Threading;
 using Sitrep.Vendor.Fleck.Helpers;
 
 namespace Sitrep.Vendor.Fleck
@@ -16,15 +15,6 @@ namespace Sitrep.Vendor.Fleck
         private readonly string _scheme;
         private readonly IPAddress _locationIP;
         private Action<IWebSocketConnection> _config;
-        private volatile bool _disposed;
-        private volatile bool _listening;
-        private volatile bool _acceptArmed;
-        private int _restarting;
-        private Thread _watchdog;
-
-        private const int RestartBackoffStartMs = 250;
-        private const int RestartBackoffMaxMs = 5000;
-        private const int WatchdogIntervalMs = 5000;
 
         public WebSocketServer(string location, bool supportDualStack = true)
         {
@@ -36,12 +26,6 @@ namespace Sitrep.Vendor.Fleck
 
             _locationIP = ParseIPAddress(uri);
             _scheme = uri.Scheme;
-            ListenerSocket = CreateListenerSocket();
-            SupportedSubProtocols = new string[0];
-        }
-
-        private ISocket CreateListenerSocket()
-        {
             var socket = new Socket(_locationIP.AddressFamily, SocketType.Stream, ProtocolType.IP);
 
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
@@ -54,22 +38,18 @@ namespace Sitrep.Vendor.Fleck
                 }
             }
 
-            return new SocketWrapper(socket);
+            ListenerSocket = new SocketWrapper(socket);
+            SupportedSubProtocols = new string[0];
         }
 
         public ISocket ListenerSocket { get; set; }
-
-        /// <summary>Whether a bound listener is currently waiting for clients. False while the listener is being rebuilt after a failure.</summary>
-        public bool IsListening { get { return _listening; } }
-
-        /// <summary>Raised with the new value whenever <see cref="IsListening"/> changes, on whatever thread noticed.</summary>
-        public event Action<bool> ListeningChanged;
         public string Location { get; private set; }
         public bool SupportDualStack { get; }
         public int Port { get; private set; }
         public X509Certificate2 Certificate { get; set; }
         public SslProtocols EnabledSslProtocols { get; set; }
         public IEnumerable<string> SupportedSubProtocols { get; set; }
+        public bool RestartAfterListenError {get; set; }
 
         public bool IsSecure
         {
@@ -78,30 +58,7 @@ namespace Sitrep.Vendor.Fleck
 
         public void Dispose()
         {
-            _disposed = true;
-            SetListening(false);
             ListenerSocket.Dispose();
-        }
-
-        private void SetListening(bool value)
-        {
-            if (_listening == value) return;
-            _listening = value;
-            var handler = ListeningChanged;
-            if (handler == null) return;
-            try { handler(value); }
-            catch (Exception ex) { FleckLog.Warn("Listening state handler threw", ex); }
-        }
-
-        private static void ResetAbort(Exception ex)
-        {
-            if (!(ex is ThreadAbortException)) return;
-            try
-            {
-                var reset = typeof(Thread).GetMethod("ResetAbort", Type.EmptyTypes);
-                if (reset != null) reset.Invoke(null, null);
-            }
-            catch (Exception) { }
         }
 
         private IPAddress ParseIPAddress(Uri uri)
@@ -124,8 +81,11 @@ namespace Sitrep.Vendor.Fleck
 
         public void Start(Action<IWebSocketConnection> config)
         {
-            _config = config;
-            BindAndListen();
+            var ipLocal = new IPEndPoint(_locationIP, Port);
+            ListenerSocket.Bind(ipLocal);
+            ListenerSocket.Listen(100);
+            Port = ((IPEndPoint)ListenerSocket.LocalEndPoint).Port;
+            FleckLog.Info(string.Format("Server started at {0} (actual port {1})", Location, Port));
             if (_scheme == "wss")
             {
                 if (Certificate == null)
@@ -141,126 +101,29 @@ namespace Sitrep.Vendor.Fleck
                 }
             }
             ListenForClients();
-            StartWatchdog();
-        }
-
-        private void BindAndListen()
-        {
-            var ipLocal = new IPEndPoint(_locationIP, Port);
-            ListenerSocket.Bind(ipLocal);
-            ListenerSocket.Listen(100);
-            Port = ((IPEndPoint)ListenerSocket.LocalEndPoint).Port;
-            FleckLog.Info(string.Format("Server started at {0} (actual port {1})", Location, Port));
-            SetListening(true);
+            _config = config;
         }
 
         private void ListenForClients()
         {
-            var listener = ListenerSocket;
-            _acceptArmed = true;
-            listener.Accept(
-                clientSocket =>
-                {
-                    _acceptArmed = false;
-                    OnClientConnect(clientSocket);
-                },
-                e =>
-                {
-                    _acceptArmed = false;
-                    if (_disposed || !ReferenceEquals(listener, ListenerSocket)) return;
-                    FleckLog.Error("Listener socket is closed", e);
-                    RestartListener();
-                });
-        }
-
-        /*
-         * The accept loop is a chain of pool callbacks, each re-arming the next,
-         * so one exception that escapes (an aborted pool thread included) ends
-         * the chain while the bound socket keeps answering the kernel: clients
-         * queue in the backlog and are never served. Recovery therefore runs on
-         * a dedicated thread that retries until the port is bound again, and a
-         * watchdog catches the case where no callback ever reported the failure.
-         */
-        private void RestartListener()
-        {
-            if (_disposed) return;
-            if (Interlocked.CompareExchange(ref _restarting, 1, 0) != 0) return;
-
-            SetListening(false);
-            FleckLog.Info("Listener socket restarting");
-            var thread = new Thread(RestartLoop) { IsBackground = true, Name = "Sitrep listener restart" };
-            thread.Start();
-        }
-
-        private void RestartLoop()
-        {
-            var delay = RestartBackoffStartMs;
-            while (!_disposed)
-            {
-                ISocket fresh = null;
-                try
-                {
-                    try { ListenerSocket.Dispose(); } catch (Exception) { }
-
-                    fresh = CreateListenerSocket();
-                    ListenerSocket = fresh;
-                    if (_disposed)
+            ListenerSocket.Accept(OnClientConnect, e => {
+                FleckLog.Error("Listener socket is closed", e);
+                if(RestartAfterListenError){
+                    FleckLog.Info("Listener socket restarting");
+                    try
                     {
-                        fresh.Dispose();
-                        break;
+                        ListenerSocket.Dispose();
+                        var socket = new Socket(_locationIP.AddressFamily, SocketType.Stream, ProtocolType.IP);
+                        ListenerSocket = new SocketWrapper(socket);
+                        Start(_config);
+                        FleckLog.Info("Listener socket restarted");
                     }
-
-                    BindAndListen();
-                    ListenForClients();
-                    FleckLog.Info("Listener socket restarted");
-                    Interlocked.Exchange(ref _restarting, 0);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    ResetAbort(ex);
-                    FleckLog.Error("Listener could not be restarted, retrying", ex);
-                    try { if (fresh != null) fresh.Dispose(); } catch (Exception) { }
-                }
-
-                try { Thread.Sleep(delay); }
-                catch (Exception ex) { ResetAbort(ex); }
-                delay = Math.Min(delay * 2, RestartBackoffMaxMs);
-            }
-
-            Interlocked.Exchange(ref _restarting, 0);
-        }
-
-        private void StartWatchdog()
-        {
-            if (_watchdog != null) return;
-            _watchdog = new Thread(WatchdogLoop) { IsBackground = true, Name = "Sitrep listener watchdog" };
-            _watchdog.Start();
-        }
-
-        private void WatchdogLoop()
-        {
-            var unarmedChecks = 0;
-            while (!_disposed)
-            {
-                try
-                {
-                    Thread.Sleep(WatchdogIntervalMs);
-                    if (_disposed) return;
-
-                    unarmedChecks = _listening && !_acceptArmed && Volatile.Read(ref _restarting) == 0 ? unarmedChecks + 1 : 0;
-                    if (unarmedChecks >= 2)
+                    catch (Exception ex)
                     {
-                        unarmedChecks = 0;
-                        FleckLog.Error("Listener stopped accepting without reporting a failure");
-                        RestartListener();
+                        FleckLog.Error("Listener could not be restarted", ex);
                     }
                 }
-                catch (Exception ex)
-                {
-                    ResetAbort(ex);
-                }
-            }
+            });
         }
 
         private void OnClientConnect(ISocket clientSocket)

@@ -1557,16 +1557,6 @@ namespace Sitrep.Host
 
         public int BoundPort => _listener.BoundPort;
 
-        /// <summary>Whether the WebSocket listener is bound and accepting. False while it is being rebuilt after a failure.</summary>
-        public bool IsListening => _listener.IsListening;
-
-        /// <summary>Raised with the new <see cref="IsListening"/> value whenever it changes, on whatever thread noticed.</summary>
-        public event Action<bool>? ListeningChanged
-        {
-            add => _listener.ListeningChanged += value;
-            remove => _listener.ListeningChanged -= value;
-        }
-
         /// <param name="bindUri">A <c>ws://host:port</c> URI: see <see cref="FleckTransportListener"/>.</param>
         /// <param name="networkDelaySeconds">
         /// Seed value for the whole-network delay default, the third and lowest

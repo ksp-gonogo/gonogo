@@ -95,16 +95,12 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public static double? EffectiveC(double lightSpeedScale)
         {
-            if (!(lightSpeedScale > 0.0) || double.IsInfinity(lightSpeedScale))
+            if (!(lightSpeedScale > 0.0))
             {
                 return null;
             }
             return SpeedOfLightMetersPerSecond * lightSpeedScale;
         }
-
-        /// <summary>Whether a hop length is a distance: present, finite and not negative.</summary>
-        internal static bool IsDistance(double? meters) =>
-            meters.HasValue && !double.IsNaN(meters.Value) && !double.IsInfinity(meters.Value) && meters.Value >= 0.0;
 
         /// <summary>Whether <paramref name="path"/> has hops and every one of them a length, which is what delay on needs to state a delay at all.</summary>
         private static bool HasMeasurableRoute(CommsPath? path)
@@ -117,7 +113,7 @@ namespace Sitrep.Host.Comms
 
             foreach (var hop in hops)
             {
-                if (hop == null || !IsDistance(hop.DistanceMeters))
+                if (hop == null || hop.DistanceMeters == null)
                 {
                     return false;
                 }
@@ -189,7 +185,7 @@ namespace Sitrep.Host.Comms
             double totalMeters = 0.0;
             foreach (var hop in hops)
             {
-                if (hop == null || !IsDistance(hop.DistanceMeters))
+                if (hop == null || hop.DistanceMeters == null)
                 {
                     // Typed absence on any hop ⇒ incomplete geometry ⇒ cannot
                     // honestly compute a total light-time. Do NOT treat a
@@ -283,10 +279,6 @@ namespace Sitrep.Host.Comms
             for (var i = 0; i < hops.Count; i++)
             {
                 var hop = hops[i];
-                if (!IsDistance(hop.DistanceMeters))
-                {
-                    return null;
-                }
                 var previousSeconds = cumulativeSeconds;
                 cumulativeMeters += hop.DistanceMeters;
                 cumulativeSeconds = cumulativeMeters / effectiveC.Value;
