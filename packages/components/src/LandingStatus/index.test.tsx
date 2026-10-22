@@ -22,6 +22,7 @@ import { LandingStatusComponent } from "./index";
 /** A mostly-horizontal descent must not report a survivable burn-now touchdown: real physics through the stream pipeline, asserted at the DOM. */
 
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
+const MINMUS = { index: 5, name: "Minmus", radius: 60_000, mu: 1.7658e9 };
 const KERBIN = { index: 1, name: "Kerbin", radius: 600_000, mu: 3.5316e12 };
 
 /** A planet-pack body absent from the stock table; every fact here is one `trackingStation.bodies` reports. */
@@ -49,12 +50,16 @@ function emitVessel(
       heightFromTerrain: number;
       verticalSpeed: number;
       surfaceSpeed: number;
+      /** Metres above sea level; the descent default is sea level. */
+      altitudeAsl?: number;
     };
     availableThrust?: number;
     /** The thrust the engines are giving now, kN; zero when omitted. */
     currentThrust?: number;
     /** Situation ordinal (0 = Landed, 6 = SubOrbital, the descending default). */
     situation?: number;
+    /** The conic the craft flies, replacing the default near-circular one. */
+    orbit?: { sma: number; ecc: number; meanAnomalyAtEpoch: number };
   },
 ) {
   stream.emit("trackingStation.bodies", {
@@ -84,12 +89,12 @@ function emitVessel(
     "vessel.orbit",
     {
       referenceBodyIndex: opts.body.index,
-      sma: 250_000,
-      ecc: 0.01,
+      sma: opts.orbit?.sma ?? 250_000,
+      ecc: opts.orbit?.ecc ?? 0.01,
       inc: 0,
       lan: 0,
       argPe: 0,
-      meanAnomalyAtEpoch: 0,
+      meanAnomalyAtEpoch: opts.orbit?.meanAnomalyAtEpoch ?? 0,
       epoch: 10,
       mu: opts.body.mu,
     },
@@ -99,7 +104,7 @@ function emitVessel(
     stream.emit("vessel.flight", {
       latitude: 0,
       longitude: 0,
-      altitudeAsl: 0,
+      altitudeAsl: opts.descent.altitudeAsl ?? 0,
       altitudeTerrain: opts.descent.heightFromTerrain,
       verticalSpeed: -opts.descent.verticalSpeed,
       surfaceSpeed: opts.descent.surfaceSpeed,
@@ -286,6 +291,45 @@ describe("LandingStatusComponent", () => {
     await screen.findByText("2.80");
     expect(visibleText(container)).toContain("2.80 km");
     expect(screen.getByText(/root-part/i)).toBeInTheDocument();
+  });
+
+  it("warns of an impact from the craft's own orbit around Minmus before it is falling toward terrain", async () => {
+    renderWidget();
+    act(() => {
+      emitVessel(stream, {
+        body: MINMUS,
+        quality: Quality.Loaded,
+        // Outbound at 1 rad of mean anomaly: the orbit dips to 20 km over a 60 km body, 11003 s ahead.
+        orbit: { sma: 200_000, ecc: 0.9, meanAnomalyAtEpoch: 1 },
+        descent: {
+          heightFromTerrain: 100_000,
+          altitudeAsl: 100_000,
+          verticalSpeed: 0,
+          surfaceSpeed: 100,
+        },
+      });
+    });
+    await screen.findByText(/minmus · vacuum/i);
+    expect(visibleText()).toMatch(/IMPACT IN\s*3h\s*3m/i);
+  });
+
+  it("says nothing of an impact when the craft's orbit stays above the surface", async () => {
+    renderWidget();
+    act(() => {
+      emitVessel(stream, {
+        body: MINMUS,
+        quality: Quality.Loaded,
+        orbit: { sma: 400_000, ecc: 0.5, meanAnomalyAtEpoch: 1 },
+        descent: {
+          heightFromTerrain: 100_000,
+          altitudeAsl: 100_000,
+          verticalSpeed: 0,
+          surfaceSpeed: 100,
+        },
+      });
+    });
+    await screen.findByText(/minmus · vacuum/i);
+    expect(visibleText()).not.toMatch(/IMPACT IN/i);
   });
 
   it("suppresses the vacuum burn numbers on atmospheric bodies", async () => {

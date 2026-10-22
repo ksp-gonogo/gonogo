@@ -1,3 +1,4 @@
+import { datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Countdown,
   Grid,
@@ -33,6 +34,7 @@ export function DescentBoard({ model }: Readonly<{ model: LandingModel }>) {
     flight,
     solution,
     solveCurrency,
+    orbitImpactSeconds,
   } = model;
 
   const regime = useHeldRegime(
@@ -105,6 +107,23 @@ export function DescentBoard({ model }: Readonly<{ model: LandingModel }>) {
         <Text level="muted" size="xs">
           descent in atmosphere · no terrain model (no body data)
         </Text>
+      </Section>
+    );
+  }
+
+  // Not yet falling toward terrain, but the craft's own orbit meets the surface: the warning comes from the conic, whatever body it is around.
+  if (board === "not-descending" && orbitImpactSeconds != null) {
+    return (
+      <Section>
+        <SectionTitle>Orbit meets the surface</SectionTitle>
+        <Grid cols="auto 1fr" gap="label-value" rowGap="readout-row">
+          <GridCellPair label="Impact in">
+            <Countdown
+              value={datedFrom(solveCurrency, value("s", orbitImpactSeconds))}
+              precise
+            />
+          </GridCellPair>
+        </Grid>
       </Section>
     );
   }

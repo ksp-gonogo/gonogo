@@ -6,6 +6,7 @@ import {
   type TopicReading,
   useProcessor,
   useStream,
+  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import {
   type CarriedCurrency,
@@ -15,6 +16,7 @@ import {
   type Value,
   type Vec3Of,
 } from "@ksp-gonogo/sitrep-sdk";
+import { buildElements, mag } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useEffect, useState } from "react";
 import { currencyOf } from "../shared/currencyOf";
 import { bare, vecMagnitude } from "../shared/dockAngles";
@@ -32,6 +34,7 @@ import {
 import { greatCircle } from "./geo";
 import { isGroundedSituation } from "./grounded";
 import { deriveHazardVerdict, type HazardResult } from "./hazardVerdict";
+import { orbitImpactSeconds } from "./orbitImpact";
 import { type LandingSolution, solveSuicideBurn } from "./solveLanding";
 import { widenTrendDomain } from "./trendDomain";
 
@@ -68,6 +71,10 @@ export interface LandingModel {
   delayCurrency: readonly CarriedCurrency[];
   bodyName: string | null | undefined;
   atmospheric: boolean;
+  /**
+   * Seconds until the craft's own orbit reaches the surface, when the descent solve has no impact time of its own (the craft is not yet falling toward terrain, or its height above terrain is not reported); null when the orbit stays above the surface or the craft is down.
+   */
+  orbitImpactSeconds: number | null;
   targetRange: number | undefined;
   /** The burn datum: the lowest point above terrain, else the root part. */
   heightFromTerrain: Value<"m"> | null | undefined;
@@ -222,6 +229,17 @@ export function useLandingModel(): LandingModel {
   const landed =
     surface?.landedAt != null || isGroundedSituation(identity?.situation);
 
+  const viewUt = mag(useViewUt());
+  const radius = body?.radius;
+  const orbitImpact =
+    !landed &&
+    solution.timeToImpact == null &&
+    orbit !== undefined &&
+    radius !== undefined &&
+    Number.isFinite(viewUt)
+      ? orbitImpactSeconds(buildElements(orbit), radius, viewUt)
+      : null;
+
   const oneWaySeconds = readOneWaySeconds(commsDelay);
   const clocks = deriveDelayClocks({
     oneWaySeconds,
@@ -344,6 +362,7 @@ export function useLandingModel(): LandingModel {
     delayCurrency,
     bodyName,
     atmospheric,
+    orbitImpactSeconds: orbitImpact,
     targetRange,
     heightFromTerrain,
     usingComDatum,
