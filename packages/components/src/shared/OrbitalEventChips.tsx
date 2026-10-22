@@ -52,7 +52,15 @@ export function OrbitalEventChips() {
       : countdownOf(solveReading, (s) =>
           s.nextApsisType === apsisType ? s.timeToNextApsis : null,
         );
+  /* Past the transition the solve keeps the old patch's orbit on screen, but
+     its apsis belongs to the body the craft has left. */
+  const leftPatch =
+    encounterKind !== null &&
+    encIn.value !== undefined &&
+    encIn.value !== null &&
+    !encIn.value.greaterThan(0);
   const hasApsis =
+    !leftPatch &&
     kind !== "landed" &&
     (apsisType === 1 || (apsisType === -1 && kind !== "suborbital")) &&
     timeToApsis?.value?.isFinite() === true &&

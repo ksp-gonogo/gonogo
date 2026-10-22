@@ -383,3 +383,56 @@ describe("solveSelfOrbit under a declining reckoning", () => {
     expect(s?.timeToAp).not.toBeNull();
   });
 });
+
+describe("solveSelfOrbit at the end of a patch", () => {
+  const ELEMENTS = {
+    ...circular(SMA, 0.2),
+    referenceBodyIndex: 1,
+    encounter: { transitionUt: { magnitude: 100 } },
+  };
+  const BODIES = { bodies: [{ index: 1, radius: { magnitude: BODY_RADIUS } }] };
+  const PAST_PATCH_END = {
+    status: "declined" as const,
+    declined: { reason: "beyond-horizon" as const, input: "@vessel.orbit" },
+  };
+
+  it("keeps answering the old patch's orbit for a current reading past its predicted end", () => {
+    const s = solveSelfOrbit(
+      ELEMENTS,
+      PAST_PATCH_END,
+      BODIES,
+      ut(100.5),
+      ut(90),
+    );
+
+    expect(s?.period).toBeCloseTo(PERIOD, 6);
+    expect(s?.apoapsisRadius).toBeCloseTo(SMA * 1.2, 6);
+    expect(s?.periapsisRadius).toBeCloseTo(SMA * 0.8, 6);
+  });
+
+  it("answers nothing for a reading past its patch end", () => {
+    expect(
+      solveSelfOrbit(ELEMENTS, PAST_PATCH_END, BODIES, ut(100.5), undefined),
+    ).toBeNull();
+  });
+
+  it("answers nothing once a refusal is for another reason than the patch end", () => {
+    const elsewhere = {
+      status: "declined" as const,
+      declined: {
+        reason: "beyond-horizon" as const,
+        input: "@trackingStation.bodies",
+      },
+    };
+    expect(
+      solveSelfOrbit(ELEMENTS, elsewhere, BODIES, ut(100.5), ut(90)),
+    ).toBeNull();
+  });
+
+  it("answers nothing for an orbit that predicts no end", () => {
+    const { encounter: _, ...open } = ELEMENTS;
+    expect(
+      solveSelfOrbit(open, PAST_PATCH_END, BODIES, ut(100.5), ut(90)),
+    ).toBeNull();
+  });
+});
