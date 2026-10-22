@@ -12,6 +12,12 @@ Vendored files: `src/Fleck/**/*.cs` from the upstream repo, unmodified except fo
    and without this pragma the vendored tree alone emits ~40 CS86xx warnings that
    would drown out anything real from our own code).
 
+3. `WebSocketServer.cs`: the accept loop restarts itself after any failure
+   (always, with backoff, on a dedicated thread, with a watchdog for a loop that
+   stopped without reporting), and exposes `IsListening` / `ListeningChanged`.
+   Upstream only restarts when `RestartAfterListenError` is set, leaks the
+   failed socket, and never rebinds the same way. Re-apply this on an update.
+
 No other lines were touched, logic, formatting, and behavior are untouched.
 
 ## Why source, not a NuGet/DLL reference

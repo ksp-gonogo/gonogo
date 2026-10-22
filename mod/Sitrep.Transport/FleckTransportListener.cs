@@ -29,6 +29,16 @@ namespace Sitrep.Transport
         /// <c>location</c> requested an ephemeral port (":0").</summary>
         public int BoundPort => _server?.Port ?? 0;
 
+        /// <summary>
+        /// Whether a bound socket is waiting for clients. False before
+        /// <see cref="Start"/>, after <see cref="Stop"/>, and while the listener
+        /// is being rebuilt after a failure.
+        /// </summary>
+        public bool IsListening => _server?.IsListening ?? false;
+
+        /// <summary>Raised with the new <see cref="IsListening"/> value whenever it changes, on whatever thread noticed.</summary>
+        public event Action<bool>? ListeningChanged;
+
         public void Start()
         {
             if (_server is not null)
@@ -37,6 +47,7 @@ namespace Sitrep.Transport
             }
 
             var server = new WebSocketServer(_location);
+            server.ListeningChanged += listening => ListeningChanged?.Invoke(listening);
             server.Start(socket =>
             {
                 var connection = new FleckTransportConnection(socket);
