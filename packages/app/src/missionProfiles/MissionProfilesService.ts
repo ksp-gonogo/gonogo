@@ -389,7 +389,16 @@ export class MissionProfilesService {
         )
         .map((saved) => {
           const p = {
-            ...(Array.isArray(saved.layout) ? saved : { ...saved, layout: [] }),
+            ...saved,
+            items: Array.isArray(saved.items)
+              ? saved.items.filter(
+                  (it): it is DashboardItem =>
+                    typeof it?.i === "string" &&
+                    typeof it?.componentId === "string",
+                )
+              : [],
+            layout: Array.isArray(saved.layout) ? saved.layout : [],
+            updatedAt: Number.isFinite(saved.updatedAt) ? saved.updatedAt : 0,
           };
           const held = p.inputBinding;
           if (
@@ -402,6 +411,9 @@ export class MissionProfilesService {
           // Drop unknown scene names quietly: `kc.scene` could in theory
           // emit values we haven't seen yet, but a tagged binding for an
           // unknown scene would never resolve, so it's noise.
+          if (!Array.isArray(p.sceneBindings)) {
+            return { ...p, sceneBindings: undefined };
+          }
           if (Array.isArray(p.sceneBindings)) {
             const filtered = p.sceneBindings.filter((s): s is BindableScene =>
               (BINDABLE_SCENES as readonly string[]).includes(s),
