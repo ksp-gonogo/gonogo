@@ -1,10 +1,12 @@
-import { render, screen, within } from "@ksp-gonogo/test-utils";
+import { fireEvent, render, screen, within } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it } from "vitest";
+import { onSettingsRequested } from "../settings/settingsRequest";
 import type { UplinkIntegrityFailure } from "./integrity";
 import {
   __resetUplinkOutcomes,
   setUplinkOutcome,
+  setUplinksSettled,
   type UplinkLoadOutcome,
 } from "./loaderState";
 import { UplinkIntegrityBanner } from "./UplinkIntegrityBanner";
@@ -273,5 +275,99 @@ describe("UplinkIntegrityBanner", () => {
 
     const { container } = render(<UplinkIntegrityBanner />);
     await expectNoA11yViolations(container);
+  });
+
+  describe("the line counting other quarantines", () => {
+    const refused = (id: string): UplinkLoadOutcome => ({
+      id,
+      name: `Widget ${id}`,
+      status: "quarantined",
+      reason: "no mod-vouched client hash",
+    });
+
+    it("stands alone when nothing failed integrity and something else is quarantined", () => {
+      record(refused("a"));
+      record(refused("b"));
+      setUplinksSettled();
+
+      render(<UplinkIntegrityBanner />);
+
+      expect(
+        screen.getByText("2 Uplinks quarantined, see"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Settings > Uplinks" }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Integrity failure")).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("note", { name: "Uplink integrity" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("follows the integrity failures as a count of more", () => {
+      record({
+        id: "t",
+        name: "Tampered",
+        status: "quarantined",
+        reason: "hash mismatch",
+        integrity: tampered(),
+      });
+      record(refused("a"));
+      setUplinksSettled();
+
+      render(<UplinkIntegrityBanner />);
+
+      const region = screen.getByRole("note", { name: "Uplink integrity" });
+      expect(
+        within(region).getByText("1 more quarantined, see"),
+      ).toBeInTheDocument();
+    });
+
+    it("says nothing about the count until a load pass has settled", () => {
+      record(refused("a"));
+      record({
+        id: "t",
+        name: "Tampered",
+        status: "quarantined",
+        reason: "hash mismatch",
+        integrity: tampered(),
+      });
+
+      render(<UplinkIntegrityBanner />);
+
+      expect(screen.queryByText(/quarantined, see/)).not.toBeInTheDocument();
+      expect(screen.getByText("Integrity failure")).toBeInTheDocument();
+    });
+
+    it("counts neither an Uplink the operator skipped nor a zero", () => {
+      record({ ...refused("a"), skippedByOperator: true });
+      setUplinksSettled();
+
+      const { container } = render(<UplinkIntegrityBanner />);
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it("opens Settings on the Uplinks page", () => {
+      const asked: (string | undefined)[] = [];
+      const off = onSettingsRequested((tab) => asked.push(tab));
+      record(refused("a"));
+      setUplinksSettled();
+      render(<UplinkIntegrityBanner />);
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Settings > Uplinks" }),
+      );
+      off();
+
+      expect(asked).toEqual(["uplinks"]);
+    });
+
+    it("has no a11y violations", async () => {
+      record(refused("a"));
+      setUplinksSettled();
+      const { container } = render(<UplinkIntegrityBanner />);
+      await expectNoA11yViolations(container);
+    });
   });
 });

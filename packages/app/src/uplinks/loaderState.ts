@@ -97,6 +97,24 @@ export function integrityFailures(
   );
 }
 
+/**
+ * How many Uplink clients are quarantined for a reason other than an integrity
+ * failure, or `null` until a load pass has settled against a roster. An Uplink
+ * the operator skipped at the consent prompt is their own answer and not
+ * counted.
+ */
+export function otherQuarantineCount(
+  outcomes: readonly UplinkLoadOutcome[],
+): number | null {
+  if (!settled) return null;
+  return outcomes.filter(
+    (o) =>
+      o.status === "quarantined" &&
+      o.integrity === undefined &&
+      !o.skippedByOperator,
+  ).length;
+}
+
 type Listener = () => void;
 
 const outcomes = new Map<string, UplinkLoadOutcome>();

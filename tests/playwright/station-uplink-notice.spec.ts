@@ -22,7 +22,7 @@ const PAD = "tests/fixtures/wire/pad-idle.jsonl";
 
 async function expectLoaded(page: Page) {
   await page.getByRole("button", { name: "Dashboard controls" }).click();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("button", { name: /^Settings(?: \(.*\))?$/ }).click();
   await page.getByRole("tab", { name: "Uplinks", exact: true }).click();
   await page.getByRole("tab", { name: "RealAntennas", exact: true }).click();
   const uplinkPage = page.getByRole("tabpanel", { name: "RealAntennas" });
