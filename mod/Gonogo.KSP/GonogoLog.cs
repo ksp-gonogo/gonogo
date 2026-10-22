@@ -164,8 +164,17 @@ namespace Gonogo.KSP
             }
         }
 
+        /// <summary>Takes every line in place of Unity's log, which a headless test cannot call.</summary>
+        internal static Action<LogType, string>? Capture { get; set; }
+
         private static void Emit(LogType type, string text)
         {
+            if (Capture != null)
+            {
+                Capture(type, text);
+                return;
+            }
+
             switch (type)
             {
                 case LogType.Error:
