@@ -68,7 +68,14 @@ export function GridDashboard({
     [layout, items, sizeDeltaFor],
   );
 
-  const { width, containerRef } = useContainerWidth();
+  /*
+   * Held until the container is measured: drawn at the hook's default width
+   * first, the tiles would slide to their real cells over the grid's own
+   * transition after every load.
+   */
+  const { width, containerRef, mounted } = useContainerWidth({
+    measureBeforeMount: true,
+  });
   useScrollIntoViewOnAdd(containerRef, lastAddedId, clearLastAdded);
 
   // Build a single index of layout-by-id once, rather than O(items) .find() per item: pays off as the dashboard fills up.
@@ -111,51 +118,53 @@ export function GridDashboard({
 
   return (
     <div ref={containerRef as RefObject<HTMLDivElement>}>
-      <ReactGridLayout
-        className="dashboard-grid"
-        width={width}
-        layout={sizedLayout}
-        gridConfig={{
-          cols: COLS,
-          rowHeight: rowHeightFor(width),
-          /* The desktop dashboard gutter, written as a react-grid-layout JS
+      {mounted ? (
+        <ReactGridLayout
+          className="dashboard-grid"
+          width={width}
+          layout={sizedLayout}
+          gridConfig={{
+            cols: COLS,
+            rowHeight: rowHeightFor(width),
+            /* The desktop dashboard gutter, written as a react-grid-layout JS
              prop so no CSS token pass can reach it. The mobile branch has no
              grab bar and keeps the narrower --gutter-dashboard. The top
              padding is room for the first row's grab bar. */
-          margin: [GRID_GAP, GRID_GAP],
-          containerPadding: [0, GRID_GAP],
-        }}
-        dragConfig={{
-          handle: ".drag-handle",
-          /* Exclude interactive chrome so touch drag-start doesn't swallow button taps. */
-          cancel: ".widget-action-buttons",
-        }}
-        resizeConfig={{ handles: RESIZE_HANDLES }}
-        /* Vertical compaction: tiles float up to fill gaps, and neighbours
+            margin: [GRID_GAP, GRID_GAP],
+            containerPadding: [0, GRID_GAP],
+          }}
+          dragConfig={{
+            handle: ".drag-handle",
+            /* Exclude interactive chrome so touch drag-start doesn't swallow button taps. */
+            cancel: ".widget-action-buttons",
+          }}
+          resizeConfig={{ handles: RESIZE_HANDLES }}
+          /* Vertical compaction: tiles float up to fill gaps, and neighbours
            move out of the way when a tile is moved or resized into them.
            Without it a tile hemmed in by others cannot move. A new tile is
            dropped at the bottom (see `addItem`) and floats up into the first
            free slot. */
-        compactor={verticalCompactor}
-        onLayoutChange={onLayoutChange}
-        onDrag={followPointer}
-      >
-        {items.map((item) => {
-          const highlighted = lastAddedId === item.i;
-          return (
-            <GridCell
-              key={item.i}
-              data-i={item.i}
-              data-highlight={highlighted ? "true" : undefined}
-              onAnimationEnd={
-                highlighted ? () => clearLastAdded?.(item.i) : undefined
-              }
-            >
-              {contents.get(item.i)}
-            </GridCell>
-          );
-        })}
-      </ReactGridLayout>
+          compactor={verticalCompactor}
+          onLayoutChange={onLayoutChange}
+          onDrag={followPointer}
+        >
+          {items.map((item) => {
+            const highlighted = lastAddedId === item.i;
+            return (
+              <GridCell
+                key={item.i}
+                data-i={item.i}
+                data-highlight={highlighted ? "true" : undefined}
+                onAnimationEnd={
+                  highlighted ? () => clearLastAdded?.(item.i) : undefined
+                }
+              >
+                {contents.get(item.i)}
+              </GridCell>
+            );
+          })}
+        </ReactGridLayout>
+      ) : null}
     </div>
   );
 }

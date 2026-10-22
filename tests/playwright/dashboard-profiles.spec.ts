@@ -96,6 +96,38 @@ async function cells(page: Page) {
   });
 }
 
+/**
+ * The tile cells once the grid has stopped moving: no tile transition is
+ * running and every tile has held the same box for several frames. A tile that
+ * is still sliding to its cell reads as a cell or two off, and a read taken
+ * before a layout switch has rendered reads as the layout it replaced, so
+ * callers compare through `expect.poll`.
+ */
+async function settledCells(page: Page) {
+  await page.evaluate(async () => {
+    const grid = document.querySelector(".dashboard-grid") as HTMLElement;
+    const boxes = () =>
+      Array.from(grid.children)
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          return `${(el as HTMLElement).dataset.i}:${r.left}:${r.top}:${r.width}:${r.height}`;
+        })
+        .join("|");
+    let last = "";
+    let still = 0;
+    while (still < 5) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const moving = grid
+        .getAnimations({ subtree: true })
+        .some((a) => a.playState === "running");
+      const now = boxes();
+      still = !moving && now === last ? still + 1 : 0;
+      last = now;
+    }
+  });
+  return cells(page);
+}
+
 async function openLayouts(page: Page) {
   await page.getByRole("button", { name: "Dashboard controls" }).click();
   await page.mouse.move(10, 10);
@@ -140,49 +172,47 @@ test.describe("dashboard layouts", () => {
     browser,
   }) => {
     const page = await openSeeded(browser);
-    const before = await cells(page);
+    const before = await settledCells(page);
 
     await switchToOther(page);
-    expect(await cells(page)).not.toEqual(before);
+    await expect.poll(() => settledCells(page)).not.toEqual(before);
     await switchToOther(page);
 
-    expect(await cells(page)).toEqual(before);
+    await expect.poll(() => settledCells(page)).toEqual(before);
   });
 
   test("a drag saves into the current layout and leaves the other one alone", async ({
     browser,
   }) => {
     const page = await openSeeded(browser);
-    const before = await cells(page);
+    const before = await settledCells(page);
 
     await dragTileA(page);
-    const dragged = await cells(page);
+    const dragged = await settledCells(page);
     expect(dragged).not.toEqual(before);
 
     await switchToOther(page);
-    const other = await cells(page);
-    expect(other[B].x).toBe(6);
+    await expect.poll(async () => (await settledCells(page))[B].x).toBe(6);
+    const other = await settledCells(page);
     expect(other[B].y).toBe(other[A].y);
     await switchToOther(page);
 
-    expect(await cells(page)).toEqual(dragged);
+    await expect.poll(() => settledCells(page)).toEqual(dragged);
   });
 
   test("Undo puts a dragged tile back and Redo moves it again", async ({
     browser,
   }) => {
     const page = await openSeeded(browser);
-    const before = await cells(page);
+    const before = await settledCells(page);
 
     await dragTileA(page);
-    const dragged = await cells(page);
+    const dragged = await settledCells(page);
     await page.getByRole("button", { name: "Undo" }).click();
-    await page.waitForTimeout(500);
-    expect(await cells(page)).toEqual(before);
+    await expect.poll(() => settledCells(page)).toEqual(before);
 
     await page.getByRole("button", { name: "Redo" }).click();
-    await page.waitForTimeout(500);
-    expect(await cells(page)).toEqual(dragged);
+    await expect.poll(() => settledCells(page)).toEqual(dragged);
   });
 
   test("a key bound to a layout switches to it, says so, and Undo reverses it", async ({
@@ -200,15 +230,14 @@ test.describe("dashboard layouts", () => {
     await expect(page.locator(".dashboard-grid > [data-i]")).toHaveCount(3, {
       timeout: 30_000,
     });
-    await page.waitForTimeout(500);
-    const before = await cells(page);
+    const before = await settledCells(page);
 
     await page.keyboard.press("k");
 
     await expect(page.getByText("Switched to Orbit (key K)")).toBeVisible();
-    await expect.poll(() => cells(page)).not.toEqual(before);
+    await expect.poll(() => settledCells(page)).not.toEqual(before);
 
     await page.getByRole("button", { name: "Undo" }).click();
-    await expect.poll(() => cells(page)).toEqual(before);
+    await expect.poll(() => settledCells(page)).toEqual(before);
   });
 });
