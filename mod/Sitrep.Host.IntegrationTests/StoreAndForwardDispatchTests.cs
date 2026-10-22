@@ -106,6 +106,32 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public void ACommandOverARouteWithNoDelayIsRunAndAnsweredInsideTheDispatch()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new HeldCommandTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                engine.SetAuthorityDelays(new[] { (Centre, CraftId, 0.0) });
+                engine.SetUnroutable(new Dictionary<string, IReadOnlyCollection<string>>());
+                Tick(engine, 0.0);
+
+                object? result = null;
+                engine.DispatchCommandAndWait(HeldCommandTestUplink.Command, "x", Centre, r => result = r, TestBudgets.Op);
+
+                // No tick in between: the next one is a second of game time away.
+                Assert.Equal(1, uplink.HandledCount);
+                Assert.NotNull(result);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         /// <summary>
         /// Signal delay switched off removes the waiting and not the missing
         /// route: a command held for want of a path is still held, and still
