@@ -1,4 +1,4 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { value, WarpMode } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { WarpRateTable } from "./WarpRateTable";
 
@@ -104,5 +104,35 @@ describe("WarpRateTable, with only what it has watched the game do", () => {
 
     expect(table.rateAt(4)).toBe(INSTALL[4]);
     expect(table.hasPublishedTable()).toBe(true);
+  });
+});
+
+describe("WarpRateTable.rateNow", () => {
+  const RAILS = [1, 5, 10, 50, 100, 1000, 10000, 100000];
+  const table = () => {
+    const t = new WarpRateTable();
+    t.setPublished(RAILS.map((magnitude) => ({ magnitude })));
+    return t;
+  };
+
+  it("is the install's rate for the rung while on rails", () => {
+    expect(
+      table().rateNow({
+        warpMode: WarpMode.High,
+        warpRate: { magnitude: 50 },
+        warpRateIndex: 3,
+      }),
+    ).toBe(50);
+  });
+
+  it("is the reading's own rate under physics warp, whose rungs the rails table does not describe", () => {
+    // Physics warp 4x is rung 3, which the rails table maps to 50x.
+    expect(
+      table().rateNow({
+        warpMode: WarpMode.Low,
+        warpRate: { magnitude: 4 },
+        warpRateIndex: 3,
+      }),
+    ).toBe(4);
   });
 });

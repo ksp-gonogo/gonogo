@@ -147,7 +147,7 @@ function gameRateReader(): () => number {
       seen = warp.warpRates;
       table.setPublished(warp.warpRates);
     }
-    return table.rateAt(warp.warpRateIndex) ?? 1;
+    return table.rateNow(warp) ?? 1;
   };
 }
 

@@ -1,3 +1,4 @@
+import { WarpMode } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf, type Quantityish } from "@ksp-gonogo/ui-kit";
 
 /**
@@ -43,7 +44,7 @@ export class WarpRateTable {
     }
     const read: number[] = [];
     for (const rate of rates) {
-      const magnitude = magnitudeOf(rate);
+      const magnitude = plain(rate);
       /* All or nothing: a table with a hole in it would have the hole read as
          "no evidence for this rung" and probed, on an install that has already
          said what the rung is. */
@@ -53,6 +54,25 @@ export class WarpRateTable {
       read.push(magnitude);
     }
     this.published = read;
+  }
+
+  /**
+   * The rate the game is running at now, from a `time.warp` reading. On rails it
+   * is the install's rate for the rung it is on. Physics warp has rungs of its
+   * own, which the rails table does not describe (rung 3 is 4x there and 50x
+   * here), so under it the reading's own rate is the answer. `undefined` where
+   * the rung's rate is not known.
+   */
+  rateNow(warp: {
+    warpMode?: unknown;
+    warpRate: Quantityish;
+    warpRateIndex: number;
+  }): number | undefined {
+    if (warp.warpMode === WarpMode.Low) {
+      const current = plain(warp.warpRate);
+      return current !== null && current > 0 ? current : undefined;
+    }
+    return this.rateAt(warp.warpRateIndex);
   }
 
   /** Record what the game was actually running at a rung it reached. */
@@ -113,4 +133,9 @@ export class WarpRateTable {
       ? this.published.length - 1
       : MAX_LEARNED_INDEX;
   }
+}
+
+/** The one place this table turns a wire quantity into a plain number. */
+function plain(quantity: Quantityish): number | null {
+  return magnitudeOf(quantity);
 }
