@@ -132,12 +132,8 @@ export function AutoRecordController({
   const activeFlightStartedUtRef = useRef<number | null>(null);
   const activeVesselNameRef = useRef<string>("");
   const activeLaunchedAtRef = useRef<number>(0);
-  /**
-   * The mission each flight was last stored as, by flight id, so an end announced
-   * after its recording stopped (a scene change, or focus moving to another
-   * vessel) can still be put on it. An entry goes once its flight has ended.
-   */
-  const savedMissionIdsRef = useRef<Map<string, string>>(new Map());
+  /** The mission the tracked flight was last stored as, so an end announced after the recording stopped can still be put on it. */
+  const savedMissionIdRef = useRef<string | null>(null);
   const prevSceneRef = useRef<GameScene>(scene);
   const missionHistoryEnabledRef = useRef(missionHistoryEnabled);
   missionHistoryEnabledRef.current = missionHistoryEnabled;
@@ -168,8 +164,7 @@ export function AutoRecordController({
         endReason,
       });
       if (!record) return;
-      const flightId = activeFlightIdRef.current;
-      if (flightId) savedMissionIdsRef.current.set(flightId, record.meta.id);
+      savedMissionIdRef.current = record.meta.id;
       const meta = recorded
         ? withMissionPart(recorded.meta, record.meta)
         : record.meta;
@@ -273,6 +268,7 @@ export function AutoRecordController({
           return;
         }
         finishAndSave(recorder);
+        savedMissionIdRef.current = null;
         activeFlightIdRef.current = payload.flightId;
         activeFlightStartedUtRef.current = startedUt;
         activeVesselNameRef.current = payload.vesselName;
@@ -291,9 +287,8 @@ export function AutoRecordController({
 
   /** Puts a flight's end reason on the mission its recording was already stored as. */
   const storeReasonOnSavedMission = useCallback(
-    (flightId: string, endReason: FlightEndReason): void => {
-      const id = savedMissionIdsRef.current.get(flightId);
-      savedMissionIdsRef.current.delete(flightId);
+    (endReason: FlightEndReason): void => {
+      const id = savedMissionIdRef.current;
       const src = getSource();
       if (!id || typeof src?.setFlightEndReason !== "function") return;
       src.setFlightEndReason(id, endReason).catch((error: unknown) => {
@@ -310,18 +305,14 @@ export function AutoRecordController({
     useCallback(
       (payload) => {
         if (!recorder) return;
-        if (payload.flightId !== activeFlightIdRef.current) {
-          // A flight the operator left for another vessel ends on its own.
-          storeReasonOnSavedMission(payload.flightId, payload.reason);
-          return;
-        }
+        if (payload.flightId !== activeFlightIdRef.current) return;
         if (recorder.recording) {
           finishAndSave(recorder, payload.reason);
-          savedMissionIdsRef.current.delete(payload.flightId);
         } else {
           // The recording stopped when the scene changed, before the end was announced.
-          storeReasonOnSavedMission(payload.flightId, payload.reason);
+          storeReasonOnSavedMission(payload.reason);
         }
+        savedMissionIdRef.current = null;
         // Nothing is tracked once the flight is over, so neither the master switch nor a later tick can start recording it again.
         activeFlightIdRef.current = null;
         activeFlightStartedUtRef.current = null;
