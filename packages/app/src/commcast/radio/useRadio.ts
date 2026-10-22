@@ -1,10 +1,6 @@
 import { radioSupportStatus } from "@ksp-gonogo/sitrep-sdk/media";
-import {
-  getWarpState,
-  useViewClockOptional,
-} from "@ksp-gonogo/sitrep-sdk/spine";
+import { useViewClockOptional } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { WarpRateTable } from "../../alarms/WarpRateTable";
 import type { CommcastLog } from "../CommcastLog";
 import type { Vantage } from "../reveal";
 import type { RecipientId } from "../types";
@@ -131,26 +127,6 @@ const IDLE_TRANSMIT: RadioTransmitState = {
   fault: null,
 };
 
-/**
- * A reader of game seconds per wall second off the latest `time.warp` reading:
- * 0 while paused, the install's own rate for the rung it is on, and 1 before
- * any reading or where the rung's rate is not known.
- */
-function gameRateReader(): () => number {
-  const table = new WarpRateTable();
-  let seen: unknown;
-  return () => {
-    const warp = getWarpState();
-    if (!warp) return 1;
-    if (warp.paused) return 0;
-    if (warp.warpRates !== seen) {
-      seen = warp.warpRates;
-      table.setPublished(warp.warpRates);
-    }
-    return table.rateAt(warp.warpRateIndex) ?? 1;
-  };
-}
-
 export function useRadio({
   log,
   me,
@@ -190,10 +166,7 @@ export function useRadio({
   const present = useMemo(
     () =>
       clock
-        ? new RadioClock({
-            source: () => clock.utNowEstimate(),
-            rate: gameRateReader(),
-          })
+        ? new RadioClock({ source: () => clock.utNowEstimate() })
         : undefined,
     [clock],
   );

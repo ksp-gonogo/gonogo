@@ -1,6 +1,6 @@
 import { useTelemetry, useTimeContexts } from "@ksp-gonogo/core";
 import { collapseControlStateLevel } from "@ksp-gonogo/sitrep-client";
-import { useViewUt, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { SignalLossBanner, type SignalState } from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 
@@ -27,8 +27,8 @@ import { useEffect, useRef, useState } from "react";
  * of data. A link report still on its way is the "awaiting" state, shown once it
  * has been missing for a moment.
  *
- * Elapsed time is measured in game time from the instant the state last left
- * "connected", so it keeps pace with time warp.
+ * Elapsed time is measured from the moment the state last left "connected".
+ * A 1s interval ticks a render to keep the timer label fresh.
  */
 
 /**
@@ -107,32 +107,39 @@ export function SignalLossIndicator() {
           hasConfirmedConnection,
         );
 
-  const viewUt = useViewUt();
-  const lostSinceRef = useRef<Value<"ut"> | null>(null);
+  const lostSinceRef = useRef<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
-  // Reset the "since" instant whenever we cross in/out of "connected".
-  if (state === "connected" || state === "awaiting") {
-    lostSinceRef.current = null;
-  }
-  if (
-    state !== "connected" &&
-    state !== "awaiting" &&
-    lostSinceRef.current === null &&
-    viewUt !== undefined
-  ) {
-    lostSinceRef.current = viewUt;
-  }
+  // Reset the "since" timestamp whenever we cross in/out of "connected".
+  useEffect(() => {
+    if (state === "connected" || state === "awaiting") {
+      lostSinceRef.current = null;
+      return;
+    }
+    if (lostSinceRef.current === null) {
+      lostSinceRef.current = Date.now();
+    }
+  }, [state]);
 
-  // Game time, so the timer keeps pace with a warp; a UT that steps back (a quickload) reads 0 rather than a negative.
-  const elapsed =
-    lostSinceRef.current === null || viewUt === undefined
-      ? value("s", 0)
-      : viewUt.minus(lostSinceRef.current);
+  // Periodic re-render for the timer label. Only while a banner is visible,
+  // no point ticking when we're healthy.
+  useEffect(() => {
+    if (state === "connected" || state === "awaiting") return;
+    const id = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => {
+      clearInterval(id);
+    };
+  }, [state]);
+
+  const elapsedMs =
+    lostSinceRef.current === null ? 0 : Math.max(0, now - lostSinceRef.current);
 
   return (
     <SignalLossBanner
       state={state}
-      elapsed={elapsed.lessThan(value("s", 0)) ? value("s", 0) : elapsed}
+      elapsedMs={elapsedMs}
       expectedIn={owltSeconds > 0 ? owltSeconds : undefined}
     />
   );

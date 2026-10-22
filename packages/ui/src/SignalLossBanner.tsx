@@ -1,5 +1,4 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
-import { AwaitingSignal, Unit } from "@ksp-gonogo/ui-kit";
+import { AwaitingSignal } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { BannerPill } from "./BannerPill";
 
@@ -7,8 +6,8 @@ export type SignalState = "connected" | "partial" | "lost" | "awaiting";
 
 export interface SignalLossBannerProps {
   state: SignalState;
-  /** Game time since the signal state left "connected". Ignored when state is "connected". */
-  elapsed: Value<"s">;
+  /** Milliseconds since the signal state left "connected". Ignored when state is "connected". */
+  elapsedMs: number;
   /** Seconds until the first link report is expected, when the state is "awaiting" and the delay is known. */
   expectedIn?: number;
 }
@@ -21,7 +20,7 @@ export interface SignalLossBannerProps {
  */
 export function SignalLossBanner({
   state,
-  elapsed,
+  elapsedMs,
   expectedIn,
 }: SignalLossBannerProps) {
   if (state === "connected") return null;
@@ -43,12 +42,18 @@ export function SignalLossBanner({
       pulse
     >
       <Label>{label}</Label>
-      <Timer>
-        T+
-        <Unit value={elapsed} />
-      </Timer>
+      <Timer>T+{formatElapsed(elapsedMs)}</Timer>
     </BannerPill>
   );
+}
+
+function formatElapsed(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
 }
 
 const SEVERITY_COLOR: Record<"lost" | "partial", string> = {
