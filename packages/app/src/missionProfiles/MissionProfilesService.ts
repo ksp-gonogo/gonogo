@@ -329,7 +329,7 @@ export class MissionProfilesService {
       next.sceneBindings = undefined;
     }
     if (next.autoSwitch !== true) next.autoSwitch = undefined;
-    if (patch.name) next.draft = undefined;
+    if (patch.name?.trim()) next.draft = undefined;
     this.profiles[idx] = next;
     this.persist();
     this.emit();

@@ -74,6 +74,16 @@ describe("MissionProfilesService", () => {
     expect(svc.get(p.id)?.inputBinding).toEqual(key);
   });
 
+  it("keeps a layout flagged unsaved when it is renamed to blank", () => {
+    const svc = new MissionProfilesService("main", storage);
+    const draft = svc.createDraft(ITEMS, LAYOUT);
+
+    svc.update(draft.id, { name: "   " });
+
+    expect(svc.get(draft.id)?.draft).toBe(true);
+    expect(svc.get(draft.id)?.name).toBe("Unsaved layout");
+  });
+
   it("starts empty for a fresh screen", () => {
     const svc = new MissionProfilesService("main", storage);
     expect(svc.list()).toEqual([]);
