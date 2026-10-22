@@ -222,7 +222,7 @@ export function delayVisibility(
 /**
  * Returns how a command sent now would travel, from a `comms.delay` payload:
  * `"live"` for a one-way delay of a second or less, `"staged"` for a longer
- * one, and `"no-path"` when `oneWaySeconds` is `null` or there is no payload.
+ * one, and `"no-path"` when `oneWaySeconds` is `null`, not a finite number, or there is no payload.
  * Useful for showing the operator whether a control acts at once or waits. Used
  * by {@link InFlightList}.
  *
@@ -230,7 +230,7 @@ export function delayVisibility(
  */
 export function currentMode(commsDelay: CommsDelayLike | undefined): DelayMode {
   const d = commsDelay?.oneWaySeconds;
-  if (d == null) return "no-path";
+  if (d == null || !d.isFinite()) return "no-path";
   return d.lessThanOrEqual(STAGED_THRESHOLD_SECONDS) ? "live" : "staged";
 }
 
