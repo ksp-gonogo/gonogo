@@ -345,6 +345,7 @@ export class MissionProfilesService {
     binding: InputBinding | null,
   ): { movedFrom: MissionProfile | null } {
     let movedFrom: MissionProfile | null = null;
+    if (!this.get(id)) return { movedFrom };
     this.profiles = this.profiles.map((p) => {
       if (p.id === id) {
         return { ...p, inputBinding: binding ?? undefined };
