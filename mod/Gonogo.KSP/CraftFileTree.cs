@@ -76,6 +76,40 @@ namespace Gonogo.KSP
             return partKey.Substring(0, separator);
         }
 
+        /// <summary>
+        /// A craft-frame vector expressed in the frame of the root part, which is
+        /// the frame a launched vessel reports its parts in: the vector turned by
+        /// the inverse of the root's saved rotation (<paramref name="rootRotation"/>,
+        /// <c>x,y,z,w</c>). A plane's root cockpit lies on its side in the editor,
+        /// so its fuselage runs along the root's own y axis there, as it does on a
+        /// launched vessel.
+        /// </summary>
+        public static double[] InRootFrame(double[] rootRotation, double x, double y, double z)
+        {
+            var length = Math.Sqrt(
+                (rootRotation[0] * rootRotation[0]) + (rootRotation[1] * rootRotation[1])
+                + (rootRotation[2] * rootRotation[2]) + (rootRotation[3] * rootRotation[3]));
+            if (length < 1e-9)
+            {
+                return new[] { x, y, z };
+            }
+
+            // The conjugate of a unit quaternion is its inverse.
+            var ux = -rootRotation[0] / length;
+            var uy = -rootRotation[1] / length;
+            var uz = -rootRotation[2] / length;
+            var w = rootRotation[3] / length;
+            var tx = 2 * ((uy * z) - (uz * y));
+            var ty = 2 * ((uz * x) - (ux * z));
+            var tz = 2 * ((ux * y) - (uy * x));
+            return new[]
+            {
+                x + (w * tx) + ((uy * tz) - (uz * ty)),
+                y + (w * ty) + ((uz * tx) - (ux * tz)),
+                z + (w * tz) + ((ux * ty) - (uy * tx)),
+            };
+        }
+
         /// <summary>A saved vector, <c>x,y,z</c> or <c>x,y,z,w</c>, or null when it is not <paramref name="length"/> numbers.</summary>
         public static double[]? ParseVector(string? text, int length)
         {

@@ -37,12 +37,15 @@ namespace Gonogo.KSP
             }
             var parents = CraftFileTree.ParentIndices(keys, links);
 
+            var rootPosition = CraftFileTree.ParseVector(nodes[0].GetValue("pos"), 3) ?? new double[3];
+            var rootRotation = CraftFileTree.ParseVector(nodes[0].GetValue("rot"), 4) ?? new double[] { 0, 0, 0, 1 };
+
             var list = new List<object?>(nodes.Length);
             for (var i = 0; i < nodes.Length; i++)
             {
                 try
                 {
-                    if (BuildPart(nodes[i], i, parents[i]) is { } row)
+                    if (BuildPart(nodes[i], i, parents[i], rootPosition, rootRotation) is { } row)
                     {
                         list.Add(row);
                     }
@@ -56,7 +59,7 @@ namespace Gonogo.KSP
             return list.Count == 0 ? null : list;
         }
 
-        private static Dictionary<string, object?>? BuildPart(ConfigNode node, int index, int parentIndex)
+        private static Dictionary<string, object?>? BuildPart(ConfigNode node, int index, int parentIndex, double[] rootPosition, double[] rootRotation)
         {
             var name = CraftFileTree.PartName(node.GetValue("part"));
             var info = string.IsNullOrEmpty(name) ? null : PartLoader.getPartInfoByName(name);
@@ -73,6 +76,9 @@ namespace Gonogo.KSP
                 return null;
             }
 
+            /* A launched vessel reports its parts in the root part's frame, with the root at the origin, so this does too. */
+            var framed = CraftFileTree.InRootFrame(
+                rootRotation, position[0] - rootPosition[0], position[1] - rootPosition[1], position[2] - rootPosition[2]);
             var box = ProtoVesselTopology.Measure(info.name, prefab, VariantOf(node));
             var orientation = new Quaternion((float)rotation[0], (float)rotation[1], (float)rotation[2], (float)rotation[3]);
 
@@ -107,9 +113,9 @@ namespace Gonogo.KSP
                 ["parentId"] = parentIndex >= 0 ? (parentIndex + 1).ToString(CultureInfo.InvariantCulture) : null,
                 ["name"] = info.name,
                 ["title"] = info.title,
-                ["position"] = position,
-                ["up"] = Vec3Array(orientation * Vector3.up),
-                ["forward"] = Vec3Array(orientation * Vector3.forward),
+                ["position"] = framed,
+                ["up"] = InRootFrameArray(rootRotation, orientation * Vector3.up),
+                ["forward"] = InRootFrameArray(rootRotation, orientation * Vector3.forward),
                 ["bounds"] = new Dictionary<string, object?>
                 {
                     ["size"] = Vec3Array(box.Size),
@@ -141,6 +147,9 @@ namespace Gonogo.KSP
 
         private static double Number(string? text, double fallback = 0.0) =>
             double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ? value : fallback;
+
+        private static double[] InRootFrameArray(double[] rootRotation, Vector3 v) =>
+            CraftFileTree.InRootFrame(rootRotation, v.x, v.y, v.z);
 
         private static double[] Vec3Array(Vector3 v) => new double[] { v.x, v.y, v.z };
     }

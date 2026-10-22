@@ -1,3 +1,4 @@
+using System.Linq;
 using Gonogo.KSP;
 using Xunit;
 
@@ -70,6 +71,27 @@ namespace Gonogo.KSP.Tests
             Assert.Null(CraftFileTree.ParseVector("0,NaN,0", 3));
             Assert.Null(CraftFileTree.ParseVector("", 3));
             Assert.Null(CraftFileTree.ParseVector(null, 3));
+        }
+
+        [Fact]
+        public void APlanesFuselageRunsAlongTheRootsYAxisInTheRootFrame()
+        {
+            // The Seahawk's root cockpit is turned a quarter turn about x in the editor, where the plane's length runs along z.
+            var root = new[] { 0.707106829, 0, 0, 0.707106829 };
+
+            var nose = CraftFileTree.InRootFrame(root, 0, 0, 3);
+            var wing = CraftFileTree.InRootFrame(root, 6, 0.2, 0);
+
+            Assert.Equal(new[] { 0.0, 3.0, 0.0 }, nose.Select(v => System.Math.Round(v, 5)).ToArray());
+            Assert.Equal(new[] { 6.0, 0.0, -0.2 }, wing.Select(v => System.Math.Round(v, 5)).ToArray());
+        }
+
+        [Fact]
+        public void ARootWithNoTurnLeavesTheVectorAlone()
+        {
+            var turned = CraftFileTree.InRootFrame(new double[] { 0, 0, 0, 1 }, 1, 2, 3);
+
+            Assert.Equal(new[] { 1.0, 2.0, 3.0 }, turned);
         }
     }
 }
