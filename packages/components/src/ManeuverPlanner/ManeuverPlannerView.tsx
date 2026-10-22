@@ -35,6 +35,7 @@ export function ManeuverPlannerComponent({
     ApR,
     PeR,
     trueAnomaly,
+    apsisDefined,
     argPe,
     currentUT,
     nowUtSeconds,
@@ -157,6 +158,7 @@ export function ManeuverPlannerComponent({
             body={body}
             preset={inputs.preset}
             burnTrueAnomaly={burnTrueAnomaly}
+            apsisDefined={apsisDefined}
             diagram={{
               sma,
               ecc,

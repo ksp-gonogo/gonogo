@@ -6,9 +6,11 @@ import {
   ContainerBreak,
   Countdown,
   Notice,
+  NULL_DISPLAY,
   type ReckoningMarking,
   Section,
   SignalDelayBadge,
+  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
@@ -33,6 +35,8 @@ export interface ManeuverPreviewProps {
   body: BodyDefinition | undefined;
   preset: string;
   burnTrueAnomaly: number | null;
+  /** False when successive samples scatter the apsis wider than the countdown resolves; undefined until enough samples are in. */
+  apsisDefined?: boolean;
   /** The propagation seam's answer for the current orbit, the base curve; `null` when it could not be asked. */
   currentTrajectory: OrbitTrajectory | null;
   /** Live orbit scalars used by the diagram. */
@@ -164,6 +168,8 @@ function PreviewBody({
   feasible,
   currentUT,
   planMarking,
+  preset,
+  apsisDefined,
 }: ManeuverPreviewProps) {
   if (!plan) return null;
   if (isSequence(plan)) {
@@ -178,6 +184,8 @@ function PreviewBody({
       />
     );
   }
+  // A burn placed at an apsis has no instant where the apsis is not a place the samples agree on.
+  const apsisUndefined = apsisDefined === false && APSIS_PRESETS.has(preset);
   return (
     <PreviewGrid>
       <Label>ΔV</Label>
@@ -191,7 +199,13 @@ function PreviewBody({
 
       <Label>Burn in</Label>
       <PreviewValue>
-        <Countdown value={currentUT && plan.ut.minus(currentUT)} />
+        {apsisUndefined ? (
+          <Tooltip text="The apsis is not defined on this orbit: it is too nearly circular for the samples to fix where it is. The burn can be placed anywhere on it.">
+            <span>{NULL_DISPLAY}</span>
+          </Tooltip>
+        ) : (
+          <Countdown value={currentUT && plan.ut.minus(currentUT)} />
+        )}
       </PreviewValue>
 
       <AvailableRow availableDeltaV={availableDeltaV} feasible={feasible} />
@@ -204,6 +218,13 @@ function PreviewBody({
     </PreviewGrid>
   );
 }
+
+const APSIS_PRESETS: ReadonlySet<string> = new Set([
+  "circularize-apo",
+  "circularize-peri",
+  "custom-apo",
+  "custom-peri",
+]);
 
 const CONTAINER_STYLE: CSSProperties = { containerType: "inline-size" };
 

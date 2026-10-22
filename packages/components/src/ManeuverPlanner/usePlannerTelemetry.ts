@@ -18,6 +18,7 @@ import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useOrbitPlaneTrajectory } from "../shared/useOrbitPlaneTrajectory";
+import { apsisIsDefined, recordApsisInstant } from "./apsisSpread";
 import { type BurnContext, orbitShape } from "./burnFlown";
 import { buildCurrentOrbit, computeMu } from "./planning";
 
@@ -103,6 +104,20 @@ export function usePlannerTelemetry() {
   const currentUT: Value<"ut"> | undefined = useViewUt();
   // The burn windows and the conformance regime place node instants, which arrive as plain UT seconds, so they read the view instant the same way.
   const nowUtSeconds = currentUT?.magnitude;
+  // One apsis instant per sample: an eccentricity too small to fix the apsis direction moves it from sample to sample.
+  const apsisWindow = useRef<number[]>([]);
+  if (
+    solve !== null &&
+    timeToAp !== undefined &&
+    solve.period !== null &&
+    nowUtSeconds !== undefined
+  ) {
+    recordApsisInstant(apsisWindow.current, nowUtSeconds + timeToAp);
+  }
+  const apsisDefined = apsisIsDefined(
+    apsisWindow.current,
+    solve?.period ?? undefined,
+  );
   const orbitalSpeedReading = useTelemetry("vessel.flight").orbitalSpeed;
   // computeMu wants a number true of the craft now: modelled where on offer, else observed.
   const speedNow = () => {
@@ -207,6 +222,7 @@ export function usePlannerTelemetry() {
     PeR,
     timeToAp,
     timeToPe,
+    apsisDefined,
     argPe,
     trueAnomaly,
     currentUT,
