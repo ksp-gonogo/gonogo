@@ -7782,6 +7782,7 @@ namespace Sitrep.Host
                     return;
                 }
 
+                RecordForOwnSeat(topic, value, ut);
                 if (_channelDeclarations.TryGetValue(topic, out var held) && held.Kind == SampleKind.Event)
                 {
                     LogLimitedPerTopic("held ", topic, "held " + topic + " at UT " + ut.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
@@ -7792,6 +7793,34 @@ namespace Sitrep.Host
             }
 
             BufferFor(topic).Add(new BufferedReveal(ut, value, delay));
+        }
+
+        /// <summary>
+        /// A sample the craft took while its link is down reaches no centre, but the
+        /// crew aboard are not at one: the seat that commands the craft is the craft's
+        /// own vantage, no distance from it, and reads what the craft says as it says
+        /// it. So the sample is recorded for that vantage alone, at no delay, while
+        /// the held copy still waits for a link to carry it to everyone else.
+        /// </summary>
+        private void RecordForOwnSeat(string topic, object? value, double ut)
+        {
+            var seat = _activeCraftId;
+            if (seat == null
+                || !_activeCraftLoaded
+                || !string.Equals(NodeFor(topic), NodeId, StringComparison.Ordinal)
+                || !IsRecordable(topic))
+            {
+                return;
+            }
+            _courier.Record(
+                NodeId,
+                topic,
+                value,
+                ut,
+                DeliveryFor(topic),
+                IsKeyframeFor(topic, value),
+                null,
+                DelayStamp.DeliveredTo(seat, 0.0));
         }
 
         /// <summary>
