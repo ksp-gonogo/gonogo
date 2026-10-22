@@ -195,7 +195,6 @@ describe("collection Topics in the generated contract", () => {
       "alarm.scet.topics",
       "commandCentre.roster",
       "commandCentre.unreachable",
-      "deployed.bases",
       "dv.stages",
       "isru.converters",
       "isru.drills",

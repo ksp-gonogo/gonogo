@@ -272,10 +272,9 @@ namespace Sitrep.Host.IntegrationTests
     /// whichever backend the election picked, falling back to stock vanilla when
     /// the capability has not resolved), so the domain wire-fixture generator can
     /// replay a science-mode recording through the real engine pipeline exactly
-    /// like a live capture would. The sibling <c>deployed.bases</c> channel that
-    /// used to live here moved to <see cref="TestBreakingGroundUplink"/> alongside
-    /// the real <c>Gonogo.KSP.ScienceCoreUplink</c> -&gt;
-    /// <c>Gonogo.KSP.BreakingGroundUplink</c> split.
+    /// like a live capture would. Deployed science is on
+    /// <see cref="TestBreakingGroundUplink"/>, as the real
+    /// <c>Gonogo.KSP.BreakingGroundUplink</c> carries it.
     /// </summary>
     internal sealed class TestScienceUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
@@ -376,9 +375,9 @@ namespace Sitrep.Host.IntegrationTests
     /// <c>Gonogo.KSP.BreakingGroundUplink</c>, same cross-project rationale as
     /// <see cref="TestSystemUplink"/>'s doc comment (this project can't
     /// reference the net472/KSP-referencing <c>Gonogo.KSP</c> assembly).
-    /// Registers the <c>robotics.servos</c>/<c>robotics.available</c>/
-    /// <c>deployed.bases</c> channels against
-    /// <see cref="BreakingGroundViewProvider"/>'s builders verbatim, so the
+    /// Registers the <c>robotics.servos</c>/<c>robotics.available</c> channels
+    /// and the per-station <c>deployed.station.&lt;guid&gt;.report</c> namespace
+    /// against <see cref="BreakingGroundViewProvider"/>'s builders verbatim, so the
     /// domain wire-fixture generator can replay a robotics/deployed-science
     /// recording through the real engine pipeline exactly like a live
     /// capture would. No command handlers: this suite replays recordings
@@ -412,12 +411,6 @@ namespace Sitrep.Host.IntegrationTests
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
-                new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
-                    Topic = BreakingGroundViewProvider.DeployedTopic,
-                    Delivery = Delivery.LossyLatest,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                },
             },
         };
 
@@ -425,7 +418,94 @@ namespace Sitrep.Host.IntegrationTests
         {
             host.AddChannelSource(BreakingGroundViewProvider.RoboticsTopic, BreakingGroundViewProvider.BuildRobotics);
             host.AddChannelSource(BreakingGroundViewProvider.RoboticsAvailableTopic, BreakingGroundViewProvider.BuildRoboticsAvailable);
-            host.AddChannelSource(BreakingGroundViewProvider.DeployedTopic, BreakingGroundViewProvider.BuildDeployed);
+
+            _host = host;
+            _stations = host.RegisterDynamicNamespace(BreakingGroundViewProvider.StationPrefix, new ChannelDeclaration
+            {
+                Kind = SampleKind.Continuous,
+                Delivery = Delivery.LossyLatest,
+                Delay = DelayRole.Delayed,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                PerVesselNode = true,
+            });
+            host.AddSampledSource(CaptureStations, HandleStations, BreakingGroundViewProvider.StationPrefix);
+        }
+
+        private IUplinkHost? _host;
+        private IDynamicChannelSource? _stations;
+
+        /// <summary>
+        /// Mirrors <c>Gonogo.KSP.BreakingGroundUplink.CaptureStationsOnMain</c>: each
+        /// station's payload, and the link its controller vessel reports. The link is
+        /// read from <c>stationOneWay</c> and <c>stationConnected</c> keys a test
+        /// authors on a station's experiment, where production reads the vessel.
+        /// </summary>
+        internal object? CaptureStations(KspSnapshot? snapshot)
+        {
+            var stations = BreakingGroundViewProvider.BuildStations(snapshot);
+            if (stations == null || snapshot == null)
+            {
+                return null;
+            }
+
+            var links = new Dictionary<string, (double? OneWay, bool? Connected)>(StringComparer.Ordinal);
+            if (snapshot.Values.TryGetValue("deployedScience", out var raw) && raw is IEnumerable<object?> list)
+            {
+                foreach (var item in list)
+                {
+                    if (item is IDictionary<string, object?> entry
+                        && entry.TryGetValue("stationId", out var id) && id is string stationId)
+                    {
+                        links[stationId] = (
+                            entry.TryGetValue("stationOneWay", out var d) && d is double dd ? dd : (double?)null,
+                            entry.TryGetValue("stationConnected", out var c) && c is bool cb ? cb : (bool?)null);
+                    }
+                }
+            }
+
+            var tick = new StationsTick { Ut = snapshot.Ut };
+            foreach (var pair in stations)
+            {
+                links.TryGetValue(pair.Key, out var link);
+                tick.Rows.Add(new StationRow { Id = pair.Key, Payload = pair.Value, OneWay = link.OneWay, Connected = link.Connected });
+            }
+            return tick;
+        }
+
+        private sealed class StationsTick
+        {
+            public double Ut { get; set; }
+            public List<StationRow> Rows { get; } = new List<StationRow>();
+        }
+
+        private sealed class StationRow
+        {
+            public string Id { get; set; } = "";
+            public Dictionary<string, object?> Payload { get; set; } = new Dictionary<string, object?>();
+            public double? OneWay { get; set; }
+            public bool? Connected { get; set; }
+        }
+
+        /// <summary>Mirrors <c>Gonogo.KSP.BreakingGroundUplink.HandleStationsOnCourier</c>.</summary>
+        internal void HandleStations(object? captured)
+        {
+            if (captured is not StationsTick tick || _stations == null)
+            {
+                return;
+            }
+
+            foreach (var row in tick.Rows)
+            {
+                if (row.OneWay.HasValue)
+                {
+                    _host?.SetVesselDelay(row.Id, row.OneWay.Value);
+                }
+                if (row.Connected.HasValue)
+                {
+                    _host?.SetVesselConnectivity(row.Id, row.Connected.Value);
+                }
+                _stations.Publisher(row.Id + BreakingGroundViewProvider.StationReportSuffix).Publish(row.Payload, tick.Ut);
+            }
         }
     }
 

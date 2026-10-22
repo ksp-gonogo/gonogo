@@ -1,4 +1,5 @@
 import {
+  CatalogContact,
   DeployedPowerState,
   registerStockBodies,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -6,85 +7,93 @@ import { act, setupStreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
 import { renderWidget } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
+import {
+  emitStations,
+  experiment,
+  MINMUS_STATION,
+  MUN_STATION,
+  stationReport,
+} from "../test/deployedStations";
 import { stripVolatile } from "../test/widgetDomSnapshot";
 // Side-effect import: `renderWidget` looks the widget up by id.
 import "./index";
 
-/** DOM snapshots streamed through a real `TelemetryProvider` in the flat `deployed.bases` shape, one entry per deployed experiment. */
+/** DOM snapshots streamed through a real `TelemetryProvider`: the catalog names each station and each station reports on its own topic. */
 
 interface Scenario {
   breakingGround: boolean;
-  entries: Array<Record<string, unknown>>;
+  stations: Array<{
+    entry?: Record<string, unknown>;
+    report?: Record<string, unknown> | null;
+  }>;
 }
 
-const flatEntry = (
-  over: Record<string, unknown> = {},
-): Record<string, unknown> => ({
-  vesselName: "Deployed Base",
-  partName: "Experiment",
-  body: "Mun",
-  situation: "LANDED",
-  biome: "Highlands",
-  experimentId: "experiment",
-  scienceCompletedPercentage: 50,
-  scienceTransmittedPercentage: 50,
-  scienceValue: 20,
-  scienceLimit: 40,
-  powerState: "Powered",
-  connectionState: "Connected",
-  // The derived fields the widget reads; the prose fields above are display labels only.
-  power: DeployedPowerState.Powered,
-  controllerConnected: true,
-  powerAvailable: 4,
-  powerRequired: 3,
-  deployedOnGround: true,
-  ...over,
-});
-
 const SCENARIOS: Record<string, Scenario> = {
-  // A powered Mun base climbing on two experiments, and an unpowered Minmus base at night.
-  bases: {
+  // A Mun station in contact and climbing on two experiments, and a Minmus station out of contact.
+  stations: {
     breakingGround: true,
-    entries: [
-      flatEntry({
-        vesselName: "Mun Deployed Base",
-        body: "Mun",
-        partName: "Seismometer",
-        experimentId: "seismic",
-        scienceCompletedPercentage: 75,
-        scienceValue: 45,
-        scienceLimit: 60,
-        powerState: "Powered",
-      }),
-      flatEntry({
-        vesselName: "Mun Deployed Base",
-        body: "Mun",
-        partName: "Mystery Goo",
-        experimentId: "goo",
-        scienceCompletedPercentage: 40,
-        scienceValue: 12,
-        scienceLimit: 30,
-        powerState: "Powered",
-      }),
-      flatEntry({
-        vesselName: "Minmus Deployed Base",
-        body: "Minmus",
-        partName: "Weather Station",
-        experimentId: "weather",
-        scienceCompletedPercentage: 50,
-        scienceValue: 20,
-        scienceLimit: 40,
-        powerState: "Unpowered",
-        power: DeployedPowerState.Unpowered,
-        // Unpowered on the cluster's own scale: demand met by nothing.
-        powerAvailable: 0,
-        powerRequired: 3,
-      }),
+    stations: [
+      {
+        entry: {
+          vesselId: MUN_STATION,
+          name: "Mun Deployed Base",
+          contact: CatalogContact.InContact,
+          lastContactUt: 10,
+        },
+        report: stationReport({
+          stationName: "Mun Deployed Base",
+          body: "Mun",
+          powerAvailable: 4,
+          powerRequired: 3,
+          experiments: [
+            experiment({
+              partName: "Seismometer",
+              experimentId: "seismic",
+              scienceCompletedPercentage: 75,
+              scienceValue: 45,
+              scienceLimit: 60,
+            }),
+            experiment({
+              partName: "Mystery Goo",
+              experimentId: "goo",
+              scienceCompletedPercentage: 40,
+              scienceValue: 12,
+              scienceLimit: 30,
+            }),
+          ],
+        }),
+      },
+      {
+        entry: {
+          vesselId: MINMUS_STATION,
+          name: "Minmus Deployed Base",
+          contact: CatalogContact.Silent,
+          lastContactUt: 4,
+        },
+        report: stationReport({
+          stationName: "Minmus Deployed Base",
+          body: "Minmus",
+          power: DeployedPowerState.Unpowered,
+          // Unpowered on the cluster's own scale: demand met by nothing.
+          powerAvailable: 0,
+          powerRequired: 3,
+          experiments: [
+            experiment({
+              partName: "Weather Station",
+              experimentId: "weather",
+              scienceCompletedPercentage: 50,
+              scienceValue: 20,
+              scienceLimit: 40,
+              storedData: 14.5,
+            }),
+          ],
+        }),
+      },
     ],
   },
   unavailable: {
     breakingGround: false,
-    entries: [],
+    stations: [],
   },
 };
 
@@ -102,10 +111,14 @@ async function snapshotDeployedScienceScenario(
     wrapper: stream.Provider,
   });
 
-  act(() => {
-    stream.emit("game.dlc", { breakingGround: scenario.breakingGround });
-    stream.emit("deployed.bases", scenario.entries);
-  });
+  if (scenario.breakingGround) {
+    await emitStations(stream, scenario.stations);
+  } else {
+    act(() => {
+      stream.emit("game.dlc", { breakingGround: false });
+      stream.emit("trackingStation.catalog", { entries: [] });
+    });
+  }
 
   // Two rAF ticks, so the provider's frame applies the emitted values before the DOM is read.
   await act(async () => {

@@ -1,9 +1,9 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 45.6.0
+  version: 46.0.0
   description: |-
-    The WebSocket API of the Gonogo mod: 88 telemetry channels a client
+    The WebSocket API of the Gonogo mod: 87 telemetry channels a client
     subscribes to and 71 commands it sends, each with its payload and what it
     means, all over one socket.
 
@@ -135,8 +135,9 @@ info:
     ## Channels not listed here
 
     - Channels named per subject, such as `trackingStation.vessel.<id>.<field>`,
-      `currency.<id>.<currency>` and per-vessel part actions. The mod creates them
-      while the game runs, one set per subject, so they cannot be listed here.
+      `currency.<id>.<currency>`, `deployed.station.<id>.report` and per-vessel
+      part actions. The mod creates them while the game runs, one set per subject,
+      so they cannot be listed here.
       Subscribe to one by its full name, with the subject's id filled in
     - Each installed Uplink's own channels and commands, which that Uplink
       documents
@@ -162,8 +163,6 @@ info:
       description: Antenna links, contacts and what the active vessel can be commanded to do
     - name: crash
       description: The most recent vessel crash
-    - name: deployed
-      description: Deployed Breaking Ground bases
     - name: dv
       description: Delta-v per stage and in total for the active vessel
     - name: eva
@@ -1303,36 +1302,6 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.crash.lastCrash"
-      event:
-        $ref: "#/components/messages/event"
-  deployed.bases:
-    address: deployed.bases
-    description: |-
-      One entry in the `deployed.bases` Topic payload: a Breaking Ground
-      deployed-science experiment, a science instrument set down on the surface.
-      The Topic payload is a bare array (`DeployedEntry[]`) or `null` when
-      Breaking Ground is not installed and no loaded vessel carries a deployed
-      experiment.
-
-      Unlike the `science.*` channels, `deployed.bases` covers the whole save, not
-      just the active vessel: a deployed cluster is its own ground vessel, so an
-      entry normally describes a vessel other than the active one, named by
-      `DeployedEntry.vesselName`. An experiment on a vessel that is not loaded is
-      read from Breaking Ground's cluster registry and carries no power or
-      connection sentence. One that belongs to no cluster is listed only while its
-      vessel is loaded.
-
-      Every field is nullable, and is `null` whenever the raw value is absent or
-      could not be read.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
-    x-sitrep-keyframe-interval-ut: 30
-    messages:
-      streamData:
-        $ref: "#/components/messages/streamData.deployed.bases"
       event:
         $ref: "#/components/messages/event"
   dv.stages:
@@ -5118,17 +5087,6 @@ operations:
     messages:
       - $ref: "#/channels/crash.lastCrash/messages/streamData"
       - $ref: "#/channels/crash.lastCrash/messages/event"
-  read:deployed.bases:
-    action: receive
-    channel:
-      $ref: "#/channels/deployed.bases"
-    title: Read deployed.bases
-    description: Delivered only after `subscribe` names `deployed.bases` on the session channel, which the mod answers here with an `event` named `subscribed`.
-    tags:
-      - name: deployed
-    messages:
-      - $ref: "#/channels/deployed.bases/messages/streamData"
-      - $ref: "#/channels/deployed.bases/messages/event"
   read:dv.stages:
     action: receive
     channel:
@@ -8338,21 +8296,6 @@ components:
                 const: crash.lastCrash
               payload:
                 $ref: "#/components/schemas/CrashReport"
-    streamData.deployed.bases:
-      name: stream-data
-      title: A frame on deployed.bases
-      contentType: application/json
-      payload:
-        description: The `stream-data` envelope carrying `deployed.bases`.
-        allOf:
-          - $ref: "#/components/schemas/StreamData"
-          - properties:
-              topic:
-                const: deployed.bases
-              payload:
-                type: array
-                items:
-                  $ref: "#/components/schemas/DeployedEntry"
     streamData.dv.stages:
       name: stream-data
       title: A frame on dv.stages
@@ -14380,214 +14323,6 @@ components:
           description: |-
             The active strategy to deactivate: its `StrategyConfig.Name`, as
             `career.status`'s `strategies[].id` carries it.
-    DeployedEntry:
-      type: object
-      description: |-
-        One entry in the `deployed.bases` Topic payload: a Breaking Ground
-        deployed-science experiment, a science instrument set down on the surface.
-        The Topic payload is a bare array (`DeployedEntry[]`) or `null` when
-        Breaking Ground is not installed and no loaded vessel carries a deployed
-        experiment.
-
-        Unlike the `science.*` channels, `deployed.bases` covers the whole save, not
-        just the active vessel: a deployed cluster is its own ground vessel, so an
-        entry normally describes a vessel other than the active one, named by
-        `DeployedEntry.vesselName`. An experiment on a vessel that is not loaded is
-        read from Breaking Ground's cluster registry and carries no power or
-        connection sentence. One that belongs to no cluster is listed only while its
-        vessel is loaded.
-
-        Every field is nullable, and is `null` whenever the raw value is absent or
-        could not be read.
-      properties:
-        vesselName:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            Name of the vessel carrying the experiment (KSP's `Vessel.vesselName`). A
-            deployed cluster is its own vessel, so this is normally not the active
-            vessel's name.
-        partName:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            Display title of the experiment part (the part's `partInfo.title`, or its
-            internal name when that is missing).
-        body:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            Name of the body the carrying vessel orbits or sits on (its orbit's
-            reference body). `null` when the vessel has no orbit.
-        situation:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            The carrying vessel's situation, KSP's `Vessel.situation` enum name (for
-            example `LANDED`).
-        biome:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            Biome at the carrying vessel's current position on `DeployedEntry.body`.
-            `null` when the body has no biome map.
-        experimentId:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: The experiment's id (KSP's `ModuleGroundExperiment.experimentId`).
-        scienceCompletedPercentage:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: "%"
-          description: |-
-            How far the experiment has progressed, in percent (KSP's
-            `ModuleGroundExperiment.ScienceCompletedPercentage`).
-        scienceTransmittedPercentage:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: "%"
-          description: |-
-            How much of the experiment's science has been transmitted, in percent (KSP's
-            `ModuleGroundExperiment.ScienceTransmittedPercentage`).
-        scienceValue:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: science
-          description: |-
-            The science value KSP reports for the experiment
-            (`ModuleGroundExperiment.ScienceValue`).
-        scienceLimit:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: science
-          description: |-
-            The experiment's science limit as KSP reports it
-            (`ModuleGroundExperiment.ScienceLimit`). Compare against
-            `DeployedEntry.scienceValue`.
-        powerState:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            `ModuleGroundSciencePart.PowerState` verbatim: KSP's own words for the power
-            state, for display. Do not branch on this.
-
-            It is not an enum name, it is localised prose. The module assigns it from
-            `Localizer` in `UpdateModuleUI()`, so the value is in whatever language the
-            player runs KSP in, and it is only written when the part action window
-            refreshes, so it can be a held value. `DeployedEntry.power` is the field to
-            read.
-        connectionState:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            `ModuleGroundSciencePart.ConnectionState` verbatim, for display. Localised
-            prose on the same terms as `DeployedEntry.powerState`; read
-            `DeployedEntry.controllerConnected` instead.
-        power:
-          description: |-
-            The cluster's power state, derived from the same facts `UpdateModuleUI()`
-            itself branches on (`DeployedScienceCluster.IsPowered` and
-            `.ControllerPartEnabled`, the module's `Enabled` and `DeployedOnGround`)
-            rather than parsed out of the sentence that method writes. This is the field
-            to branch on, not `DeployedEntry.powerState`.
-
-            `null` when the cluster could not be read at all, which is a third state and
-            must not be read as either powered or unpowered.
-          anyOf:
-            - $ref: "#/components/schemas/DeployedPowerState"
-              x-sitrep-unit: enum
-            - type: "null"
-        controllerConnected:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            Whether the experiment is attached to a controller cluster at all, the fact
-            behind `DeployedEntry.connectionState`'s "Connected"/"Not Connected". `null`
-            when it could not be determined.
-        powerAvailable:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: count
-          description: |-
-            Power units the cluster's parts produce
-            (`DeployedScienceCluster.PowerAvailable`), against
-            `DeployedEntry.powerRequired`. Breaking Ground's own integral power scale
-            summed over the cluster's parts: not electric charge, and not a rate.
-            Available at or above required is what makes the cluster powered.
-
-            `null` when the cluster could not be read, on the same terms as
-            `DeployedEntry.power`. Zero is a real reading a live cluster holds while its
-            panels are dark, so it must not stand in for absence.
-        powerRequired:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: count
-          description: |-
-            Power units the cluster's parts require
-            (`DeployedScienceCluster.PowerRequired`). Same scale and same null rule as
-            `DeployedEntry.powerAvailable`, the demand side of the balance.
-        deployedOnGround:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            Whether the experiment part is deployed on the ground (KSP's
-            `ModuleGroundSciencePart.DeployedOnGround`).
-    DeployedPowerState:
-      type: integer
-      description: |-
-        A deployed-science cluster's power state, defined by this contract rather
-        than by KSP.
-
-        KSP has no enum for this. `ModuleGroundSciencePart` carries the state as a
-        localised sentence, so this reproduces the five outcomes `UpdateModuleUI()`
-        distinguishes, derived from the booleans it reads rather than from the
-        sentence it writes. It is an ordinal on the wire and a closed union on the
-        client like every other enum in this contract.
-      x-sitrep-enum-kind: ordinal
-      oneOf:
-        - const: 0
-          title: Powered
-          description: "Powered and working: the cluster reports `IsPowered`."
-        - const: 1
-          title: Unpowered
-          description: Deployed and switched on, but the cluster has no power.
-        - const: 2
-          title: ControllerDisabled
-          description: The cluster's controller is switched off, so nothing is powered.
-        - const: 3
-          title: Disabled
-          description: This experiment is switched off, or is not deployed on the ground.
-        - const: 4
-          title: NotConnected
-          description: |-
-            Attached to no cluster at all. Distinct from `DeployedPowerState.Unpowered`:
-            there is nothing to supply power, rather than a supply that is empty.
     DockAlignment:
       type: object
       description: |-
