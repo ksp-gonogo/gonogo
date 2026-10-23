@@ -5,9 +5,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
-import { wideTileForTests } from "./wideTile";
-
-wideTileForTests();
 
 /**
  * The preview's projected apsides. The fixture carries `trackingStation.bodies` because
@@ -61,7 +58,7 @@ function setup() {
 
 /** Drives a real burn, which is what makes a projection exist to render. */
 async function planABurn() {
-  expect(await screen.findByText("Burn in")).toBeInTheDocument();
+  expect(await screen.findByText("Preview")).toBeInTheDocument();
   await userEvent.selectOptions(
     screen.getByRole("combobox") as HTMLSelectElement,
     "custom-apo",
@@ -87,7 +84,7 @@ describe("ManeuverPlanner: the projected apsides", () => {
   it("says escape rather than projecting apsides a burn does not leave", async () => {
     // The default preset already computes a burn, so no projection takes a burn big enough to escape.
     setup();
-    expect(await screen.findByText("Burn in")).toBeInTheDocument();
+    expect(await screen.findByText("Preview")).toBeInTheDocument();
     await userEvent.selectOptions(
       screen.getByRole("combobox") as HTMLSelectElement,
       "custom-apo",

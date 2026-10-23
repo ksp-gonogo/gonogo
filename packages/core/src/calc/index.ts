@@ -1,4 +1,3 @@
-export * from "./bodyTransfer";
 export * from "./lambert";
 export * from "./maneuver";
 export { mapClamped } from "./map";

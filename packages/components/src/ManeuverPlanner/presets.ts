@@ -8,8 +8,7 @@ export type PresetId =
   | "hohmann-rendezvous-target"
   | "match-inclination"
   | "match-target-inclination"
-  | "match-target-plane"
-  | "transfer-to-body";
+  | "match-target-plane";
 
 /** Whether the preset plans against the in-game target as well as the craft's own orbit. */
 export function usesTarget(preset: PresetId): boolean {
@@ -24,18 +23,11 @@ export interface ManeuverPlannerConfig {
   defaultPreset?: PresetId;
   /** Default standoff distance (m) for hohmann-rendezvous-target. */
   defaultStandoffMeters?: number;
-  /** The body transfer-to-body opens on, by name. */
-  defaultTransferBody?: string;
 }
 
 // An orbit value KSP has not computed yet can arrive as null or NaN; it counts as not arrived.
 export function isFiniteNumber(v: unknown): v is number {
   return typeof v === "number" && Number.isFinite(v);
-}
-
-/** Whether the preset plans a transfer to another body picked in the planner itself. */
-export function usesBodyTransfer(preset: PresetId): boolean {
-  return preset === "transfer-to-body";
 }
 
 export const PRESETS: Array<{
@@ -109,11 +101,5 @@ export const PRESETS: Array<{
     description:
       "Full plane match (both inclination and LAN) at the relative-plane intersection. Needs a target.",
     needsCustomInput: false,
-  },
-  {
-    id: "transfer-to-body",
-    label: "Transfer to body",
-    description: "",
-    needsCustomInput: true,
   },
 ];

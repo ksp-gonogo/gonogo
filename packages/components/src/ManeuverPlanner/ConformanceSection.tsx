@@ -15,8 +15,6 @@ import { conformanceRegime, finiteBurnResidual } from "./conformanceRegime";
 import type { PlannerTelemetry } from "./usePlannerTelemetry";
 
 interface ConformanceSectionProps {
-  /** The tallest an orbit drawing may grow, as a CSS length. */
-  maxPlotHeight?: string;
   nodes: readonly ParsedManeuverNode[];
   /** True until the plan has arrived, so an empty list is not read as an empty plan. */
   awaiting: boolean;
@@ -60,7 +58,6 @@ export function ConformanceSection({
   watches,
   telemetry,
   from,
-  maxPlotHeight,
 }: ConformanceSectionProps) {
   const {
     sma,
@@ -125,7 +122,6 @@ export function ConformanceSection({
                 <BurnConformanceRow conformance={conformance} from={from} />
               </Stack>
               <ConformancePlot
-                maxPlotHeight={maxPlotHeight}
                 current={current}
                 currentTrajectory={currentTrajectory}
                 // Patches[0] only: a downstream patch cannot be compared (see ConformancePlot).

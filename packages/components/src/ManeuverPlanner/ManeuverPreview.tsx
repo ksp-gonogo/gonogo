@@ -8,8 +8,8 @@ import {
   Notice,
   NULL_DISPLAY,
   type ReckoningMarking,
+  Section,
   SignalDelayBadge,
-  Stack,
   Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
@@ -25,7 +25,6 @@ import { isSequence, type PlanResult } from "./planning";
 import { SequencePreview } from "./SequencePreview";
 import { ShortfallBanner } from "./ShortfallBanner";
 import { Label, PreviewGrid, PreviewValue } from "./styles";
-import { TransferPreview } from "./TransferPreview";
 import { TriggerEditor } from "./TriggerEditor";
 import type { ThresholdOp } from "./triggerTypes";
 import type { SendDelay } from "./useNodeCommands";
@@ -78,7 +77,7 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
   const { plan } = props;
   if (!plan) return null;
   return (
-    <Stack style={PREVIEW_STYLE}>
+    <Section title="Preview" gap="related">
       <div style={CONTAINER_STYLE}>
         <ContainerBreak
           at={460}
@@ -158,11 +157,9 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
           </Button>
         </SendGroup>
       </CommitRow>
-    </Stack>
+    </Section>
   );
 }
-
-const PREVIEW_STYLE: CSSProperties = { gap: "var(--gap-related)" };
 
 function PreviewBody({
   plan,
@@ -180,18 +177,6 @@ function PreviewBody({
       <SequencePreview
         seq={plan}
         body={body}
-        availableDeltaV={availableDeltaV}
-        feasible={feasible}
-        currentUT={currentUT}
-        marking={planMarking}
-      />
-    );
-  }
-  if (plan.transfer) {
-    return (
-      <TransferPreview
-        plan={plan}
-        transfer={plan.transfer}
         availableDeltaV={availableDeltaV}
         feasible={feasible}
         currentUT={currentUT}

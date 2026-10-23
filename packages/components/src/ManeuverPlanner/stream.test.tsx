@@ -8,9 +8,6 @@ import { isDisabled } from "../test/isDisabled";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
-import { wideTileForTests } from "./wideTile";
-
-wideTileForTests();
 
 // A real button click dispatches the node's real guid, resolved from `vessel.maneuver`, not its list position.
 afterEach(() => {

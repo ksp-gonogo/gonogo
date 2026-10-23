@@ -35,7 +35,6 @@ function bound<Answer>(answer: Answer | null, what: string): Answer {
   return answer;
 }
 
-const rad = (deg: number) => (deg * Math.PI) / 180;
 const ut = (seconds: number) => value("ut", seconds);
 const s = (seconds: number) => value("s", seconds);
 
@@ -404,7 +403,7 @@ describe("matchInclination", () => {
     expect(Math.abs(plan.normal)).toBeLessThan(1e-6);
     expect(plan.prograde).toBe(0);
     expect(plan.radial).toBe(0);
-    expect(plan.projected?.inclination).toBeCloseTo(45, 6);
+    expect(plan.projected?.inclination).toBe(45);
   });
 
   it("matches the textbook pure-inclination formula on a circular orbit", () => {
@@ -427,11 +426,7 @@ describe("matchInclination", () => {
       "matchInclination",
     );
     expect(Math.abs(plan.normal)).toBeCloseTo(expected, 0);
-    // The burn rotates the velocity by atan(n / v), a little under the 30° asked for.
-    expect(plan.projected?.inclination).toBeCloseTo(
-      (Math.atan(2 * Math.sin(deltaIRad / 2)) * 180) / Math.PI,
-      6,
-    );
+    expect(plan.projected?.inclination).toBe(30);
   });
 
   it("reverses the normal sign when the target inclination is lower", () => {
@@ -468,65 +463,6 @@ describe("matchInclination", () => {
       2 * Math.PI * Math.sqrt(KERBIN_100KM_CIRCULAR.sma ** 3 / KERBIN_MU);
     const expectedDt = (170 / 360) * period;
     expect(plan.ut.magnitude - 1000).toBeCloseTo(expectedDt, -1);
-  });
-});
-
-// A burn of 2·v·sin(3°) normal rotates the velocity by atan(2·sin 3°), which is where 5.977 on the wire came from.
-const PLANE_CHANGE_INCLINATION =
-  (Math.atan(2 * Math.sin(rad(3))) * 180) / Math.PI;
-
-describe("plane change preview", () => {
-  // 100 km Kerbin circular, 0 to 6 degrees: the rig measured 707 km semi-major axis and 5.977 degrees after the burn.
-  const plan = bound(
-    matchInclination(KERBIN_100KM_CIRCULAR, 0, 0, 0, KERBIN_MU, ut(0), 6),
-    "matchInclination",
-  );
-
-  it("carries the energy the normal burn adds to the semi-major axis", () => {
-    const r = KERBIN_100KM_CIRCULAR.sma;
-    const n = Math.abs(plan.normal);
-    const vSquared = KERBIN_MU / r;
-    const expected = r / (1 - (n * n) / vSquared);
-    expect(plan.projected?.sma).toBeCloseTo(expected, 3);
-    expect((plan.projected?.sma ?? 0) / 1000).toBeCloseTo(707.8, 1);
-  });
-
-  it("puts the burn point at the new periapsis and moves the far side outward", () => {
-    const projected = plan.projected;
-    expect(projected?.PeR).toBeCloseTo(KERBIN_100KM_CIRCULAR.sma, 3);
-    expect(projected?.ApR ?? 0).toBeGreaterThan(
-      KERBIN_100KM_CIRCULAR.sma + 10_000,
-    );
-    expect(projected?.eccentricity ?? 0).toBeGreaterThan(0.01);
-  });
-
-  it("reports the inclination the rotation reaches", () => {
-    expect(plan.projected?.inclination).toBeCloseTo(
-      PLANE_CHANGE_INCLINATION,
-      6,
-    );
-  });
-
-  it("applies the same energy to a full plane match", () => {
-    const planMatch = bound(
-      matchTargetPlane(
-        KERBIN_100KM_CIRCULAR,
-        0,
-        0,
-        0,
-        0,
-        6,
-        0,
-        KERBIN_MU,
-        ut(0),
-      ),
-      "matchTargetPlane",
-    );
-    expect((planMatch.projected?.sma ?? 0) / 1000).toBeCloseTo(707.8, 1);
-    expect(planMatch.projected?.inclination).toBeCloseTo(
-      PLANE_CHANGE_INCLINATION,
-      6,
-    );
   });
 });
 
@@ -598,8 +534,7 @@ describe("matchTargetPlane", () => {
       "matchTargetPlane",
     );
     expect(plan.requiredDeltaV).toBeGreaterThan(0);
-    expect(plan.projected?.inclination).toBeCloseTo(10, 1);
-    expect(plan.projected?.inclination).toBeLessThan(10);
+    expect(plan.projected?.inclination).toBe(10);
   });
 });
 

@@ -3,9 +3,7 @@ import { useOrbitSolve, useTelemetry } from "@ksp-gonogo/core";
 import {
   type BodyRadiusTable,
   bodyRadiusOf,
-  buildElements,
   DELTA_V_BUDGET,
-  type OrbitElements,
   type OrbitTrajectory,
   type ReckonableReading,
   solveOrbit,
@@ -20,7 +18,6 @@ import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useOrbitPlaneTrajectory } from "../shared/useOrbitPlaneTrajectory";
-import { useCelestialBodies } from "../TrackingStation/useCelestialBodies";
 import { apsisIsDefined, recordApsisInstant } from "./apsisSpread";
 import { type BurnContext, orbitShape } from "./burnFlown";
 import { buildCurrentOrbit, computeMu } from "./planning";
@@ -120,7 +117,6 @@ export function usePlannerTelemetry() {
   const apsisDefined = apsisIsDefined(
     apsisWindow.current,
     solve?.period ?? undefined,
-    ecc,
   );
   const orbitalSpeedReading = useTelemetry("vessel.flight").orbitalSpeed;
   // computeMu wants a number true of the craft now: modelled where on offer, else observed.
@@ -212,21 +208,7 @@ export function usePlannerTelemetry() {
     timeToPe,
   });
 
-  // The craft's orbit as propagation elements for a transfer to another body, null until every one has arrived.
-  const craftElements = useMemo<OrbitElements | null>(() => {
-    if (!orbit) return null;
-    const elements = buildElements(orbit);
-    return Object.values(elements).every(Number.isFinite) ? elements : null;
-  }, [orbit]);
-  const celestialBodies = useCelestialBodies();
-  const craftBody = celestialBodies.find(
-    (b) => b.index === orbit?.referenceBodyIndex,
-  );
-
   return {
-    craftElements,
-    celestialBodies,
-    craftBody,
     orbitObserved: orbitReading.state === "observed",
     elementsNeedDating,
     orbitMarking,

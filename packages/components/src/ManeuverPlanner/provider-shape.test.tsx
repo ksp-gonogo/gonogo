@@ -10,9 +10,6 @@ import {
 } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
-import { wideTileForTests } from "./wideTile";
-
-wideTileForTests();
 
 // Both drawings follow the propagation seam's answer for the current orbit, and withdraw whole when it refuses.
 afterEach(() => {

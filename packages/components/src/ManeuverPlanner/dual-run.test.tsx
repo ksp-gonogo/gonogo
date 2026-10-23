@@ -5,9 +5,6 @@ import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import kerbinSuborbital from "./__fixtures__/kerbin-suborbital-prograde-node.json";
 import { ManeuverPlannerComponent } from "./index";
-import { wideTileForTests } from "./wideTile";
-
-wideTileForTests();
 
 /**
  * The planned nodes render off the stream alone, and the node list and the

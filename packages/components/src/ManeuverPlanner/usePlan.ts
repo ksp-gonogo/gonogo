@@ -5,8 +5,7 @@ import {
   isSequence,
   type PlanResult,
 } from "./planning";
-import { isFiniteNumber, usesBodyTransfer } from "./presets";
-import type { TransferContext } from "./transferPlan";
+import { isFiniteNumber } from "./presets";
 import type { PlannerInputs } from "./usePlannerInputs";
 import type { PlannerTelemetry } from "./usePlannerTelemetry";
 
@@ -23,7 +22,6 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     targetInclination,
     targetAltitudeKm,
     standoffMeters,
-    transferBody,
   } = inputs;
   const {
     orbitObserved,
@@ -49,40 +47,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     currentUT,
     trueAnomaly,
     targetTrueAnomaly,
-    craftElements,
-    craftBody,
-    celestialBodies,
-    nowUtSeconds,
   } = telemetry;
-
-  const transfer = useMemo<TransferContext | null>(() => {
-    if (
-      !usesBodyTransfer(preset) ||
-      !craftElements ||
-      !craftBody ||
-      nowUtSeconds === undefined
-    ) {
-      return null;
-    }
-    const target = celestialBodies.find((b) => b.name === transferBody);
-    if (!target) return null;
-    return {
-      craft: craftElements,
-      craftBody,
-      target,
-      bodies: celestialBodies,
-      periapsisAltitude: targetAltitudeKm * 1000,
-      nowUt: nowUtSeconds,
-    };
-  }, [
-    preset,
-    craftElements,
-    craftBody,
-    celestialBodies,
-    transferBody,
-    targetAltitudeKm,
-    nowUtSeconds,
-  ]);
 
   const plan: PlanResult | null = useMemo(
     () =>
@@ -112,7 +77,6 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
         targetTrueAnomaly,
         targetPeriod,
         standoffMeters,
-        transfer,
       }),
     [
       currentOrbit,
@@ -140,7 +104,6 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
       targetTrueAnomaly,
       targetPeriod,
       standoffMeters,
-      transfer,
     ],
   );
 

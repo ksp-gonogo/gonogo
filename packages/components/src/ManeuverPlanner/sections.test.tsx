@@ -1,9 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
-import {
-  expectNoA11yViolations,
-  installFixedSizeResizeObserver,
-} from "@ksp-gonogo/ui-kit/testing";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -11,18 +8,14 @@ import { ManeuverPlannerComponent } from "./index";
 
 afterEach(() => {
   clearActionHandlers();
-  localStorage.clear();
 });
 
-function mount(id = "mnv-sections") {
-  const fixture = setupStreamFixture({
-    pinnedUt: 1_000_000,
-    suspendFrames: true,
-  });
+function mount() {
+  const fixture = setupStreamFixture({ pinnedUt: 1_000_000 });
   const view = render(
     <fixture.Provider>
-      <DashboardItemContext.Provider value={{ instanceId: id }}>
-        <ManeuverPlannerComponent id={id} config={{}} />
+      <DashboardItemContext.Provider value={{ instanceId: "mnv-sections" }}>
+        <ManeuverPlannerComponent id="mnv-sections" config={{}} />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -48,104 +41,38 @@ function mount(id = "mnv-sections") {
   return view;
 }
 
-describe("ManeuverPlanner: the plan and the flight plan", () => {
-  it("lays them out side by side under their own headings in a wide tile", async () => {
-    const restore = installFixedSizeResizeObserver({ width: 900, height: 700 });
-    try {
-      const { container } = mount();
-      await waitFor(() => {
-        expect(container.querySelector('[role="tablist"]')).toBeNull();
-        expect(
-          screen.getByRole("heading", { name: "New maneuver" }),
-        ).toBeInTheDocument();
-        expect(
-          screen.getByRole("heading", { name: "Flight plan" }),
-        ).toBeInTheDocument();
-        expect(
-          screen.getByRole("heading", { name: "Planned nodes" }),
-        ).toBeInTheDocument();
-      });
-      await act(async () => {});
-    } finally {
-      restore();
-    }
-  });
-
-  it("is two tabs in a wide tile too short to hold the flight plan beside the plan", async () => {
-    const restore = installFixedSizeResizeObserver({
-      width: 1100,
-      height: 300,
-    });
-    try {
-      const { container } = mount();
-      const tablist = await screen.findByRole("tablist");
-      expect(
-        within(tablist)
-          .getAllByRole("tab")
-          .map((t) => t.textContent),
-      ).toEqual(["New maneuver", "Flight plan"]);
-      expect(container.querySelectorAll('[role="tabpanel"]')).toHaveLength(1);
-      await act(async () => {});
-    } finally {
-      restore();
-    }
-  });
-
-  it("is two tabs, one panel at a time, in a one-column tile", async () => {
+describe("ManeuverPlanner: the sections are the panel's to lay out", () => {
+  it("gives planned nodes, new maneuver and preview to one section grid, none spanning it", async () => {
     const { container } = mount();
-    const tablist = await screen.findByRole("tablist");
-    const tabs = within(tablist).getAllByRole("tab");
-    expect(tabs.map((t) => t.textContent)).toEqual([
-      "New maneuver",
-      "Flight plan",
-    ]);
-    expect(screen.queryByRole("heading", { name: "Planned nodes" })).toBeNull();
-    act(() => {
-      tabs[1].click();
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Planned nodes")).toBeInTheDocument();
-      expect(container.querySelectorAll('[role="tabpanel"]')).toHaveLength(1);
-    });
+    const headings = await Promise.all(
+      ["Planned nodes", "New maneuver", "Preview"].map((name) =>
+        screen.findByRole("heading", { name }),
+      ),
+    );
+    const grids = headings.map((h) => h.closest("[data-section-full]"));
+    expect(grids).toEqual([null, null, null]);
+
+    // Each section is a direct child of the same grid, so the panel decides rows or columns.
+    const sectionOf = (h: HTMLElement) => {
+      let node: HTMLElement | null = h;
+      while (node && node.parentElement) {
+        const display = getComputedStyle(node.parentElement).display;
+        if (display === "grid") return node.parentElement;
+        node = node.parentElement;
+      }
+      return null;
+    };
+    const parents = headings.map(sectionOf);
+    expect(parents[0]).not.toBeNull();
+    expect(new Set(parents).size).toBe(1);
+    expect(container.querySelector('[role="tablist"]')).toBeNull();
     await act(async () => {});
   });
 
   it("has no accessibility violations", async () => {
     const { container } = mount();
-    await screen.findByRole("tablist");
+    await screen.findByRole("heading", { name: "Preview" });
     await expectNoA11yViolations(container);
     await act(async () => {});
-  });
-
-  it("keeps the chosen tab for that widget alone, across a remount", async () => {
-    const first = mount("mnv-tab-a");
-    const tabs = within(await screen.findByRole("tablist")).getAllByRole("tab");
-    act(() => {
-      tabs[1].click();
-    });
-    await waitFor(() =>
-      expect(screen.getByRole("tab", { name: "Flight plan" })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      ),
-    );
-    first.unmount();
-
-    const again = mount("mnv-tab-a");
-    await waitFor(() =>
-      expect(screen.getByRole("tab", { name: "Flight plan" })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      ),
-    );
-    again.unmount();
-
-    mount("mnv-tab-b");
-    await waitFor(() =>
-      expect(screen.getByRole("tab", { name: "New maneuver" })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      ),
-    );
   });
 });

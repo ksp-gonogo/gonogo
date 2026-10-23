@@ -30,15 +30,14 @@ function sample(
   fixture: ReturnType<typeof mount>,
   timeToAp: number,
   timeToPe: number,
-  shape: { sma: number; ecc: number } = { sma: 700_000, ecc: 0.0001 },
 ) {
   act(() => {
     fixture.emit(
       "vessel.orbit",
       {
         referenceBodyIndex: 1,
-        sma: shape.sma,
-        ecc: shape.ecc,
+        sma: 700_000,
+        ecc: 0.0001,
         inc: 0,
         lan: 0,
         argPe: 0,
@@ -70,19 +69,5 @@ describe("Maneuver Planner BURN IN on a near-circular orbit", () => {
     const fixture = mount();
     for (const t of [1345, 1328, 1352, 1337]) sample(fixture, t, 4000);
     await waitFor(() => expect(burnIn()).toBe(NULL_DISPLAY));
-  });
-});
-
-describe("Maneuver Planner BURN IN on an eccentric orbit", () => {
-  // 100 x 2000 km about Kerbin: the apsis is a place the elements fix, so scatter in the countdown does not undefine it.
-  const ECCENTRIC = { sma: 1_650_000, ecc: 0.5758 };
-
-  it("counts down although successive samples scatter the apsis by more than a second", async () => {
-    const fixture = mount();
-    for (const t of [2123, 2118, 2127, 2120]) {
-      sample(fixture, t, 5000, ECCENTRIC);
-    }
-    await waitFor(() => expect(burnIn()).not.toBeNull());
-    expect(burnIn()).not.toBe(NULL_DISPLAY);
   });
 });
