@@ -119,6 +119,12 @@ export interface ScetAlarmBridgeContext {
    * here is not armed again.
    */
   onCancelled(ids: readonly string[]): void;
+  /**
+   * The player deleted these alarms' copies in the game's own alarm clock,
+   * which deletes the alarms. Called before the frame is reconciled, like
+   * {@link onCancelled}.
+   */
+  onDeletedInGame(ids: readonly string[]): void;
 }
 
 /**
@@ -166,6 +172,7 @@ export class ScetAlarmBridge {
   private rosterAlarms: readonly ForeignScetAlarm[] = [];
   /** The ids the mod last said can never come due, because their craft is gone. */
   private rosterUnreachable: ReadonlySet<string> = new Set();
+  private rosterInGame: ReadonlySet<string> = new Set();
   private rosterSeen = false;
   /**
    * Ids already commanded since the last roster frame, so a reconcile running
@@ -262,6 +269,11 @@ export class ScetAlarmBridge {
    */
   actsAboard(id: string): boolean {
     return this.rosterActing.has(id);
+  }
+
+  /** The ids of the alarms the mod has copied into the game's own alarm clock, off its roster. */
+  inGameClockIds(): readonly string[] {
+    return [...this.rosterInGame];
   }
 
   /** The ids the mod holds as unreachable, off its roster. */
@@ -603,11 +615,14 @@ export class ScetAlarmBridge {
       this.rosterIds = readRosterIds(payload);
       this.rosterActing = readActingIds(payload);
       this.rosterUnreachable = readUnreachableIds(payload);
+      this.rosterInGame = readInGameClockIds(payload);
       this.rosterAlarms = readRosterAlarms(payload);
       this.rosterSeen = true;
       this.commandedSinceRoster.clear();
-      const cancelled = readCancelledIds(payload);
+      const cancelled = readIdsInState(payload, ScetAlarmState.Cancelled);
       if (cancelled.length > 0) this.ctx.onCancelled(cancelled);
+      const deleted = readIdsInState(payload, ScetAlarmState.DeletedInGame);
+      if (deleted.length > 0) this.ctx.onDeletedInGame(deleted);
       this.latchFiredRows();
       this.reconcile();
       this.ctx.onRoster();
@@ -649,6 +664,7 @@ export class ScetAlarmBridge {
     this.rosterIds = [];
     this.rosterActing = new Set();
     this.rosterUnreachable = new Set();
+    this.rosterInGame = new Set();
     this.rosterAlarms = [];
     this.rosterSeen = false;
     this.commandedSinceRoster.clear();
@@ -755,8 +771,30 @@ function readUnreachableIds(payload: unknown): ReadonlySet<string> {
   return ids;
 }
 
-/** The ids of the roster rows the simulation cancelled on a craft switch. */
-function readCancelledIds(payload: unknown): readonly string[] {
+/** The ids of the roster rows that have a copy in the game's own alarm clock. */
+function readInGameClockIds(payload: unknown): ReadonlySet<string> {
+  const ids = new Set<string>();
+  if (!Array.isArray(payload)) return ids;
+  for (const row of payload) {
+    const id = readId(row);
+    if (
+      id !== null &&
+      typeof row === "object" &&
+      row !== null &&
+      "gameAlarmId" in row &&
+      typeof row.gameAlarmId === "number"
+    ) {
+      ids.add(id);
+    }
+  }
+  return ids;
+}
+
+/** The ids of the roster rows in `state`. */
+function readIdsInState(
+  payload: unknown,
+  state: ScetAlarmState,
+): readonly string[] {
   if (!Array.isArray(payload)) return [];
   const ids: string[] = [];
   for (const row of payload) {
@@ -766,7 +804,7 @@ function readCancelledIds(payload: unknown): readonly string[] {
       typeof row === "object" &&
       row !== null &&
       "state" in row &&
-      row.state === ScetAlarmState.Cancelled
+      row.state === state
     ) {
       ids.push(id);
     }
@@ -826,7 +864,11 @@ function readRosterAlarms(payload: unknown): readonly ForeignScetAlarm[] {
     const armedBy: unknown = Reflect.get(row, "armedBy");
     const state: unknown = Reflect.get(row, "state");
     // Finished rather than held: nothing here can change it, and the list it belonged to has already dropped it.
-    if (state === ScetAlarmState.Cancelled) continue;
+    if (
+      state === ScetAlarmState.Cancelled ||
+      state === ScetAlarmState.DeletedInGame
+    )
+      continue;
     rows.push({
       id,
       name: typeof name === "string" ? name : "",

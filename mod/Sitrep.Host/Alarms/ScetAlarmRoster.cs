@@ -335,6 +335,9 @@ namespace Sitrep.Host.Alarms
                 {
                     return false;
                 }
+                // The copy in the game's clock is the same alarm's, moved or
+                // dropped by the mirror on its next pass, never orphaned here.
+                alarm.GameAlarmId = _entries[index].Alarm.GameAlarmId;
                 _entries[index] = new Entry { Alarm = alarm };
                 _pendingChange = true;
                 return true;
@@ -364,6 +367,55 @@ namespace Sitrep.Host.Alarms
             _entries.RemoveAt(index);
             _pendingChange = true;
             return true;
+        }
+
+        /// <summary>
+        /// Record which alarm in the game's clock is this alarm's copy, null for
+        /// none. Reported as an off-tick change when it moves, so the roster
+        /// carries the link to clients on the next tick.
+        /// </summary>
+        public bool SetGameAlarm(string id, long? gameAlarmId)
+        {
+            var index = IndexOf(id);
+            if (index < 0 || _entries[index].Alarm.GameAlarmId == gameAlarmId)
+            {
+                return false;
+            }
+            _entries[index].Alarm.GameAlarmId = gameAlarmId;
+            _pendingChange = true;
+            return true;
+        }
+
+        /// <summary>
+        /// The alarm's copy was deleted in the game's clock, which deletes the
+        /// alarm. The row stays, in <see cref="ScetAlarmState.DeletedInGame"/>,
+        /// so a client that still holds the alarm learns to drop it rather than
+        /// arming it again.
+        /// </summary>
+        public bool MarkDeletedInGame(string id)
+        {
+            var index = IndexOf(id);
+            if (index < 0 || _entries[index].Alarm.State == ScetAlarmState.DeletedInGame)
+            {
+                return false;
+            }
+            var entry = _entries[index];
+            entry.Alarm.State = ScetAlarmState.DeletedInGame;
+            entry.Alarm.GameAlarmId = null;
+            entry.MatchSinceUt = null;
+            _pendingChange = true;
+            return true;
+        }
+
+        /// <summary>Whether the alarm under this id was deleted in the game's clock this session.</summary>
+        public bool IsDeletedInGame(string? id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return false;
+            }
+            var index = IndexOf(id!);
+            return index >= 0 && _entries[index].Alarm.State == ScetAlarmState.DeletedInGame;
         }
 
         /// <summary>
@@ -820,6 +872,7 @@ namespace Sitrep.Host.Alarms
                     FiredAtUt = a.FiredAtUt,
                     OnFire = Copy(a.OnFire),
                     ActsOn = a.ActsOn,
+                    GameAlarmId = a.GameAlarmId,
                 });
             }
             return rows;

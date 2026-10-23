@@ -231,6 +231,7 @@ export class AlarmHostService {
         this.emit();
       },
       onCancelled: (ids) => this.onScetCancelled(ids),
+      onDeletedInGame: (ids) => this.onScetDeletedInGame(ids),
       nowMs: () => this.opts.nowMs(),
     });
     /* Bound only once assigned: a replayed fire notice ticks the host, and the
@@ -272,6 +273,7 @@ export class AlarmHostService {
           ? Object.fromEntries(this.onFireRefusals)
           : undefined,
       scetUnreachable: this.unreachableHeld(),
+      scetInGameClock: this.inGameClockHeld(),
       scetForeign: this.foreignHeld(),
       scetForeignFired:
         this.foreignFires.size > 0
@@ -290,6 +292,14 @@ export class AlarmHostService {
   private foreignHeld(): AlarmSnapshot["scetForeign"] {
     const rows = this.scetBridge.foreignAlarms();
     return rows.length > 0 ? [...rows] : undefined;
+  }
+
+  /** The alarms of this list the mod has copied into the game's own alarm clock, or undefined for none. */
+  private inGameClockHeld(): string[] | undefined {
+    const ids = this.scetBridge
+      .inGameClockIds()
+      .filter((id) => this.alarms.some((a) => a.id === id));
+    return ids.length > 0 ? ids : undefined;
   }
 
   /** The alarms of this list the simulation holds as unreachable, or undefined for none. */
@@ -600,6 +610,22 @@ export class AlarmHostService {
       this.foreignAnnounced.delete(id);
       this.foreignFires.delete(id);
     }
+  }
+
+  /**
+   * The player deleted these alarms' copies in the game's own alarm clock, so
+   * they leave the list with no row and are not counted as cancelled. Ids this
+   * list does not hold were set by another screen and are left to it.
+   */
+  private onScetDeletedInGame(ids: readonly string[]): void {
+    const deleted = new Set(ids);
+    if (!this.alarms.some((a) => deleted.has(a.id))) return;
+    for (const alarm of this.alarms) {
+      if (deleted.has(alarm.id)) this.forgetAlarm(alarm.id);
+    }
+    this.alarms = this.alarms.filter((a) => !deleted.has(a.id));
+    this.persist();
+    this.emit();
   }
 
   /**

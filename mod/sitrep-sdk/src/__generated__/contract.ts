@@ -4375,6 +4375,115 @@ export interface SetControlAxesArgs
 	rollTrim?: number;
 }
 /**
+* What kind of event the game's alarm clock computes an alarm's time from.
+*
+* @category Alarms
+*/
+export enum GameAlarmKind {
+	/** A universal time the player chose, with or without a craft named on it. */
+	Time = 0,
+	/** A transfer window between two bodies, from their orbits alone. */
+	TransferWindow = 1,
+	/** A craft leaving or entering a sphere of influence on its current trajectory. */
+	SoiChange = 2,
+	/** A craft's next apoapsis. */
+	Apoapsis = 3,
+	/** A craft's next periapsis. */
+	Periapsis = 4,
+	/** A craft's next maneuver node. */
+	Maneuver = 5,
+	/** A kind this version of Gonogo does not know, such as one another mod adds. */
+	Other = 6
+}
+/**
+* What the game does to time warp when one of its alarms comes due.
+*
+* @category Alarms
+*/
+export enum GameAlarmWarp {
+	/** Leaves time warp alone. */
+	Nothing = 0,
+	/** Stops time warp. */
+	StopWarp = 1,
+	/** Stops time warp and pauses the game. */
+	Pause = 2
+}
+/**
+* One alarm in the game's own alarm clock, as Gonogo shows it.
+*
+* An alarm whose time the game works out from a craft's live state (a sphere
+* of influence change, an apsis, a maneuver node) is a prediction made from
+* that craft, so it travels like that craft's telemetry: it is on
+* `alarm.game.craft.<guid>.list`, reaches each command centre one signal delay
+* after the craft, and stays at its last known state while the craft is out of
+* contact. Every other alarm is on `alarm.game.list` and reaches every command
+* centre at once.
+*
+* @category Alarms
+*/
+export interface GameAlarm
+{
+	/** The game's own id for the alarm, which `alarm.game.delete` takes. */
+	id: number;
+	/** What kind of event the game computes the alarm's time from. */
+	kind: GameAlarmKind;
+	/** The alarm's title as the game shows it. */
+	title: string;
+	/** The universal time the alarm is due. */
+	ut: Value<"ut">;
+	/**
+	* The craft the alarm belongs to, as `"vessel:<guid>"`, or null for an alarm
+	* on no craft.
+	*/
+	vessel?: string | null;
+	/**
+	* What the game does to time warp when the alarm comes due. Gonogo does not
+	* act on it.
+	*/
+	warp: GameAlarmWarp;
+	/** Whether the alarm has come due. */
+	triggered: boolean;
+	/**
+	* The `ScetAlarm.id` of the Gonogo alarm this game alarm was made for, or null
+	* for an alarm the player made in the game. A row with an id here is the same
+	* alarm as that Gonogo alarm, so show it once.
+	*/
+	gonogoId?: string | null;
+}
+/**
+* The game's alarm clock as every command centre sees it at once: the
+* `alarm.game.list` Topic.
+*
+* Holds only the alarms whose time is not worked out from a craft (see
+* `GameAlarm`).
+*
+* @category Alarms
+*/
+export interface GameAlarmList
+{
+	/**
+	* Whether the game is running an alarm clock in the current scene. While
+	* false, `GameAlarmList.alarms` is empty and Gonogo's own alarms are not
+	* copied into the game.
+	*/
+	available: boolean;
+	/** The alarms, in order of the time they are due. */
+	alarms: GameAlarm[];
+}
+/**
+* Removes one alarm from the game's alarm clock, addressed by `GameAlarm.id`.
+*
+* Never delayed: it edits the player's clock and nothing aboard a craft.
+* Removing an alarm made for a Gonogo alarm removes that Gonogo alarm too.
+*
+* @category Command arguments
+*/
+export interface GameAlarmDeleteArgs
+{
+	/** The `GameAlarm.id` of the alarm to remove. */
+	id: number;
+}
+/**
 * Which KSP expansions ("DLC") are installed. A fact about the install,
 * independent of scene, so a widget can tell "the player has no DLC" from "the
 * DLC is present but nothing is deployed yet" (deployed science, for instance,
@@ -6099,7 +6208,14 @@ export enum ScetAlarmState {
 	* whatever its condition reads, and a switch ends every alarm still watching.
 	* A kerbal on EVA counts as the craft they stepped out of.
 	*/
-	Cancelled = 3
+	Cancelled = 3,
+	/**
+	* The copy of this alarm in the game's own alarm clock (see
+	* `ScetAlarm.gameAlarmId`) was deleted in the game, so the alarm is deleted
+	* too. Remove the row. Arming the same id again is refused while the game
+	* holds this row.
+	*/
+	DeletedInGame = 4
 }
 /**
 * What a SCET alarm watches for, on the craft's own clock.
@@ -6382,6 +6498,15 @@ export interface ScetAlarm
 	* otherwise land on whatever happened to be active.
 	*/
 	actsOn: string;
+	/**
+	* The `GameAlarm.id` of this alarm's copy in the game's own alarm clock, or
+	* null when it has none.
+	*
+	* Only an alarm on a universal time is copied into the game, and only while
+	* the game runs an alarm clock. The copy leaves time warp to this alarm.
+	* Deleting either one deletes the other.
+	*/
+	gameAlarmId?: number | null;
 }
 /**
 * The notice that an alarm judged on the craft's own clock (a SCET alarm, for

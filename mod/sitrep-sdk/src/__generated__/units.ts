@@ -772,6 +772,22 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     vesselId: "id",
     vesselName: "text",
   },
+  "GameAlarm": {
+    gonogoId: "id",
+    id: "id",
+    kind: "enum",
+    title: "text",
+    triggered: "flag",
+    ut: "ut",
+    vessel: "id",
+    warp: "enum",
+  },
+  "GameAlarmDeleteArgs": {
+    id: "id",
+  },
+  "GameAlarmList": {
+    available: "flag",
+  },
   "GameDlc": {
     breakingGround: "flag",
     makingHistory: "flag",
@@ -1199,6 +1215,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     actsOn: "id",
     armedBy: "id",
     firedAtUt: "ut",
+    gameAlarmId: "id",
     id: "id",
     name: "text",
     state: "enum",
@@ -1733,12 +1750,16 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     actsOn: "id",
     armedBy: "id",
     firedAtUt: "ut",
+    gameAlarmId: "id",
     id: "id",
     name: "text",
     state: "enum",
     subject: "id",
     vantage: "id",
     withheld: "flag",
+  },
+  "alarm.game.list": {
+    available: "flag",
   },
   "alarm.scet.fired": {
     actionsWithheld: "flag",
@@ -2591,6 +2612,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "EventMsg": {
     meta: "Meta",
   },
+  "GameAlarmList": {
+    alarms: "GameAlarm[]",
+  },
   "GateVerdict": {
     breach: "LimitBreach",
     missing: "MissingUnlock[]",
@@ -2799,6 +2823,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "alarm.activeList": {
     condition: "ScetAlarmCondition",
     onFire: "ScetAlarmAction[]",
+  },
+  "alarm.game.list": {
+    alarms: "GameAlarm[]",
   },
   "career.facilities": {
     facilities: "*CareerFacility",
@@ -3053,6 +3080,10 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "FlightEnded": {
     reason: "FlightEndReason",
+  },
+  "GameAlarm": {
+    kind: "GameAlarmKind",
+    warp: "GameAlarmWarp",
   },
   "GateVerdict": {
     outcome: "GateOutcome",
@@ -3351,6 +3382,20 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     3: "Destroyed",
     4: "Terminated",
   },
+  "GameAlarmKind": {
+    0: "Time",
+    1: "TransferWindow",
+    2: "SoiChange",
+    3: "Apoapsis",
+    4: "Periapsis",
+    5: "Maneuver",
+    6: "Other",
+  },
+  "GameAlarmWarp": {
+    0: "Nothing",
+    1: "StopWarp",
+    2: "Pause",
+  },
   "GameMode": {
     0: "Sandbox",
     1: "Career",
@@ -3497,6 +3542,7 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     1: "Fired",
     2: "Unreachable",
     3: "Cancelled",
+    4: "DeletedInGame",
   },
   "ScetAlarmThresholdOp": {
     0: "GreaterThan",

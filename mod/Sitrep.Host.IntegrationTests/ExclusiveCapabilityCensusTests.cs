@@ -197,6 +197,7 @@ namespace Sitrep.Host.IntegrationTests
                     + "courier after every look at the game, and that look is an UNGATED sampled "
                     + "source, so no subscription can starve it. An Uplink registering a provider "
                     + "makes this line stale and fails."),
+            new Entry("gameAlarmClock", "Gonogo.KSP/ScetAlarmUplink.cs", FedByGatedCapture: false),
         };
 
         /// <summary>
