@@ -4367,6 +4367,8 @@ namespace Gonogo.KSP
             return Career.CraftControl.Read(parts);
         }
 
+        private static readonly SavedShipParseMemo _unbuildableCraft = new SavedShipParseMemo();
+
         private static List<object?>? ScanSavedShips(double ut, bool wanted)
         {
             var game = HighLogic.CurrentGame;
@@ -4397,6 +4399,7 @@ namespace Gonogo.KSP
             }
 
             var ships = new List<object?>();
+            var seenFiles = new HashSet<string>();
             foreach (var facility in new[] { EditorFacility.VAB, EditorFacility.SPH })
             {
                 string path;
@@ -4425,6 +4428,18 @@ namespace Gonogo.KSP
                             continue;
                         }
 
+                        seenFiles.Add(file);
+                        var stamp = File.GetLastWriteTimeUtc(file).Ticks;
+                        var buildable = CraftHasEveryPart(root);
+                        var remembered = buildable ? null : _unbuildableCraft.Recall(file, stamp);
+                        if (remembered != null)
+                        {
+                            var again = new Dictionary<string, object?>(remembered.Fields);
+                            again["missingParts"] = MissingPartsNow(remembered.PartNames);
+                            ships.Add(again);
+                            continue;
+                        }
+
                         var info = new CraftProfileInfo();
                         info.LoadDetailsFromCraftFile(root, file);
 
@@ -4439,7 +4454,7 @@ namespace Gonogo.KSP
 
                         var control = ReadCraftControl(root, missing.Count == 0);
 
-                        ships.Add(new Dictionary<string, object?>
+                        var entry = new Dictionary<string, object?>
                         {
                             ["name"] = GameWords.CraftName(info.shipName, Path.GetFileNameWithoutExtension(file)),
                             ["file"] = Path.GetFileNameWithoutExtension(file),
@@ -4454,7 +4469,12 @@ namespace Gonogo.KSP
                             ["crewSeats"] = control?.CrewSeats,
                             ["canFlyUnmanned"] = control?.CanFlyUnmanned,
                             ["minimumCrew"] = control?.MinimumCrew,
-                        });
+                        };
+                        ships.Add(entry);
+                        if (!buildable)
+                        {
+                            _unbuildableCraft.Remember(file, stamp, entry, info.partNames ?? new List<string>());
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -4463,9 +4483,39 @@ namespace Gonogo.KSP
                 }
             }
 
+            _unbuildableCraft.Retain(seenFiles);
             _cachedSavedShips = ships;
             SavedShipsRescan.Scanned(gameName, ut, wallSeconds);
             return ships;
+        }
+
+        /// <summary>Whether this install's <c>PartLoader</c> knows every part the craft names.</summary>
+        private static bool CraftHasEveryPart(ConfigNode craft)
+        {
+            foreach (var partNode in craft.GetNodes("PART"))
+            {
+                var name = CraftCatalogueBackend.PartNameFrom(partNode);
+                if (!string.IsNullOrEmpty(name) && PartLoader.getPartInfoByName(name) == null)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>The parts a remembered craft cannot be built from now: absent from the install, or not yet unlocked.</summary>
+        private static List<object?> MissingPartsNow(IReadOnlyList<string> partNames)
+        {
+            var missing = new List<object?>();
+            foreach (var name in partNames)
+            {
+                var part = PartLoader.getPartInfoByName(name);
+                if (part == null || !ResearchAndDevelopment.PartTechAvailable(part))
+                {
+                    missing.Add(name);
+                }
+            }
+            return missing;
         }
 
         /// <summary>

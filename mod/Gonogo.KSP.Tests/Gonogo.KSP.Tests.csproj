@@ -130,6 +130,7 @@
          that throws inside StartWithNewLaunch refuses the call rather than
          escaping. Sitrep.Contract only, no KSP type. -->
     <Compile Include="..\Gonogo.KSP\LaunchRule.cs" />
+    <Compile Include="..\Gonogo.KSP\SavedShipParseMemo.cs" />
     <Compile Include="..\Gonogo.KSP\StrategyEligibility.cs" />
     <Compile Include="..\Gonogo.KSP\StrategyActivationRule.cs" />
     <!-- The reproduced body of Strategy.Activate() over an interface, and the
