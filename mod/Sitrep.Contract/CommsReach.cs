@@ -81,12 +81,38 @@ public interface ICommsReachModel
 }
 
 /// <summary>
+/// A reach model that can say why nothing reaches. A model that does not implement it
+/// gives no reason.
+/// </summary>
+/// <category>Propagation and models</category>
+public interface ICommsNoReachReason
+{
+    /// <summary>
+    /// Why this pair has no reach, from <see cref="CommsNoReachReasons"/>, when
+    /// <see cref="ICommsReachModel.MaxRangeMeters"/> is 0 for a cause the operator can act on, such
+    /// as a craft with no electric charge aboard. Null when the pair has reach or the reason is not known.
+    /// </summary>
+    string? NoReachReason { get; }
+}
+
+/// <summary>
+/// The reasons a pair of nodes can have no reach at all, as they appear in
+/// <see cref="CommsContactPair.NoReachReason"/> and <see cref="ICommsNoReachReason.NoReachReason"/>.
+/// </summary>
+/// <category>Propagation and models</category>
+public static class CommsNoReachReasons
+{
+    /// <summary>One end has no electric charge aboard, so its antennas carry nothing until charge returns.</summary>
+    public const string Unpowered = "unpowered";
+}
+
+/// <summary>
 /// A ready-made <see cref="ICommsReachModel"/>: one named maximum separation.
 /// A comms backend whose rule resolves to a distance can return one of these
 /// rather than implement the interface.
 /// </summary>
 /// <category>Propagation and models</category>
-public sealed class MaxRangeReachModel : ICommsReachModel
+public sealed class MaxRangeReachModel : ICommsReachModel, ICommsNoReachReason
 {
     /// <summary>
     /// A reach model with the given id, name and maximum. A NaN or infinite
@@ -97,11 +123,28 @@ public sealed class MaxRangeReachModel : ICommsReachModel
     /// <param name="modelName">Human-readable name a UI can show.</param>
     /// <param name="maxRangeMeters">The greatest separation in metres at which the pair is carried, or null when the rule does not say.</param>
     public MaxRangeReachModel(string modelId, string modelName, double? maxRangeMeters)
+        : this(modelId, modelName, maxRangeMeters, null)
+    {
+    }
+
+    /// <summary>
+    /// A reach model that also says why nothing reaches. See
+    /// <see cref="MaxRangeReachModel(string, string, double?)"/> for the other arguments.
+    /// </summary>
+    /// <param name="modelId">Stable id for the rule.</param>
+    /// <param name="modelName">Human-readable name a UI can show.</param>
+    /// <param name="maxRangeMeters">The greatest separation in metres, or null when the rule does not say.</param>
+    /// <param name="noReachReason">Why nothing reaches, from <see cref="CommsNoReachReasons"/>, or null.</param>
+    public MaxRangeReachModel(string modelId, string modelName, double? maxRangeMeters, string? noReachReason)
     {
         ModelId = modelId ?? "";
         ModelName = modelName ?? "";
         MaxRangeMeters = Sane(maxRangeMeters);
+        NoReachReason = noReachReason;
     }
+
+    /// <inheritdoc cref="ICommsNoReachReason.NoReachReason"/>
+    public string? NoReachReason { get; }
 
     /// <inheritdoc cref="ICommsReachModel.ModelId"/>
     public string ModelId { get; }

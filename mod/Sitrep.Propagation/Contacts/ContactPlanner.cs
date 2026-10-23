@@ -83,14 +83,18 @@ namespace Sitrep.Propagation.Contacts
     /// <summary>Two nodes the plan predicts contact between, with what can block or limit their link.</summary>
     public sealed class PlanPair
     {
-        public PlanPair(string a, string b, IReadOnlyList<OccludingBody> occluders, double? maxRangeMeters, IContactLinkModel? link = null)
+        public PlanPair(string a, string b, IReadOnlyList<OccludingBody> occluders, double? maxRangeMeters, IContactLinkModel? link = null, string? noReachReason = null)
         {
             A = a;
             B = b;
             Occluders = occluders ?? new OccludingBody[0];
             MaxRangeMeters = maxRangeMeters;
             Link = link;
+            NoReachReason = noReachReason;
         }
+
+        /// <summary>Why <see cref="MaxRangeMeters"/> is 0, as the comms model gave it, or null.</summary>
+        public string? NoReachReason { get; }
 
         /// <summary>One end, by <see cref="PlanNode.Id"/>.</summary>
         public string A { get; }
@@ -192,9 +196,11 @@ namespace Sitrep.Propagation.Contacts
             double stepSeconds = 0.0,
             double[]? separationMeters = null,
             IReadOnlyList<RetargetWindow>? retargetWindows = null,
-            IContactPositions? positions = null)
+            IContactPositions? positions = null,
+            string? noReachReason = null)
         {
             _positions = positions;
+            NoReachReason = noReachReason;
             A = a;
             B = b;
             HorizonUt = horizonUt;
@@ -231,7 +237,7 @@ namespace Sitrep.Propagation.Contacts
 
         /// <summary>This plan with <paramref name="retargets"/> as its retarget windows.</summary>
         internal PairPlan WithRetargetWindows(IReadOnlyList<RetargetWindow> retargets) =>
-            new PairPlan(A, B, HorizonUt, Windows, _fromUt, _stepSeconds, _separation, retargets, _positions);
+            new PairPlan(A, B, HorizonUt, Windows, _fromUt, _stepSeconds, _separation, retargets, _positions, NoReachReason);
 
         /// <summary>
         /// Where the two ends of a hop between this pair are at <paramref name="ut"/>,
@@ -253,6 +259,9 @@ namespace Sitrep.Propagation.Contacts
         public string A { get; }
 
         public string B { get; }
+
+        /// <summary>Why the pair has no reach, as its <see cref="PlanPair.NoReachReason"/> gave it, or null.</summary>
+        public string? NoReachReason { get; }
 
         /// <summary>The last instant this pair is predicted for: the plan's horizon, or sooner where either end cannot be propagated that far.</summary>
         public double HorizonUt { get; }
@@ -597,7 +606,7 @@ namespace Sitrep.Propagation.Contacts
                 var pairHorizonUt = Math.Min(horizonUt, Math.Min(cache.ValidUntil(pair.A), cache.ValidUntil(pair.B)));
                 if (pairHorizonUt <= fromUt)
                 {
-                    plans.Add(new PairPlan(pair.A, pair.B, fromUt, new ContactWindow[0]));
+                    plans.Add(new PairPlan(pair.A, pair.B, fromUt, new ContactWindow[0], noReachReason: pair.NoReachReason));
                     continue;
                 }
 
@@ -619,7 +628,7 @@ namespace Sitrep.Propagation.Contacts
                 {
                     windows = Attributed(windows, attributed, cache, pair, fromUt, sweepEnd, stepSeconds);
                 }
-                plans.Add(new PairPlan(pair.A, pair.B, sweepEnd, windows, fromUt, stepSeconds, separation, null, kept));
+                plans.Add(new PairPlan(pair.A, pair.B, sweepEnd, windows, fromUt, stepSeconds, separation, null, kept, pair.NoReachReason));
                 geometries[pair] = geometry;
             }
 

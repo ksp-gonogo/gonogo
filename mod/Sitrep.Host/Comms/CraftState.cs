@@ -13,12 +13,16 @@ namespace Sitrep.Host.Comms
     /// </summary>
     public readonly struct CraftLink
     {
-        public CraftLink(double? maxRangeMeters, IContactLinkModel? link, IContactLinkStrength? strength = null)
+        public CraftLink(double? maxRangeMeters, IContactLinkModel? link, IContactLinkStrength? strength = null, string? noReachReason = null)
         {
             MaxRangeMeters = maxRangeMeters;
             Link = link;
             Strength = strength;
+            NoReachReason = noReachReason;
         }
+
+        /// <summary>Why the pair has no reach, from <see cref="CommsNoReachReasons"/>, or null.</summary>
+        public string? NoReachReason { get; }
 
         /// <summary>The longest distance the pair can talk over, in metres, or null when the backend states none.</summary>
         public double? MaxRangeMeters { get; }

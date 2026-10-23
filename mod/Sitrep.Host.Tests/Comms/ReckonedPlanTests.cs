@@ -250,5 +250,38 @@ namespace Sitrep.Host.Tests.Comms
             var pair = Assert.Single(plan.Pairs);
             Assert.NotEmpty(pair.Windows);
         }
+
+        [Fact]
+        public void APairThatHasNoReachSaysWhyOnTheWire()
+        {
+            var links = new Dictionary<string, CraftLink>
+            {
+                ["ground:ksc"] = new CraftLink(0.0, null, null, CommsNoReachReasons.Unpowered),
+            };
+            var dark = Craft("a", 0.0, 1_300_000.0, links);
+            var lit = Craft("b", 0.0, 1_400_000.0, Links(("ground:ksc", null)));
+
+            var request = ReckonedPlan.Request(new[] { dark, lit }, Ground(Ksc), 0.0, 3600.0);
+            var wire = ContactPlanWire.ToPayload(request.Run(), request.Unsettled);
+
+            var darkPair = wire.Pairs.Single(p => p.A == "vessel:a" && p.B == "ground:ksc");
+            Assert.Equal("unpowered", darkPair.NoReachReason);
+            Assert.Empty(darkPair.Windows);
+            Assert.Null(wire.Pairs.Single(p => p.A == "vessel:b" && p.B == "ground:ksc").NoReachReason);
+        }
+
+        [Fact]
+        public void AChangedReasonIsADifferentRequest()
+        {
+            var lit = Craft("a", 0.0, 1_300_000.0, Links(("ground:ksc", 0.0)));
+            var dark = Craft("a", 0.0, 1_300_000.0, new Dictionary<string, CraftLink>
+            {
+                ["ground:ksc"] = new CraftLink(0.0, null, null, CommsNoReachReasons.Unpowered),
+            });
+
+            var before = ReckonedPlan.Request(new[] { lit }, Ground(Ksc), 0.0, 3600.0);
+
+            Assert.False(ReckonedPlan.Request(new[] { dark }, Ground(Ksc), 0.0, 3600.0).Matches(before));
+        }
     }
 }
