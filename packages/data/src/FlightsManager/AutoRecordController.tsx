@@ -3,6 +3,7 @@ import { logger } from "@ksp-gonogo/logger";
 import {
   type ReplayFixture,
   type StreamRecorder,
+  useGameStatus,
   useStreamRecorder,
 } from "@ksp-gonogo/sitrep-client";
 import {
@@ -256,6 +257,17 @@ export function AutoRecordController({
       finishAndSave(recorder);
     }
   }, [scene, recorder, finishAndSave]);
+
+  /*
+   * The scene reading is held while the game sits at its main menu (the mod
+   * samples nothing there), so it goes on saying Flight. The game status is what
+   * says the menu was reached, and the next game's frames must not join this one.
+   */
+  const gameState = useGameStatus().state;
+  useEffect(() => {
+    if (gameState !== "no-game" || !recorder?.recording) return;
+    finishAndSave(recorder);
+  }, [gameState, recorder, finishAndSave]);
 
   useOptionalStreamEvent<FlightStarted>(
     "flight.started",

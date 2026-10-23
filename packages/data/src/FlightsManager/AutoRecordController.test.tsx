@@ -290,6 +290,43 @@ describe("AutoRecordController", () => {
     expect(await rig.source.listFlights()).toEqual([]);
   });
 
+  it("closes the recording at the main menu, so the next game's flight is a row of its own", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene="Flight" />
+      </TelemetryProvider>,
+    );
+
+    start(rig, 0, { flightId: "gA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha", "gA");
+    // The scene reading is held at Flight while the game sits at its main menu.
+    act(() => {
+      rig.transport.emitRaw({
+        type: "game-state",
+        state: "no-game",
+        scene: "MAINMENU",
+      });
+    });
+    expect(getAutoRecordStatus().recording).toBe(false);
+
+    // Another save loads, behind the earlier one on the clock; its flight is announced after.
+    end(rig, 1, "gA", 2 /* Reverted */);
+    start(rig, 1, { flightId: "gB", vesselId: "vB", vesselName: "Bravo" });
+    tickFrame(rig, 2, "vB", "Bravo", "gB");
+    expect(getAutoRecordStatus().vesselName).toBe("Bravo");
+    end(rig, 3, "gB", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      const flights = await rig.source.listFlights();
+      expect(flights).toHaveLength(2);
+      const alpha = flights.find((f) => f.vesselName === "Alpha");
+      expect(alpha?.endReason).toBe(2);
+      expect(alpha?.lastFrameUt).toBeLessThan(10);
+      expect(flights.find((f) => f.vesselName === "Bravo")?.endReason).toBe(0);
+    });
+  });
+
   it("a re-announce of the flight already being recorded does not split it into two missions", async () => {
     // A reconnect mid-flight: the host has no way to tell a returning
     // subscriber from a new one, so it re-announces. Same flight id AND same
