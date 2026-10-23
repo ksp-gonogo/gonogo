@@ -422,6 +422,18 @@ namespace Gonogo.KSP
             _gameListPublisher = host.Publisher(GameAlarmBoard.ListTopic);
             _gameCraftSource = host.RegisterDynamicNamespace(GameAlarmBoard.CraftPrefix, GameAlarmBoard.CraftNamespace());
 
+            // A reset empties the Courier's archive and the client's copy, so
+            // every audience has to be answered again.
+            (host as Sitrep.Host.Comms.ICraftStateHost)?.OnTimelineReset(() =>
+            {
+                lock (_gate)
+                {
+                    _audience.Forget();
+                    _topicsAudience.Forget();
+                    _gamePublication.Forget();
+                }
+            });
+
             // Vantage-resolved, so the roster records WHERE an alarm was armed
             // from rather than where a payload claimed it was: a client that
             // named its own vantage in its arguments could name another one.

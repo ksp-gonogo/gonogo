@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Threading.Tasks;
 using Sitrep.Contract;
+using Sitrep.Contract.Serialization;
 using Sitrep.Host;
 using Xunit;
 using static Sitrep.Host.IntegrationTests.WsTestHarness;
@@ -146,6 +147,46 @@ namespace Sitrep.Host.IntegrationTests
 
                 var armed = await ReceiveStreamDataAsync(client, Timeout);
                 Assert.Single(Assert.IsAssignableFrom<IEnumerable>(armed.Payload));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A timeline reset drops the Courier's archive and the client's copy of
+        /// the roster, so a client that was answered before it has to be answered
+        /// again, and so does one that subscribes after it.
+        /// </summary>
+        [Fact]
+        public async Task AfterATimelineResetTheRosterIsSentAgainToEverySubscriber()
+        {
+            var uplink = new ScetRosterTestUplink();
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var first = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(first, ScetRosterTestUplink.Topic, Timeout);
+                engine.TickAndWait(10.0, new KspSnapshot { Ut = 10.0 }, Timeout);
+                engine.TickAndWait(11.0, new KspSnapshot { Ut = 11.0 }, Timeout);
+                var before = await ReceiveStreamDataAsync(first, Timeout);
+                Assert.Empty(Assert.IsAssignableFrom<IEnumerable>(before.Payload));
+
+                engine.TickAndWait(2.0, new KspSnapshot { Ut = 2.0 }, Timeout);
+                engine.TickAndWait(3.0, new KspSnapshot { Ut = 3.0 }, Timeout);
+
+                await using var second = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await second.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = ScetRosterTestUplink.Topic }));
+                engine.TickAndWait(4.0, new KspSnapshot { Ut = 4.0 }, Timeout);
+                engine.TickAndWait(5.0, new KspSnapshot { Ut = 5.0 }, Timeout);
+
+                var again = await ReceiveStreamDataAsync(first, Timeout);
+                Assert.Empty(Assert.IsAssignableFrom<IEnumerable>(again.Payload));
+                var late = await ReceiveStreamDataAsync(second, Timeout);
+                Assert.Empty(Assert.IsAssignableFrom<IEnumerable>(late.Payload));
             }
             finally
             {

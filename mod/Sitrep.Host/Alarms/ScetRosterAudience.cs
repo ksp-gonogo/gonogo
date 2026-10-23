@@ -44,6 +44,14 @@ namespace Sitrep.Host.Alarms
         private bool _answered;
 
         /// <summary>
+        /// Treat everyone subscribed as not yet answered. A timeline reset drops
+        /// what the Courier archived and tells every client to forget what it
+        /// held, so the roster the audience was last sent no longer exists for
+        /// them and nothing replays it.
+        /// </summary>
+        public void Forget() => _answered = false;
+
+        /// <summary>
         /// Publish when the roster moved, and always once for an audience that
         /// has not been answered yet.
         /// </summary>

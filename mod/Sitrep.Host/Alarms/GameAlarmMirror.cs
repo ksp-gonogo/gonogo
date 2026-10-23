@@ -206,6 +206,16 @@ namespace Sitrep.Host.Alarms
         private readonly Dictionary<string, ScetRosterAudience> _craftAudiences =
             new Dictionary<string, ScetRosterAudience>(StringComparer.Ordinal);
 
+        /// <summary>Treat every subscriber, of the shared list and of each craft, as not yet answered.</summary>
+        public void Forget()
+        {
+            _listAudience.Forget();
+            foreach (var audience in _craftAudiences.Values)
+            {
+                audience.Forget();
+            }
+        }
+
         /// <summary>The crafts whose Topic this has published and may need to again.</summary>
         public IEnumerable<string> KnownCrafts => _craftKeys.Keys;
 

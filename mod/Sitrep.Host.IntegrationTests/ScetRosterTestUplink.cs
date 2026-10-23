@@ -53,6 +53,13 @@ namespace Sitrep.Host.IntegrationTests
         {
             _host = host;
             _publisher = host.Publisher(Topic);
+            (host as Sitrep.Host.Comms.ICraftStateHost)?.OnTimelineReset(() =>
+            {
+                lock (_gate)
+                {
+                    _audience.Forget();
+                }
+            });
             host.AddSampledSource(CaptureOnMain, HandleOnCourier);
         }
 
