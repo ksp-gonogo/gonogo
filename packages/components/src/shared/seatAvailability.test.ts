@@ -165,6 +165,7 @@ describe("the built-in catalogue, derived", () => {
         {
           "domains": [
             "career",
+            "recovery",
             "spaceCenter",
           ],
           "id": "launch-director",

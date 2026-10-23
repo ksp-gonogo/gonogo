@@ -8,6 +8,7 @@ import { BoundPresses } from "./actions";
 import { CRAFT_MAP_MIN_COLS, CRAFT_MAP_MIN_ROWS } from "./CraftDiagram";
 import { parseCrew } from "./crew";
 import { InFlightPanel } from "./InFlightPanel";
+import { LastRecovery } from "./LastRecovery";
 import { PadSection } from "./PadSection";
 import { awayBodyNames, orderPads, padSummary, parseLaunchSites } from "./pads";
 import { craftForPad, parseSavedShips, sortByLastLaunched } from "./ships";
@@ -83,6 +84,10 @@ export function LaunchDirectorComponent({
   const hasFunds = stillTrue(careerReading, undefined)?.balances?.funds != null;
   const fundsHeld = careerReading.state === "held";
   const { chargesFunds } = useGameContext();
+  const lastRecovery = stillTrue(
+    useTelemetry("recovery.lastSummary"),
+    undefined,
+  );
   const flight = useFlightState();
   const {
     boundPresses,
@@ -197,6 +202,11 @@ export function LaunchDirectorComponent({
                   </Tooltip>
                 )}
               </div>
+            </Section>
+          ) : null,
+          !inFlight && !inTrackingStation && lastRecovery ? (
+            <Section key="recovery" full>
+              <LastRecovery report={lastRecovery} />
             </Section>
           ) : null,
           <Section key="pads">
