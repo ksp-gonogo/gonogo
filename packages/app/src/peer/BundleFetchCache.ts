@@ -1,4 +1,9 @@
 import { logger } from "@ksp-gonogo/logger";
+import {
+  defaultVerifiedBundleStore,
+  fetchThroughStore,
+  type VerifiedBundleStore,
+} from "./verifiedBundleStore";
 
 /**
  * `sha256-<hex>` of the given bytes: same format `@ksp-gonogo/core`'s
@@ -98,6 +103,10 @@ export function rebaseBundleUrl(
  * fetched, and a `bundleUrl` is expected to be content-addressed/versioned
  * (a new Uplink version ships a new url), so there's no invalidation story
  * to design here.
+ *
+ * Behind the in-memory map sits a {@link VerifiedBundleStore}, keyed by the
+ * integrity a request expects, so a reload of the main screen serves its
+ * stations from bytes it already verified instead of the author host.
  */
 export class BundleFetchCache {
   private readonly cache = new Map<
@@ -105,22 +114,32 @@ export class BundleFetchCache {
     Promise<{ bytes: Uint8Array; digest: string }>
   >();
 
+  constructor(
+    private readonly store: VerifiedBundleStore | null = defaultVerifiedBundleStore(),
+  ) {}
+
   /**
    * Resolve the verified `{ bytes, digest }` for `bundleUrl`, fetching (and
    * SHA-256-digesting) at most once no matter how many callers ask for the
    * same url concurrently: later callers, even mid-flight, get the same
    * pending promise rather than starting a second fetch. `fetchBytes` is
    * injected so tests can drive it without a live network call.
+   * `expectedHash`, when given, is looked up in the persistent store first.
    */
   fetchVerified(
     bundleUrl: string,
     fetchBytes: (url: string) => Promise<ArrayBuffer>,
+    expectedHash?: string,
   ): Promise<{ bytes: Uint8Array; digest: string }> {
     const existing = this.cache.get(bundleUrl);
     if (existing) return existing;
 
     const pending = (async () => {
-      const buf = await fetchBytes(bundleUrl);
+      const buf = expectedHash
+        ? await fetchThroughStore(this.store, expectedHash, () =>
+            fetchBytes(bundleUrl),
+          )
+        : await fetchBytes(bundleUrl);
       const bytes = new Uint8Array(buf);
       const digest = await sha256Hex(buf);
       return { bytes, digest };

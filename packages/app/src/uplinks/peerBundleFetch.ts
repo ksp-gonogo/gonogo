@@ -9,6 +9,11 @@
 // This is a thin adapter, not wired into any boot path yet; see this file's own header note below and the D6 handoff report for why.
 
 import type { PeerClientService } from "../peer/PeerClientService";
+import {
+  defaultVerifiedBundleStore,
+  fetchThroughStore,
+  type VerifiedBundleStore,
+} from "../peer/verifiedBundleStore";
 
 /**
  * The narrow slice of `PeerClientService` this adapter needs. Typed as a
@@ -30,9 +35,13 @@ export type BundleFetchConduit = Pick<
  * arg). A call with no `expectedHash` rejects immediately with a legible
  * reason rather than sending an empty string to the host, which would just
  * bounce every request as a confusing hash-mismatch.
+ *
+ * A bundle `store` already holds under `expectedHash`, and that still hashes
+ * to it, is returned without asking the main screen.
  */
 export function createPeerBundleFetcher(
   client: BundleFetchConduit,
+  store: VerifiedBundleStore | null = defaultVerifiedBundleStore(),
 ): (url: string, expectedHash?: string) => Promise<ArrayBuffer> {
   return (url, expectedHash) => {
     if (!expectedHash) {
@@ -43,7 +52,9 @@ export function createPeerBundleFetcher(
         ),
       );
     }
-    return client.sendBundleFetch(url, expectedHash);
+    return fetchThroughStore(store, expectedHash, () =>
+      client.sendBundleFetch(url, expectedHash),
+    );
   };
 }
 

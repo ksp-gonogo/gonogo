@@ -26,6 +26,10 @@ import { logger } from "@ksp-gonogo/logger";
 import type { UplinkHealthStateName } from "@ksp-gonogo/sitrep-sdk";
 import { sha256Integrity } from "@ksp-gonogo/sitrep-sdk/uplink-load";
 import { fetchWithDeadline } from "../peer/BundleFetchCache";
+import {
+  defaultVerifiedBundleStore,
+  fetchThroughStore,
+} from "../peer/verifiedBundleStore";
 import { type ConsentInfo, ensureConsents } from "./consent";
 import { ConsentRound, type ConsentSlot } from "./consentRound";
 import type { HostCompat } from "./hostCompat";
@@ -446,12 +450,22 @@ async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
   }
 }
 
-async function defaultFetchBytes(url: string): Promise<ArrayBuffer> {
+async function fetchBundleDirect(url: string): Promise<ArrayBuffer> {
   const res = await fetchWithDeadline(url, "bundle").catch((err) =>
     refuse(err instanceof Error ? err.message : String(err)),
   );
   if (!res.ok) refuse(`bundle fetch failed: HTTP ${res.status}`);
   return res.arrayBuffer();
+}
+
+function defaultFetchBytes(
+  url: string,
+  expectedHash?: string,
+): Promise<ArrayBuffer> {
+  if (!expectedHash) return fetchBundleDirect(url);
+  return fetchThroughStore(defaultVerifiedBundleStore(), expectedHash, () =>
+    fetchBundleDirect(url),
+  );
 }
 
 async function defaultImportBundle(

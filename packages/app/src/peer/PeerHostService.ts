@@ -2393,6 +2393,7 @@ export class PeerHostService {
       const { bytes, digest } = await this.bundleFetchCache.fetchVerified(
         rebaseBundleUrl(msg.bundleUrl, msg.appBase, import.meta.env.BASE_URL),
         this.fetchBundleBytes,
+        msg.expectedHash,
       );
       if (digest !== msg.expectedHash) {
         logger.warn(
