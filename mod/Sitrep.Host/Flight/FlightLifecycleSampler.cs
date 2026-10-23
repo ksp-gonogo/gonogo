@@ -42,9 +42,10 @@ namespace Sitrep.Host.Flight
     /// <para><b>started vs. vesselChanged:</b> <see cref="FlightStarted"/>
     /// fires for a vessel id this session has never announced as started
     /// before (a genuine launch, or deliberately, see <see cref="Sample"/>,
-    /// every vessel active immediately after a rewind, even a same-id
-    /// quickload-resume, since a rewind is treated as a hard timeline reset
-    /// for lifecycle purposes). <see cref="FlightVesselChanged"/> fires on
+    /// the vessel active on two samples in a row after a rewind, even a
+    /// same-id quickload-resume, since a rewind is treated as a hard timeline
+    /// reset for lifecycle purposes; a vessel active only for the first sample
+    /// after a load starts nothing). <see cref="FlightVesselChanged"/> fires on
     /// every other active-vessel-id transition (docking/undocking/
     /// tracking-station reselect): switching focus away from a still-flying
     /// vessel does not end its flight, and switching back to a known one is
@@ -102,6 +103,11 @@ namespace Sitrep.Host.Flight
         // load at a UT ahead of the last one seen, which a backward-UT check alone
         // reads as time passing.
         private bool _timelineReplaced;
+
+        // The vessel a rewind showed first and has not yet started a flight for,
+        // with the instant the rewind put the game at.
+        private string? _settlingId;
+        private double _settlingUt;
 
         private string? _lastVesselId;
         private string? _activeVesselId;
@@ -251,10 +257,11 @@ namespace Sitrep.Host.Flight
                 // that is an artifact of the rewind, not a genuine switch.
                 _lastVesselId = currentId;
 
-                if (currentId != null && !endedThisTick.Contains(currentId))
-                {
-                    StartNewFlight(currentId, snapshot);
-                }
+                // The first sample after a load can show a different vessel active
+                // for a moment before the real one, so the flight starts once the
+                // same vessel has been active on two samples in a row.
+                _settlingId = currentId != null && !endedThisTick.Contains(currentId) ? currentId : null;
+                _settlingUt = snapshot.Ut;
 
                 AnnounceStartedIfUnheard();
                 PublishCurrent(snapshot, currentId);
@@ -263,12 +270,46 @@ namespace Sitrep.Host.Flight
 
             if (currentId != null)
             {
-                ObserveActiveVessel(currentId, snapshot);
+                ObserveVessel(currentId, snapshot);
                 _lastVesselId = currentId;
             }
 
             AnnounceStartedIfUnheard();
             PublishCurrent(snapshot, currentId);
+        }
+
+        /// <summary>A vessel seen outside a rewind: the one a rewind is still waiting on settles, any other is an ordinary observation.</summary>
+        private void ObserveVessel(string currentId, KspSnapshot snapshot)
+        {
+            if (_settlingId == null)
+            {
+                ObserveActiveVessel(currentId, snapshot);
+                return;
+            }
+
+            SettleAfterRewind(currentId, snapshot);
+        }
+
+        /// <summary>
+        /// The vessel a rewind showed first starts its flight when it is the one
+        /// active again on the next sample; any other vessel takes its place as
+        /// the one being waited on. The flight starts at the instant the rewind
+        /// put the game at.
+        /// </summary>
+        private void SettleAfterRewind(string currentId, KspSnapshot snapshot)
+        {
+            if (currentId != _settlingId)
+            {
+                _settlingId = currentId;
+                _settlingUt = snapshot.Ut;
+                return;
+            }
+
+            _settlingId = null;
+            if (!_flights.ContainsKey(currentId))
+            {
+                StartNewFlight(currentId, snapshot, _settlingUt);
+            }
         }
 
         /// <summary>
@@ -407,11 +448,11 @@ namespace Sitrep.Host.Flight
             _lastEndedUt = ut;
         }
 
-        private FlightRecord StartNewFlight(string vesselId, KspSnapshot snapshot)
+        private FlightRecord StartNewFlight(string vesselId, KspSnapshot snapshot, double? startUt = null)
         {
             _activeVesselId = vesselId;
             _activeVesselName = ReadVesselName(snapshot) ?? "";
-            var flight = new FlightRecord(_mintFlightId(), vesselId, snapshot.Ut, _activeVesselName);
+            var flight = new FlightRecord(_mintFlightId(), vesselId, startUt ?? snapshot.Ut, _activeVesselName);
             _flights[vesselId] = flight;
 
             // This is news to everyone, including an audience that was already

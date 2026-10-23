@@ -269,6 +269,7 @@ namespace Sitrep.Host.Tests
             // THE REVERT: Ut jumps backward, landing on a (possibly
             // different, possibly re-spawned) vessel.
             rig.Sampler.Sample(SnapshotFor(VesselB, 0.5, name: "Bravo"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 0.6, name: "Bravo"));
 
             var ended = Assert.Single(rig.Ended.Calls);
             var endedPayload = Assert.IsType<FlightEnded>(ended.Payload);
@@ -296,6 +297,7 @@ namespace Sitrep.Host.Tests
 
             // Rewind with nothing active to end.
             rig.Sampler.Sample(SnapshotFor(VesselA, 0.5, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.6, name: "Alpha"));
 
             Assert.Empty(rig.Ended.Calls);
             Assert.Single(rig.Started.Calls);
@@ -329,6 +331,7 @@ namespace Sitrep.Host.Tests
             rig.Sampler.Sample(SnapshotFor(VesselA, 10.0, name: "Alpha"));
 
             rig.Sampler.Sample(SnapshotFor(VesselA, 0.5, name: "Alpha")); // rewind, same id
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.6, name: "Alpha"));
 
             Assert.Single(rig.Ended.Calls);
             Assert.Equal(2, rig.Started.Calls.Count);
@@ -513,6 +516,7 @@ namespace Sitrep.Host.Tests
             rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
             rig.Sampler.Sample(SnapshotFor(VesselA, 10.0, name: "Alpha"));
             rig.Sampler.Sample(SnapshotFor(VesselA, 0.5, name: "Alpha")); // rewind, same id
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.6, name: "Alpha"));
 
             Assert.Equal(2, rig.Started.Calls.Count);
             Assert.Equal(0.0, Assert.IsType<FlightStarted>(rig.Started.Calls[0].Payload).Ut);
@@ -526,6 +530,7 @@ namespace Sitrep.Host.Tests
             rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
             rig.Sampler.Sample(SnapshotFor(VesselA, 10.0, name: "Alpha"));
             rig.Sampler.Sample(SnapshotFor(VesselA, 0.5, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.6, name: "Alpha"));
 
             var first = (FlightStarted)rig.Started.Calls[0].Payload!;
             var second = (FlightStarted)rig.Started.Calls[1].Payload!;
@@ -564,6 +569,7 @@ namespace Sitrep.Host.Tests
             rig.Sampler.SignalEnd(VesselA, "Alpha", FlightEndReason.Crashed, 20.0);
             rig.Sampler.Sample(SnapshotFor(VesselA, 20.1, name: "Alpha"));
             rig.Sampler.Sample(SnapshotFor(VesselA, 0.5, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.6, name: "Alpha"));
 
             var crashedFlight = ((FlightStarted)rig.Started.Calls[0].Payload!).FlightId;
             var newFlight = ((FlightStarted)rig.Started.Calls[1].Payload!).FlightId;
@@ -584,6 +590,7 @@ namespace Sitrep.Host.Tests
             rig.Sampler.Sample(SnapshotFor(VesselA, 19.0, name: "Alpha"));
             rig.Sampler.SignalEnd(VesselA, "Alpha", FlightEndReason.Crashed, 20.0);
             rig.Sampler.Sample(SnapshotFor(VesselA, 0.5, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.6, name: "Alpha"));
 
             Assert.Equal(2, rig.Started.Calls.Count);
             var newFlight = ((FlightStarted)rig.Started.Calls[1].Payload!).FlightId;
@@ -604,6 +611,7 @@ namespace Sitrep.Host.Tests
 
             // Focus moving onto the vessel left behind is a flight of its own after the rewind.
             rig.Sampler.Sample(SnapshotFor(VesselB, 1.0, name: "Bravo"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 1.1, name: "Bravo"));
             Assert.Equal(1, rig.Started.Calls.Count(c => ((FlightStarted)c.Payload!).VesselId == VesselB && ((FlightStarted)c.Payload!).Ut == 1.0));
         }
 
@@ -628,6 +636,7 @@ namespace Sitrep.Host.Tests
 
             rig.Sampler.NoteTimelineReset();
             rig.Sampler.Sample(SnapshotFor(VesselB, 5000.0, name: "Bravo"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 5000.1, name: "Bravo"));
 
             AssertEndedOnce(rig, VesselA, FlightEndReason.Reverted);
             Assert.Empty(rig.VesselChanged.Calls);
@@ -651,6 +660,42 @@ namespace Sitrep.Host.Tests
 
             var aEnds = rig.Ended.Calls.Select(c => (FlightEnded)c.Payload!).Where(e => e.VesselId == VesselA).ToList();
             Assert.Equal(FlightEndReason.Crashed, Assert.Single(aEnds).Reason);
+        }
+
+        [Fact]
+        public void AVesselActiveOnlyOnTheFirstSampleAfterARewindNeverStartsAFlight()
+        {
+            // A load can show another vessel active for one sample before the real one.
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 10.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 0.5, name: "Bravo"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 1.5, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 2.5, name: "Alpha"));
+
+            var started = rig.Started.Calls.Select(c => (FlightStarted)c.Payload!).ToList();
+            Assert.DoesNotContain(started, f => f.VesselId == VesselB);
+            Assert.Equal(VesselA, started[^1].VesselId);
+            Assert.Equal(1.5, started[^1].Ut);
+            Assert.Empty(rig.VesselChanged.Calls);
+            Assert.DoesNotContain(rig.Ended.Calls, c => ((FlightEnded)c.Payload!).VesselId == VesselB);
+        }
+
+        [Fact]
+        public void ARewindStartsItsFlightOnceTheSameVesselIsActiveOnTheNextSample()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 10.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.5, name: "Alpha"));
+
+            Assert.Single(rig.Started.Calls);
+            Assert.Equal(FlightEndReason.Reverted, ((FlightEnded)Assert.Single(rig.Ended.Calls).Payload!).Reason);
+
+            rig.Sampler.Sample(SnapshotFor(VesselA, 1.5, name: "Alpha"));
+
+            Assert.Equal(2, rig.Started.Calls.Count);
+            Assert.Equal(0.5, ((FlightStarted)rig.Started.Calls[1].Payload!).Ut);
         }
 
         [Fact]
