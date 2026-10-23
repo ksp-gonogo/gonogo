@@ -763,6 +763,60 @@ describe("LaunchDirectorComponent", () => {
     expect(recoverBtn).not.toBeDisabled();
   });
 
+  // A second flight of the same craft shares its name with the first flight's crash: the vessel id tells them apart.
+  it("does not chip the previous flight's crash for a new vessel of the same name", async () => {
+    renderWidget();
+    act(() => {
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      emitInFlightVessel(stream, { name: "hop-a", altitudeAsl: 70 });
+      stream.emit("vessel.identity", {
+        vesselId: "532df9f5-6757-446f-be7e-810f8d2890cd",
+        name: "hop-a",
+        vesselType: 0,
+        situation: 0,
+        parentBodyIndex: 1,
+        launchUt: null,
+      });
+      stream.emit("ksp.revertAvailability", {
+        canRevertToLaunch: false,
+        canRevertToEditor: false,
+      });
+      stream.emit("crash.hasRecent", { recent: true });
+      stream.emit("crash.lastCrash", {
+        vesselId: "b31dac9e-0aac-4f7e-9c56-1e94298b4f77",
+        vesselName: "hop-a",
+      });
+    });
+
+    await waitFor(() => expect(visibleText()).toMatch(/In flight: hop-a/i));
+    expect(screen.queryByText(/Crash in progress/i)).toBeNull();
+  });
+
+  it("chips a crash whose vessel id is the flying vessel's, whatever the names say", async () => {
+    renderWidget();
+    act(() => {
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      emitInFlightVessel(stream, { name: "hop-a", altitudeAsl: 70 });
+      stream.emit("vessel.identity", {
+        vesselId: "532df9f5-6757-446f-be7e-810f8d2890cd",
+        name: "hop-a",
+        vesselType: 0,
+        situation: 0,
+        parentBodyIndex: 1,
+        launchUt: null,
+      });
+      stream.emit("crash.hasRecent", { recent: true });
+      stream.emit("crash.lastCrash", {
+        vesselId: "532df9f5-6757-446f-be7e-810f8d2890cd",
+        vesselName: "hop-a renamed",
+      });
+    });
+
+    expect(await screen.findByText(/Crash in progress/i)).toBeInTheDocument();
+  });
+
   // A crash snapshot dated after the current UT is from a reverted timeline.
   it("does not chip a crash when the crash snapshot post-dates current UT (reverted flight)", async () => {
     // Pinned so the crash-staleness comparison below has its UT.

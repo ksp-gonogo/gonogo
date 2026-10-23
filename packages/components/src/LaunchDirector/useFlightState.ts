@@ -15,6 +15,7 @@ export function useFlightState() {
   // The craft's name changes nowhere but the editor, so the last one received still names the vessel flying.
   const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
   const vesselName = identity?.name;
+  const vesselId = identity?.vesselId;
   // Off `vessel.flight`'s own field reading, which stays live on rails.
   const altitudeReading: Reading<Value<"m">> =
     useTelemetry("vessel.flight").altitudeAsl;
@@ -47,7 +48,9 @@ export function useFlightState() {
   /*
    * The crash is the active vessel's own, falling back to the session-wide
    * flag before the snapshot arrives. A snapshot dated after the current UT
-   * belongs to a reverted timeline.
+   * belongs to a reverted timeline. Two ids settle it; the name is the
+   * fallback only while either id is missing, since a craft flown twice keeps
+   * its name across flights.
    */
   const activeVesselCrashed = (): boolean => {
     if (crashHasRecent !== true) return false;
@@ -57,6 +60,14 @@ export function useFlightState() {
       viewUt !== undefined &&
       lastCrash.ut.greaterThan(viewUt);
     if (reverted) return false;
+    if (
+      typeof lastCrash.vesselId === "string" &&
+      lastCrash.vesselId.length > 0 &&
+      typeof vesselId === "string" &&
+      vesselId.length > 0
+    ) {
+      return lastCrash.vesselId === vesselId;
+    }
     return (
       typeof lastCrash.vesselName === "string" &&
       lastCrash.vesselName.length > 0 &&
