@@ -32,6 +32,8 @@ export interface GroupToggle {
   canToggle: boolean;
   unavailableReason: UnavailableReason | null;
   press: () => void;
+  /** A toggle sent from here is still on its way to the craft or awaiting its reply, so the state shown is not yet the answer to it. */
+  pending: boolean;
 }
 
 /**
@@ -61,6 +63,12 @@ export function useGroupToggle({
 
   // A held reading with no value for this group has nothing to send the opposite of.
   const unreadable = stateUnreadable || (valueHeld && value == null);
+
+  const pending = toggleCmd.inFlight.some(
+    (c) =>
+      c.predictedPhase === "in-transit" ||
+      c.predictedPhase === "awaiting-reply",
+  );
 
   const press = () => {
     if (!group?.toggle || !toggleCommand) return;
@@ -97,5 +105,6 @@ export function useGroupToggle({
         })
       : null,
     press,
+    pending,
   };
 }

@@ -53,7 +53,7 @@ export function ActionGroupView({
   const currentLabel = config?.label ?? group?.name ?? "";
 
   const openAlarms = useAlarmsLauncher();
-  const { isOn, stateLabel, canToggle, unavailableReason, press } =
+  const { isOn, stateLabel, canToggle, unavailableReason, press, pending } =
     useGroupToggle({
       group,
       value,
@@ -228,7 +228,7 @@ export function ActionGroupView({
                   onClick={press}
                   aria-label={`Toggle ${currentLabel}`}
                 >
-                  {stateLabel}
+                  {pending ? `${stateLabel} · sent` : stateLabel}
                 </ToggleButton>
               </Tooltip>
             </Inline>
