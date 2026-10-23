@@ -7,8 +7,8 @@
  *    routed through the D6 peer conduit). No React needed, a `StubTransport`
  *    stands in for the peer-relayed wire, and a fake `sendBundleFetch`
  *    stands in for `PeerClientService`.
- *  - `StationUplinkLoader`: the component wrapper, gates `children` on the
- *    load settling, and runs the load exactly once.
+ *  - `StationUplinkLoader`: the component wrapper, gates `children` on every
+ *    Uplink of the main screen's set being loaded, and runs the load once.
  *
  * Generic fixture ids ("alpha") on purpose, same reasoning as
  * `rosterProbe.test.ts`'s own header comment: this file must reference no
@@ -37,7 +37,6 @@ import {
   __resetUplinkOutcomes,
   getUplinkOutcomes,
   type RunningUplink,
-  setUplinkOutcome,
 } from "./loaderState";
 import type { RegistryIndex } from "./registry";
 import { decodeRosterPayload } from "./rosterProbe";
@@ -373,7 +372,10 @@ describe("StationUplinkLoader", () => {
     return (
       <TelemetryProvider client={client}>
         <PeerClientProvider client={peerClient}>
-          <StationUplinkLoader rosterTimeoutMs={20}>
+          <StationUplinkLoader
+            rosterTimeoutMs={20}
+            importBundle={async () => ({})}
+          >
             <div data-testid="dashboard-widgets">widgets rendered</div>
           </StationUplinkLoader>
         </PeerClientProvider>
@@ -381,7 +383,7 @@ describe("StationUplinkLoader", () => {
     );
   }
 
-  it("renders a placeholder, then gates children until the loader run settles", async () => {
+  it("stays blocked until the main screen says which Uplinks it runs, then opens on an empty set", async () => {
     stubFetch(registryWith(goodHash));
     const stub = new StubTransport();
     const client = new TelemetryClient(stub);
@@ -392,14 +394,16 @@ describe("StationUplinkLoader", () => {
 
     expect(screen.queryByTestId("dashboard-widgets")).toBeNull();
     expect(screen.getByText(/Loading station widgets/i)).not.toBeNull();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("dashboard-widgets")).not.toBeNull();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
     });
-    // No roster ever arrives here (timeout at 20ms), so nothing is attempted
-    // and the conduit is never called. This test is about the GATE, not the
-    // load outcome: see the runStationUplinkLoad describe block above for the
-    // load-outcome assertions.
+    expect(screen.queryByTestId("dashboard-widgets")).toBeNull();
+    expect(
+      screen.getByText(/Waiting for the main screen's Uplink list/),
+    ).not.toBeNull();
+
+    await act(async () => peerClient.announce([]));
+    await screen.findByTestId("dashboard-widgets");
     expect(sendBundleFetch).not.toHaveBeenCalled();
   });
 
@@ -431,15 +435,9 @@ describe("StationUplinkLoader", () => {
     // doubled loader run would produce two. That is what this test is for.
     expect(sendBundleFetch).toHaveBeenCalledTimes(1);
 
-    // An outcome was recorded, so the run reached the end of the load path.
-    // Its STATUS is deliberately not asserted here: this renders the real
-    // component, which uses the default `importBundle`, and that builds a blob
-    // URL from the verified bytes and imports it. Browsers do that; jsdom cannot,
-    // so the status is a property of the test environment rather than of the
-    // loader. `loader.test.ts` covers the load path with the seam injected,
-    // including that the executed buffer is the verified one.
-    const outcome = getUplinkOutcomes().find((o) => o.id === "alpha");
-    expect(outcome).toBeDefined();
+    expect(getUplinkOutcomes().find((o) => o.id === "alpha")?.status).toBe(
+      "loaded",
+    );
   });
 
   it("reloads when the main screen stops running an Uplink this station loaded", async () => {
@@ -459,7 +457,11 @@ describe("StationUplinkLoader", () => {
     render(
       <TelemetryProvider client={client}>
         <PeerClientProvider client={peerClient}>
-          <StationUplinkLoader rosterTimeoutMs={200} reload={reload}>
+          <StationUplinkLoader
+            rosterTimeoutMs={200}
+            reload={reload}
+            importBundle={async () => ({})}
+          >
             <div data-testid="dashboard-widgets">widgets rendered</div>
           </StationUplinkLoader>
         </PeerClientProvider>
@@ -469,13 +471,6 @@ describe("StationUplinkLoader", () => {
     await waitFor(() =>
       expect(getUplinkOutcomes().find((o) => o.id === "alpha")).toBeDefined(),
     );
-    // The default importBundle cannot run in jsdom, so mark the load as it would read in a browser.
-    setUplinkOutcome({
-      id: "alpha",
-      name: "alpha",
-      version: "1.0.0",
-      status: "loaded",
-    });
 
     await act(async () => {
       peerClient.announce([]);
@@ -635,5 +630,180 @@ describe("a station loads a third-party client whose dev path is on the main scr
     );
     expect(third.status).toBe("loaded");
     expect(conduit.sendBundleFetch).toHaveBeenCalledWith(DEV_BUNDLE, goodHash);
+  });
+});
+
+describe("a station opens only once every Uplink its main screen runs has loaded", () => {
+  const ALPHA_AND_BETA = [
+    { id: "alpha", version: "1.0.0" },
+    { id: "beta", version: "1.0.0" },
+  ];
+  const ROSTER = {
+    uplinks: ["alpha", "beta"].map((id) => ({
+      id,
+      version: "1.0.0",
+      available: true,
+      reason: null,
+    })),
+  };
+
+  function renderStation(
+    peerClient: PeerClient,
+    client: TelemetryClient,
+    rosterTimeoutMs = 50,
+  ) {
+    return render(
+      <TelemetryProvider client={client}>
+        <PeerClientProvider client={peerClient}>
+          <StationUplinkLoader
+            rosterTimeoutMs={rosterTimeoutMs}
+            importBundle={async () => ({})}
+          >
+            <div data-testid="dashboard-widgets">widgets rendered</div>
+          </StationUplinkLoader>
+        </PeerClientProvider>
+      </TelemetryProvider>,
+    );
+  }
+
+  function held(): { promise: Promise<void>; release: () => void } {
+    let release = () => {};
+    const promise = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    return { promise, release };
+  }
+
+  function row(name: string): HTMLElement {
+    const item = screen
+      .getAllByRole("listitem")
+      .find((li) => li.getAttribute("data-uplink-id") === name);
+    if (!item) throw new Error(`no row for ${name}`);
+    return item;
+  }
+
+  it("shows no dashboard while an Uplink of the set is still downloading", async () => {
+    stubFetch(registryWith(goodHash));
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    stub.emit("system.uplinks", ROSTER);
+    const gate = held();
+    const sendBundleFetch = vi.fn(async () => {
+      await gate.promise;
+      return BUNDLE_BYTES;
+    });
+    renderStation(peerClientWith(sendBundleFetch, ALPHA_RUNS), client);
+
+    await waitFor(() =>
+      expect(row("alpha").textContent).toMatch(/Downloading/),
+    );
+    expect(screen.queryByTestId("dashboard-widgets")).toBeNull();
+
+    await act(async () => gate.release());
+    await screen.findByTestId("dashboard-widgets");
+  });
+
+  it("keeps the dashboard closed while one Uplink is loaded and another is not, then opens it", async () => {
+    stubFetch(registryWith(goodHash));
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    stub.emit("system.uplinks", ROSTER);
+    const gate = held();
+    const sendBundleFetch = vi
+      .fn(async () => BUNDLE_BYTES)
+      .mockImplementationOnce(async () => BUNDLE_BYTES)
+      .mockImplementationOnce(async () => {
+        await gate.promise;
+        return BUNDLE_BYTES;
+      });
+    renderStation(peerClientWith(sendBundleFetch, ALPHA_AND_BETA), client);
+
+    await waitFor(() => expect(row("alpha").textContent).toMatch(/Loaded/));
+    await waitFor(() => expect(row("beta").textContent).toMatch(/Downloading/));
+    expect(screen.queryByTestId("dashboard-widgets")).toBeNull();
+
+    await act(async () => gate.release());
+    await screen.findByTestId("dashboard-widgets");
+    expect(screen.queryByRole("listitem")).toBeNull();
+  });
+
+  it("never falls through to the dashboard when an Uplink fails, and loads it on Retry", async () => {
+    stubFetch(registryWith(goodHash));
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    stub.emit("system.uplinks", ROSTER);
+    const sendBundleFetch = vi
+      .fn(async () => BUNDLE_BYTES)
+      .mockImplementationOnce(async () => {
+        throw new Error("the main screen could not reach the bundle");
+      });
+    renderStation(peerClientWith(sendBundleFetch, ALPHA_RUNS), client);
+
+    await waitFor(() =>
+      expect(row("alpha").textContent).toMatch(
+        /Failed.*the main screen could not reach the bundle/,
+      ),
+    );
+    // Long past the roster deadline: a failure never opens the dashboard.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+    expect(screen.queryByTestId("dashboard-widgets")).toBeNull();
+
+    await act(async () => {
+      screen.getByRole("button", { name: /Retry alpha/ }).click();
+    });
+    await screen.findByTestId("dashboard-widgets");
+    expect(sendBundleFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the block up with a Retry while the game's Uplink list has not named an Uplink", async () => {
+    stubFetch({ uplinks: [] });
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    renderStation(
+      peerClientWith(
+        vi.fn(async () => BUNDLE_BYTES),
+        [{ id: "third", version: "1.0.0" }],
+      ),
+      client,
+      10,
+    );
+
+    await waitFor(() =>
+      expect(row("third").textContent).toMatch(
+        /Waiting for the game's Uplink list/,
+      ),
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(screen.queryByTestId("dashboard-widgets")).toBeNull();
+    expect(screen.getByRole("button", { name: /Retry third/ })).not.toBeNull();
+  });
+
+  it("closes the dashboard again when the main screen starts running one more Uplink", async () => {
+    stubFetch(registryWith(goodHash));
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    stub.emit("system.uplinks", ROSTER);
+    const gate = held();
+    const sendBundleFetch = vi
+      .fn(async () => BUNDLE_BYTES)
+      .mockImplementationOnce(async () => BUNDLE_BYTES)
+      .mockImplementationOnce(async () => {
+        await gate.promise;
+        return BUNDLE_BYTES;
+      });
+    const peerClient = peerClientWith(sendBundleFetch, ALPHA_RUNS);
+    renderStation(peerClient, client);
+    await screen.findByTestId("dashboard-widgets");
+
+    await act(async () => peerClient.announce(ALPHA_AND_BETA));
+    await waitFor(() => expect(row("beta").textContent).toMatch(/Downloading/));
+    expect(screen.queryByTestId("dashboard-widgets")).toBeNull();
+
+    await act(async () => gate.release());
+    await screen.findByTestId("dashboard-widgets");
   });
 });

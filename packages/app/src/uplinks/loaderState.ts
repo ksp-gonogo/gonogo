@@ -21,6 +21,12 @@ export interface UplinkLoadOutcome {
   /** The resolved version, if the descriptor got that far. */
   version?: string;
   status: UplinkLoadStatus;
+  /**
+   * How far a `loading` Uplink has got: fetching its client's bytes, or
+   * checking them against the hash it was vouched for. Absent before the fetch
+   * starts and on every settled outcome.
+   */
+  phase?: "downloading" | "verifying";
   /** `local` for a build named with `--uplink` under the dev server. */
   source?: "local";
   /**

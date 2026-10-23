@@ -21,18 +21,26 @@ import {
   type TelemetryClient,
   useTelemetryClientOptional,
 } from "@ksp-gonogo/sitrep-client";
+import { Badge, Button, Cluster, Text } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
 import type { PeerClientService } from "../peer/PeerClientService";
 import { VERSION } from "../version";
 import { loaderBootIdsOverride } from "./flag";
 import { hostCompat } from "./hostCompat";
-import { loadEnabledUplinks, loadHostAdditions } from "./loader";
+import { loadEnabledUplinks, loadHostAdditions, retryUplink } from "./loader";
 import {
   getUplinkOutcomes,
   type RunningUplink,
+  subscribeUplinkOutcomes,
   type UplinkLoadOutcome,
 } from "./loaderState";
 import {
@@ -168,46 +176,62 @@ export async function loadWithArrivedRoster(
   );
 }
 
-/** The main screen's first settled Uplink set, or `null` if it has not said within `timeoutMs`. */
-function firstHostUplinks(
-  conduit: StationUplinkConduit,
-  timeoutMs: number,
-): Promise<RunningUplink[] | null> {
-  return new Promise((resolve) => {
-    let done = false;
-    let off: (() => void) | undefined;
-    const finish = (set: RunningUplink[] | null) => {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      off?.();
-      resolve(set);
-    };
-    const timer = setTimeout(() => finish(null), timeoutMs);
-    off = conduit.onHostUplinksChange((set) => {
-      if (set) finish(set);
-    });
-    if (done) off();
-  });
+/**
+ * Load one Uplink of the main screen's set again, whatever its last outcome,
+ * reading the game's Uplink list afresh first. Returns its outcome, or nothing
+ * when the set no longer names it.
+ */
+export async function retryStationUplink(
+  telemetryClient: TelemetryClient,
+  bundleFetchConduit: BundleFetchConduit,
+  hostUplinks: readonly RunningUplink[],
+  id: string,
+  rosterTimeoutMs?: number,
+  importBundle?: (bytes: ArrayBuffer, url: string) => Promise<unknown>,
+): Promise<UplinkLoadOutcome[]> {
+  const roster = await readRosterFromTelemetryClient(
+    telemetryClient,
+    rosterTimeoutMs,
+  );
+  return retryUplink(
+    loaderContext(roster, bundleFetchConduit, hostUplinks, importBundle),
+    id,
+  );
+}
+
+/** Whether `outcome` is the main screen's `uplink` loaded at the version the main screen runs. */
+function matchesHost(
+  uplink: RunningUplink,
+  outcome: UplinkLoadOutcome | undefined,
+): boolean {
+  return outcome?.status === "loaded" && outcome.version === uplink.version;
 }
 
 export interface StationUplinkLoaderProps {
   children: ReactNode;
-  /** Test seam: overrides the default 3000ms wait for the roster and for the main screen's Uplink set. */
+  /** Test seam: overrides the default 3000ms wait for the game's Uplink list. */
   rosterTimeoutMs?: number;
   /** Test seam: what the station does when it must start again from a new set. Reloads the page. */
   reload?: () => void;
+  /**
+   * Test seam: overrides `LoaderContext.importBundle`. jsdom cannot import the
+   * blob URL the default builds, so a test that needs an Uplink to load passes one.
+   */
+  importBundle?: (bytes: ArrayBuffer, url: string) => Promise<unknown>;
 }
 
 /**
- * Gates `children` on the station's first load completing, mirroring
- * `main.tsx` running its loader before `renderApp()`.
+ * Gates `children` on every Uplink the main screen runs being loaded on this
+ * station at the main screen's version. A station that is missing one cannot
+ * show the main screen's dashboard faithfully, so until then it shows one row
+ * per Uplink with how far it has got, and a failed Uplink keeps that screen up
+ * with its reason and a Retry. A later set from the main screen that adds an
+ * Uplink brings the screen back until the addition loads.
  *
  * Waits for the peer `TelemetryClient` and the `PeerClientService`, then for
  * the main screen to say which Uplinks it runs, and loads exactly that set.
- * If the main screen has not said within the timeout, the children render
- * with nothing loaded. From then on every set the main screen sends is
- * followed with {@link followHostUplinks}, one at a time.
+ * From then on every set the main screen sends is followed with
+ * {@link followHostUplinks}, one at a time.
  *
  * Starts exactly once per mounted instance: `startedRef` latches before the
  * async work begins, so a React StrictMode double-invoke never loads twice.
@@ -216,86 +240,260 @@ export function StationUplinkLoader({
   children,
   rosterTimeoutMs,
   reload = () => window.location.reload(),
+  importBundle,
 }: StationUplinkLoaderProps) {
   const telemetryClient = useTelemetryClientOptional();
   const peerClient = usePeerClient();
-  const [ready, setReady] = useState(false);
+  const outcomes = useSyncExternalStore(
+    subscribeUplinkOutcomes,
+    getUplinkOutcomes,
+  );
+  const [hostSet, setHostSet] = useState<readonly RunningUplink[] | null>(null);
+  const [firstLoadDone, setFirstLoadDone] = useState(false);
   const startedRef = useRef(false);
   const reloadRef = useRef(reload);
   reloadRef.current = reload;
+  const hostSetRef = useRef<readonly RunningUplink[] | null>(null);
+  const chainRef = useRef<Promise<unknown>>(Promise.resolve());
+
+  const fail = useCallback((err: unknown) => {
+    logger.error(
+      "[uplink-loader] station loader path threw",
+      err instanceof Error ? err : new Error(String(err)),
+    );
+  }, []);
 
   useEffect(() => {
     if (startedRef.current) return;
     if (!telemetryClient || !peerClient) return;
     startedRef.current = true;
 
-    const fail = (err: unknown) => {
-      logger.error(
-        "[uplink-loader] station loader path threw",
-        err instanceof Error ? err : new Error(String(err)),
-      );
+    const enqueue = (step: () => Promise<unknown>) => {
+      chainRef.current = chainRef.current.then(step).catch(fail);
     };
-    let chain: Promise<unknown> = Promise.resolve();
-    void (async () => {
-      const first = await firstHostUplinks(peerClient, rosterTimeoutMs ?? 3000);
-      let hostSet: readonly RunningUplink[] | null = first;
+    /*
+     * The first load reads the game's Uplink list once, with a deadline. A
+     * screen slow to start can miss it, so an Uplink that waited for the list
+     * is loaded when the list arrives.
+     */
+    telemetryClient.subscribe("system.uplinks", (value: unknown) => {
+      const roster = decodeRosterPayload(value);
+      const set = hostSetRef.current;
+      if (!roster || !set) return;
+      enqueue(() =>
+        loadWithArrivedRoster(roster, peerClient, set, importBundle),
+      );
+    });
+    peerClient.onHostUplinksChange((set) => {
+      if (!set) return;
+      const first = hostSetRef.current === null;
+      hostSetRef.current = set;
+      setHostSet(set);
       if (first) {
-        await runStationUplinkLoad(
+        enqueue(() =>
+          runStationUplinkLoad(
+            telemetryClient,
+            peerClient,
+            set,
+            rosterTimeoutMs,
+            importBundle,
+          ).finally(() => setFirstLoadDone(true)),
+        );
+        return;
+      }
+      enqueue(() =>
+        followHostUplinks(
           telemetryClient,
           peerClient,
-          first,
+          set,
+          () => reloadRef.current(),
           rosterTimeoutMs,
-        ).catch(fail);
-      }
-      setReady(true);
-      /*
-       * The first load reads the game's Uplink list once, with a deadline. A
-       * screen slow to start can miss it, so an Uplink that waited for the list
-       * is loaded when the list arrives.
-       */
-      telemetryClient.subscribe("system.uplinks", (value: unknown) => {
-        const roster = decodeRosterPayload(value);
-        const set = hostSet;
-        if (!roster || !set) return;
-        chain = chain
-          .then(() => loadWithArrivedRoster(roster, peerClient, set))
-          .catch(fail);
-      });
-      peerClient.onHostUplinksChange((set) => {
-        if (!set) return;
-        hostSet = set;
-        chain = chain
-          .then(() =>
-            followHostUplinks(
-              telemetryClient,
-              peerClient,
-              set,
-              () => reloadRef.current(),
-              rosterTimeoutMs,
-            ),
-          )
-          .catch(fail);
-      });
-    })();
-  }, [telemetryClient, peerClient, rosterTimeoutMs]);
+          importBundle,
+        ),
+      );
+    });
+  }, [telemetryClient, peerClient, rosterTimeoutMs, importBundle, fail]);
 
-  if (!ready) {
-    return (
-      <LoadingPlaceholder role="status" aria-live="polite">
-        Loading station widgets...
-      </LoadingPlaceholder>
-    );
+  const retry = useCallback(
+    (id: string) => {
+      const set = hostSetRef.current;
+      if (!telemetryClient || !peerClient || !set) return;
+      chainRef.current = chainRef.current
+        .then(() =>
+          retryStationUplink(
+            telemetryClient,
+            peerClient,
+            set,
+            id,
+            rosterTimeoutMs,
+            importBundle,
+          ),
+        )
+        .catch(fail);
+    },
+    [telemetryClient, peerClient, rosterTimeoutMs, importBundle, fail],
+  );
+
+  const byId = new Map(outcomes.map((o) => [o.id, o]));
+  if (hostSet?.every((u) => matchesHost(u, byId.get(u.id)))) {
+    return <>{children}</>;
   }
 
-  return <>{children}</>;
+  return (
+    <StationUplinkGate>
+      <StationUplinkGate__Title>
+        Loading station widgets
+      </StationUplinkGate__Title>
+      <Text level="muted" size="sm">
+        This station opens once it has every Uplink the main screen runs.
+      </Text>
+      <StationUplinkGate__List
+        role="status"
+        aria-live="polite"
+        aria-label="Uplinks"
+      >
+        {hostSet === null ? (
+          <StationUplinkGate__Row>
+            <Text level="muted">Waiting for the main screen's Uplink list</Text>
+          </StationUplinkGate__Row>
+        ) : (
+          hostSet.map((uplink) => (
+            <UplinkGateRow
+              key={uplink.id}
+              uplink={uplink}
+              outcome={byId.get(uplink.id)}
+              firstLoadDone={firstLoadDone}
+              onRetry={retry}
+            />
+          ))
+        )}
+      </StationUplinkGate__List>
+    </StationUplinkGate>
+  );
 }
 
-const LoadingPlaceholder = styled.div`
+interface RowState {
+  word: string;
+  tone: "info" | "go" | "caution" | "nogo";
+  detail?: string;
+  retry?: true;
+}
+
+function rowState(
+  uplink: RunningUplink,
+  outcome: UplinkLoadOutcome | undefined,
+  firstLoadDone: boolean,
+): RowState {
+  if (!outcome) {
+    return firstLoadDone
+      ? { word: "Queued", tone: "info" }
+      : { word: "Waiting for the game's Uplink list", tone: "info" };
+  }
+  if (outcome.awaitingRoster) {
+    return {
+      word: "Waiting for the game's Uplink list",
+      tone: "caution",
+      detail: "The game has not listed this Uplink",
+      retry: true,
+    };
+  }
+  if (outcome.status === "loading") {
+    if (outcome.phase === "downloading")
+      return { word: "Downloading", tone: "info" };
+    if (outcome.phase === "verifying")
+      return { word: "Verifying", tone: "info" };
+    return { word: "Preparing", tone: "info" };
+  }
+  if (outcome.status === "loaded") {
+    return matchesHost(uplink, outcome)
+      ? { word: "Loaded", tone: "go" }
+      : {
+          word: "Wrong version",
+          tone: "caution",
+          detail: `the main screen runs ${uplink.version}, this station has ${outcome.version ?? "an unknown version"}`,
+        };
+  }
+  return {
+    word: "Failed",
+    tone: "nogo",
+    detail: outcome.summary ?? outcome.reason,
+    retry: true,
+  };
+}
+
+function UplinkGateRow({
+  uplink,
+  outcome,
+  firstLoadDone,
+  onRetry,
+}: {
+  uplink: RunningUplink;
+  outcome: UplinkLoadOutcome | undefined;
+  firstLoadDone: boolean;
+  onRetry: (id: string) => void;
+}) {
+  const state = rowState(uplink, outcome, firstLoadDone);
+  const name = outcome?.name ?? uplink.id;
+  return (
+    <StationUplinkGate__Row data-uplink-id={uplink.id}>
+      <Cluster justify="between" gap="related-dense" wrap>
+        <Text weight="semibold">{name}</Text>
+        <Badge tone={state.tone}>{state.word}</Badge>
+      </Cluster>
+      {state.detail && (
+        <Text level="muted" size="sm">
+          {state.detail}
+        </Text>
+      )}
+      {state.retry && (
+        <StationUplinkGate__Retry>
+          <Button
+            size="sm"
+            aria-label={`Retry ${name}`}
+            onClick={() => onRetry(uplink.id)}
+          >
+            Retry
+          </Button>
+        </StationUplinkGate__Retry>
+      )}
+    </StationUplinkGate__Row>
+  );
+}
+
+const StationUplinkGate = styled.section`
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
+  flex-direction: column;
+  gap: var(--gap-related);
+  width: 100%;
+  max-width: 40rem;
+  min-height: 60vh;
+  margin: 0 auto;
   padding: var(--inset-screen-message);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-compact);
+  box-sizing: border-box;
+`;
+
+const StationUplinkGate__Title = styled.h2`
+  margin: 0;
+  font-size: var(--font-size-lg);
+`;
+
+const StationUplinkGate__List = styled.ul`
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-related);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+`;
+
+const StationUplinkGate__Row = styled.li`
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-caption);
+  min-width: 0;
+  overflow-wrap: anywhere;
+`;
+
+const StationUplinkGate__Retry = styled.div`
+  display: flex;
 `;

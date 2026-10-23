@@ -965,10 +965,12 @@ async function loadOne(
     // peer-backed `fetchBytes` can hand it to the host for verification,
     // see the doc comment on `LoaderContext.fetchBytes`.
     const fetchBytes = ctx.fetchBytes ?? defaultFetchBytes;
+    setUplinkOutcome({ ...base, phase: "downloading" });
     const bytes = await fetchBytes(
       version.bundleUrl,
       unvouched ? undefined : version.integrity,
     );
+    setUplinkOutcome({ ...base, phase: "verifying" });
     const digest = await sha256Hex(bytes);
 
     /*
@@ -1309,6 +1311,18 @@ export async function loadHostAdditions(
   return queueLoad(ctx, unattempted, () =>
     ctx.hostUplinks.some((u) => unattempted([u.id]).length > 0),
   );
+}
+
+/**
+ * Load one Uplink again whatever its last outcome was: what a station does when
+ * the operator asks to retry an Uplink that failed. Returns its outcome, or
+ * nothing when the id is not one this screen would load.
+ */
+export async function retryUplink(
+  ctx: LoaderContext,
+  id: string,
+): Promise<UplinkLoadOutcome[]> {
+  return queueLoad(ctx, (ids) => ids.filter((candidate) => candidate === id));
 }
 
 /**
