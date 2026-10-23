@@ -20,6 +20,7 @@ import {
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
+import type { ContactLoss } from "../shared/useContactLoss";
 import type { LandingRegime } from "./clocks";
 
 export const REGIME_LABEL: Record<LandingRegime, string> = {
@@ -113,6 +114,8 @@ export interface CommitLayerProps {
   predicted?: boolean;
   /** True while the flight's crash is on record: whatever the wreck still reports, the hero says the vessel was destroyed, never landed. */
   crashed?: boolean;
+  /** The centre has heard nothing from the craft for longer than it expected: the hero says so in place of the last held descent, and never says the craft crashed, which the centre cannot know. */
+  contactLoss?: ContactLoss | null;
   /** True when even an optimal burn cannot arrest the vessel in the remaining altitude; distinct from a nominal committed burn. */
   noLandingVector?: boolean;
   /** The touchdown speed of the best burn started now (`bestSpeedAtImpact`, m/s); the row holds the absent-value token when there is none. */
@@ -125,6 +128,13 @@ export interface CommitLayerProps {
   inline?: boolean;
   /** The craft's parachutes, from `vessel.landing`, for a craft with no engine: how far they have opened, whether opening the rest is safe, and the height they open fully at. Omitted or all null, the row says nothing. */
   parachute?: ParachuteStatus;
+}
+
+/** How long the centre has been without the craft, as the date it last had a link, in capitals like the other captions. */
+function lostContactCaption({ sinceUt }: ContactLoss): string {
+  return sinceUt === null
+    ? "NO CONTACT"
+    : `NO CONTACT SINCE ${writeQuantity(sinceUt).toUpperCase()}`;
 }
 
 interface Hero {
@@ -144,6 +154,7 @@ function resolveHero({
   centreOfMass = false,
   landed = false,
   crashed = false,
+  contactLoss = null,
   descending = true,
   predicted = false,
   noLandingVector = false,
@@ -158,6 +169,14 @@ function resolveHero({
 
   if (crashed) return hero("CRASHED", "VESSEL DESTROYED", "nogo");
   if (landed) return hero("LANDED", "TOUCHDOWN CONFIRMED", "go");
+  // A descent the centre stopped hearing is not live, whatever the last frames said.
+  if (contactLoss) {
+    return hero(
+      contactLoss.phase === "lost" ? "PRESUMED LOST" : "OVERDUE",
+      lostContactCaption(contactLoss),
+      contactLoss.phase === "lost" ? "nogo" : "warn",
+    );
+  }
   // Nothing to burn against: no burn timing or link request, only what is so.
   if (!descending) {
     return hero(
@@ -214,6 +233,13 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
           <Readout tone="nogo">CRASHED</Readout>
         ) : props.landed ? (
           <Readout tone="go">LANDED</Readout>
+        ) : props.contactLoss ? (
+          <Readout tone={props.contactLoss.phase === "lost" ? "nogo" : "warn"}>
+            {props.contactLoss.phase === "lost" ? "PRESUMED LOST" : "OVERDUE"}
+            <ReadoutCaption>
+              {lostContactCaption(props.contactLoss)}
+            </ReadoutCaption>
+          </Readout>
         ) : (
           (parachuteLine(props.parachute) ??
           (props.descending === false ? (
