@@ -63,6 +63,12 @@ describe("SignalLossIndicator: deriveState", () => {
     expect(deriveState(true, value("ratio", 0.01), 2, true)).toBe("connected");
   });
 
+  it("does NOT report lost on the tiny product strength of a long relay chain", () => {
+    // Nine relayed hops each near their range multiply to about 1e-8, still a live link.
+    const chain = value("ratio", 1.17e-8);
+    expect(deriveState(true, chain, 2, true)).toBe("connected");
+  });
+
   it("reports partial for reduced-control states while connected is confirmed true", () => {
     expect(deriveState(true, OK, 1, true)).toBe("partial");
     expect(deriveState(true, OK, 0, true)).toBe("partial");

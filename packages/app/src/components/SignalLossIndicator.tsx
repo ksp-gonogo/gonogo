@@ -32,11 +32,12 @@ import { useEffect, useRef, useState } from "react";
  */
 
 /**
- * Strength at or below this reads as "0% signal" ⇒ no-signal. Tiny (a
- * float-noise guard), not a "weak link" threshold: a genuinely weak-but-present
- * link (e.g. 1%) must not flash the banner, only an effectively-zero reading.
+ * Only a strength of exactly nothing reads as "0% signal". A relayed path's
+ * strength is the product of its hops, so a long chain of live links is
+ * legitimately tiny (nine hops near their range come to about 1e-8) and must
+ * not read as a lost link.
  */
-const NO_SIGNAL_STRENGTH_EPSILON = value("ratio", 1e-6);
+const NO_SIGNAL_STRENGTH = value("ratio", 0);
 
 /**
  * How long the link report must be missing before the banner says it is
@@ -166,9 +167,7 @@ export function deriveState(
   // continues to flow: the UI being quiet is more honest than flashing SIGNAL
   // LOSS while live samples arrive. 0% strength is equivalent to not-connected
   // (a link that decayed to nothing), so it trips the same "lost" state.
-  const zeroSignal = signalStrength?.lessThanOrEqual(
-    NO_SIGNAL_STRENGTH_EPSILON,
-  );
+  const zeroSignal = signalStrength?.lessThanOrEqual(NO_SIGNAL_STRENGTH);
   if ((connected === false || zeroSignal) && hasConfirmedConnection) {
     return "lost";
   }
