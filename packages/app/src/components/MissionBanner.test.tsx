@@ -64,6 +64,8 @@ function setupTelemetryStream() {
     emitIdentity: (identity: unknown) =>
       transport.emit("vessel.identity", identity),
     emitDelay: (delay: unknown) => transport.emit("comms.delay", delay),
+    emitFlightCurrent: (current: unknown) =>
+      transport.emit("flight.current", current),
     emitRoster: (roster: unknown) =>
       transport.emit("commandCentre.roster", roster, { vantage: KSC }),
     Provider,
@@ -211,6 +213,40 @@ describe("MissionBanner", () => {
     });
     await waitFor(() => expect(screen.queryByText("Eeloo Probe")).toBeNull());
     expect(screen.queryByText("Vessel")).toBeNull();
+  });
+
+  it("says a kerbal is on EVA, by name, while the flight reading reports one", async () => {
+    const fixture = setupTelemetryStream();
+    const { container } = render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emitFlightCurrent({
+        flightId: "f1",
+        vesselId: "v1",
+        vesselName: "Kerbal X",
+        phase: 5,
+        onEva: true,
+        evaKerbalName: "Jebediah Kerman",
+      });
+    });
+
+    expect(await screen.findByText("Jebediah Kerman")).toBeInTheDocument();
+    expect(screen.getByText("EVA")).toBeInTheDocument();
+    act(() => {
+      fixture.emitFlightCurrent({
+        flightId: "f1",
+        vesselId: "v1",
+        vesselName: "Kerbal X",
+        phase: 5,
+        onEva: false,
+        evaKerbalName: null,
+      });
+    });
+    await waitFor(() => expect(screen.queryByText("EVA")).toBeNull());
+    await expectNoA11yViolations(container);
   });
 
   it("shows no vessel field for an empty name", async () => {

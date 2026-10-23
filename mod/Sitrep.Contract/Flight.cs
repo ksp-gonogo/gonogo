@@ -86,6 +86,14 @@ public class FlightCurrent
     /// <summary>The vessel's current flight phase, as its <see cref="Situation"/> (PreLaunch, Flying, Landed and so on).</summary>
     [SitrepUnit(Units.Enumeration)]
     public Situation Phase { get; set; }
+
+    /// <summary>True while a kerbal is on EVA from this vessel. The rest of this reading, and every other <c>vessel.*</c> Topic, goes on describing the vessel the kerbal left.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool OnEva { get; set; }
+
+    /// <summary>The name of the kerbal on EVA from this vessel, or null when nobody is.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? EvaKerbalName { get; set; }
 }
 
 /// <summary>

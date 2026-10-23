@@ -15258,6 +15258,7 @@ components:
         - vesselId
         - vesselName
         - phase
+        - onEva
       properties:
         flightId:
           type: string
@@ -15283,6 +15284,19 @@ components:
           allOf:
             - $ref: "#/components/schemas/Situation"
               x-sitrep-unit: enum
+        onEva:
+          type: boolean
+          x-sitrep-unit: flag
+          description: |-
+            True while a kerbal is on EVA from this vessel. The rest of this reading,
+            and every other `vessel.*` Topic, goes on describing the vessel the kerbal
+            left.
+        evaKerbalName:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The name of the kerbal on EVA from this vessel, or null when nobody is.
     FlightEndReason:
       type: integer
       description: |-

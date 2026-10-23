@@ -4146,6 +4146,14 @@ export interface FlightCurrent
 	* Landed and so on).
 	*/
 	phase: Situation;
+	/**
+	* True while a kerbal is on EVA from this vessel. The rest of this reading,
+	* and every other `vessel.*` Topic, goes on describing the vessel the kerbal
+	* left.
+	*/
+	onEva: boolean;
+	/** The name of the kerbal on EVA from this vessel, or null when nobody is. */
+	evaKerbalName?: string | null;
 }
 /**
 * An event that is always delivered, in the order it happened, and held back

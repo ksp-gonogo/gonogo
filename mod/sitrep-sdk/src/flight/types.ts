@@ -371,6 +371,8 @@ export interface FlightRecord {
    * operator leaving the flight scene.
    */
   endReason?: FlightEndReason;
+  /** The names of the kerbals who went on EVA from this vessel during the flight, in the order they went. Absent when none did. */
+  evaKerbals?: string[];
   /**
    * The UT, in seconds, of the first captured frame, set only by a recorder
    * that works in UT. A graph of such a record queries its range with these:
@@ -514,6 +516,8 @@ export interface MissionMeta {
    * scene, and for a mission recorded before it was kept.
    */
   endReason?: FlightEndReason;
+  /** The names of the kerbals who went on EVA from this vessel during the flight, in the order they went. Absent when none did. */
+  evaKerbals?: string[];
   /**
    * User-authored chapters / markers, as `FlightChapterRecord`. Its
    * `startMs`/`endMs` are literal milliseconds elapsed since `firstFrameUt`,

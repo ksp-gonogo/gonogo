@@ -563,6 +563,7 @@ namespace Sitrep.Host.Flight
             if (!_flights.TryGetValue(vesselId, out var flight)) return;
 
             var name = ReadVesselName(snapshot) ?? _activeVesselName;
+            var eva = ReadEvaKerbal(snapshot);
             flight.VesselName = name;
             _current.Publish(new FlightCurrent
             {
@@ -570,6 +571,8 @@ namespace Sitrep.Host.Flight
                 VesselId = vesselId,
                 VesselName = name,
                 Phase = ReadSituation(snapshot),
+                OnEva = eva != null,
+                EvaKerbalName = eva,
             }, snapshot.Ut);
         }
 
@@ -591,6 +594,13 @@ namespace Sitrep.Host.Flight
         {
             var identity = GetVesselIdentityGroup(snapshot);
             return identity != null ? SnapshotDict.GetString(identity, "name") : null;
+        }
+
+        private static string? ReadEvaKerbal(KspSnapshot snapshot)
+        {
+            var identity = GetVesselIdentityGroup(snapshot);
+            var name = identity != null ? SnapshotDict.GetString(identity, "evaKerbal") : null;
+            return string.IsNullOrEmpty(name) ? null : name;
         }
 
         private static Situation ReadSituation(KspSnapshot snapshot)

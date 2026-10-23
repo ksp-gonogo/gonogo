@@ -729,6 +729,9 @@ namespace Gonogo.KSP
                 ["situation"] = vessel.situation.ToString(),
                 ["parentBody"] = parentBody != null ? parentBody.bodyName : null,
                 ["launchTime"] = vessel.launchTime,
+                // Set only for the vessel a kerbal's EVA is reported under, so the
+                // flight reading can say the kerbal is outside.
+                ["evaKerbal"] = ReferenceEquals(vessel, ActiveVesselScope.Current) ? ActiveVesselScope.EvaKerbalName : null,
             };
         }
 

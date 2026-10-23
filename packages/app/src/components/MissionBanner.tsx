@@ -49,6 +49,7 @@ export function MissionBanner({ actions }: Readonly<{ actions?: ReactNode }>) {
         <VantageControl />
       </BannerField>
       <VesselField />
+      <EvaField />
       <SignalDelayField />
       <GameStatusField />
       {actions ? <Actions>{actions}</Actions> : null}
@@ -114,6 +115,19 @@ function VesselField() {
   return (
     <BannerField label="Vessel">
       <VesselName>{name}</VesselName>
+    </BannerField>
+  );
+}
+
+/** The kerbal outside the craft being reported, named, and nothing while nobody is. */
+function EvaField() {
+  const current = useTelemetry("flight.current");
+  if (current.state !== "observed" && current.state !== "held") return null;
+  if (current.value.onEva !== true) return null;
+  const name = current.value.evaKerbalName?.trim();
+  return (
+    <BannerField label="EVA">
+      {name ? <VesselName>{name}</VesselName> : "in progress"}
     </BannerField>
   );
 }

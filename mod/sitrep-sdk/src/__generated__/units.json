@@ -714,7 +714,9 @@
       "kerbalName": "id"
     },
     "FlightCurrent": {
+      "evaKerbalName": "text",
       "flightId": "id",
+      "onEva": "flag",
       "phase": "enum",
       "vesselId": "id",
       "vesselName": "text"
@@ -1896,7 +1898,9 @@
       "count": "count"
     },
     "flight.current": {
+      "evaKerbalName": "text",
       "flightId": "id",
+      "onEva": "flag",
       "phase": "enum",
       "vesselId": "id",
       "vesselName": "text"

@@ -754,7 +754,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     kerbalName: "id",
   },
   "FlightCurrent": {
+    evaKerbalName: "text",
     flightId: "id",
+    onEva: "flag",
     phase: "enum",
     vesselId: "id",
     vesselName: "text",
@@ -1941,7 +1943,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     count: "count",
   },
   "flight.current": {
+    evaKerbalName: "text",
     flightId: "id",
+    onEva: "flag",
     phase: "enum",
     vesselId: "id",
     vesselName: "text",

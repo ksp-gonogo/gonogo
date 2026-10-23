@@ -1265,7 +1265,7 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.FlightCurrent"/> to the wire
-        /// object <c>{ flightId, vesselId, vesselName, phase }</c> (<c>phase</c>
+        /// object <c>{ flightId, vesselId, vesselName, phase, onEva, evaKerbalName }</c> (<c>phase</c>
         /// as its <see cref="Sitrep.Contract.Situation"/> integer ordinal, same
         /// convention as every other enum in this codec). See the <c>case</c>
         /// in <see cref="AppendValue"/>.
@@ -1288,6 +1288,14 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "phase");
             sb.Append(':');
             AppendInteger(sb, (long)f.Phase);
+            sb.Append(',');
+            AppendString(sb, "onEva");
+            sb.Append(':');
+            sb.Append(f.OnEva ? "true" : "false");
+            sb.Append(',');
+            AppendString(sb, "evaKerbalName");
+            sb.Append(':');
+            AppendNullableString(sb, f.EvaKerbalName);
             sb.Append('}');
         }
 

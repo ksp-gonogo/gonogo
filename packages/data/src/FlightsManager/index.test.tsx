@@ -155,6 +155,29 @@ describe("FlightsManager", () => {
     expect(within(steady).queryByText(/launched as/)).toBeNull();
   });
 
+  it("notes the kerbals who went on EVA under the vessel's name", async () => {
+    const store = freshStore();
+    registerDataSource(new MissionHistorySource(store));
+    await seedMission(store, {
+      vesselName: "Alpha",
+      evaKerbals: ["Jebediah Kerman", "Valentina Kerman"],
+    });
+    await seedMission(store, { vesselName: "Bravo" });
+
+    render(<FlightsManager />);
+
+    const alpha = (await screen.findByText("Alpha")).closest(
+      "tr",
+    ) as HTMLElement;
+    expect(
+      within(alpha).getByText("EVA: Jebediah Kerman, Valentina Kerman"),
+    ).toBeTruthy();
+    const bravo = (await screen.findByText("Bravo")).closest(
+      "tr",
+    ) as HTMLElement;
+    expect(within(bravo).queryByText(/^EVA:/)).toBeNull();
+  });
+
   it("toggles a flight's starred state", async () => {
     const user = userEvent.setup();
     const store = freshStore();

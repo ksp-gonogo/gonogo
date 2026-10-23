@@ -427,6 +427,11 @@ export function FlightsManager({
                         {f.launchName && (
                           <LaunchName>launched as {f.launchName}</LaunchName>
                         )}
+                        {f.evaKerbals && f.evaKerbals.length > 0 && (
+                          <FlightDetail>
+                            EVA: {f.evaKerbals.join(", ")}
+                          </FlightDetail>
+                        )}
                         {f.outcome?.kind === "recovered" && (
                           <OutcomeBadge
                             $tone="go"
@@ -829,6 +834,12 @@ const Td = styled.td`
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-surface-raised);
   white-space: nowrap;
+`;
+
+const FlightDetail = styled.span`
+  display: block;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
 `;
 
 const LaunchName = styled.span`

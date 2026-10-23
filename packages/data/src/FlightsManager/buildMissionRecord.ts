@@ -27,6 +27,8 @@ export function buildMissionRecord(params: {
   id?: string;
   /** Why the flight ended, when the end is known. */
   endReason?: FlightEndReason;
+  /** The kerbals who went on EVA from the vessel so far, in the order they went. */
+  evaKerbals?: readonly string[];
 }): MissionRecord | null {
   const { fixture } = params;
   if (fixture.frames.length === 0) return null;
@@ -65,6 +67,9 @@ export function buildMissionRecord(params: {
     ...(Number.isFinite(firstValidUt) ? { firstValidUt, lastValidUt } : {}),
     frameCount: fixture.frames.length,
     ...(params.endReason === undefined ? {} : { endReason: params.endReason }),
+    ...(params.evaKerbals?.length
+      ? { evaKerbals: [...params.evaKerbals] }
+      : {}),
   };
   return { meta, fixture };
 }
@@ -110,5 +115,6 @@ export function withMissionPart(
     ...(validTo.length === 0 ? {} : { lastValidUt: Math.max(...validTo) }),
     frameCount: mission.frameCount + part.frameCount,
     ...(part.endReason === undefined ? {} : { endReason: part.endReason }),
+    ...(part.evaKerbals === undefined ? {} : { evaKerbals: part.evaKerbals }),
   };
 }

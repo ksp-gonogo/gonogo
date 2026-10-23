@@ -11957,6 +11957,10 @@
         "note": "New: why a recorded flight ended, absent for one that stopped without an end notice"
       },
       {
+        "key": "sitrep-sdk . FlightRecord#evaKerbals?",
+        "note": "New: the kerbals who went on EVA from the vessel during the flight, absent when none did"
+      },
+      {
         "key": "sitrep-sdk . FlightRecord#firstValidUt?",
         "note": "New: the earliest instant a recorded sample is valid at, which across a signal delay is before the first frame arrived"
       },
@@ -11983,6 +11987,10 @@
       {
         "key": "sitrep-sdk . MissionMeta#endReason?",
         "note": "New: why a recorded mission's flight ended, absent for one that stopped without an end notice"
+      },
+      {
+        "key": "sitrep-sdk . MissionMeta#evaKerbals?",
+        "note": "New: the kerbals who went on EVA from the vessel during the flight, absent when none did"
       },
       {
         "key": "sitrep-sdk . MissionMeta#firstValidUt?",
@@ -14911,6 +14919,10 @@
       {
         "key": "sitrep-sdk ./spine ~MissionMeta#endReason?",
         "note": "New: why a recorded mission's flight ended, absent for one that stopped without an end notice"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#evaKerbals?",
+        "note": "New: the kerbals who went on EVA from the vessel during the flight, absent when none did"
       },
       {
         "key": "sitrep-sdk ./spine ~MissionMeta#firstValidUt?",

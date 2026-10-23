@@ -143,6 +143,8 @@ export function AutoRecordController({
   const activeVesselNameRef = useRef<string>("");
   /** The name the tracked flight was announced with, kept when the vessel is renamed. */
   const launchNameRef = useRef<string>("");
+  /** The kerbals who have gone on EVA from the tracked flight's vessel, in the order they went. */
+  const evaKerbalsRef = useRef<string[]>([]);
   const activeLaunchedAtRef = useRef<number>(0);
   /**
    * The mission each flight was last stored as, by flight id, so an end announced
@@ -182,6 +184,7 @@ export function AutoRecordController({
         vesselName: activeVesselNameRef.current,
         launchName: launchNameRef.current,
         launchedAt: activeLaunchedAtRef.current,
+        evaKerbals: evaKerbalsRef.current,
         fixture,
         id: recorded?.meta.id,
         endReason,
@@ -334,6 +337,7 @@ export function AutoRecordController({
         activeFlightStartedUtRef.current = startedUt;
         activeVesselNameRef.current = payload.vesselName;
         launchNameRef.current = payload.vesselName;
+        evaKerbalsRef.current = [];
         activeLaunchedAtRef.current = Date.now();
         if (!missionHistoryEnabledRef.current) return;
         recorder.start();
@@ -438,6 +442,15 @@ export function AutoRecordController({
           payload.vesselName
         ) {
           activeVesselNameRef.current = payload.vesselName;
+        }
+        const kerbal = payload.evaKerbalName;
+        if (
+          payload.flightId === activeFlightIdRef.current &&
+          payload.onEva &&
+          kerbal &&
+          !evaKerbalsRef.current.includes(kerbal)
+        ) {
+          evaKerbalsRef.current = [...evaKerbalsRef.current, kerbal];
         }
         if (!recorder.recording) {
           if (!missionHistoryEnabledRef.current) return;

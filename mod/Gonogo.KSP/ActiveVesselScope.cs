@@ -84,6 +84,24 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// The name of the kerbal on EVA while <see cref="SubstitutedForEva"/> holds, and
+        /// null otherwise: the vessel KSP is flying, which is the kerbal, named for the
+        /// craft being reported in their place.
+        /// </summary>
+        internal static string? EvaKerbalName
+        {
+            get
+            {
+                var reported = Resolve(out var kspActive);
+                if (ReferenceEquals(reported, null) || ReferenceEquals(reported, kspActive) || ReferenceEquals(kspActive, null))
+                {
+                    return null;
+                }
+                return GameWords.VesselName(kspActive);
+            }
+        }
+
+        /// <summary>
         /// <see cref="Current"/> and <see cref="SubstitutedForEva"/> off one walk of the
         /// book, for a reader whose rule differs for the craft a kerbal left: that craft
         /// stays reported after it falls out of physics range, so it can be unloaded

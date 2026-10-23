@@ -659,6 +659,50 @@ describe("AutoRecordController", () => {
     expect(getAutoRecordStatus().vesselName).toBe("Alpha");
   });
 
+  it("notes on the flight's row the kerbals who went on EVA from its vessel", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled />
+      </TelemetryProvider>,
+    );
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    for (const [ut, onEva, name] of [
+      [6, true, "Jebediah Kerman"],
+      [7, true, "Jebediah Kerman"],
+      [8, false, null],
+      [9, true, "Valentina Kerman"],
+    ] as const) {
+      act(() => {
+        rig.transport.emit(
+          "flight.current",
+          {
+            flightId: "vA",
+            vesselId: "vA",
+            vesselName: "Alpha",
+            phase: 0,
+            onEva,
+            evaKerbalName: name,
+          },
+          { validAt: ut, deliveredAt: ut },
+        );
+        rig.clock.scrubTo(ut);
+        rig.raf.flush();
+      });
+    }
+    end(rig, 12, "vA", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      const flights = await rig.source.listFlights();
+      expect(flights[0]?.evaKerbals).toEqual([
+        "Jebediah Kerman",
+        "Valentina Kerman",
+      ]);
+    });
+  });
+
   it("does not resume the tracked flight when the operator returns to a different vessel", () => {
     const rig = buildRig();
     const tree = (scene: "Flight" | "SpaceCenter") => (

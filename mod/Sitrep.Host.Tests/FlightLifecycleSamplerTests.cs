@@ -65,7 +65,7 @@ namespace Sitrep.Host.Tests
             }
         }
 
-        private static KspSnapshot SnapshotFor(string vesselId, double ut, string name = "Alpha", string situation = "FLYING") => new KspSnapshot
+        private static KspSnapshot SnapshotFor(string vesselId, double ut, string name = "Alpha", string situation = "FLYING", string? evaKerbal = null) => new KspSnapshot
         {
             Ut = ut,
             Values = new Dictionary<string, object?>
@@ -77,6 +77,7 @@ namespace Sitrep.Host.Tests
                         ["id"] = vesselId,
                         ["name"] = name,
                         ["situation"] = situation,
+                        ["evaKerbal"] = evaKerbal,
                     },
                 },
             },
@@ -696,6 +697,27 @@ namespace Sitrep.Host.Tests
 
             Assert.Equal(2, rig.Started.Calls.Count);
             Assert.Equal(0.5, ((FlightStarted)rig.Started.Calls[1].Payload!).Ut);
+        }
+
+        [Fact]
+        public void ACraftWithAKerbalOnEvaSaysSoOnTheFlightReadingAndKeepsItsOwnFlight()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 5.0, name: "Alpha", evaKerbal: "Jebediah Kerman"));
+
+            var onEva = (FlightCurrent)rig.Current.Calls[^1].Payload!;
+            Assert.True(onEva.OnEva);
+            Assert.Equal("Jebediah Kerman", onEva.EvaKerbalName);
+            Assert.Equal(VesselA, onEva.VesselId);
+            Assert.Single(rig.Started.Calls);
+            Assert.Empty(rig.VesselChanged.Calls);
+
+            rig.Sampler.Sample(SnapshotFor(VesselA, 9.0, name: "Alpha"));
+
+            var back = (FlightCurrent)rig.Current.Calls[^1].Payload!;
+            Assert.False(back.OnEva);
+            Assert.Null(back.EvaKerbalName);
         }
 
         [Fact]

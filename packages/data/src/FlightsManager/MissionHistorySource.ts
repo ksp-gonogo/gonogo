@@ -395,6 +395,7 @@ function missionMetaToFlightRecord(meta: MissionMeta): FlightRecord {
     // MissionMeta) is a real, separate follow-up, not silently dropped.
     outcome: undefined,
     endReason: meta.endReason,
+    evaKerbals: meta.evaKerbals,
     firstFrameUt: meta.firstFrameUt,
     lastFrameUt: meta.lastFrameUt,
     firstValidUt: meta.firstValidUt,
