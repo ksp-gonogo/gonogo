@@ -95,7 +95,9 @@ namespace Sitrep.Host
             var topic = CraftSightingTopic(vesselId);
             _lastRecordedUt[topic] = ut;
             // A centre the sighting has no light-time to is never sent it.
-            var stamp = new DelayStamp(double.PositiveInfinity, lightSeconds);
+            var stamp = new DelayStamp(
+                double.PositiveInfinity,
+                !sighting.Exists && sighting.End == CraftEnd.Terminated ? AtOnceAtHome(lightSeconds) : lightSeconds);
             _courier.Record(NodeFor(topic), topic, sighting, ut, sentUnder: stamp);
             _craftSightStamps[vesselId] = stamp;
             // A sighting of an object already gone, its going included, is held for until it lands.
@@ -487,7 +489,43 @@ namespace Sitrep.Host
             _goneCraftStamps[vesselId] = stamp;
             var topic = CraftStateTopic(vesselId);
             _lastRecordedUt[topic] = ut;
-            _courier.Record(NodeFor(topic), topic, CraftState.Gone("vessel:" + vesselId, ut, end, said?.Roster, crew), ut, sentUnder: stamp);
+            _courier.Record(
+                NodeFor(topic),
+                topic,
+                CraftState.Gone("vessel:" + vesselId, ut, end, said?.Roster, crew),
+                ut,
+                sentUnder: end == CraftEnd.Terminated ? AtOnceAtHome(stamp) : stamp);
+        }
+
+        /*
+         * The player ends a craft from the Tracking Station at home, so home has
+         * the order in hand the moment it is given. Every other centre learns of
+         * the end as it learns anything about the craft, one light-time later.
+         */
+        private IReadOnlyDictionary<string, double> AtOnceAtHome(IReadOnlyDictionary<string, double> lightSeconds)
+        {
+            var home = HomeCentre();
+            if (home == null)
+            {
+                return lightSeconds;
+            }
+            var rows = new Dictionary<string, double>(StringComparer.Ordinal);
+            foreach (var row in lightSeconds)
+            {
+                rows[row.Key] = row.Value;
+            }
+            rows[home] = 0.0;
+            return rows;
+        }
+
+        private DelayStamp AtOnceAtHome(DelayStamp stamp)
+        {
+            var home = HomeCentre();
+            if (home == null)
+            {
+                return stamp;
+            }
+            return new DelayStamp(stamp.BaseSeconds, AtOnceAtHome(stamp.ByVantage() ?? new Dictionary<string, double>(StringComparer.Ordinal)));
         }
 
         public Action HearCraftState(string vesselId, string centre, Action<CraftState> heard)

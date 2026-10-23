@@ -85,6 +85,29 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(JsonValueKind.Null, centre.RootElement.GetProperty("id").ValueKind);
         }
 
+        /// <summary>
+        /// The player ends the relay from the Tracking Station at the home
+        /// centre, so that centre has the relay out of its path the moment the
+        /// order is given. The other centre goes on believing in it until the
+        /// relay's silence could have reached it.
+        /// </summary>
+        [Fact]
+        public async Task ARelayThePlayerEndedLeavesTheHomeCentresPathAtOnceAndTheOtherCentresAfterItsSilence()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            await using var control = await ReckonedVantageWorld.StartAsync();
+            await TickBothAsync(world, control, 1, 2, 700, 702);
+            Assert.Equal(Far, world.Engine.HomeCentre());
+
+            world.Game.DestroyRelay(Sitrep.Host.Comms.CraftEnd.Terminated);
+            await TickBothAsync(world, control, T0, T0 + 2, T0 + 12);
+            Assert.Empty(Hops(world.Far.Path));
+            Assert.Equal(2, Hops(world.Home.Path).Length);
+
+            await TickBothAsync(world, control, T0 + 601, T0 + 602, T0 + 604);
+            Assert.Empty(Hops(world.Home.Path));
+        }
+
         [Fact]
         public async Task ACentresPathNamesItsNodesAndTheStationItEndsAtAndArrivesTheInstantItIsMade()
         {

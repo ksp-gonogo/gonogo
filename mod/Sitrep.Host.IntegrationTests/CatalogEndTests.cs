@@ -189,6 +189,33 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(CatalogCrew.Lost, Crew(seated.FarView));
         }
 
+        /// <summary>The player gave the order at the home centre, so it has the craft gone at once while the other station waits on the light.</summary>
+        [Fact]
+        public async Task ACraftTheStationEndedIsGoneAtTheHomeCentreAtOnceAndElsewhereAfterTheLight()
+        {
+            await using var seated = await SeatedAsync();
+            Assert.Equal(Far, seated.World.Engine.HomeCentre());
+            seated.World.Game.DestroyRelay(CraftEnd.Terminated);
+            await seated.TickAsync(T0, T0 + 2, T0 + 4);
+
+            Assert.Equal(CatalogEnd.Terminated, EndKind(seated.FarView));
+            Assert.Null(EndKind(seated.HomeView));
+
+            await seated.TickAsync(T0 + 603, T0 + 604, T0 + 605);
+            Assert.Equal(CatalogEnd.Terminated, EndKind(seated.HomeView));
+        }
+
+        /// <summary>A craft lost any other way is not known at the home centre before its light arrives.</summary>
+        [Fact]
+        public async Task ADestroyedCraftIsNotGoneAtTheHomeCentreBeforeItsLightArrives()
+        {
+            await using var seated = await SeatedAsync();
+            seated.World.Game.DestroyRelay();
+            await seated.TickAsync(T0, T0 + 2, T0 + 4);
+
+            Assert.Null(EndKind(seated.FarView));
+        }
+
         private static int? Count(CentreView view, string field)
         {
             var value = view.Vessel(Relay)!.Value.GetProperty(field);
