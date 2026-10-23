@@ -224,6 +224,8 @@ export interface AddressBook {
   nameFor: (id: RecipientId) => string;
   /** Set for an address the roster no longer lists. Unset while the roster is still unknown, so a fresh page load greys nobody. */
   unreachableOf: (id: RecipientId) => Unreachable | undefined;
+  /** Whether a screen can answer at an address's centre now, from the roster; undefined while the roster is unknown or does not list it. */
+  staffedOf: (id: RecipientId) => boolean | undefined;
 }
 
 /**
@@ -246,6 +248,10 @@ export function useAddressBook(): AddressBook {
         entries?.find((e) => e.id === id)?.displayName ??
         remembered.find((e) => e.id === id)?.displayName ??
         (id.startsWith("vessel:") ? "Unknown vessel" : "Unknown station"),
+      staffedOf: (id) => {
+        const entry = entries?.find((e) => e.id === id);
+        return entry === undefined ? undefined : entry.active === true;
+      },
       unreachableOf: (id) => {
         if (entries === undefined || entries.some((e) => e.id === id)) {
           return undefined;

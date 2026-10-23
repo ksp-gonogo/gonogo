@@ -294,19 +294,20 @@ export class CommcastLog {
    */
   recordReceipt(
     messageId: string,
-    _addressed: readonly RecipientId[],
+    addressed: readonly RecipientId[],
     unreached: readonly RecipientId[],
   ): void {
     const found = this.outbox.find((o) => o.msg.id === messageId);
     if (!found) return;
-    if (
-      !found.deliveries.some((d) => unreached.includes(d.to) && !d.neverLeft)
-    ) {
-      return;
-    }
-    const deliveries = found.deliveries.map((d) =>
-      unreached.includes(d.to) ? { ...d, neverLeft: true } : d,
-    );
+    const changes = (d: Delivery) =>
+      (unreached.includes(d.to) && !d.neverLeft) ||
+      (addressed.includes(d.to) && !d.delivered);
+    if (!found.deliveries.some(changes)) return;
+    const deliveries = found.deliveries.map((d): Delivery => {
+      if (unreached.includes(d.to)) return { ...d, neverLeft: true };
+      if (addressed.includes(d.to)) return { ...d, delivered: true };
+      return d;
+    });
     this.outbox = this.outbox.map((o) =>
       o.msg.id === messageId ? { ...o, deliveries } : o,
     );

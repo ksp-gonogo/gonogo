@@ -247,9 +247,9 @@ describe("attachCommcastModLink", () => {
     await vi.advanceTimersByTimeAsync(0);
 
     const deliveries = log.snapshot().outbox[0]?.deliveries ?? [];
-    expect(deliveries.map((d) => [d.to, d.neverLeft])).toEqual([
-      [ARES, false],
-      ["vessel:b", true],
+    expect(deliveries.map((d) => [d.to, d.neverLeft, d.delivered])).toEqual([
+      [ARES, false, true],
+      ["vessel:b", true, undefined],
     ]);
   });
 

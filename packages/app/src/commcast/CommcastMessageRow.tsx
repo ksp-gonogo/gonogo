@@ -18,7 +18,7 @@ import {
   Commcast__Meta,
 } from "./commcastStyles";
 import { messageText } from "./groups";
-import { recipientWords } from "./recipientWords";
+import { type RecipientAbout, recipientWords } from "./recipientWords";
 import {
   deliveryAckUtFor,
   deliveryPhaseFor,
@@ -37,15 +37,15 @@ export function CommcastMessageRow({
   log,
   nameFor,
   separations,
-  noReachReasonFor,
+  aboutFor,
 }: {
   entry: CommcastEntry;
   utNow: number | undefined;
   log: CommcastLog;
   nameFor: (id: RecipientId) => string;
   separations: ReadonlyMap<RecipientId, number | null>;
-  /** Why the contact plan has no reach to a recipient, when it says; undefined otherwise. */
-  noReachReasonFor: (id: RecipientId) => "unpowered" | undefined;
+  /** What the contact plan and the roster say about a recipient. */
+  aboutFor: (id: RecipientId) => RecipientAbout;
 }) {
   const { msg, out } = entry;
   return (
@@ -61,7 +61,7 @@ export function CommcastMessageRow({
             out={out}
             utNow={utNow}
             nameFor={nameFor}
-            noReachReasonFor={noReachReasonFor}
+            aboutFor={aboutFor}
           />
         ) : (
           <HeardVerdict msg={msg} />
@@ -115,12 +115,12 @@ function SentVerdict({
   out,
   utNow,
   nameFor,
-  noReachReasonFor,
+  aboutFor,
 }: {
   out: OutboundMessage;
   utNow: number | undefined;
   nameFor: (id: RecipientId) => string;
-  noReachReasonFor: (id: RecipientId) => "unpowered" | undefined;
+  aboutFor: (id: RecipientId) => RecipientAbout;
 }) {
   const now = utNow ?? Number.NEGATIVE_INFINITY;
   const status = messageStatusFor(out, now);
@@ -145,7 +145,7 @@ function SentVerdict({
                 out={out}
                 now={now}
                 name={nameFor(delivery.to)}
-                noReachReason={noReachReasonFor(delivery.to)}
+                about={aboutFor(delivery.to)}
               />
             </li>
           ))}
@@ -181,16 +181,16 @@ function RecipientState({
   out,
   now,
   name,
-  noReachReason,
+  about,
 }: {
   delivery: Delivery;
   out: OutboundMessage;
   now: number;
   name: string;
-  noReachReason: "unpowered" | undefined;
+  about: RecipientAbout;
 }) {
   const phase = deliveryPhaseFor(out, delivery, now);
-  const state = recipientWords(phase, delivery, noReachReason);
+  const state = recipientWords(phase, delivery, about);
   const modelled = phase !== "confirmed" && !delivery.neverLeft;
   return (
     <Text size="xs">
