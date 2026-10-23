@@ -63,6 +63,7 @@ function setupTelemetryStream() {
     advanceTo: (ut: number) => clock.observeSample(ut, ut),
     emitIdentity: (identity: unknown) =>
       transport.emit("vessel.identity", identity),
+    emitDelay: (delay: unknown) => transport.emit("comms.delay", delay),
     emitRoster: (roster: unknown) =>
       transport.emit("commandCentre.roster", roster, { vantage: KSC }),
     Provider,
@@ -179,6 +180,37 @@ describe("MissionBanner", () => {
     expect(await screen.findByText("Kerbal X")).toBeInTheDocument();
     expect(screen.getByText("Vessel")).toBeInTheDocument();
     await expectNoA11yViolations(container);
+  });
+
+  it("does not name the previous craft once a different craft is the active one", async () => {
+    const fixture = setupTelemetryStream();
+    render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emitDelay({
+        oneWaySeconds: 284,
+        meta: { source: "vessel:probe" },
+      });
+      fixture.emitIdentity({
+        vesselId: "probe",
+        name: "Eeloo Probe",
+        meta: { source: "vessel:probe" },
+      });
+    });
+    expect(await screen.findByText("Eeloo Probe")).toBeInTheDocument();
+
+    // The control craft has no link, so no identity of its own has arrived: the newest one is still the probe's.
+    act(() => {
+      fixture.emitDelay({
+        oneWaySeconds: null,
+        meta: { source: "vessel:control" },
+      });
+    });
+    await waitFor(() => expect(screen.queryByText("Eeloo Probe")).toBeNull());
+    expect(screen.queryByText("Vessel")).toBeNull();
   });
 
   it("shows no vessel field for an empty name", async () => {

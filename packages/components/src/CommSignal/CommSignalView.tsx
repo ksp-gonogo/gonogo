@@ -4,6 +4,10 @@ import {
   useTelemetry,
   useTimeContexts,
 } from "@ksp-gonogo/core";
+import {
+  isOtherCraftsReading,
+  useActiveCraftId,
+} from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   AwaitingSignal,
@@ -105,9 +109,12 @@ export function CommSignalComponent({
         : undefined;
 
   const identityReading = useTelemetry("vessel.identity");
+  const activeCraftId = useActiveCraftId();
   // A name does not go out of date, so the last one received still names the craft through a blackout.
   const vesselName =
-    identityReading.state === "observed" || identityReading.state === "held"
+    (identityReading.state === "observed" ||
+      identityReading.state === "held") &&
+    !isOtherCraftsReading(activeCraftId, identityReading.value.meta)
       ? identityReading.value.name
       : undefined;
   const vesselLabel =

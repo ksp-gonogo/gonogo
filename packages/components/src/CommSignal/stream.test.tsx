@@ -466,6 +466,45 @@ describe("CommSignal: genuinely runs off the stream", () => {
     expect(screen.getByText(unknownId)).toBeTruthy();
   });
 
+  it("does not read the previous craft's control state as the active craft's after a switch", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "comm-switch" }}>
+          <CommSignalComponent id="comm-switch" w={8} h={8} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("comms.delay", {
+        oneWaySeconds: 284,
+        meta: { source: "vessel:probe" },
+      });
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("vessel.comms", {
+        connected: true,
+        signalStrength: 0.6,
+        controlState: 7,
+        meta: { source: "vessel:probe" },
+      });
+    });
+    expect(await screen.findByText("ProbeFull")).toBeTruthy();
+
+    act(() => {
+      fixture.emit("comms.delay", {
+        oneWaySeconds: null,
+        meta: { source: "vessel:control" },
+      });
+      fixture.emit("comms.link", { connected: false });
+    });
+    await waitFor(() => expect(screen.queryByText("ProbeFull")).toBeNull());
+  });
+
   it("stays on the hop-count hint (not the full chain) at the registered default size", async () => {
     // Portrait 6x5 has no headroom for the route below the detail grid.
     const fixture = setupStreamFixture({
