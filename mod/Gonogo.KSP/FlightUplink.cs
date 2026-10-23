@@ -105,6 +105,7 @@ namespace Gonogo.KSP
                 () => host.IsAnyTopicSubscribed(FlightTopics.StartedTopic),
                 GonogoLog.Sink);
             host.AddSampler(_sampler);
+            (host as Sitrep.Host.Comms.ICraftStateHost)?.OnTimelineReset(_sampler.NoteTimelineReset);
             host.AddSampledSource(SignalDeaths, _ => { });
 
             HookGameEvents();

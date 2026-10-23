@@ -620,6 +620,40 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void ALoadedGameAtALaterUtEndsTheOpenFlightsOfTheGameItReplacedAndStartsItsOwn()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 100.0, name: "Alpha"));
+
+            rig.Sampler.NoteTimelineReset();
+            rig.Sampler.Sample(SnapshotFor(VesselB, 5000.0, name: "Bravo"));
+
+            AssertEndedOnce(rig, VesselA, FlightEndReason.Reverted);
+            Assert.Empty(rig.VesselChanged.Calls);
+            var started = (FlightStarted)rig.Started.Calls[^1].Payload!;
+            Assert.Equal(VesselB, started.VesselId);
+            Assert.Equal(started.FlightId, ((FlightCurrent)rig.Current.Calls[^1].Payload!).FlightId);
+        }
+
+        [Fact]
+        public void ALoadedGameAtALaterUtNeverLetsALaterRewindAnnounceTheEndOfTheGameItReplaced()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.SignalEnd(VesselA, "Alpha", FlightEndReason.Crashed, 50.0);
+            rig.Sampler.Sample(SnapshotFor(VesselA, 51.0, name: "Alpha"));
+
+            rig.Sampler.NoteTimelineReset();
+            rig.Sampler.Sample(SnapshotFor(VesselB, 5000.0, name: "Bravo"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 5100.0, name: "Bravo"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 40.0, name: "Bravo"));
+
+            var aEnds = rig.Ended.Calls.Select(c => (FlightEnded)c.Payload!).Where(e => e.VesselId == VesselA).ToList();
+            Assert.Equal(FlightEndReason.Crashed, Assert.Single(aEnds).Reason);
+        }
+
+        [Fact]
         public void NoActiveVesselNeverPublishesCurrent()
         {
             var rig = new Rig();

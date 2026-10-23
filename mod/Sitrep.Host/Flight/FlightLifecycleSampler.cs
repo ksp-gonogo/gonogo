@@ -96,6 +96,13 @@ namespace Sitrep.Host.Flight
         private readonly ConcurrentQueue<EndSignal> _pendingEnds = new ConcurrentQueue<EndSignal>();
 
         private double? _lastUt;
+
+        // Set from the Courier thread when the engine replaces the game's timeline,
+        // and read by the next Sample on the same thread. A different game can
+        // load at a UT ahead of the last one seen, which a backward-UT check alone
+        // reads as time passing.
+        private bool _timelineReplaced;
+
         private string? _lastVesselId;
         private string? _activeVesselId;
         private string _activeVesselName = "";
@@ -175,6 +182,15 @@ namespace Sitrep.Host.Flight
         }
 
         /// <summary>
+        /// Courier thread only, from the engine's timeline-reset notification, which
+        /// the engine raises before the samplers of the same tick run. A reset that
+        /// also sent the clock back is a rewind already. A game loaded at a later UT
+        /// is told apart from time passing by this call alone, and ends every open
+        /// flight the way a revert does.
+        /// </summary>
+        public void NoteTimelineReset() => _timelineReplaced = true;
+
+        /// <summary>
         /// Courier-thread, tick-driven. Order matters: draining
         /// <see cref="_pendingEnds"/> first means a crash/recovery signalled
         /// just before a rewind is applied before the rewind branch below
@@ -212,10 +228,22 @@ namespace Sitrep.Host.Flight
             // why that guarantee is exactly what makes revert-handling safe.
             var isRewind = utWentBack;
             _lastUt = snapshot.Ut;
+            var replacedForward = _timelineReplaced && !isRewind;
+            isRewind |= _timelineReplaced;
+            _timelineReplaced = false;
 
             if (isRewind)
             {
                 EndRevertedFlights(snapshot.Ut, endedThisTick);
+
+                // A game loaded at a later UT has no flight in common with the last
+                // end seen, so it must not be announced again by a rewind in this one.
+                if (replacedForward)
+                {
+                    _lastEndedVesselId = null;
+                    _lastEndedFlightId = null;
+                    _lastEndedVesselName = "";
+                }
 
                 // Resync WITHOUT further switch-detection this tick -- a
                 // rewind's loaded state can ordinarily show a DIFFERENT
