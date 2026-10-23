@@ -70,10 +70,7 @@ export interface LandingModel {
   /** The comms delay behind the round-trip clock. */
   delayCurrency: readonly CarriedCurrency[];
   bodyName: string | null | undefined;
-  /** The body has an atmosphere, whatever the craft's altitude. */
   atmospheric: boolean;
-  /** The body has an atmosphere and the craft is below its top, or its height or the craft's altitude is not reported. */
-  inAtmosphere: boolean;
   /**
    * Seconds until the craft's own orbit reaches the surface, when the descent solve has no impact time of its own (the craft is not yet falling toward terrain, or its height above terrain is not reported); null when the orbit stays above the surface or the craft is down.
    */
@@ -156,13 +153,6 @@ export function useLandingModel(): LandingModel {
   // Resolved by index, not by name against the stock table, so a planet pack's renamed bodies still resolve.
   const body = bodyAtIndex(describe(bodiesReading), identity?.parentBodyIndex);
   const atmospheric = body?.hasAtmosphere ?? false;
-  const atmosphereTop = body?.maxAtmosphere ?? 0;
-  const inAtmosphere =
-    atmospheric &&
-    !(
-      atmosphereTop > 0 &&
-      flight?.altitudeAsl?.greaterThanOrEqual(atmosphereTop) === true
-    );
   // A dated budget is still the best figure, and every readout from it is a figure rather than a control.
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const budget =
@@ -372,7 +362,6 @@ export function useLandingModel(): LandingModel {
     delayCurrency,
     bodyName,
     atmospheric,
-    inAtmosphere,
     orbitImpactSeconds: orbitImpact,
     targetRange,
     heightFromTerrain,

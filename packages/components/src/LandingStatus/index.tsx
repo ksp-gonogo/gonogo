@@ -186,7 +186,6 @@ function LandingStatusComponent({
     mayInstruct,
     bodyName,
     atmospheric,
-    inAtmosphere,
     heightFromTerrain,
     usingComDatum,
     aglReading,
@@ -230,7 +229,7 @@ function LandingStatusComponent({
   // With the board up the descent already keeps a row for the body, so the crash takes that row's place and nothing above the plots grows.
   const crashInContext =
     crash !== undefined && showBoard && bodyName !== undefined;
-  const bodyLine = `${bodyName} · ${inAtmosphere ? "atmospheric" : "vacuum"}`;
+  const bodyLine = `${bodyName} · ${atmospheric ? "atmospheric" : "vacuum"}`;
   const idle = crash
     ? "Crashed"
     : landed
