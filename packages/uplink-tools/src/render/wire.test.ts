@@ -10,10 +10,22 @@ afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
 });
 
+/**
+ * A scratch folder three levels inside its own temporary folder. The C# scan
+ * walks up three folders from a client, so a fixture placed straight in the
+ * shared temporary folder would read any C# another program left there.
+ */
+function scratchDir(prefix: string): string {
+  const root = mkdtempSync(join(tmpdir(), prefix));
+  scratch.push(root);
+  const dir = join(root, "a", "b", "c");
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
 /** A client package with a generated contract slice in it, or without one. */
 function slice(files: Record<string, string> | undefined) {
-  const dir = mkdtempSync(join(tmpdir(), "gonogo-wire-"));
-  scratch.push(dir);
+  const dir = scratchDir("gonogo-wire-");
   if (files) {
     const gen = join(dir, "src", "__generated__");
     mkdirSync(gen, { recursive: true });
@@ -133,8 +145,7 @@ describe("readWireSurface", () => {
 
   it("refuses a channel the C# beside the client never declares, even when it declares none", () => {
     // The scan reads C# one directory up from the client, where an Uplink's mod sits beside its client.
-    const uplink = mkdtempSync(join(tmpdir(), "gonogo-wire-uplink-"));
-    scratch.push(uplink);
+    const uplink = scratchDir("gonogo-wire-uplink-");
     const client = join(uplink, "client");
     const gen = join(client, "src", "__generated__");
     mkdirSync(gen, { recursive: true });

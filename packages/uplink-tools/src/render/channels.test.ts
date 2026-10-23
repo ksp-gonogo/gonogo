@@ -11,13 +11,25 @@ afterEach(() => {
 });
 
 /**
+ * A scratch folder three levels inside its own temporary folder. The C# scan
+ * walks up three folders from a client, so a fixture placed straight in the
+ * shared temporary folder would read any C# another program left there.
+ */
+function scratchDir(prefix: string): string {
+  const root = mkdtempSync(join(tmpdir(), prefix));
+  scratch.push(root);
+  const dir = join(root, "a", "b", "c");
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+/**
  * An Uplink laid out as the monorepo lays one out: the client in `client/`, the
  * plugin in a sibling `mod/`. Returns the client directory, which is what the
  * scanner is given.
  */
 function uplink(cs: string) {
-  const root = mkdtempSync(join(tmpdir(), "gonogo-channels-"));
-  scratch.push(root);
+  const root = scratchDir("gonogo-channels-");
   const client = join(root, "client");
   mkdirSync(client, { recursive: true });
   mkdirSync(join(root, "mod"), { recursive: true });
@@ -162,8 +174,7 @@ describe("readChannelDispositions", () => {
   });
 
   it("finds nothing, rather than throwing, when there is no C# to read", () => {
-    const root = mkdtempSync(join(tmpdir(), "gonogo-channels-"));
-    scratch.push(root);
+    const root = scratchDir("gonogo-channels-");
     const client = join(root, "client");
     mkdirSync(client, { recursive: true });
     // A client-only Uplink has no plugin at all. Empty is the honest answer, and
