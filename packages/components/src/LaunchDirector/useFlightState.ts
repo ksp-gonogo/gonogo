@@ -13,7 +13,10 @@ import { rosterDistance } from "../shared/rosterDistance";
 /** What the in-flight panel shows, for the vessel currently flying. */
 export function useFlightState() {
   // The craft's name changes nowhere but the editor, so the last one received still names the vessel flying.
-  const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
+  const identityReading = useTelemetry("vessel.identity");
+  const identity = stillTrue(identityReading, undefined);
+  // Confirmed nothing, as when the flown vessel is destroyed: a reading not yet received is "pending" and does not count.
+  const noActiveVessel = identityReading.state === "absent";
   const vesselName = identity?.name;
   const vesselId = identity?.vesselId;
   // Off `vessel.flight`'s own field reading, which stays live on rails.
@@ -77,6 +80,7 @@ export function useFlightState() {
 
   return {
     vesselName,
+    noActiveVessel,
     missionTime: missionTime ?? null,
     // The reading itself, so the figure carries its own mark: held keeps the square, a model's figure the triangle.
     altitude: altitudeReading,

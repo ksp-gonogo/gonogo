@@ -24,6 +24,7 @@ export function InFlightPanel({
   missionTime,
   altitude,
   crashInProgress,
+  noActiveVessel,
   availableVessels,
   distanceOf,
   recoverCmd,
@@ -36,6 +37,8 @@ export function InFlightPanel({
   missionTime: number | null;
   altitude: Reading<Value<"m">>;
   crashInProgress: boolean;
+  /** The game has no vessel in this flight, so there is nothing to recover. */
+  noActiveVessel: boolean;
   availableVessels: TargetListEntry[] | undefined;
   distanceOf: (entry: TargetListEntry) => Reading<Value<"m">> | undefined;
   /** The handles: each control holds its own arm and in-flight state off the one it is given. */
@@ -67,15 +70,17 @@ export function InFlightPanel({
         </FlightStatRow>
       </FlightStats>
       <PadActions>
-        <ArmedButton
-          bindAs="recover"
-          kind="recover"
-          handle={recoverCmd}
-          commandLabel="Recover"
-          label="Recover"
-          confirmLabel="Confirm recover"
-          pendingLabel="Recovering..."
-        />
+        {!noActiveVessel && (
+          <ArmedButton
+            bindAs="recover"
+            kind="recover"
+            handle={recoverCmd}
+            commandLabel="Recover"
+            label="Recover"
+            confirmLabel="Confirm recover"
+            pendingLabel="Recovering..."
+          />
+        )}
         <ArmedButton
           bindAs="revert-to-launch"
           kind="revert"

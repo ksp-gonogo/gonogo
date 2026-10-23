@@ -173,15 +173,17 @@ export function LaunchDirectorComponent({
               <div role="status" aria-live="polite" style={SUBTITLE_STYLE}>
                 {inTrackingStation
                   ? "In the Tracking Station"
-                  : inFlight
-                    ? `In flight: ${activeName}${launchSite && cols >= 6 ? ` · from ${launchSite}` : ""}`
-                    : padSummary({
-                        pads: pads.length,
-                        occupied: pads.filter((p) => p.occupied === true)
-                          .length,
-                        unreported: pads.filter((p) => p.occupied === null)
-                          .length,
-                      })}
+                  : inFlight && flight.noActiveVessel
+                    ? "No active vessel"
+                    : inFlight
+                      ? `In flight: ${activeName}${launchSite && cols >= 6 ? ` · from ${launchSite}` : ""}`
+                      : padSummary({
+                          pads: pads.length,
+                          occupied: pads.filter((p) => p.occupied === true)
+                            .length,
+                          unreported: pads.filter((p) => p.occupied === null)
+                            .length,
+                        })}
                 {hasFunds && (
                   <Tooltip
                     text={
@@ -221,6 +223,7 @@ export function LaunchDirectorComponent({
                 missionTime={flight.missionTime}
                 altitude={flight.altitude}
                 crashInProgress={flight.crashInProgress}
+                noActiveVessel={flight.noActiveVessel}
                 availableVessels={flight.availableVessels}
                 distanceOf={flight.distanceOf}
                 recoverCmd={recoverCmd}

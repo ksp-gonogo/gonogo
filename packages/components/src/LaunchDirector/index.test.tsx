@@ -841,6 +841,50 @@ describe("LaunchDirectorComponent", () => {
     expect(await screen.findByText(/Crash in progress/i)).toBeInTheDocument();
   });
 
+  // The wire answers vessel.identity with a null payload once the vessel is gone, which is a confirmed nothing, not a missing read.
+  it("says there is no active vessel, and offers no Recover, once the flown vessel is gone", async () => {
+    renderWidget();
+    act(() => {
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      emitInFlightVessel(stream, { name: "hop-a", altitudeAsl: 70 });
+      stream.emit("ksp.revertAvailability", {
+        canRevertToLaunch: true,
+        canRevertToEditor: true,
+      });
+    });
+    await waitFor(() => expect(visibleText()).toMatch(/In flight: hop-a/i));
+
+    act(() => {
+      stream.emit("vessel.identity", null);
+    });
+
+    await waitFor(() => expect(visibleText()).toMatch(/No active vessel/i));
+    expect(visibleText()).not.toMatch(/\(unnamed\)/);
+    expect(screen.queryByRole("button", { name: /^Recover$/i })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Revert to launch/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the awaiting reading while the flown vessel's identity has not arrived", async () => {
+    renderWidget();
+    act(() => {
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      stream.emit("ksp.revertAvailability", {
+        canRevertToLaunch: false,
+        canRevertToEditor: false,
+      });
+    });
+
+    await waitFor(() => expect(visibleText()).toMatch(/In flight:/i));
+    expect(visibleText()).not.toMatch(/No active vessel/i);
+    expect(
+      screen.getByRole("button", { name: /^Recover$/i }),
+    ).toBeInTheDocument();
+  });
+
   // A crash snapshot dated after the current UT is from a reverted timeline.
   it("does not chip a crash when the crash snapshot post-dates current UT (reverted flight)", async () => {
     // Pinned so the crash-staleness comparison below has its UT.
