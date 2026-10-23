@@ -348,7 +348,7 @@ namespace Gonogo.KSP
                         var roster = new List<object?>(allVessels.Count);
                         foreach (var candidate in allVessels)
                         {
-                            if (candidate == null || candidate.state == Vessel.State.DEAD || !OrbitKnowledge.Known(DiscoveryLevelOf(candidate)))
+                            if (candidate == null || candidate.state == Vessel.State.DEAD || BoardedVessels.Boarded(candidate.id.ToString(), Planetarium.GetUniversalTime()) || !OrbitKnowledge.Known(DiscoveryLevelOf(candidate)))
                             {
                                 continue;
                             }

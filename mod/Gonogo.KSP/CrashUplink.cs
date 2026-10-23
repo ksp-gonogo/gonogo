@@ -250,7 +250,7 @@ namespace Gonogo.KSP
 
                 var vesselType = vessel.vesselType.ToString();
                 var active = ActiveVesselScope.Current;
-                if (!CrashPayload.ShouldPublish(vesselType))
+                if (!CrashPayload.ShouldPublish(vesselType) || BoardedVessels.Covers(vessel.id.ToString(), Planetarium.GetUniversalTime()))
                 {
                     _tracker.Forget(vessel.id.ToString());
                     return;

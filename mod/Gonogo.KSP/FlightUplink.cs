@@ -125,6 +125,7 @@ namespace Gonogo.KSP
             GameEvents.onVesselExplodeGroundCollision.Add(OnVesselExplodeGroundCollision);
             GameEvents.onVesselRecovered.Add(OnVesselRecovered);
             GameEvents.onVesselTerminated.Add(OnVesselTerminated);
+            GameEvents.onCrewBoardVessel.Add(OnCrewBoardVessel);
             // The hooks live for the whole process: Register runs once, before the
             // main menu, and a flight can end in any scene the player reaches.
         }
@@ -175,7 +176,7 @@ namespace Gonogo.KSP
                     return;
                 }
                 var type = vessel.vesselType.ToString();
-                if (!CrashPayload.ShouldPublish(type))
+                if (!CrashPayload.ShouldPublish(type) || BoardedVessels.Covers(vessel.id.ToString(), Planetarium.GetUniversalTime()))
                 {
                     return;
                 }
@@ -192,6 +193,19 @@ namespace Gonogo.KSP
             catch (Exception ex)
             {
                 GonogoLog.Error("flight destruction capture failed", ex);
+            }
+        }
+
+        /// <summary>
+        /// MAIN-THREAD: a kerbal got back into a craft. Stock then destroys the kerbal's own
+        /// vessel, which is no loss, so it is noted for every detector that reads destructions.
+        /// </summary>
+        private void OnCrewBoardVessel(GameEvents.FromToAction<Part, Part> action)
+        {
+            var vessel = action.from != null ? action.from.vessel : null;
+            if (vessel != null)
+            {
+                BoardedVessels.Note(vessel.id.ToString(), Planetarium.GetUniversalTime());
             }
         }
 
