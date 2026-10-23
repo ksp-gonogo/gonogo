@@ -198,10 +198,6 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "not a quantity: an unlabelled y-axis tick on a caller-supplied series",
   },
-  "packages/ui/src/SignalLossBanner.tsx": {
-    count: 1,
-    why: "GAP: padded clock again, on an outage's elapsed time",
-  },
   "packages/ui/src/SourceOfflineBanner.tsx": {
     count: 1,
     why: "GAP: padded clock again, on an offline source's elapsed time",

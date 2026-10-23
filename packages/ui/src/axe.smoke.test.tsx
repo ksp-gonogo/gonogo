@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { useEffect } from "react";
@@ -60,7 +61,7 @@ describe("a11y smoke (jest-axe)", () => {
 
   it("SignalLossBanner has no axe violations", async () => {
     const { container } = render(
-      <SignalLossBanner state="lost" elapsedMs={12345} />,
+      <SignalLossBanner state="lost" elapsed={value("s", 12)} />,
     );
     await expectNoA11yViolations(container);
   });
