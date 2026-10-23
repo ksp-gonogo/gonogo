@@ -69,6 +69,7 @@ type ArmedCondition =
 
 /** One arm as the stand-in received it: the condition and who it named. */
 interface ArmedAlarm {
+  name: string;
   condition: ArmedCondition;
   subject: string;
   /** The onboard actions, as `{kind, group}` ordinals, and the craft they act on. */
@@ -274,6 +275,7 @@ function startSession(owlt: number): ModStandIn {
       }
       const subject = String(bag.subject ?? "");
       conditions.set(id, {
+        name: String(bag.name ?? ""),
         subject,
         onFire: Array.isArray(bag.onFire)
           ? bag.onFire.map((a: { kind?: unknown; group?: unknown }) => ({
@@ -432,6 +434,7 @@ function startSession(owlt: number): ModStandIn {
     armed: () => [...conditions.keys()],
     armForeign(id) {
       conditions.set(id, {
+        name: "",
         subject: "game",
         vantage: "game",
         onFire: [],
@@ -1477,6 +1480,23 @@ describe("SCET alarms", () => {
       svc.dispose();
 
       expect(session.armOf(alarm.id)?.onFire).toEqual([{ kind: 0, group: 3 }]);
+    });
+
+    it("re-arms the mod when only the name is edited", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = service();
+      const alarm = svc.addAlarm({
+        name: "Burn",
+        trigger: { kind: "time", ut: 90_000, leadSeconds: 0 },
+      });
+      await step(session, UT_START + DT, UT_START + 4 * DT);
+
+      svc.updateAlarm(alarm.id, { name: "Circularise" });
+      await step(session, UT_START + 5 * DT, UT_START + 8 * DT);
+      svc.dispose();
+
+      expect(session.armOf(alarm.id)?.name).toBe("Circularise");
     });
 
     it("keeps a command-vantage alarm's actions on this screen", async () => {

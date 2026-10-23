@@ -429,10 +429,13 @@ export class AlarmHostService {
     if (patch.trigger) this.scetArmRefusals.delete(id);
     /* Owed an arm whatever state the edit left it in, since the mod already
        holds this id: the diff against its roster sees it as armed, and the
-       simulation would go on with the condition, or the onboard actions, that
+       simulation would go on with the name, condition, or onboard actions that
        were replaced. An alarm that had already fired before the edit is not
        live any more and is left alone. */
-    if ((patch.trigger || patch.onFire) && (reset || !hasFired(prev.state))) {
+    if (
+      (patch.trigger || patch.onFire || patch.name !== undefined) &&
+      (reset || !hasFired(prev.state))
+    ) {
       this.scetBridge.owe(next);
       this.scetBridge.reconcile();
     }
