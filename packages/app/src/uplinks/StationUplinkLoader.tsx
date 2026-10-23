@@ -41,7 +41,10 @@ import {
   createPeerManifestFetcher,
 } from "./peerBundleFetch";
 import { localRegistrySource } from "./registry";
-import { readRosterFromTelemetryClient } from "./rosterProbe";
+import {
+  decodeRosterPayload,
+  readRosterFromTelemetryClient,
+} from "./rosterProbe";
 
 /** The slice of the station's peer link the loader reads: the bundle conduit and the main screen's Uplink set. */
 export type StationUplinkConduit = BundleFetchConduit &
@@ -141,6 +144,30 @@ export async function followHostUplinks(
   );
 }
 
+/**
+ * Load the Uplinks of the main screen's set that were waiting for the game's
+ * Uplink list, now that `roster` is that list. Returns the outcomes of the loads
+ * it made, empty when nothing was waiting.
+ */
+export async function loadWithArrivedRoster(
+  roster: NonNullable<
+    Awaited<ReturnType<typeof readRosterFromTelemetryClient>>
+  >,
+  bundleFetchConduit: BundleFetchConduit,
+  hostUplinks: readonly RunningUplink[],
+  importBundle?: (bytes: ArrayBuffer, url: string) => Promise<unknown>,
+): Promise<UplinkLoadOutcome[]> {
+  const waiting = new Set(
+    getUplinkOutcomes()
+      .filter((o) => o.awaitingRoster)
+      .map((o) => o.id),
+  );
+  if (!roster.some((entry) => waiting.has(entry.id))) return [];
+  return loadHostAdditions(
+    loaderContext(roster, bundleFetchConduit, hostUplinks, importBundle),
+  );
+}
+
 /** The main screen's first settled Uplink set, or `null` if it has not said within `timeoutMs`. */
 function firstHostUplinks(
   conduit: StationUplinkConduit,
@@ -211,6 +238,7 @@ export function StationUplinkLoader({
     let chain: Promise<unknown> = Promise.resolve();
     void (async () => {
       const first = await firstHostUplinks(peerClient, rosterTimeoutMs ?? 3000);
+      let hostSet: readonly RunningUplink[] | null = first;
       if (first) {
         await runStationUplinkLoad(
           telemetryClient,
@@ -220,8 +248,22 @@ export function StationUplinkLoader({
         ).catch(fail);
       }
       setReady(true);
+      /*
+       * The first load reads the game's Uplink list once, with a deadline. A
+       * screen slow to start can miss it, so an Uplink that waited for the list
+       * is loaded when the list arrives.
+       */
+      telemetryClient.subscribe("system.uplinks", (value: unknown) => {
+        const roster = decodeRosterPayload(value);
+        const set = hostSet;
+        if (!roster || !set) return;
+        chain = chain
+          .then(() => loadWithArrivedRoster(roster, peerClient, set))
+          .catch(fail);
+      });
       peerClient.onHostUplinksChange((set) => {
         if (!set) return;
+        hostSet = set;
         chain = chain
           .then(() =>
             followHostUplinks(

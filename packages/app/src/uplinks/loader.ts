@@ -1253,11 +1253,21 @@ async function loadById(
   if (rosterEntry?.clientSource) {
     return loadThirdParty(id, rosterEntry, ctx, slot);
   }
+  if (!rosterEntry) {
+    logger.warn(
+      `[uplink-loader] ${id} waits for the game's Uplink list: ${
+        ctx.roster
+          ? `the list read has ${ctx.roster.length} entries and none for it`
+          : "no list was read"
+      }`,
+    );
+  }
   const outcome: UplinkLoadOutcome = {
     id,
     name: id,
     status: "quarantined",
     reason: "not found in the registry index",
+    ...(rosterEntry ? {} : { awaitingRoster: true as const }),
   };
   setUplinkOutcome(outcome);
   return outcome;
@@ -1275,7 +1285,11 @@ export async function loadHostAdditions(
     const known = new Map(getUplinkOutcomes().map((o) => [o.id, o]));
     return ids.filter((id) => {
       const outcome = known.get(id);
-      return !outcome || outcome.registryUnavailable === true;
+      return (
+        !outcome ||
+        outcome.registryUnavailable === true ||
+        outcome.awaitingRoster === true
+      );
     });
   };
   return queueLoad(ctx, unattempted, () =>

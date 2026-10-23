@@ -40,8 +40,10 @@ import {
   setUplinkOutcome,
 } from "./loaderState";
 import type { RegistryIndex } from "./registry";
+import { decodeRosterPayload } from "./rosterProbe";
 import {
   followHostUplinks,
+  loadWithArrivedRoster,
   runStationUplinkLoad,
   StationUplinkLoader,
 } from "./StationUplinkLoader";
@@ -602,5 +604,36 @@ describe("a station loads a third-party client whose dev path is on the main scr
     expect(third.status).toBe("quarantined");
     expect(third.reason).toMatch(/manifest-declared integrity/);
     expect(sendBundleFetch).not.toHaveBeenCalled();
+  });
+
+  it("loads it when the game's Uplink list arrives after the first read gave up", async () => {
+    stubFetch({ uplinks: [] });
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    const conduit = {
+      sendBundleFetch: vi.fn(async () => BUNDLE_BYTES),
+      sendManifestFetch: vi.fn(async () => manifestWith(goodHash)),
+    };
+
+    const [missed] = await runStationUplinkLoad(
+      client,
+      conduit,
+      RUNS,
+      10,
+      async () => ({}),
+    );
+    expect(missed.status).toBe("quarantined");
+    expect(missed.awaitingRoster).toBe(true);
+
+    const roster = decodeRosterPayload(rosterFor(goodHash));
+    if (!roster) throw new Error("the fixture roster did not decode");
+    const [third] = await loadWithArrivedRoster(
+      roster,
+      conduit,
+      RUNS,
+      async () => ({}),
+    );
+    expect(third.status).toBe("loaded");
+    expect(conduit.sendBundleFetch).toHaveBeenCalledWith(DEV_BUNDLE, goodHash);
   });
 });

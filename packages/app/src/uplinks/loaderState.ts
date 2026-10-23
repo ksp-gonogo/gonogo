@@ -65,6 +65,12 @@ export interface UplinkLoadOutcome {
    * nothing about the Uplink itself: the next roster read tries it again.
    */
   registryUnavailable?: true;
+  /**
+   * Set when the quarantine was the game's Uplink list not yet naming this
+   * Uplink, which says nothing about the Uplink itself: a station tries it
+   * again when the list arrives.
+   */
+  awaitingRoster?: true;
 }
 
 /**
