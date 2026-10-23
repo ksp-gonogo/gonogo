@@ -905,6 +905,30 @@ describe("LaunchDirectorComponent", () => {
     );
   });
 
+  it("says on the tile why the game refused a launch", async () => {
+    const user = userEvent.setup();
+    stream.transport.setCommandHandler((command) =>
+      command === "ksp.launch"
+        ? {
+            success: false,
+            errorCode: "capabilityMismatch",
+            detail:
+              "This vessel has no remote-controlled or manned command modules",
+          }
+        : { success: true },
+    );
+    await setupForLaunch([site("LaunchPad", "KSC Launch Pad")]);
+
+    await user.click(await screen.findByText("Mun Hopper"));
+    await user.click(screen.getByText(/Launch Mun Hopper unmanned/i));
+    await user.click(screen.getByText(/Confirm launch/i));
+
+    const shown = (
+      await screen.findAllByText(/no remote-controlled or manned command/)
+    ).filter((el) => !el.closest("[data-live-region]"));
+    expect(shown).toHaveLength(1);
+  });
+
   it("says a save with no launch sites has none, rather than rendering an empty list", async () => {
     await setupForLaunch([]);
 
