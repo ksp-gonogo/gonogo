@@ -15,7 +15,7 @@ namespace Gonogo.KSP
     /// the same pair a <c>ProtoPartSnapshot</c> keeps, and its box is measured on
     /// the part's prefab with the saved variant's meshes
     /// (<see cref="ProtoVesselTopology.Measure"/>). A part this install does not
-    /// have is left out.</para>
+    /// have is left out, and what hung from it hangs from what is left.</para>
     /// </summary>
     internal static class CraftFileTopology
     {
@@ -40,15 +40,14 @@ namespace Gonogo.KSP
             var rootPosition = CraftFileTree.ParseVector(nodes[0].GetValue("pos"), 3) ?? new double[3];
             var rootRotation = CraftFileTree.ParseVector(nodes[0].GetValue("rot"), 4) ?? new double[] { 0, 0, 0, 1 };
 
-            var list = new List<object?>(nodes.Length);
+            var rows = new Dictionary<string, object?>?[nodes.Length];
+            var kept = new bool[nodes.Length];
             for (var i = 0; i < nodes.Length; i++)
             {
                 try
                 {
-                    if (BuildPart(nodes[i], i, parents[i], rootPosition, rootRotation) is { } row)
-                    {
-                        list.Add(row);
-                    }
+                    rows[i] = BuildPart(nodes[i], i, rootPosition, rootRotation);
+                    kept[i] = rows[i] != null;
                 }
                 catch (Exception ex)
                 {
@@ -56,10 +55,22 @@ namespace Gonogo.KSP
                 }
             }
 
+            /* A part this install lacks is left out, so its children hang from what is left, never from an id nothing carries. */
+            var reattached = CraftFileTree.Reattach(parents, kept);
+            var list = new List<object?>(nodes.Length);
+            for (var i = 0; i < nodes.Length; i++)
+            {
+                if (rows[i] is { } row)
+                {
+                    row["parentId"] = reattached[i] >= 0 ? (reattached[i] + 1).ToString(CultureInfo.InvariantCulture) : null;
+                    list.Add(row);
+                }
+            }
+
             return list.Count == 0 ? null : list;
         }
 
-        private static Dictionary<string, object?>? BuildPart(ConfigNode node, int index, int parentIndex, double[] rootPosition, double[] rootRotation)
+        private static Dictionary<string, object?>? BuildPart(ConfigNode node, int index, double[] rootPosition, double[] rootRotation)
         {
             var name = CraftFileTree.PartName(node.GetValue("part"));
             var info = string.IsNullOrEmpty(name) ? null : PartLoader.getPartInfoByName(name);
@@ -102,15 +113,15 @@ namespace Gonogo.KSP
                 }
                 resources[resourceName] = new Dictionary<string, object?>
                 {
-                    ["amount"] = Number(resource.GetValue("amount")),
-                    ["maxAmount"] = Number(resource.GetValue("maxAmount")),
+                    ["amount"] = Amount(resource.GetValue("amount")),
+                    ["maxAmount"] = Amount(resource.GetValue("maxAmount")),
                 };
             }
 
             return new Dictionary<string, object?>
             {
                 ["id"] = (index + 1).ToString(CultureInfo.InvariantCulture),
-                ["parentId"] = parentIndex >= 0 ? (parentIndex + 1).ToString(CultureInfo.InvariantCulture) : null,
+                ["parentId"] = null,
                 ["name"] = info.name,
                 ["title"] = info.title,
                 ["position"] = framed,
@@ -145,6 +156,10 @@ namespace Gonogo.KSP
             }
             return null;
         }
+
+        /// <summary>A saved resource figure, or null when the file holds none, so an absent amount is not read as an empty tank.</summary>
+        private static double? Amount(string? text) =>
+            double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ? value : (double?)null;
 
         private static double Number(string? text, double fallback = 0.0) =>
             double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ? value : fallback;

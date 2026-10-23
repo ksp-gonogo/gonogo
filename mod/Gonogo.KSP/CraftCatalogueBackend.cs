@@ -86,6 +86,9 @@ namespace Gonogo.KSP
             public float SizeX, SizeY, SizeZ;
         }
 
+        /* A file that could not be measured is not tried again until it changes, since every try logs what stock cannot load. */
+        private readonly Dictionary<string, DateTime> _unreadable = new Dictionary<string, DateTime>();
+
         private double _scannedAt = double.NegativeInfinity;
 
         private string? _scannedSave;
@@ -345,6 +348,11 @@ namespace Gonogo.KSP
             try
             {
                 var modified = File.GetLastWriteTimeUtc(path);
+                if (_unreadable.TryGetValue(path, out var failedAt) && failedAt == modified)
+                {
+                    return null;
+                }
+
                 if (!_measured.TryGetValue(path, out var kept) || kept.Modified != modified)
                 {
                     var root = ConfigNode.Load(path);
@@ -397,6 +405,7 @@ namespace Gonogo.KSP
             catch (Exception ex)
             {
                 GonogoLog.Warn("craft measurement failed for " + path + ", skipping", ex);
+                _unreadable[path] = File.GetLastWriteTimeUtc(path);
                 return null;
             }
         }

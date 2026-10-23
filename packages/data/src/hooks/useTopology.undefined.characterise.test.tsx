@@ -143,10 +143,10 @@ describe("useTopology: what undefined means today", () => {
     });
   });
 
-  it("invents rootFlightId 0 when no part has an absent parentId, rather than reporting no root", async () => {
-    // A partial payload: every part claims a parent, so the
-    // `p.parentId == null` root search finds nothing. The hook does not
-    // surface that; it emits 0, a flightId no part has, silently.
+  it("hangs a part whose parent id is not in the tree from the root, so no id dangles and the root is a real part", async () => {
+    // A partial payload: one part names a parent that is not in the tree.
+    // It reads as parentless and is hung from the root, so every parent id
+    // resolves and the root is a part the tree has.
     const fixture = buildStreamFixture({ pinnedUt: 10 });
     const { result } = renderHook(() => useTopology(), {
       wrapper: fixture.Provider,
@@ -159,8 +159,12 @@ describe("useTopology: what undefined means today", () => {
     );
 
     await waitFor(() => expect(result.current).toBeDefined());
-    expect(result.current?.rootFlightId).toBe(0);
+    expect(result.current?.rootFlightId).toBe(1);
     expect(result.current?.parts.map((p) => p.flightId)).toEqual([1, 2]);
+    expect(result.current?.parts.map((p) => p.parentFlightId)).toEqual([
+      null,
+      1,
+    ]);
   });
 
   it("a part with no `up` derives up: undefined while every other field derives normally", async () => {

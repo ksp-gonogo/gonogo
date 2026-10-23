@@ -48,6 +48,77 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// The parent of each part kept after some were left out
+        /// (<paramref name="kept"/> false), as an index into the original list. A
+        /// part whose parent was left out hangs from its nearest kept ancestor.
+        /// A part with none left to hang from, because the root itself was left
+        /// out, hangs from the genuine root when one is kept and otherwise from the
+        /// first such part, which becomes the root. So every kept parent resolves
+        /// and a tree that had a root still has exactly one. A part left out has
+        /// no parent (-1).
+        /// </summary>
+        public static int[] Reattach(IReadOnlyList<int> parents, IReadOnlyList<bool> kept)
+        {
+            var count = parents.Count;
+            var result = new int[count];
+            var cut = new List<int>();
+            for (var i = 0; i < count; i++)
+            {
+                result[i] = -1;
+                if (!kept[i])
+                {
+                    continue;
+                }
+
+                var parent = parents[i];
+                for (var steps = 0; parent >= 0 && !kept[parent] && steps < count; steps++)
+                {
+                    parent = parents[parent];
+                }
+
+                if (parent >= 0 && !kept[parent])
+                {
+                    parent = -1;
+                }
+
+                result[i] = parent;
+                if (parent < 0 && parents[i] >= 0)
+                {
+                    cut.Add(i);
+                }
+            }
+
+            if (cut.Count == 0)
+            {
+                return result;
+            }
+
+            var root = -1;
+            for (var i = 0; i < count && root < 0; i++)
+            {
+                if (kept[i] && parents[i] < 0)
+                {
+                    root = i;
+                }
+            }
+
+            if (root < 0)
+            {
+                root = cut[0];
+            }
+
+            foreach (var part in cut)
+            {
+                if (part != root)
+                {
+                    result[part] = root;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// The part name inside a part key, <c>&lt;partName&gt;_&lt;craftId&gt;</c>.
         /// The id is the digits after the last underscore, so a part whose own name
         /// holds one keeps it; a key without that suffix is taken whole.

@@ -139,4 +139,62 @@ describe("deriveTopologyFromVesselParts", () => {
       deriveTopologyFromVesselParts(wire(null)).parts[0].bounds.hull,
     ).toBeUndefined();
   });
+
+  describe("a tree with a part left out", () => {
+    const part = (
+      id: string,
+      parentId?: string,
+    ): VesselParts["parts"][number] => ({
+      id,
+      parentId,
+      name: `part${id}`,
+      title: `Part ${id}`,
+      position: { x: value("m", 0), y: value("m", 0), z: value("m", 0) },
+      bounds: {
+        size: { x: value("m", 1), y: value("m", 1), z: value("m", 1) },
+      },
+      category: "Pods",
+      modules: [],
+      isPowerRelated: false,
+      resources: {},
+      moduleStates: [],
+      actionBindings: [],
+    });
+
+    it("roots at the first part whose parent is not in the tree when the root is missing", () => {
+      const wire: VesselParts = {
+        meta: { source: "test" },
+        parts: [part("2", "1"), part("3", "2")],
+      };
+
+      const topology = deriveTopologyFromVesselParts(wire);
+
+      expect(topology.rootFlightId).toBe(2);
+      expect(topology.parts.map((p) => p.parentFlightId)).toEqual([null, 2]);
+    });
+
+    it("keeps a parentless part as the root when an orphan comes first", () => {
+      const wire: VesselParts = {
+        meta: { source: "test" },
+        parts: [part("3", "2"), part("1")],
+      };
+
+      const topology = deriveTopologyFromVesselParts(wire);
+
+      expect(topology.rootFlightId).toBe(1);
+      expect(topology.parts.map((p) => p.parentFlightId)).toEqual([1, null]);
+    });
+
+    it("hangs a subtree whose parent is missing from the root rather than from an id that does not exist", () => {
+      const wire: VesselParts = {
+        meta: { source: "test" },
+        parts: [part("1"), part("3", "2"), part("4", "3")],
+      };
+
+      const topology = deriveTopologyFromVesselParts(wire);
+
+      expect(topology.rootFlightId).toBe(1);
+      expect(topology.parts.map((p) => p.parentFlightId)).toEqual([null, 1, 3]);
+    });
+  });
 });

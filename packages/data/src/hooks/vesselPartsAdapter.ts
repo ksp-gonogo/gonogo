@@ -41,8 +41,21 @@ import type {
 export function deriveTopologyFromVesselParts(
   wire: Pick<VesselParts, "parts">,
 ): VesselTopology {
+  const present = new Set(wire.parts.map((p) => Number(p.id)));
   const parts: TopologyPart[] = wire.parts.map(deriveTopologyPart);
-  const root = wire.parts.find((p) => p.parentId == null);
+  /*
+   * A part whose parent is not in the tree (a craft file naming a part this
+   * install lacks) reads as parentless, so the first of those is the root and
+   * the rest hang from it, rather than from an id nothing carries.
+   */
+  const root =
+    parts.find((p) => p.parentFlightId == null) ??
+    parts.find((p) => !present.has(p.parentFlightId as number));
+  for (const p of parts) {
+    if (p.parentFlightId != null && !present.has(p.parentFlightId)) {
+      p.parentFlightId = root && root !== p ? root.flightId : null;
+    }
+  }
   return {
     // `vessel.parts` is not seq-gated: the whole payload re-emits on change,
     // so there is no separate lightweight counter to mirror here. The part
@@ -50,7 +63,7 @@ export function deriveTopologyFromVesselParts(
     // the structure change". None reads it directly, `useTopology`'s consumers
     // key off the returned object's own identity via `useMemo`.
     topologySeq: wire.parts.length,
-    rootFlightId: root ? Number(root.id) : 0,
+    rootFlightId: root ? root.flightId : 0,
     parts,
   };
 }

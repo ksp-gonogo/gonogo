@@ -93,5 +93,43 @@ namespace Gonogo.KSP.Tests
 
             Assert.Equal(new[] { 1.0, 2.0, 3.0 }, turned);
         }
+
+        [Fact]
+        public void APartWhoseParentIsLeftOutHangsFromItsNearestKeptAncestor()
+        {
+            // pod <- tank (left out) <- engine <- fin (left out) <- nose
+            var parents = new[] { -1, 0, 1, 2, 3 };
+            var kept = new[] { true, false, true, false, true };
+
+            Assert.Equal(new[] { -1, -1, 0, -1, 2 }, CraftFileTree.Reattach(parents, kept));
+        }
+
+        [Fact]
+        public void WhenTheRootIsLeftOutOneKeptPartBecomesTheRootAndTheRestHangFromIt()
+        {
+            // pod (left out) <- [tank <- engine, fin]
+            var parents = new[] { -1, 0, 1, 0 };
+            var kept = new[] { false, true, true, true };
+
+            Assert.Equal(new[] { -1, -1, 1, 1 }, CraftFileTree.Reattach(parents, kept));
+        }
+
+        [Fact]
+        public void ASubtreeWhoseParentIsLeftOutHangsFromTheGenuineRoot()
+        {
+            // pod <- tank (left out) <- engine
+            var parents = new[] { -1, 0, 1 };
+            var kept = new[] { true, false, true };
+
+            Assert.Equal(new[] { -1, -1, 0 }, CraftFileTree.Reattach(parents, kept));
+        }
+
+        [Fact]
+        public void NothingLeftOutChangesNothing()
+        {
+            var parents = new[] { -1, 0, 1, -1 };
+
+            Assert.Equal(parents, CraftFileTree.Reattach(parents, new[] { true, true, true, true }));
+        }
     }
 }
