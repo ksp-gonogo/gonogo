@@ -7071,137 +7071,131 @@ export interface LabEntry
 	extensions?: ProviderExtensions;
 }
 /**
-* One Breaking Ground deployed-science station on
-* `deployed.station.<controllerVesselId>.report`: the cluster a control unit
-* runs, its power, whether its science has a path home, and each experiment it
-* carries. The key is the id of the cluster's controller vessel, the same guid
-* its `trackingStation.catalog` entry carries (type
-* `DeployedScienceController`), so a client finds every station by listing
-* that catalog.
+* One entry in the `deployed.bases` Topic payload: a Breaking Ground
+* deployed-science experiment, a science instrument set down on the surface.
+* The Topic payload is a bare array (`DeployedEntry[]`) or `null` when
+* Breaking Ground is not installed and no loaded vessel carries a deployed
+* experiment.
 *
-* Delayed and frozen on the station's own link, not the active craft's: the
-* controller is its own vessel with its own path home, so a station out of
-* contact holds its last-known reading while the others, and the craft being
-* flown, carry on. The reading's own age says when the station was last heard.
-* A station whose controller vessel cannot be placed has no topic.
+* Unlike the `science.*` channels, `deployed.bases` covers the whole save, not
+* just the active vessel: a deployed cluster is its own ground vessel, so an
+* entry normally describes a vessel other than the active one, named by
+* `DeployedEntry.vesselName`. An experiment on a vessel that is not loaded is
+* read from Breaking Ground's cluster registry and carries no power or
+* connection sentence. One that belongs to no cluster is listed only while its
+* vessel is loaded.
 *
 * Every field is nullable, and is `null` whenever the raw value is absent or
-* could not be read. A backlog is each experiment's
-* `DeployedStationExperiment.storedData`; whether it can get home is
-* `DeployedStation.sendPathHome`.
+* could not be read.
 *
 * @category Science
 */
-export interface DeployedStation
+export interface DeployedEntry
 {
-	/** Name of the controller vessel (KSP's `Vessel.vesselName`). */
-	stationName?: string | null;
 	/**
-	* Name of the body the cluster is deployed on
-	* (`DeployedScienceCluster.DeployedBody`), or of the controller's orbit's
-	* reference body when the cluster does not name one.
+	* Name of the vessel carrying the experiment (KSP's `Vessel.vesselName`). A
+	* deployed cluster is its own vessel, so this is normally not the active
+	* vessel's name.
+	*/
+	vesselName?: string | null;
+	/**
+	* Display title of the experiment part (the part's `partInfo.title`, or its
+	* internal name when that is missing).
+	*/
+	partName?: string | null;
+	/**
+	* Name of the body the carrying vessel orbits or sits on (its orbit's
+	* reference body). `null` when the vessel has no orbit.
 	*/
 	body?: string | null;
 	/**
-	* The controller vessel's situation, KSP's `Vessel.situation` enum name (for
+	* The carrying vessel's situation, KSP's `Vessel.situation` enum name (for
 	* example `LANDED`).
 	*/
 	situation?: string | null;
 	/**
-	* Biome at the controller vessel's position on `DeployedStation.body`. `null`
-	* when the body has no biome map.
+	* Biome at the carrying vessel's current position on `DeployedEntry.body`.
+	* `null` when the body has no biome map.
 	*/
 	biome?: string | null;
+	/** The experiment's id (KSP's `ModuleGroundExperiment.experimentId`). */
+	experimentId?: string | null;
 	/**
-	* The cluster's power state, derived from the facts the game's own readout
-	* branches on rather than from its localised sentence.
+	* How far the experiment has progressed, in percent (KSP's
+	* `ModuleGroundExperiment.ScienceCompletedPercentage`).
+	*/
+	scienceCompletedPercentage?: Value<"%"> | null;
+	/**
+	* How much of the experiment's science has been transmitted, in percent (KSP's
+	* `ModuleGroundExperiment.ScienceTransmittedPercentage`).
+	*/
+	scienceTransmittedPercentage?: Value<"%"> | null;
+	/**
+	* The science value KSP reports for the experiment
+	* (`ModuleGroundExperiment.ScienceValue`).
+	*/
+	scienceValue?: Value<"science"> | null;
+	/**
+	* The experiment's science limit as KSP reports it
+	* (`ModuleGroundExperiment.ScienceLimit`). Compare against
+	* `DeployedEntry.scienceValue`.
+	*/
+	scienceLimit?: Value<"science"> | null;
+	/**
+	* `ModuleGroundSciencePart.PowerState` verbatim: KSP's own words for the power
+	* state, for display. Do not branch on this.
+	*
+	* It is not an enum name, it is localised prose. The module assigns it from
+	* `Localizer` in `UpdateModuleUI()`, so the value is in whatever language the
+	* player runs KSP in, and it is only written when the part action window
+	* refreshes, so it can be a held value. `DeployedEntry.power` is the field to
+	* read.
+	*/
+	powerState?: string | null;
+	/**
+	* `ModuleGroundSciencePart.ConnectionState` verbatim, for display. Localised
+	* prose on the same terms as `DeployedEntry.powerState`; read
+	* `DeployedEntry.controllerConnected` instead.
+	*/
+	connectionState?: string | null;
+	/**
+	* The cluster's power state, derived from the same facts `UpdateModuleUI()`
+	* itself branches on (`DeployedScienceCluster.IsPowered` and
+	* `.ControllerPartEnabled`, the module's `Enabled` and `DeployedOnGround`)
+	* rather than parsed out of the sentence that method writes. This is the field
+	* to branch on, not `DeployedEntry.powerState`.
 	*
 	* `null` when the cluster could not be read at all, which is a third state and
 	* must not be read as either powered or unpowered.
 	*/
 	power?: DeployedPowerState | null;
 	/**
+	* Whether the experiment is attached to a controller cluster at all, the fact
+	* behind `DeployedEntry.connectionState`'s "Connected"/"Not Connected". `null`
+	* when it could not be determined.
+	*/
+	controllerConnected?: boolean | null;
+	/**
 	* Power units the cluster's parts produce
 	* (`DeployedScienceCluster.PowerAvailable`), against
-	* `DeployedStation.powerRequired`. Breaking Ground's own integral power scale
+	* `DeployedEntry.powerRequired`. Breaking Ground's own integral power scale
 	* summed over the cluster's parts: not electric charge, and not a rate.
 	* Available at or above required is what makes the cluster powered.
 	*
-	* `null` when the cluster could not be read. Zero is a real reading a live
-	* cluster holds while its panels are dark, so it must not stand in for
-	* absence.
+	* `null` when the cluster could not be read, on the same terms as
+	* `DeployedEntry.power`. Zero is a real reading a live cluster holds while its
+	* panels are dark, so it must not stand in for absence.
 	*/
 	powerAvailable?: Value<"count"> | null;
 	/**
 	* Power units the cluster's parts require
 	* (`DeployedScienceCluster.PowerRequired`). Same scale and same null rule as
-	* `DeployedStation.powerAvailable`.
+	* `DeployedEntry.powerAvailable`, the demand side of the balance.
 	*/
 	powerRequired?: Value<"count"> | null;
 	/**
-	* Whether the controller has a path home that can carry science, by the rule
-	* the game applies when an experiment sends: a connection with signal and a
-	* last hop to a home command centre. Always `true` in a save with no CommNet.
-	* `null` when the controller's link could not be read.
-	*
-	* This is the figure at the sample's own time. A station that has since lost
-	* its path stops updating, so read how old the reading is before trusting a
-	* `true`.
-	*/
-	sendPathHome?: boolean | null;
-	/**
-	* Whether the cluster's last attempt to send its science home failed
-	* (`DeployedScienceCluster.DataSendFailed`). `null` when it could not be read.
-	*/
-	dataSendFailed?: boolean | null;
-	/**
-	* Every experiment in the cluster, in the cluster's part order. Never null on
-	* a published station; an empty list is a cluster with no experiment attached.
-	*/
-	experiments: DeployedStationExperiment[];
-}
-/**
-* One experiment of a `DeployedStation`: a science instrument set down on the
-* surface, with how far it has progressed and how much data it is holding that
-* has not yet been sent home.
-*
-* @category Science
-*/
-export interface DeployedStationExperiment
-{
-	/**
-	* Display title of the experiment part (the part's `partInfo.title`, or its
-	* internal name when that is missing).
-	*/
-	partName?: string | null;
-	/** The experiment's id (`DeployedScienceExperiment.ExperimentId`). */
-	experimentId?: string | null;
-	/** How far the experiment has progressed, in percent of its science limit. */
-	scienceCompletedPercentage?: Value<"%"> | null;
-	/**
-	* How much of the experiment's science has been transmitted, in percent of its
-	* science limit.
-	*/
-	scienceTransmittedPercentage?: Value<"%"> | null;
-	/**
-	* The science value the experiment reports
-	* (`DeployedScienceExperiment.ScienceValue`).
-	*/
-	scienceValue?: Value<"science"> | null;
-	/**
-	* The experiment's science limit. Compare against
-	* `DeployedStationExperiment.scienceValue`.
-	*/
-	scienceLimit?: Value<"science"> | null;
-	/**
-	* Data the experiment holds that has not been transmitted
-	* (`DeployedScienceExperiment.StoredScienceData`): the backlog waiting for a
-	* path home. `null` when it could not be read, and zero is a real empty store.
-	*/
-	storedData?: Value<"Mit"> | null;
-	/**
-	* Whether the experiment part is deployed on the ground
-	* (`DeployedSciencePart.DeployedOnGround`).
+	* Whether the experiment part is deployed on the ground (KSP's
+	* `ModuleGroundSciencePart.DeployedOnGround`).
 	*/
 	deployedOnGround?: boolean | null;
 }

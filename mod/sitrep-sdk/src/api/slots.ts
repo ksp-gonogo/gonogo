@@ -862,7 +862,7 @@ export interface ExperimentsInstrumentSlotContext {
 /**
  * One deployed science experiment, as the Deployed Science widget draws its
  * card. Useful for showing the operator how much science an experiment has
- * collected and sent, and how much data it is holding that has not got home.
+ * collected and sent.
  *
  * Each science figure is `null` when the mod does not report it, rather than
  * 0, because 0 is a real reading: a newly placed experiment reports 0%. Branch
@@ -871,9 +871,9 @@ export interface ExperimentsInstrumentSlotContext {
  * @category Widget slots
  */
 export interface DeployedScienceExperiment {
-  /** The experiment's position in its station's list. Only for use as a key. */
+  /** The experiment's position in its base's list. Only for use as a key. */
   partId: number;
-  /** KSP's experiment id, or a made-up id unique within the station when the mod reports none. */
+  /** KSP's experiment id, or a made-up id unique within the base when the mod reports none. */
   id: string;
   /** The part's name, or the experiment id when there is none. */
   name: string;
@@ -883,8 +883,8 @@ export interface DeployedScienceExperiment {
   limit: number | null;
   /** How far collection has got, from 0 to 1. `null` when not reported. */
   progress: number | null;
-  /** Data the experiment holds that has not been sent home, in Mits. `null` when not reported, and 0 is a real empty store. */
-  backlog: number | null;
+  /** Science collected but not yet transmitted. `null` when either figure it comes from is not reported. */
+  stored: number | null;
   /** Science already transmitted. `null` when either figure it comes from is not reported. */
   transmitted: number | null;
   /** True while collection is under 100%. `null` when progress is not reported. */
@@ -902,7 +902,7 @@ export interface DeployedScienceExperiment {
 export interface DeployedExperimentContext {
   /** The experiment this card shows. */
   experiment: DeployedScienceExperiment;
-  /** The name of the body the experiment's station stands on. An empty string when not reported. */
+  /** The name of the body the experiment's base stands on. An empty string when not reported. */
   body: string;
   /**
    * The reading the experiment's figures were drawn from, or just its grade. Only a held reading

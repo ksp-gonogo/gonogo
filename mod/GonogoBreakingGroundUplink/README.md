@@ -9,7 +9,7 @@ Drives Breaking Ground robotic joints and rotors from the console, and reports d
 | --- | --- |
 | Uplink id | `breakingGround` |
 | Version | `0.0.1` |
-| Built against | contract 46.0, extension API 6.0.0 |
+| Built against | contract 45.6, extension API 6.0.0 |
 
 ## Install
 
@@ -19,19 +19,18 @@ The Breaking Ground Uplink comes with Gonogo, so there is nothing separate to in
 
 ### Deployed Science
 
-Whether each Breaking Ground deployed station's science is reaching home and when it was last heard, with its power balance and per-experiment science progress, reported even while you fly something else. Read-only.
+Power balance and per-experiment science progress for Breaking Ground deployed surface bases on every body, reported even while you fly something else. Read-only.
 
 | | |
 | --- | --- |
 | Widget id | `deployed-science` |
-| Reads | `trackingStation.catalog`, `game.dlc` |
-| Also reads, if the mod publishes them | `deployed.station.<vesselId>.report` |
+| Reads, as dotted paths (a Topic id or a field of its payload) | `deployed.bases`, `game.dlc.breakingGround` |
 | Slots of its own | `deployed-science.experiment` |
 | Default size, in grid units | 5 × 9 |
 | Smallest size, in grid units | 5 × 7 |
 | Scenes | 4 |
 
-![A Mun station in contact above a Minmus station out of contact, with the time it was last heard and its unsent data](client/docs/assets/mun-and-minmus-stations--default.png)
+![A powered Mun base with two experiments collecting, above a Minmus base that has lost power overnight](client/docs/assets/mun-and-minmus-bases--default.png)
 
 ### Robotics Console
 

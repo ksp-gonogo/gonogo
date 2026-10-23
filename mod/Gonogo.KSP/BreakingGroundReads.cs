@@ -10,7 +10,7 @@ namespace Gonogo.KSP
     /// vessel and a headless test can never enter them, while the decisions
     /// here are exactly the parts that have been wrong.
     ///
-    /// <para>Every decision here answers the same question: can this reader tell "the
+    /// <para>Both decisions answer the same question: can this reader tell "the
     /// game said no" from "we could not find out". Breaking Ground's types are
     /// obfuscation-risky and read reflectively, so a failed read is a routine
     /// event rather than an impossible one, and a failed read reported as a
@@ -121,37 +121,17 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Whether a deployed station's control unit has a path home that can carry
-        /// science, by the rule <c>DeployedScienceExperiment</c> applies when it
-        /// sends: a connection, with signal strength above zero and a last hop that
-        /// reaches home. A save with no comms model always sends.
+        /// Whether a deployed experiment is attached to a science cluster:
+        /// <c>true</c>/<c>false</c> when the cluster member was read, and
+        /// <c>null</c> when the read itself failed.
         ///
-        /// <para><c>false</c> is the game's own refusal. <c>null</c> is a read that
-        /// did not answer, which is not a refusal: a failed read reported as no
-        /// path would show a station as stranded that the game would let send.</para>
+        /// <para>The conflation this replaces was <c>cluster != null</c>, which
+        /// answered a definite "not connected" for a reflective read that never
+        /// happened. Downstream that reached the operator as a deployed base
+        /// painted red and <c>Unpowered</c>, indistinguishable from an
+        /// experiment genuinely sitting unattached.</para>
         /// </summary>
-        public static bool? SendPathHome(
-            bool noCommsModel,
-            bool? connectionPresent,
-            double? signalStrength,
-            bool? lastHopHome)
-        {
-            if (noCommsModel)
-            {
-                return true;
-            }
-
-            if (connectionPresent == false || signalStrength <= 0.0 || lastHopHome == false)
-            {
-                return false;
-            }
-
-            if (connectionPresent == null || signalStrength == null || lastHopHome == null)
-            {
-                return null;
-            }
-
-            return true;
-        }
+        public static bool? ControllerConnected(bool clusterRead, object? cluster) =>
+            clusterRead ? cluster != null : (bool?)null;
     }
 }

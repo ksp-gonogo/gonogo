@@ -1,9 +1,11 @@
 [
   "breaking-ground-absent--default.png",
-  "mun-and-minmus-stations--default.png",
-  "mun-and-minmus-stations--min.png",
-  "mun-and-minmus-stations-stopped-arriving--default.png",
-  "mun-and-minmus-stations-stopped-arriving--min.png",
+  "controller-not-connected--default.png",
+  "controller-not-connected--min.png",
+  "mun-and-minmus-bases--default.png",
+  "mun-and-minmus-bases--min.png",
+  "mun-and-minmus-bases-stopped-arriving--default.png",
+  "mun-and-minmus-bases-stopped-arriving--min.png",
   "robotics-dlc-absent--default.png",
   "rotors--default.png",
   "rotors--min.png",
@@ -11,7 +13,5 @@
   "rotors-link-lost--default.png",
   "servos--default.png",
   "servos--min.png",
-  "servos-link-lost--default.png",
-  "station-out-of-contact--default.png",
-  "station-out-of-contact--min.png"
+  "servos-link-lost--default.png"
 ]

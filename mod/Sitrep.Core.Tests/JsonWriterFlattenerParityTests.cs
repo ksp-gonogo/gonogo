@@ -33,7 +33,7 @@ namespace Sitrep.Core.Tests
     /// <c>Sitrep.Host.Tests.VesselViewProviderTests.ToWireIncludesAKeyForEveryPublicReadablePropertyOfThePoco</c>
     /// for <c>vessel.*</c>, <c>ScienceContractShapeTests</c> for
     /// <c>science.*</c>, <c>BreakingGroundContractShapeTests</c> for
-    /// <c>deployed.station.&lt;guid&gt;.report</c>/<c>robotics.*</c>. Between them and this file, both
+    /// <c>deployed.bases</c>/<c>robotics.*</c>. Between them and this file, both
     /// halves of "declared in the contract, absent from the wire" are now
     /// covered.</para>
     ///

@@ -7,25 +7,35 @@
       "elements": 16,
       "text": "e2f1fa7a"
     },
-    "mun-and-minmus-stations--default.png": {
-      "hash": "092a6870a6ac3def",
-      "elements": 86,
-      "text": "7f05c06b"
+    "controller-not-connected--default.png": {
+      "hash": "b0f7c91b22aeaa01",
+      "elements": 36,
+      "text": "10da8719"
     },
-    "mun-and-minmus-stations--min.png": {
-      "hash": "092a6870a6ac3def",
-      "elements": 86,
-      "text": "7f05c06b"
+    "controller-not-connected--min.png": {
+      "hash": "b0f7c91b22aeaa01",
+      "elements": 36,
+      "text": "10da8719"
     },
-    "mun-and-minmus-stations-stopped-arriving--default.png": {
-      "hash": "b24dfae82fbf9abc",
-      "elements": 87,
-      "text": "cb8d0c8a"
+    "mun-and-minmus-bases--default.png": {
+      "hash": "b019f1084572a686",
+      "elements": 71,
+      "text": "4d2e4f91"
     },
-    "mun-and-minmus-stations-stopped-arriving--min.png": {
-      "hash": "b24dfae82fbf9abc",
-      "elements": 87,
-      "text": "cb8d0c8a"
+    "mun-and-minmus-bases--min.png": {
+      "hash": "b019f1084572a686",
+      "elements": 71,
+      "text": "4d2e4f91"
+    },
+    "mun-and-minmus-bases-stopped-arriving--default.png": {
+      "hash": "ff71aa9b67a85653",
+      "elements": 76,
+      "text": "4d2e4f91"
+    },
+    "mun-and-minmus-bases-stopped-arriving--min.png": {
+      "hash": "ff71aa9b67a85653",
+      "elements": 76,
+      "text": "4d2e4f91"
     },
     "robotics-dlc-absent--default.png": {
       "hash": "bc52ddf64c800482",
@@ -66,16 +76,6 @@
       "hash": "6da6360d5afce7b1",
       "elements": 69,
       "text": "08e4ea00"
-    },
-    "station-out-of-contact--default.png": {
-      "hash": "19004d8168c2e5e3",
-      "elements": 43,
-      "text": "c750e602"
-    },
-    "station-out-of-contact--min.png": {
-      "hash": "19004d8168c2e5e3",
-      "elements": 43,
-      "text": "c750e602"
     }
   }
 }

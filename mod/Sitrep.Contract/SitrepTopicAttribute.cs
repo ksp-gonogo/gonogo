@@ -10,8 +10,8 @@ namespace Sitrep.Contract
     /// <para>It affects typing only and does not change the wire.
     /// <see cref="IsArray"/> marks a payload that is a bare JSON array of the
     /// tagged element type rather than a single object: the <c>science.*</c>
-    /// channels emit <c>ExperimentEntry[]</c> or <c>LabEntry[]</c>
-    /// (or <c>null</c>), so the tag sits on the element
+    /// channels emit <c>ExperimentEntry[]</c>, <c>LabEntry[]</c> or
+    /// <c>DeployedEntry[]</c> (or <c>null</c>), so the tag sits on the element
     /// type with <c>IsArray = true</c>.</para>
     /// <internal>
     /// Codegen (mod/codegen.sh) reflects over this to build the

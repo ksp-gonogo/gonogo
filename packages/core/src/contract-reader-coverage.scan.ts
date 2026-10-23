@@ -36,7 +36,7 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
  *     with no `registerComponent` in sight, and a gate that only understood
  *     widgets would manufacture debt for every one of them. This signal is
  *     Every segment need not be named: a field under a collection is read
- *     off an element (`servo.currentAngle` for `robotics.servos.currentAngle`,
+ *     off an element (`base.powerAvailable` for `deployed.bases.powerAvailable`,
  *     or a destructured `{ powerAvailable }`), so a nested path is also
  *     credited when its leaf is read as a member access or destructured
  *     binding, in a file that mounts the Topic or a sibling of one, provided no
@@ -600,7 +600,7 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
      * Not `"registerComponent("`: a call with an explicit type argument
      * (`registerComponent<FooConfig>({`) has no such substring, and several
      * real widgets write exactly that, which silently dropped them from the
-     * corpus until this was caught against a Breaking Ground widget.
+     * corpus until this was caught against `DeployedScience`.
      */
     const mightDeclareWidget = text.includes("registerComponent");
     const mightTouchContract =
@@ -831,6 +831,10 @@ export const ELEMENT_READERS: readonly {
    */
   only?: readonly string[];
 }[] = [
+  {
+    file: "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/parseBases.ts",
+    topic: "deployed.bases",
+  },
   {
     file: "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/servos.ts",
     topic: "robotics.servos",

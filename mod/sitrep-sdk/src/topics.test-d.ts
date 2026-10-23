@@ -13,6 +13,7 @@
 import type {
   CareerStatus,
   CommsDelay,
+  DeployedEntry,
   DockAlignment,
   ExperimentEntry,
   LabEntry,
@@ -74,6 +75,9 @@ export type _ResolvesTargetAvailable = Expect<
 >;
 export type _ResolvesScienceLab = Expect<
   Equal<TopicPayload<"science.lab">, LabEntry[]>
+>;
+export type _ResolvesScienceDeployed = Expect<
+  Equal<TopicPayload<"deployed.bases">, DeployedEntry[]>
 >;
 export type _ResolvesSystemBodies = Expect<
   Equal<TopicPayload<"trackingStation.bodies">, SystemBodies>
