@@ -166,6 +166,7 @@ jobs:
         env:
           VITE_BASE_PATH: /rc/
           GONOGO_VERSION: ${{ inputs.label }}
+          GONOGO_CHANNEL: rc
           # Axiom ingest. If the secret isn't set the logger silently
           # skips installing the Axiom transport, so dropping the secret
           # is a clean way to disable remote logging.

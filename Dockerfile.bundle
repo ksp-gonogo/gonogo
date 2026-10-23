@@ -44,6 +44,9 @@ ENV VITE_RELAY_URL=http://localhost:3002
 # in the peer hello handshake. Empty for release builds, which use package.json.
 ARG GONOGO_VERSION
 ENV GONOGO_VERSION=${GONOGO_VERSION}
+# The publish channel (rc or app), which names the public station page the Add station panel offers.
+ARG GONOGO_CHANNEL
+ENV GONOGO_CHANNEL=${GONOGO_CHANNEL}
 RUN pnpm turbo build --filter=@ksp-gonogo/app...
 
 # Build the relay and deploy a self-contained dir (workspace deps inlined

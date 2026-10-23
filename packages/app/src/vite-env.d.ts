@@ -2,6 +2,7 @@
 
 declare const __GONOGO_VERSION__: string;
 declare const __GONOGO_BUILD_TIME__: string;
+declare const __GONOGO_CHANNEL__: string;
 // The C# contract's half of the app's Uplink-compat identity: single-sourced
 // in vite.config.ts, gated against a runtime-loaded Uplink descriptor's
 // declared versions before import. The apiVersion half needs no define, because

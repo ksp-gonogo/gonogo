@@ -5,7 +5,7 @@ import {
   stationAddresses,
 } from "./stationAddresses";
 
-const BASE = { code: "AB3K", baseUrl: "/", appVersion: "1.0.0" };
+const BASE = { code: "AB3K", baseUrl: "/", channel: "app" as const };
 
 describe("stationAddresses", () => {
   it("points a self-hosted LAN origin at its own station page and encodes that in the QR", () => {
@@ -32,10 +32,10 @@ describe("stationAddresses", () => {
     expect(qr.id).toBe("public");
   });
 
-  it("points a release candidate build at the rc station page, in the list and in the QR", () => {
+  it("points a build published to the rc channel at the rc station page whatever version it announces", () => {
     const { addresses, qr } = stationAddresses({
       ...BASE,
-      appVersion: "1.2.0-rc.a1b2c3d",
+      channel: "rc",
       origin: "http://localhost:8080",
     });
 
@@ -43,10 +43,10 @@ describe("stationAddresses", () => {
     expect(qr.url).toBe("https://ksp-gonogo.github.io/rc/station?host=AB3K");
   });
 
-  it("points a release build at the app station page", () => {
+  it("points a build published to the release channel at the app station page", () => {
     const { qr } = stationAddresses({
       ...BASE,
-      appVersion: "1.2.0",
+      channel: "app",
       origin: "http://localhost:8080",
     });
 
@@ -78,7 +78,7 @@ describe("stationAddresses", () => {
   it("escapes a share code", () => {
     const { qr } = stationAddresses({
       code: "A B",
-      appVersion: "1.0.0",
+      channel: "app",
       baseUrl: "/",
       origin: "https://x.example",
     });

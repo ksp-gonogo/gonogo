@@ -23,7 +23,7 @@ If it won't connect, a firewall on the KSP computer is the usual cause. It must 
 
 ## Adding stations
 
-Open **Add station** on the main screen. It shows a link and a share code. A friend opens the link, enters the code, and you approve them.
+Open **Add station** on the main screen. It shows a link and a share code. A friend opens the link, enters the code, and you approve them. The link points at the public site for the version you run: `https://ksp-gonogo.github.io/app/station` if you run a release, `https://ksp-gonogo.github.io/rc/station` if you run the release candidate (`:rc`) image. A friend on another network opens that same address.
 
 - Friends on your LAN join with nothing to set up
 - Most friends over the internet join with nothing to set up either

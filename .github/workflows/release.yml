@@ -182,6 +182,7 @@ jobs:
         run: pnpm turbo build --filter=@ksp-gonogo/app...
         env:
           VITE_BASE_PATH: /app/
+          GONOGO_CHANNEL: app
           VITE_AXIOM_TOKEN: ${{ secrets.VITE_AXIOM_TOKEN }}
 
       - name: Pack site asset

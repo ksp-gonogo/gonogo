@@ -190,6 +190,7 @@ jobs:
           build-args: |
             VITE_AXIOM_TOKEN=${{ secrets.VITE_AXIOM_TOKEN }}
             GONOGO_VERSION=${{ needs.plan.outputs.version }}
+            GONOGO_CHANNEL=${{ env.CHANNEL == 'rc' && 'rc' || 'app' }}
             GONOGO_BUILD_TIME=${{ steps.build-time.outputs.value }}
           cache-from: type=gha,scope=gonogo-bundle
           cache-to: type=gha,mode=max,scope=gonogo-bundle

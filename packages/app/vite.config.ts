@@ -251,6 +251,8 @@ const uplinkDevImportMap = (): PluginOption => ({
  */
 const VERSION = process.env.GONOGO_VERSION || pkg.version;
 
+const CHANNEL = process.env.GONOGO_CHANNEL === "rc" ? "rc" : "app";
+
 const BUILD_TIME = new Date().toISOString();
 
 // A static host has no server-side routing: a direct hit on /station returns
@@ -337,6 +339,7 @@ export default defineConfig({
   define: {
     __GONOGO_VERSION__: JSON.stringify(VERSION),
     __GONOGO_BUILD_TIME__: JSON.stringify(BUILD_TIME),
+    __GONOGO_CHANNEL__: JSON.stringify(CHANNEL),
     // The C# contract's half of the app's Uplink-compat identity; read by
     // src/uplinks/hostCompat.ts and gated against a descriptor's declared
     // versions before any bundle is loaded. apiVersion needs no define:

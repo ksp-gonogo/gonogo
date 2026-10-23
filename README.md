@@ -58,7 +58,7 @@ The setup wizard opens by itself and checks the container, the connection to KSP
 
 ## Joining a friend's game
 
-Open the link from their **Add station** panel and enter the share code. Nothing to install.
+Open the link from their **Add station** panel and enter the share code. Nothing to install. The link opens the public Gonogo site that matches the version your friend runs: `https://ksp-gonogo.github.io/app/station` for a release, `https://ksp-gonogo.github.io/rc/station` for the release candidate (`:rc`) image.
 
 ## Upgrading from an earlier version
 

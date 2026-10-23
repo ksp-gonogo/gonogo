@@ -7,3 +7,9 @@ export const BUILD_TIME: string =
   typeof __GONOGO_BUILD_TIME__ !== "undefined"
     ? __GONOGO_BUILD_TIME__
     : new Date().toISOString();
+
+/** The publish channel this build is for, set by the publish step; a local build counts as the release. */
+export const CHANNEL: "app" | "rc" =
+  typeof __GONOGO_CHANNEL__ !== "undefined" && __GONOGO_CHANNEL__ === "rc"
+    ? "rc"
+    : "app";

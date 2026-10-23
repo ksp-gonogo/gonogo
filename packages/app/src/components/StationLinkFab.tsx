@@ -20,7 +20,7 @@ import { relayBaseUrl } from "../peer/iceServers";
 import { peerHostService } from "../peer/PeerHostService";
 import { probeTurn, type TurnProbeResult } from "../peer/probeTurn";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
-import { VERSION } from "../version";
+import { CHANNEL } from "../version";
 import { stationAddresses } from "./stationAddresses";
 
 /**
@@ -88,7 +88,7 @@ function StationLinkPanel() {
     code: shareCode,
     origin: globalThis.location.origin,
     baseUrl: import.meta.env.BASE_URL,
-    appVersion: VERSION,
+    channel: CHANNEL,
     override: import.meta.env.VITE_STATION_URL,
   });
 

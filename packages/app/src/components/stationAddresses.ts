@@ -4,14 +4,17 @@ export const PUBLIC_STATION_URL = "https://ksp-gonogo.github.io/app/station";
 /** The public release-candidate build of the app, reachable from any network. */
 export const PUBLIC_RC_STATION_URL = "https://ksp-gonogo.github.io/rc/station";
 
+/** The channel a build is published to: `app` is the release, `rc` the candidate. */
+export type Channel = "app" | "rc";
+
 /**
- * The public station page of the channel this build came from: a release
- * candidate version (`1.2.0-rc.<sha>`) is served at `/rc/`, anything else at
- * `/app/`. A self-hosted build has the same version as its channel but a base
- * path of `/`, so the version is the only thing that names the channel.
+ * The public station page of the channel this build was published to. A
+ * self-hosted build has a base path of `/`, and a candidate's version label
+ * can be a `-dev.<sha>` one, so only the channel the publish step baked in
+ * names the page.
  */
-export function publicStationUrl(appVersion: string): string {
-  return /-rc\./i.test(appVersion) ? PUBLIC_RC_STATION_URL : PUBLIC_STATION_URL;
+export function publicStationUrl(channel: Channel): string {
+  return channel === "rc" ? PUBLIC_RC_STATION_URL : PUBLIC_STATION_URL;
 }
 
 export interface StationAddress {
@@ -34,8 +37,8 @@ export interface StationAddressInput {
   origin: string;
   /** The app's base path, `/` for a self-hosted build. */
   baseUrl: string;
-  /** The version this build announces, which names the channel it was published on. */
-  appVersion: string;
+  /** The channel this build was published to. */
+  channel: Channel;
   /** `VITE_STATION_URL`: a fork's own deploy, which replaces every other address. */
   override?: string;
   /**
@@ -70,7 +73,7 @@ export function stationAddresses({
   code,
   origin,
   baseUrl,
-  appVersion,
+  channel,
   override,
   relayUrl,
 }: StationAddressInput): StationAddresses {
@@ -101,7 +104,7 @@ export function stationAddresses({
     id: "public",
     label: "Public build",
     when: "For a device on another network (needs internet)",
-    url: withHost(publicStationUrl(appVersion), code, relayUrl),
+    url: withHost(publicStationUrl(channel), code, relayUrl),
   };
   own.when = isLoopback
     ? "For another window on this computer"
