@@ -6760,6 +6760,15 @@ export interface ScetAlarm
 	* Deleting either one deletes the other.
 	*/
 	gameAlarmId?: number | null;
+	/**
+	* How many times the player has edited this alarm's copy in the game's own
+	* alarm clock (see `ScetAlarm.gameAlarmId`). Each edit moves this alarm's
+	* `ScetAlarm.name` and `ScetAlarmCondition.ut` to the copy's title and time,
+	* so a client that has not yet taken the count it last saw can tell the new
+	* name and time are the player's and take them, instead of arming its own over
+	* them.
+	*/
+	gameEdits: Value<"count">;
 }
 /**
 * The notice that an alarm judged on the craft's own clock (a SCET alarm, for

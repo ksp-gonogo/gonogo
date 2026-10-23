@@ -554,6 +554,17 @@ public class ScetAlarm
     /// </summary>
     [SitrepUnit(Units.Id)]
     public long? GameAlarmId { get; set; }
+
+    /// <summary>
+    /// How many times the player has edited this alarm's copy in the game's
+    /// own alarm clock (see <see cref="GameAlarmId"/>). Each edit moves this
+    /// alarm's <see cref="Name"/> and <see cref="ScetAlarmCondition.Ut"/> to
+    /// the copy's title and time, so a client that has not yet taken the
+    /// count it last saw can tell the new name and time are the player's and
+    /// take them, instead of arming its own over them.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int GameEdits { get; set; }
 }
 
 /// <summary>

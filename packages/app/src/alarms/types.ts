@@ -185,6 +185,8 @@ export type AlarmFireAction = {
 export interface Alarm {
   id: string;
   name: string;
+  /** How many of the player's edits to this alarm's copy in the game's alarm clock this list has taken. */
+  gameEditsSeen?: number;
   notes?: string;
   trigger: AlarmTrigger;
   state: AlarmState;

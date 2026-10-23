@@ -19337,6 +19337,7 @@ components:
         - state
         - onFire
         - actsOn
+        - gameEdits
       properties:
         id:
           type: string
@@ -19469,6 +19470,16 @@ components:
             Only an alarm on a universal time is copied into the game, and only while
             the game runs an alarm clock. The copy leaves time warp to this alarm.
             Deleting either one deletes the other.
+        gameEdits:
+          type: number
+          x-sitrep-unit: count
+          description: |-
+            How many times the player has edited this alarm's copy in the game's own
+            alarm clock (see `ScetAlarm.gameAlarmId`). Each edit moves this alarm's
+            `ScetAlarm.name` and `ScetAlarmCondition.ut` to the copy's title and time,
+            so a client that has not yet taken the count it last saw can tell the new
+            name and time are the player's and take them, instead of arming its own over
+            them.
     ScetAlarmAction:
       type: object
       description: |-

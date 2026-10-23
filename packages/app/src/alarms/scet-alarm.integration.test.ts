@@ -70,6 +70,8 @@ type ArmedCondition =
 /** One arm as the stand-in received it: the condition and who it named. */
 interface ArmedAlarm {
   name: string;
+  /** How many times the player has edited the alarm's copy in the game. */
+  gameEdits: number;
   condition: ArmedCondition;
   subject: string;
   /** The onboard actions, as `{kind, group}` ordinals, and the craft they act on. */
@@ -163,6 +165,8 @@ interface ModStandIn {
   copyToGame(id: string, gameAlarmId: number): void;
   /** The player deletes this alarm's copy in the game's own alarm clock, and the mod deletes the alarm. */
   deleteInGame(id: string): void;
+  /** The player editing the alarm's copy in the game's alarm clock: the mod takes the new name and time. */
+  editInGame(id: string, name: string, ut: number): void;
   /** Tell the client an altitude, stamped now, so a test can show this side judges nothing off it. */
   showClientAltitude(altitudeAsl: number): void;
   /** Tell the client one contract objective's state, stamped now, so a test can show this side judges nothing off it. */
@@ -276,6 +280,7 @@ function startSession(owlt: number): ModStandIn {
       const subject = String(bag.subject ?? "");
       conditions.set(id, {
         name: String(bag.name ?? ""),
+        gameEdits: conditions.get(id)?.gameEdits ?? 0,
         subject,
         onFire: Array.isArray(bag.onFire)
           ? bag.onFire.map((a: { kind?: unknown; group?: unknown }) => ({
@@ -351,7 +356,7 @@ function startSession(owlt: number): ModStandIn {
   function publishRoster(): void {
     lastRoster = [...conditions.entries()].map(([id, arm]) => ({
       id,
-      name: id,
+      name: arm.name,
       armedBy: HOME,
       vantage: arm.vantage,
       subject: arm.subject,
@@ -402,6 +407,7 @@ function startSession(owlt: number): ModStandIn {
       onFire: arm.onFire,
       actsOn: arm.actsOn,
       gameAlarmId: inGame.get(id) ?? null,
+      gameEdits: arm.gameEdits,
     }));
     /* Gated as `ScetRosterAudience` gates it on the mod: nothing while nobody
        is subscribed, one frame to an audience that has not been answered (the
@@ -434,7 +440,8 @@ function startSession(owlt: number): ModStandIn {
     armed: () => [...conditions.keys()],
     armForeign(id) {
       conditions.set(id, {
-        name: "",
+        name: id,
+        gameEdits: 0,
         subject: "game",
         vantage: "game",
         onFire: [],
@@ -498,6 +505,13 @@ function startSession(owlt: number): ModStandIn {
     },
     copyToGame(id, gameAlarmId) {
       inGame.set(id, gameAlarmId);
+    },
+    editInGame(id, name, ut) {
+      const arm = conditions.get(id);
+      if (!arm || arm.condition.kind !== "time") return;
+      arm.name = name;
+      arm.condition.ut = ut;
+      arm.gameEdits += 1;
     },
     deleteInGame(id) {
       deletedInGame.add(id);
@@ -789,6 +803,38 @@ describe("SCET alarms", () => {
       expect(storage.getItem("gonogo.alarms.list")).toBe("[]");
       expect(svc.snapshot().alarmsCancelled).toBeUndefined();
       expect(svc.snapshot().scetForeign).toBeUndefined();
+      svc.dispose();
+    });
+
+    it("takes the new name and time when the copy is edited in the game, and does not arm it again", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const storage = memoryStorage();
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage,
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Burn",
+        trigger: { kind: "time", ut: UT_START + 20 * DT, leadSeconds: 10 },
+      });
+      await run(session, UT_START + 4 * DT);
+      const attempts = session.armAttempts(alarm.id);
+
+      session.editInGame(alarm.id, "Burn later", UT_START + 40 * DT);
+      await runFrom(session, UT_START + 4 * DT, UT_START + 8 * DT);
+
+      const held = svc.snapshot().alarms.find((a) => a.id === alarm.id);
+      expect(held?.name).toBe("Burn later");
+      expect(held?.trigger).toEqual({
+        kind: "time",
+        ut: UT_START + 40 * DT,
+        leadSeconds: 10,
+      });
+      expect(session.armAttempts(alarm.id)).toBe(attempts);
+      expect(storage.getItem("gonogo.alarms.list")).toContain("Burn later");
       svc.dispose();
     });
 

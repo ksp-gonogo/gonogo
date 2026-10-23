@@ -338,6 +338,7 @@ namespace Sitrep.Host.Alarms
                 // The copy in the game's clock is the same alarm's, moved or
                 // dropped by the mirror on its next pass, never orphaned here.
                 alarm.GameAlarmId = _entries[index].Alarm.GameAlarmId;
+                alarm.GameEdits = _entries[index].Alarm.GameEdits;
                 _entries[index] = new Entry { Alarm = alarm };
                 _pendingChange = true;
                 return true;
@@ -403,6 +404,34 @@ namespace Sitrep.Host.Alarms
             entry.Alarm.State = ScetAlarmState.DeletedInGame;
             entry.Alarm.GameAlarmId = null;
             entry.MatchSinceUt = null;
+            _pendingChange = true;
+            return true;
+        }
+
+        /// <summary>
+        /// The player edited the alarm's copy in the game's clock: the alarm takes
+        /// the copy's title and time. An empty title leaves the name as it is.
+        /// </summary>
+        public bool EditFromGame(string id, string title, double ut)
+        {
+            var index = IndexOf(id);
+            if (index < 0)
+            {
+                return false;
+            }
+            var alarm = _entries[index].Alarm;
+            if (alarm.State != ScetAlarmState.Armed || alarm.Condition == null)
+            {
+                return false;
+            }
+            var name = string.IsNullOrEmpty(title) ? alarm.Name : title;
+            if (string.Equals(alarm.Name, name, StringComparison.Ordinal) && alarm.Condition.Ut == ut)
+            {
+                return false;
+            }
+            alarm.Name = name;
+            alarm.Condition.Ut = ut;
+            alarm.GameEdits++;
             _pendingChange = true;
             return true;
         }
@@ -873,6 +902,7 @@ namespace Sitrep.Host.Alarms
                     OnFire = Copy(a.OnFire),
                     ActsOn = a.ActsOn,
                     GameAlarmId = a.GameAlarmId,
+                    GameEdits = a.GameEdits,
                 });
             }
             return rows;

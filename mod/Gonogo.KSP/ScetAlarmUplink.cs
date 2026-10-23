@@ -652,6 +652,10 @@ namespace Gonogo.KSP
             {
                 _roster.MarkDeletedInGame(id);
             }
+            foreach (var edit in outcome.EditedInGame)
+            {
+                _roster.EditFromGame(edit.Key, edit.Value.Title, edit.Value.Ut);
+            }
 
             var available = clock != null && clock.Available;
             var view = GameAlarmBoard.Build(available, available ? clock!.Alarms() : null, _mirror.MirrorOf());
