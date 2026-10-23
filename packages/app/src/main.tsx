@@ -19,6 +19,7 @@ import "./commcast/CommcastComponent"; // app-level component: registers on impo
 import "./goNoGo/GoNoGoComponent"; // app-level component: registers on import
 import "./notes/NotesComponent"; // app-level component: registers on import
 import App from "./App";
+import { CrashScreen } from "./CrashScreen";
 import { kspHostSeeded } from "./dataSources"; // importing it triggers all data source self-registration
 import { stampBootRole } from "./screens/bootIdentity";
 import { bootsWithoutDirectMod } from "./screens/isStationRoute";
@@ -59,7 +60,13 @@ const rootNode = root;
 function renderApp(): void {
   createRoot(rootNode).render(
     <StrictMode>
-      <ErrorBoundary>
+      <ErrorBoundary
+        fallback={(error) => (
+          <UiKitThemeProvider theme={activeThemeValue}>
+            <CrashScreen error={error} />
+          </UiKitThemeProvider>
+        )}
+      >
         <UiKitThemeProvider theme={activeThemeValue}>
           <ModalProvider>
             <App />
