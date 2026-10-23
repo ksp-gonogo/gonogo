@@ -641,6 +641,24 @@ export class ScetAlarmBridge {
   }
 
   /**
+   * A load put these alarms back on the roster as the save held them. This
+   * list is the one the operator edits, so each it holds is armed again with
+   * its own name and time, once the player's edits in the game are taken.
+   */
+  private oweRestored(ids: ReadonlySet<string>): void {
+    if (ids.size === 0) return;
+    for (const alarm of this.ctx.getAlarms()) {
+      if (
+        ids.has(alarm.id) &&
+        alarm.state === "pending" &&
+        !this.owed.has(alarm.id)
+      ) {
+        this.owed.set(alarm.id, 0);
+      }
+    }
+  }
+
+  /**
    * Point the topic subscriptions at whichever `TelemetryProvider` is mounted
    * now. The roster is forgotten across the swap: a new connection's roster is
    * a fact about the mod behind it, not about the one that went away.
@@ -665,6 +683,7 @@ export class ScetAlarmBridge {
       if (deleted.length > 0) this.ctx.onDeletedInGame(deleted);
       const edited = this.editsMadeInGame();
       if (edited.length > 0) this.ctx.onEditedInGame(edited);
+      this.oweRestored(readIdsFlagged(payload, "restored"));
       this.latchFiredRows();
       this.reconcile();
       this.ctx.onRoster();
@@ -895,6 +914,24 @@ const THRESHOLD_OP_OF_MEMBER = new Map<number, ThresholdOp>(
     op,
   ]),
 );
+
+/** The ids of the roster rows whose `field` is true. */
+function readIdsFlagged(payload: unknown, field: string): ReadonlySet<string> {
+  const ids = new Set<string>();
+  if (!Array.isArray(payload)) return ids;
+  for (const row of payload) {
+    const id = readId(row);
+    if (
+      id !== null &&
+      typeof row === "object" &&
+      row !== null &&
+      Reflect.get(row, field) === true
+    ) {
+      ids.add(id);
+    }
+  }
+  return ids;
+}
 
 interface RosterEdit {
   name: string;

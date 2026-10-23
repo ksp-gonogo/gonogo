@@ -308,6 +308,7 @@
          Assembly-CSharp, so it is gated the same way. -->
     <Compile Remove="CraftCatalogueBackendTests.cs" />
     <Compile Remove="CraftLaunchLogPersistenceTests.cs" />
+    <Compile Remove="ScetRosterPersistenceTests.cs" />
     <!-- ActiveVessel/ is otherwise unconditional (EvaParentageTests names no KSP
          type at all), so only its ConfigNode half needs dropping here; it is
          re-added under the gate below beside the other round-trip suites. -->
@@ -388,6 +389,9 @@
          CraftLaunchLog compiled above. -->
     <Compile Include="..\Gonogo.KSP\CraftLaunchLogPersistence.cs" />
     <Compile Include="CraftLaunchLogPersistenceTests.cs" />
+    <!-- ScetRosterPersistence.cs is the same ConfigNode round-trip over the contract's own alarm types. -->
+    <Compile Include="..\Gonogo.KSP\ScetRosterPersistence.cs" />
+    <Compile Include="ScetRosterPersistenceTests.cs" />
     <!-- ActiveVesselScope.cs is here to RESOLVE, not to run: CommNetBackend.cs
          below calls it for the vessel whose link it reports, so the type has to
          exist. Its own reads are FlightGlobals fields and GameEvents

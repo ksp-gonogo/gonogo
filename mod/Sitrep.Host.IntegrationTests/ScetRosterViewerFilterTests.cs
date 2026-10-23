@@ -100,7 +100,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
-        public async Task AnAlarmCarriesHowManyTimesThePlayerEditedItsCopyInTheGame()
+        public async Task AnAlarmCarriesItsGameEditsAndWhetherItCameBackFromASave()
         {
             var uplink = new ScetRosterTestUplink();
             using var engine = NewEngine(uplink);
@@ -110,6 +110,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 var edited = Time("edited");
                 edited.GameEdits = 2;
+                edited.Restored = true;
                 uplink.Arm(edited);
 
                 await using var armer = await AtVantageAsync(engine, Armer);
@@ -119,6 +120,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 var row = Row(await ReceiveRosterAsync(armer), "edited");
                 Assert.Equal(2, row.GetProperty("gameEdits").GetInt32());
+                Assert.True(row.GetProperty("restored").GetBoolean());
             }
             finally
             {
