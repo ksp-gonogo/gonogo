@@ -315,7 +315,7 @@ export function deliveryPhaseFor(
   // Nothing left, so nothing is travelling and nothing will answer. Not a long
   // wait: the operator is told, and can resend, rather than watching a
   // countdown for a journey that never started.
-  if (delivery.neverLeft) return "lost";
+  if (delivery.neverLeft || delivery.refused) return "lost";
   const trip = roundTripFor(delivery);
   if (trip === null) return "lost";
   if (utNow < trip.reachUt) return "in-transit";
@@ -325,24 +325,32 @@ export function deliveryPhaseFor(
 }
 
 /** How a whole send reads at its author: one verdict across every recipient. */
-export type MessageStatus = "received" | "in-transit" | "unconfirmed";
+export type MessageStatus =
+  | "received"
+  | "in-transit"
+  | "unconfirmed"
+  | "not-sent";
 
 /**
  * `received` when every recipient has answered, `in-transit` while any
  * recipient's wait is still running, `unconfirmed` once every wait is over and
- * somebody has not answered.
+ * somebody has not answered, and `not-sent` when the mod refused the send for
+ * anybody, which is a different thing from words that went out unanswered.
  */
 export function messageStatusFor(
   out: OutboundMessage,
   utNow: number,
 ): MessageStatus {
   let unanswered = false;
+  let refused = false;
   for (const delivery of out.deliveries) {
     const phase = deliveryPhaseFor(out, delivery, utNow);
     if (phase === "confirmed") continue;
     if (!isSettled(phase)) return "in-transit";
     unanswered = true;
+    refused ||= delivery.refused === true;
   }
+  if (refused) return "not-sent";
   return unanswered ? "unconfirmed" : "received";
 }
 

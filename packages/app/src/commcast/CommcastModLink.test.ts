@@ -8,7 +8,8 @@ import type {
   RadioFrame,
   RadioTransmission,
 } from "./radio/wire";
-import { separationsTo } from "./reveal";
+import { messageStatusFor, separationsTo } from "./reveal";
+import type { OutboundMessage } from "./types";
 
 const KSC = "ground:ksc";
 const ARES = "vessel:ares";
@@ -249,6 +250,95 @@ describe("attachCommcastModLink", () => {
     expect(deliveries.map((d) => [d.to, d.neverLeft])).toEqual([
       [ARES, false],
       ["vessel:b", true],
+    ]);
+  });
+
+  const notFound = {
+    success: false,
+    errorCode: "notFound",
+    detail: "no group with that id is known",
+  };
+
+  const author = {
+    stationKey: "screen-a",
+    name: "Flight",
+    seat: "mission-control" as const,
+    vantageId: KSC,
+  };
+
+  const textTo = (members: string[]) => ({
+    kind: "text" as const,
+    body: "go",
+    groupId: "g1",
+    to: members,
+    sentUt: 10,
+    separations: separationsTo(KSC, members, 5),
+  });
+
+  it("opens a conversation the mod has forgotten with its members, then says the words again", async () => {
+    let known = false;
+    const forgetful = fakeWire((command) => {
+      if (command === "commcast.group.open") {
+        known = true;
+        return { success: true };
+      }
+      return known
+        ? {
+            success: true,
+            payload: { addressed: [KSC, ARES], unreached: [] },
+          }
+        : notFound;
+    });
+    detach();
+    detach = attachCommcastModLink(log, forgetful.wire);
+    log.send(author, {
+      kind: "members",
+      groupId: "g1",
+      to: [KSC, ARES],
+      members: [KSC, ARES],
+      added: [ARES],
+      sentUt: 0,
+      separations: new Map(),
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    known = false;
+
+    const msg = log.send(author, textTo([KSC, ARES]));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(forgetful.sent.map((s) => s.command)).toEqual([
+      "commcast.group.open",
+      "commcast.message.send",
+      "commcast.group.open",
+      "commcast.message.send",
+    ]);
+    expect(forgetful.sent[2]?.args.members).toEqual([ARES, KSC].sort());
+    expect(forgetful.sent[3]?.args.id).toBe(msg.id);
+    expect(
+      log
+        .snapshot()
+        .outbox.at(-1)
+        ?.deliveries.some((d) => d.refused),
+    ).toBe(false);
+  });
+
+  it("says a send the mod refuses and cannot recover was not sent, which is not an unanswered one", async () => {
+    const refusing = fakeWire((command) =>
+      command === "commcast.message.send" ? notFound : { success: true },
+    );
+    detach();
+    detach = attachCommcastModLink(log, refusing.wire);
+
+    log.send(author, textTo([KSC, ARES]));
+    await vi.advanceTimersByTimeAsync(0);
+
+    const out = log.snapshot().outbox[0];
+    expect(out?.deliveries.every((d) => d.refused)).toBe(true);
+    expect(messageStatusFor(out as OutboundMessage, 1_000_000)).toBe(
+      "not-sent",
+    );
+    expect(refusing.sent.map((s) => s.command)).toEqual([
+      "commcast.message.send",
     ]);
   });
 

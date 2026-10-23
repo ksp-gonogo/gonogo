@@ -162,6 +162,12 @@ export interface Delivery {
    * not travelling.
    */
   neverLeft: boolean;
+  /**
+   * Set when the mod refused the send outright, such as a conversation it has no
+   * record of. Nothing is travelling and nothing will answer, which is not the
+   * same as words that went out and were not acknowledged.
+   */
+  refused?: boolean;
 }
 
 /** What one vantage holds: what it sent, and what reached it. */

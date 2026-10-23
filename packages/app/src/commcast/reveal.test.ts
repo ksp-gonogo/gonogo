@@ -397,6 +397,18 @@ describe("one send to a group of two", () => {
     expect(messageStatusFor(out, 2203)).toBe("unconfirmed");
   });
 
+  it("reads a send the mod refused as not sent at once, not as a long wait for an answer", () => {
+    const out: OutboundMessage = {
+      ...twoRecipients(),
+      deliveries: [
+        delivery(NEAR, { refused: true }),
+        delivery(FAR, { refused: true }),
+      ],
+    };
+    expect(deliveryPhaseFor(out, out.deliveries[0], 1001)).toBe("lost");
+    expect(messageStatusFor(out, 1001)).toBe("not-sent");
+  });
+
   it("lands the author's line at the first answer, or when the last wait ends", () => {
     expect(sentArrivalUtFor(twoRecipients(), 1100)).toBeUndefined();
     expect(sentArrivalUtFor(twoRecipients([ackFrom(NEAR, 1004)]), 1100)).toBe(

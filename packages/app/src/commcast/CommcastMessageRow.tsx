@@ -96,12 +96,14 @@ const STATUS_ICON = {
   received: CheckIcon,
   "in-transit": HistoryIcon,
   unconfirmed: InfoIcon,
+  "not-sent": InfoIcon,
 } as const;
 
 const STATUS_LABEL: Record<MessageStatus, string> = {
   received: "Received by everyone",
   "in-transit": "In transit",
   unconfirmed: "Unconfirmed",
+  "not-sent": "Not sent",
 };
 
 /**

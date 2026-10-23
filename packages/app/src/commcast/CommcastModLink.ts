@@ -80,6 +80,7 @@ export function attachCommcastModLink(
     command: string,
     args: unknown,
     onResult?: (result: unknown) => void,
+    onRefused?: (result: unknown) => void,
   ) => {
     COMMCAST_COMMAND_BUDGET.record();
     wire
@@ -94,6 +95,7 @@ export function attachCommcastModLink(
           command,
           reason,
         });
+        onRefused?.(result);
       })
       .catch((err) => {
         logger.warn("[commcast] a command did not complete", {
@@ -150,22 +152,39 @@ export function attachCommcastModLink(
         });
         return;
       }
-      send(
-        "commcast.message.send",
-        {
-          id: msg.id,
-          groupId: msg.groupId,
-          body: msg.body ?? "",
-          ...(to === undefined ? {} : { to }),
-          author,
-        },
-        (result) => {
-          const receipt = receiptOf(result);
-          if (receipt) {
-            log.recordReceipt(msg.id, receipt.addressed, receipt.unreached);
-          }
-        },
-      );
+      const sendMessage = (reopened: boolean) => {
+        send(
+          "commcast.message.send",
+          {
+            id: msg.id,
+            groupId: msg.groupId,
+            body: msg.body ?? "",
+            ...(to === undefined ? {} : { to }),
+            author,
+          },
+          (result) => {
+            const receipt = receiptOf(result);
+            if (receipt) {
+              log.recordReceipt(msg.id, receipt.addressed, receipt.unreached);
+            }
+          },
+          (result) => {
+            // The mod forgets its conversations when the game restarts and this screen does not, so a stored one is opened again with its members before the words are said again.
+            const members = log.membersOfGroup(msg.groupId);
+            if (!reopened && isNotFound(result) && members.length > 0) {
+              send(
+                "commcast.group.open",
+                { groupId: msg.groupId, members, author },
+                () => sendMessage(true),
+                () => log.recordRefusal(msg.id),
+              );
+              return;
+            }
+            log.recordRefusal(msg.id);
+          },
+        );
+      };
+      sendMessage(false);
     },
     acknowledge(ack: OutgoingAck) {
       send("commcast.message.ack", {
@@ -472,6 +491,10 @@ function receiptOf(
   const addressed = texts(result.payload, "addressed");
   const unreached = texts(result.payload, "unreached");
   return addressed && unreached ? { addressed, unreached } : null;
+}
+
+function isNotFound(result: unknown): boolean {
+  return isRecord(result) && result.errorCode === "notFound";
 }
 
 function refusalOf(result: unknown): string | null {

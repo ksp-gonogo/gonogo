@@ -24,6 +24,13 @@ describe("recipientWords", () => {
     );
   });
 
+  it("says a refused send was not sent, apart from one that went out unanswered", () => {
+    expect(recipientWords("lost", delivery({ refused: true }))).toBe(
+      "not sent, the game refused it",
+    );
+    expect(recipientWords("overdue", delivery())).toBe("not received");
+  });
+
   it("does not name a reason for a message that did leave", () => {
     expect(recipientWords("overdue", delivery(), "unpowered")).toBe(
       "not received",

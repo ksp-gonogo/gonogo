@@ -259,8 +259,9 @@ export class CommcastLog {
     const deliveries = found.deliveries.map((d): Delivery => {
       if (!recipients.includes(d.to)) return d;
       const separationSeconds = separations.get(d.to) ?? null;
+      const { refused: _refused, ...kept } = d;
       return {
-        ...d,
+        ...kept,
         separationSeconds,
         lastSentUt: atUt,
         attempts: d.attempts + 1,
@@ -310,6 +311,42 @@ export class CommcastLog {
       o.msg.id === messageId ? { ...o, deliveries } : o,
     );
     this.persistAndEmit();
+  }
+
+  /**
+   * The mod refused a send outright: every delivery of the message that has
+   * not been answered is marked refused, so the log says it was not sent
+   * rather than waiting for an answer that cannot come.
+   */
+  recordRefusal(messageId: string): void {
+    const found = this.outbox.find((o) => o.msg.id === messageId);
+    if (!found || found.deliveries.length === 0) return;
+    const deliveries = found.deliveries.map((d) =>
+      d.refused ? d : { ...d, refused: true },
+    );
+    this.outbox = this.outbox.map((o) =>
+      o.msg.id === messageId ? { ...o, deliveries } : o,
+    );
+    this.persistAndEmit();
+  }
+
+  /**
+   * Everyone any membership change this log holds put in the group, whether or
+   * not word of it has landed, so a group the mod has forgotten can be opened
+   * again with the members it had.
+   */
+  membersOfGroup(groupId: string): RecipientId[] {
+    const members = new Set<RecipientId>();
+    for (const msg of [
+      ...this.outbox.map((o) => o.msg),
+      ...this.inbox,
+      ...this.pending,
+    ]) {
+      if (msg.groupId !== groupId || msg.kind !== "members") continue;
+      for (const member of msg.members ?? []) members.add(member);
+      for (const member of msg.added ?? []) members.add(member);
+    }
+    return [...members].sort();
   }
 
   /**
