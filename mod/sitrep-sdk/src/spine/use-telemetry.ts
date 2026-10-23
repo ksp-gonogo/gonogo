@@ -32,7 +32,11 @@ const NO_PROVIDER = topicReading<never>({
  *
  *   const orbit = useTelemetry("vessel.orbit");
  *
- * With no `TelemetryProvider` mounted it answers `pending`. A Topic with no
+ * With no `TelemetryProvider` mounted it answers `pending`. After the game
+ * switches the active craft, a Topic whose payload names a craft in
+ * `meta.source` (`"vessel:<guid>"`) answers `pending` until a payload from the
+ * new active craft arrives, rather than showing the previous craft's last
+ * value. Payloads that name no craft, or `"game"`, are unaffected. A Topic with no
  * `TopicId` member (a per-subject dynamic namespace such as
  * `vessel.partActions.<flightId>`) is read with `useStream`.
  *

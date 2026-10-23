@@ -22,6 +22,9 @@ import { subscribeTopicRead } from "./subscribe-read";
  * status and epoch are unchanged, so the caller re-renders only when something
  * about `topic` changed.
  *
+ * `pending` also while the newest payload names a craft in `meta.source` other
+ * than the one the game has active, as `useTelemetry` does.
+ *
  * `pending` with no provider mounted, so a stream widget renders an empty
  * state and does not throw.
  */

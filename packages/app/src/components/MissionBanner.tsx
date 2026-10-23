@@ -1,10 +1,5 @@
 import { useGameContext, useTelemetry } from "@ksp-gonogo/core";
-import {
-  isOtherCraftsReading,
-  useActiveCraftId,
-  useGameStatus,
-  useViewClockOptional,
-} from "@ksp-gonogo/sitrep-client";
+import { useGameStatus, useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import { MissionDate, ReadoutCaption } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
@@ -110,16 +105,10 @@ function BannerField({
   );
 }
 
-/**
- * The active craft's name, and nothing while there is no craft or its name has
- * not arrived. After a switch the previous craft's identity is still the newest
- * the craft has sent, so a name that belongs to another craft is not shown.
- */
+/** The active craft's name, and nothing while there is no craft or its name has not arrived. */
 function VesselField() {
   const identity = useTelemetry("vessel.identity");
-  const activeCraftId = useActiveCraftId();
   if (identity.state !== "observed" && identity.state !== "held") return null;
-  if (isOtherCraftsReading(activeCraftId, identity.value.meta)) return null;
   const name = identity.value.name.trim();
   if (name === "") return null;
   return (

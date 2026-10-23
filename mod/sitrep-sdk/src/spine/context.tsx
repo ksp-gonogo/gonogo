@@ -296,6 +296,13 @@ export function TelemetryProvider({
    * readout still judges every other channel's staleness against it.
    */
   useEffect(() => client.subscribe("time.warp", () => {}), [client]);
+  /*
+   * `comms.delay` names the active craft the moment the game switches, which is
+   * how the store knows a reading about another craft is no longer one of the
+   * active craft's. Held for the provider's life so that holds for a dashboard
+   * that draws no delay readout.
+   */
+  useEffect(() => client.subscribe("comms.delay", () => {}), [client]);
   /* The view clock extrapolates game time at the game's own rate: a pause stands it still, and warp carries it forward as fast as the game goes. */
   useEffect(() => {
     if (!warp) return;

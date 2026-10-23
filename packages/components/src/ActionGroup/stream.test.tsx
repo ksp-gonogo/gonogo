@@ -37,6 +37,55 @@ afterEach(() => {
   clearActionHandlers();
 });
 
+describe("ActionGroup (SAS): after the active craft changes", () => {
+  it("does not show the previous craft's SAS state as the new craft's", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
+
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "ag-switch" }}>
+          <ActionGroupComponent
+            config={{ actionGroupId: "SAS" }}
+            id="ag-switch"
+            w={6}
+            h={6}
+          />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("comms.delay", {
+        oneWaySeconds: 0,
+        meta: { source: "vessel:old" },
+      });
+      fixture.emit("vessel.control", {
+        sas: true,
+        sasMode: 0,
+        rcs: false,
+        gear: false,
+        brakes: false,
+        lights: false,
+        throttle: 0,
+        actionGroups: STOCK_GROUPS_ALL_OFF,
+        meta: { source: "vessel:old" },
+      });
+    });
+    await screen.findByText("ON");
+
+    act(() => {
+      fixture.emit("comms.delay", {
+        oneWaySeconds: 0,
+        meta: { source: "vessel:new" },
+      });
+    });
+    await waitFor(() => expect(screen.queryByText("ON")).toBeNull());
+  });
+});
+
 describe("ActionGroup (SAS): the toggle -> absolute command dispatch", () => {
   it("clicking the SAS toggle dispatches vessel.control.setSas with the inverted state", async () => {
     const fixture = setupStreamFixture({

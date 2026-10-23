@@ -356,6 +356,22 @@ const RECKONED_EDGE_BISECTIONS = 12;
 /** The engine-built roster whose `delayRoles` block decides every declared topic's lane. */
 const UPLINK_ROSTER_TOPIC = "system.uplinks";
 
+/** The report that names the active craft in its `meta.source` the moment the game switches, ahead of every delayed reading of the craft itself. */
+const ACTIVE_CRAFT_TOPIC = "comms.delay";
+
+const CRAFT_SOURCE_PREFIX = "vessel:";
+
+/** The `meta.source` a payload carries, when it names a craft. */
+function craftSourceOf(payload: unknown): string | undefined {
+  if (typeof payload !== "object" || payload === null) return undefined;
+  const meta = (payload as { meta?: unknown }).meta;
+  if (typeof meta !== "object" || meta === null) return undefined;
+  const source = (meta as { source?: unknown }).source;
+  return typeof source === "string" && source.startsWith(CRAFT_SOURCE_PREFIX)
+    ? source
+    : undefined;
+}
+
 /**
  * How long, in milliseconds, a load must run before it is shown. Useful for
  * keeping a brief scene change from flashing every reading as held and back. A
@@ -921,6 +937,14 @@ export class TimelineStore {
    */
   private declaredRoles: DeclaredDelayRoles | undefined;
 
+  /**
+   * The `meta.source` of the newest `comms.delay`, captured at ingest: the
+   * craft the game has active. That report is sent at once, so after a switch
+   * it names the new craft while every delayed reading in the timelines is
+   * still about the old one.
+   */
+  private activeCraftSource: string | undefined;
+
   /** The sample kinds the mod stated on the newest `system.uplinks`, captured at ingest for the same reason the roles are. */
   private declaredKinds: DeclaredSampleKinds | undefined;
 
@@ -1061,6 +1085,10 @@ export class TimelineStore {
     }
 
     this.timelineFor<Payload>(topic).append(point);
+    if (topic === ACTIVE_CRAFT_TOPIC) {
+      this.activeCraftSource =
+        craftSourceOf(point.payload) ?? this.activeCraftSource;
+    }
     if (topic === UPLINK_ROSTER_TOPIC) {
       this.declaredRoles = readDeclaredDelayRoles(point.payload);
       this.declaredKinds = readDeclaredSampleKinds(point.payload);
@@ -3323,6 +3351,20 @@ export class TimelineStore {
     const point = this.sample(topic, token);
     if (!point) return "resyncing";
     if (point.payload === null) return "absent";
+    /*
+     * A reading about a craft that is no longer the active one is not a
+     * reading of the active craft, whatever its age: it waits for the new
+     * craft's own report, as a topic never heard from does. Judged only once
+     * the active craft is known, and only for a payload that names a craft.
+     */
+    const subject = craftSourceOf(point.payload);
+    if (
+      subject !== undefined &&
+      this.activeCraftSource !== undefined &&
+      subject !== this.activeCraftSource
+    ) {
+      return "resyncing";
+    }
     if (point.meta.staleness === Staleness.LastBeforeBlackout) {
       return "last-before-blackout";
     }

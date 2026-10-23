@@ -1,9 +1,5 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import {
-  isOtherCraftsReading,
-  useActiveCraftId,
-} from "@ksp-gonogo/sitrep-client";
-import {
   CONTROL_STATE_NAMES,
   type CommsMeasuredPath,
   type ControlStateName,
@@ -125,20 +121,15 @@ export function useSignalVerdict(): SignalVerdict {
   const told =
     signalReading.state === "observed" ? signalReading.value : undefined;
   const strength = told?.strength;
-  const activeCraftId = useActiveCraftId();
-  const ownCommsReport =
-    commsReading.state === "observed" &&
-    !isOtherCraftsReading(activeCraftId, commsReading.value.meta)
-      ? commsReading.value
+  const craftStrength =
+    commsReading.state === "observed"
+      ? commsReading.value.signalStrength
       : undefined;
-  const craftStrength = ownCommsReport?.signalStrength;
   const noSignal =
     linkReading.state === "held" || commsReading.state === "held";
   // Kept through a held reading because a pill that blanked between frames would read as a control loss; `noSignal` withholds it on screen.
-  // After a switch the previous craft's last report is still the newest, and its control state is not the new craft's.
   const commsHeld =
-    (commsReading.state === "observed" || commsReading.state === "held") &&
-    !isOtherCraftsReading(activeCraftId, commsReading.value.meta)
+    commsReading.state === "observed" || commsReading.state === "held"
       ? commsReading.value
       : undefined;
   const controlState =

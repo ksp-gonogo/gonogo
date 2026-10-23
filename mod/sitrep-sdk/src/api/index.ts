@@ -567,6 +567,12 @@ export { isReadOnlySetting, settingKindOf } from "../spine/settings-registry";
  * on past the last sample (see {@link TopicReckoning}), such as `vessel.flight`,
  * it returns a {@link ReckonableReading}.
  *
+ * After the game switches the active craft, a Topic whose payload names a
+ * craft in `meta.source` (`"vessel:<guid>"`) reads as `"pending"` until a
+ * payload from the new active craft arrives, so the previous craft's last value
+ * is never shown as the new craft's. A payload that names no craft, or names
+ * `"game"`, is not affected.
+ *
  * A Topic with no `TopicId`, a per-subject namespace such as
  * `vessel.partActions.<flightId>`, is read with `useStream` instead.
  *

@@ -466,7 +466,6 @@ export {
   deriveSystemUplinkHealth,
   systemUplinkHealthChannel,
 } from "./uplink-health";
-export { isOtherCraftsReading, useActiveCraftId } from "./use-active-craft";
 export {
   BODY_STATES_COMMAND,
   type BodyStatesQuery,
