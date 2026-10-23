@@ -512,6 +512,46 @@ describe("PeerClientService reconnect loop", () => {
     expect(statuses).toContain("disconnected");
   });
 
+  it("keeps trying past the retry timeout while the main screen is not up", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 60_000,
+      attemptDeadlineMs: 1_000,
+    });
+    const statuses: ConnStatus[] = [];
+    svc.onConnectionStatus((s) => statuses.push(s));
+    svc.connect("Z6HK");
+
+    // Silent attempts and a host missing from the broker, for ten minutes.
+    for (let elapsed = 0; elapsed < 10 * 60_000; elapsed += 500) {
+      const peer = FakePeer.instances.at(-1);
+      if (peer && !peer.destroyed && elapsed % 2_000 === 0) {
+        peer.emit("open");
+        peer.emit(
+          "error",
+          Object.assign(
+            new Error("Could not connect to peer gonogo-host-Z6HK"),
+            {
+              type: "peer-unavailable",
+            },
+          ),
+        );
+      }
+      vi.advanceTimersByTime(500);
+    }
+    expect(statuses).not.toContain("disconnected");
+
+    // The main appears: the next attempt, whenever the backoff lets it start, connects.
+    for (let i = 0; FakePeer.instances.at(-1)?.destroyed && i < 300; i += 1) {
+      vi.advanceTimersByTime(100);
+    }
+    const live = FakePeer.instances.at(-1);
+    if (!live) throw new Error("no peer opened");
+    driveOpen(live);
+    expect(svc.getConnStatus()).toBe("connected");
+    svc.disconnect();
+  });
+
   it("ignores peer-unavailable for an auxiliary peer without tearing down host conn", () => {
     const svc = new PeerClientService({
       retryIntervalMs: 50,
