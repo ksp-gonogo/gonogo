@@ -73,6 +73,12 @@ export class MissionHistorySource implements DataSource {
 
   private readonly flightListSubscribers = new ListenerSet();
   private readonly historyCache = new Map<string, Promise<TimelineStore>>();
+  /**
+   * The newest change under way for each mission. A change to a mission waits
+   * for the ones before it, since the part write that makes the mission exist
+   * is not awaited by the recorder that starts it.
+   */
+  private readonly changesInOrder = new Map<string, Promise<unknown>>();
 
   constructor(private readonly missionStore: MissionStore) {}
 
@@ -182,7 +188,9 @@ export class MissionHistorySource implements DataSource {
     part: number,
     fixture: ReplayFixture,
   ): Promise<void> {
-    await this.missionStore.saveMissionPart(meta, part, fixture);
+    await this.inOrder(meta.id, () =>
+      this.missionStore.saveMissionPart(meta, part, fixture),
+    );
     // A graph open on this mission holds a store built from fewer parts.
     this.historyCache.delete(meta.id);
     this.flightListSubscribers.fire();
@@ -240,10 +248,30 @@ export class MissionHistorySource implements DataSource {
     id: string,
     endReason: FlightEndReason,
   ): Promise<void> {
-    const meta = await this.missionStore.getMissionMeta(id);
-    if (!meta || meta.endReason !== undefined) return;
-    await this.missionStore.updateMissionMeta(id, { endReason });
-    this.flightListSubscribers.fire();
+    await this.inOrder(id, async () => {
+      const meta = await this.missionStore.getMissionMeta(id);
+      if (!meta) {
+        logger.warn(
+          "[MissionHistorySource] end reason for a mission not stored",
+          { id },
+        );
+        return;
+      }
+      if (meta.endReason !== undefined) return;
+      await this.missionStore.updateMissionMeta(id, { endReason });
+      this.flightListSubscribers.fire();
+    });
+  }
+
+  private inOrder<T>(id: string, change: () => Promise<T>): Promise<T> {
+    const before = this.changesInOrder.get(id);
+    const done = before ? before.then(change, change) : change();
+    const tail = done.catch(() => {});
+    this.changesInOrder.set(id, tail);
+    void tail.then(() => {
+      if (this.changesInOrder.get(id) === tail) this.changesInOrder.delete(id);
+    });
+    return done;
   }
 
   async addChapter(

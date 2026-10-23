@@ -414,8 +414,15 @@ describe("AutoRecordController", () => {
     const settled = async (save: {
       mock: { results: { value: unknown }[] };
     }): Promise<void> => {
-      await Promise.allSettled(save.mock.results.map((result) => result.value));
-      await act(async () => {});
+      // A part is written once the one before it is, so more calls can follow the ones in hand.
+      let issued = -1;
+      while (issued !== save.mock.results.length) {
+        issued = save.mock.results.length;
+        await Promise.allSettled(
+          save.mock.results.map((result) => result.value),
+        );
+        await act(async () => {});
+      }
     };
     const utOf = (frame: string): number => {
       const parsed: { meta: { deliveredAt: number } } = JSON.parse(frame);
@@ -433,6 +440,7 @@ describe("AutoRecordController", () => {
       await vi.waitFor(async () =>
         expect(await rig.source.listFlights()).toHaveLength(1),
       );
+      await settled(save);
 
       expect(save.mock.calls.length).toBeGreaterThanOrEqual(2);
       expect(save.mock.calls.map(([, part]) => part)).toEqual(
@@ -560,6 +568,35 @@ describe("AutoRecordController", () => {
     act(() => rerender(tree(true)));
 
     expect(getAutoRecordStatus().recording).toBe(false);
+  });
+
+  it("names Recovered on the row of a flight recovered in contact while its recording is still being written", async () => {
+    const rig = buildRig();
+    const real = rig.missionStore.saveMissionPart.bind(rig.missionStore);
+    vi.spyOn(rig.missionStore, "saveMissionPart").mockImplementation(
+      async (...args) => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+        return real(...args);
+      },
+    );
+    const tree = (scene: "Flight" | "SpaceCenter") => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene={scene} />
+      </TelemetryProvider>
+    );
+    const { rerender } = render(tree("Flight"));
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    // Recovery is a scene change: the recording is closed, and the end is announced a moment later.
+    act(() => rerender(tree("SpaceCenter")));
+    end(rig, 8, "vA", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      const flights = await rig.source.listFlights();
+      expect(flights).toHaveLength(1);
+      expect(flights[0]?.endReason).toBe(0);
+    });
   });
 
   it("resumes the tracked flight when the operator leaves the Flight scene and returns to the same vessel", async () => {

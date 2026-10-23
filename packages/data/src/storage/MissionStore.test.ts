@@ -228,6 +228,17 @@ describe("MissionStore", () => {
       expect((await store.getMissionMeta("m1"))?.starred).toBe(true);
     });
 
+    it("keeps an end reason a later part of the mission does not carry", async () => {
+      const store = freshStore();
+      const { meta } = mission();
+      await store.saveMissionPart(meta, 0, part("a", "vessel.orbit"));
+      await store.updateMissionMeta("m1", { endReason: 0 });
+
+      await store.saveMissionPart(meta, 1, part("b", "vessel.orbit"));
+
+      expect((await store.getMissionMeta("m1"))?.endReason).toBe(0);
+    });
+
     it("is deleted whole, leaving the missions beside it alone", async () => {
       const store = freshStore();
       const { meta } = mission();

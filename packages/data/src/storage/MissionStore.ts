@@ -128,6 +128,9 @@ export class MissionStore {
         metaStore.put({
           ...meta,
           partCount: Math.max(meta.partCount ?? 1, part + 1),
+          ...(meta.endReason === undefined && existing?.endReason !== undefined
+            ? { endReason: existing.endReason }
+            : {}),
           ...(existing?.starred === undefined
             ? {}
             : { starred: existing.starred }),

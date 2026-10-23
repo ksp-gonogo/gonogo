@@ -251,6 +251,28 @@ describe("MissionHistorySource", () => {
       expect(await source.listFlights()).toHaveLength(1);
     });
 
+    it("puts an end reason on a mission whose first part is still being written", async () => {
+      dbCounter += 1;
+      class SlowStore extends MissionStore {
+        override async saveMissionPart(
+          ...args: Parameters<MissionStore["saveMissionPart"]>
+        ): Promise<void> {
+          await new Promise((r) => setTimeout(r, 40));
+          return super.saveMissionPart(...args);
+        }
+      }
+      const source = new MissionHistorySource(
+        new SlowStore({ dbName: `gonogo-missions-history-slow-${dbCounter}` }),
+      );
+      const { meta } = mission();
+
+      const writing = source.saveMissionPart(meta, 0, longFixture());
+      await source.setFlightEndReason(meta.id, 0 /* Recovered */);
+      await writing;
+
+      expect((await source.listFlights())[0]?.endReason).toBe(0);
+    });
+
     it("tells its listeners when a part is stored", async () => {
       const { source } = freshSource();
       let told = 0;
