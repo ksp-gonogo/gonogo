@@ -178,5 +178,18 @@ namespace Sitrep.Host.Tests
             Assert.Empty(Assert.IsType<List<object?>>(dict["resourceBreakdown"]));
             Assert.Empty(Assert.IsType<List<object?>>(dict["crewBreakdown"]));
         }
+
+        [Fact]
+        public void The_recovery_factor_and_location_carry_no_stray_spaces_from_the_game()
+        {
+            var wire = RecoveryPayload.Build(new RecoveryCapture
+            {
+                RecoveryLocation = "At Runway ",
+                RecoveryFactor = "100.0% ",
+            });
+
+            Assert.Equal("At Runway", wire["recoveryLocation"]);
+            Assert.Equal("100.0%", wire["recoveryFactor"]);
+        }
     }
 }

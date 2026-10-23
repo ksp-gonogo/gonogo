@@ -226,8 +226,9 @@ namespace Sitrep.Host.Recovery
             {
                 ["capturedAtUT"] = c.CapturedAtUt,
                 ["vesselName"] = c.VesselName,
-                ["recoveryLocation"] = c.RecoveryLocation,
-                ["recoveryFactor"] = c.RecoveryFactor,
+                ["recoveryLocation"] = c.RecoveryLocation.Trim(),
+                // The game writes this as the percentage, a space and an optional suffix, so with no suffix it ends in a space.
+                ["recoveryFactor"] = c.RecoveryFactor.Trim(),
                 ["scienceEarned"] = c.ScienceEarned,
                 ["totalScience"] = c.TotalScience,
                 ["fundsEarned"] = c.FundsEarned,
