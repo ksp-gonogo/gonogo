@@ -4,7 +4,12 @@ import type {
   PatchChain,
   SystemPoses,
 } from "@ksp-gonogo/sitrep-client";
-import { NULL_DISPLAY, TextButton } from "@ksp-gonogo/ui-kit";
+import {
+  NULL_DISPLAY,
+  RECKONING_MARK,
+  TextButton,
+  writeQuantity,
+} from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
   useCallback,
@@ -13,11 +18,17 @@ import {
   useMemo,
   useState,
 } from "react";
+import {
+  type OrbitSpread,
+  SPREAD_STROKE_SCALE,
+  visibleSpreadPoints,
+} from "../shared/orbitSpread";
 import { BodyMark, bodyTone, FrameBodyMark } from "./BodyMark";
 import { DEPTH_LEVEL_COLOUR } from "./depthCues";
 import {
   diagramPlotScale,
   nameMatches,
+  openPath,
   organise,
   placeBodies,
   placeBodyRings,
@@ -27,6 +38,7 @@ import {
   type VesselOrbit,
 } from "./diagramGeometry";
 import {
+  ACTIVE_VESSEL_ORBIT_STROKE_WIDTH,
   ArcFarEndMark,
   DepthGradient,
   EncounterMarker,
@@ -68,6 +80,8 @@ export interface SystemDiagramProps {
   targetName?: string | null;
   /** If set and `parentName` matches, plot the vessel on its orbit. */
   vessel?: VesselOrbit | null;
+  /** The stretch of the vessel's orbit it may be anywhere on, drawn as a band along its ring. Absent or shorter than a pixel at this zoom draws nothing. */
+  vesselSpread?: OrbitSpread | null;
   /** What the propagation seam says the vessel's trajectory is; absent draws no curve, while the marker still comes from the elements. */
   vesselTrajectory?: OrbitTrajectory | null;
   /** How the vessel's plotted position is known; a caller that omits it is drawing a live craft. */
@@ -159,6 +173,7 @@ export function SystemDiagram({
   highlightNames,
   targetName,
   vessel,
+  vesselSpread = null,
   vesselTrajectory = null,
   vesselPlotState = "observed",
   vesselPositionHeld = false,
@@ -309,6 +324,47 @@ export function SystemDiagram({
       plotScale,
     ],
   );
+  const spreadPoints = useMemo(() => {
+    if (
+      vesselSpread === null ||
+      vesselRing === null ||
+      vSma === undefined ||
+      vEcc === undefined ||
+      vLan === undefined ||
+      vArgPe === undefined ||
+      vInc === undefined
+    ) {
+      return null;
+    }
+    return vesselSpread.anomalies.map((trueAnomaly) =>
+      placeVesselPoint(
+        {
+          parentName,
+          sma: vSma,
+          ecc: vEcc,
+          lan: vLan,
+          argPe: vArgPe,
+          inclination: vInc,
+          trueAnomaly,
+        },
+        placement,
+        plotScale,
+        origin ?? ZERO_METRES,
+      ),
+    );
+  }, [
+    vesselSpread,
+    vesselRing,
+    vSma,
+    vEcc,
+    vLan,
+    vArgPe,
+    vInc,
+    parentName,
+    placement,
+    plotScale,
+    origin,
+  ]);
   const targetHere =
     target !== null && nameMatches(target.conic.parentName, parentName)
       ? target
@@ -458,6 +514,9 @@ export function SystemDiagram({
   }
 
   // ViewBox is origin-centred so all orbital math operates around (0, 0).
+  // One plot unit is `zoom` screen pixels, since the view box is the container's size over the zoom.
+  const spreadDrawn =
+    spreadPoints === null ? null : visibleSpreadPoints(spreadPoints, 1 / zoom);
   const halfW = width / 2 / zoom;
   const halfH = height / 2 / zoom;
   const vbStr = `${-halfW + pan.x} ${-halfH + pan.y} ${halfW * 2} ${halfH * 2}`;
@@ -657,6 +716,30 @@ export function SystemDiagram({
             zoom={zoom}
             origin={origin ?? ZERO_METRES}
           />
+        )}
+
+        {showVessel && spreadDrawn !== null && vesselSpread !== null && (
+          <path
+            data-vessel-spread=""
+            d={
+              openPath(
+                spreadDrawn.map((p) => [p.x, p.y, 0]),
+                1,
+              ) ?? undefined
+            }
+            fill="none"
+            stroke={RECKONING_MARK.modelled.color}
+            strokeOpacity={0.85}
+            strokeWidth={
+              (ACTIVE_VESSEL_ORBIT_STROKE_WIDTH * SPREAD_STROKE_SCALE) / zoom
+            }
+            strokeLinecap="butt"
+            strokeLinejoin="round"
+          >
+            <title>
+              {`Position spread ±${writeQuantity(vesselSpread.halfWidth, { decimals: 1 })} along the orbit`}
+            </title>
+          </path>
         )}
 
         {showVessel && heldRoute !== null && (

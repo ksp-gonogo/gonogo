@@ -2,6 +2,7 @@ import { predictGroundTrack, useTelemetry } from "@ksp-gonogo/core";
 import { deriveReading, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import type { bodyNamed } from "../shared/streamBody";
+import { type GroundPoint, groundSpread } from "./modelledSpread";
 import { quantiseUt } from "./predictionThrottle";
 
 interface ModelledPositionInputs {
@@ -28,6 +29,12 @@ interface ModelledPositionInputs {
  */
 const REACHED_SECONDS = 1e-3;
 
+/** Where the model puts the craft, and the ground points it may be at about there. */
+export interface ModelledPosition extends GroundPoint {
+  /** From the earliest place the model's band allows to the latest; `null` where it states no band or cannot carry the craft across it. */
+  spread: readonly GroundPoint[] | null;
+}
+
 /**
  * Where the conic puts the craft at the instant its reckoning is for, as a
  * ground point, or `null` where no model carries the orbit past the received
@@ -42,7 +49,7 @@ export function useModelledPosition({
   lat,
   lon,
   receivedUt,
-}: Readonly<ModelledPositionInputs>): { lat: number; lon: number } | null {
+}: Readonly<ModelledPositionInputs>): ModelledPosition | null {
   const orbitReading = useTelemetry("vessel.orbit");
   const reckoning = orbitReading.reckoning;
   const carriedTo =
@@ -63,6 +70,32 @@ export function useModelledPosition({
     if (lat === undefined || lon === undefined || !targetBodyId) return null;
     const rotationPeriod = body?.rotationPeriod;
     if (body === undefined || rotationPeriod === undefined) return null;
+    const spreadOf = () => {
+      const band =
+        reckoning.status === "available"
+          ? reckoning.bands?.meanAnomalyAtEpoch
+          : undefined;
+      const orbit =
+        orbitReading.state === "observed" || orbitReading.state === "held"
+          ? orbitReading.value
+          : undefined;
+      if (
+        band === undefined ||
+        orbit === undefined ||
+        carriedTo === undefined
+      ) {
+        return null;
+      }
+      return groundSpread({
+        orbit,
+        band,
+        bodyId: targetBodyId,
+        bodyRadius: body.radius,
+        rotationPeriod,
+        ref: { ut: receivedUt, lat, lon },
+        reckonedUt: carriedTo,
+      });
+    };
     const derived = deriveReading(
       orbitReading,
       () => undefined,
@@ -89,6 +122,10 @@ export function useModelledPosition({
     );
     if (derived.reckoning.status !== "available") return null;
     const { lat: modelledLat, lon: modelledLon } = derived.reckoning.modelled;
-    return { lat: modelledLat, lon: modelledLon };
+    return {
+      lat: modelledLat,
+      lon: modelledLon,
+      spread: spreadOf(),
+    };
   }, [enabled, bucket, from, lat, lon, targetBodyId, body]);
 }

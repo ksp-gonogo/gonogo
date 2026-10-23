@@ -20,7 +20,10 @@ import { type EncounterKind, encounterKindOf } from "../shared/encounterKind";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyNamed } from "../shared/streamBody";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
-import { useModelledPosition } from "./useModelledPosition";
+import {
+  type ModelledPosition,
+  useModelledPosition,
+} from "./useModelledPosition";
 
 /** What the map draws from, each figure resolved to the currency its draw needs. */
 export interface MapTelemetry {
@@ -32,7 +35,7 @@ export interface MapTelemetry {
   /** The marker stands on a held position that nothing carries forward. */
   positionHeld: boolean;
   /** Where the conic puts the craft at the instant it reckoned to, beside the observed marker; `null` where no model reaches past the received edge. */
-  modelledPosition: { lat: number; lon: number } | null;
+  modelledPosition: ModelledPosition | null;
   /** The readouts' own readings, which mark a held figure. */
   latitudeReading: Reading<Value<"°">>;
   longitudeReading: Reading<Value<"°">>;
