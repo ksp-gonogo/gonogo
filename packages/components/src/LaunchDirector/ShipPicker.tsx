@@ -33,6 +33,7 @@ export function ShipPicker({
   selectedShip,
   onSelectShip,
   fundsAvailable,
+  freeCrew = null,
   detail,
   showLaunched = false,
 }: {
@@ -40,6 +41,8 @@ export function ShipPicker({
   selectedShip: string | null;
   onSelectShip: (name: string | null) => void;
   fundsAvailable: number;
+  /** Kerbals free to fly; a craft that needs more crew than this is not ready. Null while the roster is unread. */
+  freeCrew?: number | null;
   /** Shown under the selected craft's row while it is in the list. */
   detail?: ReactNode;
   /** Marks each craft that has been launched with its date, and says when the time came from a vessel of the same name. */
@@ -50,7 +53,9 @@ export function ShipPicker({
   const shown = needle
     ? padCraft.filter((s) => s.name.toLowerCase().includes(needle))
     : padCraft;
-  const ready = padCraft.filter((s) => !shipBlocked(s, fundsAvailable)).length;
+  const ready = padCraft.filter(
+    (s) => !shipBlocked(s, fundsAvailable, freeCrew),
+  ).length;
   return (
     <PadColumn>
       <SectionLabel>
@@ -65,7 +70,7 @@ export function ShipPicker({
       <ShipList>
         {shown.length === 0 && <EmptyNote>No craft match "{query}"</EmptyNote>}
         {shown.map((s) => {
-          const reason = shipBlockedReason(s, fundsAvailable);
+          const reason = shipBlockedReason(s, fundsAvailable, freeCrew);
           const blocked = reason !== null;
           const picked = selectedShip === s.file;
           return (

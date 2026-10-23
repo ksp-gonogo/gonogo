@@ -70,6 +70,9 @@
             "facility": "VAB",
             "facilityOrdinal": 1,
             "requiresFunds": 12000,
+            "crewSeats": 1,
+            "canFlyUnmanned": true,
+            "minimumCrew": 0,
             "missingParts": []
           },
           {
@@ -80,6 +83,9 @@
             "facility": "VAB",
             "facilityOrdinal": 1,
             "requiresFunds": 180000,
+            "crewSeats": 3,
+            "canFlyUnmanned": true,
+            "minimumCrew": 0,
             "missingParts": []
           },
           {
@@ -90,6 +96,9 @@
             "facility": "SPH",
             "facilityOrdinal": 2,
             "requiresFunds": 8500,
+            "crewSeats": 0,
+            "canFlyUnmanned": true,
+            "minimumCrew": 0,
             "missingParts": ["rapierEngine", "precooler"]
           },
           {
@@ -100,6 +109,9 @@
             "facility": "None",
             "facilityOrdinal": 0,
             "requiresFunds": 4200,
+            "crewSeats": 2,
+            "canFlyUnmanned": true,
+            "minimumCrew": 0,
             "missingParts": []
           }
         ]

@@ -20,6 +20,12 @@ export interface SavedShip {
   facilityOrdinal: number | null;
   requiresFunds: number | null;
   missingParts: string[];
+  /** Kerbals the craft seats, null where the wire did not carry it. */
+  crewSeats: number | null;
+  /** Whether a command module needs no crew (a probe core), null where the wire did not carry it. */
+  canFlyUnmanned: boolean | null;
+  /** The fewest crew any command module needs, null when the craft has none or the wire did not carry it. */
+  minimumCrew: number | null;
   /** The universal time of the craft's most recent launch, null when it has never been launched. */
   lastLaunched: Value<"ut"> | null;
   /** True when {@link lastLaunched} came from a vessel in the save sharing the craft's name rather than from a recorded launch. */
@@ -31,6 +37,11 @@ function launchTime(raw: unknown): Value<"ut"> | null {
   return typeof raw === "number" && Number.isFinite(raw)
     ? value("ut", raw)
     : null;
+}
+
+/** A count off the wire, as a bare number, null where it carried none. */
+function countOf(raw: unknown): number | null {
+  return magnitudeOf(asQuantityish(raw));
 }
 
 export function parseSavedShips(raw: unknown): SavedShip[] | null {
@@ -46,7 +57,7 @@ export function parseSavedShips(raw: unknown): SavedShip[] | null {
     out.push({
       name,
       file: typeof e.file === "string" && e.file ? e.file : name,
-      partCount: magnitudeOf(asQuantityish(e.partCount)),
+      partCount: countOf(e.partCount),
       totalMass: magnitudeOf(asQuantityish(e.totalMass)),
       facility: typeof e.facility === "string" ? e.facility : "",
       facilityOrdinal:
@@ -55,6 +66,10 @@ export function parseSavedShips(raw: unknown): SavedShip[] | null {
       missingParts: Array.isArray(e.missingParts)
         ? e.missingParts.filter((p): p is string => typeof p === "string")
         : [],
+      crewSeats: countOf(e.crewSeats),
+      canFlyUnmanned:
+        typeof e.canFlyUnmanned === "boolean" ? e.canFlyUnmanned : null,
+      minimumCrew: countOf(e.minimumCrew),
       lastLaunched: launchTime(e.lastLaunchedUt),
       lastLaunchedByName: e.lastLaunchedByName === true,
     });
@@ -118,11 +133,15 @@ export function craftForPad(
 
 /**
  * Why the save cannot launch a craft now, one line per cause: more than the
- * funds on hand, parts still locked. Null for a craft it can launch.
+ * funds on hand, parts still locked, no command module, or a craft that needs
+ * crew when too few kerbals are free. `freeCrew` is the count of available
+ * kerbals, null when the roster is unread, and a craft or roster the wire did
+ * not read never blocks. Null for a craft it can launch.
  */
 export function shipBlockedReason(
   ship: SavedShip,
   fundsAvailable: number,
+  freeCrew: number | null = null,
 ): string | null {
   const causes = [
     ship.requiresFunds !== null && ship.requiresFunds > fundsAvailable
@@ -131,11 +150,25 @@ export function shipBlockedReason(
     ship.missingParts.length > 0
       ? `Missing: ${ship.missingParts.join(", ")}`
       : null,
+    crewCause(ship, freeCrew),
   ].filter((cause) => cause !== null);
   return causes.length === 0 ? null : causes.join("\n");
 }
 
-/** A craft the save cannot launch now: parts still locked, or more than the funds on hand. */
-export function shipBlocked(ship: SavedShip, fundsAvailable: number): boolean {
-  return shipBlockedReason(ship, fundsAvailable) !== null;
+function crewCause(ship: SavedShip, freeCrew: number | null): string | null {
+  if (ship.canFlyUnmanned !== false) return null;
+  if (ship.minimumCrew === null) return "No command module";
+  if (freeCrew === null || freeCrew >= ship.minimumCrew) return null;
+  return freeCrew === 0
+    ? "Needs crew, and no kerbal is free"
+    : `Needs ${ship.minimumCrew} crew, ${freeCrew} free`;
+}
+
+/** A craft the save cannot launch now: parts still locked, funds short, or crew it needs that is not free. */
+export function shipBlocked(
+  ship: SavedShip,
+  fundsAvailable: number,
+  freeCrew: number | null = null,
+): boolean {
+  return shipBlockedReason(ship, fundsAvailable, freeCrew) !== null;
 }

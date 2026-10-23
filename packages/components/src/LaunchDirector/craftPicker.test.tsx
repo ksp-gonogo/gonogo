@@ -118,6 +118,48 @@ describe("LaunchDirector craft list", () => {
     expect(screen.queryByText("Mun Hopper")).not.toBeInTheDocument();
   });
 
+  it("marks a craft that needs crew as not ready while no kerbal is free, before any press", async () => {
+    renderWidget();
+    emit(
+      [PAD],
+      [],
+      [
+        {
+          name: "Jeb",
+          trait: "Pilot",
+          experienceLevel: 3,
+          available: false,
+          unavailableReason: "Assigned to a flight",
+          standing: 1,
+          situation: "Assigned",
+        },
+      ],
+    );
+    act(() => {
+      stream.emit("spaceCenter.savedShips", [
+        {
+          ...craft("Plane"),
+          crewSeats: 2,
+          canFlyUnmanned: false,
+          minimumCrew: 1,
+        },
+        {
+          ...craft("Probe"),
+          crewSeats: 0,
+          canFlyUnmanned: true,
+          minimumCrew: 0,
+        },
+      ]);
+    });
+
+    expect(await screen.findByText(/1\/2 ready/i)).toBeInTheDocument();
+    const rows = Array.from(document.querySelectorAll("[data-ship-row]"));
+    const plane = rows.find((r) => r.textContent?.includes("Plane"));
+    const probe = rows.find((r) => r.textContent?.includes("Probe"));
+    expect(plane?.getAttribute("aria-disabled")).toBe("true");
+    expect(probe?.getAttribute("aria-disabled")).toBe("false");
+  });
+
   it("says when no craft matches", async () => {
     const user = userEvent.setup();
     renderWidget();

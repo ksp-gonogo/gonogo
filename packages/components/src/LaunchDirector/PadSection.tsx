@@ -228,6 +228,11 @@ function OpenPad({
       selectedShip={selectedShip}
       onSelectShip={onSelectShip}
       fundsAvailable={fundsAvailable}
+      freeCrew={
+        crew === null
+          ? null
+          : crew.filter((k) => crewReading(k) === "available").length
+      }
       showLaunched={split}
       detail={
         ship && (
