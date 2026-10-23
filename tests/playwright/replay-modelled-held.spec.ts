@@ -38,17 +38,12 @@ async function expectSameText(
   }
 }
 
-/*
- * A craft that is landed has no route to hold, so the held caption is not drawn
- * for it. The craft recorded as held then released sits on the pad, where the
- * Landing Status altitude interval is a band about a millionth of a metre wide
- * whose ends one screen writes apart and another writes alike.
- */
-for (const [label, fixture, landingStatus] of [
-  ["out of contact then landed", OUT_OF_CONTACT, true],
-  ["held then released", HELD_THEN_RELEASED, false],
+for (const [label, fixture] of [
+  ["out of contact then landed", OUT_OF_CONTACT],
+  ["held then released", HELD_THEN_RELEASED],
 ] as const) {
   test(`every screen agrees through a craft ${label}`, async ({ browser }) => {
+    test.setTimeout(150_000);
     const mc = await bootMissionControl(browser, {
       fixture,
       widgets: [
@@ -66,11 +61,7 @@ for (const [label, fixture, landingStatus] of [
     const seen = new Set<string>();
     for (const ms of steps) {
       await mc.replay.advanceTo(ms);
-      for (const i of [
-        "semi-major-axis",
-        ...(landingStatus ? ["landing-status"] : []),
-        "comm-signal",
-      ]) {
+      for (const i of ["semi-major-axis", "landing-status", "comm-signal"]) {
         await expectScreensAgree(mc, i, { allowEmpty: true });
       }
       for (const i of ["tracking-station", "ground-track"]) {
