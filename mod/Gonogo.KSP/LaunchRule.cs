@@ -89,6 +89,28 @@ namespace Gonogo.KSP
                 : null;
 
         /// <summary>
+        /// The refusal for a craft whose real cost, modules included, is more than the funds on
+        /// hand, or null when it is affordable or either figure is unknown (no funds outside career).
+        /// Stock's own affordability test prices the craft from its file, which leaves out the
+        /// cost modules add, while the rollout charge includes them.
+        /// </summary>
+        public static CommandResult? Unaffordable(double? costWithModules, double? funds)
+        {
+            if (costWithModules == null || funds == null || costWithModules.Value <= funds.Value + 0.005)
+            {
+                return null;
+            }
+
+            return CommandResult.Fail(
+                CommandErrorCode.InsufficientFunds,
+                "the craft costs "
+                + costWithModules.Value.ToString("N0", System.Globalization.CultureInfo.InvariantCulture)
+                + " funds with its modules and "
+                + funds.Value.ToString("N0", System.Globalization.CultureInfo.InvariantCulture)
+                + " are available");
+        }
+
+        /// <summary>
         /// Place the craft, answering a throw from the game with a refusal of
         /// this call instead of letting it end the command.
         /// </summary>

@@ -302,6 +302,36 @@ namespace Gonogo.KSP
             construct.parts.Clear();
         }
 
+        /// <summary>
+        /// A craft's cost as the rollout charges it: parts, resources and the cost modules add
+        /// (<c>ShipConstruct.GetShipCosts</c>), which the cost in the file leaves out. Loads the
+        /// craft's parts and releases them again, so it is not cheap. Null when the craft cannot be
+        /// loaded.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static double? CostWithModules(ConfigNode node)
+        {
+            var ship = new ShipConstruct();
+            try
+            {
+                if (!ship.LoadShip(node))
+                {
+                    return null;
+                }
+
+                return ship.GetShipCosts(out _, out _);
+            }
+            catch (Exception ex)
+            {
+                GonogoLog.Warn("pricing a craft with its modules failed", ex);
+                return null;
+            }
+            finally
+            {
+                ReleaseParts(ship);
+            }
+        }
+
         /// <summary>Every <c>.craft</c> in one editor's folder, or nothing when the folder is not there.</summary>
         private static IEnumerable<string> FilesIn(string save, EditorFacility facility)
         {

@@ -634,9 +634,10 @@ namespace Gonogo.KSP
             VesselCrewManifest manifest;
             ShipTemplate template;
             List<string> missingParts;
+            ConfigNode? craftNode;
             try
             {
-                var craftNode = ConfigNode.Load(craftPath);
+                craftNode = ConfigNode.Load(craftPath);
                 if (craftNode == null)
                 {
                     return CommandResult.Fail(CommandErrorCode.NotFound);
@@ -692,6 +693,16 @@ namespace Gonogo.KSP
             if (refusal != null)
             {
                 return refusal;
+            }
+
+            // Stock's affordability test prices the craft from its file, which leaves out
+            // what modules add to the cost, and the rollout charges it all.
+            var unaffordable = LaunchRule.Unaffordable(
+                craftNode == null ? (double?)null : CraftCatalogueBackend.CostWithModules(craftNode),
+                Funding.Instance == null ? (double?)null : Funding.Instance.Funds);
+            if (unaffordable != null)
+            {
+                return unaffordable;
             }
 
             var flagUrl = HighLogic.CurrentGame?.flagURL ?? "Squad/Flags/default";
