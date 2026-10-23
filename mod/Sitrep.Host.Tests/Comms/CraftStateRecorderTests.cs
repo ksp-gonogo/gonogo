@@ -152,6 +152,55 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Empty(recorder.Capture(look, 30.0, kernel).States);
         }
 
+        private sealed class ChargedBackend : ICommsBackend
+        {
+            public bool Unpowered;
+
+            public string ProviderId => "charged";
+            public CommsConnectivity Connectivity() => new CommsConnectivity();
+            public CommsSignal Signal() => new CommsSignal();
+            public CommsControl ControlState() => new CommsControl();
+            public CommsPath Path(object? vessel) => new CommsPath();
+            public CommsNetwork Network(object? vessel) => new CommsNetwork();
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(CommsNodeHandle? from, CommsNodeHandle? to) => null;
+            public ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) =>
+                Unpowered
+                    ? new MaxRangeReachModel("charged", "Charged", 0.0, CommsNoReachReasons.Unpowered)
+                    : new MaxRangeReachModel("charged", "Charged", 5_000_000.0);
+            public CommsNodeHandle? ControlPathTerminus(object? vessel) => null;
+            public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
+            public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
+            public bool? StillCarriesTo(object? vessel, string nodeId) => null;
+        }
+
+        [Fact]
+        public void ACraftThatHasNotMovedButRanOutOfChargeIsReadAgainOnTheNextPassAndSaysUnpowered()
+        {
+            var backend = new ChargedBackend();
+            var kernel = new Kernel();
+            CommsElection.RegisterCapability(kernel, _ => backend);
+            kernel.Resolve(new ResolveOptions { KernelVersion = "2.2.0" });
+            var radio = CommsNodeHandle.Of(new object());
+            var recorder = new CraftStateRecorder();
+            var look = Look(ContactGameNode.OrbitingCraft("vessel:a", Kerbin, Orbit(700_000.0), radio), Ksc);
+
+            var first = Assert.Single(recorder.Capture(look, 0.0, kernel).States);
+            Assert.Null(first.Links["ground:ksc"].NoReachReason);
+            Assert.Empty(recorder.Capture(look, 10.0, kernel).States);
+
+            backend.Unpowered = true;
+
+            var again = Assert.Single(recorder.Capture(look, 20.0, kernel).States);
+            Assert.Equal(CommsNoReachReasons.Unpowered, again.Links["ground:ksc"].NoReachReason);
+            Assert.Equal(0.0, again.Links["ground:ksc"].MaxRangeMeters);
+            Assert.Empty(recorder.Capture(look, 30.0, kernel).States);
+
+            backend.Unpowered = false;
+
+            var restored = Assert.Single(recorder.Capture(look, 40.0, kernel).States);
+            Assert.Null(restored.Links["ground:ksc"].NoReachReason);
+        }
+
         [Fact]
         public void ABurnIsReadOnceTheDriftIntervalHasPassed()
         {

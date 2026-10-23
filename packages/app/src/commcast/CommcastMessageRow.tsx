@@ -18,6 +18,7 @@ import {
   Commcast__Meta,
 } from "./commcastStyles";
 import { messageText } from "./groups";
+import { recipientWords } from "./recipientWords";
 import {
   deliveryAckUtFor,
   deliveryPhaseFor,
@@ -36,12 +37,15 @@ export function CommcastMessageRow({
   log,
   nameFor,
   separations,
+  noReachReasonFor,
 }: {
   entry: CommcastEntry;
   utNow: number | undefined;
   log: CommcastLog;
   nameFor: (id: RecipientId) => string;
   separations: ReadonlyMap<RecipientId, number | null>;
+  /** Why the contact plan has no reach to a recipient, when it says; undefined otherwise. */
+  noReachReasonFor: (id: RecipientId) => "unpowered" | undefined;
 }) {
   const { msg, out } = entry;
   return (
@@ -53,7 +57,12 @@ export function CommcastMessageRow({
             <MissionDate value={msg.sentUt} />
           </Text>
         ) : out ? (
-          <SentVerdict out={out} utNow={utNow} nameFor={nameFor} />
+          <SentVerdict
+            out={out}
+            utNow={utNow}
+            nameFor={nameFor}
+            noReachReasonFor={noReachReasonFor}
+          />
         ) : (
           <HeardVerdict msg={msg} />
         )}
@@ -104,10 +113,12 @@ function SentVerdict({
   out,
   utNow,
   nameFor,
+  noReachReasonFor,
 }: {
   out: OutboundMessage;
   utNow: number | undefined;
   nameFor: (id: RecipientId) => string;
+  noReachReasonFor: (id: RecipientId) => "unpowered" | undefined;
 }) {
   const now = utNow ?? Number.NEGATIVE_INFINITY;
   const status = messageStatusFor(out, now);
@@ -132,6 +143,7 @@ function SentVerdict({
                 out={out}
                 now={now}
                 name={nameFor(delivery.to)}
+                noReachReason={noReachReasonFor(delivery.to)}
               />
             </li>
           ))}
@@ -167,21 +179,16 @@ function RecipientState({
   out,
   now,
   name,
+  noReachReason,
 }: {
   delivery: Delivery;
   out: OutboundMessage;
   now: number;
   name: string;
+  noReachReason: "unpowered" | undefined;
 }) {
   const phase = deliveryPhaseFor(out, delivery, now);
-  const state =
-    phase === "confirmed"
-      ? "received"
-      : delivery.neverLeft
-        ? "never left, no path"
-        : isSettled(phase)
-          ? "not received"
-          : "on the way";
+  const state = recipientWords(phase, delivery, noReachReason);
   const modelled = phase !== "confirmed" && !delivery.neverLeft;
   return (
     <Text size="xs">

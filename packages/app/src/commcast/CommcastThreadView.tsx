@@ -159,6 +159,11 @@ export function CommcastThreadView({
                 log={log}
                 nameFor={nameFor}
                 separations={separations}
+                noReachReasonFor={(id) =>
+                  plan && me.vantageId !== undefined
+                    ? noReachReasonOf(plan, me.vantageId, [id])
+                    : undefined
+                }
               />
             ))}
             {/* A rule at the tail: past it there may be words this vantage has not heard, which is not a message in transit. */}

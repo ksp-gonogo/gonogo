@@ -651,7 +651,7 @@ namespace Sitrep.Host.Comms
             var timeHasCome = itsTurn && TimeHasComeFor(last, Moved(last, node, ut), ut);
             if (!timeHasCome && !LacksALinkToANodeHere(last.State, look))
             {
-                if (!ListedDifferently(last.State.Roster, listed) && !Retargeted(last.State, node, ut, kernel))
+                if (!ListedDifferently(last.State.Roster, listed) && !Retargeted(last.State, node, ut, kernel) && !ReasonChanged(last.State, node, look, kernel))
                 {
                     return null;
                 }
@@ -675,6 +675,27 @@ namespace Sitrep.Host.Comms
                 .Listed(listed);
             _read[node.Id] = new Read(afresh ? node : last.Node, again);
             return again;
+        }
+
+        /// <summary>
+        /// Whether the backend now gives a different reason for the craft having no
+        /// reach than the last read recorded, such as a craft whose electric charge
+        /// has run out or come back. Asked of one link, since the reason belongs to
+        /// the craft and not to a pair, so a craft that has not moved is not read
+        /// again for every other node on every pass.
+        /// </summary>
+        private static bool ReasonChanged(CraftState last, ContactGameNode node, ContactGameLook look, Kernel? kernel)
+        {
+            foreach (var other in look.Nodes)
+            {
+                if (other.Id == node.Id || !last.Links.TryGetValue(other.Id, out var link))
+                {
+                    continue;
+                }
+                var now = (CommsElection.ReachModel(kernel, node.Radio, other.Radio) as ICommsNoReachReason)?.NoReachReason;
+                return !string.Equals(now, link.NoReachReason, StringComparison.Ordinal);
+            }
+            return false;
         }
 
         /// <summary>
