@@ -19052,6 +19052,35 @@ components:
             Parts referenced by the craft that are not yet unlocked/purchased
             (`CraftProfileInfo.UnavailableShipParts`); an empty array when the craft is
             buildable as-is.
+        crewSeats:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: count
+          description: |-
+            How many kerbals the craft seats in all, summed over its parts. Absent when
+            a part of the craft is not installed, since the total cannot be read; absent
+            is not zero seats.
+        canFlyUnmanned:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether a command module on the craft needs no crew, as a probe core does,
+            so the craft can launch with nobody aboard. `false` means it cannot launch
+            unmanned, for want of a command module or because every one needs crew (see
+            `SavedShipEntry.minimumCrew`). Absent when a part of the craft is not
+            installed.
+        minimumCrew:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: count
+          description: |-
+            The fewest kerbals any command module on the craft needs to fly it, `0` for
+            a probe core. Absent when the craft has no command module, which no crew can
+            fix, and when a part of the craft is not installed.
         lastLaunchedUt:
           type:
             - number

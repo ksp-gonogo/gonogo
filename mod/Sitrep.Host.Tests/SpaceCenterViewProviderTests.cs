@@ -722,6 +722,9 @@ namespace Sitrep.Host.Tests
                                 ["facilityOrdinal"] = 1,
                                 ["requiresFunds"] = 12345.0,
                                 ["missingParts"] = new List<object?> { "partA", "partB" },
+                                ["crewSeats"] = 3,
+                                ["canFlyUnmanned"] = false,
+                                ["minimumCrew"] = 1,
                             },
                             new Dictionary<string, object?>
                             {
@@ -747,12 +750,21 @@ namespace Sitrep.Host.Tests
             Assert.Equal(18.5, kx["totalMass"]);
             Assert.Equal("VAB", kx["facility"]);
             Assert.Equal(12345.0, kx["requiresFunds"]);
+            Assert.Equal(3, kx["crewSeats"]);
+            Assert.Equal(false, kx["canFlyUnmanned"]);
+            Assert.Equal(1, kx["minimumCrew"]);
             var missing = Assert.IsType<List<object?>>(kx["missingParts"]);
             Assert.Equal(new object?[] { "partA", "partB" }, missing);
 
             var plane = Assert.IsType<Dictionary<string, object?>>(list[1]);
             Assert.Equal("SPH", plane["facility"]);
             Assert.Empty(Assert.IsType<List<object?>>(plane["missingParts"]));
+
+            // A craft whose parts could not all be read carries no control
+            // facts, which is not zero seats and not a probe core.
+            Assert.Null(plane["crewSeats"]);
+            Assert.Null(plane["canFlyUnmanned"]);
+            Assert.Null(plane["minimumCrew"]);
 
             // The ordinal rides beside the name. It is what the client resolves
             // the launch's editor from, so the name is a row label only.

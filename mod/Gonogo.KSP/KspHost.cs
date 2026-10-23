@@ -4329,6 +4329,44 @@ namespace Gonogo.KSP
             return ships;
         }
 
+        /// <summary>
+        /// What the craft needs to fly, read off each part's prefab: its seats
+        /// and its command module's minimum crew. Null when any part is not
+        /// installed, since the prefab cannot be read and a guess would put a
+        /// wrong fact on the wire.
+        /// </summary>
+        private static Career.CraftControlFacts? ReadCraftControl(ConfigNode craft, bool everyPartInstalled)
+        {
+            if (!everyPartInstalled)
+            {
+                return null;
+            }
+
+            var parts = new List<Career.CraftPart>();
+            foreach (var partNode in craft.GetNodes("PART"))
+            {
+                var name = CraftCatalogueBackend.PartNameFrom(partNode);
+                var prefab = string.IsNullOrEmpty(name) ? null : PartLoader.getPartInfoByName(name)?.partPrefab;
+                if (prefab == null)
+                {
+                    return null;
+                }
+
+                int? minimumCrew = null;
+                foreach (var command in prefab.Modules.GetModules<ModuleCommand>())
+                {
+                    if (minimumCrew == null || command.minimumCrew < minimumCrew)
+                    {
+                        minimumCrew = command.minimumCrew;
+                    }
+                }
+
+                parts.Add(new Career.CraftPart(prefab.CrewCapacity, minimumCrew));
+            }
+
+            return Career.CraftControl.Read(parts);
+        }
+
         private static List<object?>? ScanSavedShips(double ut, bool wanted)
         {
             var game = HighLogic.CurrentGame;
@@ -4399,6 +4437,8 @@ namespace Gonogo.KSP
                             }
                         }
 
+                        var control = ReadCraftControl(root, missing.Count == 0);
+
                         ships.Add(new Dictionary<string, object?>
                         {
                             ["name"] = GameWords.CraftName(info.shipName, Path.GetFileNameWithoutExtension(file)),
@@ -4411,6 +4451,9 @@ namespace Gonogo.KSP
                             ["facilityOrdinal"] = (int)info.shipFacility,
                             ["requiresFunds"] = info.totalCost,
                             ["missingParts"] = missing,
+                            ["crewSeats"] = control?.CrewSeats,
+                            ["canFlyUnmanned"] = control?.CanFlyUnmanned,
+                            ["minimumCrew"] = control?.MinimumCrew,
                         });
                     }
                     catch (Exception ex)

@@ -1157,11 +1157,14 @@
       "running": "flag"
     },
     "SavedShipEntry": {
+      "canFlyUnmanned": "flag",
+      "crewSeats": "count",
       "facility": "text",
       "facilityOrdinal": "enum",
       "file": "text",
       "lastLaunchedByName": "flag",
       "lastLaunchedUt": "ut",
+      "minimumCrew": "count",
       "missingParts": "text",
       "name": "text",
       "partCount": "count",
@@ -2118,11 +2121,14 @@
       "status": "text"
     },
     "spaceCenter.savedShips": {
+      "canFlyUnmanned": "flag",
+      "crewSeats": "count",
       "facility": "text",
       "facilityOrdinal": "enum",
       "file": "text",
       "lastLaunchedByName": "flag",
       "lastLaunchedUt": "ut",
+      "minimumCrew": "count",
       "missingParts": "text",
       "name": "text",
       "partCount": "count",

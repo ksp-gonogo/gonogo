@@ -86,6 +86,9 @@ namespace Sitrep.Host
     ///                                    and sends back as ksp.launch's facility arg
     ///       "requiresFunds": double  : CraftProfileInfo.totalCost
     ///       "missingParts":  List&lt;object?&gt; of string: UnavailableShipParts
+    ///       "crewSeats":     int?    : kerbals the craft seats, absent when a part is not installed
+    ///       "canFlyUnmanned": bool?  : a command module needs no crew, absent when a part is not installed
+    ///       "minimumCrew":   int?    : fewest crew any command module needs, absent with none or an uninstalled part
     ///       "lastLaunchedUt": double? : the recorded or name-matched last launch, absent if never launched
     ///       "lastLaunchedByName": bool? : true when lastLaunchedUt came from a vessel name match
     ///     }
@@ -459,6 +462,9 @@ namespace Sitrep.Host
                 ["facilityOrdinal"] = SnapshotDict.GetInt(raw, "facilityOrdinal"),
                     ["requiresFunds"] = SnapshotDict.GetDouble(raw, "requiresFunds"),
                     ["missingParts"] = GetStringList(raw, "missingParts"),
+                    ["crewSeats"] = SnapshotDict.GetInt(raw, "crewSeats"),
+                    ["canFlyUnmanned"] = SnapshotDict.GetBool(raw, "canFlyUnmanned"),
+                    ["minimumCrew"] = SnapshotDict.GetInt(raw, "minimumCrew"),
                     ["lastLaunchedUt"] = SnapshotDict.GetDouble(raw, "lastLaunchedUt"),
                     ["lastLaunchedByName"] = SnapshotDict.GetBool(raw, "lastLaunchedByName"),
                 });

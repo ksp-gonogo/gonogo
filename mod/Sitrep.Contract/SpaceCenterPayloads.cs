@@ -375,6 +375,32 @@ public class SavedShipEntry
     public string[]? MissingParts { get; set; }
 
     /// <summary>
+    /// How many kerbals the craft seats in all, summed over its parts. Absent
+    /// when a part of the craft is not installed, since the total cannot be
+    /// read; absent is not zero seats.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? CrewSeats { get; set; }
+
+    /// <summary>
+    /// Whether a command module on the craft needs no crew, as a probe core
+    /// does, so the craft can launch with nobody aboard. <c>false</c> means it
+    /// cannot launch unmanned, for want of a command module or because every
+    /// one needs crew (see <see cref="MinimumCrew"/>). Absent when a part of
+    /// the craft is not installed.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? CanFlyUnmanned { get; set; }
+
+    /// <summary>
+    /// The fewest kerbals any command module on the craft needs to fly it,
+    /// <c>0</c> for a probe core. Absent when the craft has no command module,
+    /// which no crew can fix, and when a part of the craft is not installed.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? MinimumCrew { get; set; }
+
+    /// <summary>
     /// Universal time of the most recent launch from this craft file. KSP keeps
     /// no launch date on a craft file, so Gonogo records one each time a launch
     /// is made from it, by the console or by the editor's own Launch button.
