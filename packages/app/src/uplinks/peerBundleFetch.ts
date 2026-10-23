@@ -15,7 +15,10 @@ import type { PeerClientService } from "../peer/PeerClientService";
  * `Pick` (not the whole class) so a test can pass a minimal fake instead of
  * a real `PeerClientService` + fake Peer/DataConnection pair.
  */
-export type BundleFetchConduit = Pick<PeerClientService, "sendBundleFetch">;
+export type BundleFetchConduit = Pick<
+  PeerClientService,
+  "sendBundleFetch" | "sendManifestFetch"
+>;
 
 /**
  * Build a `LoaderContext.fetchBytes`-shaped function that pulls bundle
@@ -42,4 +45,15 @@ export function createPeerBundleFetcher(
     }
     return client.sendBundleFetch(url, expectedHash);
   };
+}
+
+/**
+ * Build a `LoaderContext.fetchManifest`-shaped function that has the main
+ * screen fetch the manifest, so a station reads the same document the main
+ * screen loaded from an address only the main screen's network may reach.
+ */
+export function createPeerManifestFetcher(
+  client: BundleFetchConduit,
+): (url: string) => Promise<unknown> {
+  return (url) => client.sendManifestFetch(url);
 }

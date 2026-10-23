@@ -38,6 +38,7 @@ import {
 import {
   type BundleFetchConduit,
   createPeerBundleFetcher,
+  createPeerManifestFetcher,
 } from "./peerBundleFetch";
 import { localRegistrySource } from "./registry";
 import { readRosterFromTelemetryClient } from "./rosterProbe";
@@ -59,11 +60,15 @@ function loaderContext(
     hostCompat,
     appVersion: VERSION,
     roster,
-    // The D6 conduit: a station has no route to verify a bundle against an
-    // author host directly, so the HOST does that verification and relays
-    // the already-checked bytes back. No direct `fetch` for bundle bytes ever
-    // happens on a station.
+    /*
+     * The D6 conduit: a station has no route to verify a bundle against an
+     * author host directly, so the HOST does that verification and relays the
+     * already-checked bytes back. No direct `fetch` for bundle bytes ever
+     * happens on a station, and a third-party client's manifest comes the same
+     * way.
+     */
     fetchBytes: createPeerBundleFetcher(bundleFetchConduit),
+    fetchManifest: createPeerManifestFetcher(bundleFetchConduit),
     bundlesFromHost: true as const,
     hostUplinks,
     importBundle,

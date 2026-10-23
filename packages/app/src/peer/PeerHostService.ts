@@ -18,7 +18,11 @@ import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import Peer, { type DataConnection } from "peerjs";
 import type { RunningUplink } from "../uplinks/loaderState";
 import { BUILD_TIME, VERSION } from "../version";
-import { BundleFetchCache, rebaseBundleUrl } from "./BundleFetchCache";
+import {
+  BundleFetchCache,
+  fetchWithDeadline,
+  rebaseBundleUrl,
+} from "./BundleFetchCache";
 import { type ConnectionPath, readConnectionPath } from "./connectionPath";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
@@ -1766,6 +1770,9 @@ export class PeerHostService {
     "uplink-bundle-request": (msg, conn) => {
       void this.handleUplinkBundleRequest(msg, conn);
     },
+    "uplink-manifest-request": (msg, conn) => {
+      void this.handleUplinkManifestRequest(msg, conn);
+    },
     "station-info": (msg, conn) => {
       if (msg.stationKey) {
         /* One station identity holds one live connection. Another connection
@@ -1989,6 +1996,13 @@ export class PeerHostService {
       case "uplink-bundle-request":
         conn.send({
           type: "uplink-bundle-response",
+          requestId: msg.requestId,
+          error: AWAITING_APPROVAL,
+        } satisfies PeerMessage);
+        return;
+      case "uplink-manifest-request":
+        conn.send({
+          type: "uplink-manifest-response",
           requestId: msg.requestId,
           error: AWAITING_APPROVAL,
         } satisfies PeerMessage);
@@ -2401,6 +2415,44 @@ export class PeerHostService {
   }
 
   /**
+   * The station conduit for a third-party client's manifest: the main screen
+   * fetches it from where the bundle's author serves it and relays the parsed
+   * document. The station checks it against the hash the mod vouched for, as it
+   * does for a manifest it fetched itself.
+   */
+  private async handleUplinkManifestRequest(
+    msg: Extract<PeerMessage, { type: "uplink-manifest-request" }>,
+    conn: DataConnection,
+  ): Promise<void> {
+    const respond = (manifest?: unknown, error?: string) => {
+      conn.send({
+        type: "uplink-manifest-response",
+        requestId: msg.requestId,
+        manifest,
+        error,
+      } satisfies PeerMessage);
+    };
+    try {
+      const url = rebaseBundleUrl(
+        msg.manifestUrl,
+        msg.appBase,
+        import.meta.env.BASE_URL,
+      );
+      const res = await fetchWithDeadline(url, "manifest");
+      if (!res.ok) {
+        throw new Error(`manifest fetch failed: HTTP ${res.status} for ${url}`);
+      }
+      respond(await res.json());
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      logger.warn(
+        `[PeerHost] manifest fetch failed for ${msg.manifestUrl}: ${error}`,
+      );
+      respond(undefined, error);
+    }
+  }
+
+  /**
    * Real bundle-byte fetch: module-scope `fetch`, mirroring the loader's
    * own `defaultFetchBytes`. Kept as an instance property (not a free
    * function) so a test can substitute it without a global `fetch` stub if
@@ -2409,7 +2461,7 @@ export class PeerHostService {
   private readonly fetchBundleBytes = async (
     url: string,
   ): Promise<ArrayBuffer> => {
-    const res = await fetch(url, { cache: "no-cache" });
+    const res = await fetchWithDeadline(url, "bundle");
     if (!res.ok) throw new Error(`bundle fetch failed: HTTP ${res.status}`);
     return res.arrayBuffer();
   };

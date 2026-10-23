@@ -544,6 +544,24 @@ export type PeerMessage =
       requestId: string;
       bytes?: Uint8Array | ArrayBuffer;
       error?: string;
+    }
+  /*
+   * The manifest that sits beside a third-party client bundle. Its url can be
+   * a development address only the main screen's network reaches, so a station
+   * asks the main screen for the parsed document instead of fetching it.
+   */
+  | {
+      type: "uplink-manifest-request";
+      requestId: string;
+      manifestUrl: string;
+      /** The base path the station's app is served under, as on `uplink-bundle-request`. */
+      appBase?: string;
+    }
+  | {
+      type: "uplink-manifest-response";
+      requestId: string;
+      manifest?: unknown;
+      error?: string;
     };
 
 /**

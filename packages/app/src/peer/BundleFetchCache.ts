@@ -23,6 +23,49 @@ export async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
 }
 
 /**
+ * How long the main screen waits on an Uplink's author host before it answers
+ * a station with a failure. Shorter than the station's own wait, so the station
+ * hears the reason rather than a bare timeout.
+ */
+export const UPLINK_FETCH_TIMEOUT_MS = 20_000;
+
+/**
+ * `fetch` that gives up after `timeoutMs`, rejecting with an error whose
+ * message says what was being fetched and that it timed out. A development
+ * address on another network often drops packets instead of refusing, which
+ * leaves a plain `fetch` pending for minutes.
+ */
+export async function fetchWithDeadline(
+  url: string,
+  what: "bundle" | "manifest",
+  timeoutMs: number = UPLINK_FETCH_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () =>
+      controller.abort(
+        new Error(
+          `${what} fetch failed: ${url} timed out after ${timeoutMs} ms`,
+        ),
+      ),
+    timeoutMs,
+  );
+  try {
+    return await fetch(url, { cache: "no-cache", signal: controller.signal });
+  } catch (err) {
+    if (
+      controller.signal.aborted &&
+      controller.signal.reason instanceof Error
+    ) {
+      throw controller.signal.reason;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * The url a host fetches for a station's same-origin bundle request. The
  * station writes the url against its own app base (`/rc/uplinks/x.js` on the
  * hosted site); the host serves the same files under its own base, where the

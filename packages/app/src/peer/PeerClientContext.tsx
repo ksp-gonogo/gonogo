@@ -36,6 +36,7 @@ export type PeerClient = Pick<
   | "sendNoteReorder"
   | "sendUplinkRelay"
   | "sendBundleFetch"
+  | "sendManifestFetch"
 >;
 
 const PeerClientContext = createContext<PeerClient | null>(null);

@@ -61,6 +61,7 @@ export function idlePeerClient(): PeerClient {
     sendNoteReorder: () => true,
     sendUplinkRelay: () => new Promise(() => {}),
     sendBundleFetch: () => new Promise(() => {}),
+    sendManifestFetch: () => new Promise(() => {}),
   };
 }
 

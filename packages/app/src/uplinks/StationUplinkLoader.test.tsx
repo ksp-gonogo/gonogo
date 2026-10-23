@@ -106,6 +106,10 @@ function stubFetch(index: RegistryIndex): string[] {
   return directBundleFetches;
 }
 
+const noManifest = vi.fn(async () => {
+  throw new Error("a first-party Uplink has no manifest to fetch");
+});
+
 let goodHash: string;
 
 const ALPHA_RUNS = [{ id: "alpha", version: "1.0.0" }];
@@ -159,7 +163,7 @@ describe("runStationUplinkLoad", () => {
 
     const outcomes = await runStationUplinkLoad(
       client,
-      { sendBundleFetch },
+      { sendBundleFetch, sendManifestFetch: noManifest },
       [],
       20,
     );
@@ -178,7 +182,7 @@ describe("runStationUplinkLoad", () => {
 
     const pending = runStationUplinkLoad(
       client,
-      { sendBundleFetch },
+      { sendBundleFetch, sendManifestFetch: noManifest },
       ALPHA_RUNS,
       1000,
       async () => ({}),
@@ -205,7 +209,7 @@ describe("runStationUplinkLoad", () => {
 
     const pending = runStationUplinkLoad(
       client,
-      { sendBundleFetch },
+      { sendBundleFetch, sendManifestFetch: noManifest },
       ALPHA_RUNS,
       1000,
       async () => ({}),
@@ -239,7 +243,7 @@ describe("runStationUplinkLoad", () => {
 
     const pending = runStationUplinkLoad(
       client,
-      { sendBundleFetch },
+      { sendBundleFetch, sendManifestFetch: noManifest },
       ALPHA_RUNS,
       1000,
       async () => ({}),
@@ -281,7 +285,7 @@ describe("a station loads exactly what its main screen runs", () => {
 
     const pending = runStationUplinkLoad(
       client,
-      { sendBundleFetch },
+      { sendBundleFetch, sendManifestFetch: noManifest },
       ALPHA_RUNS,
       1000,
       async () => ({}),
@@ -303,7 +307,7 @@ describe("a station loads exactly what its main screen runs", () => {
 
     const pending = runStationUplinkLoad(
       client,
-      { sendBundleFetch },
+      { sendBundleFetch, sendManifestFetch: noManifest },
       [{ id: "alpha", version: "2.0.0" }],
       1000,
       async () => ({}),
@@ -329,14 +333,14 @@ describe("a station loads exactly what its main screen runs", () => {
 
     await runStationUplinkLoad(
       client,
-      { sendBundleFetch },
+      { sendBundleFetch, sendManifestFetch: noManifest },
       ALPHA_RUNS,
       1000,
       async () => ({}),
     );
     const added = await followHostUplinks(
       client,
-      { sendBundleFetch },
+      { sendBundleFetch, sendManifestFetch: noManifest },
       both,
       reload,
       1000,
@@ -347,7 +351,7 @@ describe("a station loads exactly what its main screen runs", () => {
 
     await followHostUplinks(
       client,
-      { sendBundleFetch },
+      { sendBundleFetch, sendManifestFetch: noManifest },
       ALPHA_RUNS,
       reload,
       1000,
@@ -491,5 +495,112 @@ describe("StationUplinkLoader", () => {
 
     expect(screen.queryByTestId("dashboard-widgets")).toBeNull();
     expect(screen.getByText(/Loading station widgets/i)).not.toBeNull();
+  });
+});
+
+describe("a station loads a third-party client whose dev path is on the main screen's network", () => {
+  const DEV_BUNDLE = "http://builder.example.test:8099/third.client.js";
+  const DEV_MANIFEST = "http://builder.example.test:8099/gonogo-uplink.json";
+
+  function manifestWith(integrity: string) {
+    return {
+      id: "third",
+      version: "1.0.0",
+      minAppVersion: "0.0.0",
+      apiVersion: hostCompat.apiVersion,
+      contractMajor: hostCompat.contractMajor,
+      contractMinor: hostCompat.contractMinor,
+      integrity,
+    };
+  }
+
+  function rosterFor(hash: string) {
+    return {
+      uplinks: [
+        {
+          id: "third",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          expectedClientHash: hash,
+          clientSource: { url: "", devPath: DEV_BUNDLE },
+        },
+      ],
+    };
+  }
+
+  const RUNS = [{ id: "third", version: "1.0.0" }];
+
+  it("takes the manifest and the bundle through the main screen and never fetches either itself", async () => {
+    const direct = stubFetch({ uplinks: [] });
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
+    const sendManifestFetch = vi.fn(async () => manifestWith(goodHash));
+
+    const pending = runStationUplinkLoad(
+      client,
+      { sendBundleFetch, sendManifestFetch },
+      RUNS,
+      1000,
+      async () => ({}),
+    );
+    stub.emit("system.uplinks", rosterFor(goodHash));
+
+    const [third] = await pending;
+    expect(third.status).toBe("loaded");
+    expect(sendManifestFetch).toHaveBeenCalledWith(DEV_MANIFEST);
+    expect(sendBundleFetch).toHaveBeenCalledWith(DEV_BUNDLE, goodHash);
+    expect(direct).toEqual([]);
+  });
+
+  it("quarantines with the main screen's reason when the manifest cannot be fetched", async () => {
+    stubFetch({ uplinks: [] });
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
+    const sendManifestFetch = vi.fn(async () => {
+      throw new Error("manifest fetch failed: Failed to fetch");
+    });
+
+    const pending = runStationUplinkLoad(
+      client,
+      { sendBundleFetch, sendManifestFetch },
+      RUNS,
+      1000,
+      async () => ({}),
+    );
+    stub.emit("system.uplinks", rosterFor(goodHash));
+
+    const [third] = await pending;
+    expect(third.status).toBe("quarantined");
+    expect(third.reason).toMatch(
+      /manifest fetch\/parse failed.*Failed to fetch/,
+    );
+    expect(sendBundleFetch).not.toHaveBeenCalled();
+  });
+
+  it("refuses a manifest whose integrity is not the one the mod vouched for", async () => {
+    stubFetch({ uplinks: [] });
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
+    const sendManifestFetch = vi.fn(async () =>
+      manifestWith("sha256-something-else"),
+    );
+
+    const pending = runStationUplinkLoad(
+      client,
+      { sendBundleFetch, sendManifestFetch },
+      RUNS,
+      1000,
+      async () => ({}),
+    );
+    stub.emit("system.uplinks", rosterFor(goodHash));
+
+    const [third] = await pending;
+    expect(third.status).toBe("quarantined");
+    expect(third.reason).toMatch(/manifest-declared integrity/);
+    expect(sendBundleFetch).not.toHaveBeenCalled();
   });
 });

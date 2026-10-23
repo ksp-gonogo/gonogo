@@ -272,6 +272,7 @@ export class PeerClientService {
   // map) because the resolved value shape (raw bytes) differs from every
   // other RequestTracker on this class: see sendBundleFetch.
   private pendingBundleFetch = new RequestTracker<Uint8Array | ArrayBuffer>();
+  private pendingManifestFetch = new RequestTracker<unknown>();
 
   // Cached current flight pushed by the host. Updated on every `flight-change`
   // message, including the initial snapshot the host sends on connect open.
@@ -987,6 +988,35 @@ export class PeerClientService {
     });
   }
 
+  /**
+   * Ask the main screen for the manifest beside a third-party client bundle:
+   * the main screen fetches it where the author serves it, which for a
+   * development address is a network this station may not be on. Rejects with
+   * the main screen's reason when it cannot, and with a timeout otherwise.
+   */
+  sendManifestFetch(
+    manifestUrl: string,
+    timeoutMs = 30_000,
+    appBase: string = import.meta.env.BASE_URL,
+  ): Promise<unknown> {
+    if (!this.conn) {
+      return Promise.reject(new Error("not connected"));
+    }
+    const requestId = safeRandomUuid();
+    const pending = this.pendingManifestFetch.track(
+      requestId,
+      timeoutMs,
+      `manifest fetch timeout (${manifestUrl})`,
+    );
+    this.conn.send({
+      type: "uplink-manifest-request",
+      requestId,
+      manifestUrl,
+      appBase,
+    } satisfies PeerMessage);
+    return pending;
+  }
+
   // ── Sitrep telemetry-stream forwarding ───────────────────────────────────
   //
   // `PeerTransport` (packages/app/src/telemetry/PeerTransport.ts) is the sole
@@ -1500,6 +1530,13 @@ export class PeerClientService {
         msg.requestId,
         new Error("uplink-bundle-response carried neither bytes nor error"),
       );
+    },
+    "uplink-manifest-response": (msg) => {
+      if (msg.error) {
+        this.pendingManifestFetch.reject(msg.requestId, new Error(msg.error));
+        return;
+      }
+      this.pendingManifestFetch.resolve(msg.requestId, msg.manifest);
     },
     "flight-rpc-response": (msg) => {
       if (msg.error) {

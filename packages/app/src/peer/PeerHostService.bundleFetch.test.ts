@@ -115,17 +115,40 @@ const localStorageMock = {
 vi.stubGlobal("localStorage", localStorageMock);
 
 import { approveStation } from "../test/approveStation";
+import { hostCompat } from "../uplinks/hostCompat";
+import { loadEnabledUplinks } from "../uplinks/loader";
+import {
+  createPeerBundleFetcher,
+  createPeerManifestFetcher,
+} from "../uplinks/peerBundleFetch";
 import { rebaseBundleUrl, sha256Hex } from "./BundleFetchCache";
 import { PeerClientService } from "./PeerClientService";
 import { PeerHostService } from "./PeerHostService";
 
+const live: Array<{ disconnect?: () => void; stop?: () => void }> = [];
+
+/** Remembers a service so the test's `afterEach` can stop it before the fake hub is emptied. */
+function track<T extends { disconnect?: () => void; stop?: () => void }>(
+  service: T,
+): T {
+  live.push(service);
+  return service;
+}
+
+function stopAll() {
+  for (const service of live.splice(0)) {
+    service.disconnect?.();
+    service.stop?.();
+  }
+}
+
 async function connectedPair() {
   approveStation();
-  const host = new PeerHostService();
+  const host = track(new PeerHostService());
   await host.start();
   await Promise.resolve();
 
-  const client = new PeerClientService();
+  const client = track(new PeerClientService());
   client.connect(host.peerId ?? "");
   for (let i = 0; i < 6; i++) await Promise.resolve();
 
@@ -138,6 +161,7 @@ function textBytes(s: string): ArrayBuffer {
 
 describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
   afterEach(() => {
+    stopAll();
     FakeHub.reset();
     localStorageMock.clear();
     vi.unstubAllGlobals();
@@ -268,13 +292,13 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
     );
 
     approveStation();
-    const host = new PeerHostService();
+    const host = track(new PeerHostService());
     await host.start();
     await Promise.resolve();
 
-    const clientA = new PeerClientService();
+    const clientA = track(new PeerClientService());
     clientA.connect(host.peerId ?? "");
-    const clientB = new PeerClientService();
+    const clientB = track(new PeerClientService());
     clientB.connect(host.peerId ?? "");
     for (let i = 0; i < 6; i++) await Promise.resolve();
 
@@ -337,5 +361,135 @@ describe("rebaseBundleUrl", () => {
     expect(rebaseBundleUrl("/uplinks/a.js", undefined, "/app/")).toBe(
       "/uplinks/a.js",
     );
+  });
+});
+
+describe("PeerHostService.handleUplinkManifestRequest (station conduit for a manifest)", () => {
+  afterEach(() => {
+    stopAll();
+    FakeHub.reset();
+    localStorageMock.clear();
+    vi.unstubAllGlobals();
+    vi.stubGlobal("localStorage", localStorageMock);
+  });
+
+  const LAN_BUNDLE = "http://builder.example.test:8099/third.client.js";
+  const LAN_MANIFEST = "http://builder.example.test:8099/gonogo-uplink.json";
+
+  it("fetches the manifest on the host's network and relays the parsed document", async () => {
+    const manifest = { id: "third", version: "1.0.0", integrity: "sha256-x" };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => ({
+        ok: true,
+        status: 200,
+        json: async () =>
+          String(url) === LAN_MANIFEST ? manifest : ({} as unknown),
+      })),
+    );
+
+    const { client } = await connectedPair();
+    await expect(client.sendManifestFetch(LAN_MANIFEST)).resolves.toEqual(
+      manifest,
+    );
+  });
+
+  it("surfaces a host-side manifest failure as a rejection naming the reason", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) })),
+    );
+
+    const { client } = await connectedPair();
+    await expect(client.sendManifestFetch(LAN_MANIFEST)).rejects.toThrow(
+      /manifest fetch failed.*404/,
+    );
+  });
+
+  it("ends a host fetch that never answers with a legible reason instead of waiting", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: string, init?: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () =>
+              reject(init.signal?.reason),
+            );
+          }),
+      ),
+    );
+
+    const { client } = await connectedPair();
+    vi.useFakeTimers();
+    try {
+      const outcome = expect(
+        client.sendManifestFetch(LAN_MANIFEST),
+      ).rejects.toThrow(/manifest fetch failed.*(timed out|timeout)/i);
+      await vi.advanceTimersByTimeAsync(60_000);
+      await outcome;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("carries a station through the real loader to a loaded third-party client", async () => {
+    const bundle = textBytes("export const marker = 'third';");
+    const hash = await sha256Hex(bundle);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (String(url) === LAN_BUNDLE) {
+          return { ok: true, status: 200, arrayBuffer: async () => bundle };
+        }
+        if (String(url) === LAN_MANIFEST) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              id: "third",
+              version: "1.0.0",
+              minAppVersion: "0.0.0",
+              apiVersion: hostCompat.apiVersion,
+              contractMajor: hostCompat.contractMajor,
+              contractMinor: hostCompat.contractMinor,
+              integrity: hash,
+            }),
+          };
+        }
+        if (String(url).includes("registry.json")) {
+          return { ok: true, status: 200, json: async () => ({ uplinks: [] }) };
+        }
+        return { ok: true, status: 200, json: async () => ({}) };
+      }),
+    );
+
+    const { client } = await connectedPair();
+    const importBundle = vi.fn(async () => ({}));
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.json" },
+      hostCompat,
+      appVersion: "1.0.0",
+      roster: [
+        {
+          id: "third",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          expectedClientHash: hash,
+          clientSource: { url: "", devPath: LAN_BUNDLE },
+        },
+      ],
+      override: ["third"],
+      ensureConsent: async () => true,
+      fetchBytes: createPeerBundleFetcher(client),
+      fetchManifest: createPeerManifestFetcher(client),
+      bundlesFromHost: true,
+      importBundle,
+    });
+
+    expect(outcomes.map((o) => [o.id, o.status])).toEqual([
+      ["third", "loaded"],
+    ]);
+    expect(importBundle).toHaveBeenCalledOnce();
   });
 });

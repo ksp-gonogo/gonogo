@@ -214,6 +214,7 @@ class ScenePeerClient implements PeerClient {
   onNoteResult = () => () => {};
   sendUplinkRelay = () => new Promise<unknown>(() => {});
   sendBundleFetch = () => new Promise<ArrayBuffer>(() => {});
+  sendManifestFetch = () => new Promise<unknown>(() => {});
 
   onGonogoReset = (cb: (reopened: boolean) => void) => {
     this.resetListeners.add(cb);
