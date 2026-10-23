@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  type DelayAuthority,
   DYNAMIC_WHOLE_TOPIC_PREFIXES,
   PRODUCTION_DERIVED_CHANNELS,
   ReplayTransport,
@@ -105,7 +106,13 @@ export interface RigReplay {
 /**
  * A recorded flight played into a real `TelemetryClient` and `TimelineStore` through `ReplayTransport`, on a clock the test drives, so a widget can be stepped through a real landing second by second with nothing racing a timer. The view clock is left live, as in the app, so the staleness of each topic is judged the way it is there.
  */
-export function startRigReplay(fixture: RigFixture): RigReplay {
+export function startRigReplay(
+  fixture: RigFixture,
+  options: {
+    /** Times the view clock by this authority, which is attached to the replayed client, instead of a fixed zero delay. */
+    delayAuthority?: DelayAuthority;
+  } = {},
+): RigReplay {
   const pending: { atUt: number; fn: () => void }[] = [];
   const transport = new ReplayTransport(fixture, {
     clock: {
@@ -124,7 +131,7 @@ export function startRigReplay(fixture: RigFixture): RigReplay {
   const clock = new ViewClock({
     nowWall: wall.now,
     warpRate: () => 1,
-    delaySeconds: () => 0,
+    delaySeconds: options.delayAuthority?.delaySeconds ?? (() => 0),
   });
   const store = new TimelineStore(clock, {
     dynamicWholeTopicPrefixes: DYNAMIC_WHOLE_TOPIC_PREFIXES,
@@ -134,6 +141,7 @@ export function startRigReplay(fixture: RigFixture): RigReplay {
   }
   clock.suspendFrames();
   const client = new TelemetryClient(transport);
+  options.delayAuthority?.attach(client);
   let at = 0;
 
   return {
