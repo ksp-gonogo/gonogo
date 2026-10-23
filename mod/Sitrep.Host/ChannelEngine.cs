@@ -766,6 +766,16 @@ namespace Sitrep.Host
                 && value is FlightEnded ended
                 && ended.Reason == FlightEndReason.Recovered);
 
+        /// <summary>
+        /// Whether a sample is the end of a flight by a rewind. A craft with no link
+        /// (a kerbal on EVA, a probe out of contact) has no route to say it, and the
+        /// rewind that ended its flight does not wait for one.
+        /// </summary>
+        private static bool IsRevertedEnd(string topic, object? value) =>
+            topic == Sitrep.Host.Flight.FlightTopics.EndedTopic
+            && value is FlightEnded ended
+            && ended.Reason == FlightEndReason.Reverted;
+
         /// <summary>Whether <paramref name="topic"/> is exactly <paramref name="prefix"/>, one key segment, and <paramref name="suffix"/>.</summary>
         private static bool IsPerVesselField(string topic, string prefix, string suffix)
         {
@@ -7747,10 +7757,11 @@ namespace Sitrep.Host
                 return;
             }
 
-            if (IsRecoveryNews(topic, value))
+            if (IsRecoveryNews(topic, value) || IsRevertedEnd(topic, value))
             {
-                // A recovery is done at a centre, so the news comes from the
-                // ground and no craft link carries or withholds it.
+                // A recovery is done at a centre and a rewind is the game's own, so
+                // the news comes from the ground and no craft link carries or
+                // withholds it.
                 RecordThrough(topic, value, ut, ExemptStampFor(topic));
                 return;
             }
