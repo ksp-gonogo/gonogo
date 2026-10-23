@@ -4,6 +4,9 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
+import { wideTileForTests } from "./wideTile";
+
+wideTileForTests();
 
 /**
  * Held elements no model answers for: the plan is withheld, and the widget
@@ -52,7 +55,7 @@ describe("ManeuverPlanner planning from held, unmodelled elements", () => {
     });
 
     await waitFor(() =>
-      expect(visibleText(container)).not.toContain("Preview"),
+      expect(visibleText(container)).not.toContain("Burn in"),
     );
     expect(visibleText(container)).not.toMatch(/last known orbit/i);
   });

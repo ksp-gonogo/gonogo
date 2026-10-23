@@ -13,6 +13,8 @@ export interface PlannerInputs {
   targetInclination: number;
   targetAltitudeKm: number;
   standoffMeters: number;
+  /** The body a transfer is planned to, by name; empty until one is picked. */
+  transferBody: string;
 }
 
 export interface PlannerInputsApi {
@@ -27,6 +29,7 @@ export interface PlannerInputsApi {
   setTargetInclination: (n: number) => void;
   setTargetAltitudeKm: (n: number) => void;
   setStandoffMeters: (n: number) => void;
+  setTransferBody: (name: string) => void;
 }
 
 /** The per-preset form state; `setPreset` zeroes the Δv inputs when switching to a preset that takes none. */
@@ -50,6 +53,10 @@ export function usePlannerInputs(
     config?.defaultStandoffMeters ?? 500,
   );
 
+  const [transferBody, setTransferBody] = useState(
+    config?.defaultTransferBody ?? "",
+  );
+
   const setPreset = useCallback((next: PresetId) => {
     setPresetState(next);
     if (!PRESETS.find((p) => p.id === next)?.needsCustomInput) {
@@ -71,6 +78,7 @@ export function usePlannerInputs(
       targetInclination,
       targetAltitudeKm,
       standoffMeters,
+      transferBody,
     },
     setPreset,
     setPrograde,
@@ -82,5 +90,6 @@ export function usePlannerInputs(
     setTargetInclination,
     setTargetAltitudeKm,
     setStandoffMeters,
+    setTransferBody,
   };
 }

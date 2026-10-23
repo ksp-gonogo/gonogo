@@ -72,6 +72,8 @@ const REGIME: Record<
 };
 
 export interface ConformancePlotProps {
+  /** The tallest the orbit drawing may grow, as a CSS length; unset draws it as wide as its box. */
+  maxPlotHeight?: string;
   /** The vessel's current orbit: always "where it is", whatever the regime. */
   current: {
     sma: number;
@@ -124,6 +126,7 @@ export function ConformancePlot({
   currentIsObserved,
   marking = null,
   bodyRadius,
+  maxPlotHeight,
 }: ConformancePlotProps) {
   const r = REGIME[regime];
   const separation =
@@ -156,7 +159,9 @@ export function ConformancePlot({
           // Dimmed, not hidden, when the current orbit is described rather than observed.
           style={{ opacity: currentIsObserved ? 1 : 0.55 }}
         >
-          <FramedDisplay>
+          <FramedDisplay
+            style={maxPlotHeight ? { maxHeight: maxPlotHeight } : undefined}
+          >
             <OrbitDiagram
               // The seam's arc when it gave one; null lets the diagram draw its own conic.
               trajectoryPath={

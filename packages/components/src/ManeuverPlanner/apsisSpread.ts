@@ -46,15 +46,28 @@ export function recordApsisInstant(window: number[], instant: number): void {
 }
 
 /**
+ * The eccentricity from which the two apsides are distinct places. They sit
+ * `2·e·a` apart, which at 0.01 is two percent of the semi-major axis and far
+ * above positional noise, so no scatter in a countdown can move the apsis.
+ */
+export const APSIS_MIN_ECCENTRICITY = 0.01;
+
+/**
  * Whether the orbit's apsis is a place the display can name: false when the
- * successive samples put it at instants spread wider than the countdown
- * resolves, which is what an eccentricity too small for the sample to fix the
- * apsis direction looks like. Undefined until enough samples are in.
+ * orbit is nearly circular and successive samples put the apsis at instants
+ * spread wider than the countdown resolves, which is what an eccentricity too
+ * small for the sample to fix the apsis direction looks like. An orbit eccentric
+ * enough to have an apsis is defined whatever the samples scatter by. Undefined
+ * until enough samples are in.
  */
 export function apsisIsDefined(
   window: readonly number[],
   period: number | undefined,
+  eccentricity?: number,
 ): boolean | undefined {
+  if (eccentricity !== undefined && eccentricity >= APSIS_MIN_ECCENTRICITY) {
+    return true;
+  }
   if (window.length < APSIS_MIN_SAMPLES || period === undefined) {
     return undefined;
   }

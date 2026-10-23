@@ -57,4 +57,13 @@ describe("whether the apsis is defined", () => {
   it("is not defined where they scatter wider than the countdown resolves", () => {
     expect(apsisIsDefined([1345, 1328, 1352], PERIOD)).toBe(false);
   });
+
+  it("is defined on an eccentric orbit however the samples scatter", () => {
+    expect(apsisIsDefined([2123, 2118, 2127], PERIOD, 0.5758)).toBe(true);
+    expect(apsisIsDefined([2123], PERIOD, 0.5758)).toBe(true);
+  });
+
+  it("still trusts the scatter on a nearly circular orbit", () => {
+    expect(apsisIsDefined([1345, 1328, 1352], PERIOD, 0.0001)).toBe(false);
+  });
 });

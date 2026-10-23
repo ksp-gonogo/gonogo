@@ -5,6 +5,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
+import { wideTileForTests } from "./wideTile";
+
+wideTileForTests();
 
 // The planned conic comes from the burn's own `patches[0]`; an empty chain must never draw a lone line that reads as a match.
 afterEach(() => {

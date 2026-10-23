@@ -52,6 +52,18 @@ export interface ProjectedOrbit {
   inclination?: number;
 }
 
+/** What a plan to another body adds to its burn: where it is going and what to expect there. */
+export interface BodyTransferInfo {
+  /** The body the burn is aimed at. */
+  target: string;
+  /** From the burn to reaching the target, seconds. */
+  transferTime: number;
+  /** UT seconds the craft reaches the target. */
+  arrivalUt: number;
+  /** Periapsis altitude above the target the transfer is aimed to give, metres. */
+  periapsisAltitude: number;
+}
+
 export interface ManeuverPlan {
   /** The burn's instant. */
   ut: Value<"ut">;
@@ -65,6 +77,8 @@ export interface ManeuverPlan {
   requiredDeltaV: number;
   /** In-plane projected orbit after the burn, or null if inputs are invalid. */
   projected: ProjectedOrbit | null;
+  /** Present on a transfer to another body, whose burn leaves no orbit about the current body worth projecting. */
+  transfer?: BodyTransferInfo;
 }
 
 /**
@@ -399,6 +413,77 @@ function nodeAnomalies(argumentOfPeriapsisDeg: number): {
 }
 
 /**
+ * The orbit a pure normal burn leaves, from the in-plane state at the burn.
+ * The burn adds speed without reshaping the in-plane velocity, so energy
+ * follows `v² + n²` and the angular momentum `r·√(v_h² + n²)`. Null when the
+ * burn leaves no bound orbit.
+ */
+function projectNormalBurn(
+  state: { r: number; speed: number; flightPathAngle: number },
+  mu: number,
+  normal: number,
+): Pick<
+  ProjectedOrbit,
+  "sma" | "eccentricity" | "ApR" | "PeR" | "period"
+> | null {
+  const { r, speed, flightPathAngle } = state;
+  const vH = speed * Math.cos(flightPathAngle);
+  const epsilon = (speed * speed + normal * normal) / 2 - mu / r;
+  if (!(epsilon < 0)) return null;
+  const sma = -mu / (2 * epsilon);
+  const h = r * Math.hypot(vH, normal);
+  const eccentricity = Math.sqrt(
+    Math.max(0, 1 + (2 * epsilon * h * h) / (mu * mu)),
+  );
+  return {
+    sma,
+    eccentricity,
+    ApR: sma * (1 + eccentricity),
+    PeR: sma * (1 - eccentricity),
+    period: periodAt(mu, sma),
+  };
+}
+
+/** Unit angular-momentum vector of an orbit of inclination `incRad` and node `lanRad`. */
+function planeNormal(incRad: number, lanRad: number): [number, number, number] {
+  return [
+    Math.sin(incRad) * Math.sin(lanRad),
+    -Math.sin(incRad) * Math.cos(lanRad),
+    Math.cos(incRad),
+  ];
+}
+
+/**
+ * Inclination (degrees) of the plane reached by rotating orbit 1's plane
+ * `rotationRad` towards orbit 2's about their line of intersection.
+ */
+function inclinationAfterRotation(
+  inc1Rad: number,
+  lan1Rad: number,
+  inc2Rad: number,
+  lan2Rad: number,
+  rotationRad: number,
+): number {
+  const h1 = planeNormal(inc1Rad, lan1Rad);
+  const h2 = planeNormal(inc2Rad, lan2Rad);
+  const axis = [
+    h1[1] * h2[2] - h1[2] * h2[1],
+    h1[2] * h2[0] - h1[0] * h2[2],
+    h1[0] * h2[1] - h1[1] * h2[0],
+  ];
+  const len = Math.hypot(axis[0], axis[1], axis[2]);
+  // Parallel planes: nothing to rotate.
+  if (len < 1e-12) return radToDeg(inc1Rad);
+  const [ax, ay, az] = [axis[0] / len, axis[1] / len, axis[2] / len];
+  const c = Math.cos(rotationRad);
+  const sn = Math.sin(rotationRad);
+  // Rodrigues: h1 is perpendicular to the axis, so only the cross term survives besides h1 itself.
+  const cz = ax * h1[1] - ay * h1[0];
+  const hz = h1[2] * c + cz * sn;
+  return radToDeg(Math.acos(Math.max(-1, Math.min(1, hz))));
+}
+
+/**
  * Time from `currentTrueAnomalyDeg` forward to `targetTrueAnomalyDeg` on
  * the same orbit. Never negative: if the target is "behind" us, we wait for
  * the next pass.
@@ -490,19 +575,18 @@ export function matchInclination(
   const magnitude = 2 * vHorizontal * Math.sin(Math.abs(deltaIRad) / 2);
   const normal = nodeDirection * Math.sign(deltaIRad) * magnitude;
 
+  const shape = projectNormalBurn(state, mu, normal);
+  // A normal burn rotates the plane by atan(n / v_h), a hair under the angle asked for.
+  const rotation = radToDeg(Math.atan2(Math.abs(normal), vHorizontal));
   return {
     ut: burnUT,
     prograde: 0,
     normal,
     radial: 0,
     requiredDeltaV: Math.abs(normal),
-    projected: {
-      sma: current.sma,
-      eccentricity: current.eccentricity,
-      ApR: current.ApR,
-      PeR: current.PeR,
-      period: periodAt(mu, current.sma),
-      inclination: targetInclinationDeg,
+    projected: shape && {
+      ...shape,
+      inclination: currentInclinationDeg + Math.sign(deltaIRad) * rotation,
     },
   };
 }
@@ -582,19 +666,23 @@ export function matchTargetPlane(
   const magnitude = 2 * vHorizontal * Math.sin(relIncRad / 2);
   const normal = nodeDirection * magnitude;
 
+  const shape = projectNormalBurn(state, mu, normal);
+  const rotation = Math.atan2(Math.abs(normal), vHorizontal);
   return {
     ut: burnUT,
     prograde: 0,
     normal,
     radial: 0,
     requiredDeltaV: Math.abs(normal),
-    projected: {
-      sma: current.sma,
-      eccentricity: current.eccentricity,
-      ApR: current.ApR,
-      PeR: current.PeR,
-      period: periodAt(mu, current.sma),
-      inclination: targetInclinationDeg,
+    projected: shape && {
+      ...shape,
+      inclination: inclinationAfterRotation(
+        i1,
+        degToRad(currentLanDeg),
+        i2,
+        degToRad(targetLanDeg),
+        Math.min(rotation, relIncRad),
+      ),
     },
   };
 }

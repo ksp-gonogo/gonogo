@@ -3,6 +3,7 @@ import {
   Grid,
   NULL_DISPLAY,
   type ReckoningMarking,
+  Select,
   Stack,
   ToggleButton,
   Unit,
@@ -29,6 +30,8 @@ interface PresetInputProps {
     orbitMarking: ReckoningMarking | null;
     /** The target's mark, which every figure read off its orbit carries. */
     targetMarking: ReckoningMarking | null;
+    /** Names of the bodies a transfer can be planned to from the craft's current body. */
+    transferTargets: readonly string[];
   };
 }
 
@@ -55,6 +58,7 @@ function PresetCustomInputs({ api, telemetry }: PresetInputProps) {
     setRadial,
     setTargetInclination,
     setTargetAltitudeKm,
+    setTransferBody,
     setStandoffMeters,
   } = api;
   const selectedPreset = PRESETS.find((p) => p.id === inputs.preset);
@@ -71,11 +75,30 @@ function PresetCustomInputs({ api, telemetry }: PresetInputProps) {
       </Stack>
     );
   }
-  if (inputs.preset === "hohmann-to-altitude") {
+  // One altitude field for both presets: a transfer's periapsis altitude is the same planner input a Hohmann target altitude is.
+  if (
+    inputs.preset === "hohmann-to-altitude" ||
+    inputs.preset === "transfer-to-body"
+  ) {
+    const transfer = inputs.preset === "transfer-to-body";
     return (
       <Stack style={CUSTOM_INPUTS_STYLE}>
+        {transfer && (
+          <Select
+            aria-label="Transfer body"
+            value={inputs.transferBody}
+            onChange={(e) => setTransferBody(e.target.value)}
+          >
+            <option value="">Pick a body</option>
+            {telemetry.transferTargets.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </Select>
+        )}
         <UnitInput
-          label="Target alt"
+          label={transfer ? "Periapsis" : "Target alt"}
           unit="km"
           value={value("km", inputs.targetAltitudeKm)}
           onChange={(next) => setTargetAltitudeKm(next.magnitude)}
