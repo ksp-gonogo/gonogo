@@ -336,9 +336,13 @@ export class PeerClientService {
   /*
    * A page restored from the back/forward cache keeps its JS state but has had
    * its Peer torn down by pagehide, so it would look connected and be dead.
+   * A station that was stopped on purpose (taken over, refused, host channel
+   * never opened, retries ended) stays stopped.
    */
   private readonly onPageShow = (event: PageTransitionEvent) => {
     if (!event.persisted || !this.hostPeerId || this.shareCode === null) return;
+    if (this.connStatus === "idle" || this.connStatus === "disconnected")
+      return;
     this.connect(this.shareCode);
   };
 
