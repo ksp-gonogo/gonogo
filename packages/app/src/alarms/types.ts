@@ -329,12 +329,6 @@ export interface AlarmSnapshot {
    */
   scetUnreachable?: string[];
   /**
-   * The ids of alarms of this list that have a copy in the game's own alarm
-   * clock, so the player sees them in the game too. Absent when there are
-   * none.
-   */
-  scetInGameClock?: string[];
-  /**
    * Alarms the simulation holds that this list does not: armed by another
    * screen, or by an Uplink for itself. Absent when there are none.
    */

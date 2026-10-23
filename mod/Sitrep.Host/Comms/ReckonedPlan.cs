@@ -135,10 +135,10 @@ namespace Sitrep.Host.Comms
             var craftPair = toId.StartsWith(CraftStateRecorder.VesselPrefix, StringComparison.Ordinal);
             if (link.Link == null && craftPair && string.CompareOrdinal(toId, from.Id) < 0)
             {
-                pairs.Add(new PlanPair(toId, from.Id, occluders, link.MaxRangeMeters, null, link.NoReachReason));
+                pairs.Add(new PlanPair(toId, from.Id, occluders, link.MaxRangeMeters));
                 return;
             }
-            pairs.Add(new PlanPair(from.Id, toId, occluders, link.MaxRangeMeters, link.Link, link.NoReachReason));
+            pairs.Add(new PlanPair(from.Id, toId, occluders, link.MaxRangeMeters, link.Link));
         }
 
         /// <summary>

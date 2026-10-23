@@ -168,13 +168,6 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // approval.
   "mod/Gonogo.KSP/ScetAlarmUplink.cs": 3,
 
-  // alarm.game.list: the game's own alarm clock, limited to alarms whose time
-  // is not worked out from a craft (a time the player typed, a transfer window
-  // from bodies on rails). The player's own plan, the same class as
-  // alarm.activeList. Alarms timed from a craft go on the per-craft
-  // alarm.game.craft.<guid>.list namespace, which is Delayed on that craft's node.
-  "mod/Sitrep.Host/Alarms/GameAlarmBoard.cs": 1,
-
   // KSP version/build id and similar mod-host facts, not vessel state, plus
   // system.frame: what frame the player's own navigation view is in. That is a
   // fact about their screen rather than anything observed down a link, so no

@@ -222,24 +222,5 @@ namespace Sitrep.Host.Tests
         {
             Assert.Equal(0.0, new MaxRangeReachModel("x", "x", -5.0).MaxRangeMeters);
         }
-
-        /// <summary>The shipped reach model keeps the reason contract, with a reason and without one.</summary>
-        [Fact]
-        public void TheShippedReachModelKeepsTheReasonContract()
-        {
-            Sitrep.Contract.TestSupport.NoReachReasonConformance.AssertReasonContract(
-                new MaxRangeReachModel("x", "x", 0.0, CommsNoReachReasons.Unpowered));
-            Sitrep.Contract.TestSupport.NoReachReasonConformance.AssertReasonContract(
-                new MaxRangeReachModel("x", "x", 5.0));
-        }
-
-        /// <summary>A model that names a reason while still claiming a range fails the assertion.</summary>
-        [Fact]
-        public void AReasonBesideAPositiveRangeFailsTheReasonContract()
-        {
-            Assert.ThrowsAny<Exception>(() =>
-                Sitrep.Contract.TestSupport.NoReachReasonConformance.AssertReasonContract(
-                    new MaxRangeReachModel("x", "x", 5.0, CommsNoReachReasons.Unpowered)));
-        }
     }
 }

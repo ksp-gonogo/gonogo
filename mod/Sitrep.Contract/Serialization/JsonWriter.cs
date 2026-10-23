@@ -1961,13 +1961,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "lowConfidence");
             sb.Append(':');
             AppendBool(sb, p.LowConfidence);
-            if (p.NoReachReason != null)
-            {
-                sb.Append(',');
-                AppendString(sb, "noReachReason");
-                sb.Append(':');
-                AppendString(sb, p.NoReachReason);
-            }
             sb.Append('}');
         }
 
@@ -2417,17 +2410,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "actsOn");
             sb.Append(':');
             AppendString(sb, a.ActsOn ?? "");
-            sb.Append(',');
-            AppendString(sb, "gameAlarmId");
-            sb.Append(':');
-            if (a.GameAlarmId.HasValue)
-            {
-                AppendInteger(sb, a.GameAlarmId.Value);
-            }
-            else
-            {
-                AppendNull(sb);
-            }
             sb.Append('}');
         }
 

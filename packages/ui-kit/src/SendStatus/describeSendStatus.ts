@@ -10,10 +10,7 @@ const WORDS = {
     "loss-in": (seconds: Value<"s">) => `LOS in ${quantity(seconds)}`,
     "back-in": (seconds: Value<"s">) =>
       `No contact, back in ${quantity(seconds)}`,
-    none: (reason?: "unpowered") =>
-      reason === "unpowered"
-        ? "No contact, no electric charge aboard"
-        : "No contact",
+    none: () => "No contact",
   },
   delay: {
     held: (seconds: Value<"s">) => `${quantity(seconds)} signal delay`,
@@ -46,9 +43,7 @@ export function describeSendStatus(status: SendStatus): string {
   const first =
     contact.kind === "loss-in" || contact.kind === "back-in"
       ? WORDS.contact[contact.kind](contact.seconds)
-      : contact.kind === "none"
-        ? WORDS.contact.none(contact.reason)
-        : WORDS.contact[contact.kind]();
+      : WORDS.contact[contact.kind]();
   const delay =
     status.signalDelay === undefined
       ? WORDS.delay.absent()

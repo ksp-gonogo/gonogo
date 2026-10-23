@@ -5,8 +5,6 @@ export interface PlannedContact {
   a: string;
   b: string;
   horizonUt: Value<"ut">;
-  /** Why the pair has no reach, as the plan states it; absent when it has reach or says nothing. */
-  noReachReason?: string | null;
   windows: readonly {
     openUt?: Value<"ut"> | null;
     closeUt?: Value<"ut"> | null;
@@ -39,25 +37,6 @@ export function nextContactUt(
 }
 
 /**
- * Why the plan has no contact between this vantage and the addressees: the
- * reason of the first pair that has one the app can say. Undefined when no pair
- * has a reason or the plan does not hold the pair.
- */
-export function noReachReasonOf(
-  plan: readonly PlannedContact[],
-  from: string,
-  to: readonly string[],
-): "unpowered" | undefined {
-  for (const id of to) {
-    const pair = plan.find(
-      (p) => (p.a === from && p.b === id) || (p.a === id && p.b === from),
-    );
-    if (pair?.noReachReason === "unpowered") return "unpowered";
-  }
-  return undefined;
-}
-
-/**
  * The status for a send to a group, given who in it the roster no longer lists.
  * `backInSeconds` is how long until the plan predicts every one of them back in
  * direct contact with this vantage; a relay can bring one back sooner, so it is
@@ -68,15 +47,12 @@ export function noReachReasonOf(
 export function sendStatusFor(
   unreachable: readonly string[],
   backInSeconds?: Value<"s">,
-  noReachReason?: "unpowered",
 ): SendStatus | undefined {
   if (unreachable.length === 0) return undefined;
   return {
     contact:
       backInSeconds === undefined
-        ? noReachReason === undefined
-          ? { kind: "none" }
-          : { kind: "none", reason: noReachReason }
+        ? { kind: "none" }
         : { kind: "back-in", seconds: backInSeconds },
     arrival: "likely-lost",
   };

@@ -62,7 +62,6 @@ import type {
   DeactivateStrategyArgs,
   ExperimentActionArgs,
   FireCrewArgs,
-  GameAlarmDeleteArgs,
   GateCheckRequest,
   GateVerdict,
   HireApplicantArgs,
@@ -107,8 +106,6 @@ import type {
 } from "./contract.js";
 
 export interface GeneratedCommandArgsMap {
-  /** Removes one alarm from the game's alarm clock, addressed by `GameAlarm.id`. */
-  "alarm.game.delete": GameAlarmDeleteArgs;
   /** Register an alarm with the game, or replace one already registered under the same `ScetAlarmArmArgs.id`. */
   "alarm.scet.arm": ScetAlarmArmArgs;
   /** Forget the alarm with this id. */
@@ -250,8 +247,6 @@ export interface GeneratedCommandArgsMap {
 }
 
 export interface GeneratedCommandReplyMap {
-  /** Removes one alarm from the game's alarm clock, addressed by `GameAlarm.id`. */
-  "alarm.game.delete": CommandResult;
   /** Register an alarm with the game, or replace one already registered under the same `ScetAlarmArmArgs.id`. */
   "alarm.scet.arm": CommandResult;
   /** Forget the alarm with this id. */
@@ -403,7 +398,6 @@ export interface GeneratedCommandReplyMap {
  * its declared shape, unit hydration first among them, reads this.
  */
 export const GENERATED_COMMAND_REPLY_TYPES = {
-  "alarm.game.delete": "CommandResult",
   "alarm.scet.arm": "CommandResult",
   "alarm.scet.disarm": "CommandResult",
   "career.contract.accept": "CommandResult",
@@ -514,7 +508,6 @@ export interface GeneratedCommandRail {
  * an in-flight queue entry would be a fiction about the operator's own order.
  */
 export const GENERATED_COMMAND_RAIL = {
-  "alarm.game.delete": { replies: true, delayed: false },
   "alarm.scet.arm": { replies: true, delayed: false },
   "alarm.scet.disarm": { replies: true, delayed: false },
   "career.contract.accept": { replies: true, delayed: true },
@@ -587,7 +580,6 @@ export const GENERATED_COMMAND_RAIL = {
 } as const satisfies Record<string, GeneratedCommandRail>;
 
 export const GENERATED_COMMAND_IDS = [
-  "alarm.game.delete",
   "alarm.scet.arm",
   "alarm.scet.disarm",
   "career.contract.accept",

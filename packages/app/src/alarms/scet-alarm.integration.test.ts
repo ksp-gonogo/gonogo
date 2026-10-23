@@ -158,10 +158,6 @@ interface ModStandIn {
   markUnreachable(id: string): void;
   /** The player switches to another craft, and the mod cancels every alarm still armed. */
   switchCraft(): void;
-  /** The mod copies this alarm into the game's own alarm clock under the game's id. */
-  copyToGame(id: string, gameAlarmId: number): void;
-  /** The player deletes this alarm's copy in the game's own alarm clock, and the mod deletes the alarm. */
-  deleteInGame(id: string): void;
   /** Tell the client an altitude, stamped now, so a test can show this side judges nothing off it. */
   showClientAltitude(altitudeAsl: number): void;
   /** Tell the client one contract objective's state, stamped now, so a test can show this side judges nothing off it. */
@@ -194,8 +190,6 @@ function startSession(owlt: number): ModStandIn {
   const fired = new Set<string>();
   const unreachable = new Set<string>();
   const cancelled = new Set<string>();
-  const deletedInGame = new Set<string>();
-  const inGame = new Map<string, number>();
   const matchedSince = new Map<string, number>();
   let reading = 0;
   let lastRoster: unknown[] = [];
@@ -384,22 +378,19 @@ function startSession(owlt: number): ModStandIn {
                   threshold: arm.condition.threshold,
                   sustainSeconds: arm.condition.sustainSeconds,
                 },
-      state: deletedInGame.has(id)
-        ? 4
-        : cancelled.has(id)
-          ? 3
-          : unreachable.has(id)
-            ? 2
-            : fired.has(id)
-              ? 1
-              : 0,
+      state: cancelled.has(id)
+        ? 3
+        : unreachable.has(id)
+          ? 2
+          : fired.has(id)
+            ? 1
+            : 0,
       withheld: false,
       firedAtUt: fired.has(id)
         ? (firedAtTrueUt.find((f) => f.id === id)?.ut ?? null)
         : null,
       onFire: arm.onFire,
       actsOn: arm.actsOn,
-      gameAlarmId: inGame.get(id) ?? null,
     }));
     /* Gated as `ScetRosterAudience` gates it on the mod: nothing while nobody
        is subscribed, one frame to an audience that has not been answered (the
@@ -493,12 +484,6 @@ function startSession(owlt: number): ModStandIn {
         if (!fired.has(id)) cancelled.add(id);
       }
     },
-    copyToGame(id, gameAlarmId) {
-      inGame.set(id, gameAlarmId);
-    },
-    deleteInGame(id) {
-      deletedInGame.add(id);
-    },
     showClientAltitude(altitudeAsl) {
       client.subscribe("vessel.flight", () => {});
       transport.emit(
@@ -561,8 +546,7 @@ function startSession(owlt: number): ModStandIn {
 
       // The mod's pass, on the game's OWN clock: this is the whole point of the arm, and it runs whatever the client can currently see.
       for (const [id, arm] of conditions) {
-        if (fired.has(id) || cancelled.has(id) || deletedInGame.has(id))
-          continue;
+        if (fired.has(id) || cancelled.has(id)) continue;
         /* An alarm at any vantage but its own subject's is judged against what
            that PLACE has been told, out of the Courier's archive, which this
            fixture does not model and should not: that is the mod's own reveal and
@@ -756,59 +740,6 @@ describe("SCET alarms", () => {
 
       svc.acknowledgeAlarmsCancelled();
       expect(svc.snapshot().alarmsCancelled).toBeUndefined();
-      svc.dispose();
-    });
-
-    it("drops an alarm whose copy was deleted in the game, without counting it as cancelled or arming it again", async () => {
-      const session = startSession(OWLT);
-      session.emitAt(UT_START);
-      const storage = memoryStorage();
-      const svc = new AlarmHostService(null, {
-        nowMs: () => nowMs,
-        tickIntervalMs: DT * 1000,
-        storage,
-        getOwltSeconds: () => OWLT,
-      });
-      const alarm = svc.addAlarm({
-        name: "Burn",
-        trigger: { kind: "time", ut: UT_START + 20 * DT, leadSeconds: 10 },
-      });
-      await run(session, UT_START + 4 * DT);
-      expect(session.armed()).toEqual([alarm.id]);
-      const attempts = session.armAttempts(alarm.id);
-
-      session.deleteInGame(alarm.id);
-      await runFrom(session, UT_START + 4 * DT, UT_START + 30 * DT);
-
-      expect(svc.snapshot().alarms).toEqual([]);
-      expect(session.armAttempts(alarm.id)).toBe(attempts);
-      expect(session.firedAtTrueUt).toEqual([]);
-      expect(storage.getItem("gonogo.alarms.list")).toBe("[]");
-      expect(svc.snapshot().alarmsCancelled).toBeUndefined();
-      expect(svc.snapshot().scetForeign).toBeUndefined();
-      svc.dispose();
-    });
-
-    it("knows which of its alarms the mod copied into the game's alarm clock", async () => {
-      const session = startSession(OWLT);
-      session.emitAt(UT_START);
-      const svc = new AlarmHostService(null, {
-        nowMs: () => nowMs,
-        tickIntervalMs: DT * 1000,
-        storage: memoryStorage(),
-        getOwltSeconds: () => OWLT,
-      });
-      const alarm = svc.addAlarm({
-        name: "Burn",
-        trigger: { kind: "time", ut: UT_START + 20 * DT, leadSeconds: 10 },
-      });
-      await run(session, UT_START + 4 * DT);
-      expect(svc.snapshot().scetInGameClock).toBeUndefined();
-
-      session.copyToGame(alarm.id, 42);
-      await runFrom(session, UT_START + 4 * DT, UT_START + 8 * DT);
-
-      expect(svc.snapshot().scetInGameClock).toEqual([alarm.id]);
       svc.dispose();
     });
 
