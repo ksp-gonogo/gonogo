@@ -10,8 +10,8 @@
  *
  * The board stands up front whenever a vessel is reporting. A craft that is
  * not falling has no landing prediction, so the widget says so, and it says
- * it the same on both screens. The "Kerbin · atmospheric" subtitle is gated
- * on `bodyName !== undefined`
+ * it the same on both screens. The "Kerbin · vacuum" subtitle (the craft is at
+ * about 101 km, above Kerbin's air) is gated on `bodyName !== undefined`
  * (`packages/components/src/LandingStatus/index.tsx`); it is checked on the
  * host only.
  */
@@ -40,7 +40,7 @@ test.describe("widget DOM mirror: LandingStatus", () => {
     }
 
     await expect(
-      pair.main.getByText("Kerbin · atmospheric", { exact: true }),
+      pair.main.getByText("Kerbin · vacuum", { exact: true }),
     ).toBeVisible({ timeout: 15_000 });
 
     await teardownPair(pair);
