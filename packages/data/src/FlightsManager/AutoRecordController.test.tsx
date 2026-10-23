@@ -221,6 +221,30 @@ describe("AutoRecordController", () => {
     expect(getAutoRecordStatus().recording).toBe(true);
   });
 
+  it("puts the reason a flight ended on its mission when focus had already moved to another vessel", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled />
+      </TelemetryProvider>,
+    );
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    start(rig, 10, { flightId: "vB", vesselId: "vB", vesselName: "Bravo" });
+    tickFrame(rig, 15, "vB", "Bravo");
+
+    end(rig, 20, "vA", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      const alpha = (await rig.source.listFlights()).find(
+        (f) => f.vesselName === "Alpha",
+      );
+      expect(alpha?.endReason).toBe(0);
+    });
+    expect(getAutoRecordStatus().recording).toBe(true);
+  });
+
   it("flight.started closes whatever session is open and starts a fresh one for the new flight", async () => {
     const rig = buildRig();
     render(
