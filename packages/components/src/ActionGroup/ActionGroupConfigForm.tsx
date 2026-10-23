@@ -1,5 +1,9 @@
 import type { ActionGroupId, ConfigComponentProps } from "@ksp-gonogo/core";
-import { actionGroupIdOf, useActionGroups } from "@ksp-gonogo/core";
+import {
+  actionGroupIdOf,
+  pickableActionGroups,
+  useActionGroups,
+} from "@ksp-gonogo/core";
 import {
   ConfigForm,
   Field,
@@ -16,10 +20,15 @@ export function ActionGroupConfigForm({
   config,
   onSave,
 }: Readonly<ConfigComponentProps<ActionGroupConfig>>) {
-  const groups = useActionGroups();
+  const reported = useActionGroups();
   const [actionGroupId, setActionGroupId] = useState<ActionGroupId>(
     config?.actionGroupId ?? "AG1",
   );
+  const groups = useMemo(
+    () => pickableActionGroups(reported, actionGroupId),
+    [reported, actionGroupId],
+  );
+  const selected = groups.find((g) => actionGroupIdOf(g) === actionGroupId);
   const [label, setLabel] = useState(config?.label ?? "");
 
   const candidate = useMemo<ActionGroupConfig>(
@@ -55,7 +64,7 @@ export function ActionGroupConfigForm({
         <Input
           id="ag-label"
           type="text"
-          placeholder={actionGroupId}
+          placeholder={selected?.name ?? actionGroupId}
           value={label}
           onChange={(e) => setLabel(e.target.value)}
         />

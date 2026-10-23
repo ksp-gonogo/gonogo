@@ -179,6 +179,39 @@ export function actionGroupsFrom(
   ];
 }
 
+/** How many custom action groups a stock craft has: AG1 to AG10. */
+const STOCK_CUSTOM_GROUP_COUNT = 10;
+
+/**
+ * Every group an operator can pick for a control: `groups` (the registry, as
+ * {@link actionGroupsFrom} builds it) with each of a stock craft's ten custom
+ * groups that no craft has reported yet added by index, and the group `id`
+ * names when the list does not otherwise hold it. A picker built from this
+ * always holds the group it is set to, so it never shows another group in its
+ * place.
+ */
+export function pickableActionGroups(
+  groups: ActionGroup[],
+  id?: string,
+): ActionGroup[] {
+  const picks = [...groups];
+  for (let index = 1; index <= STOCK_CUSTOM_GROUP_COUNT; index++) {
+    if (!picks.some((g) => g.index === index)) {
+      picks.push(customActionGroup(index, undefined, "assumed"));
+    }
+  }
+  const stock = picks.filter((g) => g.index === undefined);
+  const customs = picks
+    .filter((g) => g.index !== undefined)
+    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+  const ordered = [...stock, ...customs];
+  const current = resolveActionGroup(ordered, id);
+  return current &&
+    !ordered.some((g) => actionGroupIdOf(g) === actionGroupIdOf(current))
+    ? [...ordered, current]
+    : ordered;
+}
+
 /**
  * Builds a custom group's descriptor from its backend index (+ optional name).
  * The single place the `f.ag{n}` toggle convention is derived, keyed by index,
