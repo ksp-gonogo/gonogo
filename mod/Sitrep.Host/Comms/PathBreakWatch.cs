@@ -59,7 +59,7 @@ namespace Sitrep.Host.Comms
         /// rather than merely uncertain: delay switched off, a different vessel
         /// becoming the subject, a quickload. Two routes belonging to different
         /// situations differ in every hop, and a diff over them would read as a
-        /// break on the deepest one.</para>
+        /// break on the nearest one.</para>
         /// </summary>
         public void Forget()
         {
@@ -77,10 +77,13 @@ namespace Sitrep.Host.Comms
         /// <c>true</c> is an ordinary reroute and <c>null</c> is a backend
         /// declining to say, which is not evidence of a break.</para>
         ///
-        /// <para>When several hops stopped carrying at once, the deepest wins.
-        /// Reaching a far break means crossing every nearer one first, so a
-        /// sample survives exactly when it is past the furthest of them, and one
-        /// drop at that position is the whole partition.</para>
+        /// <para>When several hops stopped carrying at once, the nearest wins.
+        /// <paramref name="stillCarries"/> asks whether the craft still reaches a
+        /// node, so one break makes every node beyond it answer <c>false</c> as
+        /// well, though those relays are still forwarding what already crossed
+        /// it. A second break further out is indistinguishable from that, and
+        /// taking the nearest delivers the light between the two rather than
+        /// deleting light that may have arrived.</para>
         /// </summary>
         public PathBreak? Observe(
             string node,
@@ -141,7 +144,6 @@ namespace Sitrep.Host.Comms
                 surviving.Add(built[i].NodeId);
             }
 
-            var deepest = double.NegativeInfinity;
             for (var i = 0; i < previous.Count; i++)
             {
                 var rung = previous[i];
@@ -149,19 +151,12 @@ namespace Sitrep.Host.Comms
                 {
                     continue;
                 }
-                if (stillCarries(rung.NodeId) != false)
+                if (stillCarries(rung.NodeId) == false)
                 {
-                    continue;
-                }
-                if (rung.LightSecondsOut > deepest)
-                {
-                    deepest = rung.LightSecondsOut;
+                    return new PathBreak(node, ut, rung.LightSecondsOut);
                 }
             }
-
-            return deepest > double.NegativeInfinity
-                ? new PathBreak(node, ut, deepest)
-                : (PathBreak?)null;
+            return null;
         }
 
         /// <summary>

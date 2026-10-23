@@ -776,7 +776,7 @@ namespace Gonogo.KSP
         /// whenever delay is not being applied at all. A route retained across
         /// an off/on cycle would be compared against a situation it does not
         /// belong to, and two unrelated routes differ in every hop, which reads
-        /// as a break on the deepest one.</para>
+        /// as a break on the nearest one.</para>
         /// </summary>
         internal IReadOnlyList<PathBreak>? ObservePathBreakOnMain(KspSnapshot? snapshot, double ut)
         {

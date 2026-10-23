@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Sitrep.Contract;
+using Sitrep.Core;
 using Sitrep.Host.Comms;
 using Xunit;
 
@@ -107,41 +108,84 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         /// <summary>
-        /// Losing the route home entirely is the destroyed-vessel case, and it
-        /// is an ordinary break rather than a special one: the hops are gone,
-        /// they are asked whether they still carry, and the answer partitions
-        /// the tail exactly as a reroute onto nothing.
+        /// Losing the route home entirely is an ordinary break rather than a
+        /// special one: the hops are gone, the craft is asked whether it still
+        /// reaches each of them, and the nearest it cannot reach is the break.
+        /// Everything past that hop reads as unreachable too, but only because
+        /// reaching it means crossing the break first.
         /// </summary>
         [Fact]
-        public void LosingTheRouteHomeEntirelyRaisesTheBreak()
+        public void LosingTheRouteHomeEntirelyRaisesTheBreakAtTheNearestLostHop()
         {
             var watch = new PathBreakWatch();
             watch.Observe(Node, Route("relay-a", "relay-b", "home"), 1.0, 10.0, Dead());
 
-            var found = watch.Observe(Node, 
+            var found = watch.Observe(Node,
                 new CommsPath(), 1.0, 11.0, Dead("relay-a", "relay-b", "home"));
 
             Assert.NotNull(found);
-            Assert.Equal(3.0, found!.Value.LightSecondsOut, 9);
+            Assert.Equal(1.0, found!.Value.LightSecondsOut, 9);
         }
 
         /// <summary>
-        /// When several hops stop carrying at once, the deepest is the break.
-        /// Light reaching the far one had to cross the near one first, so a
-        /// sample survives exactly when it is past the furthest of them, and one
-        /// drop at that position is the whole partition.
+        /// A relay destroyed with no way round it. The craft can no longer reach
+        /// the relay or anything beyond it, so every later hop answers that it
+        /// does not carry. What the relay had already passed on is on the far
+        /// legs and still arrives, so the break sits at the relay.
         /// </summary>
         [Fact]
-        public void TheDeepestOfSeveralSimultaneousBreaksIsTheOneRaised()
+        public void ADestroyedRelayWithNoWayRoundBreaksAtTheRelay()
         {
             var watch = new PathBreakWatch();
             watch.Observe(Node, Route("relay-a", "relay-b", "relay-c", "home"), 1.0, 10.0, Dead());
 
-            var found = watch.Observe(Node, 
-                new CommsPath(), 1.0, 11.0, Dead("relay-a", "relay-c"));
+            var found = watch.Observe(Node,
+                new CommsPath(), 1.0, 11.0, Dead("relay-b", "relay-c", "home"));
 
             Assert.NotNull(found);
-            Assert.Equal(3.0, found!.Value.LightSecondsOut, 9);
+            Assert.Equal(2.0, found!.Value.LightSecondsOut, 9);
+        }
+
+        /// <summary>
+        /// A relay chain to Eeloo with the hop lengths the game measured: Relay 8
+        /// half a megametre from the probe, then four interplanetary hops to the
+        /// Kerbin relay and KSC, 285.97 s of signal delay in all. Eeloo moves
+        /// between the probe and Relay 8 at UT 350300527.22 and the route goes
+        /// empty. Every frame the probe sent in the 286 s before that had already
+        /// crossed the first hop and is on its way down the chain, so it arrives.
+        /// Only light that reaches the first hop after it closed is lost.
+        /// </summary>
+        [Fact]
+        public void AnOccludedFirstHopLosesOnlyTheLightThatHadNotCrossedIt()
+        {
+            const double lossUt = 350300527.22;
+            var chain = new CommsPath
+            {
+                Hops = new List<CommsHop>
+                {
+                    new CommsHop { From = "probe", To = "relay-8", DistanceMeters = 514_657 },
+                    new CommsHop { From = "relay-8", To = "relay-7", DistanceMeters = 13_889_349_221 },
+                    new CommsHop { From = "relay-7", To = "relay-5", DistanceMeters = 25_373_843_802 },
+                    new CommsHop { From = "relay-5", To = "relay-3", DistanceMeters = 23_233_631_510 },
+                    new CommsHop { From = "relay-3", To = "relay-1", DistanceMeters = 23_231_990_461 },
+                    new CommsHop { From = "relay-1", To = "ksc", DistanceMeters = 2_864_456 },
+                },
+            };
+            var watch = new PathBreakWatch();
+            watch.Observe(Node, chain, 1.0, lossUt - 1.0, Dead());
+
+            var found = watch.Observe(Node, new CommsPath(), 1.0, lossUt,
+                Dead("relay-8", "relay-7", "relay-5", "relay-3", "relay-1", "ksc"));
+
+            Assert.NotNull(found);
+            var network = new StubNetwork(delay: 285.97);
+            network.DropPath(found!.Value.Node, found.Value.AtUt, found.Value.LightSecondsOut);
+
+            Assert.False(network.Lost(Node, 350300232.5));
+            Assert.False(network.Lost(Node, 350300242.5));
+            Assert.False(network.Lost(Node, 350300522.5));
+            Assert.False(network.Lost(Node, lossUt - 0.01));
+            Assert.True(network.Lost(Node, lossUt - 0.001));
         }
 
         /// <summary>
@@ -156,7 +200,7 @@ namespace Sitrep.Host.Tests.Comms
             var watch = new PathBreakWatch();
             watch.Observe(Node, Route("relay-a", "relay-b", "home"), 2.0, 10.0, Dead());
 
-            var found = watch.Observe(Node, new CommsPath(), 2.0, 11.0, Dead("relay-b"));
+            var found = watch.Observe(Node, new CommsPath(), 2.0, 11.0, Dead("relay-b", "home"));
 
             Assert.NotNull(found);
             Assert.Equal(1.0, found!.Value.LightSecondsOut, 9);
@@ -242,7 +286,7 @@ namespace Sitrep.Host.Tests.Comms
         /// for the transitions where two routes belong to different situations
         /// (delay switched off, a different subject, a quickload). Two unrelated
         /// routes differ in every hop, which would read as a break on the
-        /// deepest one.
+        /// nearest one.
         /// </summary>
         [Fact]
         public void ForgettingTheRouteDropsTheComparison()
