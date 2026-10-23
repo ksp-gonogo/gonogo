@@ -12,6 +12,9 @@ namespace Gonogo.KSP
     internal sealed class TransmitterPollCapture
     {
         public double Ut { get; set; }
+
+        /// <summary>The active vessel's id, or null when there is no active vessel.</summary>
+        public string? VesselId { get; set; }
         public List<TransmitterReading> Readings { get; } = new List<TransmitterReading>();
         public List<QueuedData> Aboard { get; } = new List<QueuedData>();
     }
@@ -49,6 +52,7 @@ namespace Gonogo.KSP
                 return capture;
             }
 
+            capture.VesselId = vessel.id.ToString();
             var anyBusy = false;
             foreach (var part in vessel.parts)
             {

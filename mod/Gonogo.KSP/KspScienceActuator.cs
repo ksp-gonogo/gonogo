@@ -233,6 +233,7 @@ namespace Gonogo.KSP
             for (var i = 0; i < data.Length; i++)
             {
                 ScienceTransmissions.Log.Expect(
+                    vessel.id.ToString(),
                     data[i].subjectID,
                     data[i].title,
                     amounts[i],

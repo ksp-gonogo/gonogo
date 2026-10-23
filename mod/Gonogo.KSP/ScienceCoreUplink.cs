@@ -69,6 +69,7 @@ namespace Gonogo.KSP
 
         /// <summary>Follows the active vessel's transmitters across ticks. Courier thread only, apart from <see cref="TransmitterWatch.HasRuns"/>.</summary>
         private readonly TransmitterWatch _watch = new TransmitterWatch();
+        private string? _arrivalsVessel;
 
         public ScienceCoreUplink(IScienceActuator actuator)
         {
@@ -232,19 +233,29 @@ namespace Gonogo.KSP
                         return;
                     }
 
+                    if (poll.VesselId is not string vesselId)
+                    {
+                        return;
+                    }
+
+                    var changed = vesselId != _arrivalsVessel;
+                    _arrivalsVessel = vesselId;
+
                     foreach (var done in _watch.Observe(poll.Readings, poll.Aboard, poll.Ut))
                     {
-                        ScienceTransmissions.Log.ExpectObserved(done.SubjectId, done.Title, done.Mits, done.StartedAt, done.CompletedAt);
+                        ScienceTransmissions.Log.ExpectObserved(vesselId, done.SubjectId, done.Title, done.Mits, done.StartedAt, done.CompletedAt);
                     }
 
                     foreach (var given in _watch.Abandoned)
                     {
-                        ScienceTransmissions.Log.Cancel(given.SubjectId, given.StartedAt);
+                        changed |= ScienceTransmissions.Log.Cancel(vesselId, given.SubjectId, given.StartedAt);
                     }
 
-                    if (ScienceTransmissions.Log.Release(poll.Ut) is double completedUt)
+                    var released = ScienceTransmissions.Log.Release(poll.Ut);
+                    if (changed || released != null)
                     {
-                        arrivals.Publish(ScienceTransmissions.Log.ToWire(), completedUt);
+                        var stampUt = released ?? poll.Ut;
+                        arrivals.Publish(ScienceTransmissions.Log.ToWire(vesselId), stampUt);
                     }
                 });
 

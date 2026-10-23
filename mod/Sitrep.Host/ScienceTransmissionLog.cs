@@ -6,7 +6,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// The science transmissions the active vessel has sent: those still being sent,
+    /// The science transmissions vessels have sent, each kept with the vessel that sent it: those still being sent,
     /// and the last <see cref="Capacity"/> that have finished. A transmission is
     /// expected when it starts and arrives once the game's clock has passed the
     /// moment its last packet leaves; only an arrived one is on the wire.
@@ -25,11 +25,11 @@ namespace Sitrep.Host
         private readonly List<Entry> _arrived = new List<Entry>();
 
         /// <summary>Notes a transmission that will have fully left the vessel at <paramref name="completedAt"/>.</summary>
-        public void Expect(string? subjectId, string? title, double? mits, double? startedAt, double completedAt)
+        public void Expect(string vesselId, string? subjectId, string? title, double? mits, double? startedAt, double completedAt)
         {
             lock (_gate)
             {
-                _pending.Add(new Entry(subjectId, title, mits, startedAt, completedAt));
+                _pending.Add(new Entry(vesselId, subjectId, title, mits, startedAt, completedAt));
             }
         }
 
@@ -38,30 +38,33 @@ namespace Sitrep.Host
         /// recorded, with the same subject starting within <see cref="SameStartSeconds"/>, is left
         /// as the command recorded it, which knew its own length.
         /// </summary>
-        public void ExpectObserved(string? subjectId, string? title, double? mits, double startedAt, double completedAt)
+        public void ExpectObserved(string vesselId, string? subjectId, string? title, double? mits, double startedAt, double completedAt)
         {
             lock (_gate)
             {
-                if (_pending.Concat(_arrived).Any(e => e.SubjectId == subjectId
+                if (_pending.Concat(_arrived).Any(e => e.VesselId == vesselId && e.SubjectId == subjectId
                     && e.StartedAt is double known && Math.Abs(known - startedAt) <= SameStartSeconds))
                 {
                     return;
                 }
-                _pending.Add(new Entry(subjectId, title, mits, startedAt, completedAt));
+                _pending.Add(new Entry(vesselId, subjectId, title, mits, startedAt, completedAt));
             }
         }
 
         /// <summary>
-        /// Takes back a transmission that was expected and then given up, if it has not arrived:
-        /// the transmitter was told to abort, or the result came back aboard. One that has already
-        /// arrived stays, since the centres it was published to have it.
+        /// Takes back a transmission that was expected and then given up: the transmitter was told
+        /// to abort, or the result came back aboard. True when one was taken back, including one
+        /// that had already arrived, so the caller republishes the list without it.
         /// </summary>
-        public bool Cancel(string? subjectId, double startedAt)
+        public bool Cancel(string vesselId, string? subjectId, double startedAt)
         {
             lock (_gate)
             {
-                return _pending.RemoveAll(e => e.SubjectId == subjectId
-                    && e.StartedAt is double known && Math.Abs(known - startedAt) <= SameStartSeconds) > 0;
+                Predicate<Entry> given = e => e.VesselId == vesselId && e.SubjectId == subjectId
+                    && e.StartedAt is double known && Math.Abs(known - startedAt) <= SameStartSeconds;
+                var fromPending = _pending.RemoveAll(given) > 0;
+                var fromArrived = _arrived.RemoveAll(given) > 0;
+                return fromPending || fromArrived;
             }
         }
 
@@ -89,16 +92,17 @@ namespace Sitrep.Host
             }
         }
 
-        /// <summary>The wire payload: the arrived transmissions, oldest first, or null when none has arrived.</summary>
-        public List<Dictionary<string, object?>>? ToWire()
+        /// <summary>The wire payload: the transmissions <paramref name="vesselId"/> has sent that have arrived, oldest first, or null when none has.</summary>
+        public List<Dictionary<string, object?>>? ToWire(string vesselId)
         {
             lock (_gate)
             {
-                if (_arrived.Count == 0)
+                var mine = _arrived.Where(e => e.VesselId == vesselId).ToList();
+                if (mine.Count == 0)
                 {
                     return null;
                 }
-                return _arrived.Select(e => ToWire(new ScienceArrival
+                return mine.Select(e => ToWire(new ScienceArrival
                 {
                     SubjectId = e.SubjectId,
                     Title = e.Title,
@@ -120,8 +124,9 @@ namespace Sitrep.Host
 
         private readonly struct Entry
         {
-            public Entry(string? subjectId, string? title, double? mits, double? startedAt, double completedAt)
+            public Entry(string vesselId, string? subjectId, string? title, double? mits, double? startedAt, double completedAt)
             {
+                VesselId = vesselId;
                 SubjectId = subjectId;
                 Title = title;
                 Mits = mits;
@@ -129,6 +134,7 @@ namespace Sitrep.Host
                 CompletedAt = completedAt;
             }
 
+            public string VesselId { get; }
             public string? SubjectId { get; }
             public string? Title { get; }
             public double? Mits { get; }
