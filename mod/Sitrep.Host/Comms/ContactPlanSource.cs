@@ -411,6 +411,9 @@ namespace Sitrep.Host.Comms
         private IPlanAudienceHost? _audience;
 
         private CommandCentres.IActiveRouteHost? _routes;
+
+        /// <summary>The game's route for the active craft as each centre has learned it.</summary>
+        private readonly ReceivedRoutes _receivedRoutes = new ReceivedRoutes();
         private IAddressedStreamHost? _streams;
         private volatile string? _lastFailure;
 
@@ -1056,6 +1059,7 @@ namespace Sitrep.Host.Comms
                 _planned.Clear();
                 _unsettled.Clear();
                 _pathShapes.Clear();
+                _receivedRoutes.Clear();
                 _radioSaid.Clear();
                 _radioCraft = null;
                 _radioSent.Clear();
@@ -2054,7 +2058,9 @@ namespace Sitrep.Host.Comms
                 {
                     plan = null;
                 }
-                var gameRoute = looked.ActiveCraft == null ? null : _routes?.ActiveVesselRoute(centre);
+                var gameRoute = looked.ActiveCraft == null
+                    ? null
+                    : _receivedRoutes.Note(centre, looked.ActiveCraft, looked.Ut, _routes?.ActiveVesselRoute(centre), lightFactor);
                 var cut = gameRoute == null && HeardCut(centre, radio);
                 // A delay that is switched off, or a save with no network to cross, is a setting and not a distance: it needs no plan to state. Where delay is merely off, a craft the centre believes has no path still has none.
                 var measured = modelled && lightFactor > 0.0;

@@ -123,6 +123,56 @@ namespace Sitrep.Host.IntegrationTests
             Assert.NotEqual(0.0, Delay(seated.Latest(ContactPlanSource.DelayTopic)));
         }
 
+        /// <summary>
+        /// The game reroutes the craft by way of the home station. The far
+        /// centre learns of it from the samples that travel the new route, so
+        /// until the first of them could have arrived, the new route's own
+        /// signal delay after the reroute, it is still shown the route its
+        /// samples were arriving over, and its delay is that route's.
+        /// </summary>
+        [Fact]
+        public async Task ARerouteReachesACentreOnlyWithTheFirstSampleSentOverIt()
+        {
+            var rerouted = new List<CommsHop>
+            {
+                new CommsHop { From = ScriptedContactGame.ActiveGuid, To = ScriptedContactGame.HomeName, ToIsHome = true, Kind = CommsHopKind.Home, DistanceMeters = 90_000.0 },
+                new CommsHop { From = ScriptedContactGame.HomeName, To = Far, FromIsHome = true, ToIsHome = true, Kind = CommsHopKind.Home, DistanceMeters = 60_000.0 },
+            };
+            var game = new ScriptedContactGame();
+            game.GameRoutes[Far] = FarRoute();
+            await using var world = await ReckonedVantageWorld.StartAsync(game);
+            var (client, view) = await world.SitDownAtAsync(Far, ContactPlanSource.DelayTopic, ScriptedContactUplink.ActiveTelemetryTopic);
+            await using var _ = client;
+
+            void TickThrough(IEnumerable<double> uts)
+            {
+                foreach (var ut in uts)
+                {
+                    world.Game.ActiveValue = ut;
+                    world.Tick(ut);
+                }
+            }
+
+            TickThrough(new[] { 1.0, 2.0, 700.0 }.Concat(Enumerable.Range(701, 40).Select(s => (double)s)));
+            await Task.WhenAll(world.SettleAsync(), ReckonedVantageWorld.SettleAsync(client, view));
+            game.GameRoutes[Far] = rerouted;
+            var reroutedAt = 741.0;
+            var before = ScriptedContactGame.SecondsOver(FarRoute());
+            var after = ScriptedContactGame.SecondsOver(rerouted);
+            TickThrough(Enumerable.Range(741, (int)after - 2).Select(s => (double)s));
+            await Task.WhenAll(world.SettleAsync(), ReckonedVantageWorld.SettleAsync(client, view));
+
+            Assert.True(view.Stamps[ContactPlanSource.PathTopic].ValidAt > reroutedAt);
+            Assert.Equal(ScriptedContactGame.RelayGuid, Hops(view.Path)[0].To);
+            Assert.Equal(before, Delay(view.Latest(ContactPlanSource.DelayTopic))!.Value, 6);
+
+            TickThrough(Enumerable.Range(741 + (int)after - 2, 6).Select(s => (double)s));
+            await Task.WhenAll(world.SettleAsync(), ReckonedVantageWorld.SettleAsync(client, view));
+
+            Assert.Equal(ScriptedContactGame.HomeName, Hops(view.Path)[0].To);
+            Assert.Equal(after, Delay(view.Latest(ContactPlanSource.DelayTopic))!.Value, 6);
+        }
+
         /// <summary>The delay a centre is quoted in a world where the game states no route, which is its plan's.</summary>
         private static async Task<double?> PlannedDelayAsync(string centre)
         {
