@@ -844,6 +844,41 @@ describe("PeerClientService reconnect loop", () => {
     svc.disconnect();
   });
 
+  it("a fresh connect cancels a pending retry instead of opening a second Peer", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 60_000,
+    });
+    svc.connect("HOST");
+    driveOpen(FakePeer.instances[0]);
+    FakePeer.instances[0]._lastConn?.emit("close");
+    expect(svc.getConnStatus()).toBe("reconnecting");
+
+    svc.connect("HOST");
+    expect(FakePeer.instances).toHaveLength(2);
+    vi.advanceTimersByTime(1_000);
+
+    expect(FakePeer.instances).toHaveLength(2);
+    expect(FakePeer.instances[1].destroyed).toBe(false);
+    svc.disconnect();
+  });
+
+  it("a fresh connect destroys the Peer of the attempt it replaces", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 60_000,
+    });
+    svc.connect("HOST");
+    driveOpen(FakePeer.instances[0]);
+
+    svc.connect("HOST");
+
+    expect(FakePeer.instances).toHaveLength(2);
+    expect(FakePeer.instances[0].destroyed).toBe(true);
+    expect(FakePeer.instances[1].destroyed).toBe(false);
+    svc.disconnect();
+  });
+
   it("disconnect() stops any pending retry", () => {
     const svc = new PeerClientService({
       retryIntervalMs: 50,
