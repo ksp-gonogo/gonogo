@@ -32,6 +32,8 @@ export interface SignalVerdict {
    * topic that arrived saying it has nothing is an answer, and is not awaited.
    */
   awaitingFirstSignal: boolean;
+  /** `comms.delay` arrived saying no path to any command centre can be measured. That is an answer about the craft, so nothing is awaited. */
+  noRoute: boolean;
   /** Signal strength as a 0 to 1 fraction, where one is current and positive. */
   pct: number | null;
   bars: number | null;
@@ -151,13 +153,19 @@ export function useSignalVerdict(): SignalVerdict {
     craftStrength === undefined &&
     controlState === undefined;
   const strengthAwaited = told === undefined;
+  const delayReading = useTelemetry("comms.delay");
+  const noRoute =
+    delayReading.state === "observed" &&
+    delayReading.value.oneWaySeconds === null;
   return {
     connected,
     noSignal,
     nothingHasArrived,
+    noRoute,
     awaitingFirstSignal:
       nothingHasArrived &&
       !noSignal &&
+      !noRoute &&
       linkReading.state !== "absent" &&
       commsReading.state !== "absent" &&
       (linkReading.state === "pending" || commsReading.state === "pending"),
@@ -206,12 +214,16 @@ export function useCommSignalEssentials(): readonly TinyEssential[] {
     connected,
     noSignal,
     awaitingFirstSignal,
+    noRoute,
     bars,
     control,
     strengthReading,
     strengthMark,
   } = useSignalVerdict();
   const level = { lit: bars, of: 4 };
+  if (noRoute && connected === undefined) {
+    return [{ label: "Signal", word: "LOS", level, tone: "nogo" }];
+  }
   if (awaitingFirstSignal) {
     return [{ label: "Signal", word: AWAITING_WORD, level, tone: "neutral" }];
   }

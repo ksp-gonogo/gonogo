@@ -66,6 +66,7 @@ export function CommSignalComponent({
     noSignal,
     nothingHasArrived,
     awaitingFirstSignal,
+    noRoute,
     pct,
     bars,
     control,
@@ -140,6 +141,8 @@ export function CommSignalComponent({
             <EmptyState>
               {awaitingFirstSignal ? (
                 <AwaitingSignal expectedIn={firstSignalIn} />
+              ) : noRoute ? (
+                "No route to the craft"
               ) : (
                 "No signal data"
               )}
