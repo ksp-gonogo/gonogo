@@ -345,8 +345,6 @@ export const LastRecovery__Label = styled.span`
 `;
 
 export const LastRecovery__Figures = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gap-line) var(--gap-related-compact);
   color: var(--color-text-dim);
+  overflow-wrap: anywhere;
 `;

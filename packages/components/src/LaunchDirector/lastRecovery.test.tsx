@@ -81,4 +81,26 @@ describe("LaunchDirector: the last recovery", () => {
     expect(block?.textContent).toContain("38");
     expect(screen.getByText(/Last recovery/i)).toBeTruthy();
   });
+
+  it("keeps the figures apart, with the science data named", () => {
+    const fixture = mount();
+
+    act(() => {
+      fixture.emit("recovery.lastSummary", {
+        ...SUMMARY,
+        fundsEarned: 3966,
+        scienceEarned: 5,
+        scienceBreakdown: [{ ...SUMMARY.scienceBreakdown[0], dataGathered: 1 }],
+      });
+      fixture.store.beginFrame();
+    });
+
+    const figures = document.querySelector(
+      "[data-last-recovery] > div:last-child",
+    );
+    // Read as text, as a copy or a screen reader gets it: every figure apart and the data named.
+    expect(figures?.textContent?.replace(/[\u00a0\u2009]/g, " ")).toBe(
+      "1 crew · 4 parts · 1.0 mits of data · 3,966f funds · 5.0 science",
+    );
+  });
 });

@@ -1,6 +1,7 @@
 import type { RecoveryReport } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { MissionDate, Unit } from "@ksp-gonogo/ui-kit";
+import { Fragment, type ReactNode } from "react";
 import {
   LastRecovery__Block,
   LastRecovery__Figures,
@@ -30,6 +31,35 @@ export function LastRecovery({
     (sum, s) => (s.dataGathered ? sum.plus(s.dataGathered) : sum),
     value("Mit", 0),
   );
+  const figures: { key: string; node: ReactNode }[] = [
+    {
+      key: "what",
+      node: (
+        <span>
+          {crew} crew · <Unit value={parts} /> parts
+        </span>
+      ),
+    },
+  ];
+  if (science.length > 0) {
+    figures.push({
+      key: "data",
+      node: (
+        <span>
+          <Unit value={mits} /> of data
+        </span>
+      ),
+    });
+  }
+  if (report.fundsEarned != null) {
+    figures.push({ key: "funds", node: <Unit value={report.fundsEarned} /> });
+  }
+  if (report.scienceEarned != null) {
+    figures.push({
+      key: "science",
+      node: <Unit value={report.scienceEarned} />,
+    });
+  }
   return (
     <LastRecovery__Block data-last-recovery role="status">
       <LastRecovery__Label>Last recovery</LastRecovery__Label>
@@ -39,12 +69,12 @@ export function LastRecovery({
         <MissionDate value={report.capturedAtUT} />
       </div>
       <LastRecovery__Figures>
-        <span>
-          {crew} crew · <Unit value={parts} /> parts
-        </span>
-        {science.length > 0 && <Unit value={mits} />}
-        {report.fundsEarned != null && <Unit value={report.fundsEarned} />}
-        {report.scienceEarned != null && <Unit value={report.scienceEarned} />}
+        {figures.map((figure, index) => (
+          <Fragment key={figure.key}>
+            {index > 0 && " · "}
+            {figure.node}
+          </Fragment>
+        ))}
       </LastRecovery__Figures>
     </LastRecovery__Block>
   );
