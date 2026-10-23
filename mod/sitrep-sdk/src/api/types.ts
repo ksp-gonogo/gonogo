@@ -1996,7 +1996,7 @@ export type { DelayMode, InFlightCommand, PredictedPhase };
  *
  * @category Commands
  */
-export interface UseCommandOptions {
+export interface UseCommandOptions<Args = unknown> {
   /**
    * The command centre this command is sent from, which sets its signal delay.
    * Omit it to send from the screen's selected centre. Pass `"meta"` for a
@@ -2012,6 +2012,18 @@ export interface UseCommandOptions {
    * when it sends with no rail mounted.
    */
   rail?: false;
+  /**
+   * Whether the craft's telemetry shows what one dispatch set, given that
+   * dispatch's args: a light that was switched on reading on. Useful for
+   * showing the operator a command as sent until the craft's own readings
+   * show it took effect, rather than only until its reply is expected. With
+   * it, a dispatch the craft ran stays in `inFlight` until this returns true,
+   * reading `due` once its reply is expected and `overdue` when its telemetry
+   * still does not show it a minute of game time after that. A refused
+   * dispatch leaves `inFlight` when its reply is due, as it does without this.
+   * Called on every render, so it reads the caller's current telemetry.
+   */
+  confirmedBy?(args: Args): boolean;
 }
 
 /**

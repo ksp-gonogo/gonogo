@@ -50,3 +50,87 @@ describe("resolveTracked for a command sent with no route", () => {
     );
   });
 });
+
+/*
+ * The rig's light toggle to a probe at Eeloo: sent at UT 350296488.3 over a
+ * 286 s one-way delay, so its reply was due at 350297060.3, and the first
+ * frame showing the light on arrived at 350297068.3.
+ */
+const SENT_UT = 350296488.3;
+const REPLY_DUE_UT = SENT_UT + 2 * 286;
+const LIGHT_SHOWN_UT = 350297068.3;
+
+const lightToggle = (): PendingEntry => ({
+  id: "r1",
+  clientRequestId: "c1",
+  command: "vessel.control.setLights",
+  label: "Toggle Light",
+  topic: "",
+  vantage: "ground:Kerbin: KSC",
+  dispatchedAt: value("ut", SENT_UT),
+  oneWaySeconds: value("s", 286),
+});
+
+const resolveToggle = (opts: {
+  nowUt: number;
+  confirmation?: { confirmed: boolean; answeredAtUt: number };
+}) =>
+  resolveTracked(
+    "c1",
+    { pending: [] },
+    new Map([["c1", lightToggle()]]),
+    new Map(),
+    opts.nowUt,
+    0,
+    () => true,
+    () => true,
+    () => false,
+    () => opts.confirmation,
+  );
+
+describe("resolveTracked for a command its caller confirms from the telemetry", () => {
+  it("still reads due after its reply came, while the telemetry shows the old state", () => {
+    const r = resolveToggle({
+      nowUt: REPLY_DUE_UT + 2,
+      confirmation: { confirmed: false, answeredAtUt: REPLY_DUE_UT + 0.3 },
+    });
+    expect(r).toMatchObject({
+      kind: "classified",
+      item: { predictedPhase: "due" },
+    });
+  });
+
+  it("resolves once the telemetry shows what it set", () => {
+    const r = resolveToggle({
+      nowUt: LIGHT_SHOWN_UT,
+      confirmation: { confirmed: true, answeredAtUt: REPLY_DUE_UT + 0.3 },
+    });
+    expect(r.kind).toBe("resolved");
+  });
+
+  it("reads overdue when the telemetry has not shown it a minute after the reply", () => {
+    const r = resolveToggle({
+      nowUt: REPLY_DUE_UT + 61,
+      confirmation: { confirmed: false, answeredAtUt: REPLY_DUE_UT + 0.3 },
+    });
+    expect(r).toMatchObject({
+      kind: "classified",
+      item: { predictedPhase: "overdue" },
+    });
+  });
+
+  it("counts the minute from a reply that came later than predicted", () => {
+    const r = resolveToggle({
+      nowUt: REPLY_DUE_UT + 61,
+      confirmation: { confirmed: false, answeredAtUt: REPLY_DUE_UT + 30 },
+    });
+    expect(r).toMatchObject({
+      kind: "classified",
+      item: { predictedPhase: "due" },
+    });
+  });
+
+  it("resolves at its reply, as before, when nothing confirms it: no check, or a refusal", () => {
+    expect(resolveToggle({ nowUt: REPLY_DUE_UT + 2 }).kind).toBe("resolved");
+  });
+});

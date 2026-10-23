@@ -8731,6 +8731,10 @@
         "note": "required, true for an Uplink compiled into the Gonogo mod and false for an installed one, so a hand-built roster entry must now carry it"
       },
       {
+        "key": "sitrep-sdk . UseCommandOptions",
+        "note": "takes the command's argument type, so confirmedBy is checked against the args each dispatch was sent with"
+      },
+      {
         "key": "sitrep-sdk . UseCommandResult#failures",
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
       },
@@ -8781,6 +8785,10 @@
       {
         "key": "sitrep-sdk . settingTypeOf",
         "note": "the setting kind in this type is SettingKind, where it was the words boolean, text and number"
+      },
+      {
+        "key": "sitrep-sdk . useCommand",
+        "note": "its options are typed by the command's arguments, UseCommandOptions<CommandArgs<Command>> or UseCommandOptions<Args>"
       },
       {
         "key": "sitrep-sdk . useDataSources",
@@ -9663,6 +9671,10 @@
         "note": "required, true for an Uplink compiled into the Gonogo mod and false for an installed one, so a hand-built roster entry must now carry it"
       },
       {
+        "key": "sitrep-sdk ./spine UseCommandOptions",
+        "note": "takes the command's argument type, so confirmedBy is checked against the args each dispatch was sent with"
+      },
+      {
         "key": "sitrep-sdk ./spine UseCommandResult#failures",
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
       },
@@ -9761,6 +9773,10 @@
       {
         "key": "sitrep-sdk ./spine toFrame",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine useCommand",
+        "note": "its options are typed by the command's arguments, UseCommandOptions<CommandArgs<Command>> or UseCommandOptions<Args>"
       },
       {
         "key": "sitrep-sdk ./spine ~AugmentSettingField#type",
@@ -10605,6 +10621,10 @@
       {
         "key": "sitrep-sdk ./testing ~UplinkClientHandle#registerContribution",
         "note": "A slot listed in ContributionRegistry types compute from that slot's entry, so a literal such as tone: \"info\" returned from compute is checked against the slot's entry and no longer widens to a string; a component slot id keeps the earlier form"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UseCommandOptions",
+        "note": "takes the command's argument type, so confirmedBy is checked against the args each dispatch was sent with"
       },
       {
         "key": "sitrep-sdk ./testing ~UseCommandResult#failures",
@@ -12467,6 +12487,10 @@
       {
         "key": "sitrep-sdk . UplinkClientConfig#version",
         "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
+      },
+      {
+        "key": "sitrep-sdk . UseCommandOptions#confirmedBy?",
+        "note": "a check of the telemetry for what one dispatch set; with it a ran dispatch stays in inFlight until the telemetry shows it, due then overdue a minute of game time after its reply"
       },
       {
         "key": "sitrep-sdk . ValueTags",
@@ -14577,6 +14601,10 @@
         "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
       },
       {
+        "key": "sitrep-sdk ./spine UseCommandOptions#confirmedBy?",
+        "note": "a check of the telemetry for what one dispatch set; with it a ran dispatch stays in inFlight until the telemetry shows it, due then overdue a minute of game time after its reply"
+      },
+      {
         "key": "sitrep-sdk ./spine UseCommandResult#check?",
         "note": "Asks the mod what a command's gate says about a call with these arguments from this centre, debounced; the answer lands in gateFor for the same arguments"
       },
@@ -15739,6 +15767,10 @@
       {
         "key": "sitrep-sdk ./testing ~UplinkClientConfig#version",
         "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UseCommandOptions#confirmedBy?",
+        "note": "a check of the telemetry for what one dispatch set; with it a ran dispatch stays in inFlight until the telemetry shows it, due then overdue a minute of game time after its reply"
       },
       {
         "key": "sitrep-sdk ./testing ~ValueTags",

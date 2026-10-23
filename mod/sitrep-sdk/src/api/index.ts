@@ -727,7 +727,7 @@ export function useViewUt(): Value<"ut"> | undefined {
  */
 export function useCommand<Command extends CommandId>(
   command: Command,
-  options?: UseCommandOptions,
+  options?: UseCommandOptions<CommandArgs<Command>>,
 ): UseCommandResult<CommandArgs<Command>, CommandReply<Command>>;
 /**
  * Returns a handle for a command whose id is not in {@link CommandArgsMap},
@@ -753,7 +753,7 @@ export function useCommand<Command extends CommandId>(
  */
 export function useCommand<Args = unknown, Reply = AnyCommandReply>(
   command: string,
-  options?: UseCommandOptions,
+  options?: UseCommandOptions<Args>,
 ): UseCommandResult<Args, Reply>;
 export function useCommand(
   command: string,

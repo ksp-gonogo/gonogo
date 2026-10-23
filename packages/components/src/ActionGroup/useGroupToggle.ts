@@ -38,8 +38,20 @@ export interface GroupToggle {
   /** What the craft lacks that this group's command needs, from its last control reading; the press still sends. */
   capabilityWarning: CapabilityWarning | null;
   press: () => void;
-  /** A toggle sent from here is still on its way to the craft or awaiting its reply, so the state shown is not yet the answer to it. */
-  pending: boolean;
+  /**
+   * Where the latest toggle sent from here stands while the state shown is not
+   * yet the one it set: `sent` until the craft's telemetry shows it, and
+   * `unconfirmed` once that is overdue. Null when nothing sent is outstanding.
+   */
+  confirmation: "sent" | "unconfirmed" | null;
+}
+
+/** Whether `value` is the state a toggle sent with `args` set; a toggle that sets no state, such as Stage, has nothing to wait for. */
+function showsToggle(args: unknown, value: unknown): boolean {
+  if (args === null || typeof args !== "object") return true;
+  if ("state" in args) return value === args.state;
+  if ("enabled" in args) return value === args.enabled;
+  return true;
 }
 
 /**
@@ -65,17 +77,22 @@ export function useGroupToggle({
       : undefined;
 
   const toggleCommand = group ? toggleCommandFor(group) : null;
-  const toggleCmd = useCommand(toggleCommand ?? "");
+  // A held reading is the state from before the blackout, so it confirms nothing.
+  const toggleCmd = useCommand(toggleCommand ?? "", {
+    confirmedBy: (args) => !valueHeld && showsToggle(args, value),
+  });
   const capabilityWarning = useCommandCapabilityWarning(toggleCommand);
 
   // A held reading with no value for this group has nothing to send the opposite of.
   const unreadable = stateUnreadable || (valueHeld && value == null);
 
-  const pending = toggleCmd.inFlight.some(
-    (c) =>
-      c.predictedPhase === "in-transit" ||
-      c.predictedPhase === "awaiting-reply",
-  );
+  const latest = toggleCmd.inFlight.at(-1)?.predictedPhase;
+  const confirmation =
+    latest === undefined || latest === "lost"
+      ? null
+      : latest === "overdue"
+        ? "unconfirmed"
+        : "sent";
 
   const press = () => {
     if (!group?.toggle || !toggleCommand) return;
@@ -113,6 +130,6 @@ export function useGroupToggle({
       : null,
     capabilityWarning,
     press,
-    pending,
+    confirmation,
   };
 }

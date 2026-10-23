@@ -74,7 +74,11 @@ import { CommandError } from "./lifecycle";
 import { useClaimCapability } from "./lock-scope";
 import { commandDelayed } from "./map-command";
 import { useRailRegistry } from "./rail-registry";
-import { type PendingUplinkQueueLike, resolveTracked } from "./resolve-tracked";
+import {
+  type PendingUplinkQueueLike,
+  resolveTracked,
+  type TrackedConfirmation,
+} from "./resolve-tracked";
 import {
   readNextLossUt,
   type SendStatus,
@@ -340,17 +344,20 @@ export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
  */
 export function useCommand<Command extends CommandId>(
   command: Command,
-  options?: UseCommandOptions,
+  options?: UseCommandOptions<CommandArgs<Command>>,
 ): UseCommandResult<CommandArgs<Command>, CommandReply<Command>>;
 export function useCommand<Args = unknown, Reply = AnyCommandReply>(
   command: string,
-  options?: UseCommandOptions,
+  options?: UseCommandOptions<Args>,
 ): UseCommandResult<Args, Reply>;
 export function useCommand(
   command: string,
   options?: UseCommandOptions,
 ): UseCommandResult {
   const vantage = options?.vantage;
+  // Read through a ref: the caller passes a fresh check each render, over that render's telemetry.
+  const confirmedByRef = useRef(options?.confirmedBy);
+  confirmedByRef.current = options?.confirmedBy;
   useClaimCapability("command", command);
   // Degrade gracefully with no `TelemetryProvider` mounted (disconnected).
   // Status stays IDLE and `send` is a no-op: you can't dispatch a command with
@@ -423,6 +430,12 @@ export function useCommand(
   const [failures, setFailures] = useState<CommandFailure[]>(NO_FAILURES);
   const entryCacheRef = useRef<Map<string, PendingEntry>>(new Map());
   const firstSeenAtRef = useRef<Map<string, number>>(new Map());
+  // Each tracked dispatch's args, for the caller's check of whether the telemetry shows them.
+  const argsRef = useRef<Map<string, unknown>>(new Map());
+  // When this client first saw each ran dispatch's reply, as a UT.
+  const answeredAtRef = useRef<Map<string, number>>(new Map());
+  // Dispatches whose promise resolved, which still says they ran once the client has dropped the record.
+  const ranRef = useRef<Set<string>>(new Set());
   const connectivityHistoryRef = useRef<ConnectivityHistory>(
     new ConnectivityHistory(),
   );
@@ -555,6 +568,25 @@ export function useCommand(
    */
   const judgedLost = useCallback(
     (id: string) => client?.getCommand(id).phase === "lost",
+    [client],
+  );
+  const confirmation = useCallback(
+    (id: string): TrackedConfirmation | undefined => {
+      const check = confirmedByRef.current;
+      if (!check || !argsRef.current.has(id)) return undefined;
+      const status = client?.getCommand(id);
+      const ran =
+        status?.phase === "confirmed" ||
+        (status?.phase === "found" && status.outcome === "ran") ||
+        ranRef.current.has(id);
+      if (!ran) return undefined;
+      let answeredAtUt = answeredAtRef.current.get(id);
+      if (answeredAtUt === undefined) {
+        answeredAtUt = nowUtRef.current;
+        answeredAtRef.current.set(id, answeredAtUt);
+      }
+      return { confirmed: check(argsRef.current.get(id)), answeredAtUt };
+    },
     [client],
   );
   const ackPhases = useSyncExternalStore(
@@ -696,6 +728,7 @@ export function useCommand(
         pathConnectedDuring,
         acknowledged,
         judgedLost,
+        confirmation,
       );
       if (resolution.kind === "classified") computed.push(resolution.item);
     }
@@ -747,6 +780,7 @@ export function useCommand(
           pathConnectedDuring,
           acknowledged,
           judgedLost,
+          confirmation,
         );
         return (
           resolution.kind === "classified" || resolution.kind === "waiting"
@@ -769,6 +803,7 @@ export function useCommand(
     pathConnectedDuring,
     acknowledged,
     judgedLost,
+    confirmation,
     ackPhases,
     dismissedIds,
   ]);
@@ -785,6 +820,9 @@ export function useCommand(
       if (dispatchedIds.includes(id)) continue;
       entryCacheRef.current.delete(id);
       firstSeenAtRef.current.delete(id);
+      argsRef.current.delete(id);
+      answeredAtRef.current.delete(id);
+      ranRef.current.delete(id);
     }
     trackedBeforeRef.current = dispatchedIds;
   }, [dispatchedIds]);
@@ -915,6 +953,11 @@ export function useCommand(
       firstSeenAtRef.current.set(
         newRequestId,
         storeRef.current?.clock.wallNow() ?? performance.now() / 1000,
+      );
+      argsRef.current.set(newRequestId, args);
+      result.then(
+        () => ranRef.current.add(newRequestId),
+        () => undefined,
       );
       setDispatchedIds((prev) => [...prev, newRequestId]);
       // Schedule the dev-only rail check on the first unverified dispatch (see the effect above).

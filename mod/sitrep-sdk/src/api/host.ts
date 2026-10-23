@@ -83,11 +83,11 @@ export interface GonogoHost {
   /** What {@link useCommand} calls. */
   useCommand<Command extends CommandId>(
     command: Command,
-    options?: UseCommandOptions,
+    options?: UseCommandOptions<CommandArgs<Command>>,
   ): UseCommandResult<CommandArgs<Command>, CommandReply<Command>>;
   useCommand<Args = unknown, Reply = AnyCommandReply>(
     command: string,
-    options?: UseCommandOptions,
+    options?: UseCommandOptions<Args>,
   ): UseCommandResult<Args, Reply>;
   /** What {@link sendTogether} calls. */
   sendTogether(build: () => void): CommandGroupHandle;

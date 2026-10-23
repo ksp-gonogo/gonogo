@@ -62,7 +62,7 @@ export function ActionGroupView({
     unavailableReason,
     capabilityWarning,
     press,
-    pending,
+    confirmation,
   } = useGroupToggle({
     group,
     value,
@@ -237,7 +237,9 @@ export function ActionGroupView({
                   onClick={press}
                   aria-label={`Toggle ${currentLabel}`}
                 >
-                  {pending ? `${stateLabel} · sent` : stateLabel}
+                  {confirmation
+                    ? `${stateLabel} · ${confirmation}`
+                    : stateLabel}
                 </ToggleButton>
               </Tooltip>
             </Inline>

@@ -16,6 +16,24 @@ import {
  */
 const NEVER_TRACKED_GRACE_SECONDS = 5;
 
+/**
+ * How long, in seconds of game time, a command the craft ran may go without its
+ * telemetry showing what it set before it reads as overdue. Counted from the
+ * later of its predicted reply and the reply itself, and long enough for a
+ * sample of a slowly sampled channel to cross after the command ran.
+ */
+export const CONFIRM_WINDOW_SECONDS = 60;
+
+/**
+ * Where a dispatch the craft ran stands against its caller's check of the
+ * telemetry: `confirmed` once the telemetry shows what it set, `awaiting` until
+ * then. `answeredAtUt` is when this client first saw the reply.
+ */
+export interface TrackedConfirmation {
+  confirmed: boolean;
+  answeredAtUt: number;
+}
+
 export interface PendingUplinkQueueLike {
   pending: PendingEntry[];
 }
@@ -59,6 +77,8 @@ export function resolveTracked(
   pathConnectedDuring: PathConnectedDuring,
   acknowledged: (id: string) => boolean,
   judgedLost: (id: string) => boolean = () => false,
+  confirmation: (id: string) => TrackedConfirmation | undefined = () =>
+    undefined,
 ): TrackedResolution {
   /* Matched on the requestId the queue echoes back, never on `entry.id`, which is the engine's own counter and collides with this client's. */
   const found = queue?.pending.find((entry) => entry.clientRequestId === id);
@@ -113,6 +133,29 @@ export function resolveTracked(
       kind: "classified",
       item: { ...classified, predictedPhase: "lost" },
     };
+  }
+  /*
+   * A command the craft ran, whose caller can tell from the telemetry whether it
+   * took effect, is not done when its reply is: the reply can land before the
+   * first sample taken after the command ran, and until that sample arrives the
+   * old state is all the operator can see.
+   */
+  const confirming = acked ? confirmation(id) : undefined;
+  if (confirming?.confirmed) return { kind: "resolved" };
+  if (confirming) {
+    if (
+      classified.predictedPhase === "in-transit" ||
+      classified.predictedPhase === "awaiting-reply"
+    ) {
+      return { kind: "classified", item: classified };
+    }
+    const replyUt =
+      classified.replyEtaSeconds === null
+        ? confirming.answeredAtUt
+        : Math.max(nowUt + classified.replyEtaSeconds, confirming.answeredAtUt);
+    const predictedPhase =
+      nowUt > replyUt + CONFIRM_WINDOW_SECONDS ? "overdue" : "due";
+    return { kind: "classified", item: { ...classified, predictedPhase } };
   }
   if (acked && classified.predictedPhase === "due") {
     return { kind: "resolved" };

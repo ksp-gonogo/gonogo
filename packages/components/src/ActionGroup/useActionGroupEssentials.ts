@@ -60,8 +60,8 @@ export function useActionGroupEssentials(
     {
       label,
       control: {
-        label: toggle.pending
-          ? `${toggle.stateLabel} · sent`
+        label: toggle.confirmation
+          ? `${toggle.stateLabel} · ${toggle.confirmation}`
           : toggle.stateLabel,
         active: toggle.isOn,
         disabled: !toggle.canToggle,
