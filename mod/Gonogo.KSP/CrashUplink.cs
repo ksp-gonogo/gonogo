@@ -291,10 +291,7 @@ namespace Gonogo.KSP
                     var impact = death.Impact;
                     if (impact != null)
                     {
-                        capture.EventKind = impact.Kind;
-                        capture.What = impact.What;
-                        capture.Msg = impact.Msg;
-                        capture.PartsLost = new List<LostPart> { impact.Part };
+                        capture.NameCause(impact.Kind, impact.What, impact.Msg, impact.Part);
                     }
                     capture.Events.Add(CrashLine(capture.VesselName, capture.EventKind));
 

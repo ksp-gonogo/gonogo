@@ -79,6 +79,20 @@ namespace Sitrep.Host.Crash
         public List<string> CrewAboard = new List<string>();
         public double Altitude;
         public double Ut;
+
+        /// <summary>
+        /// Names the impact that caused the death as its cause. The part that broke is put first in
+        /// <see cref="PartsLost"/>, and every part the craft still had when it died stays on the list: the
+        /// craft was lost whole, not the one part that hit first.
+        /// </summary>
+        public void NameCause(string eventKind, string what, string msg, LostPart part)
+        {
+            EventKind = eventKind;
+            What = what;
+            Msg = msg;
+            PartsLost.RemoveAll(p => p.PartId == part.PartId);
+            PartsLost.Insert(0, part);
+        }
     }
 
     /// <summary>

@@ -27,6 +27,53 @@ namespace Sitrep.Host.Tests
             Assert.Equal(expected, CrashPayload.ShouldPublish(vesselType));
         }
 
+        private static CrashCapture SeventeenPartCraft()
+        {
+            var capture = new CrashCapture { EventKind = "Destroyed", VesselName = "hop-a" };
+            for (var i = 0; i < 17; i++)
+            {
+                capture.PartsLost.Add(new LostPart { PartId = 100 + i, PartName = "part" + i, PartTitle = "Part " + i });
+            }
+            return capture;
+        }
+
+        [Fact]
+        public void NameCause_KeepsEveryPartTheCraftStillHadWhenItDied()
+        {
+            var capture = SeventeenPartCraft();
+            var broke = new LostPart { PartId = 103, PartName = "part3", PartTitle = "Part 3", Msg = "hit the ground" };
+
+            capture.NameCause("Crash", "Kerbin", "hit the ground", broke);
+
+            Assert.Equal(17, capture.PartsLost.Count);
+            Assert.Same(broke, capture.PartsLost[0]);
+            Assert.Equal("Crash", capture.EventKind);
+            Assert.Equal("Kerbin", capture.What);
+            Assert.Equal("hit the ground", capture.Msg);
+        }
+
+        [Fact]
+        public void NameCause_AddsTheBrokenPartWhenTheCraftNoLongerListedIt()
+        {
+            var capture = SeventeenPartCraft();
+
+            capture.NameCause("Crash", "Kerbin", "", new LostPart { PartId = 999, PartName = "gone" });
+
+            Assert.Equal(18, capture.PartsLost.Count);
+            Assert.Equal(999, capture.PartsLost[0].PartId);
+        }
+
+        [Fact]
+        public void NameCause_ReportsTheWholeCraftOnTheWire()
+        {
+            var capture = SeventeenPartCraft();
+            capture.NameCause("Crash", "Kerbin", "", new LostPart { PartId = 103, PartName = "part3" });
+
+            var wire = CrashPayload.Build(capture);
+
+            Assert.Equal(17, ((List<object?>)wire["partsLost"]!).Count);
+        }
+
         [Fact]
         public void ShouldPublish_TreatsNullAsPublishable()
         {
