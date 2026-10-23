@@ -13,8 +13,10 @@ import {
   getSizeBucket,
   IconButton,
   Inline,
+  LiveRegion,
   Notice,
   type ReckoningMarking,
+  ReservedText,
   Section,
   Stack,
   Text,
@@ -62,7 +64,9 @@ export function ActionGroupView({
     unavailableReason,
     capabilityWarning,
     press,
-    confirmation,
+    buttonWord,
+    buttonWords,
+    confirmationSentence,
   } = useGroupToggle({
     group,
     value,
@@ -227,7 +231,13 @@ export function ActionGroupView({
                   </IconButton>
                 </Tooltip>
               )}
-              <Tooltip text={unavailableReason ?? `Toggle ${currentLabel}`}>
+              <Tooltip
+                text={
+                  confirmationSentence ??
+                  unavailableReason ??
+                  `Toggle ${currentLabel}`
+                }
+              >
                 <ToggleButton
                   pressed={isOn}
                   size="sm"
@@ -237,11 +247,12 @@ export function ActionGroupView({
                   onClick={press}
                   aria-label={`Toggle ${currentLabel}`}
                 >
-                  {confirmation
-                    ? `${stateLabel} · ${confirmation}`
-                    : stateLabel}
+                  <ReservedText shown={buttonWord} reserve={buttonWords} />
                 </ToggleButton>
               </Tooltip>
+              <LiveRegion visuallyHidden>
+                {confirmationSentence ?? ""}
+              </LiveRegion>
             </Inline>
           </Cluster>
           {capabilityWarning && getSizeBucket(w, h) !== "tiny" && (

@@ -292,6 +292,8 @@ export interface ProbeMount {
   advance: (seconds: number) => void;
   /** Ends the stream as a dropped link does, so every figure the widget holds is drawn as last seen; throws without a stream. */
   stopArriving: () => Promise<void>;
+  /** The scene's stream fixture, for a scene that answers its own commands; undefined without a `_stream` block or once unmounted. */
+  stream: () => StreamFixture | undefined;
   /** Unmounts this widget alone and drops its data source; safe before `ready` settles. */
   unmount: () => void;
 }
@@ -423,6 +425,7 @@ function startMount(
       await rafTick();
       await rafTick();
     },
+    stream: () => state.stream,
     unmount: () => teardownMount(state),
   };
 }

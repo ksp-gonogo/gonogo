@@ -60,13 +60,12 @@ export function useActionGroupEssentials(
     {
       label,
       control: {
-        label: toggle.confirmation
-          ? `${toggle.stateLabel} · ${toggle.confirmation}`
-          : toggle.stateLabel,
+        label: toggle.buttonWord,
         active: toggle.isOn,
         disabled: !toggle.canToggle,
         title: `Toggle ${label}`,
-        hint: toggle.unavailableReason ?? undefined,
+        hint:
+          toggle.confirmationSentence ?? toggle.unavailableReason ?? undefined,
         onPress: toggle.press,
       },
     },

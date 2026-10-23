@@ -44,7 +44,16 @@ export interface GroupToggle {
    * `unconfirmed` once that is overdue. Null when nothing sent is outstanding.
    */
   confirmation: "sent" | "unconfirmed" | null;
+  /** The word the button shows: `SENT` while a toggle is outstanding, `LATE` once its confirmation is overdue, else the state. */
+  buttonWord: string;
+  /** Every word the button can show, which it is sized to hold so it keeps its size as the word changes. */
+  buttonWords: readonly string[];
+  /** What the press is waiting on, as a sentence for the tooltip and for a screen reader; null when nothing is outstanding. */
+  confirmationSentence: string | null;
 }
+
+const SENT_WORD = "SENT";
+const LATE_WORD = "LATE";
 
 /** Whether `value` is the state a toggle sent with `args` set; a toggle that sets no state, such as Stage, has nothing to wait for. */
 function showsToggle(args: unknown, value: unknown): boolean {
@@ -111,10 +120,27 @@ export function useGroupToggle({
     },
   });
 
+  const stateLabel = stateLabelOf(value);
+  const buttonWord =
+    confirmation === "sent"
+      ? SENT_WORD
+      : confirmation === "unconfirmed"
+        ? LATE_WORD
+        : stateLabel;
+  const confirmationSentence =
+    confirmation === "sent"
+      ? `${label} sent, until the craft's readings show it`
+      : confirmation === "unconfirmed"
+        ? `${label} not yet shown in the craft's readings`
+        : null;
+
   return {
     // Some groups, Stage among them, report a number rather than a boolean.
     isOn: typeof value === "number" ? value > 0 : value === true,
-    stateLabel: stateLabelOf(value),
+    stateLabel,
+    buttonWord,
+    buttonWords: ["ON", "OFF", SENT_WORD, LATE_WORD, stateLabel],
+    confirmationSentence,
     // A press that `buildToggleArgs` would refuse is not offered: with no state to invert, an enabled button would do nothing. A held state is one to invert: the command sets the explicit opposite.
     canToggle:
       Boolean(group?.toggle) &&

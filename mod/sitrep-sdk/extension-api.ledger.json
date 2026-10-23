@@ -16937,6 +16937,22 @@
         "note": "member of ReferenceCurve, new with it"
       },
       {
+        "key": "ui-kit . ReservedText",
+        "note": "text drawn in a box as wide as the widest of the texts its place can show, so a control keeps its size as its word changes"
+      },
+      {
+        "key": "ui-kit . ReservedTextProps",
+        "note": "the props of ReservedText"
+      },
+      {
+        "key": "ui-kit . ReservedTextProps#reserve",
+        "note": "every text the place can show"
+      },
+      {
+        "key": "ui-kit . ReservedTextProps#shown",
+        "note": "the text drawn"
+      },
+      {
         "key": "ui-kit . SeriesType",
         "note": "how a plotted line is drawn between samples, moved here unchanged"
       },

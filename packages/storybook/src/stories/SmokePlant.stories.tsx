@@ -94,6 +94,7 @@ function SlotScene({ widgetId, fixture, w, h, onMounted }: WidgetSceneProps) {
             scrubTo: () => {},
             advance: () => {},
             stopArriving: () => Promise.resolve(),
+            stream: () => undefined,
             unmount: unmountProbe,
           }),
         )

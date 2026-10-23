@@ -1,5 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { expectLiveRegionPrimed } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
@@ -67,7 +68,7 @@ describe("ActionGroup: a toggle sent over a delayed link", () => {
 
     expect(
       screen.getByRole("button", { name: "Toggle Light" }).textContent,
-    ).toBe("ON · sent");
+    ).toBe("SENT");
   });
 });
 
@@ -161,7 +162,7 @@ const toggleText = () =>
 describe("ActionGroup: a toggle the craft has answered", () => {
   it("reads as sent until the craft's telemetry shows the new state", async () => {
     const at = await pressAndAnswer();
-    expect(toggleText()).toBe("ON · sent");
+    expect(toggleText()).toBe("SENT");
 
     act(() => {
       at(350297068.3, "vessel.control", control(false));
@@ -176,7 +177,55 @@ describe("ActionGroup: a toggle the craft has answered", () => {
     act(() => {
       at(REPLY_DUE_UT + 61, "vessel.control", control(true));
     });
-    expect(toggleText()).toBe("ON · unconfirmed");
+    expect(toggleText()).toBe("LATE");
+    await act(async () => {});
+  });
+});
+
+describe("ActionGroup: telling a screen reader a toggle is outstanding", () => {
+  it("says so in a live region mounted before the press", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 1000, suspendFrames: true });
+    fixture.transport.holdCommands();
+    const { container } = render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "ag-live" }}>
+          <ActionGroupComponent
+            config={{ actionGroupId: "Light" }}
+            id="ag-live"
+            w={6}
+            h={6}
+          />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("comms.delay", { oneWaySeconds: 286, source: 1 });
+      fixture.emit("vessel.control", control(true));
+    });
+    await screen.findByText("ON");
+
+    const regions = await expectLiveRegionPrimed(container, () => {
+      screen.getByRole("button", { name: "Toggle Light" }).click();
+      const [sent] = fixture.transport.sentCommands;
+      fixture.emit("system.uplink.pending", {
+        pending: [
+          {
+            id: "engine-1",
+            clientRequestId: sent.requestId,
+            command: "vessel.control.setLights",
+            label: "Toggle Light",
+            topic: "",
+            vantage: "ground:Kerbin: KSC",
+            dispatchedAt: 1000,
+            oneWaySeconds: 286,
+          },
+        ],
+      });
+    });
+    expect(regions.map((r) => r.textContent)).toContain(
+      "Light sent, until the craft's readings show it",
+    );
     await act(async () => {});
   });
 });

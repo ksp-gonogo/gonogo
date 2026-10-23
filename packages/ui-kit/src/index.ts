@@ -547,6 +547,7 @@ export {
   type ReadoutProps,
   type ReadoutSize,
 } from "./Readout";
+export { ReservedText, type ReservedTextProps } from "./ReservedText";
 export { Row, RowName, type RowProps } from "./Row";
 export {
   type CurrencyOptions,
