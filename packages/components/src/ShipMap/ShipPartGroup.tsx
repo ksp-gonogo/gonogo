@@ -83,6 +83,7 @@ export function ShipPartGroup({
       width: p.stowedStrut.width * pxPerMetre,
     };
   }
+  if (p.silhouette) marks.silhouette = p.silhouette.map((q) => inBox(q.x, q.y));
   if (p.anchor) marks.anchor = inBox(p.anchor.x, p.anchor.y);
   const showFuel = p.type === "tank" || p.type === "booster";
 

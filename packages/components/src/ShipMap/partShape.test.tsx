@@ -93,3 +93,73 @@ describe("a landing leg", () => {
     expect(markup).toContain("stroke-dasharray");
   });
 });
+
+describe("a part drawn from its mesh outline", () => {
+  const silhouette = [
+    { x: 12, y: 30 },
+    { x: 48, y: 22 },
+    { x: 40, y: 98 },
+    { x: 14, y: 90 },
+  ];
+
+  function drawn(type: Parameters<typeof renderPartShape>[0]): string {
+    return renderToStaticMarkup(
+      renderPartShape(
+        type,
+        BOX,
+        CENTER,
+        "var(--color-info-mark)",
+        false,
+        1,
+        1,
+        undefined,
+        true,
+        { silhouette },
+      ),
+    );
+  }
+
+  it.each([
+    "engine",
+    "tank",
+    "booster",
+    "decoupler",
+    "nose-cone",
+    "fin",
+    "capsule",
+    "rcs",
+    "solar",
+    "docking-port",
+    "other",
+  ] as const)("draws a %s as its outline", (type) => {
+    const markup = drawn(type);
+    expect(markup).toContain('data-role="mesh-outline"');
+    expect(markup).toContain("12,30 48,22 40,98 14,90");
+  });
+
+  it.each([
+    "gear",
+    "parachute",
+    "strut",
+    "fairing",
+    "clamp",
+  ] as const)("keeps the shape of a %s, which says something the silhouette does not", (type) => {
+    expect(drawn(type)).not.toContain('data-role="mesh-outline"');
+  });
+
+  it("falls back to the hand-drawn shape without an outline", () => {
+    const markup = renderToStaticMarkup(
+      renderPartShape(
+        "tank",
+        BOX,
+        CENTER,
+        "var(--color-info-mark)",
+        false,
+        1,
+        1,
+      ),
+    );
+    expect(markup).not.toContain('data-role="mesh-outline"');
+    expect(markup).toContain("<rect");
+  });
+});

@@ -24,6 +24,29 @@ namespace Gonogo.KSP
         /// </summary>
         public static bool TryMeasure(Part part, string? variantName, out Vector3 center, out Vector3 size)
         {
+            return TryMeasure(part, variantName, out center, out size, out _);
+        }
+
+        /// <summary>
+        /// As <see cref="TryMeasure(Part, string?, out Vector3, out Vector3)"/>, and
+        /// <paramref name="path"/> says whether the box came from mesh vertices or
+        /// from mesh bounds.
+        /// </summary>
+        public static bool TryMeasure(Part part, string? variantName, out Vector3 center, out Vector3 size, out MeasurePath path)
+        {
+            return TryMeasure(part, variantName, out center, out size, out path, out _);
+        }
+
+        /// <summary>
+        /// As above, and <paramref name="hull"/> is the part's silhouette points
+        /// (see <see cref="HullPoints"/>) as x, y, z triples in part-local metres.
+        /// It is <c>null</c> unless every mesh was measured from its vertices,
+        /// since bounds corners say nothing a box does not.
+        /// </summary>
+        public static bool TryMeasure(Part part, string? variantName, out Vector3 center, out Vector3 size, out MeasurePath path, out double[]? hull)
+        {
+            hull = null;
+            path = MeasurePath.None;
             center = Vector3.zero;
             size = Vector3.zero;
             var model = part.transform.Find("model");
@@ -44,6 +67,9 @@ namespace Gonogo.KSP
             var lo = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
             var hi = new Vector3(float.MinValue, float.MinValue, float.MinValue);
             var found = false;
+            var fromVertices = 0;
+            var fromBounds = 0;
+            var tracker = new HullPoints.Tracker();
             foreach (var renderer in model.GetComponentsInChildren<MeshRenderer>(true))
             {
                 var filter = renderer.GetComponent<MeshFilter>();
@@ -54,14 +80,15 @@ namespace Gonogo.KSP
                 }
 
                 var toPartFromMesh = toPart * renderer.transform.localToWorldMatrix;
-                var vertices = VerticesOf(filter.sharedMesh);
-                if (vertices != null)
+                var used = MeshExtent.Grow(VerticesOf(filter.sharedMesh), filter.sharedMesh.bounds, toPartFromMesh, ref lo, ref hi);
+                if (used == MeasurePath.Vertices)
                 {
-                    MeshExtent.GrowOverPoints(vertices, toPartFromMesh, ref lo, ref hi);
+                    fromVertices++;
+                    tracker.Add(CandidatesOf(filter.sharedMesh), toPartFromMesh);
                 }
                 else
                 {
-                    MeshExtent.GrowOverCorners(filter.sharedMesh.bounds, toPartFromMesh, ref lo, ref hi);
+                    fromBounds++;
                 }
 
                 found = true;
@@ -72,6 +99,8 @@ namespace Gonogo.KSP
                 return false;
             }
 
+            path = fromBounds == 0 ? MeasurePath.Vertices : fromVertices == 0 ? MeasurePath.MeshBounds : MeasurePath.Mixed;
+            hull = fromBounds == 0 ? tracker.ToTriples() : null;
             center = (lo + hi) * 0.5f;
             size = hi - lo;
             return true;
@@ -83,6 +112,20 @@ namespace Gonogo.KSP
          * not readable is remembered as null and measured by its bounds.
          */
         private static readonly ConditionalWeakTable<Mesh, Vector3[]?> VertexCache = new();
+
+        private static readonly ConditionalWeakTable<Mesh, Vector3[]> CandidateCache = new();
+
+        private static Vector3[] CandidatesOf(Mesh mesh)
+        {
+            if (CandidateCache.TryGetValue(mesh, out var cached))
+            {
+                return cached;
+            }
+
+            var candidates = HullPoints.Candidates(VerticesOf(mesh) ?? Array.Empty<Vector3>());
+            CandidateCache.Add(mesh, candidates);
+            return candidates;
+        }
 
         private static Vector3[]? VerticesOf(Mesh mesh)
         {

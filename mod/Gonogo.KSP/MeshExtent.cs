@@ -3,6 +3,22 @@ using UnityEngine;
 
 namespace Gonogo.KSP
 {
+    /// <summary>Which data a part's box was measured from.</summary>
+    internal enum MeasurePath
+    {
+        /// <summary>The part has no model or no mesh, so no box was measured.</summary>
+        None,
+
+        /// <summary>Every mesh was measured from its vertices.</summary>
+        Vertices,
+
+        /// <summary>Every mesh was unreadable or empty and was measured from its bounds.</summary>
+        MeshBounds,
+
+        /// <summary>Some meshes were measured from vertices and some from bounds.</summary>
+        Mixed,
+    }
+
     /// <summary>
     /// Grows an axis-aligned box over a set of mesh points carried through a
     /// transform. Used by <see cref="PartMeshBounds"/> to measure a part from
@@ -10,6 +26,22 @@ namespace Gonogo.KSP
     /// </summary>
     internal static class MeshExtent
     {
+        /// <summary>
+        /// Grows the box over a mesh and says how: over its <paramref name="vertices"/>
+        /// when it has any, otherwise over the corners of its <paramref name="bounds"/>.
+        /// </summary>
+        public static MeasurePath Grow(IReadOnlyList<Vector3>? vertices, Bounds bounds, Matrix4x4 transform, ref Vector3 lo, ref Vector3 hi)
+        {
+            if (vertices != null)
+            {
+                GrowOverPoints(vertices, transform, ref lo, ref hi);
+                return MeasurePath.Vertices;
+            }
+
+            GrowOverCorners(bounds, transform, ref lo, ref hi);
+            return MeasurePath.MeshBounds;
+        }
+
         /// <summary>Grows <paramref name="lo"/> and <paramref name="hi"/> over every point of <paramref name="points"/> after <paramref name="transform"/>.</summary>
         public static void GrowOverPoints(IReadOnlyList<Vector3> points, Matrix4x4 transform, ref Vector3 lo, ref Vector3 hi)
         {

@@ -51,6 +51,21 @@ function domeHalfPoints(
 /** The share of a wing's chord cut from the leading edge at its tip. */
 const FIN_TIP_TAPER = 0.2;
 
+/**
+ * The part types drawn by what they do and not by the silhouette of their
+ * mesh: a leg's strut and foot follow its deploy state, a parachute splits by
+ * canopy state, a strut is a link and a clamp or fairing is a translucent
+ * overlay on other parts. Every other type is drawn from its mesh outline when
+ * the wire carries one.
+ */
+const STATE_SHAPES: ReadonlySet<PartType> = new Set<PartType>([
+  "gear",
+  "parachute",
+  "strut",
+  "fairing",
+  "clamp",
+]);
+
 /** Shapes a part carries beyond its box, in the same pixel space as the box. */
 export interface PartMarks {
   /** A folded leg's strut, between the two ends of a capsule `width` across. */
@@ -61,6 +76,8 @@ export interface PartMarks {
     y2: number;
     width: number;
   };
+  /** The part's outline from its mesh, in the same pixel space as the box. */
+  silhouette?: { x: number; y: number }[];
   /** Where a structural strut attaches. */
   anchor?: { x: number; y: number };
 }
@@ -85,6 +102,19 @@ export function renderPartShape(
   const { x, y, w, h } = box;
   const cx = center.x;
   const cy = center.y;
+
+  if (marks.silhouette && !STATE_SHAPES.has(type)) {
+    return (
+      <polygon
+        data-role="mesh-outline"
+        points={marks.silhouette.map((q) => `${q.x},${q.y}`).join(" ")}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        opacity={opacity}
+      />
+    );
+  }
 
   switch (type) {
     case "engine": {

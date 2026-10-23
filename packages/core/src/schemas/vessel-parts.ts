@@ -74,6 +74,12 @@ export interface TopologyPart {
   bounds: {
     size: { x: number; y: number; z: number };
     center?: { x: number; y: number; z: number };
+    /**
+     * The points of a convex hull around the part's mesh vertices, part-local
+     * metres, from the live meshes. Absent when the mesh could not be read,
+     * which a consumer draws as the box.
+     */
+    hull?: { x: number; y: number; z: number }[];
   };
   /** Raw `PartModule.moduleName` strings; no filtering. */
   modules: string[];

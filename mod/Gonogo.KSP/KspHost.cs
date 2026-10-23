@@ -6932,6 +6932,7 @@ namespace Gonogo.KSP
             }
 
             var list = new List<object?>();
+            var boundsPaths = new BoundsPathReport();
             foreach (var part in parts)
             {
                 if (part == null)
@@ -6941,7 +6942,7 @@ namespace Gonogo.KSP
 
                 try
                 {
-                    list.Add(BuildTopologyPart(part));
+                    list.Add(BuildTopologyPart(part, boundsPaths));
                 }
                 catch (Exception ex)
                 {
@@ -6950,10 +6951,20 @@ namespace Gonogo.KSP
                 }
             }
 
+            var signature = vessel.id + ":" + list.Count;
+            if (signature != lastBoundsPathSignature)
+            {
+                lastBoundsPathSignature = signature;
+                GonogoLog.Info("parts", boundsPaths.Line(GameWords.VesselName(vessel)));
+            }
+
             return list;
         }
 
-        private static Dictionary<string, object?> BuildTopologyPart(Part part)
+        // One bounds-path line per craft: the scan runs every few seconds
+        private static string? lastBoundsPathSignature;
+
+        private static Dictionary<string, object?> BuildTopologyPart(Part part, BoundsPathReport boundsPaths)
         {
             // Same flightID string join key the power/robotics captures use,
             // see BuildPartsPower's comment. 0 is the uninitialized sentinel.
@@ -6980,7 +6991,8 @@ namespace Gonogo.KSP
 
             var up = part.orgRot * Vector3.up;
             var forward = part.orgRot * Vector3.forward;
-            var hasMesh = PartMeshBounds.TryMeasure(part, part.variants?.SelectedVariant?.Name, out var meshCenter, out var meshSize);
+            var hasMesh = PartMeshBounds.TryMeasure(part, part.variants?.SelectedVariant?.Name, out var meshCenter, out var meshSize, out var boundsPath, out var meshHull);
+            boundsPaths.Add(part.partInfo != null ? part.partInfo.name : part.name, boundsPath);
 
             return new Dictionary<string, object?>
             {
@@ -6995,6 +7007,7 @@ namespace Gonogo.KSP
                 {
                     ["size"] = Vec3Array(meshSize),
                     ["center"] = hasMesh ? Vec3Array(meshCenter) : null,
+                    ["hull"] = meshHull,
                 },
                 ["dryMass"] = (double)part.mass,
                 ["inverseStage"] = part.inverseStage,

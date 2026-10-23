@@ -11357,6 +11357,17 @@ export interface PartBounds
 	* rotation before adding it to `VesselPart.position`.
 	*/
 	center?: Vec3Of<"m"> | null;
+	/**
+	* The part's silhouette as the points of a convex hull around its mesh
+	* vertices (metres, part-local), flattened to x, y, z triples in order, so a
+	* list of 3n numbers holds n points. A consumer drawing the part from any side
+	* turns the points by the part's rotation and keeps the 2D convex hull of the
+	* result. At most 38 points, rounded to a millimetre. `null` when the mesh
+	* could not be read (the box is then the only shape known) or the part's model
+	* has no mesh. A convex hull fills in any notch, so a concave part such as a
+	* cargo bay or an L-shaped bracket reads as its enclosing shape.
+	*/
+	hull?: Value<"m">[] | null;
 }
 /**
 * The active vessel's physics-simulation regime, derived from KSP's own

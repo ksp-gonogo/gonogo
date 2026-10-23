@@ -97,4 +97,46 @@ describe("deriveTopologyFromVesselParts", () => {
     expect(part.bounds.size).toEqual({ x: 1.497, y: 2.11, z: 0.097 });
     expect(part.bounds.center).toEqual({ x: -0.119, y: 0.227, z: 0.007 });
   });
+
+  it("turns the wire's flat hull into points, and drops one that is not whole points", () => {
+    const part = (hull: number[] | null) => ({
+      id: "7",
+      name: "tailfin",
+      title: "Tail Fin",
+      position: {
+        x: value("m", 0),
+        y: value("m", 0),
+        z: value("m", 0),
+      },
+      bounds: {
+        size: { x: value("m", 2), y: value("m", 2.5), z: value("m", 0.1) },
+        hull: hull?.map((n) => value("m", n)),
+      },
+      category: "Aero",
+      modules: [],
+      isPowerRelated: false,
+      resources: {},
+      moduleStates: [],
+      actionBindings: [],
+    });
+    const wire = (hull: number[] | null): VesselParts =>
+      ({ meta: { source: "test" }, parts: [part(hull)] }) as VesselParts;
+
+    expect(
+      deriveTopologyFromVesselParts(wire([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0]))
+        .parts[0].bounds.hull,
+    ).toEqual([
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+      { x: 1, y: 1, z: 0 },
+      { x: 0, y: 1, z: 0 },
+    ]);
+    expect(
+      deriveTopologyFromVesselParts(wire([0, 0, 0, 1, 0, 0, 1, 1])).parts[0]
+        .bounds.hull,
+    ).toBeUndefined();
+    expect(
+      deriveTopologyFromVesselParts(wire(null)).parts[0].bounds.hull,
+    ).toBeUndefined();
+  });
 });

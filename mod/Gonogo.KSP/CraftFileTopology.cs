@@ -120,6 +120,7 @@ namespace Gonogo.KSP
                 {
                     ["size"] = Vec3Array(box.Size),
                     ["center"] = box.HasMesh ? Vec3Array(box.Center) : null,
+                    ["hull"] = box.Hull,
                 },
                 ["dryMass"] = (double)prefab.mass + Number(node.GetValue("modMass")),
                 ["inverseStage"] = (int)Number(node.GetValue("istg"), -1),

@@ -1016,6 +1016,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     "center.x": "m",
     "center.y": "m",
     "center.z": "m",
+    hull: "m",
     "size.x": "m",
     "size.y": "m",
     "size.z": "m",

@@ -242,10 +242,17 @@ namespace Sitrep.Host
                 {
                     Size = GetVec3(bounds, "size") ?? new Vec3(),
                     Center = GetVec3(bounds, "center"),
+                    Hull = MapHull(bounds),
                 };
             }
 
             return new PartBounds();
+        }
+
+        private static List<double>? MapHull(IDictionary<string, object?> bounds)
+        {
+            var points = SnapshotDict.GetDoubleArray(bounds, "hull");
+            return points != null && points.Length % 3 == 0 ? new List<double>(points) : null;
         }
 
         private static List<string> MapModules(IDictionary<string, object?> raw)
@@ -341,6 +348,7 @@ namespace Sitrep.Host
         {
             ["size"] = ToWire(bounds.Size),
             ["center"] = bounds.Center != null ? ToWire(bounds.Center) : null,
+            ["hull"] = bounds.Hull,
         };
 
         private static Dictionary<string, object?> ToWire(Vec3 v) => new Dictionary<string, object?>

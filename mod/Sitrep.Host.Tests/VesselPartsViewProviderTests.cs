@@ -168,6 +168,45 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void HullPointsMapAsFlatTriplesAndReachTheWire()
+        {
+            var raw = RawPart("1", null);
+            raw["bounds"] = new Dictionary<string, object?>
+            {
+                ["size"] = new double[] { 2.0, 2.5, 0.1 },
+                ["center"] = new double[] { 0.9, 0.0, 0.0 },
+                ["hull"] = new double[] { -0.119, 0.548, 0.0, 1.871, -0.621, 0.0, 0.206, 1.039, 0.07 },
+            };
+
+            var part = Assert.Single(VesselPartsViewProvider.BuildParts(TopologySnapshot(raw))!.Parts);
+
+            Assert.Equal(new double[] { -0.119, 0.548, 0.0, 1.871, -0.621, 0.0, 0.206, 1.039, 0.07 }, part.Bounds.Hull);
+            var wire = Assert.Single(Assert.IsType<List<object?>>(Assert.IsType<Dictionary<string, object?>>(VesselPartsViewProvider.BuildPartsWire(TopologySnapshot(raw)))["parts"]));
+            var bounds = Assert.IsType<Dictionary<string, object?>>(Assert.IsType<Dictionary<string, object?>>(wire)["bounds"]);
+            Assert.Equal(part.Bounds.Hull, bounds["hull"]);
+        }
+
+        [Fact]
+        public void AHullThatIsNotWholePointsOrIsMissingMapsToNull()
+        {
+            var ragged = RawPart("1", null);
+            ragged["bounds"] = new Dictionary<string, object?>
+            {
+                ["size"] = new double[] { 1.0, 1.0, 1.0 },
+                ["hull"] = new double[] { 0.0, 0.0, 0.0, 1.0, 1.0 },
+            };
+            var absent = RawPart("2", null);
+            absent["bounds"] = new Dictionary<string, object?>
+            {
+                ["size"] = new double[] { 1.0, 1.0, 1.0 },
+                ["hull"] = null,
+            };
+
+            Assert.Null(Assert.Single(VesselPartsViewProvider.BuildParts(TopologySnapshot(ragged))!.Parts).Bounds.Hull);
+            Assert.Null(Assert.Single(VesselPartsViewProvider.BuildParts(TopologySnapshot(absent))!.Parts).Bounds.Hull);
+        }
+
+        [Fact]
         public void SentinelTemperaturesMapToNull()
         {
             // A part recorded with the KSP -1 "not simulated" sentinels comes

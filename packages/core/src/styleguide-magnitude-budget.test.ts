@@ -281,11 +281,10 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // wire wants: nothing added to the vector, said in one place.
   "packages/data/src/hooks/useManeuverNodes.ts": 4,
   "packages/data/src/hooks/useDataSeries.ts": 1,
-  // 22: the part's `up` vector spends three on one
-  // line. It is
-  // the wire-to-plain-model adapter for the parts list, so every read here is
-  // the same boundary said once per field.
-  "packages/data/src/hooks/vesselPartsAdapter.ts": 22,
+  // 14: the wire-to-plain-model adapter for the parts list. Part geometry's
+  // lengths (position, box, hull points) share the one `metres` funnel, and the
+  // rest is the same boundary said once per field.
+  "packages/data/src/hooks/vesselPartsAdapter.ts": 14,
   // `numOrNull`, the one funnel where a body's wire quantities become the plain
   // numbers the system diagram scales into SVG coordinates. One place,
   // deliberately, and it is why re-pointing that file at the unit system was a

@@ -35,6 +35,7 @@ export const GENERATED_TYPE_FRAMES = {
   },
   "PartBounds": {
     center: { frame: "part-local" },
+    hull: { frame: "part-local" },
     size: { frame: "part-local" },
   },
   "VesselOrbitTruth": {

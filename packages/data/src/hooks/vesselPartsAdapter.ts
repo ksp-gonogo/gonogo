@@ -9,6 +9,7 @@ import {
 } from "@ksp-gonogo/core";
 import type {
   PartModuleState,
+  Value,
   VesselPart,
   VesselParts,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -80,26 +81,23 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
     maxTemp: p.maxTemp?.magnitude ?? null,
     crashTolerance: 0,
     dryMass: p.dryMass?.magnitude ?? null,
-    orgPos: [
-      p.position.x.magnitude,
-      p.position.y.magnitude,
-      p.position.z.magnitude,
-    ],
+    orgPos: [metres(p.position.x), metres(p.position.y), metres(p.position.z)],
     up: axisTuple(p.up),
     forward: axisTuple(p.forward),
     bounds: {
       size: {
-        x: p.bounds.size.x.magnitude,
-        y: p.bounds.size.y.magnitude,
-        z: p.bounds.size.z.magnitude,
+        x: metres(p.bounds.size.x),
+        y: metres(p.bounds.size.y),
+        z: metres(p.bounds.size.z),
       },
       center: p.bounds.center
         ? {
-            x: p.bounds.center.x.magnitude,
-            y: p.bounds.center.y.magnitude,
-            z: p.bounds.center.z.magnitude,
+            x: metres(p.bounds.center.x),
+            y: metres(p.bounds.center.y),
+            z: metres(p.bounds.center.z),
           }
         : undefined,
+      hull: hullPoints(p.bounds.hull),
     },
     modules: p.modules,
   };
@@ -233,4 +231,25 @@ export function buildPartStateByFlightId(
     out.set(Number(p.id), derivePartState(p));
   }
   return out;
+}
+
+/** A length read off the wire as plain metres: the one place the part geometry's lengths leave the unit system. */
+function metres(length: Value<"m">): number {
+  return length.magnitude;
+}
+
+/** The flat x, y, z triples the wire carries, as points. A list that is not a whole number of points is no hull. */
+function hullPoints(
+  flat: readonly Value<"m">[] | null | undefined,
+): { x: number; y: number; z: number }[] | undefined {
+  if (!flat || flat.length < 9 || flat.length % 3 !== 0) return undefined;
+  const points: { x: number; y: number; z: number }[] = [];
+  for (let i = 0; i < flat.length; i += 3) {
+    points.push({
+      x: metres(flat[i]),
+      y: metres(flat[i + 1]),
+      z: metres(flat[i + 2]),
+    });
+  }
+  return points;
 }

@@ -976,6 +976,7 @@
       "center.x": "m",
       "center.y": "m",
       "center.z": "m",
+      "hull": "m",
       "size.x": "m",
       "size.y": "m",
       "size.z": "m"

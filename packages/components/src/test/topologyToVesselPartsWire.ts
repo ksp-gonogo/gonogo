@@ -47,6 +47,7 @@ function topologyPartToVesselPartWire(
     bounds: {
       size: p.bounds.size,
       center: p.bounds.center,
+      hull: p.bounds.hull?.flatMap((q) => [q.x, q.y, q.z]),
     },
     dryMass: p.dryMass,
     inverseStage: p.inverseStage,

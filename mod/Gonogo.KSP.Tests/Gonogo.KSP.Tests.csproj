@@ -283,6 +283,8 @@
          It compares Sitrep.Contract's KSP-enum mirrors against the real enums in
          Assembly-CSharp, so it is gated like every other KspManaged suite here. -->
     <Compile Remove="MeshExtentTests.cs" />
+    <Compile Remove="BoundsPathReportTests.cs" />
+    <Compile Remove="HullPointsTests.cs" />
     <Compile Remove="KspEnumMirrorTests.cs" />
     <!-- The same, for the strategy activation's reflected members and stock's
          Activate() body, both read off Assembly-CSharp. -->
@@ -353,6 +355,10 @@
          below that reports a fault calls it, so it has to resolve here. -->
     <Compile Include="..\Gonogo.KSP\MeshExtent.cs" />
     <Compile Include="MeshExtentTests.cs" />
+    <Compile Include="..\Gonogo.KSP\BoundsPathReport.cs" />
+    <Compile Include="BoundsPathReportTests.cs" />
+    <Compile Include="..\Gonogo.KSP\HullPoints.cs" />
+    <Compile Include="HullPointsTests.cs" />
     <Compile Include="..\Gonogo.KSP\GonogoLog.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\PendingCreditLedger.cs" />
     <!-- CurrencyDelayLedgerPersistence.cs merges a loaded ledger's rows into an existing

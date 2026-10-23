@@ -6,6 +6,7 @@ import type {
   TopologyPart,
 } from "@ksp-gonogo/core";
 import { classifyPart } from "./classifyPart";
+import { convexHull, type OutlinePoint } from "./outline";
 
 /** Diagram-side categories: one per visually distinct shape. Every other KSP category is "other". */
 export type PartType =
@@ -74,6 +75,8 @@ export interface ShipMapPart {
    * (a wheel folded into a bay), which is drawn as the outline of its box.
    */
   stowedStrut?: StowedStrut;
+  /** The part's mesh seen from this view, as a convex outline in metres in the drawn box's frame from the box centre. Absent when the part carries no mesh outline, which is drawn as its box. */
+  silhouette?: OutlinePoint[];
   /** For a structural strut: where it attaches, in metres in the drawn box's frame from the box centre. */
   anchor?: { x: number; y: number };
   /** `Part.mass` from topology: dry mass, no resources. Null when unread. */
@@ -433,6 +436,17 @@ export function buildShipMapPart(
       width: stowed.width,
     };
   }
+  const silhouette = part.bounds.hull?.length
+    ? convexHull(
+        part.bounds.hull.map((point) =>
+          inBoxFrame({
+            x: point.x - centre.x,
+            y: point.y - centre.y,
+            z: point.z - centre.z,
+          }),
+        ),
+      )
+    : [];
   const anchor =
     type === "strut"
       ? inBoxFrame({ x: -centre.x, y: -centre.y, z: -centre.z })
@@ -455,6 +469,7 @@ export function buildShipMapPart(
     axialHalfExtent: halfExtentAlong(sin, cos),
     tipSign: planform?.tipSign,
     stowedStrut,
+    silhouette: silhouette.length ? silhouette : undefined,
     anchor,
     dryMass: part.dryMass,
     stage: part.inverseStage,

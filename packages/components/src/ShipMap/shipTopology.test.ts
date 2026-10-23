@@ -344,3 +344,78 @@ describe("drawn extent", () => {
     expect(p.latHalfExtent).toBeCloseTo(0.1, 9);
   });
 });
+
+describe("a part's mesh outline", () => {
+  // A swept plate 2 m across and 1 m long whose far corner is cut, in the part's own frame, with a point inside it
+  const plate = [
+    { x: -1, y: -0.5, z: 0 },
+    { x: 1, y: -0.5, z: 0 },
+    { x: 1, y: 0, z: 0 },
+    { x: 0.2, y: 0.5, z: 0 },
+    { x: -1, y: 0.5, z: 0 },
+    { x: 0, y: 0, z: 0 },
+  ];
+
+  it("is the hull of the published points, centred on the box", () => {
+    const p = buildShipMapPart(
+      part({
+        name: "wing",
+        bounds: {
+          size: { x: 2, y: 1, z: 0.1 },
+          center: { x: 0, y: 0, z: 0 },
+          hull: plate,
+        },
+      }),
+      undefined,
+      undefined,
+      0,
+    );
+
+    expect(p.silhouette).toHaveLength(5);
+    expect(p.silhouette).not.toContainEqual({ x: 0, y: 0 });
+    const xs = (p.silhouette ?? []).map((q) => q.x);
+    expect(Math.min(...xs)).toBeCloseTo(-1, 5);
+    expect(Math.max(...xs)).toBeCloseTo(1, 5);
+  });
+
+  it("measures its points from the box centre, not the part origin", () => {
+    const p = buildShipMapPart(
+      part({
+        name: "wing",
+        bounds: {
+          size: { x: 2, y: 1, z: 0.1 },
+          center: { x: 3, y: 0, z: 0 },
+          hull: plate.map((q) => ({ ...q, x: q.x + 3 })),
+        },
+      }),
+      undefined,
+      undefined,
+      0,
+    );
+
+    const xs = (p.silhouette ?? []).map((q) => q.x);
+    expect(Math.min(...xs)).toBeCloseTo(-1, 5);
+    expect(Math.max(...xs)).toBeCloseTo(1, 5);
+  });
+
+  it("is absent when the wire carries no hull or one that encloses no area", () => {
+    const base = { size: { x: 1, y: 1, z: 1 } };
+    expect(
+      buildShipMapPart(part({ bounds: base }), undefined, undefined, 0)
+        .silhouette,
+    ).toBeUndefined();
+    const flat = [
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 1, z: 0 },
+      { x: 2, y: 2, z: 0 },
+    ];
+    expect(
+      buildShipMapPart(
+        part({ bounds: { ...base, hull: flat } }),
+        undefined,
+        undefined,
+        0,
+      ).silhouette,
+    ).toBeUndefined();
+  });
+});

@@ -24,6 +24,7 @@ namespace Gonogo.KSP
             public bool HasMesh;
             public Vector3 Center;
             public Vector3 Size;
+            public double[]? Hull;
         }
 
         /* Main-thread only. A prefab's box never changes in a session, and measuring one walks every renderer under its model. */
@@ -132,6 +133,7 @@ namespace Gonogo.KSP
                 {
                     ["size"] = Vec3Array(box.Size),
                     ["center"] = box.HasMesh ? Vec3Array(box.Center) : null,
+                    ["hull"] = box.Hull,
                 },
                 ["dryMass"] = (double)pps.mass,
                 ["inverseStage"] = pps.inverseStageIndex,
@@ -190,7 +192,8 @@ namespace Gonogo.KSP
             }
 
             var box = new PrefabBox();
-            box.HasMesh = PartMeshBounds.TryMeasure(prefab, variantName, out box.Center, out box.Size);
+            box.HasMesh = PartMeshBounds.TryMeasure(prefab, variantName, out box.Center, out box.Size, out var path, out box.Hull);
+            GonogoLog.Info("parts", "bounds path for prefab \"" + key + "\": " + path);
             PrefabBoxes[key] = box;
             return box;
         }
