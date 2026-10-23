@@ -46,6 +46,15 @@ export function useActionGroupEssentials(
         }
       : null,
   );
+  useStatusContribution(
+    toggle.capabilityWarning
+      ? {
+          id: "capability",
+          severity: "warn",
+          label: toggle.capabilityWarning.name,
+        }
+      : null,
+  );
   if (!group) return [{ label: "ACTION GROUP", word: "NONE" }];
   return [
     {

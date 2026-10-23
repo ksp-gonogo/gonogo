@@ -136,6 +136,105 @@ describe("ActionGroup (SAS): the toggle -> absolute command dispatch", () => {
   });
 });
 
+describe("ActionGroup (SAS): a craft with no SAS", () => {
+  const NO_SAS = {
+    sas: false,
+    sasMode: 0,
+    rcs: false,
+    gear: false,
+    brakes: false,
+    lights: false,
+    throttle: 0,
+    actionGroups: STOCK_GROUPS_ALL_OFF,
+    sasAvailable: false,
+    sasUnavailableReason:
+      "No SAS: needs a Pilot aboard or a probe core with SAS",
+  };
+
+  function mountSas() {
+    const fixture = setupStreamFixture({ pinnedUt: 100, suspendFrames: true });
+    const commandHandler = vi.fn(() => ({ ok: true }));
+    fixture.transport.setCommandHandler(commandHandler);
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "ag-no-sas" }}>
+          <ActionGroupComponent
+            config={{ actionGroupId: "SAS" }}
+            id="ag-no-sas"
+            w={6}
+            h={6}
+          />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    return { fixture, commandHandler };
+  }
+
+  it("warns that the craft has no SAS and how old the last reading is, and still sends the press", async () => {
+    const { fixture, commandHandler } = mountSas();
+    act(() => {
+      fixture.emit("vessel.control", NO_SAS);
+    });
+    expect(
+      (await screen.findAllByText(/No SAS, last known .* ago/)).length,
+    ).toBeGreaterThan(0);
+
+    act(() => {
+      screen.getByRole("button", { name: "Toggle SAS" }).click();
+    });
+    await waitFor(() =>
+      expect(commandHandler).toHaveBeenCalledWith("vessel.control.setSas", {
+        enabled: true,
+      }),
+    );
+  });
+
+  it("gives the age of the last reading, which grows as other readings carry the clock on", async () => {
+    const { fixture } = mountSas();
+    act(() => {
+      fixture.emit("vessel.control", NO_SAS, {
+        validAt: 100,
+        deliveredAt: 100,
+      });
+    });
+    await screen.findAllByText(/No SAS, last known/);
+    act(() => {
+      fixture.emit(
+        "comms.link",
+        { connected: true },
+        {
+          validAt: 400,
+          deliveredAt: 400,
+        },
+      );
+    });
+    await waitFor(() =>
+      expect(screen.getAllByText(/No SAS, last known/)[0].textContent).toMatch(
+        /5min/,
+      ),
+    );
+  });
+
+  it("says nothing before the first control reading arrives", async () => {
+    mountSas();
+    await act(async () => {});
+    expect(screen.queryByText(/No SAS/)).toBeNull();
+  });
+
+  it("says nothing for a craft that has SAS", async () => {
+    const { fixture } = mountSas();
+    act(() => {
+      fixture.emit("vessel.control", {
+        ...NO_SAS,
+        sasAvailable: true,
+        sasUnavailableReason: null,
+      });
+    });
+    await screen.findByText("OFF");
+    expect(screen.queryByText(/No SAS/)).toBeNull();
+  });
+});
+
 describe("ActionGroup (Abort): toggle -> absolute command dispatch", () => {
   it("shows the live Abort state and dispatches vessel.control.setAbort", async () => {
     const fixture = setupStreamFixture({

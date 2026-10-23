@@ -65,6 +65,44 @@ describe("ActionGroup tiny mode", () => {
     await act(async () => {});
   });
 
+  it("carries a craft's missing SAS as the status dot and still sends the press", async () => {
+    const user = userEvent.setup();
+    const { fixture } = setup({ w: 3, h: 3 });
+    await screen.findByRole("button", { name: "Toggle SAS" });
+    act(() => {
+      fixture.emit("vessel.control", {
+        sasMode: 0,
+        throttle: 0,
+        sas: false,
+        actionGroups: [],
+        sasAvailable: false,
+        sasUnavailableReason: "No SAS: needs a Pilot aboard",
+      });
+    });
+    await waitFor(() =>
+      expect(
+        document
+          .querySelector("[data-panel-status-dot]")
+          ?.getAttribute("data-severity"),
+      ).toBe("warn"),
+    );
+    expect(
+      document
+        .querySelector("[data-panel-status-dot]")
+        ?.closest("[data-tooltip]")
+        ?.getAttribute("data-tooltip"),
+    ).toBe("No SAS");
+
+    await user.click(screen.getByRole("button", { name: "Toggle SAS" }));
+    await waitFor(() =>
+      expect(
+        fixture.transport.sentCommands.some(
+          (c) => c.command === "vessel.control.setSas",
+        ),
+      ).toBe(true),
+    );
+  });
+
   it("sends the same delay-aware command a body press does", async () => {
     const user = userEvent.setup();
     const { fixture } = setup({ w: 3, h: 3 });

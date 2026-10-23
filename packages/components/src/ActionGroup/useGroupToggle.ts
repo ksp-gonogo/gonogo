@@ -7,6 +7,10 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
+import {
+  type CapabilityWarning,
+  useCommandCapabilityWarning,
+} from "../shared/commandCapability";
 import type { ActionGroupActions } from "./config";
 import {
   stateLabelOf,
@@ -31,6 +35,8 @@ export interface GroupToggle {
   /** Whether a press does anything: `buildToggleArgs` would refuse it otherwise. */
   canToggle: boolean;
   unavailableReason: UnavailableReason | null;
+  /** What the craft lacks that this group's command needs, from its last control reading; the press still sends. */
+  capabilityWarning: CapabilityWarning | null;
   press: () => void;
   /** A toggle sent from here is still on its way to the craft or awaiting its reply, so the state shown is not yet the answer to it. */
   pending: boolean;
@@ -60,6 +66,7 @@ export function useGroupToggle({
 
   const toggleCommand = group ? toggleCommandFor(group) : null;
   const toggleCmd = useCommand(toggleCommand ?? "");
+  const capabilityWarning = useCommandCapabilityWarning(toggleCommand);
 
   // A held reading with no value for this group has nothing to send the opposite of.
   const unreadable = stateUnreadable || (valueHeld && value == null);
@@ -104,6 +111,7 @@ export function useGroupToggle({
           provenance: group.provenance,
         })
       : null,
+    capabilityWarning,
     press,
     pending,
   };

@@ -13,12 +13,14 @@ import {
   getSizeBucket,
   IconButton,
   Inline,
+  Notice,
   type ReckoningMarking,
   Section,
   Stack,
   Text,
   Tooltip,
   Truncate,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useRef, useState } from "react";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
@@ -53,14 +55,21 @@ export function ActionGroupView({
   const currentLabel = config?.label ?? group?.name ?? "";
 
   const openAlarms = useAlarmsLauncher();
-  const { isOn, stateLabel, canToggle, unavailableReason, press, pending } =
-    useGroupToggle({
-      group,
-      value,
-      valueHeld,
-      stateUnreadable,
-      label: currentLabel,
-    });
+  const {
+    isOn,
+    stateLabel,
+    canToggle,
+    unavailableReason,
+    capabilityWarning,
+    press,
+    pending,
+  } = useGroupToggle({
+    group,
+    value,
+    valueHeld,
+    stateUnreadable,
+    label: currentLabel,
+  });
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -233,6 +242,23 @@ export function ActionGroupView({
               </Tooltip>
             </Inline>
           </Cluster>
+          {capabilityWarning && getSizeBucket(w, h) !== "tiny" && (
+            <Tooltip text={capabilityWarning.reason}>
+              <Notice>
+                <span>
+                  {capabilityWarning.age === undefined ? (
+                    capabilityWarning.name
+                  ) : (
+                    <>
+                      {`${capabilityWarning.name}, last known `}
+                      <Unit value={capabilityWarning.age} />
+                      {" ago"}
+                    </>
+                  )}
+                </span>
+              </Notice>
+            </Tooltip>
+          )}
         </Section>,
         <AugmentSlot
           key="subsystem"
