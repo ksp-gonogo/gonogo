@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Sitrep.Vendor.Fleck;
 
@@ -36,8 +37,21 @@ namespace Sitrep.Transport
 
         private const ushort OverflowCloseCode = 1013;
 
+        /// <summary>
+        /// How long one write may stay unfinished before the peer is dropped. A path
+        /// that goes half-dead (a tunnel that lost the flow, a peer that vanished
+        /// without a reset) leaves the write pending with no error, and keepalive
+        /// does not fire for data that is waiting to be acknowledged, so without
+        /// this limit the stream stops for good while the client believes it is
+        /// connected and never reconnects.
+        /// </summary>
+        internal static readonly TimeSpan DefaultSendStallLimit = TimeSpan.FromSeconds(20);
+
         private readonly long _maxQueuedBytes;
+        private readonly TimeSpan _sendStallLimit;
+        private readonly Timer _stallTimer;
         private long _queuedBytes;
+        private long _sendStartedTicks;
 
         public FleckTransportConnection(IWebSocketConnection socket)
             : this(socket, DefaultMaxQueuedBytes)
@@ -45,8 +59,15 @@ namespace Sitrep.Transport
         }
 
         public FleckTransportConnection(IWebSocketConnection socket, long maxQueuedBytes)
+            : this(socket, maxQueuedBytes, DefaultSendStallLimit)
+        {
+        }
+
+        public FleckTransportConnection(IWebSocketConnection socket, long maxQueuedBytes, TimeSpan sendStallLimit)
         {
             _maxQueuedBytes = maxQueuedBytes;
+            _sendStallLimit = sendStallLimit;
+            _stallTimer = new Timer(_ => CheckSendStall(), null, Timeout.Infinite, Timeout.Infinite);
             _socket = socket ?? throw new ArgumentNullException(nameof(socket));
             Id = socket.ConnectionInfo.Id.ToString("N");
 
@@ -262,6 +283,7 @@ namespace Sitrep.Transport
                 if (_sendQueue.Count == 0)
                 {
                     _sending = false;
+                    _stallTimer.Change(Timeout.Infinite, Timeout.Infinite);
                     return;
                 }
 
@@ -299,6 +321,9 @@ namespace Sitrep.Transport
                 return;
             }
 
+            Volatile.Write(ref _sendStartedTicks, System.Diagnostics.Stopwatch.GetTimestamp());
+            _stallTimer.Change(_sendStallLimit, Timeout.InfiniteTimeSpan);
+
             sendTask.ContinueWith(
                 t =>
                 {
@@ -306,6 +331,36 @@ namespace Sitrep.Transport
                     DrainNext();
                 },
                 TaskContinuationOptions.ExecuteSynchronously);
+        }
+
+        private void CheckSendStall()
+        {
+            long queued;
+            lock (_sendLock)
+            {
+                var elapsed = TimeSpan.FromSeconds(
+                    (System.Diagnostics.Stopwatch.GetTimestamp() - Volatile.Read(ref _sendStartedTicks)) / (double)System.Diagnostics.Stopwatch.Frequency);
+                if (!_sending || elapsed < _sendStallLimit)
+                {
+                    return;
+                }
+
+                queued = _queuedBytes;
+                _sendQueue.Clear();
+                _queuedBytes = 0;
+            }
+
+            FleckLog.Warn(
+                "dropping connection " + Id + ": a write has not completed in " + _sendStallLimit.TotalSeconds + " s with "
+                + queued + " bytes queued behind it");
+            try
+            {
+                _socket.Abort();
+            }
+            catch (Exception)
+            {
+            }
+            RaiseClosed();
         }
 
         public void Close(ushort code, string reason)

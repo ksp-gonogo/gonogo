@@ -281,7 +281,42 @@ namespace Sitrep.Transport.Tests
             Assert.Equal(1013, fakeSocket.ClosedWith);
         }
 
-        private static ITransportConnection CreateFleckTransportConnection(IWebSocketConnection socket, long? maxQueuedBytes = null)
+        [Fact]
+        public async Task TrySend_AWriteThatNeverCompletesDropsTheConnectionInsteadOfGoingSilent()
+        {
+            var fakeSocket = new ControllableWebSocketConnection();
+            var connection = CreateFleckTransportConnection(fakeSocket, sendStallLimit: TimeSpan.FromMilliseconds(100));
+            var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            connection.Closed += () => closed.TrySetResult();
+
+            Assert.True(connection.TrySend(new ArraySegment<byte>(new byte[10]), SendClass.Telemetry));
+            Assert.True(connection.IsBusy);
+
+            await closed.Task.WaitAsync(TimeSpan.FromSeconds(15));
+
+            Assert.True(fakeSocket.Aborted);
+        }
+
+        [Fact]
+        public async Task TrySend_WritesThatKeepCompletingAreNotDroppedAsStalled()
+        {
+            var fakeSocket = new ControllableWebSocketConnection();
+            var connection = CreateFleckTransportConnection(fakeSocket, sendStallLimit: TimeSpan.FromMilliseconds(200));
+            var closed = 0;
+            connection.Closed += () => closed++;
+
+            for (var i = 0; i < 6; i++)
+            {
+                Assert.True(connection.TrySend(new ArraySegment<byte>(new byte[10]), SendClass.Telemetry));
+                fakeSocket.CompleteNext();
+                await Task.Delay(60);
+            }
+
+            Assert.Equal(0, closed);
+            Assert.False(fakeSocket.Aborted);
+        }
+
+        private static ITransportConnection CreateFleckTransportConnection(IWebSocketConnection socket, long? maxQueuedBytes = null, TimeSpan? sendStallLimit = null)
         {
             var type = typeof(ITransportConnection).Assembly.GetType(
                 "Sitrep.Transport.FleckTransportConnection", throwOnError: true)!;
@@ -290,7 +325,9 @@ namespace Sitrep.Transport.Tests
                 type,
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.CreateInstance,
                 binder: null,
-                args: maxQueuedBytes is long cap ? new object[] { socket, cap } : new object[] { socket },
+                args: sendStallLimit is TimeSpan limit
+                    ? new object[] { socket, maxQueuedBytes ?? 32L * 1024 * 1024, limit }
+                    : maxQueuedBytes is long cap ? new object[] { socket, cap } : new object[] { socket },
                 culture: null)!;
         }
 
@@ -336,6 +373,8 @@ namespace Sitrep.Transport.Tests
             public void Close() { }
 
             public void Close(int code) { ClosedWith = code; }
+
+            public void Abort() { }
         }
 
         private sealed class FakeWebSocketConnectionInfo : IWebSocketConnectionInfo
@@ -527,6 +566,10 @@ namespace Sitrep.Transport.Tests
             public void Close() { }
 
             public void Close(int code) { }
+
+            public bool Aborted { get; private set; }
+
+            public void Abort() { Aborted = true; }
         }
     }
 }

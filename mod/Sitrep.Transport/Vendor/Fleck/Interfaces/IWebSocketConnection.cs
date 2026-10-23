@@ -19,6 +19,7 @@ namespace Sitrep.Vendor.Fleck
         Task SendPong(byte[] message);
         void Close();
         void Close(int code);
+        void Abort();
         IWebSocketConnectionInfo ConnectionInfo { get; }
         bool IsAvailable { get; }
     }

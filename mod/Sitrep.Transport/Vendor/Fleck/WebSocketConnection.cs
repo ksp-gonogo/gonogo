@@ -128,6 +128,15 @@ namespace Sitrep.Vendor.Fleck
         SendBytes(bytes, CloseSocket);
     }
 
+    /// <summary>Drops the connection at once without a close frame, for a peer whose pending write never completes and so would hold a close frame behind it.</summary>
+    public void Abort()
+    {
+      if (_closed)
+        return;
+
+      CloseSocket();
+    }
+
     public void CreateHandler(IEnumerable<byte> data)
     {
       var request = _parseRequest(data.ToArray());

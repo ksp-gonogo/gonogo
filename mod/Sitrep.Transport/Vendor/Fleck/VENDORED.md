@@ -18,6 +18,10 @@ Vendored files: `src/Fleck/**/*.cs` from the upstream repo, unmodified except fo
    Upstream only restarts when `RestartAfterListenError` is set, leaks the
    failed socket, and never rebinds the same way. Re-apply this on an update.
 
+4. `WebSocketConnection.cs` and `IWebSocketConnection.cs`: `Abort()` closes the
+   socket without queueing a close frame, because a close frame waits behind a
+   write that never completes. Re-apply this on an update.
+
 No other lines were touched, logic, formatting, and behavior are untouched.
 
 ## Why source, not a NuGet/DLL reference
