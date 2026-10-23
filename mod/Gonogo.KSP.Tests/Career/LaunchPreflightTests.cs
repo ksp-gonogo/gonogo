@@ -141,6 +141,30 @@ namespace Gonogo.KSP.Tests.Career
             Assert.False(refusal!.Success);
         }
 
+        /// <summary>
+        /// A craft with a cockpit and nobody to fly it is refused for that, not
+        /// for lacking a command module, which the game's own sentence claims.
+        /// </summary>
+        [Fact]
+        public void ARefusalCarriesTheReasonACheckSuppliesInPlaceOfTheGamesWords()
+        {
+            var refusal = LaunchPreflight.FirstRefusal(new[]
+            {
+                new LaunchCheck(
+                    new FakePreFlightTest(false, "No control", "no remote-controlled or manned command modules"),
+                    CommandErrorCode.CapabilityMismatch,
+                    detail: LaunchRule.NoControlSourceDetail(hasCrewedCommandModule: true)),
+            });
+
+            Assert.Equal("no kerbal is available to crew the craft's command module", refusal!.Detail);
+        }
+
+        [Fact]
+        public void ACraftWithNoCrewedCommandModuleKeepsTheGamesWords()
+        {
+            Assert.Null(LaunchRule.NoControlSourceDetail(hasCrewedCommandModule: false));
+        }
+
         private static LaunchCheck Check(
             bool passes,
             RefusalCode code,

@@ -76,6 +76,19 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// The reason a craft with no control source cannot launch, when the
+        /// game's sentence would name the wrong cause, or null to quote the
+        /// game's. KSP says "no remote-controlled or manned command modules"
+        /// whether or not the craft has a cockpit, so a crewed craft with nobody
+        /// seated in it is told what is actually missing.
+        /// </summary>
+        /// <param name="hasCrewedCommandModule">Whether any command module on the craft needs a kerbal aboard.</param>
+        public static string? NoControlSourceDetail(bool hasCrewedCommandModule) =>
+            hasCrewedCommandModule
+                ? "no kerbal is available to crew the craft's command module"
+                : null;
+
+        /// <summary>
         /// Place the craft, answering a throw from the game with a refusal of
         /// this call instead of letting it end the command.
         /// </summary>

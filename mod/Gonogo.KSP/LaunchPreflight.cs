@@ -17,11 +17,16 @@ namespace Gonogo.KSP
     /// </summary>
     internal sealed class LaunchCheck
     {
-        public LaunchCheck(PreFlightTests.IPreFlightTest test, RefusalCode code, LimitBreach? breach = null)
+        public LaunchCheck(
+            PreFlightTests.IPreFlightTest test,
+            RefusalCode code,
+            LimitBreach? breach = null,
+            string? detail = null)
         {
             Test = test;
             Code = code;
             Breach = breach;
+            Detail = detail;
         }
 
         public PreFlightTests.IPreFlightTest Test { get; }
@@ -29,6 +34,12 @@ namespace Gonogo.KSP
         public RefusalCode Code { get; }
 
         public LimitBreach? Breach { get; }
+
+        /// <summary>
+        /// The refusal's sentence when the game's own words would mislead for
+        /// this craft, or null to quote the game's.
+        /// </summary>
+        public string? Detail { get; }
     }
 
     /// <summary>
@@ -104,7 +115,7 @@ namespace Gonogo.KSP
 
                 return check.Breach != null
                     ? CommandResult.Fail(check.Code, check.Breach)
-                    : CommandResult.Fail(check.Code, Words(check.Test));
+                    : CommandResult.Fail(check.Code, check.Detail ?? Words(check.Test));
             }
             return null;
         }
@@ -206,7 +217,8 @@ namespace Gonogo.KSP
             {
                 Add(checks, () => new LaunchCheck(
                     new PreFlightTests.NoControlSources(manifest),
-                    CommandErrorCode.CapabilityMismatch));
+                    CommandErrorCode.CapabilityMismatch,
+                    detail: LaunchRule.NoControlSourceDetail(HasCrewedCommandModule(manifest))));
             }
 
             if (!string.IsNullOrEmpty(craftPath) && TryLaunchSiteEditor(site, out var expectedEditor))
@@ -218,6 +230,23 @@ namespace Gonogo.KSP
             }
 
             return checks;
+        }
+
+        /// <summary>
+        /// Whether the craft carries a command module that needs a kerbal in it,
+        /// by the minimum crew its part declares.
+        /// </summary>
+        private static bool HasCrewedCommandModule(VesselCrewManifest manifest)
+        {
+            foreach (var part in manifest.PartManifests)
+            {
+                var command = part.PartInfo?.partPrefab?.FindModuleImplementing<ModuleCommand>();
+                if (command != null && command.minimumCrew > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
