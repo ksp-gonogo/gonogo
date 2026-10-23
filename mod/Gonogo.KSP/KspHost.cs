@@ -4477,6 +4477,40 @@ namespace Gonogo.KSP
 
         private static readonly SavedShipParseMemo _unbuildableCraft = new SavedShipParseMemo();
 
+        /*
+         * The cost in a craft file leaves out what modules add, and the rollout charges it all, so
+         * a craft is priced again with its modules once per file version. That loads the craft's
+         * parts, so only a few are priced per scan and the rest keep the file's cost until their turn.
+         */
+        private const int ModulePricingsPerScan = 2;
+        private static readonly StampedCache<double?> SavedShipCosts = new StampedCache<double?>();
+
+        private static void ApplyModulePrice(string file, long stamp, Dictionary<string, object?> entry, ref int budget)
+        {
+            if (SavedShipCosts.TryGet(file, stamp, out var known))
+            {
+                if (known != null)
+                {
+                    entry["requiresFunds"] = known.Value;
+                }
+                return;
+            }
+
+            if (budget <= 0 || Funding.Instance == null)
+            {
+                return;
+            }
+
+            budget--;
+            var root = ConfigNode.Load(file);
+            var cost = root == null ? (double?)null : CraftCatalogueBackend.CostWithModules(root);
+            SavedShipCosts.Put(file, stamp, cost);
+            if (cost != null)
+            {
+                entry["requiresFunds"] = cost.Value;
+            }
+        }
+
         private static List<object?>? ScanSavedShips(double ut, bool wanted)
         {
             var game = HighLogic.CurrentGame;
@@ -4508,6 +4542,7 @@ namespace Gonogo.KSP
 
             var ships = new List<object?>();
             var seenFiles = new HashSet<string>();
+            var modulePricings = ModulePricingsPerScan;
             foreach (var facility in new[] { EditorFacility.VAB, EditorFacility.SPH })
             {
                 string path;
@@ -4578,6 +4613,11 @@ namespace Gonogo.KSP
                             ["canFlyUnmanned"] = control?.CanFlyUnmanned,
                             ["minimumCrew"] = control?.MinimumCrew,
                         };
+                        if (buildable)
+                        {
+                            ApplyModulePrice(file, stamp, entry, ref modulePricings);
+                        }
+
                         ships.Add(entry);
                         if (!buildable)
                         {
@@ -4592,6 +4632,7 @@ namespace Gonogo.KSP
             }
 
             _unbuildableCraft.Retain(seenFiles);
+            SavedShipCosts.ForgetUnseen();
             _cachedSavedShips = ships;
             SavedShipsRescan.Scanned(gameName, ut, wallSeconds);
             return ships;

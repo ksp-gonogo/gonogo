@@ -38,5 +38,17 @@ namespace Gonogo.KSP.Tests
 
             Assert.True(priced >= 0 && priced < placed, "the launch must be priced with its modules before FlightDriver is called");
         }
+
+        [Fact]
+        public void TheCraftListPriceIsTheOneWithModulesWhereTheCraftHasBeenPriced()
+        {
+            var source = CurrencyDelaySourceText.ReadRelative("KspHost.cs");
+            var price = CurrencyDelaySourceText.MethodBody(source, "private static void ApplyModulePrice(string file, long stamp, Dictionary<string, object?> entry, ref int budget)");
+            var scan = CurrencyDelaySourceText.MethodBody(source, "private static List<object?>? ScanSavedShips(double ut, bool wanted)");
+
+            Assert.Contains("CraftCatalogueBackend.CostWithModules(", price, StringComparison.Ordinal);
+            Assert.Contains("entry[\"requiresFunds\"] = cost.Value", price, StringComparison.Ordinal);
+            Assert.Contains("ApplyModulePrice(file, stamp, entry,", scan, StringComparison.Ordinal);
+        }
     }
 }
