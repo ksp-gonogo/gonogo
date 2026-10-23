@@ -221,9 +221,9 @@ namespace Sitrep.Propagation.Tests.Contacts
         }
 
         [Fact]
-        public void ACraftOnAnEscapeTrajectoryIsLeftOutWithoutSinkingTheOtherPairs()
+        public void ACraftOnAParabolaIsLeftOutWithoutSinkingTheOtherPairs()
         {
-            var escaping = new OrbitElements(-2_000_000.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu);
+            var escaping = new OrbitElements(-2_000_000.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu);
             var nodes = new[]
             {
                 Craft("vessel:a", KerbinOrbit(700_000.0, 0.0)),
@@ -421,6 +421,21 @@ namespace Sitrep.Propagation.Tests.Contacts
                 + windows + " windows, " + clock.ElapsedMilliseconds + " ms");
 
             Assert.Equal(pairs.Count, plan.Pairs.Count);
+        }
+
+        [Fact]
+        public void ACraftOnAnEscapePathIsPlannedForWhileItsElementsHold()
+        {
+            // Periapsis 150 km over the equator at the station's longitude, then out along the hyperbola.
+            var escape = new OrbitElements(-1_500_000.0, 1.5, 0.0, 0.0, 0.0, -0.05, 0.0, KerbinMu);
+            var nodes = new[] { Craft("vessel:a", escape), PlanNode.OnSurface("ground:ksc", Kerbin, Station(0.0)) };
+            var pairs = new[] { new PlanPair("vessel:a", "ground:ksc", KerbinOnly(), null) };
+
+            var plan = ContactPlanner.Plan(nodes, pairs, Propagator(), Kerbin, 0.0, 1800.0, 10.0, 0.05);
+
+            var pair = Assert.Single(plan.Pairs);
+            Assert.True(pair.HorizonUt > 1700.0);
+            Assert.NotEmpty(pair.Windows);
         }
     }
 }

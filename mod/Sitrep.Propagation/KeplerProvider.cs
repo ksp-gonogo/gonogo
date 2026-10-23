@@ -13,9 +13,9 @@ namespace Sitrep.Propagation
     /// longitude of ascending node -- the Vallado/AIAA convention).
     ///
     /// Deterministic and side-effect-free: no wall-clock, no RNG. Only
-    /// elliptical orbits (0 &lt;= ecc &lt; 1) are supported -- this is the
-    /// dead-reckoning foundation for bound orbits, not an escape-trajectory
-    /// solver.
+    /// elliptical orbits (0 &lt;= ecc &lt; 1) and escape hyperbolas (ecc &gt; 1,
+    /// negative semi-major axis) are solved; a parabola is declined. Period, radius
+    /// extremes and closest approach stay questions about closed orbits.
     ///
     /// <para><b>Reaching another body's frame is done here, by summing conics up and
     /// down the body tree.</b> That sum used to be the visibility geometry's, which
@@ -187,7 +187,7 @@ namespace Sitrep.Propagation
         /// </summary>
         public bool CanPropagate(PropagationTarget target, PropagationFrame frame, double fromUt, double toUt)
         {
-            if (target.Kind == PropagationTargetKind.Vessel && !IsBoundConic(target.Osculating))
+            if (target.Kind == PropagationTargetKind.Vessel && !IsSolvableConic(target.Osculating))
             {
                 return false;
             }
@@ -420,6 +420,24 @@ namespace Sitrep.Propagation
             return bodies[bodyIndex].Orbit;
         }
 
+        /// <summary>A bound conic, or an escape hyperbola (ecc above 1 with a negative semi-major axis) a craft follows until its patch ends.</summary>
+        private static bool IsSolvableConic(OrbitElements? elements)
+        {
+            if (IsBoundConic(elements))
+            {
+                return true;
+            }
+            if (elements == null)
+            {
+                return false;
+            }
+            var orbit = elements.Value;
+            return orbit.Ecc > 1.0
+                && !double.IsInfinity(orbit.Ecc)
+                && orbit.Sma < 0.0
+                && orbit.Mu > 0.0;
+        }
+
         private static bool IsBoundConic(OrbitElements? elements)
         {
             if (elements == null)
@@ -463,28 +481,52 @@ namespace Sitrep.Propagation
 
         private StateVector Solve(OrbitElements orbit, double ut)
         {
-            if (orbit.Ecc < 0.0 || orbit.Ecc >= 1.0)
+            if (!IsSolvableConic(orbit))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(orbit),
-                    "KeplerProvider only supports elliptical orbits (0 <= ecc < 1); got ecc=" + orbit.Ecc);
+                    "KeplerProvider supports elliptical orbits (0 <= ecc < 1) and escape hyperbolas (ecc > 1, negative sma); got ecc="
+                    + orbit.Ecc + ", sma=" + orbit.Sma);
             }
 
-            double n = Math.Sqrt(orbit.Mu / (orbit.Sma * orbit.Sma * orbit.Sma));
-            double meanAnomaly = WrapTwoPi(orbit.MeanAnomalyAtEpoch + n * (ut - orbit.Epoch));
+            double trueAnomaly;
+            double radius;
+            double h;
+            if (orbit.Ecc < 1.0)
+            {
+                double n = Math.Sqrt(orbit.Mu / (orbit.Sma * orbit.Sma * orbit.Sma));
+                double meanAnomaly = WrapTwoPi(orbit.MeanAnomalyAtEpoch + n * (ut - orbit.Epoch));
 
-            double eccentricAnomaly = SolveEccentricAnomaly(meanAnomaly, orbit.Ecc);
+                double eccentricAnomaly = SolveEccentricAnomaly(meanAnomaly, orbit.Ecc);
 
-            double trueAnomaly = 2.0 * Math.Atan2(
-                Math.Sqrt(1.0 + orbit.Ecc) * Math.Sin(eccentricAnomaly / 2.0),
-                Math.Sqrt(1.0 - orbit.Ecc) * Math.Cos(eccentricAnomaly / 2.0));
+                trueAnomaly = 2.0 * Math.Atan2(
+                    Math.Sqrt(1.0 + orbit.Ecc) * Math.Sin(eccentricAnomaly / 2.0),
+                    Math.Sqrt(1.0 - orbit.Ecc) * Math.Cos(eccentricAnomaly / 2.0));
 
-            double radius = orbit.Sma * (1.0 - orbit.Ecc * Math.Cos(eccentricAnomaly));
+                radius = orbit.Sma * (1.0 - orbit.Ecc * Math.Cos(eccentricAnomaly));
 
-            // Specific angular momentum magnitude; for ecc=0 this reduces to
-            // sqrt(mu*sma), giving the expected circular speed sqrt(mu/sma)
-            // below.
-            double h = Math.Sqrt(orbit.Mu * orbit.Sma * (1.0 - orbit.Ecc * orbit.Ecc));
+                // Specific angular momentum magnitude; for ecc=0 this reduces to
+                // sqrt(mu*sma), giving the expected circular speed sqrt(mu/sma)
+                // below.
+                h = Math.Sqrt(orbit.Mu * orbit.Sma * (1.0 - orbit.Ecc * orbit.Ecc));
+            }
+            else
+            {
+                // The game's hyperbolic mean anomaly runs unwrapped, M = e*sinh(H) - H, from a
+                // negative value on the way in to a positive one on the way out.
+                double semiAxis = -orbit.Sma;
+                double n = Math.Sqrt(orbit.Mu / (semiAxis * semiAxis * semiAxis));
+                double meanAnomaly = orbit.MeanAnomalyAtEpoch + n * (ut - orbit.Epoch);
+
+                double hyperbolicAnomaly = SolveHyperbolicAnomaly(meanAnomaly, orbit.Ecc);
+
+                trueAnomaly = 2.0 * Math.Atan2(
+                    Math.Sqrt(orbit.Ecc + 1.0) * Math.Sinh(hyperbolicAnomaly / 2.0),
+                    Math.Sqrt(orbit.Ecc - 1.0) * Math.Cosh(hyperbolicAnomaly / 2.0));
+
+                radius = semiAxis * ((orbit.Ecc * Math.Cosh(hyperbolicAnomaly)) - 1.0);
+                h = Math.Sqrt(orbit.Mu * semiAxis * ((orbit.Ecc * orbit.Ecc) - 1.0));
+            }
 
             double cosNu = Math.Cos(trueAnomaly);
             double sinNu = Math.Sin(trueAnomaly);
@@ -547,6 +589,36 @@ namespace Sitrep.Propagation
             // revisit if this solver is ever exposed to untrusted/arbitrary
             // input.
             return eccentricAnomaly;
+        }
+
+        /// <summary>
+        /// Newton-Raphson solve of the hyperbolic Kepler equation M = e*sinh(H) - H for H.
+        /// The function is monotonic, so the iteration is started where the curve is
+        /// steep enough to land on the root from either side.
+        /// </summary>
+        private static double SolveHyperbolicAnomaly(double meanAnomaly, double ecc)
+        {
+            double ratio = meanAnomaly / ecc;
+            double anomaly = Math.Log(ratio + Math.Sqrt((ratio * ratio) + 1.0));
+            if (Math.Abs(meanAnomaly) > 6.0)
+            {
+                anomaly = Math.Sign(meanAnomaly) * Math.Log((2.0 * Math.Abs(meanAnomaly) / ecc) + 1.8);
+            }
+
+            for (int i = 0; i < MaxNewtonIterations; i++)
+            {
+                double f = (ecc * Math.Sinh(anomaly)) - anomaly - meanAnomaly;
+                double fPrime = (ecc * Math.Cosh(anomaly)) - 1.0;
+                double delta = f / fPrime;
+                anomaly -= delta;
+
+                if (Math.Abs(delta) < NewtonTolerance * Math.Max(1.0, Math.Abs(anomaly)))
+                {
+                    break;
+                }
+            }
+
+            return anomaly;
         }
 
         /// <summary>
