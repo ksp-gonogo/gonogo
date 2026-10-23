@@ -24,6 +24,32 @@ const { FakePeer } = vi.hoisted(() => {
     send(_msg: unknown) {}
     /** Each piece of a message the host sends lands here before `data` fires. */
     dataChannel = new EventTarget();
+    /** Present only when a test sets it: the link's own peer connection, whose stats report the pair it selected. */
+    peerConnection?: EventTarget & {
+      getStats(): Promise<{
+        forEach(cb: (s: Record<string, unknown>) => void): void;
+      }>;
+    };
+    /** Give this link a peer connection whose selected pair has these candidate types. */
+    selectPair(pair: [string, string]) {
+      const stats: Record<string, unknown>[] = [
+        { id: "t", type: "transport", selectedCandidatePairId: "p" },
+        {
+          id: "p",
+          type: "candidate-pair",
+          localCandidateId: "l",
+          remoteCandidateId: "r",
+        },
+        { id: "l", candidateType: pair[0] },
+        { id: "r", candidateType: pair[1] },
+      ];
+      this.peerConnection = Object.assign(new EventTarget(), {
+        getStats: async () => ({
+          forEach: (cb: (s: Record<string, unknown>) => void) =>
+            stats.forEach(cb),
+        }),
+      });
+    }
   }
 
   class FakePeer {
@@ -1523,6 +1549,43 @@ describe("PeerClientService: relay-ice-servers application", () => {
         STUN_SERVERS,
       );
       expect(states).toEqual(["none", "pending", "unreachable"]);
+    });
+  });
+
+  describe("relay servers for a station's media", () => {
+    const turn = [{ urls: "turn:r" }];
+
+    function linkedOver(pair: [string, string]) {
+      const svc = new PeerClientService();
+      svc.connect("HOST");
+      const peer = FakePeer.instances[FakePeer.instances.length - 1];
+      peer.emit("open");
+      const conn = peer._lastConn;
+      if (!conn) throw new Error("expected an active peer connection");
+      conn.selectPair(pair);
+      conn.emit("open");
+      conn.emit("data", { type: "relay-ice-servers", iceServers: turn });
+      return svc;
+    }
+
+    it("are kept from a station on the main screen's own network", async () => {
+      const svc = linkedOver(["host", "host"]);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(svc.getRelayIceServers()).toEqual([]);
+      svc.disconnect();
+    });
+
+    it("are given to a station that reached the main screen directly over the internet", async () => {
+      const svc = linkedOver(["srflx", "host"]);
+      await vi.waitFor(() => expect(svc.getRelayIceServers()).toEqual(turn));
+      svc.disconnect();
+    });
+
+    it("are given to a station whose link to the main screen is relayed", async () => {
+      const svc = linkedOver(["relay", "host"]);
+      await vi.waitFor(() => expect(svc.getRelayIceServers()).toEqual(turn));
+      svc.disconnect();
     });
   });
 

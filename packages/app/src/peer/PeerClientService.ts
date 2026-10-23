@@ -1730,8 +1730,11 @@ export class PeerClientService {
       .peerConnection;
     if (!pc) return;
     const path: ConnectionPath | null = await readConnectionPath(pc);
+    /* A station off the main screen's network needs the relay for media even
+       when its own link reached the main screen directly: the media comes from
+       another machine on that network, which offers only its local address. */
+    if (path === "internet" || path === "relayed") this.markRelayNeeded();
     if (path !== "relayed") return;
-    this.markRelayNeeded();
     this.connectProgress = { ...this.connectProgress, relayed: true };
     this.events.emit("connectProgress", this.connectProgress);
   }
