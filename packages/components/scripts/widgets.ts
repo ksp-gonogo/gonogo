@@ -417,6 +417,8 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "narrow-4x8", w: 4, h: 8 },
       // Tall: full pool with room to breathe.
       { name: "tall-6x12", w: 6, h: 12 },
+      // The registered minimum, where the sandbox state has the least room.
+      { name: "min-3x4", w: 3, h: 4, forFixtures: ["sandbox"] },
       /*
        * Switch to the Active tab: default fixtures carry no crewRoster
        * sample, so this captures the empty state; the multi-situation
@@ -426,6 +428,12 @@ const WIDGETS: WidgetRenderConfig[] = [
         name: "active-tab-6x8",
         w: 6,
         h: 8,
+        forFixtures: [
+          "active-crew-multi-situation",
+          "active-crew-multi-situation-link-lost",
+          "mid-career-pool",
+          "unlimited-cap",
+        ],
         clicks: [
           {
             selector: 'button[aria-controls$="active-panel"]',

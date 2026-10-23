@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "shows": "An Astronaut Complex in a sandbox save, where the mod sends no applicant pool: the widget states the save has no crew to hire.",
+    "notes": "Only career.mode arrives. A sandbox save publishes nothing on spaceCenter.astronautComplex, so the widget learns there is nothing to wait for from the game mode.",
+    "scenario": "sandbox"
+  },
+  "_stream": {
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "career.mode",
+        "value": { "mode": 0 }
+      }
+    ]
+  }
+}

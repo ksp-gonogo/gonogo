@@ -1,7 +1,12 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { useActionInput } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
-import { canBeSacked, stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  canBeSacked,
+  GameMode,
+  stillTrue,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Grid,
@@ -47,6 +52,13 @@ function fundsTitle(
   return speakQuantity(value("funds", careerFunds), { decimals: 0 });
 }
 
+/** What an empty pool means in a save mode that has no hiring: a state label, or null where the mode says nothing about it. */
+function noHiringLabel(mode: GameMode | undefined): string | null {
+  if (mode === GameMode.Sandbox) return "Sandbox: no crew to hire";
+  if (mode === GameMode.Science) return "Science: no crew to hire";
+  return null;
+}
+
 /** The roster cap as written: unlimited, a figure, or nothing known. */
 function capTextOf(
   crewCapacity: number | null,
@@ -72,6 +84,11 @@ export function AstronautComplexComponent(
   const complex = stillTrue(complexReading, undefined);
   // `absent` is off career; `pending` is a cold start and gets its own sentence.
   const complexConfirmedEmpty = complexReading.state === "absent";
+  // A sandbox sends nothing on the complex's Topic, so the save mode is the only word that nothing is coming.
+  const noHiring = noHiringLabel(
+    stillTrue(astronautComplexTopics.useTelemetry("career.mode"), undefined)
+      ?.mode,
+  );
   /**
    * Funds is the one judgement here: it sits beside a spend control and decides
    * `affordable`, so a held balance is withheld from the verdict. It stays on
@@ -191,13 +208,14 @@ export function AstronautComplexComponent(
               role="status"
               aria-live="polite"
             >
-              {fundsStat}
+              {noHiring === null && fundsStat}
               <StatContributions slot={ASTRONAUT_COMPLEX_READOUTS_SLOT} />
             </Grid>
             <div style={EMPTY_STYLE}>
-              {complexConfirmedEmpty
-                ? "No applicant data (career mode only)"
-                : "No applicant data yet (waiting for telemetry)"}
+              {noHiring ??
+                (complexConfirmedEmpty
+                  ? "No applicant data (career mode only)"
+                  : "No applicant data yet (waiting for telemetry)")}
             </div>
           </Section>
         }
