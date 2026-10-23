@@ -376,6 +376,7 @@ function missionMetaToFlightRecord(meta: MissionMeta): FlightRecord {
   return {
     id: meta.id,
     vesselName: meta.vesselName,
+    launchName: meta.launchName,
     launchedAt: meta.launchedAt,
     lastSampleAt: meta.launchedAt + elapsedMs,
     // Missions have no live revert-detection concept (a mission only exists

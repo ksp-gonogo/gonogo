@@ -329,8 +329,10 @@ export interface ReadingSeriesRange<Payload = unknown> {
 export interface FlightRecord {
   /** This flight's identifier. */
   id: string;
-  /** The vessel's name when the recording began. */
+  /** The vessel's name now, or when the flight ended. */
   vesselName: string;
+  /** The name the vessel launched with. Absent while it is the same as `vesselName`. */
+  launchName?: string;
   /** The game's identifier for the vessel, when it has one. */
   vesselUid?: string | null;
   /** Wall-clock ms when the recording began. */
@@ -475,8 +477,10 @@ export interface FlightChapterRecord {
 export interface MissionMeta {
   /** This mission's identifier. */
   id: string;
-  /** The vessel's name. */
+  /** The vessel's name now, or when the flight ended. */
   vesselName: string;
+  /** The name the vessel launched with. Absent while it is the same as `vesselName`. */
+  launchName?: string;
   /** Wall-clock ms when recording started. */
   launchedAt: number;
   /** UT (seconds) of the first captured frame. */

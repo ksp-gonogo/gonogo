@@ -134,6 +134,27 @@ describe("FlightsManager", () => {
     expect(screen.getByRole("columnheader", { name: "Ended" })).toBeTruthy();
   });
 
+  it("shows a renamed flight under its current name with the launch name as a detail", async () => {
+    const store = freshStore();
+    registerDataSource(new MissionHistorySource(store));
+    await seedMission(store, {
+      vesselName: "Alpha Two",
+      launchName: "Alpha",
+    });
+    await seedMission(store, { vesselName: "Steady" });
+
+    render(<FlightsManager />);
+
+    const renamed = (await screen.findByText("Alpha Two")).closest(
+      "tr",
+    ) as HTMLElement;
+    expect(within(renamed).getByText("launched as Alpha")).toBeTruthy();
+    const steady = (await screen.findByText("Steady")).closest(
+      "tr",
+    ) as HTMLElement;
+    expect(within(steady).queryByText(/launched as/)).toBeNull();
+  });
+
   it("toggles a flight's starred state", async () => {
     const user = userEvent.setup();
     const store = freshStore();

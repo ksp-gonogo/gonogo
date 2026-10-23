@@ -424,6 +424,9 @@ export function FlightsManager({
                       </Td>
                       <Td>
                         {f.vesselName || NULL_DISPLAY}
+                        {f.launchName && (
+                          <LaunchName>launched as {f.launchName}</LaunchName>
+                        )}
                         {f.outcome?.kind === "recovered" && (
                           <OutcomeBadge
                             $tone="go"
@@ -826,6 +829,12 @@ const Td = styled.td`
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-surface-raised);
   white-space: nowrap;
+`;
+
+const LaunchName = styled.span`
+  display: block;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
 `;
 
 const OutcomeBadge = styled.span<{ $tone: "go" | "nogo" }>`

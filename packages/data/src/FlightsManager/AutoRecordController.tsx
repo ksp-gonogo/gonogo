@@ -132,6 +132,8 @@ export function AutoRecordController({
   /** The start UT of the flight `activeFlightIdRef` holds: the other half of the re-announce key. */
   const activeFlightStartedUtRef = useRef<number | null>(null);
   const activeVesselNameRef = useRef<string>("");
+  /** The name the tracked flight was announced with, kept when the vessel is renamed. */
+  const launchNameRef = useRef<string>("");
   const activeLaunchedAtRef = useRef<number>(0);
   /**
    * The mission each flight was last stored as, by flight id, so an end announced
@@ -163,6 +165,7 @@ export function AutoRecordController({
       const recorded = missionRef.current;
       const record = buildMissionRecord({
         vesselName: activeVesselNameRef.current,
+        launchName: launchNameRef.current,
         launchedAt: activeLaunchedAtRef.current,
         fixture,
         id: recorded?.meta.id,
@@ -288,6 +291,7 @@ export function AutoRecordController({
         activeFlightIdRef.current = payload.flightId;
         activeFlightStartedUtRef.current = startedUt;
         activeVesselNameRef.current = payload.vesselName;
+        launchNameRef.current = payload.vesselName;
         activeLaunchedAtRef.current = Date.now();
         if (!missionHistoryEnabledRef.current) return;
         recorder.start();
@@ -358,6 +362,12 @@ export function AutoRecordController({
     useCallback(
       (payload) => {
         if (!recorder) return;
+        if (
+          payload.flightId === activeFlightIdRef.current &&
+          payload.vesselName
+        ) {
+          activeVesselNameRef.current = payload.vesselName;
+        }
         if (!recorder.recording) {
           if (!missionHistoryEnabledRef.current) return;
           if (payload.flightId !== activeFlightIdRef.current) return;

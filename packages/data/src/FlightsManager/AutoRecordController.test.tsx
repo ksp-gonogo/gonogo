@@ -723,6 +723,46 @@ describe("AutoRecordController", () => {
     expect(finalFlights).toHaveLength(2);
   });
 
+  it("keeps no launch name for a flight that was never renamed", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled />
+      </TelemetryProvider>,
+    );
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    end(rig, 15, "vA", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      const flights = await rig.source.listFlights();
+      expect(flights[0]?.vesselName).toBe("Alpha");
+    });
+    expect((await rig.source.listFlights())[0]?.launchName).toBeUndefined();
+  });
+
+  it("lists a renamed flight under its current name and keeps the launch name", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled />
+      </TelemetryProvider>,
+    );
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    tickFrame(rig, 10, "vA", "Alpha Two");
+    end(rig, 15, "vA", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      const flights = await rig.source.listFlights();
+      expect(flights).toHaveLength(1);
+      expect(flights[0]?.vesselName).toBe("Alpha Two");
+      expect(flights[0]?.launchName).toBe("Alpha");
+    });
+  });
+
   it("stores the reason a flight ended on the mission", async () => {
     const rig = buildRig();
     render(

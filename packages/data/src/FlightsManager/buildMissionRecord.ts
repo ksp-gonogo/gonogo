@@ -19,6 +19,8 @@ export function makeMissionId(): string {
  */
 export function buildMissionRecord(params: {
   vesselName: string;
+  /** The name the vessel launched with, kept when the vessel has been renamed since. */
+  launchName?: string;
   launchedAt: number;
   fixture: ReplayFixture;
   /** The mission this fixture is a later part of. Omitted, a new id is made. */
@@ -54,6 +56,9 @@ export function buildMissionRecord(params: {
   const meta: MissionMeta = {
     id: params.id ?? makeMissionId(),
     vesselName: params.vesselName || "Unnamed vessel",
+    ...(params.launchName && params.launchName !== params.vesselName
+      ? { launchName: params.launchName }
+      : {}),
     launchedAt: params.launchedAt,
     firstFrameUt,
     lastFrameUt,
@@ -97,6 +102,8 @@ export function withMissionPart(
   );
   return {
     ...mission,
+    vesselName: part.vesselName,
+    launchName: part.launchName,
     firstFrameUt: Math.min(mission.firstFrameUt, part.firstFrameUt),
     lastFrameUt: Math.max(mission.lastFrameUt, part.lastFrameUt),
     ...(validFrom.length === 0 ? {} : { firstValidUt: Math.min(...validFrom) }),

@@ -11949,6 +11949,10 @@
         "note": "New: the latest instant a recorded sample is valid at"
       },
       {
+        "key": "sitrep-sdk . FlightRecord#launchName?",
+        "note": "New: the name a vessel launched with, absent unless it was renamed"
+      },
+      {
         "key": "sitrep-sdk . GroundTrackScope",
         "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
       },
@@ -11971,6 +11975,10 @@
       {
         "key": "sitrep-sdk . MissionMeta#lastValidUt?",
         "note": "New: the latest instant a recorded sample is valid at"
+      },
+      {
+        "key": "sitrep-sdk . MissionMeta#launchName?",
+        "note": "New: the name a vessel launched with, absent unless it was renamed"
       },
       {
         "key": "sitrep-sdk . MissionMeta#partCount?",
@@ -14895,6 +14903,10 @@
       {
         "key": "sitrep-sdk ./spine ~MissionMeta#lastValidUt?",
         "note": "New: the latest instant a recorded sample is valid at"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#launchName?",
+        "note": "New: the name a vessel launched with, absent unless it was renamed"
       },
       {
         "key": "sitrep-sdk ./spine ~MissionMeta#partCount?",
