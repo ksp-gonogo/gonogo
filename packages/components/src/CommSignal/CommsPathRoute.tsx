@@ -32,6 +32,7 @@ export function CommsPathRoute({
   hops,
   vesselLabel,
   centreLabel,
+  nameOf,
   pathDelay,
   rateByHopId,
   rateMarkingByHopId,
@@ -39,6 +40,8 @@ export function CommsPathRoute({
   hops: readonly CommsHop[];
   vesselLabel: string;
   centreLabel: string;
+  /** A relay craft's name by its hop id, where known. */
+  nameOf?: (craftId: string) => string | undefined;
   /** The path's total one-way delay; an explicit null is not a delay of zero. */
   pathDelay: Value<"s"> | null | undefined;
   /** Per-hop forward bitrate (bits/sec) keyed by `commsHopId`. */
@@ -46,7 +49,7 @@ export function CommsPathRoute({
   /** The held mark of each rate read from a held reading, keyed by `commsHopId`. */
   rateMarkingByHopId: ReadonlyMap<string, ReckoningMarking>;
 }) {
-  const nodes = buildCommsRouteNodes(hops, vesselLabel, centreLabel);
+  const nodes = buildCommsRouteNodes(hops, vesselLabel, centreLabel, nameOf);
   if (nodes.length === 0) return null;
   const bottleneckId = commsBottleneckHopId(hops, rateByHopId);
   return (

@@ -408,6 +408,64 @@ describe("CommSignal: genuinely runs off the stream", () => {
     expect(screen.getByText("Signal to KSC")).toBeTruthy();
   });
 
+  it("names each relay by its craft name where the catalog knows it, and by its id where it does not", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider
+          value={{ instanceId: "comm-route-names" }}
+        >
+          <CommSignalComponent id="comm-route-names" w={8} h={8} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    const relayId = "56e0d0f2-8b6c-4b4e-9f5d-0c2f5a0b1d11";
+    const unknownId = "9a1b2c3d-0000-4000-8000-000000000000";
+    act(() => {
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("comms.commandCentre", {
+        id: "ground:KSC",
+        displayName: "KSC",
+        kind: "GroundStation",
+        bodyIndex: 1,
+      });
+      fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
+      fixture.emit("vessel.identity", {
+        vesselId: "v1",
+        name: "Eeloo Probe",
+        vesselType: 0,
+        situation: 1,
+        parentBodyIndex: 1,
+        launchUt: 0,
+      });
+      fixture.emit("trackingStation.catalog", {
+        entries: [{ vesselId: relayId, name: "Chain R5 Sun" }],
+      });
+      fixture.emit("comms.path", {
+        hops: [
+          { from: "v1", to: relayId, kind: 1, distanceMeters: 11_480_000_000 },
+          {
+            from: relayId,
+            to: unknownId,
+            kind: 1,
+            distanceMeters: 11_480_000_000,
+          },
+          { from: unknownId, to: "home", kind: 0, distanceMeters: 640_000 },
+        ],
+      });
+    });
+
+    await waitFor(() => expect(screen.getByText("Chain R5 Sun")).toBeTruthy());
+    expect(screen.queryByText(relayId)).toBeNull();
+    expect(screen.getByText(unknownId)).toBeTruthy();
+  });
+
   it("stays on the hop-count hint (not the full chain) at the registered default size", async () => {
     // Portrait 6x5 has no headroom for the route below the detail grid.
     const fixture = setupStreamFixture({

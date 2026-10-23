@@ -4,6 +4,7 @@ export default {
     "commandCentre.roster",
     "comms.commandCentre",
     "comms.path",
+    "trackingStation.catalog",
     "vessel.identity",
   ],
   optionalChannelFamilies: [],

@@ -113,6 +113,20 @@ export function CommSignalComponent({
   const vesselLabel =
     vesselName && vesselName.length > 0 ? vesselName : "Vessel";
 
+  // A relay is a craft the command centre has heard of, so its name is on the catalog; a held list still names it.
+  const catalogReading = useTelemetry("trackingStation.catalog");
+  const catalogEntries =
+    catalogReading.state === "observed" || catalogReading.state === "held"
+      ? catalogReading.value.entries
+      : undefined;
+  const nameOf = useMemo(() => {
+    const names = new Map<string, string>();
+    for (const entry of catalogEntries ?? []) {
+      if (entry.name !== "") names.set(entry.vesselId, entry.name);
+    }
+    return (craftId: string) => names.get(craftId);
+  }, [catalogEntries]);
+
   // Per-hop bitrate comes from a contribution, never the core hop; bare CommNet has none and the schedule is otherwise unchanged.
   const hopRateEntries = useContributions("comm-signal.hop-rates");
   const { rateByHopId, rateMarkingByHopId } = useMemo(() => {
@@ -256,6 +270,7 @@ export function CommSignalComponent({
                 hops={hops}
                 vesselLabel={vesselLabel}
                 centreLabel={centreLabel ?? "Command centre"}
+                nameOf={nameOf}
                 pathDelay={delay}
                 rateByHopId={rateByHopId}
                 rateMarkingByHopId={rateMarkingByHopId}

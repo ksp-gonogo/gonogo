@@ -52,7 +52,8 @@ export interface CommsRouteNode {
  * Builds the display chain for a `comms.path` hop list: the active vessel by
  * name, each intermediate relay, and the resolved command centre (not the
  * hop's opaque "home" id). The vessel is named rather than addressed as "you"
- * because the command centre is the implicit reader.
+ * because the command centre is the implicit reader. A relay is labelled by
+ * `nameOf` where it knows the craft, and by its hop id otherwise.
  *
  * `hops` is ordered vessel-to-centre, so an N-hop path yields N+1 nodes and
  * no hops yields an empty chain.
@@ -61,13 +62,14 @@ export function buildCommsRouteNodes(
   hops: readonly CommsHop[],
   vesselLabel: string,
   centreLabel: string,
+  nameOf?: (craftId: string) => string | undefined,
 ): CommsRouteNode[] {
   if (hops.length === 0) return [];
   const nodes: CommsRouteNode[] = [
     { label: vesselLabel, title: "Source vessel" },
   ];
   for (let i = 0; i < hops.length - 1; i++) {
-    nodes.push({ label: hops[i].to, title: "Relay" });
+    nodes.push({ label: nameOf?.(hops[i].to) ?? hops[i].to, title: "Relay" });
   }
   nodes.push({ label: centreLabel, title: "Command centre" });
   return nodes;

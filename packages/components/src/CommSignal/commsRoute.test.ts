@@ -24,6 +24,25 @@ function hopWithDistance(from: string, to: string, meters: number): CommsHop {
 }
 
 describe("buildCommsRouteNodes", () => {
+  it("labels a relay by the name nameOf gives its id, and by the id when it gives none", () => {
+    const nodes = buildCommsRouteNodes(
+      [
+        hop("Active Vessel", "relay-1"),
+        hop("relay-1", "relay-2"),
+        hop("relay-2", "home"),
+      ],
+      "Active Vessel",
+      "KSC",
+      (id) => (id === "relay-1" ? "Chain R5 Sun" : undefined),
+    );
+    expect(nodes.map((n) => n.label)).toEqual([
+      "Active Vessel",
+      "Chain R5 Sun",
+      "relay-2",
+      "KSC",
+    ]);
+  });
+
   it("returns an empty chain for an empty hop list (no path home)", () => {
     expect(buildCommsRouteNodes([], "Active Vessel", "KSC")).toEqual([]);
   });
