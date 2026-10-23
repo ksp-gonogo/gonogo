@@ -22,6 +22,8 @@ const { FakePeer } = vi.hoisted(() => {
       this.emit("close");
     }
     send(_msg: unknown) {}
+    /** Each piece of a message the host sends lands here before `data` fires. */
+    dataChannel = new EventTarget();
   }
 
   class FakePeer {
@@ -229,6 +231,37 @@ describe("PeerClientService", () => {
       conn.emit("close");
       vi.advanceTimersByTime(5_000);
       expect(FakePeer.instances.length).toBe(before + 1);
+      svc.disconnect();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reconnects when the host sends nothing for longer than the silence limit", () => {
+    vi.useFakeTimers();
+    try {
+      const svc = new PeerClientService();
+      connectToFakeHost(svc);
+      const before = FakePeer.instances.length;
+      vi.advanceTimersByTime(15_000);
+      expect(FakePeer.instances.length).toBeGreaterThan(before);
+      svc.disconnect();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the link while a large message is still arriving in pieces", () => {
+    vi.useFakeTimers();
+    try {
+      const svc = new PeerClientService();
+      const { conn } = connectToFakeHost(svc);
+      const before = FakePeer.instances.length;
+      for (let second = 0; second < 30; second++) {
+        conn.dataChannel.dispatchEvent(new Event("message"));
+        vi.advanceTimersByTime(1_000);
+      }
+      expect(FakePeer.instances.length).toBe(before);
       svc.disconnect();
     } finally {
       vi.useRealTimers();

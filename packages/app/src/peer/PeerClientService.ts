@@ -586,6 +586,12 @@ export class PeerClientService {
       this.sendDataMode("selective");
       this.emitConnStatus("connected");
       this.watchForSilence();
+      /* A large message such as an Uplink bundle arrives in many pieces and
+         raises `data` only once the last one is in. On a slow link that takes
+         longer than the silence limit, and each piece shows the host is there. */
+      conn.dataChannel?.addEventListener("message", () => {
+        if (current()) this.lastHostMessageAt = Date.now();
+      });
     });
     conn.on("data", (raw) => {
       if (!current()) return;
