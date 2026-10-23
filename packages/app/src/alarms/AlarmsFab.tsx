@@ -1,5 +1,6 @@
 import { BellIcon, Fab, useModal } from "@ksp-gonogo/ui";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
+import { ModalTelemetryBridge } from "../telemetry/ModalTelemetryBridge";
 import type { AlarmDraftPrefill } from "./AlarmsModal";
 import type {
   Alarm,
@@ -57,12 +58,14 @@ export function AlarmsFab({
 
   function handleClick() {
     open(
-      <ModalComponent
-        useSnapshot={useSnapshot}
-        onAdd={onAdd}
-        onUpdate={onUpdate}
-        onDelete={onDelete}
-      />,
+      <ModalTelemetryBridge>
+        <ModalComponent
+          useSnapshot={useSnapshot}
+          onAdd={onAdd}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      </ModalTelemetryBridge>,
       { title: "Mission Alarms" },
     );
   }

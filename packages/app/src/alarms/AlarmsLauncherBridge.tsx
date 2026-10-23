@@ -7,6 +7,7 @@ import {
 } from "@ksp-gonogo/components";
 import { useModal } from "@ksp-gonogo/ui";
 import { type ReactNode, useCallback, useMemo } from "react";
+import { ModalTelemetryBridge } from "../telemetry/ModalTelemetryBridge";
 import { AlarmsModal, type AlarmsModalProps } from "./AlarmsModal";
 import type { Alarm, AlarmSnapshot, AlarmTrigger } from "./types";
 
@@ -34,19 +35,21 @@ export function AlarmsLauncherBridge({
   const launcher: AlarmsLauncher = useCallback(
     (opts) => {
       open(
-        <AlarmsModal
-          useSnapshot={useSnapshot}
-          onAdd={onAdd}
-          onUpdate={onUpdate}
-          onDelete={onDelete}
-          prefill={{
-            name: opts.name,
-            onFire:
-              opts.action === undefined
-                ? undefined
-                : [{ kind: "action-group", action: opts.action }],
-          }}
-        />,
+        <ModalTelemetryBridge>
+          <AlarmsModal
+            useSnapshot={useSnapshot}
+            onAdd={onAdd}
+            onUpdate={onUpdate}
+            onDelete={onDelete}
+            prefill={{
+              name: opts.name,
+              onFire:
+                opts.action === undefined
+                  ? undefined
+                  : [{ kind: "action-group", action: opts.action }],
+            }}
+          />
+        </ModalTelemetryBridge>,
         { title: "Mission Alarms" },
       );
     },
