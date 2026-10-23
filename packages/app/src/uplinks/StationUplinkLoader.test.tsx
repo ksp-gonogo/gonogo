@@ -26,7 +26,7 @@
 import { clearRegistry } from "@ksp-gonogo/core";
 import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type PeerClient, PeerClientProvider } from "../peer/PeerClientContext";
@@ -198,7 +198,11 @@ describe("runStationUplinkLoad", () => {
     const outcomes = await pending;
     const alpha = outcomes.find((o) => o.id === "alpha");
     expect(alpha?.status).toBe("loaded");
-    expect(sendBundleFetch).toHaveBeenCalledWith(BUNDLE_URL, goodHash);
+    expect(sendBundleFetch).toHaveBeenCalledWith(
+      BUNDLE_URL,
+      goodHash,
+      expect.anything(),
+    );
     expect(directBundleFetches).toEqual([]);
   });
 
@@ -264,7 +268,11 @@ describe("runStationUplinkLoad", () => {
     const outcomes = await pending;
     const alpha = outcomes.find((o) => o.id === "alpha");
     expect(alpha?.status).toBe("loaded");
-    expect(sendBundleFetch).toHaveBeenCalledWith(BUNDLE_URL, goodHash);
+    expect(sendBundleFetch).toHaveBeenCalledWith(
+      BUNDLE_URL,
+      goodHash,
+      expect.anything(),
+    );
   });
 });
 
@@ -547,7 +555,11 @@ describe("a station loads a third-party client whose dev path is on the main scr
     const [third] = await pending;
     expect(third.status).toBe("loaded");
     expect(sendManifestFetch).toHaveBeenCalledWith(DEV_MANIFEST);
-    expect(sendBundleFetch).toHaveBeenCalledWith(DEV_BUNDLE, goodHash);
+    expect(sendBundleFetch).toHaveBeenCalledWith(
+      DEV_BUNDLE,
+      goodHash,
+      expect.anything(),
+    );
     expect(direct).toEqual([]);
   });
 
@@ -629,7 +641,11 @@ describe("a station loads a third-party client whose dev path is on the main scr
       async () => ({}),
     );
     expect(third.status).toBe("loaded");
-    expect(conduit.sendBundleFetch).toHaveBeenCalledWith(DEV_BUNDLE, goodHash);
+    expect(conduit.sendBundleFetch).toHaveBeenCalledWith(
+      DEV_BUNDLE,
+      goodHash,
+      expect.anything(),
+    );
   });
 });
 
@@ -681,6 +697,41 @@ describe("a station opens only once every Uplink its main screen runs has loaded
     if (!item) throw new Error(`no row for ${name}`);
     return item;
   }
+
+  it("fills an Uplink's bar as its bytes arrive from the main screen", async () => {
+    stubFetch(registryWith(goodHash));
+    const stub = new StubTransport();
+    const client = new TelemetryClient(stub);
+    stub.emit("system.uplinks", ROSTER);
+    const gate = held();
+    let report: (received: number, total: number) => void = () => {};
+    const sendBundleFetch: PeerClient["sendBundleFetch"] = vi.fn(
+      async (_url, _hash, options) => {
+        report = options?.onProgress ?? report;
+        await gate.promise;
+        return BUNDLE_BYTES;
+      },
+    );
+    renderStation(peerClientWith(sendBundleFetch, ALPHA_RUNS), client);
+
+    const bar = await within(row("alpha")).findByRole("progressbar", {
+      name: "alpha progress",
+    });
+    expect(bar.getAttribute("aria-valuenow")).toBeNull();
+    await waitFor(() => expect(sendBundleFetch).toHaveBeenCalled());
+
+    act(() => report(0, 1_900_000));
+    act(() => report(1_200_000, 1_900_000));
+    expect(
+      within(row("alpha"))
+        .getByRole("progressbar", { name: "alpha progress" })
+        .getAttribute("aria-valuenow"),
+    ).toBe("63");
+    expect(row("alpha").textContent).toMatch(/1\.2 of 1\.9 MB/);
+
+    await act(async () => gate.release());
+    await screen.findByTestId("dashboard-widgets");
+  });
 
   it("shows no dashboard while an Uplink of the set is still downloading", async () => {
     stubFetch(registryWith(goodHash));

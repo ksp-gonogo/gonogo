@@ -139,6 +139,7 @@ describe("a station keeps verified Uplink bundles across page loads", () => {
     expect(sendBundleFetch).toHaveBeenCalledWith(
       "/uplinks/widget-a.client.js",
       goodHash,
+      expect.anything(),
     );
     expect(text(importBundle.mock.calls[0][0])).toBe(text(BUNDLE_BYTES));
     expect(text(store.entries.get(goodHash) as ArrayBuffer)).toBe(

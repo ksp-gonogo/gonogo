@@ -214,6 +214,7 @@ describe("loadEnabledUplinks", () => {
     expect(fetchBytes).toHaveBeenCalledWith(
       "/uplinks/scansat.client.js",
       goodHash,
+      expect.any(Function),
     );
   });
 
@@ -1427,7 +1428,11 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       expect(outcome.reason).toContain("checked against nothing");
       expect(fetchManifest).toHaveBeenCalledWith(manifestUrlFor(devPath));
       // No hash is handed to the fetch, because there is none to check against.
-      expect(fetchBytes).toHaveBeenCalledWith(devPath, undefined);
+      expect(fetchBytes).toHaveBeenCalledWith(
+        devPath,
+        undefined,
+        expect.any(Function),
+      );
       expect(importBundle).toHaveBeenCalledWith(IMPORTED_BYTES, devPath);
     });
 

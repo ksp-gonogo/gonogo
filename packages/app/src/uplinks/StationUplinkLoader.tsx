@@ -30,7 +30,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import styled from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
 import type { PeerClientService } from "../peer/PeerClientService";
 import { VERSION } from "../version";
@@ -372,11 +372,15 @@ export function StationUplinkLoader({
   );
 }
 
+/** A row's bar: how much of the client has arrived, or `null` while that cannot be told. */
+type RowProgress = { received: number; total: number } | null;
+
 interface RowState {
   word: string;
   tone: "info" | "go" | "caution" | "nogo";
   detail?: string;
   retry?: true;
+  progress?: RowProgress;
 }
 
 function rowState(
@@ -386,8 +390,12 @@ function rowState(
 ): RowState {
   if (!outcome) {
     return firstLoadDone
-      ? { word: "Queued", tone: "info" }
-      : { word: "Waiting for the game's Uplink list", tone: "info" };
+      ? { word: "Queued", tone: "info", progress: null }
+      : {
+          word: "Waiting for the game's Uplink list",
+          tone: "info",
+          progress: null,
+        };
   }
   if (outcome.awaitingRoster) {
     return {
@@ -395,18 +403,23 @@ function rowState(
       tone: "caution",
       detail: "The game has not listed this Uplink",
       retry: true,
+      progress: null,
     };
   }
   if (outcome.status === "loading") {
     if (outcome.phase === "downloading")
-      return { word: "Downloading", tone: "info" };
+      return {
+        word: "Downloading",
+        tone: "info",
+        progress: outcome.progress ?? null,
+      };
     if (outcome.phase === "verifying")
-      return { word: "Verifying", tone: "info" };
-    return { word: "Preparing", tone: "info" };
+      return { word: "Verifying", tone: "info", progress: null };
+    return { word: "Preparing", tone: "info", progress: null };
   }
   if (outcome.status === "loaded") {
     return matchesHost(uplink, outcome)
-      ? { word: "Loaded", tone: "go" }
+      ? { word: "Loaded", tone: "go", progress: { received: 1, total: 1 } }
       : {
           word: "Wrong version",
           tone: "caution",
@@ -440,6 +453,9 @@ function UplinkGateRow({
         <Text weight="semibold">{name}</Text>
         <Badge tone={state.tone}>{state.word}</Badge>
       </Cluster>
+      {state.progress !== undefined && (
+        <UplinkProgressBar name={name} progress={state.progress} />
+      )}
       {state.detail && (
         <Text level="muted" size="sm">
           {state.detail}
@@ -459,6 +475,93 @@ function UplinkGateRow({
     </StationUplinkGate__Row>
   );
 }
+
+/** Sizes in the unit the total reads best in, both figures in that unit: "1.2 of 1.9 MB". */
+function formatBundleProgress(received: number, total: number): string {
+  if (total >= 1_000_000) {
+    return `${(received / 1_000_000).toFixed(1)} of ${(total / 1_000_000).toFixed(1)} MB`;
+  }
+  return `${Math.round(received / 1000)} of ${Math.round(total / 1000)} kB`;
+}
+
+function UplinkProgressBar({
+  name,
+  progress,
+}: {
+  name: string;
+  progress: RowProgress;
+}) {
+  if (!progress) {
+    return (
+      <StationUplinkGate__Track
+        role="progressbar"
+        aria-label={`${name} progress`}
+        data-indeterminate=""
+      >
+        <StationUplinkGate__Fill $indeterminate />
+      </StationUplinkGate__Track>
+    );
+  }
+  const { received, total } = progress;
+  const percent = total > 0 ? Math.round((received / total) * 100) : 0;
+  const complete = received >= total;
+  const label = complete ? undefined : formatBundleProgress(received, total);
+  return (
+    <>
+      <StationUplinkGate__Track
+        role="progressbar"
+        aria-label={`${name} progress`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        aria-valuetext={label ?? "Complete"}
+      >
+        <StationUplinkGate__Fill
+          $complete={complete}
+          style={{ width: `${percent}%` }}
+        />
+      </StationUplinkGate__Track>
+      {label && (
+        <Text level="muted" size="sm">
+          {label}
+        </Text>
+      )}
+    </>
+  );
+}
+
+const sweep = keyframes`
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+`;
+
+const StationUplinkGate__Track = styled.div`
+  position: relative;
+  height: 0.375rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
+`;
+
+const StationUplinkGate__Fill = styled.div<{
+  $indeterminate?: boolean;
+  $complete?: boolean;
+}>`
+  height: 100%;
+  background: ${({ $complete }) =>
+    $complete ? "var(--color-go-mark)" : "var(--color-info-mark)"};
+  transition: width 120ms linear;
+  ${({ $indeterminate }) =>
+    $indeterminate &&
+    css`
+      width: 40%;
+      opacity: 0.6;
+      @media (prefers-reduced-motion: no-preference) {
+        animation: ${sweep} 1.4s ease-in-out infinite;
+      }
+    `}
+`;
 
 const StationUplinkGate = styled.section`
   display: flex;

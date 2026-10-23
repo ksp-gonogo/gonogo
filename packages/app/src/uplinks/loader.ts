@@ -179,7 +179,11 @@ export interface LoaderContext {
    * `(url) => Promise<ArrayBuffer>` test double is still structurally
    * assignable to this type.
    */
-  fetchBytes?: (url: string, expectedHash?: string) => Promise<ArrayBuffer>;
+  fetchBytes?: (
+    url: string,
+    expectedHash?: string,
+    onProgress?: (received: number, total: number) => void,
+  ) => Promise<ArrayBuffer>;
   /**
    * Fetch a third-party Uplink's manifest sidecar (the D5-loader follow-on,
    * a `clientSource`-only id has no local registry entry, so the compat
@@ -966,9 +970,21 @@ async function loadOne(
     // see the doc comment on `LoaderContext.fetchBytes`.
     const fetchBytes = ctx.fetchBytes ?? defaultFetchBytes;
     setUplinkOutcome({ ...base, phase: "downloading" });
+    let shownPercent = -1;
     const bytes = await fetchBytes(
       version.bundleUrl,
       unvouched ? undefined : version.integrity,
+      (received, total) => {
+        // One update per whole percent: a bundle arrives in a hundred or more pieces.
+        const percent = total > 0 ? Math.floor((received / total) * 100) : 0;
+        if (percent === shownPercent) return;
+        shownPercent = percent;
+        setUplinkOutcome({
+          ...base,
+          phase: "downloading",
+          progress: { received, total },
+        });
+      },
     );
     setUplinkOutcome({ ...base, phase: "verifying" });
     const digest = await sha256Hex(bytes);

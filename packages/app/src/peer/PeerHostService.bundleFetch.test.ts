@@ -194,6 +194,27 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("tells the station the bundle's size before sending it", async () => {
+    const bundle = textBytes("console.log('sized uplink');");
+    const goodHash = await sha256Hex(bundle);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => bundle,
+      })),
+    );
+
+    const { client } = await connectedPair();
+    const progress: Array<[number, number]> = [];
+    await client.sendBundleFetch("https://example.test/sized.js", goodHash, {
+      onProgress: (received, total) => progress.push([received, total]),
+    });
+
+    expect(progress).toEqual([[0, bundle.byteLength]]);
+  });
+
   it("fetches a station's hosted-site bundle path under the host's own base", async () => {
     const bundle = textBytes("console.log('bundled client');");
     const goodHash = await sha256Hex(bundle);
@@ -217,8 +238,7 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
     const result = await client.sendBundleFetch(
       "/rc/uplinks/bg.client.js",
       goodHash,
-      undefined,
-      "/rc/",
+      { appBase: "/rc/" },
     );
 
     expect(new Uint8Array(result)).toEqual(new Uint8Array(bundle));

@@ -1196,6 +1196,52 @@ describe("PeerClientService.sendBundleFetch", () => {
   const BUNDLE_URL = "https://example.test/bundle.js";
   const EXPECTED_HASH = "sha256-deadbeef";
 
+  it("reports the bytes of a bundle as its pieces arrive", async () => {
+    const { svc, peer } = connectedSvc();
+    const conn = peer._lastConn;
+    if (!conn) throw new Error("expected an active peer connection");
+    const sent: PeerMessage[] = [];
+    conn.send = (msg: PeerMessage) => {
+      sent.push(msg);
+    };
+    const progress: Array<[number, number]> = [];
+    const pending = svc.sendBundleFetch(BUNDLE_URL, EXPECTED_HASH, {
+      onProgress: (received, total) => progress.push([received, total]),
+    });
+    const request = sent[0];
+    if (request?.type !== "uplink-bundle-request") {
+      throw new Error("expected uplink-bundle-request");
+    }
+
+    const piece = () =>
+      conn.dataChannel.dispatchEvent(
+        new MessageEvent("message", { data: new ArrayBuffer(16_300) }),
+      );
+    piece();
+    fromHost(svc).send({
+      type: "uplink-bundle-size",
+      requestId: request.requestId,
+      byteLength: 40_000,
+    });
+    piece();
+    piece();
+    piece();
+    fromHost(svc).send({
+      type: "uplink-bundle-response",
+      requestId: request.requestId,
+      bytes: new Uint8Array(40_000),
+    });
+    await pending;
+    piece();
+
+    expect(progress).toEqual([
+      [0, 40_000],
+      [16_300, 40_000],
+      [32_600, 40_000],
+      [40_000, 40_000],
+    ]);
+  });
+
   it("rejects if called before the conn is open", async () => {
     const svc = new PeerClientService();
     await expect(
@@ -1297,7 +1343,7 @@ describe("PeerClientService.sendBundleFetch", () => {
       peer._lastConn.send = () => {};
 
       const pending = svc
-        .sendBundleFetch(BUNDLE_URL, EXPECTED_HASH, 100)
+        .sendBundleFetch(BUNDLE_URL, EXPECTED_HASH, { timeoutMs: 100 })
         .catch((e: Error) => e);
 
       vi.advanceTimersByTime(100);

@@ -21,6 +21,7 @@ describe("createPeerBundleFetcher", () => {
     expect(sendBundleFetch).toHaveBeenCalledWith(
       "https://example.test/bundle.js",
       "sha256-abc",
+      { onProgress: undefined },
     );
     expect(result).toBe(bytes);
   });

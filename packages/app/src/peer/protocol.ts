@@ -539,6 +539,17 @@ export type PeerMessage =
        */
       appBase?: string;
     }
+  /*
+   * Sent just before an `uplink-bundle-response` that carries bytes. PeerJS
+   * delivers a large message only once its last piece is in, so this is how a
+   * station knows the size of what is arriving and can count the pieces
+   * against it. Nothing else is sent between the two.
+   */
+  | {
+      type: "uplink-bundle-size";
+      requestId: string;
+      byteLength: number;
+    }
   | {
       type: "uplink-bundle-response";
       requestId: string;

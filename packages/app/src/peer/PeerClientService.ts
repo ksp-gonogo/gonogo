@@ -33,6 +33,9 @@ export type ConnStatus =
  * Where the main screen's approval of this station stands. A station that is
  * not approved reads, and has every command refused.
  */
+/** How many bytes of an Uplink bundle have arrived from the main screen, of how many it said to expect. */
+export type BundleProgressListener = (received: number, total: number) => void;
+
 export type StationApproval = "unknown" | "pending" | "approved" | "refused";
 
 const DEFAULT_RETRY_INTERVAL_MS = 2_000;
@@ -272,6 +275,13 @@ export class PeerClientService {
   // map) because the resolved value shape (raw bytes) differs from every
   // other RequestTracker on this class: see sendBundleFetch.
   private pendingBundleFetch = new RequestTracker<Uint8Array | ArrayBuffer>();
+  private bundleProgressListeners = new Map<string, BundleProgressListener>();
+  /** The bundle whose pieces are arriving now, named by the `uplink-bundle-size` the main screen sent ahead of it. */
+  private arrivingBundle: {
+    requestId: string;
+    total: number;
+    received: number;
+  } | null = null;
   private pendingManifestFetch = new RequestTracker<unknown>();
 
   // Cached current flight pushed by the host. Updated on every `flight-change`
@@ -589,8 +599,10 @@ export class PeerClientService {
       /* A large message such as an Uplink bundle arrives in many pieces and
          raises `data` only once the last one is in. On a slow link that takes
          longer than the silence limit, and each piece shows the host is there. */
-      conn.dataChannel?.addEventListener("message", () => {
-        if (current()) this.lastHostMessageAt = Date.now();
+      conn.dataChannel?.addEventListener("message", (event) => {
+        if (!current()) return;
+        this.lastHostMessageAt = Date.now();
+        this.countBundlePiece(event);
       });
     });
     conn.on("data", (raw) => {
@@ -963,18 +975,33 @@ export class PeerClientService {
   sendBundleFetch(
     bundleUrl: string,
     expectedHash: string,
-    timeoutMs = 30_000,
-    appBase: string = import.meta.env.BASE_URL,
+    {
+      timeoutMs = 30_000,
+      appBase = import.meta.env.BASE_URL,
+      onProgress,
+    }: {
+      timeoutMs?: number;
+      appBase?: string;
+      /** Called as the bytes arrive, once the main screen has said how many to expect. */
+      onProgress?: BundleProgressListener;
+    } = {},
   ): Promise<ArrayBuffer> {
     if (!this.conn) {
       return Promise.reject(new Error("not connected"));
     }
     const requestId = safeRandomUuid();
-    const pending = this.pendingBundleFetch.track(
+    const tracked = this.pendingBundleFetch.track(
       requestId,
       timeoutMs,
       `bundle fetch timeout (${bundleUrl})`,
     );
+    if (onProgress) this.bundleProgressListeners.set(requestId, onProgress);
+    const pending = tracked.finally(() => {
+      this.bundleProgressListeners.delete(requestId);
+      if (this.arrivingBundle?.requestId === requestId) {
+        this.arrivingBundle = null;
+      }
+    });
     this.conn.send({
       type: "uplink-bundle-request",
       requestId,
@@ -1519,6 +1546,14 @@ export class PeerClientService {
         this.pendingUplinkRelay.resolve(msg.requestId, msg.result);
       }
     },
+    "uplink-bundle-size": (msg) => {
+      this.arrivingBundle = {
+        requestId: msg.requestId,
+        total: msg.byteLength,
+        received: 0,
+      };
+      this.bundleProgressListeners.get(msg.requestId)?.(0, msg.byteLength);
+    },
     "uplink-bundle-response": (msg) => {
       if (msg.error) {
         this.pendingBundleFetch.reject(msg.requestId, new Error(msg.error));
@@ -1676,6 +1711,30 @@ export class PeerClientService {
       );
     },
   });
+
+  /*
+   * Every piece that lands between an `uplink-bundle-size` and its response is
+   * part of that bundle: PeerJS queues a large message's pieces together, so
+   * nothing the main screen sends after it can land in between. The pieces
+   * carry a few bytes of framing each, so the count stops short of the total
+   * until the response itself arrives.
+   */
+  private countBundlePiece(event: Event): void {
+    const arriving = this.arrivingBundle;
+    if (!arriving) return;
+    const data = (event as MessageEvent).data;
+    const size =
+      data instanceof ArrayBuffer
+        ? data.byteLength
+        : data instanceof Blob
+          ? data.size
+          : 0;
+    arriving.received = Math.min(arriving.received + size, arriving.total);
+    this.bundleProgressListeners.get(arriving.requestId)?.(
+      arriving.received,
+      arriving.total,
+    );
+  }
 
   private handleMessage(msg: PeerMessage) {
     this.dispatcher.dispatch(msg, undefined);

@@ -2405,6 +2405,11 @@ export class PeerHostService {
         );
         return;
       }
+      conn.send({
+        type: "uplink-bundle-size",
+        requestId: msg.requestId,
+        byteLength: bytes.byteLength,
+      } satisfies PeerMessage);
       respond(bytes);
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);

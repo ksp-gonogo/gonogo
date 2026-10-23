@@ -27,6 +27,12 @@ export interface UplinkLoadOutcome {
    * starts and on every settled outcome.
    */
   phase?: "downloading" | "verifying";
+  /**
+   * Bytes of the client received so far while `downloading`, of the total the
+   * source said to expect. Absent until the source says how many to expect,
+   * which a source that cannot know never does.
+   */
+  progress?: { received: number; total: number };
   /** `local` for a build named with `--uplink` under the dev server. */
   source?: "local";
   /**

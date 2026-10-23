@@ -8,7 +8,10 @@
 //
 // This is a thin adapter, not wired into any boot path yet; see this file's own header note below and the D6 handoff report for why.
 
-import type { PeerClientService } from "../peer/PeerClientService";
+import type {
+  BundleProgressListener,
+  PeerClientService,
+} from "../peer/PeerClientService";
 import {
   defaultVerifiedBundleStore,
   fetchThroughStore,
@@ -37,13 +40,18 @@ export type BundleFetchConduit = Pick<
  * bounce every request as a confusing hash-mismatch.
  *
  * A bundle `store` already holds under `expectedHash`, and that still hashes
- * to it, is returned without asking the main screen.
+ * to it, is returned without asking the main screen, and `onProgress` is never
+ * called for it.
  */
 export function createPeerBundleFetcher(
   client: BundleFetchConduit,
   store: VerifiedBundleStore | null = defaultVerifiedBundleStore(),
-): (url: string, expectedHash?: string) => Promise<ArrayBuffer> {
-  return (url, expectedHash) => {
+): (
+  url: string,
+  expectedHash?: string,
+  onProgress?: BundleProgressListener,
+) => Promise<ArrayBuffer> {
+  return (url, expectedHash, onProgress) => {
     if (!expectedHash) {
       return Promise.reject(
         new Error(
@@ -53,7 +61,7 @@ export function createPeerBundleFetcher(
       );
     }
     return fetchThroughStore(store, expectedHash, () =>
-      client.sendBundleFetch(url, expectedHash),
+      client.sendBundleFetch(url, expectedHash, { onProgress }),
     );
   };
 }
