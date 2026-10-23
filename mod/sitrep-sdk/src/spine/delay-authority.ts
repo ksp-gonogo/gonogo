@@ -126,6 +126,15 @@ export function readOneWaySeconds(payload: unknown): number | null {
   return readSeconds(delay.oneWaySeconds);
 }
 
+/** The craft a payload describes, from its `meta.source`, or `null` where it names none (the session, or no stamp). */
+function readPayloadCraft(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const source = (payload as { meta?: { source?: unknown } }).meta?.source;
+  return typeof source === "string" && source.startsWith("vessel:")
+    ? source
+    : null;
+}
+
 /**
  * Holds the one-way delay between this session's command centre and the vessel,
  * which times the frames the operator sees, and exposes it as `delaySeconds()`
@@ -166,6 +175,8 @@ export class DelayAuthority {
    * the same standard every other readout on this wire is held to.
    */
   private oneWaySeconds = 0;
+  /** The craft the held delays were measured for, once a payload has named one. */
+  private measuredCraft: string | undefined;
   private ownCraftVantage = false;
   private centreDelays: ReadonlyMap<string, number> = new Map();
   /** Each centre's own delay as last listed, kept after its row goes. */
@@ -210,9 +221,28 @@ export class DelayAuthority {
    * still sets 0 like any other reading.
    */
   observe(payload: unknown): void {
+    this.forgetOtherCraft(payload);
     const reported = readOneWaySeconds(payload);
     if (reported === null) return;
     this.oneWaySeconds = reported;
+  }
+
+  /*
+   * A delay held through a blackout belongs to the craft that was measured. A
+   * payload about a different craft starts from nothing, so a craft with no
+   * path is not timed by the delay of the one before it.
+   */
+  private forgetOtherCraft(payload: unknown): void {
+    const craft = readPayloadCraft(payload);
+    if (craft === null) return;
+    const previous = this.measuredCraft;
+    this.measuredCraft = craft;
+    if (previous === undefined || previous === craft) return;
+    this.oneWaySeconds = 0;
+    this.centreDelays = new Map();
+    this.lastCentreDelays.clear();
+    this.routeDelays = new Map();
+    this.lastLiveRouteDelays.clear();
   }
 
   /**
