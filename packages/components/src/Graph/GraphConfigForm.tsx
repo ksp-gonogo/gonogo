@@ -290,7 +290,7 @@ const ADD_BUTTON: CSSProperties = {
   borderStyle: "dashed",
   borderColor: "var(--color-text-faint)",
   color: "var(--color-text-muted)",
-  fontSize: "var(--font-size-compact)",
+  fontSize: "var(--font-size-prose)",
   fontWeight: 400,
   letterSpacing: "normal",
   textTransform: "none",

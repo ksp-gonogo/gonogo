@@ -358,4 +358,8 @@ const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
   &:hover {
     background: var(--color-surface-panel);
   }
+
+  @media (pointer: coarse) {
+    min-height: 44px;
+  }
 `;

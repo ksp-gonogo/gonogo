@@ -16,17 +16,29 @@ interface Props {
 export function SeriesRow({ series, numericKeys, onUpdate, onRemove }: Props) {
   return (
     <div style={SERIES_GROUP}>
-      <div style={ROW}>
-        <DataKeyPicker
-          keys={numericKeys}
-          value={series.key || null}
-          onChange={(k) => onUpdate(series.id, { key: k ?? "" })}
-          placeholder={
-            series.type === "band" ? "Pick lower bound..." : "Pick a key..."
-          }
-          clearable
-        />
+      <div style={WRAPPING_ROW}>
+        <div style={KEY_LINE}>
+          <DataKeyPicker
+            keys={numericKeys}
+            value={series.key || null}
+            onChange={(k) => onUpdate(series.id, { key: k ?? "" })}
+            placeholder={
+              series.type === "band" ? "Pick lower bound..." : "Pick a key..."
+            }
+            clearable
+          />
+          <IconButton
+            type="button"
+            aria-label={`Remove series ${series.label || series.key}`.trim()}
+            onClick={() => onRemove(series.id)}
+            style={REMOVE_BUTTON}
+          >
+            ×
+          </IconButton>
+        </div>
         <Select
+          aria-label="Series style"
+          style={CHOICE}
           value={series.type ?? "line"}
           onChange={(e) =>
             onUpdate(series.id, {
@@ -40,6 +52,8 @@ export function SeriesRow({ series, numericKeys, onUpdate, onRemove }: Props) {
           <option value="band">Band</option>
         </Select>
         <Select
+          aria-label="Series axis"
+          style={CHOICE}
           value={series.axis}
           onChange={(e) =>
             onUpdate(series.id, {
@@ -51,14 +65,6 @@ export function SeriesRow({ series, numericKeys, onUpdate, onRemove }: Props) {
           <option value="primary">Primary (left)</option>
           <option value="secondary">Secondary (right)</option>
         </Select>
-        <IconButton
-          type="button"
-          aria-label={`Remove series ${series.label || series.key}`.trim()}
-          onClick={() => onRemove(series.id)}
-          style={REMOVE_BUTTON}
-        >
-          ×
-        </IconButton>
       </div>
       {series.type === "band" && (
         <div style={ROW}>
@@ -74,6 +80,21 @@ export function SeriesRow({ series, numericKeys, onUpdate, onRemove }: Props) {
     </div>
   );
 }
+
+/**
+ * The key and its remove control take a line of their own, and each choice
+ * takes half of the next line while two fit and a line apiece when they do not,
+ * so no control is squeezed below a readable width in a narrow settings panel.
+ */
+const WRAPPING_ROW: CSSProperties = { ...ROW, flexWrap: "wrap" };
+
+const KEY_LINE: CSSProperties = {
+  ...ROW,
+  flex: "1 1 100%",
+  marginBottom: 0,
+};
+
+const CHOICE: CSSProperties = { flex: "1 1 12rem", minWidth: 0, width: "auto" };
 
 const SERIES_GROUP: CSSProperties = {
   display: "flex",

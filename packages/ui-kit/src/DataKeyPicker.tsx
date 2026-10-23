@@ -290,6 +290,13 @@ const PickerInput = styled.input<{ $hasValue: boolean; $retired?: boolean }>`
   &::placeholder {
     color: var(--color-text-faint);
   }
+
+  @media (pointer: coarse) {
+    min-height: 44px;
+    padding: var(--inset-field-touch);
+    /* Under a coarse pointer the large step is 17px, above the 16px at which iOS Safari zooms on focus. */
+    font-size: var(--font-size-lg);
+  }
 `;
 
 const ClearButton = styled.button`
@@ -310,6 +317,12 @@ const ClearButton = styled.button`
   }
 
   ${focusRing}
+
+  @media (pointer: coarse) {
+    min-width: 44px;
+    min-height: 44px;
+    right: 0;
+  }
 `;
 
 /**
@@ -325,6 +338,10 @@ const RetiredNote = styled.div`
 const ItemLabel = styled.span`
   font-size: var(--font-size-compact);
   color: var(--color-text-primary);
+
+  @media (pointer: coarse) {
+    font-size: var(--font-size-prose);
+  }
 `;
 
 const ItemUnit = styled.span`
