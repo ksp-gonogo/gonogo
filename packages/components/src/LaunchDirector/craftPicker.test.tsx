@@ -160,6 +160,32 @@ describe("LaunchDirector craft list", () => {
     expect(probe?.getAttribute("aria-disabled")).toBe("false");
   });
 
+  it("offers no unmanned launch of a craft that needs crew, and asks for the crew instead", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    emit([PAD], []);
+    act(() => {
+      stream.emit("spaceCenter.savedShips", [
+        {
+          ...craft("Plane"),
+          crewSeats: 2,
+          canFlyUnmanned: false,
+          minimumCrew: 1,
+        },
+      ]);
+    });
+
+    await user.click(await screen.findByText("Plane"));
+
+    expect(screen.queryByText(/Launch Plane unmanned/i)).toBeNull();
+    expect(
+      screen.getByText(/Pick at least 1 crew to launch Plane/i),
+    ).toBeVisible();
+
+    await user.click(screen.getByText(/Jeb/));
+    expect(screen.getByText(/Launch Plane \(1 crew\)/i)).toBeInTheDocument();
+  });
+
   it("says when no craft matches", async () => {
     const user = userEvent.setup();
     renderWidget();

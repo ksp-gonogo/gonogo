@@ -4,6 +4,7 @@ import type { CatalogEntry } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CommandButtonHandle,
   SelectableRow,
+  Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect } from "react";
@@ -222,6 +223,14 @@ function OpenPad({
   const manifest = (crew ?? [])
     .filter((k) => crewReading(k) === "available" && selectedCrew.has(k.name))
     .map((k) => k.name);
+  /** The crew the picked craft still needs when it cannot fly unmanned, so the control is withheld rather than offering an unmanned launch the game refuses. */
+  const crewShort =
+    ship !== undefined &&
+    ship.canFlyUnmanned === false &&
+    ship.minimumCrew !== null &&
+    ship.minimumCrew > manifest.length
+      ? ship.minimumCrew
+      : null;
   const picker = (
     <ShipPicker
       padCraft={padCraft}
@@ -245,17 +254,23 @@ function OpenPad({
               rows={rows}
             />
             <LaunchControls>
-              <LaunchAction
-                handle={launchCmd}
-                args={{
-                  shipName: ship.file,
-                  facility: launchFacilityArg(ship),
-                  site: site.name,
-                  crew: manifest,
-                }}
-                shipName={ship.name}
-                crewCount={manifest.length}
-              />
+              {crewShort === null ? (
+                <LaunchAction
+                  handle={launchCmd}
+                  args={{
+                    shipName: ship.file,
+                    facility: launchFacilityArg(ship),
+                    site: site.name,
+                    crew: manifest,
+                  }}
+                  shipName={ship.name}
+                  crewCount={manifest.length}
+                />
+              ) : (
+                <Text level="muted" size="xs">
+                  Pick at least {crewShort} crew to launch {ship.name}
+                </Text>
+              )}
             </LaunchControls>
           </PadColumn>
         )
