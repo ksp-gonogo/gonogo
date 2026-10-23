@@ -7800,28 +7800,39 @@ namespace Gonogo.KSP
                 GonogoLog.WarnLimited("vessel.parts moduleStates landing gear read failed, skipping", ex);
             }
 
+            List<ModuleCargoBay>? bays = null;
             try
             {
-                var bays = part.Modules.GetModules<ModuleCargoBay>();
-                if (bays != null)
+                bays = part.Modules.GetModules<ModuleCargoBay>();
+            }
+            catch (Exception ex)
+            {
+                GonogoLog.WarnLimited("vessel.parts moduleStates cargo bay lookup failed, skipping", ex);
+            }
+
+            if (bays != null)
+            {
+                foreach (var bay in bays)
                 {
-                    foreach (var bay in bays)
+                    if (bay == null)
                     {
-                        if (bay == null)
-                        {
-                            continue;
-                        }
+                        continue;
+                    }
+
+                    // One bay that throws must not drop the states of the part's other bays.
+                    try
+                    {
                         var bayState = MapCargoBayState(part, bay);
                         if (bayState != null)
                         {
                             result.Add(ModuleStateEntry("cargoBay", bayState));
                         }
                     }
+                    catch (Exception ex)
+                    {
+                        GonogoLog.WarnLimited("vessel.parts moduleStates cargo bay read failed, skipping", ex);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                GonogoLog.WarnLimited("vessel.parts moduleStates cargo bay read failed, skipping", ex);
             }
 
             return result;
