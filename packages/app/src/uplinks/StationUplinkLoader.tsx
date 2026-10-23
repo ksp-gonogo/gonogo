@@ -21,7 +21,16 @@ import {
   type TelemetryClient,
   useTelemetryClientOptional,
 } from "@ksp-gonogo/sitrep-client";
-import { Badge, Button, Cluster, Text } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  Badge,
+  Button,
+  Cluster,
+  speakQuantity,
+  Text,
+  Unit,
+  UnitSharedFormat,
+} from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import {
   useCallback,
@@ -476,14 +485,6 @@ function UplinkGateRow({
   );
 }
 
-/** Sizes in the unit the total reads best in, both figures in that unit: "1.2 of 1.9 MB". */
-function formatBundleProgress(received: number, total: number): string {
-  if (total >= 1_000_000) {
-    return `${(received / 1_000_000).toFixed(1)} of ${(total / 1_000_000).toFixed(1)} MB`;
-  }
-  return `${Math.round(received / 1000)} of ${Math.round(total / 1000)} kB`;
-}
-
 function UplinkProgressBar({
   name,
   progress,
@@ -505,7 +506,9 @@ function UplinkProgressBar({
   const { received, total } = progress;
   const percent = total > 0 ? Math.round((received / total) * 100) : 0;
   const complete = received >= total;
-  const label = complete ? undefined : formatBundleProgress(received, total);
+  const spoken = complete
+    ? undefined
+    : `${speakQuantity({ magnitude: received, unit: "B" }, { decimals: 1 })} of ${speakQuantity({ magnitude: total, unit: "B" }, { decimals: 1 })}`;
   return (
     <>
       <StationUplinkGate__Track
@@ -514,16 +517,19 @@ function UplinkProgressBar({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
-        aria-valuetext={label ?? "Complete"}
+        aria-valuetext={spoken ?? "Complete"}
       >
         <StationUplinkGate__Fill
           $complete={complete}
           style={{ width: `${percent}%` }}
         />
       </StationUplinkGate__Track>
-      {label && (
+      {!complete && (
         <Text level="muted" size="sm">
-          {label}
+          <UnitSharedFormat decimals={1}>
+            <Unit value={value("B", received)} hideUnitInGroup /> of{" "}
+            <Unit value={value("B", total)} />
+          </UnitSharedFormat>
         </Text>
       )}
     </>
@@ -539,7 +545,7 @@ const StationUplinkGate__Track = styled.div`
   position: relative;
   height: 0.375rem;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
 `;
@@ -551,7 +557,7 @@ const StationUplinkGate__Fill = styled.div<{
   height: 100%;
   background: ${({ $complete }) =>
     $complete ? "var(--color-go-mark)" : "var(--color-info-mark)"};
-  transition: width 120ms linear;
+  transition: width var(--duration-fast) var(--ease-linear);
   ${({ $indeterminate }) =>
     $indeterminate &&
     css`
@@ -572,7 +578,6 @@ const StationUplinkGate = styled.section`
   min-height: 60vh;
   margin: 0 auto;
   padding: var(--inset-screen-message);
-  box-sizing: border-box;
 `;
 
 const StationUplinkGate__Title = styled.h2`

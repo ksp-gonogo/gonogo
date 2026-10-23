@@ -243,12 +243,12 @@ describe("createCacheStorageStore", () => {
         cache.delete(key);
         cache.set(key, res);
       },
-      keys: async () => [...cache.keys()],
+      keys: async () => [...cache.keys()].map((url) => ({ url })),
       delete: async (key: string) => cache.delete(key),
     };
     return {
       cache,
-      storage: { open: async () => handle } as unknown as CacheStorage,
+      storage: { open: async () => handle },
     };
   }
 
@@ -272,7 +272,7 @@ describe("createCacheStorageStore", () => {
       open: async () => {
         throw new Error("SecurityError");
       },
-    } as unknown as CacheStorage;
+    };
     const store = createCacheStorageStore(storage);
 
     await expect(store.get("sha256-a")).resolves.toBeUndefined();

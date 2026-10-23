@@ -31,12 +31,25 @@ function warn(action: string, err: unknown): void {
   );
 }
 
+/** The part of a `Cache` the store reads and writes; a real `Cache` satisfies it. */
+export interface BundleCache {
+  match(key: string): Promise<Response | undefined>;
+  put(key: string, response: Response): Promise<void>;
+  keys(): Promise<readonly { url: string }[]>;
+  delete(key: string): Promise<boolean>;
+}
+
+/** The part of `CacheStorage` the store opens; a real `CacheStorage` satisfies it. */
+export interface BundleCacheStorage {
+  open(name: string): Promise<BundleCache>;
+}
+
 /**
  * A {@link VerifiedBundleStore} over Cache Storage. Cache keys come back in
  * insertion order, so the oldest entries are the first ones `keys()` lists.
  */
 export function createCacheStorageStore(
-  storage: CacheStorage,
+  storage: BundleCacheStorage,
   limit: number = VERIFIED_BUNDLE_LIMIT,
 ): VerifiedBundleStore {
   return {
@@ -61,7 +74,7 @@ export function createCacheStorageStore(
         );
         const keys = await cache.keys();
         for (const stale of keys.slice(0, Math.max(0, keys.length - limit))) {
-          await cache.delete(stale);
+          await cache.delete(stale.url);
         }
       } catch (err) {
         warn("write", err);

@@ -413,6 +413,10 @@ describe("StationUplinkLoader", () => {
     await act(async () => peerClient.announce([]));
     await screen.findByTestId("dashboard-widgets");
     expect(sendBundleFetch).not.toHaveBeenCalled();
+    // The empty set opens the dashboard at once; the first load still ends after the roster wait.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    });
   });
 
   it("runs the loader exactly once under a StrictMode double-invoke", async () => {
@@ -727,7 +731,7 @@ describe("a station opens only once every Uplink its main screen runs has loaded
         .getByRole("progressbar", { name: "alpha progress" })
         .getAttribute("aria-valuenow"),
     ).toBe("63");
-    expect(row("alpha").textContent).toMatch(/1\.2 of 1\.9 MB/);
+    expect(row("alpha").textContent).toMatch(/1\.2 of 1\.9\sMB/);
 
     await act(async () => gate.release());
     await screen.findByTestId("dashboard-widgets");
