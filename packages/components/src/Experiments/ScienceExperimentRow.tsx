@@ -1,17 +1,22 @@
 import type { HeldGrade } from "@ksp-gonogo/sitrep-client";
-import type { CommandReply, ScienceTransmission } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CommandReply,
+  classifyCommandRejection,
+  type ScienceTransmission,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Card,
   CommandButton,
   type CommandButtonHandle,
+  commandRefusalSentence,
   HeldFigure,
   heldWord,
   Inline,
   Text,
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { TitledInstrument } from "./instrument";
 
 /** What each state badge on an instrument row means, shown on hover and focus. */
@@ -90,6 +95,26 @@ export function ScienceExperimentRow({
     text: string;
     whileRunning: boolean;
   } | null>(null);
+  // The game's reason for the last Deploy it refused, which the button's own wording ("Refused") leaves out.
+  const [deployRefusal, setDeployRefusal] = useState<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the instrument's state moving on is the trigger
+  useEffect(
+    () => setDeployRefusal(null),
+    [instrument.hasData, instrument.deployed],
+  );
+  const deployHandle = deployCmd && {
+    ...deployCmd,
+    send: (...sendArgs: Parameters<typeof deployCmd.send>) => {
+      setDeployRefusal(null);
+      return deployCmd.send(...sendArgs).catch((err: unknown) => {
+        const rejection = classifyCommandRejection(err);
+        if (rejection.kind === "refused") {
+          setDeployRefusal(commandRefusalSentence(rejection));
+        }
+        throw err;
+      });
+    },
+  };
   const noteIfUnchanged =
     (started: boolean) => (reply: CommandReply<"science.experiment.start">) => {
       if (reply?.payload?.changed === false)
@@ -131,10 +156,10 @@ export function ScienceExperimentRow({
       {!continuous &&
         !instrument.inoperable &&
         (!instrument.deployed || instrument.rerunnable) &&
-        deployCmd && (
+        deployHandle && (
           <CommandButton
             size="sm"
-            handle={deployCmd}
+            handle={deployHandle}
             args={{ partId: instrument.partId, experimentId: instrument.expId }}
             commandLabel={`Deploy ${experimentOnPart(instrument)}`}
             label="Deploy"
@@ -253,6 +278,12 @@ export function ScienceExperimentRow({
       {continuous && instrument.running === true && instrument.runIssue && (
         <Text level="muted" size="xs">
           {instrument.runIssue}
+        </Text>
+      )}
+      {/* The button's own live region announces the refusal, so this line is for sight only. */}
+      {deployRefusal !== null && (
+        <Text level="muted" size="xs">
+          {deployRefusal}
         </Text>
       )}
       <Text level="muted" size="xs" role="status" aria-live="polite">

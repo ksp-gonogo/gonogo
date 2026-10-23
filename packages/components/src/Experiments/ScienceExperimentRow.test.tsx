@@ -584,6 +584,26 @@ describe("ScienceExperimentRow: a continuous instrument", () => {
     expect(await screen.findByText("Already running")).toBeInTheDocument();
   });
 
+  it("says on the card why the game refused a Deploy", async () => {
+    const user = userEvent.setup();
+    const refusal = Object.assign(new Error("refused"), {
+      code: "E_REFUSED",
+      errorCode: "wrongState",
+      detail: "the experiment has already been run",
+    });
+    renderRow(
+      <ScienceExperimentRow
+        instrument={instrument({ deployed: true, hasData: true })}
+        deployCmd={handle(() => Promise.reject(refusal))}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Deploy" }));
+    const shown = (
+      await screen.findAllByText(/the experiment has already been run/)
+    ).filter((el) => !el.closest("[data-live-region]"));
+    expect(shown).toHaveLength(1);
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = renderRow(
       <ScienceExperimentRow
