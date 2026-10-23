@@ -1,5 +1,9 @@
 import { getDataSource } from "@ksp-gonogo/core";
-import { type FlightStarted, magnitudeOf } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type FlightStarted,
+  type FlightVesselChanged,
+  magnitudeOf,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import type { FlightRecord } from "../types";
 import { useOptionalStreamEvent } from "./useOptionalStreamEvent";
@@ -72,6 +76,10 @@ function useStreamFlight(): FlightRecord | null {
   const [flight, setFlight] = useState<FlightRecord | null>(null);
   /** The `(flightId, ut)` of the flight currently held, the key a re-announce repeats. */
   const heldRef = useRef<{ id: string; ut: number | null } | null>(null);
+  /** Every flight announced so far, so that switching back to one gives its record again. */
+  const knownRef = useRef<
+    Map<string, { record: FlightRecord; ut: number | null }>
+  >(new Map());
 
   useOptionalStreamEvent<FlightStarted>(
     "flight.started",
@@ -82,7 +90,7 @@ function useStreamFlight(): FlightRecord | null {
 
       heldRef.current = { id: payload.flightId, ut: startedUt };
       const now = Date.now();
-      setFlight({
+      const record: FlightRecord = {
         id: payload.flightId,
         vesselName: payload.vesselName,
         vesselUid: payload.vesselId,
@@ -90,7 +98,36 @@ function useStreamFlight(): FlightRecord | null {
         lastSampleAt: now,
         lastMissionTime: 0,
         sampleCount: 1,
-      });
+      };
+      knownRef.current.set(payload.flightId, { record, ut: startedUt });
+      setFlight(record);
+    }, []),
+  );
+
+  /*
+   * Focus moving back onto a vessel whose flight is still open sends no second
+   * flight.started, so this is the only word that the current flight changed.
+   */
+  useOptionalStreamEvent<FlightVesselChanged>(
+    "flight.vesselChanged",
+    useCallback((payload) => {
+      const held = heldRef.current;
+      if (held && held.id === payload.flightId) return;
+      const now = Date.now();
+      const known = knownRef.current.get(payload.flightId);
+      const record: FlightRecord = known?.record ?? {
+        id: payload.flightId,
+        vesselName: payload.vesselName,
+        vesselUid: payload.vesselId,
+        launchedAt: now,
+        lastSampleAt: now,
+        lastMissionTime: 0,
+        sampleCount: 1,
+      };
+      const ut = known ? known.ut : null;
+      knownRef.current.set(payload.flightId, { record, ut });
+      heldRef.current = { id: payload.flightId, ut };
+      setFlight(record);
     }, []),
   );
 

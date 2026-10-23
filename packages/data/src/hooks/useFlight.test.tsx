@@ -53,6 +53,55 @@ beforeEach(() => {
 });
 
 describe("useFlight(): default, stream-native path", () => {
+  it("follows the flight focus moves back to, which sends no second flight.started", () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client}>
+        <Probe />
+      </TelemetryProvider>,
+    );
+
+    emitStarted(rig, 0, {
+      flightId: "vA",
+      vesselId: "vA",
+      vesselName: "Alpha",
+    });
+    emitStarted(rig, 10, {
+      flightId: "vB",
+      vesselId: "vB",
+      vesselName: "Bravo",
+    });
+    const launchedAt = latest && latest !== "unset" ? latest.launchedAt : 0;
+    act(() => {
+      rig.transport.emit(
+        "flight.vesselChanged",
+        {
+          flightId: "vA",
+          vesselId: "vA",
+          vesselName: "Alpha",
+          previousVesselId: "vB",
+          ut: 20,
+        },
+        { validAt: 20, deliveredAt: 20 },
+      );
+    });
+
+    expect(latest && latest !== "unset" ? latest.id : null).toBe("vA");
+    expect(latest && latest !== "unset" ? latest.vesselName : null).toBe(
+      "Alpha",
+    );
+    expect(launchedAt).toBeGreaterThan(0);
+
+    // The host repeating A's start for a new listener is not a new flight.
+    const before = latest;
+    emitStarted(rig, 0, {
+      flightId: "vA",
+      vesselId: "vA",
+      vesselName: "Alpha",
+    });
+    expect(latest).toBe(before);
+  });
+
   it("returns null (never throws) when no TelemetryProvider is mounted, every station screen today", () => {
     expect(() => render(<Probe />)).not.toThrow();
     expect(latest).toBeNull();

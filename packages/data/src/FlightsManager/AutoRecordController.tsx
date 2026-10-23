@@ -11,6 +11,7 @@ import {
   type FlightEnded,
   type FlightEndReason,
   type FlightStarted,
+  type FlightVesselChanged,
   magnitudeOf,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useEffect, useRef } from "react";
@@ -37,6 +38,14 @@ function getSource(): MissionHistorySource | undefined {
 // mounts a real `TelemetryProvider` once the dev streaming flag is on AND
 // its socket has connected; most of the time, release builds or
 // the brief window before connect even in dev, there is none in the tree).
+
+interface ParkedFlight {
+  startedUt: number | null;
+  vesselName: string;
+  launchName: string;
+  launchedAt: number;
+  mission: { meta: MissionMeta; nextPart: number } | null;
+}
 
 export interface AutoRecordControllerProps {
   /** Mirrors `mission.historyEnabled`: the master "record my flights" switch. Default `true`, matching the setting's own default. */
@@ -141,6 +150,12 @@ export function AutoRecordController({
    * vessel) can still be put on it. An entry goes once its flight has ended.
    */
   const savedMissionIdsRef = useRef<Map<string, string>>(new Map());
+  /**
+   * The flights the recording has moved away from while they are still open,
+   * with what is needed to pick one up again: its announced start, its names and
+   * the mission it was stored as so far. An entry goes once its flight has ended.
+   */
+  const parkedFlightsRef = useRef<Map<string, ParkedFlight>>(new Map());
   const prevSceneRef = useRef<GameScene>(scene);
   const missionHistoryEnabledRef = useRef(missionHistoryEnabled);
   missionHistoryEnabledRef.current = missionHistoryEnabled;
@@ -206,6 +221,32 @@ export function AutoRecordController({
     [],
   );
 
+  /** Remembers the tracked flight so that coming back to it reopens its mission. */
+  const parkTrackedFlight = useCallback((): void => {
+    const flightId = activeFlightIdRef.current;
+    if (!flightId) return;
+    parkedFlightsRef.current.set(flightId, {
+      startedUt: activeFlightStartedUtRef.current,
+      vesselName: activeVesselNameRef.current,
+      launchName: launchNameRef.current,
+      launchedAt: activeLaunchedAtRef.current,
+      mission: missionRef.current,
+    });
+  }, []);
+
+  /** Tracks `flightId` again, carrying on its mission where it was left. */
+  const resumeParkedFlight = useCallback((flightId: string): void => {
+    const parked = parkedFlightsRef.current.get(flightId);
+    parkedFlightsRef.current.delete(flightId);
+    activeFlightIdRef.current = flightId;
+    if (!parked) return;
+    activeFlightStartedUtRef.current = parked.startedUt;
+    activeVesselNameRef.current = parked.vesselName;
+    launchNameRef.current = parked.launchName;
+    activeLaunchedAtRef.current = parked.launchedAt;
+    missionRef.current = parked.mission;
+  }, []);
+
   /**
    * Synchronous stop (grabs whatever's buffered) + fire-and-forget async
    * save. Deliberately not awaited by callers before `recorder.start()`ing
@@ -217,6 +258,7 @@ export function AutoRecordController({
     (r: StreamRecorder, endReason?: FlightEndReason): void => {
       if (!r.recording) return;
       storePart(r.stop(), endReason);
+      if (endReason === undefined) parkTrackedFlight();
       missionRef.current = null;
       partStartedAtRef.current = null;
       setAutoRecordStatus({
@@ -225,7 +267,7 @@ export function AutoRecordController({
         frameCount: 0,
       });
     },
-    [storePart],
+    [storePart, parkTrackedFlight],
   );
 
   // Master switch off -> stop + save whatever's in flight.
@@ -305,6 +347,34 @@ export function AutoRecordController({
     ),
   );
 
+  /*
+   * Focus moving back onto a vessel whose flight is still open sends no second
+   * flight.started, only this. The flight in hand is stored and parked, and the
+   * one switched to is tracked again with its own mission reopened, so the
+   * ticks that follow are recorded into it.
+   */
+  useOptionalStreamEvent<FlightVesselChanged>(
+    "flight.vesselChanged",
+    useCallback(
+      (payload) => {
+        if (!recorder) return;
+        if (payload.flightId === activeFlightIdRef.current) return;
+        finishAndSave(recorder);
+        const known = parkedFlightsRef.current.has(payload.flightId);
+        resumeParkedFlight(payload.flightId);
+        if (!known) {
+          // A flight this page never saw start: tracked from now, under the name it reports.
+          activeFlightStartedUtRef.current = null;
+          activeVesselNameRef.current = payload.vesselName;
+          launchNameRef.current = payload.vesselName;
+          activeLaunchedAtRef.current = Date.now();
+          missionRef.current = null;
+        }
+      },
+      [recorder, finishAndSave, resumeParkedFlight],
+    ),
+  );
+
   /** Puts a flight's end reason on the mission its recording was already stored as. */
   const storeReasonOnSavedMission = useCallback(
     (flightId: string, endReason: FlightEndReason): void => {
@@ -326,6 +396,7 @@ export function AutoRecordController({
     useCallback(
       (payload) => {
         if (!recorder) return;
+        parkedFlightsRef.current.delete(payload.flightId);
         if (payload.flightId !== activeFlightIdRef.current) {
           // A flight the operator left for another vessel ends on its own.
           storeReasonOnSavedMission(payload.flightId, payload.reason);
@@ -372,6 +443,7 @@ export function AutoRecordController({
           if (!missionHistoryEnabledRef.current) return;
           if (payload.flightId !== activeFlightIdRef.current) return;
           if (sceneRef.current !== "Flight") return;
+          resumeParkedFlight(payload.flightId);
           recorder.start();
         }
         /*
@@ -396,7 +468,7 @@ export function AutoRecordController({
             (missionRef.current?.meta.frameCount ?? 0) + recorder.frameCount,
         });
       },
-      [recorder, partSizeLimit, partSeconds, storePart],
+      [recorder, partSizeLimit, partSeconds, storePart, resumeParkedFlight],
     ),
   );
 

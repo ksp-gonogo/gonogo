@@ -859,4 +859,135 @@ describe("AutoRecordController", () => {
     expect(flights).toHaveLength(2);
     expect(flights.map((f) => f.endReason).sort()).toEqual([1, 2]);
   });
+
+  it("lists a renamed flight under its current name and keeps the launch name", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled />
+      </TelemetryProvider>,
+    );
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    tickFrame(rig, 10, "vA", "Alpha Two");
+    end(rig, 15, "vA", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      const flights = await rig.source.listFlights();
+      expect(flights).toHaveLength(1);
+      expect(flights[0]?.vesselName).toBe("Alpha Two");
+      expect(flights[0]?.launchName).toBe("Alpha");
+    });
+  });
+
+  it("keeps no launch name for a flight that was never renamed", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled />
+      </TelemetryProvider>,
+    );
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    end(rig, 15, "vA", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      const flights = await rig.source.listFlights();
+      expect(flights[0]?.vesselName).toBe("Alpha");
+    });
+    expect((await rig.source.listFlights())[0]?.launchName).toBeUndefined();
+  });
+
+  it("puts the reason a flight ended on its mission when focus had already moved to another vessel", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled />
+      </TelemetryProvider>,
+    );
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    start(rig, 10, { flightId: "vB", vesselId: "vB", vesselName: "Bravo" });
+    tickFrame(rig, 15, "vB", "Bravo");
+
+    end(rig, 20, "vA", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      const alpha = (await rig.source.listFlights()).find(
+        (f) => f.vesselName === "Alpha",
+      );
+      expect(alpha?.endReason).toBe(0);
+    });
+    expect(getAutoRecordStatus().recording).toBe(true);
+  });
+
+  it("reopens a flight's mission when focus moves back to it, and records into it", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene="Flight" />
+      </TelemetryProvider>,
+    );
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    start(rig, 10, { flightId: "vB", vesselId: "vB", vesselName: "Bravo" });
+    tickFrame(rig, 15, "vB", "Bravo");
+    act(() => {
+      rig.transport.emit(
+        "flight.vesselChanged",
+        {
+          flightId: "vA",
+          vesselId: "vA",
+          vesselName: "Alpha",
+          previousVesselId: "vB",
+          ut: 20,
+        },
+        { validAt: 20, deliveredAt: 20 },
+      );
+    });
+    tickFrame(rig, 25, "vA", "Alpha");
+    tickFrame(rig, 30, "vA", "Alpha");
+
+    expect(getAutoRecordStatus().recording).toBe(true);
+    expect(getAutoRecordStatus().vesselName).toBe("Alpha");
+    end(rig, 35, "vA", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      const flights = await rig.source.listFlights();
+      const alpha = flights.filter((f) => f.vesselName === "Alpha");
+      expect(alpha).toHaveLength(1);
+      expect(alpha[0]?.endReason).toBe(0);
+      expect(alpha[0]?.sampleCount).toBeGreaterThan(2);
+    });
+    expect(
+      (await rig.source.listFlights()).filter((f) => f.vesselName === "Bravo"),
+    ).toHaveLength(1);
+  });
+
+  it("keeps one mission for a flight when the operator leaves the Flight scene and returns", async () => {
+    const rig = buildRig();
+    const tree = (scene: "Flight" | "SpaceCenter") => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene={scene} />
+      </TelemetryProvider>
+    );
+    const { rerender } = render(tree("Flight"));
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    act(() => rerender(tree("SpaceCenter")));
+    act(() => rerender(tree("Flight")));
+    tickFrame(rig, 60, "vA", "Alpha");
+    end(rig, 65, "vA", 0 /* Recovered */);
+
+    await vi.waitFor(async () => {
+      const flights = await rig.source.listFlights();
+      expect(flights).toHaveLength(1);
+      expect(flights[0]?.endReason).toBe(0);
+    });
+  });
 });
