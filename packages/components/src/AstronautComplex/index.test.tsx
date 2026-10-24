@@ -286,6 +286,22 @@ describe("AstronautComplexComponent", () => {
     expect(screen.getByText("Limmy Kerman")).toBeInTheDocument();
   });
 
+  it("drops the fraction of the funds balance like the game does", async () => {
+    renderWidget();
+    act(() => {
+      emitFunds(fixture, 29459.7);
+      emitComplex(fixture, {
+        applicants: APPLICANTS,
+        activeCrew: 3,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+    });
+
+    await screen.findByText("Desdin Kerman");
+    expect(screen.getByText("29,459")).toBeInTheDocument();
+  });
+
   it("shows courage and stupidity per applicant, and withholds rank", async () => {
     renderWidget();
     act(() => {

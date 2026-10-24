@@ -1,6 +1,11 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { useGameContext, useTelemetry } from "@ksp-gonogo/core";
-import { stillTrue, VesselType } from "@ksp-gonogo/sitrep-sdk";
+import {
+  readingOf,
+  stillTrue,
+  VesselType,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Panel, Section, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { magnitudeOf } from "../shared/magnitude";
@@ -74,13 +79,18 @@ export function LaunchDirectorComponent({
    * not read. Funds move while nobody looks, so a held balance is withheld.
    */
   const careerReading = useTelemetry("career.status");
-  const careerFunds = magnitudeOf(
-    careerReading.state === "observed"
-      ? careerReading.value.balances?.funds
-      : undefined,
+  const heldOrCurrentFunds = magnitudeOf(
+    stillTrue(careerReading, undefined)?.balances?.funds,
   );
+  const careerFunds =
+    careerReading.state === "observed" ? heldOrCurrentFunds : null;
   // Drawn as the whole field reading, so a held balance stays on screen with the Unit's own mark.
-  const fundsReading = careerReading.balances.funds;
+  const fundsReading = readingOf(careerReading, () =>
+    // The game's own readout drops the fraction.
+    heldOrCurrentFunds === null
+      ? undefined
+      : value("funds", Math.trunc(heldOrCurrentFunds)),
+  );
   const hasFunds = stillTrue(careerReading, undefined)?.balances?.funds != null;
   const fundsHeld = careerReading.state === "held";
   const { chargesFunds } = useGameContext();

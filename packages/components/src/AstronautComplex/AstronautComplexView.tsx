@@ -4,6 +4,7 @@ import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   canBeSacked,
   GameMode,
+  readingOf,
   stillTrue,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -49,7 +50,9 @@ function fundsTitle(
 ): string | undefined {
   if (held) return HELD_FUNDS_TITLE;
   if (careerFunds === null) return undefined;
-  return speakQuantity(value("funds", careerFunds), { decimals: 0 });
+  return speakQuantity(value("funds", Math.trunc(careerFunds)), {
+    decimals: 0,
+  });
 }
 
 /** What an empty pool means in a save mode that has no hiring: a state label, or null where the mode says nothing about it. */
@@ -97,12 +100,18 @@ export function AstronautComplexComponent(
    * screen as the whole field reading, marked by its Unit.
    */
   const fundsReading = astronautComplexTopics.useTelemetry("career.status");
-  const careerFunds = magnitudeOf(
-    fundsReading.state === "observed"
-      ? fundsReading.value.balances?.funds
-      : undefined,
+  const heldOrCurrentFunds = magnitudeOf(
+    stillTrue(fundsReading, undefined)?.balances?.funds,
   );
+  const careerFunds =
+    fundsReading.state === "observed" ? heldOrCurrentFunds : null;
   const hasFunds = stillTrue(fundsReading, undefined)?.balances?.funds != null;
+  const shownFunds = readingOf(fundsReading, () =>
+    // The game's own readout drops the fraction.
+    heldOrCurrentFunds === null
+      ? undefined
+      : value("funds", Math.trunc(heldOrCurrentFunds)),
+  );
   // A kerbal is on the books until an event takes them off, so the last roster received stands.
   const crewRosterRaw = stillTrue(
     astronautComplexTopics.useTelemetry("spaceCenter.crewRoster"),
@@ -185,7 +194,7 @@ export function AstronautComplexComponent(
           focusable
         >
           <span>
-            <Unit value={fundsReading.balances.funds} />
+            <Unit value={shownFunds} />
           </span>
         </Tooltip>
       ) : (
