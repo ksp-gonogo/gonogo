@@ -15,6 +15,8 @@ export interface ObjectiveItem {
   optional?: boolean;
   /** Set for contract parameters: enables the "alarm on completion" toggle. */
   contractId?: string;
+  /** How many objectives it is nested under; drawn indented. Absent at the top level. */
+  depth?: number;
 }
 
 /** One source's contribution, rendered by the frame's {@link ObjectivesSection}. */

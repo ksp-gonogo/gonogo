@@ -15,7 +15,7 @@ namespace Gonogo.KSP.Tests
         public void a_milestone_objective_publishes_its_goal_and_only_reaching_space_has_an_altitude()
         {
             var source = CurrencyDelaySourceText.ReadRelative("KspHost.cs");
-            var parameters = CurrencyDelaySourceText.MethodBody(source, "private static List<object?> BuildContractParameters(Contract contract)");
+            var parameters = CurrencyDelaySourceText.MethodBody(source, "private static Dictionary<string, object?> BuildContractParameter(ContractParameter parameter)");
             var altitude = CurrencyDelaySourceText.MethodBody(source, "private static double? MilestoneTargetAltitude(FinePrint.Utilities.ProgressMilestone milestone)");
 
             foreach (var key in new[] { "[\"milestone\"]", "[\"milestoneBody\"]", "[\"targetAltitude\"]" })

@@ -90,6 +90,12 @@ namespace Gonogo.KSP.Tests
             AssertMirrors(typeof(ParameterState), typeof(KspParameterState));
         }
 
+        [Fact]
+        public void ContractPrestigeMirrorsKsp()
+        {
+            AssertMirrors(typeof(Contracts.Contract.ContractPrestige), typeof(KspContractPrestige));
+        }
+
         /// <summary>
         /// <c>PartCategories.none</c> is <c>-1</c>, so this mirror is the one
         /// that proves the comparison is on values rather than on position: an
@@ -224,6 +230,7 @@ namespace Gonogo.KSP.Tests
             {
                 (typeof(ProtoCrewMember.RosterStatus), typeof(KspRosterStatus)),
                 (typeof(ParameterState), typeof(KspParameterState)),
+                (typeof(Contracts.Contract.ContractPrestige), typeof(KspContractPrestige)),
                 (typeof(PartCategories), typeof(KspPartCategory)),
                 (typeof(KSPActionGroup), typeof(KspActionGroup)),
                 (typeof(EditorFacility), typeof(KspEditorFacility)),

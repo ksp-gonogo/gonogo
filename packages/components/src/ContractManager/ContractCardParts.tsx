@@ -1,6 +1,6 @@
-import { formatCompactCurrency } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { HeldFigure, heldWord, NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import type { heldGrade } from "../shared/heldGrade";
 import { type ContractEntry, formatDeadline } from "./contracts";
 import {
@@ -60,19 +60,44 @@ export function ContractDeadline({
   );
 }
 
+/** A figure the board draws, carrying the held mark while the board is held. */
+function BoardFigure({
+  held,
+  children,
+}: Readonly<{
+  held: ReturnType<typeof heldGrade>;
+  children: ReactNode;
+}>) {
+  return held === undefined ? (
+    <>{children}</>
+  ) : (
+    <HeldFigure data-held="" caption={heldWord(held)}>
+      {children}
+    </HeldFigure>
+  );
+}
+
 /** What completing the contract pays, one figure per currency it pays in. */
 export function ContractRewards({
   contract: c,
-}: Readonly<{ contract: ContractEntry }>) {
+  boardHeld,
+}: Readonly<{
+  contract: ContractEntry;
+  boardHeld?: ReturnType<typeof heldGrade>;
+}>) {
   return (
     <div style={REWARDS_STYLE}>
       {c.fundsCompletion !== 0 && (
         <div style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>FUNDS</span>
           <span style={REWARD_VALUE_STYLE}>
-            {c.fundsCompletion === null
-              ? NULL_DISPLAY
-              : formatCompactCurrency(c.fundsCompletion)}
+            {c.fundsCompletion === null ? (
+              NULL_DISPLAY
+            ) : (
+              <BoardFigure held={boardHeld}>
+                <Unit value={value("funds", c.fundsCompletion)} />
+              </BoardFigure>
+            )}
           </span>
         </div>
       )}
@@ -80,9 +105,13 @@ export function ContractRewards({
         <div style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>SCI</span>
           <span style={REWARD_VALUE_STYLE}>
-            {c.scienceCompletion === null
-              ? NULL_DISPLAY
-              : c.scienceCompletion.toFixed(1)}
+            {c.scienceCompletion === null ? (
+              NULL_DISPLAY
+            ) : (
+              <BoardFigure held={boardHeld}>
+                <Unit value={value("science", c.scienceCompletion)} />
+              </BoardFigure>
+            )}
           </span>
         </div>
       )}
@@ -90,9 +119,13 @@ export function ContractRewards({
         <div style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>REP</span>
           <span style={REWARD_VALUE_STYLE}>
-            {c.repCompletion === null
-              ? NULL_DISPLAY
-              : c.repCompletion.toFixed(1)}
+            {c.repCompletion === null ? (
+              NULL_DISPLAY
+            ) : (
+              <BoardFigure held={boardHeld}>
+                <Unit value={value("rep", c.repCompletion)} />
+              </BoardFigure>
+            )}
           </span>
         </div>
       )}
@@ -107,7 +140,11 @@ export function ContractRewards({
  */
 export function ContractCancelCost({
   contract: c,
-}: Readonly<{ contract: ContractEntry }>) {
+  boardHeld,
+}: Readonly<{
+  contract: ContractEntry;
+  boardHeld?: ReturnType<typeof heldGrade>;
+}>) {
   const funds = c.fundsFailure !== null && c.fundsFailure > 0;
   const rep = c.repFailure !== null && c.repFailure > 0;
   if (!funds && !rep) return null;
@@ -118,14 +155,22 @@ export function ContractCancelCost({
         <span style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>FUNDS</span>
           <span style={PENALTY_VALUE_STYLE}>
-            −{formatCompactCurrency(c.fundsFailure)}
+            −
+            <BoardFigure held={boardHeld}>
+              <Unit value={value("funds", c.fundsFailure)} />
+            </BoardFigure>
           </span>
         </span>
       )}
       {rep && c.repFailure !== null && (
         <span style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>REP</span>
-          <span style={PENALTY_VALUE_STYLE}>−{c.repFailure.toFixed(1)}</span>
+          <span style={PENALTY_VALUE_STYLE}>
+            −
+            <BoardFigure held={boardHeld}>
+              <Unit value={value("rep", c.repFailure)} />
+            </BoardFigure>
+          </span>
         </span>
       )}
     </div>

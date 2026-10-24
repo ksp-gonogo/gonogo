@@ -176,6 +176,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CareerContract": {
     agent: "text",
+    briefing: "text",
     dateAccepted: "ut",
     dateDeadline: "ut",
     dateExpire: "ut",
@@ -183,10 +184,14 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     fundsCompletion: "funds",
     fundsFailure: "funds",
     id: "id",
+    notes: "text",
+    prestige: "text",
+    prestigeOrdinal: "enum",
     reputationCompletion: "rep",
     reputationFailure: "rep",
     scienceCompletion: "science",
     state: "text",
+    synopsis: "text",
     title: "text",
   },
   "CareerContractParameter": {
@@ -194,6 +199,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     milestone: "text",
     milestoneBody: "text",
     minAltitude: "m",
+    notes: "text",
+    optional: "flag",
     state: "text",
     stateOrdinal: "enum",
     targetAltitude: "m",
@@ -2484,6 +2491,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CareerContract": {
     parameters: "CareerContractParameter[]",
   },
+  "CareerContractParameter": {
+    children: "CareerContractParameter[]",
+  },
   "CareerContracts": {
     active: "CareerContract[]",
     completedRecent: "CareerContract[]",
@@ -3076,6 +3086,9 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "BodyStatesRequest": {
     certification: "PropagationCertification",
   },
+  "CareerContract": {
+    prestigeOrdinal: "KspContractPrestige",
+  },
   "CareerContractParameter": {
     stateOrdinal: "KspParameterState",
   },
@@ -3481,6 +3494,11 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     8: "CancelLateHere",
     9: "Ran",
     10: "LostOnLanding",
+  },
+  "KspContractPrestige": {
+    0: "Trivial",
+    1: "Significant",
+    2: "Exceptional",
   },
   "KspEditorFacility": {
     0: "None",

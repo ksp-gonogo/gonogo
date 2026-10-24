@@ -320,6 +320,44 @@ public class CareerContract
     [SitrepUnit(Units.Text)]
     public string? State { get; set; }
 
+    /// <summary>
+    /// The one-line statement of what the contract asks for, KSP's
+    /// <c>Contract.Synopsys</c>. Useful as the line under the title on a contract
+    /// card.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Synopsis { get; set; }
+
+    /// <summary>
+    /// The contract's briefing, KSP's <c>Contract.Description</c>: the full text
+    /// the agency writes to explain the work.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Briefing { get; set; }
+
+    /// <summary>
+    /// The contract's notes, KSP's <c>Contract.Notes</c>: the extra conditions
+    /// and hints the game lists under the briefing. <c>null</c> when it has none.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Notes { get; set; }
+
+    /// <summary>
+    /// <c>Contract.Prestige</c>'s enum name (<c>Trivial</c>, <c>Significant</c>,
+    /// <c>Exceptional</c>): a display label. <see cref="PrestigeOrdinal"/> is the
+    /// field to branch on.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Prestige { get; set; }
+
+    /// <summary>
+    /// <see cref="Prestige"/>'s KSP ordinal, typed to
+    /// <see cref="KspContractPrestige"/>. <c>null</c> when the capture carried
+    /// none, which is not a trivial contract.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public KspContractPrestige? PrestigeOrdinal { get; set; }
+
     /// <summary>Funds paid when the contract is accepted.</summary>
     [SitrepUnit(Units.Funds)]
     public double? FundsAdvance { get; set; }
@@ -368,9 +406,9 @@ public class CareerContract
     public double? DateExpire { get; set; }
 
     /// <summary>
-    /// The contract's top-level objectives, in KSP's order. Nested
-    /// sub-parameters are not listed. Always present, empty when the contract
-    /// has none.
+    /// The contract's top-level objectives, in KSP's order, each carrying its own
+    /// nested objectives in <see cref="CareerContractParameter.Children"/>. Always
+    /// present, empty when the contract has none.
     /// </summary>
     public List<CareerContractParameter> Parameters { get; set; } = new();
 }
@@ -408,6 +446,28 @@ public class CareerContractParameter
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public KspParameterState? StateOrdinal { get; set; }
+
+    /// <summary>
+    /// Whether the contract can be completed without this objective, KSP's
+    /// optional flag on a contract parameter. Useful for telling the operator which
+    /// objectives are bonuses.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Optional { get; set; }
+
+    /// <summary>
+    /// The objective's notes, KSP's notes on a contract parameter. <c>null</c>
+    /// when it has none.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Notes { get; set; }
+
+    /// <summary>
+    /// The objectives nested directly under this one, in KSP's order, each with
+    /// its own live state. Always present, empty for an objective that has no
+    /// sub-objectives.
+    /// </summary>
+    public List<CareerContractParameter> Children { get; set; } = new();
 
     /// <summary>
     /// Lower bound of the altitude band this objective requires, from the

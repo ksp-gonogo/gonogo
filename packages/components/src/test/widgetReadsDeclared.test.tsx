@@ -82,6 +82,18 @@ const UNREACHED_COMMANDS: readonly {
   reason: string;
 }[] = [
   {
+    widgetId: "landing-status",
+    command: "ksp.revertToEditor",
+    reason:
+      "offered only once a crash has been recorded, which no fixture's stream stages",
+  },
+  {
+    widgetId: "landing-status",
+    command: "ksp.revertToLaunch",
+    reason:
+      "offered only once a crash has been recorded, which no fixture's stream stages",
+  },
+  {
     widgetId: "action-group",
     command: "vessel.control.setAbort",
     reason:

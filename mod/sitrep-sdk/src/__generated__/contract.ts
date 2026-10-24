@@ -539,6 +539,31 @@ export interface CareerContract
 	* `"Completed"`.
 	*/
 	state?: string | null;
+	/**
+	* The one-line statement of what the contract asks for, KSP's
+	* `Contract.Synopsys`. Useful as the line under the title on a contract card.
+	*/
+	synopsis?: string | null;
+	/**
+	* The contract's briefing, KSP's `Contract.Description`: the full text the
+	* agency writes to explain the work.
+	*/
+	briefing?: string | null;
+	/**
+	* The contract's notes, KSP's `Contract.Notes`: the extra conditions and hints
+	* the game lists under the briefing. `null` when it has none.
+	*/
+	notes?: string | null;
+	/**
+	* `Contract.Prestige`'s enum name (`Trivial`, `Significant`, `Exceptional`): a
+	* display label. `CareerContract.prestigeOrdinal` is the field to branch on.
+	*/
+	prestige?: string | null;
+	/**
+	* `CareerContract.prestige`'s KSP ordinal, typed to `KspContractPrestige`.
+	* `null` when the capture carried none, which is not a trivial contract.
+	*/
+	prestigeOrdinal?: KspContractPrestige | null;
 	/** Funds paid when the contract is accepted. */
 	fundsAdvance?: Value<"funds"> | null;
 	/** Funds paid when the contract is completed. */
@@ -568,8 +593,9 @@ export interface CareerContract
 	*/
 	dateExpire?: Value<"ut"> | null;
 	/**
-	* The contract's top-level objectives, in KSP's order. Nested sub-parameters
-	* are not listed. Always present, empty when the contract has none.
+	* The contract's top-level objectives, in KSP's order, each carrying its own
+	* nested objectives in `CareerContractParameter.children`. Always present,
+	* empty when the contract has none.
 	*/
 	parameters: CareerContractParameter[];
 }
@@ -599,6 +625,23 @@ export interface CareerContractParameter
 	* not be read as either complete or incomplete.
 	*/
 	stateOrdinal?: KspParameterState | null;
+	/**
+	* Whether the contract can be completed without this objective, KSP's optional
+	* flag on a contract parameter. Useful for telling the operator which
+	* objectives are bonuses.
+	*/
+	optional?: boolean | null;
+	/**
+	* The objective's notes, KSP's notes on a contract parameter. `null` when it
+	* has none.
+	*/
+	notes?: string | null;
+	/**
+	* The objectives nested directly under this one, in KSP's order, each with its
+	* own live state. Always present, empty for an objective that has no
+	* sub-objectives.
+	*/
+	children: CareerContractParameter[];
 	/**
 	* Lower bound of the altitude band this objective requires, from the stock
 	* `ReachAltitudeEnvelope` it is or contains (a part test nests its envelope
@@ -4765,6 +4808,21 @@ export enum KspParameterState {
 	Complete = 1,
 	/** Failed, and can no longer be met. */
 	Failed = 2
+}
+/**
+* KSP's contract prestige tier: how demanding a contract is, which the game
+* shows as the difficulty of an offer. Carried as the prestige ordinal of each
+* contract on the career status, beside the prestige name.
+*
+* @category Career
+*/
+export enum KspContractPrestige {
+	/** An easy contract, the first tier of difficulty. */
+	Trivial = 0,
+	/** A contract of middling difficulty. */
+	Significant = 1,
+	/** The hardest contract tier. */
+	Exceptional = 2
 }
 /**
 * KSP's `PartCategories`: the editor category a part filters into. Behind
