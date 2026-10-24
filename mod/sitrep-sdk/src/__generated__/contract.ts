@@ -4036,8 +4036,9 @@ export interface EvaKerbal
 	* The science results this kerbal is holding, such as a surface sample or an
 	* EVA report, which are on no other Topic: `science.experiments` lists the
 	* active vessel's results and a kerbal outside is not that vessel. Empty when
-	* the kerbal holds none, and `null` when it could not be read, as for a kerbal
-	* standing on a vessel that is not loaded.
+	* the kerbal holds none, and `null` when it could not be read. A kerbal that
+	* is not loaded is read from the game's saved state, so its results are listed
+	* all the same.
 	*/
 	heldData?: EvaHeldData[] | null;
 }
@@ -5809,12 +5810,12 @@ export interface PlantedFlag
 	plantedAt?: Value<"ut"> | null;
 	/**
 	* The name of the kerbal who planted it. Null when the flag's module could not
-	* be read.
+	* be read, live or saved.
 	*/
 	plantedBy?: string | null;
 	/**
 	* The text on the site's plaque. Null when the flag's module could not be
-	* read, and empty when it has none.
+	* read, live or saved, and empty when it has none.
 	*/
 	plaque?: string | null;
 }
