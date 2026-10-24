@@ -4,10 +4,12 @@ import { say } from "../firstRun/copy";
 import {
   browserShell,
   CKAN_UPLINK_FILTER,
+  CONTAINER_NAME,
   imageTagOf,
   LOCAL_APP_URL,
   runCommandFor,
   SETUP_LINKS,
+  UPDATE_REMOVE_COMMAND,
 } from "../firstRun/setupGuide";
 import { VERSION } from "../version";
 
@@ -61,6 +63,13 @@ export function HostedLanding() {
               command={runCommandFor(shell, imageTagOf(VERSION))}
               label="run command"
             />
+            <StepText>
+              If Docker says the name <code>{CONTAINER_NAME}</code> is already
+              in use, a container from an earlier install exists. Run{" "}
+              <code>{UPDATE_REMOVE_COMMAND}</code>, then the command above
+              again. Once it is running, the app is at{" "}
+              <code>{LOCAL_APP_URL}</code>, not on this website.
+            </StepText>
             <StepText>
               {shell === "powershell" && `${say("container.powershellNote")} `}
               With Podman, type <code>podman</code> in place of{" "}

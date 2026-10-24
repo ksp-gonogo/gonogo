@@ -52,6 +52,8 @@ docker run -d --name gonogo --restart unless-stopped --pull always \
   ghcr.io/ksp-gonogo/gonogo:rc
 ```
 
+   If Docker answers that the name `gonogo` is already in use, a container from an earlier install exists. Run `docker rm -f gonogo`, then the command again.
+
 4. Start KSP and open [localhost:8080](http://localhost:8080)
 
 The setup wizard opens by itself and checks the container, the connection to KSP and your Uplinks. It explains anything that is wrong, and Settings > Help covers the rest.
@@ -63,7 +65,7 @@ Open the link from their **Add station** panel and enter the share code. Nothing
 ## Upgrading from an earlier version
 
 - **Mod:** replace the `Gonogo` folder in `GameData`, or update it through CKAN
-- **App:** run `docker rm -f gonogo`, then the `docker run` command above again ([`--pull always`](https://docs.docker.com/reference/cli/docker/container/run/) fetches the newest image)
+- **App:** run `docker rm -f gonogo` to remove the existing container (the run command refuses to start while one has the name), then the `docker run` command above again ([`--pull always`](https://docs.docker.com/reference/cli/docker/container/run/) fetches the newest image)
 - **Uplinks:** update each one the same way as Gonogo. An Uplink built for another Gonogo version will refuse to run
 
 ## If something is not working
