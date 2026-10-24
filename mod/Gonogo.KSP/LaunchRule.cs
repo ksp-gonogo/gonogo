@@ -80,13 +80,21 @@ namespace Gonogo.KSP
         /// game's sentence would name the wrong cause, or null to quote the
         /// game's. KSP says "no remote-controlled or manned command modules"
         /// whether or not the craft has a cockpit, so a crewed craft with nobody
-        /// seated in it is told what is actually missing.
+        /// seated in it is told what is actually missing: an empty crew list
+        /// launches the craft unmanned, it does not pick a default crew.
         /// </summary>
         /// <param name="hasCrewedCommandModule">Whether any command module on the craft needs a kerbal aboard.</param>
-        public static string? NoControlSourceDetail(bool hasCrewedCommandModule) =>
-            hasCrewedCommandModule
-                ? "no kerbal is available to crew the craft's command module"
-                : null;
+        /// <param name="crewNamed">How many kerbals the launch named in its crew list.</param>
+        public static string? NoControlSourceDetail(bool hasCrewedCommandModule, int crewNamed)
+        {
+            if (!hasCrewedCommandModule)
+            {
+                return null;
+            }
+            return crewNamed == 0
+                ? "the craft's command module needs a kerbal and the crew list is empty, which launches it unmanned"
+                : "the kerbals named in the crew list do not fill the craft's command module";
+        }
 
         /// <summary>
         /// The refusal for a craft whose real cost, modules included, is more than the funds on

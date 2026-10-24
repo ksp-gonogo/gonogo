@@ -143,7 +143,8 @@ namespace Gonogo.KSP
             VesselCrewManifest manifest,
             EditorFacility editorFacility,
             string craftPath,
-            string site)
+            string site,
+            int crewNamed)
         {
             var checks = new List<LaunchCheck>();
             var gameVariables = GameVariables.Instance;
@@ -218,7 +219,7 @@ namespace Gonogo.KSP
                 Add(checks, () => new LaunchCheck(
                     new PreFlightTests.NoControlSources(manifest),
                     CommandErrorCode.CapabilityMismatch,
-                    detail: LaunchRule.NoControlSourceDetail(HasCrewedCommandModule(manifest))));
+                    detail: LaunchRule.NoControlSourceDetail(HasCrewedCommandModule(manifest), crewNamed)));
             }
 
             if (!string.IsNullOrEmpty(craftPath) && TryLaunchSiteEditor(site, out var expectedEditor))
