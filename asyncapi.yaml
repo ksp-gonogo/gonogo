@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 46.4.0
+  version: 47.0.0
   description: |-
     The WebSocket API of the Gonogo mod: 89 telemetry channels a client
     subscribes to and 71 commands it sends, each with its payload and what it
@@ -18664,7 +18664,6 @@ components:
         - subjectId
         - subjectTitle
         - dataGathered
-        - scienceAmount
       properties:
         subjectId:
           type: string
@@ -18679,9 +18678,14 @@ components:
           x-sitrep-unit: Mit
           description: How much data was recovered for this subject.
         scienceAmount:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: science
-          description: Science earned for this subject by this recovery.
+          description: |-
+            Science earned for this subject by this recovery. Null in a save with no
+            science (Sandbox), where the subject is still listed with its
+            `RecoveryScienceEntry.dataGathered`.
     RemoveManeuverNodeArgs:
       type: object
       description: Delete a manoeuvre node. Takes the manoeuvre node to delete.
