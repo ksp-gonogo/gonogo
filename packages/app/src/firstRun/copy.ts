@@ -142,7 +142,7 @@ export const WIZARD_COPY = {
   "done.heading": "Done",
   "done.advance": "Finish",
   "done.next":
-    "Load a save in KSP, then press the round button with three dots in the bottom-right corner of the dashboard, then Add widget.",
+    "Load a save in KSP. An empty dashboard offers Add default layouts, which fills it with ready-made flight and space centre layouts, or Add a widget to pick your own. Later, add more with the round button with three dots in the bottom-right corner, then Add widget.",
   "done.settings":
     "This setup opens by itself once. Settings, in the same three-dot menu, keeps the same readings: the KSP connection under Connection and each Uplink under Uplinks. Run setup again, under Connection, reopens it.",
 
