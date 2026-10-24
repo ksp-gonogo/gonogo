@@ -21,6 +21,7 @@ import "./notes/NotesComponent"; // app-level component: registers on import
 import App from "./App";
 import { CrashScreen } from "./CrashScreen";
 import { kspHostSeeded } from "./dataSources"; // importing it triggers all data source self-registration
+import { peerHostService } from "./peer/PeerHostService";
 import { stampBootRole } from "./screens/bootIdentity";
 import { bootsWithoutDirectMod } from "./screens/isStationRoute";
 import { setConsentBatchPrompt } from "./uplinks/consent";
@@ -125,6 +126,9 @@ async function bootUplinksAndRender(): Promise<void> {
     renderApp();
     return;
   }
+
+  // The consent page and the loader hold the first render for as long as the operator takes to answer; a station dialling the share code in that time must still find this host on the broker. `PeerHostProvider` calls `start()` again on mount, which is a no-op while the Peer is live.
+  void peerHostService.start();
 
   try {
     // A bounded read of the live system.uplinks roster so the loader can
