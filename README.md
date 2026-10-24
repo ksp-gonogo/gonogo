@@ -52,6 +52,8 @@ docker run -d --name gonogo --restart unless-stopped --pull always \
   ghcr.io/ksp-gonogo/gonogo:rc
 ```
 
+   With Podman, type `podman` in place of `docker` in every command here (on macOS and Windows, run `podman machine start` first).
+
    If Docker answers that the name `gonogo` is already in use, a container from an earlier install exists. Run `docker rm -f gonogo`, then the command again.
 
    Friends joining over the internet may need ports opened on your router. To let Gonogo open them for you, add `-e GONOGO_UPNP=1` to the command; the [networking guide](docs/NETWORKING.md#cross-internet-stations-cellular-remote-networks) has the ports to forward by hand otherwise.
