@@ -9,6 +9,8 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
+import type { PeerClient } from "../peer/PeerClientContext";
+import { HostLayoutsSection } from "./HostLayoutsSection";
 import {
   DEFAULT_TEMPLATES,
   type LayoutTemplate,
@@ -40,6 +42,8 @@ interface MissionProfilesModalProps {
   dashboard: ProfileDashboard;
   /** Closes the modal. */
   onClose?: () => void;
+  /** The link to the main screen, on a station that has one; its saved layouts are offered. */
+  hostLink?: Pick<PeerClient, "requestHostLayouts">;
 }
 
 /**
@@ -51,6 +55,7 @@ interface MissionProfilesModalProps {
 export function MissionProfilesModal({
   dashboard,
   onClose,
+  hostLink,
 }: Readonly<MissionProfilesModalProps>) {
   const svc = useMissionProfilesService();
   const profiles = useMissionProfiles();
@@ -244,6 +249,18 @@ export function MissionProfilesModal({
           Every change to the dashboard saves into the current layout. Undo and
           Redo step back through changes and layout switches.
         </Hint>
+        {hostLink && (
+          <HostLayoutsSection
+            client={hostLink}
+            onUse={(layout) => {
+              dashboard.createLayout(layout.name, {
+                items: layout.items,
+                layout: layout.layout,
+              });
+              onClose?.();
+            }}
+          />
+        )}
         <SectionTitle as="h3" $rule>
           New layout
         </SectionTitle>
