@@ -404,6 +404,11 @@ const DialogBody = styled(ScrollArea)`
     --bleed-inline: var(--inset-modal-body);
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Content that asks for a minimum width (a form row, a table) must not push the body wider than a phone: it wraps or scrolls inside the dialog instead of scrolling the whole body sideways. */
+  [data-scroll-area-inner] > * {
+    min-width: 0;
+  }
 `;
 
 /* Sticky action region. Lives outside DialogBody so it never scrolls away. */
