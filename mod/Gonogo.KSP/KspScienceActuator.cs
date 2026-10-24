@@ -265,13 +265,29 @@ namespace Gonogo.KSP
                 unusable = CommandResult.Fail(
                     CommandErrorCode.NoConnection,
                     transmitter == null
-                        ? "no usable comms device aboard"
+                        ? TransmitterRefusal.For(AntennaAboard(vessel), vessel.connection?.IsConnected == true)
                         : "the antenna cannot transmit right now");
                 return null;
             }
 
             unusable = null;
             return transmitter;
+        }
+
+        private static bool AntennaAboard(Vessel vessel)
+        {
+            foreach (var part in vessel.Parts)
+            {
+                foreach (var module in part.Modules)
+                {
+                    if (module is IScienceDataTransmitter)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

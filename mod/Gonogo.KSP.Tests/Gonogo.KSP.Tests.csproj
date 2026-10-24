@@ -46,6 +46,7 @@
     <Compile Include="..\Gonogo.KSP\ExpansionHealth.cs" />
     <Compile Include="..\Gonogo.KSP\LogTail.cs" />
     <Compile Include="..\Gonogo.KSP\RescanGate.cs" />
+    <Compile Include="..\Gonogo.KSP\TransmitterRefusal.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyEventBuilder.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscDelay.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\KscDelayPolicy.cs" />

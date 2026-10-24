@@ -8869,6 +8869,29 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>
+        /// A craft switched to with no link has told the ground nothing yet, so what the
+        /// active-vessel topics still hold belongs to the craft left behind. Each one that
+        /// has been recorded is withdrawn straight through the freeze, so a subscriber
+        /// reads no reading instead of another craft's. The new craft's own samples are
+        /// held by the blackout as usual and reach the ground when its link comes up.
+        /// </summary>
+        private void WithdrawTheCraftSwitchedAwayFrom(double ut)
+        {
+            foreach (var entry in _channelDeclarations.ToList())
+            {
+                var topic = entry.Key;
+                if (entry.Value.Delay != DelayRole.Delayed
+                    || IsFreezeExempt(topic)
+                    || NodeFor(topic) != NodeId
+                    || !_lastRecordedUt.ContainsKey(topic))
+                {
+                    continue;
+                }
+                RecordThrough(topic, null, ut, ExemptStampFor(topic));
+            }
+        }
+
         private void MarkSubjectLink(string node, bool connected, double ut)
         {
             if (connected)
@@ -9677,6 +9700,10 @@ namespace Sitrep.Host
             RefreshLedgerDelays();
             SayCraftReach();
             NoteActivePathMeasurement(tick);
+            if (_activeVesselSwitched && !SubjectConnected(NodeId))
+            {
+                WithdrawTheCraftSwitchedAwayFrom(tick.Ut);
+            }
             _activeVesselSwitched = false;
 
             // The DROP EVENT, written after the ledger's delays and well before
