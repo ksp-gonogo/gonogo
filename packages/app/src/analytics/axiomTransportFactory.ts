@@ -3,6 +3,10 @@ import {
   AxiomTransport,
   logger,
 } from "@ksp-gonogo/logger";
+import {
+  reportAxiomDeliveryFailure,
+  resetAxiomDeliveryFailure,
+} from "./axiomShipping";
 
 /**
  * Build the Axiom transport factory for the browser, reading the ingest
@@ -36,6 +40,15 @@ export function makeBrowserAxiomTransport(
 export function createBrowserConsentController(): AxiomConsentController {
   return new AxiomConsentController({
     logger,
-    makeTransport: makeBrowserAxiomTransport,
+    makeTransport: () => {
+      resetAxiomDeliveryFailure();
+      const transport = makeBrowserAxiomTransport(reportAxiomDeliveryFailure);
+      if (!transport) {
+        logger.warn(
+          "analytics is on but this build has no Axiom token, so no logs leave this screen",
+        );
+      }
+      return transport;
+    },
   });
 }
