@@ -53,7 +53,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     });
 
     // The number, its glyph and the spoken word are three elements, so match on visible text.
-    await waitFor(() => expect(visibleText()).toContain("· 78,401f"));
+    await waitFor(() => expect(visibleText()).toContain("· 78,400f"));
   });
 
   it("renders facility tiers/upgrade costs derived from career.facilities", async () => {

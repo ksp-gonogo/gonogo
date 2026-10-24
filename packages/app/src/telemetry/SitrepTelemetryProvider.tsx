@@ -337,7 +337,13 @@ export function SitrepTelemetryProvider({
     };
   }, [transport, generation, screenKey]);
 
-  if (!client) return <>{children}</>;
+  /*
+   * With the stream on, nothing below mounts until the client exists. Drawn
+   * first without a provider, the children would be wrapped in one the moment
+   * the client arrived, which moves them in the tree and remounts every widget
+   * on the screen once per page load.
+   */
+  if (!client) return enabled ? null : <>{children}</>;
 
   return (
     <TelemetryProvider client={client}>

@@ -11,7 +11,7 @@ import {
   useCommand,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
-import { readingOf, stillTrue } from "@ksp-gonogo/sitrep-sdk";
+import { readingOf, stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
 import { useContributions } from "@ksp-gonogo/ui-kit";
 import { magnitudeOf } from "../shared/magnitude";
 import { facilityLevelsFrom } from "./facilities";
@@ -44,20 +44,20 @@ function SpaceCenterStatusComponent({
   h,
 }: Readonly<ComponentProps<SpaceCenterStatusConfig>>) {
   const careerReading = useTelemetry("career.status");
-  const careerFunds = magnitudeOf(
-    careerReading.state === "observed"
-      ? careerReading.value.balances?.funds
-      : undefined,
+  const heldOrCurrentFunds = magnitudeOf(
+    stillTrue(careerReading, undefined)?.balances?.funds,
   );
+  const careerFunds =
+    careerReading.state === "observed" ? heldOrCurrentFunds : null;
   const fundsHeld = careerReading.state === "held";
   // "Held" only when a balance actually arrived and is being refused.
-  const heldFunds =
-    fundsHeld &&
-    magnitudeOf(stillTrue(careerReading, undefined)?.balances?.funds) !== null;
+  const heldFunds = fundsHeld && heldOrCurrentFunds !== null;
   // The balance on screen, marked by Unit while held; affordability reads only the current `careerFunds`.
-  const fundsReading = readingOf(
-    careerReading,
-    (c) => c.balances?.funds ?? undefined,
+  const fundsReading = readingOf(careerReading, () =>
+    // The game's own readout drops the fraction.
+    heldOrCurrentFunds === null
+      ? undefined
+      : value("funds", Math.trunc(heldOrCurrentFunds)),
   );
   const { chargesFunds } = useGameContext();
   const sceneReading = useTelemetry("spaceCenter.scene");

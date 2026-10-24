@@ -160,7 +160,7 @@ describe("custom action group identity", () => {
     renderWidget(fixture, "Stage");
     emitCustomStage(true);
 
-    await screen.findByText("4");
+    await screen.findByText("3");
     await user.click(screen.getByRole("button", { name: /toggle/i }));
 
     await waitFor(() => {
