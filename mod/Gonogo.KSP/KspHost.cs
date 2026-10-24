@@ -5684,13 +5684,9 @@ namespace Gonogo.KSP
             }
 
             var nodes = new List<object?>();
-            foreach (var rdNode in rdNodes)
+            foreach (var rdNode in TechTreeWalk.DistinctByTechId(rdNodes, n => n != null && n.tech != null ? n.tech.techID : null))
             {
-                var tech = rdNode != null ? rdNode.tech : null;
-                if (tech == null || string.IsNullOrEmpty(tech.techID))
-                {
-                    continue;
-                }
+                var tech = rdNode!.tech;
 
                 var parentIds = new List<object?>();
                 if (rdNode!.parents != null)
