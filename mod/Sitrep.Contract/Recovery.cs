@@ -93,43 +93,6 @@ public class RecoveryReport
 
     /// <summary>Each crew member aboard at recovery. Empty for an uncrewed vessel or when the dialog could not be read.</summary>
     public List<RecoveryCrewEntry> CrewBreakdown { get; set; } = new();
-
-    /// <summary>
-    /// What else the recovery paid, by name: each progress milestone or contract reward the game
-    /// awarded while the recovery was being processed. Not part of <see cref="FundsEarned"/>,
-    /// <see cref="ReputationEarned"/> or <see cref="ScienceEarned"/>, which are the dialog's own
-    /// figures for the recovered craft, so a balance rises by those plus these. Empty when
-    /// nothing else paid.
-    /// </summary>
-    public List<RecoveryAward> Awards { get; set; } = new();
-}
-
-/// <summary>
-/// One award paid while a recovery was processed: an entry of <see cref="RecoveryReport.Awards"/>.
-/// Each figure is null when this award paid none of that currency.
-/// </summary>
-/// <category>Flights</category>
-[SitrepContract]
-#if SITREP_CODEGEN
-[TsInterface]
-#endif
-public class RecoveryAward
-{
-    /// <summary>What paid: the progress milestone the game reached (e.g. <c>"Recovery"</c>), or <c>"Contract reward"</c>.</summary>
-    [SitrepUnit(Units.Text)]
-    public string Title { get; set; } = "";
-
-    /// <summary>Funds this award paid.</summary>
-    [SitrepUnit(Units.Funds)]
-    public double? FundsEarned { get; set; }
-
-    /// <summary>Reputation this award paid.</summary>
-    [SitrepUnit(Units.Reputation)]
-    public double? ReputationEarned { get; set; }
-
-    /// <summary>Science this award paid.</summary>
-    [SitrepUnit(Units.Science)]
-    public double? ScienceEarned { get; set; }
 }
 
 /// <summary>

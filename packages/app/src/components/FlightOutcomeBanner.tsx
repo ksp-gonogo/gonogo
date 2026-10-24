@@ -416,7 +416,6 @@ function OutcomeBanner({
 function RecoveryDetail({ summary }: { summary: RecoveryReport }) {
   const scienceBreakdown = list(summary.scienceBreakdown);
   const crewBreakdown = list(summary.crewBreakdown);
-  const awards = list(summary.awards);
   const partBreakdown = list(summary.partBreakdown);
   const resourceBreakdown = list(summary.resourceBreakdown);
   return (
@@ -487,34 +486,6 @@ function RecoveryDetail({ summary }: { summary: RecoveryReport }) {
                   <Gain value={q(s.scienceAmount)} />
                 ) : (
                   <Unit value={q(s.dataGathered)} />
-                )}
-              </DetailRowValue>
-            </DetailRow>
-          ))}
-        </DetailSection>
-      )}
-
-      {awards.length > 0 && (
-        <DetailSection>
-          <SectionTitle as="h3" $rule>
-            Also paid
-          </SectionTitle>
-          {awards.map((a) => (
-            <DetailRow key={str(a.title)}>
-              <DetailRowTitle>{str(a.title)}</DetailRowTitle>
-              <DetailRowValue>
-                {q(a.fundsEarned) && <Gain value={q(a.fundsEarned)} />}
-                {q(a.reputationEarned) && (
-                  <>
-                    {" "}
-                    <Gain value={q(a.reputationEarned)} />
-                  </>
-                )}
-                {q(a.scienceEarned) && (
-                  <>
-                    {" "}
-                    <Gain value={q(a.scienceEarned)} />
-                  </>
                 )}
               </DetailRowValue>
             </DetailRow>

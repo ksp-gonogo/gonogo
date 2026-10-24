@@ -1130,12 +1130,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "RecoverVesselArgs": {
     vesselId: "id",
   },
-  "RecoveryAward": {
-    fundsEarned: "funds",
-    reputationEarned: "rep",
-    scienceEarned: "science",
-    title: "text",
-  },
   "RecoveryCrewEntry": {
     isTourist: "flag",
     levelsGained: "count",
@@ -2723,7 +2717,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     targetModVersionRange: "VersionRange",
   },
   "RecoveryReport": {
-    awards: "RecoveryAward[]",
     crewBreakdown: "RecoveryCrewEntry[]",
     partBreakdown: "RecoveryPartEntry[]",
     resourceBreakdown: "RecoveryResourceEntry[]",
@@ -2946,7 +2939,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     objectives: "MissionObjectiveEntry[]",
   },
   "recovery.lastSummary": {
-    awards: "RecoveryAward[]",
     crewBreakdown: "RecoveryCrewEntry[]",
     partBreakdown: "RecoveryPartEntry[]",
     resourceBreakdown: "RecoveryResourceEntry[]",

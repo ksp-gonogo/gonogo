@@ -95,7 +95,6 @@ namespace Sitrep.Host.Recovery
         public List<RecoveryPartItem> PartBreakdown = new List<RecoveryPartItem>();
         public List<RecoveryResourceItem> ResourceBreakdown = new List<RecoveryResourceItem>();
         public List<RecoveryCrewItem> CrewBreakdown = new List<RecoveryCrewItem>();
-        public List<RecoveryAwardItem> Awards = new List<RecoveryAwardItem>();
     }
 
     /// <summary>
@@ -239,18 +238,6 @@ namespace Sitrep.Host.Recovery
                 });
             }
 
-            var awards = new List<object?>(c.Awards.Count);
-            foreach (var a in c.Awards)
-            {
-                awards.Add(new Dictionary<string, object?>
-                {
-                    ["title"] = a.Title,
-                    ["fundsEarned"] = a.Funds,
-                    ["reputationEarned"] = a.Reputation,
-                    ["scienceEarned"] = a.Science,
-                });
-            }
-
             return new Dictionary<string, object?>
             {
                 ["capturedAtUT"] = c.CapturedAtUt,
@@ -269,7 +256,6 @@ namespace Sitrep.Host.Recovery
                 ["partBreakdown"] = partBreakdown,
                 ["resourceBreakdown"] = resourceBreakdown,
                 ["crewBreakdown"] = crewBreakdown,
-                ["awards"] = awards,
             };
         }
     }

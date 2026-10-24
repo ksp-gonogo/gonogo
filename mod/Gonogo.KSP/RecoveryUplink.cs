@@ -62,8 +62,6 @@ namespace Gonogo.KSP
         private const double DedupWindowUt = 2.0;
 
         private readonly Dictionary<string, double> _lastPublishedUt = new Dictionary<string, double>();
-        private readonly RecoveryAwardLedger _awards = new RecoveryAwardLedger();
-        private double? _fundsWhenRecoveryOpened;
         private IChannelPublisher? _lastSummary;
         private IChannelPublisher? _hasRecent;
         private bool _subscribed;
@@ -119,42 +117,9 @@ namespace Gonogo.KSP
 
             GameEvents.onVesselRecoveryProcessingComplete.Add(OnRecoveryComplete);
             GameEvents.onVesselRecovered.Add(OnVesselRecovered);
-            // What else a recovery pays (progress milestones, contract rewards) is announced as
-            // currency changes while it is processed, between the request and the summary.
-            GameEvents.OnVesselRecoveryRequested.Add(OnRecoveryRequested);
-            GameEvents.OnProgressReached.Add(OnProgress);
-            GameEvents.OnProgressComplete.Add(OnProgress);
-            GameEvents.OnProgressAchieved.Add(OnProgress);
-            GameEvents.OnFundsChanged.Add(OnFundsChanged);
-            GameEvents.OnReputationChanged.Add(OnReputationChanged);
-            GameEvents.OnScienceChanged.Add(OnScienceChanged);
             // The hook lives for the whole process: Register runs once, before the
             // main menu, and recovery can happen after any flight.
         }
-
-        private void OnRecoveryRequested(Vessel vessel)
-        {
-            _fundsWhenRecoveryOpened = Funding.Instance == null ? (double?)null : Funding.Instance.Funds;
-            _awards.Open(
-                _fundsWhenRecoveryOpened,
-                Reputation.Instance == null ? (double?)null : Reputation.Instance.reputation,
-                ResearchAndDevelopment.Instance == null ? (double?)null : ResearchAndDevelopment.Instance.Science);
-        }
-
-        private void OnProgress(ProgressNode node) => _awards.Milestone(node?.Id);
-
-        private void OnFundsChanged(double newTotal, TransactionReasons reason) =>
-            _awards.Funds(newTotal, IsProgress(reason), IsContractReward(reason));
-
-        private void OnReputationChanged(float newTotal, TransactionReasons reason) =>
-            _awards.Reputation(newTotal, IsProgress(reason), IsContractReward(reason));
-
-        private void OnScienceChanged(float newTotal, TransactionReasons reason) =>
-            _awards.Science(newTotal, IsProgress(reason), IsContractReward(reason));
-
-        private static bool IsProgress(TransactionReasons reason) => (reason & TransactionReasons.Progression) != 0;
-
-        private static bool IsContractReward(TransactionReasons reason) => (reason & TransactionReasons.ContractReward) != 0;
 
         /// <summary>
         /// True in a save with no funds, no reputation and no science, the only kind in which
@@ -295,41 +260,11 @@ namespace Gonogo.KSP
                 }
 
                 var ut = Planetarium.GetUniversalTime();
-                var capture = BuildCapture(vessel, dialog, vesselType, ut);
-                capture.Awards = _awards.Close();
-                CheckAwardsAgainstBalance(capture);
-                Publish(capture, ut);
+                Publish(BuildCapture(vessel, dialog, vesselType, ut), ut);
             }
             catch (Exception ex)
             {
                 GonogoLog.Error("recovery capture failed", ex);
-            }
-        }
-
-        /// <summary>
-        /// Logs when the funds the recovery paid by name do not add up to the balance that moved
-        /// since it was requested. A check only: no award is ever made up from the difference.
-        /// </summary>
-        private void CheckAwardsAgainstBalance(RecoveryCapture capture)
-        {
-            if (_fundsWhenRecoveryOpened == null || Funding.Instance == null)
-            {
-                return;
-            }
-
-            var moved = Funding.Instance.Funds - _fundsWhenRecoveryOpened.Value;
-            var named = capture.FundsEarned ?? 0.0;
-            foreach (var award in capture.Awards)
-            {
-                named += award.Funds ?? 0.0;
-            }
-
-            if (Math.Abs(moved - named) > 1.0)
-            {
-                GonogoLog.WarnLimited(
-                    "recovery funds do not add up: the balance moved " + moved.ToString("N2")
-                    + " and the summary accounts for " + named.ToString("N2"),
-                    null);
             }
         }
 

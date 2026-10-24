@@ -439,7 +439,6 @@ public static class RtConfig
                 typeof(RecoveryPartEntry),
                 typeof(RecoveryResourceEntry),
                 typeof(RecoveryCrewEntry),
-                typeof(RecoveryAward),
                 // flight.current / flight.started / flight.ended / flight.vesselChanged,
                 // the flight-lifecycle domain.
                 typeof(FlightCurrent),

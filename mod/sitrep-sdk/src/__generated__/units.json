@@ -1090,12 +1090,6 @@
     "RecoverVesselArgs": {
       "vesselId": "id"
     },
-    "RecoveryAward": {
-      "fundsEarned": "funds",
-      "reputationEarned": "rep",
-      "scienceEarned": "science",
-      "title": "text"
-    },
     "RecoveryCrewEntry": {
       "isTourist": "flag",
       "levelsGained": "count",
@@ -2649,7 +2643,6 @@
       "targetModVersionRange": "VersionRange"
     },
     "RecoveryReport": {
-      "awards": "RecoveryAward[]",
       "crewBreakdown": "RecoveryCrewEntry[]",
       "partBreakdown": "RecoveryPartEntry[]",
       "resourceBreakdown": "RecoveryResourceEntry[]",
@@ -2870,7 +2863,6 @@
       "objectives": "MissionObjectiveEntry[]"
     },
     "recovery.lastSummary": {
-      "awards": "RecoveryAward[]",
       "crewBreakdown": "RecoveryCrewEntry[]",
       "partBreakdown": "RecoveryPartEntry[]",
       "resourceBreakdown": "RecoveryResourceEntry[]",
