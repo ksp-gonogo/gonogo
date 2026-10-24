@@ -52,7 +52,8 @@ export const STEP_LADDER_STYLE = {
   flex: "1 1 100px",
   minWidth: 0,
   display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(28px, 1fr))",
+  gridTemplateColumns:
+    "repeat(3, minmax(max(28px, var(--control-height-touch)), 1fr))",
   gap: "var(--gap-related)",
   alignContent: "center",
 } as const;
@@ -129,7 +130,7 @@ const WARP_BUTTON_GEOMETRY: CSSProperties = {
   padding: "var(--inset-warp-button)",
   fontSize: "var(--font-size-compact)",
   letterSpacing: "0.04em",
-  minWidth: 0,
+  minWidth: "var(--control-height-touch)",
 };
 
 const WARP_BUTTON_ACTIVE: CSSProperties = { fontWeight: 700 };

@@ -1057,6 +1057,9 @@ textarea {
    */
   --control-height: 28px;
 
+  /* The smallest pressable box on a coarse pointer. A region drawn zoomed out raises it by the zoom, so what the operator touches stays this large on screen. */
+  --touch-target: 44px;
+
   /* Floor for a control that opts out of --control-height to stay compact: none on a fine pointer, the touch target on a coarse one. */
   --control-height-touch: 0px;
 

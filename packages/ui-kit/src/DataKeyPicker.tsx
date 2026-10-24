@@ -292,7 +292,7 @@ const PickerInput = styled.input<{ $hasValue: boolean; $retired?: boolean }>`
   }
 
   @media (pointer: coarse) {
-    min-height: 44px;
+    min-height: var(--touch-target);
     padding: var(--inset-field-touch);
     /* Under a coarse pointer the large step is 17px, above the 16px at which iOS Safari zooms on focus. */
     font-size: var(--font-size-lg);
@@ -319,8 +319,8 @@ const ClearButton = styled.button`
   ${focusRing}
 
   @media (pointer: coarse) {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
     right: 0;
   }
 `;

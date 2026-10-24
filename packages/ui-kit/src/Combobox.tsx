@@ -360,6 +360,6 @@ const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
   }
 
   @media (pointer: coarse) {
-    min-height: 44px;
+    min-height: var(--touch-target);
   }
 `;

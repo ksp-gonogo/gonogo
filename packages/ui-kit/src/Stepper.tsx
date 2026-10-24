@@ -181,8 +181,8 @@ const Stepper__Step = styled.button`
   }
 
   @media (pointer: coarse) {
-    min-height: 44px;
-    min-width: 44px;
+    min-height: var(--touch-target);
+    min-width: var(--touch-target);
   }
 `;
 

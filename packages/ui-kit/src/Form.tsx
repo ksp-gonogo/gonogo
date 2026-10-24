@@ -216,7 +216,7 @@ const inputBase = css`
   }
 
   @media (pointer: coarse) {
-    min-height: 44px;
+    min-height: var(--touch-target);
     padding: var(--inset-field-touch);
     /* 16px stops iOS Safari zooming on focus; a literal, because the threshold is absolute. */
     font-size: 16px;

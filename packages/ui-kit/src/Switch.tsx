@@ -87,7 +87,7 @@ const SwitchLabel = styled.label<{ $disabled?: boolean }>`
 
   @media (pointer: coarse) {
     /* Expand tap target to 44px tall without enlarging the visual track. */
-    min-height: 44px;
+    min-height: var(--touch-target);
     padding: var(--inset-switch-touch);
   }
 `;

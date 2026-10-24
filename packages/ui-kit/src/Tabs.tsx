@@ -524,7 +524,7 @@ const Tabs__Button = styled.button<{
   ${focusRingInset}
 
   @media (pointer: coarse) {
-    min-height: 44px;
+    min-height: var(--touch-target);
     /* Compact still applies on touch: a tab scrolled half out of view is a smaller target, not a bigger one. */
     ${({ $compact }) =>
       $compact

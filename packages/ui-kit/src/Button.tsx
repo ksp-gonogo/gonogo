@@ -353,7 +353,7 @@ export const Button__Body = styled.button<{
   }
 
   @media (pointer: coarse) {
-    min-height: 44px;
+    min-height: var(--touch-target);
     /* Wider on both axes: min-height only covers the vertical target. */
     padding: ${({ $size }) =>
       $size === "sm"
@@ -425,8 +425,8 @@ const IconButton__Body = styled.button`
     cursor: not-allowed;
   }
   @media (pointer: coarse) {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
     display: inline-flex;
     align-items: center;
     justify-content: center;

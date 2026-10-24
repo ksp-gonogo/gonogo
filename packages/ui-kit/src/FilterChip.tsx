@@ -114,7 +114,7 @@ const ChipButton = styled.button<{ $selected: boolean }>`
   ${focusRing}
 
   @media (pointer: coarse) {
-    min-height: 44px;
+    min-height: var(--touch-target);
   }
 `;
 

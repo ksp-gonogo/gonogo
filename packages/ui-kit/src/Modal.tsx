@@ -387,8 +387,8 @@ const CloseButton = styled.button`
     }
   }
   @media (pointer: coarse) {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
     display: inline-flex;
     align-items: center;
     justify-content: center;
