@@ -23,6 +23,7 @@ import { bare, vecMagnitude } from "../shared/dockAngles";
 import { bodyAtIndex } from "../shared/streamBody";
 import { useBodyName } from "../shared/useBodyName";
 import { type ContactLoss, useContactLoss } from "../shared/useContactLoss";
+import { useTrajectoryKind } from "../shared/useTrajectoryKind";
 import { deriveBoard, type LandingBoard } from "./board";
 import { isBurning } from "./burnEffect";
 import { deriveActiveBurnParams } from "./burnParams";
@@ -283,8 +284,10 @@ export function useLandingModel(): LandingModel {
 
   const atmosphereAware = landing?.terminalVelocity != null;
   const contactLoss = useContactLoss();
+  // An orbit that clears the surface and the atmosphere has no descent to estimate, whatever a few centimetres a second of vertical speed say.
+  const inOrbit = useTrajectoryKind() === "orbit";
   const board = deriveBoard({
-    solutionState: solution.state,
+    solutionState: inOrbit ? "not-descending" : solution.state,
     atmospheric,
     atmosphereAware,
   });

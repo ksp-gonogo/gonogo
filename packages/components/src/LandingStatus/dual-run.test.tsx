@@ -52,7 +52,8 @@ describe("LandingStatus: atmospheric stream render golden (delay=0)", () => {
         {
           referenceBodyIndex: 1,
           sma: 700_000,
-          ecc: 0.01,
+          // Periapsis inside the atmosphere: a reentry is not a craft in a clear orbit.
+          ecc: 0.1,
           inc: 0,
           lan: 0,
           argPe: 0,

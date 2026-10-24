@@ -90,7 +90,8 @@ function emitVessel(
     {
       referenceBodyIndex: opts.body.index,
       sma: opts.orbit?.sma ?? 250_000,
-      ecc: opts.orbit?.ecc ?? 0.01,
+      // A craft with a descent to report is on an arc that meets the surface, not in an orbit that clears it.
+      ecc: opts.orbit?.ecc ?? (opts.descent ? 0.3 : 0.01),
       inc: 0,
       lan: 0,
       argPe: 0,
