@@ -48,6 +48,9 @@ export function ContractManagerComponent({
   const recentRaw = contracts?.completedRecent;
   const failedRaw = contracts?.failedRecent;
   const universalTime = useViewUt()?.magnitude;
+  // Progress toward an altitude goal is measured from the active vessel's last altitude.
+  const activeAltitude =
+    stillTrue(useTelemetry("vessel.flight"), undefined)?.altitudeAsl ?? null;
   // Career actions dispatch at the meta-vantage, with no vessel signal delay.
   const acceptCmd = useCommand("career.contract.accept", {
     vantage: META_VANTAGE,
@@ -123,7 +126,7 @@ export function ContractManagerComponent({
               >
                 {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
                 <ContractRewards contract={c} />
-                <ContractTerms contract={c} />
+                <ContractTerms contract={c} altitude={activeAltitude} />
                 <div style={ACTIVE_ACTIONS_STYLE}>
                   <ContractCancelCost contract={c} />
                   <CommandButton

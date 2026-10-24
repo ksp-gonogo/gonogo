@@ -643,6 +643,54 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildCareerCarriesAMilestoneObjectivesGoalWithItsBodyAndAltitude()
+        {
+            var raw = new Dictionary<string, object?>
+            {
+                ["title"] = "Achieve goal",
+                ["state"] = "Incomplete",
+                ["stateOrdinal"] = 0,
+                ["milestone"] = "REACHSPACE",
+                ["milestoneBody"] = "Kerbin",
+                ["targetAltitude"] = 70000.0,
+            };
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["career"] = new Dictionary<string, object?>
+                    {
+                        ["contracts"] = new Dictionary<string, object?>
+                        {
+                            ["active"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["id"] = "1",
+                                    ["parameters"] = new List<object?> { raw },
+                                },
+                            },
+                            ["offered"] = new List<object?>(),
+                        },
+                    },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(CareerViewProvider.BuildCareer(snapshot));
+            var contracts = Assert.IsType<Dictionary<string, object?>>(root["contracts"]);
+            var contract = Assert.IsType<Dictionary<string, object?>>(
+                Assert.Single(Assert.IsType<List<object?>>(contracts["active"])));
+            var parameter = Assert.IsType<Dictionary<string, object?>>(
+                Assert.Single(Assert.IsType<List<object?>>(contract["parameters"])));
+
+            Assert.Equal("REACHSPACE", parameter["milestone"]);
+            Assert.Equal("Kerbin", parameter["milestoneBody"]);
+            Assert.Equal(70000.0, parameter["targetAltitude"]);
+            Assert.Null(parameter["minAltitude"]);
+        }
+
+        [Fact]
         public void AScienceSaveReportsTheTechTreeAndScienceAndNothingOfTheEconomy()
         {
             var snapshot = new KspSnapshot

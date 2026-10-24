@@ -1,0 +1,81 @@
+{
+  "_meta": {
+    "shows": "One active first-flight contract whose objective is a progress milestone: reach space at Kerbin, with the vessel climbing through 12.3 km.",
+    "notes": "Hand-authored. The objective carries the milestone, its body and the altitude it is reached at, which the contract list shows as a goal with the vessel's altitude against it.",
+    "scenario": "milestone-goal"
+  },
+  "contracts.active": [
+    {
+      "id": "7745012398765432",
+      "title": "Escape the atmosphere!",
+      "agency": "Kerbin Space Program",
+      "state": "Active",
+      "fundsAdvance": 11200,
+      "fundsCompletion": 20800,
+      "scienceCompletion": 4,
+      "repCompletion": 8,
+      "deadlineUt": 0,
+      "parameters": [
+        {
+          "title": "Achieve goal",
+          "state": "Incomplete",
+          "stateOrdinal": 0,
+          "milestone": "REACHSPACE",
+          "milestoneBody": "Kerbin",
+          "targetAltitude": 70000
+        }
+      ]
+    }
+  ],
+  "contracts.offered": [],
+  "contracts.completedRecent": [],
+  "t.universalTime": 1500500,
+  "_stream": {
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "balances": null,
+          "contracts": {
+            "active": [
+              {
+                "id": "7745012398765432",
+                "title": "Escape the atmosphere!",
+                "agent": "Kerbin Space Program",
+                "state": "Active",
+                "fundsAdvance": 11200,
+                "fundsCompletion": 20800,
+                "scienceCompletion": 4,
+                "reputationCompletion": 8,
+                "dateDeadline": 0,
+                "fundsFailure": 0,
+                "reputationFailure": 0,
+                "parameters": [
+                  {
+                    "title": "Achieve goal",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0,
+                    "milestone": "REACHSPACE",
+                    "milestoneBody": "Kerbin",
+                    "targetAltitude": 70000
+                  }
+                ]
+              }
+            ],
+            "offered": [],
+            "completedRecent": []
+          },
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 12300
+        }
+      }
+    ],
+    "pinnedUt": 1500500
+  }
+}

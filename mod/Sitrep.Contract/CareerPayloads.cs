@@ -423,6 +423,29 @@ public class CareerContractParameter
     /// </summary>
     [SitrepUnit(Units.Metres)]
     public double? MaxAltitude { get; set; }
+
+    /// <summary>
+    /// The progress milestone this objective asks the player to reach, by the game's own name
+    /// for it (<c>REACHSPACE</c>, <c>ORBIT</c>, <c>LANDING</c> and so on). <c>null</c> when the
+    /// objective is not a progress milestone.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Milestone { get; set; }
+
+    /// <summary>
+    /// The body the <see cref="Milestone"/> is reached at, by name. <c>null</c> when the
+    /// objective is not a milestone or the game names no body for it.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? MilestoneBody { get; set; }
+
+    /// <summary>
+    /// The altitude above sea level the <see cref="Milestone"/> is reached at, where it has one:
+    /// the top of the atmosphere for reaching space. <c>null</c> when the milestone has no
+    /// altitude, never 0.
+    /// </summary>
+    [SitrepUnit(Units.Metres)]
+    public double? TargetAltitude { get; set; }
 }
 
 /// <summary>
