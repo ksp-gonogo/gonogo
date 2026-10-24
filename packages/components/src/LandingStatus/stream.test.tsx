@@ -300,6 +300,22 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
       expect(text()).not.toContain("No landing in progress");
     });
 
+    it("offers the game's reverts beside the crash report", async () => {
+      renderWidget({ w: 12, h: 16 });
+      act(() => {
+        stream.emit("crash.hasRecent", { recent: true });
+        stream.emit("crash.lastCrash", crash);
+      });
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: /Revert to launch/ }),
+        ).toBeInTheDocument(),
+      );
+      expect(
+        screen.getByRole("button", { name: /Revert to VAB/ }),
+      ).toBeInTheDocument();
+    });
+
     it("keeps every row above the touchdown plots and the plots' own headings as they were when the crash arrives, so the plots keep their size and place", async () => {
       const { container } = renderWidget({ w: 16, h: 24 });
       act(() => {
