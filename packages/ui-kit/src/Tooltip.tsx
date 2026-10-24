@@ -12,6 +12,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import styled, { createGlobalStyle } from "styled-components";
+import { FOCUS_RESTORE_ATTRIBUTE } from "./focusRestore";
 
 /** Where the tip sits, in viewport pixels: below its anchor, or above it where the anchor is low on the screen. */
 interface Placement {
@@ -222,6 +223,8 @@ export function useTooltip(text: string | null | undefined): UseTooltipResult {
       onFocus: (event) => {
         // A pointer press focuses its target too; only keyboard focus opens the tip on its own.
         if (pressed.current) return;
+        if (document.documentElement.hasAttribute(FOCUS_RESTORE_ATTRIBUTE))
+          return;
         place(event.currentTarget);
         setFocused(true);
       },

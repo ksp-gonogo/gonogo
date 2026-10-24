@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { Button } from "./Button";
+import { FOCUS_RESTORE_ATTRIBUTE } from "./focusRestore";
 import { CloseIcon } from "./Icons";
 import { ModalChromeContext, type ModalChromeValue } from "./ModalSaveBar";
 import { ScrollArea } from "./Panel";
@@ -172,7 +173,14 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
         ? document.activeElement
         : null;
     return () => {
-      if (opener?.isConnected) opener.focus();
+      if (!opener?.isConnected) return;
+      // A tooltip on the opener reads this attribute and stays shut: the focus is handed back, not moved there by the operator.
+      document.documentElement.setAttribute(FOCUS_RESTORE_ATTRIBUTE, "");
+      try {
+        opener.focus();
+      } finally {
+        document.documentElement.removeAttribute(FOCUS_RESTORE_ATTRIBUTE);
+      }
     };
   }, []);
   const titleId = useId();

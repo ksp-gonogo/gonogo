@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { FOCUS_RESTORE_ATTRIBUTE } from "./focusRestore";
 import { HeldFigure } from "./HeldMark";
 import { Tooltip, useTooltip } from "./Tooltip";
 
@@ -264,6 +265,19 @@ describe("Tooltip", () => {
     await user.tab();
     expect(screen.getByTestId("readout")).toHaveFocus();
     expect(tipIn(document.body)).toHaveTextContent("Held since Y1 D12");
+  });
+
+  it("opens no tip when a closing dialog hands focus back to the control", () => {
+    render(
+      <Tooltip text="Dashboard layouts">
+        <button type="button">Open</button>
+      </Tooltip>,
+    );
+    const button = screen.getByRole("button", { name: /Open/ });
+    document.documentElement.setAttribute(FOCUS_RESTORE_ATTRIBUTE, "");
+    act(() => button.focus());
+    document.documentElement.removeAttribute(FOCUS_RESTORE_ATTRIBUTE);
+    expect(tipIn(document.body)).toBeNull();
   });
 
   it("adds nothing when the child is already named by the same text", () => {
