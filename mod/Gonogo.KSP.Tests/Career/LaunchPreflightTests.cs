@@ -144,6 +144,8 @@ namespace Gonogo.KSP.Tests.Career
         /// <summary>
         /// A craft with a cockpit and nobody to fly it is refused for that, not
         /// for lacking a command module, which the game's own sentence claims.
+        /// An empty crew list launches unmanned, so the reason names the empty
+        /// list and never claims no kerbal could be found.
         /// </summary>
         [Fact]
         public void ARefusalCarriesTheReasonACheckSuppliesInPlaceOfTheGamesWords()
@@ -153,16 +155,26 @@ namespace Gonogo.KSP.Tests.Career
                 new LaunchCheck(
                     new FakePreFlightTest(false, "No control", "no remote-controlled or manned command modules"),
                     CommandErrorCode.CapabilityMismatch,
-                    detail: LaunchRule.NoControlSourceDetail(hasCrewedCommandModule: true)),
+                    detail: LaunchRule.NoControlSourceDetail(hasCrewedCommandModule: true, crewNamed: 0)),
             });
 
-            Assert.Equal("no kerbal is available to crew the craft's command module", refusal!.Detail);
+            Assert.Equal(
+                "the craft's command module needs a kerbal and the crew list is empty, which launches it unmanned",
+                refusal!.Detail);
+        }
+
+        [Fact]
+        public void ANamedCrewThatDoesNotFillTheCommandModuleSaysSo()
+        {
+            Assert.Equal(
+                "the kerbals named in the crew list do not fill the craft's command module",
+                LaunchRule.NoControlSourceDetail(hasCrewedCommandModule: true, crewNamed: 1));
         }
 
         [Fact]
         public void ACraftWithNoCrewedCommandModuleKeepsTheGamesWords()
         {
-            Assert.Null(LaunchRule.NoControlSourceDetail(hasCrewedCommandModule: false));
+            Assert.Null(LaunchRule.NoControlSourceDetail(hasCrewedCommandModule: false, crewNamed: 0));
         }
 
         private static LaunchCheck Check(

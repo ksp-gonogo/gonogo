@@ -689,7 +689,8 @@ namespace Gonogo.KSP
                 manifest,
                 facility == EditorFacilityKind.Vab ? EditorFacility.VAB : EditorFacility.SPH,
                 craftPath,
-                site));
+                site,
+                crew?.Count ?? 0));
             if (refusal != null)
             {
                 return refusal;
