@@ -154,8 +154,12 @@ describe("useUplinkReadiness: hook wiring", () => {
       ).toBeInTheDocument(),
     );
     expect(
-      screen.getByText(/Built for contract 14\.5; this mod needs 15\.0\./),
+      screen.getByText(/Built for contract 14\.5; this Gonogo uses 15\.0\./),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/made for an older Gonogo and needs its own update/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Gonogo works without it/)).toBeInTheDocument();
     expect(
       screen.getByText(/1 refused due to a contract mismatch/),
     ).toBeInTheDocument();

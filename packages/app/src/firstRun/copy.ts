@@ -100,8 +100,10 @@ export const WIZARD_COPY = {
   "uplinks.hint.attention":
     "Each Uplink that needs attention lists its reason under its name. Everything else in Gonogo keeps working.",
   "uplinks.row.version": "v{version}",
-  "uplinks.row.contractMismatch":
-    "Built for contract {declared}; this mod needs {core}. The mod refused it, so none of its channels or commands are running.",
+  "uplinks.row.contractMismatchOlder":
+    "Built for contract {declared}; this Gonogo uses {core}. It was made for an older Gonogo and needs its own update: update it in CKAN, using the search under Find Uplinks. Gonogo works without it, but its widgets and commands stay off until then.",
+  "uplinks.row.contractMismatchNewer":
+    "Built for contract {declared}; this Gonogo uses {core}. It was made for a newer Gonogo, so update Gonogo itself: the mod in CKAN, and the app by the steps under Upgrading in the README. Gonogo works without it, but its widgets and commands stay off until then.",
   "uplinks.row.loaded": "Client loaded",
   "uplinks.row.loading": "Client loading",
   "uplinks.row.quarantined": "Client quarantined",
