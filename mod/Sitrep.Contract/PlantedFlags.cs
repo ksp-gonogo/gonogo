@@ -14,8 +14,8 @@ namespace Sitrep.Contract;
 /// <para>A flag has no radio and is not on <c>trackingStation.catalog</c>.</para>
 /// <internal>
 /// Read off the vessels the game types <c>Flag</c>; the plaque and planter come
-/// from the <c>FlagSite</c> module and are absent for a flag on a vessel that is not
-/// loaded.
+/// from the <c>FlagSite</c> module, live for a loaded flag and from the saved module
+/// for one that is not.
 /// </internal>
 /// </summary>
 /// <category>Surface</category>
@@ -50,11 +50,11 @@ public class PlantedFlag
     [SitrepUnit(Units.UniversalTime)]
     public double? PlantedAt { get; set; }
 
-    /// <summary>The name of the kerbal who planted it. Null when the flag's module could not be read.</summary>
+    /// <summary>The name of the kerbal who planted it. Null when the flag's module could not be read, live or saved.</summary>
     [SitrepUnit(Units.Text)]
     public string? PlantedBy { get; set; }
 
-    /// <summary>The text on the site's plaque. Null when the flag's module could not be read, and empty when it has none.</summary>
+    /// <summary>The text on the site's plaque. Null when the flag's module could not be read, live or saved, and empty when it has none.</summary>
     [SitrepUnit(Units.Text)]
     public string? Plaque { get; set; }
 }

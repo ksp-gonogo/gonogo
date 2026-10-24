@@ -61,9 +61,13 @@ namespace Gonogo.KSP.Tests
                 "private static Dictionary<string, object?>? BuildEvaKerbalEntry(Vessel vessel)");
 
             var loadedGate = entry.IndexOf("if (vessel.loaded)", StringComparison.Ordinal);
-            var noSuit = entry.IndexOf("if (eva == null)\n            {\n                return entry;", StringComparison.Ordinal);
+            var noSuit = entry.IndexOf("if (eva == null)", StringComparison.Ordinal);
+            var suitRead = entry.IndexOf("\"propellantAmount\"", StringComparison.Ordinal);
             Assert.True(loadedGate >= 0, "the suit read must be gated on the vessel being loaded");
             Assert.True(noSuit > loadedGate, "a kerbal with no suit to read must still return its row");
+            Assert.True(
+                entry.IndexOf("return entry;", noSuit, StringComparison.Ordinal) is var returns && returns > noSuit && returns < suitRead,
+                "the row must be returned before the suit is read");
         }
 
         private static string VesselEntry() =>

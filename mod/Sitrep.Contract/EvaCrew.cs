@@ -121,8 +121,8 @@ public class EvaKerbal
     /// The science results this kerbal is holding, such as a surface sample or an EVA
     /// report, which are on no other Topic: <c>science.experiments</c> lists the
     /// active vessel's results and a kerbal outside is not that vessel. Empty when the
-    /// kerbal holds none, and <c>null</c> when it could not be read, as for a kerbal
-    /// standing on a vessel that is not loaded.
+    /// kerbal holds none, and <c>null</c> when it could not be read. A kerbal that is not
+    /// loaded is read from the game's saved state, so its results are listed all the same.
     /// </summary>
     public List<EvaHeldData>? HeldData { get; set; }
 }
