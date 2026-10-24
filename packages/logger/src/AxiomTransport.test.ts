@@ -319,3 +319,147 @@ describe("AxiomTransport scrubbing", () => {
     expect(sentFrom(entry("at 12:30:45 UTC")).message).toBe("at 12:30:45 UTC");
   });
 });
+
+describe("AxiomTransport delivery", () => {
+  let transport: AxiomTransport;
+  let handlers: Record<string, Array<() => void>>;
+  let originalAdd: typeof globalThis.addEventListener;
+  let originalRemove: typeof globalThis.removeEventListener;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    handlers = {};
+    originalAdd = globalThis.addEventListener;
+    originalRemove = globalThis.removeEventListener;
+    globalThis.addEventListener = ((type: string, handler: () => void) => {
+      handlers[type] = [...(handlers[type] ?? []), handler];
+    }) as typeof globalThis.addEventListener;
+    globalThis.removeEventListener = ((type: string, handler: () => void) => {
+      handlers[type] = (handlers[type] ?? []).filter((h) => h !== handler);
+    }) as typeof globalThis.removeEventListener;
+  });
+
+  afterEach(() => {
+    transport?.dispose();
+    globalThis.addEventListener = originalAdd;
+    globalThis.removeEventListener = originalRemove;
+    vi.useRealTimers();
+  });
+
+  it("tries again after a failed flush, with the connection still down", async () => {
+    const client = makeClient();
+    client.flush
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValue(undefined);
+    transport = new AxiomTransport({
+      client,
+      dataset: "gonogo",
+      flushOnPageHide: false,
+    });
+
+    transport.send([entry("while offline")]);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(client.flush).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(client.flush).toHaveBeenCalledTimes(3);
+  });
+
+  it("stops retrying once a flush goes through", async () => {
+    const client = makeClient();
+    client.flush.mockRejectedValueOnce(new Error("offline"));
+    transport = new AxiomTransport({
+      client,
+      dataset: "gonogo",
+      flushOnPageHide: false,
+    });
+
+    transport.send([entry("a")]);
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(60_000);
+    const calls = client.flush.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(120_000);
+
+    expect(client.flush).toHaveBeenCalledTimes(calls);
+  });
+
+  it("sends an error entry at once instead of waiting out the hold", async () => {
+    const client = makeClient();
+    transport = new AxiomTransport({
+      client,
+      dataset: "gonogo",
+      flushOnPageHide: false,
+    });
+
+    transport.send([{ ...entry("crashed"), level: "error" }]);
+    await Promise.resolve();
+
+    expect(client.ingest).toHaveBeenCalledTimes(1);
+    expect(client.flush).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks for the request to outlive the page when the page is hiding", async () => {
+    const client = makeClient();
+    transport = new AxiomTransport({
+      client,
+      dataset: "gonogo",
+      flushOnPageHide: true,
+    });
+
+    transport.send([entry("last words")]);
+    handlers.pagehide[0]();
+    await Promise.resolve();
+
+    expect(client.flush).toHaveBeenCalledWith({ keepalive: true });
+  });
+
+  it("makes a flush wait for one already under way, so its caller learns whether delivery failed", async () => {
+    const client = makeClient();
+    client.flush
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((_, reject) =>
+            setTimeout(() => reject(new Error("offline")), 500),
+          ),
+      )
+      .mockResolvedValue(undefined);
+    const onError = vi.fn();
+    transport = new AxiomTransport({
+      client,
+      dataset: "gonogo",
+      flushOnPageHide: false,
+      onError,
+    });
+
+    transport.send([{ ...entry("report"), level: "error" }]);
+    let settled = false;
+    const explicit = transport.flush().then(() => {
+      settled = true;
+    });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(500);
+    await explicit;
+
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it("flushes again when the browser reports it is back online", async () => {
+    const client = makeClient();
+    client.flush.mockRejectedValueOnce(new Error("offline"));
+    transport = new AxiomTransport({
+      client,
+      dataset: "gonogo",
+      flushOnPageHide: false,
+    });
+
+    transport.send([entry("a")]);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(client.flush).toHaveBeenCalledTimes(1);
+    handlers.online[0]();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(client.flush).toHaveBeenCalledTimes(2);
+  });
+});

@@ -1,4 +1,4 @@
-import { Axiom } from "@axiomhq/js";
+import { AxiomFetchClient } from "./AxiomFetchClient.js";
 import { scrubEntry } from "./scrub.js";
 import type { LogEntry, LogTransport } from "./types.js";
 
@@ -9,7 +9,12 @@ import type { LogEntry, LogTransport } from "./types.js";
  */
 export interface AxiomIngestClient {
   ingest(dataset: string, events: object | readonly object[]): void;
-  flush(): Promise<void>;
+  /**
+   * Sends everything handed to `ingest`. Rejects when delivery failed, in
+   * which case the client keeps the events for the next call. `keepalive`
+   * asks the browser to finish the request after the page has closed.
+   */
+  flush(options?: { keepalive?: boolean }): Promise<void>;
 }
 
 export interface AxiomTransportOptions {
@@ -36,17 +41,18 @@ export interface AxiomTransportOptions {
   /** How long lines are held to go out as one request. Defaults to 1000. */
   flushIntervalMs?: number;
   /**
-   * Called when the SDK fails to deliver a batch. Only used when the
-   * transport builds the client from `token`. Omitted, failures are silent.
+   * Called when a delivery attempt fails, before it is retried. Omitted,
+   * failures are silent.
    */
   onError?: (error: unknown) => void;
 }
 
 /**
- * Logger transport that fans entries out to Axiom via `@axiomhq/js`. The
- * SDK auto-batches (1s / 1000 events) and retries transient failures, so
- * this wrapper is intentionally thin: convert {@link LogEntry} to JSON,
- * push to the client, and best-effort drain on tab close.
+ * Logger transport that fans entries out to Axiom. Lines are held for a
+ * second and sent together; an error line goes at once. A failed send keeps
+ * its lines and is retried with a growing delay and whenever the browser
+ * reports it is online again, and the page closing sends what is waiting
+ * as a request that outlives the page.
  *
  * Entries are scrubbed of share codes, addresses, host names, peer ids and
  * URLs before they leave. Failures are swallowed, log delivery never crashes
@@ -56,12 +62,19 @@ export class AxiomTransport implements LogTransport {
   /** Max entries per `ingest` call: bounds a one-shot backfill so a full
    *  ring-buffer flush is split across several requests. */
   private static readonly MAX_BATCH = 500;
+  private static readonly RETRY_START_MS = 2000;
+  private static readonly RETRY_MAX_MS = 60_000;
   private readonly client: AxiomIngestClient;
   private readonly dataset: string;
   private queue: object[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
   private readonly flushIntervalMs: number;
   private pageHideHandler: (() => void) | null = null;
+  private onlineHandler: (() => void) | null = null;
+  private inFlight: Promise<void> | null = null;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private retryDelayMs = AxiomTransport.RETRY_START_MS;
+  private readonly onError: ((error: unknown) => void) | undefined;
 
   constructor(options: AxiomTransportOptions) {
     if (!options.dataset) {
@@ -70,6 +83,7 @@ export class AxiomTransport implements LogTransport {
 
     this.dataset = options.dataset;
     this.flushIntervalMs = options.flushIntervalMs ?? 1000;
+    this.onError = options.onError;
     this.client = AxiomTransport.resolveClient(options);
 
     const wantPageHide =
@@ -77,9 +91,15 @@ export class AxiomTransport implements LogTransport {
       typeof globalThis.addEventListener === "function";
     if (wantPageHide && typeof globalThis.addEventListener === "function") {
       this.pageHideHandler = () => {
-        void this.flush();
+        void this.flush({ keepalive: true });
       };
       globalThis.addEventListener("pagehide", this.pageHideHandler);
+    }
+    if (typeof globalThis.addEventListener === "function") {
+      this.onlineHandler = () => {
+        void this.flush();
+      };
+      globalThis.addEventListener("online", this.onlineHandler);
     }
   }
 
@@ -88,15 +108,10 @@ export class AxiomTransport implements LogTransport {
   ): AxiomIngestClient {
     if (options.client) return options.client;
     if (options.token) {
-      return new Axiom({
+      return new AxiomFetchClient({
         token: options.token,
         url: options.url,
         orgId: options.orgId,
-        // Silence the SDK's default `console.error` so a transient ingest
-        // failure doesn't show up as a noisy error on the user's screen.
-        // The console transport (i.e. `ConsoleLogger`) keeps its own log
-        // visibility independent of remote delivery.
-        onError: options.onError ?? (() => {}),
       });
     }
     throw new Error("AxiomTransport requires either `client` or `token`");
@@ -114,7 +129,10 @@ export class AxiomTransport implements LogTransport {
       for (const e of unscrubbed) {
         this.queue.push({ _time: e.timestamp, ...scrubEntry(e) });
       }
-      if (this.queue.length >= AxiomTransport.MAX_BATCH) {
+      if (
+        this.queue.length >= AxiomTransport.MAX_BATCH ||
+        unscrubbed.some((e) => e.level === "error")
+      ) {
         void this.flush();
         return;
       }
@@ -131,7 +149,22 @@ export class AxiomTransport implements LogTransport {
     }
   }
 
-  async flush(): Promise<void> {
+  /**
+   * Sends what is queued. A flush that starts while another is under way
+   * waits for it, so the caller sees any failure reported before it resolves.
+   */
+  flush(options?: { keepalive?: boolean }): Promise<void> {
+    const run = this.inFlight
+      ? this.inFlight.then(() => this.deliver(options))
+      : this.deliver(options);
+    this.inFlight = run;
+    void run.then(() => {
+      if (this.inFlight === run) this.inFlight = null;
+    });
+    return run;
+  }
+
+  private async deliver(options?: { keepalive?: boolean }): Promise<void> {
     try {
       if (this.timer !== null) {
         clearTimeout(this.timer);
@@ -145,13 +178,37 @@ export class AxiomTransport implements LogTransport {
           queued.slice(i, i + AxiomTransport.MAX_BATCH),
         );
       }
-      await this.client.flush();
-    } catch {
-      // ignore
+      await this.client.flush(options);
+      this.retryDelayMs = AxiomTransport.RETRY_START_MS;
+      this.clearRetry();
+    } catch (error) {
+      try {
+        this.onError?.(error);
+      } catch {
+        // ignore
+      }
+      this.scheduleRetry();
     }
   }
 
-  /** Detach the `pagehide` handler. */
+  private scheduleRetry(): void {
+    if (this.retryTimer !== null) return;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      void this.flush();
+    }, this.retryDelayMs);
+    this.retryDelayMs = Math.min(
+      this.retryDelayMs * 2,
+      AxiomTransport.RETRY_MAX_MS,
+    );
+  }
+
+  private clearRetry(): void {
+    if (this.retryTimer !== null) clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+  }
+
+  /** Detach the `pagehide` and `online` handlers and stop any retry. */
   dispose(): void {
     if (
       this.pageHideHandler &&
@@ -160,6 +217,14 @@ export class AxiomTransport implements LogTransport {
       globalThis.removeEventListener("pagehide", this.pageHideHandler);
     }
     this.pageHideHandler = null;
+    if (
+      this.onlineHandler &&
+      typeof globalThis.removeEventListener === "function"
+    ) {
+      globalThis.removeEventListener("online", this.onlineHandler);
+    }
+    this.onlineHandler = null;
+    this.clearRetry();
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
   }
