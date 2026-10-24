@@ -82,6 +82,15 @@ namespace Sitrep.Host.Science
     {
         private readonly Dictionary<string, Run> _runs = new Dictionary<string, Run>(StringComparer.Ordinal);
         private readonly List<FinishedTransmission> _abandoned = new List<FinishedTransmission>();
+        private readonly Dictionary<string, double> _lastIdleAt = new Dictionary<string, double>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// How soon after a transmitter's run ends it may show busy again with nothing in view
+        /// before that is taken for a new send. The game keeps a transmitter busy for a moment
+        /// after its last result has left, so a look inside this window sees the tail of the
+        /// run that just ended, not a result of its own.
+        /// </summary>
+        public const double TailSeconds = 2.0;
 
         /// <summary>
         /// The results the last <see cref="Observe"/> saw given up: sent by a transmitter that was
@@ -120,6 +129,7 @@ namespace Sitrep.Host.Science
                     if (run != null)
                     {
                         _runs.Remove(reading.Id);
+                        _lastIdleAt[reading.Id] = ut;
                         if (run.Current != null)
                         {
                             if (!run.Aborted && !IsAboard(run.Current, heldAboard))
@@ -141,7 +151,10 @@ namespace Sitrep.Host.Science
 
                 if (run == null)
                 {
-                    run = new Run(ut);
+                    run = new Run(ut)
+                    {
+                        IsTail = _lastIdleAt.TryGetValue(reading.Id, out var endedAt) && ut - endedAt <= TailSeconds,
+                    };
                     _runs[reading.Id] = run;
                 }
 
@@ -164,7 +177,7 @@ namespace Sitrep.Host.Science
                 }
                 run.Waiting = reading.Queue.ToList();
                 // Nothing queued and nothing taken out in view: a result was taken out before the first look, and its title was never seen.
-                if (run.Current == null && run.Waiting.Count == 0)
+                if (run.Current == null && run.Waiting.Count == 0 && !run.IsTail)
                 {
                     run.Current = new QueuedData(new object(), null, null, null);
                 }
@@ -191,6 +204,10 @@ namespace Sitrep.Host.Science
 
             public double StartedAt { get; }
             public bool Aborted { get; set; }
+
+            /// <summary>Began within <see cref="TailSeconds"/> of the transmitter's last run ending, so an empty queue is that run's tail and no unseen result.</summary>
+            public bool IsTail { get; set; }
+
             public QueuedData? Current { get; set; }
             public List<QueuedData> Waiting { get; set; } = new List<QueuedData>();
         }

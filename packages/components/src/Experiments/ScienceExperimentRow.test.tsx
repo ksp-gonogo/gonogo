@@ -577,7 +577,8 @@ describe("ScienceExperimentRow: a continuous instrument", () => {
         })}
       />,
     );
-    expect(screen.getByText("RUNNING")).toBeInTheDocument();
+    expect(screen.getByText("WAITING")).toBeInTheDocument();
+    expect(screen.queryByText("RUNNING")).toBeNull();
     expect(screen.getByText("No electric charge")).toBeInTheDocument();
   });
 

@@ -28,7 +28,7 @@ const BADGE_MEANING = {
   oneShotFinal: "Can run once only, and cannot be reset",
   inoperable: "Cannot be run in its current state, so it offers no controls",
   running: "Switched on and generating science",
-  runningIdle: "Switched on, but not generating science right now",
+  waiting: "Switched on, but not generating science right now",
   stopped: "Switched off",
 } as const;
 
@@ -219,7 +219,7 @@ export function ScienceExperimentRow({
             <Tooltip
               text={said(
                 instrument.producing === false
-                  ? BADGE_MEANING.runningIdle
+                  ? BADGE_MEANING.waiting
                   : BADGE_MEANING.running,
               )}
             >
@@ -227,7 +227,7 @@ export function ScienceExperimentRow({
                 held={heldGrade}
                 tone={instrument.producing === false ? "caution" : "go"}
               >
-                RUNNING
+                {instrument.producing === false ? "WAITING" : "RUNNING"}
               </Badge>
             </Tooltip>
           )}

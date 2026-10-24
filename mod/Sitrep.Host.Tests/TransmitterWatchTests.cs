@@ -45,6 +45,34 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void ATransmitterBusyAgainRightAfterAFinishWithNothingQueuedSendsNothingMore()
+        {
+            var watch = new TransmitterWatch();
+            Look(watch, Busy(Crew), 100);
+            Look(watch, Busy(), 101);
+            var real = Assert.Single(Look(watch, Idle(), 108));
+            Assert.Equal("Crew Report", real.Title);
+
+            Assert.Empty(Look(watch, Busy(), 108.5));
+            Assert.Empty(Look(watch, Idle(), 112));
+        }
+
+        [Fact]
+        public void ATransmitterBusyWithNothingInViewLongAfterTheLastFinishStillReportsTheUnseenResult()
+        {
+            var watch = new TransmitterWatch();
+            Look(watch, Busy(Crew), 100);
+            Look(watch, Busy(), 101);
+            Look(watch, Idle(), 108);
+
+            Look(watch, Busy(), 200);
+            var unseen = Assert.Single(Look(watch, Idle(), 210));
+
+            Assert.Null(unseen.Title);
+            Assert.Equal(200, unseen.StartedAt);
+        }
+
+        [Fact]
         public void TwoBackToBackResultsFinishAtTheirOwnMoments()
         {
             var watch = new TransmitterWatch();
