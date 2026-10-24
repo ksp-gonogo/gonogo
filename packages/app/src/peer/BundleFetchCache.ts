@@ -1,31 +1,13 @@
 import { logger } from "@ksp-gonogo/logger";
+import { sha256Integrity } from "@ksp-gonogo/sitrep-sdk/uplink-load";
 import {
   defaultVerifiedBundleStore,
   fetchThroughStore,
   type VerifiedBundleStore,
 } from "./verifiedBundleStore";
 
-/**
- * `sha256-<hex>` of the given bytes: same format `@ksp-gonogo/core`'s
- * `checkUplinkCompat`/the loader's own `sha256Hex` produce (see
- * `uplinks/registry.ts`'s `integrity` doc comment). Kept standalone rather
- * than importing the loader's private `sha256Hex`: that one throws the
- * loader's own `LoadRefusal` on a missing `crypto.subtle`, which is a
- * loader-domain concept this peer-layer cache has no business coupling to.
- */
-export async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
-  const subtle = globalThis.crypto?.subtle;
-  if (!subtle) {
-    throw new Error(
-      "cannot verify bundle integrity: crypto.subtle unavailable (non-secure origin)",
-    );
-  }
-  const digest = await subtle.digest("SHA-256", bytes);
-  const hex = Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  return `sha256-${hex}`;
-}
+/** `sha256-<hex>` of the given bytes, the form a manifest's `integrity` holds. */
+export const sha256Hex = sha256Integrity;
 
 /**
  * How long the main screen waits on an Uplink's author host before it answers

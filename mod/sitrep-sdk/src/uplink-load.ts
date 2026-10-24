@@ -5,6 +5,8 @@
  * touches the filesystem or the DOM, so it loads in a browser and in Node.
  */
 
+import { sha256HexFallback } from "./sha256-fallback";
+
 /**
  * One `major.minor.patch` version, with any pre-release suffix dropped. Useful
  * for comparing the numbers a manifest and a host state. Returned by
@@ -315,18 +317,15 @@ export function checkUplinkCompat(
 /**
  * The `sha256-<hex>` of a bundle's bytes, in the form a manifest's `integrity`
  * holds. Useful for checking fetched bytes against the manifest before running
- * them. Throws when the page has no Web Crypto, as a page served over plain
- * http outside localhost has none, rather than skipping the check.
+ * them. Uses Web Crypto where the page has it and a built-in SHA-256 where it
+ * does not, as on a page served over plain http from a LAN address, so the
+ * result is the same on both.
  *
  * @category Loading
  */
 export async function sha256Integrity(bytes: ArrayBuffer): Promise<string> {
   const subtle = globalThis.crypto?.subtle;
-  if (!subtle) {
-    throw new Error(
-      "cannot verify integrity: crypto.subtle unavailable (non-secure origin), serve the page over https or localhost",
-    );
-  }
+  if (!subtle) return `sha256-${sha256HexFallback(new Uint8Array(bytes))}`;
   const digest = await subtle.digest("SHA-256", bytes);
   const hex = Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))

@@ -443,17 +443,6 @@ function checkCompat(
   return { skewOverridden: false };
 }
 
-/** `sha256-<hex>` of the given bytes, or a refusal when crypto.subtle is absent. */
-async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
-  try {
-    return await sha256Integrity(bytes);
-  } catch (error) {
-    // Non-secure origin (e.g. http://192.168.x.x): cannot verify. Refusing and
-    // saying why is the whole model; silently skipping the hash defeats it (D3).
-    return refuse(error instanceof Error ? error.message : String(error));
-  }
-}
-
 async function fetchBundleDirect(url: string): Promise<ArrayBuffer> {
   const res = await fetchWithDeadline(url, "bundle").catch((err) =>
     refuse(err instanceof Error ? err.message : String(err)),
@@ -987,7 +976,7 @@ async function loadOne(
       },
     );
     setUplinkOutcome({ ...base, phase: "verifying" });
-    const digest = await sha256Hex(bytes);
+    const digest = await sha256Integrity(bytes);
 
     /*
      * The reason string names the party whose claim the bytes missed, and the
