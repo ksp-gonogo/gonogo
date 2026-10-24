@@ -10,7 +10,6 @@ import styled from "styled-components";
 import {
   ComboboxListbox,
   type ComboboxOption,
-  comboboxOptionMatches,
   filterComboboxOptions,
   flattenComboboxGroups,
   groupComboboxOptions,
@@ -27,17 +26,6 @@ import { focusRing } from "./focusRing";
 export interface KeyOption extends ComboboxOption {
   /** A unit symbol drawn at the end of the option's row. */
   unit?: string;
-  /**
-   * What the input reads once the option is picked, in full where the label
-   * alone would repeat across headings. Defaults to the label. The search also
-   * matches it.
-   */
-  summary?: string;
-  /**
-   * Listed before anything is typed. While any option is common, the open list
-   * shows only those and the rest appear once the operator searches.
-   */
-  common?: boolean;
 }
 
 /**
@@ -121,17 +109,9 @@ export function DataKeyPicker({
     selectedOption === undefined &&
     keys.length > 0;
 
-  const hasCommon = keys.some((k) => k.common);
   const filtered = useMemo(
-    () =>
-      filterComboboxOptions(
-        query === "" && hasCommon ? keys.filter((k) => k.common) : keys,
-        query,
-        (option, q) =>
-          comboboxOptionMatches(option, q) ||
-          (option.summary?.toLowerCase().includes(q.toLowerCase()) ?? false),
-      ),
-    [keys, query, hasCommon],
+    () => filterComboboxOptions(keys, query),
+    [keys, query],
   );
 
   const sortedGroups = useMemo(
@@ -211,9 +191,7 @@ export function DataKeyPicker({
     return () => document.removeEventListener("pointerdown", onOutside);
   }, [open, closePicker]);
 
-  const displayValue = open
-    ? query
-    : (selectedOption?.summary ?? selectedOption?.label ?? value ?? "");
+  const displayValue = open ? query : (selectedOption?.label ?? value ?? "");
   const activeOption =
     open && activeIndex >= 0 ? flatOptions[activeIndex] : undefined;
 
@@ -224,13 +202,7 @@ export function DataKeyPicker({
         id={id}
         aria-label={ariaLabel}
         value={displayValue}
-        placeholder={
-          open && hasCommon
-            ? `Search all ${keys.length} fields...`
-            : value
-              ? undefined
-              : placeholder
-        }
+        placeholder={value ? undefined : placeholder}
         $hasValue={!!value && !open}
         $retired={retired && !open}
         aria-invalid={retired && !open ? true : undefined}
