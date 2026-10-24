@@ -161,7 +161,7 @@ registerComponent<RendezvousConfig>({
   id: "rendezvous",
   name: "Rendezvous",
   description:
-    "Your target's name, range and closing rate, whether it is a vessel, a docking port or a body. Closing on a vessel or docking port, it switches to a docking view with an alignment reticle, over a camera picture when an Uplink supplies one through the `rendezvous.camera` slot.",
+    "Your target's name, range and closing rate, whether it is a vessel, a docking port or a body. Closing on a vessel or docking port, it switches to a docking view with an alignment reticle, over a camera picture when an Uplink supplies one.",
   tags: ["telemetry", "rendezvous"],
   defaultSize: { w: 6, h: 9 },
   // Five rows: at four the overflow glow painted out the waiting hint's last word.

@@ -17,7 +17,7 @@ registerComponent<AstronautComplexConfig>({
   description:
     "Hire applicants and fire kerbals from the Astronaut Complex. Shows your funds, the price of the next hire and how full the roster is, and lists every kerbal by status with their trait (their role in the crew), courage and stupidity (the two personality stats the game gives every kerbal), rank and experience.",
   tags: ["career", "crew", "kc"],
-  defaultSize: { w: 6, h: 8 },
+  defaultSize: { w: 8, h: 10 },
   minSize: { w: 3, h: 4 },
   component: AstronautComplexComponent,
   channels: astronautComplexTopics.channels,

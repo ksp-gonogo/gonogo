@@ -118,9 +118,9 @@ registerComponent<ResearchAndDevelopmentConfig>({
   id: "research-and-development",
   name: "Research and Development",
   description:
-    "Browse and research career tech. From 10 grid units wide it draws the tech tree as the game does, coloured by what you own, can research and cannot reach yet; narrower, it becomes a searchable list with every part each node unlocks.",
+    "Browse and research career tech. On a wide tile it draws the tech tree as the game does, coloured by what you own, can research and cannot reach yet; on a narrow one it becomes a searchable list with every part each node unlocks.",
   tags: ["career", "tech"],
-  defaultSize: { w: 6, h: 9 },
+  defaultSize: { w: 12, h: 12 },
   // Three columns and rows hold the two essentials the tiny form draws.
   minSize: { w: 5, h: 4 },
   component: ResearchAndDevelopmentComponent,

@@ -488,7 +488,7 @@ registerComponent<NavballConfig>({
   id: "navball",
   name: "Navball",
   description:
-    "Your vessel's heading, pitch and roll, measured at the root part (or at the centre of mass when the widget's `useCoMFrame` setting is on), with, when its `controlMode` setting is on, controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick or keyboard key to them on the Inputs tab of the widget's settings to fly the vessel from it. Under signal delay, a strip for each control shows the commands still crossing to the craft and the values it has confirmed back.",
+    "Your vessel's heading, pitch and roll, measured at the root part, or at the centre of mass if the widget's settings say so. The settings can also switch on controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick or keyboard key to them on the Inputs tab of the widget's settings to fly the vessel from it. Under signal delay, a strip for each control shows the commands still crossing to the craft and the values it has confirmed back.",
   tags: ["telemetry", "control"],
   defaultSize: { w: 8, h: 11 },
   // Below four columns the three figures are the tiny form's, with the title behind a hover.

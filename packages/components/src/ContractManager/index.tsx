@@ -19,7 +19,7 @@ registerComponent<ContractManagerConfig>({
   description:
     "Career contracts with their terms, deadlines, and rewards. Accept new contracts from the offered list, decline ones you don't want, and cancel active ones (with a confirmation step). Live objective progress and completion alarms are in the Objectives widget.",
   tags: ["career", "contracts"],
-  defaultSize: { w: 6, h: 8 },
+  defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 5 },
   component: ContractManagerComponent,
   tiny: {
