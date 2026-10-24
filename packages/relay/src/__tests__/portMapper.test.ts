@@ -5,6 +5,7 @@ import {
   defaultGateway,
   gatewayCandidates,
   PortMapper,
+  sweepCandidates,
 } from "../portMapper.js";
 
 interface Seen {
@@ -196,6 +197,28 @@ describe("router addresses", () => {
     const found = gatewayCandidates(null, ip(172, 16, 0, 1));
     expect(found[0]).toBe(ip(172, 16, 0, 1));
     expect(found).toContain(ip(192, 168, 1, 1));
+    expect(found).toContain(ip(192, 168, 86, 1));
     expect(new Set(found).size).toBe(found.length);
+  });
+});
+
+describe("PortMapper sweep", () => {
+  it("asks the sweep addresses only after the named gateways stay silent", async () => {
+    const { router, mapper, log } = await setup("ok", {
+      gateways: ["127.0.0.2"],
+      sweep: ["127.0.0.3", "127.0.0.1"],
+    });
+    await mapper.start();
+    expect(mapper.status.state).toBe("mapped");
+    expect(log[0]).toBe("router at 127.0.0.1 answered NAT-PMP");
+    expect(router.seen.length).toBeGreaterThan(0);
+    await mapper.stop();
+  });
+
+  it("covers the .1 and .254 of every 192.168 network, without repeats", () => {
+    const all = sweepCandidates();
+    expect(all).toContain(ip(192, 168, 86, 1));
+    expect(all).toContain(ip(192, 168, 255, 254));
+    expect(new Set(all).size).toBe(all.length);
   });
 });

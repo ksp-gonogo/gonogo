@@ -58,6 +58,13 @@ export interface RelayConfig {
    * one to open its ports. Null lets the relay look for the router itself.
    */
   routerIp: string | null;
+  /**
+   * This machine's address on the router's network, from `LAN_IP`, which a
+   * UPnP port mapping names as the target. Null finds it from the route to the
+   * router, which inside a container is the container's own address and a
+   * router will not forward to.
+   */
+  lanIp: string | null;
   /** Do not ask the router to open the relay ports (`PORT_MAPPING=0`). */
   skipPortMapping: boolean;
 }
@@ -130,6 +137,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayConfig {
     appOrigins: appOrigins(env.RELAY_APP_ORIGINS),
     publicUrl: publicUrl(env.RELAY_PUBLIC_URL),
     routerIp: env.ROUTER_IP?.trim() || null,
+    lanIp: env.LAN_IP?.trim() || null,
     skipPortMapping: env.PORT_MAPPING === "0" || env.PORT_MAPPING === "false",
   };
 }

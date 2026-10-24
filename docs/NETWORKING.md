@@ -55,7 +55,15 @@ Only needed for stations that can't connect directly. The relay runs inside the 
 
 Plan on 2 session ports per internet player plus `3478`: the default 10 cover up to 5 players. Forward the whole range: the relay picks session ports at random within it, so forwarding only the first few is not safe. Some routers want one entry per port, so eleven in all. Don't forward `3002` (the relay's status port, published on `127.0.0.1` only so it stays on this computer) or `8080` (a remote station loads the app from the public site, not from your machine).
 
-The relay first asks your router to open these ports itself (NAT-PMP). When that works, the Add station window needs nothing from you, and the relay deletes the forwards when it stops. If the window says the router refused or did not answer, forward the ports by hand as above. A router that does not answer is often one that has the feature switched off in its settings, or sits at an address the relay did not try: set `ROUTER_IP=<your router's address>` on the container (the "Default Gateway" in `ipconfig` on Windows), and add `PORT_MAPPING=0` to stop the relay asking at all.
+The relay first asks your router to open these ports itself (NAT-PMP, then UPnP for a router that does not answer NAT-PMP). When that works, the Add station window needs nothing from you, and the relay deletes the forwards when it stops. If the window says the router refused or did not answer, forward the ports by hand as above.
+
+The relay finds the router by itself. A container that shares the computer's network (Docker or Podman on Linux with `--network host`) reads the real default route. A container on Docker Desktop, Podman's virtual machine or Docker's own bridge cannot see the router, so the relay asks the usual router addresses and then the `.1` and `.254` address of every `192.168.x.x` network, and uses whichever answers. `pnpm dev` does better: it reads the router and this computer's address from the computer's default route and passes them in as `ROUTER_IP` and `LAN_IP`. A router on any other kind of network, or one that answers only UPnP, needs both set by hand on the container:
+
+- `ROUTER_IP`: the router's address, the "Default Gateway" in `ipconfig` on Windows or the `via` address of `ip route get 1.1.1.1` on Linux. The relay asks only this one when it is set
+- `LAN_IP`: this computer's address on the same network. A router that opens ports with UPnP forwards them to this address, and from inside a container the relay cannot see it. NAT-PMP routers do not need it
+- `PORT_MAPPING=0` stops the relay asking at all
+
+When nothing answers, the relay log has one line naming the addresses it asked and the settings above.
 
 Give the main screen computer a fixed address on your LAN first (a reservation in the router is easiest). If its address changes, every forward silently points at nothing.
 

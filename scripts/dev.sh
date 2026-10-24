@@ -72,6 +72,28 @@ else
 fi
 
 # ──────────────────────────────────────────────────────────────────────
+# Router and LAN address for the relay's port mapping
+# ──────────────────────────────────────────────────────────────────────
+# The relay asks the home router to open its ports. From inside the podman
+# VM its default route leads to the VM's own gateway, so the router's address
+# and this computer's address come from the host's default route. An explicit
+# ROUTER_IP or LAN_IP (shell env or .env) always wins.
+env_router_ip=$(grep -E '^ROUTER_IP=.+' .env 2>/dev/null | tail -1 | cut -d= -f2-)
+env_lan_ip=$(grep -E '^LAN_IP=.+' .env 2>/dev/null | tail -1 | cut -d= -f2-)
+if [ -n "${ROUTER_IP:-}" ] || [ -n "$env_router_ip" ] || [ -n "${LAN_IP:-}" ] || [ -n "$env_lan_ip" ]; then
+  echo "[dev] ROUTER_IP or LAN_IP override set: leaving the relay's router lookup to it"
+else
+  host_net=$(node scripts/host-network.mjs 2>/dev/null || true)
+  if [ -n "$host_net" ]; then
+    export ROUTER_IP="${host_net%% *}"
+    export LAN_IP="${host_net##* }"
+    echo "[dev] router auto-detected as $ROUTER_IP, this computer as $LAN_IP (the relay asks the router to open its ports). Set ROUTER_IP and LAN_IP in .env to override."
+  else
+    echo "[dev] could not read the host's default route, the relay will look for the router itself; set ROUTER_IP and LAN_IP in .env if it cannot find it." >&2
+  fi
+fi
+
+# ──────────────────────────────────────────────────────────────────────
 # Build-input fingerprinting
 # ──────────────────────────────────────────────────────────────────────
 # Hashes everything that gets baked into a container image: the

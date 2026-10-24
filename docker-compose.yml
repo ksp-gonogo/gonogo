@@ -60,6 +60,9 @@ services:
       # The router's address, when the relay cannot find it to ask it to open
       # the ports above. PORT_MAPPING=0 stops it asking.
       ROUTER_IP: ${ROUTER_IP:-}
+      # This computer's address on the router's network, which a router that
+      # opens ports with UPnP forwards them to.
+      LAN_IP: ${LAN_IP:-}
       PORT_MAPPING: ${PORT_MAPPING:-}
       # Axiom log shipping. Empty default → no transport installed
       # (matches the browser pattern). Set in `.env` next to this file

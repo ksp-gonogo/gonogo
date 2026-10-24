@@ -12,7 +12,12 @@ import { registerBootstrapConfigRoutes } from "./bootstrapConfig.js";
 import { loadConfig } from "./config.js";
 import { startCoturn } from "./coturnManager.js";
 import { discoverPublicIp } from "./discoverPublicIp.js";
-import { defaultGateway, gatewayCandidates, PortMapper } from "./portMapper.js";
+import {
+  defaultGateway,
+  gatewayCandidates,
+  PortMapper,
+  sweepCandidates,
+} from "./portMapper.js";
 import { registerTurnRoutes } from "./turnRoutes.js";
 import { TurnSupervisor } from "./turnSupervisor.js";
 import { BUILD_TIME, VERSION } from "./version.js";
@@ -182,6 +187,8 @@ const portMapper =
         turnPort: config.turnPort,
         minPort: config.turnMinPort,
         maxPort: config.turnMaxPort,
+        sweep: config.routerIp ? [] : sweepCandidates(),
+        lanIp: config.lanIp,
         log: (msg) => bridgeInfo(`port mapping: ${msg}`),
       });
 void portMapper?.start();
