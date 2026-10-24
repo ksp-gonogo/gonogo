@@ -1,6 +1,7 @@
 import { isTextEntry } from "@ksp-gonogo/serial";
 import { useEffect } from "react";
 import type { ProfileDashboard } from "../missionProfiles";
+import { requestSettings } from "../settings/settingsRequest";
 import { useOpenComponentPicker } from "./ComponentOverlay";
 
 /** An open dialog or the Add widget picker owns the keyboard until it closes. */
@@ -13,8 +14,8 @@ function dialogIsOpen(): boolean {
 /**
  * Screen-wide keyboard shortcuts for editing the dashboard: Ctrl or Cmd with Z
  * undoes a layout change, with Shift and Z (or Ctrl and Y) redoes it, and Ctrl
- * or Cmd with K opens Add widget. Useful for editing a layout without leaving
- * the keyboard. Every one is a chord with Ctrl or Cmd, which the keyboard
+ * or Cmd with K opens Add widget, and Ctrl or Cmd with / opens Help. Useful
+ * for editing a layout without leaving the keyboard. Every one is a chord with Ctrl or Cmd, which the keyboard
  * input device never reads, so no bound key can collide with them. A key
  * pressed in a text field or while a dialog is open is left alone, so a field
  * keeps its own undo. Renders nothing; mount it once per screen inside the
@@ -42,6 +43,11 @@ export function DashboardShortcuts({
       if (key === "y" && e.ctrlKey && !e.shiftKey && !e.metaKey) {
         e.preventDefault();
         history.redo();
+        return;
+      }
+      if (key === "/" && !e.shiftKey) {
+        e.preventDefault();
+        requestSettings("help");
         return;
       }
       if (key === "k" && !e.shiftKey && openPicker) {

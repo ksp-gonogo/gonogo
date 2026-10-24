@@ -3,6 +3,7 @@ import { render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { onSettingsRequested } from "../settings/settingsRequest";
 import { ComponentOverlay, OverlayProvider } from "./ComponentOverlay";
 import { DashboardShortcuts } from "./DashboardShortcuts";
 
@@ -45,6 +46,19 @@ describe("DashboardShortcuts", () => {
     expect(
       await screen.findByRole("combobox", { name: "Search widgets" }),
     ).toBeInTheDocument();
+  });
+
+  it("opens Help with Ctrl+/ or Cmd+/", async () => {
+    const { user } = setup();
+    const requested = vi.fn();
+    const off = onSettingsRequested(requested);
+
+    await user.keyboard("{Control>}/{/Control}");
+    await user.keyboard("{Meta>}/{/Meta}");
+
+    off();
+    expect(requested).toHaveBeenCalledTimes(2);
+    expect(requested).toHaveBeenCalledWith("help");
   });
 
   it("leaves a text field and a bare key alone", async () => {

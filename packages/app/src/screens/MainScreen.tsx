@@ -97,6 +97,7 @@ import {
   SettingsService,
   useMissionHistorySettings,
 } from "../settings";
+import { HelpButton } from "../settings/HelpButton";
 import { initSoundSettings } from "../sound";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
 import { ScopedStationIdentity } from "../stationIdentity";
@@ -445,7 +446,12 @@ function MainDashboard({
         <Layout as="main" aria-label="Mission control">
           <UplinkIntegrityBanner />
           <MissionBanner
-            actions={<LayoutHistoryControl dashboard={controller} />}
+            actions={
+              <>
+                <LayoutHistoryControl dashboard={controller} />
+                <HelpButton />
+              </>
+            }
           />
           {screen === "pilot" && !inFlight ? (
             <NoActiveVessel hasGameSignal={hasGameSignal} scene={scene} />

@@ -144,7 +144,7 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
         "A station is any other browser that joins the session: a tablet, a phone, a second laptop. It never talks to KSP. It gets everything through this screen's browser tab, so a station works only while this tab stays open and awake.",
       ),
       text(
-        "Hover the + button in the bottom-right corner, or Tab to it, and press Add station. The window shows a six-character share code, as a link and as a QR code. On the other device scan the QR code or open the link and it connects with nothing to type. Otherwise open the station page and type the code on the Connect to Mission Control screen.",
+        "Hover the three-dot button in the bottom-right corner, or Tab to it, and press Add station. The window shows a six-character share code, as a link and as a QR code. On the other device scan the QR code or open the link and it connects with nothing to type. Otherwise open the station page and type the code on the Connect to Mission Control screen.",
       ),
       text(
         "The station remembers the code and reconnects by itself while this tab is open. New share code in the same window drops every connected station, and they all need the new code.",
@@ -221,6 +221,7 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
         "Ctrl or Cmd with Z: undo the last layout change or layout switch",
         "Ctrl or Cmd with Shift and Z, or Ctrl with Y: redo it",
         "Ctrl or Cmd with K: open Add widget",
+        "Ctrl or Cmd with /: open Help, where this list is",
         "In Add widget: Up, Down, Home and End move through the list, Shift and Enter ticks or unticks a widget, Enter adds every ticked widget (or the highlighted one when none is ticked), Escape closes",
       ),
     ],

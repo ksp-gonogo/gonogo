@@ -72,6 +72,7 @@ import {
   SettingsService,
   useStationWakeLock,
 } from "../settings";
+import { HelpButton } from "../settings/HelpButton";
 import { StationApprovalNotice } from "../stationApproval/StationApprovalNotice";
 import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
@@ -398,6 +399,7 @@ export function StationScreen() {
                                     <LayoutHistoryControl
                                       dashboard={controller}
                                     />
+                                    <HelpButton />
                                   </>
                                 }
                               />

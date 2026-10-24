@@ -45,7 +45,7 @@ export function MissionBanner({ actions }: Readonly<{ actions?: ReactNode }>) {
       <BannerField label="UT">
         <BannerDate />
       </BannerField>
-      <BannerField label="CC">
+      <BannerField label="Command centre">
         <VantageControl />
       </BannerField>
       <VesselField />
