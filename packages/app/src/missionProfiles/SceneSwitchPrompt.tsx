@@ -28,8 +28,10 @@ interface SceneSwitchPromptProps {
  * switch *to* a profile when entering a tagged scene". The scene reads
  * as Unknown until the first telemetry frame arrives, so the first known
  * scene is the starting point rather than a transition: reloading the
- * page never prompts for the scene the game is already in (a screen with no current
- * layout still opens on the layout bound to it with auto-switch).
+ * page never prompts for the scene the game is already in, with one exception:
+ * a current layout bound only to other scenes is offered the layout of the
+ * scene the game is in (a screen with no current layout still opens on the
+ * layout bound to it with auto-switch).
  *
  * Designed to live inside a `BannerStack`, so positioning is in-flow,
  * no `bottom` prop. The stack owns viewport placement.
@@ -60,6 +62,23 @@ export function SceneSwitchPrompt({
           kind: "scene",
           scene: scene as BindableScene,
         });
+        return;
+      }
+      /*
+       * A layout made for other scenes only, opened at a scene with a layout of
+       * its own, mostly shows widgets that cannot read anything here, so the
+       * switch is offered once. It is never taken without the operator.
+       */
+      const current = svc.getCurrent();
+      const own = svc.findForScene(scene);
+      if (
+        current &&
+        own &&
+        own.id !== current.id &&
+        (current.sceneBindings?.length ?? 0) > 0 &&
+        !current.sceneBindings?.includes(scene as BindableScene)
+      ) {
+        setActive({ scene: scene as BindableScene, profile: own });
       }
       return;
     }

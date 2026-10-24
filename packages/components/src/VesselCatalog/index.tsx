@@ -109,7 +109,6 @@ registerComponent<VesselCatalogConfig>({
   seats: ["mission-control"],
   defaultConfig: {},
   actions: [],
-  requires: ["flight"],
 });
 
 export { VesselCatalogComponent };

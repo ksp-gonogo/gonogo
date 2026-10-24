@@ -144,4 +144,46 @@ describe("SceneSwitchPrompt", () => {
 
     expect(fixture.svc.getCurrentId()).toBe(mine.id);
   });
+  describe("a reload at the Space Center on a layout made for flight", () => {
+    it("offers the Space Center layout once, without switching to it", () => {
+      const fixture = setup();
+      const base = fixture.svc.save("Base", ITEMS, LAYOUT, ["SpaceCenter"]);
+      fixture.svc.setCurrent(fixture.ascent.id);
+
+      fixture.emitScene("SpaceCenter");
+
+      expect(
+        screen.getByText("Now at the Space Center: switch to Base?"),
+      ).toBeTruthy();
+      expect(fixture.svc.getCurrentId()).toBe(fixture.ascent.id);
+      fixture.emitScene("SpaceCenter");
+      expect(
+        screen.getAllByRole("button", { name: /Switch to layout/ }),
+      ).toHaveLength(1);
+      expect(base.id).not.toBe(fixture.ascent.id);
+    });
+
+    it("does not switch automatically when the Space Center layout is not set to", () => {
+      const fixture = setup();
+      fixture.svc.save("Base", ITEMS, LAYOUT, ["SpaceCenter"]);
+      fixture.svc.setCurrent(fixture.ascent.id);
+
+      fixture.emitScene("SpaceCenter");
+
+      expect(fixture.svc.getCurrentId()).toBe(fixture.ascent.id);
+    });
+
+    it("stays quiet for a manual layout bound to no scene", () => {
+      const fixture = setup();
+      fixture.svc.save("Base", ITEMS, LAYOUT, ["SpaceCenter"]);
+      const mine = fixture.svc.save("Mine", ITEMS, LAYOUT);
+      fixture.svc.setCurrent(mine.id);
+
+      fixture.emitScene("SpaceCenter");
+
+      expect(
+        screen.queryByRole("button", { name: /Switch to layout/ }),
+      ).toBeNull();
+    });
+  });
 });

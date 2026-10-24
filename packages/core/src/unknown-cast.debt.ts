@@ -108,8 +108,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/components/src/ShipMap/partMetersContribution.test.ts :: part": 1,
   // packages/core: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 280 files
   "packages/core/src/hooks/defineTopicManifest.ts :: boundHook": 1,
-  // packages/data: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 54 files
-  "packages/data/src/hooks/useOptionalStreamEvent.ts :: unsubscribe": 1,
   // packages/serial: 2 at 2 points in 1 files (0 out of `any`, 0 in tests), walked 72 files
   "packages/serial/src/typedListeners.ts :: stored": 1,
   "packages/serial/src/typedListeners.ts :: TypedListeners.emit": 1,

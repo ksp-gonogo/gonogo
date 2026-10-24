@@ -203,6 +203,73 @@ describe("AutoRecordController", () => {
     expect(await rig.source.listFlights()).toHaveLength(1);
   });
 
+  describe("at the Space Center, where no vessel is active", () => {
+    /** What the stream says when the page opens, or a flight is recovered, with the game at the Space Center. */
+    function spaceCenterFrames(rig: Rig, ut: number): void {
+      act(() => {
+        rig.transport.emit("flight.current", null, {
+          validAt: ut,
+          deliveredAt: ut,
+        });
+        rig.transport.emit("flight.started", null, {
+          validAt: ut,
+          deliveredAt: ut,
+        });
+        rig.transport.emit("flight.ended", null, {
+          validAt: ut,
+          deliveredAt: ut,
+        });
+        rig.transport.emit("flight.vesselChanged", null, {
+          validAt: ut,
+          deliveredAt: ut,
+        });
+        rig.clock.scrubTo(ut);
+        rig.raf.flush();
+      });
+    }
+
+    it("records no flight and throws nothing when every flight topic reads absent", async () => {
+      const rig = buildRig();
+      render(
+        <TelemetryProvider client={rig.client} store={rig.store}>
+          <AutoRecordController missionHistoryEnabled scene="SpaceCenter" />
+        </TelemetryProvider>,
+      );
+
+      // The client catches a throwing subscriber and reports it here.
+      const reported = vi.spyOn(console, "error").mockImplementation(() => {});
+      spaceCenterFrames(rig, 10);
+      spaceCenterFrames(rig, 20);
+
+      expect(reported).not.toHaveBeenCalled();
+      reported.mockRestore();
+
+      expect(getAutoRecordStatus().recording).toBe(false);
+      expect(await rig.source.listFlights()).toHaveLength(0);
+    });
+
+    it("keeps the flight a recovery ended as the only row", async () => {
+      const rig = buildRig();
+      const tree = (scene: "Flight" | "SpaceCenter") => (
+        <TelemetryProvider client={rig.client} store={rig.store}>
+          <AutoRecordController missionHistoryEnabled scene={scene} />
+        </TelemetryProvider>
+      );
+      const { rerender } = render(tree("Flight"));
+      start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+      tickFrame(rig, 5, "vA", "Alpha");
+      end(rig, 6, "vA", 0);
+      act(() => rerender(tree("SpaceCenter")));
+
+      const reported = vi.spyOn(console, "error").mockImplementation(() => {});
+      spaceCenterFrames(rig, 30);
+
+      expect(reported).not.toHaveBeenCalled();
+      reported.mockRestore();
+      expect(await rig.source.listFlights()).toHaveLength(1);
+    });
+  });
+
   it("mounts without throwing when no TelemetryProvider is in the tree", () => {
     // The real-world case this guards: SitrepTelemetryProvider only mounts
     // a TelemetryProvider once the dev streaming flag is on AND its client

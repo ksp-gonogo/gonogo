@@ -14,8 +14,10 @@ import { useEffect, useRef } from "react";
  * synchronously on subscribe is skipped (same "a widget mounting after the
  * fact does not re-fire" rule `useStreamEvent` documents), so a component
  * that mounts after a flight already ended does not re-close a session that
- * was never open. `handler` may change identity every render without
- * re-subscribing (held in a ref).
+ * was never open. A topic that reads absent (no vessel at the Space Center, a
+ * flight just recovered) is not an event, so `handler` is not called for it.
+ * `handler` may change identity every render without re-subscribing (held in
+ * a ref).
  */
 export function useOptionalStreamEvent<Payload>(
   topic: string,
@@ -29,7 +31,7 @@ export function useOptionalStreamEvent<Payload>(
     if (!client) return;
     let replayingSticky = true;
     const unsubscribe = client.subscribe(topic, (payload) => {
-      if (replayingSticky) return;
+      if (replayingSticky || payload == null) return;
       handlerRef.current(payload as Payload);
     });
     replayingSticky = false;
