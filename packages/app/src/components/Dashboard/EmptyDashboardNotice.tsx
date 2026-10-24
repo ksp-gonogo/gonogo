@@ -1,13 +1,19 @@
-import { useScreen } from "@ksp-gonogo/core";
+import { useGameContext, useScreen } from "@ksp-gonogo/core";
 import { Button, EmptyState, Stack, Switch } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { useAnalyticsConsent } from "../../analytics/useAnalyticsConsent";
+import { DEFAULT_TEMPLATES } from "../../missionProfiles/layoutTemplates";
+import { BINDABLE_SCENES } from "../../missionProfiles/MissionProfilesService";
+import { useProfileDashboardController } from "../../missionProfiles/ProfileDashboardContext";
 import { useOpenComponentPicker } from "../ComponentOverlay";
 
 /**
  * What a dashboard with no widgets shows, with a button that opens the same
  * picker as the Add widget button in the corner. Outside a screen that
  * mounts the picker there is nothing for it to open, so it shows no button.
+ * On a screen that keeps layouts it also offers "Add default layouts": one
+ * layout for flight and one for the space centre, tracking station and
+ * editor, switching automatically when the game changes scene.
  * On a screen that owns its analytics setting it also offers a quiet switch for
  * sending anonymous analytics, off until the operator turns it on; it is the
  * same setting as Settings, General, "Send technical analytics".
@@ -15,6 +21,8 @@ import { useOpenComponentPicker } from "../ComponentOverlay";
 export function EmptyDashboardNotice() {
   const openPicker = useOpenComponentPicker();
   const screen = useScreen();
+  const layouts = useProfileDashboardController();
+  const { scene } = useGameContext();
   const [analytics, setAnalytics] = useAnalyticsConsent();
   return (
     <EmptyDashboardNotice__Frame>
@@ -24,6 +32,19 @@ export function EmptyDashboardNotice() {
           {openPicker && (
             <Button variant="primary" type="button" onClick={openPicker}>
               Add a widget
+            </Button>
+          )}
+          {layouts && (
+            <Button
+              type="button"
+              onClick={() =>
+                layouts.addTemplates(
+                  DEFAULT_TEMPLATES,
+                  BINDABLE_SCENES.find((s) => s === scene),
+                )
+              }
+            >
+              Add default layouts
             </Button>
           )}
           {screen !== "station" && (

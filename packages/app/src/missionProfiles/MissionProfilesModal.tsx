@@ -10,6 +10,11 @@ import {
 import { useState } from "react";
 import styled from "styled-components";
 import {
+  DEFAULT_TEMPLATES,
+  type LayoutTemplate,
+  snapshotOf,
+} from "./layoutTemplates";
+import {
   useMissionProfiles,
   useMissionProfilesService,
 } from "./MissionProfilesContext";
@@ -22,6 +27,13 @@ import {
 import type { ProfileDashboard } from "./ProfileDashboard";
 import { ProfileInputSlot } from "./ProfileInputSlot";
 import { useHistoryState } from "./useProfileDashboard";
+
+/** What a new layout starts from: nothing, the dashboard on screen, or a starter. */
+type NewSource = "empty" | "current" | `template:${string}`;
+
+function templateFor(source: NewSource): LayoutTemplate | undefined {
+  return DEFAULT_TEMPLATES.find((t) => `template:${t.name}` === source);
+}
 
 interface MissionProfilesModalProps {
   /** The dashboard the layouts belong to: switched, copied and undone from here. */
@@ -45,6 +57,7 @@ export function MissionProfilesModal({
   const currentId = svc.getCurrentId();
   const { canUndo, canRedo } = useHistoryState(dashboard);
   const [newName, setNewName] = useState("");
+  const [newSource, setNewSource] = useState<NewSource>("empty");
   const [newBindings, setNewBindings] = useState<BindableScene[]>([]);
   const [newAutoSwitch, setNewAutoSwitch] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<MissionProfile | null>(
@@ -55,15 +68,36 @@ export function MissionProfilesModal({
   const [renameDraft, setRenameDraft] = useState("");
   const [inputNotice, setInputNotice] = useState<string | null>(null);
 
-  const handleSaveCurrent = () => {
+  const chooseSource = (source: NewSource) => {
+    setNewSource(source);
+    const template = templateFor(source);
+    if (!template) return;
+    // A starter brings the scenes it is meant for; both stay editable.
+    setNewBindings([...template.scenes]);
+    setNewAutoSwitch(true);
+    if (!newName.trim() || DEFAULT_TEMPLATES.some((t) => t.name === newName)) {
+      setNewName(template.name);
+    }
+  };
+
+  const handleCreate = () => {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    dashboard.saveAs(
-      trimmed,
-      newBindings,
-      newBindings.length > 0 && newAutoSwitch,
-    );
+    const scenes = newBindings;
+    const auto = newBindings.length > 0 && newAutoSwitch;
+    if (newSource === "current") {
+      dashboard.saveAs(trimmed, scenes, auto);
+    } else {
+      const template = templateFor(newSource);
+      dashboard.createLayout(
+        trimmed,
+        template ? snapshotOf(template) : undefined,
+        scenes,
+        auto,
+      );
+    }
     setNewName("");
+    setNewSource("empty");
     setNewBindings([]);
     setNewAutoSwitch(false);
   };
@@ -87,6 +121,11 @@ export function MissionProfilesModal({
 
   const handleLoad = (profile: MissionProfile) => {
     dashboard.switchTo(profile.id);
+    onClose?.();
+  };
+
+  const handleDuplicate = (profile: MissionProfile) => {
+    dashboard.duplicate(profile.id);
     onClose?.();
   };
 
@@ -114,6 +153,11 @@ export function MissionProfilesModal({
     if (pendingDelete?.id === p.id) {
       return (
         <>
+          <ConfirmText role="alert">
+            {p.id === currentId
+              ? `Delete ${p.name}? The dashboard stays as it is.`
+              : `Delete ${p.name}?`}
+          </ConfirmText>
           <Button
             variant="ghost"
             type="button"
@@ -144,6 +188,13 @@ export function MissionProfilesModal({
             Switch to
           </Button>
         </Tooltip>
+        <Button
+          variant="ghost"
+          type="button"
+          onClick={() => handleDuplicate(p)}
+        >
+          Duplicate
+        </Button>
         <Button
           variant="ghost"
           type="button"
@@ -194,27 +245,51 @@ export function MissionProfilesModal({
           Redo step back through changes and layout switches.
         </Hint>
         <SectionTitle as="h3" $rule>
-          Save as a new layout
+          New layout
         </SectionTitle>
         <SaveRow>
           <Input
             type="text"
             value={newName}
+            aria-label="Layout name"
             placeholder="e.g. Launch, Orbit, Rendezvous"
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") handleSaveCurrent();
+              if (e.key === "Enter") handleCreate();
             }}
           />
-          <Button
+          <CreateButton
             variant="primary"
             type="button"
-            onClick={handleSaveCurrent}
+            onClick={handleCreate}
             disabled={!newName.trim()}
           >
-            Save
-          </Button>
+            Create layout
+          </CreateButton>
         </SaveRow>
+        <BindingsField role="group" aria-label="Start from">
+          <BindingsLabel>Start from</BindingsLabel>
+          <BindingsRow>
+            <FilterChip
+              label="Empty"
+              selected={newSource === "empty"}
+              onToggle={() => chooseSource("empty")}
+            />
+            <FilterChip
+              label="This dashboard"
+              selected={newSource === "current"}
+              onToggle={() => chooseSource("current")}
+            />
+            {DEFAULT_TEMPLATES.map((t) => (
+              <FilterChip
+                key={t.name}
+                label={`${t.name} starter`}
+                selected={newSource === `template:${t.name}`}
+                onToggle={() => chooseSource(`template:${t.name}`)}
+              />
+            ))}
+          </BindingsRow>
+        </BindingsField>
         <BindingsField>
           <BindingsLabel>Offer this layout when entering</BindingsLabel>
           <BindingsRow>
@@ -251,10 +326,10 @@ export function MissionProfilesModal({
           </Tooltip>
         </BindingsField>
         <Hint>
-          Copies the dashboard under a name and switches to the copy. A layout
-          can follow several scenes: tagged scenes show a switch prompt at the
-          bottom of the screen when KSP enters that scene, or switch straight
-          away if "Switch automatically" is on.
+          The new layout opens straight away. A layout can follow several
+          scenes: tagged scenes show a switch prompt at the bottom of the screen
+          when KSP enters that scene, or switch straight away if "Switch
+          automatically" is on.
         </Hint>
       </Stack>
 
@@ -274,6 +349,7 @@ export function MissionProfilesModal({
                     <Input
                       type="text"
                       value={renameDraft}
+                      aria-label={`Rename ${p.name}`}
                       autoFocus
                       onChange={(e) => setRenameDraft(e.target.value)}
                       onBlur={() => handleRenameCommit(p)}
@@ -397,6 +473,12 @@ const SaveRow = styled.div`
   align-items: stretch;
 `;
 
+const ConfirmText = styled.span`
+  align-self: center;
+  font-size: var(--font-size-compact);
+  color: var(--color-text-muted);
+`;
+
 const Hint = styled.p`
   margin: 0;
   font-size: var(--font-size-compact);
@@ -447,6 +529,11 @@ const ProfileActions = styled.div`
   display: flex;
   gap: var(--gap-related);
   flex-wrap: wrap;
+`;
+
+const CreateButton = styled(Button)`
+  flex-shrink: 0;
+  white-space: nowrap;
 `;
 
 const DangerButton = styled(Button)`
