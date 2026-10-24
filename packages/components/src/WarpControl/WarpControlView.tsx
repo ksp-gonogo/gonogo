@@ -111,12 +111,20 @@ export function WarpControlView({
                 <span
                   style={RATE_VALUE_STYLE}
                   role="img"
-                  aria-label={`Time warp rate ${rateLabel}`}
+                  aria-label={
+                    paused === true
+                      ? `Time warp rate ${rateLabel}, game paused`
+                      : `Time warp rate ${rateLabel}`
+                  }
                 >
                   {rateLabel}
                 </span>
-                {showModeCaption && mode !== null && mode !== "" && (
-                  <ReadoutCaption>{mode}</ReadoutCaption>
+                {paused === true ? (
+                  <ReadoutCaption>PAUSED</ReadoutCaption>
+                ) : (
+                  showModeCaption &&
+                  mode !== null &&
+                  mode !== "" && <ReadoutCaption>{mode}</ReadoutCaption>
                 )}
               </div>
 
