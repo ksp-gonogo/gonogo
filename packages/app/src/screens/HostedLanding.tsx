@@ -48,7 +48,9 @@ export function HostedLanding() {
         <Intro>
           Gonogo runs on your own computer, not on this website, because it
           talks to your copy of KSP over your own network. Three steps get it
-          going.
+          going. The main screen runs in a container, so you need Docker or
+          Podman; with Podman, type <code>podman</code> where the steps say{" "}
+          <code>docker</code>.
         </Intro>
 
         <Steps>
@@ -192,6 +194,11 @@ const Intro = styled.p`
   margin: 0.5rem 0 0;
   line-height: var(--line-height-prose);
   color: var(--color-text-muted);
+
+  code {
+    font-family: var(--font-family-mono);
+    color: var(--color-text-primary);
+  }
 `;
 
 const Steps = styled.ol`

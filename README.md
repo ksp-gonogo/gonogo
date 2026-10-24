@@ -36,7 +36,7 @@ _Data Visualisation Companion_. Run Gonogo as a second screen while you fly, to 
 
 ## Host it yourself
 
-You need KSP 1.12.
+You need KSP 1.12. The main screen runs in a container, so you also need Docker or Podman; with Podman, type `podman` where the steps say `docker`.
 
 1. Install the mod: search for `Gonogo` in [CKAN](https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN)
 2. Install and open [Docker Desktop](https://docs.docker.com/get-started/get-docker/)
