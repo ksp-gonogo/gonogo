@@ -1,15 +1,24 @@
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
-import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
+import {
+  type ReplayFixture,
+  TelemetryClient,
+  TelemetryProvider,
+  TimelineStore,
+  ViewClock,
+} from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import {
+  CatalogContact,
   DEFAULT_KEEP_COUNT,
   FlightEndReason,
   Quality,
   Staleness,
 } from "@ksp-gonogo/sitrep-sdk";
-import { render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { MissionMeta, MissionRecord } from "../storage/MissionStore";
 import { MissionStore } from "../storage/MissionStore";
@@ -351,5 +360,79 @@ describe("FlightsManager", () => {
       screen.getByText(/mission history is off, enable it in settings/i),
     ).toBeTruthy();
     expect(screen.queryByText(/auto-record armed/i)).toBeNull();
+  });
+});
+
+describe("FlightsManager: a craft left flying", () => {
+  /** A real provider over a stub transport, with the view clock pinned so a manual frame advances it. */
+  function stream() {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const clock = new ViewClock();
+    clock.scrubTo(10);
+    const timeline = new TimelineStore(clock);
+    function Provider({ children }: { children: ReactNode }) {
+      return (
+        <TelemetryProvider client={client} store={timeline}>
+          {children}
+        </TelemetryProvider>
+      );
+    }
+    return {
+      Provider,
+      listed: (names: string[]) =>
+        act(() => {
+          transport.emit("trackingStation.catalog", {
+            entries: names.map((name) => ({
+              vesselId: name,
+              name,
+              vesselType: 0,
+              situation: 3,
+              contact: CatalogContact.InContact,
+            })),
+          });
+          timeline.beginFrame();
+        }),
+    };
+  }
+
+  async function seedOrbitC(store: MissionStore) {
+    for (let i = 0; i < 4; i += 1) {
+      await seedMission(store, { vesselName: "orbit-c", frameCount: 10 });
+    }
+  }
+
+  it("shows one row, reading still flying, for the several recordings of a craft that has no end", async () => {
+    const store = freshStore();
+    registerDataSource(new MissionHistorySource(store));
+    await seedOrbitC(store);
+    const rig = stream();
+
+    render(
+      <rig.Provider>
+        <FlightsManager />
+      </rig.Provider>,
+    );
+    rig.listed(["orbit-c"]);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Still flying")).toHaveLength(1);
+    });
+    expect(screen.getAllByText("orbit-c")).toHaveLength(1);
+    // The four recordings' samples are counted once, in that row.
+    expect(screen.getAllByText("40")).toHaveLength(1);
+  });
+
+  it("keeps a row for each recording while nothing says the craft is still flying", async () => {
+    const store = freshStore();
+    registerDataSource(new MissionHistorySource(store));
+    await seedOrbitC(store);
+
+    render(<FlightsManager />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("orbit-c")).toHaveLength(4);
+    });
+    expect(screen.queryByText("Still flying")).toBeNull();
   });
 });

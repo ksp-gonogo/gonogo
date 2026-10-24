@@ -1,5 +1,6 @@
-import { getDataSource, type Screen } from "@ksp-gonogo/core";
+import { getDataSource, type Screen, useTelemetry } from "@ksp-gonogo/core";
 import {
+  CatalogContact,
   DEFAULT_KEEP_COUNT,
   FlightEndReason,
   getKeepCount,
@@ -17,6 +18,7 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useMemo,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -30,6 +32,7 @@ import {
 } from "./autoRecordStatus";
 import { ChaptersEditor } from "./ChaptersEditor";
 import { FlightGraph } from "./FlightGraph";
+import { flightRows } from "./flightRows";
 import type { MissionHistorySource } from "./MissionHistorySource";
 
 function formatDate(ms: number): string {
@@ -183,6 +186,23 @@ export function FlightsManager({
   const [expandedFlightId, setExpandedFlightId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [keepCount, setKeepCountState] = useState<number>(() => getKeepCount());
+  // A craft the centre still lists and has not seen destroyed is still flying, whatever its recordings say.
+  const catalogReading = useTelemetry("trackingStation.catalog");
+  const stillFlyingNames = useMemo(() => {
+    const catalog =
+      catalogReading.state === "observed" || catalogReading.state === "held"
+        ? catalogReading.value
+        : undefined;
+    return new Set(
+      (catalog?.entries ?? [])
+        .filter((e) => e.contact !== CatalogContact.Gone)
+        .map((e) => e.name),
+    );
+  }, [catalogReading]);
+  const rows = useMemo(
+    () => flightRows(flights, stillFlyingNames),
+    [flights, stillFlyingNames],
+  );
 
   const reload = useCallback(async () => {
     const src = getSource();
@@ -226,10 +246,10 @@ export function FlightsManager({
     });
   }, [reload]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (ids: readonly string[]) => {
     const src = getSource();
     if (!src) return;
-    await src.deleteFlight(id);
+    for (const id of ids) await src.deleteFlight(id);
     setConfirmDeleteId(null);
     await reload();
   };
@@ -264,11 +284,14 @@ export function FlightsManager({
     await reload();
   };
 
-  const toggleSelected = (id: string) => {
+  const toggleSelected = (ids: readonly string[]) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      const all = ids.every((id) => next.has(id));
+      for (const id of ids) {
+        if (all) next.delete(id);
+        else next.add(id);
+      }
       return next;
     });
   };
@@ -386,16 +409,17 @@ export function FlightsManager({
               </tr>
             </thead>
             <tbody>
-              {flights.map((f) => {
+              {rows.map((row) => {
+                const f = row.flight;
                 const isExpanded = expandedFlightId === f.id;
-                const isSelected = selectedIds.has(f.id);
+                const isSelected = row.ids.every((id) => selectedIds.has(id));
                 return (
                   <Fragment key={f.id}>
                     <Tr $current={false}>
                       <Td>
                         <SelectCheckbox
                           checked={isSelected}
-                          onChange={() => toggleSelected(f.id)}
+                          onChange={() => toggleSelected(row.ids)}
                           aria-label={`Select flight ${f.vesselName || f.id}`}
                         />
                       </Td>
@@ -449,12 +473,14 @@ export function FlightsManager({
                           </OutcomeBadge>
                         )}
                       </Td>
-                      <Td>{formatDate(f.launchedAt)}</Td>
+                      <Td>{formatDate(row.launchedAt)}</Td>
+                      <Td>{formatFlightDuration(0, row.durationMs)}</Td>
+                      <Td>{row.sampleCount.toLocaleString()}</Td>
                       <Td>
-                        {formatFlightDuration(f.launchedAt, f.lastSampleAt)}
+                        {row.stillFlying
+                          ? "Still flying"
+                          : endReasonLabel(f.endReason)}
                       </Td>
-                      <Td>{f.sampleCount.toLocaleString()}</Td>
-                      <Td>{endReasonLabel(f.endReason)}</Td>
                       <Td>
                         <RowActions>
                           <GraphButton
@@ -491,7 +517,7 @@ export function FlightsManager({
                           {confirmDeleteId === f.id ? (
                             <ConfirmRow>
                               <DangerButton
-                                onClick={() => void handleDelete(f.id)}
+                                onClick={() => void handleDelete(row.ids)}
                               >
                                 Delete
                               </DangerButton>
