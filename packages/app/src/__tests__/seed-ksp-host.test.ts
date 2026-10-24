@@ -29,7 +29,7 @@ describe("seedKspHostDefaults", () => {
     await seedKspHostDefaults();
     expect(getGameHost()).toBe("192.0.2.50");
     // in-memory seed only: nothing persisted
-    expect(localStorage.getItem("gonogo.settings")).toBeNull();
+    expect(localStorage.getItem("gonogo.sharedSettings")).toBeNull();
   });
 
   it("maps container-internal hosts to localhost", async () => {

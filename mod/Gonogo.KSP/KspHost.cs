@@ -5293,12 +5293,11 @@ namespace Gonogo.KSP
             // single one of its strategies was eligible.
             //
             // So the screen is asked when it is there, and the arms are put one at
-            // a time when it is not. The off-screen route reaches a refusal but
-            // never a yes: the cap arm compares a counter that only exists on that
-            // screen, so what it publishes is the game's own reason for everything
-            // the career refuses, and an honest silence on the rest. The entry says
-            // which route answered, because a derived verdict is a fine thing to
-            // print and not a thing to arm a control from.
+            // a time when it is not. The off-screen route reaches a yes only where nothing patches stock's activation: the cap
+            // arm is then asked off the roster and the career's limit. On a patched
+            // career (RP-1 rewrites the screen's counter) it publishes the game's own
+            // reason for everything the career refuses, and an honest silence on the
+            // rest. The entry says which route answered.
             //
             // canActivate stays ABSENT rather than false whenever an arm could not
             // be put. A false with "eligibility check failed" beside it is a

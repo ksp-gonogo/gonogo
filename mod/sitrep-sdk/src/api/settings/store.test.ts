@@ -25,14 +25,16 @@ describe("shared settings store", () => {
   it("setSetting persists to localStorage and wins on read", () => {
     setSetting("gameHost", "192.0.2.5");
     expect(getSetting("gameHost")).toBe("192.0.2.5");
-    const raw = JSON.parse(localStorage.getItem("gonogo.settings") as string);
+    const raw = JSON.parse(
+      localStorage.getItem("gonogo.sharedSettings") as string,
+    );
     expect(raw).toEqual({ version: 1, values: { gameHost: "192.0.2.5" } });
   });
 
   it("seedSetting is in-memory only and does not persist", () => {
     seedSetting("gameHost", "seed-host");
     expect(getSetting("gameHost")).toBe("seed-host");
-    expect(localStorage.getItem("gonogo.settings")).toBeNull();
+    expect(localStorage.getItem("gonogo.sharedSettings")).toBeNull();
   });
 
   it("a saved value wins over a seed", () => {
@@ -59,7 +61,7 @@ describe("shared settings store", () => {
 
   it("hydrates a saved value written before this module read it", () => {
     localStorage.setItem(
-      "gonogo.settings",
+      "gonogo.sharedSettings",
       JSON.stringify({ version: 1, values: { gameHost: "from-disk" } }),
     );
     // getSetting reads through to localStorage for the saved layer.

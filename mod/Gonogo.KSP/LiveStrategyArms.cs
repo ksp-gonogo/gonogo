@@ -62,28 +62,63 @@ namespace Gonogo.KSP
         /// Whether <paramref name="strategy"/> may be activated, asked without the
         /// Administration Building.
         ///
-        /// <para>Two outcomes only, because <see cref="StrategyActivationRule"/>
-        /// never reaches a yes: a refusal in the game's own words, or no verdict
-        /// with an account of which question went unasked. The commonest account
-        /// by far is arm 1, and that is the ordinary ending rather than a fault
-        /// -- the concurrent-strategy cap is counted on the shut screen and
-        /// nowhere else.</para>
+        /// <para>Where nothing patches stock's activation, arm 1 is asked too, off
+        /// the roster and the career's limit, and the answer can be yes. Where
+        /// another mod does (RP-1 rewrites the screen's counter itself), the
+        /// roster count would enforce a rule that career has replaced, so arm 1
+        /// goes unasked and the answer is a refusal in the game's own words or no
+        /// verdict at all.</para>
         /// </summary>
         public static StrategyEligibility Eligibility(Strategy strategy, StrategySystem system)
         {
+            var patch = StockActivationPatch.Read();
             StrategyActivationRule.Verdict verdict;
+            var capAsked = false;
             try
             {
-                verdict = Walk(strategy, system);
+                if (patch.State == HarmonyPatchProbe.PatchState.Unpatched && TryCap(system, out var active, out var limit))
+                {
+                    capAsked = true;
+                    verdict = StrategyActivationRule.WalkAskingCap(Read(strategy, system), active, limit);
+                }
+                else
+                {
+                    verdict = Walk(strategy, system);
+                }
             }
             catch (Exception ex)
             {
                 return StrategyEligibility.Threw(ex.GetType().Name);
             }
 
-            return verdict.CanActivate == false
-                ? StrategyEligibility.Derived(false, Wording(verdict, strategy))
-                : StrategyEligibility.Unasked(UnaskedWording(verdict.Unasked));
+            if (verdict.CanActivate == true) return StrategyEligibility.Derived(true, string.Empty);
+            if (verdict.CanActivate == false) return StrategyEligibility.Derived(false, Wording(verdict, strategy));
+
+            return StrategyEligibility.Unasked(
+                verdict.Unasked == StrategyArm.ConcurrentCap && !capAsked
+                    ? StrategyActivationRule.CapUnaskedWording(patch.State)
+                    : UnaskedWording(verdict.Unasked));
+        }
+
+        /// <summary>
+        /// The strategies running now and the limit on them, the two sides of
+        /// arm 1. False when the limit cannot be read.
+        /// </summary>
+        private static bool TryCap(StrategySystem system, out int active, out int limit)
+        {
+            active = 0;
+            limit = 0;
+            var gameVariables = GameVariables.Instance;
+            if (gameVariables == null) return false;
+
+            limit = gameVariables.GetActiveStrategyLimit(
+                ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.Administration));
+            foreach (var other in system.Strategies)
+            {
+                if (other != null && other.IsActive) active++;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -104,11 +139,7 @@ namespace Gonogo.KSP
             switch (arm)
             {
                 case StrategyArm.ConcurrentCap:
-                    // The ordinary ending, and the honest one: everything this
-                    // career could be asked said yes, and the one arm that lives
-                    // on the shut screen could not be asked at all.
-                    return "KSP counts your running strategies only inside the "
-                        + "Administration Building, so that check is not made in this list";
+                    return "this career's limit on running strategies could not be read";
                 case StrategyArm.CommitCeiling:
                     return "this career's commitment ceiling could not be read";
                 case StrategyArm.ReputationFloor:
@@ -253,11 +284,10 @@ namespace Gonogo.KSP
         /// </summary>
         internal static string Wording(StrategyActivationRule.Verdict verdict, Strategy strategy)
         {
-            // No arm 1 case: it is never the refusing arm here, because it is
-            // never asked. Its localisation tag is #autoLOC_304820, if that ever
-            // changes.
             switch (verdict.Arm)
             {
+                case StrategyArm.ConcurrentCap:
+                    return Localizer.Format("#autoLOC_304820", (int)verdict.Amount);
                 case StrategyArm.Conflict:
                     return Localizer.Format("#autoLOC_304827");
                 case StrategyArm.CommitCeiling:
