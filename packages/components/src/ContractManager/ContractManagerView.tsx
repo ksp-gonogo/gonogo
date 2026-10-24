@@ -12,6 +12,7 @@ import {
   Section,
 } from "@ksp-gonogo/ui-kit";
 import { heldGrade } from "../shared/heldGrade";
+import { noCareerLabel } from "../shared/noCareerLabel";
 import {
   ContractCancelCost,
   ContractDeadline,
@@ -40,6 +41,11 @@ export function ContractManagerComponent({
    * rather than inventing progress.
    */
   const careerReading = useTelemetry("career.status");
+  // A save mode with no contracts sends none, so the mode is the only word that nothing is coming.
+  const noCareer = noCareerLabel(
+    stillTrue(useTelemetry("career.mode"), undefined)?.mode,
+    "funds or contracts",
+  );
   const contracts = stillTrue(careerReading, undefined)?.contracts;
   // A held board marks every card. Its controls stay live: each command checks the contract it names is still in the state it needs.
   const boardHeld = heldGrade(careerReading);
@@ -80,7 +86,9 @@ export function ContractManagerComponent({
         sections={
           <Section>
             {showSubtitle && (
-              <EmptyState>Awaiting contract telemetry</EmptyState>
+              <EmptyState>
+                {noCareer ?? "Awaiting contract telemetry"}
+              </EmptyState>
             )}
           </Section>
         }

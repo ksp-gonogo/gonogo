@@ -26,6 +26,8 @@ export interface AdministrationBuildingViewProps {
   h: number | undefined;
   strategies: readonly Strategy[] | null;
   /** The mod's own count of active strategies; `null` when it did not arrive, and the roster's own tally stands in. */
+  /** What the save mode lacks, as a sentence, when that mode sends no strategies. */
+  noCareer?: string | null;
   activeCount?: Value<"count"> | null;
   screens: readonly ResolvedScreen[];
   /** The career's activation is the game's own, so a strategy with no verdict is checked in full when it is confirmed. */
@@ -54,6 +56,7 @@ export function AdministrationBuildingView({
   h,
   strategies,
   activeCount = null,
+  noCareer = null,
   screens,
   checkedOnConfirm,
   funds,
@@ -78,7 +81,7 @@ export function AdministrationBuildingView({
         sections={
           showSubtitle ? (
             <Section full>
-              <Empty>Awaiting career data...</Empty>
+              <Empty>{noCareer ?? "Awaiting career data..."}</Empty>
             </Section>
           ) : null
         }

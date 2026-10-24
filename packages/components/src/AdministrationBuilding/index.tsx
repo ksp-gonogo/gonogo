@@ -10,6 +10,7 @@ import {
 import { useContributions } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { currencyOf } from "../shared/currencyOf";
+import { noCareerLabel } from "../shared/noCareerLabel";
 import { AdministrationBuildingView } from "./AdministrationBuildingView";
 import read from "./administration-building.declarations.g";
 import { parseEffectLines, parseStrategies } from "./parsing";
@@ -20,8 +21,9 @@ export type { Strategy } from "./types";
 export { parseEffectLines, parseStrategies };
 
 const topics = defineTopicManifest({
-  channels: ["career.status"],
+  channels: ["career.status", "career.mode"],
   fields: [
+    "career.mode",
     "career.status.strategies.all",
     "career.status.strategies.activeCount",
     "career.status.strategies.activationPatched",
@@ -44,6 +46,11 @@ function AdministrationBuildingComponent({
    * withheld from that verdict. Whether Activate is available is its gate's.
    */
   const careerReading = topics.useTelemetry("career.status");
+  // A save mode with no strategies sends none, so the mode is the only word that nothing is coming.
+  const noCareer = noCareerLabel(
+    stillTrue(topics.useTelemetry("career.mode"), undefined)?.mode,
+    "funds or strategies",
+  );
   const rosterRaw = stillTrue(careerReading, undefined)?.strategies;
   const stratsRaw = rosterRaw?.all;
   // Only an explicit false says the game's activation is its own, so the command re-runs every check at confirm.
@@ -90,6 +97,7 @@ function AdministrationBuildingComponent({
       w={w}
       h={h}
       strategies={strategies}
+      noCareer={noCareer}
       activeCount={rosterRaw?.activeCount ?? null}
       screens={screens}
       funds={funds}

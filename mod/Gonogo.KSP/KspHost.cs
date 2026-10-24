@@ -4411,6 +4411,10 @@ namespace Gonogo.KSP
                 crewCapacity = gameVariables.GetActiveCrewLimit(norm);
             }
 
+            // The game only retires expired applicants and tops the pool up when its own
+            // Astronaut Complex opens, so a read first does what that screen does.
+            roster.Update(ut);
+
             var applicants = new List<object?>();
             foreach (var pcm in roster.Applicants)
             {
@@ -8615,11 +8619,13 @@ namespace Gonogo.KSP
         private void OnGameSceneLoadRequested(GameScenes scene)
         {
             VesselListWatch.Shared.SceneLoadRequested();
+            KspLinkSettle.Mark();
             Emit("scene-load", new Dictionary<string, object?> { ["scene"] = scene.ToString() });
         }
 
         private void OnFlightReady()
         {
+            KspLinkSettle.Mark();
             Emit("flight-ready", new Dictionary<string, object?>());
         }
 
