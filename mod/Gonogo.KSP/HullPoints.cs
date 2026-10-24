@@ -7,14 +7,22 @@ namespace Gonogo.KSP
     /// <summary>
     /// The few points that carry a part's silhouette: the mesh vertices that
     /// reach furthest along a fixed set of directions, which are the corners of
-    /// the mesh's convex hull wherever it has them. A consumer turns them by
-    /// the part's rotation and keeps their 2D convex hull, so the outline is
-    /// right from any side without the mod knowing the view.
+    /// the mesh's convex hull wherever it has them. A part publishes one such
+    /// piece per visible mesh, so a part whose meshes lie apart is not filled in
+    /// between them. A consumer turns each piece by the part's rotation and
+    /// keeps its 2D convex hull, so the outline is right from any side without
+    /// the mod knowing the view.
     /// </summary>
     internal static class HullPoints
     {
-        /// <summary>The most points a part publishes.</summary>
-        public const int MaxPoints = 38;
+        /// <summary>The most points one piece publishes.</summary>
+        public const int MaxPointsPerPiece = 38;
+
+        /// <summary>The most pieces a part publishes.</summary>
+        public const int MaxPieces = 10;
+
+        /// <summary>The most points a part publishes over all its pieces.</summary>
+        public const int MaxPoints = 96;
 
         /// <summary>The coarser direction set a mesh's vertices are thinned with once, so each scan walks a few dozen candidates instead of every vertex.</summary>
         private const int CandidateDirections = 128;
@@ -65,7 +73,47 @@ namespace Gonogo.KSP
             return result;
         }
 
-        /// <summary>Collects the furthest point along each direction over every mesh of one part.</summary>
+        /// <summary>
+        /// The pieces a part publishes: the largest <see cref="MaxPieces"/> of
+        /// <paramref name="pieces"/>, fewer when their points would pass
+        /// <see cref="MaxPoints"/>. What is dropped is the smallest pieces by
+        /// their longest side, the knobs and hinges that add little to a part's
+        /// outline. Each piece is a flat list of x, y, z triples.
+        /// </summary>
+        public static List<double[]> Limit(IReadOnlyList<double[]> pieces)
+        {
+            var bySize = new List<double[]>(pieces);
+            bySize.Sort((a, b) => Longest(b).CompareTo(Longest(a)));
+            var kept = new List<double[]>();
+            var points = 0;
+            foreach (var piece in bySize)
+            {
+                if (kept.Count == MaxPieces || points + piece.Length / 3 > MaxPoints)
+                {
+                    continue;
+                }
+
+                kept.Add(piece);
+                points += piece.Length / 3;
+            }
+
+            return kept;
+        }
+
+        private static double Longest(double[] piece)
+        {
+            var lo = new[] { double.MaxValue, double.MaxValue, double.MaxValue };
+            var hi = new[] { double.MinValue, double.MinValue, double.MinValue };
+            for (var i = 0; i < piece.Length; i++)
+            {
+                lo[i % 3] = Math.Min(lo[i % 3], piece[i]);
+                hi[i % 3] = Math.Max(hi[i % 3], piece[i]);
+            }
+
+            return Math.Max(hi[0] - lo[0], Math.Max(hi[1] - lo[1], hi[2] - lo[2]));
+        }
+
+        /// <summary>Collects the furthest point along each direction over the meshes of one piece.</summary>
         public sealed class Tracker
         {
             private readonly Vector3[] best = new Vector3[Directions.Length];

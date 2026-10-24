@@ -96,10 +96,12 @@ describe("a landing leg", () => {
 
 describe("a part drawn from its mesh outline", () => {
   const silhouette = [
-    { x: 12, y: 30 },
-    { x: 48, y: 22 },
-    { x: 40, y: 98 },
-    { x: 14, y: 90 },
+    [
+      { x: 12, y: 30 },
+      { x: 48, y: 22 },
+      { x: 40, y: 98 },
+      { x: 14, y: 90 },
+    ],
   ];
 
   function drawn(type: Parameters<typeof renderPartShape>[0]): string {
@@ -145,6 +147,35 @@ describe("a part drawn from its mesh outline", () => {
     "clamp",
   ] as const)("keeps the shape of a %s, which says something the silhouette does not", (type) => {
     expect(drawn(type)).not.toContain('data-role="mesh-outline"');
+  });
+
+  it("draws one polygon for each mesh outline, with the part's opacity on the group", () => {
+    const markup = renderToStaticMarkup(
+      renderPartShape(
+        "solar",
+        BOX,
+        CENTER,
+        "var(--color-info-mark)",
+        false,
+        1,
+        1,
+        undefined,
+        true,
+        {
+          silhouette: [
+            ...silhouette,
+            [
+              { x: 60, y: 10 },
+              { x: 70, y: 10 },
+              { x: 65, y: 20 },
+            ],
+          ],
+        },
+      ),
+    );
+    expect(markup.match(/data-role="mesh-outline"/g)).toHaveLength(2);
+    expect(markup).toContain("60,10 70,10 65,20");
+    expect(markup).toMatch(/^<g opacity="0.95">/);
   });
 
   it("falls back to the hand-drawn shape without an outline", () => {

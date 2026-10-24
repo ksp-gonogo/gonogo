@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
@@ -38,12 +39,16 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// As above, and <paramref name="hull"/> is the part's silhouette points
-        /// (see <see cref="HullPoints"/>) as x, y, z triples in part-local metres.
-        /// It is <c>null</c> unless every mesh was measured from its vertices,
-        /// since bounds corners say nothing a box does not.
+        /// As above, and <paramref name="hull"/> is the part's silhouette: one
+        /// piece of points (see <see cref="HullPoints"/>) per visible mesh, each
+        /// as x, y, z triples in part-local metres. A mesh whose renderer is
+        /// disabled or whose transform is switched off, such as an engine's
+        /// shroud while nothing is mounted below it, is in the box and not in
+        /// the hull, since it is not in the picture. It is <c>null</c> unless
+        /// every visible mesh was measured from its vertices, since bounds
+        /// corners say nothing a box does not.
         /// </summary>
-        public static bool TryMeasure(Part part, string? variantName, out Vector3 center, out Vector3 size, out MeasurePath path, out double[]? hull)
+        public static bool TryMeasure(Part part, string? variantName, out Vector3 center, out Vector3 size, out MeasurePath path, out double[][]? hull)
         {
             hull = null;
             path = MeasurePath.None;
@@ -69,7 +74,8 @@ namespace Gonogo.KSP
             var found = false;
             var fromVertices = 0;
             var fromBounds = 0;
-            var tracker = new HullPoints.Tracker();
+            var pieces = new List<double[]>();
+            var hullComplete = true;
             foreach (var renderer in model.GetComponentsInChildren<MeshRenderer>(true))
             {
                 var filter = renderer.GetComponent<MeshFilter>();
@@ -81,14 +87,25 @@ namespace Gonogo.KSP
 
                 var toPartFromMesh = toPart * renderer.transform.localToWorldMatrix;
                 var used = MeshExtent.Grow(VerticesOf(filter.sharedMesh), filter.sharedMesh.bounds, toPartFromMesh, ref lo, ref hi);
+                var shown = IsShown(renderer, model);
                 if (used == MeasurePath.Vertices)
                 {
                     fromVertices++;
-                    tracker.Add(CandidatesOf(filter.sharedMesh), toPartFromMesh);
+                    if (shown)
+                    {
+                        var piece = new HullPoints.Tracker();
+                        piece.Add(CandidatesOf(filter.sharedMesh), toPartFromMesh);
+                        var triples = piece.ToTriples();
+                        if (triples != null)
+                        {
+                            pieces.Add(triples);
+                        }
+                    }
                 }
                 else
                 {
                     fromBounds++;
+                    hullComplete &= !shown;
                 }
 
                 found = true;
@@ -100,9 +117,28 @@ namespace Gonogo.KSP
             }
 
             path = fromBounds == 0 ? MeasurePath.Vertices : fromVertices == 0 ? MeasurePath.MeshBounds : MeasurePath.Mixed;
-            hull = fromBounds == 0 ? tracker.ToTriples() : null;
+            hull = hullComplete && pieces.Count > 0 ? HullPoints.Limit(pieces).ToArray() : null;
             center = (lo + hi) * 0.5f;
             size = hi - lo;
+            return true;
+        }
+
+        /// <summary>Whether the mesh is drawn: its renderer is on and every transform from it up to the model is switched on.</summary>
+        private static bool IsShown(Renderer renderer, Transform model)
+        {
+            if (!renderer.enabled)
+            {
+                return false;
+            }
+
+            for (var t = renderer.transform; t != null && t != model.parent; t = t.parent)
+            {
+                if (!t.gameObject.activeSelf)
+                {
+                    return false;
+                }
+            }
+
             return true;
         }
 

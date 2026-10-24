@@ -110,7 +110,7 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
             z: metres(p.bounds.center.z),
           }
         : undefined,
-      hull: hullPoints(p.bounds.hull),
+      hull: hullPieces(p.bounds.hull),
     },
     modules: p.modules,
   };
@@ -251,18 +251,22 @@ function metres(length: Value<"m">): number {
   return length.magnitude;
 }
 
-/** The flat x, y, z triples the wire carries, as points. A list that is not a whole number of points is no hull. */
-function hullPoints(
-  flat: readonly Value<"m">[] | null | undefined,
-): { x: number; y: number; z: number }[] | undefined {
-  if (!flat || flat.length < 9 || flat.length % 3 !== 0) return undefined;
-  const points: { x: number; y: number; z: number }[] = [];
-  for (let i = 0; i < flat.length; i += 3) {
-    points.push({
-      x: metres(flat[i]),
-      y: metres(flat[i + 1]),
-      z: metres(flat[i + 2]),
-    });
+/** The pieces of a part's hull, each the flat x, y, z triples the wire carries, as points. A piece that is not a whole number of points, or has under three, is no piece. */
+function hullPieces(
+  wire: readonly { points: readonly Value<"m">[] }[] | null | undefined,
+): { x: number; y: number; z: number }[][] | undefined {
+  const pieces: { x: number; y: number; z: number }[][] = [];
+  for (const { points: flat } of wire ?? []) {
+    if (flat.length < 9 || flat.length % 3 !== 0) continue;
+    const piece: { x: number; y: number; z: number }[] = [];
+    for (let i = 0; i < flat.length; i += 3) {
+      piece.push({
+        x: metres(flat[i]),
+        y: metres(flat[i + 1]),
+        z: metres(flat[i + 2]),
+      });
+    }
+    pieces.push(piece);
   }
-  return points;
+  return pieces.length > 0 ? pieces : undefined;
 }

@@ -76,8 +76,8 @@ export interface PartMarks {
     y2: number;
     width: number;
   };
-  /** The part's outline from its mesh, in the same pixel space as the box. */
-  silhouette?: { x: number; y: number }[];
+  /** The part's outline from its meshes, one convex outline per mesh, in the same pixel space as the box. */
+  silhouette?: { x: number; y: number }[][];
   /** Where a structural strut attaches. */
   anchor?: { x: number; y: number };
 }
@@ -105,14 +105,21 @@ export function renderPartShape(
 
   if (marks.silhouette && !STATE_SHAPES.has(type)) {
     return (
-      <polygon
-        data-role="mesh-outline"
-        points={marks.silhouette.map((q) => `${q.x},${q.y}`).join(" ")}
-        fill={fill}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        opacity={opacity}
-      />
+      <g opacity={opacity}>
+        {marks.silhouette.map((outline) => {
+          const points = outline.map((q) => `${q.x},${q.y}`).join(" ");
+          return (
+            <polygon
+              key={points}
+              data-role="mesh-outline"
+              points={points}
+              fill={fill}
+              stroke={stroke}
+              strokeWidth={strokeWidth}
+            />
+          );
+        })}
+      </g>
     );
   }
 

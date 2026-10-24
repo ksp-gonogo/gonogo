@@ -76,7 +76,7 @@ export interface ShipMapPart {
    */
   stowedStrut?: StowedStrut;
   /** The part's mesh seen from this view, as a convex outline in metres in the drawn box's frame from the box centre. Absent when the part carries no mesh outline, which is drawn as its box. */
-  silhouette?: OutlinePoint[];
+  silhouette?: OutlinePoint[][];
   /** For a structural strut: where it attaches, in metres in the drawn box's frame from the box centre. */
   anchor?: { x: number; y: number };
   /** `Part.mass` from topology: dry mass, no resources. Null when unread. */
@@ -436,17 +436,19 @@ export function buildShipMapPart(
       width: stowed.width,
     };
   }
-  const silhouette = part.bounds.hull?.length
-    ? convexHull(
-        part.bounds.hull.map((point) =>
+  const silhouette = (part.bounds.hull ?? [])
+    .map((piece) =>
+      convexHull(
+        piece.map((point) =>
           inBoxFrame({
             x: point.x - centre.x,
             y: point.y - centre.y,
             z: point.z - centre.z,
           }),
         ),
-      )
-    : [];
+      ),
+    )
+    .filter((outline) => outline.length > 0);
   const anchor =
     type === "strut"
       ? inBoxFrame({ x: -centre.x, y: -centre.y, z: -centre.z })

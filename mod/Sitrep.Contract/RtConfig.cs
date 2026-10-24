@@ -355,6 +355,7 @@ public static class RtConfig
                 typeof(VesselParts),
                 typeof(VesselPart),
                 typeof(PartBounds),
+                typeof(PartHullPiece),
                 // vessel.parts per-part live data (resources and module state)
                 typeof(PartResourceFlow),
                 typeof(PartModuleState),

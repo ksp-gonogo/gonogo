@@ -98,8 +98,8 @@ describe("deriveTopologyFromVesselParts", () => {
     expect(part.bounds.center).toEqual({ x: -0.119, y: 0.227, z: 0.007 });
   });
 
-  it("turns the wire's flat hull into points, and drops one that is not whole points", () => {
-    const part = (hull: number[] | null) => ({
+  it("turns the wire's hull pieces into points, and drops a piece that is not whole points", () => {
+    const part = (hull: number[][] | null) => ({
       id: "7",
       name: "tailfin",
       title: "Tail Fin",
@@ -110,7 +110,9 @@ describe("deriveTopologyFromVesselParts", () => {
       },
       bounds: {
         size: { x: value("m", 2), y: value("m", 2.5), z: value("m", 0.1) },
-        hull: hull?.map((n) => value("m", n)),
+        hull: hull?.map((points) => ({
+          points: points.map((n) => value("m", n)),
+        })),
       },
       category: "Aero",
       modules: [],
@@ -119,25 +121,36 @@ describe("deriveTopologyFromVesselParts", () => {
       moduleStates: [],
       actionBindings: [],
     });
-    const wire = (hull: number[] | null): VesselParts =>
+    const wire = (hull: number[][] | null): VesselParts =>
       ({ meta: { source: "test" }, parts: [part(hull)] }) as VesselParts;
+    const hullOf = (hull: number[][] | null) =>
+      deriveTopologyFromVesselParts(wire(hull)).parts[0].bounds.hull;
 
     expect(
-      deriveTopologyFromVesselParts(wire([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0]))
-        .parts[0].bounds.hull,
+      hullOf([
+        [0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0],
+        [5, 5, 0, 6, 5, 0, 6, 6, 0],
+      ]),
     ).toEqual([
-      { x: 0, y: 0, z: 0 },
-      { x: 1, y: 0, z: 0 },
-      { x: 1, y: 1, z: 0 },
-      { x: 0, y: 1, z: 0 },
+      [
+        { x: 0, y: 0, z: 0 },
+        { x: 1, y: 0, z: 0 },
+        { x: 1, y: 1, z: 0 },
+        { x: 0, y: 1, z: 0 },
+      ],
+      [
+        { x: 5, y: 5, z: 0 },
+        { x: 6, y: 5, z: 0 },
+        { x: 6, y: 6, z: 0 },
+      ],
     ]);
     expect(
-      deriveTopologyFromVesselParts(wire([0, 0, 0, 1, 0, 0, 1, 1])).parts[0]
-        .bounds.hull,
+      hullOf([
+        [0, 0, 0, 1, 0, 0, 1, 1],
+        [1, 1, 1],
+      ]),
     ).toBeUndefined();
-    expect(
-      deriveTopologyFromVesselParts(wire(null)).parts[0].bounds.hull,
-    ).toBeUndefined();
+    expect(hullOf(null)).toBeUndefined();
   });
 
   describe("a tree with a part left out", () => {

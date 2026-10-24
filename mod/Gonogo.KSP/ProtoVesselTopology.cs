@@ -24,7 +24,7 @@ namespace Gonogo.KSP
             public bool HasMesh;
             public Vector3 Center;
             public Vector3 Size;
-            public double[]? Hull;
+            public double[][]? Hull;
         }
 
         /* Main-thread only. A prefab's box never changes in a session, and measuring one walks every renderer under its model. */

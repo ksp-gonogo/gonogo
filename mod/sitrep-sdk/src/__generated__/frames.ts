@@ -35,8 +35,10 @@ export const GENERATED_TYPE_FRAMES = {
   },
   "PartBounds": {
     center: { frame: "part-local" },
-    hull: { frame: "part-local" },
     size: { frame: "part-local" },
+  },
+  "PartHullPiece": {
+    points: { frame: "part-local" },
   },
   "VesselOrbitTruth": {
     position: { frame: "body-centred-inertial", whenSet: "body-centred-rotating", selectedBy: "frameRotating" },

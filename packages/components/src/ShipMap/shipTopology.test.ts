@@ -363,7 +363,7 @@ describe("a part's mesh outline", () => {
         bounds: {
           size: { x: 2, y: 1, z: 0.1 },
           center: { x: 0, y: 0, z: 0 },
-          hull: plate,
+          hull: [plate],
         },
       }),
       undefined,
@@ -371,9 +371,10 @@ describe("a part's mesh outline", () => {
       0,
     );
 
-    expect(p.silhouette).toHaveLength(5);
-    expect(p.silhouette).not.toContainEqual({ x: 0, y: 0 });
-    const xs = (p.silhouette ?? []).map((q) => q.x);
+    expect(p.silhouette).toHaveLength(1);
+    expect(p.silhouette?.[0]).toHaveLength(5);
+    expect(p.silhouette?.[0]).not.toContainEqual({ x: 0, y: 0 });
+    const xs = (p.silhouette ?? []).flat().map((q) => q.x);
     expect(Math.min(...xs)).toBeCloseTo(-1, 5);
     expect(Math.max(...xs)).toBeCloseTo(1, 5);
   });
@@ -385,7 +386,7 @@ describe("a part's mesh outline", () => {
         bounds: {
           size: { x: 2, y: 1, z: 0.1 },
           center: { x: 3, y: 0, z: 0 },
-          hull: plate.map((q) => ({ ...q, x: q.x + 3 })),
+          hull: [plate.map((q) => ({ ...q, x: q.x + 3 }))],
         },
       }),
       undefined,
@@ -393,9 +394,83 @@ describe("a part's mesh outline", () => {
       0,
     );
 
-    const xs = (p.silhouette ?? []).map((q) => q.x);
+    const xs = (p.silhouette ?? []).flat().map((q) => q.x);
     expect(Math.min(...xs)).toBeCloseTo(-1, 5);
     expect(Math.max(...xs)).toBeCloseTo(1, 5);
+  });
+
+  /*
+   * The SP-L solar panel as the game measured it with its plates out: the
+   * plates are a strip 2.5 m long and 0.4 m deep that is 15 mm thick, the
+   * hinge housing is a short cylinder at the root and the cover door hangs
+   * open below it. One hull round all of them is a wedge 0.95 m tall;
+   * one hull per mesh is the strip and the two lumps.
+   */
+  const strip = [
+    { x: -2.553, y: 0.116, z: -0.201 },
+    { x: -2.553, y: 0.131, z: 0.199 },
+    { x: -2.553, y: 0.126, z: 0.199 },
+    { x: -2.553, y: 0.121, z: -0.201 },
+    { x: -0.3, y: 0.116, z: -0.201 },
+    { x: -0.3, y: 0.131, z: 0.199 },
+  ];
+  const housing = [
+    { x: 0.054, y: 0.241, z: -0.274 },
+    { x: 0.054, y: -0.241, z: 0.274 },
+    { x: 0.054, y: 0.292, z: 0 },
+    { x: 0.087, y: 0.281, z: 0 },
+    { x: 0.087, y: -0.241, z: 0.263 },
+    { x: 0.087, y: -0.263, z: -0.23 },
+  ];
+  const door = [
+    { x: -0.242, y: -0.629, z: -0.219 },
+    { x: -0.253, y: -0.658, z: 0 },
+    { x: -0.242, y: -0.629, z: 0.219 },
+    { x: -0.23, y: -0.627, z: -0.214 },
+    { x: -0.241, y: -0.656, z: 0 },
+    { x: -0.23, y: -0.627, z: 0.214 },
+  ];
+  const panel = (hull: { x: number; y: number; z: number }[][]) =>
+    buildShipMapPart(
+      part({
+        name: "solarPanels2",
+        bounds: {
+          size: { x: 2.651, y: 0.95, z: 0.548 },
+          center: { x: -1.228, y: -0.183, z: 0 },
+          hull,
+        },
+      }),
+      undefined,
+      undefined,
+      0,
+    );
+  const widthOf = (outline: { x: number }[]) => {
+    const xs = outline.map((q) => q.x);
+    return Math.max(...xs) - Math.min(...xs);
+  };
+  const heightOf = (outline: { y: number }[]) => {
+    const ys = outline.map((q) => q.y);
+    return Math.max(...ys) - Math.min(...ys);
+  };
+
+  it("keeps a part's separate meshes separate, so a thin panel stays thin beside its housing", () => {
+    const apart = panel([strip, housing, door]);
+
+    expect(apart.silhouette).toHaveLength(3);
+    const tallest = Math.max(...(apart.silhouette ?? []).map(heightOf));
+    const strips = (apart.silhouette ?? []).filter((o) => widthOf(o) > 2);
+    expect(strips).toHaveLength(1);
+    expect(heightOf(strips[0])).toBeLessThan(0.05);
+    expect(tallest).toBeLessThan(0.6);
+    // The strip does not reach down to the door: a point on the door's level is not in it
+    expect(Math.min(...strips[0].map((q) => q.y))).toBeGreaterThan(-0.2);
+  });
+
+  it("is a wedge when the same points are published as one hull", () => {
+    const merged = panel([[...strip, ...housing, ...door]]);
+
+    expect(merged.silhouette).toHaveLength(1);
+    expect(heightOf(merged.silhouette?.[0] ?? [])).toBeGreaterThan(0.9);
   });
 
   it("is absent when the wire carries no hull or one that encloses no area", () => {
@@ -411,7 +486,7 @@ describe("a part's mesh outline", () => {
     ];
     expect(
       buildShipMapPart(
-        part({ bounds: { ...base, hull: flat } }),
+        part({ bounds: { ...base, hull: [flat] } }),
         undefined,
         undefined,
         0,

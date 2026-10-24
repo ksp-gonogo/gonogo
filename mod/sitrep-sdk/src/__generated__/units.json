@@ -1006,10 +1006,12 @@
       "center.x": "m",
       "center.y": "m",
       "center.z": "m",
-      "hull": "m",
       "size.x": "m",
       "size.y": "m",
       "size.z": "m"
+    },
+    "PartHullPiece": {
+      "points": "m"
     },
     "PartModuleState": {
       "flameout": "flag",
@@ -2635,6 +2637,9 @@
     "PartActions": {
       "actions": "PartActionEntry[]",
       "meta": "PayloadMeta"
+    },
+    "PartBounds": {
+      "hull": "PartHullPiece[]"
     },
     "PendingUplinkQueue": {
       "pending": "PendingUplink[]"

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Gonogo.KSP;
 using UnityEngine;
 using Xunit;
@@ -49,7 +50,7 @@ namespace Gonogo.KSP.Tests
             Assert.NotNull(triples);
             Assert.Equal(0, triples!.Length % 3);
             var points = TriplesToPoints(triples);
-            Assert.InRange(points.Count, 4, HullPoints.MaxPoints);
+            Assert.InRange(points.Count, 4, HullPoints.MaxPointsPerPiece);
 
             // The outer tip corner, turned 90 degrees about X: (1.8711, 0, -0.6206) becomes (1.8711, 0.6206, 0)
             Assert.Contains(points, p => Mathf.Abs(p.x - 1.871f) < 0.002f && Mathf.Abs(p.y - 0.621f) < 0.002f);
@@ -89,7 +90,7 @@ namespace Gonogo.KSP.Tests
             var tracker = new HullPoints.Tracker();
             tracker.Add(HullPoints.Candidates(ring), Matrix4x4.identity);
 
-            Assert.InRange(tracker.ToTriples()!.Length / 3, 8, HullPoints.MaxPoints);
+            Assert.InRange(tracker.ToTriples()!.Length / 3, 8, HullPoints.MaxPointsPerPiece);
         }
 
         [Fact]
@@ -108,6 +109,62 @@ namespace Gonogo.KSP.Tests
             Assert.Contains(new Vector3(3f, 0f, 0f), kept);
             Assert.Contains(new Vector3(-3f, 0f, 0f), kept);
             Assert.True(kept.Length < 130);
+        }
+
+        private static double[] Box(double x, double y, double z, double size)
+        {
+            var flat = new List<double>();
+            foreach (var sx in new[] { -1, 1 })
+            {
+                foreach (var sy in new[] { -1, 1 })
+                {
+                    foreach (var sz in new[] { -1, 1 })
+                    {
+                        flat.Add(x + sx * size / 2);
+                        flat.Add(y + sy * size / 2);
+                        flat.Add(z + sz * size / 2);
+                    }
+                }
+            }
+            return flat.ToArray();
+        }
+
+        [Fact]
+        public void TheLargestPiecesAreKeptAndTheSmallestDroppedPastTheCaps()
+        {
+            var pieces = new List<double[]>();
+            for (var i = 0; i < 14; i++)
+            {
+                pieces.Add(Box(i, 0, 0, 0.1 + i * 0.1));
+            }
+
+            var kept = HullPoints.Limit(pieces);
+
+            Assert.Equal(HullPoints.MaxPieces, kept.Count);
+            Assert.Equal(1.4, kept[0][12] - kept[0][0], 3);
+            Assert.DoesNotContain(kept, piece => System.Math.Abs(piece[12] - piece[0] - 0.1) < 1e-6);
+        }
+
+        [Fact]
+        public void PiecesStopBeingAddedWhenTheirPointsWouldPassTheTotalCap()
+        {
+            var pieces = new List<double[]>();
+            for (var i = 0; i < 4; i++)
+            {
+                var round = new List<double>();
+                for (var p = 0; p < 30; p++)
+                {
+                    round.Add(i + p * 0.01);
+                    round.Add(p * 0.02);
+                    round.Add(0);
+                }
+                pieces.Add(round.ToArray());
+            }
+
+            var kept = HullPoints.Limit(pieces);
+
+            Assert.True(kept.Sum(piece => piece.Length / 3) <= HullPoints.MaxPoints);
+            Assert.Equal(3, kept.Count);
         }
 
         [Fact]
