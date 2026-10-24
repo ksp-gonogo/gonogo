@@ -131,5 +131,49 @@ namespace Gonogo.KSP.Tests.Comms
 
             Assert.Equal(0.0, model.MaxRangeMeters);
         }
+
+        [Fact]
+        public void APairWithARealAntennasNodeStatesNoReach()
+        {
+            var model = CommNetReach.ModelFor(
+                typeof(RealAntennas.RACommNode), typeof(StockNode), 0.0, 0.0, 5.0, 5.0, 0.0, Product());
+
+            Assert.Equal(CommsReachModels.UnknownModelId, model.ModelId);
+            Assert.Null(model.MaxRangeMeters);
+        }
+
+        [Fact]
+        public void ASubclassOfARealAntennasNodeIsOne()
+        {
+            var model = CommNetReach.ModelFor(
+                typeof(StockNode), typeof(DerivedRaNode), 5.0, 5.0, 0.0, 0.0, 0.0, Product());
+
+            Assert.Null(model.MaxRangeMeters);
+        }
+
+        [Fact]
+        public void AStockPairKeepsStocksReach()
+        {
+            var model = CommNetReach.ModelFor(
+                typeof(StockNode), typeof(StockNode), 2.0, 0.0, 3.0, 0.0, 0.0, Product());
+
+            Assert.Equal(CommNetReach.ModelId, model.ModelId);
+            Assert.Equal(6.0, model.MaxRangeMeters);
+        }
+
+        private class StockNode
+        {
+        }
+
+        private sealed class DerivedRaNode : RealAntennas.RACommNode
+        {
+        }
+    }
+}
+
+namespace RealAntennas
+{
+    public class RACommNode
+    {
     }
 }
