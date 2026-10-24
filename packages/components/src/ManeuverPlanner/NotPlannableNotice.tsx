@@ -8,14 +8,26 @@ import { HyperbolicNotice, WaitingPanel } from "./styles";
 
 interface NotPlannableNoticeProps {
   hyperbolic: boolean;
+  landed: boolean;
   currentTrajectory: OrbitTrajectory | null;
 }
 
 /** What stands in for the preview while the current orbit cannot be planned from. */
 export function NotPlannableNotice({
   hyperbolic,
+  landed,
   currentTrajectory,
 }: NotPlannableNoticeProps) {
+  if (landed) {
+    return (
+      <WaitingPanel>
+        <SectionTitle as="h4">On the ground</SectionTitle>
+        <HyperbolicNotice>
+          The vessel is landed, so there is no orbit to plan a maneuver on.
+        </HyperbolicNotice>
+      </WaitingPanel>
+    );
+  }
   if (hyperbolic) {
     return (
       <WaitingPanel>

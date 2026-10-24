@@ -1,7 +1,7 @@
 /**
  * The altimeter as a full-height rail down one edge of the landing widget: AGL falling toward the ground line, the suicide-burn ignition band shaded as a hot zone, and, under delay, the ignition cue beneath it.
  * `agl` is handed to the `Tape` as a whole reading so the rail marks a held height itself; before data arrives it renders an empty scale.
- * The scale is a window around the craft sized by its height and vertical speed: below it, as far as it falls in `LOOKAHEAD_SECONDS` (never less than a tenth of its height) and no lower than the lower of the ground and sea level, so the scale tightens as the craft closes on the ground. Both levels are always drawn, pinned to an edge when off the scale.
+ * The scale is a window around the craft sized by its height and vertical speed: below it, as far as it falls in `LOOKAHEAD_SECONDS` (never less than a tenth of its height) and no lower than the lower of the ground and sea level, so the scale tightens as the craft closes on the ground. Both levels are always drawn, pinned to an edge when off the scale. A craft on the ground has nothing below it to scale to, so its scale ends at the ground line.
  */
 
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
@@ -16,6 +16,8 @@ export interface RailPrediction {
 export interface AltitudeRailProps {
   /** Height above terrain, of the vessel's lowest point unless `centreOfMass`. */
   agl: Reading<Value<"m">>;
+  /** The vessel rests on the ground: the scale ends at the ground line, not at sea level beneath it. */
+  landed?: boolean;
   /** The height is the root part's, the lowest-point datum being unavailable: the rail draws no burn band and names no ignition. */
   centreOfMass?: boolean;
   /** Descent rate, downward-positive, m/s; `null` when unknown, which runs the scale down to the lower of the ground and sea level. */
@@ -54,6 +56,7 @@ const RAIL_MIN_SCALE_PX = 100;
 export function AltitudeRail({
   agl,
   centreOfMass = false,
+  landed = false,
   prediction = null,
   seaLevel = null,
   verticalSpeed,
@@ -71,7 +74,7 @@ export function AltitudeRail({
       ? value("m", Math.round(ignitionAltitude * 1000) / 1000)
       : null;
   const predicted = prediction?.bounds?.hi ?? prediction?.value ?? ground;
-  const floor = seaLevel === null ? ground : ground.min(seaLevel);
+  const floor = landed || seaLevel === null ? ground : ground.min(seaLevel);
   const reach =
     verticalSpeed === null
       ? null

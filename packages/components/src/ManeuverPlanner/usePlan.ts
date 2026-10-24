@@ -1,4 +1,6 @@
+import { useTelemetry } from "@ksp-gonogo/core";
 import { useMemo } from "react";
+import { isGroundedSituation } from "../LandingStatus/grounded";
 import {
   computeBurnTrueAnomaly,
   computePlan,
@@ -11,6 +13,12 @@ import type { PlannerTelemetry } from "./usePlannerTelemetry";
 
 /** The plan the current inputs describe against the current orbit, and whether it can be judged, flown or drawn. */
 export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
+  const identityReading = useTelemetry("vessel.identity");
+  const landed = isGroundedSituation(
+    identityReading.state === "observed" || identityReading.state === "held"
+      ? identityReading.value.situation
+      : undefined,
+  );
   const {
     preset,
     prograde,
@@ -146,9 +154,12 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
    * Positive finite checks, since values can land NaN mid-scene-load. Withheld
    * on a held orbit too: a craft out of contact may have burned unseen, so its
    * carried elements can describe an orbit it has left. This gates planning
-   * only, never the diagram's own trajectory.
+   * only, never the diagram's own trajectory. A craft on the ground is
+   * withheld too: its elements describe a path through the ground, which no
+   * burn can be planned on.
    */
   const planReady =
+    !landed &&
     orbitObserved &&
     isFiniteNumber(sma) &&
     isFiniteNumber(ecc) &&
@@ -169,5 +180,6 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     burnTrueAnomaly,
     planReady,
     hyperbolic,
+    landed,
   };
 }

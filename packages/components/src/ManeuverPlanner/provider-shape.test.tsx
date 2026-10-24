@@ -1,5 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import type { PropagationHorizonLike } from "@ksp-gonogo/sitrep-client";
+import { Situation } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
@@ -71,7 +72,7 @@ function mountPlanner(horizon: PropagationHorizonLike, instanceId: string) {
       vesselId: "v1",
       name: "Test Vessel",
       vesselType: 0,
-      situation: 1,
+      situation: Situation.Orbiting,
       parentBodyIndex: 1,
       launchUt: 0,
     });

@@ -435,6 +435,7 @@ function LandingStatusComponent({
                       seaLevel={seaLevelOnRail(flightReading, aglReading)}
                       verticalSpeed={solution.verticalSpeed}
                       centreOfMass={usingComDatum}
+                      landed={landed}
                       ignitionAltitude={
                         landed || !model.mayInstruct
                           ? null

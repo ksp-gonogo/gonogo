@@ -5,7 +5,7 @@ import {
   registerAugment,
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
-import { ManeuverFrame } from "@ksp-gonogo/sitrep-sdk";
+import { ManeuverFrame, Situation } from "@ksp-gonogo/sitrep-sdk";
 import { commandArgs } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -84,7 +84,7 @@ const VESSEL_IDENTITY_STREAM_FIXTURE = {
   vesselId: "test-vessel",
   name: "Test Vessel",
   vesselType: 0,
-  situation: 0,
+  situation: Situation.Orbiting,
 };
 
 /** Emits `vessel.maneuver`; `id` defaults to the node's index, since most callers care only about its delta-v. */
@@ -171,6 +171,29 @@ describe("ManeuverPlannerComponent", () => {
       screen.getByText(/maneuver planning is not available/i),
     ).toBeInTheDocument();
     expect(screen.queryByText(/^Waiting for telemetry$/i)).toBeNull();
+  });
+
+  it("offers no burn to a landed vessel, whatever path its elements describe", async () => {
+    render(
+      <utFixture.Provider>
+        <ManeuverPlannerComponent id="mnv" config={{}} />
+      </utFixture.Provider>,
+    );
+    act(() => {
+      emitFullOrbit();
+      emitManeuverNode([]);
+    });
+    await flushViewUt();
+    expect(screen.queryByText(/The vessel is landed/i)).toBeNull();
+    act(() => {
+      utFixture.emit("vessel.identity", {
+        ...VESSEL_IDENTITY_STREAM_FIXTURE,
+        situation: Situation.Landed,
+      });
+    });
+    await flushViewUt();
+    expect(screen.getByText(/The vessel is landed/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /add node/i })).toBeNull();
   });
 
   it("transitions out of the waiting state once telemetry lands", async () => {

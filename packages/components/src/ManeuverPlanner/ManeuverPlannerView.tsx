@@ -59,6 +59,7 @@ export function ManeuverPlannerComponent({
     burnTrueAnomaly,
     planReady,
     hyperbolic,
+    landed,
   } = usePlan(inputs, telemetry);
   const {
     sendDelay,
@@ -191,6 +192,7 @@ export function ManeuverPlannerComponent({
           <Section key="preview">
             <NotPlannableNotice
               hyperbolic={hyperbolic}
+              landed={landed}
               currentTrajectory={currentTrajectory}
             />
           </Section>

@@ -92,6 +92,29 @@ describe("AltitudeRail", () => {
     ).toHaveAttribute("aria-valuemin", "-3000");
   });
 
+  it("ends the scale at the ground for a craft that rests on it, however far down sea level lies", () => {
+    const { container } = render(
+      <AltitudeRail
+        agl={observed(0)}
+        verticalSpeed={null}
+        ignitionAltitude={null}
+        suicideBurnCountdown={null}
+        seaLevel={value("m", -3000)}
+        landed
+      />,
+    );
+    const meter = screen.getByRole("meter", {
+      name: /altitude above terrain/i,
+    });
+    expect(meter).toHaveAttribute("aria-valuemin", "0");
+    expect(visibleText(container)).not.toMatch(/-\d/);
+    expect(
+      container
+        .querySelector('[data-level="sea"]')
+        ?.querySelector("[data-off-scale]"),
+    ).not.toBeNull();
+  });
+
   it("keeps the ground and sea level on the rail, pinning sea level to the top when the craft is below it", () => {
     const { container } = render(
       <AltitudeRail {...descending} seaLevel={value("m", 5000)} />,
