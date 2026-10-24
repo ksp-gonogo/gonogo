@@ -255,9 +255,7 @@ namespace Gonogo.KSP
                     return CommsReachModels.Unknown;
                 }
 
-                return CommNetReach.ModelFor(
-                    start.GetType(),
-                    end.GetType(),
+                return CommNetReach.Model(
                     start.antennaRelay?.power ?? 0.0,
                     start.antennaTransmit?.power ?? 0.0,
                     end.antennaRelay?.power ?? 0.0,

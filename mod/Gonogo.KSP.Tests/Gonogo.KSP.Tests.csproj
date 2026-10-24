@@ -41,8 +41,6 @@
     <Compile Include="..\Gonogo.KSP\TerminatedVessels.cs" />
     <Compile Include="..\Gonogo.KSP\BoardedVessels.cs" />
     <Compile Include="..\Gonogo.KSP\BreakingGroundReads.cs" />
-    <!-- SavedModuleReads.cs reads a kerbal's sample and a flag's plaque off saved part modules and carries no KSP or Unity type. -->
-    <Compile Include="..\Gonogo.KSP\SavedModuleReads.cs" />
     <!-- MakingHistoryReads.cs carries no KSP or Unity type either; MissionCapture.cs, the walk it serves, needs a live mission and stays out. -->
     <Compile Include="..\Gonogo.KSP\MakingHistoryReads.cs" />
     <Compile Include="..\Gonogo.KSP\ExpansionHealth.cs" />

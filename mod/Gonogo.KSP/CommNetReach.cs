@@ -96,43 +96,6 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// <see cref="Model"/> for a pair whose nodes are of the given types, or
-        /// <see cref="CommsReachModels.Unknown"/> when either is a RealAntennas
-        /// node. RealAntennas zeroes both antenna powers on every vessel and
-        /// carries links by its own budget, so stock's rule would read a
-        /// maximum of zero for a pair that is connected; absent says no rule is
-        /// known here.
-        /// </summary>
-        public static ICommsReachModel ModelFor(
-            Type? fromType,
-            Type? toType,
-            double fromRelayPower,
-            double fromTransmitPower,
-            double toRelayPower,
-            double toTransmitPower,
-            double combinedDistanceOffsetMeters,
-            Func<double, double, double> maximumRange) =>
-            IsRaCommNode(fromType) || IsRaCommNode(toType)
-                ? CommsReachModels.Unknown
-                : Model(fromRelayPower, fromTransmitPower, toRelayPower, toTransmitPower, combinedDistanceOffsetMeters, maximumRange);
-
-        /// <summary>
-        /// Whether a node type is the antenna mod's <c>RACommNode</c> or derives from
-        /// it. Found by type name, since this assembly cannot reference that assembly.
-        /// </summary>
-        public static bool IsRaCommNode(Type? type)
-        {
-            for (var t = type; t != null; t = t.BaseType)
-            {
-                if (t.Name == "RACommNode")
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        /// <summary>
         /// A pair stock will not connect at any distance. Named rather than
         /// inlined because a zero maximum and an absent one are different
         /// answers and the difference is easy to lose.

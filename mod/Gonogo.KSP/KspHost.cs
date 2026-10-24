@@ -1932,7 +1932,6 @@ namespace Gonogo.KSP
 
             if (eva == null)
             {
-                TrySet(entry, "heldData", () => ToWire(SavedModuleReads.HeldData(SavedModules(vessel))));
                 return entry;
             }
 
@@ -1987,76 +1986,6 @@ namespace Gonogo.KSP
             return held;
         }
 
-        private static object? ToWire(List<EvaHeldData>? held)
-        {
-            if (held == null)
-            {
-                return null;
-            }
-
-            var wire = new List<object?>(held.Count);
-            foreach (var item in held)
-            {
-                wire.Add(new Dictionary<string, object?>
-                {
-                    ["subjectId"] = item.SubjectId,
-                    ["title"] = item.Title,
-                    ["dataAmount"] = item.DataAmount,
-                });
-            }
-            return wire;
-        }
-
-        /// <summary>
-        /// The part modules the save holds for a vessel, for a vessel that is not loaded, or null
-        /// when it has no saved state to read.
-        /// </summary>
-        private static List<SavedModule>? SavedModules(Vessel vessel)
-        {
-            var parts = vessel.protoVessel?.protoPartSnapshots;
-            if (parts == null)
-            {
-                return null;
-            }
-
-            var modules = new List<SavedModule>();
-            foreach (var part in parts)
-            {
-                if (part?.modules == null)
-                {
-                    continue;
-                }
-
-                foreach (var module in part.modules)
-                {
-                    if (module?.moduleValues == null)
-                    {
-                        continue;
-                    }
-
-                    var values = new Dictionary<string, string>();
-                    foreach (ConfigNode.Value value in module.moduleValues.values)
-                    {
-                        values[value.name] = value.value;
-                    }
-
-                    var science = new List<Dictionary<string, string>>();
-                    foreach (var node in module.moduleValues.GetNodes("ScienceData"))
-                    {
-                        var fields = new Dictionary<string, string>();
-                        foreach (ConfigNode.Value value in node.values)
-                        {
-                            fields[value.name] = value.value;
-                        }
-                        science.Add(fields);
-                    }
-
-                    modules.Add(new SavedModule(module.moduleName, values, science));
-                }
-            }
-            return modules;
-        }
-
         private static void AddHeldData(List<object?> into, ScienceData[]? data)
         {
             if (data == null)
@@ -2083,7 +2012,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// One planted flag, for the <c>surface.sites</c> channel. The name, place and moment
         /// come off the vessel, which is there whether or not it is loaded; the plaque and the
-        /// planter live on the flag's own module, read live when it is loaded and from the save when not.
+        /// planter live on the flag's own module and are left absent for a flag that is not loaded.
         /// </summary>
         private static Dictionary<string, object?> BuildSurfaceSiteEntry(Vessel vessel)
         {
@@ -2105,11 +2034,6 @@ namespace Gonogo.KSP
                     TrySet(entry, "plantedBy", () => flag.placedBy);
                     TrySet(entry, "plaque", () => flag.PlaqueText);
                 }
-            }
-            else
-            {
-                TrySet(entry, "plantedBy", () => SavedModuleReads.FlagValue(SavedModules(vessel), "placedBy"));
-                TrySet(entry, "plaque", () => SavedModuleReads.FlagValue(SavedModules(vessel), "PlaqueText"));
             }
 
             return entry;
