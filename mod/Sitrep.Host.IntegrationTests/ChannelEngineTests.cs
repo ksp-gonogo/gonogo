@@ -3869,7 +3869,7 @@ namespace Sitrep.Host.IntegrationTests
         /// happens.
         /// </summary>
         [Fact]
-        public async Task SwitchingVesselsWithNoDataForATopicOnTheNewVesselEmitsNoSpuriousTombstone()
+        public async Task SwitchingVesselsWithNoDataForATopicOnTheNewVesselWithdrawsTheOldVesselsValueOnce()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new TestVesselUplink());
@@ -3899,6 +3899,11 @@ namespace Sitrep.Host.IntegrationTests
                 // SPURIOUS tombstone for data vessel B never had.
                 engine.TickAndWait(1.0, VesselSnapshotForTargetSwitchTest(vesselB, hasTarget: false), Timeout);
 
+                // The one frame is the switch withdrawing vessel A's target, so the
+                // subscriber does not keep reading it as vessel B's; the emitter
+                // itself decided nothing.
+                var withdrawn = await ReceiveStreamDataAsync(client, Timeout);
+                Assert.Null(withdrawn.Payload);
                 await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
                 Assert.Equal(1, engine.ChannelCounters(VesselViewProvider.TargetTopic).Emitted);
             }

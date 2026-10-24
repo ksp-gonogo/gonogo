@@ -27,12 +27,12 @@ import { AboardTab } from "./AboardTab";
 import { ArchiveTab } from "./ArchiveTab";
 import {
   groupArchiveByExperiment,
-  kerbalHeldOf,
   parseArchive,
   parseExperimentBreakdown,
   parseExperiments,
 } from "./parsers";
 import read from "./science-data.declarations.g";
+import { useKerbalHeld } from "./useKerbalHeld";
 
 export type { ScienceDataAboardRowContext } from "@ksp-gonogo/sitrep-sdk";
 
@@ -106,7 +106,9 @@ function ScienceDataComponent({
 
   // What a kerbal outside is holding stays held until they hand it over, so the last list received is still the list.
   const evaCrewReading = useTelemetry("eva.crew");
-  const kerbalHeld = kerbalHeldOf(stillTrue(evaCrewReading, undefined));
+  const kerbalHeldRead = useKerbalHeld(
+    stillTrue(evaCrewReading, undefined)?.kerbals ?? [],
+  );
 
   const experiments = parseExperiments(experimentsRaw);
   const breakdown = parseExperimentBreakdown(breakdownRaw);
@@ -147,8 +149,8 @@ function ScienceDataComponent({
           sciDataAmount={sciDataAmount}
           compact={compact}
           ledgerFrom={ledgerFrom}
-          kerbalHeld={kerbalHeld}
-          kerbalFrom={[currencyOf(evaCrewReading)]}
+          kerbalHeld={kerbalHeldRead.held}
+          kerbalFrom={kerbalHeldRead.from}
         />
       ),
     },
@@ -167,6 +169,7 @@ function ScienceDataComponent({
       /* The balance sits in the body, not the aside, which folds away at narrow widths. */
       sections={
         <Section full>
+          {kerbalHeldRead.probes}
           {isCareerLike &&
             (careerScience.state === "observed" ||
               careerScience.state === "held") && (

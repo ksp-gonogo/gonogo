@@ -1,4 +1,4 @@
-import type { EvaCrew, Value } from "@ksp-gonogo/sitrep-sdk";
+import { type EvaKerbal, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 
 /** Fixed-decimal readout with no locale grouping, so the visual gate stays deterministic. */
@@ -185,30 +185,39 @@ export interface KerbalHeldResult {
   dataAmount: Value<"Mit"> | null;
 }
 
+/** The Topic carrying one kerbal's own state, listed on `eva.crew` by the kerbal's vessel id. */
+export function evaKerbalTopic(kerbalVesselId: string): string {
+  return `eva.kerbal.${kerbalVesselId}.state`;
+}
+
 /**
- * The results kerbals are holding, off `eva.crew`. A kerbal whose holdings
- * could not be read contributes nothing, which says nothing about what it
- * carries.
+ * The results one kerbal is holding, off the kerbal's own `eva.kerbal.<vessel id>.state`.
+ * A kerbal whose holdings could not be read contributes nothing, which says
+ * nothing about what it carries. A per-kerbal Topic is dynamic, so its amounts
+ * arrive as bare numbers rather than wrapped values.
  */
 export function kerbalHeldOf(
-  crew: EvaCrew | null | undefined,
+  member: Readonly<{ kerbalVesselId?: string | null; name?: string | null }>,
+  state: EvaKerbal | null | undefined,
 ): KerbalHeldResult[] {
   const out: KerbalHeldResult[] = [];
   const seen = new Map<string, number>();
-  for (const kerbal of crew?.kerbals ?? []) {
-    const name = kerbal.name || "A kerbal";
-    for (const held of kerbal.heldData ?? []) {
-      const title = held.title || held.subjectId || "Science result";
-      const base = `${kerbal.kerbalVesselId ?? name}/${held.subjectId ?? title}`;
-      const again = seen.get(base) ?? 0;
-      seen.set(base, again + 1);
-      out.push({
-        key: again === 0 ? base : `${base}#${again}`,
-        kerbal: name,
-        title,
-        dataAmount: held.dataAmount ?? null,
-      });
-    }
+  const name = state?.name || member.name || "A kerbal";
+  for (const held of state?.heldData ?? []) {
+    const title = held.title || held.subjectId || "Science result";
+    const base = `${member.kerbalVesselId ?? name}/${held.subjectId ?? title}`;
+    const again = seen.get(base) ?? 0;
+    seen.set(base, again + 1);
+    const amount: unknown = held.dataAmount;
+    out.push({
+      key: again === 0 ? base : `${base}#${again}`,
+      kerbal: name,
+      title,
+      dataAmount:
+        typeof amount === "number"
+          ? value("Mit", amount)
+          : (held.dataAmount ?? null),
+    });
   }
   return out;
 }

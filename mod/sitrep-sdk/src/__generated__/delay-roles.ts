@@ -53,6 +53,7 @@ export const GENERATED_HELD_AT_HOME_TOPICS = [
   "career.facilities",
   "career.mode",
   "career.status",
+  "eva.crew",
   "missions.active",
   "science.archive",
   "spaceCenter.astronautComplex",

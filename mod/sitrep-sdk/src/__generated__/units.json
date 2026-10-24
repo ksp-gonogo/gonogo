@@ -656,6 +656,11 @@
     "EvaCrew": {
       "count": "count"
     },
+    "EvaCrewMember": {
+      "kerbalVesselId": "id",
+      "name": "text",
+      "parentVesselId": "id"
+    },
     "EvaHeldData": {
       "dataAmount": "Mit",
       "subjectId": "id",
@@ -2584,7 +2589,7 @@
       "quantum": "EmissionQuantum"
     },
     "EvaCrew": {
-      "kerbals": "EvaKerbal[]"
+      "kerbals": "EvaCrewMember[]"
     },
     "EvaKerbal": {
       "heldData": "EvaHeldData[]"
@@ -2868,7 +2873,7 @@
       "resources": "*ResourceAmount"
     },
     "eva.crew": {
-      "kerbals": "EvaKerbal[]"
+      "kerbals": "EvaCrewMember[]"
     },
     "isru.converters": {
       "inputs": "IsruResourceFlow[]",

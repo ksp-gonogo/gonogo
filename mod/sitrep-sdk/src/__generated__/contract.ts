@@ -3971,7 +3971,13 @@ export interface Pong
 	nonce: string;
 }
 /**
-* One kerbal currently outside a craft, on the `eva.crew` channel.
+* One kerbal currently outside a craft, on that kerbal's own
+* `eva.kerbal.<vessel id>.state` Topic.
+*
+* The Topic is recorded on the kerbal's own node, so it reaches a command
+* centre by the kerbal's own link and signal delay. A stock kerbal has no
+* antenna, so its state is held; a kerbal carrying a radio from a mod is live.
+* The craft it left has no say either way.
 *
 * A kerbal on EVA is a vessel in KSP's model, with its own id, so it already
 * appears on `trackingStation.catalog` and on its own per-craft Topics
@@ -4077,10 +4083,33 @@ export interface EvaHeldData
 	dataAmount?: Value<"Mit"> | null;
 }
 /**
-* Every kerbal currently outside a craft.
+* One kerbal listed on `eva.crew`: who is outside and which craft they left,
+* enough to find the kerbal's own `eva.kerbal.<vessel id>.state` Topic.
 *
-* The vessel Topics stay with the craft the kerbal left; this Topic carries
-* what is true of the kerbal.
+* @category Crew
+*/
+export interface EvaCrewMember
+{
+	/**
+	* The kerbal's own vessel id, the key of its `eva.kerbal.<vessel id>.state`
+	* Topic and the guid `trackingStation.catalog` carries for it.
+	*/
+	kerbalVesselId?: string | null;
+	/**
+	* The vessel id of the craft this kerbal stepped out of, or `null` when that
+	* is not known (the step-out was not recorded, or the craft has since gone).
+	*/
+	parentVesselId?: string | null;
+	/** The kerbal's name, from the EVA vessel's `GetName()`. */
+	name?: string | null;
+}
+/**
+* The roster of kerbals currently outside a craft, so a client can find each
+* one's own `eva.kerbal.<vessel id>.state` Topic. The suit state is on those
+* Topics, not here.
+*
+* The roster is a fact the home command holds, so it is not held by the link
+* of the craft a kerbal left or of any kerbal.
 *
 * An empty list is a real reading: nobody is outside. The Topic has no reading
 * only until its first sample arrives.
@@ -4095,7 +4124,7 @@ export interface EvaCrew
 	*/
 	count: Value<"count">;
 	/** One entry per kerbal on EVA. Never null; empty when nobody is outside. */
-	kerbals: EvaKerbal[];
+	kerbals: EvaCrewMember[];
 }
 /**
 * Why a flight ended, carried on `FlightEnded`. The detail of a crash or a
