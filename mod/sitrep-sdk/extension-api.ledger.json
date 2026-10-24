@@ -16661,6 +16661,14 @@
         "note": "exported, since a published component's props or return type already names it"
       },
       {
+        "key": "ui-kit . KeyOption#common?",
+        "note": "optional flag listing a key before anything is searched"
+      },
+      {
+        "key": "ui-kit . KeyOption#summary?",
+        "note": "optional full wording shown once a key is picked, and searched"
+      },
+      {
         "key": "ui-kit . KindOfSymbol",
         "note": "Exported from the kit's index because a published signature names it"
       },
