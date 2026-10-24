@@ -5,7 +5,7 @@ export interface BannerStackProps {
   children: ReactNode;
 }
 
-/** Fixed strip left of the action FAB, at its height, holding every ephemeral status banner; the first child sits nearest the FAB and overflow scrolls. */
+/** Fixed strip left of the action FAB, at its height (above it, as a column, below 640px), holding every ephemeral status banner; the first child sits nearest the FAB and overflow scrolls. */
 export function BannerStack({ children }: BannerStackProps) {
   return <ToastStack>{children}</ToastStack>;
 }
@@ -34,6 +34,24 @@ const ToastStack = styled.div`
     height: 100%;
     display: inline-flex;
     align-items: center;
+  }
+
+  /* On a phone the strip beside the FAB is too short for even one pill, so the banners stack in a column above it, newest nearest the FAB, and long text wraps. */
+  @media (max-width: 640px) {
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    height: auto;
+    max-width: calc(100vw - 32px - env(safe-area-inset-right, 0px));
+    max-height: 40vh;
+    overflow: visible;
+
+    && > * {
+      height: auto;
+      max-width: 100%;
+      white-space: normal;
+    }
   }
 
   scrollbar-width: thin;

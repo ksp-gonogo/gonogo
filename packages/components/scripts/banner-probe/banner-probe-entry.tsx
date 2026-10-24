@@ -11,7 +11,7 @@
  * relative path are fine for a test-only entry.
  */
 
-import { BannerStack } from "@ksp-gonogo/ui";
+import { BannerPill, BannerStack } from "@ksp-gonogo/ui";
 import { createElement, useEffect, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import {
@@ -34,6 +34,8 @@ interface BannerProbePayload {
   /** Pixel width / height of the host viewport for the stack to render in. */
   pxW: number;
   pxH: number;
+  /** Puts the home-station fallback notice's pill first in the stack, beside the alarm pills. */
+  homeNotice?: boolean;
 }
 
 let activeRoot: Root | null = null;
@@ -68,7 +70,13 @@ class StubHost {
   setWarpSafetyMargin(_s: number): void {}
 }
 
-function BannerHarness({ snapshot }: { snapshot: AlarmSnapshot }) {
+function BannerHarness({
+  snapshot,
+  homeNotice,
+}: {
+  snapshot: AlarmSnapshot;
+  homeNotice: boolean;
+}) {
   // Recreate the stub host per snapshot so React re-subscribes on
   // payload change. Avoid the "stale snapshot" cache by passing the
   // host instance through state.
@@ -84,6 +92,11 @@ function BannerHarness({ snapshot }: { snapshot: AlarmSnapshot }) {
       {createElement(
         BannerStack,
         null,
+        homeNotice ? (
+          <BannerPill accent="var(--color-info-mark)">
+            Unable to identify home station. Using Kerbal Space Center.
+          </BannerPill>
+        ) : null,
         createElement(AlarmBanner, null),
         createElement(SafetyMarginPill, null),
         createElement(FiredAlarmPills, null),
@@ -106,7 +119,10 @@ async function renderBanner(payload: BannerProbePayload): Promise<void> {
   root.innerHTML = "";
   activeRoot = createRoot(root);
   activeRoot.render(
-    createElement(BannerHarness, { snapshot: payload.snapshot }),
+    createElement(BannerHarness, {
+      snapshot: payload.snapshot,
+      homeNotice: payload.homeNotice === true,
+    }),
   );
   // Two raf ticks + settle so the banner's slide-in animation lands
   // before the screenshot. The Wrap has a 320ms animation; settle

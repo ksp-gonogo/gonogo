@@ -19,7 +19,10 @@ const PROBE_DIR = resolve(HERE, "banner-probe");
 const PROBE_ENTRY = join(PROBE_DIR, "banner-probe-entry.tsx");
 const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "banner-probe.html");
 const FIXTURES_DIR = join(PROBE_DIR, "__fixtures__");
-const OUT_DIR = resolve(HERE, "../../../local_docs/renders/alarm-banner");
+const OUT_DIR = resolve(
+  process.env.BANNER_OUT_DIR ??
+    resolve(HERE, "../../../local_docs/renders/alarm-banner"),
+);
 // The design tokens. Same source, and same reasoning, as
 // `widgetRenderHarness.ts`'s `THEME_TOKENS_CSS`: the theme package's *source*
 // tokens.css, which is plain text, needs no bundler resolution, and does not
@@ -32,8 +35,8 @@ const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 // Viewport sized to match the bottom-right portion of a real dashboard
 // where the BannerStack lives. Wide enough that the banner doesn't get
 // horizontally clipped at any reasonable state.
-const VIEWPORT_W = 1100;
-const VIEWPORT_H = 320;
+const VIEWPORT_W = Number(process.env.BANNER_VIEWPORT_W ?? 1100);
+const VIEWPORT_H = Number(process.env.BANNER_VIEWPORT_H ?? 320);
 
 async function main(): Promise<void> {
   await mkdir(OUT_DIR, { recursive: true });
@@ -123,7 +126,12 @@ async function main(): Promise<void> {
               __renderBanner: (p: unknown) => Promise<void>;
             }
           ).__renderBanner(payload),
-        { snapshot, pxW: VIEWPORT_W, pxH: VIEWPORT_H },
+        {
+          snapshot,
+          pxW: VIEWPORT_W,
+          pxH: VIEWPORT_H,
+          homeNotice: process.env.BANNER_HOME_NOTICE === "1",
+        },
       );
       const outName = file.replace(/\.json$/, ".png");
       const outPath = join(OUT_DIR, outName);
