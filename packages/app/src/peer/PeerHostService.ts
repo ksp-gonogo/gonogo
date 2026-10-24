@@ -24,6 +24,7 @@ import {
   rebaseBundleUrl,
 } from "./BundleFetchCache";
 import { type ConnectionPath, readConnectionPath } from "./connectionPath";
+import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import {
@@ -619,6 +620,7 @@ export class PeerHostService {
   // periodic heartbeat that re-asserts it. The heartbeat starts on the first
   // PeerJS open and stops in stop().
   private analyticsPosted = false;
+  private readonly deliveryMeter = new DeliveryMeter("host");
   private readonly relayRegistration = new RelayRegistration({
     getHostId: () => this.shareCode,
     getConsent: () => this.analyticsConsent,
@@ -645,6 +647,7 @@ export class PeerHostService {
   private readonly onResume = () => this.resumeBroker();
 
   async start() {
+    this.deliveryMeter.start();
     // Stamp the log identity before anything that can fail, errors fired
     // pre-`open` (unavailable-id, a broker that never answers) otherwise
     // ship to Axiom with role "unknown" and no device id. `open` re-stamps
@@ -1639,6 +1642,10 @@ export class PeerHostService {
   }
 
   broadcast(msg: PeerMessage) {
+    if (this.connections.size > 0) {
+      const channel = deliveryChannel(msg);
+      if (channel) this.deliveryMeter.record(channel);
+    }
     // No per-broadcast trace here: at telemetry rates a connected station
     // drives ~700 broadcasts/sec (mostly `sitrep-frame`), which fills the
     // 5000-entry persistent ring buffer in seconds and buries every other
@@ -2791,6 +2798,7 @@ export class PeerHostService {
   }
 
   stop() {
+    this.deliveryMeter.stop();
     this.flightListChangeUnsub?.();
     this.flightListChangeUnsub = null;
     this.stopIceConfigRefresh();
