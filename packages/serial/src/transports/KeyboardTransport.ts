@@ -99,7 +99,12 @@ function elementFor(event: KeyboardEvent): Element | null {
   return typeof document === "undefined" ? null : document.activeElement;
 }
 
-function isTextEntry(el: Element | null): boolean {
+/**
+ * Whether the element takes typed text, so a key pressed there is the operator
+ * typing and not a shortcut or a bound input. Used by this transport and by any
+ * screen-wide shortcut that must stay out of a text field's way.
+ */
+export function isTextEntry(el: Element | null): boolean {
   if (!el) return false;
   // `isContentEditable` is the direct answer and jsdom does not implement it
   // (it reads false for an editable div), so the attribute walk is what

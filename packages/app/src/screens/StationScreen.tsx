@@ -26,12 +26,10 @@ import {
   StationAlarmBanner,
 } from "../alarms";
 import { useFollowHostAnalytics } from "../analytics/useFollowHostAnalytics";
-import {
-  ComponentOverlay,
-  OverlayProvider,
-} from "../components/ComponentOverlay";
+import { ComponentOverlay } from "../components/ComponentOverlay";
 import type { DashboardConfig } from "../components/Dashboard";
 import { Dashboard } from "../components/Dashboard";
+import { DashboardShortcuts } from "../components/DashboardShortcuts";
 import {
   ContactLossBanner,
   FlightOutcomeBanner,
@@ -52,6 +50,7 @@ import {
   MissionProfilesProvider,
   MissionProfilesService,
   ProfileDashboardProvider,
+  ProfileOverlayProvider,
   ProfileSwitchBanner,
   profileInputOptions,
   SceneSwitchPrompt,
@@ -380,10 +379,8 @@ export function StationScreen() {
                   <PushClientProvider>
                     <CoverageMaskCacheProvider>
                       <SerialDeviceProvider service={serialService}>
-                        <OverlayProvider
-                          addItem={dashboard.addItem}
-                          updateItemConfig={dashboard.updateItemConfig}
-                        >
+                        <ProfileOverlayProvider dashboard={dashboard}>
+                          <DashboardShortcuts history={controller} />
                           <AlarmsLauncherBridge
                             useSnapshot={useStationAlarmSnapshot}
                             onAdd={(input) => alarmClient.addAlarm(input)}
@@ -499,7 +496,7 @@ export function StationScreen() {
                               </BannerStack>
                             </Layout>
                           </AlarmsLauncherBridge>
-                        </OverlayProvider>
+                        </ProfileOverlayProvider>
                       </SerialDeviceProvider>
                     </CoverageMaskCacheProvider>
                   </PushClientProvider>

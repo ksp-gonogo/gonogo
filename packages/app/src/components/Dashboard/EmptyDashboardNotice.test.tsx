@@ -41,7 +41,7 @@ function renderScreen(items: Parameters<typeof Dashboard>[0]["items"]) {
       <SerialDeviceProvider
         service={new SerialDeviceService({ screenKey: "test" })}
       >
-        <OverlayProvider addItem={NOOP} updateItemConfig={NOOP}>
+        <OverlayProvider addItems={NOOP} updateItemConfig={NOOP}>
           {dashboard(items)}
           <ComponentOverlay />
         </OverlayProvider>

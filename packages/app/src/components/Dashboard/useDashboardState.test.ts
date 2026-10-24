@@ -31,6 +31,26 @@ describe("useDashboardState", () => {
     expect(onChange).toHaveBeenLastCalledWith([], []);
   });
 
+  it("adds several widgets in one report, each in its own slot", () => {
+    const onChange = vi.fn();
+    const { result } = renderHook(() =>
+      useDashboardState(INITIAL, { onChange }),
+    );
+
+    act(() =>
+      result.current.addItems([
+        { item: item("a"), placement: { w: 3, h: 3 } },
+        { item: item("b"), placement: { w: 3, h: 3 } },
+      ]),
+    );
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(idsOf(result.current.items)).toEqual(["a", "b"]);
+    const [a, b] = result.current.layout;
+    expect([a.i, b.i]).toEqual(["a", "b"]);
+    expect([a.x, a.y]).not.toEqual([b.x, b.y]);
+  });
+
   it("replaces the whole dashboard in one report", () => {
     const onChange = vi.fn();
     const { result } = renderHook(() =>

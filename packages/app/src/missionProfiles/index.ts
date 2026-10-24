@@ -3,6 +3,7 @@ export {
   MissionProfilesProvider,
   useMissionProfiles,
   useMissionProfilesService,
+  useOtherLayouts,
 } from "./MissionProfilesContext";
 export { MissionProfilesFab } from "./MissionProfilesFab";
 export { MissionProfilesModal } from "./MissionProfilesModal";
@@ -17,6 +18,7 @@ export {
   ProfileDashboardProvider,
   useProfileDashboardController,
 } from "./ProfileDashboardContext";
+export { ProfileOverlayProvider } from "./ProfileOverlayProvider";
 export { ProfileSwitchBanner } from "./ProfileSwitchBanner";
 export { profileInputOptions } from "./profileInputs";
 export { SceneSwitchPrompt } from "./SceneSwitchPrompt";

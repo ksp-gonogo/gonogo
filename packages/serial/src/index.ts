@@ -66,7 +66,10 @@ export {
   GamepadTransport,
   type GamepadTransportOptions,
 } from "./transports/GamepadTransport";
-export { KeyboardTransport } from "./transports/KeyboardTransport";
+export {
+  isTextEntry,
+  KeyboardTransport,
+} from "./transports/KeyboardTransport";
 export { VirtualTransport } from "./transports/VirtualTransport";
 export { WebSerialTransport } from "./transports/WebSerialTransport";
 export * from "./types";

@@ -43,7 +43,7 @@ function renderOverlay() {
   return render(
     <ModalProvider>
       <SerialDeviceProvider service={serialService}>
-        <OverlayProvider addItem={() => {}} updateItemConfig={() => {}}>
+        <OverlayProvider addItems={() => {}} updateItemConfig={() => {}}>
           <ComponentOverlay />
         </OverlayProvider>
       </SerialDeviceProvider>

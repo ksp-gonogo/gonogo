@@ -9,6 +9,7 @@ import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { registerAugment } from "@ksp-gonogo/ui-kit";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -74,7 +75,7 @@ describe("ComponentOverlay: add → configure → persist", () => {
     // registerComponent before render, ComponentOverlay reads the registry on every render via getComponents().
     registerTrivial();
     const user = userEvent.setup();
-    const addItem = vi.fn();
+    const addItems = vi.fn();
     const updateItemConfig = vi.fn();
     const serialService = new SerialDeviceService({ screenKey: "test" });
 
@@ -82,7 +83,7 @@ describe("ComponentOverlay: add → configure → persist", () => {
       <ModalProvider>
         <SerialDeviceProvider service={serialService}>
           <OverlayProvider
-            addItem={addItem}
+            addItems={addItems}
             updateItemConfig={updateItemConfig}
           >
             <ComponentOverlay />
@@ -95,17 +96,18 @@ describe("ComponentOverlay: add → configure → persist", () => {
     // listbox options whose accessible name combines name + description.
     await user.click(screen.getByRole("button", { name: "Add widget" }));
     await user.click(await screen.findByRole("option", { name: /Trivial/ }));
+    await user.click(screen.getByRole("button", { name: "Add 1 widget" }));
 
-    // addItem fired with a fresh DashboardItem. Capture its id so we can
+    // addItems fired with a fresh DashboardItem. Capture its id so we can
     // assert the updateItemConfig call routes to the same instance.
-    expect(addItem).toHaveBeenCalledTimes(1);
-    const first: unknown = addItem.mock.calls[0][0];
+    expect(addItems).toHaveBeenCalledTimes(1);
+    const first: unknown = addItems.mock.calls[0][0][0].item;
     const gridId: unknown =
       typeof first === "object" && first !== null
         ? Reflect.get(first, "i")
         : undefined;
     if (typeof gridId !== "string") {
-      throw new Error("addItem was not given an item with a grid id");
+      throw new Error("addItems was not given an item with a grid id");
     }
     const newItem = { i: gridId };
 
@@ -125,7 +127,7 @@ describe("ComponentOverlay: add → configure → persist", () => {
   it("adds a widget by keyboard: filter, arrow, Enter (no pointer)", async () => {
     registerTrivial();
     const user = userEvent.setup();
-    const addItem = vi.fn();
+    const addItems = vi.fn();
     const updateItemConfig = vi.fn();
     const serialService = new SerialDeviceService({ screenKey: "test" });
 
@@ -133,7 +135,7 @@ describe("ComponentOverlay: add → configure → persist", () => {
       <ModalProvider>
         <SerialDeviceProvider service={serialService}>
           <OverlayProvider
-            addItem={addItem}
+            addItems={addItems}
             updateItemConfig={updateItemConfig}
           >
             <ComponentOverlay />
@@ -150,7 +152,91 @@ describe("ComponentOverlay: add → configure → persist", () => {
     await user.keyboard("{Enter}");
 
     // Enter on the highlighted option adds the widget, same as a click would.
-    expect(addItem).toHaveBeenCalledTimes(1);
+    expect(addItems).toHaveBeenCalledTimes(1);
+  });
+
+  it("adds every ticked widget in one go, by click or by Shift+Enter", async () => {
+    registerTrivial();
+    registerComponent({
+      id: "second",
+      name: "Second",
+      description: "",
+      tags: [],
+      component: TrivialWidget,
+      dataRequirements: [],
+    });
+    const user = userEvent.setup();
+    const addItems = vi.fn();
+    const serialService = new SerialDeviceService({ screenKey: "test" });
+
+    render(
+      <ModalProvider>
+        <SerialDeviceProvider service={serialService}>
+          <OverlayProvider addItems={addItems} updateItemConfig={vi.fn()}>
+            <ComponentOverlay />
+          </OverlayProvider>
+        </SerialDeviceProvider>
+      </ModalProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add widget" }));
+    await user.click(await screen.findByRole("option", { name: /Second/ }));
+    expect(screen.getByRole("option", { name: /Second/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await user.keyboard("Trivial");
+    await user.keyboard("{Shift>}{Enter}{/Shift}");
+    await user.click(screen.getByRole("button", { name: "Add 2 widgets" }));
+
+    expect(addItems).toHaveBeenCalledTimes(1);
+    const ids = addItems.mock.calls[0][0].map(
+      (e: { item: { componentId: string } }) => e.item.componentId,
+    );
+    expect(ids).toEqual(["second", "trivial"]);
+  });
+
+  it("marks a widget already on this layout and one on another layout", async () => {
+    registerTrivial();
+    registerComponent({
+      id: "second",
+      name: "Second",
+      description: "",
+      tags: [],
+      component: TrivialWidget,
+      dataRequirements: [],
+    });
+    const user = userEvent.setup();
+    const serialService = new SerialDeviceService({ screenKey: "test" });
+
+    const { container } = render(
+      <ModalProvider>
+        <SerialDeviceProvider service={serialService}>
+          <OverlayProvider
+            addItems={vi.fn()}
+            updateItemConfig={vi.fn()}
+            items={[{ componentId: "trivial" }, { componentId: "trivial" }]}
+            otherLayouts={[
+              { name: "Launch", items: [{ componentId: "second" }] },
+            ]}
+          >
+            <ComponentOverlay />
+          </OverlayProvider>
+        </SerialDeviceProvider>
+      </ModalProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add widget" }));
+
+    expect(
+      await screen.findByRole("option", { name: /On this layout x2/ }),
+    ).toHaveAccessibleName(/Trivial/);
+    expect(
+      screen.getByRole("option", { name: /On another layout/ }),
+    ).toHaveAccessibleName(/Second/);
+    await user.hover(screen.getByText("On another layout"));
+    expect(await screen.findByText("On Launch")).toBeInTheDocument();
+    await expectNoA11yViolations(container);
   });
 
   it("places a widget at its defaultSize plus what the extensions that render in it ask for", async () => {
@@ -179,13 +265,13 @@ describe("ComponentOverlay: add → configure → persist", () => {
       sizeDelta: { w: 4, h: 4 },
     });
     const user = userEvent.setup();
-    const addItem = vi.fn();
+    const addItems = vi.fn();
     const serialService = new SerialDeviceService({ screenKey: "test" });
 
     render(
       <ModalProvider>
         <SerialDeviceProvider service={serialService}>
-          <OverlayProvider addItem={addItem} updateItemConfig={vi.fn()}>
+          <OverlayProvider addItems={addItems} updateItemConfig={vi.fn()}>
             <ComponentOverlay />
           </OverlayProvider>
         </SerialDeviceProvider>
@@ -194,8 +280,12 @@ describe("ComponentOverlay: add → configure → persist", () => {
 
     await user.click(screen.getByRole("button", { name: "Add widget" }));
     await user.click(await screen.findByRole("option", { name: /Roomy/ }));
+    await user.click(screen.getByRole("button", { name: "Add 1 widget" }));
 
-    expect(addItem).toHaveBeenCalledTimes(1);
-    expect(addItem.mock.calls[0][1]).toMatchObject({ w: 6, h: 8 });
+    expect(addItems).toHaveBeenCalledTimes(1);
+    expect(addItems.mock.calls[0][0][0].placement).toMatchObject({
+      w: 6,
+      h: 8,
+    });
   });
 });

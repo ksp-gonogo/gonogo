@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type {
   MissionProfile,
   MissionProfilesService,
@@ -39,4 +39,15 @@ export function useMissionProfiles(): readonly MissionProfile[] {
   const [profiles, setProfiles] = useState(() => svc.list());
   useEffect(() => svc.subscribe(() => setProfiles(svc.list())), [svc]);
   return profiles;
+}
+
+/** The saved layouts other than the one this screen is saving into, live. */
+export function useOtherLayouts(): readonly MissionProfile[] {
+  const svc = useMissionProfilesService();
+  const profiles = useMissionProfiles();
+  const currentId = svc.getCurrentId();
+  return useMemo(
+    () => profiles.filter((p) => p.id !== currentId),
+    [profiles, currentId],
+  );
 }

@@ -41,24 +41,30 @@ export function LayoutHistoryControl({
           <Name>{name}</Name>
         </Tooltip>
       ) : null}
-      <HistoryButton
-        type="button"
-        aria-label={stepLabel("Undo", undoStep)}
-        disabled={!canUndo}
-        onClick={() => dashboard.undo()}
-      >
-        <RecallIcon />
-      </HistoryButton>
-      <HistoryButton
-        type="button"
-        aria-label={stepLabel("Redo", redoStep)}
-        disabled={!canRedo}
-        onClick={() => dashboard.redo()}
-      >
-        <Mirrored>
+      <Tooltip text={`${stepLabel("Undo", undoStep)} (Ctrl/Cmd+Z)`}>
+        <HistoryButton
+          type="button"
+          aria-label={stepLabel("Undo", undoStep)}
+          aria-keyshortcuts="Control+Z Meta+Z"
+          disabled={!canUndo}
+          onClick={() => dashboard.undo()}
+        >
           <RecallIcon />
-        </Mirrored>
-      </HistoryButton>
+        </HistoryButton>
+      </Tooltip>
+      <Tooltip text={`${stepLabel("Redo", redoStep)} (Ctrl/Cmd+Shift+Z)`}>
+        <HistoryButton
+          type="button"
+          aria-label={stepLabel("Redo", redoStep)}
+          aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y"
+          disabled={!canRedo}
+          onClick={() => dashboard.redo()}
+        >
+          <Mirrored>
+            <RecallIcon />
+          </Mirrored>
+        </HistoryButton>
+      </Tooltip>
     </Wrap>
   );
 }

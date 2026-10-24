@@ -24,6 +24,10 @@ export interface DashboardState {
   clearLastAdded: (id: string) => void;
   handleLayoutChange: (layout: Layout) => void;
   addItem: (item: DashboardItem, placement: Partial<LayoutItem>) => void;
+  /** Adds several widgets in one change, so Undo takes them all back together. */
+  addItems: (
+    entries: readonly { item: DashboardItem; placement: Partial<LayoutItem> }[],
+  ) => void;
   removeItem: (id: string) => void;
   /** Reorder: move the item with this id one slot earlier in `items`. No-op for the first item. */
   moveItemUp: (id: string) => void;
@@ -84,24 +88,40 @@ export function useDashboardState(
     setLayout(next);
   }, []);
 
-  const addItem = useCallback(
-    (item: DashboardItem, placement: Partial<LayoutItem>) => {
-      setItemsInner((prev) => [...prev, item]);
-      // Without a caller-supplied x/y the widget takes the first free slot wide enough for it.
-      const w = placement.w ?? 3;
-      const h = placement.h ?? 3;
-      const placed: LayoutItem =
-        placement.x !== undefined || placement.y !== undefined
-          ? { i: item.i, x: 0, y: 9999, w, h, ...placement }
-          : {
-              ...placement,
-              i: item.i,
-              ...firstFreeSlot(layout, { w, h }, COLS),
-            };
-      setLayout([...layout, placed]);
-      setLastAddedId(item.i);
+  const addItems = useCallback(
+    (
+      entries: readonly {
+        item: DashboardItem;
+        placement: Partial<LayoutItem>;
+      }[],
+    ) => {
+      if (entries.length === 0) return;
+      setItemsInner((prev) => [...prev, ...entries.map((e) => e.item)]);
+      let next = layout;
+      for (const { item, placement } of entries) {
+        // Without a caller-supplied x/y the widget takes the first free slot wide enough for it.
+        const w = placement.w ?? 3;
+        const h = placement.h ?? 3;
+        const placed: LayoutItem =
+          placement.x !== undefined || placement.y !== undefined
+            ? { i: item.i, x: 0, y: 9999, w, h, ...placement }
+            : {
+                ...placement,
+                i: item.i,
+                ...firstFreeSlot(next, { w, h }, COLS),
+              };
+        next = [...next, placed];
+      }
+      setLayout(next);
+      setLastAddedId(entries[entries.length - 1].item.i);
     },
     [layout],
+  );
+
+  const addItem = useCallback(
+    (item: DashboardItem, placement: Partial<LayoutItem>) =>
+      addItems([{ item, placement }]),
+    [addItems],
   );
 
   const clearLastAdded = useCallback((id: string) => {
@@ -200,6 +220,7 @@ export function useDashboardState(
     clearLastAdded,
     handleLayoutChange,
     addItem,
+    addItems,
     removeItem,
     moveItemUp,
     moveItemDown,

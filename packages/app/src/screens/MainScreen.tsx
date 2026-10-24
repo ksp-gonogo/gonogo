@@ -49,12 +49,10 @@ import { CommcastLink } from "../commcast/CommcastLink";
 import type { CommcastLog } from "../commcast/CommcastLog";
 import { CommcastLogProvider } from "../commcast/CommcastLogContext";
 import { createCommcastLog } from "../commcast/createCommcastLog";
-import {
-  ComponentOverlay,
-  OverlayProvider,
-} from "../components/ComponentOverlay";
+import { ComponentOverlay } from "../components/ComponentOverlay";
 import type { DashboardConfig } from "../components/Dashboard";
 import { Dashboard } from "../components/Dashboard";
+import { DashboardShortcuts } from "../components/DashboardShortcuts";
 import {
   ContactLossBanner,
   FlightOutcomeBanner,
@@ -78,6 +76,7 @@ import {
   MissionProfilesProvider,
   MissionProfilesService,
   ProfileDashboardProvider,
+  ProfileOverlayProvider,
   ProfileSwitchBanner,
   profileInputOptions,
   SceneSwitchPrompt,
@@ -440,10 +439,8 @@ function MainDashboard({
   }, [serialService, dashboard.getItems, profiles, controller]);
 
   return (
-    <OverlayProvider
-      addItem={dashboard.addItem}
-      updateItemConfig={dashboard.updateItemConfig}
-    >
+    <ProfileOverlayProvider dashboard={dashboard}>
+      <DashboardShortcuts history={controller} />
       <MainAlarmsLauncherScope>
         <Layout as="main" aria-label="Mission control">
           <UplinkIntegrityBanner />
@@ -510,7 +507,7 @@ function MainDashboard({
           <PushedDashboardOverlay />
         </Layout>
       </MainAlarmsLauncherScope>
-    </OverlayProvider>
+    </ProfileOverlayProvider>
   );
 }
 

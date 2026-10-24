@@ -211,6 +211,21 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
     ],
   },
   {
+    id: "shortcuts",
+    title: "Keyboard shortcuts",
+    blocks: [
+      text(
+        "These work anywhere on the dashboard, with Ctrl on Windows and Linux or Cmd on a Mac. They do nothing while you are typing in a field or while a dialog is open, and the keyboard input device never reads a key held with Ctrl or Cmd, so none of them can trigger a binding.",
+      ),
+      list(
+        "Ctrl or Cmd with Z: undo the last layout change or layout switch",
+        "Ctrl or Cmd with Shift and Z, or Ctrl with Y: redo it",
+        "Ctrl or Cmd with K: open Add widget",
+        "In Add widget: Up, Down, Home and End move through the list, Shift and Enter ticks or unticks a widget, Enter adds every ticked widget (or the highlighted one when none is ticked), Escape closes",
+      ),
+    ],
+  },
+  {
     id: "delay",
     title: "Signal delay",
     blocks: [

@@ -23,7 +23,11 @@ import {
   useModal,
 } from "@ksp-gonogo/ui";
 import {
+  Badge,
   Box,
+  Button,
+  CheckIcon,
+  LayersIcon,
   Tooltip,
   useSizeDeltaFor,
   withSizeDelta,
@@ -41,9 +45,21 @@ import {
 import styled from "styled-components";
 import type { DashboardItem } from "./Dashboard";
 
-// Context: lets the overlay call addItem without prop-drilling.
+/** A saved layout other than the one on screen, as far as the picker needs it: its name and what is on it. */
+export interface OtherLayout {
+  name: string;
+  items: readonly Pick<DashboardItem, "componentId">[];
+}
+
+type NewItem = { item: DashboardItem; placement: { w: number; h: number } };
+
+// Context: lets the overlay call addItems without prop-drilling.
 interface OverlayContextValue {
-  addItem: (item: DashboardItem, layout: { w: number; h: number }) => void;
+  addItems: (entries: readonly NewItem[]) => void;
+  /** The widgets on the layout on screen, which the picker marks. */
+  items: readonly Pick<DashboardItem, "componentId">[];
+  /** The other saved layouts, whose widgets the picker marks differently. */
+  otherLayouts: readonly OtherLayout[];
   updateItemConfig: (id: string, config: Record<string, unknown>) => void;
   /** Whether the picker is open. Held here so a control outside the overlay can open it. */
   pickerOpen: boolean;
@@ -52,19 +68,33 @@ interface OverlayContextValue {
 
 const OverlayContext = createContext<OverlayContextValue | null>(null);
 
+const NO_ITEMS: readonly Pick<DashboardItem, "componentId">[] = [];
+const NO_LAYOUTS: readonly OtherLayout[] = [];
+
 export function OverlayProvider({
   children,
-  addItem,
+  addItems,
   updateItemConfig,
+  items = NO_ITEMS,
+  otherLayouts = NO_LAYOUTS,
 }: Readonly<{
   children: ReactNode;
-  addItem: (item: DashboardItem, layout: { w: number; h: number }) => void;
+  addItems: (entries: readonly NewItem[]) => void;
   updateItemConfig: (id: string, config: Record<string, unknown>) => void;
+  items?: readonly Pick<DashboardItem, "componentId">[];
+  otherLayouts?: readonly OtherLayout[];
 }>) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const value = useMemo(
-    () => ({ addItem, updateItemConfig, pickerOpen, setPickerOpen }),
-    [addItem, updateItemConfig, pickerOpen],
+    () => ({
+      addItems,
+      items,
+      otherLayouts,
+      updateItemConfig,
+      pickerOpen,
+      setPickerOpen,
+    }),
+    [addItems, items, otherLayouts, updateItemConfig, pickerOpen],
   );
   return (
     <OverlayContext.Provider value={value}>{children}</OverlayContext.Provider>
@@ -100,10 +130,14 @@ export function ComponentOverlay({
   // tracked via aria-activedescendant, so the user can keep typing to filter
   // while arrows move the highlight.
   const [activeIdx, setActiveIdx] = useState(0);
+  // Ids of the widgets ticked for the next Add, in the order they were ticked.
+  const [selectedIds, setSelectedIds] = useState<readonly string[]>([]);
   const activeOptionRef = useRef<HTMLButtonElement | null>(null);
 
   const {
-    addItem,
+    addItems,
+    items,
+    otherLayouts,
     updateItemConfig,
     pickerOpen: open,
     setPickerOpen: setOpen,
@@ -124,6 +158,20 @@ export function ComponentOverlay({
 
   const allComponents = getComponents();
   const seat = useSeat();
+
+  const placement = useMemo(() => {
+    const here = new Map<string, number>();
+    for (const it of items) {
+      here.set(it.componentId, (here.get(it.componentId) ?? 0) + 1);
+    }
+    const elsewhere = new Map<string, string[]>();
+    for (const layout of otherLayouts) {
+      for (const id of new Set(layout.items.map((it) => it.componentId))) {
+        elsewhere.set(id, [...(elsewhere.get(id) ?? []), layout.name]);
+      }
+    }
+    return { here, elsewhere };
+  }, [items, otherLayouts]);
 
   // Tag → count, descending. Drives the chip row below the search box so the
   // most-used tags appear first. Singleton tags (only one widget carries
@@ -200,33 +248,45 @@ export function ComponentOverlay({
     setOpen(false);
     setQuery("");
     setSelectedTags(new Set());
+    setSelectedIds([]);
     setActiveIdx(0);
   }, [setOpen]);
 
-  const handleSelect = useCallback(
-    (def: ComponentDefinition) => {
-      const item: DashboardItem = {
-        i: safeRandomUuid(),
-        componentId: def.id,
-        config: def.defaultConfig ? { ...def.defaultConfig } : undefined,
-      };
-      const sized = withSizeDelta(def, sizeDeltaFor(def));
-      const defaultSize = sized.defaultSize ?? { w: 3, h: 3 };
-      const min = sized.minSize;
-      const max = sized.maxSize;
-      const floored = min
-        ? {
-            w: Math.max(defaultSize.w, min.w),
-            h: Math.max(defaultSize.h, min.h),
-          }
-        : defaultSize;
-      const size = max
-        ? { w: Math.min(floored.w, max.w), h: Math.min(floored.h, max.h) }
-        : floored;
-      addItem(item, size);
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
+    );
+  }, []);
+
+  const handleAdd = useCallback(
+    (defs: readonly ComponentDefinition[]) => {
+      if (defs.length === 0) return;
+      const added = defs.map((def) => {
+        const item: DashboardItem = {
+          i: safeRandomUuid(),
+          componentId: def.id,
+          config: def.defaultConfig ? { ...def.defaultConfig } : undefined,
+        };
+        const sized = withSizeDelta(def, sizeDeltaFor(def));
+        const defaultSize = sized.defaultSize ?? { w: 3, h: 3 };
+        const min = sized.minSize;
+        const max = sized.maxSize;
+        const floored = min
+          ? {
+              w: Math.max(defaultSize.w, min.w),
+              h: Math.max(defaultSize.h, min.h),
+            }
+          : defaultSize;
+        const size = max
+          ? { w: Math.min(floored.w, max.w), h: Math.min(floored.h, max.h) }
+          : floored;
+        return { def, item, placement: size };
+      });
+      addItems(added);
       closeOverlay();
 
-      if (def.openConfigOnAdd && def.configComponent) {
+      for (const { def, item } of added) {
+        if (!def.openConfigOnAdd || !def.configComponent) continue;
         const ConfigComp = def.configComponent;
         const modalId = openModal(
           <SerialDeviceProvider service={serialService}>
@@ -235,7 +295,7 @@ export function ComponentOverlay({
                 config={item.config ?? def.defaultConfig ?? {}}
                 onSave={(newConfig: Record<string, unknown>) => {
                   // Persist the user's freshly-entered config to the item
-                  // that addItem just placed. Without this, the on-add modal
+                  // that addItems just placed. Without this, the on-add modal
                   // was cosmetic, the widget reverted to defaultConfig.
                   updateItemConfig(item.i, newConfig);
                   closeModal(modalId);
@@ -248,7 +308,7 @@ export function ComponentOverlay({
       }
     },
     [
-      addItem,
+      addItems,
       updateItemConfig,
       sizeDeltaFor,
       openModal,
@@ -259,10 +319,21 @@ export function ComponentOverlay({
     ],
   );
 
+  const addSelected = useCallback(() => {
+    const byId = new Map(allComponents.map((d) => [d.id, d]));
+    handleAdd(
+      selectedIds.flatMap((id) => {
+        const def = byId.get(id);
+        return def ? [def] : [];
+      }),
+    );
+  }, [allComponents, selectedIds, handleAdd]);
+
   // Combobox keyboard nav: arrows move the roving selection through the
   // filtered results, Enter activates the highlighted widget. Clamps at the
   // ends (APG-consistent for a search-filtered listbox: wrapping is jarring
   // when you're scanning a list you filtered yourself). Escape still closes.
+  // Shift+Enter ticks or unticks the highlighted widget.
   const handleSearchKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Escape") {
@@ -293,10 +364,27 @@ export function ComponentOverlay({
       if (e.key === "Enter") {
         e.preventDefault();
         const def = filtered[activeIdx] ?? filtered[0];
-        if (def) handleSelect(def);
+        if (e.shiftKey) {
+          if (def) toggleSelected(def.id);
+          return;
+        }
+        // Enter adds what is ticked; with nothing ticked it adds the highlighted widget.
+        if (selectedIds.length > 0) {
+          addSelected();
+          return;
+        }
+        if (def) handleAdd([def]);
       }
     },
-    [filtered, activeIdx, handleSelect, closeOverlay],
+    [
+      filtered,
+      activeIdx,
+      handleAdd,
+      toggleSelected,
+      selectedIds,
+      addSelected,
+      closeOverlay,
+    ],
   );
 
   const listboxId = "component-overlay-listbox";
@@ -306,11 +394,12 @@ export function ComponentOverlay({
   return (
     <>
       <FabClusterToggle />
-      <Tooltip text="Add widget">
+      <Tooltip text="Add widget (Ctrl/Cmd+K)">
         <Fab
           bottom={bottom}
           onClick={() => setOpen(true)}
           aria-label="Add widget"
+          aria-keyshortcuts="Control+K Meta+K"
         >
           <PlusIcon />
         </Fab>
@@ -362,7 +451,12 @@ export function ComponentOverlay({
             <ResultsHeader>
               {filtered.length} of {allComponents.length} widgets
             </ResultsHeader>
-            <List id={listboxId} role="listbox" aria-label="Available widgets">
+            <List
+              id={listboxId}
+              role="listbox"
+              aria-label="Available widgets"
+              aria-multiselectable
+            >
               {filtered.length === 0 && (
                 <Empty>
                   No widgets match "{query}"
@@ -371,19 +465,48 @@ export function ComponentOverlay({
               )}
               {filtered.map((def, i) => {
                 const active = i === activeIdx;
+                const ticked = selectedIds.includes(def.id);
+                const onHere = placement.here.get(def.id);
+                const onOthers = placement.elsewhere.get(def.id);
                 return (
                   <ListItem
                     key={def.id}
                     id={optionId(def.id)}
                     role="option"
-                    aria-selected={active}
+                    aria-selected={ticked}
                     $active={active}
+                    $ticked={ticked}
                     ref={active ? activeOptionRef : undefined}
                     // Pointer focus moves the roving cursor so a subsequent keystroke continues from where the mouse last hovered.
                     onMouseEnter={() => setActiveIdx(i)}
-                    onClick={() => handleSelect(def)}
+                    // Keeps focus in the search box, so ticking with the pointer does not end keyboard use.
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => toggleSelected(def.id)}
                   >
-                    <ItemName>{def.name}</ItemName>
+                    <ItemHead>
+                      <TickBox $ticked={ticked} aria-hidden="true">
+                        {ticked && <CheckIcon size={12} />}
+                      </TickBox>
+                      <ItemName>{def.name}</ItemName>
+                      {onHere !== undefined && (
+                        <Badge tone="info" size="sm">
+                          <BadgeContent>
+                            <CheckIcon size={10} />
+                            On this layout{onHere > 1 ? ` x${onHere}` : ""}
+                          </BadgeContent>
+                        </Badge>
+                      )}
+                      {onOthers !== undefined && (
+                        <Tooltip text={`On ${onOthers.join(", ")}`}>
+                          <Badge size="sm">
+                            <BadgeContent>
+                              <LayersIcon size={10} />
+                              On another layout
+                            </BadgeContent>
+                          </Badge>
+                        </Tooltip>
+                      )}
+                    </ItemHead>
                     <ItemDesc>{def.description}</ItemDesc>
                     {uplinkOwner(def) && (
                       <UplinkAddLine>
@@ -402,6 +525,22 @@ export function ComponentOverlay({
                 );
               })}
             </List>
+            {selectedIds.length > 0 && (
+              <AddBar>
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                >
+                  Clear
+                </Button>
+                <Button variant="primary" type="button" onClick={addSelected}>
+                  {selectedIds.length === 1
+                    ? "Add 1 widget"
+                    : `Add ${selectedIds.length} widgets`}
+                </Button>
+              </AddBar>
+            )}
           </OverlaySurface>
         </Backdrop>
       )}
@@ -514,13 +653,13 @@ const List = styled.div`
   flex: 1;
 `;
 
-const ListItem = styled.button<{ $active?: boolean }>`
+const ListItem = styled.button<{ $active?: boolean; $ticked?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
   width: 100%;
   text-align: left;
-  background: ${(p) => (p.$active ? "var(--color-surface-raised)" : "none")};
+  background: ${(p) => (p.$active || p.$ticked ? "var(--color-surface-raised)" : "none")};
   border: none;
   border-bottom: 1px solid var(--color-surface-panel);
   /* A full-width record on the picker's gutter, not a control, whatever the
@@ -548,7 +687,45 @@ const ListItem = styled.button<{ $active?: boolean }>`
   }
 `;
 
+const ItemHead = styled.span`
+  display: flex;
+  align-items: center;
+  gap: var(--gap-related);
+  min-width: 0;
+`;
+
+/** The square that fills with a tick once the widget is ticked for the next Add. */
+const TickBox = styled.span<{ $ticked: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: 1px solid
+    ${(p) => (p.$ticked ? "var(--color-accent-fg)" : "var(--color-border-strong)")};
+  border-radius: var(--radius-regular);
+  color: var(--color-accent-fg);
+`;
+
+const BadgeContent = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-glyph-tray);
+`;
+
+const AddBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--gap-control-row);
+  padding: var(--inset-overlay-band);
+  border-top: 1px solid var(--color-surface-raised);
+  flex-shrink: 0;
+`;
+
 const ItemName = styled.span`
+  margin-right: auto;
   font-size: var(--font-size-value);
   font-weight: 600;
   color: var(--color-text-primary);
