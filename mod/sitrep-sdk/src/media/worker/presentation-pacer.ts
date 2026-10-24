@@ -171,6 +171,16 @@ export class PresentationPacer<Frame> {
    */
   private arrivalAnchor: { ut: number; wall: number } | null = null;
   private arrivalLatest: { ut: number; wall: number } | null = null;
+  /**
+   * Set when a frame is submitted to an empty queue. The next `tick()` then
+   * starts the new run from now if the spacing alone would have it overdue, so
+   * the time the queue spent empty is not paid back as a burst of frames shown
+   * at once, followed by a long wait for the next release. Applies only when the
+   * previous `tick()` was recent, since a caller that stopped ticking has a
+   * backlog to report and not a pause between releases.
+   */
+  private rebaseOnNextTick = false;
+  private lastTickWall: number | null = null;
 
   constructor(private readonly opts: PresentationPacerOptions<Frame>) {}
 
@@ -183,6 +193,7 @@ export class PresentationPacer<Frame> {
    * the class doc); omitting it leaves spacing at 1:1.
    */
   submit(frame: PacedFrame<Frame>, arrivedWall?: number): void {
+    if (this.queue.length === 0) this.rebaseOnNextTick = true;
     this.queue.push(frame);
     if (arrivedWall === undefined) return;
     const arrival = { ut: frame.ut, wall: arrivedWall };
@@ -233,6 +244,8 @@ export class PresentationPacer<Frame> {
    *  uses, the caller's own clock). Call this on every tick of the
    *  caller's ~60Hz loop. */
   tick(nowWall: number): void {
+    const previousTickWall = this.lastTickWall;
+    this.lastTickWall = nowWall;
     if (this.queue.length === 0) return;
 
     // One reading per tick, so every frame drained in this pass is spaced on the same rate rather than on one that moved underneath the loop.
@@ -241,6 +254,17 @@ export class PresentationPacer<Frame> {
     const head = this.queue[0];
     const newest = this.queue[this.queue.length - 1];
     if (head === undefined || newest === undefined) return;
+    if (this.rebaseOnNextTick) {
+      this.rebaseOnNextTick = false;
+      if (
+        this.lastPresented &&
+        previousTickWall !== null &&
+        nowWall - previousTickWall <= this.opts.maxBacklogSeconds &&
+        this.dueWallFor(head, nowWall, rate) < nowWall
+      ) {
+        this.lastPresented = { ut: head.ut, wall: nowWall };
+      }
+    }
     const headDue = this.dueWallFor(head, nowWall, rate);
     const lead = this.dueWallFor(newest, nowWall, rate) - nowWall;
     /*
@@ -320,6 +344,8 @@ export class PresentationPacer<Frame> {
    */
   reset(): void {
     this.dispose();
+    this.rebaseOnNextTick = false;
+    this.lastTickWall = null;
     this.lastPresented = null;
     this.arrivalAnchor = null;
     this.arrivalLatest = null;

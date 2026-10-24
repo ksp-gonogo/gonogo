@@ -6,6 +6,32 @@ function frame(ut: number, label: string): PacedFrame<string> {
 }
 
 describe("PresentationPacer", () => {
+  it("a release after a pause in a ticking pacer starts from now rather than paying the pause back as a burst", () => {
+    const presented: { label: string; wall: number }[] = [];
+    let wall = 0;
+    const pacer = new PresentationPacer<string>({
+      onPresent: (f) => presented.push({ label: f.data, wall }),
+      maxBacklogSeconds: 0.5,
+    });
+
+    pacer.submit(frame(0, "a"));
+    pacer.tick(wall);
+    // The queue stays empty for 0.4 s of regular ticks, then 0.1 s of video arrives at once.
+    for (wall = 0.016; wall < 0.4; wall += 0.016) pacer.tick(wall);
+    pacer.submit(frame(0.2, "b"));
+    pacer.submit(frame(0.25, "c"));
+    pacer.submit(frame(0.3, "d"));
+    const releasedAt = wall;
+    pacer.tick(wall);
+    for (wall += 0.016; wall < 1; wall += 0.016) pacer.tick(wall);
+
+    expect(presented.map((p) => p.label)).toEqual(["a", "b", "c", "d"]);
+    const [, b, c, d] = presented as { label: string; wall: number }[];
+    expect(b?.wall).toBeCloseTo(releasedAt, 5);
+    expect((c?.wall ?? 0) - (b?.wall ?? 0)).toBeGreaterThanOrEqual(0.045);
+    expect((d?.wall ?? 0) - (c?.wall ?? 0)).toBeGreaterThanOrEqual(0.045);
+  });
+
   it("presents a single frame immediately on the first tick, with no artificial delay", () => {
     const presented: string[] = [];
     const pacer = new PresentationPacer<string>({
