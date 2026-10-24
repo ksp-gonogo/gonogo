@@ -1,6 +1,9 @@
+import "@ksp-gonogo/components";
+import { getComponent } from "@ksp-gonogo/core";
 import type { Layout } from "react-grid-layout";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DashboardItem } from "../components/Dashboard";
+import { DEFAULT_TEMPLATES, snapshotOf } from "./layoutTemplates";
 import { MissionProfilesService } from "./MissionProfilesService";
 import {
   AUTOSAVE_DELAY_MS,
@@ -292,5 +295,68 @@ describe("ProfileDashboard undo and redo", () => {
     svc.remove(a.id);
 
     expect(dashboard.canUndo()).toBe(false);
+  });
+});
+
+describe("ProfileDashboard new layouts", () => {
+  it("creates an empty layout, shows it and undoes back to what was there", () => {
+    const { svc, dashboard, shown } = setup(snap("a"));
+
+    const blank = dashboard.createLayout("Blank");
+
+    expect(ids(shown())).toEqual([]);
+    expect(svc.getCurrentId()).toBe(blank.id);
+
+    dashboard.undo();
+
+    expect(ids(shown())).toEqual(["a"]);
+  });
+
+  it("adds every template with its scenes and automatic switching, as one undo step", () => {
+    const { svc, dashboard, shown } = setup(snap());
+
+    const made = dashboard.addTemplates(DEFAULT_TEMPLATES, "Flight");
+
+    expect(made.map((p) => p.name)).toEqual(["Flight", "Space Centre"]);
+    expect(made.every((p) => p.autoSwitch)).toBe(true);
+    expect(svc.findForScene("Editor")?.name).toBe("Space Centre");
+    expect(svc.findForScene("TrackingStation")?.name).toBe("Space Centre");
+    expect(svc.findForScene("Flight")?.name).toBe("Flight");
+    expect(svc.getCurrent()?.name).toBe("Flight");
+    expect(shown().items.length).toBeGreaterThan(0);
+
+    dashboard.undo();
+
+    expect(ids(shown())).toEqual([]);
+  });
+
+  it("opens the layout for the scene the game is in", () => {
+    const { svc, dashboard } = setup(snap());
+
+    dashboard.addTemplates(DEFAULT_TEMPLATES, "TrackingStation");
+
+    expect(svc.getCurrent()?.name).toBe("Space Centre");
+  });
+
+  it("places every starter widget on a registered component with unique ids and no overlap", () => {
+    for (const template of DEFAULT_TEMPLATES) {
+      const { items, layout } = snapshotOf(template);
+      expect(new Set(items.map((it) => it.i)).size).toBe(items.length);
+      for (const it of items) {
+        expect(getComponent(it.componentId), it.componentId).toBeDefined();
+      }
+      for (const a of layout) {
+        expect(a.x + a.w).toBeLessThanOrEqual(36);
+        for (const b of layout) {
+          if (a === b) continue;
+          const apart =
+            a.x + a.w <= b.x ||
+            b.x + b.w <= a.x ||
+            a.y + a.h <= b.y ||
+            b.y + b.h <= a.y;
+          expect(apart, `${a.i} overlaps ${b.i}`).toBe(true);
+        }
+      }
+    }
   });
 });

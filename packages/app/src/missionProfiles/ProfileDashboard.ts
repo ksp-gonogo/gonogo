@@ -1,5 +1,6 @@
 import type { Layout } from "react-grid-layout";
 import type { DashboardItem } from "../components/Dashboard";
+import { type LayoutTemplate, snapshotOf } from "./layoutTemplates";
 import type {
   BindableScene,
   MissionProfile,
@@ -216,24 +217,84 @@ export class ProfileDashboard {
     sceneBindings: BindableScene[] = [],
     autoSwitch = false,
   ): MissionProfile {
+    return this.createLayout(name, this.shown, sceneBindings, autoSwitch);
+  }
+
+  /**
+   * Makes a new named profile holding `content` (an empty dashboard when
+   * omitted), shows it and makes it current. One undo step returns to the
+   * dashboard that was on screen.
+   */
+  createLayout(
+    name: string,
+    content: DashboardSnapshot = { items: [], layout: [] },
+    sceneBindings: BindableScene[] = [],
+    autoSwitch = false,
+  ): MissionProfile {
     this.flush();
-    const copy = this.service.save(
+    const created = this.service.save(
       name,
-      this.shown.items,
-      this.shown.layout,
+      content.items,
+      content.layout,
       sceneBindings,
       autoSwitch,
     );
+    this.enter(created);
+    return created;
+  }
+
+  /** Copies a saved profile under a new name, without its scenes or input. */
+  duplicate(id: string): MissionProfile | null {
+    const source = this.service.get(id);
+    if (!source) return null;
+    // Flush first so a duplicate of the current layout includes pending edits.
+    this.flush();
+    const fresh = this.service.get(id) ?? source;
+    return this.createLayout(`${fresh.name} copy`, {
+      items: fresh.items,
+      layout: fresh.layout,
+    });
+  }
+
+  /**
+   * Creates one profile per template, each following its scenes with
+   * automatic switching on, and shows the one for `scene` (the first
+   * template when no template follows it). One undo step covers all of it.
+   */
+  addTemplates(
+    templates: readonly LayoutTemplate[],
+    scene?: BindableScene,
+  ): MissionProfile[] {
+    this.flush();
+    const created = templates.map((t) => {
+      const content = snapshotOf(t);
+      return this.service.save(
+        t.name,
+        content.items,
+        content.layout,
+        [...t.scenes],
+        true,
+      );
+    });
+    const shown =
+      created.find((p) => scene && p.sceneBindings?.includes(scene)) ??
+      created[0];
+    if (shown) this.enter(shown);
+    return created;
+  }
+
+  /** Makes a profile just created the current one, as an undoable switch. */
+  private enter(profile: MissionProfile): void {
     this.pushUndo({
       kind: "switch",
       from: this.service.getCurrentId(),
-      to: copy.id,
+      to: profile.id,
       fromState: this.shown,
     });
     this.redoStack = [];
-    this.service.setCurrent(copy.id);
+    this.service.setCurrent(profile.id);
+    this.show({ items: profile.items, layout: profile.layout });
     this.emit();
-    return copy;
   }
 
   undo(): void {
