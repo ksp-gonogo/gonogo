@@ -99,14 +99,14 @@ describe("Add station panel with a join request waiting", () => {
 
     const dialog = screen.getByRole("dialog");
     await user.click(
-      within(dialog).getByRole("button", { name: "Approve station Flight" }),
+      within(dialog).getByRole("button", { name: /^Approve station Flight/ }),
     );
     expect(peerHostService.pendingStations()).toEqual([]);
     expect(flight.open).toBe(true);
 
     const capcom = await join("p2", "Capcom");
     await user.click(
-      within(dialog).getByRole("button", { name: "Refuse station Capcom" }),
+      within(dialog).getByRole("button", { name: /^Refuse station Capcom/ }),
     );
     expect(peerHostService.pendingStations()).toEqual([]);
     expect(capcom.open).toBe(false);

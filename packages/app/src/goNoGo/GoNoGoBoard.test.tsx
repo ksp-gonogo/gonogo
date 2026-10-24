@@ -165,6 +165,24 @@ describe("GO/NO-GO station button", () => {
     expect(screen.queryByRole("combobox")).toBeNull();
   });
 
+  it("says the press casts the other vote, so the label reads as the current vote and not the action", async () => {
+    render(
+      <ScreenProvider value="station">
+        <PeerClientProvider client={idlePeerClient()}>
+          <DashboardItemContext.Provider value={{ instanceId: "gng" }}>
+            <GoNoGoComponent id="gng" w={6} h={8} />
+          </DashboardItemContext.Provider>
+        </PeerClientProvider>
+      </ScreenProvider>,
+    );
+    const button = (await screen.findByText("NO-GO")).closest(
+      "button",
+    ) as HTMLElement;
+    expect(button).toHaveTextContent("Press to vote GO");
+    fireEvent.click(button);
+    expect(await screen.findByText("Press to vote NO-GO")).toBeInTheDocument();
+  });
+
   it("has no Reset control", () => {
     render(
       <ScreenProvider value="station">

@@ -35,10 +35,11 @@ import {
 } from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
-import type { PeerMessage } from "./protocol";
+import type { HostLayout, PeerMessage } from "./protocol";
 import { asPeerMessage, HOST_HEARTBEAT_MS } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
 import { stationApprovals } from "./stationApprovals";
+import { stationTag } from "./stationPeerId";
 import { TypedListeners } from "./typedListeners";
 import { encodeWideNumbers } from "./wideNumbers";
 
@@ -320,6 +321,8 @@ export interface PendingStation {
   peerId: string;
   /** The name the station reported. */
   name: string;
+  /** The code the station shows while it waits, when it sent a stable identity. */
+  tag?: string;
 }
 
 /**
@@ -487,6 +490,7 @@ export class PeerHostService {
   private readonly connCredential = new Map<DataConnection, string>();
   /** Stations waiting on the main screen, in the order they asked. */
   private pending: readonly PendingStation[] = [];
+  private hostLayouts: (() => HostLayout[]) | null = null;
 
   // Download-once cache for Uplink bundle bytes, keyed by bundleUrl.
   // See handleUplinkBundleRequest and BundleFetchCache's own doc comment.
@@ -1777,6 +1781,13 @@ export class PeerHostService {
     "uplink-bundle-request": (msg, conn) => {
       void this.handleUplinkBundleRequest(msg, conn);
     },
+    "host-layouts-request": (msg, conn) => {
+      conn.send({
+        type: "host-layouts-response",
+        requestId: msg.requestId,
+        layouts: this.hostLayouts?.() ?? [],
+      } satisfies PeerMessage);
+    },
     "uplink-manifest-request": (msg, conn) => {
       void this.handleUplinkManifestRequest(msg, conn);
     },
@@ -2085,7 +2096,12 @@ export class PeerHostService {
       return;
     }
     if (credential !== undefined) {
-      const entry = { peerId: conn.peer, name };
+      const stationKey = this.peerIdToStationKey.get(conn.peer);
+      const entry: PendingStation = {
+        peerId: conn.peer,
+        name,
+        ...(stationKey ? { tag: stationTag(stationKey) } : {}),
+      };
       const known = this.pending.some((p) => p.peerId === conn.peer);
       this.setPending(
         known
@@ -2108,6 +2124,17 @@ export class PeerHostService {
     }
     this.pending = next;
     this.events.emit("pendingStations", next);
+  }
+
+  /**
+   * Where the layouts offered to an approved station come from. Returns the
+   * function that withdraws the source.
+   */
+  setHostLayoutsSource(source: () => HostLayout[]): () => void {
+    this.hostLayouts = source;
+    return () => {
+      if (this.hostLayouts === source) this.hostLayouts = null;
+    };
   }
 
   /** Stations waiting for the main screen to approve them, in the order they asked. */
