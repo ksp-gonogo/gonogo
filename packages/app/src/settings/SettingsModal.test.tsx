@@ -314,7 +314,7 @@ describe("SettingsModal Connection tab: the one game connection", () => {
 
     const user = userEvent.setup();
     await user.click(
-      screen.getByRole("button", { name: /configure sitrep stream/i }),
+      screen.getByRole("button", { name: /host address for sitrep stream/i }),
     );
     expect(screen.getByLabelText("Host")).toHaveValue("localhost");
     expect(screen.getByLabelText("Port")).toHaveValue(8090);

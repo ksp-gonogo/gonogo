@@ -6,10 +6,8 @@ import {
   FieldLabel,
   FieldRow,
   FormActions,
-  IconButton,
   Input,
   Placeholder,
-  SettingsIcon,
 } from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled, { keyframes } from "styled-components";
@@ -55,6 +53,11 @@ export function SitrepConnection() {
     setEditingConfig(false);
   };
 
+  const current = getDataSource("sitrep")?.getConfig() ?? {};
+  const address = current.host
+    ? `${current.host}${current.port ? `:${current.port}` : ""}`
+    : "";
+
   const instructions =
     source.status === "disconnected"
       ? getDataSource("sitrep")?.setupInstructions?.()
@@ -77,15 +80,16 @@ export function SitrepConnection() {
           </RetryButton>
         )}
         {schema.length > 0 && (
-          <ConfigButton
+          <Button
+            variant="ghost"
             onClick={() =>
               editingConfig ? setEditingConfig(false) : openConfig()
             }
-            aria-label={`Configure ${source.name}`}
-            $active={editingConfig}
+            aria-label={`Host address for ${source.name}`}
+            aria-expanded={editingConfig}
           >
-            <SettingsIcon size="var(--icon-size-control)" />
-          </ConfigButton>
+            {address ? `Host address: ${address}` : "Host address"}
+          </Button>
         )}
       </ConnectionRow>
       {instructions && <SetupInstructions>{instructions}</SetupInstructions>}
@@ -183,12 +187,6 @@ const RetryButton = styled(Button).attrs({ variant: "ghost" })`
   font-size: var(--font-size-compact);
   letter-spacing: 0.05em;
   white-space: nowrap;
-`;
-
-const ConfigButton = styled(IconButton)<{ $active: boolean }>`
-  color: ${({ $active }) =>
-    $active ? "var(--color-text-primary)" : "var(--color-text-faint)"};
-  padding: var(--inset-glyph-tight);
 `;
 
 const SetupInstructions = styled.pre`
