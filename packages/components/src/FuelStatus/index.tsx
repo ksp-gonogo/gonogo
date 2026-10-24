@@ -16,6 +16,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { magnitudeOf } from "../shared/magnitude";
+import { stageToFire } from "../shared/stageToFire";
 import {
   DELTA_V_MODE_SHORT,
   type DeltaVMode,
@@ -143,7 +144,7 @@ function FuelStatusComponent({
         /* The caption and the totals span the row: they describe the columns rather than sit beside them. */
         showSubtitle && currentStage !== undefined && (
           <Section key="stage" full>
-            <ReadoutCaption>Stage {currentStage}</ReadoutCaption>
+            <ReadoutCaption>Stage {stageToFire(currentStage)}</ReadoutCaption>
           </Section>
         ),
         budgetReported && (

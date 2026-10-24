@@ -209,7 +209,7 @@ describe("ActionGroupComponent", () => {
     act(() => {
       fixture.emit("vessel.structure", { currentStage: 4 });
     });
-    await screen.findByText("4");
+    await screen.findByText("3");
     await user.click(screen.getByRole("button", { name: /toggle stage/i }));
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(
