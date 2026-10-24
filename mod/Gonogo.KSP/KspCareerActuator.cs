@@ -711,7 +711,7 @@ namespace Gonogo.KSP
         /// <see cref="CommandErrorCode.NotFound"/>. Guards the Astronaut Complex
         /// active-crew cap (<c>GameVariables.GetActiveCrewLimit</c> over the
         /// facility's normalised level) before spending, since a hire adds an
-        /// active crew member. Outside career (no <c>Funding</c>) it fails
+        /// active crew member. Outside career and science it fails
         /// <see cref="CommandErrorCode.CareerModeRequired"/>.
         ///
         /// <para><b>The hire pays for itself, so this must not.</b>
@@ -740,7 +740,7 @@ namespace Gonogo.KSP
         {
             var roster = HighLogic.CurrentGame?.CrewRoster;
             var funding = Funding.Instance;
-            if (roster == null || funding == null)
+            if (roster == null || !Gates.CareerGates.HasCrewHiring(HighLogic.CurrentGame?.Mode))
             {
                 return CommandResult.Fail(CommandErrorCode.CareerModeRequired);
             }
@@ -777,7 +777,8 @@ namespace Gonogo.KSP
                 }
             }
 
-            var shortfall = HirePrice.Shortfall(roster, funding);
+            // A science game has no funds, so a hire there is free.
+            var shortfall = funding != null ? HirePrice.Shortfall(roster, funding) : null;
             if (shortfall != null)
             {
                 return CommandResult.Fail(CommandErrorCode.InsufficientFunds, shortfall);

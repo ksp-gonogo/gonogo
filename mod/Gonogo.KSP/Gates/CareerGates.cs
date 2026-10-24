@@ -37,6 +37,13 @@ namespace Gonogo.KSP.Gates
         public static bool HasResearchTree(Game.Modes? mode) =>
             mode == Game.Modes.CAREER || mode == Game.Modes.SCIENCE_SANDBOX;
 
+        /// <summary>
+        /// Whether the Astronaut Complex hires applicants in this mode. Stock runs
+        /// the hire in a career and a science game alike, and only a career charges
+        /// funds for it.
+        /// </summary>
+        public static bool HasCrewHiring(Game.Modes? mode) => HasResearchTree(mode);
+
         /// <summary>A <c>GameVariables</c> limit at one facility's current tier.</summary>
         public static CommandRequirement FacilityLimit(SpaceCenterFacility facility, string quantity) =>
             new CommandRequirement

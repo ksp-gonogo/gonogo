@@ -55,7 +55,6 @@ function fundsTitle(
 /** What an empty pool means in a save mode that has no hiring: a state label, or null where the mode says nothing about it. */
 function noHiringLabel(mode: GameMode | undefined): string | null {
   if (mode === GameMode.Sandbox) return "Sandbox: no crew to hire";
-  if (mode === GameMode.Science) return "Science: no crew to hire";
   return null;
 }
 
@@ -85,10 +84,13 @@ export function AstronautComplexComponent(
   // `absent` is off career; `pending` is a cold start and gets its own sentence.
   const complexConfirmedEmpty = complexReading.state === "absent";
   // A sandbox sends nothing on the complex's Topic, so the save mode is the only word that nothing is coming.
-  const noHiring = noHiringLabel(
-    stillTrue(astronautComplexTopics.useTelemetry("career.mode"), undefined)
-      ?.mode,
-  );
+  const saveMode = stillTrue(
+    astronautComplexTopics.useTelemetry("career.mode"),
+    undefined,
+  )?.mode;
+  const noHiring = noHiringLabel(saveMode);
+  // A science save hires for nothing, so it has neither a balance nor a price to show.
+  const hiresForFree = saveMode === GameMode.Science;
   /**
    * Funds is the one judgement here: it sits beside a spend control and decides
    * `affordable`, so a held balance is withheld from the verdict. It stays on
@@ -208,7 +210,7 @@ export function AstronautComplexComponent(
               role="status"
               aria-live="polite"
             >
-              {noHiring === null && fundsStat}
+              {noHiring === null && !hiresForFree && fundsStat}
               <StatContributions slot={ASTRONAUT_COMPLEX_READOUTS_SLOT} />
             </Grid>
             <div style={EMPTY_STYLE}>
@@ -240,26 +242,28 @@ export function AstronautComplexComponent(
             role="status"
             aria-live="polite"
           >
-            {fundsStat}
-            <Stat
-              label="Next Hire"
-              tone={nextHireCost === null || affordable ? "neutral" : "nogo"}
-            >
-              {nextHireCost !== null ? (
-                <Tooltip
-                  text={speakQuantity(value("funds", nextHireCost), {
-                    decimals: 0,
-                  })}
-                  focusable
-                >
-                  <span>
-                    <Unit value={complexReading.nextHireCost} />
-                  </span>
-                </Tooltip>
-              ) : (
-                NULL_DISPLAY
-              )}
-            </Stat>
+            {!hiresForFree && fundsStat}
+            {!hiresForFree && (
+              <Stat
+                label="Next Hire"
+                tone={nextHireCost === null || affordable ? "neutral" : "nogo"}
+              >
+                {nextHireCost !== null ? (
+                  <Tooltip
+                    text={speakQuantity(value("funds", nextHireCost), {
+                      decimals: 0,
+                    })}
+                    focusable
+                  >
+                    <span>
+                      <Unit value={complexReading.nextHireCost} />
+                    </span>
+                  </Tooltip>
+                ) : (
+                  NULL_DISPLAY
+                )}
+              </Stat>
+            )}
             <Stat label="Active Kerbals" tone={rosterFull ? "nogo" : "neutral"}>
               {activeCrew !== null ? activeCrew : NULL_DISPLAY}
               {capText !== null ? ` / ${capText}` : ""}

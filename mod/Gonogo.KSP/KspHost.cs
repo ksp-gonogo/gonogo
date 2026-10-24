@@ -4305,25 +4305,28 @@ namespace Gonogo.KSP
         /// (<c>GameVariables.GetRecruitHireCost</c>, a function of the
         /// active-crew count - one figure for the whole pool, not per
         /// applicant). Each applicant is built by <see cref="BuildCrewEntry"/>,
-        /// the same shape as the hired-crew roster. CAREER-gated on
-        /// <c>Funding.Instance</c> (hiring spends funds; sandbox/science have no
-        /// funds affordance), so this returns <c>null</c> (the whole group
-        /// omitted) outside career, letting
+        /// the same shape as the hired-crew roster. Gated on
+        /// a career or science game (a sandbox has no applicants to hire), so this
+        /// returns <c>null</c> (the whole group omitted) in a sandbox, letting
         /// <c>SpaceCenterViewProvider.BuildAstronautComplex</c> distinguish "not
-        /// in career" from "career with an empty pool." The cost/cap numbers are
+        /// a game that hires" from "a game with an empty pool." The cost/cap numbers are
         /// captured raw; the KSP-free provider owns any presentation fold.
         /// </summary>
         private Dictionary<string, object?>? BuildAstronautComplex(double ut)
         {
             var roster = HighLogic.CurrentGame?.CrewRoster;
-            if (roster == null || Funding.Instance == null)
+            if (roster == null || !CareerGates.HasCrewHiring(HighLogic.CurrentGame?.Mode))
             {
                 return null;
             }
 
             var gameVariables = GameVariables.Instance;
             var activeCrew = roster.GetActiveCrewCount();
-            double? nextHireCost = gameVariables != null ? (double?)gameVariables.GetRecruitHireCost(activeCrew) : null;
+            // A science game hires for nothing and has no price to quote, so the
+            // figure is absent there rather than zero.
+            double? nextHireCost = gameVariables != null && Funding.Instance != null
+                ? (double?)gameVariables.GetRecruitHireCost(activeCrew)
+                : null;
 
             int? crewCapacity = null;
             if (gameVariables != null && ScenarioUpgradeableFacilities.Instance != null)

@@ -18,9 +18,10 @@ function render(ui: ReactElement) {
 }
 
 /**
- * A sandbox or science save has no Astronaut Complex pool, and the mod sends
- * nothing on `spaceCenter.astronautComplex` for it, so the widget can only
- * learn the save has no hiring from `career.mode`, which is sent in every mode.
+ * A sandbox save has no Astronaut Complex pool, and the mod sends nothing on
+ * `spaceCenter.astronautComplex` for it, so the widget can only learn the save
+ * has no hiring from `career.mode`, which is sent in every mode. A science
+ * save hires for nothing: it has the pool and no funds or price.
  */
 describe("AstronautComplex in a save without hiring", () => {
   let fixture: StreamFixture;
@@ -53,11 +54,37 @@ describe("AstronautComplex in a save without hiring", () => {
     expect(screen.queryByText(/waiting for telemetry/i)).toBeNull();
   });
 
-  it("names a science save as such", () => {
+  it("lists a science save's applicants with a Hire button and no funds or price", () => {
+    renderWidget();
+    act(() => {
+      fixture.emit("career.mode", { mode: GameMode.Science });
+      fixture.emit("spaceCenter.astronautComplex", {
+        applicants: [
+          {
+            name: "Desdin Kerman",
+            trait: "Scientist",
+            experienceLevel: 0,
+          },
+        ],
+        activeCrew: 4,
+      });
+    });
+
+    expect(screen.getByText("Desdin Kerman")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^Hire Desdin Kerman$/ }),
+    ).toBeEnabled();
+    expect(screen.queryByText("Funds")).toBeNull();
+    expect(screen.queryByText("Next Hire")).toBeNull();
+    expect(screen.queryByText(/no crew to hire/i)).toBeNull();
+  });
+
+  it("keeps waiting in a science save whose pool has not arrived", () => {
     renderWidget();
     act(() => fixture.emit("career.mode", { mode: GameMode.Science }));
 
-    expect(screen.getByText("Science: no crew to hire")).toBeInTheDocument();
+    expect(screen.getByText(/waiting for telemetry/i)).toBeInTheDocument();
+    expect(screen.queryByText(/no crew to hire/i)).toBeNull();
   });
 
   it("keeps waiting in a career save whose pool has not arrived", () => {

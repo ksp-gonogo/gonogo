@@ -51,7 +51,6 @@ namespace Gonogo.KSP.Tests.Career
         [InlineData(CareerCommandProvider.AcceptContractCommand)]
         [InlineData(CareerCommandProvider.ActivateStrategyCommand)]
         [InlineData(CareerCommandProvider.UpgradeFacilityCommand)]
-        [InlineData(CareerCommandProvider.HireApplicantCommand)]
         public void TheMoneyCommandsStayRefusedInAScienceGame(string command)
         {
             var requirement = System.Linq.Enumerable.First(
@@ -61,6 +60,30 @@ namespace Gonogo.KSP.Tests.Career
             var verdict = Judge(Game.Modes.SCIENCE_SANDBOX, requirement);
 
             Assert.Equal(CommandErrorCode.CareerModeRequired, verdict.ErrorCode);
+        }
+
+        [Theory]
+        [InlineData(CareerCommandProvider.HireApplicantCommand)]
+        [InlineData(CareerCommandProvider.FireCrewCommand)]
+        public void HiringAndFiringCrewIsLiveInACareerAndInAScienceGameButNotASandbox(string command)
+        {
+            var requirement = System.Linq.Enumerable.First(
+                GateDeclarations.For(command),
+                r => r.Kind == KspGateEvaluators.Kinds.GameMode);
+
+            Assert.Equal(GateOutcome.Pass, Judge(Game.Modes.CAREER, requirement).Outcome);
+            Assert.Equal(GateOutcome.Pass, Judge(Game.Modes.SCIENCE_SANDBOX, requirement).Outcome);
+            Assert.Equal(CommandErrorCode.CareerModeRequired, Judge(Game.Modes.SANDBOX, requirement).ErrorCode);
+        }
+
+        [Theory]
+        [InlineData(Game.Modes.CAREER, true)]
+        [InlineData(Game.Modes.SCIENCE_SANDBOX, true)]
+        [InlineData(Game.Modes.SANDBOX, false)]
+        public void OnlyCareerAndScienceGamesHaveAnApplicantPoolToHireFrom(Game.Modes mode, bool expected)
+        {
+            Assert.Equal(expected, CareerGates.HasCrewHiring(mode));
+            Assert.False(CareerGates.HasCrewHiring(null));
         }
 
         [Fact]

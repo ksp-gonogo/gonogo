@@ -1117,6 +1117,45 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void AScienceGamesComplexHasItsPoolAndNoPriceToQuote()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["spaceCenter"] = new Dictionary<string, object?>
+                    {
+                        ["astronautComplex"] = new Dictionary<string, object?>
+                        {
+                            ["applicants"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["name"] = "Desdin Kerman",
+                                    ["trait"] = "Scientist",
+                                    ["experienceLevel"] = 0,
+                                    ["rosterStatus"] = "Available",
+                                    ["rosterStatusOrdinal"] = 0,
+                                    ["isApplicant"] = true,
+                                },
+                            },
+                            ["activeCrew"] = 4,
+                            ["crewCapacity"] = null,
+                            ["nextHireCost"] = null,
+                        },
+                    },
+                },
+            };
+
+            var info = Assert.IsType<Dictionary<string, object?>>(SpaceCenterViewProvider.BuildAstronautComplex(snapshot));
+
+            Assert.Single(Assert.IsType<List<object?>>(info["applicants"]));
+            Assert.Null(info["nextHireCost"]);
+            Assert.Null(info["crewCapacity"]);
+        }
+
+        [Fact]
         public void BuildAstronautComplexReturnsNullOffCareerButANonNullEmptyPoolInCareer()
         {
             // No astronautComplex key at all: "not in career" -> whole payload null.
