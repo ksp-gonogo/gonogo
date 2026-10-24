@@ -674,29 +674,27 @@ public class CareerStrategy
     /// strategy is already active, and <c>"none"</c> when there is no verdict to
     /// carry.
     ///
-    /// <para><c>"derived"</c> always accompanies a refusal and never a yes. The
-    /// game stops at its first refusal, so a rule that refuses off-screen would
-    /// have refused on it; but one rule counts the career's running strategies
-    /// on that screen and cannot be checked anywhere else, and permission needs
-    /// every rule to pass. A strategy no rule refused therefore arrives with no
-    /// verdict and <c>"none"</c> rather than as allowed.</para>
+    /// <para><c>"derived"</c> accompanies a refusal, or a yes on a career where
+    /// nothing changes how a strategy activates: there the career's running
+    /// strategies are counted against its limit alongside every other rule. On a
+    /// career where another mod changes activation (a career mod that replaces
+    /// the limit), that one rule cannot be checked, so a strategy no other rule
+    /// refused arrives with no verdict and <c>"none"</c> rather than as allowed.</para>
     ///
-    /// <para>Never enable an activation control from a <c>"derived"</c> verdict:
-    /// it can only refuse. Whether a strategy without a verdict may be committed
-    /// is decided by <c>career.strategy.activate</c> itself, which runs every
-    /// check again at the moment it executes and refuses in the game's words or
-    /// as unreadable rather than guessing.</para>
+    /// <para>Whether a strategy without a verdict may be committed is decided by
+    /// <c>career.strategy.activate</c> itself, which runs every check again at
+    /// the moment it executes and refuses in the game's words or as unreadable
+    /// rather than guessing.</para>
     /// <internal>
     /// StrategyActivationRule walks checks 2-9 of Strategies.Strategy.
     /// CanBeActivated. The commit ceiling comes from GameVariables, which is
     /// where Administration.Start reads it from itself and which is virtual so a
-    /// retiering mod's override is inherited. Check 1 is deliberately not
-    /// reproduced: activeStrategyCount is a scroll-view item counter a career
-    /// mod can overwrite, so substituting a roster count would enforce stock's rule on a
-    /// career that has replaced it. The write side applies check 1 off the
-    /// roster only after confirming nothing has patched stock's activation,
-    /// which is the one case where the roster count and the screen's counter
-    /// agree.
+    /// retiering mod's override is inherited. Check 1 is asked off the roster
+    /// only after confirming nothing has patched stock's activation, which is the
+    /// one case where the roster count and the screen's counter agree:
+    /// activeStrategyCount is a scroll-view item counter a career mod can
+    /// overwrite, so substituting a roster count elsewhere would enforce stock's
+    /// rule on a career that has replaced it.
     /// </internal>
     /// </summary>
     [SitrepUnit(Units.Text)]

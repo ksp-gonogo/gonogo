@@ -28,8 +28,8 @@ namespace Gonogo.KSP
     ///
     /// <para>This path runs because the operator pressed a control. Its gate is
     /// the procedure's own, asked at the moment of the write, and it is never a
-    /// source of eligibility: the roster's <c>canActivate</c> stays
-    /// <see cref="LiveStrategyArms.Eligibility"/>'s, which cannot say yes.</para>
+    /// source of eligibility: the roster's <c>canActivate</c> is
+    /// <see cref="LiveStrategyArms.Eligibility"/>'s.</para>
     /// </summary>
     internal static class StockStrategyActivation
     {

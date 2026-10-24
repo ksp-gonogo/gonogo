@@ -226,5 +226,56 @@ namespace Gonogo.KSP.Tests
                 StrategyActivationRule.Walk(
                     Clear(requiredReputation: 10f, currentReputation: null)).Unasked);
         }
+
+        [Fact]
+        public void Asking_the_cap_as_well_is_the_only_route_to_a_yes()
+        {
+            var verdict = StrategyActivationRule.WalkAskingCap(Clear(), activeStrategies: 2, limit: 5);
+
+            Assert.True(verdict.CanActivate);
+            Assert.Equal(StrategyArm.None, verdict.Arm);
+        }
+
+        [Theory]
+        [InlineData(5, 5)]
+        [InlineData(6, 5)]
+        [InlineData(0, 0)]
+        public void A_career_at_its_limit_is_refused_by_arm_1_with_the_limit(int active, int limit)
+        {
+            var verdict = StrategyActivationRule.WalkAskingCap(Clear(), active, limit);
+
+            Assert.False(verdict.CanActivate);
+            Assert.Equal(StrategyArm.ConcurrentCap, verdict.Arm);
+            Assert.Equal(limit, verdict.Amount);
+        }
+
+        [Fact]
+        public void Arm_1_is_named_ahead_of_a_later_arm_that_would_also_refuse()
+        {
+            var verdict = StrategyActivationRule.WalkAskingCap(
+                Clear(conflicts: true, costFunds: 10f, funds: 0d), activeStrategies: 5, limit: 5);
+
+            Assert.Equal(StrategyArm.ConcurrentCap, verdict.Arm);
+        }
+
+        [Fact]
+        public void A_later_refusal_stands_when_the_cap_has_room()
+        {
+            var verdict = StrategyActivationRule.WalkAskingCap(
+                Clear(conflicts: true), activeStrategies: 1, limit: 5);
+
+            Assert.False(verdict.CanActivate);
+            Assert.Equal(StrategyArm.Conflict, verdict.Arm);
+        }
+
+        [Fact]
+        public void An_arm_that_cannot_be_put_still_blocks_a_yes_when_the_cap_has_room()
+        {
+            var verdict = StrategyActivationRule.WalkAskingCap(
+                Clear(commitCeiling: null), activeStrategies: 1, limit: 5);
+
+            Assert.Null(verdict.CanActivate);
+            Assert.Equal(StrategyArm.CommitCeiling, verdict.Unasked);
+        }
     }
 }

@@ -417,8 +417,8 @@ const legacyUnanswered = (row: Row): Row => ({
  * kind of no this route cannot reach.
  */
 const ARM_ONE_UNREACHED =
-  "unknown: KSP counts your running strategies only inside the " +
-  "Administration Building, so that check is not made in this list";
+  "unknown: " +
+  "another mod changes how strategies activate, so the limit on running strategies is not checked in this list";
 
 const derived = (row: Row): Row =>
   row.canActivate === false && row.activateBlockedReason !== CAP_REFUSAL_TEXT
