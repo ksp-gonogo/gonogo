@@ -7,6 +7,9 @@ import { relayBaseUrl } from "./iceServers";
 const HOST_HEARTBEAT_MS = 30_000;
 const RELAY_POST_TIMEOUT_MS = 4_000;
 
+/** How long the relay keeps another host's say after that host's last post, so a refused heartbeat has no reason to ask again sooner. */
+const REFUSED_BACKOFF_MS = 120_000;
+
 export interface RelayRegistrationDeps {
   /** This host's stable identity, its share code, which the relay uses to tell the host from any other page posting consent. */
   getHostId: () => string;
@@ -24,6 +27,7 @@ export class RelayRegistration {
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private inFlight: Promise<void> | null = null;
   private resend = false;
+  private refusedUntil = 0;
 
   constructor(private readonly deps: RelayRegistrationDeps) {}
 
@@ -65,8 +69,17 @@ export class RelayRegistration {
         }),
         signal: controller.signal,
       });
-      if (!res.ok) {
-        debugPeer("host analytics-config POST non-ok", { status: res.status });
+      if (res.status === 409) {
+        // Another host owns the consent: an expected answer, not a fault. Only a change of consent asks again before the owner has had time to go quiet.
+        this.refusedUntil = Date.now() + REFUSED_BACKOFF_MS;
+        debugPeer("host analytics-config POST refused: another host owns it");
+      } else {
+        this.refusedUntil = 0;
+        if (!res.ok) {
+          debugPeer("host analytics-config POST non-ok", {
+            status: res.status,
+          });
+        }
       }
     } catch (err) {
       debugPeer("host analytics-config POST failed", {
@@ -84,6 +97,7 @@ export class RelayRegistration {
   startHeartbeat(): void {
     if (this.heartbeatTimer) return;
     this.heartbeatTimer = setInterval(() => {
+      if (Date.now() < this.refusedUntil) return;
       void this.postAnalyticsConfig();
     }, HOST_HEARTBEAT_MS);
   }

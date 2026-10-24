@@ -29,4 +29,31 @@ describe("RelayRegistration", () => {
       runId: "run-1",
     });
   });
+
+  it("stops heartbeating while another host owns the consent, and asks again once it could have lapsed", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi.fn(async () => new Response("{}", { status: 409 }));
+      vi.stubGlobal("fetch", fetchMock);
+      const reg = new RelayRegistration({
+        getHostId: () => "XK3F",
+        getConsent: () => true,
+        getRunId: () => undefined,
+      });
+      reg.startHeartbeat();
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+
+      // A change of consent still goes out at once.
+      await reg.postAnalyticsConfig();
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      reg.stopHeartbeat();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
