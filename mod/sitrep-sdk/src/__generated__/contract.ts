@@ -5909,6 +5909,36 @@ export interface RecoveryReport
 	* the dialog could not be read.
 	*/
 	crewBreakdown: RecoveryCrewEntry[];
+	/**
+	* What else the recovery paid, by name: each progress milestone or contract
+	* reward the game awarded while the recovery was being processed. Not part of
+	* `RecoveryReport.fundsEarned`, `RecoveryReport.reputationEarned` or
+	* `RecoveryReport.scienceEarned`, which are the dialog's own figures for the
+	* recovered craft, so a balance rises by those plus these. Empty when nothing
+	* else paid.
+	*/
+	awards: RecoveryAward[];
+}
+/**
+* One award paid while a recovery was processed: an entry of
+* `RecoveryReport.awards`. Each figure is null when this award paid none of
+* that currency.
+*
+* @category Flights
+*/
+export interface RecoveryAward
+{
+	/**
+	* What paid: the progress milestone the game reached (e.g. `"Recovery"`), or
+	* `"Contract reward"`.
+	*/
+	title: string;
+	/** Funds this award paid. */
+	fundsEarned?: Value<"funds"> | null;
+	/** Reputation this award paid. */
+	reputationEarned?: Value<"rep"> | null;
+	/** Science this award paid. */
+	scienceEarned?: Value<"science"> | null;
 }
 /**
 * One science subject recovered: an entry of

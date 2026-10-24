@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 47.0.0
+  version: 47.1.0
   description: |-
     The WebSocket API of the Gonogo mod: 89 telemetry channels a client
     subscribes to and 71 commands it sends, each with its payload and what it
@@ -18384,6 +18384,39 @@ components:
           description: |-
             The vessel to recover: KSP's `Vessel.id` guid as a string, as
             `trackingStation.catalog` and a launch site's `padVesselId` carry it.
+    RecoveryAward:
+      type: object
+      description: |-
+        One award paid while a recovery was processed: an entry of
+        `RecoveryReport.awards`. Each figure is null when this award paid none of
+        that currency.
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          x-sitrep-unit: text
+          description: |-
+            What paid: the progress milestone the game reached (e.g. `"Recovery"`), or
+            `"Contract reward"`.
+        fundsEarned:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: funds
+          description: Funds this award paid.
+        reputationEarned:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: rep
+          description: Reputation this award paid.
+        scienceEarned:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: science
+          description: Science this award paid.
     RecoveryCrewEntry:
       type: object
       description: |-
@@ -18518,6 +18551,7 @@ components:
         - partBreakdown
         - resourceBreakdown
         - crewBreakdown
+        - awards
       properties:
         capturedAtUT:
           type: number
@@ -18624,6 +18658,17 @@ components:
           description: |-
             Each crew member aboard at recovery. Empty for an uncrewed vessel or when
             the dialog could not be read.
+        awards:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecoveryAward"
+          description: |-
+            What else the recovery paid, by name: each progress milestone or contract
+            reward the game awarded while the recovery was being processed. Not part of
+            `RecoveryReport.fundsEarned`, `RecoveryReport.reputationEarned` or
+            `RecoveryReport.scienceEarned`, which are the dialog's own figures for the
+            recovered craft, so a balance rises by those plus these. Empty when nothing
+            else paid.
     RecoveryResourceEntry:
       type: object
       description: |-
