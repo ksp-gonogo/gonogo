@@ -35,12 +35,60 @@ interface FabClusterValue {
   regionId: string;
   /** Attach to the toggle so Escape can return focus to it. */
   toggleRef: RefObject<HTMLButtonElement>;
+  /**
+   * Where a FAB asked to sit `bottom` px above the viewport edge goes: the
+   * same spot while the cluster fits the window, otherwise wrapped into a
+   * further column to the left (`offset` px further from the right edge).
+   */
+  place: (bottom: number) => FabPlacement;
   /** Attach to every FAB so hovering any of them keeps the cluster open. */
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onFocus: () => void;
   onBlur: () => void;
 }
+
+/** A FAB's position once the cluster has been fitted to the window. */
+export interface FabPlacement {
+  bottom: number;
+  offset: number;
+}
+
+/** `bottom` of the lowest secondary FAB, and the distance between neighbours. */
+const FIRST_BOTTOM = 84;
+const PITCH = 60;
+const FAB_SIZE = 48;
+/** Space kept clear above the highest FAB: the dashboard's header row, so an open cluster never covers its controls. */
+const TOP_MARGIN = 72;
+/** Wide enough for the longest FAB label plus its button, so a second column never sits under the first column's labels. */
+const COLUMN_STEP = 232;
+
+/** How many FABs stack in one column of a window `height` px tall. */
+export function fabsPerColumn(height: number): number {
+  return Math.max(
+    1,
+    Math.floor((height - FIRST_BOTTOM - FAB_SIZE - TOP_MARGIN) / PITCH) + 1,
+  );
+}
+
+export function placeFab(bottom: number, height: number): FabPlacement {
+  const slot = Math.max(0, Math.round((bottom - FIRST_BOTTOM) / PITCH));
+  const perColumn = fabsPerColumn(height);
+  const column = Math.floor(slot / perColumn);
+  if (column === 0) return { bottom, offset: 0 };
+  return {
+    bottom: FIRST_BOTTOM + (slot - column * perColumn) * PITCH,
+    offset: column * COLUMN_STEP,
+  };
+}
+
+function subscribeHeight(onChange: () => void) {
+  window.addEventListener("resize", onChange);
+  return () => window.removeEventListener("resize", onChange);
+}
+
+const readHeight = () => window.innerHeight;
+const serverHeight = () => Number.POSITIVE_INFINITY;
 
 const FabClusterContext = createContext<FabClusterValue | null>(null);
 
@@ -68,6 +116,15 @@ export function FabClusterProvider({
 }: Readonly<{ children: ReactNode }>) {
   const [hovered, setHovered] = useState(false);
   const coarse = useSyncExternalStore(subscribeCoarse, readCoarse, () => false);
+  const height = useSyncExternalStore(
+    subscribeHeight,
+    readHeight,
+    serverHeight,
+  );
+  const place = useCallback(
+    (bottom: number) => placeFab(bottom, height),
+    [height],
+  );
   const [expanded, setExpanded] = useState(false);
   const active = expanded || (hovered && !coarse);
   const regionId = useId();
@@ -140,12 +197,13 @@ export function FabClusterProvider({
       close,
       regionId,
       toggleRef,
+      place,
       onMouseEnter: open,
       onMouseLeave: scheduleClose,
       onFocus: open,
       onBlur: scheduleClose,
     }),
-    [active, expanded, toggle, close, regionId, open, scheduleClose],
+    [active, expanded, toggle, close, regionId, place, open, scheduleClose],
   );
 
   return (

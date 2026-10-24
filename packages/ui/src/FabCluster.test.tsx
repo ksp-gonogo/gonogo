@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Fab } from "./Fab";
-import { FabClusterProvider } from "./FabCluster";
+import { FabClusterProvider, fabsPerColumn, placeFab } from "./FabCluster";
 import { FabClusterToggle } from "./FabClusterToggle";
 
 function stubPointer(coarse: boolean) {
@@ -159,5 +159,26 @@ describe("FabCluster", () => {
 
       expect(toggle).toHaveAttribute("aria-expanded", "false");
     });
+  });
+});
+
+describe("placeFab", () => {
+  it("leaves every button where it asked while the cluster fits the window", () => {
+    expect(placeFab(84, 844)).toEqual({ bottom: 84, offset: 0 });
+    expect(placeFab(444, 844)).toEqual({ bottom: 444, offset: 0 });
+  });
+
+  it("wraps the buttons that do not fit into a column to the left", () => {
+    const perColumn = fabsPerColumn(390);
+    expect(perColumn).toBe(4);
+    expect(placeFab(84 + 60 * (perColumn - 1), 390).offset).toBe(0);
+    expect(placeFab(84 + 60 * perColumn, 390)).toEqual({
+      bottom: 84,
+      offset: 232,
+    });
+  });
+
+  it("keeps at least one button per column in a very short window", () => {
+    expect(fabsPerColumn(100)).toBe(1);
   });
 });

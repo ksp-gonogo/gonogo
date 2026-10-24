@@ -18,6 +18,7 @@ export function Fab({
 }: Readonly<FabProps>) {
   const cluster = useFabCluster();
   const visible = cluster?.active ?? true;
+  const placed = cluster?.place(bottom) ?? { bottom, offset: 0 };
   const label =
     (rest["aria-label"] as string | undefined) ??
     (rest.title as string | undefined);
@@ -25,7 +26,8 @@ export function Fab({
   return (
     <FabRow
       $visible={visible}
-      $bottom={bottom}
+      $bottom={placed.bottom}
+      $offset={placed.offset}
       onMouseEnter={cluster?.onMouseEnter}
       onMouseLeave={cluster?.onMouseLeave}
       onFocus={cluster?.onFocus}
@@ -52,11 +54,15 @@ export function Fab({
 }
 
 /** The button is the row's tallest item, so the label beside it never moves the button. */
-const FabRow = styled.div<{ $visible: boolean; $bottom: number }>`
+const FabRow = styled.div<{
+  $visible: boolean;
+  $bottom: number;
+  $offset: number;
+}>`
   position: fixed;
   bottom: calc(${({ $bottom }) => $bottom}px + env(safe-area-inset-bottom, 0px));
   /* Off the spacing ladder: the FAB geometry chain in FabPrompt and BannerStack is arithmetic on this 24px. */
-  right: calc(24px + env(safe-area-inset-right, 0px));
+  right: calc(24px + ${({ $offset }) => $offset}px + env(safe-area-inset-right, 0px));
   display: flex;
   flex-direction: row;
   align-items: center;
