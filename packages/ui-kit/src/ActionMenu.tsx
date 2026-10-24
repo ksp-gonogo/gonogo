@@ -297,4 +297,8 @@ const MenuItem = styled.button<{ $disabled?: boolean }>`
     color: var(--color-text-faint);
     cursor: default;
   }
+
+  @media (pointer: coarse) {
+    min-height: var(--touch-target);
+  }
 `;
