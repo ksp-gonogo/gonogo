@@ -118,6 +118,8 @@ export const SETUP_LINKS = {
   reporting: `${DOCS}/REPORTING.md`,
   relayPorts: `${DOCS}/NETWORKING.md#cross-internet-stations-cellular-remote-networks`,
   source: "https://github.com/ksp-gonogo/gonogo",
+  upgrading:
+    "https://github.com/ksp-gonogo/gonogo#upgrading-from-an-earlier-version",
   uplinkDocs: "https://ksp-gonogo.github.io/uplink-dev-docs/",
 } as const;
 
