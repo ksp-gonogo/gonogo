@@ -24,6 +24,7 @@ import {
   CONTROLS_STYLE,
   FOOT_ROW_STYLE,
   FULL_LADDER_STYLE,
+  RATE_ROW_STYLE,
   RATE_VALUE_STYLE,
   type RateTone,
   rateStyle,
@@ -80,7 +81,12 @@ export function WarpControlView({
   // Content-priority decisions only: auto-fit handles whether the ladder ends up 8x1, 4x2 or 2x4.
   const showFullLadder = cols * rows >= 20 && cols >= 4 && rows >= 3;
   const showStepper = !showFullLadder && cols >= 3 && rows >= 3;
-  const showModeCaption = rows >= 4;
+  // The rails mode name says nothing at 1×, where no warp is running to be on rails.
+  const showModeCaption =
+    rows >= 4 &&
+    !(mode === "High" && currentRate !== null && currentRate < 1.0001);
+  // Hidden at small grid counts so the rate readout keeps its own line.
+  const showPause = scene === "Flight" && cols >= 4 && rows >= 4;
   const showWarpTo = createAlarm !== null && cols >= 4 && rows >= 6;
 
   const rateLabel = formatRate(currentRate);
@@ -107,51 +113,51 @@ export function WarpControlView({
         <Section full>
           <DimmedOverlay show={dimBody} message="No active save">
             <div style={BODY_STYLE}>
-              <div style={rateStyle(rateTone)}>
-                <span
-                  style={RATE_VALUE_STYLE}
-                  role="img"
-                  aria-label={
-                    paused === true
-                      ? `Time warp rate ${rateLabel}, game paused`
-                      : `Time warp rate ${rateLabel}`
-                  }
-                >
-                  {rateLabel}
-                </span>
-                {paused === true ? (
-                  <ReadoutCaption>PAUSED</ReadoutCaption>
-                ) : (
-                  showModeCaption &&
-                  mode !== null &&
-                  mode !== "" && <ReadoutCaption>{mode}</ReadoutCaption>
+              <div style={RATE_ROW_STYLE}>
+                {showPause && (
+                  <Tooltip text={paused === true ? "Resume" : "Pause"}>
+                    <ToggleButton
+                      pressed={paused === true}
+                      tone="warn"
+                      size="sm"
+                      onClick={onTogglePause}
+                      aria-label={
+                        paused === true ? "Resume game" : "Pause game"
+                      }
+                    >
+                      {paused === true ? (
+                        <PlayIcon size={12} />
+                      ) : (
+                        <PauseIcon size={12} />
+                      )}
+                    </ToggleButton>
+                  </Tooltip>
                 )}
+                <div style={rateStyle(rateTone)}>
+                  <span
+                    style={RATE_VALUE_STYLE}
+                    role="img"
+                    aria-label={
+                      paused === true
+                        ? `Time warp rate ${rateLabel}, game paused`
+                        : `Time warp rate ${rateLabel}`
+                    }
+                  >
+                    {rateLabel}
+                  </span>
+                  {paused === true ? (
+                    <ReadoutCaption>PAUSED</ReadoutCaption>
+                  ) : (
+                    showModeCaption &&
+                    mode !== null &&
+                    mode !== "" && <ReadoutCaption>{mode}</ReadoutCaption>
+                  )}
+                </div>
               </div>
 
               {/* The alarm row is centred under the buttons it governs, not across the rate readout too. */}
               <div style={CONTROLS_STYLE}>
                 <div style={CONTROL_ROW_STYLE}>
-                  {/* Hidden at small grid counts so the warp buttons keep their own line. */}
-                  {scene === "Flight" && cols >= 4 && rows >= 4 && (
-                    <Tooltip text={paused === true ? "Resume" : "Pause"}>
-                      <ToggleButton
-                        pressed={paused === true}
-                        tone="warn"
-                        size="sm"
-                        onClick={onTogglePause}
-                        aria-label={
-                          paused === true ? "Resume game" : "Pause game"
-                        }
-                      >
-                        {paused === true ? (
-                          <PlayIcon size={12} />
-                        ) : (
-                          <PauseIcon size={12} />
-                        )}
-                      </ToggleButton>
-                    </Tooltip>
-                  )}
-
                   {showFullLadder && (
                     // biome-ignore lint/a11y/useSemanticElements: <fieldset> names itself from <legend> and groups form controls; these are grid buttons and it would need UA resets
                     <div

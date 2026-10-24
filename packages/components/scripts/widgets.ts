@@ -651,6 +651,9 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "tall-4x8", w: 4, h: 8 },
       // Large: generous room for all elements.
       { name: "large-8x7", w: 8, h: 7 },
+      // The phone list's half-width and full-width tiles at the default height, in the grid units it hands the widget.
+      { name: "phone-half-4x6", w: 4, h: 6 },
+      { name: "phone-full-8x6", w: 8, h: 6 },
       // The alarm requirement switched off: a delayed craft with no alarm set warps freely, exactly as it did before the requirement existed.
       {
         name: "alarm-gate-off-6x5",

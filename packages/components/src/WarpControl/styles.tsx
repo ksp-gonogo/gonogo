@@ -18,7 +18,7 @@ export type RateTone = "physics" | "high";
  */
 export function rateStyle(tone: RateTone) {
   return {
-    flex: "1 1 70px",
+    flex: "0 1 auto",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -29,6 +29,16 @@ export function rateStyle(tone: RateTone) {
       tone === "physics" ? "var(--color-warn-mark)" : "var(--color-go-text)",
   } as const;
 }
+
+/* The rate readout with the pause button beside it, one line whatever the tile's width. */
+export const RATE_ROW_STYLE = {
+  flex: "1 1 70px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "var(--gap-related)",
+  minWidth: 0,
+} as const;
 
 /* Off the type scale, which stops at --font-size-lg: this is a display-tier readout. */
 export const RATE_VALUE_STYLE = {

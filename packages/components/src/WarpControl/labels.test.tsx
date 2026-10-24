@@ -9,7 +9,7 @@ const FLAT_TIME_KEY = /\bt\.[a-zA-Z]/;
 // Captured at import, before a per-test registry reset wipes the module-load registration.
 const warpControlDef = getComponent("warp-control");
 
-async function mountInFlight(paused: boolean) {
+async function mountInFlight(paused: boolean, warpRate = 1) {
   const fixture = setupStreamFixture({
     pinnedUt: 10,
     suspendFrames: true,
@@ -23,8 +23,8 @@ async function mountInFlight(paused: boolean) {
   );
   act(() => {
     fixture.emit("time.warp", {
-      warpRate: 1,
-      warpRateIndex: 0,
+      warpRate,
+      warpRateIndex: warpRate === 1 ? 0 : 1,
       warpMode: 0,
       paused,
     });
@@ -57,6 +57,16 @@ describe("WarpControl labels name the widget's own actions", () => {
   it("says nothing of a pause while the game runs", async () => {
     await mountInFlight(false);
     expect(screen.queryByText("PAUSED")).toBeNull();
+  });
+
+  it("leaves the rails mode name off at 1×, where no warp is running", async () => {
+    await mountInFlight(false);
+    expect(screen.queryByText("High")).toBeNull();
+  });
+
+  it("names the rails mode while a warp above 1× is running", async () => {
+    await mountInFlight(false, 5);
+    expect(screen.getByText("High")).toBeTruthy();
   });
 
   it("describes the widget without a flat t. key", () => {
