@@ -54,6 +54,8 @@ docker run -d --name gonogo --restart unless-stopped --pull always \
 
    If Docker answers that the name `gonogo` is already in use, a container from an earlier install exists. Run `docker rm -f gonogo`, then the command again.
 
+   Friends joining over the internet may need ports opened on your router. To let Gonogo open them for you, add `-e GONOGO_UPNP=1` to the command; the [networking guide](docs/NETWORKING.md#cross-internet-stations-cellular-remote-networks) has the ports to forward by hand otherwise.
+
 4. Start KSP and open [localhost:8080](http://localhost:8080)
 
 The setup wizard opens by itself and checks the container, the connection to KSP and your Uplinks. It explains anything that is wrong, and Settings > Help covers the rest.
