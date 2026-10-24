@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 49.0.0
+  version: 48.0.0
   description: |-
     The WebSocket API of the Gonogo mod: 89 telemetry channels a client
     subscribes to and 71 commands it sends, each with its payload and what it
@@ -1361,12 +1361,10 @@ channels:
   eva.crew:
     address: eva.crew
     description: |-
-      The roster of kerbals currently outside a craft, so a client can find each
-      one's own `eva.kerbal.<vessel id>.state` Topic. The suit state is on those
-      Topics, not here.
+      Every kerbal currently outside a craft.
 
-      The roster is a fact the home command holds, so it is not held by the link
-      of the craft a kerbal left or of any kerbal.
+      The vessel Topics stay with the craft the kerbal left; this Topic carries
+      what is true of the kerbal.
 
       An empty list is a real reading: nobody is outside. The Topic has no reading
       only until its first sample arrives.
@@ -1376,8 +1374,6 @@ channels:
     x-sitrep-delay-role: delayed
     x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
-    x-sitrep-absence-is-data: true
-    x-sitrep-held-at-home: true
     messages:
       streamData:
         $ref: "#/components/messages/streamData.eva.crew"
@@ -14576,12 +14572,10 @@ components:
     EvaCrew:
       type: object
       description: |-
-        The roster of kerbals currently outside a craft, so a client can find each
-        one's own `eva.kerbal.<vessel id>.state` Topic. The suit state is on those
-        Topics, not here.
+        Every kerbal currently outside a craft.
 
-        The roster is a fact the home command holds, so it is not held by the link
-        of the craft a kerbal left or of any kerbal.
+        The vessel Topics stay with the craft the kerbal left; this Topic carries
+        what is true of the kerbal.
 
         An empty list is a real reading: nobody is outside. The Topic has no reading
         only until its first sample arrives.
@@ -14598,13 +14592,46 @@ components:
         kerbals:
           type: array
           items:
-            $ref: "#/components/schemas/EvaCrewMember"
+            $ref: "#/components/schemas/EvaKerbal"
           description: One entry per kerbal on EVA. Never null; empty when nobody is outside.
-    EvaCrewMember:
+    EvaHeldData:
+      type: object
+      description: One science result a kerbal on EVA is holding, in `EvaKerbal.heldData`.
+      properties:
+        subjectId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The research subject's id (`ScienceSubject.id`), the same key
+            `science.archive` lists it under.
+        title:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The result's title, for example "Surface Sample from The Mun's Midlands".
+        dataAmount:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: Mit
+          description: The size of the result.
+    EvaKerbal:
       type: object
       description: |-
-        One kerbal listed on `eva.crew`: who is outside and which craft they left,
-        enough to find the kerbal's own `eva.kerbal.<vessel id>.state` Topic.
+        One kerbal currently outside a craft, on the `eva.crew` channel.
+
+        A kerbal on EVA is a vessel in KSP's model, with its own id, so it already
+        appears on `trackingStation.catalog` and on its own per-craft Topics
+        (`trackingStation.vessel.<guid>.link` and `.resources`). What is here and
+        nowhere else is the suit: what it is carrying, what it can do, and whether
+        the place it is standing in would kill the wearer without it.
+
+        Every field is `null` when the value could not be read. Absence is never a
+        zero: a kerbal whose propellant could not be read is not a kerbal with an
+        empty tank.
       properties:
         kerbalVesselId:
           type:
@@ -14612,8 +14639,8 @@ components:
             - "null"
           x-sitrep-unit: id
           description: |-
-            The kerbal's own vessel id, the key of its `eva.kerbal.<vessel id>.state`
-            Topic and the guid `trackingStation.catalog` carries for it.
+            The kerbal's own vessel id, the same guid `trackingStation.catalog` carries
+            for it.
         parentVesselId:
           type:
             - string
@@ -14622,12 +14649,117 @@ components:
           description: |-
             The vessel id of the craft this kerbal stepped out of, or `null` when that
             is not known (the step-out was not recorded, or the craft has since gone).
+
+            This is the vessel Gonogo goes on reporting as active while they are
+            outside, so a client that follows the active vessel sees no discontinuity
+            when a kerbal steps out.
         name:
           type:
             - string
             - "null"
           x-sitrep-unit: text
           description: The kerbal's name, from the EVA vessel's `GetName()`.
+        situation:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: KSP's own situation name for the kerbal (`FLYING`, `LANDED`, ...).
+        propellantAmount:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: units
+          description: EVA propellant remaining in the pack.
+        propellantCapacity:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: units
+          description: |-
+            What the pack holds when full, so a client can draw a fraction without
+            knowing the model.
+        hasJetpack:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether this kerbal has a jetpack at all: without one the propellant figures
+            describe nothing.
+        jetpackDeployed:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: Whether the jetpack is switched on (KSP's `KerbalEVA.JetpackDeployed`).
+        jetpackIsThrusting:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether the pack is firing right now, which is the only signal that a kerbal
+            is under thrust.
+        onALadder:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: Whether the kerbal is on a ladder (KSP's `KerbalEVA.OnALadder`).
+        lampOn:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: Whether the suit's helmet lamp is on (KSP's `KerbalEVA.lampOn`).
+        visorState:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: KSP's own visor state name, from `KerbalEVA.VisorState`.
+        willDieWithoutHelmet:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether removing the helmet here would kill this kerbal, from
+            `KerbalEVA.WillDieWithoutHelmet()`.
+
+            Nothing else on the wire says whether the place a kerbal is standing in is
+            survivable without a helmet.
+        canSafelyRemoveHelmet:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether the helmet can come off here and now, from
+            `KerbalEVA.CanSafelyRemoveHelmet()`. A stricter test than
+            `EvaKerbal.willDieWithoutHelmet`.
+        helmetUnsafeReason:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            KSP's own words for why the helmet cannot come off, passed through verbatim
+            from `KerbalEVA.HelmetUnsafeReason`, or `null` when it can.
+        heldData:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/EvaHeldData"
+          description: |-
+            The science results this kerbal is holding, such as a surface sample or an
+            EVA report, which are on no other Topic: `science.experiments` lists the
+            active vessel's results and a kerbal outside is not that vessel. Empty when
+            the kerbal holds none, and `null` when it could not be read. A kerbal that
+            is not loaded is read from the game's saved state, so its results are listed
+            all the same.
     EventMsg:
       type: object
       description: |-

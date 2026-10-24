@@ -53,19 +53,6 @@ export function getStationKey(
 }
 
 /**
- * A short code that tells two devices apart, taken from the start of a
- * station's key. The station shows it while it waits for approval and the main
- * screen shows it beside the request, so an operator can match one to the
- * other when several devices carry the same name.
- */
-export function stationTag(stationKey: string): string {
-  return stationKey
-    .replaceAll(/[^A-Za-z0-9]/g, "")
-    .slice(0, 4)
-    .toUpperCase();
-}
-
-/**
  * Per-session PeerJS id: `station-<stationKey>-<sessionToken>`. Fresh on
  * every call so each session presents a unique id to the broker. Callers
  * should call this *once* per `Peer` instance and reuse the result.

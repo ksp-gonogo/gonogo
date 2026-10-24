@@ -62,7 +62,6 @@ export function idlePeerClient(): PeerClient {
     sendUplinkRelay: () => new Promise(() => {}),
     sendBundleFetch: () => new Promise(() => {}),
     sendManifestFetch: () => new Promise(() => {}),
-    requestHostLayouts: () => Promise.resolve([]),
   };
 }
 

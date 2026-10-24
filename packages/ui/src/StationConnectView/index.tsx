@@ -143,10 +143,8 @@ export function StationConnectView({
         {!brokerUnreachable && hostNotFound && !everConnected && (
           <ErrorMsg>
             Couldn't find code &ldquo;{hostInput.trim().toUpperCase()}&rdquo;.
-            The main screen may not be ready yet: it may still be starting, or
-            waiting for an answer to its start-up questions, or its tab may be
-            closed or asleep. Check the code matches the main screen. This
-            station keeps trying.
+            Check the main screen: the code may have changed, or the main-screen
+            tab may be closed/asleep.
           </ErrorMsg>
         )}
         {!brokerUnreachable && !hostNotFound && hostChannelFailed && (

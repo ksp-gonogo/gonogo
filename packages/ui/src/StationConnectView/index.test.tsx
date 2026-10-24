@@ -80,20 +80,6 @@ describe("StationConnectView", () => {
     expect(screen.getByText(/ZZ9Q/)).not.toBeNull();
   });
 
-  it("says the main screen may not be ready and that the station keeps trying, never that the code changed", () => {
-    render(
-      <StationConnectView
-        {...baseProps}
-        hostInput="ZZ9Q"
-        connStatus="disconnected"
-        hostNotFound
-      />,
-    );
-    expect(screen.getByText(/may not be ready yet/i)).not.toBeNull();
-    expect(screen.getByText(/keeps trying/i)).not.toBeNull();
-    expect(screen.queryByText(/code may have changed/i)).toBeNull();
-  });
-
   it("shows the softer reconnect notice once previously connected", () => {
     render(
       <StationConnectView

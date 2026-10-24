@@ -285,7 +285,6 @@ function StationView({
         aria-live="polite"
       >
         <ButtonLabel>{vote === "go" ? "GO" : "NO-GO"}</ButtonLabel>
-        <VoteHint>Tap to vote {vote === "go" ? "NO-GO" : "GO"}</VoteHint>
         {secondsLeft !== null && (
           <CountdownOverlay role="timer" aria-label="Countdown">
             T − <Unit value={value("s", secondsLeft)} decimals={1} />
@@ -651,15 +650,6 @@ const ButtonLabel = styled.span`
   line-height: var(--line-height-flush);
 `;
 
-/** Names what the next tap casts, since the label above it is the vote already cast. */
-const VoteHint = styled.span`
-  font-size: var(--font-size-compact);
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  text-transform: none;
-  color: rgba(255, 255, 255, 0.85);
-`;
-
 const CountdownOverlay = styled.span`
   position: absolute;
   top: 8px;
@@ -872,7 +862,7 @@ registerComponent<GoNoGoWidgetConfig>({
   description:
     "Mission readiness poll: button on station screens, grid of lights on main. Morphs into ABORT after launch.",
   tags: ["mission-control"],
-  defaultSize: { w: 8, h: 8 },
+  defaultSize: { w: 4, h: 4 },
   minSize: { w: 3, h: 3 },
   /*
    * The board's text is one size and only the station cards grow, so past

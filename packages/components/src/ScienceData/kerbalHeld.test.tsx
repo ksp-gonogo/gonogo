@@ -41,17 +41,16 @@ describe("Science Data: results a kerbal outside is holding", () => {
       fixture.emit("science.experiments", []);
       fixture.emit("eva.crew", {
         count: value("count", 1),
-        kerbals: [KERBAL],
-      });
-    });
-    act(() => {
-      fixture.emit(`eva.kerbal.${KERBAL.kerbalVesselId}.state`, {
-        ...KERBAL,
-        heldData: [
+        kerbals: [
           {
-            subjectId: "surfaceSample@MunSrfLandedMidlands",
-            title: "Surface Sample from The Mun's Midlands",
-            dataAmount: 30,
+            ...KERBAL,
+            heldData: [
+              {
+                subjectId: "surfaceSample@MunSrfLandedMidlands",
+                title: "Surface Sample from The Mun's Midlands",
+                dataAmount: 30,
+              },
+            ],
           },
         ],
       });
@@ -76,17 +75,9 @@ describe("Science Data: results a kerbal outside is holding", () => {
       fixture.emit("eva.crew", {
         count: 2,
         kerbals: [
-          KERBAL,
+          { ...KERBAL, heldData: [] },
           { ...KERBAL, kerbalVesselId: "eva-2", name: "Dunbal Kerman" },
         ],
-      });
-    });
-    act(() => {
-      fixture.emit("eva.kerbal.eva-1.state", { ...KERBAL, heldData: [] });
-      fixture.emit("eva.kerbal.eva-2.state", {
-        ...KERBAL,
-        kerbalVesselId: "eva-2",
-        name: "Dunbal Kerman",
       });
     });
 
@@ -102,19 +93,21 @@ describe("Science Data: results a kerbal outside is holding", () => {
 describe("kerbalHeldOf", () => {
   it("names the kerbal and falls back to the subject id when a result has no title", () => {
     expect(
-      kerbalHeldOf(
-        { kerbalVesselId: null, name: "Maxwell Kerman" },
-        {
-          name: "Maxwell Kerman",
-          heldData: [
-            {
-              subjectId: "evaReport@Mun",
-              title: null,
-              dataAmount: value("Mit", 8),
-            },
-          ],
-        },
-      ),
+      kerbalHeldOf({
+        count: value("count", 1),
+        kerbals: [
+          {
+            name: "Maxwell Kerman",
+            heldData: [
+              {
+                subjectId: "evaReport@Mun",
+                title: null,
+                dataAmount: value("Mit", 8),
+              },
+            ],
+          },
+        ],
+      }),
     ).toEqual([
       {
         key: "Maxwell Kerman/evaReport@Mun",
@@ -125,22 +118,13 @@ describe("kerbalHeldOf", () => {
     ]);
   });
 
-  it("reads nothing from no state or a kerbal whose holdings were not read", () => {
-    const member = { kerbalVesselId: "eva-1", name: "Dunbal Kerman" };
-    expect(kerbalHeldOf(member, undefined)).toEqual([]);
-    expect(kerbalHeldOf(member, { name: "Dunbal Kerman" })).toEqual([]);
-  });
-
-  it("reads the bare number a per-kerbal Topic carries as mits", () => {
-    const [result] = kerbalHeldOf(
-      { kerbalVesselId: "eva-1" },
-      {
-        name: "Maxwell Kerman",
-        heldData: [
-          { subjectId: "evaReport@Mun", title: "EVA", dataAmount: 8 as never },
-        ],
-      },
-    );
-    expect(result.dataAmount).toEqual(value("Mit", 8));
+  it("reads nothing from no crew list or a kerbal whose holdings were not read", () => {
+    expect(kerbalHeldOf(undefined)).toEqual([]);
+    expect(
+      kerbalHeldOf({
+        count: value("count", 1),
+        kerbals: [{ name: "Dunbal Kerman" }],
+      }),
+    ).toEqual([]);
   });
 });

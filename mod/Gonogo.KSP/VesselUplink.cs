@@ -65,8 +65,6 @@ namespace Gonogo.KSP
         private IUplinkHost? _host;
 
         private IDynamicChannelSource? _partActionsSource;
-        private IDynamicChannelSource? _evaKerbalSource;
-        private readonly EvaKerbalPublications _evaKerbalPublications = new EvaKerbalPublications();
 
         /// <summary>
         /// Change-gate for the per-part action channels: without it a per-tick
@@ -152,21 +150,8 @@ namespace Gonogo.KSP
                 Channel(VesselViewProvider.TargetTopic, SampleKind.Continuous, absenceIsData: true),
                 Channel(VesselViewProvider.CrewTopic, SampleKind.Discrete, absenceIsData: true),
                 // Nobody outside is a real answer, not a gap: the channel
-                // publishes an empty roster rather than going quiet. Held at
-                // the home command so no craft's link gates it: each kerbal's
-                // own state is on its own eva.kerbal.<id>.state Topic, recorded
-                // on that kerbal's node.
-                new ChannelDeclaration
-                {
-                    Kind = SampleKind.Discrete,
-                    Requires = Requirement.None,
-                    Topic = VesselViewProvider.EvaCrewTopic,
-                    Delivery = Delivery.LossyLatest,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    Delay = DelayRole.Delayed,
-                    HeldAtHome = true,
-                    AbsenceIsData = true,
-                },
+                // publishes an empty roster rather than going quiet.
+                Channel(VesselViewProvider.EvaCrewTopic, SampleKind.Discrete, absenceIsData: true),
                 // No flag planted is a real answer, not a gap.
                 Channel(SurfaceSitesViewProvider.Topic, SampleKind.Discrete, absenceIsData: true),
                 // Nothing aboard carrying cargo is a real answer, not a gap.
@@ -395,45 +380,6 @@ namespace Gonogo.KSP
             host.AddCommandHandler<InvokePartActionArgs, CommandResult>(PartActionCommandProvider.InvokePartActionCommand, args => PartActionCommandProvider.HandleInvoke(_partActionActuator, args));
 
             RegisterPartActions(host);
-            RegisterEvaKerbals(host);
-        }
-
-        /// <summary>
-        /// Wires one Topic per kerbal outside (<c>eva.kerbal.&lt;vessel id&gt;.state</c>),
-        /// recorded on that kerbal's own node so it is held or revealed by the kerbal's
-        /// own link, which the fleet Uplink reports for every vessel the game has, and
-        /// never by the link of the craft the kerbal left.
-        /// </summary>
-        private void RegisterEvaKerbals(IUplinkHost host)
-        {
-            _evaKerbalSource = host.RegisterDynamicNamespace(
-                VesselViewProvider.EvaKerbalPrefix,
-                new ChannelDeclaration
-                {
-                    Kind = SampleKind.Discrete,
-                    Requires = Requirement.None,
-                    Delivery = Delivery.LossyLatest,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    Delay = DelayRole.Delayed,
-                    PerVesselNode = true,
-                });
-
-            // Ungated, because a kerbal that steps back aboard has to be withdrawn
-            // whether or not anyone is watching its Topic at that moment.
-            host.AddSampledSource(snapshot => snapshot, HandleEvaKerbalsOnCourier);
-        }
-
-        private void HandleEvaKerbalsOnCourier(object? captured)
-        {
-            if (captured is not KspSnapshot snapshot)
-            {
-                return;
-            }
-
-            foreach (var publication in _evaKerbalPublications.Next(snapshot))
-            {
-                _evaKerbalSource?.Publisher(publication.SubTopic).Publish(publication.Payload, snapshot.Ut);
-            }
         }
 
         /// <summary>

@@ -696,11 +696,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "EvaCrew": {
     count: "count",
   },
-  "EvaCrewMember": {
-    kerbalVesselId: "id",
-    name: "text",
-    parentVesselId: "id",
-  },
   "EvaHeldData": {
     dataAmount: "Mit",
     subjectId: "id",
@@ -2663,7 +2658,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     quantum: "EmissionQuantum",
   },
   "EvaCrew": {
-    kerbals: "EvaCrewMember[]",
+    kerbals: "EvaKerbal[]",
   },
   "EvaKerbal": {
     heldData: "EvaHeldData[]",
@@ -2949,7 +2944,7 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     resources: "*ResourceAmount",
   },
   "eva.crew": {
-    kerbals: "EvaCrewMember[]",
+    kerbals: "EvaKerbal[]",
   },
   "isru.converters": {
     inputs: "IsruResourceFlow[]",
@@ -3719,6 +3714,9 @@ export const GENERATED_CONTRACT_TAGS = {
     "comms.path": {
       "hops.*.distanceMeters": { kind: "continuous" },
       "hops.*.strength": { kind: "continuous" },
+    },
+    "eva.crew": {
+      "kerbals.*.propellantAmount": { kind: "continuous" },
     },
     "science.lab": {
       "*.dataStorage": { kind: "discrete" },

@@ -5,7 +5,6 @@ import type {
   FlightRecord,
 } from "@ksp-gonogo/data";
 import type { AlarmSnapshot } from "../alarms/types";
-import type { MissionProfile } from "../missionProfiles/MissionProfilesService";
 import type { RunningUplink } from "../uplinks/loaderState";
 
 /**
@@ -574,20 +573,7 @@ export type PeerMessage =
       requestId: string;
       manifest?: unknown;
       error?: string;
-    }
-  /* A station asks which dashboard layouts the main screen has saved, to offer them as its own. Answered only for an approved station. */
-  | { type: "host-layouts-request"; requestId: string }
-  | {
-      type: "host-layouts-response";
-      requestId: string;
-      layouts: HostLayout[];
     };
-
-/** A dashboard layout the main screen has saved, as it is offered to a station. */
-export type HostLayout = Pick<
-  MissionProfile,
-  "id" | "name" | "items" | "layout"
->;
 
 /**
  * A frame off a peer data channel as a protocol message, and `null` for

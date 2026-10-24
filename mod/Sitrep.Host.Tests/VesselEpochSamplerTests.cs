@@ -99,7 +99,7 @@ namespace Sitrep.Host.Tests
         /// doesn't inherit the previous vessel's "born" state and emit a
         /// spurious tombstone the instant the forced keyframe fires. See
         /// <c>Sitrep.Host.IntegrationTests.ChannelEngineTests.
-        /// SwitchingVesselsWithNoDataForATopicOnTheNewVesselWithdrawsTheOldVesselsValueOnce</c>
+        /// SwitchingVesselsWithNoDataForATopicOnTheNewVesselEmitsNoSpuriousTombstone</c>
         /// for the full engine/wire-level proof of this same fix.
         /// </summary>
         [Fact]

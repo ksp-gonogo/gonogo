@@ -5,7 +5,6 @@ import {
 } from "@ksp-gonogo/serial";
 import { Fab, LayersIcon, useModal } from "@ksp-gonogo/ui";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
-import { usePeerClient } from "../peer/PeerClientContext";
 import {
   MissionProfilesProvider,
   useMissionProfilesService,
@@ -26,7 +25,6 @@ export function MissionProfilesFab({
   const service = useMissionProfilesService();
   const serialService = useSerialDeviceService();
   const screen = useScreen();
-  const hostLink = usePeerClient();
 
   function handleClick() {
     // Modal portal renders above the service provider tree; re-wrap so hooks inside the modal content resolve the service + screen correctly.
@@ -36,7 +34,6 @@ export function MissionProfilesFab({
           <ScreenProvider value={screen}>
             <MissionProfilesModal
               dashboard={dashboard}
-              hostLink={hostLink ?? undefined}
               onClose={() => close(id)}
             />
           </ScreenProvider>

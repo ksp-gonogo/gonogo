@@ -8,6 +8,7 @@ import {
   useModal,
 } from "@ksp-gonogo/ui";
 import { Cluster, Tooltip } from "@ksp-gonogo/ui-kit";
+import { QRCodeSVG } from "qrcode.react";
 import { type ReactNode, useEffect, useState } from "react";
 import styled from "styled-components";
 import { SETUP_LINKS } from "../firstRun/setupGuide";
@@ -20,7 +21,6 @@ import { peerHostService } from "../peer/PeerHostService";
 import { probeTurn, type TurnProbeResult } from "../peer/probeTurn";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
 import { CHANNEL } from "../version";
-import { StationAddressList } from "./StationAddressList";
 import { stationAddresses } from "./stationAddresses";
 
 /**
@@ -106,7 +106,23 @@ function StationLinkPanel() {
         <Label>Share code</Label>
         <Code>{shareCode}</Code>
       </Cluster>
-      <StationAddressList addresses={addresses} qr={qr} />
+      {addresses.map((address) => (
+        <UrlRow key={address.id}>
+          <Label>{address.label}</Label>
+          <UrlValue href={address.url} target="_blank" rel="noreferrer">
+            {address.url}
+          </UrlValue>
+          <UrlWhen>{address.when}</UrlWhen>
+        </UrlRow>
+      ))}
+      <QrRow>
+        <QRCodeSVG
+          value={qr.url}
+          size={160}
+          title={`QR code for ${qr.label}`}
+        />
+      </QrRow>
+      {addresses.length > 1 && <UrlWhen>The QR code opens {qr.label}</UrlWhen>}
       <TurnStatus onReachable={setRelayReachable} />
       <StationPaths />
       <Hint>
@@ -350,6 +366,27 @@ const Wrap = styled.div`
   color: var(--color-text-primary);
 `;
 
+const UrlRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-related);
+`;
+
+const UrlValue = styled.a`
+  color: var(--color-info-text);
+  font-size: var(--font-size-value);
+  word-break: break-all;
+  text-decoration: underline;
+  &:hover {
+    color: var(--color-text-primary);
+  }
+`;
+
+const UrlWhen = styled.span`
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+`;
+
 const Label = styled.span`
   font-size: var(--font-size-caption);
   font-weight: 700;
@@ -365,6 +402,14 @@ const Code = styled.code`
      to a box width. */
   font-size: 18px;
   letter-spacing: 0.12em;
+`;
+
+const QrRow = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: var(--inset-qr);
+  background: var(--color-text-primary);
+  border-radius: var(--radius-regular);
 `;
 
 const Hint = styled.p`

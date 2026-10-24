@@ -105,48 +105,6 @@ describe("StationApprovalPrompt", () => {
   });
 });
 
-describe("StationApprovalPrompt naming", () => {
-  it("shows the code the station shows, so devices with one name can be told apart", () => {
-    const host = new FakeHost();
-    render(<StationApprovalPrompt host={host} />);
-    host.set([
-      { peerId: "p1", name: "Mission Control", tag: "7F3A" },
-      { peerId: "p2", name: "Mission Control", tag: "C9D1" },
-    ]);
-    expect(
-      screen.getByText("Station Mission Control (7F3A) wants to join"),
-    ).toBeVisible();
-    expect(
-      screen.getByText("Station Mission Control (C9D1) wants to join"),
-    ).toBeVisible();
-    expect(
-      screen.getByRole("button", {
-        name: "Approve station Mission Control (7F3A)",
-      }),
-    ).toBeVisible();
-  });
-
-  it("does not say Station twice when the name already starts with it", () => {
-    const host = new FakeHost();
-    render(<StationApprovalPrompt host={host} />);
-    host.set([{ peerId: "p1", name: "Station JQ8C", tag: "7F3A" }]);
-    expect(screen.getByText("Station JQ8C (7F3A) wants to join")).toBeVisible();
-  });
-});
-
-describe("StationApprovalNotice code", () => {
-  it("shows the same code the main screen shows for this station", () => {
-    localStorage.setItem(
-      "gonogo.station.key",
-      "7f3a1c20-0000-4000-8000-000000000000",
-    );
-    const client = new FakeClient();
-    client.approval = "pending";
-    render(<StationApprovalNotice client={client} />);
-    expect(screen.getByText("Code 7F3A")).toBeVisible();
-  });
-});
-
 describe("ApprovedStations", () => {
   it("lists each approved station with Remove", async () => {
     stationApprovals.approve("cred-a", "Booster");

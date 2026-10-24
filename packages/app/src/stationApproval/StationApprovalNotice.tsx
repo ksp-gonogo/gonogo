@@ -1,7 +1,6 @@
 import { BannerPill, Button } from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import type { PeerClientService } from "../peer/PeerClientService";
-import { getStationKey, stationTag } from "../peer/stationPeerId";
 
 type Client = Pick<
   PeerClientService,
@@ -53,7 +52,6 @@ export function StationApprovalNotice({ client }: { client: Client }) {
     return (
       <BannerPill accent="var(--color-warn-mark)" anchor="top" role="status">
         <span>Waiting for the main screen to approve this station</span>
-        <span>Code {stationTag(getStationKey())}</span>
         {lastRefused && <span>{lastRefused} not sent</span>}
       </BannerPill>
     );
