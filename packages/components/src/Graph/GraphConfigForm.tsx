@@ -1,6 +1,8 @@
 import type { ConfigComponentProps } from "@ksp-gonogo/core";
 import { safeRandomUuid } from "@ksp-gonogo/core";
-import { useNumericFields } from "@ksp-gonogo/data";
+import type { TopicFieldKey } from "@ksp-gonogo/data";
+import { seriesChoice, useNumericFields } from "@ksp-gonogo/data";
+import { getRuntimeRegisteredTopicIds } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
   DataKeyPicker,
@@ -11,7 +13,7 @@ import {
   Select,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { Button } from "@ksp-gonogo/ui-kit";
+import { Button, Disclosure } from "@ksp-gonogo/ui-kit";
 import { type CSSProperties, useMemo, useState } from "react";
 import { parseDomain, resolveVariantHint } from "./config";
 import { SeriesRow } from "./SeriesRow";
@@ -28,8 +30,8 @@ export function GraphConfigComponent({
   config,
   onSave,
 }: Readonly<ConfigComponentProps<GraphConfig>>) {
-  const [seriesList, setSeriesList] = useState<GraphSeriesConfig[]>(
-    config?.series ?? [],
+  const [seriesList, setSeriesList] = useState<GraphSeriesConfig[]>(() =>
+    config?.series?.length ? config.series : [blankSeries()],
   );
   const [windowSec, setWindowSec] = useState(String(config?.windowSec ?? 300));
   const [xKey, setXKey] = useState<string>(config?.xKey ?? TIME_AXIS);
@@ -65,11 +67,17 @@ export function GraphConfigComponent({
     ...numericKeys,
   ];
 
+  // Grouped by what the field describes and phrased in full once picked, so two altitudes never read alike.
+  const seriesKeys = useMemo(() => {
+    const uplinkTopics = new Set(getRuntimeRegisteredTopicIds());
+    return numericKeys.map((entry) => ({
+      ...entry,
+      ...seriesChoice(entry as TopicFieldKey, uplinkTopics),
+    }));
+  }, [numericKeys]);
+
   const addSeries = () => {
-    setSeriesList((prev) => [
-      ...prev,
-      { id: safeRandomUuid(), key: "", type: "line", axis: "auto" },
-    ]);
+    setSeriesList((prev) => [...prev, blankSeries()]);
   };
 
   const updateSeries = (id: string, patch: Partial<GraphSeriesConfig>) => {
@@ -153,34 +161,12 @@ export function GraphConfigComponent({
   return (
     <ConfigForm>
       <Field>
-        <FieldLabel htmlFor="graph-variant">Display</FieldLabel>
-        <Select
-          id="graph-variant"
-          value={variant}
-          onChange={(e) => setVariant(e.target.value as GraphVariant)}
-        >
-          <option value="auto">Auto (chart, readout when tiny)</option>
-          <option value="chart">Chart</option>
-          <option value="readout">Readout (number + sparkline)</option>
-        </Select>
-        {variantHint && <FieldHint>{variantHint}</FieldHint>}
-      </Field>
-      <Field>
-        <FieldLabel>X axis</FieldLabel>
-        <DataKeyPicker
-          keys={xKeyOptions}
-          value={xKey}
-          onChange={(k) => setXKey(k ?? TIME_AXIS)}
-          placeholder="Pick an X-axis key..."
-        />
-      </Field>
-      <Field>
         <FieldLabel>Series</FieldLabel>
         {seriesList.map((s) => (
           <SeriesRow
             key={s.id}
             series={s}
-            numericKeys={numericKeys}
+            numericKeys={seriesKeys}
             onUpdate={updateSeries}
             onRemove={removeSeries}
           />
@@ -195,7 +181,7 @@ export function GraphConfigComponent({
         </Button>
       </Field>
       <Field>
-        <FieldLabel htmlFor="graph-window">Window (seconds)</FieldLabel>
+        <FieldLabel htmlFor="graph-window">Time window (seconds)</FieldLabel>
         <Input
           id="graph-window"
           type="number"
@@ -205,79 +191,107 @@ export function GraphConfigComponent({
           onChange={(e) => setWindowSec(e.target.value)}
         />
       </Field>
-      <Field>
-        <FieldLabel>Primary Y range (leave blank for auto)</FieldLabel>
-        <div style={DOMAIN_ROW}>
-          <Input
-            type="number"
-            placeholder="min"
-            value={yMinPrimary}
-            onChange={(e) => setYMinPrimary(e.target.value)}
-          />
-          <Input
-            type="number"
-            placeholder="max"
-            value={yMaxPrimary}
-            onChange={(e) => setYMaxPrimary(e.target.value)}
-          />
+      <Disclosure label="Axes and style" variant="inline">
+        <Field>
+          <FieldLabel htmlFor="graph-variant">Display</FieldLabel>
           <Select
-            value={yScalePrimary}
-            onChange={(e) =>
-              setYScalePrimary(e.target.value as "linear" | "log")
-            }
+            id="graph-variant"
+            value={variant}
+            onChange={(e) => setVariant(e.target.value as GraphVariant)}
           >
-            <option value="linear">Linear</option>
-            <option value="log">Log10</option>
+            <option value="auto">Auto (chart, readout when tiny)</option>
+            <option value="chart">Chart</option>
+            <option value="readout">Readout (number + sparkline)</option>
           </Select>
-        </div>
-      </Field>
-      <Field>
-        <FieldLabel>Secondary Y range (leave blank for auto)</FieldLabel>
-        <div style={DOMAIN_ROW}>
-          <Input
-            type="number"
-            placeholder="min"
-            value={yMinSecondary}
-            onChange={(e) => setYMinSecondary(e.target.value)}
+          {variantHint && <FieldHint>{variantHint}</FieldHint>}
+        </Field>
+        <Field>
+          <FieldLabel>X axis</FieldLabel>
+          <DataKeyPicker
+            keys={xKeyOptions}
+            value={xKey}
+            onChange={(k) => setXKey(k ?? TIME_AXIS)}
+            placeholder="Pick an X-axis key..."
           />
-          <Input
-            type="number"
-            placeholder="max"
-            value={yMaxSecondary}
-            onChange={(e) => setYMaxSecondary(e.target.value)}
-          />
-          <Select
-            value={yScaleSecondary}
-            onChange={(e) =>
-              setYScaleSecondary(e.target.value as "linear" | "log")
-            }
+        </Field>
+        <Field>
+          <FieldLabel>Primary Y range (leave blank for auto)</FieldLabel>
+          <div style={DOMAIN_ROW}>
+            <Input
+              type="number"
+              placeholder="min"
+              value={yMinPrimary}
+              onChange={(e) => setYMinPrimary(e.target.value)}
+            />
+            <Input
+              type="number"
+              placeholder="max"
+              value={yMaxPrimary}
+              onChange={(e) => setYMaxPrimary(e.target.value)}
+            />
+            <Select
+              value={yScalePrimary}
+              onChange={(e) =>
+                setYScalePrimary(e.target.value as "linear" | "log")
+              }
+            >
+              <option value="linear">Linear</option>
+              <option value="log">Log10</option>
+            </Select>
+          </div>
+        </Field>
+        <Field>
+          <FieldLabel>Secondary Y range (leave blank for auto)</FieldLabel>
+          <div style={DOMAIN_ROW}>
+            <Input
+              type="number"
+              placeholder="min"
+              value={yMinSecondary}
+              onChange={(e) => setYMinSecondary(e.target.value)}
+            />
+            <Input
+              type="number"
+              placeholder="max"
+              value={yMaxSecondary}
+              onChange={(e) => setYMaxSecondary(e.target.value)}
+            />
+            <Select
+              value={yScaleSecondary}
+              onChange={(e) =>
+                setYScaleSecondary(e.target.value as "linear" | "log")
+              }
+            >
+              <option value="linear">Linear</option>
+              <option value="log">Log10</option>
+            </Select>
+          </div>
+        </Field>
+        <Field>
+          <FieldLabel>Threshold lines</FieldLabel>
+          {thresholds.map((t) => (
+            <ThresholdRow
+              key={t.id}
+              threshold={t}
+              onUpdate={updateThreshold}
+              onRemove={removeThreshold}
+            />
+          ))}
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={addThreshold}
+            style={ADD_BUTTON}
           >
-            <option value="linear">Linear</option>
-            <option value="log">Log10</option>
-          </Select>
-        </div>
-      </Field>
-      <Field>
-        <FieldLabel>Threshold lines</FieldLabel>
-        {thresholds.map((t) => (
-          <ThresholdRow
-            key={t.id}
-            threshold={t}
-            onUpdate={updateThreshold}
-            onRemove={removeThreshold}
-          />
-        ))}
-        <Button
-          variant="ghost"
-          type="button"
-          onClick={addThreshold}
-          style={ADD_BUTTON}
-        >
-          + Add threshold
-        </Button>
-      </Field>
+            + Add threshold
+          </Button>
+        </Field>
+      </Disclosure>
     </ConfigForm>
   );
+}
+
+function blankSeries(): GraphSeriesConfig {
+  return { id: safeRandomUuid(), key: "", type: "line", axis: "auto" };
 }
 
 const DOMAIN_ROW: CSSProperties = {
