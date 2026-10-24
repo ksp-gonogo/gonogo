@@ -7,6 +7,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
+import { wideTileForTests } from "./wideTile";
+
+wideTileForTests();
 
 /**
  * Pins the four meanings ManeuverPlanner gives an absent telemetry read:
@@ -85,7 +88,7 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
     ).toBeInTheDocument();
 
     // Named absences, so a widget that renders nothing cannot pass.
-    expect(screen.queryByText("Preview")).not.toBeInTheDocument();
+    expect(screen.queryByText("Burn in")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Add node" }),
     ).not.toBeInTheDocument();
@@ -95,8 +98,8 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
 
     expect(screen.getByText("Planned nodes")).toBeInTheDocument();
     expect(screen.getByText("New maneuver")).toBeInTheDocument();
-    // The nodes and the conformance sections each say the plan is awaited.
-    expect(screen.getAllByText("Awaiting maneuver plan")).toHaveLength(2);
+    // The nodes section says the plan is awaited; conformance has no burn to compare yet and is not drawn.
+    expect(screen.getAllByText("Awaiting maneuver plan")).toHaveLength(1);
 
     // An absent ecc does not take the hyperbolic branch.
     expect(screen.queryByText("Hyperbolic trajectory")).not.toBeInTheDocument();
@@ -208,7 +211,7 @@ describe("ManeuverPlanner: a partial vessel.orbit payload", () => {
       emitOrbitReady(fixture, { ecc: undefined });
     });
     expect(screen.getByText("Awaiting orbit telemetry")).toBeInTheDocument();
-    expect(screen.queryByText("Preview")).not.toBeInTheDocument();
+    expect(screen.queryByText("Burn in")).not.toBeInTheDocument();
   });
 
   it("shows the hyperbolic notice instead when ecc IS present and >= 1", async () => {
@@ -280,7 +283,7 @@ describe("ManeuverPlanner: dv.stages absent is coerced to zero", () => {
     act(() => {
       emitOrbitReady(fixture);
     });
-    expect(await screen.findByText("Preview")).toBeInTheDocument();
+    expect(await screen.findByText("Burn in")).toBeInTheDocument();
     expect(screen.getByText("Available (VAC)")).toBeInTheDocument();
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
     expect(screen.queryByText("OK")).not.toBeInTheDocument();

@@ -16,6 +16,9 @@ import { isDisabled } from "../test/isDisabled";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
+import { wideTileForTests } from "./wideTile";
+
+wideTileForTests();
 
 // Unmounted before clearAugments(), which would otherwise notify a mounted tree outside act().
 const renderedTrees: Array<() => void> = [];

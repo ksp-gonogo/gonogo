@@ -1946,8 +1946,8 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "tiny-3x4", w: 3, h: 4 },
       // The body's own floor: node editor at its tightest.
       { name: "min-7x9", w: 7, h: 9 },
-      // defaultSize 10×18: the common operator view.
-      { name: "default-10x18", w: 10, h: 18 },
+      // defaultSize 14×22: the common operator view, with the plan and the flight plan side by side and nothing below the fold.
+      { name: "default-14x22", w: 14, h: 22 },
       // wide landscape.
       { name: "wide-14x12", w: 14, h: 12 },
       /*
