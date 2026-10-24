@@ -36,9 +36,11 @@ import { parseFlags, wantsHelp } from "./flags";
 import { NEW_USAGE, newUplink } from "./new";
 import { PACKAGE_USAGE, packageCommand } from "./package";
 import { PAGE_USAGE, page } from "./page";
+import { PREPARE_USAGE, prepareRelease, runCli } from "./prepare";
 import { PUBLISH_USAGE, publish } from "./publish";
 import { RELEASE_USAGE, release } from "./release";
 import { serveDir } from "./serve";
+import { VERSION_USAGE, version } from "./version";
 
 /** Beside the bundle: what a watch last did, for the app's dev server to read. */
 const WATCH_STATUS_FILE = "watch-status.json";
@@ -53,7 +55,11 @@ const USAGE = `uplink-tools <command>
            the bundle lives, who wrote it and the hash the mod vouches for
   package  lay the built plugin out as GameData and zip it
   release  bundle, bake, compile the plugin and package, in the order that
-           gives a plugin the app will load a client for
+           gives a plugin the app will load a client for. \`release prepare\`
+           moves the version, proves the release builds, then commits and
+           tags it
+  version  move the Uplink to its next version in every place it is written,
+           and write its changelog section from its commits
   publish  put the released client where its client.url is served from, and
            say the links
   page     write this Uplink's generated page from its registrations, with
@@ -407,6 +413,14 @@ export async function run(argv: readonly string[]): Promise<number> {
       return await newUplink(argv.slice(1));
     }
     if (verb === "bundle") return await bundle(argv.slice(1));
+    if (verb === "release" && argv[1] === "prepare") {
+      if (wantsHelp(argv)) {
+        console.log(PREPARE_USAGE);
+        return 0;
+      }
+      await prepareRelease(argv.slice(2), { run: runCli });
+      return 0;
+    }
     const plain: Record<
       string,
       [string, (argv: readonly string[]) => number | Promise<number>]
@@ -418,6 +432,7 @@ export async function run(argv: readonly string[]): Promise<number> {
       page: [PAGE_USAGE, page],
       publish: [PUBLISH_USAGE, publish],
       release: [RELEASE_USAGE, (rest) => release(rest, bundle)],
+      version: [VERSION_USAGE, version],
     };
     if (Object.hasOwn(plain, verb)) {
       const [usage, command] = plain[verb];

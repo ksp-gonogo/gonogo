@@ -41,6 +41,8 @@ Once it is in an Uplink's devDependencies the same commands answer to
 | `bake` | write what the plugin tells the app about its client into C#: where the bundle lives, who wrote it, and the hash the mod vouches for |
 | `package` | lay the built plugin out as `GameData/<name>/` and zip it with that as the zip's one root, which is what a hand install and CKAN both expect; it refuses a netkan whose install stanza names a path the zip does not hold |
 | `release` | `bundle`, `bake`, compile the plugin, check the DLL carries what was baked, and `package`, in that order. It refuses when the Uplink's version is not the same in `client/package.json`, in `defineUplinkClient` and in the version folder of `client.url` |
+| `release prepare` | move the version, then run `codegen --check`, `check`, the client's tests, `docs --check` and a full `release` into a scratch folder, and only then commit `release: <id> v<version>` (with `--tag`, tag `<id>-v<version>`; with `--push`, push both in one atomic push). A failure at any step restores every file and makes no commit or tag. It refuses a dirty tree and a tag already on origin |
+| `version` | move the Uplink to its next version in every place it is written (`client/package.json`, its lockfile, `UPLINK_VERSION`, the version folder of `client.url`), then write the page. `--bump auto --commits <file>` reads the bump from the Uplink's own commits and writes its `CHANGELOG.md` section |
 | `page` | write `README.md`, `gonogo-uplink.json`, `docs/widgets.json` and `docs/spec.json` from what the client registers, with no browser |
 | `render` | render every scene to `renders/` |
 | `story <id>` | render one Storybook story to a PNG, or to a GIF when the story is tagged `playback`; see below |
