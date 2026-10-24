@@ -904,10 +904,11 @@ const COUNTED_LIKE_MONEY: ReadonlySet<string> = new Set([
   "reputation",
 ]);
 
-/** `useGrouping`'s string form is ES2023 and the published package targets ES2022, so it is typed here and cast once. */
+/** `useGrouping`'s string form and `roundingMode` are ES2023 and the published package targets ES2022, so they are typed here and cast once. */
 interface GroupingOptions
   extends Omit<Intl.NumberFormatOptions, "useGrouping"> {
   useGrouping?: "always" | "auto" | "min2" | boolean;
+  roundingMode?: "trunc" | "halfExpand";
 }
 
 /**
@@ -933,8 +934,12 @@ export function setQuantityLocale(next: string | undefined): void {
 /** Built `Intl.NumberFormat`s, cached because construction is expensive and this runs per readout per frame. */
 const formatters = new Map<string, Intl.NumberFormat>();
 
-function numberFormat(decimals: number, money: boolean): Intl.NumberFormat {
-  const key = `${locale ?? ""}|${decimals}|${money}`;
+function numberFormat(
+  decimals: number,
+  money: boolean,
+  truncate: boolean,
+): Intl.NumberFormat {
+  const key = `${locale ?? ""}|${decimals}|${money}|${truncate}`;
   let existing = formatters.get(key);
   if (existing === undefined) {
     const options: GroupingOptions = {
@@ -942,6 +947,7 @@ function numberFormat(decimals: number, money: boolean): Intl.NumberFormat {
       maximumFractionDigits: decimals,
       // `min2` is SI's rule (`3200 K`, `12,400 m`); money always groups (`2,340f`).
       useGrouping: money ? "always" : "min2",
+      roundingMode: truncate ? "trunc" : "halfExpand",
     };
     existing = new Intl.NumberFormat(
       locale,
@@ -996,11 +1002,13 @@ function significantFormat(): Intl.NumberFormat {
 /**
  * A fixed-precision number, grouped by the locale's separator rather than
  * SI's thin space, since `<Unit>` already puts a thin space before the symbol.
+ * Funds are truncated, never rounded, because the game's own readout drops the fraction.
  */
 function fixed(value: number, decimals: number, kind?: string): string {
   return numberFormat(
     decimals,
     kind !== undefined && COUNTED_LIKE_MONEY.has(kind),
+    kind === "funds",
   ).format(value);
 }
 
