@@ -61,6 +61,14 @@ export function touchdownBand(
   return bandOf(value("m/s", speed).abs(), thresholds.touchdown);
 }
 
+/** The band a site slope falls in: the verdict's own rule, so a caption about the ground cannot disagree with the verdict. A slope exactly on a boundary falls in the safer band. */
+export function slopeBand(
+  slope: Value<"°">,
+  thresholds: HazardThresholds = DEFAULT_HAZARD_THRESHOLDS,
+): Hazard {
+  return bandOf(slope, thresholds.slope);
+}
+
 function bandOf<Unit extends string>(
   reading: Value<Unit>,
   [safeMax, marginalMax]: readonly [Value<Unit>, Value<Unit>],

@@ -1,6 +1,7 @@
 import type { PlotEntry, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
+import { slopeBand } from "./hazardVerdict";
 import { roundedHeight } from "./readouts";
 import { siteWorthPlotting } from "./siteGate";
 import {
@@ -225,8 +226,11 @@ export function buildVesselViewPlot(
 
   // Close to the ground every ray meets ground of one colour: the craft is looking at the surface, and says so rather than leaving a blank square.
   const bandOf = (v: number) => Math.floor(v / TERRAIN_BAND_METRES);
+  // Only a site the verdict itself calls safe is captioned flat: a view whose heights all fall in one colour band can still be a marginal slope.
+  const slopeAllowsFlat = !slope?.isFinite() || slopeBand(slope) === "SAFE";
   if (
     terrain &&
+    slopeAllowsFlat &&
     new Set(terrain.values.filter((_, i) => terrain.veil[i] === 0).map(bandOf))
       .size < 2
   ) {

@@ -1175,6 +1175,15 @@ describe("touchdown view plot", () => {
     expect(caption?.kind === "caption" && caption.text).toContain("FOV");
   });
 
+  it("captions the view flat only where the slope verdict is safe", () => {
+    const caption = (slope: TouchdownViewInputs["slope"]) =>
+      ids(buildVesselViewPlot(low({ slope }))).includes("surface");
+    expect(caption(value("°", 3))).toBe(true);
+    expect(caption(null)).toBe(true);
+    expect(caption(value("°", 8.8))).toBe(false);
+    expect(caption(value("°", 20))).toBe(false);
+  });
+
   it("draws the ground, the ring, the site and the track when nothing stands in the way", () => {
     const plot = buildVesselViewPlot(low());
     expect(ids(plot)).toEqual(
