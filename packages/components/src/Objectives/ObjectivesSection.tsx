@@ -26,7 +26,10 @@ export function ObjectivesSection({
   return (
     <ul aria-label="Objectives" style={LIST}>
       {items.map((o) => (
-        <li key={o.id} style={ITEM}>
+        <li
+          key={o.id}
+          style={o.depth ? { ...ITEM, marginLeft: `${o.depth * 1.5}ch` } : ITEM}
+        >
           <StateGlyph
             glyph={
               <span

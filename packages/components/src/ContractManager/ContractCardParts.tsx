@@ -1,4 +1,3 @@
-import { formatCompactCurrency } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { HeldFigure, heldWord, NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
 import type { heldGrade } from "../shared/heldGrade";
@@ -70,9 +69,11 @@ export function ContractRewards({
         <div style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>FUNDS</span>
           <span style={REWARD_VALUE_STYLE}>
-            {c.fundsCompletion === null
-              ? NULL_DISPLAY
-              : formatCompactCurrency(c.fundsCompletion)}
+            {c.fundsCompletion === null ? (
+              NULL_DISPLAY
+            ) : (
+              <Unit value={value("funds", c.fundsCompletion)} />
+            )}
           </span>
         </div>
       )}
@@ -80,9 +81,11 @@ export function ContractRewards({
         <div style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>SCI</span>
           <span style={REWARD_VALUE_STYLE}>
-            {c.scienceCompletion === null
-              ? NULL_DISPLAY
-              : c.scienceCompletion.toFixed(1)}
+            {c.scienceCompletion === null ? (
+              NULL_DISPLAY
+            ) : (
+              <Unit value={value("science", c.scienceCompletion)} />
+            )}
           </span>
         </div>
       )}
@@ -90,9 +93,11 @@ export function ContractRewards({
         <div style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>REP</span>
           <span style={REWARD_VALUE_STYLE}>
-            {c.repCompletion === null
-              ? NULL_DISPLAY
-              : c.repCompletion.toFixed(1)}
+            {c.repCompletion === null ? (
+              NULL_DISPLAY
+            ) : (
+              <Unit value={value("rep", c.repCompletion)} />
+            )}
           </span>
         </div>
       )}
@@ -118,14 +123,16 @@ export function ContractCancelCost({
         <span style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>FUNDS</span>
           <span style={PENALTY_VALUE_STYLE}>
-            −{formatCompactCurrency(c.fundsFailure)}
+            −<Unit value={value("funds", c.fundsFailure)} />
           </span>
         </span>
       )}
       {rep && c.repFailure !== null && (
         <span style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>REP</span>
-          <span style={PENALTY_VALUE_STYLE}>−{c.repFailure.toFixed(1)}</span>
+          <span style={PENALTY_VALUE_STYLE}>
+            −<Unit value={value("rep", c.repFailure)} />
+          </span>
         </span>
       )}
     </div>

@@ -313,6 +313,11 @@ namespace Sitrep.Host
                     ["title"] = GetString(entry, "title"),
                     ["agent"] = GetString(entry, "agent"),
                     ["state"] = GetString(entry, "state"),
+                    ["synopsis"] = GetString(entry, "synopsis"),
+                    ["briefing"] = GetString(entry, "briefing"),
+                    ["notes"] = GetString(entry, "notes"),
+                    ["prestige"] = GetString(entry, "prestige"),
+                    ["prestigeOrdinal"] = GetInt(entry, "prestigeOrdinal"),
                     ["fundsAdvance"] = GetDouble(entry, "fundsAdvance"),
                     ["fundsCompletion"] = GetDouble(entry, "fundsCompletion"),
                     ["fundsFailure"] = GetDouble(entry, "fundsFailure"),
@@ -322,43 +327,49 @@ namespace Sitrep.Host
                     ["dateAccepted"] = ContractDate(entry, "dateAccepted"),
                     ["dateDeadline"] = ContractDate(entry, "dateDeadline"),
                     ["dateExpire"] = ContractDate(entry, "dateExpire"),
-                    ["parameters"] = BuildContractParameters(entry),
+                    ["parameters"] = BuildContractParameters(entry, "parameters"),
                 });
             }
 
             return result;
         }
 
-        private static List<object?> BuildContractParameters(IDictionary<string, object?> entry)
+        private static Dictionary<string, object?> BuildContractParameter(IDictionary<string, object?> parameter)
+        {
+            var minAltitude = GetDouble(parameter, "minAltitude");
+            var maxAltitude = GetDouble(parameter, "maxAltitude");
+            // A band missing either bound is no band.
+            var banded = minAltitude.HasValue && maxAltitude.HasValue;
+            return new Dictionary<string, object?>
+            {
+                ["title"] = GetString(parameter, "title"),
+                ["state"] = GetString(parameter, "state"),
+                ["stateOrdinal"] = GetInt(parameter, "stateOrdinal"),
+                ["optional"] = parameter.TryGetValue("optional", out var optional) && optional is bool flag ? flag : (bool?)null,
+                ["notes"] = GetString(parameter, "notes"),
+                ["children"] = BuildContractParameters(parameter, "children"),
+                ["minAltitude"] = banded ? minAltitude : null,
+                ["maxAltitude"] = banded ? maxAltitude : null,
+                ["milestone"] = GetString(parameter, "milestone"),
+                ["milestoneBody"] = GetString(parameter, "milestoneBody"),
+                ["targetAltitude"] = GetDouble(parameter, "targetAltitude"),
+            };
+        }
+
+        private static List<object?> BuildContractParameters(IDictionary<string, object?> owner, string key)
         {
             var result = new List<object?>();
-            if (!entry.TryGetValue("parameters", out var rawParameters) || rawParameters is not IEnumerable<object?> parameters)
+            if (!owner.TryGetValue(key, out var raw) || raw is not IEnumerable<object?> list)
             {
                 return result;
             }
 
-            foreach (var rawParameter in parameters)
+            foreach (var item in list)
             {
-                if (rawParameter is not IDictionary<string, object?> parameter)
+                if (item is IDictionary<string, object?> child)
                 {
-                    continue;
+                    result.Add(BuildContractParameter(child));
                 }
-
-                var minAltitude = GetDouble(parameter, "minAltitude");
-                var maxAltitude = GetDouble(parameter, "maxAltitude");
-                // A band missing either bound is no band.
-                var banded = minAltitude.HasValue && maxAltitude.HasValue;
-                result.Add(new Dictionary<string, object?>
-                {
-                    ["title"] = GetString(parameter, "title"),
-                    ["state"] = GetString(parameter, "state"),
-                    ["stateOrdinal"] = GetInt(parameter, "stateOrdinal"),
-                    ["minAltitude"] = banded ? minAltitude : null,
-                    ["maxAltitude"] = banded ? maxAltitude : null,
-                    ["milestone"] = GetString(parameter, "milestone"),
-                    ["milestoneBody"] = GetString(parameter, "milestoneBody"),
-                    ["targetAltitude"] = GetDouble(parameter, "targetAltitude"),
-                });
             }
 
             return result;

@@ -12,7 +12,7 @@
   "minAppVersion": "0.0.0",
   "apiVersion": "6.0.0",
   "contractMajor": 49,
-  "contractMinor": 0,
+  "contractMinor": 1,
   "bundleUrl": "realantennas/realantennas.client.js",
   "integrity": "sha256-00a61223b7c32f3a69b7ea6c9d704be445d64754694d396e2a10a7f67bf9e218",
   "sdkVersion": "0.0.1"

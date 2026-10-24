@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 49.0.0
+  version: 49.1.0
   description: |-
     The WebSocket API of the Gonogo mod: 89 telemetry channels a client
     subscribes to and 71 commands it sends, each with its payload and what it
@@ -9971,6 +9971,46 @@ components:
           description: |-
             KSP's `Contract.State` enum name, e.g. `"Active"`, `"Offered"` or
             `"Completed"`.
+        synopsis:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The one-line statement of what the contract asks for, KSP's
+            `Contract.Synopsys`. Useful as the line under the title on a contract card.
+        briefing:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The contract's briefing, KSP's `Contract.Description`: the full text the
+            agency writes to explain the work.
+        notes:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The contract's notes, KSP's `Contract.Notes`: the extra conditions and hints
+            the game lists under the briefing. `null` when it has none.
+        prestige:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            `Contract.Prestige`'s enum name (`Trivial`, `Significant`, `Exceptional`): a
+            display label. `CareerContract.prestigeOrdinal` is the field to branch on.
+        prestigeOrdinal:
+          description: |-
+            `CareerContract.prestige`'s KSP ordinal, typed to `KspContractPrestige`.
+            `null` when the capture carried none, which is not a trivial contract.
+          anyOf:
+            - $ref: "#/components/schemas/KspContractPrestige"
+              x-sitrep-unit: enum
+            - type: "null"
         fundsAdvance:
           type:
             - number
@@ -10037,11 +10077,14 @@ components:
           items:
             $ref: "#/components/schemas/CareerContractParameter"
           description: |-
-            The contract's top-level objectives, in KSP's order. Nested sub-parameters
-            are not listed. Always present, empty when the contract has none.
+            The contract's top-level objectives, in KSP's order, each carrying its own
+            nested objectives in `CareerContractParameter.children`. Always present,
+            empty when the contract has none.
     CareerContractParameter:
       type: object
       description: One parameter (objective) of a `CareerContract`.
+      required:
+        - children
       properties:
         title:
           type:
@@ -10072,6 +10115,31 @@ components:
             - $ref: "#/components/schemas/KspParameterState"
               x-sitrep-unit: enum
             - type: "null"
+        optional:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether the contract can be completed without this objective, KSP's optional
+            flag on a contract parameter. Useful for telling the operator which
+            objectives are bonuses.
+        notes:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The objective's notes, KSP's notes on a contract parameter. `null` when it
+            has none.
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerContractParameter"
+          description: |-
+            The objectives nested directly under this one, in KSP's order, each with its
+            own live state. Always present, empty for an objective that has no
+            sub-objectives.
         minAltitude:
           type:
             - number
@@ -16354,6 +16422,23 @@ components:
             `CommsJourneyEvent.detail` says which attempt was lost, and
             `CommsJourneyEvent.untilUt` is when that node tries again, or null when it
             waits for its plan to change.
+    KspContractPrestige:
+      type: integer
+      description: |-
+        KSP's contract prestige tier: how demanding a contract is, which the game
+        shows as the difficulty of an offer. Carried as the prestige ordinal of each
+        contract on the career status, beside the prestige name.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: Trivial
+          description: An easy contract, the first tier of difficulty.
+        - const: 1
+          title: Significant
+          description: A contract of middling difficulty.
+        - const: 2
+          title: Exceptional
+          description: The hardest contract tier.
     KspEditorFacility:
       type: integer
       description: |-

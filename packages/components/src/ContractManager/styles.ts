@@ -127,3 +127,33 @@ export const OPTIONAL_STYLE = {
   color: "var(--color-text-faint)",
   fontStyle: "italic",
 } as const;
+
+export const PARAMETER_TITLE_STYLE = {
+  display: "flex",
+  alignItems: "baseline",
+  gap: "var(--gap-related)",
+} as const;
+
+export const NOTES_STYLE = {
+  color: "var(--color-text-muted)",
+  fontSize: "var(--font-size-caption)",
+  whiteSpace: "pre-wrap",
+} as const;
+
+export const SYNOPSIS_STYLE = {
+  color: "var(--color-text-primary)",
+  fontSize: "var(--font-size-compact)",
+} as const;
+
+export const BRIEFING_BODY_STYLE = {
+  color: "var(--color-text-primary)",
+  whiteSpace: "pre-wrap",
+  marginTop: "var(--gap-related)",
+} as const;
+
+export const AGENCY_ROW_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: "var(--gap-related)",
+} as const;

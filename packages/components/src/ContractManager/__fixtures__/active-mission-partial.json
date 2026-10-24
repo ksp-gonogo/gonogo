@@ -82,7 +82,17 @@
                   {
                     "title": "Reach orbit around Kerbin",
                     "state": "Complete",
-                    "stateOrdinal": 1
+                    "stateOrdinal": 1,
+                    "notes": "Any inclination will do",
+                    "children": [
+                      {
+                        "title": "Be in a stable orbit",
+                        "state": "Complete",
+                        "stateOrdinal": 1,
+                        "optional": false,
+                        "children": []
+                      }
+                    ]
                   },
                   {
                     "title": "Reach altitude between 70 km and 100 km",
@@ -94,14 +104,20 @@
                   {
                     "title": "Return to Kerbin",
                     "state": "Incomplete",
-                    "stateOrdinal": 0
+                    "stateOrdinal": 0,
+                    "optional": true
                   }
                 ],
                 "agent": "Kerbin Space Program",
                 "reputationCompletion": 5,
                 "dateDeadline": 233340,
                 "fundsFailure": 10000,
-                "reputationFailure": 3.0
+                "reputationFailure": 3.0,
+                "synopsis": "Plant a flag on the Mun and bring the crew home",
+                "briefing": "The Kerbin Space Program wants a flag on the Mun. Land a crewed vessel, plant the flag and return the crew to Kerbin.",
+                "notes": "The flag must be planted by a kerbal on foot.",
+                "prestige": "Significant",
+                "prestigeOrdinal": 1
               }
             ],
             "offered": [
@@ -121,7 +137,10 @@
                 ],
                 "agent": "Experimental Engineering Group",
                 "reputationCompletion": 2,
-                "dateDeadline": 323340
+                "dateDeadline": 323340,
+                "synopsis": "Survey the shores of Kerbin",
+                "prestige": "Trivial",
+                "prestigeOrdinal": 0
               }
             ],
             "completedRecent": []

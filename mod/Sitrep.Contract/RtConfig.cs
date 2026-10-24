@@ -528,6 +528,7 @@ public static class RtConfig
                 // same declaration the mirror test holds to KSP's.
                 typeof(KspRosterStatus),
                 typeof(KspParameterState),
+                typeof(KspContractPrestige),
                 typeof(KspPartCategory),
                 typeof(KspActionGroup),
                 typeof(KspEditorFacility),
