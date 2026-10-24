@@ -55,6 +55,13 @@ async function fakeRouter(mode: Mode) {
   return { seen, port: socket.address().port, close: () => socket.close() };
 }
 
+/**
+ * For a test that counts the requests the router saw. The fake router answers
+ * at once, so a timeout it cannot miss keeps a loaded machine from making the
+ * client resend and the router record the same request twice.
+ */
+const PATIENT = { timeoutMs: 2000 };
+
 const routers: { close: () => void }[] = [];
 afterEach(() => {
   for (const r of routers.splice(0)) r.close();
@@ -80,7 +87,7 @@ async function setup(mode: Mode, extra: object = {}) {
 
 describe("PortMapper against a router that speaks NAT-PMP", () => {
   it("maps the relay ports with each published port as the internal port", async () => {
-    const { router, mapper, log } = await setup("ok");
+    const { router, mapper, log } = await setup("ok", PATIENT);
     await mapper.start();
 
     expect(mapper.status.state).toBe("mapped");
@@ -98,7 +105,7 @@ describe("PortMapper against a router that speaks NAT-PMP", () => {
   });
 
   it("deletes every mapping on stop", async () => {
-    const { router, mapper } = await setup("ok");
+    const { router, mapper } = await setup("ok", PATIENT);
     await mapper.start();
     const mappedCount = router.seen.length;
     await mapper.stop();
