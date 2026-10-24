@@ -101,7 +101,7 @@ namespace Sitrep.Core.Tests
             // recovery.lastSummary: Sitrep.Host.Recovery.RecoveryPayload.Build,
             // the same shape as the crash payload beside it.
             "RecoveryReport", "RecoveryScienceEntry", "RecoveryPartEntry",
-            "RecoveryResourceEntry", "RecoveryCrewEntry",
+            "RecoveryResourceEntry", "RecoveryCrewEntry", "RecoveryAward",
             // spaceCenter.*: SpaceCenterViewProvider's Build* helpers emit these
             // as rows inside the list they return. BuildScene and
             // BuildPartsAvailable name their types and ARE graded.

@@ -340,6 +340,54 @@ describe("FlightOutcomeBanner", () => {
     expect(row).not.toHaveTextContent("+");
   });
 
+  it("names what else a recovery paid, apart from the craft's own value", async () => {
+    const fixture = setupOutcomeStream();
+
+    render(
+      <fixture.Provider>
+        <FlightOutcomeBanner />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("recovery.hasRecent", { recent: true });
+      fixture.emit("recovery.lastSummary", {
+        capturedAtUT: 2000,
+        vesselName: "Hop 3",
+        recoveryLocation: "5.6Km from KSC",
+        recoveryFactor: "97.7% ",
+        scienceEarned: 33,
+        totalScience: 89,
+        fundsEarned: 3960.44,
+        totalFunds: 215347.99,
+        displayReputation: true,
+        reputationEarned: 0,
+        totalReputation: 42,
+        scienceBreakdown: [],
+        partBreakdown: [],
+        resourceBreakdown: [],
+        crewBreakdown: [],
+        awards: [
+          {
+            title: "Recovery from suborbit",
+            fundsEarned: 4800,
+            reputationEarned: 1,
+            scienceEarned: null,
+          },
+        ],
+      });
+      fixture.store.beginFrame();
+    });
+
+    await act(async () => {
+      screen.getByRole("button").click();
+    });
+
+    const row = rowFor(/Recovery from suborbit/);
+    expect(row).toHaveTextContent("4,800");
+    expect(row).toHaveTextContent("+1");
+  });
+
   // Every quantity on both payloads is a `Value` by the time the banner reads
   // it, wrapped on decode from the generated unit maps.
   // A reader that tests `typeof v === "number"` therefore sees an object and
