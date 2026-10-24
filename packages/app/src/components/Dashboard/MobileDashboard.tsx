@@ -5,14 +5,6 @@ import {
   getComponent,
 } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
-import {
-  ChevronDownIcon,
-  ChevronUpIcon,
-  FullHeightIcon,
-  FullWidthIcon,
-  HalfHeightIcon,
-  HalfWidthIcon,
-} from "@ksp-gonogo/ui";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
 import {
   memo,
@@ -29,19 +21,13 @@ import {
 } from "../../uplinks/loaderState";
 import type { DashboardItem, DashboardProps } from "./index";
 import { ROW_HEIGHT } from "./layoutNormalization";
-import {
-  ComponentWrapper,
-  highlightStyle,
-  PushButton,
-  RemoveButton,
-  WidgetError,
-} from "./shared";
-import { touchTarget } from "./touchTarget";
+import { ComponentWrapper, highlightStyle, WidgetError } from "./shared";
+import { TileMenu } from "./TileMenu";
 import { UnavailableWidget } from "./UnavailableWidget";
 import { useScrollIntoViewOnAdd } from "./useScrollIntoViewOnAdd";
 import { GearButton } from "./WidgetGearMenu";
 
-// MobileDashboard: flex-wrap column with up/down reorder buttons.
+// MobileDashboard: flex-wrap list whose tiles reorder, resize and remove from a per-tile menu.
 //   • mobileWidth='half' items take ~50% and pair on a row when consecutive;
 //     'full' (default) takes the whole row.
 //   • mobileHeight (px) defaults to defaultSize.h * ROW_HEIGHT.
@@ -176,7 +162,7 @@ const MobileItemContent = memo(function MobileItemContent({
   // Per-instance override beats the component's default. Stored on the
   // DashboardItem so it persists per screen (mobile and desktop layouts
   // both live in the same localStorage entry).
-  const effectiveWidth = item.mobileWidth ?? def.mobileWidth ?? "full";
+  const effectiveWidth = item.mobileWidth ?? def.mobileWidth ?? "half";
   const half = effectiveWidth === "half";
   const fullHeightPx =
     def.mobileHeight ?? (def.defaultSize?.h ?? 3) * ROW_HEIGHT;
@@ -189,8 +175,11 @@ const MobileItemContent = memo(function MobileItemContent({
   // (e.g. Graph's auto-mini) work on mobile too. The list counts a row as
   // 6 columns: half = 3, full = 6. Height in grid units derives from the
   // cell pixel height.
-  const gridW = half ? 3 : 6;
-  const gridH = Math.max(1, Math.round(height / ROW_HEIGHT));
+  const gridW = Math.round((half ? 3 : 6) / LIST_WIDGET_SCALE);
+  const gridH = Math.max(
+    1,
+    Math.round(height / LIST_WIDGET_SCALE / ROW_HEIGHT),
+  );
   const hasConfig = Boolean(def.configComponent);
   const hasActions = Boolean(def.actions?.length);
   const onToggleWidth = () =>
@@ -212,19 +201,11 @@ const MobileItemContent = memo(function MobileItemContent({
     >
       <MobileCellHeader>
         <MobileCellHeaderLeft>
-          <ReorderButton direction="up" disabled={isFirst} onClick={onMoveUp} />
-          <ReorderButton
-            direction="down"
-            disabled={isLast}
-            onClick={onMoveDown}
-          />
           <Tooltip text={def.name} announce={false}>
             <MobileCellName>{def.name}</MobileCellName>
           </Tooltip>
         </MobileCellHeaderLeft>
         <MobileCellHeaderRight>
-          <WidthToggleButton half={half} onClick={onToggleWidth} />
-          <HeightToggleButton half={halfHeight} onClick={onToggleHeight} />
           {(hasConfig || hasActions) && (
             <GearButton
               item={item}
@@ -233,16 +214,25 @@ const MobileItemContent = memo(function MobileItemContent({
               onSaveMappings={onSaveMappings}
             />
           )}
-          <PushButton
+          <TileMenu
             item={item}
+            name={def.name}
             pushable={def.pushable === true}
             w={def.defaultSize?.w ?? 3}
             h={def.defaultSize?.h ?? 3}
+            isFirst={isFirst}
+            isLast={isLast}
+            half={half}
+            halfHeight={halfHeight}
+            onMoveUp={onMoveUp}
+            onMoveDown={onMoveDown}
+            onToggleWidth={onToggleWidth}
+            onToggleHeight={onToggleHeight}
+            onRemove={onRemove}
           />
-          <RemoveButton onRemove={onRemove} name={def.name} />
         </MobileCellHeaderRight>
       </MobileCellHeader>
-      <ComponentWrapper>
+      <ScaledBody>
         <DashboardItemContext.Provider value={itemContext}>
           <ErrorBoundary fallback={renderErrorFallback}>
             <SeatGuard def={def}>
@@ -267,75 +257,25 @@ const MobileItemContent = memo(function MobileItemContent({
             </SeatGuard>
           </ErrorBoundary>
         </DashboardItemContext.Provider>
-      </ComponentWrapper>
+      </ScaledBody>
     </MobileCell>
   );
 });
 
-function ReorderButton({
-  direction,
-  disabled,
-  onClick,
-}: Readonly<{
-  direction: "up" | "down";
-  disabled: boolean;
-  onClick: () => void;
-}>) {
-  const label = direction === "up" ? "Move up" : "Move down";
-  const Glyph = direction === "up" ? ChevronUpIcon : ChevronDownIcon;
-  return (
-    <Tooltip text={label}>
-      <ReorderBtn
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        aria-label={label}
-      >
-        <Glyph size={16} />
-      </ReorderBtn>
-    </Tooltip>
-  );
-}
+/**
+ * How far a list tile draws its widget below the size the widget is laid out
+ * for. Widgets are built against the desktop grid's density, which leaves a
+ * half-width tile on a phone too cramped to show what a desktop tile shows, so
+ * the body is zoomed out and the widget is told the larger size it now has.
+ */
+export const LIST_WIDGET_SCALE = 0.8;
 
-function WidthToggleButton({
-  half,
-  onClick,
-}: Readonly<{ half: boolean; onClick: () => void }>) {
-  const label = half ? "Expand to full width" : "Shrink to half width";
-  const Glyph = half ? FullWidthIcon : HalfWidthIcon;
-  return (
-    <Tooltip text={label}>
-      <WidthToggleBtn
-        type="button"
-        onClick={onClick}
-        aria-label={label}
-        aria-pressed={half}
-      >
-        <Glyph size="var(--icon-size-control)" />
-      </WidthToggleBtn>
-    </Tooltip>
-  );
-}
-
-function HeightToggleButton({
-  half,
-  onClick,
-}: Readonly<{ half: boolean; onClick: () => void }>) {
-  const label = half ? "Expand to full height" : "Shrink to half height";
-  const Glyph = half ? FullHeightIcon : HalfHeightIcon;
-  return (
-    <Tooltip text={label}>
-      <WidthToggleBtn
-        type="button"
-        onClick={onClick}
-        aria-label={label}
-        aria-pressed={half}
-      >
-        <Glyph size="var(--icon-size-control)" />
-      </WidthToggleBtn>
-    </Tooltip>
-  );
-}
+const ScaledBody = styled(ComponentWrapper)`
+  zoom: ${LIST_WIDGET_SCALE};
+  /* Zoomed out, a 44px control would draw ${Math.round(44 * LIST_WIDGET_SCALE)}px, so its floor rises to keep 44px on screen. */
+  --touch-target: ${Math.round(44 / LIST_WIDGET_SCALE)}px;
+  --control-height-touch: ${Math.round(44 / LIST_WIDGET_SCALE)}px;
+`;
 
 const MobileList = styled.div`
   display: flex;
@@ -376,11 +316,9 @@ const MobileCellHeader = styled.div`
   border-radius: var(--radius-regular) var(--radius-regular) 0 0;
   padding: var(--inset-tile-header);
 
-  /* Seven touch targets do not fit a half-width cell in one row, so the tray wraps under the name instead of overflowing it. */
   @media (pointer: coarse) {
     height: auto;
     min-height: 44px;
-    flex-wrap: wrap;
   }
 `;
 
@@ -416,56 +354,3 @@ const MobileCellName = styled.span`
 /* Same sub-floor glyph chrome as the remove and push buttons it sits beside;
    see the note over RemoveBtn in shared.tsx for why the inset is the compact
    name rather than --inset-control. */
-const WidthToggleBtn = styled.button`
-  pointer-events: all;
-  background: none;
-  border: none;
-  color: var(--color-text-faint);
-  cursor: pointer;
-  font-size: var(--font-size-compact);
-  line-height: var(--line-height-flush);
-  padding: var(--inset-control-compact);
-  margin-left: var(--gap-glyph-tray);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  &[aria-pressed="true"] {
-    color: var(--color-info-text);
-  }
-
-  ${touchTarget}
-
-  &:hover {
-    color: var(--color-text-primary);
-  }
-`;
-
-const ReorderBtn = styled.button`
-  background: none;
-  border: 1px solid var(--color-border-strong);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-size: var(--font-size-compact);
-  line-height: var(--line-height-flush);
-  width: 28px;
-  height: 24px;
-  border-radius: var(--radius-regular);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  ${touchTarget}
-
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-
-  @media (hover: hover) {
-    &:not(:disabled):hover {
-      color: var(--color-text-primary);
-      border-color: var(--color-text-faint);
-    }
-  }
-`;

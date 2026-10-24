@@ -431,7 +431,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   maxSize?: { w: number; h: number };
   /** What the widget draws at the tiny size. Absent, it draws its own body at every size. */
   tiny?: TinyMode<Config>;
-  /** On a phone, whether the widget takes the whole width or half of it. Defaults to `"full"`. */
+  /** On a phone, whether the widget takes the whole width or half of it. Defaults to `"half"`. */
   mobileWidth?: "full" | "half";
   /** On a phone, the widget's height in pixels. Defaults to the height of its `defaultSize`. */
   mobileHeight?: number;

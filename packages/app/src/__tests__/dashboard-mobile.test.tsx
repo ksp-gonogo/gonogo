@@ -1,9 +1,9 @@
 /**
  * Touch-device dashboard path: when matchMedia("(pointer: coarse)") is true
- * Dashboard renders a flex-wrap list with up/down reorder buttons rather
- * than react-grid-layout's drag handle. This file pins the substitution
- * and verifies the reorder controls mutate items[] in the expected
- * direction (with the first/last items respectively disabled).
+ * Dashboard renders a flex-wrap list whose tiles reorder and resize from a
+ * per-tile options menu, rather than react-grid-layout's drag handle. This file
+ * pins the substitution and verifies the menu's controls mutate items[] in the
+ * expected direction (with the first/last items respectively disabled).
  */
 
 import { clearRegistry, registerComponent } from "@ksp-gonogo/core";
@@ -69,6 +69,16 @@ function renderWithProviders(tree: React.ReactNode) {
   );
 }
 
+/** Opens a tile's options menu and presses one of its items. */
+async function chooseFromMenu(
+  user: ReturnType<typeof userEvent.setup>,
+  tile: string,
+  item: string,
+) {
+  await user.click(screen.getByRole("button", { name: `${tile} options` }));
+  await user.click(screen.getByRole("menuitem", { name: item }));
+}
+
 function registerStubWidget(id: string, name: string) {
   registerComponent({
     id,
@@ -111,7 +121,8 @@ describe("Dashboard: mobile / touch path", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders items in a list with reorder buttons (no RGL drag handle)", () => {
+  it("renders items in a list with an options menu per tile (no RGL drag handle)", async () => {
+    const user = userEvent.setup();
     registerStubWidget("alpha", "Alpha");
     registerStubWidget("beta", "Beta");
 
@@ -131,16 +142,27 @@ describe("Dashboard: mobile / touch path", () => {
     expect(screen.getByText("Alpha body")).toBeInTheDocument();
     expect(screen.getByText("Beta body")).toBeInTheDocument();
 
-    // Two move-up buttons (one per item): the first item's is disabled.
-    const upButtons = screen.getAllByRole("button", { name: "Move up" });
-    expect(upButtons).toHaveLength(2);
-    expect(upButtons[0]).toBeDisabled();
-    expect(upButtons[1]).not.toBeDisabled();
+    expect(screen.getAllByRole("button", { name: /options$/ })).toHaveLength(2);
 
-    const downButtons = screen.getAllByRole("button", { name: "Move down" });
-    expect(downButtons).toHaveLength(2);
-    expect(downButtons[0]).not.toBeDisabled();
-    expect(downButtons[1]).toBeDisabled();
+    // The first tile cannot move up, the last cannot move down.
+    await user.click(screen.getByRole("button", { name: "Alpha options" }));
+    expect(screen.getByRole("menuitem", { name: "Move up" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(
+      screen.getByRole("menuitem", { name: "Move down" }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+    await user.keyboard("{Escape}");
+
+    await user.click(screen.getByRole("button", { name: "Beta options" }));
+    expect(
+      screen.getByRole("menuitem", { name: "Move up" }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("menuitem", { name: "Move down" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
 
     // No RGL grid handle on the touch path.
     expect(document.querySelector(".react-grid-layout")).toBeNull();
@@ -164,8 +186,7 @@ describe("Dashboard: mobile / touch path", () => {
       />,
     );
 
-    const downButtons = screen.getAllByRole("button", { name: "Move down" });
-    await user.click(downButtons[0]);
+    await chooseFromMenu(user, "Alpha", "Move down");
 
     // Assert on the rendered cell's `data-i` rather than just DOM order:
     // if React reused positions and only swapped content, the body order
@@ -195,7 +216,7 @@ describe("Dashboard: mobile / touch path", () => {
       />,
     );
 
-    await user.click(screen.getAllByRole("button", { name: "Move down" })[0]);
+    await chooseFromMenu(user, "Alpha", "Move down");
 
     const stored = savedLayout<{ i: string }>(KEY);
     expect(stored.items.map((it) => it.i)).toEqual(["b", "a"]);
@@ -230,7 +251,7 @@ describe("Dashboard: mobile / touch path", () => {
     expect(cell?.getAttribute("data-mobile-width")).toBe("half");
   });
 
-  it("toggle button flips a full widget to half (and back), persisting the override", async () => {
+  it("tiles default to half width, flip to full (and back), and persist the override", async () => {
     const user = userEvent.setup();
     registerStubWidget("alpha", "Alpha");
     const KEY = "test-mobile-width-toggle";
@@ -245,25 +266,42 @@ describe("Dashboard: mobile / touch path", () => {
       />,
     );
 
-    // Default: full (no item override, no def override).
+    // Default: half (no item override, no def override).
     const cell = screen
       .getByTestId("body-alpha")
       .closest("[data-mobile-width]");
-    expect(cell?.getAttribute("data-mobile-width")).toBe("full");
-
-    await user.click(
-      screen.getByRole("button", { name: "Shrink to half width" }),
-    );
     expect(cell?.getAttribute("data-mobile-width")).toBe("half");
 
-    const stored = savedLayout<{ i: string; mobileWidth?: string }>(KEY);
-    expect(stored.items[0].mobileWidth).toBe("half");
-
-    // Round-trip: half → full label switches.
-    await user.click(
-      screen.getByRole("button", { name: "Expand to full width" }),
-    );
+    await chooseFromMenu(user, "Alpha", "Expand to full width");
     expect(cell?.getAttribute("data-mobile-width")).toBe("full");
+
+    const stored = savedLayout<{ i: string; mobileWidth?: string }>(KEY);
+    expect(stored.items[0].mobileWidth).toBe("full");
+
+    // Round-trip: the label switches back.
+    await chooseFromMenu(user, "Alpha", "Shrink to half width");
+    expect(cell?.getAttribute("data-mobile-width")).toBe("half");
+  });
+
+  it("remove asks again inside the menu before dropping the tile", async () => {
+    const user = userEvent.setup();
+    registerStubWidget("alpha", "Alpha");
+    const KEY = "test-mobile-remove";
+
+    renderWithProviders(
+      <Harness
+        storageKey={KEY}
+        config={{
+          items: [{ i: "a", componentId: "alpha" }],
+          layout: [],
+        }}
+      />,
+    );
+
+    await chooseFromMenu(user, "Alpha", "Remove Alpha...");
+    expect(screen.getByTestId("body-alpha")).toBeInTheDocument();
+    await user.click(screen.getByRole("menuitem", { name: "Remove Alpha" }));
+    expect(screen.queryByTestId("body-alpha")).toBeNull();
   });
 
   it("height toggle button flips a full widget to half (and back), persisting the override", async () => {
@@ -287,24 +325,20 @@ describe("Dashboard: mobile / touch path", () => {
     const fullHeight = Number(cell?.getAttribute("data-mobile-height") ?? "0");
     expect(fullHeight).toBeGreaterThan(0);
 
-    await user.click(
-      screen.getByRole("button", { name: "Shrink to half height" }),
-    );
+    await chooseFromMenu(user, "Alpha", "Shrink to half height");
     const halfHeight = Number(cell?.getAttribute("data-mobile-height") ?? "0");
     expect(halfHeight).toBe(Math.round(fullHeight / 2));
 
     const stored = savedLayout<{ i: string; mobileHeight?: string }>(KEY);
     expect(stored.items[0].mobileHeight).toBe("half");
 
-    await user.click(
-      screen.getByRole("button", { name: "Expand to full height" }),
-    );
+    await chooseFromMenu(user, "Alpha", "Expand to full height");
     const restored = Number(cell?.getAttribute("data-mobile-height") ?? "0");
     expect(restored).toBe(fullHeight);
   });
 
   it("per-instance mobileWidth on the item overrides the component default", () => {
-    // Component default is "half", instance override forces it back to "full".
+    // Component default is "half", instance override forces it to "full".
     registerComponent({
       id: "compact",
       name: "Compact",

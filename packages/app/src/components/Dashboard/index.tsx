@@ -20,8 +20,8 @@ export interface DashboardItem {
   /**
    * Per-instance override for the mobile-layout width. When set, the
    * MobileDashboard ignores the component definition's `mobileWidth`
-   * default and uses this value instead. Toggled by the half/full button
-   * in the mobile cell header.
+   * default and uses this value instead. Toggled by the width item
+   * in the mobile cell's options menu.
    */
   mobileWidth?: "full" | "half";
   /**

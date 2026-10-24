@@ -220,8 +220,8 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   /**
    * Width hint for the mobile / touch dashboard layout, which is a flex-wrap
    * column rather than a grid. `'half'` items take ~50% of the row and pair
-   * up when consecutive; `'full'` (default) takes the full row. Use `'half'`
-   * for compact controls (e.g. ActionGroup): most widgets should stay full.
+   * up when consecutive (the default); `'full'` takes the full row. Use `'full'`
+   * for a widget that needs the width, such as a map or a wide table.
    */
   mobileWidth?: "full" | "half";
   /**
