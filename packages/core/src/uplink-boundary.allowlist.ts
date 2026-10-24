@@ -690,6 +690,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/CommsDegrade.cs",
       "mod/Sitrep.Contract/CommsBackendViews.cs",
       "mod/Gonogo.KSP/CommNetReach.cs",
+      "mod/Gonogo.KSP.Tests/Comms/CommNetReachTests.cs",
       "mod/Gonogo.KSP.Tests/Comms/CommNetBackendSharedShapeTests.cs",
       "mod/Sitrep.Host.Tests/CommsReachSeamTests.cs",
 
@@ -1247,6 +1248,8 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   realantennas: [
+    // The node type's namespace as DATA in a test fixture: core finds an RA node by type name, as it cannot reference the assembly.
+    "mod/Gonogo.KSP.Tests/Comms/CommNetReachTests.cs",
     "mod/Gonogo.KSP.Tests/Comms/RouteBackendDispatchTests.cs",
     "mod/Sitrep.CaptureAnalysis.Tests/CommandLineTests.cs",
     "mod/Sitrep.CaptureAnalysis.Tests/RealCaptureTests.cs",
