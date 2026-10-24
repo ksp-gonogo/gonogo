@@ -606,6 +606,10 @@ const CloseBtn = styled.button`
     outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
   }
+  @media (pointer: coarse) {
+    min-width: 44px;
+    min-height: 44px;
+  }
 `;
 
 const SearchInput = styled.input`
@@ -646,6 +650,16 @@ const ChipRow = styled.div`
   padding: var(--inset-overlay-chips);
   border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
+
+  /* On touch the chips are 44px tall, so wrapped rows would take the screen from the results: one row that scrolls sideways instead. */
+  @media (pointer: coarse) {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    & > * {
+      flex: 0 0 auto;
+    }
+  }
 `;
 
 const List = styled.div`

@@ -1057,6 +1057,9 @@ textarea {
    */
   --control-height: 28px;
 
+  /* Floor for a control that opts out of --control-height to stay compact: none on a fine pointer, the touch target on a coarse one. */
+  --control-height-touch: 0px;
+
   /*
    * Z-INDEX, as named layers rather than a numeric ramp.
    *
@@ -1165,5 +1168,6 @@ textarea {
        40 -> 48 here; without this its glyph stayed behind. */
     --icon-size-control: 15px;
     --icon-size-standalone: 24px;
+    --control-height-touch: 44px;
   }
 }

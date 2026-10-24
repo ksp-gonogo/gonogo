@@ -13,6 +13,7 @@ import styled from "styled-components";
 import type { DashboardItem } from "./index";
 import { handleMouseDown } from "./mouseHandlers";
 import { WidgetError } from "./shared";
+import { touchTarget } from "./touchTarget";
 
 type GearButtonProps = Readonly<{
   item: DashboardItem;
@@ -177,6 +178,7 @@ const GearBtn = styled.button`
   cursor: pointer;
   line-height: var(--line-height-flush);
   padding: var(--inset-control-compact);
+  ${touchTarget}
 
   &:hover {
     color: var(--color-text-muted);

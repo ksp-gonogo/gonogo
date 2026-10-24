@@ -34,6 +34,7 @@ const Wrap = styled.div<{ $compact: boolean }>`
   gap: var(--gap-related);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
   color: var(--color-text-primary);
+  min-width: 0;
 `;
 
 const Label = styled.span<{ $compact: boolean }>`
@@ -52,6 +53,16 @@ const NameSpan = styled.button<{ $compact: boolean }>`
   color: var(--color-info-text);
   cursor: text;
   letter-spacing: 0.05em;
+  /* A long name gives way with an ellipsis rather than wrapping onto a second line of the banner. */
+  max-width: 16ch;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @media (pointer: coarse) {
+    min-height: 44px;
+  }
 
   &:hover {
     border-color: var(--color-border-strong);
@@ -68,6 +79,10 @@ const NameInput = styled.input<{ $compact: boolean }>`
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
   letter-spacing: 0.05em;
   outline: none;
+
+  @media (pointer: coarse) {
+    min-height: 44px;
+  }
 
   &:focus {
     border-color: var(--color-info-mark);

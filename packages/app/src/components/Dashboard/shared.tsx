@@ -5,6 +5,7 @@ import styled, { css, keyframes } from "styled-components";
 import { usePushClient } from "../../pushToMain/PushClientContext";
 import type { DashboardItem } from "./index";
 import { handleMouseDown } from "./mouseHandlers";
+import { touchTarget } from "./touchTarget";
 
 /**
  * Removes a widget from the dashboard. Pressing it swaps the control for a
@@ -232,6 +233,8 @@ const RemoveBtn = styled.button`
   padding: var(--inset-control-compact);
   margin-left: var(--gap-glyph-tray);
 
+  ${touchTarget}
+
   &:hover {
     color: var(--color-nogo-text);
   }
@@ -265,6 +268,7 @@ const ConfirmBtn = styled.button<{ $danger?: boolean }>`
   font-size: var(--font-size-xs);
   line-height: var(--line-height-flush);
   padding: var(--inset-control-compact);
+  ${touchTarget}
 
   &:focus-visible {
     outline: 2px solid var(--color-focus);
@@ -281,6 +285,7 @@ const PushBtn = styled.button<{ $pushed: boolean }>`
   line-height: var(--line-height-flush);
   padding: var(--inset-control-compact);
   margin-left: var(--gap-glyph-tray);
+  ${touchTarget}
 
   &:hover {
     color: var(--color-info-text);

@@ -36,6 +36,7 @@ import {
   RemoveButton,
   WidgetError,
 } from "./shared";
+import { touchTarget } from "./touchTarget";
 import { UnavailableWidget } from "./UnavailableWidget";
 import { useScrollIntoViewOnAdd } from "./useScrollIntoViewOnAdd";
 import { GearButton } from "./WidgetGearMenu";
@@ -374,6 +375,13 @@ const MobileCellHeader = styled.div`
   background: var(--color-surface-panel);
   border-radius: var(--radius-regular) var(--radius-regular) 0 0;
   padding: var(--inset-tile-header);
+
+  /* Seven touch targets do not fit a half-width cell in one row, so the tray wraps under the name instead of overflowing it. */
+  @media (pointer: coarse) {
+    height: auto;
+    min-height: 44px;
+    flex-wrap: wrap;
+  }
 `;
 
 const MobileCellHeaderLeft = styled.div`
@@ -426,6 +434,8 @@ const WidthToggleBtn = styled.button`
     color: var(--color-info-text);
   }
 
+  ${touchTarget}
+
   &:hover {
     color: var(--color-text-primary);
   }
@@ -444,6 +454,8 @@ const ReorderBtn = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
+  ${touchTarget}
 
   &:disabled {
     opacity: 0.3;

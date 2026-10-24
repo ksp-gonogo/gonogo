@@ -124,7 +124,7 @@ export function WarpButton({
 }
 
 const WARP_BUTTON_GEOMETRY: CSSProperties = {
-  minHeight: 0,
+  minHeight: "var(--control-height-touch)",
   lineHeight: "normal",
   padding: "var(--inset-warp-button)",
   fontSize: "var(--font-size-compact)",

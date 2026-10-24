@@ -1525,6 +1525,9 @@ const KindButton = styled.button<{ $active: boolean }>`
   &:disabled:hover {
     color: var(--color-text-muted);
   }
+  @media (pointer: coarse) {
+    min-height: 44px;
+  }
 `;
 
 const SideBySide = styled.div`
