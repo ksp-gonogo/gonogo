@@ -660,10 +660,8 @@ const VoteHint = styled.span`
   color: rgba(255, 255, 255, 0.85);
 `;
 
+/* In the button's column, under the vote, so a narrow button never draws it over the label. */
 const CountdownOverlay = styled.span`
-  position: absolute;
-  top: 8px;
-  left: 8px;
   padding: var(--inset-surface);
   background: rgba(0, 0, 0, 0.6);
   border: 1px solid var(--color-warn-mark);
