@@ -17,17 +17,15 @@ import {
  *
  * Pricing the swap: Label's 9px would take --font-size-2xs (+1px), which is
  * 11px under `@media (pointer: coarse)`, i.e. 2px of growth on a Steam Deck.
- * This chip renders inside StationScreen's position: fixed StationNameChip,
- * which can intercept clicks on the widgets beneath
- * it. Growing it is not free.
+ * This chip renders in the station screen's mission banner, beside the layout
+ * history controls, so growing it pushes them along. Growing it is not free.
  *
  * The same measurement holds the chip's inset off --inset-control. NameSpan
  * and NameInput ARE the pressable class the name describes, but the control
- * inset would add 8px of height and 12px of width to a fixed overlay that has
- * already been logged swallowing clicks meant for the dashboard underneath.
+ * inset would add 8px of height and 12px of width to the banner row.
  * They take --inset-control-compact instead, which is the same class at a
  * floor this box can hold: 2px off the height and 4px off the width rather
- * than 8 and 12 on. That direction is the safe one for this overlay, so the
+ * than 8 and 12 on. That direction is the safe one for this row, so the
  * two states move together now instead of waiting for it to be re-measured.
  */
 const Wrap = styled.div<{ $compact: boolean }>`
@@ -79,7 +77,7 @@ const NameInput = styled.input<{ $compact: boolean }>`
 /**
  * Editable station-name chip. Click to edit; Enter or blur commits; Escape
  * reverts. Used both on the connect screen (compact=false) and the post-
- * connect fixed chip (compact=true).
+ * connect banner chip (compact=true).
  */
 export function StationNameEditor({ compact = false }: { compact?: boolean }) {
   const service = useStationIdentityService();

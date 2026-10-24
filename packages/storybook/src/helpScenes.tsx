@@ -163,7 +163,7 @@ export function AppVersionScene({ world }: Readonly<{ world: VersionWorld }>) {
 /** A dashboard with no widgets, inside a screen whose picker its button opens. */
 export function EmptyDashboardScene() {
   return (
-    <OverlayProvider addItem={() => {}} updateItemConfig={() => {}}>
+    <OverlayProvider addItems={() => {}} updateItemConfig={() => {}}>
       <div data-story-widget>
         <EmptyDashboardNotice />
       </div>

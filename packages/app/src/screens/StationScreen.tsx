@@ -393,9 +393,12 @@ export function StationScreen() {
                               <UplinkIntegrityBanner />
                               <MissionBanner
                                 actions={
-                                  <LayoutHistoryControl
-                                    dashboard={controller}
-                                  />
+                                  <>
+                                    <StationNameEditor compact />
+                                    <LayoutHistoryControl
+                                      dashboard={controller}
+                                    />
+                                  </>
                                 }
                               />
                               <StationUplinkLoader>
@@ -473,9 +476,6 @@ export function StationScreen() {
                                   ModalComponent={AlarmsModal}
                                 />
                               </FabClusterProvider>
-                              <StationNameChip>
-                                <StationNameEditor compact />
-                              </StationNameChip>
                               <BannerStack>
                                 <StationAlarmBanner
                                   useSnapshot={useStationAlarmSnapshot}
@@ -530,44 +530,4 @@ const Layout = styled.div`
   padding-right: calc(var(--gutter-screen) + env(safe-area-inset-right, 0px));
   background: var(--color-surface-app);
   min-height: 100vh;
-
-  /*
-   * The station chip is fixed to the top right corner, and below this width
-   * the mission banner's fields reach under it. The extra top padding gives
-   * the chip a row of its own above the banner.
-   */
-  @media (max-width: 699px) {
-    padding-top: calc(var(--gutter-screen) + env(safe-area-inset-top, 0px) + var(--size-station-chip-row));
-  }
-`;
-
-const StationNameChip = styled.div`
-  position: fixed;
-  top: calc(12px + env(safe-area-inset-top, 0px));
-  right: 16px;
-  padding: var(--inset-surface);
-  background: rgba(20, 20, 20, 0.85);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-regular);
-  /*
-   * --z-sticky, not --z-overlay. The overlay rung is for full-surface overlays
-   * that replace the dashboard (PushedDashboardOverlay); this is a
-   * pointer-events: none corner chip. Sitting it on the overlay rung means a
-   * future retune of --z-overlay, to clear the FAB column say, drags the chip
-   * up past --z-fab with it. The only real constraint here is that it stays
-   * below --z-fab.
-   */
-  z-index: var(--z-sticky);
-  /*
-   * The chip's padding and background area would otherwise intercept clicks
-   * on widgets beneath it, which an operator hit in a live session. Pass
-   * pointer events through the wrapper but keep the interactive children
-   * (rename button, input) clickable.
-   */
-  pointer-events: none;
-
-  button,
-  input {
-    pointer-events: auto;
-  }
 `;
