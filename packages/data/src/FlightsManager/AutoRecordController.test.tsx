@@ -153,6 +153,56 @@ afterEach(() => {
 });
 
 describe("AutoRecordController", () => {
+  it("adds no row when a page load at the Space Center is sent the retained events of a closed flight", async () => {
+    const rig = buildRig();
+    const tree = (scene: "Flight" | "SpaceCenter") => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene={scene} />
+      </TelemetryProvider>
+    );
+    const { rerender } = render(tree("Flight"));
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    end(rig, 6, "vA", 0);
+    act(() => rerender(tree("SpaceCenter")));
+    expect(await rig.source.listFlights()).toHaveLength(1);
+
+    /* The retained started, ended and current of the closed flight, in the order the mod sends them on every subscribe. */
+    const replay = (ut: number): void => {
+      act(() => {
+        const meta = { validAt: 0, deliveredAt: ut };
+        rig.transport.emit(
+          "flight.started",
+          { flightId: "vA", vesselId: "vA", vesselName: "Alpha", ut: 0 },
+          meta,
+        );
+        rig.transport.emit(
+          "flight.ended",
+          {
+            flightId: "vA",
+            vesselId: "vA",
+            vesselName: "Alpha",
+            reason: 0,
+            ut: 6,
+          },
+          meta,
+        );
+        rig.transport.emit(
+          "flight.current",
+          { flightId: "vA", vesselId: "vA", vesselName: "Alpha", phase: 0 },
+          meta,
+        );
+        rig.clock.scrubTo(ut);
+        rig.raf.flush();
+      });
+    };
+    replay(100);
+    replay(200);
+
+    expect(getAutoRecordStatus().recording).toBe(false);
+    expect(await rig.source.listFlights()).toHaveLength(1);
+  });
+
   it("mounts without throwing when no TelemetryProvider is in the tree", () => {
     // The real-world case this guards: SitrepTelemetryProvider only mounts
     // a TelemetryProvider once the dev streaming flag is on AND its client

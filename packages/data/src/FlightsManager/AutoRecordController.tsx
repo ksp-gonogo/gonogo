@@ -340,6 +340,17 @@ export function AutoRecordController({
         evaKerbalsRef.current = [];
         activeLaunchedAtRef.current = Date.now();
         if (!missionHistoryEnabledRef.current) return;
+        /*
+         * A flight starts in the Flight scene. The mod sends the retained
+         * started, ended and current of the last flight to every new
+         * subscriber, so one seen anywhere else is that replay, which
+         * recording would turn into a row of its own on each page load. The
+         * flight is still tracked, so its end reason reaches the mission it
+         * was stored as.
+         */
+        if (sceneRef.current !== "Flight" && sceneRef.current !== "Unknown") {
+          return;
+        }
         recorder.start();
         setAutoRecordStatus({
           recording: true,
