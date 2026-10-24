@@ -27,7 +27,7 @@ namespace Sitrep.Host.Recovery
         public string SubjectId = "";
         public string SubjectTitle = "";
         public double DataGathered;
-        public double ScienceAmount;
+        public double? ScienceAmount;
     }
 
     /// <summary>
@@ -125,14 +125,29 @@ namespace Sitrep.Host.Recovery
         /// Parts of one kind are grouped with a count, in the order each first appears.
         /// </summary>
         /// <param name="parts">One entry per part aboard: its name and its title.</param>
+        /// <param name="science">One entry per stored science result aboard; results of one subject are summed, in the order each subject first appears, and carry no science earned.</param>
         public static RecoveryCapture Unawarded(
             double capturedAtUt,
             string vesselName,
             string vesselType,
             string recoveryLocation,
             IEnumerable<KeyValuePair<string, string>> parts,
-            IEnumerable<RecoveryCrewItem> crew)
+            IEnumerable<RecoveryCrewItem> crew,
+            IEnumerable<RecoveryScienceItem>? science = null)
         {
+            var subjects = new List<RecoveryScienceItem>();
+            var bySubject = new Dictionary<string, RecoveryScienceItem>();
+            foreach (var result in science ?? new List<RecoveryScienceItem>())
+            {
+                if (!bySubject.TryGetValue(result.SubjectId, out var subject))
+                {
+                    subject = new RecoveryScienceItem { SubjectId = result.SubjectId, SubjectTitle = result.SubjectTitle };
+                    bySubject[result.SubjectId] = subject;
+                    subjects.Add(subject);
+                }
+                subject.DataGathered += result.DataGathered;
+            }
+
             var groups = new List<RecoveryPartItem>();
             var byName = new Dictionary<string, RecoveryPartItem>();
             foreach (var part in parts)
@@ -152,6 +167,7 @@ namespace Sitrep.Host.Recovery
                 VesselName = vesselName,
                 VesselType = vesselType,
                 RecoveryLocation = recoveryLocation,
+                ScienceBreakdown = subjects,
                 PartBreakdown = groups,
                 CrewBreakdown = new List<RecoveryCrewItem>(crew),
             };
