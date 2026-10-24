@@ -60,4 +60,11 @@ describe("loadConfig", () => {
       /RELAY_PUBLIC_URL "relay.example.com"/,
     );
   });
+
+  it("leaves the router alone unless GONOGO_UPNP is set", () => {
+    expect(loadConfig({}).portMapping).toBe(false);
+    expect(loadConfig({ GONOGO_UPNP: "0" }).portMapping).toBe(false);
+    expect(loadConfig({ GONOGO_UPNP: "1" }).portMapping).toBe(true);
+    expect(loadConfig({ GONOGO_UPNP: "true" }).portMapping).toBe(true);
+  });
 });

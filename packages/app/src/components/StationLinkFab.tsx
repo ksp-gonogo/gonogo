@@ -314,7 +314,8 @@ function describeProbeFailure(
       <GuideLink href={SETUP_LINKS.relayPorts} target="_blank" rel="noreferrer">
         networking guide
       </GuideLink>{" "}
-      lists the forwards.
+      lists the forwards, and the container setting that has Gonogo open them on
+      your router.
     </>
   );
 }

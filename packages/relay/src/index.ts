@@ -180,7 +180,7 @@ if (config.skipCoturn) {
 }
 
 const portMapper =
-  config.skipCoturn || config.skipPortMapping
+  config.skipCoturn || !config.portMapping
     ? null
     : new PortMapper({
         gateways: gatewayCandidates(config.routerIp, defaultGateway()),

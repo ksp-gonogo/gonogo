@@ -65,8 +65,12 @@ export interface RelayConfig {
    * router will not forward to.
    */
   lanIp: string | null;
-  /** Do not ask the router to open the relay ports (`PORT_MAPPING=0`). */
-  skipPortMapping: boolean;
+  /**
+   * Ask the router to open the relay ports and remove them on stop
+   * (`GONOGO_UPNP=1`). Off by default: the relay never contacts the router
+   * unless the player turns this on.
+   */
+  portMapping: boolean;
 }
 
 /** Defaults live here rather than in `startCoturn` so one file answers
@@ -138,6 +142,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayConfig {
     publicUrl: publicUrl(env.RELAY_PUBLIC_URL),
     routerIp: env.ROUTER_IP?.trim() || null,
     lanIp: env.LAN_IP?.trim() || null,
-    skipPortMapping: env.PORT_MAPPING === "0" || env.PORT_MAPPING === "false",
+    portMapping: env.GONOGO_UPNP === "1" || env.GONOGO_UPNP === "true",
   };
 }
