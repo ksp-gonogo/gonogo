@@ -317,10 +317,10 @@ describe("ProfileDashboard new layouts", () => {
 
     const made = dashboard.addTemplates(DEFAULT_TEMPLATES, "Flight");
 
-    expect(made.map((p) => p.name)).toEqual(["Flight", "Space Centre"]);
+    expect(made.map((p) => p.name)).toEqual(["Flight", "Space Center"]);
     expect(made.every((p) => p.autoSwitch)).toBe(true);
-    expect(svc.findForScene("Editor")?.name).toBe("Space Centre");
-    expect(svc.findForScene("TrackingStation")?.name).toBe("Space Centre");
+    expect(svc.findForScene("Editor")?.name).toBe("Space Center");
+    expect(svc.findForScene("TrackingStation")?.name).toBe("Space Center");
     expect(svc.findForScene("Flight")?.name).toBe("Flight");
     expect(svc.getCurrent()?.name).toBe("Flight");
     expect(shown().items.length).toBeGreaterThan(0);
@@ -335,7 +335,7 @@ describe("ProfileDashboard new layouts", () => {
 
     dashboard.addTemplates(DEFAULT_TEMPLATES, "TrackingStation");
 
-    expect(svc.getCurrent()?.name).toBe("Space Centre");
+    expect(svc.getCurrent()?.name).toBe("Space Center");
   });
 
   it("places every starter widget on a registered component with unique ids and no overlap", () => {

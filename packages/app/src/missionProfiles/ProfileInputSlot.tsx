@@ -7,7 +7,7 @@ import {
   useSerialDeviceService,
 } from "@ksp-gonogo/serial";
 import { Button, useModal } from "@ksp-gonogo/ui";
-import { Cluster } from "@ksp-gonogo/ui-kit";
+import { Cluster, Tooltip } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { useMissionProfilesService } from "./MissionProfilesContext";
 import type { MissionProfile } from "./MissionProfilesService";
@@ -72,14 +72,16 @@ export function ProfileInputSlot({
       <Label>
         {label ? `Switch with: ${label}` : "No input switches to this layout"}
       </Label>
-      <Button
-        variant="ghost"
-        type="button"
-        onClick={handleOpen}
-        aria-label={`${label ? "Change" : "Set"} input for ${profile.name}`}
-      >
-        {label ? "Change input" : "Set input"}
-      </Button>
+      <Tooltip text="Choose a key or controller button that switches to this layout">
+        <Button
+          variant="ghost"
+          type="button"
+          onClick={handleOpen}
+          aria-label={`${label ? "Change" : "Set"} input for ${profile.name}`}
+        >
+          {label ? "Change input" : "Set input"}
+        </Button>
+      </Tooltip>
     </Cluster>
   );
 }

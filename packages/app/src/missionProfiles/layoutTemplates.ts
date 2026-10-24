@@ -43,12 +43,12 @@ export const FLIGHT_TEMPLATE: LayoutTemplate = {
 };
 
 /**
- * Space Centre: the status of the base, the fleet in the tracking station,
+ * Space Center: the status of the base, the fleet in the tracking station,
  * the craft catalogue for the editor, open contracts and time warp. One
  * layout serves all three scenes because none of them has a vessel to fly.
  */
 export const SPACE_CENTRE_TEMPLATE: LayoutTemplate = {
-  name: "Space Centre",
+  name: "Space Center",
   summary: "Base status, tracking, craft catalogue and contracts",
   scenes: ["SpaceCenter", "TrackingStation", "Editor"],
   tiles: [

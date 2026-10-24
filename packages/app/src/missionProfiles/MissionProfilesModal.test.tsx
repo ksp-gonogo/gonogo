@@ -178,14 +178,14 @@ describe("MissionProfilesModal", () => {
       const { svc } = renderTwo();
 
       fireEvent.click(
-        screen.getByRole("button", { name: "Space Centre starter" }),
+        screen.getByRole("button", { name: "Space Center starter" }),
       );
       expect(screen.getByPlaceholderText(/Launch, Orbit/)).toHaveValue(
-        "Space Centre",
+        "Space Center",
       );
       fireEvent.click(screen.getByRole("button", { name: "Create layout" }));
 
-      const made = svc.list().find((p) => p.name === "Space Centre");
+      const made = svc.list().find((p) => p.name === "Space Center");
       expect(made?.items.length).toBeGreaterThan(0);
       expect(made?.sceneBindings).toEqual([
         "SpaceCenter",
@@ -214,7 +214,8 @@ describe("MissionProfilesModal", () => {
       const copy = svc.list().find((p) => p.name === "Launch copy");
       expect(copy?.items).toEqual(ITEMS);
       expect(copy?.sceneBindings).toBeUndefined();
-      expect(svc.getCurrentId()).toBe(copy?.id);
+      expect(svc.getCurrentId()).toBe(launch.id);
+      expect(screen.getByText("Launch copy")).toBeTruthy();
       expect(svc.get(launch.id)?.sceneBindings).toEqual(["Flight"]);
     });
 

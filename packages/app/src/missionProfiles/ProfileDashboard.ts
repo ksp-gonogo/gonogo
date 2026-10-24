@@ -243,17 +243,18 @@ export class ProfileDashboard {
     return created;
   }
 
-  /** Copies a saved profile under a new name, without its scenes or input. */
+  /**
+   * Copies a saved profile under a new name, without its scenes or input. The
+   * dashboard keeps showing the layout it was on, so the copy can sit beside
+   * the original in the layout list.
+   */
   duplicate(id: string): MissionProfile | null {
     const source = this.service.get(id);
     if (!source) return null;
     // Flush first so a duplicate of the current layout includes pending edits.
     this.flush();
     const fresh = this.service.get(id) ?? source;
-    return this.createLayout(`${fresh.name} copy`, {
-      items: fresh.items,
-      layout: fresh.layout,
-    });
+    return this.service.save(`${fresh.name} copy`, fresh.items, fresh.layout);
   }
 
   /**

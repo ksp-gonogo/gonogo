@@ -1,4 +1,9 @@
-import { IconButton, RecallIcon, Tooltip } from "@ksp-gonogo/ui-kit";
+import {
+  IconButton,
+  ReadoutCaption,
+  RecallIcon,
+  Tooltip,
+} from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import {
   useMissionProfiles,
@@ -37,9 +42,12 @@ export function LayoutHistoryControl({
   return (
     <Wrap role="group" aria-label="Layout history">
       {name ? (
-        <Tooltip text={name} focusable>
-          <Name>{name}</Name>
-        </Tooltip>
+        <>
+          <ReadoutCaption>Layout</ReadoutCaption>
+          <Tooltip text={name} focusable>
+            <Name>{name}</Name>
+          </Tooltip>
+        </>
       ) : null}
       <Tooltip text={`${stepLabel("Undo", undoStep)} (Ctrl/Cmd+Z)`}>
         <HistoryButton

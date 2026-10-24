@@ -126,7 +126,6 @@ export function MissionProfilesModal({
 
   const handleDuplicate = (profile: MissionProfile) => {
     dashboard.duplicate(profile.id);
-    onClose?.();
   };
 
   const handleDelete = (profile: MissionProfile) => {
@@ -204,6 +203,7 @@ export function MissionProfilesModal({
         </Button>
         <Button
           variant="ghost"
+          tone="nogo"
           type="button"
           onClick={() => setPendingDelete(p)}
         >
@@ -377,16 +377,20 @@ export function MissionProfilesModal({
                   <BindingsLabel>
                     {boundScenesText(p.sceneBindings)}
                   </BindingsLabel>
-                  <Button
-                    variant="ghost"
-                    type="button"
-                    aria-expanded={editingScenesId === p.id}
-                    onClick={() =>
-                      setEditingScenesId(editingScenesId === p.id ? null : p.id)
-                    }
-                  >
-                    {editingScenesId === p.id ? "Done" : "Change scenes"}
-                  </Button>
+                  <Tooltip text="Choose which game scenes offer this layout">
+                    <Button
+                      variant="ghost"
+                      type="button"
+                      aria-expanded={editingScenesId === p.id}
+                      onClick={() =>
+                        setEditingScenesId(
+                          editingScenesId === p.id ? null : p.id,
+                        )
+                      }
+                    >
+                      {editingScenesId === p.id ? "Done" : "Change scenes"}
+                    </Button>
+                  </Tooltip>
                 </BindingsRow>
                 {editingScenesId === p.id && (
                   <BindingsRow>
