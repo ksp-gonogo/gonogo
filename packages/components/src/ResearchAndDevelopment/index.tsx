@@ -124,7 +124,7 @@ registerComponent<ResearchAndDevelopmentConfig>({
   // Three columns and rows hold the two essentials the tiny form draws.
   minSize: { w: 5, h: 4 },
   component: ResearchAndDevelopmentComponent,
-  tiny: { title: "R&D", useEssentials: useResearchAndDevelopmentEssentials },
+  tiny: { title: "TECH", useEssentials: useResearchAndDevelopmentEssentials },
   channels: topics.channels,
   ...read,
   fields: topics.fields,

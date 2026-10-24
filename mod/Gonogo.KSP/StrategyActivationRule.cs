@@ -31,12 +31,12 @@ namespace Gonogo.KSP
     /// on every tick from anywhere else, and a console career could not be told
     /// whether a single one of its strategies was eligible.</para>
     ///
-    /// <para><b><see cref="Walk"/> can refuse and it can decline to answer. It
-    /// can never say yes</b>, because it does not ask arm 1 and a pass is owed to
-    /// every arm. A yes reached without arm 1 would be a fabrication with its
-    /// sign flipped, and it would arm a spend control on a rule nobody checked.
-    /// <see cref="WalkAskingCap"/> asks arm 1 as well, off the roster, and is the
-    /// only route to a yes.</para>
+    /// <para><b>This walk can refuse and it can decline to answer. It can never
+    /// say yes</b>, because arm 1 cannot be put off-screen and a pass is owed to
+    /// every arm. That is not a gap to be closed later, it is the design: a yes
+    /// reached without arm 1 would be <c>14c4a1ea6</c>'s fabrication with its
+    /// sign flipped, and it would arm a spend control on a rule nobody
+    /// checked.</para>
     ///
     /// <para><b>Why arm 1 in particular is out of reach, when arm 3 is not.</b>
     /// Both read a field <c>Administration.Start</c> fills from
@@ -170,13 +170,13 @@ namespace Gonogo.KSP
         /// What the walk concluded, and enough for the caller to quote the game's
         /// own wording for the arm that fired.
         ///
-        /// <para><see cref="CanActivate"/> is <c>false</c> or <c>null</c> from
-        /// <see cref="Walk"/>, which never asks arm 1. Only
-        /// <see cref="WalkAskingCap"/> can reach <c>true</c>.</para>
+        /// <para><see cref="CanActivate"/> is <c>false</c> or <c>null</c> and
+        /// never <c>true</c>; there is deliberately no factory that makes
+        /// one.</para>
         /// </summary>
         public readonly struct Verdict
         {
-            /// <summary><c>false</c> when an arm refused, null when one could not be put, <c>true</c> only from <see cref="StrategyActivationRule.WalkAskingCap"/>.</summary>
+            /// <summary><c>false</c> when an arm refused, null when one could not be put.</summary>
             public bool? CanActivate { get; }
 
             /// <summary>Which arm refused. <see cref="StrategyArm.None"/> when none did.</summary>
@@ -212,57 +212,6 @@ namespace Gonogo.KSP
 
             public static Verdict Unanswerable(StrategyArm arm) =>
                 new Verdict(null, StrategyArm.None, 0f, null, arm);
-
-            /// <summary>
-            /// Every arm was asked and none refused. Only
-            /// <see cref="StrategyActivationRule.WalkAskingCap"/> makes one, because
-            /// only it has asked arm 1.
-            /// </summary>
-            public static Verdict Allowed =>
-                new Verdict(true, StrategyArm.None, 0f, null, StrategyArm.None);
-        }
-
-        /// <summary>
-        /// Why the limit on running strategies is not checked, for a career where
-        /// it was not asked.
-        /// </summary>
-        internal static string CapUnaskedWording(HarmonyPatchProbe.PatchState state)
-        {
-            switch (state)
-            {
-                case HarmonyPatchProbe.PatchState.Patched:
-                    return "another mod changes how strategies activate, so the limit on running "
-                        + "strategies is not checked in this list";
-                case HarmonyPatchProbe.PatchState.Unknown:
-                    return "whether another mod changes how strategies activate could not be read, so "
-                        + "the limit on running strategies is not checked in this list";
-                default:
-                    return "this career's limit on running strategies could not be read";
-            }
-        }
-
-        /// <summary>
-        /// <see cref="Walk"/> with arm 1 asked too, off the roster: the strategies
-        /// running now against the career's limit. The one walk that can say yes.
-        ///
-        /// <para>Sound only where stock's own activation is unpatched, for the
-        /// reason given on <see cref="Career.StrategyProcedure.ConcurrentCapRefuses"/>.
-        /// A caller on a patched career must use <see cref="Walk"/>.</para>
-        ///
-        /// <para>Arm 1 comes first in the game's order, so its refusal is the one
-        /// named even where a later arm would refuse as well.</para>
-        /// </summary>
-        public static Verdict WalkAskingCap(in Readings r, int activeStrategies, int limit)
-        {
-            if (Career.StrategyProcedure.ConcurrentCapRefuses(activeStrategies, limit))
-            {
-                return Verdict.Refused(StrategyArm.ConcurrentCap, limit);
-            }
-
-            var walked = Walk(r);
-            return walked.CanActivate == null && walked.Unasked == StrategyArm.ConcurrentCap
-                ? Verdict.Allowed
-                : walked;
         }
 
         /// <summary>

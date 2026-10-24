@@ -99,9 +99,7 @@ describe("ResearchAndDevelopment: nothing has arrived at all", () => {
       screen.queryByRole("searchbox", { name: /Filter tech nodes by text/i }),
     ).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();
-    expect(visibleText()).toBe(
-      "Research and DevelopmentAwaiting tech telemetry",
-    );
+    expect(visibleText()).toBe("TECH TREEAwaiting tech telemetry");
   });
 });
 

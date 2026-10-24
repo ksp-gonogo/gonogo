@@ -5231,7 +5231,6 @@ namespace Gonogo.KSP
                 }
 
                 var envelope = FindAltitudeEnvelope(parameter);
-                var milestone = FindMilestone(parameter);
                 result.Add(new Dictionary<string, object?>
                 {
                     ["title"] = parameter.Title,
@@ -5241,53 +5240,10 @@ namespace Gonogo.KSP
                     ["stateOrdinal"] = (int)parameter.State,
                     ["minAltitude"] = envelope?.minAltitude,
                     ["maxAltitude"] = envelope?.maxAltitude,
-                    ["milestone"] = milestone?.type.ToString(),
-                    ["milestoneBody"] = milestone == null ? null : MilestoneBody(milestone)?.bodyName,
-                    ["targetAltitude"] = milestone == null ? null : MilestoneTargetAltitude(milestone),
                 });
             }
 
             return result;
-        }
-
-        private static FinePrint.Utilities.ProgressMilestone? FindMilestone(ContractParameter parameter)
-        {
-            if (parameter is FinePrint.Contracts.Parameters.ProgressTrackingParameter tracking)
-            {
-                return tracking.milestone;
-            }
-
-            for (var i = 0; i < parameter.ParameterCount; i++)
-            {
-                var child = parameter.GetParameter(i);
-                var found = child == null ? null : FindMilestone(child);
-                if (found != null)
-                {
-                    return found;
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>The body a milestone is reached at: the one it names, else the home world, where a first-flight goal is set.</summary>
-        private static CelestialBody? MilestoneBody(FinePrint.Utilities.ProgressMilestone milestone) =>
-            milestone.body != null ? milestone.body : Planetarium.fetch?.Home;
-
-        /// <summary>
-        /// The altitude a milestone is reached at, where it has one: the edge of the atmosphere
-        /// for reaching space. Null for every other milestone and for a body with no atmosphere to
-        /// leave, so a goal with no altitude is not given one.
-        /// </summary>
-        private static double? MilestoneTargetAltitude(FinePrint.Utilities.ProgressMilestone milestone)
-        {
-            var body = MilestoneBody(milestone);
-            if (milestone.type != FinePrint.Utilities.ProgressType.REACHSPACE || body == null || !body.atmosphere)
-            {
-                return null;
-            }
-
-            return body.atmosphereDepth;
         }
 
         private static Contracts.Parameters.ReachAltitudeEnvelope? FindAltitudeEnvelope(ContractParameter parameter)
@@ -5413,11 +5369,12 @@ namespace Gonogo.KSP
             // single one of its strategies was eligible.
             //
             // So the screen is asked when it is there, and the arms are put one at
-            // a time when it is not. The off-screen route reaches a yes only where nothing patches stock's activation: the cap
-            // arm is then asked off the roster and the career's limit. On a patched
-            // career (RP-1 rewrites the screen's counter) it publishes the game's own
-            // reason for everything the career refuses, and an honest silence on the
-            // rest. The entry says which route answered.
+            // a time when it is not. The off-screen route reaches a refusal but
+            // never a yes: the cap arm compares a counter that only exists on that
+            // screen, so what it publishes is the game's own reason for everything
+            // the career refuses, and an honest silence on the rest. The entry says
+            // which route answered, because a derived verdict is a fine thing to
+            // print and not a thing to arm a control from.
             //
             // canActivate stays ABSENT rather than false whenever an arm could not
             // be put. A false with "eligibility check failed" beside it is a

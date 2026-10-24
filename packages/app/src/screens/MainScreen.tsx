@@ -77,7 +77,6 @@ import {
   MissionProfilesFab,
   MissionProfilesProvider,
   MissionProfilesService,
-  ProfileDashboardProvider,
   ProfileSwitchBanner,
   profileInputOptions,
   SceneSwitchPrompt,
@@ -453,22 +452,20 @@ function MainDashboard({
           {screen === "pilot" && !inFlight ? (
             <NoActiveVessel hasGameSignal={hasGameSignal} scene={scene} />
           ) : null}
-          <ProfileDashboardProvider value={controller}>
-            <Dashboard
-              items={dashboard.items}
-              layout={dashboard.layout}
-              onLayoutChange={dashboard.handleLayoutChange}
-              updateItemConfig={dashboard.updateItemConfig}
-              updateItemMappings={dashboard.updateItemMappings}
-              updateItemMobileWidth={dashboard.updateItemMobileWidth}
-              updateItemMobileHeight={dashboard.updateItemMobileHeight}
-              removeItem={dashboard.removeItem}
-              moveItemUp={dashboard.moveItemUp}
-              moveItemDown={dashboard.moveItemDown}
-              lastAddedId={dashboard.lastAddedId}
-              clearLastAdded={dashboard.clearLastAdded}
-            />
-          </ProfileDashboardProvider>
+          <Dashboard
+            items={dashboard.items}
+            layout={dashboard.layout}
+            onLayoutChange={dashboard.handleLayoutChange}
+            updateItemConfig={dashboard.updateItemConfig}
+            updateItemMappings={dashboard.updateItemMappings}
+            updateItemMobileWidth={dashboard.updateItemMobileWidth}
+            updateItemMobileHeight={dashboard.updateItemMobileHeight}
+            removeItem={dashboard.removeItem}
+            moveItemUp={dashboard.moveItemUp}
+            moveItemDown={dashboard.moveItemDown}
+            lastAddedId={dashboard.lastAddedId}
+            clearLastAdded={dashboard.clearLastAdded}
+          />
           <FabClusterProvider>
             <ComponentOverlay />
             <FlightsFabWithMissionHistory />

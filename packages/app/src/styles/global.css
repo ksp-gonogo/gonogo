@@ -47,19 +47,6 @@ body {
 }
 
 /*
- * Scrollbars are hidden everywhere: native bars look different on every
- * platform and clash with the dark theme. Every scroller stays operable by
- * wheel, touch and keyboard, and panels show scroll state with edge glows.
- */
-* {
-  scrollbar-width: none;
-}
-
-*::-webkit-scrollbar {
-  display: none;
-}
-
-/*
  * Global reduced-motion damper: W3C-recommended pattern. The `*` selector
  * is the lowest specificity possible (0,0,0,1) so styled-components classes
  * would win without !important, defeating the whole point. This is one of

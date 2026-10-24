@@ -13,7 +13,7 @@
  *
  *   getSetting(key) = saved ?? seed
  *
- * - saved: persisted to localStorage (`gonogo.sharedSettings`); a user's Settings
+ * - saved: persisted to localStorage (`gonogo.settings`); a user's Settings
  *   write; wins forever on this browser.
  * - seed: in-memory only (never persisted); set at runtime from the bundle's
  *   KSP_HOST so changing that env + restarting takes effect on next load,
@@ -27,12 +27,7 @@
  * `LocalStorageStore`, so it talks to `localStorage` directly.
  */
 
-/**
- * Distinct from the key `SettingsService` saves its flat client settings under:
- * each rewrites its whole slot in its own shape, so sharing one would let either
- * erase the other's values.
- */
-const STORAGE_KEY = "gonogo.sharedSettings";
+const STORAGE_KEY = "gonogo.settings";
 const SCHEMA_VERSION = 1;
 
 interface SettingsBlob {

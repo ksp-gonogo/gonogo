@@ -1,9 +1,4 @@
-import {
-  isValue,
-  KspParameterState,
-  type Value,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { KspParameterState, value } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 
@@ -28,12 +23,6 @@ export interface ContractParameter {
   situation?: string;
   /** PartTest target part name (e.g. "sensorBarometer"). */
   partName?: string;
-  /** The progress milestone the objective asks for, by the game's name (e.g. "REACHSPACE"). */
-  milestone?: string;
-  /** The body the milestone is reached at. */
-  milestoneBody?: string;
-  /** Altitude above sea level the milestone is reached at, where it has one. */
-  targetAltitude?: Value<"m">;
 }
 
 export interface ContractEntry {
@@ -153,12 +142,6 @@ function parseParameters(raw: unknown): ContractParameter[] {
       body: typeof e.body === "string" ? e.body : undefined,
       situation: typeof e.situation === "string" ? e.situation : undefined,
       partName: typeof e.partName === "string" ? e.partName : undefined,
-      milestone: typeof e.milestone === "string" ? e.milestone : undefined,
-      milestoneBody:
-        typeof e.milestoneBody === "string" ? e.milestoneBody : undefined,
-      targetAltitude: isValue(e.targetAltitude)
-        ? (e.targetAltitude as Value<"m">)
-        : undefined,
     });
   }
   return out;

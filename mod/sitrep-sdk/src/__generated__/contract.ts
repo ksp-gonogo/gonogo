@@ -610,24 +610,6 @@ export interface CareerContractParameter
 	* `CareerContractParameter.minAltitude` is.
 	*/
 	maxAltitude?: Value<"m"> | null;
-	/**
-	* The progress milestone this objective asks the player to reach, by the
-	* game's own name for it (`REACHSPACE`, `ORBIT`, `LANDING` and so on). `null`
-	* when the objective is not a progress milestone.
-	*/
-	milestone?: string | null;
-	/**
-	* The body the `CareerContractParameter.milestone` is reached at, by name.
-	* `null` when the objective is not a milestone or the game names no body for
-	* it.
-	*/
-	milestoneBody?: string | null;
-	/**
-	* The altitude above sea level the `CareerContractParameter.milestone` is
-	* reached at, where it has one: the top of the atmosphere for reaching space.
-	* `null` when the milestone has no altitude, never 0.
-	*/
-	targetAltitude?: Value<"m"> | null;
 }
 /**
 * Strategies sub-group of `CareerStatus`. Both lists are always present
@@ -808,14 +790,15 @@ export interface CareerStrategy
 	* because the Administration Building was shut, or when the strategy is
 	* already active, and `"none"` when there is no verdict to carry.
 	*
-	* `"derived"` accompanies a refusal, or a yes on a career where nothing
-	* changes how a strategy activates: there the career's running strategies are
-	* counted against its limit alongside every other rule. On a career where
-	* another mod changes activation (a career mod that replaces the limit), that
-	* one rule cannot be checked, so a strategy no other rule refused arrives with
-	* no verdict and `"none"` rather than as allowed.
+	* `"derived"` always accompanies a refusal and never a yes. The game stops at
+	* its first refusal, so a rule that refuses off-screen would have refused on
+	* it; but one rule counts the career's running strategies on that screen and
+	* cannot be checked anywhere else, and permission needs every rule to pass. A
+	* strategy no rule refused therefore arrives with no verdict and `"none"`
+	* rather than as allowed.
 	*
-	* Whether a strategy without a verdict may be committed is decided by
+	* Never enable an activation control from a `"derived"` verdict: it can only
+	* refuse. Whether a strategy without a verdict may be committed is decided by
 	* `career.strategy.activate` itself, which runs every check again at the
 	* moment it executes and refuses in the game's words or as unreadable rather
 	* than guessing.

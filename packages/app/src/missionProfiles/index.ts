@@ -13,10 +13,6 @@ export {
   MissionProfilesService,
 } from "./MissionProfilesService";
 export type { ProfileDashboard } from "./ProfileDashboard";
-export {
-  ProfileDashboardProvider,
-  useProfileDashboardController,
-} from "./ProfileDashboardContext";
 export { ProfileSwitchBanner } from "./ProfileSwitchBanner";
 export { profileInputOptions } from "./profileInputs";
 export { SceneSwitchPrompt } from "./SceneSwitchPrompt";

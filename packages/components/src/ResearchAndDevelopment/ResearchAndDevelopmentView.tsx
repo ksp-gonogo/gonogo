@@ -120,8 +120,8 @@ export function ResearchAndDevelopmentView({
   if (allNodes === null) {
     return (
       <Panel
-        panelTitle="Research and Development"
-        compactTitle={["R&D"]}
+        panelTitle="TECH TREE"
+        compactTitle={["TECH"]}
         sections={
           <Section full>
             <EmptyState>Awaiting tech telemetry</EmptyState>
@@ -133,8 +133,8 @@ export function ResearchAndDevelopmentView({
   if (allNodes.length === 0) {
     return (
       <Panel
-        panelTitle="Research and Development"
-        compactTitle={["R&D"]}
+        panelTitle="TECH TREE"
+        compactTitle={["TECH"]}
         sections={
           <Section full>
             <EmptyState>No tech nodes loaded</EmptyState>
@@ -174,8 +174,8 @@ export function ResearchAndDevelopmentView({
 
     return (
       <Panel
-        panelTitle="Research and Development"
-        compactTitle={["R&D"]}
+        panelTitle="TECH TREE"
+        compactTitle={["TECH"]}
         panelToolbar={
           <Cluster justify="start" gap="related" wrap aria-hidden="true">
             {LEGEND.map(({ display, label }) => (
@@ -232,8 +232,8 @@ export function ResearchAndDevelopmentView({
 
   return (
     <Panel
-      panelTitle="Research and Development"
-      compactTitle={["R&D"]}
+      panelTitle="TECH TREE"
+      compactTitle={["TECH"]}
       panelToolbar={
         <Cluster
           role="group"

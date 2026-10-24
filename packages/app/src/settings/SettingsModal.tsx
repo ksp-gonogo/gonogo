@@ -10,10 +10,9 @@ import {
 } from "@ksp-gonogo/serial";
 import { SettingsPersistenceState } from "@ksp-gonogo/sitrep-sdk";
 import { Switch, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
-import { Button, LiveRegion, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
+import { Button, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
-import { useAxiomShipping } from "../analytics/axiomShipping";
 import {
   useAnalyticsConsent,
   useAnalyticsRunId,
@@ -286,14 +285,6 @@ function GeneralSettings({
 function AnalyticsConsentRow() {
   const [enabled, setEnabled] = useAnalyticsConsent();
   const runId = useAnalyticsRunId();
-  const shipping = useAxiomShipping();
-  const notSending = !enabled
-    ? ""
-    : shipping === "no-token"
-      ? "Not sending: this build has no log-delivery token, so nothing leaves this screen. Use a release build to send logs."
-      : shipping === "failing"
-        ? "Not sending: the log service refused the last delivery. Logs stay on this screen."
-        : "";
   return (
     <SettingLine>
       <RowText>
@@ -302,9 +293,6 @@ function AnalyticsConsentRow() {
           Share anonymous technical logs and errors, including the mod's own
           lines from KSP.log, with the developer to help debugging. Applies to
           this main screen and every connected station.
-        </RowDesc>
-        <RowDesc>
-          <LiveRegion as="div">{notSending}</LiveRegion>
         </RowDesc>
         {runId && (
           <RowDesc>

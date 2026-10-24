@@ -482,16 +482,3 @@ describe("Modal keyboard contract", () => {
     }
   });
 });
-
-describe("Modal body scrolling", () => {
-  it("scrolls inside the kit's scroll area, which draws the edge glow", async () => {
-    render(
-      <ModalProvider>
-        <Opener onOpen={() => {}} />
-      </ModalProvider>,
-    );
-    await userEvent.click(screen.getByRole("button", { name: "open" }));
-    const dialog = await screen.findByRole("dialog");
-    expect(dialog.querySelector("[data-scroll-area-inner]")).not.toBeNull();
-  });
-});

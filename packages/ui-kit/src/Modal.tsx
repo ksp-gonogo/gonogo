@@ -12,10 +12,11 @@ import {
 import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { Button } from "./Button";
+import { focusRingInset } from "./focusRing";
 import { CloseIcon } from "./Icons";
 import { ModalChromeContext, type ModalChromeValue } from "./ModalSaveBar";
-import { ScrollArea } from "./Panel";
 import { titleText } from "./titleText";
+import { useKeyboardScrollable } from "./useScrollerMetric";
 
 interface ModalEntry {
   id: string;
@@ -190,6 +191,8 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
   confirmingRef.current = confirming;
 
   const chrome = useMemo<ModalChromeValue>(() => ({ setFooter, setDirty }), []);
+  const [body, setBody] = useState<HTMLDivElement | null>(null);
+  const bodyTabIndex = useKeyboardScrollable(body);
 
   // Every close path funnels here, so unsaved changes show the discard confirmation instead.
   const requestClose = useCallback(() => {
@@ -294,7 +297,7 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
                 <CloseIcon size={16} />
               </CloseButton>
             </DialogHeader>
-            <DialogBody>
+            <DialogBody ref={setBody} tabIndex={bodyTabIndex}>
               <ModalChromeContext.Provider value={chrome}>
                 {entry.content}
               </ModalChromeContext.Provider>
@@ -395,15 +398,14 @@ const CloseButton = styled.button`
   }
 `;
 
-const DialogBody = styled(ScrollArea)`
-  margin-inline: 0;
-
-  [data-scroll-area-inner] {
-    padding: var(--inset-modal-body);
-    /* A tab strip or table inside reaches the dialog's edges, not just the body's content column. */
-    --bleed-inline: var(--inset-modal-body);
-    -webkit-overflow-scrolling: touch;
-  }
+const DialogBody = styled.div`
+  padding: var(--inset-modal-body);
+  /* A tab strip or table inside reaches the dialog's edges, not just the body's content column. */
+  --bleed-inline: var(--inset-modal-body);
+  overflow-y: auto;
+  ${focusRingInset}
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
 `;
 
 /* Sticky action region. Lives outside DialogBody so it never scrolls away. */

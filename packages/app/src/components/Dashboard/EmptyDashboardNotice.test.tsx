@@ -5,9 +5,6 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { analyticsConsentService } from "../../analytics/AnalyticsConsentService";
-import { MissionProfilesService } from "../../missionProfiles/MissionProfilesService";
-import { ProfileDashboard } from "../../missionProfiles/ProfileDashboard";
-import { ProfileDashboardProvider } from "../../missionProfiles/ProfileDashboardContext";
 import { ComponentOverlay, OverlayProvider } from "../ComponentOverlay";
 import { Dashboard } from "./index";
 
@@ -48,22 +45,6 @@ function renderScreen(items: Parameters<typeof Dashboard>[0]["items"]) {
       </SerialDeviceProvider>
     </ModalProvider>,
   );
-}
-
-function memoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    length: 0,
-    clear: () => map.clear(),
-    key: () => null,
-    getItem: (k) => map.get(k) ?? null,
-    setItem: (k, v) => {
-      map.set(k, String(v));
-    },
-    removeItem: (k) => {
-      map.delete(k);
-    },
-  } as Storage;
 }
 
 describe("Dashboard with no widgets", () => {
@@ -115,40 +96,5 @@ describe("Dashboard with no widgets", () => {
     renderDashboard([{ i: "a", componentId: "not-registered" }]);
 
     expect(screen.queryByText("No widgets on this dashboard")).toBeNull();
-  });
-
-  it("adds the default layouts on a click, switching automatically", async () => {
-    const svc = new MissionProfilesService("main", memoryStorage());
-    const controller = new ProfileDashboard(svc, () => {}, {
-      items: [],
-      layout: [],
-    });
-    const { container } = render(
-      <ProfileDashboardProvider value={controller}>
-        {dashboard([])}
-      </ProfileDashboardProvider>,
-    );
-    await expectNoA11yViolations(container);
-
-    await act(async () => {
-      screen.getByRole("button", { name: "Add default layouts" }).click();
-    });
-
-    expect(
-      svc
-        .list()
-        .map((p) => p.name)
-        .sort(),
-    ).toEqual(["Flight", "Space Centre"]);
-    expect(svc.list().every((p) => p.autoSwitch)).toBe(true);
-    expect(svc.getCurrentId()).not.toBeNull();
-  });
-
-  it("offers no default layouts where no screen keeps layouts", () => {
-    renderDashboard([]);
-
-    expect(
-      screen.queryByRole("button", { name: "Add default layouts" }),
-    ).toBeNull();
   });
 });

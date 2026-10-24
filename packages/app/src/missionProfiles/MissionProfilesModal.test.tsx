@@ -7,7 +7,6 @@ import {
   within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import type { Layout } from "react-grid-layout";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DashboardItem } from "../components/Dashboard";
@@ -105,7 +104,7 @@ describe("MissionProfilesModal", () => {
       svc.save("Orbit", [], []);
       svc.setCurrent(a.id);
       const dashboard = dashboardFor(svc);
-      const { container } = render(
+      render(
         <ModalProvider>
           <SerialDeviceProvider service={serialService}>
             <MissionProfilesProvider service={svc}>
@@ -114,7 +113,7 @@ describe("MissionProfilesModal", () => {
           </SerialDeviceProvider>
         </ModalProvider>,
       );
-      return { svc, a, container };
+      return { svc, a };
     }
 
     it("has no Overwrite control, since every change already saves", () => {
@@ -145,90 +144,18 @@ describe("MissionProfilesModal", () => {
       ).toHaveLength(1);
     });
 
-    it("copies the dashboard under a name when started from this dashboard", () => {
+    it("saves a copy under a name and makes the copy current", () => {
       const { svc, a } = renderTwo();
 
       fireEvent.change(screen.getByPlaceholderText(/Launch, Orbit/), {
         target: { value: "Docking" },
       });
-      fireEvent.click(screen.getByRole("button", { name: "This dashboard" }));
-      fireEvent.click(screen.getByRole("button", { name: "Create layout" }));
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
       const copy = svc.list().find((p) => p.name === "Docking");
       expect(copy?.items).toEqual(ITEMS);
       expect(svc.getCurrentId()).toBe(copy?.id);
       expect(svc.get(a.id)?.name).toBe("Launch");
-    });
-
-    it("creates an empty layout in one step and shows it", () => {
-      const { svc } = renderTwo();
-
-      fireEvent.change(screen.getByPlaceholderText(/Launch, Orbit/), {
-        target: { value: "Blank" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: "Create layout" }));
-
-      const blank = svc.list().find((p) => p.name === "Blank");
-      expect(blank?.items).toEqual([]);
-      expect(blank?.layout).toEqual([]);
-      expect(svc.getCurrentId()).toBe(blank?.id);
-    });
-
-    it("starts from a starter with its scenes and automatic switching on", () => {
-      const { svc } = renderTwo();
-
-      fireEvent.click(
-        screen.getByRole("button", { name: "Space Centre starter" }),
-      );
-      expect(screen.getByPlaceholderText(/Launch, Orbit/)).toHaveValue(
-        "Space Centre",
-      );
-      fireEvent.click(screen.getByRole("button", { name: "Create layout" }));
-
-      const made = svc.list().find((p) => p.name === "Space Centre");
-      expect(made?.items.length).toBeGreaterThan(0);
-      expect(made?.sceneBindings).toEqual([
-        "SpaceCenter",
-        "TrackingStation",
-        "Editor",
-      ]);
-      expect(made?.autoSwitch).toBe(true);
-    });
-
-    it("duplicates a layout under a copy name without its scenes", () => {
-      const svc = new MissionProfilesService("main", memoryStorage());
-      const launch = svc.save("Launch", ITEMS, LAYOUT, ["Flight"], true);
-      svc.setCurrent(launch.id);
-      render(
-        <ModalProvider>
-          <SerialDeviceProvider service={serialService}>
-            <MissionProfilesProvider service={svc}>
-              <MissionProfilesModal dashboard={dashboardFor(svc)} />
-            </MissionProfilesProvider>
-          </SerialDeviceProvider>
-        </ModalProvider>,
-      );
-
-      fireEvent.click(screen.getByRole("button", { name: "Duplicate" }));
-
-      const copy = svc.list().find((p) => p.name === "Launch copy");
-      expect(copy?.items).toEqual(ITEMS);
-      expect(copy?.sceneBindings).toBeUndefined();
-      expect(svc.getCurrentId()).toBe(copy?.id);
-      expect(svc.get(launch.id)?.sceneBindings).toEqual(["Flight"]);
-    });
-
-    it("names the layout in the delete confirmation", () => {
-      renderTwo();
-
-      fireEvent.click(screen.getAllByRole("button", { name: "Delete" })[0]);
-
-      expect(screen.getByRole("alert").textContent).toMatch(/^Delete \w+\?/);
-    });
-
-    it("has no accessibility violations", async () => {
-      const { container } = renderTwo();
-      await expectNoA11yViolations(container);
     });
   });
 

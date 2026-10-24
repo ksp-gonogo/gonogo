@@ -5,7 +5,6 @@ import type { ConnectProgress } from "@ksp-gonogo/ui";
 import Peer, { type DataConnection } from "peerjs";
 import type { RunningUplink } from "../uplinks/loaderState";
 import { type ConnectionPath, readConnectionPath } from "./connectionPath";
-import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import { fetchRelayIceConfig, withStun } from "./iceServers";
@@ -183,7 +182,6 @@ type ClientEventMap = {
 };
 
 export class PeerClientService {
-  private readonly deliveryMeter = new DeliveryMeter("station");
   private peer: Peer | null = null;
   private conn: DataConnection | null = null;
   private lastHostMessageAt = 0;
@@ -365,7 +363,6 @@ export class PeerClientService {
    * connect screen reuses it.
    */
   connect(code: string, relayUrl?: string | null) {
-    this.deliveryMeter.start();
     if (typeof window !== "undefined") {
       window.removeEventListener("pagehide", this.onPageHide);
       window.addEventListener("pagehide", this.onPageHide);
@@ -1740,8 +1737,6 @@ export class PeerClientService {
   }
 
   private handleMessage(msg: PeerMessage) {
-    const channel = deliveryChannel(msg);
-    if (channel) this.deliveryMeter.record(channel);
     this.dispatcher.dispatch(msg, undefined);
   }
 
@@ -1885,7 +1880,6 @@ export class PeerClientService {
   }
 
   disconnect() {
-    this.deliveryMeter.stop();
     if (typeof window !== "undefined") {
       window.removeEventListener("pagehide", this.onPageHide);
       window.removeEventListener("pageshow", this.onPageShow);
