@@ -207,6 +207,62 @@ describe("createFrameDelayStream", () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it("reports its running frame totals to onStats every statsIntervalMs, and stops when disposed", async () => {
+    vi.useFakeTimers();
+    const frames = [{ close() {} }, { close() {} }, { close() {} }];
+    let i = 0;
+    vi.stubGlobal(
+      "MediaStreamTrackProcessor",
+      class {
+        readable = {
+          getReader: () => ({
+            read: () => {
+              const value = frames[i++];
+              return value
+                ? Promise.resolve({ done: false, value })
+                : new Promise(() => {});
+            },
+            cancel: () => Promise.resolve(),
+          }),
+        };
+      },
+    );
+    vi.stubGlobal(
+      "MediaStreamTrackGenerator",
+      class {
+        writable = {
+          getWriter: () => ({
+            write: () => Promise.resolve(),
+            close: () => Promise.resolve(),
+          }),
+        };
+      },
+    );
+    vi.stubGlobal("MediaStream", class {});
+    try {
+      const onStats = vi.fn();
+      const raw: VideoTrackSource = { getVideoTracks: () => [videoTrack()] };
+      const delayed = createFrameDelayStream(raw, {
+        view: manualClock(),
+        captureUt: () => 100,
+        onStats,
+        statsIntervalMs: 1000,
+      });
+      expect(delayed).not.toBeNull();
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(onStats).toHaveBeenCalledTimes(1);
+      expect(onStats).toHaveBeenLastCalledWith(
+        expect.objectContaining({ read: 3, presented: 0 }),
+      );
+      delayed?.dispose();
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(onStats).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 describe("runFrameDelayPipeline: memory safety (every frame closed exactly once)", () => {

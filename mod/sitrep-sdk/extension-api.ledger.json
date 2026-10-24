@@ -12905,6 +12905,14 @@
         "note": "New: how often onStats is called"
       },
       {
+        "key": "sitrep-sdk ./media CreateFrameDelayStreamOptions#onStats?",
+        "note": "New: receives the main-thread pipeline's running frame totals"
+      },
+      {
+        "key": "sitrep-sdk ./media CreateFrameDelayStreamOptions#statsIntervalMs?",
+        "note": "New: how often onStats is called"
+      },
+      {
         "key": "sitrep-sdk ./media CreateWorkerFrameDelayStreamOptions#onStats?",
         "note": "New: receives the worker's running frame totals"
       },

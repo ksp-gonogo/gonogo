@@ -414,7 +414,13 @@ export interface CreateFrameDelayStreamOptions {
   /** Overrides the presentation pacer's backlog threshold, in seconds. Pacing
    *  is always on; only the threshold can be changed. */
   maxPacingBacklogSeconds?: number;
+  /** Called with the pipeline's running frame totals every `statsIntervalMs`. */
+  onStats?(stats: FrameDelayStats): void;
+  /** How often `onStats` is called, in milliseconds. Defaults to 5000. */
+  statsIntervalMs?: number;
 }
+
+const DEFAULT_STATS_INTERVAL_MS = 5000;
 
 /**
  * A delayed copy of a video stream. Useful for showing the operator a camera
@@ -487,11 +493,19 @@ export function createFrameDelayStream(
     // real main thread this backend runs on; the `setTimeout` fallback only
     // matters for a non-browser/SSR-like test context.
     const stopTicking = startPacingTicker(pipeline.tickPacing);
+    const { onStats } = opts;
+    const statsTimer = onStats
+      ? setInterval(
+          () => onStats(pipeline.stats()),
+          opts.statsIntervalMs ?? DEFAULT_STATS_INTERVAL_MS,
+        )
+      : undefined;
 
     return {
       stream: new MediaStream([generator]),
       dispose: () => {
         stopTicking();
+        clearInterval(statsTimer);
         pipeline.dispose();
       },
       flush: pipeline.flush,
