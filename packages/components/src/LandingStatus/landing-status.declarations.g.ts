@@ -16,5 +16,5 @@ export default {
     "vessel.target",
   ],
   optionalChannelFamilies: [],
-  commands: ["ksp.revertToEditor", "ksp.revertToLaunch"],
+  commands: [],
 } as const;

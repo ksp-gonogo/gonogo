@@ -98,7 +98,6 @@ export {
   type TopicFieldKey,
   withEnumName,
 } from "./schema/topicFieldCatalog";
-export { type SeriesChoice, seriesChoice } from "./schema/topicSubjects";
 export { IndexedDbStore } from "./storage/IndexedDbStore";
 export type {
   MissionMeta,

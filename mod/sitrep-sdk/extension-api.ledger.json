@@ -11985,14 +11985,6 @@
         "note": "published because UplinkHealthStateName is keyed on it"
       },
       {
-        "key": "sitrep-sdk . KSP_CONTRACT_PRESTIGE_NAMES",
-        "note": "New: a contract's prestige tier as a name table and its name type"
-      },
-      {
-        "key": "sitrep-sdk . KspContractPrestigeName",
-        "note": "New: a contract's prestige tier as a name table and its name type"
-      },
-      {
         "key": "sitrep-sdk . MissionMeta#endReason?",
         "note": "New: why a recorded mission's flight ended, absent for one that stopped without an end notice"
       },
@@ -12015,10 +12007,6 @@
       {
         "key": "sitrep-sdk . MissionMeta#partCount?",
         "note": "New: how many parts a recording is stored in, absent for one"
-      },
-      {
-        "key": "sitrep-sdk . ObjectiveSlotItem#depth?",
-        "note": "New: how deeply an objective is nested, so a sub-objective draws indented under its parent"
       },
       {
         "key": "sitrep-sdk . ObjectiveSlotSection#held?",
@@ -13435,10 +13423,6 @@
       {
         "key": "sitrep-sdk ./registry ~ObjectiveSlotItem#contractId?",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ObjectiveSlotItem#depth?",
-        "note": "New: how deeply an objective is nested, so a sub-objective draws indented under its parent"
       },
       {
         "key": "sitrep-sdk ./registry ~ObjectiveSlotItem#description?",
@@ -15441,10 +15425,6 @@
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
       },
       {
-        "key": "sitrep-sdk ./testing ~ObjectiveSlotItem#depth?",
-        "note": "New: how deeply an objective is nested, so a sub-objective draws indented under its parent"
-      },
-      {
         "key": "sitrep-sdk ./testing ~ObjectiveSlotSection#held?",
         "note": "An objectives source passes the reading its items come from, so each item's state is drawn held while it is"
       },
@@ -16659,14 +16639,6 @@
       {
         "key": "ui-kit . JogWheelCommon#width?",
         "note": "exported, since a published component's props or return type already names it"
-      },
-      {
-        "key": "ui-kit . KeyOption#common?",
-        "note": "optional flag listing a key before anything is searched"
-      },
-      {
-        "key": "ui-kit . KeyOption#summary?",
-        "note": "optional full wording shown once a key is picked, and searched"
       },
       {
         "key": "ui-kit . KindOfSymbol",

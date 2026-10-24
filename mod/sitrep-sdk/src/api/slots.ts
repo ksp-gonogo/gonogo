@@ -434,8 +434,6 @@ export interface ObjectiveSlotItem {
   optional?: boolean;
   /** The id of the contract this objective is part of, when it is one. The widget draws nothing from it; your own `renderAlarm` can read it. */
   contractId?: string;
-  /** How many objectives it is nested under, so a sub-objective draws indented beneath its parent. Absent for a top-level objective. */
-  depth?: number;
 }
 
 /**

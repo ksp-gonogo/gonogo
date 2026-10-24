@@ -1,6 +1,5 @@
 import {
   KspActionGroup,
-  KspContractPrestige,
   KspEditorFacility,
   KspParameterState,
   KspPartCategory,
@@ -69,21 +68,6 @@ export const KSP_PARAMETER_STATE_NAMES = namesByValue(KspParameterState);
  * @category Enum names
  */
 export type KspParameterStateName = keyof typeof KspParameterState;
-
-/**
- * KSP's `Contract.ContractPrestige`, as a contract entry carries it. A map from each value
- * to its member name. Useful for showing the operator how demanding a contract is.
- *
- * @category Enum names
- */
-export const KSP_CONTRACT_PRESTIGE_NAMES = namesByValue(KspContractPrestige);
-/**
- * The name of a `KspContractPrestige` member. Useful for typing a comparison
- * against a contract's prestige.
- *
- * @category Enum names
- */
-export type KspContractPrestigeName = keyof typeof KspContractPrestige;
 
 /**
  * KSP's `PartCategories`, as `vessel.parts[]` entries carry it. A map from each value
@@ -196,11 +180,6 @@ export const KSP_ENUM_NAME_TABLES: ReadonlyArray<{
     label: "KSP_PARAMETER_STATE_NAMES",
     members: KspParameterState,
     names: KSP_PARAMETER_STATE_NAMES,
-  },
-  {
-    label: "KSP_CONTRACT_PRESTIGE_NAMES",
-    members: KspContractPrestige,
-    names: KSP_CONTRACT_PRESTIGE_NAMES,
   },
   {
     label: "KSP_PART_CATEGORY_NAMES",

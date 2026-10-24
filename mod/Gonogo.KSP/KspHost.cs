@@ -5200,11 +5200,6 @@ namespace Gonogo.KSP
                 ["title"] = contract.Title,
                 ["agent"] = contract.Agent != null ? contract.Agent.Name : null,
                 ["state"] = contract.ContractState.ToString(),
-                ["synopsis"] = SafeText(() => contract.Synopsys),
-                ["briefing"] = SafeText(() => contract.Description),
-                ["notes"] = SafeText(() => contract.Notes),
-                ["prestige"] = contract.Prestige.ToString(),
-                ["prestigeOrdinal"] = (int)contract.Prestige,
                 ["fundsAdvance"] = contract.FundsAdvance,
                 ["fundsCompletion"] = contract.FundsCompletion,
                 ["fundsFailure"] = contract.FundsFailure,
@@ -5234,10 +5229,26 @@ namespace Gonogo.KSP
             for (var i = 0; i < count; i++)
             {
                 var parameter = contract.GetParameter(i);
-                if (parameter != null)
+                if (parameter == null)
                 {
-                    result.Add(BuildContractParameter(parameter));
+                    continue;
                 }
+
+                var envelope = FindAltitudeEnvelope(parameter);
+                var milestone = FindMilestone(parameter);
+                result.Add(new Dictionary<string, object?>
+                {
+                    ["title"] = parameter.Title,
+                    ["state"] = parameter.State.ToString(),
+                    // The ordinal is what the client branches on; the name is
+                    // its display label. See Sitrep.Contract/KspEnums.cs.
+                    ["stateOrdinal"] = (int)parameter.State,
+                    ["minAltitude"] = envelope?.minAltitude,
+                    ["maxAltitude"] = envelope?.maxAltitude,
+                    ["milestone"] = milestone?.type.ToString(),
+                    ["milestoneBody"] = milestone == null ? null : MilestoneBody(milestone)?.bodyName,
+                    ["targetAltitude"] = milestone == null ? null : MilestoneTargetAltitude(milestone),
+                });
             }
 
             return result;
@@ -5281,57 +5292,6 @@ namespace Gonogo.KSP
             }
 
             return body.atmosphereDepth;
-        }
-
-        private static Dictionary<string, object?> BuildContractParameter(ContractParameter parameter)
-        {
-            var envelope = FindAltitudeEnvelope(parameter);
-            var milestone = FindMilestone(parameter);
-            var children = new List<object?>();
-            for (var i = 0; i < parameter.ParameterCount; i++)
-            {
-                var child = parameter.GetParameter(i);
-                if (child != null)
-                {
-                    children.Add(BuildContractParameter(child));
-                }
-            }
-
-            return new Dictionary<string, object?>
-            {
-                ["title"] = parameter.Title,
-                ["state"] = parameter.State.ToString(),
-                // The ordinal is what the client branches on; the name is
-                // its display label. See Sitrep.Contract/KspEnums.cs.
-                ["stateOrdinal"] = (int)parameter.State,
-                ["optional"] = parameter.Optional,
-                ["notes"] = SafeText(() => parameter.Notes),
-                ["children"] = children,
-                ["minAltitude"] = envelope?.minAltitude,
-                ["maxAltitude"] = envelope?.maxAltitude,
-                ["milestone"] = milestone?.type.ToString(),
-                ["milestoneBody"] = milestone == null ? null : MilestoneBody(milestone)?.bodyName,
-                ["targetAltitude"] = milestone == null ? null : MilestoneTargetAltitude(milestone),
-            };
-        }
-
-        /// <summary>
-        /// A contract's prose is built by a virtual method that a contract-pack
-        /// mod overrides, so one that throws must not take the whole career
-        /// snapshot down with it. Empty text is absent: the game's own default
-        /// for a contract with no notes.
-        /// </summary>
-        private static string? SafeText(Func<string?> read)
-        {
-            try
-            {
-                var text = read();
-                return string.IsNullOrEmpty(text) ? null : text;
-            }
-            catch (Exception)
-            {
-                return null;
-            }
         }
 
         private static Contracts.Parameters.ReachAltitudeEnvelope? FindAltitudeEnvelope(ContractParameter parameter)

@@ -67,26 +67,6 @@ public enum KspParameterState
 }
 
 /// <summary>
-/// KSP's contract prestige tier: how demanding a contract is,
-/// which the game shows as the difficulty of an offer. Carried as the prestige
-/// ordinal of each contract on the career status, beside the prestige name.
-/// </summary>
-/// <category>Career</category>
-#if SITREP_CODEGEN
-[TsEnum]
-#endif
-[SitrepContract]
-public enum KspContractPrestige
-{
-    /// <summary>An easy contract, the first tier of difficulty.</summary>
-    Trivial = 0,
-    /// <summary>A contract of middling difficulty.</summary>
-    Significant = 1,
-    /// <summary>The hardest contract tier.</summary>
-    Exceptional = 2,
-}
-
-/// <summary>
 /// KSP's <c>PartCategories</c>: the editor category a part filters into. Behind
 /// <c>vessel.parts[].categoryOrdinal</c>, beside the name in
 /// <see cref="VesselPart.Category"/>.

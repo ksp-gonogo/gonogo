@@ -64,81 +64,6 @@ describe("ContractManagerComponent", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows the briefing, prestige and each objective's live state", async () => {
-    const fixture = newFixture();
-    renderContract(fixture);
-    act(() => {
-      emitContracts(fixture, {
-        active: [
-          {
-            id: 7,
-            title: "Survey the Mun",
-            agent: "Kerbin Space Program",
-            state: "Active",
-            synopsis: "Visit the Mun and bring the data home",
-            briefing: "Our scientists want a closer look at the Mun.",
-            notes: "Recover the vessel intact.",
-            prestige: "Significant",
-            prestigeOrdinal: 1,
-            scienceCompletion: 4,
-            reputationCompletion: 6,
-            parameters: [
-              {
-                title: "Reach the Mun",
-                state: "Complete",
-                stateOrdinal: 1,
-                optional: false,
-                notes: "Any orbit will do",
-                children: [
-                  {
-                    title: "Enter the sphere of influence",
-                    state: "Incomplete",
-                    stateOrdinal: 0,
-                    optional: false,
-                    children: [],
-                  },
-                ],
-              },
-              {
-                title: "Bring a kerbal",
-                state: "Failed",
-                stateOrdinal: 2,
-                optional: true,
-                children: [],
-              },
-            ],
-          },
-        ],
-      });
-    });
-    await waitFor(() =>
-      expect(screen.getByText("Survey the Mun")).toBeInTheDocument(),
-    );
-    expect(screen.getByText("Significant")).toBeInTheDocument();
-    expect(
-      screen.getByText("Visit the Mun and bring the data home"),
-    ).toBeInTheDocument();
-    await userEvent
-      .setup()
-      .click(screen.getByRole("button", { name: /Briefing/ }));
-    expect(
-      screen.getByText("Our scientists want a closer look at the Mun."),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Recover the vessel intact.")).toBeInTheDocument();
-    expect(screen.getByText("Any orbit will do")).toBeInTheDocument();
-    const reach = screen.getByText("Reach the Mun").closest("li");
-    expect(reach).toHaveTextContent(/Done/);
-    const nested = screen
-      .getByText("Enter the sphere of influence")
-      .closest("li");
-    expect(nested).toHaveTextContent(/Open/);
-    const kerbal = screen.getByText("Bring a kerbal").closest("li");
-    expect(kerbal).toHaveTextContent(/Failed/);
-    expect(kerbal).toHaveTextContent(/optional/);
-    expect(visibleText()).toMatch(/4\.0/);
-    expect(visibleText()).toMatch(/6\.0/);
-  });
-
   it("shows empty-state copy when there are no active contracts", async () => {
     const fixture = newFixture();
     renderContract(fixture);
@@ -187,7 +112,7 @@ describe("ContractManagerComponent", () => {
       expect(screen.getByText(/Plant a flag on the Mun/i)).toBeInTheDocument(),
     );
     expect(screen.getByText(/Kerbin Space Program/)).toBeInTheDocument();
-    expect(visibleText()).toMatch(/25,000/); // fundsCompletion
+    expect(visibleText()).toMatch(/25\.0k/); // fundsCompletion
     expect(screen.getByText(/Land on the Mun/)).toBeInTheDocument();
     expect(screen.getByText(/Plant flag/)).toBeInTheDocument();
     expect(screen.getByText(/Return safely/)).toBeInTheDocument();
@@ -483,7 +408,7 @@ describe("ContractManagerComponent cancel cost", () => {
     await waitFor(() =>
       expect(screen.getByText(/CANCEL COSTS/)).toBeInTheDocument(),
     );
-    expect(visibleText()).toMatch(/−.*12,000/);
+    expect(visibleText()).toMatch(/−.*12\.0k/);
     expect(visibleText()).toMatch(/−6\.0/);
   });
 

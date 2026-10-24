@@ -2,7 +2,7 @@
   "_meta": {
     "shows": "Contract parameters in each state a contract gives them: met, not yet met and failed, with titles long enough to wrap at the smallest size.",
     "scenario": "mixed-states",
-    "notes": "Complete reads reached and Failed reads failed. One objective is optional, one carries notes and one has a nested sub-objective."
+    "notes": "Complete reads reached and Failed reads failed. The wire carries no optional flag on a parameter."
   },
   "contracts.active": [
     {
@@ -76,28 +76,17 @@
                   {
                     "title": "Orbit the Mun with a periapsis below 30 km",
                     "state": "Complete",
-                    "stateOrdinal": 1,
-                    "notes": "Any orbit will do"
+                    "stateOrdinal": 1
                   },
                   {
                     "title": "Land within 5 km of the marked survey site",
                     "state": "Incomplete",
-                    "stateOrdinal": 0,
-                    "children": [
-                      {
-                        "title": "Be below 5 km of the site",
-                        "state": "Incomplete",
-                        "stateOrdinal": 0,
-                        "optional": false,
-                        "children": []
-                      }
-                    ]
+                    "stateOrdinal": 0
                   },
                   {
                     "title": "Return a surface sample to Kerbin",
                     "state": "Incomplete",
-                    "stateOrdinal": 0,
-                    "optional": true
+                    "stateOrdinal": 0
                   }
                 ],
                 "agent": "Kerbin World-Firsts Record-Keeping Society",

@@ -136,7 +136,6 @@
     },
     "CareerContract": {
       "agent": "text",
-      "briefing": "text",
       "dateAccepted": "ut",
       "dateDeadline": "ut",
       "dateExpire": "ut",
@@ -144,14 +143,10 @@
       "fundsCompletion": "funds",
       "fundsFailure": "funds",
       "id": "id",
-      "notes": "text",
-      "prestige": "text",
-      "prestigeOrdinal": "enum",
       "reputationCompletion": "rep",
       "reputationFailure": "rep",
       "scienceCompletion": "science",
       "state": "text",
-      "synopsis": "text",
       "title": "text"
     },
     "CareerContractParameter": {
@@ -159,8 +154,6 @@
       "milestone": "text",
       "milestoneBody": "text",
       "minAltitude": "m",
-      "notes": "text",
-      "optional": "flag",
       "state": "text",
       "stateOrdinal": "enum",
       "targetAltitude": "m",
@@ -2417,9 +2410,6 @@
     "CareerContract": {
       "parameters": "CareerContractParameter[]"
     },
-    "CareerContractParameter": {
-      "children": "CareerContractParameter[]"
-    },
     "CareerContracts": {
       "active": "CareerContract[]",
       "completedRecent": "CareerContract[]",
@@ -3001,9 +2991,6 @@
     "BodyStatesRequest": {
       "certification": "PropagationCertification"
     },
-    "CareerContract": {
-      "prestigeOrdinal": "KspContractPrestige"
-    },
     "CareerContractParameter": {
       "stateOrdinal": "KspParameterState"
     },
@@ -3372,11 +3359,6 @@
       "8": "CancelLateHere",
       "9": "Ran",
       "10": "LostOnLanding"
-    },
-    "KspContractPrestige": {
-      "0": "Trivial",
-      "1": "Significant",
-      "2": "Exceptional"
     },
     "KspEditorFacility": {
       "0": "None",

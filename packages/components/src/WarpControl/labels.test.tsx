@@ -48,17 +48,6 @@ describe("WarpControl labels name the widget's own actions", () => {
     expect(button.getAttribute("data-tooltip")).toBe("Resume");
   });
 
-  it("says the game is paused beside the rate it still reports", async () => {
-    await mountInFlight(true);
-    expect(screen.getByText("PAUSED")).toBeTruthy();
-    expect(screen.getByRole("img", { name: /game paused/ })).toBeTruthy();
-  });
-
-  it("says nothing of a pause while the game runs", async () => {
-    await mountInFlight(false);
-    expect(screen.queryByText("PAUSED")).toBeNull();
-  });
-
   it("describes the widget without a flat t. key", () => {
     const description = warpControlDef?.description ?? "";
     expect(description).not.toBe("");

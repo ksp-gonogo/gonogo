@@ -1,7 +1,5 @@
 import {
   isValue,
-  KSP_CONTRACT_PRESTIGE_NAMES,
-  type KspContractPrestigeName,
   KspParameterState,
   type Value,
   value,
@@ -24,10 +22,6 @@ export interface ContractParameter {
   title: string;
   state: ContractParameterState;
   optional: boolean;
-  /** The objective's own notes, undefined when it has none. */
-  notes?: string;
-  /** Objectives nested under this one, each with its own live state. */
-  children: ContractParameter[];
   /** ReachDestination body name (matches v.body). */
   body?: string;
   /** ReachSituation / PartTest situation name (Landed, Flying, etc.). */
@@ -42,23 +36,12 @@ export interface ContractParameter {
   targetAltitude?: Value<"m">;
 }
 
-/** How demanding a contract is, by KSP's `ContractPrestige` ordinal. */
-export type ContractPrestige = KspContractPrestigeName;
-
 export interface ContractEntry {
   /** KSP contract ids are 64-bit longs that exceed Number.MAX_SAFE_INTEGER, so they travel as strings. */
   id: string;
   title: string;
   agency: string;
   state: string;
-  /** The one-line statement of what the contract asks, undefined when the wire carried none. */
-  synopsis?: string;
-  /** The agency's full briefing text, undefined when the wire carried none. */
-  briefing?: string;
-  /** The contract's notes, undefined when it has none. */
-  notes?: string;
-  /** Undefined when the wire carried no prestige ordinal: unknown is not trivial. */
-  prestige?: ContractPrestige;
   /** The four figures are null where the wire did not carry them: a reward nobody stated is not a reward of nothing. */
   fundsAdvance: number | null;
   fundsCompletion: number | null;
@@ -124,15 +107,6 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
       title: typeof e.title === "string" ? e.title : "(unnamed contract)",
       agency,
       state: typeof e.state === "string" ? e.state : "",
-      synopsis: textOf(e.synopsis),
-      briefing: textOf(e.briefing),
-      notes: textOf(e.notes),
-      prestige:
-        typeof e.prestigeOrdinal === "number"
-          ? (KSP_CONTRACT_PRESTIGE_NAMES.get(e.prestigeOrdinal) as
-              | ContractPrestige
-              | undefined)
-          : undefined,
       fundsAdvance: magnitudeOf(asQuantityish(e.fundsAdvance)),
       fundsCompletion: magnitudeOf(asQuantityish(e.fundsCompletion)),
       scienceCompletion: magnitudeOf(asQuantityish(e.scienceCompletion)),
@@ -145,11 +119,6 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
     });
   }
   return out;
-}
-
-/** Prose off the wire, or undefined when it is absent or blank. */
-function textOf(raw: unknown): string | undefined {
-  return typeof raw === "string" && raw.trim().length > 0 ? raw : undefined;
 }
 
 /** A UT instant off the wire, or null when the field is absent. */
@@ -181,8 +150,6 @@ function parseParameters(raw: unknown): ContractParameter[] {
       title: typeof e.title === "string" ? e.title : "(unnamed)",
       state: paramState(e.stateOrdinal),
       optional: e.optional === true,
-      notes: textOf(e.notes),
-      children: parseParameters(e.children),
       body: typeof e.body === "string" ? e.body : undefined,
       situation: typeof e.situation === "string" ? e.situation : undefined,
       partName: typeof e.partName === "string" ? e.partName : undefined,

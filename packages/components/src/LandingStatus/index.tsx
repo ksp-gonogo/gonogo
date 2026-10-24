@@ -35,7 +35,6 @@ import {
 } from "./CarriedAltitude";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
 import { CrashLine, CrashOutcome } from "./CrashOutcome";
-import { CrashReverts } from "./CrashReverts";
 import { DescentBoard } from "./DescentBoard";
 import {
   ComDatumNote,
@@ -464,9 +463,6 @@ function LandingStatusComponent({
                       {crash && !crashInContext && (
                         <CrashOutcome crash={crash} record={recordOnly} />
                       )}
-                      {crash && !recordOnly && !crashInContext && (
-                        <CrashReverts />
-                      )}
                       {showBoard && roundTripShown && (
                         <Text level="muted">
                           RT{" "}
@@ -540,7 +536,6 @@ function LandingStatusComponent({
                     <ScrollArea>
                       {/* Positioned, so nothing absolutely placed in the readouts escapes this scroller. */}
                       <div style={{ position: "relative" }}>
-                        {crashInContext && !recordOnly && <CrashReverts />}
                         {showPlots ? (
                           <div ref={readoutsStack}>
                             <ContainerBreak

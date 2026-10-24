@@ -4,7 +4,6 @@ import { BellIcon, IconButton, Tooltip } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import {
   type ContractEntry,
-  type ContractParameter,
   type ContractParameterState,
   parseContracts,
 } from "../ContractManager";
@@ -56,24 +55,18 @@ export function contractObjectives(
     }
     // A contract can carry two parameters with the same title, so the key counts occurrences.
     const seenTitles = new Map<string, number>();
-    const walk = (parameters: ContractParameter[], depth: number) => {
-      for (const p of parameters) {
-        const occurrence = seenTitles.get(p.title) ?? 0;
-        seenTitles.set(p.title, occurrence + 1);
-        out.push({
-          id: `c:${c.id}::${p.title}::${occurrence}`,
-          title: p.title,
-          description: p.notes,
-          state: contractParamState(p.state),
-          source: c.title,
-          optional: p.optional,
-          contractId: c.id,
-          ...(depth > 0 ? { depth } : {}),
-        });
-        walk(p.children, depth + 1);
-      }
-    };
-    walk(c.parameters, 0);
+    for (const p of c.parameters) {
+      const occurrence = seenTitles.get(p.title) ?? 0;
+      seenTitles.set(p.title, occurrence + 1);
+      out.push({
+        id: `c:${c.id}::${p.title}::${occurrence}`,
+        title: p.title,
+        state: contractParamState(p.state),
+        source: c.title,
+        optional: p.optional,
+        contractId: c.id,
+      });
+    }
   }
   return out;
 }

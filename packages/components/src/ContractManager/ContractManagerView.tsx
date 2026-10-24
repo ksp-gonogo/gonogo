@@ -13,7 +13,6 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { heldGrade } from "../shared/heldGrade";
 import { noCareerLabel } from "../shared/noCareerLabel";
-import { ContractBriefing, ContractPrestigeBadge } from "./ContractBriefing";
 import {
   ContractCancelCost,
   ContractDeadline,
@@ -24,7 +23,6 @@ import type { ContractManagerConfig } from "./config";
 import { parseContracts } from "./contracts";
 import {
   ACTIVE_ACTIONS_STYLE,
-  AGENCY_ROW_STYLE,
   AGENCY_STYLE,
   cardListStyle,
   OFFERED_ACTIONS_STYLE,
@@ -134,11 +132,7 @@ export function ContractManagerComponent({
                   />
                 }
               >
-                <div style={AGENCY_ROW_STYLE}>
-                  {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
-                  <ContractPrestigeBadge contract={c} />
-                </div>
-                <ContractBriefing contract={c} />
+                {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
                 <ContractRewards contract={c} />
                 <ContractTerms contract={c} altitude={activeAltitude} />
                 <div style={ACTIVE_ACTIONS_STYLE}>
@@ -174,11 +168,7 @@ export function ContractManagerComponent({
                   />
                 }
               >
-                <div style={AGENCY_ROW_STYLE}>
-                  {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
-                  <ContractPrestigeBadge contract={c} />
-                </div>
-                <ContractBriefing contract={c} />
+                {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
                 <ContractRewards contract={c} />
                 <ContractTerms contract={c} />
                 <ButtonGroup style={OFFERED_ACTIONS_STYLE}>
