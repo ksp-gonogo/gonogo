@@ -340,8 +340,17 @@ namespace Sitrep.Transport
             {
                 var elapsed = TimeSpan.FromSeconds(
                     (System.Diagnostics.Stopwatch.GetTimestamp() - Volatile.Read(ref _sendStartedTicks)) / (double)System.Diagnostics.Stopwatch.Frequency);
-                if (!_sending || elapsed < _sendStallLimit)
+                if (!_sending)
                 {
+                    return;
+                }
+
+                if (elapsed < _sendStallLimit)
+                {
+                    // The timer and the stopwatch can disagree by a tick or two, so the
+                    // timer may fire just before the limit; re-arming for the remainder
+                    // keeps the stall checked instead of silently dropping the check.
+                    _stallTimer.Change(_sendStallLimit - elapsed, Timeout.InfiniteTimeSpan);
                     return;
                 }
 
