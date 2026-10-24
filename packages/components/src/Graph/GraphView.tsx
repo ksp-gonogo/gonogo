@@ -258,6 +258,12 @@ export function GraphView({
           }
         };
 
+  const awaitingData =
+    series.length > 0 &&
+    series.every(
+      (cfg) => (seriesData.get(seriesKeyOf(cfg.source))?.t.length ?? 0) === 0,
+    );
+
   const derive = deriveAxisTitles === true;
   const xAxisTitle = axisTitle(
     config?.xLabel ?? (derive ? (xIsTime ? "Time" : xMeta?.label) : undefined),
@@ -325,7 +331,16 @@ export function GraphView({
       hideXAxis={config?.hideXAxis}
       spatial={config?.spatial}
       gridScale={config?.gridScale}
-      notice={notice}
+      notice={
+        awaitingData ? (
+          <>
+            {notice}
+            <div>Waiting for data...</div>
+          </>
+        ) : (
+          notice
+        )
+      }
       emptyState={emptyState}
       footer={
         hasThirdUnit ? (
