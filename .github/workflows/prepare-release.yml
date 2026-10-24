@@ -61,7 +61,7 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       # Where the work actually lands. main moves only here, at a release.
       INTEGRATION_BRANCH: staging

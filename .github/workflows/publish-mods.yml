@@ -86,7 +86,7 @@ jobs:
   # each leg re-deriving it: the reusable workflow takes version as an
   # input instead of computing it itself.
   version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       value: ${{ steps.version.outputs.value }}
     steps:
@@ -150,7 +150,7 @@ jobs:
   attach-to-release:
     needs: build-mod
     if: ${{ inputs.channel == 'release' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:

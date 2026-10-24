@@ -84,7 +84,7 @@ env:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # The rc channel builds the ref it runs on, so a dispatch from any branch
       # but staging would put a tree no CI run validated on /rc/. rc.yml's call

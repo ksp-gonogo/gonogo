@@ -31,7 +31,7 @@ permissions:
 jobs:
   update:
     name: update (${{ matrix.browser }}, shard ${{ matrix.shard }}/4)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:

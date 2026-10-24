@@ -51,7 +51,7 @@ jobs:
   # First in the file on purpose: the browsers are the longest jobs, and one that
   # is queued behind the rest sets the wall time of the whole run.
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -112,7 +112,7 @@ jobs:
   # `RATCHET_BASE_REF`/`ratchetBaseRef` reference in any script this job runs),
   # so the checkout stays at the default depth, unlike `unit-test` below.
   lint-typecheck:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -229,7 +229,7 @@ jobs:
   # any vitest exit code, so a second plain run of it would only repeat the work.
   unit-test:
     name: unit-test (${{ matrix.leg }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -363,7 +363,7 @@ jobs:
   # once per finding.
   render-gate:
     name: render-gate (${{ matrix.shard }}/2)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -511,7 +511,7 @@ jobs:
   # recorded in `packages/app/scripts/minsize-debt.ts`, which is shrink-only
   # and enforced from both sides.
   minsize-gate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -593,7 +593,7 @@ jobs:
   # the hold ran.
   act-warnings:
     name: act-warnings (${{ matrix.leg }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -691,7 +691,7 @@ jobs:
   # marker. Reinforced.Typings is not a runtime dependency of anything here,
   # it is confined to Sitrep.Contract.Codegen, which only mod/codegen.sh builds.
   mod:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -1070,7 +1070,7 @@ jobs:
   # One attempt each, like every other project.
   mod-integration:
     name: mod-integration (${{ matrix.shard }}/2)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The Roslyn compiler server and MSBuild's reusable nodes outlive the build
     # that started them, and the runner reports each as an orphan process.
     env:
@@ -1122,7 +1122,7 @@ jobs:
   # Its own job because it needs all of dotnet, a full build and the network,
   # and none of the other jobs has all three.
   scaffold:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -1186,7 +1186,7 @@ jobs:
   # this one does not control is fixed. It can only see typed ids (slots,
   # exports, Topics, commands); a plot subject is an open string and passes.
   uplinks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     continue-on-error: true
     steps:

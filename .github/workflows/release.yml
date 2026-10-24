@@ -124,7 +124,7 @@ jobs:
     # packages to build an Uplink against.
     needs: [ref-guard, packages-probe, nuget-pack]
     if: ${{ !cancelled() && !(github.event_name == 'workflow_dispatch' && (inputs.packages_only || inputs.rc || inputs.dry_run)) && needs.ref-guard.result == 'success' && needs.packages-probe.result == 'success' && needs.nuget-pack.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -269,7 +269,7 @@ jobs:
   # release fast-forwards, or on a v* tag. Any other branch carries unreleased
   # manifests and a dry run is the way to exercise it there.
   ref-guard:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -288,7 +288,7 @@ jobs:
   packages-probe:
     needs: [ref-guard]
     if: ${{ !inputs.rc }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -345,7 +345,7 @@ jobs:
   # published.
   rc-plan:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.rc }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
@@ -448,7 +448,7 @@ jobs:
     # An RC additionally needs its plan, which is where the staging-only refusal
     # lives. Nothing is published to npm until nuget.org lists the C# package.
     if: ${{ !cancelled() && needs.ref-guard.result == 'success' && (needs.packages-probe.result == 'success' || (needs.packages-probe.result == 'skipped' && inputs.rc)) && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) && needs.nuget-listed.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.pkg.outputs.version }}
     env:
@@ -701,7 +701,7 @@ jobs:
   packages-present:
     needs: [publish-packages]
     if: ${{ !cancelled() && needs.publish-packages.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
@@ -735,7 +735,7 @@ jobs:
   move-tags:
     needs: [publish-packages, packages-present]
     if: ${{ !cancelled() && needs.packages-present.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write
@@ -807,7 +807,7 @@ jobs:
   nuget-pack:
     needs: [ref-guard, packages-probe, rc-plan]
     if: ${{ !cancelled() && needs.ref-guard.result == 'success' && (needs.packages-probe.result == 'success' || (needs.packages-probe.result == 'skipped' && inputs.rc)) && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
@@ -907,7 +907,7 @@ jobs:
   publish-nuget:
     needs: [ref-guard, packages-probe, release, rc-plan, nuget-pack]
     if: ${{ !cancelled() && needs.ref-guard.result == 'success' && (needs.packages-probe.result == 'success' || (needs.packages-probe.result == 'skipped' && inputs.rc)) && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) && needs.nuget-pack.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write
@@ -1038,7 +1038,7 @@ jobs:
   nuget-listed:
     needs: [publish-nuget]
     if: ${{ !cancelled() && needs.publish-nuget.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       contents: read
