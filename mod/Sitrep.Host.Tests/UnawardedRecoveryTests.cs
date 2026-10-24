@@ -107,30 +107,5 @@ namespace Sitrep.Host.Tests
             Assert.Empty(capture.ScienceBreakdown);
             Assert.Empty(capture.ResourceBreakdown);
         }
-
-        [Fact]
-        public void Science_aboard_is_listed_by_subject_with_its_data_and_no_science_earned()
-        {
-            var capture = RecoveryPayload.Unawarded(
-                capturedAtUt: 9000,
-                vesselName: "Mun Lander R",
-                vesselType: "Lander",
-                recoveryLocation: "LaunchPad",
-                parts: new KeyValuePair<string, string>[0],
-                crew: new RecoveryCrewItem[0],
-                science: new[]
-                {
-                    new RecoveryScienceItem { SubjectId = "crewReport@MunSrfLanded", SubjectTitle = "Crew Report from the Mun", DataGathered = 10 },
-                    new RecoveryScienceItem { SubjectId = "mysteryGoo@MunSrfLanded", SubjectTitle = "Goo", DataGathered = 8 },
-                    new RecoveryScienceItem { SubjectId = "crewReport@MunSrfLanded", SubjectTitle = "Crew Report from the Mun", DataGathered = 20 },
-                });
-
-            Assert.Equal(2, capture.ScienceBreakdown.Count);
-            Assert.Equal(30, capture.ScienceBreakdown[0].DataGathered);
-            Assert.Equal("crewReport@MunSrfLanded", capture.ScienceBreakdown[0].SubjectId);
-            Assert.All(capture.ScienceBreakdown, s => Assert.Null(s.ScienceAmount));
-            var wire = (List<object?>)RecoveryPayload.Build(capture)["scienceBreakdown"]!;
-            Assert.Null(((Dictionary<string, object?>)wire[0]!)["scienceAmount"]);
-        }
     }
 }

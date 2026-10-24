@@ -195,30 +195,6 @@ namespace Gonogo.KSP
                 }
             }
 
-            var science = new List<RecoveryScienceItem>();
-            if (vessel.protoPartSnapshots != null)
-            {
-                foreach (var snapshot in vessel.protoPartSnapshots)
-                {
-                    foreach (var module in snapshot?.modules ?? new List<ProtoPartModuleSnapshot>())
-                    {
-                        foreach (var node in module?.moduleValues?.GetNodes("ScienceData") ?? new ConfigNode[0])
-                        {
-                            var data = new ScienceData(node);
-                            if (!string.IsNullOrEmpty(data.subjectID))
-                            {
-                                science.Add(new RecoveryScienceItem
-                                {
-                                    SubjectId = data.subjectID,
-                                    SubjectTitle = data.title ?? "",
-                                    DataGathered = data.dataAmount,
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-
             var crew = new List<RecoveryCrewItem>();
             foreach (var member in vessel.GetVesselCrew())
             {
@@ -233,7 +209,7 @@ namespace Gonogo.KSP
 
             var location = GameWords.Text(
                 string.IsNullOrEmpty(vessel.displaylandedAt) ? vessel.landedAt : vessel.displaylandedAt);
-            return RecoveryPayload.Unawarded(ut, GameWords.VesselName(vessel.vesselName), vesselType, location, parts, crew, science);
+            return RecoveryPayload.Unawarded(ut, GameWords.VesselName(vessel.vesselName), vesselType, location, parts, crew);
         }
 
         /// <summary>

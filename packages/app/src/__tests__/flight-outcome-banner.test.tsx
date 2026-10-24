@@ -295,51 +295,6 @@ describe("FlightOutcomeBanner", () => {
     ).toBeGreaterThan(0);
   });
 
-  it("lists the science that came home in a save that awards none, with its data", async () => {
-    const fixture = setupOutcomeStream();
-
-    render(
-      <fixture.Provider>
-        <FlightOutcomeBanner />
-      </fixture.Provider>,
-    );
-
-    act(() => {
-      fixture.emit("recovery.hasRecent", { recent: true });
-      fixture.emit("recovery.lastSummary", {
-        capturedAtUT: 2000,
-        vesselName: "Mun Lander R",
-        recoveryLocation: "LaunchPad",
-        recoveryFactor: "",
-        scienceEarned: null,
-        totalScience: null,
-        fundsEarned: null,
-        totalFunds: null,
-        displayReputation: false,
-        scienceBreakdown: [
-          {
-            subjectId: "crewReport@MunSrfLanded",
-            subjectTitle: "Crew Report from the Mun",
-            dataGathered: 30,
-            scienceAmount: null,
-          },
-        ],
-        partBreakdown: [],
-        resourceBreakdown: [],
-        crewBreakdown: [],
-      });
-      fixture.store.beginFrame();
-    });
-
-    await act(async () => {
-      screen.getByRole("button").click();
-    });
-
-    const row = rowFor(/Crew Report from the Mun/);
-    expect(row).toHaveTextContent("30");
-    expect(row).not.toHaveTextContent("+");
-  });
-
   // Every quantity on both payloads is a `Value` by the time the banner reads
   // it, wrapped on decode from the generated unit maps.
   // A reader that tests `typeof v === "number"` therefore sees an object and

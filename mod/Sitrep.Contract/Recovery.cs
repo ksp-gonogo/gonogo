@@ -117,9 +117,9 @@ public class RecoveryScienceEntry
     [SitrepUnit(Units.Mits)]
     public double DataGathered { get; set; }
 
-    /// <summary>Science earned for this subject by this recovery. Null in a save with no science (Sandbox), where the subject is still listed with its <see cref="DataGathered"/>.</summary>
+    /// <summary>Science earned for this subject by this recovery.</summary>
     [SitrepUnit(Units.Science)]
-    public double? ScienceAmount { get; set; }
+    public double ScienceAmount { get; set; }
 }
 
 /// <summary>

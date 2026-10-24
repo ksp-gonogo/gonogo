@@ -5925,12 +5925,8 @@ export interface RecoveryScienceEntry
 	subjectTitle: string;
 	/** How much data was recovered for this subject. */
 	dataGathered: Value<"Mit">;
-	/**
-	* Science earned for this subject by this recovery. Null in a save with no
-	* science (Sandbox), where the subject is still listed with its
-	* `RecoveryScienceEntry.dataGathered`.
-	*/
-	scienceAmount?: Value<"science"> | null;
+	/** Science earned for this subject by this recovery. */
+	scienceAmount: Value<"science">;
 }
 /**
 * One recovered-part group: an entry of `RecoveryReport.partBreakdown`. Parts

@@ -481,12 +481,7 @@ function RecoveryDetail({ summary }: { summary: RecoveryReport }) {
                 {str(s.subjectTitle) || str(s.subjectId)}
               </DetailRowTitle>
               <DetailRowValue>
-                {/* A save with no science earns nothing, so the data that came home is the figure. */}
-                {q(s.scienceAmount) ? (
-                  <Gain value={q(s.scienceAmount)} />
-                ) : (
-                  <Unit value={q(s.dataGathered)} />
-                )}
+                <Gain value={q(s.scienceAmount)} />
               </DetailRowValue>
             </DetailRow>
           ))}
