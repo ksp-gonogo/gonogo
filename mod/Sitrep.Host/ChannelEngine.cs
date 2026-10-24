@@ -8870,11 +8870,12 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// A craft switched to with no link has told the ground nothing yet, so what the
-        /// active-vessel topics still hold belongs to the craft left behind. Each one that
-        /// has been recorded is withdrawn straight through the freeze, so a subscriber
-        /// reads no reading instead of another craft's. The new craft's own samples are
-        /// held by the blackout as usual and reach the ground when its link comes up.
+        /// A craft switched to has told the ground nothing yet, whether its link is down or
+        /// its signal delay has not elapsed, so what the active-vessel topics still hold
+        /// belongs to the craft left behind. Each one that has been recorded is withdrawn
+        /// at once, since the switch is the ground's own act and no signal carries it, so a
+        /// subscriber reads no reading instead of another craft's. The new craft's own
+        /// samples reach the ground after its delay, or when its link comes up.
         /// </summary>
         private void WithdrawTheCraftSwitchedAwayFrom(double ut)
         {
@@ -8888,7 +8889,7 @@ namespace Sitrep.Host
                 {
                     continue;
                 }
-                RecordThrough(topic, null, ut, ExemptStampFor(topic));
+                RecordThrough(topic, null, ut, new DelayStamp(0.0));
             }
         }
 
@@ -9700,7 +9701,7 @@ namespace Sitrep.Host
             RefreshLedgerDelays();
             SayCraftReach();
             NoteActivePathMeasurement(tick);
-            if (_activeVesselSwitched && !SubjectConnected(NodeId))
+            if (_activeVesselSwitched)
             {
                 WithdrawTheCraftSwitchedAwayFrom(tick.Ut);
             }

@@ -79,8 +79,9 @@ namespace Sitrep.Host
         public const string LightTopic = "vessel.light";
 
         /// <summary>
-        /// The <c>eva.crew</c> channel: every kerbal currently outside a craft,
-        /// and the state of the suit they are outside in.
+        /// The <c>eva.crew</c> channel: which kerbals are currently outside a craft.
+        /// Held at the home command, so no craft's link gates it; each kerbal's suit
+        /// state is on its own <see cref="EvaKerbalPrefix"/> Topic.
         ///
         /// <para>Read from the snapshot root rather than the vessel group, and
         /// that is the whole reason it is not part of <c>vessel.crew</c>: while
@@ -91,13 +92,19 @@ namespace Sitrep.Host
         /// </summary>
         public const string EvaCrewTopic = "eva.crew";
 
+        /// <summary>The namespace of each kerbal's own state Topic, <c>eva.kerbal.&lt;vessel id&gt;.state</c>.</summary>
+        public const string EvaKerbalPrefix = "eva.kerbal.";
+
+        /// <summary>The segment after a kerbal's vessel id in its own Topic.</summary>
+        public const string EvaKerbalField = "state";
+
         /// <summary>All M1 vessel(+time.warp, see <see cref="WarpState"/>'s doc comment for the scoping note) topics, shared by <see cref="Gonogo.KSP.VesselUplink"/>'s manifest (in Gonogo.KSP) and <see cref="VesselEpochSampler"/>'s force-keyframe fan-out.</summary>
         public static readonly IReadOnlyList<string> Topics = new[]
         {
             IdentityTopic, OrbitTopic, OrbitTruthTopic, FlightTopic,
             AttitudeTopic, ResourcesTopic, ThermalTopic, ControlTopic, PhysicsModeTopic, CommsTopic,
             PropulsionTopic, ManeuverTopic, TargetTopic, CrewTopic, StructureTopic, WarpTopic,
-            CalendarTopic, DockTopic, SurfaceTopic, LandingTopic, LightTopic, EvaCrewTopic,
+            CalendarTopic, DockTopic, SurfaceTopic, LandingTopic, LightTopic,
         };
 
 
@@ -1301,6 +1308,35 @@ namespace Sitrep.Host
         /// </summary>
         public static EvaCrew? BuildEvaCrew(KspSnapshot? snapshot)
         {
+            var kerbals = BuildEvaKerbals(snapshot);
+            if (kerbals == null)
+            {
+                return null;
+            }
+
+            var result = new EvaCrew();
+            foreach (var kerbal in kerbals)
+            {
+                result.Kerbals.Add(new EvaCrewMember
+                {
+                    KerbalVesselId = kerbal.KerbalVesselId,
+                    ParentVesselId = kerbal.ParentVesselId,
+                    Name = kerbal.Name,
+                });
+            }
+
+            result.Count = result.Kerbals.Count;
+            return result;
+        }
+
+        /// <summary>
+        /// Each kerbal currently outside a craft with their suit state, from the
+        /// snapshot's root <c>evaCrew</c> list: what each kerbal's own
+        /// <see cref="EvaKerbalPrefix"/> Topic carries. Empty when nobody is outside,
+        /// and null only when the capture produced no list at all.
+        /// </summary>
+        public static List<EvaKerbal>? BuildEvaKerbals(KspSnapshot? snapshot)
+        {
             if (snapshot?.Values == null
                 || !snapshot.Values.TryGetValue("evaCrew", out var rawList)
                 || rawList is not IEnumerable<object?> entries)
@@ -1308,7 +1344,7 @@ namespace Sitrep.Host
                 return null;
             }
 
-            var result = new EvaCrew();
+            var result = new List<EvaKerbal>();
             foreach (var rawEntry in entries)
             {
                 if (rawEntry is not IDictionary<string, object?> raw)
@@ -1323,12 +1359,14 @@ namespace Sitrep.Host
                     // applies to a roster entry.
                     continue;
                 }
-                result.Kerbals.Add(BuildEvaKerbal(raw, id));
+                result.Add(BuildEvaKerbal(raw, id));
             }
 
-            result.Count = result.Kerbals.Count;
             return result;
         }
+
+        /// <summary>One kerbal's suit state as the wire carries it on its own Topic.</summary>
+        public static Dictionary<string, object?> BuildEvaKerbalWire(EvaKerbal kerbal) => ToWire(kerbal);
 
         private static EvaKerbal BuildEvaKerbal(
             IDictionary<string, object?> raw,
@@ -2033,6 +2071,13 @@ namespace Sitrep.Host
         {
             ["count"] = eva.Count,
             ["kerbals"] = eva.Kerbals.Select(ToWire).ToList<object?>(),
+        };
+
+        private static Dictionary<string, object?> ToWire(EvaCrewMember member) => new Dictionary<string, object?>
+        {
+            ["kerbalVesselId"] = member.KerbalVesselId,
+            ["parentVesselId"] = member.ParentVesselId,
+            ["name"] = member.Name,
         };
 
         private static Dictionary<string, object?> ToWire(EvaKerbal kerbal) => new Dictionary<string, object?>

@@ -141,6 +141,11 @@ const UNOBSERVED_FAMILIES: readonly {
     reason: "read only once a part's action menu is open",
   },
   {
+    widgetId: "science-data",
+    pattern: "eva.kerbal.<kerbalVesselId>.state",
+    reason: "one per kerbal outside, read only while eva.crew lists one",
+  },
+  {
     widgetId: "tracking-station",
     pattern: "trackingStation.vessel.<guid>.link",
     reason: "read only once a craft is selected and its side bar shows",

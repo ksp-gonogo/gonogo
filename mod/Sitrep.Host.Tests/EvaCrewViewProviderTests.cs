@@ -46,9 +46,9 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void MapsEveryFieldOfAKerbalOutside()
         {
-            var eva = VesselViewProvider.BuildEvaCrew(SnapshotWith(Kerbal("kerbal-1")));
+            var eva = VesselViewProvider.BuildEvaKerbals(SnapshotWith(Kerbal("kerbal-1")));
 
-            var kerbal = Assert.Single(Assert.IsType<EvaCrew>(eva).Kerbals);
+            var kerbal = Assert.Single(Assert.IsType<List<EvaKerbal>>(eva));
             Assert.Equal("kerbal-1", kerbal.KerbalVesselId);
             Assert.Equal("craft-1", kerbal.ParentVesselId);
             Assert.Equal("Jebediah Kerman", kerbal.Name);
@@ -67,13 +67,17 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void CountsTheKerbalsItMapped()
+        public void TheRosterNamesEachKerbalOutsideAndCarriesNoSuitState()
         {
-            var eva = VesselViewProvider.BuildEvaCrew(
+            var eva = Assert.IsType<EvaCrew>(VesselViewProvider.BuildEvaCrew(
                 SnapshotWith(Kerbal("kerbal-1"), Kerbal("kerbal-2"))
-            );
+            ));
 
-            Assert.Equal(2, Assert.IsType<EvaCrew>(eva).Count);
+            Assert.Equal(2, eva.Count);
+            Assert.Equal(new[] { "kerbal-1", "kerbal-2" }, eva.Kerbals.ConvertAll(k => k.KerbalVesselId));
+            Assert.Equal("craft-1", eva.Kerbals[0].ParentVesselId);
+            Assert.Equal("Jebediah Kerman", eva.Kerbals[0].Name);
+            Assert.Equal(3, typeof(EvaCrewMember).GetProperties().Length);
         }
 
         [Fact]
@@ -86,6 +90,7 @@ namespace Sitrep.Host.Tests
 
             Assert.Empty(eva.Kerbals);
             Assert.Equal(0, eva.Count);
+            Assert.Empty(Assert.IsType<List<EvaKerbal>>(VesselViewProvider.BuildEvaKerbals(SnapshotWith())));
         }
 
         [Fact]
@@ -100,6 +105,7 @@ namespace Sitrep.Host.Tests
             };
 
             Assert.Null(VesselViewProvider.BuildEvaCrew(snapshot));
+            Assert.Null(VesselViewProvider.BuildEvaKerbals(snapshot));
         }
 
         [Fact]
@@ -108,13 +114,11 @@ namespace Sitrep.Host.Tests
             var nameless = Kerbal("kerbal-1");
             nameless["kerbalVesselId"] = null;
 
-            var eva = Assert.IsType<EvaCrew>(
-                VesselViewProvider.BuildEvaCrew(SnapshotWith(nameless, Kerbal("kerbal-2")))
-            );
+            var snapshot = SnapshotWith(nameless, Kerbal("kerbal-2"));
 
-            var kept = Assert.Single(eva.Kerbals);
+            var kept = Assert.Single(Assert.IsType<List<EvaKerbal>>(VesselViewProvider.BuildEvaKerbals(snapshot)));
             Assert.Equal("kerbal-2", kept.KerbalVesselId);
-            Assert.Equal(1, eva.Count);
+            Assert.Equal(1, Assert.IsType<EvaCrew>(VesselViewProvider.BuildEvaCrew(snapshot)).Count);
         }
 
         [Fact]
@@ -128,9 +132,9 @@ namespace Sitrep.Host.Tests
             partial.Remove("propellantAmount");
             partial.Remove("willDieWithoutHelmet");
 
-            var eva = Assert.IsType<EvaCrew>(VesselViewProvider.BuildEvaCrew(SnapshotWith(partial)));
+            var eva = Assert.IsType<List<EvaKerbal>>(VesselViewProvider.BuildEvaKerbals(SnapshotWith(partial)));
 
-            var kerbal = Assert.Single(eva.Kerbals);
+            var kerbal = Assert.Single(eva);
             Assert.Null(kerbal.PropellantAmount);
             Assert.Null(kerbal.WillDieWithoutHelmet);
             // The fields that WERE read are unaffected by the ones that were not.
@@ -146,9 +150,9 @@ namespace Sitrep.Host.Tests
             var orphan = Kerbal("kerbal-1");
             orphan.Remove("parentVesselId");
 
-            var eva = Assert.IsType<EvaCrew>(VesselViewProvider.BuildEvaCrew(SnapshotWith(orphan)));
+            var eva = Assert.IsType<List<EvaKerbal>>(VesselViewProvider.BuildEvaKerbals(SnapshotWith(orphan)));
 
-            var kerbal = Assert.Single(eva.Kerbals);
+            var kerbal = Assert.Single(eva);
             Assert.Null(kerbal.ParentVesselId);
             Assert.Equal("kerbal-1", kerbal.KerbalVesselId);
         }
@@ -167,9 +171,9 @@ namespace Sitrep.Host.Tests
                 },
             };
 
-            var eva = Assert.IsType<EvaCrew>(VesselViewProvider.BuildEvaCrew(SnapshotWith(holding)));
+            var eva = Assert.IsType<List<EvaKerbal>>(VesselViewProvider.BuildEvaKerbals(SnapshotWith(holding)));
 
-            var held = Assert.Single(Assert.Single(eva.Kerbals).HeldData!);
+            var held = Assert.Single(Assert.Single(eva).HeldData!);
             Assert.Equal("surfaceSample@MunSrfLandedMidlands", held.SubjectId);
             Assert.Equal("Surface Sample from The Mun's Midlands", held.Title);
             Assert.Equal(30.0, held.DataAmount);
@@ -182,10 +186,10 @@ namespace Sitrep.Host.Tests
             empty["heldData"] = new List<object?>();
             var unread = Kerbal("kerbal-2");
 
-            var eva = Assert.IsType<EvaCrew>(VesselViewProvider.BuildEvaCrew(SnapshotWith(empty, unread)));
+            var eva = Assert.IsType<List<EvaKerbal>>(VesselViewProvider.BuildEvaKerbals(SnapshotWith(empty, unread)));
 
-            Assert.Empty(eva.Kerbals[0].HeldData!);
-            Assert.Null(eva.Kerbals[1].HeldData);
+            Assert.Empty(eva[0].HeldData!);
+            Assert.Null(eva[1].HeldData);
         }
     }
 }

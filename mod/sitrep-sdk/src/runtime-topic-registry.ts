@@ -135,6 +135,12 @@ export const DYNAMIC_WHOLE_TOPIC_PREFIXES: readonly string[] = [
    */
   "vessel.partActions.",
   /*
+   * eva.kerbal.<vessel id>.state: one kerbal outside a craft, recorded on that
+   * kerbal's own node so its own link decides whether it is held. Each kerbal's
+   * Topic is listed on eva.crew.
+   */
+  "eva.kerbal.",
+  /*
    * spaceCenter.craft.<facility>.<file>.parts: one saved craft file's part
    * tree. The mod measures a craft file only while its topic is subscribed.
    */

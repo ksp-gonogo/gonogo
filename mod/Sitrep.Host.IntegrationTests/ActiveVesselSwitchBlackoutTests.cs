@@ -112,6 +112,39 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task ACraftSwitchedToWithASignalDelayReadsAsNoReadingUntilItsFirstSampleLands()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new BlackoutRecorderTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, BlackoutRecorderTestUplink.OnboardTopic, Timeout);
+
+                foreach (var ut in new[] { 0.0, 1.0, 2.0, 3.0 })
+                {
+                    Tick(engine, Snap(ut, VesselA, connected: true, delay: 1.0, onboard: 7.0));
+                }
+                var before = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(before, f => f.Topic == BlackoutRecorderTestUplink.OnboardTopic && f.Payload != null);
+
+                Tick(engine, Snap(4.0, VesselB, connected: true, delay: 30.0));
+                Tick(engine, Snap(5.0, VesselB, connected: true, delay: 30.0, onboard: 50.0));
+
+                var after = (await DrainAllStreamDataAsync(client, Quiet))
+                    .Where(f => f.Topic == BlackoutRecorderTestUplink.OnboardTopic)
+                    .ToList();
+                Assert.NotEmpty(after);
+                Assert.Null(after[after.Count - 1].Payload);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public void ACraftsLastDelayInContactSurvivesTimeSpentOutsideFlight()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);

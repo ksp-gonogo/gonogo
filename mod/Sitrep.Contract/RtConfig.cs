@@ -90,7 +90,7 @@ public static class RtConfig
                 typeof(PayloadMeta),
                 typeof(OrbitPayloadMeta),
                 typeof(CommandResult),
-                // eva.crew: the suit state of every kerbal currently outside
+                // eva.crew: which kerbals are currently outside
                 typeof(EvaCrew),
                 // trackingStation.bodies.statesAt: the elected provider's analytical answer
                 // for a body at instants a planning search chose
@@ -328,7 +328,8 @@ public static class RtConfig
                 // vessel.physics.mode + vessel.crew nested roster entry
                 typeof(VesselPhysicsMode),
                 typeof(CrewMember),
-                // eva.crew nested roster entry
+                // eva.crew nested roster entry, and the eva.kerbal.<vessel id>.state payload
+                typeof(EvaCrewMember),
                 typeof(EvaKerbal),
                 typeof(EvaHeldData),
                 // surface.sites, one planted flag
