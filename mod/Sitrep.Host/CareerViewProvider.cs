@@ -355,6 +355,9 @@ namespace Sitrep.Host
                     ["stateOrdinal"] = GetInt(parameter, "stateOrdinal"),
                     ["minAltitude"] = banded ? minAltitude : null,
                     ["maxAltitude"] = banded ? maxAltitude : null,
+                    ["milestone"] = GetString(parameter, "milestone"),
+                    ["milestoneBody"] = GetString(parameter, "milestoneBody"),
+                    ["targetAltitude"] = GetDouble(parameter, "targetAltitude"),
                 });
             }
 

@@ -610,6 +610,24 @@ export interface CareerContractParameter
 	* `CareerContractParameter.minAltitude` is.
 	*/
 	maxAltitude?: Value<"m"> | null;
+	/**
+	* The progress milestone this objective asks the player to reach, by the
+	* game's own name for it (`REACHSPACE`, `ORBIT`, `LANDING` and so on). `null`
+	* when the objective is not a progress milestone.
+	*/
+	milestone?: string | null;
+	/**
+	* The body the `CareerContractParameter.milestone` is reached at, by name.
+	* `null` when the objective is not a milestone or the game names no body for
+	* it.
+	*/
+	milestoneBody?: string | null;
+	/**
+	* The altitude above sea level the `CareerContractParameter.milestone` is
+	* reached at, where it has one: the top of the atmosphere for reaching space.
+	* `null` when the milestone has no altitude, never 0.
+	*/
+	targetAltitude?: Value<"m"> | null;
 }
 /**
 * Strategies sub-group of `CareerStatus`. Both lists are always present

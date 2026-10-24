@@ -191,9 +191,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CareerContractParameter": {
     maxAltitude: "m",
+    milestone: "text",
+    milestoneBody: "text",
     minAltitude: "m",
     state: "text",
     stateOrdinal: "enum",
+    targetAltitude: "m",
     title: "text",
   },
   "CareerFacility": {

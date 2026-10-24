@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 47.1.0
+  version: 47.2.0
   description: |-
     The WebSocket API of the Gonogo mod: 89 telemetry channels a client
     subscribes to and 71 commands it sends, each with its payload and what it
@@ -10085,6 +10085,33 @@ components:
           description: |-
             Upper bound of that same band, `null` exactly when
             `CareerContractParameter.minAltitude` is.
+        milestone:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The progress milestone this objective asks the player to reach, by the
+            game's own name for it (`REACHSPACE`, `ORBIT`, `LANDING` and so on). `null`
+            when the objective is not a progress milestone.
+        milestoneBody:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The body the `CareerContractParameter.milestone` is reached at, by name.
+            `null` when the objective is not a milestone or the game names no body for
+            it.
+        targetAltitude:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: m
+          description: |-
+            The altitude above sea level the `CareerContractParameter.milestone` is
+            reached at, where it has one: the top of the atmosphere for reaching space.
+            `null` when the milestone has no altitude, never 0.
     CareerContracts:
       type: object
       description: |-

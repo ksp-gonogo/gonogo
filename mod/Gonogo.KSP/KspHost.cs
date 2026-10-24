@@ -5231,6 +5231,7 @@ namespace Gonogo.KSP
                 }
 
                 var envelope = FindAltitudeEnvelope(parameter);
+                var milestone = FindMilestone(parameter);
                 result.Add(new Dictionary<string, object?>
                 {
                     ["title"] = parameter.Title,
@@ -5240,10 +5241,53 @@ namespace Gonogo.KSP
                     ["stateOrdinal"] = (int)parameter.State,
                     ["minAltitude"] = envelope?.minAltitude,
                     ["maxAltitude"] = envelope?.maxAltitude,
+                    ["milestone"] = milestone?.type.ToString(),
+                    ["milestoneBody"] = milestone == null ? null : MilestoneBody(milestone)?.bodyName,
+                    ["targetAltitude"] = milestone == null ? null : MilestoneTargetAltitude(milestone),
                 });
             }
 
             return result;
+        }
+
+        private static FinePrint.Utilities.ProgressMilestone? FindMilestone(ContractParameter parameter)
+        {
+            if (parameter is FinePrint.Contracts.Parameters.ProgressTrackingParameter tracking)
+            {
+                return tracking.milestone;
+            }
+
+            for (var i = 0; i < parameter.ParameterCount; i++)
+            {
+                var child = parameter.GetParameter(i);
+                var found = child == null ? null : FindMilestone(child);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>The body a milestone is reached at: the one it names, else the home world, where a first-flight goal is set.</summary>
+        private static CelestialBody? MilestoneBody(FinePrint.Utilities.ProgressMilestone milestone) =>
+            milestone.body != null ? milestone.body : Planetarium.fetch?.Home;
+
+        /// <summary>
+        /// The altitude a milestone is reached at, where it has one: the edge of the atmosphere
+        /// for reaching space. Null for every other milestone and for a body with no atmosphere to
+        /// leave, so a goal with no altitude is not given one.
+        /// </summary>
+        private static double? MilestoneTargetAltitude(FinePrint.Utilities.ProgressMilestone milestone)
+        {
+            var body = MilestoneBody(milestone);
+            if (milestone.type != FinePrint.Utilities.ProgressType.REACHSPACE || body == null || !body.atmosphere)
+            {
+                return null;
+            }
+
+            return body.atmosphereDepth;
         }
 
         private static Contracts.Parameters.ReachAltitudeEnvelope? FindAltitudeEnvelope(ContractParameter parameter)
