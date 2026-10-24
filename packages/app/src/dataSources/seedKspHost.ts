@@ -13,8 +13,8 @@ import { relayBaseUrl } from "../peer/iceServers";
  * saved in Settings wins, and because nothing is persisted here, changing
  * `KSP_HOST` and restarting the container takes effect on the next page load.
  *
- * Outside the bundle (GH Pages, dev without a relay) the fetch fails or
- * returns `{ kspHost: null }` and this is a no-op.
+ * Outside the bundle (dev without a relay) the fetch fails or returns
+ * `{ kspHost: null }` and this is a no-op; on a hosted https page it never asks.
  */
 
 /**
@@ -30,6 +30,8 @@ const CONTAINER_INTERNAL_HOSTS = new Set([
 export async function seedKspHostDefaults(
   fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
+  // A hosted (https) page has no bundled relay beside it, and asking for the visitor's localhost only logs blocked requests.
+  if (globalThis.location?.protocol === "https:") return;
   let kspHost: string | null = null;
   try {
     const res = await fetchImpl(`${relayBaseUrl()}/bootstrap-config`);

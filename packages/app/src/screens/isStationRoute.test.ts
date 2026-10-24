@@ -131,7 +131,12 @@ describe("bootsWithoutDirectMod", () => {
     expect(bootsWithoutDirectMod()).toBe(true);
   });
 
-  it("is false for the main screen, which is the only thing that still needs the probe", () => {
+  it("is TRUE for the hosted landing page on https, which has no mod to probe", () => {
+    at("/", "https:");
+    expect(bootsWithoutDirectMod()).toBe(true);
+  });
+
+  it("is false for the main screen on http, which is the only thing that still needs the probe", () => {
     at("/", "http:");
     expect(bootsWithoutDirectMod()).toBe(false);
   });

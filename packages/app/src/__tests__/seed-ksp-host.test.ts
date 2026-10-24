@@ -24,6 +24,32 @@ function bootstrapHandler(kspHost: string | null) {
 }
 
 describe("seedKspHostDefaults", () => {
+  it("does not ask the relay from a hosted https page", async () => {
+    const real = globalThis.location;
+    Object.defineProperty(globalThis, "location", {
+      value: { ...real, protocol: "https:" },
+      configurable: true,
+      writable: true,
+    });
+    try {
+      let asked = false;
+      server.use(
+        http.get(BOOTSTRAP_URL, () => {
+          asked = true;
+          return HttpResponse.json({ kspHost: "192.0.2.50" });
+        }),
+      );
+      await seedKspHostDefaults();
+      expect(asked).toBe(false);
+    } finally {
+      Object.defineProperty(globalThis, "location", {
+        value: real,
+        configurable: true,
+        writable: true,
+      });
+    }
+  });
+
   it("seeds the shared gameHost from a LAN KSP_HOST", async () => {
     server.use(bootstrapHandler("192.0.2.50"));
     await seedKspHostDefaults();
