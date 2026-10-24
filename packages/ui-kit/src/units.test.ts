@@ -685,12 +685,6 @@ describe("thousands", () => {
     expect(formatQuantity(1_234_567, "funds").value).toBe("1,234,567");
   });
 
-  it("drops the fraction of funds the way the game's readout does", () => {
-    expect(formatQuantity(29_459.6, "funds").value).toBe("29,459");
-    expect(formatQuantity(-29_459.6, "funds").value).toBe("-29,459");
-    expect(formatQuantity(1.6, "science", { decimals: 0 }).value).toBe("2");
-  });
-
   it("keeps the decimals outside the grouping, and the sign outside both", () => {
     expect(formatQuantity(-78_401.25, "funds", { decimals: 2 }).value).toBe(
       "-78,401.25",

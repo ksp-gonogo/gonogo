@@ -206,7 +206,7 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
       fixture.emit("vessel.structure", { currentStage: 4 });
     });
     const toggle = () => screen.getByRole("button", { name: "Toggle Stage" });
-    await waitFor(() => expect(toggle().textContent).toBe("3"));
+    await waitFor(() => expect(toggle().textContent).toBe("4"));
 
     stopDelivering(fixture);
 
@@ -216,7 +216,7 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
         "held",
       ),
     );
-    expect(toggle().textContent).toBe("3");
+    expect(toggle().textContent).toBe("4");
     expect(toggle().getAttribute("data-tooltip")).toBe("Toggle Stage");
     expect(isDisabled(toggle())).toBe(false);
 

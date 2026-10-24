@@ -61,7 +61,7 @@ export function DetailPanel({
         </Text>
       )}
       <NodeRequires node={node} />
-      {/* Above the parts list so the control stays in view however long the list is. */}
+      <NodeParts node={node} limit={PARTS_LISTED} />
       {unlock.isResearchable && (
         <UnlockControl
           node={node}
@@ -71,7 +71,6 @@ export function DetailPanel({
           chargesScience={chargesScience}
         />
       )}
-      <NodeParts node={node} limit={PARTS_LISTED} />
     </Stack>
   );
 }
