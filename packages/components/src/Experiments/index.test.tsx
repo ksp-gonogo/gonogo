@@ -538,4 +538,49 @@ describe("ExperimentsComponent with the instrument inventory locked", () => {
     expect(screen.getByText(/Missing tech/)).toBeInTheDocument();
     expect(screen.queryByText("No instruments aboard")).toBeNull();
   });
+
+  it("still lists the instruments when only the lab is locked behind a tech node", async () => {
+    const fixture = newFixture();
+    renderOfficer(fixture);
+    act(() => {
+      fixture.emit("system.uplink.gates", {
+        gates: [],
+        channels: [
+          {
+            topic: "science.lab",
+            verdict: {
+              outcome: 1,
+              errorCode: "notUnlocked",
+              detail: "",
+              missing: [
+                {
+                  kind: 0,
+                  id: "advExploration",
+                  name: "Advanced Exploration",
+                  scienceCost: 160,
+                },
+              ],
+            },
+          },
+        ],
+      });
+      fixture.emit("science.instruments", [
+        {
+          partId: "1",
+          partName: "2HOT Thermometer",
+          experimentId: "temperatureScan",
+          title: "Temperature Scan",
+          deployed: false,
+          inoperable: false,
+          rerunnable: true,
+          holdsData: false,
+        },
+      ]);
+    });
+    await waitFor(() =>
+      expect(screen.getByText("2HOT Thermometer")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/Missing tech/)).toBeNull();
+    await drained();
+  });
 });

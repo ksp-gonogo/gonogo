@@ -124,6 +124,55 @@ function InstrumentsLocked({ lock }: { lock: LockSummary }) {
   );
 }
 
+type LabSectionProps = Parameters<typeof LabSection>[0];
+
+/**
+ * The lab status, read under its own scope. `science.lab` is locked until the
+ * lab part is researched, which says nothing about the instruments aboard, so
+ * that lock draws nothing here instead of replacing the whole widget.
+ * `matches` searches the lab by its part name like any instrument.
+ */
+function LabRows({
+  matches,
+  startCmd,
+  stopCmd,
+}: {
+  matches?: (text: string) => boolean;
+  startCmd: LabSectionProps["startCmd"];
+  stopCmd: LabSectionProps["stopCmd"];
+}) {
+  return (
+    <LockScope fallback={null}>
+      <LabReading matches={matches} startCmd={startCmd} stopCmd={stopCmd} />
+    </LockScope>
+  );
+}
+
+function LabReading({
+  matches,
+  startCmd,
+  stopCmd,
+}: {
+  matches?: (text: string) => boolean;
+  startCmd: LabSectionProps["startCmd"];
+  stopCmd: LabSectionProps["stopCmd"];
+}) {
+  const labReading = useTelemetry("science.lab");
+  const allLabs = parseLab(stillTrue(labReading, undefined));
+  const labs =
+    matches === undefined
+      ? allLabs
+      : (allLabs?.filter((lab) => matches(lab.partName)) ?? allLabs);
+  return (
+    <LabSection
+      labs={labs}
+      heldGrade={heldGrade(labReading)}
+      startCmd={startCmd}
+      stopCmd={stopCmd}
+    />
+  );
+}
+
 function ExperimentsComponent(
   props: Readonly<ComponentProps<ExperimentsConfig>>,
 ) {
@@ -175,10 +224,6 @@ function ExperimentsBody({
   const totalDataMits = sumExperimentDataAmount(experimentsRaw);
 
   const filter = useRowFilter({ placeholder: "Filter instruments..." });
-  const labReading = useTelemetry("science.lab");
-  const labRaw = stillTrue(labReading, undefined);
-  const allLabs = parseLab(labRaw);
-  const labHeld = heldGrade(labReading);
   const arrivalsReading = useTelemetry(ARRIVALS_TOPIC);
   const arrivals = arrivalsOf(stillTrue(arrivalsReading, undefined));
   const arrivalsHeld = heldGrade(arrivalsReading);
@@ -203,12 +248,7 @@ function ExperimentsBody({
         ),
         showLab && (
           <Section key="lab">
-            <LabSection
-              labs={allLabs}
-              heldGrade={labHeld}
-              startCmd={startLabCmd}
-              stopCmd={stopLabCmd}
-            />
+            <LabRows startCmd={startLabCmd} stopCmd={stopLabCmd} />
           </Section>
         ),
       ]}
@@ -222,10 +262,6 @@ function ExperimentsBody({
     return waiting("Awaiting instrument telemetry");
   if ((instruments?.length ?? 0) === 0 && contributed.length === 0)
     return waiting("No instruments aboard");
-
-  // The lab is searched by its part name like any instrument, so the filter covers every row below it.
-  const labs =
-    allLabs?.filter((lab) => filter.matches(lab.partName)) ?? allLabs;
 
   const matchesFilter = (inst: TitledInstrument) =>
     filter.matches(`${inst.expTitle ?? ""} ${inst.expId} ${inst.partTitle}`);
@@ -330,9 +366,8 @@ function ExperimentsBody({
         ),
         showLab && (
           <Section key="lab" full>
-            <LabSection
-              labs={labs}
-              heldGrade={labHeld}
+            <LabRows
+              matches={filter.matches}
               startCmd={startLabCmd}
               stopCmd={stopLabCmd}
             />
