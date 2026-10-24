@@ -111,7 +111,7 @@ export const WIZARD_COPY = {
   "uplinks.row.refused": "Refused: contract mismatch",
   "uplinks.row.unavailable": "Mod reports unavailable",
   "uplinks.row.noClient": "No client loaded",
-  "uplinks.row.modOnly": "Adds data, no widgets",
+  "uplinks.row.modOnly": "Data only, no widgets",
   "uplinks.row.details": "Details",
 
   "recommended.heading": "Recommended settings",
@@ -140,9 +140,9 @@ export const WIZARD_COPY = {
   "done.heading": "Done",
   "done.advance": "Finish",
   "done.next":
-    "Load a save in KSP, then press the + button in the bottom-right corner of the dashboard to add widgets.",
+    "Load a save in KSP, then press the round button with three dots in the bottom-right corner of the dashboard, then Add widget.",
   "done.settings":
-    "This setup opens by itself once. Settings, behind the same + button, keeps the same readings: the KSP connection under Connection and each Uplink under Uplinks. Run setup again, under Connection, reopens it.",
+    "This setup opens by itself once. Settings, in the same three-dot menu, keeps the same readings: the KSP connection under Connection and each Uplink under Uplinks. Run setup again, under Connection, reopens it.",
 
   "settings.heading": "Setup",
   "settings.label": "First-run setup",

@@ -266,10 +266,7 @@ function UplinkStatusSection({ page }: { page: UplinkPage }) {
       {page.client && <UplinkClientStatus outcome={page.client} />}
       {page.announcesNoClient && (
         <li>
-          <Empty>
-            {page.name} names no client bundle, so none of its widgets are
-            loaded in this app
-          </Empty>
+          <Empty>{page.name} has no widgets in this app</Empty>
         </li>
       )}
       {page.local && (

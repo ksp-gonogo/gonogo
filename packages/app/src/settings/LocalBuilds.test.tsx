@@ -148,7 +148,7 @@ describe("Local builds", () => {
       />,
     );
     expect(
-      screen.getByText(/Alpha names no client bundle, so none of its widgets/),
+      screen.getByText(/Alpha has no widgets in this app/),
     ).toBeInTheDocument();
   });
 });

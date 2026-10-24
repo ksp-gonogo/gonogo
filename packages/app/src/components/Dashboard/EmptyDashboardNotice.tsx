@@ -16,7 +16,7 @@ import { useOpenComponentPicker } from "../ComponentOverlay";
  * editor, switching automatically when the game changes scene.
  * On a screen that owns its analytics setting it also offers a quiet switch for
  * sending anonymous analytics, off until the operator turns it on; it is the
- * same setting as Settings, General, "Send technical analytics".
+ * same setting as Settings, General.
  */
 export function EmptyDashboardNotice() {
   const openPicker = useOpenComponentPicker();
@@ -51,7 +51,7 @@ export function EmptyDashboardNotice() {
             <Switch
               checked={analytics}
               onChange={setAnalytics}
-              label="Send technical analytics"
+              label="Share anonymous logs and errors with the developer"
             />
           )}
         </Stack>
