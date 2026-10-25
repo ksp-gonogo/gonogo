@@ -983,6 +983,7 @@ describe("FirstRunSetup: accessibility", () => {
     expect(
       screen.getByText(stepHeading(6, say("done.heading"))),
     ).toBeInTheDocument();
+    expect(screen.getByText(/Add default layouts/)).toBeInTheDocument();
     await expectNoA11yViolations(container);
   });
 });
