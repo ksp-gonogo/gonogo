@@ -18,14 +18,16 @@ public class ResourceAmount
 {
     /// <summary>
     /// How much of the resource the vessel holds now, the amount
-    /// <c>Vessel.GetConnectedResourceTotals</c> reports. <c>0</c> with a
+    /// the game reports for the parts connected to each other, plus every part's
+    /// own amount of a resource that never flows between parts. <c>0</c> with a
     /// positive <see cref="Max"/> is a real reading: carried and empty.
     /// </summary>
     [SitrepUnit(Units.ResourceUnits)]
     public double Current { get; set; }
     /// <summary>
-    /// The vessel's capacity for the resource, the maximum
-    /// <c>Vessel.GetConnectedResourceTotals</c> reports. Always greater than
+    /// The vessel's capacity for the resource, the capacity
+    /// of the connected parts, plus every part's own capacity for a resource that
+    /// never flows between parts. Always greater than
     /// zero: a resource with no capacity is left out of the map.
     /// </summary>
     [SitrepUnit(Units.ResourceUnits)]
@@ -74,8 +76,8 @@ public class ResourceAmount
 /// <para>Carries amounts only, no flow or rate: a vessel-total flow would be a
 /// number that is not the game's own.</para>
 /// <internal>
-/// Filled by <c>Gonogo.KSP.KspHost.BuildResources</c> over
-/// <c>VesselResourceNames</c>, mapped by
+/// Filled by <c>Gonogo.KSP.KspHost.BuildResources</c> through
+/// <c>VesselResourceTotals</c>, mapped by
 /// <c>Sitrep.Host.VesselViewProvider.BuildResources</c>. Rates belong to a
 /// parts/power channel family with per-module provenance.
 /// </internal>

@@ -1170,22 +1170,23 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Per-named-resource {current,max} via
-        /// <c>Vessel.GetConnectedResourceTotals</c> (aggregates over every
-        /// connected part, respecting crossfeed - not a raw part sum). A
-        /// resource id comes from <c>PartResourceLibrary.Instance.GetDefinition(name).id</c>,
-        /// over every resource the game defines (see <see cref="VesselResourceNames"/>);
-        /// one the vessel has no capacity for is skipped.
+        /// Per-named-resource {current,max} via <c>Vessel.GetConnectedResourceTotals</c>
+        /// (every connected part, respecting crossfeed), plus a per-part sum of the
+        /// resources whose flow mode is <c>None</c> (life support supplies, solid fuel,
+        /// ablator), which the connected totals leave out. A resource id comes from
+        /// <c>PartResourceLibrary.Instance.GetDefinition(name).id</c>, over every resource
+        /// the game defines (see <see cref="VesselResourceNames"/>); one the vessel has no
+        /// capacity for is skipped.
         /// </summary>
         private static Dictionary<string, object?> BuildResources(Vessel vessel)
         {
-            var result = new Dictionary<string, object?>();
             var library = PartResourceLibrary.Instance;
             if (library == null)
             {
-                return result;
+                return new Dictionary<string, object?>();
             }
 
+            var connected = new List<VesselResourceTotals.Reading>();
             var defined = new List<string>();
             foreach (PartResourceDefinition candidate in library.resourceDefinitions)
             {
@@ -1201,21 +1202,33 @@ namespace Gonogo.KSP
                 }
 
                 vessel.GetConnectedResourceTotals(definition.id, out var amount, out var maxAmount);
-                if (maxAmount <= 0)
+                connected.Add(new VesselResourceTotals.Reading(name, amount, maxAmount));
+            }
+
+            var parts = new List<VesselResourceTotals.Reading>();
+            foreach (var part in vessel.parts)
+            {
+                if (part == null || part.Resources == null)
                 {
-                    // Vessel doesn't carry this resource at all - omit
-                    // rather than report a misleading {0,0}.
                     continue;
                 }
 
-                result[name] = new Dictionary<string, object?>
+                foreach (PartResource res in part.Resources)
                 {
-                    ["current"] = amount,
-                    ["max"] = maxAmount,
-                };
+                    if (res == null)
+                    {
+                        continue;
+                    }
+
+                    parts.Add(new VesselResourceTotals.Reading(
+                        res.resourceName,
+                        res.amount,
+                        res.maxAmount,
+                        res.flowMode != PartResource.FlowMode.None));
+                }
             }
 
-            return result;
+            return VesselResourceTotals.Sum(connected, parts);
         }
 
         /// <summary>

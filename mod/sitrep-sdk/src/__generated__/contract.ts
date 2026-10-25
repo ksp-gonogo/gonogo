@@ -11989,15 +11989,17 @@ export interface VesselPropulsion
 export interface ResourceAmount
 {
 	/**
-	* How much of the resource the vessel holds now, the amount
-	* `Vessel.GetConnectedResourceTotals` reports. `0` with a positive
+	* How much of the resource the vessel holds now, the amount the game reports
+	* for the parts connected to each other, plus every part's own amount of a
+	* resource that never flows between parts. `0` with a positive
 	* `ResourceAmount.max` is a real reading: carried and empty.
 	*/
 	current: Value<"units">;
 	/**
-	* The vessel's capacity for the resource, the maximum
-	* `Vessel.GetConnectedResourceTotals` reports. Always greater than zero: a
-	* resource with no capacity is left out of the map.
+	* The vessel's capacity for the resource, the capacity of the connected parts,
+	* plus every part's own capacity for a resource that never flows between
+	* parts. Always greater than zero: a resource with no capacity is left out of
+	* the map.
 	*/
 	max: Value<"units">;
 	/**
