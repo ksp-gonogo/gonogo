@@ -113,6 +113,7 @@ const localStorageMock = {
 };
 vi.stubGlobal("localStorage", localStorageMock);
 
+import { logger } from "@ksp-gonogo/logger";
 import {
   AWAITING_APPROVAL,
   PeerHostService,
@@ -319,6 +320,23 @@ describe("a station the main screen has not approved", () => {
       type: "station-approval",
       state: "pending",
     });
+    host.stop();
+  });
+
+  it("closing its page mid-handshake logs a warning, not an error", async () => {
+    const host = await startedHost();
+    const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const error = vi.spyOn(logger, "error").mockImplementation(() => {});
+    FakeHub.Peer.registry.get(host.peerId ?? "")?.emit("error", {
+      type: "peer-unavailable",
+      message: "Could not connect to peer station-a",
+    });
+    expect(error).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("peer-unavailable"),
+    );
+    warn.mockRestore();
+    error.mockRestore();
     host.stop();
   });
 
