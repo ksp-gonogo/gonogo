@@ -820,4 +820,68 @@ describe("CommSignal: genuinely runs off the stream", () => {
     await waitFor(() => expect(screen.getByText("LOS")).toBeTruthy());
     expect(screen.queryByText("Route")).toBeNull();
   });
+
+  it("reads the route, its rates and the delay as absent once the signal is lost, though the last path is still held", async () => {
+    registerContribution({
+      id: "test-comm-signal-lost-hop-rates",
+      contributes: "comm-signal.hop-rates",
+      compute: () => [
+        { fromNodeId: "Active Vessel", toNodeId: "home", bitsPerSec: 96_000 },
+      ],
+    });
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+
+    render(
+      <fixture.Provider>
+        <WidgetMetaContext.Provider value={HOP_RATE_META}>
+          <ContributionsProvider>
+            <DashboardItemContext.Provider
+              value={{ instanceId: "comm-route-lost" }}
+            >
+              <CommSignalComponent id="comm-route-lost" w={8} h={8} />
+            </DashboardItemContext.Provider>
+          </ContributionsProvider>
+        </WidgetMetaContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("comms.commandCentre", {
+        id: "ground:KSC",
+        displayName: "KSC",
+        kind: "GroundStation",
+        bodyIndex: 1,
+      });
+      fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
+      fixture.emit("comms.delay", { oneWaySeconds: 2 });
+      fixture.emit("comms.path", {
+        hops: [
+          {
+            from: "Active Vessel",
+            to: "home",
+            kind: 0,
+            distanceMeters: 640_000,
+          },
+        ],
+      });
+    });
+    await waitFor(() => expect(screen.getByText("Route")).toBeTruthy());
+    expect(visibleText()).toContain("96.0 kbit/s");
+
+    act(() => {
+      fixture.emit("comms.link", { connected: false });
+      fixture.emit("vessel.comms", { connected: false, signalStrength: 0 });
+    });
+
+    await waitFor(() => expect(screen.getByText("LOS")).toBeTruthy());
+    expect(screen.queryByText("Route")).toBeNull();
+    expect(visibleText()).not.toContain("kbit/s");
+    expect(visibleText()).not.toContain("640.0 km");
+    expect(visibleText()).not.toContain("2.0 s");
+  });
 });

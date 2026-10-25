@@ -79,8 +79,10 @@ export function CommSignalComponent({
   const { owltSeconds } = useTimeContexts();
   const firstSignalIn = owltSeconds > 0 ? owltSeconds : undefined;
   const delayReading = useTelemetry("comms.delay");
+  // A lost link has no route, so the last delay and path are not shown as if they still held.
+  const lost = connected === false;
   const delay =
-    delayReading.state === "observed"
+    delayReading.state === "observed" && !lost
       ? delayReading.value.oneWaySeconds
       : undefined;
 
@@ -93,8 +95,9 @@ export function CommSignalComponent({
 
   const pathReading = useTelemetry("comms.path");
   const hops =
-    (pathReading.state === "observed" ? pathReading.value.hops : undefined) ??
-    [];
+    (pathReading.state === "observed" && !lost
+      ? pathReading.value.hops
+      : undefined) ?? [];
   const relayCount = commsRouteRelayCount(hops);
   const lastHop = hops.at(-1);
   const centreLabel =
