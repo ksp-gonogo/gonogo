@@ -28,7 +28,7 @@ export interface RelayConfig {
   lanIp: string | null;
   /**
    * Ask the router to open the endpoint's port and remove it on stop
-   * (`GONOGO_UPNP=1`). Off by default: the relay never contacts the router
+   * (`GONOGO_AUTO_PORT_FORWARD=1`). Off by default: the relay never contacts the router
    * unless the player turns this on.
    */
   portMapping: boolean;
@@ -97,7 +97,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayConfig {
     appOrigins: appOrigins(env.RELAY_APP_ORIGINS),
     routerIp: env.ROUTER_IP?.trim() || null,
     lanIp: env.LAN_IP?.trim() || null,
-    portMapping: env.GONOGO_UPNP === "1" || env.GONOGO_UPNP === "true",
+    portMapping:
+      env.GONOGO_AUTO_PORT_FORWARD === "1" ||
+      env.GONOGO_AUTO_PORT_FORWARD === "true",
     endpointPort: port(env.ENDPOINT_PORT, DEFAULT_ENDPOINT_PORT),
     endpointControlPort: port(
       env.ENDPOINT_CONTROL_PORT,
