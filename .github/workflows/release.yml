@@ -832,9 +832,7 @@ jobs:
           token: ${{ secrets.KSP_MANAGED_TOKEN }}
           path: ksp-managed
 
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: '10.0.x'
+      - uses: ./.github/actions/setup-dotnet-direct
 
       - uses: actions/setup-node@v6
         with:
@@ -921,9 +919,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: '10.0.x'
+      - uses: ./.github/actions/setup-dotnet-direct
 
       - uses: actions/setup-node@v6
         with:

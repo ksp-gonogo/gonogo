@@ -728,9 +728,7 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.sha }}
 
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: '10.0.x'
+      - uses: ./.github/actions/setup-dotnet-direct
 
       # Node and the workspace, because `codegen-check.sh` regenerates
       # `asyncapi.yaml` as well as the C#-derived artifacts, and
@@ -1116,9 +1114,7 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.sha }}
 
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: '10.0.x'
+      - uses: ./.github/actions/setup-dotnet-direct
 
       - uses: actions/setup-node@v6
         with:
@@ -1159,9 +1155,7 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.sha }}
 
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: '10.0.x'
+      - uses: ./.github/actions/setup-dotnet-direct
 
       - uses: actions/setup-node@v6
         with:
@@ -1225,9 +1219,7 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.sha }}
 
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: '10.0.x'
+      - uses: ./.github/actions/setup-dotnet-direct
 
       - uses: actions/setup-node@v6
         with:

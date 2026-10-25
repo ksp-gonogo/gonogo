@@ -1,0 +1,23 @@
+name: Set up .NET from builds.dotnet.microsoft.com
+description: Installs the .NET SDK with dotnet-install.sh from the builds feed, bypassing the aka.ms redirect that setup-dotnet follows
+inputs:
+  channel:
+    description: SDK channel to install (major.minor)
+    default: "10.0"
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        CHANNEL: ${{ inputs.channel }}
+        FEED: https://builds.dotnet.microsoft.com/dotnet
+      run: |
+        set -euo pipefail
+        install_dir="${RUNNER_TEMP}/dotnet"
+        curl -fsSL --retry 5 --retry-all-errors "${FEED}/scripts/v1/dotnet-install.sh" -o "${RUNNER_TEMP}/dotnet-install.sh"
+        # --channel resolves through aka.ms; a pinned --version is fetched from --azure-feed alone
+        version="$(curl -fsSL --retry 5 --retry-all-errors "${FEED}/Sdk/${CHANNEL}/latest.version" | tr -d '\r\n')"
+        bash "${RUNNER_TEMP}/dotnet-install.sh" --version "${version}" --install-dir "${install_dir}" --azure-feed "${FEED}"
+        echo "DOTNET_ROOT=${install_dir}" >> "$GITHUB_ENV"
+        echo "${install_dir}" >> "$GITHUB_PATH"
+        echo "DOTNET_CLI_TELEMETRY_OPTOUT=1" >> "$GITHUB_ENV"
