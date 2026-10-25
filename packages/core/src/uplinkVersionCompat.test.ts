@@ -57,6 +57,18 @@ describe("checkUplinkCompat: apiVersion", () => {
     );
   });
 
+  it("tells an author whose bundle declares an older API that a stale install is the likely cause", () => {
+    const result = checkUplinkCompat(
+      manifest({ apiVersion: "5.0.0" }),
+      app({ apiVersion: "6.0.0", appVersion: "3.7.0" }),
+    );
+    expect(result.verdict).toBe("refuse");
+    expect(result.reason).toContain("apiVersion 5.0.0");
+    expect(result.reason).toContain("the app provides 6.0.0");
+    expect(result.reason).toMatch(/node_modules/);
+    expect(result.reason).toMatch(/reinstall/i);
+  });
+
   it("refuses when client minor is newer than the app's", () => {
     const result = checkUplinkCompat(
       manifest({ apiVersion: "1.5.0" }),

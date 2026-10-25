@@ -255,7 +255,9 @@ export function checkUplinkCompat(
   const rebuild =
     `The Uplink needs rebuilding against @ksp-gonogo/sitrep-sdk and @ksp-gonogo/ui-kit ` +
     `${app.appVersion}, the versions this app was released with, and re-releasing; ` +
-    "nothing can be changed app-side to load it.";
+    "nothing can be changed app-side to load it. If you just rebuilt and still see this, the " +
+    "client's node_modules holds older packages than the app: reinstall them " +
+    "(npm install, or npm install @ksp-gonogo/sitrep-sdk @ksp-gonogo/ui-kit at that version) and build again.";
   const updateApp =
     "The app is older than the Uplink, so update the app; the Uplink is not at fault.";
   if (clientApi.major !== appApi.major) {

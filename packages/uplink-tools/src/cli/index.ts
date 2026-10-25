@@ -40,6 +40,7 @@ import { PREPARE_USAGE, prepareRelease, runCli } from "./prepare";
 import { PUBLISH_USAGE, publish } from "./publish";
 import { RELEASE_USAGE, release } from "./release";
 import { serveDir } from "./serve";
+import { staleInstallFault } from "./stale-install";
 import { VERSION_USAGE, version } from "./version";
 
 /** Beside the bundle: what a watch last did, for the app's dev server to read. */
@@ -109,6 +110,8 @@ async function compatVersions(clientDir: string): Promise<CompatVersions> {
   const here = dirname(fileURLToPath(import.meta.url));
   const dir =
     installedPackageDir(clientDir, sdk) ?? installedPackageDir(here, sdk);
+  const stale = dir ? staleInstallFault(clientDir, dir) : undefined;
+  if (stale) throw new Error(stale);
   const file = dir ? join(dir, "dist", "compat-versions.js") : undefined;
   if (!file || !existsSync(file)) {
     throw new Error(
