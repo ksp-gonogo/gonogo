@@ -1,79 +1,54 @@
 import { logger } from "@ksp-gonogo/logger";
-import { encodeFrames, FrameReader } from "./endpointFraming";
+import { FramedLink } from "./framedLink";
 import { TypedListeners } from "./typedListeners";
 
 /** Where a station on the endpoint is: the home network or the internet. */
 export type EndpointPath = "lan" | "internet";
 
-type LinkEvents = {
-  open: [];
-  data: [data: unknown];
-  close: [];
-  error: [err: Error];
-};
-
 /**
- * One station joined through the endpoint, as the main screen sees it. It
- * has the same shape the main screen uses for a PeerJS data connection
- * (`peer`, `open`, `send`, `on`, `close`), so a station is served the same
- * way whichever path it joined by.
+ * One station joined through the endpoint, as the main screen sees it, so a
+ * station is served the same way whichever path it joined by.
  */
-export class EndpointConnection {
-  open = false;
+export class EndpointConnection extends FramedLink {
   /** Set when the endpoint reports the station's data channel open. */
   path: EndpointPath | null = null;
-  private readonly events = new TypedListeners<LinkEvents>();
-  private readonly reader = new FrameReader();
-  private closed = false;
 
   constructor(
     /** The station's broker peer id, which approvals and every per-station record are keyed by. */
-    readonly peer: string,
+    peer: string,
     readonly sid: number,
-    private readonly sendFrame: (sid: number, frame: Uint8Array) => void,
+    private readonly sendTo: (sid: number, frame: Uint8Array) => void,
     private readonly sendClose: (sid: number) => void,
-  ) {}
-
-  on<E extends keyof LinkEvents>(
-    event: E,
-    cb: (...args: LinkEvents[E]) => void,
-  ): void {
-    this.events.on(event, cb);
-  }
-
-  send(message: unknown): void {
-    if (!this.open) return;
-    for (const frame of encodeFrames(message)) this.sendFrame(this.sid, frame);
+  ) {
+    super(peer);
   }
 
   /** The endpoint always lets what the station has been sent drain before it closes. */
   close(_options?: { flush?: boolean }): void {
-    if (this.closed) return;
+    if (this.isEnded) return;
     this.sendClose(this.sid);
-    this.markClosed();
+    this.finished();
+  }
+
+  protected sendFrame(frame: Uint8Array<ArrayBuffer>): void {
+    this.sendTo(this.sid, frame);
   }
 
   /** @internal */
   markOpen(path: EndpointPath | null): void {
-    if (this.closed || this.open) return;
-    this.open = true;
+    if (this.isEnded || this.open) return;
     this.path = path;
-    this.events.emit("open");
+    this.opened();
   }
 
   /** @internal */
   receive(frame: Uint8Array): void {
-    if (!this.open) return;
-    const message = this.reader.push(frame);
-    if (message !== undefined) this.events.emit("data", message);
+    this.received(frame);
   }
 
   /** @internal */
   markClosed(): void {
-    if (this.closed) return;
-    this.closed = true;
-    this.open = false;
-    this.events.emit("close");
+    this.finished();
   }
 }
 
