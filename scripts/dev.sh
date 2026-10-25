@@ -37,47 +37,13 @@ else
 fi
 
 # ──────────────────────────────────────────────────────────────────────
-# TURN external IP for same-network stations
+# Router and LAN address for the relay
 # ──────────────────────────────────────────────────────────────────────
-# coturn (inside the relay container) advertises this address in its relay
-# ICE candidates. The relay can't pick it up itself: from inside the
-# container os.networkInterfaces() only sees the compose bridge IP, so it
-# auto-discovers the *public* IP, which a station on the SAME WiFi can't
-# reach without router hairpinning. We're on the host here, where the LAN
-# IP is actually visible, so detect it and pass it through. An explicit
-# TURN_EXTERNAL_IP (shell env or .env) always wins; a genuinely remote
-# setup wants the public IP + port-forwarding and should set it there.
-env_turn_ip=$(grep -E '^TURN_EXTERNAL_IP=.+' .env 2>/dev/null | tail -1 | cut -d= -f2-)
-if [ -n "${TURN_EXTERNAL_IP:-}" ] || [ -n "$env_turn_ip" ]; then
-  echo "[dev] TURN_EXTERNAL_IP override set: leaving coturn's external IP to it"
-else
-  lan_ip=""
-  # macOS: source IP of the default-route interface.
-  route_out=$(route -n get default 2>/dev/null || true)
-  if [ -n "$route_out" ]; then
-    def_iface=$(printf '%s\n' "$route_out" | awk '/interface:/{print $2; exit}')
-    [ -n "$def_iface" ] && lan_ip=$(ipconfig getifaddr "$def_iface" 2>/dev/null || true)
-  fi
-  # Linux fallback: source address toward a public IP (sends no packets).
-  if [ -z "$lan_ip" ] && command -v ip >/dev/null 2>&1; then
-    lan_ip=$(ip route get 1.1.1.1 2>/dev/null \
-      | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')
-  fi
-  if [ -n "$lan_ip" ]; then
-    export TURN_EXTERNAL_IP="$lan_ip"
-    echo "[dev] TURN_EXTERNAL_IP auto-detected as $lan_ip (host LAN IP, same-WiFi stations relay through this). Set TURN_EXTERNAL_IP in .env to override for internet/remote stations."
-  else
-    echo "[dev] could not auto-detect a LAN IP, relay will fall back to public-IP discovery; set TURN_EXTERNAL_IP in .env if same-WiFi stations can't connect." >&2
-  fi
-fi
-
-# ──────────────────────────────────────────────────────────────────────
-# Router and LAN address for the relay's port mapping
-# ──────────────────────────────────────────────────────────────────────
-# The relay asks the home router to open its ports. From inside the podman
-# VM its default route leads to the VM's own gateway, so the router's address
-# and this computer's address come from the host's default route. An explicit
-# ROUTER_IP or LAN_IP (shell env or .env) always wins.
+# The station endpoint gives stations on this network this computer's LAN
+# address, and the relay asks the home router to open its port. From inside
+# the podman VM only the VM's own addresses are visible, so both come from the
+# host's default route. An explicit ROUTER_IP or LAN_IP (shell env or .env)
+# always wins.
 env_router_ip=$(grep -E '^ROUTER_IP=.+' .env 2>/dev/null | tail -1 | cut -d= -f2-)
 env_lan_ip=$(grep -E '^LAN_IP=.+' .env 2>/dev/null | tail -1 | cut -d= -f2-)
 if [ -n "${ROUTER_IP:-}" ] || [ -n "$env_router_ip" ] || [ -n "${LAN_IP:-}" ] || [ -n "$env_lan_ip" ]; then
@@ -87,7 +53,7 @@ else
   if [ -n "$host_net" ]; then
     export ROUTER_IP="${host_net%% *}"
     export LAN_IP="${host_net##* }"
-    echo "[dev] router auto-detected as $ROUTER_IP, this computer as $LAN_IP (the relay asks the router to open its ports). Set ROUTER_IP and LAN_IP in .env to override."
+    echo "[dev] router auto-detected as $ROUTER_IP, this computer as $LAN_IP. Set ROUTER_IP and LAN_IP in .env to override."
   else
     echo "[dev] could not read the host's default route, the relay will look for the router itself; set ROUTER_IP and LAN_IP in .env if it cannot find it." >&2
   fi

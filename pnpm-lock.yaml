@@ -305,6 +305,9 @@ importers:
       peerjs:
         specifier: ^1.5.0
         version: 1.5.5
+      peerjs-js-binarypack:
+        specifier: 2.1.0
+        version: 2.1.0
       qrcode.react:
         specifier: ^4.2.0
         version: 4.2.0(react@18.3.1)

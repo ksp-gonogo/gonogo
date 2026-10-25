@@ -29,8 +29,7 @@ function runCommandLinesFor(tag: string): string[] {
     "--add-host=host.docker.internal:host-gateway",
     "-e KSP_HOST=host.docker.internal",
     "-p 8080:8080 -p 127.0.0.1:3002:3002",
-    "-p 3478:3478/tcp -p 3478:3478/udp",
-    "-p 49160-49169:49160-49169/udp",
+    "-p 47100:47100/udp -p 47100:47100/tcp",
     `ghcr.io/ksp-gonogo/gonogo:${tag}`,
   ];
 }
@@ -116,7 +115,7 @@ export const SETUP_LINKS = {
   kspSetup: `${DOCS}/KSP-SETUP.md`,
   networking: `${DOCS}/NETWORKING.md`,
   reporting: `${DOCS}/REPORTING.md`,
-  relayPorts: `${DOCS}/NETWORKING.md#cross-internet-stations-cellular-remote-networks`,
+  relayPorts: `${DOCS}/NETWORKING.md#friends-on-other-networks`,
   source: "https://github.com/ksp-gonogo/gonogo",
   upgrading:
     "https://github.com/ksp-gonogo/gonogo#upgrading-from-an-earlier-version",

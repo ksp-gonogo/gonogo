@@ -47,8 +47,7 @@ docker run -d --name gonogo --restart unless-stopped --pull always \
   --add-host=host.docker.internal:host-gateway \
   -e KSP_HOST=host.docker.internal \
   -p 8080:8080 -p 127.0.0.1:3002:3002 \
-  -p 3478:3478/tcp -p 3478:3478/udp \
-  -p 49160-49169:49160-49169/udp \
+  -p 47100:47100/udp -p 47100:47100/tcp \
   ghcr.io/ksp-gonogo/gonogo:rc
 ```
 
@@ -56,7 +55,7 @@ docker run -d --name gonogo --restart unless-stopped --pull always \
 
    If Docker answers that the name `gonogo` is already in use, a container from an earlier install exists. Run `docker rm -f gonogo`, then the command again.
 
-   Friends joining over the internet may need ports opened on your router. To let Gonogo open them for you, add `-e GONOGO_UPNP=1` to the command; the [networking guide](docs/NETWORKING.md#cross-internet-stations-cellular-remote-networks) has the ports to forward by hand otherwise.
+   Friends joining from another network need one port, `47100` (UDP and TCP), forwarded on your router to this computer. To let Gonogo open it for you, add `-e GONOGO_UPNP=1` to the command; the [networking guide](docs/NETWORKING.md#friends-on-other-networks) has the details.
 
 4. Start KSP and open [localhost:8080](http://localhost:8080)
 

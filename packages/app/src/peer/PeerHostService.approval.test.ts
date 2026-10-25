@@ -60,6 +60,9 @@ const { FakeHub } = vi.hoisted(() => {
   }
 
   class FakePeer {
+    // The broker socket a real Peer carries; the endpoint join signal listens on it.
+
+    socket = { on() {}, off() {}, send(_m: unknown) {} };
     static registry = new Map<string, FakePeer>();
     private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
     id: string;
@@ -490,88 +493,6 @@ describe("every other write from a station", () => {
     expect(
       station.told.filter((m) => m.type === "station-write-refused"),
     ).toEqual([]);
-    host.stop();
-  });
-});
-
-describe("the relay's credentials", () => {
-  const TURN: RTCIceServer[] = [
-    { urls: "turn:203.0.113.5:3478", username: "u", credential: "secret" },
-  ];
-  const ROTATED: RTCIceServer[] = [
-    { urls: "turn:203.0.113.5:3478", username: "u2", credential: "rotated" },
-  ];
-
-  afterEach(() => {
-    FakeHub.reset();
-    localStorageMock.clear();
-  });
-
-  function turnTold(station: Station): PeerMessage[] {
-    return station.told.filter((m) => m.type === "relay-ice-servers");
-  }
-
-  /** Serve `servers` from the relay's `/ice-config` until `restore` is called. */
-  function relayServes(servers: { current: RTCIceServer[] }) {
-    const spy = vi.spyOn(globalThis, "fetch").mockImplementation(
-      async () =>
-        new Response(JSON.stringify({ iceServers: servers.current }), {
-          status: 200,
-        }),
-    );
-    return () => spy.mockRestore();
-  }
-
-  /** Let the host's minute-long `/ice-config` refresh run once, and settle. */
-  async function rotate(): Promise<void> {
-    await vi.advanceTimersByTimeAsync(60_000);
-    for (let i = 0; i < 10; i++) await Promise.resolve();
-  }
-
-  it("are withheld from a station waiting for approval, even on a rotation", async () => {
-    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
-    const servers = { current: TURN };
-    const restore = relayServes(servers);
-    const host = await startedHost();
-    const station = await join(host, "station-a", "cred-a");
-    servers.current = ROTATED;
-    await rotate();
-    expect(host.iceServers).toEqual(ROTATED);
-    expect(turnTold(station)).toEqual([]);
-    host.stop();
-    restore();
-    vi.useRealTimers();
-  });
-
-  it("are handed to a station when it is approved and on each rotation after", async () => {
-    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
-    const servers = { current: TURN };
-    const restore = relayServes(servers);
-    const host = await startedHost();
-    const station = await join(host, "station-a", "cred-a");
-    host.approveStation("station-a");
-    expect(turnTold(station)).toEqual([
-      { type: "relay-ice-servers", iceServers: TURN },
-    ]);
-    servers.current = ROTATED;
-    await rotate();
-    expect(turnTold(station)).toEqual([
-      { type: "relay-ice-servers", iceServers: TURN },
-      { type: "relay-ice-servers", iceServers: ROTATED },
-    ]);
-    host.stop();
-    restore();
-    vi.useRealTimers();
-  });
-
-  it("are handed to a remembered station as soon as it rejoins", async () => {
-    stationApprovals.approve("cred-a", "Flight");
-    const host = await startedHost();
-    host.iceServers = TURN;
-    const station = await join(host, "station-a", "cred-a");
-    expect(turnTold(station)).toEqual([
-      { type: "relay-ice-servers", iceServers: TURN },
-    ]);
     host.stop();
   });
 });

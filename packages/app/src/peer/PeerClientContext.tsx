@@ -17,8 +17,6 @@ export type PeerClient = Pick<
   | "getHostCommandCentre"
   | "onHostCommandCentreChange"
   | "onHostUplinksChange"
-  | "getRelayIceServers"
-  | "onRelayIceServersChange"
   | "sendGonogoVote"
   | "sendGonogoAbort"
   | "onGonogoCountdownStart"

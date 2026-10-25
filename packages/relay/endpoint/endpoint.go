@@ -48,6 +48,8 @@ type controlFrame struct {
 	PeerID string `json:"peerId,omitempty"`
 	SDP    string `json:"sdp,omitempty"`
 	Reason string `json:"reason,omitempty"`
+	// Path is "lan" or "internet" on an open frame: where the station's address is.
+	Path string `json:"path,omitempty"`
 	// Status only.
 	PublicIP string `json:"publicIp,omitempty"`
 	Port     int    `json:"port,omitempty"`
@@ -267,7 +269,7 @@ func (e *Endpoint) offer(t *tab, f controlFrame) {
 			s.timer.Stop()
 			e.mu.Unlock()
 			log.Printf("station %s joined as session %d", s.peerID, s.sid)
-			e.send(controlFrame{Type: "open", Sid: s.sid})
+			e.send(controlFrame{Type: "open", Sid: s.sid, Path: pathOf(pc)})
 		})
 		dc.OnMessage(func(m webrtc.DataChannelMessage) {
 			e.mu.Lock()
@@ -321,17 +323,29 @@ func (e *Endpoint) forward(frame []byte) {
 	_ = s.dc.Send(frame[4:])
 }
 
+// closeDrained gives what the station has already been sent a moment to go out before the connection closes.
+func closeDrained(pc *webrtc.PeerConnection, dc *webrtc.DataChannel) {
+	for i := 0; i < 100 && dc != nil && dc.BufferedAmount() > 0; i++ {
+		time.Sleep(10 * time.Millisecond)
+	}
+	pc.Close()
+}
+
 // drop closes one session and tells the tab, unless the tab asked for it (reason empty).
 func (e *Endpoint) drop(sid uint32, reason string) {
 	e.mu.Lock()
 	s := e.sessions[sid]
 	delete(e.sessions, sid)
+	var dc *webrtc.DataChannel
+	if s != nil {
+		dc = s.dc
+	}
 	e.mu.Unlock()
 	if s == nil {
 		return
 	}
 	s.timer.Stop()
-	go s.pc.Close()
+	go closeDrained(s.pc, dc)
 	if reason != "" {
 		e.send(controlFrame{Type: "close", Sid: sid, Reason: reason})
 	}
@@ -346,6 +360,22 @@ func (e *Endpoint) dropAll() {
 		s.timer.Stop()
 		go s.pc.Close()
 	}
+}
+
+// pathOf says whether the station's side of the selected pair is on a private network or the internet.
+func pathOf(pc *webrtc.PeerConnection) string {
+	pair, err := pc.SCTP().Transport().ICETransport().GetSelectedCandidatePair()
+	if err != nil || pair == nil {
+		return ""
+	}
+	ip := net.ParseIP(pair.Remote.Address)
+	if ip == nil {
+		return ""
+	}
+	if ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() {
+		return "lan"
+	}
+	return "internet"
 }
 
 var ufragLine = regexp.MustCompile(`a=ice-ufrag:(\S+)`)

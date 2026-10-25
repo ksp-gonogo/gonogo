@@ -73,15 +73,15 @@ const COMMON_ROUTER_ADDRESSES = [
 ].map((octets) => octets.join("."));
 
 const STATUS: Record<PortMappingState, string> = {
-  checking: "Asking your router to open the relay ports...",
-  mapped: "Your router opened the relay ports.",
-  refused: "Your router refused to open the relay ports",
-  "no-answer": "Your router did not answer a request to open the relay ports.",
+  checking: "Asking your router to open the relay's port...",
+  mapped: "Your router opened the relay's port.",
+  refused: "Your router refused to open the relay's port",
+  "no-answer": "Your router did not answer a request to open the relay's port.",
   "container-only":
-    "Your router only opens ports for a program running directly on this computer, so the relay could not open them from inside the container.",
+    "Your router only opens ports for a program running directly on this computer, so the relay could not open it from inside the container.",
 };
 
-const MANUAL = "Forward them by hand, as the networking guide describes.";
+const MANUAL = "Forward it by hand, as the networking guide describes.";
 
 /** The container's default gateway from the Linux routing table, or null where there is none to read. */
 export function defaultGateway(
@@ -140,23 +140,6 @@ export function endpointPorts(port: number): MappedPort[] {
   return [
     { protocol: "udp", port },
     { protocol: "tcp", port },
-  ];
-}
-
-/** coturn's signalling port on UDP and TCP, then its relay window on UDP. */
-export function turnPorts(
-  turnPort: number,
-  minPort: number,
-  maxPort: number,
-): MappedPort[] {
-  const session: MappedPort[] = [];
-  for (let port = minPort; port <= maxPort; port++) {
-    session.push({ protocol: "udp", port });
-  }
-  return [
-    { protocol: "udp", port: turnPort },
-    { protocol: "tcp", port: turnPort },
-    ...session,
   ];
 }
 
