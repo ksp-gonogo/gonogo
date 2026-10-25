@@ -121,6 +121,14 @@ export interface DelayedPlayoutBufferOptions<Frame = unknown> {
    * a frame between keyframes cannot be decoded without the ones before it.
    */
   gopSafeEviction?: boolean;
+  /**
+   * Treat the order frames are pushed in as the order they play in. A frame
+   * stamped earlier than the last one pushed is raised to that UT, so it queues
+   * behind it rather than sorting ahead. Set it for frames that arrive in
+   * decode order, where an out-of-order stamp is noise in the stamp and not a
+   * frame that really came earlier. Unset, frames are sorted by UT.
+   */
+  keepArrivalOrder?: boolean;
 }
 
 /**
@@ -143,6 +151,7 @@ export class DelayedPlayoutBuffer<Frame = unknown> {
   private bufferedBytes = 0;
   private readonly unsubscribeFrame: () => void;
   private disposed = false;
+  private lastPushedUt = Number.NEGATIVE_INFINITY;
 
   constructor(private readonly opts: DelayedPlayoutBufferOptions<Frame>) {
     this.unsubscribeFrame = opts.view.onFrame(() => this.pump());
@@ -156,6 +165,11 @@ export class DelayedPlayoutBuffer<Frame = unknown> {
     if (this.disposed) return;
     // A frame stamped before the capture clock had a UT is held at the tail; once any frame can be dated those can never be, so they are dropped.
     if (Number.isFinite(frame.ut)) this.dropUndated();
+    if (this.opts.keepArrivalOrder && Number.isFinite(frame.ut)) {
+      if (frame.ut < this.lastPushedUt)
+        frame = { ...frame, ut: this.lastPushedUt };
+      this.lastPushedUt = frame.ut;
+    }
     const insertAt = this.queue.findIndex((f) => f.ut > frame.ut);
     if (insertAt === -1) this.queue.push(frame);
     else this.queue.splice(insertAt, 0, frame);
@@ -195,6 +209,7 @@ export class DelayedPlayoutBuffer<Frame = unknown> {
     this.queue = [];
     this.bufferedBytes = 0;
     this.lastReleased = undefined;
+    this.lastPushedUt = Number.NEGATIVE_INFINITY;
     this.opts.onResync?.();
   }
 

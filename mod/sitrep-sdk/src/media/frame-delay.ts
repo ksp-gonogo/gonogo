@@ -39,6 +39,7 @@ import {
   type DelayClockLike,
   DelayedPlayoutBuffer,
 } from "./delayed-playout-buffer";
+import { bindFrameStamps, type FrameStampFeed } from "./frame-stamp-timeline";
 import { PresentationPacer } from "./worker/presentation-pacer";
 
 /**
@@ -96,9 +97,9 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
   view: DelayClockLike;
   /**
    * Returns the UT to stamp a frame with, called once for each frame as it is
-   * read from `source`.
+   * read from `source`, with that frame.
    */
-  captureUt(): number;
+  captureUt(frame: Frame): number;
   /** Where frames are read from. */
   source: FrameSource<Frame>;
   /** Where released frames are written. */
@@ -251,6 +252,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
     view: opts.view,
     maxBufferedBytes: opts.maxBufferedFrames ?? DEFAULT_MAX_BUFFERED_FRAMES,
     gopSafeEviction: opts.gopSafeEviction,
+    keepArrivalOrder: true,
     onRelease: (frame) => {
       const data = frame.data;
       if (!data) return;
@@ -293,7 +295,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
         awaitingKeyframe = false;
       }
       buffer.push({
-        ut: opts.captureUt(),
+        ut: opts.captureUt(frame),
         keyframe,
         data: frame,
         bytes: opts.frameBytes?.(frame) ?? 1,
@@ -406,7 +408,13 @@ export interface CreateFrameDelayStreamOptions {
   /** The clock the delay follows. */
   view: DelayClockLike;
   /** Returns the UT to stamp a frame with, called for each frame as it is read. */
-  captureUt(): number;
+  captureUt(frame: VideoFrame): number;
+  /**
+   * The camera's per-frame capture stamps. When set, each frame is dated from
+   * the stamp matching its RTP timestamp and `captureUt` is not called; a new
+   * capture epoch empties the delay.
+   */
+  frameStamps?: FrameStampFeed;
   /** The most frames to hold before dropping the oldest. */
   maxBufferedFrames?: number;
   /** Called with a non-fatal pipeline error. */
@@ -471,9 +479,12 @@ export function createFrameDelayStream(
     const processor = new MediaStreamTrackProcessor({ track });
     const generator = new MediaStreamTrackGenerator({ kind: "video" });
 
-    const pipeline = runFrameDelayPipeline<VideoFrame>({
+    const stamps = opts.frameStamps
+      ? bindFrameStamps(opts.frameStamps, () => pipeline.flush())
+      : null;
+    const pipeline: FrameDelayPipeline = runFrameDelayPipeline<VideoFrame>({
       view: opts.view,
-      captureUt: opts.captureUt,
+      captureUt: stamps ? (frame) => stamps.captureUt(frame) : opts.captureUt,
       maxBufferedFrames: opts.maxBufferedFrames,
       source: processor.readable.getReader(),
       sink: generator.writable.getWriter(),
@@ -506,6 +517,7 @@ export function createFrameDelayStream(
       dispose: () => {
         stopTicking();
         clearInterval(statsTimer);
+        stamps?.dispose();
         pipeline.dispose();
       },
       flush: pipeline.flush,

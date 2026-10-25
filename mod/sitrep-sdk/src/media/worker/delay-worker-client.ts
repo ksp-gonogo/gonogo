@@ -30,6 +30,7 @@ import type { CaptureClockSample } from "../capture-clock";
 import type { DelayClockLike } from "../delayed-playout-buffer";
 import type { FrameDelayStats, FrameDelayStream } from "../frame-delay";
 import { startPacingTicker } from "../frame-delay";
+import type { FrameStampFeed } from "../frame-stamp-timeline";
 import type {
   CreatePipelineMessage,
   MainToWorkerMessage,
@@ -65,6 +66,12 @@ export interface CreateWorkerFrameDelayStreamOptions {
    *  actually changed (reference inequality): the low-rate capture clock
    *  updates ~1Hz, no need to resend an unchanged sample 60x/sec. */
   getCaptureSample(): CaptureClockSample;
+  /**
+   * The camera's per-frame capture stamps. When set, the worker dates each frame
+   * from the stamp matching its RTP timestamp and `getCaptureSample` is not
+   * used; a new capture epoch empties the delay.
+   */
+  frameStamps?: FrameStampFeed;
   /** The most frames the worker holds before dropping the oldest. */
   maxBufferedFrames?: number;
   /** The backlog past which pacing drops frames; see `DEFAULT_PACING_MAX_BACKLOG_SECONDS`. */
@@ -200,6 +207,18 @@ function startPipelineTicker(
   });
 }
 
+/** Posts each stamp of `feed` to the worker for `pipelineId`; returns the stop function. */
+function forwardFrameStamps(
+  worker: Worker,
+  pipelineId: string,
+  feed: FrameStampFeed | undefined,
+): () => void {
+  if (!feed) return () => {};
+  return feed.subscribe((stamp) => {
+    post(worker, { type: "frameStamp", pipelineId, stamp });
+  });
+}
+
 /**
  * A delayed copy of the first video track of `raw`, with the delay running in
  * a worker. Resolves `null`, and never throws, when it cannot be built,
@@ -227,6 +246,7 @@ export async function createWorkerFrameDelayStream(
   pipelineCounter += 1;
   const pipelineId = `delay-${pipelineCounter}`;
 
+  const stopStamps = forwardFrameStamps(worker, pipelineId, opts.frameStamps);
   const readyPromise = new Promise<MediaStreamTrack>((resolve, reject) => {
     pendingReady.set(pipelineId, { resolve, reject });
   });
@@ -235,6 +255,7 @@ export async function createWorkerFrameDelayStream(
     type: "createPipeline",
     pipelineId,
     track,
+    frameStamps: opts.frameStamps !== undefined,
     maxBufferedFrames: opts.maxBufferedFrames,
     maxPacingBacklogSeconds:
       opts.maxPacingBacklogSeconds ?? DEFAULT_MAX_PACING_BACKLOG_SECONDS,
@@ -248,6 +269,7 @@ export async function createWorkerFrameDelayStream(
     worker.postMessage(createMsg, [track]);
   } catch (err) {
     pendingReady.delete(pipelineId);
+    stopStamps();
     opts.onError?.(err);
     return null;
   }
@@ -256,6 +278,7 @@ export async function createWorkerFrameDelayStream(
   try {
     outputTrack = await readyPromise;
   } catch (reason) {
+    stopStamps();
     opts.onError?.(new Error(String(reason)));
     return null;
   }
@@ -270,6 +293,7 @@ export async function createWorkerFrameDelayStream(
     stream: new MediaStream([outputTrack]),
     dispose: () => {
       stopTicker();
+      stopStamps();
       nonFatalErrorHandlers.delete(pipelineId);
       statsHandlers.delete(pipelineId);
       post(worker, { type: "dispose", pipelineId });
@@ -303,6 +327,8 @@ export interface AttachEncodedFrameDelayOptions {
   /** Read fresh on every ~60Hz tick, same contract as
    *  `CreateWorkerFrameDelayStreamOptions.getCaptureSample`. */
   getCaptureSample(): CaptureClockSample;
+  /** The camera's per-frame capture stamps; see `CreateWorkerFrameDelayStreamOptions.frameStamps`. */
+  frameStamps?: FrameStampFeed;
   /** Real byte cap: see `encoded-frame-delay.ts`'s `DEFAULT_MAX_BUFFERED_BYTES`. */
   maxBufferedBytes?: number;
   /** The backlog past which pacing drops frames; see `DEFAULT_PACING_MAX_BACKLOG_SECONDS`. */
@@ -357,14 +383,17 @@ export function attachEncodedWorkerFrameDelay(
   pipelineCounter += 1;
   const pipelineId = `encoded-${pipelineCounter}`;
 
+  const stopStamps = forwardFrameStamps(worker, pipelineId, opts.frameStamps);
   try {
     receiver.transform = new RTCRtpScriptTransform(worker, {
       pipelineId,
+      frameStamps: opts.frameStamps !== undefined,
       maxBufferedBytes: opts.maxBufferedBytes,
       maxPacingBacklogSeconds: opts.maxPacingBacklogSeconds,
       statsIntervalMs: statsIntervalFor(opts),
     });
   } catch (err) {
+    stopStamps();
     opts.onError?.(err);
     return null;
   }
@@ -378,6 +407,7 @@ export function attachEncodedWorkerFrameDelay(
   return {
     dispose: () => {
       stopTicker();
+      stopStamps();
       nonFatalErrorHandlers.delete(pipelineId);
       statsHandlers.delete(pipelineId);
       post(worker, { type: "dispose", pipelineId });

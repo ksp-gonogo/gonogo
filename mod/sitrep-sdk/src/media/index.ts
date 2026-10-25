@@ -45,6 +45,7 @@ export {
   runFrameDelayPipeline,
   startPacingTicker,
 } from "./frame-delay";
+export type { FrameStamp, FrameStampFeed } from "./frame-stamp-timeline";
 export type { RadioSupport, RadioUnsupportedReason } from "./radio-support";
 export {
   isRadioSupported,

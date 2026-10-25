@@ -9155,6 +9155,10 @@
         "note": "Removed: the withheld arm uses the standard ReckoningDecline reasons (no-horizon-stated and shape-not-stated are input-absent, past-horizon is beyond-horizon, no-arc-available is model-inapplicable, frame-unavailable is added to the standard union)"
       },
       {
+        "key": "sitrep-sdk ./media CreateFrameDelayStreamOptions#captureUt",
+        "note": "Takes the frame it dates, so a stamp can be looked up by the frame's RTP timestamp"
+      },
+      {
         "key": "sitrep-sdk ./media DelayedPlayoutBufferOptions#onDrop?",
         "note": "Gains a second argument, the reason the frame was discarded"
       },
@@ -9163,8 +9167,16 @@
         "note": "New: says the shared build failed, so a consumer can stop waiting and acquire again"
       },
       {
+        "key": "sitrep-sdk ./media EncodedFrameDelayOptions#captureUt",
+        "note": "Takes the frame it dates, so a stamp can be looked up by the frame's RTP timestamp"
+      },
+      {
         "key": "sitrep-sdk ./media FrameDelayPipeline#stats",
         "note": "New: running totals of frames read, presented, skipped and dropped"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayPipelineOptions#captureUt",
+        "note": "Takes the frame it dates, so a stamp can be looked up by the frame's RTP timestamp"
       },
       {
         "key": "sitrep-sdk ./media FrameDelayPipelineOptions#pacing?",
@@ -12945,12 +12957,20 @@
         "note": "Reachable through arcInOrbitPlane now; the type itself is unchanged"
       },
       {
+        "key": "sitrep-sdk ./media AttachEncodedFrameDelayOptions#frameStamps?",
+        "note": "New: the camera's per-frame capture stamps, which date each frame in place of the capture clock"
+      },
+      {
         "key": "sitrep-sdk ./media AttachEncodedFrameDelayOptions#onStats?",
         "note": "New: receives the worker's running frame totals"
       },
       {
         "key": "sitrep-sdk ./media AttachEncodedFrameDelayOptions#statsIntervalMs?",
         "note": "New: how often onStats is called"
+      },
+      {
+        "key": "sitrep-sdk ./media CreateFrameDelayStreamOptions#frameStamps?",
+        "note": "New: the camera's per-frame capture stamps, which date each frame in place of the capture clock"
       },
       {
         "key": "sitrep-sdk ./media CreateFrameDelayStreamOptions#onStats?",
@@ -12961,12 +12981,20 @@
         "note": "New: how often onStats is called"
       },
       {
+        "key": "sitrep-sdk ./media CreateWorkerFrameDelayStreamOptions#frameStamps?",
+        "note": "New: the camera's per-frame capture stamps, which date each frame in place of the capture clock"
+      },
+      {
         "key": "sitrep-sdk ./media CreateWorkerFrameDelayStreamOptions#onStats?",
         "note": "New: receives the worker's running frame totals"
       },
       {
         "key": "sitrep-sdk ./media CreateWorkerFrameDelayStreamOptions#statsIntervalMs?",
         "note": "New: how often onStats is called"
+      },
+      {
+        "key": "sitrep-sdk ./media DelayedPlayoutBufferOptions#keepArrivalOrder?",
+        "note": "New: plays frames in the order they were pushed instead of sorting by stamp"
       },
       {
         "key": "sitrep-sdk ./media DelayedPlayoutDropReason",
@@ -13007,6 +13035,30 @@
       {
         "key": "sitrep-sdk ./media FrameDelayStats#read",
         "note": "New: frames read from the source"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameStamp",
+        "note": "New: one camera frame's capture stamp and the feed that delivers them"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameStamp#epoch",
+        "note": "New: one camera frame's capture stamp and the feed that delivers them"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameStamp#rtpTimestamp",
+        "note": "New: one camera frame's capture stamp and the feed that delivers them"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameStamp#ut",
+        "note": "New: one camera frame's capture stamp and the feed that delivers them"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameStampFeed",
+        "note": "New: one camera frame's capture stamp and the feed that delivers them"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameStampFeed#subscribe",
+        "note": "New: one camera frame's capture stamp and the feed that delivers them"
       },
       {
         "key": "sitrep-sdk ./media PacedFrame#keyframe?",

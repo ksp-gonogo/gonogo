@@ -105,7 +105,7 @@ export interface EncodedFrameDelayOptions {
    * read, before it is decoded. {@link interpolateCaptureUt} computes one from
    * the capture clock.
    */
-  captureUt(): number;
+  captureUt(frame: EncodedVideoFrameLike): number;
   /**
    * The most encoded video, in bytes, to hold before dropping the oldest.
    * Defaults to {@link DEFAULT_MAX_BUFFERED_BYTES}.

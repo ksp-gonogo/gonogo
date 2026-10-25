@@ -66,6 +66,7 @@ import { captureUtStamper } from "../capture-clock";
 import {
   attachEncodedFrameDelayTransform,
   type EncodedTransformerLike,
+  type EncodedVideoFrameLike,
 } from "../encoded-frame-delay";
 import {
   DEFAULT_PACING_MAX_LEAD_SECONDS,
@@ -74,6 +75,11 @@ import {
   runFrameDelayPipeline,
   startPacingTicker,
 } from "../frame-delay";
+import {
+  bindFrameStamps,
+  type FrameStamp,
+  type FrameStampFeed,
+} from "../frame-stamp-timeline";
 import { createNowWall } from "./time-base";
 import {
   createWorkerDelayClock,
@@ -97,10 +103,18 @@ export interface CaptureSampleMessage {
   sample: CaptureClockSample;
 }
 
+export interface FrameStampMessage {
+  type: "frameStamp";
+  pipelineId: string;
+  stamp: FrameStamp;
+}
+
 export interface CreatePipelineMessage {
   type: "createPipeline";
   pipelineId: string;
   track: MediaStreamTrack;
+  /** Date frames from `frameStamp` messages instead of the capture sample. */
+  frameStamps?: boolean;
   maxBufferedFrames?: number;
   maxPacingBacklogSeconds: number;
   statsIntervalMs?: number;
@@ -120,6 +134,7 @@ export type MainToWorkerMessage =
   | InitMessage
   | ClockSnapshotMessage
   | CaptureSampleMessage
+  | FrameStampMessage
   | CreatePipelineMessage
   | FlushMessage
   | DisposePipelineMessage;
@@ -175,6 +190,7 @@ interface RtcTransformEventLike {
      *  transform has no message-based handshake of its own. */
     options?: {
       pipelineId?: string;
+      frameStamps?: boolean;
       maxBufferedBytes?: number;
       maxPacingBacklogSeconds?: number;
       statsIntervalMs?: number;
@@ -209,8 +225,56 @@ interface PipelineEntry {
   captureSample: CaptureClockSample;
   stopPacingTicker: () => void;
   stopStats: () => void;
+  stopStamps: () => void;
 }
 const pipelines = new Map<string, PipelineEntry>();
+
+/**
+ * The stamps posted for one pipeline. They can arrive before the pipeline is
+ * built (an encoded transform attaches on the platform's schedule), so a hub
+ * keeps the recent ones and replays them to whoever subscribes.
+ */
+class StampHub implements FrameStampFeed {
+  private readonly backlog: FrameStamp[] = [];
+  private readonly listeners = new Set<(stamp: FrameStamp) => void>();
+
+  push(stamp: FrameStamp): void {
+    this.backlog.push(stamp);
+    if (this.backlog.length > 512) this.backlog.shift();
+    for (const listener of this.listeners) listener(stamp);
+  }
+
+  subscribe(listener: (stamp: FrameStamp) => void): () => void {
+    for (const stamp of this.backlog) listener(stamp);
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+}
+const stampHubs = new Map<string, StampHub>();
+
+function stampHubFor(pipelineId: string): StampHub {
+  let hub = stampHubs.get(pipelineId);
+  if (!hub) {
+    hub = new StampHub();
+    stampHubs.set(pipelineId, hub);
+  }
+  return hub;
+}
+
+/** The function that dates a pipeline's frames: from stamps when it was asked to, else from the capture sample. */
+function frameDater<Frame>(
+  pipelineId: string,
+  useStamps: boolean | undefined,
+  entry: PipelineEntry,
+  fromSample: () => number,
+): (frame: Frame) => number {
+  if (!useStamps) return fromSample;
+  const bound = bindFrameStamps(stampHubFor(pipelineId), () =>
+    entry.pipeline?.flush(),
+  );
+  entry.stopStamps = bound.dispose;
+  return (frame) => bound.captureUt(frame);
+}
 
 const DEFAULT_MS = { ut: null, warpRate: 1, atMs: 0 } as const;
 
@@ -301,6 +365,7 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
       captureSample: DEFAULT_MS,
       stopPacingTicker: () => {},
       stopStats: () => {},
+      stopStamps: () => {},
     };
     pipelines.set(msg.pipelineId, entry);
     const stampUt = captureUtStamper();
@@ -311,7 +376,12 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
       // see the module-level `nowWall` doc. Since `sample.atMs` is a raw
       // main-thread `performance.now()` reading, the comparison has to land on
       // that same basis and not the worker's own uncorrected clock.
-      captureUt: () => stampUt(entry.captureSample, nowWallMs(clockNowWall)),
+      captureUt: frameDater<VideoFrame>(
+        msg.pipelineId,
+        msg.frameStamps,
+        entry,
+        () => stampUt(entry.captureSample, nowWallMs(clockNowWall)),
+      ),
       maxBufferedFrames: msg.maxBufferedFrames,
       source: processor.readable.getReader(),
       sink: writer.writable.getWriter(),
@@ -397,13 +467,19 @@ function handleRtcTransform(event: RtcTransformEventLike): void {
     captureSample: DEFAULT_MS,
     stopPacingTicker: () => {},
     stopStats: () => {},
+    stopStamps: () => {},
   };
   pipelines.set(pipelineId, entry);
   const stampUt = captureUtStamper();
 
   const pipeline = attachEncodedFrameDelayTransform(event.transformer, {
     view: clock,
-    captureUt: () => stampUt(entry.captureSample, nowWallMs(clockNowWall)),
+    captureUt: frameDater<EncodedVideoFrameLike>(
+      pipelineId,
+      options.frameStamps === true,
+      entry,
+      () => stampUt(entry.captureSample, nowWallMs(clockNowWall)),
+    ),
     maxBufferedBytes: options.maxBufferedBytes,
     maxPacingBacklogSeconds: options.maxPacingBacklogSeconds,
     onError: (err) => {
@@ -449,8 +525,10 @@ function handleDispose(msg: DisposePipelineMessage): void {
   if (!entry) return;
   entry.stopPacingTicker();
   entry.stopStats();
+  entry.stopStamps();
   entry.pipeline?.dispose();
   pipelines.delete(msg.pipelineId);
+  stampHubs.delete(msg.pipelineId);
 }
 
 workerSelf.onmessage = (ev) => {
@@ -464,6 +542,9 @@ workerSelf.onmessage = (ev) => {
       return;
     case "captureSample":
       handleCaptureSample(msg);
+      return;
+    case "frameStamp":
+      stampHubFor(msg.pipelineId).push(msg.stamp);
       return;
     case "createPipeline":
       handleCreatePipeline(msg);
