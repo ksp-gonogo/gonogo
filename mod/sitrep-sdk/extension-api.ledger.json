@@ -12349,6 +12349,10 @@
         "note": "Says how to draw between points, from the plotted value's sample kind"
       },
       {
+        "key": "sitrep-sdk . SettingDefinitionBase#validate?",
+        "note": "Added. A text setting can refuse typed text with a sentence of its own, which Settings shows under the field"
+      },
+      {
         "key": "sitrep-sdk . SizeDelta",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
@@ -14769,6 +14773,10 @@
         "note": "New: signal time along the route, waits included"
       },
       {
+        "key": "sitrep-sdk ./spine SettingDefinitionBase#validate?",
+        "note": "Added. A text setting can refuse typed text with a sentence of its own, which Settings shows under the field"
+      },
+      {
         "key": "sitrep-sdk ./spine SoiCrossing",
         "note": "New: where and when a craft crosses a sphere of influence"
       },
@@ -15847,6 +15855,10 @@
       {
         "key": "sitrep-sdk ./testing ~SendStatus#signalDelay?",
         "note": "New: signal time along the route, waits included"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SettingDefinitionBase#validate?",
+        "note": "Added. A text setting can refuse typed text with a sentence of its own, which Settings shows under the field"
       },
       {
         "key": "sitrep-sdk ./testing ~SizeDelta",

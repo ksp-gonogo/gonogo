@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 import {
   AUTO_PORT_FORWARD_SETTING,
+  COMPUTER_ADDRESS_SETTING,
   isRouterAddress,
   type PortForwardState,
   ROUTER_ADDRESS_SETTING,
@@ -66,38 +67,72 @@ export function FriendsStep() {
   );
 }
 
-/** The router's address field, then what the router answered once a valid address is in. */
+/** The two address fields, then what the router answered once both hold valid addresses. */
 function AutomaticForward() {
-  const [router, setRouter] = useSetting<string>(ROUTER_ADDRESS_SETTING);
-  const [text, setText] = useState(router);
-  const valid = isRouterAddress(text);
-  function edit(next: string) {
-    setText(next);
-    if (isRouterAddress(next)) setRouter(next.trim());
-  }
+  const router = useAddressSetting(ROUTER_ADDRESS_SETTING);
+  const computer = useAddressSetting(COMPUTER_ADDRESS_SETTING);
   return (
     <Stack gap="related-dense">
-      <TextField
+      <AddressField
+        address={router}
         label={say("friends.router.label")}
-        value={text}
-        onChange={edit}
-        invalid={
-          text.trim() !== "" && !valid
-            ? say("friends.router.invalid")
-            : undefined
-        }
-        maxLength={15}
+        hint={say("friends.router.hint")}
       />
-      <Text level="muted" size="sm">
-        {say("friends.router.hint")}
-      </Text>
-      {valid && isRouterAddress(router) ? (
+      <AddressField
+        address={computer}
+        label={say("friends.computer.label")}
+        hint={say("friends.computer.hint")}
+      />
+      {router.saved && computer.saved ? (
         <ForwardStatus />
       ) : (
         <StepCheck
           check={{ state: "attention", text: say("friends.check.needAddress") }}
         />
       )}
+    </Stack>
+  );
+}
+
+interface AddressSetting {
+  text: string;
+  edit: (next: string) => void;
+  /** Whether the field holds a valid address, which is then the one saved. */
+  saved: boolean;
+}
+
+/** A typed address that is saved to `id` only while it is a valid one. */
+function useAddressSetting(id: string): AddressSetting {
+  const [stored, store] = useSetting<string>(id);
+  const [text, setText] = useState(stored);
+  return {
+    text,
+    edit: (next) => {
+      setText(next);
+      if (isRouterAddress(next)) store(next.trim());
+    },
+    saved: isRouterAddress(text) && isRouterAddress(stored),
+  };
+}
+
+function AddressField({
+  address,
+  label,
+  hint,
+}: Readonly<{ address: AddressSetting; label: string; hint: string }>) {
+  const refused = address.text.trim() !== "" && !isRouterAddress(address.text);
+  return (
+    <Stack gap="related-dense">
+      <TextField
+        label={label}
+        value={address.text}
+        onChange={address.edit}
+        invalid={refused ? say("friends.address.invalid") : undefined}
+        maxLength={15}
+      />
+      <Text level="muted" size="sm">
+        {hint}
+      </Text>
     </Stack>
   );
 }

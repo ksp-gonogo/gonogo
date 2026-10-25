@@ -6,6 +6,7 @@ import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   AUTO_PORT_FORWARD_SETTING,
+  COMPUTER_ADDRESS_SETTING,
   ROUTER_ADDRESS_SETTING,
 } from "../../relay/autoPortForward";
 import { SettingsProvider } from "../../settings/SettingsContext";
@@ -26,16 +27,27 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
-/** Choose automatic forwarding and type the router's address. */
-async function chooseAutomatic(address = "203.0.113.1") {
+/** Choose automatic forwarding and type both addresses. */
+async function chooseAutomatic(
+  router = "203.0.113.1",
+  computer = "203.0.113.20",
+) {
   const user = userEvent.setup();
   await user.click(
     screen.getByRole("radio", { name: say("friends.choice.auto") }),
   );
-  await user.type(
-    screen.getByRole("textbox", { name: say("friends.router.label") }),
-    address,
-  );
+  if (router) {
+    await user.type(
+      screen.getByRole("textbox", { name: say("friends.router.label") }),
+      router,
+    );
+  }
+  if (computer) {
+    await user.type(
+      screen.getByRole("textbox", { name: say("friends.computer.label") }),
+      computer,
+    );
+  }
 }
 
 function renderStep(settings = new SettingsService()) {
@@ -66,6 +78,7 @@ describe("the setup's friends on other networks step", () => {
     await chooseAutomatic();
     expect(settings.get(AUTO_PORT_FORWARD_SETTING, null)).toBe(true);
     expect(settings.get(ROUTER_ADDRESS_SETTING, null)).toBe("203.0.113.1");
+    expect(settings.get(COMPUTER_ADDRESS_SETTING, null)).toBe("203.0.113.20");
     expect(
       await screen.findByText(say("friends.check.pass", { port: 47100 })),
     ).toBeInTheDocument();
@@ -87,14 +100,29 @@ describe("the setup's friends on other networks step", () => {
     ).toBeInTheDocument();
   });
 
-  it("asks for the router's address, and refuses one that is not an address", async () => {
+  it("asks for both addresses, and refuses one that is not an address", async () => {
     const { settings } = renderStep();
     await chooseAutomatic("203.0.113");
-    expect(screen.getByText(say("friends.router.invalid"))).toBeInTheDocument();
+    expect(
+      screen.getByText(say("friends.address.invalid")),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(say("friends.check.needAddress")),
     ).toBeInTheDocument();
     expect(settings.get(ROUTER_ADDRESS_SETTING, "")).toBe("");
+  });
+
+  it("waits for this computer's address before asking the router", async () => {
+    mapping = {
+      state: "mapped",
+      message: "Your router opened the relay's port.",
+    };
+    renderStep();
+    await chooseAutomatic("203.0.113.1", "");
+    expect(
+      screen.getByText(say("friends.check.needAddress")),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Your router opened port/)).toBeNull();
   });
 
   it("gives the port to forward by hand, and leaves automatic forwarding off", async () => {

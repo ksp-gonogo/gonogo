@@ -8,12 +8,15 @@ export const AUTO_PORT_FORWARD_SETTING = "relay.autoPortForward";
 /** The router address setting; the container's `ROUTER_IP` is its starting value. */
 export const ROUTER_ADDRESS_SETTING = "relay.routerIp";
 
+/** This computer's address setting; the container's `LAN_IP` is its starting value. */
+export const COMPUTER_ADDRESS_SETTING = "relay.lanIp";
+
 registerSetting({
   id: AUTO_PORT_FORWARD_SETTING,
   type: SettingKind.Bool,
   label: "Automatic port forwarding",
   description:
-    "Asks your router, at the address below, to open the relay's port, so friends on other networks can join, and closes it again when the relay stops. Off: forward port 47100 (UDP and TCP) to this computer yourself, or play on this network only.",
+    "Asks your router, at the address below, to open the relay's port to this computer, so friends on other networks can join, and closes it again when the relay stops. Off: forward port 47100 (UDP and TCP) to this computer yourself, or play on this network only.",
   category: "Relay",
   defaultValue: false,
   screens: ["main"],
@@ -28,23 +31,46 @@ registerSetting({
   category: "Relay",
   defaultValue: "",
   screens: ["main"],
+  dependsOn: AUTO_PORT_FORWARD_SETTING,
+  validate: refuseAddress,
+});
+
+registerSetting({
+  id: COMPUTER_ADDRESS_SETTING,
+  type: SettingKind.Text,
+  label: "This computer's address",
+  description:
+    "This computer's address on your home network, four numbers separated by dots, which the router sends friends' connections to. This computer's network settings show it as IP address or IPv4 Address.",
+  category: "Relay",
+  defaultValue: "",
+  screens: ["main"],
+  dependsOn: AUTO_PORT_FORWARD_SETTING,
+  validate: refuseAddress,
 });
 
 const IPV4 =
   /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
 
-/** Whether `text` is a router address the relay takes: four numbers from 0 to 255, separated by dots. */
+/** Whether `text` is an address the relay takes: four numbers from 0 to 255, separated by dots. */
 export function isRouterAddress(text: string): boolean {
   return IPV4.test(text.trim());
+}
+
+/** The sentence refusing a typed address, or undefined for an address or an empty field. */
+export function refuseAddress(text: string): string | undefined {
+  return text.trim() === "" || isRouterAddress(text)
+    ? undefined
+    : "That is not an address: it should be four numbers from 0 to 255, separated by dots.";
 }
 
 /** How often a chosen value is sent again, so a relay that restarted picks it up. */
 const RESEND_MS = 30_000;
 
-/** What the main screen sends the relay: the switch, and the router address when the player gave a valid one. */
+/** What the main screen sends the relay: the switch, and each address the player gave a valid one for. */
 export interface PortForwardChoice {
   enabled: boolean;
   routerIp?: string;
+  lanIp?: string;
 }
 
 /** Tell the relay to switch automatic port forwarding on or off. Best-effort: a relay that is not running answers nothing. */
@@ -73,9 +99,10 @@ interface SettingsStore {
 /**
  * Keeps the relay's automatic port forwarding in step with the main screen's
  * settings. Until the player has chosen, the relay keeps the values it started
- * with (`GONOGO_AUTO_PORT_FORWARD` and `ROUTER_IP`); once they have, their
- * choice is sent at start, on every change of either setting, and again every
- * half minute. A router address is sent only once it is a valid one.
+ * with (`GONOGO_AUTO_PORT_FORWARD`, `ROUTER_IP` and `LAN_IP`); once they have,
+ * their choice is sent at start, on every change of any of the three
+ * settings, and again every half minute. An address is sent only once it is
+ * a valid one.
  */
 export function syncAutoPortForward(
   settings: SettingsStore,
@@ -88,9 +115,12 @@ export function syncAutoPortForward(
     );
     if (enabled === null) return null;
     const router = settings.get<string>(ROUTER_ADDRESS_SETTING, "").trim();
-    return isRouterAddress(router)
-      ? { enabled, routerIp: router }
-      : { enabled };
+    const lan = settings.get<string>(COMPUTER_ADDRESS_SETTING, "").trim();
+    return {
+      enabled,
+      ...(isRouterAddress(router) ? { routerIp: router } : {}),
+      ...(isRouterAddress(lan) ? { lanIp: lan } : {}),
+    };
   };
   const send = () => {
     const choice = current();
@@ -100,6 +130,7 @@ export function syncAutoPortForward(
   const stops = [
     settings.subscribe(AUTO_PORT_FORWARD_SETTING, send),
     settings.subscribe(ROUTER_ADDRESS_SETTING, send),
+    settings.subscribe(COMPUTER_ADDRESS_SETTING, send),
   ];
   const timer = setInterval(send, RESEND_MS);
   return () => {
