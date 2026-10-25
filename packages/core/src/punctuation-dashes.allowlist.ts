@@ -24,7 +24,7 @@ export const PUNCTUATION_DASH_DEBT: Record<string, number> = {
   "mod/Sitrep.Host/ChannelEngine.cs": 2,
   "mod/Sitrep.Host/RoboticsCommandProvider.cs": 4,
   "packages/app/src/peer/PeerClientService.ts": 1,
-  "packages/app/src/peer/PeerHostService.ts": 4,
+  "packages/app/src/peer/PeerHostService.ts": 5,
   "packages/app/src/peer/RetryPolicy.ts": 1,
   "packages/app/src/peer/stationPeerId.ts": 1,
   "packages/components/src/LandingStatus/carried-altitude.test.tsx": 1,

@@ -287,7 +287,8 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
         <>
           <FieldHint>
             Pair a controller that announces its own inputs over JSON
-            (json-state parser). The browser asks you to pick the USB port.
+            (json-state parser). The browser will prompt you to pick the USB
+            port; we handle the type registration automatically.
           </FieldHint>
           <Field>
             <FieldLabel htmlFor="sd-baud">Baud rate</FieldLabel>
@@ -304,8 +305,8 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
               ))}
             </Select>
             <FieldHint>
-              Must match the controller's rate. A wrong rate leaves this waiting
-              at "press a button".
+              Has to match the rate the controller is sending at. Wrong rate →
+              garbled bytes → wizard never progresses past "press a button".
             </FieldHint>
           </Field>
           <Actions>
@@ -330,7 +331,10 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
           <Status role="status" aria-live="polite">
             <PulseDot /> Press a button or move a control on your controller...
           </Status>
-          <FieldHint>Cancel rolls everything back.</FieldHint>
+          <FieldHint>
+            We're listening for a schema announcement or any input event so we
+            know the device is talking. Cancel rolls everything back.
+          </FieldHint>
           <Actions>
             <Button variant="ghost" onClick={() => void cancel()}>
               Cancel

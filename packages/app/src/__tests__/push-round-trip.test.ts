@@ -34,9 +34,6 @@ const { FakePeer } = vi.hoisted(() => {
   }
 
   class FakePeer {
-    // The broker socket a real Peer carries; the endpoint join signal listens on it.
-
-    socket = { on() {}, off() {}, send(_m: unknown) {} };
     static lastPeer: FakePeer | null = null;
     private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
 

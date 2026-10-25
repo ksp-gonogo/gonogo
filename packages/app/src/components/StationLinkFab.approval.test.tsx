@@ -33,8 +33,6 @@ const { Hub } = vi.hoisted(() => {
 
   class Peer extends Emitter {
     static current: Peer | undefined;
-    // The broker socket a real Peer carries; the endpoint join signal listens on it.
-    socket = { on() {}, off() {}, send(_m: unknown) {} };
     constructor(readonly id: string) {
       super();
       Peer.current = this;

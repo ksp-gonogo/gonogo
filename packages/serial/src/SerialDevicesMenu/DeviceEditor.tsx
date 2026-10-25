@@ -165,8 +165,10 @@ export function DeviceEditor({
           </Select>
           <FieldHint>
             After saving, open the device row, click Connect, then press any
-            button on the pad. Auto-detect picks labels from the pad's name the
-            first time it pairs and never changes your choice.
+            button on the pad: the Gamepad API only reports a controller once it
+            sees a press, not on plug-in. Auto-detect picks a pack from the
+            pad's reported name the first time it pairs; your choice here (or
+            later) is never reset automatically.
           </FieldHint>
         </Field>
       )}

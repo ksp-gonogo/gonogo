@@ -1083,104 +1083,30 @@ describe("AlarmsModal unreachable", () => {
   });
 });
 
-describe("AlarmsModal game alarms", () => {
-  it("lists the game's alarms in the one Scheduled list with Gonogo's own", async () => {
+describe("AlarmsModal game alarm clock", () => {
+  it("marks an alarm the mod copied into the game's alarm clock", async () => {
     const alarm: Alarm = {
-      id: "a-own",
+      id: "a-copied",
       name: "Circularise",
       trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
       state: "pending",
       createdBy: "main",
       createdAt: 1_700_000_000_000,
     };
-    const { emit } = renderWithStream(
-      <AlarmsModal
-        useSnapshot={() => makeSnapshot([alarm])}
-        onAdd={() => {}}
-        onUpdate={() => {}}
-        onDelete={() => {}}
-      />,
-    );
-    emit("alarm.game.list", {
-      available: true,
-      alarms: [
-        {
-          id: 9,
-          kind: 0,
-          title: "Mun window",
-          ut: 4000,
-          vessel: null,
-          warp: 0,
-          triggered: false,
-          gonogoId: null,
-        },
-        {
-          id: 10,
-          kind: 4,
-          title: "Probe Pe",
-          ut: 7000,
-          vessel: null,
-          warp: 0,
-          triggered: false,
-          gonogoId: null,
-        },
-      ],
-    });
-
-    expect(await screen.findByText("Mun window")).toBeInTheDocument();
-    expect(screen.getByText("Circularise")).toBeInTheDocument();
-    expect(screen.getByText("Scheduled (3)")).toBeInTheDocument();
-    expect(screen.getByText("Probe Pe")).toBeInTheDocument();
-    expect(screen.queryByText("In the game")).toBeNull();
-    const order = screen
-      .getAllByRole("listitem")
-      .map((li) => li.textContent ?? "");
-    expect(order.findIndex((t) => t.includes("Circularise"))).toBeGreaterThan(
-      order.findIndex((t) => t.includes("Mun window")),
-    );
-  });
-});
-
-describe("AlarmsModal game alarm copies", () => {
-  it("lists a game alarm once when the roster says it is the copy of a Gonogo alarm", async () => {
-    const alarm: Alarm = {
-      id: "a-own",
-      name: "Circularise",
-      trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
-      state: "pending",
-      createdBy: "main",
-      createdAt: 1_700_000_000_000,
-    };
-    const { emit } = renderWithStream(
+    render(
       <AlarmsModal
         useSnapshot={() => ({
           ...makeSnapshot([alarm]),
-          scetGameCopyIds: [9],
+          scetInGameClock: ["a-copied"],
         })}
         onAdd={() => {}}
         onUpdate={() => {}}
         onDelete={() => {}}
       />,
     );
-    emit("alarm.game.list", {
-      available: true,
-      alarms: [
-        {
-          id: 9,
-          kind: 0,
-          title: "Circularise",
-          ut: 5000,
-          vessel: null,
-          warp: 0,
-          triggered: false,
-          gonogoId: null,
-        },
-      ],
-    });
 
     await screen.findByText("Circularise");
-    expect(screen.getAllByText("Circularise")).toHaveLength(1);
-    expect(screen.getByText("Scheduled (1)")).toBeInTheDocument();
+    expect(screen.getByText("IN GAME CLOCK")).toBeInTheDocument();
   });
 });
 

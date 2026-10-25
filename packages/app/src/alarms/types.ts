@@ -185,8 +185,6 @@ export type AlarmFireAction = {
 export interface Alarm {
   id: string;
   name: string;
-  /** How many of the player's edits to this alarm's copy in the game's alarm clock this list has taken. */
-  gameEditsSeen?: number;
   notes?: string;
   trigger: AlarmTrigger;
   state: AlarmState;
@@ -331,11 +329,11 @@ export interface AlarmSnapshot {
    */
   scetUnreachable?: string[];
   /**
-   * The ids in the game's own alarm clock of the copies the mod holds of this
-   * list's alarms, which the list already shows once. Absent when there are
+   * The ids of alarms of this list that have a copy in the game's own alarm
+   * clock, so the player sees them in the game too. Absent when there are
    * none.
    */
-  scetGameCopyIds?: number[];
+  scetInGameClock?: string[];
   /**
    * Alarms the simulation holds that this list does not: armed by another
    * screen, or by an Uplink for itself. Absent when there are none.

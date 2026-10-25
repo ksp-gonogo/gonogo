@@ -9,7 +9,8 @@ registerSetting({
   id: STATION_WAKE_LOCK_SETTING,
   type: SettingKind.Bool,
   label: "Keep screen awake while connected",
-  description: "Some browsers ignore this.",
+  description:
+    "Requests the browser keep this screen on while the station is connected to the main screen. Some browsers ignore the request, behaviour is best-effort.",
   category: "Station",
   defaultValue: true,
   screens: ["station"],

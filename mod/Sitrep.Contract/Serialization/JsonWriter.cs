@@ -2364,7 +2364,7 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// One set SCET alarm as <c>{ id, name, armedBy, vantage, subject,
-        /// condition, state, firedAtUt, onFire, actsOn, gameAlarmId, gameEdits, restored }</c>, the element shape of the <c>alarm.activeList</c>
+        /// condition, state, firedAtUt, onFire, actsOn }</c>, the element shape of the <c>alarm.activeList</c>
         /// array.
         /// </summary>
         ///
@@ -2449,14 +2449,6 @@ namespace Sitrep.Contract.Serialization
             {
                 AppendNull(sb);
             }
-            sb.Append(',');
-            AppendString(sb, "gameEdits");
-            sb.Append(':');
-            AppendInteger(sb, a.GameEdits);
-            sb.Append(',');
-            AppendString(sb, "restored");
-            sb.Append(':');
-            AppendBool(sb, a.Restored);
             sb.Append('}');
         }
 

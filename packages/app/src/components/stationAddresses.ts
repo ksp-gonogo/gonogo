@@ -41,13 +41,21 @@ export interface StationAddressInput {
   channel: Channel;
   /** `VITE_STATION_URL`: a fork's own deploy, which replaces every other address. */
   override?: string;
+  /**
+   * The relay's public address, given only once the relay is known to be
+   * reachable from outside. The link then carries it, so a station on another
+   * network fetches its relay entries before its first attempt. Anyone holding
+   * the link can read those time-limited credentials.
+   */
+  relayUrl?: string | null;
 }
 
 const LOOPBACK = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/;
 const LAN_ADDRESS = /^https?:\/\/\d+\.\d+\.\d+\.\d+(?::\d+)?$/;
 
-function withHost(url: string, code: string): string {
-  return `${url}?host=${encodeURIComponent(code)}`;
+function withHost(url: string, code: string, relayUrl?: string | null): string {
+  const link = `${url}?host=${encodeURIComponent(code)}`;
+  return relayUrl ? `${link}&relay=${encodeURIComponent(relayUrl)}` : link;
 }
 
 /**
@@ -67,9 +75,10 @@ export function stationAddresses({
   baseUrl,
   channel,
   override,
+  relayUrl,
 }: StationAddressInput): StationAddresses {
   if (override) {
-    const url = withHost(override.replace(/\/$/, ""), code);
+    const url = withHost(override.replace(/\/$/, ""), code, relayUrl);
     const only: StationAddress = {
       id: "public",
       label: "Station address",
@@ -83,7 +92,7 @@ export function stationAddresses({
     id: "local",
     label: "This app",
     when: "",
-    url: withHost(`${origin}${baseUrl}station`, code),
+    url: withHost(`${origin}${baseUrl}station`, code, relayUrl),
   };
   const isLoopback = LOOPBACK.test(origin);
   if (!isLoopback && !LAN_ADDRESS.test(origin)) {
@@ -95,7 +104,7 @@ export function stationAddresses({
     id: "public",
     label: "Public build",
     when: "For a device on another network (needs internet)",
-    url: withHost(publicStationUrl(channel), code),
+    url: withHost(publicStationUrl(channel), code, relayUrl),
   };
   own.when = isLoopback
     ? "For another window on this computer"

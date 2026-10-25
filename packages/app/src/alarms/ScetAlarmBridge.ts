@@ -26,15 +26,6 @@ import {
   type ThresholdOp,
 } from "./types";
 
-/** What the simulation now holds for an alarm whose copy the player edited in the game. */
-export interface EditedInGame {
-  id: string;
-  name: string;
-  ut: number;
-  /** The roster's count of edits made in the game, which this side now has seen. */
-  edits: number;
-}
-
 /**
  * How long to leave an arm that could not be made yet before asking again: a
  * vantage the simulation could not check, or one this side could not name.
@@ -134,12 +125,6 @@ export interface ScetAlarmBridgeContext {
    * {@link onCancelled}.
    */
   onDeletedInGame(ids: readonly string[]): void;
-  /**
-   * The player edited these alarms' copies in the game's own alarm clock, and
-   * the simulation moved the alarms to match. Called before the frame is
-   * reconciled.
-   */
-  onEditedInGame(edits: readonly EditedInGame[]): void;
 }
 
 /**
@@ -187,10 +172,8 @@ export class ScetAlarmBridge {
   private rosterAlarms: readonly ForeignScetAlarm[] = [];
   /** The ids the mod last said can never come due, because their craft is gone. */
   private rosterUnreachable: ReadonlySet<string> = new Set();
-  private rosterGameCopies: ReadonlySet<number> = new Set();
+  private rosterInGame: ReadonlySet<string> = new Set();
   private rosterSeen = false;
-  /** Each time alarm's name, time and count of edits made in the game, off the last roster frame. */
-  private rosterEdits: ReadonlyMap<string, RosterEdit> = new Map();
   /**
    * Ids already commanded since the last roster frame, so a reconcile running
    * between frames does not re-send what is already in flight.
@@ -288,9 +271,9 @@ export class ScetAlarmBridge {
     return this.rosterActing.has(id);
   }
 
-  /** The ids in the game's alarm clock of the copies the mod holds of its roster's alarms. */
-  gameCopyIds(): readonly number[] {
-    return [...this.rosterGameCopies];
+  /** The ids of the alarms the mod has copied into the game's own alarm clock, off its roster. */
+  inGameClockIds(): readonly string[] {
+    return [...this.rosterInGame];
   }
 
   /** The ids the mod holds as unreachable, off its roster. */
@@ -619,46 +602,6 @@ export class ScetAlarmBridge {
   }
 
   /**
-   * The time alarms whose roster row says the player edited their copy in the
-   * game more times than this list has taken. The row's name and time are then
-   * the player's, and this list takes them.
-   */
-  private editsMadeInGame(): EditedInGame[] {
-    const edits: EditedInGame[] = [];
-    for (const alarm of this.ctx.getAlarms()) {
-      if (alarm.trigger.kind !== "time" || this.owed.has(alarm.id)) continue;
-      const row = this.rosterEdits.get(alarm.id);
-      if (row === undefined || row.edits <= (alarm.gameEditsSeen ?? 0))
-        continue;
-      edits.push({
-        id: alarm.id,
-        name: row.name,
-        ut: row.ut,
-        edits: row.edits,
-      });
-    }
-    return edits;
-  }
-
-  /**
-   * A load put these alarms back on the roster as the save held them. This
-   * list is the one the operator edits, so each it holds is armed again with
-   * its own name and time, once the player's edits in the game are taken.
-   */
-  private oweRestored(ids: ReadonlySet<string>): void {
-    if (ids.size === 0) return;
-    for (const alarm of this.ctx.getAlarms()) {
-      if (
-        ids.has(alarm.id) &&
-        alarm.state === "pending" &&
-        !this.owed.has(alarm.id)
-      ) {
-        this.owed.set(alarm.id, 0);
-      }
-    }
-  }
-
-  /**
    * Point the topic subscriptions at whichever `TelemetryProvider` is mounted
    * now. The roster is forgotten across the swap: a new connection's roster is
    * a fact about the mod behind it, not about the one that went away.
@@ -672,18 +615,14 @@ export class ScetAlarmBridge {
       this.rosterIds = readRosterIds(payload);
       this.rosterActing = readActingIds(payload);
       this.rosterUnreachable = readUnreachableIds(payload);
-      this.rosterGameCopies = readGameCopyIds(payload);
+      this.rosterInGame = readInGameClockIds(payload);
       this.rosterAlarms = readRosterAlarms(payload);
-      this.rosterEdits = readRosterEdits(payload);
       this.rosterSeen = true;
       this.commandedSinceRoster.clear();
       const cancelled = readIdsInState(payload, ScetAlarmState.Cancelled);
       if (cancelled.length > 0) this.ctx.onCancelled(cancelled);
       const deleted = readIdsInState(payload, ScetAlarmState.DeletedInGame);
       if (deleted.length > 0) this.ctx.onDeletedInGame(deleted);
-      const edited = this.editsMadeInGame();
-      if (edited.length > 0) this.ctx.onEditedInGame(edited);
-      this.oweRestored(readRestoredIds(payload));
       this.latchFiredRows();
       this.reconcile();
       this.ctx.onRoster();
@@ -725,9 +664,8 @@ export class ScetAlarmBridge {
     this.rosterIds = [];
     this.rosterActing = new Set();
     this.rosterUnreachable = new Set();
-    this.rosterGameCopies = new Set();
+    this.rosterInGame = new Set();
     this.rosterAlarms = [];
-    this.rosterEdits = new Map();
     this.rosterSeen = false;
     this.commandedSinceRoster.clear();
     /* A new connection is a new simulation to ask, so every debt is due now. */
@@ -833,6 +771,25 @@ function readUnreachableIds(payload: unknown): ReadonlySet<string> {
   return ids;
 }
 
+/** The ids of the roster rows that have a copy in the game's own alarm clock. */
+function readInGameClockIds(payload: unknown): ReadonlySet<string> {
+  const ids = new Set<string>();
+  if (!Array.isArray(payload)) return ids;
+  for (const row of payload) {
+    const id = readId(row);
+    if (
+      id !== null &&
+      typeof row === "object" &&
+      row !== null &&
+      "gameAlarmId" in row &&
+      typeof row.gameAlarmId === "number"
+    ) {
+      ids.add(id);
+    }
+  }
+  return ids;
+}
+
 /** The ids of the roster rows in `state`. */
 function readIdsInState(
   payload: unknown,
@@ -895,69 +852,6 @@ const THRESHOLD_OP_OF_MEMBER = new Map<number, ThresholdOp>(
     op,
   ]),
 );
-
-/** The ids of the roster rows that came back from a save and that no client has armed again. */
-function readRestoredIds(payload: unknown): ReadonlySet<string> {
-  const ids = new Set<string>();
-  if (!Array.isArray(payload)) return ids;
-  for (const row of payload) {
-    const id = readId(row);
-    if (
-      id !== null &&
-      typeof row === "object" &&
-      row !== null &&
-      "restored" in row &&
-      row.restored === true
-    ) {
-      ids.add(id);
-    }
-  }
-  return ids;
-}
-
-/** The game alarm ids of the copies the mod holds of its roster's alarms. */
-function readGameCopyIds(payload: unknown): ReadonlySet<number> {
-  const ids = new Set<number>();
-  if (!Array.isArray(payload)) return ids;
-  for (const row of payload) {
-    if (
-      typeof row === "object" &&
-      row !== null &&
-      "gameAlarmId" in row &&
-      typeof row.gameAlarmId === "number"
-    ) {
-      ids.add(row.gameAlarmId);
-    }
-  }
-  return ids;
-}
-
-interface RosterEdit {
-  name: string;
-  ut: number;
-  edits: number;
-}
-
-/** The rows of a roster frame that are armed time alarms, with their count of edits made in the game. */
-function readRosterEdits(payload: unknown): ReadonlyMap<string, RosterEdit> {
-  const rows = new Map<string, RosterEdit>();
-  if (!Array.isArray(payload)) return rows;
-  for (const row of payload) {
-    const id = readId(row);
-    if (id === null || typeof row !== "object" || row === null) continue;
-    if (Reflect.get(row, "state") !== ScetAlarmState.Armed) continue;
-    const condition: unknown = Reflect.get(row, "condition");
-    if (typeof condition !== "object" || condition === null) continue;
-    if (Reflect.get(condition, "kind") !== ScetAlarmConditionKind.Time)
-      continue;
-    const ut = readWireUt(Reflect.get(condition, "ut"));
-    const name: unknown = Reflect.get(row, "name");
-    const edits = "gameEdits" in row ? readWireUt(row.gameEdits) : null;
-    if (ut === null || typeof name !== "string" || edits === null) continue;
-    rows.set(id, { name, ut, edits });
-  }
-  return rows;
-}
 
 /** A roster frame's rows, each as a readout states it; a row with no id is skipped. */
 function readRosterAlarms(payload: unknown): readonly ForeignScetAlarm[] {

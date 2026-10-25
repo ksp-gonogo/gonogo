@@ -416,13 +416,6 @@ namespace Gonogo.KSP
             var kernel = host.Kernel;
             _actionGroups = () => ActionGroupsElection.Elected(kernel);
             (_actuator as KspVesselActuator)?.SetActionGroupsBackendSource(_actionGroups);
-            GameAlarmLinkScenario.LiveRoster = () =>
-            {
-                lock (_gate)
-                {
-                    return _roster.Snapshot();
-                }
-            };
             _rosterPublisher = host.Publisher(RosterTopic);
             _firedPublisher = host.Publisher(FiredTopic);
             _topicsPublisher = host.Publisher(TopicsTopic);
@@ -659,10 +652,6 @@ namespace Gonogo.KSP
             {
                 _roster.MarkDeletedInGame(id);
             }
-            foreach (var edit in outcome.EditedInGame)
-            {
-                _roster.EditFromGame(edit.Key, edit.Value.Title, edit.Value.Ut);
-            }
 
             var available = clock != null && clock.Available;
             var view = GameAlarmBoard.Build(available, available ? clock!.Alarms() : null, _mirror.MirrorOf());
@@ -713,13 +702,6 @@ namespace Gonogo.KSP
                     _roster.ObserveGame(game);
                     _roster.ObserveFlownCraft(flown != null ? "vessel:" + flown.id : null);
                     tick = _roster.BeginTick(ut);
-                    // After the tick has opened: a rewind clears the roster there,
-                    // and the save just loaded is what it is to hold now.
-                    var loaded = GameAlarmLinkScenario.TakeLoadedRoster();
-                    if (loaded != null)
-                    {
-                        _roster.Restore(loaded);
-                    }
                     _roster.EvaluatePass(tick, ScetAlarmVantage.IsTheSubjectsOwn, _ => state);
                     try
                     {

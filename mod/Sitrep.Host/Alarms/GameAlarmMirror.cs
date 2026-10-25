@@ -20,18 +20,11 @@ namespace Sitrep.Host.Alarms
     /// finds its copy instead of making a second one. A link whose Gonogo alarm
     /// is not armed again is left alone: the copy stays in the game as an
     /// ordinary alarm the player can see and delete.</para>
-    ///
-    /// <para>An edit made to a copy in the game moves the Gonogo alarm to match,
-    /// as long as the Gonogo alarm has not itself moved since the copy last
-    /// matched it. When both moved, Gonogo's values win and the copy is made
-    /// again.</para>
     /// </summary>
     public sealed class GameAlarmMirror
     {
         private readonly IDictionary<string, long> _links;
         private readonly List<string> _disarmed = new List<string>();
-        private readonly Dictionary<string, (string Title, double Ut)> _matched =
-            new Dictionary<string, (string Title, double Ut)>(StringComparer.Ordinal);
 
         public GameAlarmMirror(IDictionary<string, long> links)
         {
@@ -111,7 +104,6 @@ namespace Sitrep.Host.Alarms
                     }
                     _links.Remove(id);
                 }
-                _matched.Remove(id);
             }
             _disarmed.Clear();
 
@@ -134,7 +126,6 @@ namespace Sitrep.Host.Alarms
                     {
                         _links.Remove(alarm.Id);
                     }
-                    _matched.Remove(alarm.Id);
                     outcome.Links[alarm.Id] = null;
                     continue;
                 }
@@ -146,7 +137,6 @@ namespace Sitrep.Host.Alarms
                     // Once the instant has passed the game removes its own copy
                     // when it comes due, which is not the player deleting it.
                     _links.Remove(alarm.Id);
-                    _matched.Remove(alarm.Id);
                     if (nowUt < ut)
                     {
                         outcome.DeletedInGame.Add(alarm.Id);
@@ -159,18 +149,6 @@ namespace Sitrep.Host.Alarms
                     var copy = held[gameId];
                     if (copy.Ut == ut && string.Equals(copy.Title, title, StringComparison.Ordinal))
                     {
-                        _matched[alarm.Id] = (title, ut);
-                        outcome.Links[alarm.Id] = gameId;
-                        continue;
-                    }
-                    if (_matched.TryGetValue(alarm.Id, out var last)
-                        && last.Ut == ut
-                        && string.Equals(last.Title, title, StringComparison.Ordinal))
-                    {
-                        // Gonogo's alarm is where the copy last matched it, so the
-                        // difference is the player's edit in the game.
-                        _matched[alarm.Id] = (copy.Title, copy.Ut);
-                        outcome.EditedInGame[alarm.Id] = new GameAlarmEdit(copy.Title, copy.Ut);
                         outcome.Links[alarm.Id] = gameId;
                         continue;
                     }
@@ -181,12 +159,10 @@ namespace Sitrep.Host.Alarms
                 if (created.HasValue)
                 {
                     _links[alarm.Id] = created.Value;
-                    _matched[alarm.Id] = (title, ut);
                 }
                 else
                 {
                     _links.Remove(alarm.Id);
-                    _matched.Remove(alarm.Id);
                 }
                 outcome.Links[alarm.Id] = created;
             }
@@ -204,32 +180,11 @@ namespace Sitrep.Host.Alarms
             string.IsNullOrEmpty(alarm.Name) ? "Gonogo alarm" : alarm.Name;
     }
 
-    /// <summary>The title and time a player gave a copy in the game's alarm clock.</summary>
-    public readonly struct GameAlarmEdit
-    {
-        public GameAlarmEdit(string title, double ut)
-        {
-            Title = title;
-            Ut = ut;
-        }
-
-        public string Title { get; }
-
-        public double Ut { get; }
-    }
-
     /// <summary>What one <see cref="GameAlarmMirror.Reconcile"/> found and did.</summary>
     public sealed class GameAlarmMirrorOutcome
     {
         /// <summary>Gonogo alarms whose copy the player deleted in the game.</summary>
         public List<string> DeletedInGame { get; } = new List<string>();
-
-        /// <summary>
-        /// Gonogo alarms whose copy the player edited in the game, with the title
-        /// and time the copy now has, by Gonogo id.
-        /// </summary>
-        public Dictionary<string, GameAlarmEdit> EditedInGame { get; } =
-            new Dictionary<string, GameAlarmEdit>(StringComparer.Ordinal);
 
         /// <summary>
         /// The copy each roster alarm has after the pass, null for none, by

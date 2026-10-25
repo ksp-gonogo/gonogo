@@ -38,11 +38,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { DangerButton, List, RowActions, RowMeta } from "./alarmRowStyles";
 import { useVantageName } from "./foreignAlarm";
-import {
-  GameAlarmFeed,
-  GameAlarmRow,
-  type ListedGameAlarm,
-} from "./GameAlarmRows";
+import { GameAlarmsSection } from "./GameAlarmsSection";
 import { isReckonedField } from "./reckonedField";
 import type {
   Alarm,
@@ -362,14 +358,7 @@ export function AlarmsModal({
     setDraftOnFire((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const [gameAlarms, setGameAlarms] = useState<ListedGameAlarm[]>([]);
-  const copies = new Set(snapshot.scetGameCopyIds);
-  const sorted: ListRow[] = [
-    ...snapshot.alarms.map((alarm): ListRow => ({ own: alarm })),
-    ...gameAlarms
-      .filter((listed) => !copies.has(listed.alarm.id))
-      .map((listed): ListRow => ({ game: listed })),
-  ].sort((a, b) => rowDueKey(a) - rowDueKey(b));
+  const sorted = [...snapshot.alarms].sort((a, b) => sortKey(a) - sortKey(b));
 
   return (
     <Wrap>
@@ -639,226 +628,224 @@ export function AlarmsModal({
 
       <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3">Scheduled ({sorted.length})</SectionTitle>
-        {sorted.length === 0 && <Empty>No alarms set</Empty>}
-        <List>
-          {sorted.map((row) => {
-            if ("game" in row) {
+        {sorted.length === 0 ? (
+          <Empty>No alarms set</Empty>
+        ) : (
+          <List>
+            {sorted.map((a) => {
+              const pendingDelete = pendingDeleteId === a.id;
+              const renaming = renamingId === a.id;
+              const commitRename = () => {
+                const trimmed = renameDraft.trim();
+                if (trimmed && trimmed !== a.name)
+                  onUpdate(a.id, { name: trimmed });
+                setRenamingId(null);
+                setRenameDraft("");
+              };
               return (
-                <GameAlarmRow
-                  key={`game-${row.game.alarm.id}`}
-                  alarm={row.game.alarm}
-                  heldGrade={row.game.heldGrade}
-                  contexts={timeContexts}
-                />
-              );
-            }
-            const a = row.own;
-            const pendingDelete = pendingDeleteId === a.id;
-            const renaming = renamingId === a.id;
-            const commitRename = () => {
-              const trimmed = renameDraft.trim();
-              if (trimmed && trimmed !== a.name)
-                onUpdate(a.id, { name: trimmed });
-              setRenamingId(null);
-              setRenameDraft("");
-            };
-            return (
-              <Card
-                as="li"
-                key={a.id}
-                tone={ALARM_TONE[a.state]}
-                /* What KIND of alarm, read before the name it qualifies.
+                <Card
+                  as="li"
+                  key={a.id}
+                  tone={ALARM_TONE[a.state]}
+                  /* What KIND of alarm, read before the name it qualifies.
                      The SCET mark is only on the threshold arm: a SCET time
                      row already states its clock, because `describeTrigger`
                      renders its instant with the SCET qualifier, while a
                      threshold has no instant to qualify until it fires, so
                      without this the row would not say which clock decides
                      it. */
-                titleLeft={
-                  renaming ? undefined : (
-                    <>
-                      <Badge size="md">
-                        {a.trigger.kind === "time" ? "TIME" : "COND"}
+                  titleLeft={
+                    renaming ? undefined : (
+                      <>
+                        <Badge size="md">
+                          {a.trigger.kind === "time" ? "TIME" : "COND"}
+                        </Badge>
+                        {a.trigger.kind === "threshold" &&
+                          isAtSubjectVantage(a.trigger) && (
+                            <Badge tone="info" size="sm">
+                              SCET
+                            </Badge>
+                          )}
+                        {a.trigger.kind === "threshold" &&
+                          isReckonedField(
+                            a.trigger.topic,
+                            a.trigger.fieldPath,
+                          ) && (
+                            <Badge tone="warn" size="sm">
+                              RECKONED
+                            </Badge>
+                          )}
+                      </>
+                    )
+                  }
+                  title={
+                    renaming ? (
+                      <Input
+                        type="text"
+                        value={renameDraft}
+                        autoFocus
+                        onChange={(e) => setRenameDraft(e.target.value)}
+                        onBlur={commitRename}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commitRename();
+                          if (e.key === "Escape") {
+                            setRenamingId(null);
+                            setRenameDraft("");
+                          }
+                        }}
+                      />
+                    ) : (
+                      a.name
+                    )
+                  }
+                  titleRight={
+                    renaming ? undefined : a.actionsWithheld ? (
+                      <Badge tone="warn" size="sm">
+                        ACTIONS NOT RUN
                       </Badge>
-                      {a.trigger.kind === "threshold" &&
-                        isAtSubjectVantage(a.trigger) && (
-                          <Badge tone="info" size="sm">
-                            SCET
-                          </Badge>
+                    ) : a.onFire && a.onFire.length > 0 ? (
+                      <Badge tone="info" size="sm">
+                        {actionsBadge(
+                          a.onFire.length,
+                          actionsRunAboard(a.trigger) &&
+                            snapshot.scetArmRefusals?.[a.id] === undefined,
                         )}
-                      {a.trigger.kind === "threshold" &&
-                        isReckonedField(
-                          a.trigger.topic,
-                          a.trigger.fieldPath,
-                        ) && (
-                          <Badge tone="warn" size="sm">
-                            RECKONED
-                          </Badge>
-                        )}
-                    </>
-                  )
-                }
-                title={
-                  renaming ? (
-                    <Input
-                      type="text"
-                      value={renameDraft}
-                      autoFocus
-                      onChange={(e) => setRenameDraft(e.target.value)}
-                      onBlur={commitRename}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") commitRename();
-                        if (e.key === "Escape") {
-                          setRenamingId(null);
-                          setRenameDraft("");
-                        }
-                      }}
-                    />
-                  ) : (
-                    a.name
-                  )
-                }
-                titleRight={
-                  renaming ? undefined : a.actionsWithheld ? (
-                    <Badge tone="warn" size="sm">
-                      ACTIONS NOT RUN
-                    </Badge>
-                  ) : a.onFire && a.onFire.length > 0 ? (
-                    <Badge tone="info" size="sm">
-                      {actionsBadge(
-                        a.onFire.length,
-                        actionsRunAboard(a.trigger) &&
-                          snapshot.scetArmRefusals?.[a.id] === undefined,
-                      )}
-                    </Badge>
-                  ) : undefined
-                }
-                /* The controls sit beside the alarm at a comfortable width
+                      </Badge>
+                    ) : undefined
+                  }
+                  /* The controls sit beside the alarm at a comfortable width
                      and reflow under it when the modal is narrow. Nothing is
                      hidden either way: a delete confirm the operator cannot
                      see is worse than one that moved. */
-                right={
-                  <RowActions>
-                    {pendingDelete ? (
-                      <>
-                        <Button
-                          variant="ghost"
-                          type="button"
-                          onClick={() => setPendingDeleteId(null)}
-                        >
-                          Cancel
-                        </Button>
-                        <DangerButton
-                          type="button"
-                          onClick={() => {
-                            onDelete(a.id);
-                            setPendingDeleteId(null);
-                          }}
-                        >
-                          Delete
-                        </DangerButton>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          type="button"
-                          onClick={() => {
-                            setRenamingId(a.id);
-                            setRenameDraft(a.name);
-                          }}
-                        >
-                          Rename
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          type="button"
-                          onClick={() => setPendingDeleteId(a.id)}
-                        >
-                          Delete
-                        </Button>
-                      </>
-                    )}
-                  </RowActions>
-                }
-              >
-                <RowMeta>
-                  {describeTrigger(a, snapshot.ut, timeContexts)}
-                </RowMeta>
-                {a.onFire && a.onFire.length > 0 && (
-                  <RowMeta>
-                    <FireList>
-                      {a.onFire.map((fx, i) => (
-                        // biome-ignore lint/suspicious/noArrayIndexKey: action keys can repeat (operator may queue the same action twice); position is the only stable identity
-                        <FireChip key={`${fx.action}-${i}`}>
-                          <code>{fx.action}</code>
-                          <FireRemoveButton
+                  right={
+                    <RowActions>
+                      {pendingDelete ? (
+                        <>
+                          <Button
+                            variant="ghost"
                             type="button"
-                            aria-label={`Remove ${fx.action} from ${a.name}`}
+                            onClick={() => setPendingDeleteId(null)}
+                          >
+                            Cancel
+                          </Button>
+                          <DangerButton
+                            type="button"
                             onClick={() => {
-                              const next = (a.onFire ?? []).filter(
-                                (_, idx) => idx !== i,
-                              );
-                              onUpdate(a.id, { onFire: next });
+                              onDelete(a.id);
+                              setPendingDeleteId(null);
                             }}
                           >
-                            ×
-                          </FireRemoveButton>
-                        </FireChip>
-                      ))}
-                    </FireList>
+                            Delete
+                          </DangerButton>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            variant="ghost"
+                            type="button"
+                            onClick={() => {
+                              setRenamingId(a.id);
+                              setRenameDraft(a.name);
+                            }}
+                          >
+                            Rename
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            type="button"
+                            onClick={() => setPendingDeleteId(a.id)}
+                          >
+                            Delete
+                          </Button>
+                        </>
+                      )}
+                    </RowActions>
+                  }
+                >
+                  <RowMeta>
+                    {describeTrigger(a, snapshot.ut, timeContexts)}
                   </RowMeta>
-                )}
-                <RowMeta>
-                  <StateTag $state={a.state}>{a.state}</StateTag>
-                </RowMeta>
-                {/* An alarm the operator did not create themselves says so.
+                  {a.onFire && a.onFire.length > 0 && (
+                    <RowMeta>
+                      <FireList>
+                        {a.onFire.map((fx, i) => (
+                          // biome-ignore lint/suspicious/noArrayIndexKey: action keys can repeat (operator may queue the same action twice); position is the only stable identity
+                          <FireChip key={`${fx.action}-${i}`}>
+                            <code>{fx.action}</code>
+                            <FireRemoveButton
+                              type="button"
+                              aria-label={`Remove ${fx.action} from ${a.name}`}
+                              onClick={() => {
+                                const next = (a.onFire ?? []).filter(
+                                  (_, idx) => idx !== i,
+                                );
+                                onUpdate(a.id, { onFire: next });
+                              }}
+                            >
+                              ×
+                            </FireRemoveButton>
+                          </FireChip>
+                        ))}
+                      </FireList>
+                    </RowMeta>
+                  )}
+                  <RowMeta>
+                    <StateTag $state={a.state}>{a.state}</StateTag>
+                  </RowMeta>
+                  {/* An alarm the operator did not create themselves says so.
                         A row that simply appeared is otherwise indistinguishable
                         from one they set and forgot, and the difference decides
                         whether deleting it is safe. The Uplink's name is the one
                         recorded on the alarm, so the row still reads after the
                         Uplink is uninstalled. */}
-                {a.requestedBy && (
-                  <RowMeta>Requested by {a.requestedBy.uplinkName}</RowMeta>
-                )}
-                {/* The simulation would not take this arm, in its own
+                  {a.requestedBy && (
+                    <RowMeta>Requested by {a.requestedBy.uplinkName}</RowMeta>
+                  )}
+                  {/* The simulation would not take this arm, in its own
                         words. Without it the row reads `pending` forever and
                         nothing tells the difference between an alarm waiting
                         and an alarm that was never accepted. */}
-                {snapshot.scetArmRefusals?.[a.id] !== undefined && (
-                  <RowMeta role="status">
-                    <Badge tone="warn" size="sm">
-                      NOT ARMED
-                    </Badge>{" "}
-                    {snapshot.scetArmRefusals[a.id]}
-                  </RowMeta>
-                )}
-                {/* The alarm fired and the action it was set to take did
+                  {snapshot.scetArmRefusals?.[a.id] !== undefined && (
+                    <RowMeta role="status">
+                      <Badge tone="warn" size="sm">
+                        NOT ARMED
+                      </Badge>{" "}
+                      {snapshot.scetArmRefusals[a.id]}
+                    </RowMeta>
+                  )}
+                  {/* The alarm fired and the action it was set to take did
                         not go. Nothing else on the row moves for that, so
                         without this the operator reads `fired` and watches the
                         vessel do nothing. */}
-                {snapshot.onFireRefusals?.[a.id] !== undefined && (
-                  <RowMeta role="status">
-                    <Badge tone="warn" size="sm">
-                      ACTION NOT SENT
-                    </Badge>{" "}
-                    {snapshot.onFireRefusals[a.id]}
-                  </RowMeta>
-                )}
-                {snapshot.scetUnreachable?.includes(a.id) && (
-                  <RowMeta role="status">
-                    <Badge tone="warn" size="sm">
-                      UNREACHABLE
-                    </Badge>{" "}
-                    The craft this alarm reads no longer exists.
-                  </RowMeta>
-                )}
-              </Card>
-            );
-          })}
-          <GameAlarmFeed onAlarms={setGameAlarms} />
-        </List>
+                  {snapshot.onFireRefusals?.[a.id] !== undefined && (
+                    <RowMeta role="status">
+                      <Badge tone="warn" size="sm">
+                        ACTION NOT SENT
+                      </Badge>{" "}
+                      {snapshot.onFireRefusals[a.id]}
+                    </RowMeta>
+                  )}
+                  {snapshot.scetInGameClock?.includes(a.id) && (
+                    <RowMeta>
+                      <Badge size="sm">IN GAME CLOCK</Badge>
+                    </RowMeta>
+                  )}
+                  {snapshot.scetUnreachable?.includes(a.id) && (
+                    <RowMeta role="status">
+                      <Badge tone="warn" size="sm">
+                        UNREACHABLE
+                      </Badge>{" "}
+                      The craft this alarm reads no longer exists.
+                    </RowMeta>
+                  )}
+                </Card>
+              );
+            })}
+          </List>
+        )}
       </Stack>
+
+      <GameAlarmsSection contexts={timeContexts} />
 
       {snapshot.scetForeign && snapshot.scetForeign.length > 0 && (
         <Stack as="section" gap="related-comfortable">
@@ -1165,12 +1152,6 @@ function RecommendedPresets({
       )}
     </PresetSection>
   );
-}
-
-type ListRow = { own: Alarm } | { game: ListedGameAlarm };
-
-function rowDueKey(row: ListRow): number {
-  return "game" in row ? Number(row.game.alarm.ut) : sortKey(row.own);
 }
 
 function sortKey(a: Alarm): number {

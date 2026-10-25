@@ -3,15 +3,11 @@ import { GameAlarmKind, GameAlarmWarp } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import {
-  GameAlarmFeed,
-  GameAlarmRow,
-  gameAlarmCraftTopic,
-  type ListedGameAlarm,
-} from "./GameAlarmRows";
+import { GameAlarmsSection, gameAlarmCraftTopic } from "./GameAlarmsSection";
+
+const CRAFT = "4f1c2b9e-0000-0000-0000-000000000001";
 
 const contexts = deriveTimeContexts(0, undefined);
 
@@ -19,74 +15,51 @@ function alarm(
   id: number,
   title: string,
   kind: GameAlarmKind,
-  extra: { gonogoId?: string } = {},
+  extra: { gonogoId?: string; vessel?: string } = {},
 ) {
   return {
     id,
     kind,
     title,
     ut: 5000 + id,
-    vessel: null,
+    vessel: extra.vessel ?? null,
     warp: GameAlarmWarp.StopWarp,
     triggered: false,
     gonogoId: extra.gonogoId ?? null,
   };
 }
 
-const CRAFT = "4f1c2b9e-0000-0000-0000-000000000001";
-
-function Rows() {
-  const [listed, setListed] = useState<ListedGameAlarm[]>([]);
-  return (
-    <>
-      <GameAlarmFeed onAlarms={setListed} />
-      {listed.map(({ alarm, heldGrade }) => (
-        <GameAlarmRow
-          key={alarm.id}
-          alarm={alarm}
-          heldGrade={heldGrade}
-          contexts={contexts}
-        />
-      ))}
-    </>
-  );
-}
-
-function renderRows() {
+function renderSection() {
   const fixture = setupStreamFixture({ suspendFrames: true });
   const result = render(
     <fixture.Provider>
-      <ul>
-        <Rows />
-      </ul>
+      <GameAlarmsSection contexts={contexts} />
     </fixture.Provider>,
   );
   return { fixture, ...result };
 }
 
-describe("GameAlarmFeed", () => {
-  it("lists every game alarm once, leaving out the copies of Gonogo's", async () => {
-    const { fixture, container } = renderRows();
+describe("GameAlarmsSection", () => {
+  it("lists the game's own alarms once, leaving out the copies of Gonogo's", async () => {
+    const { fixture, container } = renderSection();
     act(() => {
       fixture.transport.emit("alarm.game.list", {
         available: true,
         alarms: [
-          alarm(1, "Mun window", GameAlarmKind.Time),
+          alarm(1, "Kerbin to Duna", GameAlarmKind.TransferWindow),
           alarm(2, "Burn", GameAlarmKind.Time, { gonogoId: "g-burn" }),
-          alarm(3, "Kerbin to Duna", GameAlarmKind.TransferWindow),
         ],
       });
       fixture.emitFrame();
     });
 
-    expect(screen.getByText("Mun window")).toBeInTheDocument();
     expect(screen.getByText("Kerbin to Duna")).toBeInTheDocument();
     expect(screen.queryByText("Burn")).toBeNull();
     await expectNoA11yViolations(container);
   });
 
   it("shows a craft's alarms from that craft's own Topic", async () => {
-    const { fixture } = renderRows();
+    const { fixture } = renderSection();
     act(() => {
       fixture.transport.emit("alarm.game.list", {
         available: true,
@@ -102,7 +75,9 @@ describe("GameAlarmFeed", () => {
     await act(async () => {});
     act(() => {
       fixture.transport.emit(gameAlarmCraftTopic(CRAFT), [
-        alarm(3, "Probe Pe", GameAlarmKind.Periapsis),
+        alarm(3, "Probe Pe", GameAlarmKind.Periapsis, {
+          vessel: `vessel:${CRAFT}`,
+        }),
       ]);
       fixture.emitFrame();
     });
@@ -112,7 +87,7 @@ describe("GameAlarmFeed", () => {
 
   it("deletes a game alarm through alarm.game.delete after a confirm", async () => {
     const user = userEvent.setup();
-    const { fixture } = renderRows();
+    const { fixture } = renderSection();
     act(() => {
       fixture.transport.emit("alarm.game.list", {
         available: true,
@@ -121,7 +96,9 @@ describe("GameAlarmFeed", () => {
       fixture.emitFrame();
     });
 
-    await user.click(screen.getByRole("button", { name: "Delete Mun window" }));
+    await user.click(
+      screen.getByRole("button", { name: "Delete Mun window from the game" }),
+    );
     await user.click(screen.getByRole("button", { name: "Delete" }));
     await act(async () => {});
 
@@ -132,16 +109,18 @@ describe("GameAlarmFeed", () => {
     ).toEqual([expect.objectContaining({ args: { id: 7 } })]);
   });
 
-  it("shows nothing when the game runs no alarm clock", () => {
-    const { fixture } = renderRows();
+  it("says when the game runs no alarm clock", () => {
+    const { fixture } = renderSection();
     act(() => {
       fixture.transport.emit("alarm.game.list", {
         available: false,
-        alarms: [alarm(1, "Mun window", GameAlarmKind.Time)],
+        alarms: [],
       });
       fixture.emitFrame();
     });
 
-    expect(screen.queryByText("Mun window")).toBeNull();
+    expect(
+      screen.getByText("The game is not running an alarm clock here."),
+    ).toBeInTheDocument();
   });
 });

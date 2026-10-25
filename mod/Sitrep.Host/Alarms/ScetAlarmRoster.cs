@@ -333,19 +333,11 @@ namespace Sitrep.Host.Alarms
             {
                 if (SameAs(_entries[index].Alarm, alarm))
                 {
-                    // A client holding a restored alarm has claimed it.
-                    if (!_entries[index].Alarm.Restored)
-                    {
-                        return false;
-                    }
-                    _entries[index].Alarm.Restored = false;
-                    _pendingChange = true;
-                    return true;
+                    return false;
                 }
                 // The copy in the game's clock is the same alarm's, moved or
                 // dropped by the mirror on its next pass, never orphaned here.
                 alarm.GameAlarmId = _entries[index].Alarm.GameAlarmId;
-                alarm.GameEdits = _entries[index].Alarm.GameEdits;
                 _entries[index] = new Entry { Alarm = alarm };
                 _pendingChange = true;
                 return true;
@@ -415,34 +407,6 @@ namespace Sitrep.Host.Alarms
             return true;
         }
 
-        /// <summary>
-        /// The player edited the alarm's copy in the game's clock: the alarm takes
-        /// the copy's title and time. An empty title leaves the name as it is.
-        /// </summary>
-        public bool EditFromGame(string id, string title, double ut)
-        {
-            var index = IndexOf(id);
-            if (index < 0)
-            {
-                return false;
-            }
-            var alarm = _entries[index].Alarm;
-            if (alarm.State != ScetAlarmState.Armed || alarm.Condition == null)
-            {
-                return false;
-            }
-            var name = string.IsNullOrEmpty(title) ? alarm.Name : title;
-            if (string.Equals(alarm.Name, name, StringComparison.Ordinal) && alarm.Condition.Ut == ut)
-            {
-                return false;
-            }
-            alarm.Name = name;
-            alarm.Condition.Ut = ut;
-            alarm.GameEdits++;
-            _pendingChange = true;
-            return true;
-        }
-
         /// <summary>Whether the alarm under this id was deleted in the game's clock this session.</summary>
         public bool IsDeletedInGame(string? id)
         {
@@ -452,30 +416,6 @@ namespace Sitrep.Host.Alarms
             }
             var index = IndexOf(id!);
             return index >= 0 && _entries[index].Alarm.State == ScetAlarmState.DeletedInGame;
-        }
-
-        /// <summary>
-        /// Replace the roster with the alarms a save held. Only the armed ones
-        /// are taken: a fired, cancelled or deleted alarm is history the clients
-        /// that cared have already recorded.
-        /// </summary>
-        public bool Restore(IEnumerable<ScetAlarm>? saved)
-        {
-            var changed = Clear();
-            if (saved != null)
-            {
-                foreach (var alarm in saved)
-                {
-                    if (alarm == null || string.IsNullOrEmpty(alarm.Id) || alarm.State != ScetAlarmState.Armed || alarm.Condition == null)
-                    {
-                        continue;
-                    }
-                    _entries.Add(new Entry { Alarm = Duplicate(alarm, restored: true) });
-                    changed = true;
-                }
-            }
-            _pendingChange |= changed;
-            return changed;
         }
 
         /// <summary>
@@ -919,7 +859,21 @@ namespace Sitrep.Host.Alarms
             var rows = new List<ScetAlarm>(_entries.Count);
             foreach (var entry in _entries)
             {
-                rows.Add(Duplicate(entry.Alarm));
+                var a = entry.Alarm;
+                rows.Add(new ScetAlarm
+                {
+                    Id = a.Id,
+                    Name = a.Name,
+                    ArmedBy = a.ArmedBy,
+                    Vantage = a.Vantage,
+                    Subject = a.Subject,
+                    Condition = Copy(a.Condition),
+                    State = a.State,
+                    FiredAtUt = a.FiredAtUt,
+                    OnFire = Copy(a.OnFire),
+                    ActsOn = a.ActsOn,
+                    GameAlarmId = a.GameAlarmId,
+                });
             }
             return rows;
         }
@@ -983,23 +937,6 @@ namespace Sitrep.Host.Alarms
         }
 
         /// <summary>Actions detached from whoever handed them over, for the reason <see cref="Copy(ScetAlarmCondition?)"/> gives.</summary>
-        private static ScetAlarm Duplicate(ScetAlarm a, bool restored = false) => new ScetAlarm
-        {
-            Id = a.Id,
-            Name = a.Name,
-            ArmedBy = a.ArmedBy,
-            Vantage = a.Vantage,
-            Subject = a.Subject,
-            Condition = Copy(a.Condition),
-            State = a.State,
-            FiredAtUt = a.FiredAtUt,
-            OnFire = Copy(a.OnFire),
-            ActsOn = a.ActsOn,
-            GameAlarmId = a.GameAlarmId,
-            GameEdits = a.GameEdits,
-            Restored = restored || a.Restored,
-        };
-
         private static List<ScetAlarmAction> Copy(List<ScetAlarmAction>? actions)
         {
             var copy = new List<ScetAlarmAction>(actions?.Count ?? 0);

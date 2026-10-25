@@ -49,30 +49,12 @@ namespace Sitrep.Host.Tests
 
             /// <summary>The player deleting an alarm in the game's own window.</summary>
             public void PlayerDeletes(long id) => Held.Remove(id);
-
-            /// <summary>The player editing an alarm's title and time in the game's own window.</summary>
-            public void PlayerEdits(long id, string title, double ut)
-            {
-                Held[id].Title = title;
-                Held[id].Ut = ut;
-            }
         }
 
         private static ScetAlarmArmArgs TimeAlarm(string id, double ut, string name = "Burn") => new ScetAlarmArmArgs
         {
             Id = id,
             Name = name,
-            Condition = new ScetAlarmCondition { Kind = ScetAlarmConditionKind.Time, Ut = ut, LeadSeconds = 10 },
-        };
-
-        private static ScetAlarm TimeAlarmRow(string id, double ut) => new ScetAlarm
-        {
-            Id = id,
-            Name = "Burn",
-            ArmedBy = "KSC",
-            Vantage = "game",
-            Subject = "game",
-            State = ScetAlarmState.Armed,
             Condition = new ScetAlarmCondition { Kind = ScetAlarmConditionKind.Time, Ut = ut, LeadSeconds = 10 },
         };
 
@@ -107,10 +89,6 @@ namespace Sitrep.Host.Tests
             foreach (var id in outcome.DeletedInGame)
             {
                 roster.MarkDeletedInGame(id);
-            }
-            foreach (var edit in outcome.EditedInGame)
-            {
-                roster.EditFromGame(edit.Key, edit.Value.Title, edit.Value.Ut);
             }
             return outcome;
         }
@@ -240,51 +218,6 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void editing_the_copy_in_the_game_moves_the_gonogo_alarm_and_keeps_the_copy()
-        {
-            var (roster, mirror, clock, _) = World();
-            roster.Arm(TimeAlarm("a", 5000), "KSC");
-            Sync(roster, mirror, clock, 100);
-            var copy = clock.Held.Keys.Single();
-
-            clock.PlayerEdits(copy, "Renamed", 6000);
-            var outcome = Sync(roster, mirror, clock, 101);
-
-            Assert.Equal(new[] { "a" }, outcome.EditedInGame.Keys);
-            var row = roster.Snapshot().Single();
-            Assert.Equal("Renamed", row.Name);
-            Assert.Equal(6000, row.Condition!.Ut);
-            Assert.Equal(copy, row.GameAlarmId);
-            Assert.Equal(1, row.GameEdits);
-            Assert.Equal(copy, clock.Held.Keys.Single());
-            Assert.Empty(clock.Deleted);
-
-            roster.Arm(TimeAlarm("a", 6500), "KSC");
-            Assert.Equal(1, roster.Snapshot().Single().GameEdits);
-
-            var again = Sync(roster, mirror, clock, 102);
-            Assert.Empty(again.EditedInGame);
-        }
-
-        [Fact]
-        public void when_both_sides_moved_gonogos_values_win_and_the_copy_is_made_again()
-        {
-            var (roster, mirror, clock, _) = World();
-            roster.Arm(TimeAlarm("a", 5000), "KSC");
-            Sync(roster, mirror, clock, 100);
-            var copy = clock.Held.Keys.Single();
-
-            clock.PlayerEdits(copy, "Renamed", 6000);
-            roster.Arm(TimeAlarm("a", 7000), "KSC");
-            var outcome = Sync(roster, mirror, clock, 101);
-
-            Assert.Empty(outcome.EditedInGame);
-            var only = Assert.Single(clock.Held.Values);
-            Assert.Equal(7000, only.Ut);
-            Assert.Equal("Burn", only.Title);
-        }
-
-        [Fact]
         public void a_copy_the_game_removed_when_it_came_due_is_not_a_delete()
         {
             var (roster, mirror, clock, _) = World();
@@ -340,85 +273,6 @@ namespace Sitrep.Host.Tests
             Sync(roster, mirror, clock, 100);
 
             Assert.Single(clock.Held);
-        }
-
-        [Fact]
-        public void a_roster_restored_from_a_save_keeps_the_copies_the_save_holds()
-        {
-            var (roster, mirror, clock, links) = World();
-            roster.Arm(TimeAlarm("a", 5000), "KSC");
-            roster.Arm(TimeAlarm("b", 6000, "Second"), "KSC");
-            Sync(roster, mirror, clock, 100);
-            var saved = roster.Snapshot();
-            var savedLinks = new Dictionary<string, long>(links);
-            var savedClock = clock.Held.ToDictionary(h => h.Key, h => h.Value);
-
-            roster.Disarm("b");
-            roster.Arm(TimeAlarm("c", 7000, "After the save"), "KSC");
-            Sync(roster, mirror, clock, 200);
-
-            roster.Restore(saved);
-            links.Clear();
-            foreach (var link in savedLinks)
-            {
-                links[link.Key] = link.Value;
-            }
-            clock.Held.Clear();
-            foreach (var held in savedClock)
-            {
-                clock.Held[held.Key] = held.Value;
-            }
-            var outcome = Sync(roster, mirror, clock, 100);
-
-            Assert.Equal(new[] { "a", "b" }, roster.Snapshot().Select(a => a.Id).ToArray());
-            Assert.Equal(2, clock.Held.Count);
-            Assert.All(roster.Snapshot(), a => Assert.True(links[a.Id] == a.GameAlarmId));
-            Assert.Empty(outcome.DeletedInGame);
-        }
-
-        [Fact]
-        public void restoring_a_roster_takes_only_the_armed_alarms()
-        {
-            var roster = new ScetAlarmRoster();
-            roster.Arm(TimeAlarm("old", 100), "KSC");
-
-            roster.Restore(new[]
-            {
-                new ScetAlarm { Id = "armed", State = ScetAlarmState.Armed, Condition = new ScetAlarmCondition { Ut = 9000 } },
-                new ScetAlarm { Id = "fired", State = ScetAlarmState.Fired, Condition = new ScetAlarmCondition { Ut = 10 } },
-                new ScetAlarm { Id = "gone", State = ScetAlarmState.DeletedInGame, Condition = new ScetAlarmCondition { Ut = 10 } },
-            });
-
-            Assert.Equal(new[] { "armed" }, roster.Snapshot().Select(a => a.Id).ToArray());
-        }
-
-        [Fact]
-        public void a_restored_alarm_is_marked_until_a_client_arms_it_again()
-        {
-            var roster = new ScetAlarmRoster();
-            roster.Restore(new[]
-            {
-                TimeAlarmRow("a", 5000),
-            });
-            Assert.True(roster.Snapshot().Single().Restored);
-
-            Assert.True(roster.Arm(TimeAlarm("a", 5000), "KSC"));
-
-            Assert.False(roster.Snapshot().Single().Restored);
-            Assert.False(roster.Arm(TimeAlarm("a", 5000), "KSC"));
-        }
-
-        [Fact]
-        public void a_client_that_arms_a_restored_alarm_with_other_values_replaces_it()
-        {
-            var roster = new ScetAlarmRoster();
-            roster.Restore(new[] { TimeAlarmRow("a", 5000) });
-
-            roster.Arm(TimeAlarm("a", 6000), "KSC");
-
-            var row = roster.Snapshot().Single();
-            Assert.False(row.Restored);
-            Assert.Equal(6000, row.Condition!.Ut);
         }
 
         [Fact]

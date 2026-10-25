@@ -25,7 +25,6 @@ import {
   Lock,
   type LucideProps,
   Maximize,
-  Menu,
   Microscope,
   Minimize,
   Pause,
@@ -289,13 +288,6 @@ export const StarIcon = makeIcon(Star);
  * @category Icons
  */
 export const HeartIcon = makeIcon(Heart);
-/**
- * Three horizontal lines. Useful for the control that opens a menu of
- * dashboard controls. Used by the dashboard menu button.
- *
- * @category Icons
- */
-export const MenuIcon = makeIcon(Menu);
 /**
  * A microscope. Useful for showing the operator a science amount. Used by
  * {@link Unit} as the science symbol.

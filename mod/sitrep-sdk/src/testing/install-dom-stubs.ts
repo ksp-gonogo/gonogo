@@ -3,8 +3,11 @@
  * widget renders in a jsdom test: a `ResizeObserver` that does nothing, a
  * canvas `getContext` that returns `null` (so a widget takes its no-canvas
  * path), a `HTMLMediaElement.play` that resolves, a `matchMedia` that never
- * matches, and a `WebSocket` that connects to nothing. Safe to call more than
- * once. Call it from a test setup file. Useful for testing how a
+ * matches, a `WebSocket` that connects to nothing, and a `fetch` that answers
+ * the app's `/ice-config` request with a 503 and passes everything else
+ * through. The `/ice-config` path is the one the app asks its relay for
+ * peer-connection settings on; the 503 makes it carry on without them. Safe to
+ * call more than once. Call it from a test setup file. Useful for testing how a
  * widget mounts, as the operator sees it, in a jsdom test. Used by the test setup of the app and of each bundled Uplink's client.
  *
  * @example
@@ -73,6 +76,39 @@ export function installDomStubs(): void {
         dispatchEvent: () => false,
       }) as MediaQueryList;
   }
+
+  // Same problem with `fetch`: PeerHostService now fetches /ice-config
+  // from the relay on start(). Tests run with no relay listening, so an
+  // un-mocked fetch hangs until the abort timeout, slowing every host
+  // test by 4 seconds. A 503-returning stub closes the loop instantly
+  // and gives the host the same "no TURN, run direct/STUN-only"
+  // fallback it'd take if the relay were genuinely unreachable.
+  installRelayFetchStub();
+}
+
+function installRelayFetchStub(): void {
+  if (typeof globalThis === "undefined") return;
+  const original = (globalThis as { fetch?: typeof fetch }).fetch;
+  // Wrap whatever's there; install a stand-in that returns 503 if no
+  // `fetch` exists at all. Either way `/ice-config` resolves
+  // synchronously-fast so PeerHostService.start() doesn't hang under
+  // tests on the abort-timeout path.
+  (globalThis as { fetch: typeof fetch }).fetch = (async (
+    input: Parameters<typeof fetch>[0],
+    init: Parameters<typeof fetch>[1],
+  ) => {
+    const url = typeof input === "string" ? input : (input as Request).url;
+    if (url.endsWith("/ice-config")) {
+      return new Response(JSON.stringify({ error: "test stub" }), {
+        status: 503,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    if (!original) {
+      throw new Error(`no fetch available for ${url}`);
+    }
+    return original(input as RequestInfo, init);
+  }) as typeof fetch;
 }
 
 function installNoopWebSocket(): void {

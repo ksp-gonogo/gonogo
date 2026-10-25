@@ -20,7 +20,7 @@ import {
   __resetConnectionClock,
   __setUnansweredSince,
 } from "../../app/src/firstRun/useConnectionCheck";
-import { relayBaseUrl } from "../../app/src/peer/relayAddress";
+import { relayBaseUrl } from "../../app/src/peer/iceServers";
 import { RunSetupAgain } from "../../app/src/settings/SettingsModal";
 import {
   __resetUplinkOutcomes,

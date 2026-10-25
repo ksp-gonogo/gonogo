@@ -26,6 +26,8 @@ describe("readConnectionPath", () => {
     ["host", "host", "lan"],
     ["srflx", "host", "internet"],
     ["srflx", "srflx", "internet"],
+    ["host", "relay", "relayed"],
+    ["relay", "srflx", "relayed"],
   ])("reads %s + %s as %s", async (l, r, want) => {
     expect(await readConnectionPath(stats(l, r))).toBe(want);
   });
