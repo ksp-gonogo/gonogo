@@ -2,8 +2,8 @@ import Fastify from "fastify";
 import { describe, expect, it } from "vitest";
 import { registerBootstrapConfigRoutes } from "../bootstrapConfig.js";
 import type { EndpointHandle } from "../endpointManager.js";
+import { EndpointSupervisor } from "../endpointSupervisor.js";
 import { registerHealthRoutes } from "../healthRoutes.js";
-import { PublicServiceSupervisor } from "../publicServiceSupervisor.js";
 
 function handle(): EndpointHandle {
   return {
@@ -14,12 +14,6 @@ function handle(): EndpointHandle {
   };
 }
 
-const service = {
-  name: "endpoint",
-  undiscoveredReason:
-    "public IP not discovered; set PUBLIC_IP or restore internet access",
-};
-
 const until = async (cond: () => boolean) => {
   for (let i = 0; i < 200 && !cond(); i++) {
     await new Promise((r) => setTimeout(r, 5));
@@ -27,12 +21,11 @@ const until = async (cond: () => boolean) => {
   expect(cond()).toBe(true);
 };
 
-describe("PublicServiceSupervisor", () => {
+describe("EndpointSupervisor", () => {
   it("stays up without the endpoint when discovery fails, then retries and starts it", async () => {
     let attempts = 0;
     const fatal: string[] = [];
-    const sup = new PublicServiceSupervisor({
-      ...service,
+    const sup = new EndpointSupervisor({
       retryMs: 10,
       discover: async () => {
         attempts += 1;
@@ -54,8 +47,7 @@ describe("PublicServiceSupervisor", () => {
   });
 
   it("serves /bootstrap-config while the endpoint is unavailable, with /health giving the reason", async () => {
-    const sup = new PublicServiceSupervisor({
-      ...service,
+    const sup = new EndpointSupervisor({
       retryMs: 60_000,
       discover: async () => {
         throw new Error("offline");
@@ -89,8 +81,7 @@ describe("PublicServiceSupervisor", () => {
 
   it("is fatal when the endpoint cannot start", async () => {
     const fatal: string[] = [];
-    const sup = new PublicServiceSupervisor({
-      ...service,
+    const sup = new EndpointSupervisor({
       discover: async () => "203.0.113.1",
       start: () => {
         throw new Error("EACCES");
@@ -105,8 +96,7 @@ describe("PublicServiceSupervisor", () => {
   it("passes the exit callback to the endpoint so a later death is fatal", async () => {
     const fatal: string[] = [];
     let exit: ((reason: string) => void) | undefined;
-    const sup = new PublicServiceSupervisor({
-      ...service,
+    const sup = new EndpointSupervisor({
       discover: async () => "203.0.113.1",
       start: (_ip, onExit) => {
         exit = onExit;
@@ -122,8 +112,7 @@ describe("PublicServiceSupervisor", () => {
 
   it("stops retrying once stopped", async () => {
     let attempts = 0;
-    const sup = new PublicServiceSupervisor({
-      ...service,
+    const sup = new EndpointSupervisor({
       retryMs: 5,
       discover: async () => {
         attempts += 1;

@@ -1,39 +1,62 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { encodeFrames, FrameReader, MAX_FRAME_BYTES } from "./endpointFraming";
 import { EndpointHostLink } from "./endpointHostLink";
 
 /** Enough RTCPeerConnection and RTCDataChannel to drive the link's events by hand. */
-function fakes() {
-  const sent: Uint8Array[] = [];
-  const channel = Object.assign(new EventTarget(), {
+class FakePeerConnection {
+  static last: FakePeerConnection | null = null;
+  readonly sent: Uint8Array[] = [];
+  readonly descriptions: RTCSessionDescriptionInit[] = [];
+  localDescription: RTCSessionDescriptionInit | null = null;
+  readonly channel = Object.assign(new EventTarget(), {
     binaryType: "blob",
-    send: (f: Uint8Array) => sent.push(f),
-    close() {
-      channel.dispatchEvent(new Event("close"));
-    },
+    send: (f: Uint8Array) => this.sent.push(f),
+    close: () => this.channel.dispatchEvent(new Event("close")),
   });
-  const descriptions: RTCSessionDescriptionInit[] = [];
-  const pc = {
-    localDescription: null as RTCSessionDescriptionInit | null,
-    createDataChannel: () => channel,
-    createOffer: async () => ({ type: "offer", sdp: "v=offer" }),
-    setLocalDescription: async (d: RTCSessionDescriptionInit) => {
-      pc.localDescription = d;
-    },
-    setRemoteDescription: async (d: RTCSessionDescriptionInit) => {
-      descriptions.push(d);
-    },
-    close: () => {},
-  };
+
+  constructor() {
+    FakePeerConnection.last = this;
+  }
+
+  createDataChannel() {
+    return this.channel;
+  }
+
+  async createOffer() {
+    return { type: "offer", sdp: "v=offer" };
+  }
+
+  async setLocalDescription(d: RTCSessionDescriptionInit) {
+    this.localDescription = d;
+  }
+
+  async setRemoteDescription(d: RTCSessionDescriptionInit) {
+    this.descriptions.push(d);
+  }
+
+  close() {}
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+function fakes() {
+  vi.stubGlobal("RTCPeerConnection", FakePeerConnection);
+  const link = new EndpointHostLink("gonogo-host-ABCD");
+  const pc = FakePeerConnection.last;
+  if (!pc) throw new Error("the link built no peer connection");
   const deliver = (frame: Uint8Array) => {
     const e = new MessageEvent("message", { data: frame.slice().buffer });
-    channel.dispatchEvent(e);
+    pc.channel.dispatchEvent(e);
   };
-  const link = new EndpointHostLink(
-    "gonogo-host-ABCD",
-    () => pc as unknown as RTCPeerConnection,
-  );
-  return { link, channel, sent, descriptions, deliver };
+  return {
+    link,
+    channel: pc.channel,
+    sent: pc.sent,
+    descriptions: pc.descriptions,
+    deliver,
+  };
 }
 
 describe("a station's link through the endpoint", () => {

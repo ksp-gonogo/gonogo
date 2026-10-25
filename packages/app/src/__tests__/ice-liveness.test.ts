@@ -190,7 +190,7 @@ describe("attachIceDiagnostics candidate logging", () => {
     try {
       const { pc } = wire();
       pc.emit("icecandidateerror", {
-        url: "turn:198.51.100.9:3478?transport=udp",
+        url: "stun:198.51.100.9:3478",
         errorCode: 701,
         errorText: "timed out",
       });
@@ -201,7 +201,7 @@ describe("attachIceDiagnostics candidate logging", () => {
     expect(JSON.stringify(sent)).not.toContain("198.51.100.9");
     const entry = sent.find((e) => e.message.includes("icecandidateerror"));
     expect(entry?.context).toMatchObject({
-      serverScheme: "turn",
+      serverScheme: "stun",
       serverAddressClass: "public",
       serverPort: 3478,
       errorCode: 701,

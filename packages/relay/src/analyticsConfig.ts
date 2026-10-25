@@ -79,8 +79,7 @@ function writeSseEvent(reply: FastifyReply, enabled: boolean): void {
 
 /**
  * Mount the analytics-config broker onto a Fastify instance. Which pages
- * may reach it is the relay-wide `registerAppOrigins` gate, the same one
- * `/ice-config` sits behind. Optionally takes a callback fired
+ * may reach it is the relay-wide `registerAppOrigins` gate. Optionally takes a callback fired
  * on every change so the relay can gate its own Axiom transport.
  *
  * Returns the controller so the caller can read/gate and tests can inspect.
