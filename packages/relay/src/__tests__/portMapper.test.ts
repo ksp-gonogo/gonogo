@@ -1,14 +1,7 @@
 import { createSocket, type Socket } from "node:dgram";
 import { afterEach, describe, expect, it } from "vitest";
 import { encodeMappingRequest } from "../natPmp.js";
-import {
-  defaultGateway,
-  endpointPorts,
-  gatewayCandidates,
-  type MappedPort,
-  PortMapper,
-  sweepCandidates,
-} from "../portMapper.js";
+import { endpointPorts, type MappedPort, PortMapper } from "../portMapper.js";
 
 /** One port on UDP and TCP, then a window on UDP alone: a port list of more than one shape. */
 function portList(both: number, from: number, to: number): MappedPort[] {
@@ -86,7 +79,7 @@ async function setup(mode: Mode, extra: object = {}) {
   routers.push(router);
   const log: string[] = [];
   const mapper = new PortMapper({
-    gateways: ["127.0.0.1"],
+    router: "127.0.0.1",
     ports: portList(3478, 49160, 49169),
     timeoutMs: 40,
     natPmpPort: router.port,
@@ -191,13 +184,15 @@ describe("PortMapper against a router that speaks NAT-PMP", () => {
     expect(router.seen).toEqual([]);
   });
 
-  it("stops at the first address that answers", async () => {
-    const { mapper, log } = await setup("ok", {
-      gateways: ["127.0.0.1", "192.0.2.1"],
+  it("asks only the router it is given, and says so when that one stays silent", async () => {
+    const { router, mapper, log } = await setup("ok", {
+      router: "127.0.0.2",
     });
     await mapper.start();
-    expect(log.some((l) => l.includes("192.0.2.1"))).toBe(false);
-    await mapper.stop();
+    expect(router.seen).toEqual([]);
+    expect(mapper.status.state).toBe("no-answer");
+    expect(mapper.status.message).toContain("Check its address");
+    expect(log.at(-1)).toBe("no router answered NAT-PMP or UPnP at 127.0.0.2");
   });
 });
 
@@ -207,53 +202,5 @@ describe("wire format", () => {
       0, 1, 0, 0, 0xc0, 0x08, 0xc0, 0x08, 0, 0, 0x0e, 0x10,
     ]);
     expect(encodeMappingRequest("tcp", 3478, 3478, 0)[1]).toBe(2);
-  });
-});
-
-/** Dotted address from octets, so no private address is spelled in this file. */
-const ip = (...octets: number[]) => octets.join(".");
-
-describe("router addresses", () => {
-  it("reads the default gateway from the routing table", () => {
-    const table =
-      "Iface\tDestination\tGateway\tFlags\neth0\t00000000\t0100A8C0\t0003\neth0\t0000A8C0\t00000000\t0001\n";
-    expect(defaultGateway(() => table)).toBe(ip(192, 168, 0, 1));
-    expect(
-      defaultGateway(() => {
-        throw new Error("none");
-      }),
-    ).toBeNull();
-  });
-
-  it("uses ROUTER_IP alone, else the gateway first then the usual addresses", () => {
-    expect(gatewayCandidates(ip(10, 9, 9, 1), ip(192, 168, 0, 1))).toEqual([
-      ip(10, 9, 9, 1),
-    ]);
-    const found = gatewayCandidates(null, ip(172, 16, 0, 1));
-    expect(found[0]).toBe(ip(172, 16, 0, 1));
-    expect(found).toContain(ip(192, 168, 1, 1));
-    expect(found).toContain(ip(192, 168, 86, 1));
-    expect(new Set(found).size).toBe(found.length);
-  });
-});
-
-describe("PortMapper sweep", () => {
-  it("asks the sweep addresses only after the named gateways stay silent", async () => {
-    const { router, mapper, log } = await setup("ok", {
-      gateways: ["127.0.0.2"],
-      sweep: ["127.0.0.3", "127.0.0.1"],
-    });
-    await mapper.start();
-    expect(mapper.status.state).toBe("mapped");
-    expect(log[0]).toBe("router at 127.0.0.1 answered NAT-PMP");
-    expect(router.seen.length).toBeGreaterThan(0);
-    await mapper.stop();
-  });
-
-  it("covers the .1 and .254 of every 192.168 network, without repeats", () => {
-    const all = sweepCandidates();
-    expect(all).toContain(ip(192, 168, 86, 1));
-    expect(all).toContain(ip(192, 168, 255, 254));
-    expect(new Set(all).size).toBe(all.length);
   });
 });
