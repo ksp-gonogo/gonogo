@@ -107,7 +107,6 @@ export function ConnectStep() {
       {failed && (
         <Hint>
           <HintList>
-            <li>{say("connect.hint.notRunning")}</li>
             <li>
               <Prose runs={runs("connect.hint.notInstalled")} />
             </li>

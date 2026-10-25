@@ -24,8 +24,6 @@ export const WIZARD_COPY = {
   "welcome.advance": "Setup",
   "welcome.parts":
     "Gonogo has two parts: this app, which runs in a container, and the Gonogo mod, which runs inside KSP and sends the game's data to it.",
-  "welcome.steps":
-    "The next steps check the container, the connection to KSP and for any installed Uplinks.",
 
   "container.heading": "Start the app",
   "container.advance": "Friends on other networks",
@@ -74,7 +72,7 @@ export const WIZARD_COPY = {
   "connect.twoComputers":
     "By default, KSP will not run when minimised. If that's an issue for you, check that settings.cfg in the KSP install folder has the line SIMULATE_IN_BACKGROUND = True, or keep the dashboard on a second screen or device.",
   "connect.confirm":
-    'To confirm the mod started, run this in your KSP install folder. It prints a line beginning "[Gonogo] Started". If nothing appears, try the previous step again.',
+    'To confirm the mod started, run this in your KSP install folder. It prints a line beginning "[Gonogo] Started".',
   "connect.logCommandLabel": "mod log command",
   "connect.hint.address":
     "To find the KSP computer's address, run the command:",
@@ -89,8 +87,6 @@ export const WIZARD_COPY = {
   "connect.check.fail": "Not connected to KSP at {address}",
   "connect.check.retrying":
     "No answer from KSP at {address} yet. Still trying.",
-  "connect.hint.notRunning":
-    "KSP may not be running yet: start it and wait for the main menu",
   "connect.hint.notInstalled":
     "The command above prints nothing: the mod is not installed. The [KSP setup guide](kspSetup) covers installing it",
   "connect.hint.blocked":
@@ -163,7 +159,7 @@ export const WIZARD_COPY = {
   "settings.heading": "Setup",
   "settings.label": "First-run setup",
   "settings.description":
-    "Open the setup again. It checks the app, the connection to KSP and your Uplinks.",
+    "Checks the app, the connection to KSP and your Uplinks.",
   "settings.action": "Run setup again",
 } as const;
 
