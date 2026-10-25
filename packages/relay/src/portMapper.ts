@@ -57,16 +57,13 @@ const STATUS: Record<PortMappingState, string> = {
   checking: "Asking your router to open the relay's port...",
   mapped: "Your router opened the relay's port.",
   refused: "Your router refused to open the relay's port",
-  "no-answer":
-    "Your router did not answer a request to open the relay's port. Check its address, and that UPnP or NAT-PMP is switched on in its settings.",
+  "no-answer": "Your router did not answer.",
   "container-only":
-    "Your router only opens ports for a program running directly on this computer, so the relay could not open it from inside the container.",
+    "Your router does not take requests from inside the container.",
   "no-address": "Automatic port forwarding needs your router's address.",
   "ipv6-unsupported":
     "Gonogo cannot ask a router to open a port over IPv6 yet.",
 };
-
-const MANUAL = "Forward it by hand, as the networking guide describes.";
 
 /** One port the relay asks the router to open. */
 export interface MappedPort {
@@ -130,15 +127,11 @@ export class PortMapper {
   }
 
   private set(state: PortMappingState, detail?: string): void {
+    /* The setup step shows how to forward the port by hand under any failure, so the message says only what the router did. */
     const message =
-      state === "mapped" ||
-      state === "checking" ||
-      state === "no-address" ||
-      state === "ipv6-unsupported"
-        ? STATUS[state]
-        : state === "refused"
-          ? `${STATUS.refused}${detail ? ` (${detail})` : ""}. ${MANUAL}`
-          : `${STATUS[state]} ${MANUAL}`;
+      state === "refused"
+        ? `${STATUS.refused}${detail ? ` (${detail})` : ""}.`
+        : STATUS[state];
     this.current = { state, message };
   }
 
