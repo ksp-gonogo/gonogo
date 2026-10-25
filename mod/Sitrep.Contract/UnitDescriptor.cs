@@ -125,6 +125,20 @@ namespace Sitrep.Contract
             /// least one. Written as <c>"typeDeterministicWhile"</c>.
             /// </summary>
             public SortedDictionary<string, SortedDictionary<string, string>> DeterministicWhileByType { get; set; }
+
+            /// <summary>
+            /// Type name to (camelCase field name to the name the field is listed
+            /// under), for every type with at least one
+            /// <see cref="SitrepDisplayNameAttribute"/>. Written as
+            /// <c>"typeNames"</c>.
+            /// </summary>
+            public SortedDictionary<string, SortedDictionary<string, string>> NamesByType { get; set; }
+
+            /// <summary>
+            /// Topic id to its <see cref="SitrepTopicAttribute.DisplayName"/>, for
+            /// every Topic that declares one. Written as <c>"topicNames"</c>.
+            /// </summary>
+            public SortedDictionary<string, string> TopicNames { get; set; }
         }
 
         /// <summary>
@@ -246,6 +260,8 @@ namespace Sitrep.Contract
             var staticByType = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
             var staticByTopic = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
             var deterministicWhileByType = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
+            var namesByType = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
+            var topicNames = new SortedDictionary<string, string>(StringComparer.Ordinal);
 
             var target = assembly ?? typeof(UnitDescriptor).Assembly;
             var assemblyTypes = LoadableTypes(target);
@@ -269,8 +285,15 @@ namespace Sitrep.Contract
                 var enums = new SortedDictionary<string, string>(StringComparer.Ordinal);
                 var statics = new SortedSet<string>(StringComparer.Ordinal);
                 var deterministicWhile = new SortedDictionary<string, string>(StringComparer.Ordinal);
+                var names = new SortedDictionary<string, string>(StringComparer.Ordinal);
                 foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
                 {
+                    var displayName = prop.GetCustomAttribute<SitrepDisplayNameAttribute>();
+                    if (displayName != null)
+                    {
+                        names.Add(CamelCase(prop.Name), RequireDisplayName(displayName.Name, type.Name + "." + prop.Name));
+                    }
+
                     var gated = prop.GetCustomAttribute<SitrepDeterministicWhileAttribute>();
                     if (gated != null)
                     {
@@ -358,6 +381,16 @@ namespace Sitrep.Contract
 
                 var topic = type.GetCustomAttribute<SitrepTopicAttribute>();
 
+                if (topic?.DisplayName != null)
+                {
+                    topicNames.Add(topic.TopicId, RequireDisplayName(topic.DisplayName, topic.TopicId));
+                }
+
+                if (names.Count > 0)
+                {
+                    namesByType.Add(WireName(type), names);
+                }
+
                 if (statics.Count > 0)
                 {
                     staticByType.Add(WireName(type), statics);
@@ -416,7 +449,25 @@ namespace Sitrep.Contract
                 StaticByType = staticByType,
                 StaticByTopic = staticByTopic,
                 DeterministicWhileByType = deterministicWhileByType,
+                NamesByType = namesByType,
+                TopicNames = topicNames,
             };
+        }
+
+        /// <summary>
+        /// Throws when a declared display name is blank or carries surrounding
+        /// whitespace, since a picker would list it as an empty or misaligned row.
+        /// </summary>
+        private static string RequireDisplayName(string name, string owner)
+        {
+            if (string.IsNullOrWhiteSpace(name) || name.Trim() != name)
+            {
+                throw new InvalidOperationException(
+                    "The display name on " + owner + " is \"" + name + "\". Give it the words an operator " +
+                    "reads, with no leading or trailing space, or leave it out to list the field by its own name.");
+            }
+
+            return name;
         }
 
         /// <summary>
@@ -555,7 +606,9 @@ namespace Sitrep.Contract
             AppendEnumMembers(sb, maps.EnumMembers);
             AppendJsonSetMap(sb, "typeStatic", maps.StaticByType, false);
             AppendJsonSetMap(sb, "topicStatic", maps.StaticByTopic, false);
-            AppendJsonMap(sb, "typeDeterministicWhile", maps.DeterministicWhileByType, true);
+            AppendJsonMap(sb, "typeDeterministicWhile", maps.DeterministicWhileByType, false);
+            AppendJsonMap(sb, "typeNames", maps.NamesByType, false);
+            AppendJsonFlatMap(sb, "topicNames", maps.TopicNames);
             sb.Append("}\n");
             return sb.ToString();
         }
@@ -621,6 +674,25 @@ namespace Sitrep.Contract
             sb.Append("\n  }").Append(last ? "\n" : ",\n");
         }
 
+        private static void AppendJsonFlatMap(
+            StringBuilder sb,
+            string name,
+            SortedDictionary<string, string> map)
+        {
+            sb.Append("  ").Append(JsonString(name)).Append(": {\n");
+            var first = true;
+            foreach (var entry in map)
+            {
+                if (!first)
+                {
+                    sb.Append(",\n");
+                }
+                first = false;
+                sb.Append("    ").Append(JsonString(entry.Key)).Append(": ").Append(JsonString(entry.Value));
+            }
+            sb.Append("\n  }\n");
+        }
+
         private static void AppendJsonMap(
             StringBuilder sb,
             string name,
@@ -659,7 +731,7 @@ namespace Sitrep.Contract
         /// are the quote and the backslash; the control-character arm is there
         /// so a future token cannot silently produce invalid JSON.
         /// </summary>
-        private static string JsonString(string value)
+        internal static string JsonString(string value)
         {
             var sb = new StringBuilder("\"");
             foreach (var c in value)

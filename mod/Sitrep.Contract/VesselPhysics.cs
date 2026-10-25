@@ -62,7 +62,7 @@ public enum PhysicsMode
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.physics.mode")]
+[SitrepTopic("vessel.physics.mode", DisplayName = "Active vessel physics")]
 public class VesselPhysicsMode
 {
     /// <summary>The active vessel's physics regime.</summary>

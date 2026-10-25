@@ -25,7 +25,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.flight")]
+[SitrepTopic("vessel.flight", DisplayName = "Active vessel")]
 public class VesselFlight
 {
     /// <summary>Latitude of the vessel's position on its reference body, degrees (KSP's <c>Vessel.latitude</c>). Present means valid: there is no <c>(0,0)</c> no-data placeholder, and absence is the whole channel being unavailable.</summary>
@@ -53,10 +53,12 @@ public class VesselFlight
     [SitrepReckonable(ReckoningBases.RateIntegration, "verticalSpeed", "gForce", "@trackingStation.bodies")]
     // Under thrust the conic and the descent both stand down; the burn model carries the altitude off its integrated state, banded the way vessel.orbit's elements are.
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "@vessel.orbit", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
+    [SitrepDisplayName("Altitude (sea level)")]
     public double AltitudeAsl { get; set; }
 
     /// <summary>Height above terrain (AGL, KSP's <c>Vessel.radarAltitude</c>), metres. Not derivable from orbital elements, so it is streamed as measured.</summary>
     [SitrepUnit(Units.Metres)]
+    [SitrepDisplayName("Altitude (above terrain)")]
     public double AltitudeTerrain { get; set; }
 
     /// <summary>Metres per second (KSP's <c>Vessel.verticalSpeed</c>), signed: negative is descending.</summary>
@@ -85,14 +87,17 @@ public class VesselFlight
 
     /// <summary>Multiples of standard gravity (KSP's <c>Vessel.geeForce</c>).</summary>
     [SitrepUnit(Units.GForce)]
+    [SitrepDisplayName("G-force")]
     public double GForce { get; set; }
 
     /// <summary>Dynamic pressure on the vessel, kilopascals (KSP's <c>Vessel.dynamicPressurekPa</c>). <c>0</c> outside an atmosphere.</summary>
     [SitrepUnit(Units.Kilopascals)]
+    [SitrepDisplayName("Dynamic pressure")]
     public double DynamicPressureKPa { get; set; }
 
     /// <summary>Mach number (KSP's <c>Vessel.mach</c>), dimensionless.</summary>
     [SitrepUnit(Units.Dimensionless)]
+    [SitrepDisplayName("Mach number")]
     public double Mach { get; set; }
 
     /// <summary>Atmospheric density at the vessel's position, kg/m³ (KSP's <c>Vessel.atmDensity</c>).</summary>

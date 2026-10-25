@@ -36,6 +36,14 @@ namespace Sitrep.Contract
         /// </summary>
         public bool IsArray { get; }
 
+        /// <summary>
+        /// What the Topic describes, in the game's own nouns, as a picker lists it
+        /// ("Active vessel", "Signal delay"). Useful for naming a value the
+        /// operator chooses by what it measures rather than by its id. When it is
+        /// absent a client tidies the Topic id instead.
+        /// </summary>
+        public string DisplayName { get; set; }
+
         /// <summary>Tags the class as the payload of <paramref name="topicId"/>.</summary>
         /// <param name="topicId">The Topic id.</param>
         /// <param name="isArray">Whether the payload is a bare array of the tagged type.</param>

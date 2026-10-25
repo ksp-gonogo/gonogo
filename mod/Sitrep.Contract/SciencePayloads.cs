@@ -69,7 +69,7 @@ public static class ScienceValueModels
 /// transmitted, and the archive of every subject the career has studied.
 /// </categoryDescription>
 [SitrepContract]
-[SitrepTopic("science.experiments", isArray: true)]
+[SitrepTopic("science.experiments", isArray: true, DisplayName = "Science experiments")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -238,7 +238,7 @@ public class ExperimentEntry
 /// </summary>
 /// <category>Science</category>
 [SitrepContract]
-[SitrepTopic("science.instruments", isArray: true)]
+[SitrepTopic("science.instruments", isArray: true, DisplayName = "Science instruments")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -382,7 +382,7 @@ public class InstrumentEntry
 /// </summary>
 /// <category>Science</category>
 [SitrepContract]
-[SitrepTopic("science.lab", isArray: true)]
+[SitrepTopic("science.lab", isArray: true, DisplayName = "Science lab")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -733,7 +733,7 @@ public enum DeployedPowerState
 /// </summary>
 /// <category>Science</category>
 [SitrepContract]
-[SitrepTopic("science.sensors", isArray: true)]
+[SitrepTopic("science.sensors", isArray: true, DisplayName = "Science sensors")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -795,7 +795,7 @@ public class SensorEntry
 /// </summary>
 /// <category>Science</category>
 [SitrepContract]
-[SitrepTopic("science.experimentBreakdown", isArray: true)]
+[SitrepTopic("science.experimentBreakdown", isArray: true, DisplayName = "Science experiment breakdown")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -888,7 +888,7 @@ public class ExperimentBreakdownEntry
 /// </summary>
 /// <category>Science</category>
 [SitrepContract]
-[SitrepTopic("science.archive", isArray: true)]
+[SitrepTopic("science.archive", isArray: true, DisplayName = "Science archive")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -965,7 +965,7 @@ public class ArchiveEntry
 /// </summary>
 /// <category>Science</category>
 [SitrepContract]
-[SitrepTopic("science.transmissions", isArray: true)]
+[SitrepTopic("science.transmissions", isArray: true, DisplayName = "Science transmissions")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

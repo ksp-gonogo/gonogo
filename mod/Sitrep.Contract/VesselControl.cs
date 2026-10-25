@@ -133,7 +133,7 @@ public class ActionGroupState
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.control")]
+[SitrepTopic("vessel.control", DisplayName = "Active vessel controls")]
 public class VesselControl
 {
     /// <summary>Whether SAS is on. Changed with <c>vessel.control.setSas</c>.</summary>

@@ -79,7 +79,7 @@ public class CrewMember
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.crew")]
+[SitrepTopic("vessel.crew", DisplayName = "Active vessel crew")]
 public class VesselCrew
 {
     /// <summary>How many crew are aboard.</summary>

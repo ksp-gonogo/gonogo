@@ -100,7 +100,7 @@ public class ClosestApproach
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.target")]
+[SitrepTopic("vessel.target", DisplayName = "Active vessel target")]
 public class VesselTarget
 {
     /// <summary>The target's name as KSP gives it (<c>ITargetable.GetName()</c>). Empty string when none was read.</summary>

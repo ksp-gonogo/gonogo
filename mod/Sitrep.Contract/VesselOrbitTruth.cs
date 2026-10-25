@@ -35,7 +35,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.orbit.truth")]
+[SitrepTopic("vessel.orbit.truth", DisplayName = "Active vessel orbit (true)")]
 public class VesselOrbitTruth
 {
     /// <summary>
