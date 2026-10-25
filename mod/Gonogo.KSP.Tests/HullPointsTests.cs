@@ -111,6 +111,118 @@ namespace Gonogo.KSP.Tests
             Assert.True(kept.Length < 130);
         }
 
+        private static List<Vector3> Revolved((float radius, float y)[] profile)
+        {
+            var mesh = new List<Vector3>();
+            foreach (var (radius, y) in profile)
+            {
+                for (var i = 0; i < 32; i++)
+                {
+                    var angle = i * 2 * System.Math.PI / 32;
+                    mesh.Add(new Vector3((float)(radius * System.Math.Cos(angle)), y, (float)(radius * System.Math.Sin(angle))));
+                }
+            }
+            return mesh;
+        }
+
+        private static double[] Published(List<Vector3> mesh)
+        {
+            var tracker = new HullPoints.Tracker();
+            tracker.Add(HullPoints.Candidates(mesh), Matrix4x4.identity);
+            return tracker.ToTriples()!;
+        }
+
+        /// <summary>How far a point lies outside the 2D convex hull of the published points seen from `degrees` about the up axis, in metres.</summary>
+        private static double Outside(double[] triples, double degrees, double lateral, double y)
+        {
+            var turn = degrees * System.Math.PI / 180;
+            var seen = new List<(double lat, double y)>();
+            for (var i = 0; i < triples.Length; i += 3)
+            {
+                seen.Add((triples[i] * System.Math.Cos(turn) + triples[i + 2] * System.Math.Sin(turn), triples[i + 1]));
+            }
+
+            double Cross((double lat, double y) o, (double lat, double y) a, (double lat, double y) b) =>
+                (a.lat - o.lat) * (b.y - o.y) - (a.y - o.y) * (b.lat - o.lat);
+            var sorted = seen.OrderBy(p => p.lat).ThenBy(p => p.y).ToList();
+            List<(double lat, double y)> Chain(IEnumerable<(double lat, double y)> list)
+            {
+                var chain = new List<(double lat, double y)>();
+                foreach (var p in list)
+                {
+                    while (chain.Count >= 2 && Cross(chain[^2], chain[^1], p) <= 1e-9)
+                    {
+                        chain.RemoveAt(chain.Count - 1);
+                    }
+                    chain.Add(p);
+                }
+                chain.RemoveAt(chain.Count - 1);
+                return chain;
+            }
+
+            var hull = Chain(sorted).Concat(Chain(Enumerable.Reverse(sorted))).ToList();
+            var inside = true;
+            var nearest = double.MaxValue;
+            for (var i = 0; i < hull.Count; i++)
+            {
+                var a = hull[i];
+                var b = hull[(i + 1) % hull.Count];
+                var ex = b.lat - a.lat;
+                var ey = b.y - a.y;
+                if (ex * (y - a.y) - ey * (lateral - a.lat) < -1e-9)
+                {
+                    inside = false;
+                }
+                var t = System.Math.Clamp(((lateral - a.lat) * ex + (y - a.y) * ey) / (ex * ex + ey * ey), 0, 1);
+                nearest = System.Math.Min(nearest, System.Math.Sqrt(System.Math.Pow(lateral - (a.lat + t * ex), 2) + System.Math.Pow(y - (a.y + t * ey), 2)));
+            }
+            return inside ? 0 : nearest;
+        }
+
+        // A 1.25 m by 2 m cylinder whose edges are rounded by 0.2 m, as ProceduralParts builds a Fillet tank
+        private static (float, float)[] FilletedCylinder()
+        {
+            var profile = new List<(float, float)>();
+            foreach (var sign in new[] { -1f, 1f })
+            {
+                for (var k = 0; k <= 8; k++)
+                {
+                    var a = (float)System.Math.PI / 2 * (sign < 0 ? k : 8 - k) / 8;
+                    profile.Add((0.425f + 0.2f * Mathf.Sin(a), sign * (0.8f + 0.2f * Mathf.Cos(a))));
+                }
+            }
+            return profile.ToArray();
+        }
+
+        [Fact]
+        public void ARoundedCylinderKeepsBothEndsOfEachFlatSide()
+        {
+            var points = TriplesToPoints(Published(Revolved(FilletedCylinder())));
+
+            foreach (var (x, z) in new[] { (0.625f, 0f), (-0.625f, 0f), (0f, 0.625f), (0f, -0.625f) })
+            {
+                Assert.Contains(points, p => Mathf.Abs(p.x - x) < 0.002f && Mathf.Abs(p.z - z) < 0.002f && Mathf.Abs(p.y - 0.8f) < 0.002f);
+                Assert.Contains(points, p => Mathf.Abs(p.x - x) < 0.002f && Mathf.Abs(p.z - z) < 0.002f && Mathf.Abs(p.y + 0.8f) < 0.002f);
+            }
+        }
+
+        [Fact]
+        public void ABulgedConeKeepsItsShoulderFromEverySide()
+        {
+            // 2 m across at the base and 1.25 m at the top, wider than a straight taper just under the top
+            var cone = new (float, float)[] { (1f, -0.75f), (0.93f, -0.2f), (0.85f, 0.2f), (0.742f, 0.61f), (0.681f, 0.71f), (0.625f, 0.75f) };
+            var published = Published(Revolved(cone));
+
+            foreach (var degrees in new[] { 0, 30, 45, 60 })
+            {
+                foreach (var (radius, y) in cone)
+                {
+                    Assert.InRange(Outside(published, degrees, radius, y), 0, 0.045);
+                    Assert.InRange(Outside(published, degrees, -radius, y), 0, 0.045);
+                }
+            }
+        }
+
         private static double[] Box(double x, double y, double z, double size)
         {
             var flat = new List<double>();
