@@ -54,7 +54,7 @@ const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
  * How long one attempt may run with no connection, error or close before it is
  * torn down and the next is scheduled. The public broker never answers an offer
  * to an id it does not hold, so silence is the normal result of reaching for a
- * main screen that is not up yet. Long enough for a relayed connection to open.
+ * main screen that is not up yet. Long enough for a join through the endpoint to open.
  */
 const DEFAULT_ATTEMPT_DEADLINE_MS = 10_000;
 
@@ -329,9 +329,9 @@ export class PeerClientService {
   }
 
   /*
-   * A page that unloads without closing its RTCPeerConnections leaves their
-   * relay allocations on the TURN server until they expire, each one holding a
-   * relay port. Closing the Peer on pagehide releases them straight away.
+   * A page that unloads without closing its RTCPeerConnections leaves the
+   * other end holding the session until ICE gives up on it. Closing the Peer on
+   * pagehide ends it straight away.
    */
   private readonly onPageHide = () => this.tearDownPeer();
 
