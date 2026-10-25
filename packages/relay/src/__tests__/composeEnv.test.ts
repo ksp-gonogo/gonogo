@@ -2,8 +2,13 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-/** Read only by the localhost smoke tests, which start the relay without compose. */
-const NOT_FOR_COMPOSE = new Set(["SKIP_COTURN"]);
+/** Read only by the localhost smoke tests, which start the relay without compose, or fixed by the image. */
+const NOT_FOR_COMPOSE = new Set([
+  "SKIP_COTURN",
+  "SKIP_ENDPOINT",
+  "ENDPOINT_BIN",
+  "ENDPOINT_CONTROL_PORT",
+]);
 
 describe("docker-compose.yml", () => {
   it("passes every variable loadConfig reads to the relay", () => {

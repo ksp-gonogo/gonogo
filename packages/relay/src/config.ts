@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 export interface RelayConfig {
   port: number;
   /**
@@ -71,6 +73,22 @@ export interface RelayConfig {
    * unless the player turns this on.
    */
   portMapping: boolean;
+  /**
+   * The endpoint's one port, from `ENDPOINT_PORT`: every station on another
+   * network connects on it, over UDP or, where UDP is blocked, TCP. It has to
+   * match the published container port and the router forward.
+   */
+  endpointPort: number;
+  /** The port, inside the container only, the endpoint serves the main screen's socket on, from `ENDPOINT_CONTROL_PORT`. */
+  endpointControlPort: number;
+  /** The gonogo-endpoint binary, from `ENDPOINT_BIN`; the image puts it beside the relay's own files. */
+  endpointBinary: string;
+  /**
+   * Run without the endpoint (`SKIP_ENDPOINT=1`), for a relay started outside
+   * the image where no binary was built. Stations then join the main screen
+   * directly, which works only on its own network.
+   */
+  skipEndpoint: boolean;
 }
 
 /** Defaults live here rather than in `startCoturn` so one file answers
@@ -78,6 +96,11 @@ export interface RelayConfig {
 const DEFAULT_TURN_PORT = 3478;
 const DEFAULT_TURN_MIN_PORT = 49160;
 const DEFAULT_TURN_MAX_PORT = 49169;
+const DEFAULT_ENDPOINT_PORT = 47100;
+const DEFAULT_ENDPOINT_CONTROL_PORT = 3003;
+const DEFAULT_ENDPOINT_BINARY = fileURLToPath(
+  new URL("../endpoint/gonogo-endpoint", import.meta.url),
+);
 
 function port(raw: string | undefined, fallback: number): number {
   const n = Number(raw);
@@ -143,5 +166,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayConfig {
     routerIp: env.ROUTER_IP?.trim() || null,
     lanIp: env.LAN_IP?.trim() || null,
     portMapping: env.GONOGO_UPNP === "1" || env.GONOGO_UPNP === "true",
+    endpointPort: port(env.ENDPOINT_PORT, DEFAULT_ENDPOINT_PORT),
+    endpointControlPort: port(
+      env.ENDPOINT_CONTROL_PORT,
+      DEFAULT_ENDPOINT_CONTROL_PORT,
+    ),
+    endpointBinary: env.ENDPOINT_BIN?.trim() || DEFAULT_ENDPOINT_BINARY,
+    skipEndpoint: env.SKIP_ENDPOINT === "1" || env.SKIP_ENDPOINT === "true",
   };
 }

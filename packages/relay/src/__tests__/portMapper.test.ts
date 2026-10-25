@@ -3,9 +3,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import { encodeMappingRequest } from "../natPmp.js";
 import {
   defaultGateway,
+  endpointPorts,
   gatewayCandidates,
   PortMapper,
   sweepCandidates,
+  turnPorts,
 } from "../portMapper.js";
 
 interface Seen {
@@ -73,9 +75,7 @@ async function setup(mode: Mode, extra: object = {}) {
   const log: string[] = [];
   const mapper = new PortMapper({
     gateways: ["127.0.0.1"],
-    turnPort: 3478,
-    minPort: 49160,
-    maxPort: 49169,
+    ports: turnPorts(3478, 49160, 49169),
     timeoutMs: 40,
     natPmpPort: router.port,
     probeOthers: async () => null,
@@ -101,6 +101,22 @@ describe("PortMapper against a router that speaks NAT-PMP", () => {
       router.seen.some((r) => r.opcode === 2 && r.internalPort === 3478),
     ).toBe(true);
     expect(log.join("\n")).toContain("127.0.0.1 answered NAT-PMP");
+    await mapper.stop();
+  });
+
+  it("opens the endpoint's one port on UDP and TCP", async () => {
+    const { router, mapper } = await setup("ok", {
+      ...PATIENT,
+      ports: endpointPorts(47100),
+    });
+    await mapper.start();
+    expect(mapper.status.state).toBe("mapped");
+    expect(
+      router.seen.map((r) => [r.opcode === 1 ? "udp" : "tcp", r.internalPort]),
+    ).toEqual([
+      ["udp", 47100],
+      ["tcp", 47100],
+    ]);
     await mapper.stop();
   });
 

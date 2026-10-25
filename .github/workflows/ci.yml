@@ -218,6 +218,31 @@ jobs:
       - name: No new unverifiable Uplink assets
         run: pnpm uplink-shape-gate
 
+  # The relay's station endpoint, a Go program the relay image builds and the
+  # relay starts. Its tests run real WebRTC peers against it on loopback, over
+  # UDP and over TCP alone.
+  endpoint:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: packages/relay/endpoint
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: packages/relay/endpoint/go.mod
+          cache-dependency-path: packages/relay/endpoint/go.sum
+
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+
+      - run: go vet ./...
+
+      - run: go test -race ./...
+
   # The vitest suites: `pnpm test`, the repo-wide scans and the two DOM-snapshot
   # gates that need the same build `pnpm test` already produces as a side
   # effect (turbo builds every package's `^build` dependency before running its

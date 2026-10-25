@@ -12,14 +12,19 @@ import { registerBootstrapConfigRoutes } from "./bootstrapConfig.js";
 import { loadConfig } from "./config.js";
 import { startCoturn } from "./coturnManager.js";
 import { discoverPublicIp } from "./discoverPublicIp.js";
+import { type EndpointHandle, startEndpoint } from "./endpointManager.js";
 import {
   defaultGateway,
+  endpointPorts,
   gatewayCandidates,
+  type MappedPort,
   PortMapper,
   sweepCandidates,
+  turnPorts,
 } from "./portMapper.js";
+import { PublicServiceSupervisor } from "./publicServiceSupervisor.js";
+import { registerStationsProxy } from "./stationsProxy.js";
 import { registerTurnRoutes } from "./turnRoutes.js";
-import { TurnSupervisor } from "./turnSupervisor.js";
 import { BUILD_TIME, VERSION } from "./version.js";
 
 const config = loadConfig();
@@ -132,9 +137,16 @@ async function exitNow(code: number): Promise<never> {
   process.exit(code);
 }
 
-const turn = new TurnSupervisor({
-  discover: () =>
-    discoverPublicIp({ override: config.turnExternalIp ?? undefined }),
+const UNDISCOVERED =
+  "public IP not discovered; set TURN_EXTERNAL_IP or restore internet access";
+
+const discover = () =>
+  discoverPublicIp({ override: config.turnExternalIp ?? undefined });
+
+const turn = new PublicServiceSupervisor({
+  name: "coturn",
+  undiscoveredReason: UNDISCOVERED,
+  discover,
   onDiscoveryFailed: (err) =>
     bridgeError(
       "public IP discovery failed, TURN unavailable until a retry succeeds",
@@ -179,14 +191,57 @@ if (config.skipCoturn) {
   await turn.begin();
 }
 
+const endpoint = new PublicServiceSupervisor<EndpointHandle>({
+  name: "endpoint",
+  undiscoveredReason: UNDISCOVERED,
+  discover,
+  onDiscoveryFailed: (err) =>
+    bridgeError(
+      "public IP discovery failed, the station endpoint is unavailable until a retry succeeds",
+      err,
+    ),
+  onFatal: (reason) => {
+    bridgeError(
+      `endpoint failed (${reason}), exiting so the container restarts`,
+    );
+    void exitNow(1);
+  },
+  start: (publicIp, onExit) =>
+    startEndpoint({
+      binaryPath: config.endpointBinary,
+      port: config.endpointPort,
+      control: `127.0.0.1:${config.endpointControlPort}`,
+      publicIp,
+      lanIp: config.lanIp,
+      onExit,
+      logger: {
+        info: (msg) => bridgeInfo(msg),
+        error: (msg) => bridgeError(msg),
+      },
+    }),
+});
+
+if (config.skipEndpoint) {
+  bridgeInfo(
+    "SKIP_ENDPOINT set: relay will run without the station endpoint, so only stations on this network can join",
+  );
+} else {
+  await endpoint.begin();
+}
+
+const mappedPorts: MappedPort[] = [
+  ...(config.skipCoturn
+    ? []
+    : turnPorts(config.turnPort, config.turnMinPort, config.turnMaxPort)),
+  ...(config.skipEndpoint ? [] : endpointPorts(config.endpointPort)),
+];
+
 const portMapper =
-  config.skipCoturn || !config.portMapping
+  mappedPorts.length === 0 || !config.portMapping
     ? null
     : new PortMapper({
         gateways: gatewayCandidates(config.routerIp, defaultGateway()),
-        turnPort: config.turnPort,
-        minPort: config.turnMinPort,
-        maxPort: config.turnMaxPort,
+        ports: mappedPorts,
         sweep: config.routerIp ? [] : sweepCandidates(),
         lanIp: config.lanIp,
         log: (msg) => bridgeInfo(`port mapping: ${msg}`),
@@ -200,6 +255,11 @@ registerTurnRoutes(fastify, {
   publicUrl: config.publicUrl,
   tcpRelay: config.turnTcp,
   getPortMapping: () => portMapper?.status ?? null,
+});
+
+registerStationsProxy(fastify, {
+  target: { host: "127.0.0.1", port: config.endpointControlPort },
+  extraOrigins: new Set(config.appOrigins),
 });
 
 fastify.get("/version", async () => ({
@@ -228,6 +288,7 @@ const shutdown = async () => {
   bridgeInfo("shutting down");
   await portMapper?.stop();
   await turn.stop();
+  await endpoint.stop();
   await fastify.close();
   await exitNow(0);
 };
