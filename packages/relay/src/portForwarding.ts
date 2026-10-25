@@ -30,8 +30,7 @@ const NO_ADDRESS: PortMappingStatus = {
  */
 const IPV6_UNSUPPORTED: PortMappingStatus = {
   state: "ipv6-unsupported",
-  message:
-    "Gonogo cannot ask a router to open a port over IPv6 yet. Forward it by hand, as the networking guide describes.",
+  message: "Gonogo cannot ask a router to open a port over IPv6 yet.",
 };
 
 /** Whether `text` is an IPv4 or IPv6 address, a link-local one with its zone included. */

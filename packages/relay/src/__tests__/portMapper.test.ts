@@ -148,12 +148,11 @@ describe("PortMapper against a router that speaks NAT-PMP", () => {
     expect(router.seen.length).toBeGreaterThan(first);
   });
 
-  it("says plainly that the router refused and points at the manual forwards", async () => {
+  it("says plainly that the router refused", async () => {
     const { mapper } = await setup("refuse");
     await mapper.start();
     expect(mapper.status.state).toBe("refused");
     expect(mapper.status.message).toContain("refused to open the relay's port");
-    expect(mapper.status.message).toContain("networking guide");
     await mapper.stop();
   });
 
@@ -170,8 +169,7 @@ describe("PortMapper against a router that speaks NAT-PMP", () => {
     const { mapper } = await setup("silent");
     await mapper.start();
     expect(mapper.status.state).toBe("no-answer");
-    expect(mapper.status.message).toContain("did not answer");
-    expect(mapper.status.message).toContain("networking guide");
+    expect(mapper.status.message).toBe("Your router did not answer.");
   });
 
   it("says the ports could not be opened from a container when only PCP or UPnP answers", async () => {
@@ -191,7 +189,7 @@ describe("PortMapper against a router that speaks NAT-PMP", () => {
     await mapper.start();
     expect(router.seen).toEqual([]);
     expect(mapper.status.state).toBe("no-answer");
-    expect(mapper.status.message).toContain("Check its address");
+    expect(mapper.status.message).toBe("Your router did not answer.");
     expect(log.at(-1)).toBe("no router answered NAT-PMP or UPnP at 127.0.0.2");
   });
 });
