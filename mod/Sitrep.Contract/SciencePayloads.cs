@@ -663,17 +663,6 @@ public class DeployedStationExperiment
     [SitrepUnit(Units.Mits)]
     public double? StoredData { get; set; }
 
-    /// <summary>
-    /// Whether the experiment has reached its science limit with data still
-    /// stored. An experiment switches itself off at its limit and never sends
-    /// again, so what it still holds then stays until a kerbal retrieves it,
-    /// whether or not the station has a path home. <c>false</c> while the
-    /// experiment is still collecting, or when its store is empty. <c>null</c>
-    /// when its completion or its store could not be read.
-    /// </summary>
-    [SitrepUnit(Units.Flag)]
-    public bool? Stranded { get; set; }
-
     /// <summary>Whether the experiment part is deployed on the ground (<c>DeployedSciencePart.DeployedOnGround</c>).</summary>
     [SitrepUnit(Units.Flag)]
     public bool? DeployedOnGround { get; set; }

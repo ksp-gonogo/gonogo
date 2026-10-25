@@ -436,45 +436,6 @@ namespace Sitrep.Host.Tests
             Assert.Null(experiment["storedData"]);
         }
 
-        private static Dictionary<string, object?> StrandedOf(double? completedPercentage, double? storedData)
-        {
-            var raw = Experiment("station-a", "Mun Station", "Spectro Variometer", true, storedData);
-            raw["scienceCompletedPercentage"] = completedPercentage;
-            var snapshot = new KspSnapshot
-            {
-                Ut = 0.0,
-                Values = new Dictionary<string, object?> { ["deployedScience"] = new List<object?> { raw } },
-            };
-            var station = Assert.Single(Assert.IsType<Dictionary<string, Dictionary<string, object?>>>(
-                BreakingGroundViewProvider.BuildStations(snapshot))).Value;
-            return Assert.IsType<Dictionary<string, object?>>(Assert.Single(Assert.IsType<List<object?>>(station["experiments"])));
-        }
-
-        [Fact]
-        public void BuildStationsCallsACompletedExperimentWithAStoreStranded()
-        {
-            Assert.Equal(true, StrandedOf(100.0, 5.1)["stranded"]);
-        }
-
-        [Fact]
-        public void BuildStationsDoesNotCallAnExperimentStillCollectingStranded()
-        {
-            Assert.Equal(false, StrandedOf(42.5, 5.1)["stranded"]);
-        }
-
-        [Fact]
-        public void BuildStationsDoesNotCallACompletedExperimentWithAnEmptyStoreStranded()
-        {
-            Assert.Equal(false, StrandedOf(100.0, 0.0)["stranded"]);
-        }
-
-        [Fact]
-        public void BuildStationsLeavesStrandedUnreadWhenEitherInputIsUnread()
-        {
-            Assert.Null(StrandedOf(100.0, null)["stranded"]);
-            Assert.Null(StrandedOf(null, 5.1)["stranded"]);
-        }
-
         [Fact]
         public void BuildStationsLeavesOutAnExperimentWithNoControllerVessel()
         {

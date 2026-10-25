@@ -7453,15 +7453,6 @@ export interface DeployedStationExperiment
 	*/
 	storedData?: Value<"Mit"> | null;
 	/**
-	* Whether the experiment has reached its science limit with data still stored.
-	* An experiment switches itself off at its limit and never sends again, so
-	* what it still holds then stays until a kerbal retrieves it, whether or not
-	* the station has a path home. `false` while the experiment is still
-	* collecting, or when its store is empty. `null` when its completion or its
-	* store could not be read.
-	*/
-	stranded?: boolean | null;
-	/**
 	* Whether the experiment part is deployed on the ground
 	* (`DeployedSciencePart.DeployedOnGround`).
 	*/

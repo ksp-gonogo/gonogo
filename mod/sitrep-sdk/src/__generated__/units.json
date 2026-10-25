@@ -641,8 +641,7 @@
       "scienceLimit": "science",
       "scienceTransmittedPercentage": "%",
       "scienceValue": "science",
-      "storedData": "Mit",
-      "stranded": "flag"
+      "storedData": "Mit"
     },
     "DockAlignment": {
       "distance": "m",

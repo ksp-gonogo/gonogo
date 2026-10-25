@@ -682,7 +682,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     scienceTransmittedPercentage: "%",
     scienceValue: "science",
     storedData: "Mit",
-    stranded: "flag",
   },
   "DockAlignment": {
     distance: "m",

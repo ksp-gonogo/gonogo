@@ -294,52 +294,6 @@ describe("DeployedScienceComponent", () => {
     expect(screen.queryByText(/Unsent/)).toBeNull();
   });
 
-  it("marks a finished experiment's store as stranded, apart from the data still on its way home", async () => {
-    const fixture = newFixture();
-    renderDeployed(fixture);
-    await emitStations(fixture, [
-      {
-        report: stationReport({
-          experiments: [
-            experiment({ partName: "A", storedData: 2.5 }),
-            experiment({
-              partName: "B",
-              scienceCompletedPercentage: 100,
-              storedData: 5.1,
-              stranded: true,
-            }),
-          ],
-        }),
-      },
-    ]);
-    await screen.findByText("B");
-    expect(screen.getAllByText("Stranded")).toHaveLength(1);
-    expect(visibleText()).toMatch(/Unsent\s*2\.5/);
-    expect(visibleText()).toMatch(/Stranded\s*5\.1/);
-  });
-
-  it("calls a finished station's last batch stranded even with a path home", async () => {
-    const fixture = newFixture();
-    renderDeployed(fixture);
-    await emitStations(fixture, [
-      {
-        report: stationReport({
-          sendPathHome: true,
-          experiments: [
-            experiment({
-              scienceCompletedPercentage: 100,
-              storedData: 5.1,
-              stranded: true,
-            }),
-          ],
-        }),
-      },
-    ]);
-    await screen.findByText("Seismometer");
-    expect(screen.getAllByText("Stranded").length).toBeGreaterThan(0);
-    expect(screen.queryByText(/Unsent/)).toBeNull();
-  });
-
   it("says it is waiting for a station whose report has not arrived", async () => {
     const fixture = newFixture();
     renderDeployed(fixture);

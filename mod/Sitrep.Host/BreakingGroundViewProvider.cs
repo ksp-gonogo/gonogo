@@ -222,16 +222,6 @@ namespace Sitrep.Host
             };
         }
 
-        /* An experiment switches itself off at its science limit and never sends again, so whatever it still holds then waits for a kerbal whether or not the station has a link. */
-        private static bool? IsStranded(double? completedPercentage, double? storedData)
-        {
-            if (completedPercentage == null || storedData == null)
-            {
-                return null;
-            }
-            return completedPercentage >= 100.0 && storedData > 0.0;
-        }
-
         private static Dictionary<string, object?> BuildDeployedStationExperiment(IDictionary<string, object?> raw) => new Dictionary<string, object?>
         {
             ["partName"] = SnapshotDict.GetString(raw, "partName"),
@@ -241,7 +231,6 @@ namespace Sitrep.Host
             ["scienceValue"] = SnapshotDict.GetDouble(raw, "scienceValue"),
             ["scienceLimit"] = SnapshotDict.GetDouble(raw, "scienceLimit"),
             ["storedData"] = SnapshotDict.GetDouble(raw, "storedData"),
-            ["stranded"] = IsStranded(SnapshotDict.GetDouble(raw, "scienceCompletedPercentage"), SnapshotDict.GetDouble(raw, "storedData")),
             ["deployedOnGround"] = SnapshotDict.GetBool(raw, "deployedOnGround"),
         };
     }

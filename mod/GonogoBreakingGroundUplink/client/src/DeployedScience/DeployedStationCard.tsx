@@ -94,25 +94,15 @@ function linkLabel(contact: CatalogContact | null): LinkLabel {
   }
 }
 
-/** The unsent data of the experiments that are still sending, or null unless every such store was read. */
+/** The data the station holds unsent, or null unless every experiment's store was read. */
 function totalBacklog(station: DeployedStation): number | null {
-  const sending = station.experiments.filter((e) => e.stranded !== true);
-  if (sending.length === 0) return null;
+  if (station.experiments.length === 0) return null;
   let total = 0;
-  for (const experiment of sending) {
+  for (const experiment of station.experiments) {
     if (experiment.backlog === null) return null;
     total += experiment.backlog;
   }
   return total;
-}
-
-/** The data finished experiments hold that will not be sent, or null when there is none. */
-function totalStranded(station: DeployedStation): number | null {
-  let total = 0;
-  for (const experiment of station.experiments) {
-    if (experiment.stranded === true) total += experiment.backlog ?? 0;
-  }
-  return total > 0 ? total : null;
 }
 
 /**
@@ -132,7 +122,6 @@ export function DeployedStationCard({ listing }: { listing: StationListing }) {
   const link = linkLabel(listing.contact);
   const heading = station?.name || listing.name || "Surface station";
   const backlog = station === null ? null : totalBacklog(station);
-  const stranded = station === null ? null : totalStranded(station);
 
   return (
     <Box
@@ -220,16 +209,6 @@ export function DeployedStationCard({ listing }: { listing: StationListing }) {
                   <Unit value={backlogReading(reading, backlog)} decimals={1} />
                 </>
               )}
-              {stranded !== null && (
-                <>
-                  {" "}
-                  · Stranded{" "}
-                  <Unit
-                    value={backlogReading(reading, stranded)}
-                    decimals={1}
-                  />
-                </>
-              )}
             </Text>
 
             {station.experiments.map((exp) => (
@@ -250,13 +229,6 @@ export function DeployedStationCard({ listing }: { listing: StationListing }) {
                           value={progressPercentReading(reading, exp.progress)}
                           decimals={0}
                         />
-                        {exp.stranded === true && (
-                          <Tooltip text="This experiment has finished and will not send what it still holds, a kerbal has to retrieve it">
-                            <Badge tone="caution" size="sm">
-                              Stranded
-                            </Badge>
-                          </Tooltip>
-                        )}
                         {exp.collecting === true && (
                           <Tooltip text="This experiment is collecting science now">
                             <Badge tone="go" size="sm">

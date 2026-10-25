@@ -887,8 +887,6 @@ export interface DeployedScienceExperiment {
   progress: number | null;
   /** Data the experiment holds that has not been sent home, in Mits. `null` when not reported, and 0 is a real empty store. */
   backlog: number | null;
-  /** True when the experiment has finished with data still stored, which stays until a kerbal retrieves it. `null` when not reported. */
-  stranded: boolean | null;
   /** Science already transmitted. `null` when either figure it comes from is not reported. */
   transmitted: number | null;
   /** True while collection is under 100%. `null` when progress is not reported. */
