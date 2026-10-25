@@ -45,8 +45,7 @@ const RADIO_STREAM_PORTS = {
  * scenes where every screen replays one flight. See `wire-replay-server.mjs`.
  */
 const WIRE_REPLAY_PORT = 18098;
-// The relay, run without its station endpoint so stations join the main
-// screen directly here; endpoint-relay-fixture.ts starts one with it.
+// The relay, run without its station endpoint so stations join the main screen directly here; endpoint-relay-fixture.ts starts one with it.
 //
 // Port deliberately offset from the production default (3002) so the
 // test stack coexists with a developer-side `podman compose up` running
@@ -199,9 +198,7 @@ export default defineConfig({
         VITE_PEER_PORT: String(BROKER_PORT),
         VITE_PEER_PATH: "/myapp",
         VITE_PEER_SECURE: "false",
-        // Point the app's relay client (iceServers.ts: /ice-config +
-        // the host-discovery registry) at the test relay rather than the
-        // dev default (localhost:3002).
+        // Point the app's relay client (relayAddress.ts) at the test relay rather than the dev default (localhost:3002).
         VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
       },
     },
