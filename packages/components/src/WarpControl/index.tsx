@@ -292,11 +292,14 @@ registerComponent<WarpControlConfig>({
   description:
     "Set KSP time warp from the dashboard. Shows the current warp rate and mode, with a button for each warp level, a pause button, and buttons that warp to the next sunrise, sunset, loss of signal, return of signal or sphere-of-influence change. When the craft's one-way signal delay is over 5 seconds, warping up in flight needs an alarm set first, unless \"Require an alarm to warp under delay\" is switched off in the widget's settings.",
   tags: ["control", "time"],
-  defaultSize: { w: 6, h: 5 },
+  // Six rows hold the rate readout and both rows of the rails ladder; the warp-to row needs a seventh.
+  defaultSize: { w: 6, h: 6 },
   // Below it the ladder has no room.
   minSize: { w: 4, h: 4 },
   // The ladder and the rate readout need a whole row to sit on one line.
   mobileWidth: "full",
+  // A phone tile draws the rate, its label, the ladder and the warp-to row, which the default row count would cut under the scroll fade.
+  mobileHeight: 210,
   component: WarpControlComponent,
   tiny: {
     title: "WARP",

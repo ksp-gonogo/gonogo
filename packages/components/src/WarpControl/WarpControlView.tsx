@@ -87,7 +87,7 @@ export function WarpControlView({
     !(mode === "High" && currentRate !== null && currentRate < 1.0001);
   // Hidden at small grid counts so the rate readout keeps its own line.
   const showPause = scene === "Flight" && cols >= 4 && rows >= 4;
-  const showWarpTo = createAlarm !== null && cols >= 4 && rows >= 6;
+  const showWarpTo = createAlarm !== null && cols >= 4 && rows >= 7;
 
   const rateLabel = formatRate(currentRate);
   // Physics warp keeps aerodynamics live and is risky in atmosphere, so it gets its own tint.

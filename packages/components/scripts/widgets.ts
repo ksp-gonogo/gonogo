@@ -642,9 +642,9 @@ const WIDGETS: WidgetRenderConfig[] = [
       // minSize 4×4, below the full-ladder threshold (cols*rows=16 < 20):
       // stepper only (cols≥3, rows≥3). Mode caption visible (rows=4≥4).
       { name: "minimal-4x4", w: 4, h: 4 },
-      // Default registered size: full 8-button ladder (cols*rows=30≥20,
-      // cols=6≥4, rows=5≥3). Mode caption visible (rows=5≥4).
-      { name: "default-6x5", w: 6, h: 5 },
+      // Default registered size: full 8-button ladder (cols*rows=36≥20,
+      // cols=6≥4, rows=6≥3). Mode caption visible (rows=6≥4); no warp-to row (needs rows≥7).
+      { name: "default-6x6", w: 6, h: 6 },
       // Wide short: ladder reflows to 8×1 single row; mode caption visible.
       { name: "wide-10x4", w: 10, h: 4 },
       // Tall narrow: cols=4, rows=8 → cols*rows=32≥20 → full ladder; auto-fit wraps buttons; mode caption visible.
@@ -662,7 +662,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         config: { requireAlarmUnderDelay: false },
         forFixtures: ["delayed-no-alarm"],
       },
-      // The warp-to row opened on its duration target, which it leads with; it needs rows>=6 to appear at all.
+      // The warp-to row opened on its duration target, which it leads with; it needs rows>=7 to appear at all.
       {
         name: "warp-to-for-open-8x7",
         w: 8,
