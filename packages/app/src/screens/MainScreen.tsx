@@ -109,7 +109,6 @@ import { SitrepVantageSessions } from "../telemetry/SitrepVantageSessions";
 import { HostUplinksAnnouncer } from "../uplinks/HostUplinksAnnouncer";
 import { UplinkHealthRetry } from "../uplinks/UplinkHealthRetry";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
-import { UplinkLoadGate } from "../uplinks/UplinkLoadGate";
 
 const EMPTY_DASHBOARD: DashboardConfig = { items: [], layout: [] };
 
@@ -393,12 +392,10 @@ export function MainScreen({
                               <PushHostProvider service={pushHost}>
                                 <CoverageMaskCacheProvider>
                                   <SerialDeviceProvider service={serialService}>
-                                    <UplinkLoadGate host={peerHostService}>
-                                      <MainDashboard
-                                        screen={screen}
-                                        serialService={serialService}
-                                      />
-                                    </UplinkLoadGate>
+                                    <MainDashboard
+                                      screen={screen}
+                                      serialService={serialService}
+                                    />
                                   </SerialDeviceProvider>
                                 </CoverageMaskCacheProvider>
                               </PushHostProvider>

@@ -17,7 +17,6 @@ import {
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import Peer, { type DataConnection } from "peerjs";
 import type { RunningUplink } from "../uplinks/loaderState";
-import type { HostUplinkFailure } from "../uplinks/loadFailures";
 import { BUILD_TIME, VERSION } from "../version";
 import {
   BundleFetchCache,
@@ -482,7 +481,6 @@ export class PeerHostService {
   /** Where this screen is standing, retained so a peer that joins later is told on connect. */
   private commandCentre: string | null = null;
   private runningUplinks: RunningUplink[] | null = null;
-  private uplinkFailures: HostUplinkFailure[] = [];
   // peerId → stationKey, populated from incoming station-info. Used to
   // evict the ghost connection when a refreshed station rejoins with a
   // fresh peerId: without this the GO/NO-GO list shows the same station
@@ -1121,10 +1119,6 @@ export class PeerHostService {
       type: "host-uplinks",
       uplinks: this.runningUplinks,
     } satisfies PeerMessage);
-    conn.send({
-      type: "host-uplink-failures",
-      failures: this.uplinkFailures,
-    } satisfies PeerMessage);
     // Missions have no live "currently recording" concept: a mission only
     // exists once StreamRecorder finishes and saveMission is called, so
     // there is never an in-progress flight to report. Send a
@@ -1546,17 +1540,6 @@ export class PeerHostService {
     if (JSON.stringify(this.runningUplinks) === JSON.stringify(uplinks)) return;
     this.runningUplinks = uplinks;
     this.broadcast({ type: "host-uplinks", uplinks });
-  }
-
-  /**
-   * Record the installed Uplinks that failed to load on this screen and tell
-   * every peer when the set changes. Empty while the screen runs normally.
-   */
-  setUplinkFailures(failures: HostUplinkFailure[]): void {
-    if (JSON.stringify(this.uplinkFailures) === JSON.stringify(failures))
-      return;
-    this.uplinkFailures = failures;
-    this.broadcast({ type: "host-uplink-failures", failures });
   }
 
   /** The command centre this screen stands at, or null before one is known. */

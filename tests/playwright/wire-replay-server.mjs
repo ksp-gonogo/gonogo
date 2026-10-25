@@ -19,8 +19,8 @@
  * `<id>.client.txt` (the client, stored as text) and its `gonogo-uplink.json` sidecar is served here instead,
  * at `/uplink-bundles/<id>/<file>`, and the roster a screen is sent points at
  * it with `expectedClientHash` set to that bundle's own hash. An installed
- * Uplink with no folder is sent with no client, so a screen never goes to the
- * network for it and never reads it as an Uplink that failed to load.
+ * Uplink with no folder is sent as unavailable, so a screen never goes to the
+ * network for it.
  *
  * Control, over HTTP on the same port (JSON bodies):
  *
@@ -72,7 +72,11 @@ function withServedBundles(frame, port) {
         if (!entry.clientSource) return entry;
         const bundle = fixtureBundle(entry.id);
         if (bundle === null) {
-          return { ...entry, expectedClientHash: null, clientSource: null };
+          return {
+            ...entry,
+            available: false,
+            reason: "no client bundle in this replay",
+          };
         }
         return {
           ...entry,
