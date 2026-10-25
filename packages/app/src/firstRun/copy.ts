@@ -100,10 +100,8 @@ export const WIZARD_COPY = {
   "uplinks.hint.attention":
     "Each Uplink that needs attention lists its reason under its name. Everything else in Gonogo keeps working.",
   "uplinks.row.version": "v{version}",
-  "uplinks.row.contractMismatchOlder":
-    "Built for contract {declared}; this Gonogo uses {core}. It was made for an older Gonogo and needs its own update: update it in CKAN, using the search under Find Uplinks. Gonogo works without it, but its widgets and commands stay off until then.",
-  "uplinks.row.contractMismatchNewer":
-    "Built for contract {declared}; this Gonogo uses {core}. It was made for a newer Gonogo, so update Gonogo itself: the mod in CKAN, and the app by the steps under Upgrading in the README. Gonogo works without it, but its widgets and commands stay off until then.",
+  "uplinks.row.contractMismatch":
+    "Built for contract {declared}; this mod needs {core}. The mod refused it, so none of its channels or commands are running.",
   "uplinks.row.loaded": "Client loaded",
   "uplinks.row.loading": "Client loading",
   "uplinks.row.quarantined": "Client quarantined",
@@ -142,7 +140,7 @@ export const WIZARD_COPY = {
   "done.heading": "Done",
   "done.advance": "Finish",
   "done.next":
-    "Load a save in KSP. An empty dashboard offers Add default layouts, which fills it with ready-made flight and space centre layouts, or Add a widget to pick your own. Later, add more with the round button with three dots in the bottom-right corner, then Add widget.",
+    "Load a save in KSP, then press the round button with three dots in the bottom-right corner of the dashboard, then Add widget.",
   "done.settings":
     "This setup opens by itself once. Settings, in the same three-dot menu, keeps the same readings: the KSP connection under Connection and each Uplink under Uplinks. Run setup again, under Connection, reopens it.",
 

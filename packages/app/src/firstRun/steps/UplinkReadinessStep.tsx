@@ -51,9 +51,9 @@ function summarise(entries: readonly UplinkReadinessEntry[]): string {
  * whether its client loaded here. The camera Uplink is a row like any other,
  * so there is no camera check anywhere else in the flow.
  *
- * An Uplink's client ships with the Uplink and is fetched from the mod's own
- * declaration, not from anywhere this screen could reach, so a row can say what
- * is wrong with an Uplink but only a contract refusal says what to do about it.
+ * Nothing on a row is an instruction: an Uplink's client ships with the Uplink
+ * and is fetched from the mod's own declaration, not from anywhere this screen
+ * could reach.
  */
 export function UplinkReadinessStep() {
   const readiness = useUplinkReadiness();
@@ -121,9 +121,10 @@ function reasonFor(entry: UplinkReadinessEntry): string | null {
 
 /**
  * The refusal, said in full: which contract this Uplink was built for and which
- * one the mod running now speaks, and which of the two to update: an Uplink
- * built for an older contract needs its own update, one built for a newer
- * contract means Gonogo is the older side.
+ * one the mod running now speaks. Two version numbers rather than a verdict,
+ * because the operator's next move follows from the gap: a build of the Uplink
+ * against the core they have. Nothing here is an instruction, the app has no
+ * way to fetch that build.
  */
 function ContractMismatchDetail({
   entry,
@@ -133,15 +134,10 @@ function ContractMismatchDetail({
 
   return (
     <Text level="muted" size="sm">
-      {say(
-        declaredContract.major < coreContract.major
-          ? "uplinks.row.contractMismatchOlder"
-          : "uplinks.row.contractMismatchNewer",
-        {
-          declared: `${declaredContract.major}.${declaredContract.minor}`,
-          core: `${coreContract.major}.${coreContract.minor}`,
-        },
-      )}
+      {say("uplinks.row.contractMismatch", {
+        declared: `${declaredContract.major}.${declaredContract.minor}`,
+        core: `${coreContract.major}.${coreContract.minor}`,
+      })}
     </Text>
   );
 }
