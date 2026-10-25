@@ -120,4 +120,34 @@ describe("host-uplinks over peer", () => {
     expect(early).toEqual([null, [BETA]]);
     expect(late).toEqual([[BETA]]);
   });
+
+  it("tells a station on connect which Uplinks failed to load, and every change after", async () => {
+    const host = new PeerHostService();
+    const failed = { id: "alpha", name: "Alpha" };
+    host.setUplinkFailures([failed]);
+    const conn = await connect(host);
+    host.setUplinkFailures([failed]);
+    host.setUplinkFailures([]);
+    expect(
+      (conn.sent as PeerMessage[]).filter(
+        (m) => m.type === "host-uplink-failures",
+      ),
+    ).toEqual([
+      { type: "host-uplink-failures", failures: [failed] },
+      { type: "host-uplink-failures", failures: [] },
+    ]);
+    host.stop();
+  });
+
+  it("a station keeps the latest failures and replays them to a late subscriber", () => {
+    const client = new PeerClientService();
+    const failed = { id: "alpha", name: "Alpha" };
+    client["handleMessage"]({
+      type: "host-uplink-failures",
+      failures: [failed],
+    });
+    const late: unknown[] = [];
+    client.onHostUplinkFailuresChange((set) => late.push(set));
+    expect(late).toEqual([[failed]]);
+  });
 });
