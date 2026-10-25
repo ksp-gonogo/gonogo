@@ -116,6 +116,13 @@ export interface SettingDefinitionBase {
    * value, so code that should obey the parent reads both and combines them.
    */
   dependsOn?: string;
+  /**
+   * For a {@link SettingKind.Text} row: returns the sentence refusing the typed
+   * text, or `undefined` when it is acceptable. Settings shows the sentence
+   * under the field and keeps the last accepted value until the text is
+   * acceptable again. Useful for an address or a name with a fixed form.
+   */
+  validate?: (text: string) => string | undefined;
 }
 
 /**

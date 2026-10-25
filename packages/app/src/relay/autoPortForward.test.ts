@@ -12,10 +12,12 @@ import {
 import { SettingsService } from "../settings/SettingsService";
 import {
   AUTO_PORT_FORWARD_SETTING,
+  COMPUTER_ADDRESS_SETTING,
   isRouterAddress,
   postAutoPortForward,
   ROUTER_ADDRESS_SETTING,
   readPortForward,
+  refuseAddress,
   syncAutoPortForward,
 } from "./autoPortForward";
 
@@ -75,6 +77,28 @@ describe("automatic port forwarding setting", () => {
     });
     stop();
     settings.dispose();
+  });
+
+  it("sends this computer's address with the router's once it is a valid one", () => {
+    const settings = new SettingsService();
+    const post = vi.fn(async () => {});
+    const stop = syncAutoPortForward(settings, post);
+    settings.set(AUTO_PORT_FORWARD_SETTING, true);
+    settings.set(ROUTER_ADDRESS_SETTING, "203.0.113.1");
+    settings.set(COMPUTER_ADDRESS_SETTING, "203.0.113.20");
+    expect(post).toHaveBeenLastCalledWith({
+      enabled: true,
+      routerIp: "203.0.113.1",
+      lanIp: "203.0.113.20",
+    });
+    stop();
+    settings.dispose();
+  });
+
+  it("refuses a typed address that is not one, and accepts an empty field", () => {
+    expect(refuseAddress("")).toBeUndefined();
+    expect(refuseAddress("203.0.113.1")).toBeUndefined();
+    expect(refuseAddress("203.0.113")).toMatch(/not an address/);
   });
 
   it("takes four numbers from 0 to 255 as a router address, and nothing else", () => {

@@ -8,11 +8,13 @@ export interface ForwardingMapper {
   stop(): Promise<void>;
 }
 
-/** Whether to forward, and the router to ask. */
+/** Whether to forward, the router to ask, and the computer it forwards to. */
 export interface ForwardingChoice {
   enabled: boolean;
   /** The router's address as the player gave it; nothing is asked without one. */
   router: string | null;
+  /** This computer's address as the player gave it, which a UPnP router forwards to. */
+  lan: string | null;
 }
 
 const NO_ADDRESS: PortMappingStatus = {
@@ -31,16 +33,19 @@ export function isIpv4(text: string): boolean {
 /**
  * Automatic port forwarding as a switch: on with a router address, the relay
  * asks that router to open its port and keeps it open; off, it closes it. It
- * starts from `GONOGO_AUTO_PORT_FORWARD` and `ROUTER_IP`, and the main
- * screen's "Automatic port forwarding" setting changes both while the relay
- * runs. Changes are applied one at a time, in the order they arrive.
+ * starts from `GONOGO_AUTO_PORT_FORWARD`, `ROUTER_IP` and `LAN_IP`, and the
+ * main screen's "Automatic port forwarding" settings change all three while
+ * the relay runs. Changes are applied one at a time, in the order they arrive.
  */
 export class PortForwarding {
   private mapper: ForwardingMapper | null = null;
   private queue: Promise<void> = Promise.resolve();
 
   constructor(
-    private readonly make: (router: string) => ForwardingMapper,
+    private readonly make: (
+      router: string,
+      lan: string | null,
+    ) => ForwardingMapper,
     private choice: ForwardingChoice,
   ) {}
 
@@ -50,6 +55,10 @@ export class PortForwarding {
 
   get router(): string | null {
     return this.choice.router;
+  }
+
+  get lan(): string | null {
+    return this.choice.lan;
   }
 
   /** Where the router forward stands, or null while forwarding is off. */
@@ -66,7 +75,8 @@ export class PortForwarding {
     return this.apply(async () => {
       const same =
         next.enabled === this.choice.enabled &&
-        next.router === this.choice.router;
+        next.router === this.choice.router &&
+        next.lan === this.choice.lan;
       if (same) return;
       this.choice = next;
       await this.close();
@@ -84,9 +94,9 @@ export class PortForwarding {
   }
 
   private async open(): Promise<void> {
-    const { enabled, router } = this.choice;
+    const { enabled, router, lan } = this.choice;
     if (!enabled || !router || this.mapper) return;
-    const mapper = this.make(router);
+    const mapper = this.make(router, lan);
     this.mapper = mapper;
     await mapper.start();
   }
@@ -99,10 +109,10 @@ export class PortForwarding {
 }
 
 /**
- * Mount `GET /port-forward` (the switch, the router address and where the
- * forward stands) and `POST /port-forward` (`{ enabled: boolean, routerIp?:
- * string }`, from the main screen). A post without `routerIp` keeps the
- * address the relay already has. Which pages may reach them is the
+ * Mount `GET /port-forward` (the switch, both addresses and where the forward
+ * stands) and `POST /port-forward` (`{ enabled: boolean, routerIp?: string,
+ * lanIp?: string }`, from the main screen). A post without an address keeps
+ * the one the relay already has. Which pages may reach them is the
  * relay-wide `registerAppOrigins` gate.
  */
 export function registerPortForwardRoutes(
@@ -112,6 +122,7 @@ export function registerPortForwardRoutes(
   const body = () => ({
     enabled: forwarding.enabled,
     routerIp: forwarding.router,
+    lanIp: forwarding.lan,
     portMapping: forwarding.status,
   });
   fastify.get("/port-forward", async () => body());
@@ -122,18 +133,27 @@ export function registerPortForwardRoutes(
         : undefined;
     const enabled = field("enabled");
     const sent = field("routerIp");
+    const sentLan = field("lanIp");
     if (typeof enabled !== "boolean") {
       return reply.status(400).send({ error: "enabled must be true or false" });
     }
-    if (sent !== undefined && (typeof sent !== "string" || !isIpv4(sent))) {
+    const bad = (v: unknown) =>
+      v !== undefined && (typeof v !== "string" || !isIpv4(v));
+    if (bad(sentLan)) {
+      return reply
+        .status(400)
+        .send({ error: "lanIp must be an address such as 192.0.2.10" });
+    }
+    if (bad(sent)) {
       return reply
         .status(400)
         .send({ error: "routerIp must be an address such as 192.0.2.1" });
     }
-    // A post without an address keeps the one the relay has, which may be `ROUTER_IP`.
+    // A post without an address keeps the one the relay has, which may be `ROUTER_IP` or `LAN_IP`.
     await forwarding.set({
       enabled,
       router: typeof sent === "string" ? sent : forwarding.router,
+      lan: typeof sentLan === "string" ? sentLan : forwarding.lan,
     });
     return body();
   });
