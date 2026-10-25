@@ -19,6 +19,7 @@ import {
   haveUplinksSettled,
   subscribeUplinkOutcomes,
 } from "../../uplinks/loaderState";
+import { WidgetBadges, WidgetContributions } from "./GridItemContent";
 import type { DashboardItem, DashboardProps } from "./index";
 import { ROW_HEIGHT } from "./layoutNormalization";
 import { ComponentWrapper, highlightStyle, WidgetError } from "./shared";
@@ -234,28 +235,32 @@ const MobileItemContent = memo(function MobileItemContent({
       </MobileCellHeader>
       <ScaledBody>
         <DashboardItemContext.Provider value={itemContext}>
-          <ErrorBoundary fallback={renderErrorFallback}>
-            <SeatGuard def={def}>
-              <RequiresGuard
-                requires={def.requires}
-                heldOpenBy={def.heldOpenBy}
-                channels={def.channels}
-                families={def.channelFamilies}
-                optionalFamilies={def.optionalChannelFamilies}
-                configChannels={def.channelsFromConfig?.(
-                  item.config ?? def.defaultConfig ?? {},
-                )}
-              >
-                <Comp
-                  id={item.i}
-                  config={item.config}
-                  w={gridW}
-                  h={gridH}
-                  onConfigChange={onSaveConfig}
-                />
-              </RequiresGuard>
-            </SeatGuard>
-          </ErrorBoundary>
+          <WidgetContributions def={def}>
+            <WidgetBadges>
+              <ErrorBoundary fallback={renderErrorFallback}>
+                <SeatGuard def={def}>
+                  <RequiresGuard
+                    requires={def.requires}
+                    heldOpenBy={def.heldOpenBy}
+                    channels={def.channels}
+                    families={def.channelFamilies}
+                    optionalFamilies={def.optionalChannelFamilies}
+                    configChannels={def.channelsFromConfig?.(
+                      item.config ?? def.defaultConfig ?? {},
+                    )}
+                  >
+                    <Comp
+                      id={item.i}
+                      config={item.config}
+                      w={gridW}
+                      h={gridH}
+                      onConfigChange={onSaveConfig}
+                    />
+                  </RequiresGuard>
+                </SeatGuard>
+              </ErrorBoundary>
+            </WidgetBadges>
+          </WidgetContributions>
         </DashboardItemContext.Provider>
       </ScaledBody>
     </MobileCell>

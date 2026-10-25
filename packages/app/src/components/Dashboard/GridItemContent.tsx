@@ -285,7 +285,7 @@ export const GridItemContent = memo(function GridItemContent({
  * doesn't matter whether this wraps inside or outside `WidgetStreamStatusBridge`;
  * outside keeps the two concerns visually separate in the JSX.
  */
-function WidgetContributions({
+export function WidgetContributions({
   def,
   children,
 }: {
@@ -317,7 +317,7 @@ function WidgetContributions({
  * `WidgetContributions` so `useWidgetBadges` has a `ContributionsProvider`
  * above it in the tree; the widget itself wires nothing.
  */
-function WidgetBadges({ children }: { children: ReactNode }) {
+export function WidgetBadges({ children }: { children: ReactNode }) {
   const badges = useWidgetBadges();
   return <PanelBadgesProvider badges={badges}>{children}</PanelBadgesProvider>;
 }
