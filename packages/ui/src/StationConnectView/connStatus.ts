@@ -11,10 +11,14 @@ export function describeConnStatus(
   hostNotFound: boolean,
   everConnected: boolean,
   brokerUnreachable = false,
+  brokerClosed = false,
 ): string {
   // Ranked above hostNotFound: a station that never reached the broker learned nothing about the host.
   if (brokerUnreachable) {
     return "Can't reach the peer broker: this device needs internet access.";
+  }
+  if (brokerClosed) {
+    return "Connection closed by peer broker service.";
   }
   if (hostNotFound) {
     return everConnected
@@ -40,8 +44,9 @@ export function statusTone(
   hostNotFound: boolean,
   everConnected: boolean,
   brokerUnreachable = false,
+  brokerClosed = false,
 ): "neutral" | "info" | "go" | "nogo" {
-  if (brokerUnreachable) return "nogo";
+  if (brokerUnreachable || brokerClosed) return "nogo";
   // A reclaim window after a prior connection is transient info, not the hard nogo of a wrong code.
   if (hostNotFound) return everConnected ? "info" : "nogo";
   switch (status) {

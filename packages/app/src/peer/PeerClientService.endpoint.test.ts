@@ -1,7 +1,8 @@
 /**
- * How a station chooses its path to the main screen: it asks through the
- * broker, then joins the endpoint with the answer it is given, or connects
- * to the main screen directly when told to or when no answer comes.
+ * How a station chooses its path to the main screen: its data connection
+ * carries an offer for the endpoint, and it joins through the endpoint when
+ * the main screen answers that offer, or stays on the data connection when
+ * the main screen serves it instead.
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -10,6 +11,11 @@ const { Fakes } = vi.hoisted(() => {
   class FakeDataConnection {
     private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
     open = false;
+    closed = false;
+    constructor(
+      readonly peer: string,
+      readonly metadata?: unknown,
+    ) {}
     on(event: string, cb: (...args: unknown[]) => void) {
       const bucket = this.listeners.get(event) ?? [];
       bucket.push(cb);
@@ -18,25 +24,16 @@ const { Fakes } = vi.hoisted(() => {
     emit(event: string, ...args: unknown[]) {
       for (const cb of this.listeners.get(event) ?? []) cb(...args);
     }
-    close() {}
+    close() {
+      this.closed = true;
+    }
     send() {}
   }
 
   class FakePeer {
     static current: FakePeer | null = null;
     private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
-    private socketListeners = new Set<(m: unknown) => void>();
-    readonly toBroker: Array<{ type: string; dst: string; payload: unknown }> =
-      [];
-    connectedTo: string | null = null;
-    socket = {
-      on: (_e: string, cb: (m: unknown) => void) =>
-        this.socketListeners.add(cb),
-      off: (_e: string, cb: (m: unknown) => void) =>
-        this.socketListeners.delete(cb),
-      send: (m: { type: string; dst: string; payload: unknown }) =>
-        this.toBroker.push(m),
-    };
+    readonly connections: FakeDataConnection[] = [];
     constructor(readonly id: string) {
       FakePeer.current = this;
       queueMicrotask(() => this.emit("open", this.id));
@@ -49,16 +46,20 @@ const { Fakes } = vi.hoisted(() => {
     emit(event: string, ...args: unknown[]) {
       for (const cb of this.listeners.get(event) ?? []) cb(...args);
     }
-    fromBroker(m: unknown) {
-      for (const cb of this.socketListeners) cb(m);
+    connect(id: string, options?: { metadata?: unknown }) {
+      const conn = new FakeDataConnection(id, options?.metadata);
+      this.connections.push(conn);
+      return conn;
     }
-    connect(id: string) {
-      this.connectedTo = id;
-      return new FakeDataConnection();
+    /** The main screen opening a connection to this station. */
+    incoming(metadata: unknown) {
+      const conn = new FakeDataConnection("gonogo-host-ABCD", metadata);
+      this.emit("connection", conn);
+      return conn;
     }
     destroy() {}
   }
-  return { Fakes: { Peer: FakePeer } };
+  return { Fakes: { Peer: FakePeer, DataConnection: FakeDataConnection } };
 });
 
 vi.mock("peerjs", () => ({ default: Fakes.Peer }));
@@ -96,83 +97,97 @@ class FakeRTCPeerConnection {
   close() {}
 }
 
-import { ENDPOINT_SIGNAL } from "./brokerSignal";
 import { FrameReader } from "./endpointFraming";
+import { joinMetadata, readJoin } from "./endpointJoin";
 import { PeerClientService } from "./PeerClientService";
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  vi.useRealTimers();
 });
 
-async function asked(): Promise<{
+type FakeConn = InstanceType<typeof Fakes.DataConnection>;
+
+async function joining(): Promise<{
   svc: PeerClientService;
   peer: InstanceType<typeof Fakes.Peer>;
-  connectionId: string;
+  direct: FakeConn;
+  id: string;
 }> {
   vi.stubGlobal("RTCPeerConnection", FakeRTCPeerConnection);
   const svc = new PeerClientService({ peerId: "station-test" });
   svc.connect("ABCD");
-  await vi.waitFor(() => expect(Fakes.Peer.current?.toBroker).toHaveLength(1));
+  await vi.waitFor(() =>
+    expect(Fakes.Peer.current?.connections).toHaveLength(1),
+  );
   const peer = Fakes.Peer.current;
   if (!peer) throw new Error("no peer");
-  const sent = peer.toBroker[0] as {
-    dst: string;
-    payload: { type: string; connectionId: string; signal: unknown };
-  };
-  expect(sent.dst).toBe("gonogo-host-ABCD");
-  expect(sent.payload.type).toBe(ENDPOINT_SIGNAL);
-  expect(sent.payload.signal).toEqual({ kind: "join", sdp: "v=station-offer" });
-  return { svc, peer, connectionId: sent.payload.connectionId };
-}
-
-function reply(
-  peer: InstanceType<typeof Fakes.Peer>,
-  connectionId: string,
-  signal: unknown,
-) {
-  peer.fromBroker({
-    type: "OFFER",
-    src: "gonogo-host-ABCD",
-    payload: { type: ENDPOINT_SIGNAL, connectionId, signal },
-  });
+  const direct = peer.connections[0];
+  expect(direct.peer).toBe("gonogo-host-ABCD");
+  const join = readJoin(direct.metadata);
+  expect(join).toMatchObject({ kind: "join", sdp: "v=station-offer" });
+  return { svc, peer, direct, id: join?.id ?? "" };
 }
 
 describe("a station choosing its path to the main screen", () => {
-  it("joins through the endpoint with the answer the main screen relays", async () => {
-    const { svc, peer, connectionId } = await asked();
-    reply(peer, connectionId, { kind: "answer", sdp: "v=endpoint-answer" });
+  it("joins through the endpoint with the answer the main screen sends back", async () => {
+    const { svc, peer, direct, id } = await joining();
+    const carrier = peer.incoming(
+      joinMetadata({ kind: "answer", id, sdp: "v=endpoint-answer" }),
+    );
+    expect(carrier.closed).toBe(true);
     const pc = FakeRTCPeerConnection.last;
     await vi.waitFor(() =>
       expect(pc?.remote).toEqual({ type: "answer", sdp: "v=endpoint-answer" }),
     );
+    expect(direct.closed).toBe(true);
     pc?.channel.dispatchEvent(new Event("open"));
     expect(svc.getConnStatus()).toBe("connected");
-    expect(peer.connectedTo).toBeNull();
     const first = new FrameReader().push(pc?.channel.sent[0] as Uint8Array);
     expect(first).toMatchObject({ type: "station-credential" });
     svc.disconnect();
   });
 
-  it("connects directly when the main screen says no endpoint is running", async () => {
-    const { svc, peer, connectionId } = await asked();
-    reply(peer, connectionId, { kind: "direct" });
-    expect(peer.connectedTo).toBe("gonogo-host-ABCD");
+  it("joins through the endpoint even when its data connection opened first", async () => {
+    const { peer, direct, id } = await joining();
+    direct.open = true;
+    direct.emit("open");
+    peer.incoming(joinMetadata({ kind: "answer", id, sdp: "v=endpoint" }));
+    await vi.waitFor(() =>
+      expect(FakeRTCPeerConnection.last?.remote?.sdp).toBe("v=endpoint"),
+    );
+    expect(direct.closed).toBe(true);
+  });
+
+  it("stays on its data connection once the main screen serves it", async () => {
+    const { svc, peer, direct, id } = await joining();
+    direct.open = true;
+    direct.emit("open");
+    direct.emit("data", { type: "host-heartbeat" });
+    expect(svc.getConnStatus()).toBe("connected");
+    peer.incoming(joinMetadata({ kind: "answer", id, sdp: "v=late" }));
+    expect(FakeRTCPeerConnection.last?.remote).toBeNull();
+    expect(direct.closed).toBe(false);
     svc.disconnect();
   });
 
-  it("ignores a reply meant for another join", async () => {
-    const { svc, peer } = await asked();
-    reply(peer, "gne-someone-else", { kind: "direct" });
-    expect(peer.connectedTo).toBeNull();
+  it("ignores an answer meant for another join", async () => {
+    const { svc, peer, direct } = await joining();
+    peer.incoming(
+      joinMetadata({ kind: "answer", id: "gne-someone-else", sdp: "v=0" }),
+    );
+    expect(FakeRTCPeerConnection.last?.remote).toBeNull();
+    expect(direct.closed).toBe(false);
     svc.disconnect();
   });
 
-  it("connects directly when the main screen does not answer", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const { svc, peer } = await asked();
-    await vi.advanceTimersByTimeAsync(4_000);
-    expect(peer.connectedTo).toBe("gonogo-host-ABCD");
+  it("connects with no offer when the browser cannot make one", async () => {
+    vi.stubGlobal("RTCPeerConnection", undefined);
+    const svc = new PeerClientService({ peerId: "station-test" });
+    svc.connect("ABCD");
+    await vi.waitFor(() =>
+      expect(Fakes.Peer.current?.connections).toHaveLength(1),
+    );
+    expect(Fakes.Peer.current?.connections[0].metadata).toBeUndefined();
     svc.disconnect();
   });
 });

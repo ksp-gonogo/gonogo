@@ -16,8 +16,6 @@ import {
 const { Hub } = vi.hoisted(() => {
   class Peer {
     private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
-    // The broker socket a real Peer carries; the endpoint join signal listens on it.
-    socket = { on() {}, off() {}, send(_m: unknown) {} };
     constructor(readonly id: string) {
       queueMicrotask(() => this.emit("open", this.id));
     }

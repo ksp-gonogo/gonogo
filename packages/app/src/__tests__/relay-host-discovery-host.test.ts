@@ -6,8 +6,6 @@ type Listener = (...args: unknown[]) => void;
 // assert the host claims the derived `gonogo-host-<code>` id. Tracks all
 // constructed instances + whether each was destroyed.
 class FakePeer {
-  // The broker socket a real Peer carries; the endpoint join signal listens on it.
-  socket = { on() {}, off() {}, send(_m: unknown) {} };
   private listeners = new Map<string, Listener[]>();
   static instances: FakePeer[] = [];
   static last: FakePeer | null = null;

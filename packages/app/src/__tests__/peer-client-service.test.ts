@@ -53,9 +53,6 @@ const { FakePeer } = vi.hoisted(() => {
   }
 
   class FakePeer {
-    // The broker socket a real Peer carries; the endpoint join signal listens on it.
-
-    socket = { on() {}, off() {}, send(_m: unknown) {} };
     static instances: FakePeer[] = [];
     private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
 
@@ -797,6 +794,32 @@ describe("PeerClientService reconnect loop", () => {
     vi.advanceTimersByTime(50);
     driveOpen(FakePeer.instances[1]);
     expect(reachable).toEqual([false, true]);
+  });
+
+  it("says the broker closed the socket, not that the device is offline, when it closes after answering", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 60_000,
+    });
+    const reachable: boolean[] = [];
+    const closed: boolean[] = [];
+    svc.onBrokerReachable((r) => reachable.push(r));
+    svc.onBrokerClosed((c) => closed.push(c));
+
+    svc.connect("Z6HK");
+    FakePeer.instances[0].emit("open");
+    FakePeer.instances[0].emit(
+      "error",
+      Object.assign(new Error("Lost connection to server."), {
+        type: "network",
+      }),
+    );
+    expect(reachable).toEqual([true]);
+    expect(closed).toEqual([false, true]);
+
+    vi.advanceTimersByTime(50);
+    driveOpen(FakePeer.instances[1]);
+    expect(closed).toEqual([false, true, false]);
   });
 
   it("replays the last broker verdict to a listener that subscribes later", () => {
