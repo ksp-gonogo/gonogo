@@ -104,21 +104,26 @@ export function renderPartShape(
   const cy = center.y;
 
   if (marks.silhouette && !STATE_SHAPES.has(type)) {
+    // Identical outlines (mirrored meshes) share their points, so a repeat takes an ordinal suffix to stay unique.
+    const seen = new Map<string, number>();
+    const outlines = marks.silhouette.map((outline) => {
+      const points = outline.map((q) => `${q.x},${q.y}`).join(" ");
+      const n = seen.get(points) ?? 0;
+      seen.set(points, n + 1);
+      return { points, key: `${points}#${n}` };
+    });
     return (
       <g opacity={opacity}>
-        {marks.silhouette.map((outline) => {
-          const points = outline.map((q) => `${q.x},${q.y}`).join(" ");
-          return (
-            <polygon
-              key={points}
-              data-role="mesh-outline"
-              points={points}
-              fill={fill}
-              stroke={stroke}
-              strokeWidth={strokeWidth}
-            />
-          );
-        })}
+        {outlines.map(({ points, key }) => (
+          <polygon
+            key={key}
+            data-role="mesh-outline"
+            points={points}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+          />
+        ))}
       </g>
     );
   }

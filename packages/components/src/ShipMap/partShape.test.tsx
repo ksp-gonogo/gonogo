@@ -1,5 +1,7 @@
+import { render } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderPartShape } from "./partShape";
 
 const BOX = { x: 10, y: 20, w: 40, h: 80 };
@@ -192,5 +194,46 @@ describe("a part drawn from its mesh outline", () => {
     );
     expect(markup).not.toContain('data-role="mesh-outline"');
     expect(markup).toContain("<rect");
+  });
+});
+
+describe("a part drawn from a mesh silhouette", () => {
+  it("renders without a duplicate key when two outlines share their points", async () => {
+    const outline = [
+      { x: 10, y: 20 },
+      { x: 50, y: 20 },
+      { x: 30, y: 100 },
+    ];
+    const errors: unknown[][] = [];
+    const spy = vi.spyOn(console, "error").mockImplementation((...a) => {
+      errors.push(a);
+    });
+    try {
+      const { container } = render(
+        <svg aria-hidden="true">
+          {renderPartShape(
+            "tank",
+            BOX,
+            CENTER,
+            "var(--color-info-mark)",
+            false,
+            1,
+            1,
+            undefined,
+            true,
+            { silhouette: [outline, outline] },
+          )}
+        </svg>,
+      );
+      expect(
+        container.querySelectorAll('[data-role="mesh-outline"]'),
+      ).toHaveLength(2);
+      await expectNoA11yViolations(container);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(errors.map((a) => String(a[0]))).not.toContainEqual(
+      expect.stringContaining("same key"),
+    );
   });
 });
