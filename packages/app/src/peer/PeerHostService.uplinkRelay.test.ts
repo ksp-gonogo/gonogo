@@ -162,7 +162,13 @@ describe("PeerHostService.handleUplinkRelay (generic)", () => {
       n: 1,
     });
     expect(result).toEqual({ pong: true });
-    expect(relay).toHaveBeenCalledWith("ping", { n: 1 });
+    expect(relay).toHaveBeenCalledWith(
+      "ping",
+      { n: 1 },
+      {
+        station: expect.any(String),
+      },
+    );
   });
 
   it("responds with an error when no handle is registered for uplinkId", async () => {

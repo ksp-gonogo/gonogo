@@ -87,6 +87,7 @@ export interface EndpointStatus {
 
 interface ControlFrame {
   type?: unknown;
+  bid?: unknown;
   port?: unknown;
   publicIp?: unknown;
   sid?: unknown;
@@ -103,6 +104,14 @@ interface PendingJoin {
 }
 
 const ANSWER_TIMEOUT_MS = 10_000;
+const BRIDGE_TIMEOUT_MS = 20_000;
+
+interface PendingBridge {
+  upstream: (offer: string) => Promise<string>;
+  resolve: (answer: string) => void;
+  reject: (err: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+}
 const MAX_BACKOFF_MS = 30_000;
 
 /**
@@ -122,6 +131,8 @@ export class EndpointStations {
   private attempt = 0;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private nextSid = 1;
+  private nextBid = 1;
+  private readonly bridges = new Map<number, PendingBridge>();
   private readonly links = new Map<number, EndpointConnection>();
   private readonly pending = new Map<number, PendingJoin>();
   private readonly events = new TypedListeners<{ available: [up: boolean] }>();
@@ -197,6 +208,33 @@ export class EndpointStations {
     return { conn, answer };
   }
 
+  /**
+   * Bridge a media connection a station on the endpoint is opening, such as
+   * a camera feed, to a server only this network can reach. `offer` is the
+   * station's offer; the endpoint makes its own offer for the server, which
+   * `upstream` negotiates with that server and answers. Resolves with the
+   * endpoint's answer to send the station.
+   */
+  bridge(
+    conn: EndpointConnection,
+    offer: string,
+    upstream: (offer: string) => Promise<string>,
+  ): Promise<string> {
+    if (!this.up || !conn.open) {
+      return Promise.reject(new Error("the station is not on the endpoint"));
+    }
+    const bid = this.nextBid++;
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.bridges.delete(bid);
+        this.sendControl({ type: "bridge-close", bid });
+        reject(new Error("the endpoint did not bridge the connection in time"));
+      }, BRIDGE_TIMEOUT_MS);
+      this.bridges.set(bid, { upstream, resolve, reject, timer });
+      this.sendControl({ type: "bridge", sid: conn.sid, bid, sdp: offer });
+    });
+  }
+
   private connect(): void {
     if (this.stopped) return;
     let socket: WebSocket;
@@ -241,6 +279,11 @@ export class EndpointStations {
       p.reject(new Error("the endpoint went away"));
     }
     this.pending.clear();
+    for (const b of this.bridges.values()) {
+      clearTimeout(b.timer);
+      b.reject(new Error("the endpoint went away"));
+    }
+    this.bridges.clear();
     for (const conn of [...this.links.values()]) conn.markClosed();
     this.links.clear();
     this.setUp(false);
@@ -269,6 +312,7 @@ export class EndpointStations {
     const f: ControlFrame = {
       type: field("type"),
       sid: field("sid"),
+      bid: field("bid"),
       sdp: field("sdp"),
       reason: field("reason"),
       path: field("path"),
@@ -276,7 +320,40 @@ export class EndpointStations {
       publicIp: field("publicIp"),
     };
     const sid = typeof f.sid === "number" ? f.sid : -1;
+    const bid = typeof f.bid === "number" ? f.bid : -1;
     switch (f.type) {
+      case "bridge-offer": {
+        const b = this.bridges.get(bid);
+        if (!b || typeof f.sdp !== "string") return;
+        b.upstream(f.sdp).then(
+          (answer) =>
+            this.sendControl({ type: "bridge-answer", bid, sdp: answer }),
+          (err: unknown) => {
+            this.endBridge(
+              bid,
+              err instanceof Error ? err : new Error(String(err)),
+            );
+            this.sendControl({ type: "bridge-close", bid });
+          },
+        );
+        return;
+      }
+      case "bridge-ready": {
+        const b = this.bridges.get(bid);
+        if (!b || typeof f.sdp !== "string") return;
+        this.bridges.delete(bid);
+        clearTimeout(b.timer);
+        b.resolve(f.sdp);
+        return;
+      }
+      case "bridge-close":
+        this.endBridge(
+          bid,
+          new Error(
+            `the endpoint closed the bridge: ${String(f.reason ?? "")}`,
+          ),
+        );
+        return;
       case "status":
         this.current = {
           port: typeof f.port === "number" ? f.port : 0,
@@ -313,6 +390,14 @@ export class EndpointStations {
         return;
       }
     }
+  }
+
+  private endBridge(bid: number, err: Error): void {
+    const b = this.bridges.get(bid);
+    if (!b) return;
+    this.bridges.delete(bid);
+    clearTimeout(b.timer);
+    b.reject(err);
   }
 
   private data(buffer: ArrayBuffer): void {

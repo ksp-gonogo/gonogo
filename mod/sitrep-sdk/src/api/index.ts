@@ -228,7 +228,6 @@ export type {
   DelayClockLike,
   DelayMode,
   DepTopics,
-  HostIceServers,
   InFlightCommand,
   LateTelemetrySubscribe,
   MapPoi,
@@ -242,6 +241,7 @@ export type {
   PerfBudgetHandle,
   PerfBudgetOptions,
   PredictedPhase,
+  RelayCaller,
   Screen,
   Seat,
   SendStatus,
@@ -862,49 +862,6 @@ export function sendTogether(build: () => void): CommandGroupHandle {
 export function useUplinkRelay(uplinkId: string) {
   // gonogo:reads none
   return getHost().useUplinkRelay(uplinkId);
-}
-
-/**
- * The ICE servers the main screen hands out to its stations, for an Uplink
- * opening a media connection from a station. Useful for showing the operator a
- * video feed on a station.
- *
- * ICE servers are the STUN and turn servers a WebRTC connection uses to find a
- * path between two browsers; turn ones carry short-lived credentials from the
- * relay the Gonogo deployment runs. A station cannot reach the relay that
- * issues them, so the main screen broadcasts them and this reads them. Empty on
- * the main screen itself, which reaches the relay directly.
- *
- * ```ts
- * import { useHostIceServers } from "@ksp-gonogo/sitrep-sdk";
- * import { useEffect } from "react";
- *
- * function useConnection() {
- *   const ice = useHostIceServers();
- *   useEffect(() => {
- *     const pc = new RTCPeerConnection({ iceServers: ice.current() });
- *     const stop = ice.onChange((iceServers) =>
- *       pc.setConfiguration({ iceServers }),
- *     );
- *     return () => {
- *       stop();
- *       pc.close();
- *     };
- *   }, [ice]);
- * }
- * ```
- *
- * Open the connection in an effect, as above, so it is made once and not on
- * every render. Credentials rotate, so a long-lived connection watches
- * `onChange` rather than reading `current()` once. The returned object does not
- * change when credentials rotate, which is why it is safe as the effect's
- * dependency: read `current()` for the latest servers.
- *
- * @category Host and runtime
- */
-export function useHostIceServers() {
-  // gonogo:reads none
-  return getHost().useHostIceServers();
 }
 
 /**

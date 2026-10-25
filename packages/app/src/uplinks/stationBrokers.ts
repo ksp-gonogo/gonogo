@@ -14,15 +14,10 @@ type BrokerClient = Pick<PeerClientService, "sendUplinkRelay">;
  * it cannot stop the next Uplink's from running.
  */
 export function attachStationBrokers(client: BrokerClient): () => void {
-  const iceServers: StationBroker["iceServers"] = {
-    current: () => [],
-    onChange: () => () => {},
-  };
   return watchStationBrokers((uplinkId, attach) => {
     try {
       attach({
         relay: (method, args) => client.sendUplinkRelay(uplinkId, method, args),
-        iceServers,
       });
     } catch (err) {
       logger.warn(`[stationBrokers] "${uplinkId}" failed to attach`, {
