@@ -21,11 +21,17 @@ describe("loadConfig", () => {
     );
   });
 
-  it("leaves the router alone unless GONOGO_UPNP is set", () => {
+  it("leaves the router alone unless automatic port forwarding is on", () => {
     expect(loadConfig({}).portMapping).toBe(false);
-    expect(loadConfig({ GONOGO_UPNP: "0" }).portMapping).toBe(false);
-    expect(loadConfig({ GONOGO_UPNP: "1" }).portMapping).toBe(true);
-    expect(loadConfig({ GONOGO_UPNP: "true" }).portMapping).toBe(true);
+    expect(loadConfig({ GONOGO_AUTO_PORT_FORWARD: "0" }).portMapping).toBe(
+      false,
+    );
+    expect(loadConfig({ GONOGO_AUTO_PORT_FORWARD: "1" }).portMapping).toBe(
+      true,
+    );
+    expect(loadConfig({ GONOGO_AUTO_PORT_FORWARD: "true" }).portMapping).toBe(
+      true,
+    );
   });
 
   it("puts the endpoint on 47100 unless ENDPOINT_PORT says otherwise", () => {
