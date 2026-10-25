@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import {
   type MappingProtocol,
   NatPmpRefused,
@@ -20,7 +19,8 @@ export type PortMappingState =
   | "mapped"
   | "refused"
   | "no-answer"
-  | "container-only";
+  | "container-only"
+  | "no-address";
 
 /** What the relay tells the player about opening its ports on the router, in the words shown to them. */
 export interface PortMappingStatus {
@@ -29,10 +29,8 @@ export interface PortMappingStatus {
 }
 
 export interface PortMapperOptions {
-  /** Ordered addresses to ask. The first that answers NAT-PMP is used and the rest are never asked. */
-  gateways: readonly string[];
-  /** Addresses asked only when none of `gateways` answers, all at once and cheap enough to cover a whole range. */
-  sweep?: readonly string[];
+  /** The router's address, as the player gave it. Nothing else is asked. */
+  router: string;
   /** Every port to open, each mapped to the same port number on this computer. */
   ports: readonly MappedPort[];
   /** Seconds a mapping lasts before the router drops it; renewed at half. */
@@ -51,81 +49,21 @@ export interface PortMapperOptions {
   log?: (message: string) => void;
 }
 
-const PROBE_BATCH = 128;
 const DEFAULT_LEASE_SECONDS = 3600;
 const DEFAULT_TIMEOUT_MS = 400;
-
-/** Addresses home routers ship on, asked only when no gateway was named or found. */
-const COMMON_ROUTER_ADDRESSES = [
-  [192, 168, 1, 1],
-  [192, 168, 0, 1],
-  [10, 0, 0, 1],
-  [192, 168, 1, 254],
-  [192, 168, 2, 1],
-  [192, 168, 178, 1],
-  [10, 0, 1, 1],
-  [192, 168, 100, 1],
-  [192, 168, 8, 1],
-  [192, 168, 86, 1],
-  [192, 168, 50, 1],
-  [192, 168, 3, 1],
-  [10, 1, 1, 1],
-].map((octets) => octets.join("."));
 
 const STATUS: Record<PortMappingState, string> = {
   checking: "Asking your router to open the relay's port...",
   mapped: "Your router opened the relay's port.",
   refused: "Your router refused to open the relay's port",
-  "no-answer": "Your router did not answer a request to open the relay's port.",
+  "no-answer":
+    "Your router did not answer a request to open the relay's port. Check its address, and that UPnP or NAT-PMP is switched on in its settings.",
   "container-only":
     "Your router only opens ports for a program running directly on this computer, so the relay could not open it from inside the container.",
+  "no-address": "Automatic port forwarding needs your router's address.",
 };
 
 const MANUAL = "Forward it by hand, as the networking guide describes.";
-
-/** The container's default gateway from the Linux routing table, or null where there is none to read. */
-export function defaultGateway(
-  readRoutes: () => string = () => readFileSync("/proc/net/route", "utf8"),
-): string | null {
-  let table: string;
-  try {
-    table = readRoutes();
-  } catch {
-    return null;
-  }
-  for (const line of table.split("\n").slice(1)) {
-    const [, destination, gateway] = line.split(/\s+/);
-    if (destination === "00000000" && gateway && gateway !== "00000000") {
-      const b = Buffer.from(gateway, "hex");
-      return `${b[3]}.${b[2]}.${b[1]}.${b[0]}`;
-    }
-  }
-  return null;
-}
-
-/**
- * Every `.1` and `.254` address of the 192.168 networks, which is where home
- * routers sit. Each is asked for a mapping-protocol answer, so only a real
- * router is ever used.
- */
-export function sweepCandidates(): string[] {
-  const out: string[] = [];
-  for (let n = 0; n < 256; n++) {
-    out.push(`192.168.${n}.1`, `192.168.${n}.254`);
-  }
-  return out;
-}
-
-/** `ROUTER_IP` alone when set, otherwise the default gateway then the usual home router addresses. */
-export function gatewayCandidates(
-  routerIp: string | null,
-  gateway: string | null,
-): string[] {
-  if (routerIp) return [routerIp];
-  return [
-    ...new Set([...(gateway ? [gateway] : []), ...COMMON_ROUTER_ADDRESSES]),
-  ];
-}
 
 /** One port the relay asks the router to open. */
 export interface MappedPort {
@@ -190,29 +128,12 @@ export class PortMapper {
 
   private set(state: PortMappingState, detail?: string): void {
     const message =
-      state === "mapped" || state === "checking"
+      state === "mapped" || state === "checking" || state === "no-address"
         ? STATUS[state]
         : state === "refused"
           ? `${STATUS.refused}${detail ? ` (${detail})` : ""}. ${MANUAL}`
           : `${STATUS[state]} ${MANUAL}`;
     this.current = { state, message };
-  }
-
-  /** Ask every address in `stage` at once, in batches, and return the first by position that answers. */
-  private async firstAnswer<T>(
-    stage: readonly string[],
-    probe: (gateway: string) => Promise<T | null>,
-  ): Promise<{ gateway: string; value: T } | null> {
-    for (let from = 0; from < stage.length; from += PROBE_BATCH) {
-      const batch = stage.slice(from, from + PROBE_BATCH);
-      const answers = await Promise.all(
-        batch.map((gateway) => probe(gateway).catch(() => null)),
-      );
-      const at = answers.findIndex((a) => a !== null);
-      if (at >= 0)
-        return { gateway: batch[at] as string, value: answers[at] as T };
-    }
-    return null;
   }
 
   private async natPmpAnswers(gateway: string): Promise<string | null> {
@@ -223,57 +144,40 @@ export class PortMapper {
     }
   }
 
-  /** Find the router, open every port and schedule renewals. Resolves once the first attempt has an outcome. */
+  /** Ask the router, open every port and schedule renewals. Resolves once the first attempt has an outcome. */
   async start(): Promise<void> {
     const log = this.opts.log ?? (() => {});
-    const stages = [this.opts.gateways, this.opts.sweep ?? []].filter(
-      (stage) => stage.length > 0,
-    );
-    for (const stage of stages) {
-      const nat = await this.firstAnswer(stage, (g) => this.natPmpAnswers(g));
-      if (nat) {
-        this.backend = this.natPmpBackend(nat.gateway);
-        log(`router at ${nat.gateway} answered NAT-PMP`);
-        await this.mapAll();
-        return;
-      }
-      const upnp = await this.firstAnswer(stage, (g) =>
-        discoverIgd(this.upnpTarget(g)),
+    const router = this.opts.router;
+    if ((await this.natPmpAnswers(router)) !== null) {
+      this.backend = this.natPmpBackend(router);
+      log(`router at ${router} answered NAT-PMP`);
+      await this.mapAll();
+      return;
+    }
+    const igd = await discoverIgd(this.upnpTarget(router)).catch(() => null);
+    if (igd) {
+      log(
+        `router at ${router} answered UPnP (${igd.server || "no server string"})`,
       );
-      if (upnp) {
-        log(
-          `router at ${upnp.gateway} answered UPnP (${upnp.value.server || "no server string"})`,
-        );
-        this.backend = await this.upnpBackend(
-          this.upnpTarget(upnp.gateway),
-          upnp.value,
-        );
-        await this.mapAll();
-        return;
-      }
+      this.backend = await this.upnpBackend(this.upnpTarget(router), igd);
+      await this.mapAll();
+      return;
     }
     await this.explainSilence(log);
   }
 
   private async explainSilence(log: (m: string) => void): Promise<void> {
+    const router = this.opts.router;
     const probe = this.opts.probeOthers;
-    for (const gateway of this.opts.gateways) {
-      const found = probe
-        ? await probe(gateway)
-        : await answersPcpOrUpnp(this.target(gateway));
-      if (found) {
-        log(`router at ${gateway} answers ${found} only`);
-        this.set("container-only");
-        return;
-      }
+    const found = probe
+      ? await probe(router)
+      : await answersPcpOrUpnp(this.target(router));
+    if (found) {
+      log(`router at ${router} answers ${found} only`);
+      this.set("container-only");
+      return;
     }
-    const asked = this.opts.gateways.join(", ") || "no address";
-    const swept = this.opts.sweep?.length
-      ? ` and ${this.opts.sweep.length} usual router addresses`
-      : "";
-    log(
-      `no router answered NAT-PMP or UPnP at ${asked}${swept}; set ROUTER_IP to the router's address (and LAN_IP to this computer's address on that network) to name them`,
-    );
+    log(`no router answered NAT-PMP or UPnP at ${router}`);
     this.set("no-answer");
   }
 
