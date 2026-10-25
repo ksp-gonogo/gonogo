@@ -2,7 +2,7 @@
 export const DISCOVERY_RETRY_MS = 60_000;
 
 export interface PublicServiceSupervisorOptions<H> {
-  /** The service's name in the relay's messages, such as "coturn". */
+  /** The service's name in the relay's messages, such as "endpoint". */
   name: string;
   /** Resolve the address the service advertises; rejects when it cannot be found. */
   discover: () => Promise<string>;

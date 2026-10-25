@@ -1,11 +1,10 @@
 /**
- * Discover the relay's public IP: the address coturn must advertise to
- * clients in its `relay` ICE candidates. Without this, coturn falls
- * back to the container's bridge IP (e.g. `10.89.7.x`), which only
- * routes inside the compose network and renders relay candidates
- * useless to anyone on the actual internet.
+ * Discover the relay's public IP: the address the station endpoint
+ * advertises to stations on other networks. Inside a container the
+ * endpoint sees only the container's bridge address (e.g. `10.89.7.x`),
+ * which nobody outside the compose network can reach.
  *
- * Operator override: `TURN_EXTERNAL_IP` env. Auto-discovery is the
+ * Operator override: `PUBLIC_IP` env. Auto-discovery is the
  * common path; the override exists for unusual setups (multi-WAN,
  * IPv6-only, an explicit DDNS hostname, etc.).
  *
@@ -43,7 +42,7 @@ export interface DiscoverOptions {
  * Resolve the relay's public IP. Returns the override if set, otherwise
  * races multiple lookup services and returns the first valid response.
  * Throws if every lookup fails, the caller decides whether to retry,
- * fall back to a sentinel, or refuse to start coturn.
+ * fall back to a sentinel, or start without the endpoint.
  */
 export async function discoverPublicIp(
   opts: DiscoverOptions = {},
@@ -86,7 +85,6 @@ const IPV6_RE = /^[0-9a-fA-F:]+$/;
 
 function isPlausibleIp(s: string): boolean {
   if (!s) return false;
-  // Don't validate exhaustively: coturn will reject a malformed
-  // address. We just want to filter out HTML error pages and the like.
+  // Don't validate exhaustively: this only filters out HTML error pages and the like.
   return IPV4_RE.test(s) || (s.includes(":") && IPV6_RE.test(s));
 }

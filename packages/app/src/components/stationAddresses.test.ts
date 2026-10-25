@@ -85,29 +85,4 @@ describe("stationAddresses", () => {
 
     expect(qr.url).toBe("https://x.example/station?host=A%20B");
   });
-
-  it("carries the relay address in every link and the QR when one is given", () => {
-    const { addresses, qr } = stationAddresses({
-      ...BASE,
-      origin: "http://localhost:5173",
-      relayUrl: "https://relay.example.com",
-    });
-
-    const relay = "relay=https%3A%2F%2Frelay.example.com";
-    expect(addresses.map((a) => a.url)).toEqual([
-      `http://localhost:5173/station?host=AB3K&${relay}`,
-      `${PUBLIC_STATION_URL}?host=AB3K&${relay}`,
-    ]);
-    expect(qr.url).toBe(`${PUBLIC_STATION_URL}?host=AB3K&${relay}`);
-  });
-
-  it("leaves the link unchanged with no relay address", () => {
-    const { qr } = stationAddresses({
-      ...BASE,
-      origin: "http://localhost:5173",
-      relayUrl: null,
-    });
-
-    expect(qr.url).toBe(`${PUBLIC_STATION_URL}?host=AB3K`);
-  });
 });

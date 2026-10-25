@@ -200,8 +200,12 @@ func join(t *testing.T, tb *fakeTab, s *station, sid uint32, peerID string) {
 	}
 	s.answer(t, ans["sdp"].(string))
 	waitFor(t, s.open, "the station's data channel opening")
-	if got := tb.next("open"); uint32(got["sid"].(float64)) != sid {
+	got := tb.next("open")
+	if uint32(got["sid"].(float64)) != sid {
 		t.Fatalf("open for sid %v, wanted %d", got["sid"], sid)
+	}
+	if got["path"] != "lan" {
+		t.Fatalf("a station on loopback joined with path %v, wanted lan", got["path"])
 	}
 }
 

@@ -1,6 +1,6 @@
 import { seedSetting } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
-import { relayBaseUrl } from "../peer/iceServers";
+import { relayBaseUrl } from "../peer/relayAddress";
 
 /**
  * First-run seeding of "where is KSP" from the bundled container's
