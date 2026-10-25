@@ -28,7 +28,12 @@ function roster(
       ownedPrefixes: e.ownedPrefixes ?? [],
       modSettings: e.modSettings ?? false,
       bundled: e.bundled ?? false,
-      health: e.health ?? { state: "healthy", detail: null, facts: [] },
+      health: e.health ?? {
+        state: "healthy",
+        detail: null,
+        facts: [],
+        preventsStart: false,
+      },
     })),
   };
 }
@@ -80,6 +85,7 @@ describe("computeUplinkReadiness: the resolved states", () => {
             state: "unavailable",
             detail: "Widget A is not installed",
             facts: [],
+            preventsStart: false,
           },
         },
       ]),
@@ -334,7 +340,12 @@ describe("computeUplinkReadiness: Uplinks inside the core mod", () => {
       roster([
         {
           id: "widget-a",
-          health: { state: "unavailable", detail: "no engine", facts: [] },
+          health: {
+            state: "unavailable",
+            detail: "no engine",
+            facts: [],
+            preventsStart: false,
+          },
         },
       ]),
       [],
@@ -349,7 +360,12 @@ describe("computeUplinkReadiness: Uplinks inside the core mod", () => {
       roster([
         {
           id: "widget-a",
-          health: { state: "unavailable", detail: "no expansion", facts: [] },
+          health: {
+            state: "unavailable",
+            detail: "no expansion",
+            facts: [],
+            preventsStart: false,
+          },
         },
       ]),
       [],
@@ -391,7 +407,12 @@ describe("bundledDefects", () => {
         { id: "widget-b" },
         {
           id: "widget-c",
-          health: { state: "unavailable", detail: "no expansion", facts: [] },
+          health: {
+            state: "unavailable",
+            detail: "no expansion",
+            facts: [],
+            preventsStart: false,
+          },
         },
         { id: "widget-d", available: false, reason: "failed to load" },
       ]),

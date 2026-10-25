@@ -1913,6 +1913,19 @@ namespace Sitrep.Contract
         /// </summary>
         public IReadOnlyList<UplinkHealthFact> Facts { get; }
 
+        /// <summary>
+        /// Whether this Uplink says the problem it reports prevents Gonogo from
+        /// starting. Set with <see cref="PreventingStart"/>; false for every other
+        /// result. Gonogo's main screen does not open while an installed Uplink
+        /// reports true, and shows <see cref="Detail"/> as the reason, so the
+        /// Uplink's own words are what the operator reads. It is honoured whatever
+        /// the <see cref="State"/>, and nothing sets it on an Uplink's behalf:
+        /// an Uplink whose dependency is absent reports
+        /// <see cref="UplinkHealthState.Unavailable"/> and starts normally unless
+        /// its author also marks the result this way.
+        /// </summary>
+        public bool PreventsStart { get; }
+
         /// <summary>A result with no facts.</summary>
         /// <param name="state">The coarse state.</param>
         /// <param name="detail">The sentence under the state, or null.</param>
@@ -1933,7 +1946,31 @@ namespace Sitrep.Contract
             State = state;
             Detail = detail;
             Facts = facts ?? NoFacts;
+            PreventsStart = false;
         }
+
+        private UplinkHealth(
+            UplinkHealthState state,
+            string? detail,
+            IReadOnlyList<UplinkHealthFact> facts,
+            bool preventsStart)
+        {
+            State = state;
+            Detail = detail;
+            Facts = facts;
+            PreventsStart = preventsStart;
+        }
+
+        /// <summary>
+        /// This result, marked as preventing Gonogo from starting: the main screen
+        /// stays closed, naming this Uplink and showing <see cref="Detail"/>, until
+        /// the Uplink reports something else. Use it for a state the operator has
+        /// to fix before any dashboard is worth showing, and give the result a
+        /// detail that says what to do, since that sentence is the whole message.
+        /// </summary>
+        /// <returns>The same result with <see cref="PreventsStart"/> true.</returns>
+        public UplinkHealth PreventingStart() =>
+            new UplinkHealth(State, Detail, Facts ?? NoFacts, true);
 
         private static readonly UplinkHealthFact[] NoFacts = new UplinkHealthFact[0];
 

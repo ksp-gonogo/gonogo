@@ -2586,6 +2586,7 @@ namespace Sitrep.Host
                     ["state"] = (int)UplinkHealthState.Unavailable,
                     ["detail"] = refusal.Reason,
                     ["facts"] = new List<object?>(),
+                    ["preventsStart"] = false,
                 },
                 // Register never ran, so it owns nothing. Present and empty, so a
                 // client enumerates this entry exactly like every other one.
@@ -2699,6 +2700,9 @@ namespace Sitrep.Host
                 // with it. Nothing an uplink hands to Health() reaches the writer
                 // as anything but a string.
                 ["facts"] = facts,
+                // The Uplink's own word that this state stops Gonogo starting; the
+                // host never sets it for an Uplink.
+                ["preventsStart"] = health.PreventsStart,
             };
         }
 

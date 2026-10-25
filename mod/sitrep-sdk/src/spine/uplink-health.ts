@@ -36,6 +36,8 @@ interface RawUplinkHealth {
    * list rather than throwing.
    */
   facts?: RawUplinkHealthFact[];
+  /** `Sitrep.Contract.UplinkHealth.PreventsStart`. Absent on a mod build predating it, which reads as false. */
+  preventsStart?: boolean;
 }
 
 /** One `system.uplinks` wire entry, before decode. */
@@ -188,6 +190,15 @@ export interface UplinkHealthEntry {
      * absent, when it has none.
      */
     facts: UplinkHealthFact[];
+    /**
+     * Whether the Uplink says the state it reports prevents Gonogo from
+     * starting. The main screen stays closed while an installed Uplink reports
+     * `true`, showing `detail`, so the Uplink's own words are what the operator
+     * reads. `false` when the Uplink does not say, and when the mod is too old
+     * to report it. Never set on an Uplink's behalf: a missing partner mod does
+     * not prevent start unless the Uplink's author marks it so.
+     */
+    preventsStart: boolean;
   };
 }
 
@@ -261,6 +272,7 @@ export function deriveSystemUplinkHealth(
           label: fact.label,
           value: fact.value ?? null,
         })),
+        preventsStart: entry.health.preventsStart === true,
       },
     })),
   };

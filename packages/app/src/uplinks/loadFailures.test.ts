@@ -23,7 +23,12 @@ function roster(
       ownedPrefixes: [],
       modSettings: false,
       bundled: e.bundled ?? false,
-      health: e.health ?? { state: "healthy", detail: null, facts: [] },
+      health: e.health ?? {
+        state: "healthy",
+        detail: null,
+        facts: [],
+        preventsStart: false,
+      },
     })),
   };
 }
@@ -99,6 +104,7 @@ describe("computeUplinkLoadFailures", () => {
             state: "unavailable",
             detail: "host mod absent",
             facts: [],
+            preventsStart: false,
           },
         },
       ]),
@@ -112,12 +118,50 @@ describe("computeUplinkLoadFailures", () => {
           {
             id: "bundled-a",
             bundled: true,
-            health: { state: "unavailable", detail: "DLC absent", facts: [] },
+            health: {
+              state: "unavailable",
+              detail: "DLC absent",
+              facts: [],
+              preventsStart: false,
+            },
           },
         ],
         [quarantined({ id: "bundled-a", refusedOnHealth: true })],
       ),
     ).toEqual([]);
+  });
+
+  it("reports an Uplink that says its own state prevents start, in its own words", () => {
+    const [f] = failures([
+      {
+        id: "widget-a",
+        health: {
+          state: "unavailable",
+          detail: "Install the partner mod, then restart KSP",
+          facts: [],
+          preventsStart: true,
+        },
+      },
+    ]);
+    expect(f.kind).toBe("reported");
+    expect(f.why).toBe("Install the partner mod, then restart KSP");
+  });
+
+  it("reports a tagged Uplink whatever state it reads", () => {
+    const [f] = failures([
+      {
+        id: "widget-a",
+        health: {
+          state: "healthy",
+          detail: null,
+          facts: [],
+          preventsStart: true,
+        },
+      },
+    ]);
+    expect(f.kind).toBe("reported");
+    expect(f.why).toBe("It blocks start and gave no reason.");
+    expect(f.fix).toBeNull();
   });
 
   it("reports a bundled Uplink the mod refused outright", () => {

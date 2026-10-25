@@ -8,7 +8,8 @@ export type UplinkLoadFailureKind =
   | "contract"
   | "assembly"
   | "integrity"
-  | "client";
+  | "client"
+  | "reported";
 
 /** What a station is told about a failing Uplink: its name, since the reason is worded on the main screen. */
 export type HostUplinkFailure = Pick<UplinkLoadFailure, "id" | "name">;
@@ -18,8 +19,10 @@ export interface UplinkLoadFailure {
   id: string;
   name: string;
   kind: UplinkLoadFailureKind;
-  /** What went wrong in plain words, carrying the mod's or loader's own detail verbatim where there is one. */
+  /** What went wrong in plain words, carrying the mod's, loader's or Uplink's own detail verbatim where there is one. */
   why: string;
+  /** The one thing that fixes this kind of failure, or null where `why` already says it, as it does for an Uplink reporting in its own words. */
+  fix: string | null;
 }
 
 function contractText(v: { major: number; minor: number }): string {
@@ -29,18 +32,29 @@ function contractText(v: { major: number; minor: number }): string {
 function failureOf(entry: UplinkReadinessEntry): UplinkLoadFailure | null {
   if (!entry.installed) return null;
   const base = { id: entry.id, name: entry.name };
+  const health = entry.rosterEntry?.health;
+  /* The Uplink's own word, in its own words, outranks every inference below. An Uplink the mod refused outright has its refusal reported by the cases below instead. */
+  if (entry.rosterEntry?.available && health?.preventsStart) {
+    return {
+      ...base,
+      kind: "reported",
+      why: health.detail ?? "It blocks start and gave no reason.",
+      fix: null,
+    };
+  }
   switch (entry.state) {
     case "contract-mismatch": {
       const built = entry.declaredContract;
       const running = entry.coreContract;
       const versions =
         built && running
-          ? `It was built for contract ${contractText(built)} and the Gonogo mod speaks ${contractText(running)}.`
-          : "It was built for a different contract than the Gonogo mod speaks.";
+          ? `Built for contract ${contractText(built)}; Gonogo speaks ${contractText(running)}.`
+          : "Built for a different contract than Gonogo speaks.";
       return {
         ...base,
         kind: "contract",
-        why: `The Gonogo mod refused it. ${versions}`,
+        why: versions,
+        fix: "Update the Uplink or Gonogo so they match.",
       };
     }
     case "unavailable":
@@ -52,6 +66,7 @@ function failureOf(entry: UplinkReadinessEntry): UplinkLoadFailure | null {
         why: entry.modReason
           ? `The game could not start it: ${entry.modReason}`
           : "The game could not start it.",
+        fix: "Update the Uplink, or remove it from GameData.",
       };
     case "quarantined": {
       const outcome = entry.outcome;
@@ -67,7 +82,8 @@ function failureOf(entry: UplinkReadinessEntry): UplinkLoadFailure | null {
         return {
           ...base,
           kind: "integrity",
-          why: "Its client is not the build the Gonogo mod vouched for.",
+          why: "Its client is not the build the mod vouched for.",
+          fix: "Update the Uplink.",
         };
       }
       const detail = outcome.summary ?? outcome.reason;
@@ -77,6 +93,7 @@ function failureOf(entry: UplinkReadinessEntry): UplinkLoadFailure | null {
         why: detail
           ? `Its client could not be loaded: ${detail}`
           : "Its client could not be loaded.",
+        fix: "Update the Uplink, or remove it from GameData.",
       };
     }
     default:
@@ -87,8 +104,11 @@ function failureOf(entry: UplinkReadinessEntry): UplinkLoadFailure | null {
 /**
  * The installed Uplinks that failed to load, in roster order: refused for its
  * contract, assembly the game would not start, client refused, failing its
- * integrity check, missing or throwing on import. Not counted: an Uplink that
- * loaded but reports its own health unavailable (a bundled Uplink whose
+ * integrity check, missing or throwing on import, or an Uplink that reports
+ * through its health that its state prevents start (shown in its own words).
+ * Not counted: an Uplink that
+ * loaded but reports its own health unavailable without saying it prevents
+ * start (a bundled Uplink whose
  * expansion is not owned, an add-on whose host mod is absent), a client the
  * operator skipped at the consent prompt, and a quarantine that says nothing
  * about the Uplink itself (the registry unreadable, the roster not yet naming

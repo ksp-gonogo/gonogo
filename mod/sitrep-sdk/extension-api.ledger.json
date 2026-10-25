@@ -8743,6 +8743,10 @@
         "note": "required, true for an Uplink compiled into the Gonogo mod and false for an installed one, so a hand-built roster entry must now carry it"
       },
       {
+        "key": "sitrep-sdk . UplinkHealthEntry#health",
+        "note": "health gains a required preventsStart, true when the Uplink says its state stops Gonogo starting and false otherwise, so a hand-built roster entry must now carry it"
+      },
+      {
         "key": "sitrep-sdk . UseCommandOptions",
         "note": "takes the command's argument type, so confirmedBy is checked against the args each dispatch was sent with"
       },
@@ -9693,6 +9697,10 @@
       {
         "key": "sitrep-sdk ./spine UplinkHealthEntry#bundled",
         "note": "required, true for an Uplink compiled into the Gonogo mod and false for an installed one, so a hand-built roster entry must now carry it"
+      },
+      {
+        "key": "sitrep-sdk ./spine UplinkHealthEntry#health",
+        "note": "health gains a required preventsStart, true when the Uplink says its state stops Gonogo starting and false otherwise, so a hand-built roster entry must now carry it"
       },
       {
         "key": "sitrep-sdk ./spine UseCommandOptions",

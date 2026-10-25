@@ -10,6 +10,7 @@ interface RawUplinkHealth {
   state: number;
   detail: string | null;
   facts?: Array<{ label: string; value: string | null }>;
+  preventsStart?: boolean;
 }
 
 interface RawUplinkEntry {
@@ -47,6 +48,36 @@ function fakeGet(
 }
 
 describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
+  it("decodes preventsStart as the Uplink reported it, and as false when absent", () => {
+    const raw: RawSystemUplinksPayload = {
+      uplinks: [
+        {
+          id: "tagged",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: {
+            state: 2,
+            detail: "Install the partner mod",
+            preventsStart: true,
+          },
+        },
+        {
+          id: "plain",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 2, detail: "partner mod absent" },
+        },
+      ],
+    };
+    const decoded = deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)));
+    expect(decoded?.uplinks.map((u) => u.health.preventsStart)).toEqual([
+      true,
+      false,
+    ]);
+  });
+
   it("decodes a self-reported Degraded entry, deriving nothing from availability", () => {
     const raw: RawSystemUplinksPayload = {
       uplinks: [
@@ -76,6 +107,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
             state: "degraded",
             detail: "no active CPU selected",
             facts: [],
+            preventsStart: false,
           },
         },
       ],
@@ -111,6 +143,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
             state: "unavailable",
             detail: "registration threw: boom",
             facts: [],
+            preventsStart: false,
           },
         },
       ],
@@ -142,7 +175,12 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
           ownedPrefixes: [],
           modSettings: false,
           bundled: false,
-          health: { state: "healthy", detail: null, facts: [] },
+          health: {
+            state: "healthy",
+            detail: null,
+            facts: [],
+            preventsStart: false,
+          },
         },
       ],
     });
@@ -174,7 +212,12 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
           ownedPrefixes: ["kos.terminal.", "kos.processors"],
           modSettings: false,
           bundled: false,
-          health: { state: "healthy", detail: null, facts: [] },
+          health: {
+            state: "healthy",
+            detail: null,
+            facts: [],
+            preventsStart: false,
+          },
         },
       ],
     });

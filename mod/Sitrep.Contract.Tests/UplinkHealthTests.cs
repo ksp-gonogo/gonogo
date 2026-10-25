@@ -77,5 +77,25 @@ namespace Sitrep.Contract.Tests
             Assert.Equal(built.Detail, made.Detail);
             Assert.Equal(built.Facts, made.Facts);
         }
+
+        [Fact]
+        public void NoResultPreventsStartUnlessItsAuthorSaysSo()
+        {
+            Assert.False(UplinkHealth.Healthy.PreventsStart);
+            Assert.False(UplinkHealth.Degraded("no CPU selected").PreventsStart);
+            Assert.False(UplinkHealth.Unavailable("partner mod absent").PreventsStart);
+        }
+
+        [Fact]
+        public void PreventingStartKeepsEverythingElseTheResultSaid()
+        {
+            var facts = new[] { new UplinkHealthFact("build", "7") };
+            var health = UplinkHealth.Unavailable("install the partner mod", facts).PreventingStart();
+
+            Assert.True(health.PreventsStart);
+            Assert.Equal(UplinkHealthState.Unavailable, health.State);
+            Assert.Equal("install the partner mod", health.Detail);
+            Assert.Equal(facts, health.Facts);
+        }
     }
 }

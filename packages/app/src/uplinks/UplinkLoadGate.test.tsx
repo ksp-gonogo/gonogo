@@ -67,7 +67,7 @@ const row = (id: string, extra: Record<string, unknown> = {}) => ({
   author: "Test Author",
   repo: "example/addon",
   bundled: false,
-  health: { state: 0, detail: null },
+  health: { state: 0, detail: null, preventsStart: false },
   ...extra,
 });
 
@@ -132,7 +132,7 @@ describe("UplinkLoadGate", () => {
     });
     expect(
       await screen.findByRole("heading", {
-        name: /1 installed Uplink failed to load/,
+        name: "Gonogo can't start",
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/HTTP 404/)).toBeInTheDocument();
@@ -155,7 +155,7 @@ describe("UplinkLoadGate", () => {
         reason: "load failed: boom",
       });
     });
-    await screen.findByRole("heading", { name: /failed to load/ });
+    await screen.findByRole("heading", { name: "Gonogo can't start" });
     await act(async () => {
       setUplinkOutcome({ id: "widget-a", name: "Widget A", status: "loaded" });
     });
@@ -168,6 +168,27 @@ describe("UplinkLoadGate", () => {
     const { send } = await mount();
     send([row("widget-a", { available: false, reason: "missing Foo" })]);
     expect(await screen.findByText(/missing Foo/)).toBeInTheDocument();
+    await settle();
+  });
+
+  it("blocks on an Uplink that tags its own state as preventing start, showing its words", async () => {
+    const { send, host } = await mount();
+    send([
+      row("widget-a", {
+        health: {
+          state: 2,
+          detail: "Install the partner mod, then restart KSP",
+          preventsStart: true,
+        },
+      }),
+    ]);
+    expect(
+      await screen.findByText("Install the partner mod, then restart KSP"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("dashboard")).not.toBeInTheDocument();
+    expect(host.setUplinkFailures).toHaveBeenLastCalledWith([
+      { id: "widget-a", name: "widget-a" },
+    ]);
     await settle();
   });
 

@@ -4382,6 +4382,7 @@ namespace Sitrep.Host.IntegrationTests
             using var engine = new ChannelEngine("ws://127.0.0.1:0");
             engine.RegisterUplink(new HealthReportingTestUplink());
             engine.RegisterUplink(new PlainNoHealthTestUplink());
+            engine.RegisterUplink(new StartBlockingTestUplink());
             engine.RegisterUplink(new ThrowingRegisterTestUplink());
             engine.Start();
             try
@@ -4445,6 +4446,14 @@ namespace Sitrep.Host.IntegrationTests
                 // Present and empty rather than absent, so a client enumerates
                 // unconditionally instead of testing for the key first.
                 Assert.Empty(Assert.IsType<List<object?>>(plainHealth["facts"]));
+                // Written for every Uplink, false unless its own result says otherwise.
+                Assert.Equal(false, plainHealth["preventsStart"]);
+                Assert.Equal(false, reportingHealth["preventsStart"]);
+
+                var blocking = byId[StartBlockingTestUplink.UplinkId];
+                var blockingHealth = Assert.IsType<Dictionary<string, object?>>(blocking["health"]);
+                Assert.Equal(true, blockingHealth["preventsStart"]);
+                Assert.Equal(StartBlockingTestUplink.DetailText, blockingHealth["detail"]);
 
                 var throwing = byId[ThrowingRegisterTestUplink.UplinkId];
                 Assert.Equal(false, throwing["available"]);
@@ -4710,6 +4719,25 @@ namespace Sitrep.Host.IntegrationTests
 
             public UplinkHealth Health() =>
                 new UplinkHealth(UplinkHealthState.Degraded, DetailText, Facts);
+        }
+
+        private sealed class StartBlockingTestUplink : ISitrepUplink
+        {
+            public const string UplinkId = "test-start-blocking";
+            public const string DetailText = "install the partner mod";
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = UplinkId,
+                Version = "1.0.0",
+            };
+
+            public void Register(IUplinkHost host)
+            {
+            }
+
+            public UplinkHealth Health() =>
+                UplinkHealth.Unavailable(DetailText).PreventingStart();
         }
 
         private sealed class PlainNoHealthTestUplink : ISitrepUplink

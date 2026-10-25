@@ -33,7 +33,7 @@ function entry(
       ownedPrefixes: [],
       modSettings: false,
       bundled: false,
-      health: { state: health, detail: null, facts: [] },
+      health: { state: health, detail: null, facts: [], preventsStart: false },
     },
     bundled: false,
     outcome: null,

@@ -9,12 +9,14 @@ const failures = [
     name: "Widget A",
     kind: "client" as const,
     why: "Its client could not be loaded: HTTP 404",
+    fix: "Update the Uplink, or remove it from GameData.",
   },
   {
     id: "widget-b",
     name: "widget-b",
     kind: "assembly" as const,
     why: "The game could not start it: missing Foo",
+    fix: null,
   },
 ];
 
@@ -25,21 +27,42 @@ describe("UplinkLoadFailureScreen", () => {
     );
     expect(
       screen.getByRole("heading", {
-        name: "2 installed Uplinks failed to load",
+        name: "Gonogo can't start",
       }),
     ).toBeInTheDocument();
     expect(screen.getByText("Widget A")).toBeInTheDocument();
     expect(screen.getByText(/HTTP 404/)).toBeInTheDocument();
     expect(screen.getByText(/missing Foo/)).toBeInTheDocument();
     expect(
-      screen.getByText(/remove the Uplink from the GameData folder/),
+      screen.getByText(/Update the Uplink, or remove it from GameData/),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
     await expectNoA11yViolations(container);
   });
 
-  it("tells a station the main screen needs fixing, naming the Uplinks", async () => {
+  it("shows a tagged Uplink's own words alone, with no fix line of Gonogo's", () => {
+    render(
+      <UplinkLoadFailureScreen
+        audience="main"
+        failures={[
+          {
+            id: "widget-c",
+            name: "Widget C",
+            kind: "reported",
+            why: "Install the partner mod, then restart KSP",
+            fix: null,
+          },
+        ]}
+      />,
+    );
+    expect(
+      screen.getByText("Install the partner mod, then restart KSP"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Update the/)).not.toBeInTheDocument();
+  });
+
+  it("tells a station the main screen cannot start, naming the Uplinks", async () => {
     const { container } = render(
       <UplinkLoadFailureScreen
         audience="station"
@@ -47,7 +70,7 @@ describe("UplinkLoadFailureScreen", () => {
       />,
     );
     expect(
-      screen.getByRole("heading", { name: "The main screen needs fixing" }),
+      screen.getByRole("heading", { name: "The main screen can't start" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Widget A")).toBeInTheDocument();
     expect(screen.queryByText(/GameData/)).not.toBeInTheDocument();
