@@ -1,77 +1,42 @@
 services:
-  # The relay bundles the `/ice-config` endpoint (read by the main screen on
-  # boot) and the coturn TURN/STUN server (spawned as a child process).
-  # Bundling means one container with one rotated-per-restart secret, no init
-  # scripts, no shared volumes: just `podman compose up` and you have a
-  # working relay. See packages/relay/src/coturnManager.ts.
+  # The relay serves the main screen on this machine (consent, first-run
+  # bootstrap) and runs the station endpoint: one port every station on
+  # another network connects through. See docs/NETWORKING.md.
   relay:
     build:
       # Repo-root context so pnpm can resolve workspace deps (@ksp-gonogo/logger).
       context: .
       dockerfile: packages/relay/Dockerfile
     ports:
-      # Loopback only by default: the main screen's browser on this machine is
-      # the relay's one HTTP client, and /ice-config hands out TURN
-      # credentials. To let a station on another network fetch them from its
-      # link, set RELAY_HTTP_BIND=0.0.0.0 and RELAY_PUBLIC_URL below.
+      # Loopback only: the main screen's browser on this machine is the
+      # relay's one HTTP client.
       - "${RELAY_HTTP_BIND:-127.0.0.1}:3002:3002"
-      # TURN signalling. UDP is what stations use; TCP is only used when
-      # TURN_TCP=1 offers a TCP relay address as well.
-      - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/udp"
-      - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/tcp"
-      # TURN relay port range. Every active relay session takes one port
-      # in this window, so the whole range must be mappable to the host.
-      # Same TURN_MIN_PORT / TURN_MAX_PORT the relay passes to coturn, so
-      # widening the window is one pair of env vars rather than a source
-      # edit. Sized at 10 ports by default: a relayed station on a
-      # single-network device holds 2 of them (one more pair per extra network
-      # adapter, such as a VPN), so the window serves up to 5 such players. Consumer routers (Google Wi-Fi etc.) want one
-      # port-forward entry per port, so the range stays small.
-      - "${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49169}:${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49169}/udp"
       # The station endpoint's one port: UDP for stations, TCP for a network
-      # that blocks UDP. Same ENDPOINT_PORT the relay passes to the endpoint.
+      # that blocks UDP. Same ENDPOINT_PORT the relay passes to the endpoint,
+      # and the port to forward on the router.
       - "${ENDPOINT_PORT:-47100}:${ENDPOINT_PORT:-47100}/udp"
       - "${ENDPOINT_PORT:-47100}:${ENDPOINT_PORT:-47100}/tcp"
     environment:
       PORT: 3002
-      # Optional pin for the public IP coturn advertises to clients.
-      # When unset (the typical case) the relay auto-discovers it via a
-      # public lookup at startup.
-      TURN_EXTERNAL_IP: ${TURN_EXTERNAL_IP:-}
-      # Set to 1 on a relay reachable from the internet: coturn then refuses
-      # to relay to private, loopback, link-local and CGNAT peers. Leave it
-      # unset on a LAN, where those are the peers it serves.
-      RELAY_PUBLIC: ${RELAY_PUBLIC:-}
+      # Optional pin for the public IP the endpoint advertises. When unset
+      # (the typical case) the relay discovers it at startup.
+      PUBLIC_IP: ${PUBLIC_IP:-}
       # Pages beyond the public build and localhost that may use the relay,
       # comma-separated origins, e.g. a main screen opened at this machine's
       # LAN address: http://<lan-address>:5173
       RELAY_APP_ORIGINS: ${RELAY_APP_ORIGINS:-}
-      # The address stations on other networks reach port 3002 at, e.g.
-      # https://relay.example.com. Setting it puts the relay in the station
-      # link and QR once the Add station check passes, and anyone holding the
-      # link can then read the time-limited TURN credentials. Empty keeps the
-      # relay out of the link.
-      RELAY_PUBLIC_URL: ${RELAY_PUBLIC_URL:-}
-      # TURN ports, kept in step with the published `ports:` above. Change
-      # them here (or in `.env`) rather than in coturnManager.ts, and widen
-      # the router forwards to match.
-      TURN_PORT: ${TURN_PORT:-3478}
-      TURN_MIN_PORT: ${TURN_MIN_PORT:-49160}
-      TURN_MAX_PORT: ${TURN_MAX_PORT:-49169}
-      # Set to 1 to also offer a TCP relay address, for stations on a network
-      # that blocks UDP. Doubles the ports each relayed connection holds.
-      TURN_TCP: ${TURN_TCP:-}
       # The station endpoint's port, kept in step with the published `ports:`
       # above and the router forward.
       ENDPOINT_PORT: ${ENDPOINT_PORT:-47100}
-      # Set to 1 to let the relay ask your router to open the ports above
-      # (NAT-PMP, then UPnP) and remove them when it stops. Off by default.
+      # Set to 1 to let the relay ask your router to open the port above
+      # (NAT-PMP, then UPnP) and remove it when it stops. Off by default.
       GONOGO_UPNP: ${GONOGO_UPNP:-}
       # With GONOGO_UPNP=1: the router's address, when the relay cannot find
       # it on its own.
       ROUTER_IP: ${ROUTER_IP:-}
-      # With GONOGO_UPNP=1: this computer's address on the router's network,
-      # which a router that opens ports with UPnP forwards them to.
+      # This computer's address on the home network: the address the endpoint
+      # gives stations on this network, and the one a UPnP router forwards
+      # to. The container cannot see it; `pnpm dev` fills it in.
       LAN_IP: ${LAN_IP:-}
       # Axiom log shipping. Empty default → no transport installed
       # (matches the browser pattern). Set in `.env` next to this file

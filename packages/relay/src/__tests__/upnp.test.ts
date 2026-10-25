@@ -2,13 +2,25 @@ import { createSocket, type Socket } from "node:dgram";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { PortMapper, turnPorts } from "../portMapper.js";
+import { type MappedPort, PortMapper } from "../portMapper.js";
 import {
   addPortMapping,
   deletePortMapping,
   discoverIgd,
   getPortMapping,
 } from "../upnp.js";
+
+/** One port on UDP and TCP, then a window on UDP alone: a port list of more than one shape. */
+function portList(both: number, from: number, to: number): MappedPort[] {
+  const window: MappedPort[] = [];
+  for (let port = from; port <= to; port++)
+    window.push({ protocol: "udp", port });
+  return [
+    { protocol: "udp", port: both },
+    { protocol: "tcp", port: both },
+    ...window,
+  ];
+}
 
 const SERVICE = "urn:schemas-upnp-org:service:WANIPConnection:2";
 
@@ -184,7 +196,7 @@ describe("PortMapper against a router that speaks UPnP only", () => {
     const log: string[] = [];
     const mapper = new PortMapper({
       gateways: ["127.0.0.1"],
-      ports: turnPorts(3478, 49160, 49162),
+      ports: portList(3478, 49160, 49162),
       timeoutMs: 40,
       natPmpPort: 9,
       ssdpPort: igd.ssdpPort,
@@ -195,7 +207,7 @@ describe("PortMapper against a router that speaks UPnP only", () => {
     return { igd, mapper, log };
   }
 
-  it("maps the TURN port on both protocols and the session window on UDP, and nothing else", async () => {
+  it("maps a port on both protocols and a window on UDP, and nothing else", async () => {
     const { igd, mapper } = await setup();
     await mapper.start();
     expect(mapper.status.state).toBe("mapped");

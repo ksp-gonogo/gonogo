@@ -1,25 +1,23 @@
 import Fastify from "fastify";
 import { describe, expect, it } from "vitest";
 import { registerBootstrapConfigRoutes } from "../bootstrapConfig.js";
-import type { CoturnHandle } from "../coturnManager.js";
+import type { EndpointHandle } from "../endpointManager.js";
+import { registerHealthRoutes } from "../healthRoutes.js";
 import { PublicServiceSupervisor } from "../publicServiceSupervisor.js";
-import { registerTurnRoutes } from "../turnRoutes.js";
 
-function handle(): CoturnHandle {
+function handle(): EndpointHandle {
   return {
-    username: "gonogo",
-    credential: "s3cret",
-    externalIp: "203.0.113.1",
-    port: 3478,
+    port: 47100,
+    publicIp: "203.0.113.1",
     running: () => true,
     stop: async () => {},
   };
 }
 
-const turn = {
-  name: "coturn",
+const service = {
+  name: "endpoint",
   undiscoveredReason:
-    "public IP not discovered; set TURN_EXTERNAL_IP or restore internet access",
+    "public IP not discovered; set PUBLIC_IP or restore internet access",
 };
 
 const until = async (cond: () => boolean) => {
@@ -30,11 +28,11 @@ const until = async (cond: () => boolean) => {
 };
 
 describe("PublicServiceSupervisor", () => {
-  it("stays up without TURN when discovery fails, then retries and starts coturn", async () => {
+  it("stays up without the endpoint when discovery fails, then retries and starts it", async () => {
     let attempts = 0;
     const fatal: string[] = [];
     const sup = new PublicServiceSupervisor({
-      ...turn,
+      ...service,
       retryMs: 10,
       discover: async () => {
         attempts += 1;
@@ -46,7 +44,7 @@ describe("PublicServiceSupervisor", () => {
     });
     await sup.begin();
     expect(sup.handle).toBeNull();
-    expect(sup.pendingReason).toMatch(/TURN_EXTERNAL_IP/);
+    expect(sup.pendingReason).toMatch(/PUBLIC_IP/);
 
     await until(() => sup.handle !== null);
     expect(sup.pendingReason).toBeNull();
@@ -55,9 +53,9 @@ describe("PublicServiceSupervisor", () => {
     await sup.stop();
   });
 
-  it("serves /bootstrap-config with 200 while TURN is unavailable, with /ice-config 503 giving the reason", async () => {
+  it("serves /bootstrap-config while the endpoint is unavailable, with /health giving the reason", async () => {
     const sup = new PublicServiceSupervisor({
-      ...turn,
+      ...service,
       retryMs: 60_000,
       discover: async () => {
         throw new Error("offline");
@@ -68,10 +66,10 @@ describe("PublicServiceSupervisor", () => {
     await sup.begin();
 
     const app = Fastify();
-    registerTurnRoutes(app, {
-      getCoturn: () => sup.handle,
+    registerHealthRoutes(app, {
+      getEndpoint: () => sup.handle,
       getPendingReason: () => sup.pendingReason,
-      turnExpected: true,
+      endpointExpected: true,
     });
     registerBootstrapConfigRoutes(app, { kspHost: "192.0.2.50" });
     await app.ready();
@@ -80,23 +78,19 @@ describe("PublicServiceSupervisor", () => {
     expect(boot.statusCode).toBe(200);
     expect(boot.json()).toEqual({ kspHost: "192.0.2.50" });
 
-    const ice = await app.inject({ method: "GET", url: "/ice-config" });
-    expect(ice.statusCode).toBe(503);
-    expect(ice.json().reason).toMatch(/public IP/);
-
     const health = await app.inject({ method: "GET", url: "/health" });
     expect(health.statusCode).toBe(200);
-    expect(health.json()).toMatchObject({ status: "ok", turn: null });
-    expect(health.json().turnUnavailable).toMatch(/public IP/);
+    expect(health.json()).toMatchObject({ status: "ok", endpoint: null });
+    expect(health.json().endpointUnavailable).toMatch(/public IP/);
 
     await app.close();
     await sup.stop();
   });
 
-  it("is fatal when coturn cannot start", async () => {
+  it("is fatal when the endpoint cannot start", async () => {
     const fatal: string[] = [];
     const sup = new PublicServiceSupervisor({
-      ...turn,
+      ...service,
       discover: async () => "203.0.113.1",
       start: () => {
         throw new Error("EACCES");
@@ -104,15 +98,15 @@ describe("PublicServiceSupervisor", () => {
       onFatal: (r) => fatal.push(r),
     });
     await sup.begin();
-    expect(fatal).toEqual(["coturn could not start: EACCES"]);
+    expect(fatal).toEqual(["endpoint could not start: EACCES"]);
     await sup.stop();
   });
 
-  it("passes the exit callback to coturn so a later death is fatal", async () => {
+  it("passes the exit callback to the endpoint so a later death is fatal", async () => {
     const fatal: string[] = [];
     let exit: ((reason: string) => void) | undefined;
     const sup = new PublicServiceSupervisor({
-      ...turn,
+      ...service,
       discover: async () => "203.0.113.1",
       start: (_ip, onExit) => {
         exit = onExit;
@@ -129,7 +123,7 @@ describe("PublicServiceSupervisor", () => {
   it("stops retrying once stopped", async () => {
     let attempts = 0;
     const sup = new PublicServiceSupervisor({
-      ...turn,
+      ...service,
       retryMs: 5,
       discover: async () => {
         attempts += 1;

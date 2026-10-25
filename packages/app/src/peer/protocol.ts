@@ -105,15 +105,6 @@ export type PeerMessage =
      flight request, an Uplink call and a note are refused on their own
      reply. `refused` is the refused message's `type`. */
   | { type: "station-write-refused"; refused: string; reason: string }
-  // Host → stations: the relay's TURN credentials, the payload the host
-  // fetched from /ice-config, which a station cannot fetch itself because
-  // that address is the host's loopback. Sent on connect and on every
-  // refresh, and only when there are any. A station applies them to its
-  // own Peer and hands them to an Uplink's media connection.
-  | {
-      type: "relay-ice-servers";
-      iceServers: RTCIceServer[];
-    }
   // Station → host: relay a single call through to a host-side handle
   // registered for `uplinkId` (see `@ksp-gonogo/core`'s
   // `registerUplinkHandle`/`getUplinkHandle`). ONE generic pair serves every

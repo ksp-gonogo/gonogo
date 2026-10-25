@@ -4,14 +4,13 @@
  */
 
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { LiveRegion, Unit } from "@ksp-gonogo/ui-kit";
+import { Unit } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useState } from "react";
 import { StatusIndicator } from "../StatusIndicator";
 import {
   CONNECT_STALL_MS,
   type ConnectProgress,
   describeConnStatus,
-  describeRelayStage,
   type StationConnStatus,
   stageStates,
   statusTone,
@@ -27,7 +26,6 @@ import {
   HostInput,
   NameRow,
   ReconnectMsg,
-  RelayStage,
   StageList,
   StageSlot,
   StatusSlot,
@@ -53,8 +51,6 @@ export interface StationConnectViewProps {
   brokerUnreachable?: boolean;
   /** The station stopped retrying: the broker answered but the main screen's data channel never opened, so the two devices have no direct path. Connecting again starts a fresh set of attempts. */
   hostChannelFailed?: boolean;
-  /** What the relay named in the station's link did. `none`: the link names no relay. `unreachable`: it was named and could not be fetched from. `used`: its relay entries were in the station's ICE config. */
-  relayLookup?: "none" | "pending" | "used" | "unreachable";
   /** This station reached "connected" at least once this session. */
   everConnected: boolean;
   /** Fired on every keystroke in the host-code input. */
@@ -75,7 +71,6 @@ export function StationConnectView({
   hostNotFound,
   brokerUnreachable = false,
   hostChannelFailed = false,
-  relayLookup = "none",
   everConnected,
   onHostInputChange,
   onConnect,
@@ -94,12 +89,6 @@ export function StationConnectView({
     !hostNotFound &&
     !hostChannelFailed &&
     now - progress.startedAt >= CONNECT_STALL_MS;
-  const relayStage = describeRelayStage(
-    connStatus,
-    progress,
-    now,
-    relayLookup === "used",
-  );
   return (
     <ConnectLayout as="main" aria-label="Connect to mission control">
       <ConnectBox>
@@ -151,26 +140,10 @@ export function StationConnectView({
         )}
         {!brokerUnreachable && !hostNotFound && hostChannelFailed && (
           <ErrorMsg role="alert">
-            {relayLookup === "unreachable" ? (
-              <>
-                Couldn&apos;t reach the main screen directly, and the relay in
-                this link did not answer. Check that the relay is running and
-                reachable from this network, then press Connect to try again.
-              </>
-            ) : relayLookup === "used" ? (
-              <>
-                Couldn&apos;t reach the main screen, even through the relay in
-                this link. Check that the main screen is open and its relay
-                ports are forwarded, then press Connect to try again.
-              </>
-            ) : (
-              <>
-                Couldn&apos;t reach the main screen directly, and this link
-                names no relay. Move this device onto the same network as the
-                main screen, or open the link from the Add station panel once
-                its relay check passes, then press Connect to try again.
-              </>
-            )}
+            Couldn&apos;t reach the main screen. Check that the main screen is
+            open. On another network than the main screen, this device also
+            needs the main screen&apos;s relay running with its port open, then
+            press Connect to try again.
           </ErrorMsg>
         )}
         {!brokerUnreachable &&
@@ -188,34 +161,23 @@ export function StationConnectView({
           </ErrorMsg>
         )}
         <StatusSlot>
-          {!(relayStage && connStatus === "reconnecting") && (
-            <StatusIndicator
-              tone={statusTone(
-                connStatus,
-                hostNotFound,
-                everConnected,
-                brokerUnreachable,
-              )}
-              live
-            >
-              {describeConnStatus(
-                connStatus,
-                hostNotFound,
-                everConnected,
-                brokerUnreachable,
-              )}
-            </StatusIndicator>
-          )}
+          <StatusIndicator
+            tone={statusTone(
+              connStatus,
+              hostNotFound,
+              everConnected,
+              brokerUnreachable,
+            )}
+            live
+          >
+            {describeConnStatus(
+              connStatus,
+              hostNotFound,
+              everConnected,
+              brokerUnreachable,
+            )}
+          </StatusIndicator>
         </StatusSlot>
-        <RelayStage>
-          <LiveRegion as="span">{relayStage}</LiveRegion>
-          {relayStage && waiting && progress?.entered.host !== undefined && (
-            <>
-              {" "}
-              <Seconds ms={now - progress.startedAt} />
-            </>
-          )}
-        </RelayStage>
         <StageSlot>
           {waiting && progress && progress.attempt > 0 && (
             <ProgressList progress={progress} now={now} />
