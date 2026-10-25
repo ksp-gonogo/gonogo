@@ -12,7 +12,9 @@ import {
 import { SettingsService } from "../settings/SettingsService";
 import {
   AUTO_PORT_FORWARD_SETTING,
+  isRouterAddress,
   postAutoPortForward,
+  ROUTER_ADDRESS_SETTING,
   readPortForward,
   syncAutoPortForward,
 } from "./autoPortForward";
@@ -44,7 +46,7 @@ describe("automatic port forwarding setting", () => {
     const stop = syncAutoPortForward(settings, post);
     expect(post).not.toHaveBeenCalled();
     settings.set(AUTO_PORT_FORWARD_SETTING, true);
-    expect(post).toHaveBeenCalledWith(true);
+    expect(post).toHaveBeenLastCalledWith({ enabled: true });
     stop();
     settings.dispose();
   });
@@ -54,14 +56,44 @@ describe("automatic port forwarding setting", () => {
     settings.set(AUTO_PORT_FORWARD_SETTING, false);
     const post = vi.fn(async () => {});
     const stop = syncAutoPortForward(settings, post);
-    expect(post).toHaveBeenCalledWith(false);
+    expect(post).toHaveBeenCalledWith({ enabled: false });
     stop();
     settings.dispose();
   });
 
+  it("sends the router address with the switch once it is a valid one", () => {
+    const settings = new SettingsService();
+    const post = vi.fn(async () => {});
+    const stop = syncAutoPortForward(settings, post);
+    settings.set(AUTO_PORT_FORWARD_SETTING, true);
+    settings.set(ROUTER_ADDRESS_SETTING, "203.0.113");
+    expect(post).toHaveBeenLastCalledWith({ enabled: true });
+    settings.set(ROUTER_ADDRESS_SETTING, "203.0.113.1");
+    expect(post).toHaveBeenLastCalledWith({
+      enabled: true,
+      routerIp: "203.0.113.1",
+    });
+    stop();
+    settings.dispose();
+  });
+
+  it("takes four numbers from 0 to 255 as a router address, and nothing else", () => {
+    expect(isRouterAddress("203.0.113.1")).toBe(true);
+    expect(isRouterAddress(" 203.0.113.1 ")).toBe(true);
+    for (const bad of [
+      "203.0.113",
+      "256.0.0.1",
+      "router.local",
+      "",
+      "1.2.3.4.5",
+    ]) {
+      expect(isRouterAddress(bad)).toBe(false);
+    }
+  });
+
   it("posts the switch to the relay and reads back where the forward stands", async () => {
-    await postAutoPortForward(true);
-    expect(posted).toEqual([{ enabled: true }]);
+    await postAutoPortForward({ enabled: true, routerIp: "203.0.113.1" });
+    expect(posted).toEqual([{ enabled: true, routerIp: "203.0.113.1" }]);
     expect(await readPortForward()).toEqual({
       enabled: true,
       mapping: { state: "refused", message: "Your router refused" },
