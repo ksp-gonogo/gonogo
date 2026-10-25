@@ -27,6 +27,15 @@ describe("getTopicFieldCatalog()", () => {
     ]);
   });
 
+  it("labels the target's fields apart from the active vessel's own", () => {
+    const labelOf = (key: string) =>
+      getTopicFieldCatalog().find((k) => k.key === key)?.label;
+    expect(labelOf("vessel.orbit.timeToAp")).toBe("Time to ap");
+    expect(labelOf("vessel.target.orbit.timeToAp")).toBe(
+      "Target orbit time to ap",
+    );
+  });
+
   it("keys every entry by the path a read actually samples", () => {
     const funds = getTopicFieldCatalog().find(
       (k) => k.key === "career.status.balances.funds",

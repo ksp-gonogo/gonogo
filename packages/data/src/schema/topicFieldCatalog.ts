@@ -129,10 +129,32 @@ function readLandsOnTopic(
   return split?.rawTopic === topic;
 }
 
+/**
+ * Topics whose fields describe a different craft or body than the active
+ * vessel's, so a field they share a name with on the vessel's own Topics reads
+ * apart from it: the target's "Orbit time to ap" next to the vessel's "Time to
+ * ap" would otherwise be two near-identical rows for different subjects.
+ */
+const SUBJECT_PREFIX: Readonly<Record<string, string>> = Object.freeze({
+  "vessel.target": "Target",
+});
+
+function labelFor(topic: string, path: string): string {
+  const label = fieldLabel(topic, path);
+  const subject = SUBJECT_PREFIX[topic];
+  if (subject === undefined) return label;
+  const first = label.split(" ")[0];
+  const rest =
+    first === first.toUpperCase()
+      ? label
+      : label[0].toLowerCase() + label.slice(1);
+  return `${subject} ${rest}`;
+}
+
 function entryFor(topic: string, field: TopicField): TopicFieldKey {
   return {
     key: `${topic}.${field.path}`,
-    label: fieldLabel(topic, field.path),
+    label: labelFor(topic, field.path),
     group: topic,
     unit: field.unit,
     kind: field.kind,

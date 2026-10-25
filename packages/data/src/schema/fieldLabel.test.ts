@@ -32,7 +32,9 @@ describe("a catalogue entry's label", () => {
   });
 
   it("names a nested field by each segment the contract names", () => {
-    expect(labelOf("vessel.target.orbit.sma")).toBe("Orbit › Semi-major axis");
+    expect(labelOf("vessel.target.orbit.sma")).toBe(
+      "Target orbit › Semi-major axis",
+    );
   });
 
   it("is the field's path split into words where the contract names none", () => {
