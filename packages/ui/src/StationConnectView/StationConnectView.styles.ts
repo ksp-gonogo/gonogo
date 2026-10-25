@@ -140,13 +140,6 @@ export const ReconnectMsg = styled.p`
   font-size: 12px !important;
 `;
 
-export const RelayStage = styled.div`
-  margin-top: var(--gap-section-compact);
-  min-height: 1.4em;
-  color: var(--color-info-text);
-  font-size: var(--font-size-sm);
-`;
-
 export const StatusSlot = styled.div`
   min-height: 3.6em;
 `;

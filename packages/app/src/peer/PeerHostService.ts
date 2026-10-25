@@ -15,7 +15,7 @@ import {
   Staleness,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
-import Peer, { type DataConnection } from "peerjs";
+import Peer from "peerjs";
 import type { RunningUplink } from "../uplinks/loaderState";
 import type { HostUplinkFailure } from "../uplinks/loadFailures";
 import { BUILD_TIME, VERSION } from "../version";
@@ -24,22 +24,20 @@ import {
   fetchWithDeadline,
   rebaseBundleUrl,
 } from "./BundleFetchCache";
+import { type EndpointSignal, onSignal, sendSignal } from "./brokerSignal";
 import { type ConnectionPath, readConnectionPath } from "./connectionPath";
 import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
+import { EndpointConnection, EndpointStations } from "./endpointStations";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
-import {
-  fetchRelayIceConfig,
-  relayBaseUrl,
-  STUN_SERVERS,
-  withStun,
-} from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type { HostLayout, PeerMessage } from "./protocol";
 import { asPeerMessage, HOST_HEARTBEAT_MS } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
+import { STUN_SERVERS, stationsSocketUrl } from "./relayAddress";
 import { stationApprovals } from "./stationApprovals";
+import type { StationLink } from "./stationLink";
 import { stationTag } from "./stationPeerId";
 import { TypedListeners } from "./typedListeners";
 import { encodeWideNumbers } from "./wideNumbers";
@@ -118,18 +116,6 @@ function extractErrorMeta(error: Error): Record<string, unknown> | undefined {
     extra[key] = Reflect.get(error, key);
   }
   return Object.keys(extra).length > 0 ? extra : undefined;
-}
-
-/**
- * Cheap structural compare for two iceServers configs. Good enough
- * because the relay only ever emits one turn entry with a known shape;
- * order changes between fetches are not expected. Used by the host's
- * periodic config refresh to skip the no-op case (relay still serving
- * the same creds) without touching the Peer.
- */
-function areIceServersEqual(a: RTCIceServer[], b: RTCIceServer[]): boolean {
-  if (a.length !== b.length) return false;
-  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 /**
@@ -424,13 +410,13 @@ type HostEventMap = {
 export class PeerHostService {
   private peer: Peer | null = null;
   /** Open connections of approved stations: everything the host sends goes to these. */
-  private connections: Set<DataConnection> = new Set();
+  private connections: Set<StationLink> = new Set();
   /**
    * Open connections whose station the main screen has not approved. Each is
    * told only where its approval stands and why its requests are refused,
    * until `admit` moves it into `connections`.
    */
-  private waiting: Set<DataConnection> = new Set();
+  private waiting: Set<StationLink> = new Set();
   private approvalsUnsub: (() => void) | null = null;
   /** Single typed event registry replacing the former ~22 hand-rolled
    *  `ListenerSet` fields. The `onX` methods are thin wrappers over
@@ -489,7 +475,7 @@ export class PeerHostService {
   // twice for ~60 s while the broker times out the old conn.
   private peerIdToStationKey = new Map<string, string>();
   /** Each connection's credential, from its `station-info`. */
-  private readonly connCredential = new Map<DataConnection, string>();
+  private readonly connCredential = new Map<StationLink, string>();
   /** Stations waiting on the main screen, in the order they asked. */
   private pending: readonly PendingStation[] = [];
   private hostLayouts: (() => HostLayout[]) | null = null;
@@ -498,22 +484,19 @@ export class PeerHostService {
   // See handleUplinkBundleRequest and BundleFetchCache's own doc comment.
   private readonly bundleFetchCache = new BundleFetchCache();
 
-  // Selective subscription state. Maps each connected DataConnection to:
+  // Selective subscription state. Maps each connected StationLink to:
   //   - mode: "broadcast-all" (default) or "selective"
   //   - subs:  Map<sourceId, Set<key>> for selective mode
   // A peer in broadcast-all mode receives every data message; a peer in
   // selective mode receives only messages whose (sourceId, key) is in
   // its subs. Cleared on disconnect so a reconnecting station gets a
   // fresh broadcast-all baseline.
-  private peerMode = new WeakMap<
-    DataConnection,
-    "broadcast-all" | "selective"
-  >();
-  private peerSubs = new WeakMap<DataConnection, Map<string, Set<string>>>();
+  private peerMode = new WeakMap<StationLink, "broadcast-all" | "selective">();
+  private peerSubs = new WeakMap<StationLink, Map<string, Set<string>>>();
 
   /**
    * Which sitrep topics each station has told us it is reading. Per connection
-   * because a claim dies with the `DataConnection` that made it, and because
+   * because a claim dies with the `StationLink` that made it, and because
    * releasing on disconnect needs to know exactly which claims were that
    * station's rather than another's.
    *
@@ -523,14 +506,14 @@ export class PeerHostService {
    * event recoverable. `dropConnection` and the reconcile both delete the
    * entry, so a connection is not held past its own teardown.
    */
-  private readonly sitrepSubs = new Map<DataConnection, Set<string>>();
+  private readonly sitrepSubs = new Map<StationLink, Set<string>>();
   /**
    * Which upstream session each connection reads from, absent until it asks
    * for one. A pilot wants the craft's own vantage so its instruments run at
    * the craft's signal delay rather than the host's; a station that never asks
    * reads the host's, which is what every connection did before this existed.
    */
-  private readonly connVantage = new Map<DataConnection, string>();
+  private readonly connVantage = new Map<StationLink, string>();
   /**
    * How each open station connection is carried, read from `getStats()` once
    * it opens. `path` is null until the browser reports a selected pair.
@@ -540,7 +523,7 @@ export class PeerHostService {
     { name: string | null; path: ConnectionPath | null }
   >();
   /** Connections already torn down, so a `close` after an ICE death is a no-op. */
-  private readonly droppedConnections = new WeakSet<DataConnection>();
+  private readonly droppedConnections = new WeakSet<StationLink>();
   /**
    * One entry per topic any station is reading, refcounted across connections,
    * holding the host's own upstream subscription. Two stations reading the same
@@ -574,36 +557,10 @@ export class PeerHostService {
    *  a fresh one on demand via `regenerateShareCode()` (the Add Station
    *  modal's reset control); that's the only thing that changes it. */
   shareCode: string = getOrCreateShareCode();
-  /** ICE servers fetched from the relay on start(). Exposed so the
-   *  turn reachability probe can re-use exactly what the host's Peer
-   *  was constructed with. Empty `[]` means the fetch failed or no
-   *  relay is configured. */
-  iceServers: RTCIceServer[] = [];
-  /** The address the relay publishes for stations on other networks, or null when it publishes none. */
-  relayPublicUrl: string | null = null;
+  /** The relay's station endpoint, which carries every station that joins while it is up. */
+  readonly endpoint = new EndpointStations(stationsSocketUrl);
+  private signalUnsub: (() => void) | null = null;
   private flightListChangeUnsub: (() => void) | null = null;
-  /**
-   * TURN-on-demand escalation flag. False by default: the host starts
-   * STUN-only. Set to true permanently for the session when a station
-   * connection fails to reach "open" within TURN_ESCALATION_MS, indicating
-   * the network needs turn relay. Once escalated, all new connections (and
-   * refreshIceConfig) include turn credentials.
-   */
-  private turnEscalated = false;
-  /**
-   * Per-connection escalation timers. Started when an incoming connection
-   * is detected; cancelled if the connection opens within the window.
-   * If the timer fires, escalation is triggered.
-   */
-  private turnEscalationTimers = new Map<
-    DataConnection,
-    ReturnType<typeof setTimeout>
-  >();
-  /** How long to wait for a new station connection to reach "open" before
-   *  treating the network as TURN-requiring. 6s is well within the
-   *  chrome-iceconnectionstate="failed" timeout (10–30s) but long enough
-   *  to survive normal STUN round-trips on a congested LAN. */
-  private static readonly TURN_ESCALATION_MS = 6_000;
   /** True while we're retry-reclaiming the derived peer id after an
    *  `unavailable-id` (broker still holds a stale slot from an unclean
    *  prior tab). Drives the main-screen "Reclaiming your share code..."
@@ -615,12 +572,6 @@ export class PeerHostService {
    *  derived id until the broker frees the stale one (~30–60s). */
   private reclaimAttempt = 0;
   private reclaimTimer: ReturnType<typeof setTimeout> | null = null;
-  // Polls the relay's `/ice-config` so a relay restart (which mints a
-  // fresh coturn shared secret on every boot) doesn't leave the host's
-  // Peer pinned to stale TURN credentials. Without this, a `pnpm dev`
-  // rebuild of the relay container silently breaks new TURN allocations
-  // until the operator hard-refreshes the host page.
-  private iceConfigRefreshTimer: ReturnType<typeof setInterval> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   // Best-effort relay bookkeeping: the analytics-consent POST and the
   // periodic heartbeat that re-asserts it. The heartbeat starts on the first
@@ -659,23 +610,11 @@ export class PeerHostService {
     // ship to Axiom with role "unknown" and no device id. `open` re-stamps
     // with the broker-confirmed peerId.
     logger.setIdentity({ role: "host", id: this.shareCode });
-    // Fetch the relay's TURN config before constructing Peer, ICE
-    // gathers candidates the moment the Peer exists, so a late config
-    // wouldn't make it into the offer. If the fetch fails we get an
-    // empty array and run direct/STUN-only; the readiness UI tells the
-    // operator about it.
-    const config = await fetchRelayIceConfig(relayBaseUrl());
-    this.iceServers = config?.iceServers ?? [];
-    this.relayPublicUrl = config?.publicUrl ?? null;
+    this.endpoint.start();
     // Page-lifecycle listeners are registered ONCE per service lifetime
     // (idempotent guard) so a StrictMode start→stop→start cycle, or a
     // reclaim that re-opens the Peer: doesn't stack duplicate handlers.
     this.attachLifecycleListeners();
-    // Keep the Peer's iceServers in sync with the relay's coturn, every
-    // relay restart rotates the shared secret, so creds baked into the
-    // Peer's config at start() time would silently fail (401) on any
-    // subsequent TURN allocation.
-    this.startIceConfigRefresh();
     this.startHeartbeat();
     // An approval can land while its station waits: from the prompt, or from another tab of this main screen sharing the store.
     this.approvalsUnsub ??= stationApprovals.subscribe(() => {
@@ -693,14 +632,7 @@ export class PeerHostService {
    * launch, refresh, reclaim: targets the same broker slot.
    */
   private openPeer(): void {
-    // A Peer is already live. This guards the StrictMode double-start race:
-    // PeerHostProvider's effect fires start() without awaiting, so a
-    // mount→unmount→mount runs start→stop→start, and because start() suspends
-    // at `await fetchRelayIceConfig()` BEFORE creating the Peer, two start()s
-    // can both reach openPeer(). Without this guard the second would leak the
-    // first Peer (same derived id) and trip a permanent unavailable-id reclaim
-    // loop. The reclaim + regenerate paths both null `this.peer` before
-    // calling openPeer(), so they're unaffected.
+    // A second Peer under the same derived id would leak the first and trip a permanent unavailable-id reclaim loop; the reclaim and regenerate paths null `this.peer` first.
     if (this.peer) return;
     const peerId = deriveHostPeerId(this.shareCode);
     // `key: "gonogo"` isolates us from the default `peerjs` namespace on the
@@ -709,21 +641,15 @@ export class PeerHostService {
     // namespace is shared by `key`, so picking our own gives us our own slice.
     // MUST match the `key` set in PeerClientService and packages/relay (any
     // mismatch and that peer is invisible on the broker to our other peers).
-    // TURN-on-demand: start STUN-only by default. The host's data channel
-    // only gains TURN relay candidates once a station connection fails to open
-    // within TURN_ESCALATION_MS (see escalateTurn / the connection handler),
-    // at which point turnEscalated flips and this fresh Peer is built
-    // TURN-ready. Note: this.iceServers is still fetched/stored and broadcast
-    // to stations for their camera channel: we just don't put it into the
-    // host's own data-channel RTCPeerConnection unless escalation has proven
-    // the network needs it.
-    const pcConfig: RTCConfiguration = {
-      iceServers:
-        this.turnEscalated && this.iceServers.length > 0
-          ? withStun(this.iceServers)
-          : STUN_SERVERS,
-    };
-    this.peer = new Peer(peerId, { ...peerBrokerOptions(), config: pcConfig });
+    const peer = new Peer(peerId, {
+      ...peerBrokerOptions(),
+      config: { iceServers: STUN_SERVERS },
+    });
+    this.peer = peer;
+    this.signalUnsub?.();
+    this.signalUnsub = onSignal(peer, (from, connectionId, signal) =>
+      this.handleSignal(peer, from, connectionId, signal),
+    );
 
     this.peer.on("open", (id) => {
       this.peerId = id;
@@ -755,75 +681,7 @@ export class PeerHostService {
       this.relayRegistration.startHeartbeat();
     });
 
-    this.peer.on("connection", (conn) => {
-      logger.info(`[PeerHost] incoming connection from ${conn.peer}`);
-      // TURN-on-demand: start an escalation timer. If this connection doesn't
-      // reach "open" within TURN_ESCALATION_MS we treat the network as needing
-      // TURN and escalate: injecting iceServers into the Peer config so the
-      // station's automatic reconnect attempt gathers TURN relay candidates.
-      // LAN connections typically open in <500ms; the 6s window never fires for
-      // them. The timer is cleared in the "open" handler below.
-      if (!this.turnEscalated && this.iceServers.length > 0) {
-        const timer = setTimeout(() => {
-          this.turnEscalationTimers.delete(conn);
-          this.escalateTurn(conn.peer);
-        }, PeerHostService.TURN_ESCALATION_MS);
-        this.turnEscalationTimers.set(conn, timer);
-      }
-      conn.on("open", () => {
-        // Connection opened in time: cancel the escalation timer (LAN path).
-        const timer = this.turnEscalationTimers.get(conn);
-        if (timer !== undefined) {
-          clearTimeout(timer);
-          this.turnEscalationTimers.delete(conn);
-        }
-        this.waiting.add(conn);
-        // PeerJS can lose an open data connection without ever firing
-        // `close`: the RTCPeerConnection goes silent and the events stop. A
-        // station already watches for that on its own side and reconnects;
-        // the host did not, so a departed station's claims stayed on the
-        // sitrep refcount for the rest of the session and its reconnect added
-        // a second set. Same detector the station uses, same grace window,
-        // pointed at the same teardown `close` runs. Attached here rather than
-        // on the `connection` event because the underlying peer connection is
-        // only reliably readable once the connection is open.
-        this.trackStationPath(conn);
-        attachIceDiagnostics(conn, () => {
-          /*
-           * A station that closed its tab ends the data channel before ICE
-           * reports anything, so a connection no longer open left cleanly.
-           */
-          this.dropConnection(conn, conn.open ? "ICE dead" : "closed");
-          // Closed as well as forgotten: a link whose ICE recovers would otherwise keep delivering messages from a station the host has already let go.
-          try {
-            conn.close();
-          } catch {
-            /* already closed */
-          }
-        });
-        logger.info(
-          `[PeerHost] connection open: peer=${conn.peer}, waiting for approval`,
-        );
-        // Hello first: stations parse it before anything else so a major mismatch banner can appear without waiting for the schema round.
-        conn.send({
-          type: "hello",
-          version: VERSION,
-          buildTime: BUILD_TIME,
-          sessionToken: this.sessionToken,
-        } satisfies PeerMessage);
-        // Sent before approval, so a station still waiting, or refused, can ship the logs that say why it never joined.
-        conn.send(this.analyticsConsentMessage());
-      });
-      conn.on("data", (raw) => {
-        if (this.droppedConnections.has(conn)) return;
-        const msg = asPeerMessage(raw);
-        if (msg) this.handleIncoming(msg, conn);
-      });
-      conn.on("close", () => this.dropConnection(conn, "closed"));
-      conn.on("error", (err) => {
-        logger.error(`[PeerHost] connection error: peer=${conn.peer}`, err);
-      });
-    });
+    this.peer.on("connection", (conn) => this.acceptStation(conn));
 
     // PeerJS quirk: when the broker WebSocket drops, PeerJS sets
     // `peer.disconnected = true` and emits "disconnected", but it does
@@ -884,6 +742,94 @@ export class PeerHostService {
   }
 
   /**
+   * Serve one station's connection, whichever path it joined by: a PeerJS
+   * data connection from the broker, or a link through the endpoint.
+   */
+  private acceptStation(conn: StationLink): void {
+    logger.info(`[PeerHost] incoming connection from ${conn.peer}`);
+    conn.on("open", () => {
+      this.waiting.add(conn);
+      // PeerJS can lose an open data connection without ever firing
+      // `close`: the RTCPeerConnection goes silent and the events stop. A
+      // station already watches for that on its own side and reconnects;
+      // the host did not, so a departed station's claims stayed on the
+      // sitrep refcount for the rest of the session and its reconnect added
+      // a second set. Same detector the station uses, same grace window,
+      // pointed at the same teardown `close` runs. Attached here rather than
+      // on the `connection` event because the underlying peer connection is
+      // only reliably readable once the connection is open.
+      this.trackStationPath(conn);
+      attachIceDiagnostics(conn, () => {
+        /*
+         * A station that closed its tab ends the data channel before ICE
+         * reports anything, so a connection no longer open left cleanly.
+         */
+        this.dropConnection(conn, conn.open ? "ICE dead" : "closed");
+        // Closed as well as forgotten: a link whose ICE recovers would otherwise keep delivering messages from a station the host has already let go.
+        try {
+          conn.close();
+        } catch {
+          /* already closed */
+        }
+      });
+      logger.info(
+        `[PeerHost] connection open: peer=${conn.peer}, waiting for approval`,
+      );
+      // Hello first: stations parse it before anything else so a major mismatch banner can appear without waiting for the schema round.
+      conn.send({
+        type: "hello",
+        version: VERSION,
+        buildTime: BUILD_TIME,
+        sessionToken: this.sessionToken,
+      } satisfies PeerMessage);
+      // Sent before approval, so a station still waiting, or refused, can ship the logs that say why it never joined.
+      conn.send(this.analyticsConsentMessage());
+    });
+    conn.on("data", (raw) => {
+      if (this.droppedConnections.has(conn)) return;
+      const msg = asPeerMessage(raw);
+      if (msg) this.handleIncoming(msg, conn);
+    });
+    conn.on("close", () => this.dropConnection(conn, "closed"));
+    conn.on("error", (err) => {
+      logger.error(`[PeerHost] connection error: peer=${conn.peer}`, err);
+    });
+  }
+
+  /**
+   * A station asking through the broker to join. With the endpoint up, the
+   * station's offer goes to it and the station is told the endpoint's
+   * answer; without it, or if the endpoint will not take the station, the
+   * station is told to connect here directly.
+   */
+  private handleSignal(
+    peer: Peer,
+    from: string,
+    connectionId: string,
+    signal: EndpointSignal,
+  ): void {
+    if (signal.kind !== "join") return;
+    const reply = (answer: EndpointSignal) => {
+      if (this.peer === peer) sendSignal(peer, from, connectionId, answer);
+    };
+    if (!this.endpoint.available) {
+      reply({ kind: "direct" });
+      return;
+    }
+    const { conn, answer } = this.endpoint.join(from, signal.sdp);
+    this.acceptStation(conn);
+    answer.then(
+      (sdp) => reply({ kind: "answer", sdp }),
+      (err: unknown) => {
+        logger.warn(
+          `[PeerHost] endpoint did not take ${from}, sending it here directly: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        reply({ kind: "direct" });
+      },
+    );
+  }
+
+  /**
    * Retry-reclaim the derived peer id after an `unavailable-id`. Destroys
    * the dead Peer, surfaces the "reclaiming" status, and schedules a
    * backed-off `openPeer()` against the same id. Each subsequent
@@ -905,41 +851,6 @@ export class PeerHostService {
       this.reclaimTimer = null;
       this.openPeer();
     }, delayMs);
-  }
-
-  /**
-   * Escalate the host's Peer to use turn relay for all future connections.
-   * Called when an incoming station connection fails to open within
-   * TURN_ESCALATION_MS: indicating the network path requires a relay.
-   *
-   * Sets `turnEscalated = true` (sticky for the session) and immediately
-   * patches the Peer's internal `_options.config.iceServers` so the next
-   * connection attempt (the station's automatic reconnect) gathers turn
-   * candidates. Does nothing if already escalated or if there are no
-   * iceServers to inject.
-   */
-  private escalateTurn(fromPeerId: string): void {
-    if (this.turnEscalated) return;
-    if (this.iceServers.length === 0) return;
-    this.turnEscalated = true;
-    logger.warn(
-      `[PeerHost] TURN escalation triggered by slow connection from ${fromPeerId}, injecting TURN for future connections`,
-    );
-    // Patch the live Peer's config so subsequent peer.connect() calls (the station's automatic reconnect) include TURN relay candidates.
-    this.applyTurnToLivePeer();
-  }
-
-  /**
-   * Inject the current iceServers into the live Peer's `_options.config`.
-   * Used by both the escalation trigger and `refreshIceConfig()` (when
-   * already escalated). No-op if no Peer exists or no iceServers to apply.
-   */
-  private applyTurnToLivePeer(): void {
-    if (!this.peer || this.iceServers.length === 0) return;
-    const opts: unknown = Reflect.get(this.peer, "_options");
-    if (typeof opts === "object" && opts !== null) {
-      Reflect.set(opts, "config", { iceServers: withStun(this.iceServers) });
-    }
   }
 
   private setReclaiming(next: boolean): void {
@@ -1072,13 +983,13 @@ export class PeerHostService {
     }
   }
 
-  private findConnByPeerId(peerId: string): DataConnection | null {
+  private findConnByPeerId(peerId: string): StationLink | null {
     for (const c of this.connections) if (c.peer === peerId) return c;
     return null;
   }
 
   /** The open connection for `peerId`, approved or still waiting. */
-  private findOpenConn(peerId: string): DataConnection | null {
+  private findOpenConn(peerId: string): StationLink | null {
     for (const c of this.waiting) if (c.peer === peerId) return c;
     return this.findConnByPeerId(peerId);
   }
@@ -1087,7 +998,7 @@ export class PeerHostService {
    * Serve a waiting station whose credential the main screen has approved,
    * telling it so. Does nothing for one not approved or already served.
    */
-  private serveIfApproved(conn: DataConnection): void {
+  private serveIfApproved(conn: StationLink): void {
     if (!this.waiting.has(conn)) return;
     const credential = this.connCredential.get(conn);
     if (credential === undefined || !stationApprovals.isApproved(credential)) {
@@ -1105,14 +1016,13 @@ export class PeerHostService {
    * Serve an approved station: move its connection into `connections` and
    * send it what a station needs on joining. Runs once per connection.
    */
-  private admit(conn: DataConnection): void {
+  private admit(conn: StationLink): void {
     if (!this.waiting.delete(conn)) return;
     this.connections.add(conn);
     logger.info(
       `[PeerHost] station approved: peer=${conn.peer}, total=${this.connections.size}`,
     );
     this.sendSchema(conn);
-    this.sendRelayIceServers(conn);
     conn.send({
       type: "host-command-centre",
       centreId: this.commandCentre,
@@ -1205,17 +1115,9 @@ export class PeerHostService {
    * guards against running twice: a connection that goes silent and is later
    * closed must release its claims once, not twice.
    */
-  private dropConnection(conn: DataConnection, why: string): void {
+  private dropConnection(conn: StationLink, why: string): void {
     if (this.droppedConnections.has(conn)) return;
     this.droppedConnections.add(conn);
-    // If the connection dies before "open" fires (e.g. the escalation timer
-    // fires and then the conn closes), cancel any pending timer to avoid a
-    // double-escalation or a stale reference.
-    const pendingTimer = this.turnEscalationTimers.get(conn);
-    if (pendingTimer !== undefined) {
-      clearTimeout(pendingTimer);
-      this.turnEscalationTimers.delete(conn);
-    }
     const wasServed = this.connections.delete(conn);
     this.waiting.delete(conn);
     if (this.stationPaths.delete(conn.peer)) this.events.emit("stationPaths");
@@ -1356,7 +1258,7 @@ export class PeerHostService {
    * sees that vantage's view of every topic it holds as soon as it arrives
    * rather than keeping the old one's until the next emission.
    */
-  private setConnVantage(conn: DataConnection, vantage: string): void {
+  private setConnVantage(conn: StationLink, vantage: string): void {
     if (this.vantageOf(conn) === vantage) return;
     const claimed = [...(this.sitrepSubs.get(conn) ?? [])];
     for (const topic of claimed) this.releaseSitrepSub(conn, topic);
@@ -1372,7 +1274,7 @@ export class PeerHostService {
   }
 
   /** Which upstream session `conn` reads from: the host's own until it asks otherwise. */
-  private vantageOf(conn: DataConnection): string {
+  private vantageOf(conn: StationLink): string {
     return this.connVantage.get(conn) ?? HOST_SESSION;
   }
 
@@ -1398,7 +1300,7 @@ export class PeerHostService {
    * set after a reconnect must not inflate the refcount, and
    * `PeerTransport` replays that set on every fresh connection.
    */
-  private retainSitrepSub(conn: DataConnection, topic: string): void {
+  private retainSitrepSub(conn: StationLink, topic: string): void {
     let claimed = this.sitrepSubs.get(conn);
     if (!claimed) {
       claimed = new Set();
@@ -1431,7 +1333,7 @@ export class PeerHostService {
     }
   }
 
-  private releaseSitrepSub(conn: DataConnection, topic: string): void {
+  private releaseSitrepSub(conn: StationLink, topic: string): void {
     const claimed = this.sitrepSubs.get(conn);
     if (!claimed?.delete(topic)) return;
     if (claimed.size === 0) this.sitrepSubs.delete(conn);
@@ -1478,7 +1380,7 @@ export class PeerHostService {
    * been emitted on the host side).
    */
   private backfillLatest(
-    conn: DataConnection,
+    conn: StationLink,
     sourceId: string,
     keys: readonly string[],
   ): void {
@@ -1597,28 +1499,6 @@ export class PeerHostService {
   }
 
   /**
-   * Send the relay's current credentials to every served station. Without them a
-   * station's media connection cannot traverse the relay's container bridge
-   * and its WebRTC negotiation dies with `negotiation-failed`.
-   */
-  private broadcastRelayIceServers(): void {
-    for (const conn of this.connections) this.sendRelayIceServers(conn);
-  }
-
-  /**
-   * Hand one station the relay credentials, which it cannot fetch itself (`/ice-config`
-   * is on this host's loopback). Only an approved station is given them: they
-   * let whoever holds them relay through this machine.
-   */
-  private sendRelayIceServers(conn: DataConnection): void {
-    if (this.iceServers.length === 0) return;
-    this.transmit(conn, {
-      type: "relay-ice-servers",
-      iceServers: this.iceServers,
-    } satisfies PeerMessage);
-  }
-
-  /**
    * Send a message to a single connected peer. Used by services that
    * fire on `onPeerConnect` and need to target the new peer specifically
    * (e.g. coverage snapshot, where broadcasting would re-deliver large mask
@@ -1640,7 +1520,7 @@ export class PeerHostService {
    * station restores them. A frame that still cannot be sent is logged with its
    * topic rather than dropped silently; any other message keeps throwing.
    */
-  private transmit(conn: DataConnection, msg: PeerMessage): void {
+  private transmit(conn: StationLink, msg: PeerMessage): void {
     try {
       conn.send(msg);
       return;
@@ -1751,7 +1631,7 @@ export class PeerHostService {
   // initial handshake (e.g. a future dynamically-registered data source),
   // this will need to broadcast a new schema message to already-connected
   // stations.
-  private sendSchema(conn: DataConnection) {
+  private sendSchema(conn: StationLink) {
     import("@ksp-gonogo/core").then(({ getDataSources }) => {
       const sources = getDataSources().map((s) => ({
         id: s.id,
@@ -1770,7 +1650,7 @@ export class PeerHostService {
     });
   }
 
-  private readonly dispatcher = new MessageDispatcher<DataConnection>({
+  private readonly dispatcher = new MessageDispatcher<StationLink>({
     "query-range-request": (msg, conn) => {
       void this.handleQueryRangeRequest(msg, conn);
     },
@@ -1956,11 +1836,11 @@ export class PeerHostService {
   });
 
   private readonly incomingTypesLogged = new WeakMap<
-    DataConnection,
+    StationLink,
     Set<PeerMessage["type"]>
   >();
 
-  private handleIncoming(msg: PeerMessage, conn: DataConnection) {
+  private handleIncoming(msg: PeerMessage, conn: StationLink) {
     /*
      * Once per message type per connection: the stream of a live station is
      * thousands of identical lines and every one of them ships.
@@ -1995,7 +1875,7 @@ export class PeerHostService {
    * station's command status shows the reason as it would a refusal from the
    * game.
    */
-  private refuseCommand(conn: DataConnection, requestId: string): void {
+  private refuseCommand(conn: StationLink, requestId: string): void {
     conn.send({
       type: "sitrep-command-response",
       requestId,
@@ -2013,7 +1893,7 @@ export class PeerHostService {
    * on its reply channel or with `station-write-refused`, a read that has a
    * reply channel is answered with an error, and any other read is dropped.
    */
-  private refuseWaiting(msg: PeerMessage, conn: DataConnection): void {
+  private refuseWaiting(msg: PeerMessage, conn: StationLink): void {
     if (STATION_WRITES.has(msg.type)) {
       this.refuseWrite(msg, conn);
       return;
@@ -2045,7 +1925,7 @@ export class PeerHostService {
     }
   }
 
-  private refuseWrite(msg: PeerMessage, conn: DataConnection): void {
+  private refuseWrite(msg: PeerMessage, conn: StationLink): void {
     switch (msg.type) {
       case "sitrep-command-request":
         this.refuseCommand(conn, msg.requestId);
@@ -2095,7 +1975,7 @@ export class PeerHostService {
    * screen. A station that sent no credential is never approvable, so it is
    * told it is pending but not raised.
    */
-  private raiseIfUnapproved(conn: DataConnection, name: string): void {
+  private raiseIfUnapproved(conn: StationLink, name: string): void {
     const credential = this.connCredential.get(conn);
     const approved = stationApprovals
       .list()
@@ -2189,7 +2069,7 @@ export class PeerHostService {
     }
   }
 
-  private disconnectRefused(conn: DataConnection): void {
+  private disconnectRefused(conn: StationLink): void {
     try {
       conn.send({
         type: "station-approval",
@@ -2216,14 +2096,22 @@ export class PeerHostService {
     return this.events.on("stationPaths", cb);
   }
 
-  private trackStationPath(conn: DataConnection): void {
-    const pc = (conn as DataConnection & { peerConnection?: RTCPeerConnection })
+  private trackStationPath(conn: StationLink): void {
+    const pc = (conn as StationLink & { peerConnection?: RTCPeerConnection })
       .peerConnection;
     this.stationPaths.set(conn.peer, {
       name: this.stationPaths.get(conn.peer)?.name ?? null,
       path: null,
     });
     this.events.emit("stationPaths");
+    if (conn instanceof EndpointConnection) {
+      const entry = this.stationPaths.get(conn.peer);
+      if (entry && conn.path) {
+        entry.path = conn.path;
+        this.events.emit("stationPaths");
+      }
+      return;
+    }
     if (!pc) return;
     void readConnectionPath(pc).then((path) => {
       const entry = this.stationPaths.get(conn.peer);
@@ -2330,7 +2218,7 @@ export class PeerHostService {
 
   private async handleQueryRangeRequest(
     msg: Extract<PeerMessage, { type: "query-range-request" }>,
-    conn: DataConnection,
+    conn: StationLink,
   ) {
     const { getDataSource } = await import("@ksp-gonogo/core");
     const source = getDataSource(msg.sourceId) as
@@ -2378,7 +2266,7 @@ export class PeerHostService {
   // `UplinkRelayHandle` above.
   private async handleUplinkRelay(
     msg: Extract<PeerMessage, { type: "uplink-relay-request" }>,
-    conn: DataConnection,
+    conn: StationLink,
   ) {
     const { getUplinkHandle } = await import("@ksp-gonogo/core");
     const handle = getUplinkHandle(msg.uplinkId);
@@ -2430,7 +2318,7 @@ export class PeerHostService {
    */
   private async handleUplinkBundleRequest(
     msg: Extract<PeerMessage, { type: "uplink-bundle-request" }>,
-    conn: DataConnection,
+    conn: StationLink,
   ): Promise<void> {
     const respond = (bytes?: Uint8Array, error?: string) => {
       conn.send({
@@ -2479,7 +2367,7 @@ export class PeerHostService {
    */
   private async handleUplinkManifestRequest(
     msg: Extract<PeerMessage, { type: "uplink-manifest-request" }>,
-    conn: DataConnection,
+    conn: StationLink,
   ): Promise<void> {
     const respond = (manifest?: unknown, error?: string) => {
       conn.send({
@@ -2560,7 +2448,7 @@ export class PeerHostService {
 
   private async handleFlightRpcRequest(
     msg: Extract<PeerMessage, { type: "flight-rpc-request" }>,
-    conn: DataConnection,
+    conn: StationLink,
   ) {
     const respond = (result?: unknown, error?: string) => {
       conn.send({
@@ -2608,7 +2496,7 @@ export class PeerHostService {
    */
   private async handleSitrepCommand(
     msg: Extract<PeerMessage, { type: "sitrep-command-request" }>,
-    conn: DataConnection,
+    conn: StationLink,
   ): Promise<void> {
     await this.relaySitrepCommand(msg, conn, (client) => {
       /*
@@ -2657,7 +2545,7 @@ export class PeerHostService {
    */
   private async handleSitrepCommandGroup(
     msg: Extract<PeerMessage, { type: "sitrep-command-group" }>,
-    conn: DataConnection,
+    conn: StationLink,
   ): Promise<void> {
     const client = getActiveTelemetryClient();
     const refuseAll = (code: string, message: string) => {
@@ -2712,7 +2600,7 @@ export class PeerHostService {
   /** Answers a station's command on `conn` with whatever `start` dispatches settles to. */
   private async relaySitrepCommand(
     msg: { requestId: string; command: string },
-    conn: DataConnection,
+    conn: StationLink,
     start: (
       client: NonNullable<ReturnType<typeof getActiveTelemetryClient>>,
     ) => Promise<unknown>,
@@ -2828,7 +2716,7 @@ export class PeerHostService {
   }
 
   /**
-   * Close every live DataConnection while keeping the Peer (and its
+   * Close every live StationLink while keeping the Peer (and its
    * broker registration) alive. Each station's PeerClientService sees
    * a close event and runs its retry policy, if this host is still
    * reachable under the same id, the reconnect succeeds and the
@@ -2845,7 +2733,7 @@ export class PeerHostService {
     this.deliveryMeter.stop();
     this.flightListChangeUnsub?.();
     this.flightListChangeUnsub = null;
-    this.stopIceConfigRefresh();
+    this.endpoint.stop();
     this.stopHeartbeat();
     this.relayRegistration.stopHeartbeat();
     this.detachLifecycleListeners();
@@ -2860,12 +2748,6 @@ export class PeerHostService {
     }
     this.reclaimAttempt = 0;
     this.setReclaiming(false);
-    // Clear any in-flight escalation timers and reset escalation state so a fresh start() (e.g. after regenerateShareCode) begins STUN-only again.
-    for (const timer of this.turnEscalationTimers.values()) {
-      clearTimeout(timer);
-    }
-    this.turnEscalationTimers.clear();
-    this.turnEscalated = false;
     this.destroyPeer();
     this.peerId = null;
     this.connections.clear();
@@ -2878,20 +2760,6 @@ export class PeerHostService {
     this.reconcileSitrepSubs();
     this.events.emit("id", null);
     logger.info("[PeerHost] stopped");
-  }
-
-  /**
-   * Re-fetch `/ice-config` every 60s and reseed the Peer's config when
-   * the credentials change. Runs only while a Peer is alive, `stop()`
-   * clears the timer. Empty fetches (relay unreachable) are ignored so
-   * a transient blip doesn't drop us back to STUN-only mid-session.
-   */
-  private startIceConfigRefresh(): void {
-    if (this.iceConfigRefreshTimer) return;
-    const REFRESH_MS = 60_000;
-    this.iceConfigRefreshTimer = setInterval(() => {
-      void this.refreshIceConfig();
-    }, REFRESH_MS);
   }
 
   /**
@@ -2924,46 +2792,6 @@ export class PeerHostService {
     if (!this.heartbeatTimer) return;
     clearInterval(this.heartbeatTimer);
     this.heartbeatTimer = null;
-  }
-
-  private stopIceConfigRefresh(): void {
-    if (!this.iceConfigRefreshTimer) return;
-    clearInterval(this.iceConfigRefreshTimer);
-    this.iceConfigRefreshTimer = null;
-  }
-
-  private async refreshIceConfig(): Promise<void> {
-    if (!this.peer) return;
-    const config = await fetchRelayIceConfig(relayBaseUrl());
-    const next = config?.iceServers ?? [];
-    // Empty fetch = relay unreachable. Don't clobber working creds with
-    // nothing: TURN-relayed paths in flight would lose their refresh.
-    if (next.length === 0) return;
-    this.relayPublicUrl = config?.publicUrl ?? null;
-    if (areIceServersEqual(this.iceServers, next)) return;
-    this.iceServers = next;
-    // TURN-on-demand: only patch the host Peer's config when TURN is already
-    // in use (turnEscalated). If the host is still STUN-only, there's no live
-    // TURN allocation to keep fresh, and silently re-enabling TURN here would
-    // defeat the whole change after the first 60s refresh cycle.
-    if (this.turnEscalated) {
-      // PeerJS's Peer doesn't expose a public setter for `iceServers`, so
-      // reach into `_options.config`. New peer.connect() / peer.call()
-      // calls grab `_options.config` when constructing the underlying
-      // RTCPeerConnection, so the next ICE attempt picks up the fresh
-      // creds. Existing connections aren't disturbed (their ICE pair is
-      // already negotiated).
-      this.applyTurnToLivePeer();
-      logger.info(
-        "[PeerHost] ice-config refreshed: new TURN creds active for future connections (TURN escalated)",
-      );
-    } else {
-      logger.info(
-        "[PeerHost] ice-config refreshed: creds stored for station broadcast (STUN-only host)",
-      );
-    }
-    // Push the refresh to every connected station, or a coturn secret rotation (relay restart) silently breaks each station's media connections until it reloads.
-    this.broadcastRelayIceServers();
   }
 
   /**

@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 
 /** Read only by the localhost smoke tests, which start the relay without compose, or fixed by the image. */
 const NOT_FOR_COMPOSE = new Set([
-  "SKIP_COTURN",
   "SKIP_ENDPOINT",
+  "ENDPOINT_OMIT_UDP",
   "ENDPOINT_BIN",
   "ENDPOINT_CONTROL_PORT",
 ]);
@@ -20,7 +20,7 @@ describe("docker-compose.yml", () => {
     const read = [...config.matchAll(/\benv\.([A-Z][A-Z0-9_]+)/g)].map(
       (m) => m[1],
     );
-    expect(read).toContain("TURN_TCP");
+    expect(read).toContain("ENDPOINT_PORT");
     const missing = read.filter(
       (name) =>
         !NOT_FOR_COMPOSE.has(name) &&

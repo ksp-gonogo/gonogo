@@ -45,7 +45,8 @@ const RADIO_STREAM_PORTS = {
  * scenes where every screen replays one flight. See `wire-replay-server.mjs`.
  */
 const WIRE_REPLAY_PORT = 18098;
-// The relay (/ice-config + coturn + the host-discovery registry).
+// The relay, run without its station endpoint so stations join the main
+// screen directly here; endpoint-relay-fixture.ts starts one with it.
 //
 // Port deliberately offset from the production default (3002) so the
 // test stack coexists with a developer-side `podman compose up` running
@@ -169,7 +170,6 @@ export default defineConfig({
       timeout: 30_000,
       env: {
         PORT: String(RELAY_PORT),
-        SKIP_COTURN: "1",
         SKIP_ENDPOINT: "1",
         // Same broker as the app: without this the relay would
         // register on peerjs.com and the host running on

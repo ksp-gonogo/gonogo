@@ -1,10 +1,9 @@
 /**
  * Caps how often one kind of log line passes through. Lines are grouped by
- * their text with digits collapsed, so `Trying to bind fd 4153` and
- * `Trying to bind fd 4154` count as the same line. The first `limit` lines of
- * a group in each window pass; the rest are dropped and counted. Used by the
- * coturn log forwarder, where a pool fault repeats one line hundreds of
- * thousands of times in seconds.
+ * their text with digits collapsed, so `peer 4153 closed` and `peer 4154
+ * closed` count as the same line. The first `limit` lines of a group in each
+ * window pass; the rest are dropped and counted. Used by the endpoint's log
+ * forwarder, where a fault repeated per packet would otherwise flood the log.
  */
 export interface LogRateLimiter {
   /** True when the line should be written. */

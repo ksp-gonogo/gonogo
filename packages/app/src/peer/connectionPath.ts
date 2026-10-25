@@ -1,15 +1,12 @@
 /**
- * How a data connection between the main screen and a station is actually
- * carried: "lan" when both ends use host candidates, "internet" when a
- * server-reflexive or peer-reflexive candidate is in the selected pair, and
- * "relayed" when either end goes through the relay server.
+ * Where a station joined from: "lan" on the main screen's own network,
+ * "internet" from another one.
  */
-export type ConnectionPath = "lan" | "internet" | "relayed";
+export type ConnectionPath = "lan" | "internet";
 
 export const CONNECTION_PATH_LABEL: Record<ConnectionPath, string> = {
-  lan: "direct (LAN)",
-  internet: "direct (internet)",
-  relayed: "relayed",
+  lan: "this network",
+  internet: "internet",
 };
 
 /**
@@ -49,7 +46,6 @@ export async function readConnectionPath(pc: {
   const local = byId.get(String(pair.localCandidateId));
   const remote = byId.get(String(pair.remoteCandidateId));
   const types = [local?.candidateType, remote?.candidateType];
-  if (types.includes("relay")) return "relayed";
   if (types.every((t) => t === "host")) return "lan";
   if (types.every((t) => typeof t === "string")) return "internet";
   return null;
