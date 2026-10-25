@@ -80,6 +80,14 @@ async function openRelayedStation(
     )
   ).jsonValue()) as string;
 
+  /*
+   * The main starts its host before the app renders and the dev build's strict-mode
+   * mount stops and reopens it once it does, which drops a dial that landed in
+   * between. Dialling after the first render keeps the measured connect time to the
+   * connection itself.
+   */
+  await main.getByRole("button", { name: /add a widget/i }).waitFor();
+
   const station = await stationContext.newPage();
   const startedAt = Date.now();
   await station.goto(
