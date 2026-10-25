@@ -897,29 +897,6 @@ describe("SCET alarms", () => {
       svc.dispose();
     });
 
-    it("knows which of its alarms the mod copied into the game's alarm clock", async () => {
-      const session = startSession(OWLT);
-      session.emitAt(UT_START);
-      const svc = new AlarmHostService(null, {
-        nowMs: () => nowMs,
-        tickIntervalMs: DT * 1000,
-        storage: memoryStorage(),
-        getOwltSeconds: () => OWLT,
-      });
-      const alarm = svc.addAlarm({
-        name: "Burn",
-        trigger: { kind: "time", ut: UT_START + 20 * DT, leadSeconds: 10 },
-      });
-      await run(session, UT_START + 4 * DT);
-      expect(svc.snapshot().scetInGameClock).toBeUndefined();
-
-      session.copyToGame(alarm.id, 42);
-      await runFrom(session, UT_START + 4 * DT, UT_START + 8 * DT);
-
-      expect(svc.snapshot().scetInGameClock).toEqual([alarm.id]);
-      svc.dispose();
-    });
-
     it("does not show another screen's cancelled alarm as one the simulation holds", async () => {
       const session = startSession(OWLT);
       session.emitAt(UT_START);

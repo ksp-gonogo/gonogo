@@ -1083,30 +1083,62 @@ describe("AlarmsModal unreachable", () => {
   });
 });
 
-describe("AlarmsModal game alarm clock", () => {
-  it("marks an alarm the mod copied into the game's alarm clock", async () => {
+describe("AlarmsModal game alarms", () => {
+  it("lists the game's alarms in the one Scheduled list with Gonogo's own", async () => {
     const alarm: Alarm = {
-      id: "a-copied",
+      id: "a-own",
       name: "Circularise",
       trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
       state: "pending",
       createdBy: "main",
       createdAt: 1_700_000_000_000,
     };
-    render(
+    const { emit } = renderWithStream(
       <AlarmsModal
-        useSnapshot={() => ({
-          ...makeSnapshot([alarm]),
-          scetInGameClock: ["a-copied"],
-        })}
+        useSnapshot={() => makeSnapshot([alarm])}
         onAdd={() => {}}
         onUpdate={() => {}}
         onDelete={() => {}}
       />,
     );
+    emit("alarm.game.list", {
+      available: true,
+      absence: 0,
+      alarms: [
+        {
+          id: 9,
+          kind: 0,
+          title: "Mun window",
+          ut: 4000,
+          vessel: null,
+          warp: 0,
+          triggered: false,
+          gonogoId: null,
+        },
+        {
+          id: 10,
+          kind: 4,
+          title: "Probe Pe",
+          ut: 7000,
+          vessel: null,
+          warp: 0,
+          triggered: false,
+          gonogoId: null,
+        },
+      ],
+    });
 
-    await screen.findByText("Circularise");
-    expect(screen.getByText("IN GAME CLOCK")).toBeInTheDocument();
+    expect(await screen.findByText("Mun window")).toBeInTheDocument();
+    expect(screen.getByText("Circularise")).toBeInTheDocument();
+    expect(screen.getByText("Scheduled (3)")).toBeInTheDocument();
+    expect(screen.getByText("Probe Pe")).toBeInTheDocument();
+    expect(screen.queryByText("In the game")).toBeNull();
+    const order = screen
+      .getAllByRole("listitem")
+      .map((li) => li.textContent ?? "");
+    expect(order.findIndex((t) => t.includes("Circularise"))).toBeGreaterThan(
+      order.findIndex((t) => t.includes("Mun window")),
+    );
   });
 });
 

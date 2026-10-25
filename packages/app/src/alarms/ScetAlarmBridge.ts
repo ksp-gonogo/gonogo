@@ -187,7 +187,6 @@ export class ScetAlarmBridge {
   private rosterAlarms: readonly ForeignScetAlarm[] = [];
   /** The ids the mod last said can never come due, because their craft is gone. */
   private rosterUnreachable: ReadonlySet<string> = new Set();
-  private rosterInGame: ReadonlySet<string> = new Set();
   private rosterSeen = false;
   /** Each time alarm's name, time and count of edits made in the game, off the last roster frame. */
   private rosterEdits: ReadonlyMap<string, RosterEdit> = new Map();
@@ -286,11 +285,6 @@ export class ScetAlarmBridge {
    */
   actsAboard(id: string): boolean {
     return this.rosterActing.has(id);
-  }
-
-  /** The ids of the alarms the mod has copied into the game's own alarm clock, off its roster. */
-  inGameClockIds(): readonly string[] {
-    return [...this.rosterInGame];
   }
 
   /** The ids the mod holds as unreachable, off its roster. */
@@ -672,7 +666,6 @@ export class ScetAlarmBridge {
       this.rosterIds = readRosterIds(payload);
       this.rosterActing = readActingIds(payload);
       this.rosterUnreachable = readUnreachableIds(payload);
-      this.rosterInGame = readInGameClockIds(payload);
       this.rosterAlarms = readRosterAlarms(payload);
       this.rosterEdits = readRosterEdits(payload);
       this.rosterSeen = true;
@@ -725,7 +718,6 @@ export class ScetAlarmBridge {
     this.rosterIds = [];
     this.rosterActing = new Set();
     this.rosterUnreachable = new Set();
-    this.rosterInGame = new Set();
     this.rosterAlarms = [];
     this.rosterEdits = new Map();
     this.rosterSeen = false;
@@ -826,25 +818,6 @@ function readUnreachableIds(payload: unknown): ReadonlySet<string> {
       row !== null &&
       "state" in row &&
       row.state === ScetAlarmState.Unreachable
-    ) {
-      ids.add(id);
-    }
-  }
-  return ids;
-}
-
-/** The ids of the roster rows that have a copy in the game's own alarm clock. */
-function readInGameClockIds(payload: unknown): ReadonlySet<string> {
-  const ids = new Set<string>();
-  if (!Array.isArray(payload)) return ids;
-  for (const row of payload) {
-    const id = readId(row);
-    if (
-      id !== null &&
-      typeof row === "object" &&
-      row !== null &&
-      "gameAlarmId" in row &&
-      typeof row.gameAlarmId === "number"
     ) {
       ids.add(id);
     }
