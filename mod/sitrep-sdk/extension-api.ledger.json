@@ -8271,6 +8271,10 @@
         "note": "typed as DataSourceState[] instead of unknown"
       },
       {
+        "key": "sitrep-sdk . GonogoHost#useHostIceServers",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
+      },
+      {
         "key": "sitrep-sdk . GonogoHost#useViewClock",
         "note": "the view clock is typed as DelayClockLike instead of unknown"
       },
@@ -8281,6 +8285,18 @@
       {
         "key": "sitrep-sdk . HeldGrade",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
+      },
+      {
+        "key": "sitrep-sdk . HostIceServers",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
+      },
+      {
+        "key": "sitrep-sdk . HostIceServers#current",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
+      },
+      {
+        "key": "sitrep-sdk . HostIceServers#onChange",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
         "key": "sitrep-sdk . LaunchDirectorSlotContext#inFlight",
@@ -8541,6 +8557,10 @@
       {
         "key": "sitrep-sdk . StateVector#velocity",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk . StationBroker#iceServers",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
         "key": "sitrep-sdk . StrategiesScreenBodyContext",
@@ -8809,6 +8829,10 @@
       {
         "key": "sitrep-sdk . useDataSources",
         "note": "typed as DataSourceState[] instead of unknown"
+      },
+      {
+        "key": "sitrep-sdk . useHostIceServers",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
         "key": "sitrep-sdk . useSetting",
@@ -9259,6 +9283,18 @@
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
+        "key": "sitrep-sdk ./registry ~HostIceServers",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~HostIceServers#current",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~HostIceServers#onChange",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
+      },
+      {
         "key": "sitrep-sdk ./registry ~PlotLayer",
         "note": "The plot layer union gains open water (PlotWaterLayer)"
       },
@@ -9309,6 +9345,10 @@
       {
         "key": "sitrep-sdk ./registry ~StatEntry#value?",
         "note": "A stat figure may be a whole Reading, drawn held while it is held"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~StationBroker#iceServers",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
         "key": "sitrep-sdk ./registry ~StrategiesScreenEntry",
@@ -10203,6 +10243,10 @@
         "note": "typed as DataSourceState[] instead of unknown"
       },
       {
+        "key": "sitrep-sdk ./testing ~GonogoHost#useHostIceServers",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
+      },
+      {
         "key": "sitrep-sdk ./testing ~GonogoHost#useViewClock",
         "note": "the view clock is typed as DelayClockLike instead of unknown"
       },
@@ -10217,6 +10261,18 @@
       {
         "key": "sitrep-sdk ./testing ~HeldGrade",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~HostIceServers",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~HostIceServers#current",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~HostIceServers#onChange",
+        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
         "key": "sitrep-sdk ./testing ~LaunchDirectorSlotContext#inFlight",
@@ -12187,6 +12243,18 @@
       {
         "key": "sitrep-sdk . ReckoningDecline#resolvesByWaiting?",
         "note": "Whether a declined figure comes back by itself, such as an integrator not yet computed this far ahead"
+      },
+      {
+        "key": "sitrep-sdk . RelayCaller",
+        "note": "Added. Who made a relayed call to an Uplink's handle, passed as its third argument, with bridgeMedia for a station on the relay's endpoint"
+      },
+      {
+        "key": "sitrep-sdk . RelayCaller#bridgeMedia?",
+        "note": "Added. Who made a relayed call to an Uplink's handle, passed as its third argument, with bridgeMedia for a station on the relay's endpoint"
+      },
+      {
+        "key": "sitrep-sdk . RelayCaller#station",
+        "note": "Added. Who made a relayed call to an Uplink's handle, passed as its third argument, with bridgeMedia for a station on the relay's endpoint"
       },
       {
         "key": "sitrep-sdk . RendezvousHudContext",
@@ -15802,10 +15870,6 @@
       },
       {
         "key": "sitrep-sdk ./testing ~StationBroker",
-        "note": "The type a watcher on the testing subpath receives from watchStationBrokers"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~StationBroker#iceServers",
         "note": "The type a watcher on the testing subpath receives from watchStationBrokers"
       },
       {

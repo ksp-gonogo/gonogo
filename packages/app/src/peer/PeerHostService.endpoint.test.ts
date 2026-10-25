@@ -68,8 +68,14 @@ vi.stubGlobal("localStorage", {
   clear: () => store.clear(),
 });
 
+import type { RelayCaller } from "@ksp-gonogo/sitrep-sdk";
+import {
+  registerUplinkHandle,
+  unregisterUplinkHandle,
+} from "@ksp-gonogo/sitrep-sdk";
+import type { Packable } from "peerjs-js-binarypack";
 import { ENDPOINT_SIGNAL } from "./brokerSignal";
-import { FrameReader } from "./endpointFraming";
+import { encodeFrames, FrameReader } from "./endpointFraming";
 import { PeerHostService } from "./PeerHostService";
 
 const link = ws.link("ws://localhost:3002/stations");
@@ -85,8 +91,11 @@ afterAll(() => server.close());
 function endpoint() {
   const offers: Array<{ sid: number; peerId: string; sdp: string }> = [];
   const toStation = new Map<number, unknown[]>();
+  const bridges: Array<Record<string, unknown>> = [];
+  let socket: { send(data: string | ArrayBuffer): void } | null = null;
   server.use(
     link.addEventListener("connection", ({ client }) => {
+      socket = client;
       client.send(
         JSON.stringify({
           type: "status",
@@ -98,6 +107,28 @@ function endpoint() {
       client.addEventListener("message", (m) => {
         if (typeof m.data === "string") {
           const f = JSON.parse(m.data);
+          if (f.type === "bridge") {
+            bridges.push(f);
+            client.send(
+              JSON.stringify({
+                type: "bridge-offer",
+                bid: f.bid,
+                sdp: "v=upstream-offer",
+              }),
+            );
+            return;
+          }
+          if (f.type === "bridge-answer") {
+            bridges.push(f);
+            client.send(
+              JSON.stringify({
+                type: "bridge-ready",
+                bid: f.bid,
+                sdp: "v=station-answer",
+              }),
+            );
+            return;
+          }
           if (f.type !== "offer") return;
           offers.push(f);
           client.send(
@@ -122,7 +153,20 @@ function endpoint() {
       });
     }),
   );
-  return { offers, toStation };
+  return {
+    offers,
+    toStation,
+    bridges,
+    /** Deliver a message from a station on session `sid` to the main screen. */
+    fromStation(sid: number, message: Packable) {
+      for (const frame of encodeFrames(message)) {
+        const out = new Uint8Array(4 + frame.byteLength);
+        new DataView(out.buffer).setUint32(0, sid);
+        out.set(frame, 4);
+        socket?.send(out.buffer);
+      }
+    },
+  };
 }
 
 function join(
@@ -202,7 +246,7 @@ describe("a station joining through the endpoint", () => {
     const replies = Object.fromEntries(
       peer.toBroker.map((m) => [
         m.dst,
-        (m.payload as { signal: { sdp: string } }).signal.sdp,
+        Reflect.get(Object(Reflect.get(Object(m.payload), "signal")), "sdp"),
       ]),
     );
     expect(replies).toEqual({
@@ -222,6 +266,62 @@ describe("a station joining through the endpoint", () => {
       connectionId: "gne-1",
       signal: { kind: "direct" },
     });
+    host.stop();
+  });
+
+  it("offers an endpoint station's Uplink calls a bridge for its media connection", async () => {
+    const ep = endpoint();
+    let caller: RelayCaller | undefined;
+    registerUplinkHandle("camera-uplink", {
+      relay: async (_method: string, args: unknown, from?: RelayCaller) => {
+        caller = from;
+        return from?.bridgeMedia?.(
+          String(args),
+          async (offer) => `sidecar answers ${offer}`,
+        );
+      },
+    });
+    const credential = "e2e0station0credential0000000000";
+    store.set(
+      "gonogo.host.approvedStations",
+      JSON.stringify([{ credential, name: "E2E", approvedAt: 0 }]),
+    );
+    const { host, peer } = await startedHost();
+    await vi.waitFor(() => expect(host.endpoint.available).toBe(true));
+    join(peer, "station-a", "gne-1");
+    await vi.waitFor(() => expect(ep.offers).toHaveLength(1));
+    const sid = ep.offers[0]?.sid ?? -1;
+    await vi.waitFor(() =>
+      expect(ep.toStation.get(sid)?.length).toBeGreaterThan(0),
+    );
+
+    ep.fromStation(sid, { type: "station-credential", credential });
+    ep.fromStation(sid, {
+      type: "uplink-relay-request",
+      requestId: "r1",
+      uplinkId: "camera-uplink",
+      method: "negotiate",
+      args: "v=camera-offer",
+    });
+
+    await vi.waitFor(() =>
+      expect(ep.toStation.get(sid)).toContainEqual(
+        expect.objectContaining({
+          type: "uplink-relay-response",
+          requestId: "r1",
+          result: "v=station-answer",
+        }),
+      ),
+    );
+    expect(caller?.station).toBe("station-a");
+    expect(ep.bridges).toEqual([
+      expect.objectContaining({ type: "bridge", sid, sdp: "v=camera-offer" }),
+      expect.objectContaining({
+        type: "bridge-answer",
+        sdp: "sidecar answers v=upstream-offer",
+      }),
+    ]);
+    unregisterUplinkHandle("camera-uplink");
     host.stop();
   });
 });

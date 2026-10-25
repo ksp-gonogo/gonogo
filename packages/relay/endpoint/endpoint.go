@@ -43,8 +43,10 @@ const (
 
 // controlFrame is every text frame on the control socket, in both directions.
 type controlFrame struct {
-	Type   string `json:"type"`
-	Sid    uint32 `json:"sid,omitempty"`
+	Type string `json:"type"`
+	Sid  uint32 `json:"sid,omitempty"`
+	// Bid names a media bridge, on bridge frames only.
+	Bid    uint32 `json:"bid,omitempty"`
 	PeerID string `json:"peerId,omitempty"`
 	SDP    string `json:"sdp,omitempty"`
 	Reason string `json:"reason,omitempty"`
@@ -97,6 +99,7 @@ type Endpoint struct {
 	mu       sync.Mutex
 	tab      *tab
 	sessions map[uint32]*session
+	bridges  map[uint32]*bridge
 }
 
 // New builds an endpoint on an already-bound UDP socket and TCP listener with the same port number.
@@ -127,6 +130,7 @@ func New(cfg Config, udp net.PacketConn, tcp net.Listener) (*Endpoint, error) {
 		udp:      udp,
 		tcp:      tcp,
 		sessions: map[uint32]*session{},
+		bridges:  map[uint32]*bridge{},
 		// The socket is reached only through the relay's own proxy, which checks the page's origin.
 		upgrader: websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }},
 	}, nil
@@ -190,6 +194,12 @@ func (e *Endpoint) serveTab(t *tab) {
 			go e.offer(t, f)
 		case "close":
 			e.drop(f.Sid, "")
+		case "bridge":
+			go e.bridgeOffer(f)
+		case "bridge-answer":
+			go e.bridgeAnswer(f)
+		case "bridge-close":
+			e.dropBridge(f.Bid, "")
 		}
 	}
 
@@ -349,13 +359,23 @@ func (e *Endpoint) drop(sid uint32, reason string) {
 	if reason != "" {
 		e.send(controlFrame{Type: "close", Sid: sid, Reason: reason})
 	}
+	e.dropBridgesOf(sid)
 }
 
 func (e *Endpoint) dropAll() {
 	e.mu.Lock()
 	all := e.sessions
 	e.sessions = map[uint32]*session{}
+	bridges := e.bridges
+	e.bridges = map[uint32]*bridge{}
 	e.mu.Unlock()
+	for _, b := range bridges {
+		b.timer.Stop()
+		go b.upstream.Close()
+		if b.station != nil {
+			go b.station.Close()
+		}
+	}
 	for _, s := range all {
 		s.timer.Stop()
 		go s.pc.Close()
