@@ -14,6 +14,7 @@ import { describe, expect, it } from "vitest";
  * added to this list, which is the moment to ask which of those three it is.
  */
 const USER_DOCS: readonly string[] = [
+  "docs/CONFIGURATION.md",
   "docs/KSP-SETUP.md",
   "docs/NETWORKING.md",
   "docs/REPORTING.md",
