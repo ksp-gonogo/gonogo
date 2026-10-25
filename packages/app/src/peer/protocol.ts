@@ -7,7 +7,6 @@ import type {
 import type { AlarmSnapshot } from "../alarms/types";
 import type { MissionProfile } from "../missionProfiles/MissionProfilesService";
 import type { RunningUplink } from "../uplinks/loaderState";
-import type { HostUplinkFailure } from "../uplinks/loadFailures";
 
 /**
  * Flight-history RPC ops. The host owns the canonical FlightRecord store
@@ -162,10 +161,6 @@ export type PeerMessage =
   // whenever the set changes. A station loads exactly this set. `null` until
   // the main screen's loader has settled.
   | { type: "host-uplinks"; uplinks: RunningUplink[] | null }
-  // Host -> peer: the installed Uplinks that failed to load on the main
-  // screen, sent on connect and whenever the set changes. Empty while the main
-  // screen is running normally.
-  | { type: "host-uplink-failures"; failures: HostUplinkFailure[] }
   // Station → host on connect and whenever the user renames the station.
   // Host keys peer id → name for grid attribution and abort reporting.
   // `version` + `buildTime` are optional so a pre-versioned station still
