@@ -8,17 +8,16 @@ import {
   useModal,
 } from "@ksp-gonogo/ui";
 import { Cluster, Tooltip } from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import styled from "styled-components";
 import { SETUP_LINKS } from "../firstRun/setupGuide";
 import {
   CONNECTION_PATH_LABEL,
   type ConnectionPath,
 } from "../peer/connectionPath";
-import type { EndpointStatus } from "../peer/endpointStations";
+import { relayBaseUrl } from "../peer/iceServers";
 import { peerHostService } from "../peer/PeerHostService";
-import { relayBaseUrl } from "../peer/relayAddress";
-import { requestSettings } from "../settings/settingsRequest";
+import { probeTurn, type TurnProbeResult } from "../peer/probeTurn";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
 import { CHANNEL } from "../version";
 import { StationAddressList } from "./StationAddressList";
@@ -59,6 +58,8 @@ function StationLinkPanel() {
   // restart (the broker still holds the stale slot). Surfaced as a status so
   // the operator knows why a just-restarted host isn't accepting stations yet.
   const [reclaiming, setReclaiming] = useState(peerHostService.isReclaiming());
+  // Whether the relay answered the Add station check from outside; the link carries its public address only then.
+  const [relayReachable, setRelayReachable] = useState(false);
   useEffect(() => {
     const unsubId = peerHostService.onPeerIdChange(setPeerId);
     const unsubShareCode = peerHostService.onShareCodeChange(setShareCode);
@@ -83,6 +84,7 @@ function StationLinkPanel() {
   }
 
   const { addresses, qr } = stationAddresses({
+    relayUrl: relayReachable ? peerHostService.relayPublicUrl : null,
     code: shareCode,
     origin: globalThis.location.origin,
     baseUrl: import.meta.env.BASE_URL,
@@ -105,7 +107,7 @@ function StationLinkPanel() {
         <Code>{shareCode}</Code>
       </Cluster>
       <StationAddressList addresses={addresses} qr={qr} />
-      <EndpointState />
+      <TurnStatus onReachable={setRelayReachable} />
       <StationPaths />
       <Hint>
         Scan to open <code>/station</code> on another device, it&apos;ll
@@ -204,6 +206,7 @@ function StationPaths() {
 function pathTone(path: ConnectionPath | null): Tone {
   if (path === "lan") return "go";
   if (path === "internet") return "info";
+  if (path === "relayed") return "warn";
   return "neutral";
 }
 
@@ -212,79 +215,109 @@ function pathText(path: ConnectionPath | null): string {
 }
 
 /**
- * What stops stations on other networks joining: the relay not running, or
- * its port not opened on the router. Shows nothing once the relay has had the
- * router open it. A port forwarded by hand cannot be seen from here, so that
- * case reads the same as no forward. Read again every 30 s while the window is
- * open.
+ * Relay probe badge. Probes the relay's iceServers for a `relay`
+ * candidate; surfaces ✅ / 🟡 / ❌ so the operator can tell *before*
+ * trying to share the link with a friend whether their relay is
+ * actually reachable from outside their network.
+ *
+ * Re-runs every 30 s while the modal is open; picks up router or
+ * relay restarts without spam, and gives the user a fresh check after
+ * they fix a port-forward without having to close + reopen the modal.
  */
-function EndpointState() {
-  const [status, setStatus] = useState<EndpointStatus | null>(
-    peerHostService.endpoint.status,
-  );
-  const opened = usePortOpened();
-  useEffect(
-    () =>
-      peerHostService.endpoint.onAvailable(() =>
-        setStatus(peerHostService.endpoint.status),
-      ),
-    [],
-  );
+function TurnStatus({
+  onReachable,
+}: {
+  onReachable: (reachable: boolean) => void;
+}) {
+  const [state, setState] = useState<
+    | { kind: "probing" }
+    | { kind: "ok"; result: Extract<TurnProbeResult, { ok: true }> }
+    | { kind: "fail"; result: Extract<TurnProbeResult, { ok: false }> }
+  >({ kind: "probing" });
 
-  if (!status) {
-    return (
-      <StatusIndicator tone="warn" live>
-        The relay is not running, so only devices on this network can join.{" "}
-        <GuideLink
-          href={SETUP_LINKS.relayPorts}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Networking guide
-        </GuideLink>
-      </StatusIndicator>
-    );
-  }
-  if (opened) return null;
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setState({ kind: "probing" });
+      const result = await probeTurn({
+        iceServers: peerHostService.iceServers,
+      });
+      if (cancelled) return;
+      onReachable(result.ok);
+      setState(result.ok ? { kind: "ok", result } : { kind: "fail", result });
+    };
+    void run();
+    const interval = setInterval(run, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [onReachable]);
+
+  const tone =
+    state.kind === "ok" ? "go" : state.kind === "fail" ? "warn" : "info";
   return (
-    <StatusIndicator tone="info" live>
-      Stations on this network can join. For other networks, see{" "}
-      <SettingLink type="button" onClick={() => requestSettings("general")}>
-        Automatic port forwarding
-      </SettingLink>{" "}
-      in Settings, under Relay.
+    <StatusIndicator tone={tone} live>
+      {state.kind === "probing" && "Checking relay..."}
+      {state.kind === "ok" &&
+        "Relay ready for stations that can't connect directly"}
+      {state.kind === "fail" && describeProbeFailure(state.result)}
+      {state.kind === "fail" && state.result.reason === "timeout" && (
+        <PortMappingNote />
+      )}
     </StatusIndicator>
   );
 }
 
-/** Whether the relay reports, in `/health`, that the router opened its port. */
-function usePortOpened(): boolean {
-  const [opened, setOpened] = useState(false);
+/** What the relay's own attempt to open its ports on the router came to, when that did not work. */
+function PortMappingNote() {
+  const [message, setMessage] = useState<string | null>(null);
   useEffect(() => {
     const controller = new AbortController();
-    const read = () =>
-      fetch(`${relayBaseUrl()}/health`, { signal: controller.signal })
-        .then((res) => res.json())
-        .then((body: unknown) => {
-          const m =
-            typeof body === "object" && body !== null
-              ? Reflect.get(body, "portMapping")
-              : null;
-          setOpened(
-            !!m &&
-              typeof m === "object" &&
-              Reflect.get(m, "state") === "mapped",
-          );
-        })
-        .catch(() => {});
-    void read();
-    const interval = setInterval(read, 30_000);
-    return () => {
-      clearInterval(interval);
-      controller.abort();
-    };
+    fetch(`${relayBaseUrl()}/health`, { signal: controller.signal })
+      .then((res) => res.json())
+      .then((body: unknown) => {
+        const mapping =
+          typeof body === "object" && body !== null
+            ? Reflect.get(body, "portMapping")
+            : null;
+        if (typeof mapping !== "object" || mapping === null) return;
+        const text = Reflect.get(mapping, "message");
+        if (
+          Reflect.get(mapping, "state") !== "mapped" &&
+          typeof text === "string"
+        ) {
+          setMessage(text);
+        }
+      })
+      .catch(() => {});
+    return () => controller.abort();
   }, []);
-  return opened;
+  return message ? <> {message}</> : null;
+}
+
+const RELAY_NEEDED =
+  "Most stations connect without it; phones on mobile data and strict networks need it.";
+
+function describeProbeFailure(
+  r: Extract<TurnProbeResult, { ok: false }>,
+): ReactNode {
+  if (r.reason === "no-ice-servers") {
+    return `No relay configured. ${RELAY_NEEDED}`;
+  }
+  if (r.reason === "errored") {
+    return "Relay check failed: see logs (peer:turn-probe).";
+  }
+  return (
+    <>
+      Relay can't be reached from outside. {RELAY_NEEDED} The{" "}
+      <GuideLink href={SETUP_LINKS.relayPorts} target="_blank" rel="noreferrer">
+        networking guide
+      </GuideLink>{" "}
+      lists the forwards, and the container setting that has Gonogo open them on
+      your router.
+    </>
+  );
 }
 
 const PathList = styled.ul`
@@ -301,22 +334,6 @@ const PathList = styled.ul`
 const GuideLink = styled.a`
   color: var(--color-info-text);
   text-decoration: underline;
-`;
-
-/* A button that reads as the link beside it, inside a sentence. */
-const SettingLink = styled.button`
-  padding: 0;
-  border: none;
-  background: none;
-  font: inherit;
-  color: var(--color-info-text);
-  text-decoration: underline;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
 `;
 
 const PathRow = styled.li`

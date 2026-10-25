@@ -1,5 +1,3 @@
-import type { RelayCaller } from "./types";
-
 /**
  * Generic, mod-agnostic id -> singleton "host handle" registry.
  *
@@ -36,8 +34,7 @@ function handles(): Map<string, unknown> {
  * first.
  *
  * For {@link useUplinkRelay} to reach the object, it needs a
- * `relay(method, args)` function that returns a promise. A call from a station
- * also passes a {@link RelayCaller} as the third argument, naming the station.
+ * `relay(method, args)` function that returns a promise.
  *
  * @category Registering
  */

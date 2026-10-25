@@ -6,8 +6,6 @@ import {
   type ReadOnlyFieldValue,
   Stack,
 } from "@ksp-gonogo/ui-kit";
-import { useId, useState } from "react";
-import styled from "styled-components";
 import type {
   SettingDefinition,
   SettingValue,
@@ -241,64 +239,12 @@ function SettingControl({
     );
   }
   return (
-    <TextControl
-      def={def}
+    <SettingInput
+      type="text"
       value={typeof value === "string" ? value : ""}
+      onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
-      onChange={onChange}
+      aria-label={def.label}
     />
   );
 }
-
-/**
- * A text row's field. With a `validate` on the definition, the typed text is
- * held here and saved only while it is accepted, and the refusal is shown
- * under the field and announced with it.
- */
-function TextControl({
-  def,
-  value,
-  disabled,
-  onChange,
-}: {
-  def: SettingDefinition;
-  value: string;
-  disabled: boolean;
-  onChange: (next: string) => void;
-}) {
-  const [draft, setDraft] = useState(value);
-  const refusal = def.validate?.(draft);
-  const refusalId = useId();
-  return (
-    <TextControlStack>
-      <SettingInput
-        type="text"
-        value={draft}
-        onChange={(e) => {
-          const typed = e.target.value;
-          setDraft(typed);
-          if (def.validate?.(typed) === undefined) onChange(typed);
-        }}
-        disabled={disabled}
-        aria-label={def.label}
-        aria-invalid={refusal === undefined ? undefined : true}
-        aria-describedby={refusal === undefined ? undefined : refusalId}
-      />
-      {refusal !== undefined && <Refusal id={refusalId}>{refusal}</Refusal>}
-    </TextControlStack>
-  );
-}
-
-const TextControlStack = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--gap-related);
-`;
-
-const Refusal = styled.span`
-  max-width: 22em;
-  font-size: var(--font-size-caption);
-  color: var(--color-warn-text);
-  text-align: right;
-`;

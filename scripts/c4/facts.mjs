@@ -122,9 +122,9 @@ export const containers = {
   },
   relay: {
     title: "Relay container",
-    technology: "Node, Fastify, a Go WebRTC endpoint, one container",
+    technology: "Node, Fastify, coturn, one container",
     description:
-      "Runs the station endpoint every station joins through on one port, and carries each station's messages to the main screen. The all-in-one bundle image also runs a static server for the app on :8080",
+      "Hands out TURN credentials and runs the TURN server for stations with no direct path. The all-in-one bundle image also runs a static server for the app on :8080",
   },
   mod: {
     title: "Gonogo mod",
@@ -201,20 +201,17 @@ export const describe = {
   "station.identity":
     "Station key and name in localStorage, and the approval wait",
   "relay.index": "Fastify server and process lifecycle",
-  "relay.healthRoutes":
-    "GET /health: the endpoint's port and public address, and the router forward",
-  "relay.endpointSupervisor":
-    "Starts the station endpoint once the public IP is known, and reports why not",
-  "relay.endpointManager":
-    "Spawns the station endpoint, the one-port WebRTC server every station joins through, which also bridges camera feeds",
-  "relay.stationsProxy":
-    "WebSocket /stations: carries the main screen's socket through to the endpoint",
+  "relay.turnRoutes":
+    "GET /ice-config: TURN credentials with a secret rotated on each restart",
+  "relay.coturnManager":
+    "Spawns coturn, the TURN server process that carries relayed traffic",
+  "relay.turnSupervisor": "Restarts coturn and reports its health",
   "relay.appOrigins": "Which page origins may call the relay",
   "relay.analyticsConfig":
     "POST /analytics-config: the main screen's analytics consent",
   "relay.bootstrapConfig":
     "GET /bootstrap-config: republishes KSP_HOST so the app seeds its data source",
-  "relay.discoverPublicIp": "Finds the public IP the endpoint advertises",
+  "relay.discoverPublicIp": "Finds the public IP coturn advertises",
   "relay.config": "Environment configuration",
   "mod.plugin":
     "The only assembly that touches KSP and Unity. Holds the core Uplinks and the game backends",
@@ -352,8 +349,7 @@ export const relations = [
     to: "gonogo.station.peer",
     kind: "telemetry",
     title: "telemetry and Uplink bundles",
-    technology:
-      "WebRTC, through the relay's endpoint, or direct on the LAN with no relay",
+    technology: "WebRTC, direct on the LAN or over the internet",
   },
   {
     from: "gonogo.station.peer",
@@ -364,17 +360,23 @@ export const relations = [
   },
   {
     from: "gonogo.station.peer",
-    to: "gonogo.relay.endpointManager",
+    to: "gonogo.relay.coturnManager",
     kind: "relayed",
-    title: "joins through the station endpoint, and receives camera feeds",
-    technology: "WebRTC, UDP or TCP :47100",
+    title: "relayed path when no direct path works",
+    technology: "TURN, UDP or TCP :3478",
   },
   {
     from: "gonogo.main.app.peer",
-    to: "gonogo.relay.stationsProxy",
+    to: "gonogo.relay.coturnManager",
     kind: "relayed",
-    title: "each station's offer and messages, tagged by session",
-    technology: "WebSocket /stations, relay :3002 (VITE_RELAY_URL)",
+    title: "relayed path when no direct path works",
+    technology: "TURN, UDP or TCP :3478",
+  },
+  {
+    from: "gonogo.main.app.peer",
+    to: "gonogo.relay.turnRoutes",
+    title: "fetches TURN credentials, hands them to stations",
+    technology: "HTTP GET /ice-config, relay :3002 (VITE_RELAY_URL)",
   },
   {
     from: "gonogo.main.app.peer",

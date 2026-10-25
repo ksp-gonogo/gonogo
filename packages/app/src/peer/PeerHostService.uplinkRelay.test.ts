@@ -43,9 +43,6 @@ const { FakeHub } = vi.hoisted(() => {
   }
 
   class FakePeer {
-    // The broker socket a real Peer carries; the endpoint join signal listens on it.
-
-    socket = { on() {}, off() {}, send(_m: unknown) {} };
     static registry = new Map<string, FakePeer>();
     private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
     id: string;
@@ -162,13 +159,7 @@ describe("PeerHostService.handleUplinkRelay (generic)", () => {
       n: 1,
     });
     expect(result).toEqual({ pong: true });
-    expect(relay).toHaveBeenCalledWith(
-      "ping",
-      { n: 1 },
-      {
-        station: expect.any(String),
-      },
-    );
+    expect(relay).toHaveBeenCalledWith("ping", { n: 1 });
   });
 
   it("responds with an error when no handle is registered for uplinkId", async () => {

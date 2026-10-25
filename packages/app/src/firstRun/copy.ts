@@ -28,7 +28,7 @@ export const WIZARD_COPY = {
     "The next steps check the container, the connection to KSP and for any installed Uplinks.",
 
   "container.heading": "Start the app",
-  "container.advance": "Friends on other networks",
+  "container.advance": "Connect to KSP",
   "container.instruction":
     "In a terminal, start the Gonogo container. It serves this app and the relay that lets other screens join yours. You can change `{tag}` to a specific version if you want.",
   "container.runCommandLabel": "run command",
@@ -43,29 +43,6 @@ export const WIZARD_COPY = {
   "container.hint.fix":
     "If that lists no container, run the command above. If it lists one, port 3002 was not published: remove it and run the command above again, unchanged. The [networking guide](relayPorts) covers configuring ports.",
   "container.recheck": "Check again",
-
-  "friends.heading": "Friends on other networks",
-  "friends.advance": "Connect to KSP",
-  "friends.question":
-    "For someone who is not on your local network to join, one port on your router has to be opened to this computer.",
-  "friends.legend": "Will friends join from other networks?",
-  "friends.choice.local": "No, only devices on this network",
-  "friends.choice.auto": "Yes, and let Gonogo open the port on my router",
-  "friends.choice.manual": "Yes, and I will forward the port myself",
-  "friends.local":
-    "You can change this later in Settings, under Relay, by turning on Automatic port forwarding.",
-  "friends.manual":
-    "In your router's settings, forward port {port}, UDP and TCP, to this computer, and give this computer a fixed address on your network. The [networking guide](relayPorts) has the steps.",
-  "friends.router.label": "Your router's IP address",
-  "friends.computer.label": "This computer's IP address",
-  "friends.address.invalid": "That is not an IP address.",
-  "friends.check.needAddress":
-    "Enter both IP addresses and Gonogo asks your router to open the port.",
-  "friends.check.checking": "Asking your router to open port {port}",
-  "friends.check.pass":
-    "Your router opened port {port}: friends on other networks can join",
-  "friends.check.noRelay":
-    "The relay is not answering, so it cannot ask your router. Check the container is running.",
 
   "connect.heading": "Connect to KSP",
   "connect.advance": "Check Uplinks",

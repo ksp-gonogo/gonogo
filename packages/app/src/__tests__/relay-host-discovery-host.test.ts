@@ -6,8 +6,6 @@ type Listener = (...args: unknown[]) => void;
 // assert the host claims the derived `gonogo-host-<code>` id. Tracks all
 // constructed instances + whether each was destroyed.
 class FakePeer {
-  // The broker socket a real Peer carries; the endpoint join signal listens on it.
-  socket = { on() {}, off() {}, send(_m: unknown) {} };
   private listeners = new Map<string, Listener[]>();
   static instances: FakePeer[] = [];
   static last: FakePeer | null = null;
@@ -60,9 +58,16 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     FakePeer.last = null;
     FakePeer.instances = [];
     localStorage.clear();
-    // Default: relay accepts the registration.
+    // Default: relay accepts the registration. The /ice-config GET that
+    // start() also fires gets a benign empty config so the host runs
+    // STUN-only without affecting the registration assertions.
     fetchSpy = vi.fn((url: string | URL, init?: RequestInit) => {
       const u = String(url);
+      if (u.endsWith("/ice-config")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ iceServers: [] }), { status: 200 }),
+        );
+      }
       if (u.endsWith("/host") && init?.method === "POST") {
         return Promise.resolve(new Response(JSON.stringify({ ok: true })));
       }
@@ -197,7 +202,9 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
   it("survives a StrictMode double-start (no leaked second Peer, no reclaim loop)", async () => {
     const { PeerHostService } = await import("../peer/PeerHostService");
     const service = new PeerHostService();
-    // React StrictMode runs the (un-awaited) effect body twice: start → stop → start.
+    // React StrictMode runs the (un-awaited) effect body twice:
+    // start → stop → start. start() suspends at `await fetchRelayIceConfig()`
+    // before constructing the Peer, so both starts can race into openPeer().
     void service.start();
     service.stop();
     void service.start();
@@ -287,10 +294,16 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
   });
 
   it("does not throw when the relay is unreachable (fetch rejects)", async () => {
-    // Relay down: discovery still works (derived id).
-    fetchSpy.mockImplementation(() =>
-      Promise.reject(new Error("ECONNREFUSED")),
-    );
+    fetchSpy.mockImplementation((url: string | URL) => {
+      const u = String(url);
+      if (u.endsWith("/ice-config")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ iceServers: [] }), { status: 200 }),
+        );
+      }
+      // Relay down: discovery still works (derived id).
+      return Promise.reject(new Error("ECONNREFUSED"));
+    });
 
     const { PeerHostService } = await import("../peer/PeerHostService");
     const service = new PeerHostService();

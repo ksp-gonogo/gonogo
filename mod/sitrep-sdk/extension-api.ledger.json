@@ -8271,10 +8271,6 @@
         "note": "typed as DataSourceState[] instead of unknown"
       },
       {
-        "key": "sitrep-sdk . GonogoHost#useHostIceServers",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
-      },
-      {
         "key": "sitrep-sdk . GonogoHost#useViewClock",
         "note": "the view clock is typed as DelayClockLike instead of unknown"
       },
@@ -8813,10 +8809,6 @@
       {
         "key": "sitrep-sdk . useDataSources",
         "note": "typed as DataSourceState[] instead of unknown"
-      },
-      {
-        "key": "sitrep-sdk . useHostIceServers",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
         "key": "sitrep-sdk . useSetting",
@@ -10209,10 +10201,6 @@
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#useDataSources",
         "note": "typed as DataSourceState[] instead of unknown"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~GonogoHost#useHostIceServers",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#useViewClock",
@@ -12201,18 +12189,6 @@
         "note": "Whether a declined figure comes back by itself, such as an integrator not yet computed this far ahead"
       },
       {
-        "key": "sitrep-sdk . RelayCaller",
-        "note": "Added. Who made a relayed call to an Uplink's handle, passed as its third argument, with bridgeMedia for a station on the relay's endpoint"
-      },
-      {
-        "key": "sitrep-sdk . RelayCaller#bridgeMedia?",
-        "note": "Added. Who made a relayed call to an Uplink's handle, passed as its third argument, with bridgeMedia for a station on the relay's endpoint"
-      },
-      {
-        "key": "sitrep-sdk . RelayCaller#station",
-        "note": "Added. Who made a relayed call to an Uplink's handle, passed as its third argument, with bridgeMedia for a station on the relay's endpoint"
-      },
-      {
         "key": "sitrep-sdk . RendezvousHudContext",
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
@@ -12303,10 +12279,6 @@
       {
         "key": "sitrep-sdk . SeriesRange#interpolation?",
         "note": "Says how to draw between points, from the plotted value's sample kind"
-      },
-      {
-        "key": "sitrep-sdk . SettingDefinitionBase#validate?",
-        "note": "Added. A text setting can refuse typed text with a sentence of its own, which Settings shows under the field"
       },
       {
         "key": "sitrep-sdk . SizeDelta",
@@ -14729,10 +14701,6 @@
         "note": "New: signal time along the route, waits included"
       },
       {
-        "key": "sitrep-sdk ./spine SettingDefinitionBase#validate?",
-        "note": "Added. A text setting can refuse typed text with a sentence of its own, which Settings shows under the field"
-      },
-      {
         "key": "sitrep-sdk ./spine SoiCrossing",
         "note": "New: where and when a craft crosses a sphere of influence"
       },
@@ -15813,10 +15781,6 @@
         "note": "New: signal time along the route, waits included"
       },
       {
-        "key": "sitrep-sdk ./testing ~SettingDefinitionBase#validate?",
-        "note": "Added. A text setting can refuse typed text with a sentence of its own, which Settings shows under the field"
-      },
-      {
         "key": "sitrep-sdk ./testing ~SizeDelta",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
@@ -15842,7 +15806,7 @@
       },
       {
         "key": "sitrep-sdk ./testing ~StationBroker#iceServers",
-        "note": "The type a watcher on the testing subpath receives from watchStationBrokers; always empty, kept so an Uplink that still reads it builds"
+        "note": "The type a watcher on the testing subpath receives from watchStationBrokers"
       },
       {
         "key": "sitrep-sdk ./testing ~StationBroker#relay",

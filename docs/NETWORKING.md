@@ -25,71 +25,65 @@ If it won't connect, a firewall on the KSP computer is the usual cause. It must 
 
 Open **Add station** on the main screen. It shows a link and a share code. A friend opens the link, enters the code, and you approve them. The link points at the public site for the version you run: `https://ksp-gonogo.github.io/app/station` if you run a release, `https://ksp-gonogo.github.io/rc/station` if you run the release candidate (`:rc`) image.
 
-How a station joins depends on whether the relay in the container is running:
+- Friends on your home network join with nothing to set up
+- Most friends over the internet join with nothing to set up either
+- Some networks can't connect directly: phones on mobile data, strict work or university networks, and carrier-grade NAT (an internet provider sharing one address between many customers). For those, Gonogo sends their data through the relay in the container, which needs ports open on your router, as described below
 
-- **With the relay running**, every station joins through it, on one port: friends on your home network and friends over the internet alike. A friend on your home network needs nothing set up. A friend on another network needs that one port open on your router, as described below
-- **Without the relay**, stations connect to the main screen tab directly. That works for friends on your home network only
-
-The share code stays the same until you press **New share code**, or until the main screen browser's site data is cleared.
+The share code stays the same until you press **New share code**, or until the main screen browser's site data is cleared. Codes aren't case-sensitive and never contain `0`, `O`, `1`, `I` or `L`.
 
 ### What the chips mean
 
-Each connected station gets a chip in the Add station panel showing where it joined from:
+Each connected station gets a chip in the Add station panel showing how it is connected:
 
 | Chip | Meaning |
 | --- | --- |
-| **this network** | The station is on your home network |
-| **internet** | The station joined from another network |
+| **direct (LAN)** | The station is on your home network and talks straight to the main screen |
+| **direct (internet)** | The station is elsewhere and found a direct route to the main screen. Nothing was forwarded |
+| **relayed** | The station couldn't connect directly, so its data goes through the relay. This only works with the ports below open |
 | **path unknown** | The connection is up but the browser hasn't reported how yet |
 
-A status line in the panel says when the relay is not running, and points to **Automatic port forwarding** until the relay has opened the port.
+The status line at the bottom of the panel says whether the relay can be reached from outside. Green means the relay answered. It doesn't prove a friend on mobile data can get through, only a friend connecting does.
 
-## Friends on other networks
+## Cross-internet stations (cellular, remote networks)
 
-Skip this section if everyone joins from your home network.
+Skip this section if everyone joins from your home network, or if your friends already connect. It matters only for a friend whose network can't connect directly.
 
-A friend on another network (a phone on mobile data, a friend at home) reaches the relay on one port, sent to the main screen computer:
+The relay needs these ports on your router, sent to the main screen computer:
 
 | Port | Protocol | What it is for |
 | --- | --- | --- |
-| `47100` | UDP and TCP | Every station on another network, and the camera feeds it watches. UDP is the normal path; TCP is for a friend on a network that blocks UDP |
+| `3478` | TCP and UDP | A relayed station finds the relay here |
+| `49160-49169` | UDP | The relayed data itself. Each relayed connection holds one port for each network adapter on the friend's device, so plan on 2 per friend: the 10 here cover 5 friends |
 
-Forward both protocols. Don't forward `3002` or `8080`. To use another port, add `-e ENDPOINT_PORT=<port>` to the run command, change both `-p 47100:47100` parts to that port, and forward it instead.
+Forward the whole range, not just the first few: the relay picks ports from it at random. Some routers want one entry per port. Don't forward `3002` or `8080`.
 
-The port only answers stations that joined with your share code: nothing else on the internet can use it.
+To serve more friends, change both numbers in the `-p 49160-49169:49160-49169/udp` part of the run command and the router forwards to the same wider range, and add `-e TURN_MIN_PORT=<first> -e TURN_MAX_PORT=<last>` to the command.
 
-Choose one of two ways to open it:
+Choose one of two ways to open them:
 
-**Open it yourself.** Forward `47100` (UDP and TCP) in your router's settings. Give the main screen computer a fixed address on your network first (a reservation in the router is easiest), or the forward points at nothing when its address changes.
+**Open them yourself.** Forward the ports above in your router's settings. Give the main screen computer a fixed address on your network first (a reservation in the router is easiest), or the forwards point at nothing when its address changes.
 
-**Let Gonogo open it.** Choose "let Gonogo open the port on my router" in the setup's Friends on other networks step, or turn on **Automatic port forwarding** in Settings, under Relay, and enter two addresses there:
+**Let Gonogo open them.** Add `-e GONOGO_UPNP=1` to the run command. The relay then talks directly to your router (NAT-PMP, then UPnP), asks it to open the ports above, renews them while it runs, and removes them when the container stops. It is off unless you set it. If the Add station window says the router refused or did not answer:
 
-- **Your router's IP address.** It is usually printed on the router's label; this computer's network settings show it as Router or Default Gateway ("Default Gateway" in `ipconfig` on Windows)
-- **This computer's IP address**, the one the router sends friends to. This computer's network settings show it as IP address ("IPv4 Address" in `ipconfig` on Windows)
-
-The relay then asks that router, and only that router, to open the port to this computer (NAT-PMP, then UPnP), renews it while it runs, and removes it when it stops or you turn the setting off. It is off unless you turn it on. If the setup says the router refused or did not answer:
-
-- Check both addresses you entered
-- If you entered IPv6 addresses: Gonogo cannot ask a router to open a port over IPv6 yet, so forward the port by hand
 - Many routers have UPnP switched off, so check the router's settings
-- Otherwise forward the port by hand, as above
+- Add `-e ROUTER_IP=<router address>` and `-e LAN_IP=<this computer's address>` to the command. The router address is the "Default Gateway" in `ipconfig` on Windows, or the `via` address of `ip route get 1.1.1.1` on Linux
 
-The relay finds your public address on its own. If it guesses wrong (more than one internet connection, a changing address on a dynamic DNS name), add `-e PUBLIC_IP=<your public IP>`. If your provider puts you behind carrier-grade NAT (an internet provider sharing one address between many customers), forwarding can't help, because the main screen computer has no public address to reach.
-
-The container also needs this computer's address on your home network, because from inside a container it cannot see it, and friends on your home network are given it. `scripts/run-gonogo.sh` and `pnpm dev` fill it in; with a run command of your own, add `-e LAN_IP=<this computer's address>`.
+The relay finds your public address on its own. If it guesses wrong (more than one internet connection, a changing address on a dynamic DNS name), add `-e TURN_EXTERNAL_IP=<your public IP>`. If your provider puts you behind carrier-grade NAT, forwarding can't help, because the main screen computer has no public address to reach.
 
 ### Camera feeds
 
-Kerbcast video for a station on another network comes through the same port. The relay fetches each camera from the camera sidecar on the KSP computer over your home network and sends it on to the station, so nothing else needs forwarding. Each friend watching a camera is one copy of that video on your internet upload.
+Kerbcast video does not go through the main screen. A station connects to the camera sidecar on the KSP computer directly, and the sidecar picks its own UDP ports for video, with no fixed range to forward. So video to a friend on another network goes through the relay when a direct route fails, using the same ports above.
 
 ## A station won't connect
 
 - **Is the main screen tab open and awake?** If it closed or the computer slept, every station stops
 - **Is the share code right?** Copy it from the Add station panel the friend is joining. After **New share code**, the old one stops working
-- **Is the friend on another network?** Check the status line in the Add station panel, and [Friends on other networks](#friends-on-other-networks)
-- **Is a station on another network slow?** Those stations send everything through your internet upload
+- **Is the friend on mobile data or a strict network?** Check the status line in the Add station panel. If it says the relay can't be reached from outside, check the ports above and the fixed address
+- **Is a relayed station slow?** Relayed stations send everything through your internet upload
 - **Does nothing connect, even on your home network?** Stations need an internet connection to find the main screen, so check that both ends are online
+
+More steps are in the app under **Settings, Help**, **A station will not connect**.
 
 ## Privacy
 
-A station finds the main screen through a public PeerJS server, which sees each device's address and share code at join time and carries no game data. The relay asks a public lookup service what your public address is when it starts. A station on your home network without the relay asks a public Google or Cloudflare server what its own public address is; those servers see that address and carry no game data or share code.
+To work out a route between two devices, each asks a public Google or Cloudflare server what its own public address is. Those servers see that address at join time and carry no game data or share code.
