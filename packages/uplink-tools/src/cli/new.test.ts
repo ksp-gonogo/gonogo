@@ -68,7 +68,7 @@ describe("uplink-tools new", () => {
     expect(files.has("mod-tests/GonogoWidgetsUplink.Tests.csproj")).toBe(true);
     // The contract's C# attribute and the client's declare-module block must name the same topic.
     expect(files.get("mod-contract/WidgetsPayloads.cs")).toContain(
-      '[SitrepTopic("widgets.heartbeat")]',
+      '[SitrepTopic("widgets.heartbeat", DisplayName = "Widgets heartbeat")]',
     );
     expect(files.get("client/src/topics.ts")).toContain(
       '"widgets.heartbeat": WidgetsHeartbeat;',
