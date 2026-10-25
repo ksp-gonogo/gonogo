@@ -7,7 +7,11 @@ import {
   useWidgetMeta,
 } from "@ksp-gonogo/core";
 import { render, screen } from "@ksp-gonogo/test-utils";
-import { Panel } from "@ksp-gonogo/ui-kit";
+import {
+  Panel,
+  useDelayRailStore,
+  usePanelStatusStore,
+} from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DashboardItem } from "./index";
 import { MobileDashboard } from "./MobileDashboard";
@@ -99,5 +103,27 @@ describe("MobileDashboard widget wiring", () => {
     renderList([{ i: "m2", componentId: "mobile-badge" }]);
 
     expect(screen.getByText("AUTO-BADGE")).toBeTruthy();
+  });
+
+  it("mounts the delay rail and panel status store a desktop tile mounts", () => {
+    registerComponent({
+      id: "mobile-stores",
+      name: "Mobile Stores",
+      description: "Store probe",
+      tags: [],
+      component: function MobileStores() {
+        const rail = useDelayRailStore();
+        const status = usePanelStatusStore();
+        return (
+          <span>
+            rail:{rail ? "yes" : "no"} status:{status ? "yes" : "no"}
+          </span>
+        );
+      },
+    });
+
+    renderList([{ i: "m3", componentId: "mobile-stores" }]);
+
+    expect(screen.getByText("rail:yes status:yes")).toBeInTheDocument();
   });
 });

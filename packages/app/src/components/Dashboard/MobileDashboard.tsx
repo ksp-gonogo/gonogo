@@ -1,29 +1,18 @@
-import { RequiresGuard, SeatGuard } from "@ksp-gonogo/components";
-import {
-  DashboardItemContext,
-  ErrorBoundary,
-  getComponent,
-} from "@ksp-gonogo/core";
+import { getComponent } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
-import {
-  memo,
-  useCallback,
-  useMemo,
-  useRef,
-  useSyncExternalStore,
-} from "react";
+import { memo, useCallback, useRef, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import {
   getUplinkOutcomes,
   haveUplinksSettled,
   subscribeUplinkOutcomes,
 } from "../../uplinks/loaderState";
-import { WidgetBadges, WidgetContributions } from "./GridItemContent";
 import type { DashboardItem, DashboardProps } from "./index";
 import { ROW_HEIGHT } from "./layoutNormalization";
-import { ComponentWrapper, highlightStyle, WidgetError } from "./shared";
+import { ComponentWrapper, highlightStyle } from "./shared";
 import { TileMenu } from "./TileMenu";
+import { WidgetProviders, WidgetShell } from "./TileWidget";
 import { UnavailableWidget } from "./UnavailableWidget";
 import { useScrollIntoViewOnAdd } from "./useScrollIntoViewOnAdd";
 import { GearButton } from "./WidgetGearMenu";
@@ -125,18 +114,6 @@ const MobileItemContent = memo(function MobileItemContent({
     () => moveItemDown(item.i),
     [item.i, moveItemDown],
   );
-  const renderErrorFallback = useCallback(
-    (error: Error, reset: () => void) => (
-      <WidgetError
-        componentName={def?.name ?? item.componentId}
-        error={error}
-        onRetry={reset}
-      />
-    ),
-    [def?.name, item.componentId],
-  );
-  const itemContext = useMemo(() => ({ instanceId: item.i }), [item.i]);
-
   if (!def) {
     // An Uplink's widgets register once its client loads, so nothing is drawn while one is still loading.
     if (uplinkOutcomes.some((o) => o.status === "loading")) return null;
@@ -160,6 +137,7 @@ const MobileItemContent = memo(function MobileItemContent({
     );
   }
   const Comp = def.component;
+  const declaredConfig = item.config ?? def.defaultConfig ?? {};
   // Per-instance override beats the component's default. Stored on the
   // DashboardItem so it persists per screen (mobile and desktop layouts
   // both live in the same localStorage entry).
@@ -189,81 +167,69 @@ const MobileItemContent = memo(function MobileItemContent({
     updateItemMobileHeight(item.i, halfHeight ? "full" : "half");
 
   return (
-    <MobileCell
-      $half={half}
-      $height={height}
-      data-i={item.i}
-      data-highlight={isHighlighted ? "true" : undefined}
-      onAnimationEnd={
-        isHighlighted ? () => onHighlightEnd?.(item.i) : undefined
-      }
-      data-mobile-width={half ? "half" : "full"}
-      data-mobile-height={height}
-    >
-      <MobileCellHeader>
-        <MobileCellHeaderLeft>
-          <Tooltip text={def.name} announce={false}>
-            <MobileCellName>{def.name}</MobileCellName>
-          </Tooltip>
-        </MobileCellHeaderLeft>
-        <MobileCellHeaderRight>
-          {(hasConfig || hasActions) && (
-            <GearButton
+    <WidgetProviders def={def} config={declaredConfig}>
+      <MobileCell
+        $half={half}
+        $height={height}
+        data-i={item.i}
+        data-highlight={isHighlighted ? "true" : undefined}
+        onAnimationEnd={
+          isHighlighted ? () => onHighlightEnd?.(item.i) : undefined
+        }
+        data-mobile-width={half ? "half" : "full"}
+        data-mobile-height={height}
+      >
+        <MobileCellHeader>
+          <MobileCellHeaderLeft>
+            <Tooltip text={def.name} announce={false}>
+              <MobileCellName>{def.name}</MobileCellName>
+            </Tooltip>
+          </MobileCellHeaderLeft>
+          <MobileCellHeaderRight>
+            {(hasConfig || hasActions) && (
+              <GearButton
+                item={item}
+                def={def}
+                onSaveConfig={onSaveConfig}
+                onSaveMappings={onSaveMappings}
+              />
+            )}
+            <TileMenu
               item={item}
-              def={def}
-              onSaveConfig={onSaveConfig}
-              onSaveMappings={onSaveMappings}
+              name={def.name}
+              pushable={def.pushable === true}
+              w={def.defaultSize?.w ?? 3}
+              h={def.defaultSize?.h ?? 3}
+              isFirst={isFirst}
+              isLast={isLast}
+              half={half}
+              halfHeight={halfHeight}
+              onMoveUp={onMoveUp}
+              onMoveDown={onMoveDown}
+              onToggleWidth={onToggleWidth}
+              onToggleHeight={onToggleHeight}
+              onRemove={onRemove}
             />
-          )}
-          <TileMenu
+          </MobileCellHeaderRight>
+        </MobileCellHeader>
+        <ScaledBody>
+          <WidgetShell
+            def={def}
             item={item}
-            name={def.name}
-            pushable={def.pushable === true}
-            w={def.defaultSize?.w ?? 3}
-            h={def.defaultSize?.h ?? 3}
-            isFirst={isFirst}
-            isLast={isLast}
-            half={half}
-            halfHeight={halfHeight}
-            onMoveUp={onMoveUp}
-            onMoveDown={onMoveDown}
-            onToggleWidth={onToggleWidth}
-            onToggleHeight={onToggleHeight}
-            onRemove={onRemove}
-          />
-        </MobileCellHeaderRight>
-      </MobileCellHeader>
-      <ScaledBody>
-        <DashboardItemContext.Provider value={itemContext}>
-          <WidgetContributions def={def}>
-            <WidgetBadges>
-              <ErrorBoundary fallback={renderErrorFallback}>
-                <SeatGuard def={def}>
-                  <RequiresGuard
-                    requires={def.requires}
-                    heldOpenBy={def.heldOpenBy}
-                    channels={def.channels}
-                    families={def.channelFamilies}
-                    optionalFamilies={def.optionalChannelFamilies}
-                    configChannels={def.channelsFromConfig?.(
-                      item.config ?? def.defaultConfig ?? {},
-                    )}
-                  >
-                    <Comp
-                      id={item.i}
-                      config={item.config}
-                      w={gridW}
-                      h={gridH}
-                      onConfigChange={onSaveConfig}
-                    />
-                  </RequiresGuard>
-                </SeatGuard>
-              </ErrorBoundary>
-            </WidgetBadges>
-          </WidgetContributions>
-        </DashboardItemContext.Provider>
-      </ScaledBody>
-    </MobileCell>
+            config={declaredConfig}
+            updateItemConfig={updateItemConfig}
+          >
+            <Comp
+              id={item.i}
+              config={item.config}
+              w={gridW}
+              h={gridH}
+              onConfigChange={onSaveConfig}
+            />
+          </WidgetShell>
+        </ScaledBody>
+      </MobileCell>
+    </WidgetProviders>
   );
 });
 
