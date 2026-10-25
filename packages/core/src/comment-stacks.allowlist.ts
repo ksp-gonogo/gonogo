@@ -118,7 +118,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/__tests__/peer-roundtrip.test.ts": 1,
   "packages/app/src/__tests__/pushed-dashboard-overlay.test.tsx": 1,
   "packages/app/src/__tests__/relay-host-discovery-client.test.ts": 1,
-  "packages/app/src/__tests__/relay-host-discovery-host.test.ts": 2,
+  "packages/app/src/__tests__/relay-host-discovery-host.test.ts": 1,
   "packages/app/src/__tests__/scene-change-banner.test.tsx": 1,
   "packages/app/src/__tests__/serial-to-sitrep-command.test.tsx": 2,
   "packages/app/src/__tests__/sitrep-station-forwarding.test.tsx": 2,
@@ -159,7 +159,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/peer/PeerClientDataSource.ts": 2,
   "packages/app/src/peer/PeerClientService.ts": 5,
   "packages/app/src/peer/PeerHostService.bundleFetch.test.ts": 1,
-  "packages/app/src/peer/PeerHostService.ts": 8,
+  "packages/app/src/peer/PeerHostService.ts": 6,
   "packages/app/src/peer/PeerHostService.uplinkRelay.test.ts": 1,
   "packages/app/src/peer/protocol.ts": 2,
   "packages/app/src/peer/typedListeners.ts": 1,
@@ -326,7 +326,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/uplink-tools/src/render/driver.ts": 2,
   "packages/uplink-tools/src/render/minFit.ts": 2,
   "packages/uplink-tools/src/render/render.test.ts": 2,
-  "playwright.config.ts": 4,
+  "playwright.config.ts": 3,
   "scripts/asyncapi-doc.mjs": 1,
   "scripts/asyncapi/json-schema.mjs": 1,
   "scripts/asyncapi/prose-hygiene.mjs": 1,
@@ -357,5 +357,5 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * it exists to produce; the census is printed beside the verdict instead.
  */
 export const SCAN_FLOORS = {
-  files: 1926,
+  files: 2043,
 } as const;
