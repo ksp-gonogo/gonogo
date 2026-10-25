@@ -2,8 +2,8 @@ import Fastify from "fastify";
 import { describe, expect, it } from "vitest";
 import { registerBootstrapConfigRoutes } from "../bootstrapConfig.js";
 import type { CoturnHandle } from "../coturnManager.js";
+import { PublicServiceSupervisor } from "../publicServiceSupervisor.js";
 import { registerTurnRoutes } from "../turnRoutes.js";
-import { TurnSupervisor } from "../turnSupervisor.js";
 
 function handle(): CoturnHandle {
   return {
@@ -16,6 +16,12 @@ function handle(): CoturnHandle {
   };
 }
 
+const turn = {
+  name: "coturn",
+  undiscoveredReason:
+    "public IP not discovered; set TURN_EXTERNAL_IP or restore internet access",
+};
+
 const until = async (cond: () => boolean) => {
   for (let i = 0; i < 200 && !cond(); i++) {
     await new Promise((r) => setTimeout(r, 5));
@@ -23,11 +29,12 @@ const until = async (cond: () => boolean) => {
   expect(cond()).toBe(true);
 };
 
-describe("TurnSupervisor", () => {
+describe("PublicServiceSupervisor", () => {
   it("stays up without TURN when discovery fails, then retries and starts coturn", async () => {
     let attempts = 0;
     const fatal: string[] = [];
-    const sup = new TurnSupervisor({
+    const sup = new PublicServiceSupervisor({
+      ...turn,
       retryMs: 10,
       discover: async () => {
         attempts += 1;
@@ -49,7 +56,8 @@ describe("TurnSupervisor", () => {
   });
 
   it("serves /bootstrap-config with 200 while TURN is unavailable, with /ice-config 503 giving the reason", async () => {
-    const sup = new TurnSupervisor({
+    const sup = new PublicServiceSupervisor({
+      ...turn,
       retryMs: 60_000,
       discover: async () => {
         throw new Error("offline");
@@ -87,7 +95,8 @@ describe("TurnSupervisor", () => {
 
   it("is fatal when coturn cannot start", async () => {
     const fatal: string[] = [];
-    const sup = new TurnSupervisor({
+    const sup = new PublicServiceSupervisor({
+      ...turn,
       discover: async () => "203.0.113.1",
       start: () => {
         throw new Error("EACCES");
@@ -102,7 +111,8 @@ describe("TurnSupervisor", () => {
   it("passes the exit callback to coturn so a later death is fatal", async () => {
     const fatal: string[] = [];
     let exit: ((reason: string) => void) | undefined;
-    const sup = new TurnSupervisor({
+    const sup = new PublicServiceSupervisor({
+      ...turn,
       discover: async () => "203.0.113.1",
       start: (_ip, onExit) => {
         exit = onExit;
@@ -118,7 +128,8 @@ describe("TurnSupervisor", () => {
 
   it("stops retrying once stopped", async () => {
     let attempts = 0;
-    const sup = new TurnSupervisor({
+    const sup = new PublicServiceSupervisor({
+      ...turn,
       retryMs: 5,
       discover: async () => {
         attempts += 1;
