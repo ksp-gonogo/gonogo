@@ -1,7 +1,7 @@
 #!/bin/bash
 # Supervisor for the gonogo bundle image. Runs two long-lived processes:
 #   1. static server : the app SPA on $APP_PORT (history-fallback for /station)
-#   2. relay (node)   : /ice-config + host registry on $RELAY_PORT; spawns coturn
+#   2. relay (node)   : consent and bootstrap on $RELAY_PORT; spawns the station endpoint
 #
 # tini is PID 1 (see ENTRYPOINT) so orphan reaping + signal delivery are
 # handled. This script's job is to start the two, propagate a shutdown
@@ -21,7 +21,7 @@ pids=""
 
 term() {
   # Forward the stop signal to every child; the relay's SIGTERM handler
-  # stops coturn, both node services close their listeners cleanly.
+  # stops the endpoint, both node services close their listeners cleanly.
   for p in $pids; do
     kill -TERM "$p" 2>/dev/null || true
   done

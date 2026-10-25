@@ -42,8 +42,6 @@ export function idlePeerClient(): PeerClient {
     getHostCommandCentre: () => null,
     onHostCommandCentreChange: () => unsubscribe,
     onHostUplinksChange: () => unsubscribe,
-    getRelayIceServers: () => [],
-    onRelayIceServersChange: () => unsubscribe,
     sendGonogoVote: () => {},
     sendGonogoAbort: () => {},
     onGonogoCountdownStart: () => unsubscribe,

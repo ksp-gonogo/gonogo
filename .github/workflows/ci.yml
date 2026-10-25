@@ -65,6 +65,12 @@ jobs:
         with:
           node-version: '24'
 
+      # The endpoint specs build the relay's station endpoint from source.
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: packages/relay/endpoint/go.mod
+          cache-dependency-path: packages/relay/endpoint/go.sum
+
       - uses: pnpm/action-setup@v6
         with:
           run_install: false

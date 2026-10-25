@@ -16,6 +16,8 @@ export interface EndpointOptions {
    * reach, so a station on the home network needs this one named.
    */
   lanIp: string | null;
+  /** Advertise TCP only. */
+  omitUdp?: boolean;
   /**
    * Called once when the endpoint stops serving: it exited, or the binary
    * could not be spawned. Not called for a stop the caller asked for.
@@ -48,6 +50,7 @@ export function startEndpoint(opts: EndpointOptions): EndpointHandle {
     "-public-ip",
     opts.publicIp,
     ...(opts.lanIp ? ["-lan-ip", opts.lanIp] : []),
+    ...(opts.omitUdp ? ["-omit-udp"] : []),
   ];
   opts.logger.info(
     `[endpoint] spawning ${opts.binaryPath} on ${opts.port} advertising ${opts.publicIp}${opts.lanIp ? ` and ${opts.lanIp}` : ""}`,

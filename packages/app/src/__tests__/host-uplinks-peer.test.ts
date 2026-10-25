@@ -11,6 +11,8 @@ type Listener = (...args: unknown[]) => void;
 // the static imports above (which vitest hoists above the mock call).
 const { FakePeer } = vi.hoisted(() => {
   class FakePeer {
+    // The broker socket a real Peer carries; the endpoint join signal listens on it.
+    socket = { on() {}, off() {}, send(_m: unknown) {} };
     private listeners = new Map<string, Listener[]>();
     static last: FakePeer | null = null;
     disconnected = false;

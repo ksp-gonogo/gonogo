@@ -3,10 +3,7 @@ import type { StationBroker } from "@ksp-gonogo/sitrep-sdk";
 import { watchStationBrokers } from "@ksp-gonogo/sitrep-sdk/registry";
 import type { PeerClientService } from "../peer/PeerClientService";
 
-type BrokerClient = Pick<
-  PeerClientService,
-  "sendUplinkRelay" | "getRelayIceServers" | "onRelayIceServersChange"
->;
+type BrokerClient = Pick<PeerClientService, "sendUplinkRelay">;
 
 /**
  * Hand every Uplink that registered a station broker one bound to its own id,
@@ -18,8 +15,8 @@ type BrokerClient = Pick<
  */
 export function attachStationBrokers(client: BrokerClient): () => void {
   const iceServers: StationBroker["iceServers"] = {
-    current: () => client.getRelayIceServers(),
-    onChange: (cb) => client.onRelayIceServersChange(cb),
+    current: () => [],
+    onChange: () => () => {},
   };
   return watchStationBrokers((uplinkId, attach) => {
     try {

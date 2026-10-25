@@ -5,10 +5,22 @@ import {
   defaultGateway,
   endpointPorts,
   gatewayCandidates,
+  type MappedPort,
   PortMapper,
   sweepCandidates,
-  turnPorts,
 } from "../portMapper.js";
+
+/** One port on UDP and TCP, then a window on UDP alone: a port list of more than one shape. */
+function portList(both: number, from: number, to: number): MappedPort[] {
+  const window: MappedPort[] = [];
+  for (let port = from; port <= to; port++)
+    window.push({ protocol: "udp", port });
+  return [
+    { protocol: "udp", port: both },
+    { protocol: "tcp", port: both },
+    ...window,
+  ];
+}
 
 interface Seen {
   opcode: number;
@@ -75,7 +87,7 @@ async function setup(mode: Mode, extra: object = {}) {
   const log: string[] = [];
   const mapper = new PortMapper({
     gateways: ["127.0.0.1"],
-    ports: turnPorts(3478, 49160, 49169),
+    ports: portList(3478, 49160, 49169),
     timeoutMs: 40,
     natPmpPort: router.port,
     probeOthers: async () => null,
@@ -147,7 +159,7 @@ describe("PortMapper against a router that speaks NAT-PMP", () => {
     const { mapper } = await setup("refuse");
     await mapper.start();
     expect(mapper.status.state).toBe("refused");
-    expect(mapper.status.message).toContain("refused to open the relay ports");
+    expect(mapper.status.message).toContain("refused to open the relay's port");
     expect(mapper.status.message).toContain("networking guide");
     await mapper.stop();
   });

@@ -1,7 +1,7 @@
 # gonogo end-user bundle: one image, one `docker run`, the whole LOCAL
 # stack. Two processes under a single supervisor:
 #   - static server  → app SPA on :8080
-#   - relay (node)    → /ice-config + host registry on :3002, spawns coturn
+#   - relay (node)    → consent and bootstrap on :3002, spawns the station endpoint
 #
 # This is an ADDITIONAL artefact for end users. The per-service relay image
 # (packages/relay/Dockerfile) and the dev docker-compose.yml are unchanged,
@@ -9,10 +9,23 @@
 #
 # Build context is the REPO ROOT so pnpm can resolve workspace deps.
 
+# ── endpoint ──────────────────────────────────────────────────────────────────
+# The station endpoint (Go, Pion WebRTC), built static so it runs on the
+# slim Node image with no Go runtime. Go cross-compiles, so this stage runs
+# on the build host's platform and targets the image's.
+FROM --platform=$BUILDPLATFORM golang:1.25-bookworm AS endpoint
+ARG TARGETOS
+ARG TARGETARCH
+WORKDIR /endpoint
+COPY packages/relay/endpoint/go.mod packages/relay/endpoint/go.sum ./
+RUN go mod download
+COPY packages/relay/endpoint/*.go ./
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} \
+  go build -trimpath -ldflags="-s -w" -o gonogo-endpoint .
+
 # ── builder ───────────────────────────────────────────────────────────────────
 # One Debian base for both packages: glibc is the reliable choice for the
-# app/relay build, and coturn is a clean apt install in the runtime stage
-# built on the same base. The builder runs on the build host's own platform
+# app/relay build. The builder runs on the build host's own platform
 # and emits platform-independent JavaScript (the relay's production tree is
 # pure JS), so a multi-arch build does not run it under emulation.
 FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS builder
@@ -60,13 +73,12 @@ FROM node:24-bookworm-slim
 WORKDIR /app
 
 # Runtime deps:
-#   coturn         : TURN/STUN, spawned by the relay (coturnManager.ts)
-#   tini           : PID 1 that reaps orphans (coturn is a grandchild of
-#                     the supervisor via the relay) and forwards signals
+#   tini           : PID 1 that reaps orphans (the endpoint is a grandchild
+#                     of the supervisor via the relay) and forwards signals
 #   ca-certificates: TLS for the relay's public-IP discovery lookup
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
-    coturn tini ca-certificates \
+    tini ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 # Tiny static SPA server with history-API fallback (the app routes /station
@@ -75,6 +87,8 @@ RUN npm install -g serve@14
 
 COPY --from=builder /repo/packages/app/dist /app/www
 COPY --from=builder /opt/relay /app/relay
+# The relay's config.ts looks for it beside its dist/.
+COPY --from=endpoint /endpoint/gonogo-endpoint /app/relay/endpoint/gonogo-endpoint
 COPY docker/gonogo-bundle/supervisor.sh /app/supervisor.sh
 RUN chmod +x /app/supervisor.sh
 
@@ -103,10 +117,9 @@ ENV RELAY_PORT=3002
 # or point it at the KSP computer's LAN IP.
 ENV KSP_HOST=host.containers.internal
 
-# The app and relay HTTP ports. The TURN ports (3478 for signalling over UDP and
-# TCP, 49160-49169/udp for relay sessions by default) follow TURN_PORT,
-# TURN_MIN_PORT and TURN_MAX_PORT, so they are published with -p rather than
-# declared here; see scripts/run-gonogo.sh and docs/NETWORKING.md.
+# The app and relay HTTP ports. The station endpoint's port (47100, UDP and
+# TCP) follows ENDPOINT_PORT, so it is published with -p rather than declared
+# here; see scripts/run-gonogo.sh and docs/NETWORKING.md.
 EXPOSE 8080
 EXPOSE 3002
 
