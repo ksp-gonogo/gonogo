@@ -421,6 +421,7 @@ type HostEventMap = {
   noteReorder: Parameters<NoteReorderListener>;
   centresChanged: [];
   pendingStations: [readonly PendingStation[]];
+  pendingStationLeft: [PendingStation];
 };
 
 const paceLogger = logger.tag("peer:pace");
@@ -1216,7 +1217,9 @@ export class PeerHostService {
     if (this.stationPaths.delete(conn.peer)) this.events.emit("stationPaths");
     this.peerIdToStationKey.delete(conn.peer);
     this.connCredential.delete(conn);
+    const leftPending = this.pending.find((p) => p.peerId === conn.peer);
     this.setPending(this.pending.filter((p) => p.peerId !== conn.peer));
+    if (leftPending) this.events.emit("pendingStationLeft", leftPending);
     // Release any demand-only upstream subscribes held on behalf
     // of this peer. WeakMap-keyed by `conn`, so we must read it
     // before the conn drops out of scope. Without this, leaving
@@ -2321,6 +2324,11 @@ export class PeerHostService {
 
   onPendingStationsChange(cb: (pending: readonly PendingStation[]) => void) {
     return this.events.on("pendingStations", cb);
+  }
+
+  /** Called when a station closes its connection before the main screen approved or refused it. */
+  onPendingStationLeft(cb: (station: PendingStation) => void) {
+    return this.events.on("pendingStationLeft", cb);
   }
 
   /** Approve a waiting station and remember it, so it is served whenever it rejoins. */

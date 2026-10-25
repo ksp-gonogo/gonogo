@@ -323,6 +323,17 @@ describe("a station the main screen has not approved", () => {
     host.stop();
   });
 
+  it("is reported as having left when its connection closes before approval", async () => {
+    const host = await startedHost();
+    const left: PendingStation[] = [];
+    host.onPendingStationLeft((s) => left.push(s));
+    const station = await join(host, "station-a", "cred-a", "Booster");
+    station.conn.close();
+    expect(left).toEqual([{ peerId: "station-a", name: "Booster" }]);
+    expect(host.pendingStations()).toEqual([]);
+    host.stop();
+  });
+
   it("closing its page mid-handshake logs a warning, not an error", async () => {
     const host = await startedHost();
     const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
@@ -337,6 +348,19 @@ describe("a station the main screen has not approved", () => {
     );
     warn.mockRestore();
     error.mockRestore();
+    host.stop();
+  });
+
+  it("is not reported as having left when the main screen refuses or approves it", async () => {
+    const host = await startedHost();
+    const left: PendingStation[] = [];
+    host.onPendingStationLeft((s) => left.push(s));
+    await join(host, "station-a", "cred-a");
+    const b = await join(host, "station-b", "cred-b");
+    host.refuseStation("station-a");
+    host.approveStation("station-b");
+    b.conn.close();
+    expect(left).toEqual([]);
     host.stop();
   });
 

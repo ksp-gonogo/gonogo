@@ -1,7 +1,7 @@
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { StationApproval } from "../peer/PeerClientService";
 import type { PendingStation } from "../peer/PeerHostService";
 import { stationApprovals } from "../peer/stationApprovals";
@@ -20,6 +20,21 @@ class FakeHost {
   removed: string[] = [];
   private listeners = new Set<(p: readonly PendingStation[]) => void>();
   pendingStations = () => this.pending;
+  private leftListeners = new Set<(s: PendingStation) => void>();
+  onPendingStationLeft = (cb: (s: PendingStation) => void) => {
+    this.leftListeners.add(cb);
+    return () => {
+      this.leftListeners.delete(cb);
+    };
+  };
+  leave(peerId: string) {
+    const gone = this.pending.find((p) => p.peerId === peerId);
+    if (!gone) return;
+    this.set(this.pending.filter((p) => p.peerId !== peerId));
+    act(() => {
+      for (const cb of this.leftListeners) cb(gone);
+    });
+  }
   onPendingStationsChange = (cb: (p: readonly PendingStation[]) => void) => {
     this.listeners.add(cb);
     return () => {
@@ -133,6 +148,44 @@ describe("StationApprovalNotice name", () => {
     );
     expect(screen.getByText("Station HHXQ")).toBeVisible();
     expect(screen.queryByText(/code/i)).toBeNull();
+  });
+});
+
+describe("a station that leaves before it is approved", () => {
+  it("is named in the place of its request, then clears", () => {
+    vi.useFakeTimers();
+    try {
+      const host = new FakeHost();
+      const { container } = render(<StationApprovalPrompt host={host} />);
+      host.set([{ peerId: "p1", name: "Station 3HXN" }]);
+      host.leave("p1");
+      expect(screen.queryByText(/wants to join/)).toBeNull();
+      expect(
+        screen.getByText("Station 3HXN left before it was approved"),
+      ).toBeVisible();
+      act(() => {
+        vi.advanceTimersByTime(10_000);
+      });
+      expect(container).toBeEmptyDOMElement();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("drops the note when the same station asks again", () => {
+    vi.useFakeTimers();
+    try {
+      const host = new FakeHost();
+      render(<StationApprovalPrompt host={host} />);
+      const station = { peerId: "p1", name: "Station 3HXN" };
+      host.set([station]);
+      host.leave("p1");
+      host.set([{ ...station, peerId: "p2" }]);
+      expect(screen.queryByText(/left before/)).toBeNull();
+      expect(screen.getByText(/wants to join/)).toBeVisible();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
