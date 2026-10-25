@@ -53,7 +53,7 @@ export const UNSCANNED_PACKAGE_ROOTS: { path: string; reason: string }[] = [
   {
     path: "packages/relay/src",
     reason:
-      "Fastify server plus coturn supervision. Runs in Node, renders nothing.",
+      "Fastify server plus station endpoint supervision. Runs in Node, renders nothing.",
   },
   {
     path: "packages/test-utils/src",
