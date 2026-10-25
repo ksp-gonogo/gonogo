@@ -48,7 +48,7 @@ describe("startEndpoint", () => {
       port: 47100,
       control: "127.0.0.1:3003",
       publicIp: "203.0.113.7",
-      lanIp: "192.168.1.20",
+      lanIp: "198.51.100.20",
       logger: log.logger,
     });
     await until(() => log.info.some((l) => l.includes("args")));
@@ -61,7 +61,7 @@ describe("startEndpoint", () => {
       "-public-ip",
       "203.0.113.7",
       "-lan-ip",
-      "192.168.1.20",
+      "198.51.100.20",
     ]);
     expect(handle.running()).toBe(true);
     await handle.stop();

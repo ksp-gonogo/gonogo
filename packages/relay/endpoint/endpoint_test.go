@@ -322,13 +322,13 @@ func TestTheStationClosingTellsTheTab(t *testing.T) {
 }
 
 func TestTheAnswerNamesThePublicAndLANAddressesOnOnePort(t *testing.T) {
-	sdp := "v=0\r\na=ice-ufrag:abcd\r\na=candidate:1 1 udp 2130706431 10.89.0.2 47100 typ host\r\na=candidate:2 1 tcp 1671430143 10.89.0.2 47100 typ host tcptype passive\r\na=end-of-candidates\r\n"
-	got := withCandidates(sdp, "203.0.113.7", "192.168.1.20", 47100, false)
+	sdp := "v=0\r\na=ice-ufrag:abcd\r\na=candidate:1 1 udp 2130706431 198.51.100.2 47100 typ host\r\na=candidate:2 1 tcp 1671430143 198.51.100.2 47100 typ host tcptype passive\r\na=end-of-candidates\r\n"
+	got := withCandidates(sdp, "203.0.113.7", "198.51.100.20", 47100, false)
 	for _, want := range []string{
 		"udp 1694498815 203.0.113.7 47100 typ srflx",
 		"tcp 1518280447 203.0.113.7 47100 typ srflx raddr 0.0.0.0 rport 47100 tcptype passive",
-		"udp 2130706430 192.168.1.20 47100 typ host",
-		"tcp 1671430142 192.168.1.20 47100 typ host tcptype passive",
+		"udp 2130706430 198.51.100.20 47100 typ host",
+		"tcp 1671430142 198.51.100.20 47100 typ host tcptype passive",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("answer lacks %q:\n%s", want, got)
@@ -338,7 +338,7 @@ func TestTheAnswerNamesThePublicAndLANAddressesOnOnePort(t *testing.T) {
 		t.Errorf("the added lines must come before end-of-candidates:\n%s", got)
 	}
 
-	tcpOnly := withCandidates(sdp, "203.0.113.7", "192.168.1.20", 47100, true)
+	tcpOnly := withCandidates(sdp, "203.0.113.7", "198.51.100.20", 47100, true)
 	if strings.Contains(tcpOnly, " udp ") {
 		t.Errorf("an answer without UDP still names a UDP candidate:\n%s", tcpOnly)
 	}
