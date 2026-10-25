@@ -2187,43 +2187,45 @@ export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
 export type UplinkRelay = (method: string, args?: unknown) => Promise<unknown>;
 
 /**
- * The ICE servers the main screen hands out, as {@link useHostIceServers}
- * returns them, for an Uplink opening a media connection from a station.
- * Useful for streaming video to the operator at a station.
- *
- * Read through functions rather than as an array because credentials rotate: a
- * connection opened before a rotation sees the new ones through `onChange`
- * without re-rendering anything.
+ * Who made a call to an Uplink's handle on the main screen, passed as the third
+ * argument to the handle's `relay(method, args, caller)` when the call came
+ * from a station, and absent for a call made on the main screen itself.
+ * Useful for an Uplink whose station widgets open a media connection, such as
+ * a camera feed, to a server only the main screen's network can reach.
  *
  * @category Host and runtime
  */
-export interface HostIceServers {
-  /** What to use right now. Empty where the host is not issuing any, including the main screen. */
-  current(): RTCIceServer[];
-  /** Notified when the host issues a fresh set. Returns an unsubscribe. */
-  onChange(cb: (servers: RTCIceServer[]) => void): () => void;
+export interface RelayCaller {
+  /** The station's peer id, the same for every call from one connection of that station. */
+  station: string;
+  /**
+   * Present when the station joined through the relay's endpoint, which can
+   * carry the station's media connection on to the server. Pass the WebRTC
+   * offer the station made, and an `upstream` function that sends an offer to
+   * the server and resolves with the server's answer: the endpoint makes its
+   * own offer in the same shape, keeping each section's mid, and resolves with
+   * the answer to send the station. Without it, the station is on the main
+   * screen's own network and can reach the server directly.
+   */
+  bridgeMedia?(
+    offer: string,
+    upstream: (offer: string) => Promise<string>,
+  ): Promise<string>;
 }
 
 /**
- * What a station hands an Uplink's non-React code, for reaching the main screen
- * and opening media connections from the station. Passed to the function given
- * to {@link registerStationBroker}. It carries the same two routes
- * `useUplinkRelay` and `useHostIceServers` give a widget, bound to that Uplink.
- *
+ * What a station hands an Uplink's non-React code, for reaching the main
+ * screen. Passed to the function given to {@link registerStationBroker}.
  * `relay` reaches the Uplink's registered handle on the main screen, which is
- * the only thing a station talks to. `iceServers` carries the turn credentials
- * the main screen broadcasts, for a media connection the Uplink opens from the
- * station itself.
- * Useful for letting an Uplink's station-side code reach the main screen and
- * open media connections.
+ * the only thing a station talks to, the same route `useUplinkRelay` gives a
+ * widget, bound to that Uplink.
+ * Useful for letting an Uplink's station-side code reach the main screen.
  *
  * @category Host and runtime
  */
 export interface StationBroker {
   /** Calls a method of the Uplink's registered handle on the main screen and resolves with what it returns. */
   relay: UplinkRelay;
-  /** The turn and STUN servers the main screen is broadcasting, and a way to hear when they change. */
-  iceServers: HostIceServers;
 }
 
 /**

@@ -214,4 +214,85 @@ describe("the main screen's endpoint socket", () => {
     );
     stations.stop();
   });
+
+  it("bridges a station's media offer: the endpoint's upstream offer is answered, and the station's answer comes back", async () => {
+    const endpoint = fakeEndpoint();
+    const stations = await started();
+    const joining = stations.join("station-a", "v=a");
+    await vi.waitFor(() => expect(endpoint.control).toHaveLength(1));
+    const sid = endpoint.control[0]?.sid;
+    endpoint.send({ type: "answer", sid, sdp: "x" });
+    await joining.answer;
+    endpoint.send({ type: "open", sid });
+    await vi.waitFor(() => expect(joining.conn.open).toBe(true));
+
+    const upstream = vi.fn(
+      async (offer: string) => `sidecar answer to ${offer}`,
+    );
+    const bridged = stations.bridge(joining.conn, "v=camera-offer", upstream);
+    await vi.waitFor(() =>
+      expect(endpoint.control.at(-1)).toMatchObject({
+        type: "bridge",
+        sid,
+        sdp: "v=camera-offer",
+      }),
+    );
+    const bid = endpoint.control.at(-1)?.bid;
+    endpoint.send({
+      type: "bridge-offer",
+      bid,
+      sdp: "v=endpoint-upstream-offer",
+    });
+    await vi.waitFor(() =>
+      expect(endpoint.control.at(-1)).toEqual({
+        type: "bridge-answer",
+        bid,
+        sdp: "sidecar answer to v=endpoint-upstream-offer",
+      }),
+    );
+    endpoint.send({
+      type: "bridge-ready",
+      bid,
+      sdp: "v=endpoint-station-answer",
+    });
+    expect(await bridged).toBe("v=endpoint-station-answer");
+    stations.stop();
+  });
+
+  it("rejects a bridge the endpoint closes, and tells it when the upstream server refuses", async () => {
+    const endpoint = fakeEndpoint();
+    const stations = await started();
+    const joining = stations.join("station-a", "v=a");
+    await vi.waitFor(() => expect(endpoint.control).toHaveLength(1));
+    const sid = endpoint.control[0]?.sid;
+    endpoint.send({ type: "answer", sid, sdp: "x" });
+    await joining.answer;
+    endpoint.send({ type: "open", sid });
+    await vi.waitFor(() => expect(joining.conn.open).toBe(true));
+
+    const closed = stations.bridge(joining.conn, "v=1", async () => "x");
+    await vi.waitFor(() =>
+      expect(endpoint.control.at(-1)?.type).toBe("bridge"),
+    );
+    endpoint.send({
+      type: "bridge-close",
+      bid: endpoint.control.at(-1)?.bid,
+      reason: "no such station",
+    });
+    await expect(closed).rejects.toThrow(/no such station/);
+
+    const refused = stations.bridge(joining.conn, "v=2", async () => {
+      throw new Error("sidecar said 503");
+    });
+    await vi.waitFor(() =>
+      expect(endpoint.control.at(-1)?.type).toBe("bridge"),
+    );
+    const bid = endpoint.control.at(-1)?.bid;
+    endpoint.send({ type: "bridge-offer", bid, sdp: "v=up" });
+    await expect(refused).rejects.toThrow(/sidecar said 503/);
+    await vi.waitFor(() =>
+      expect(endpoint.control.at(-1)).toEqual({ type: "bridge-close", bid }),
+    );
+    stations.stop();
+  });
 });

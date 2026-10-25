@@ -54,7 +54,6 @@ import {
   hasHost,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useAlarmRequest } from "./useAlarmRequest";
-import { useHostIceServers } from "./useHostIceServers";
 import { useUplinkRelay } from "./useUplinkRelay";
 
 /** Build the host facade over the app's single registry + context instances. */
@@ -83,7 +82,6 @@ export function buildGonogoHost(): GonogoHost {
       useCommand(command, options)) as GonogoHost["useCommand"],
     sendTogether,
     useUplinkRelay: (uplinkId) => useUplinkRelay(uplinkId),
-    useHostIceServers: () => useHostIceServers(),
     useRouteCommands: (topic) =>
       useRouteCommands(topic) as unknown as ReturnType<
         GonogoHost["useRouteCommands"]
