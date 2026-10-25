@@ -140,9 +140,7 @@ export function StationConnectView({
         )}
         {!brokerUnreachable && !hostNotFound && hostChannelFailed && (
           <ErrorMsg role="alert">
-            Couldn&apos;t reach the main screen. Check that the main screen is
-            open. On another network than the main screen, this device also
-            needs the main screen&apos;s relay running with its port open, then
+            Couldn&apos;t reach the main screen. Check that it is open, then
             press Connect to try again.
           </ErrorMsg>
         )}

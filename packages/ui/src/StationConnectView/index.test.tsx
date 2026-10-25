@@ -143,7 +143,7 @@ describe("StationConnectView", () => {
     );
     expect(
       screen.getByText(
-        /Couldn't reach the main screen\. Check that the main screen is/i,
+        /Couldn't reach the main screen\. Check that it is open/i,
       ),
     ).not.toBeNull();
     expect(screen.queryByText(/Connection lost/i)).toBeNull();
