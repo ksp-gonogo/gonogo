@@ -7,6 +7,7 @@ import type {
 } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
+import type { RelayCaller } from "@ksp-gonogo/sitrep-sdk";
 import {
   CommandErrorCode,
   classifyCommandRejection,
@@ -56,7 +57,7 @@ const SHARE_CODE_KEY = "gonogo-host-share-code";
  * handle-shape-agnostic.
  */
 export interface UplinkRelayHandle {
-  relay(method: string, args: unknown): Promise<unknown>;
+  relay(method: string, args: unknown, caller?: RelayCaller): Promise<unknown>;
 }
 
 /**
@@ -2273,8 +2274,13 @@ export class PeerHostService {
       );
       return;
     }
+    const caller: RelayCaller = { station: conn.peer };
+    if (conn instanceof EndpointConnection) {
+      caller.bridgeMedia = (offer, upstream) =>
+        this.endpoint.bridge(conn, offer, upstream);
+    }
     try {
-      const result = await handle.relay(msg.method, msg.args);
+      const result = await handle.relay(msg.method, msg.args, caller);
       respond(result);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
