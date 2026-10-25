@@ -1,4 +1,4 @@
-import { pack, unpack } from "peerjs-js-binarypack";
+import { type Packable, pack, unpack } from "peerjs-js-binarypack";
 
 /**
  * The largest data channel message either side sends. Browsers disagree on
@@ -21,8 +21,8 @@ let nextMessageId = 1;
  * it took. A message that packs to a Blob cannot be sent synchronously, and
  * the peer protocol never carries one.
  */
-export function encodeFrames(message: unknown): Uint8Array<ArrayBuffer>[] {
-  const packed = pack(message as Parameters<typeof pack>[0]);
+export function encodeFrames(message: Packable): Uint8Array<ArrayBuffer>[] {
+  const packed = pack(message);
   if (!(packed instanceof ArrayBuffer)) {
     throw new Error("a peer message cannot carry a Blob");
   }
