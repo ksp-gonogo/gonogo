@@ -33,9 +33,8 @@ export interface PortMapperOptions {
   gateways: readonly string[];
   /** Addresses asked only when none of `gateways` answers, all at once and cheap enough to cover a whole range. */
   sweep?: readonly string[];
-  turnPort: number;
-  minPort: number;
-  maxPort: number;
+  /** Every port to open, each mapped to the same port number on this computer. */
+  ports: readonly MappedPort[];
   /** Seconds a mapping lasts before the router drops it; renewed at half. */
   leaseSeconds?: number;
   timeoutMs?: number;
@@ -128,9 +127,37 @@ export function gatewayCandidates(
   ];
 }
 
-interface Held {
+/** One port the relay asks the router to open. */
+export interface MappedPort {
   protocol: MappingProtocol;
   port: number;
+}
+
+type Held = MappedPort;
+
+/** The endpoint's one port, on UDP for stations and TCP for networks that block UDP. */
+export function endpointPorts(port: number): MappedPort[] {
+  return [
+    { protocol: "udp", port },
+    { protocol: "tcp", port },
+  ];
+}
+
+/** coturn's signalling port on UDP and TCP, then its relay window on UDP. */
+export function turnPorts(
+  turnPort: number,
+  minPort: number,
+  maxPort: number,
+): MappedPort[] {
+  const session: MappedPort[] = [];
+  for (let port = minPort; port <= maxPort; port++) {
+    session.push({ protocol: "udp", port });
+  }
+  return [
+    { protocol: "udp", port: turnPort },
+    { protocol: "tcp", port: turnPort },
+    ...session,
+  ];
 }
 
 type Outcome =
@@ -176,19 +203,6 @@ export class PortMapper {
       port: this.opts.natPmpPort,
       timeoutMs: this.opts.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     };
-  }
-
-  private ports(): Held[] {
-    const { turnPort, minPort, maxPort } = this.opts;
-    const session: Held[] = [];
-    for (let port = minPort; port <= maxPort; port++) {
-      session.push({ protocol: "udp", port });
-    }
-    return [
-      { protocol: "udp", port: turnPort },
-      { protocol: "tcp", port: turnPort },
-      ...session,
-    ];
   }
 
   private set(state: PortMappingState, detail?: string): void {
@@ -380,7 +394,7 @@ export class PortMapper {
     let failure: PortMappingState | null = null;
     let reason = "";
     const mapped: Held[] = [];
-    for (const held of this.ports()) {
+    for (const held of this.opts.ports) {
       const outcome = await backend.map(held, lease);
       if (!outcome.ok) {
         failure = outcome.state;

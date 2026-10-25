@@ -2,7 +2,7 @@ import { createSocket, type Socket } from "node:dgram";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { PortMapper } from "../portMapper.js";
+import { PortMapper, turnPorts } from "../portMapper.js";
 import {
   addPortMapping,
   deletePortMapping,
@@ -184,9 +184,7 @@ describe("PortMapper against a router that speaks UPnP only", () => {
     const log: string[] = [];
     const mapper = new PortMapper({
       gateways: ["127.0.0.1"],
-      turnPort: 3478,
-      minPort: 49160,
-      maxPort: 49162,
+      ports: turnPorts(3478, 49160, 49162),
       timeoutMs: 40,
       natPmpPort: 9,
       ssdpPort: igd.ssdpPort,

@@ -67,4 +67,22 @@ describe("loadConfig", () => {
     expect(loadConfig({ GONOGO_UPNP: "1" }).portMapping).toBe(true);
     expect(loadConfig({ GONOGO_UPNP: "true" }).portMapping).toBe(true);
   });
+
+  it("puts the endpoint on 47100 unless ENDPOINT_PORT says otherwise", () => {
+    expect(loadConfig({}).endpointPort).toBe(47100);
+    expect(loadConfig({ ENDPOINT_PORT: "47200" }).endpointPort).toBe(47200);
+    expect(loadConfig({ ENDPOINT_PORT: "nope" }).endpointPort).toBe(47100);
+  });
+
+  it("runs the endpoint unless SKIP_ENDPOINT is set", () => {
+    expect(loadConfig({}).skipEndpoint).toBe(false);
+    expect(loadConfig({ SKIP_ENDPOINT: "1" }).skipEndpoint).toBe(true);
+  });
+
+  it("looks for the endpoint binary beside the relay's files unless ENDPOINT_BIN names one", () => {
+    expect(loadConfig({}).endpointBinary).toMatch(/endpoint\/gonogo-endpoint$/);
+    expect(loadConfig({ ENDPOINT_BIN: "/opt/e" }).endpointBinary).toBe(
+      "/opt/e",
+    );
+  });
 });
