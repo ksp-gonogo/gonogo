@@ -170,6 +170,7 @@ export default defineConfig({
       env: {
         PORT: String(RELAY_PORT),
         SKIP_COTURN: "1",
+        SKIP_ENDPOINT: "1",
         // Same broker as the app: without this the relay would
         // register on peerjs.com and the host running on
         // localhost:9999 couldn't find it.
