@@ -30,7 +30,7 @@ How a station joins depends on whether the relay in the container is running:
 - **With the relay running**, every station joins through it, on one port: friends on your home network and friends over the internet alike. A friend on your home network needs nothing set up. A friend on another network needs that one port open on your router, as described below
 - **Without the relay**, stations connect to the main screen tab directly. That works for friends on your home network only
 
-The share code stays the same until you press **New share code**, or until the main screen browser's site data is cleared. Codes aren't case-sensitive and never contain `0`, `O`, `1`, `I` or `L`.
+The share code stays the same until you press **New share code**, or until the main screen browser's site data is cleared.
 
 ### What the chips mean
 
@@ -42,7 +42,7 @@ Each connected station gets a chip in the Add station panel showing where it joi
 | **internet** | The station joined from another network |
 | **path unknown** | The connection is up but the browser hasn't reported how yet |
 
-The status line in the panel says whether the relay is running, and whether your router has the port open.
+A status line in the panel says when the relay is not running, and points to **Automatic port forwarding** until the relay has opened the port.
 
 ## Friends on other networks
 
@@ -64,10 +64,10 @@ Choose one of two ways to open it:
 
 **Let Gonogo open it.** Choose "let Gonogo open the port on my router" in the setup's Friends on other networks step, or turn on **Automatic port forwarding** in Settings, under Relay, and enter two addresses there:
 
-- **Your router's address.** It is usually printed on the router's label; this computer's network settings show it as Router or Default Gateway ("Default Gateway" in `ipconfig` on Windows)
-- **This computer's address**, the one the router sends friends to. This computer's network settings show it as IP address ("IPv4 Address" in `ipconfig` on Windows)
+- **Your router's IP address.** It is usually printed on the router's label; this computer's network settings show it as Router or Default Gateway ("Default Gateway" in `ipconfig` on Windows)
+- **This computer's IP address**, the one the router sends friends to. This computer's network settings show it as IP address ("IPv4 Address" in `ipconfig` on Windows)
 
-The relay then asks that router, and only that router, to open the port to this computer (NAT-PMP, then UPnP), renews it while it runs, and removes it when it stops or you turn the setting off. It is off unless you turn it on. If the setup or the Add station window says the router refused or did not answer:
+The relay then asks that router, and only that router, to open the port to this computer (NAT-PMP, then UPnP), renews it while it runs, and removes it when it stops or you turn the setting off. It is off unless you turn it on. If the setup says the router refused or did not answer:
 
 - Check both addresses you entered
 - If you entered IPv6 addresses: Gonogo cannot ask a router to open a port over IPv6 yet, so forward the port by hand
@@ -86,11 +86,9 @@ Kerbcast video for a station on another network comes through the same port. The
 
 - **Is the main screen tab open and awake?** If it closed or the computer slept, every station stops
 - **Is the share code right?** Copy it from the Add station panel the friend is joining. After **New share code**, the old one stops working
-- **Is the friend on another network?** Check the status line in the Add station panel: it says whether the relay is running and whether the router has port `47100` open
+- **Is the friend on another network?** Check the status line in the Add station panel, and [Friends on other networks](#friends-on-other-networks)
 - **Is a station on another network slow?** Those stations send everything through your internet upload
 - **Does nothing connect, even on your home network?** Stations need an internet connection to find the main screen, so check that both ends are online
-
-More steps are in the app under **Settings, Help**, **A station will not connect**.
 
 ## Privacy
 
