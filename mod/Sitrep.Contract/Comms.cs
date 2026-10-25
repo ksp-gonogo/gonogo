@@ -76,7 +76,7 @@ public enum CommsControlSource
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("comms.connectivity")]
+[SitrepTopic("comms.connectivity", DisplayName = "Comms connectivity")]
 public class CommsConnectivity
 {
     /// <summary>
@@ -137,7 +137,7 @@ public class CommsConnectivity
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("comms.signal")]
+[SitrepTopic("comms.signal", DisplayName = "Signal")]
 public class CommsSignal
 {
     /// <summary>
@@ -296,7 +296,7 @@ public enum CommsControlStateKind
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("comms.control")]
+[SitrepTopic("comms.control", DisplayName = "Comms control")]
 public class CommsControl
 {
     /// <summary>The vessel's control level. <see cref="CommsControlStateKind.None"/> when no link state could be read.</summary>
@@ -630,7 +630,7 @@ public enum CommsDelaySource
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("comms.delay")]
+[SitrepTopic("comms.delay", DisplayName = "Signal delay")]
 public class CommsDelay
 {
     /// <summary>
@@ -707,7 +707,7 @@ public class CommsDelay
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("comms.link")]
+[SitrepTopic("comms.link", DisplayName = "Comms link")]
 public class CommsLink
 {
     /// <summary>
@@ -742,7 +742,7 @@ public class CommsLink
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("comms.commandCentre")]
+[SitrepTopic("comms.commandCentre", DisplayName = "Command centre comms")]
 public class CommsCommandCentre
 {
     /// <summary>

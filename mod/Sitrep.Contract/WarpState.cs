@@ -54,7 +54,7 @@ public enum WarpMode
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("time.warp")]
+[SitrepTopic("time.warp", DisplayName = "Time warp")]
 public class WarpState
 {
     /// <summary>The current time-warp multiplier (KSP's

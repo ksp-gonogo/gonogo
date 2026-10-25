@@ -417,6 +417,9 @@ export function readCommandSummaries(root) {
  * agreement, because two maps that are supposed to say the same thing are worth
  * one comparison: the day they diverge, the document would silently follow
  * whichever one it happened to read.
+ *
+ * `typeNames` and `topicNames` are the declared display names, written as each
+ * property's and each channel's `title`.
  */
 export function readUnitMap(root) {
   const map = JSON.parse(readFileSync(join(root, SOURCES.units), "utf8"));
@@ -426,7 +429,12 @@ export function readUnitMap(root) {
         "matched nothing would drop every declared unit and read as a contract that has none.",
     );
   }
-  return { types: map.types, topics: map.topics ?? {} };
+  return {
+    types: map.types,
+    topics: map.topics ?? {},
+    typeNames: map.typeNames ?? {},
+    topicNames: map.topicNames ?? {},
+  };
 }
 
 export function readContractVersion(root) {

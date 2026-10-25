@@ -29,7 +29,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.light")]
+[SitrepTopic("vessel.light", DisplayName = "Active vessel light")]
 public class VesselLight
 {
     /// <summary>

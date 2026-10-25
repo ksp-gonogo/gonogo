@@ -31,7 +31,7 @@ namespace Sitrep.Contract;
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
-[SitrepTopic("commandCentre.roster", isArray: true)]
+[SitrepTopic("commandCentre.roster", isArray: true, DisplayName = "Command centres")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -157,7 +157,7 @@ public class CommandCentreEntry
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
-[SitrepTopic("commandCentre.unreachable", isArray: true)]
+[SitrepTopic("commandCentre.unreachable", isArray: true, DisplayName = "Unreachable command centres")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

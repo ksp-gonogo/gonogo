@@ -74,7 +74,7 @@ public enum JourneyEventKind
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
-[SitrepTopic("comms.journey")]
+[SitrepTopic("comms.journey", DisplayName = "Comms journey")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

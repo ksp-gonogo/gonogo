@@ -71,7 +71,7 @@ public enum FlightEndReason
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("flight.current")]
+[SitrepTopic("flight.current", DisplayName = "Current flight")]
 public class FlightCurrent
 {
     /// <summary>
@@ -122,7 +122,7 @@ public class FlightCurrent
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("flight.started")]
+[SitrepTopic("flight.started", DisplayName = "Started flight")]
 public class FlightStarted
 {
     /// <summary>The id of the flight that began, an opaque string the mod makes up. A flight begun by a revert has an id of its own, never the reverted flight's.</summary>
@@ -176,7 +176,7 @@ public class FlightStarted
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("flight.ended")]
+[SitrepTopic("flight.ended", DisplayName = "Ended flight")]
 public class FlightEnded
 {
     /// <summary>The id of the flight that ended, as <see cref="FlightStarted.FlightId"/> carried it.</summary>
@@ -224,7 +224,7 @@ public class FlightEnded
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("flight.vesselChanged")]
+[SitrepTopic("flight.vesselChanged", DisplayName = "Vessel change")]
 public class FlightVesselChanged
 {
     /// <summary>The id of the flight now active, as <see cref="FlightStarted.FlightId"/> carried it.</summary>

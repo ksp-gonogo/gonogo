@@ -192,7 +192,7 @@ public class ManeuverNode
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.maneuver")]
+[SitrepTopic("vessel.maneuver", DisplayName = "Active vessel maneuver")]
 public class VesselManeuver
 {
     /// <summary>Every queued burn, earliest <see cref="ManeuverNode.Ut"/>

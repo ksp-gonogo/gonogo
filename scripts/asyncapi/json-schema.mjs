@@ -172,9 +172,10 @@ function vec3Schema(unit) {
  * rather than padding the page.
  */
 export class SchemaBuilder {
-  constructor(contract, unitsByType = {}) {
+  constructor(contract, unitsByType = {}, namesByType = {}) {
     this.contract = contract;
     this.units = unitsByType;
+    this.names = namesByType;
     this.schemas = new Map();
     /** Type-parameter names bound to a concrete type by the current channel. */
     this.bindings = new Map();
@@ -288,7 +289,13 @@ export class SchemaBuilder {
       this.typeSchema(field.type, `${owner}.${field.name}`),
       this.units[owner]?.[field.name],
     );
-    return this.decorate(base, field.description, field.optional);
+    const schema = this.decorate(base, field.description, field.optional);
+    const title = this.names[owner]?.[field.name];
+    if (title === undefined) return schema;
+    // A `$ref` ignores its siblings, so a title beside a bare one is wrapped the way `decorate` wraps prose.
+    return schema.$ref === undefined
+      ? { title, ...schema }
+      : { title, allOf: [schema] };
   }
 
   /**

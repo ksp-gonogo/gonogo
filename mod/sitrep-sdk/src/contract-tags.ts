@@ -1,7 +1,8 @@
 // The value tags each contract declares, registered by the client that owns it.
 //
 // A tag is a fact about a published value that a reader acts on: how it relates
-// in time (`kind`), whether it identifies its list entry (`entryKey`), and which
+// in time (`kind`), whether it identifies its list entry (`entryKey`), what a
+// picker lists it as (`displayName`, and `names` for a whole Topic), and which
 // models carry it forward (`reckonable`). Each contract's codegen writes them
 // into one table, `GENERATED_CONTRACT_TAGS` in its generated `units.ts`, and the
 // owning client registers that table here under its own id. Core's is
@@ -14,6 +15,7 @@ import type {
   GeneratedReckoningBasis,
 } from "./__generated__/reckonability";
 import { GENERATED_CONTRACT_TAGS } from "./__generated__/units";
+import { noteRuntimeTopicMetadata } from "./runtime-topic-registry";
 
 /**
  * The owner id that Gonogo's own contract registers its value tags under, and
@@ -50,6 +52,8 @@ export interface ValueTags {
   readonly kind?: Exclude<SampleKind, "event">;
   /** Present when this value identifies its entry of a list across samples. */
   readonly entryKey?: true;
+  /** The name the value is listed under where the operator picks one, such as "Altitude (sea level)". */
+  readonly displayName?: string;
 }
 
 /**
@@ -85,6 +89,8 @@ export interface ContractTagTable {
   readonly topics?: Readonly<
     Record<string, Readonly<Record<string, ValueTags>>>
   >;
+  /** What each Topic describes, by Topic id, such as "Active vessel" for `vessel.flight`. */
+  readonly names?: Readonly<Record<string, string>>;
   /** Every value a declared model carries forward. */
   readonly reckonable?: readonly ContractReckonableRow[];
 }
@@ -123,6 +129,12 @@ const topicTags = new Map<
   { readonly owner: string; readonly paths: ReadonlyMap<string, ValueTags> }
 >();
 
+/** Each Topic's display name and the owner that declared it, held to the same one-owner rule as the value tags. */
+const topicNames = new Map<
+  string,
+  { readonly owner: string; readonly name: string }
+>();
+
 /**
  * Reckonable rows by the owner that declared them. Unlike value tags these
  * may name another owner's Topic: a model belongs to whoever supplies it, so
@@ -148,8 +160,11 @@ export function registerContractTags(
   owner: string,
   table: ContractTagTable,
 ): void {
-  for (const topic of Object.keys(table.topics ?? {})) {
-    const existing = topicTags.get(topic);
+  for (const topic of [
+    ...Object.keys(table.topics ?? {}),
+    ...Object.keys(table.names ?? {}),
+  ]) {
+    const existing = topicTags.get(topic) ?? topicNames.get(topic);
     if (existing && existing.owner !== owner) {
       throw new Error(
         `registerContractTags("${owner}"): the values of ${topic} are already described by "${existing.owner}". ` +
@@ -175,8 +190,16 @@ export function registerContractTags(
   for (const [topic, paths] of Object.entries(table.topics ?? {})) {
     topicTags.set(topic, { owner, paths: new Map(Object.entries(paths)) });
   }
+  for (const [topic, entry] of topicNames) {
+    if (entry.owner === owner) topicNames.delete(topic);
+  }
+  for (const [topic, name] of Object.entries(table.names ?? {})) {
+    topicNames.set(topic, { owner, name });
+  }
   reckonableByOwner.set(owner, rows);
   generation += 1;
+  // A picker memoised on the registered Topics relabels only when that list's identity moves.
+  noteRuntimeTopicMetadata();
 }
 
 /**
@@ -215,8 +238,42 @@ export function valueTagsOf(
 }
 
 /**
- * A number that changes whenever a contract's tags are registered, so a cache
- * built from them knows when it is stale.
+ * What `topic` describes, in the game's own nouns ("Active vessel" for
+ * `vessel.flight`), as the contract that publishes it names it, or `undefined`
+ * when that contract names none. Useful for listing a Topic where the operator
+ * picks a value by what it measures. Used by the graph's series picker. A
+ * field's own name is read with {@link fieldDisplayNameOf}.
+ *
+ * @category Registering
+ */
+export function topicDisplayNameOf(topic: string): string | undefined {
+  return topicNames.get(topic)?.name;
+}
+
+/**
+ * The name the value at `path` of `topic` is listed under ("Altitude (sea
+ * level)" for `altitudeAsl` of `vessel.flight`), as the contract that publishes
+ * the Topic names it, or `undefined` when it names none. `path` is the dotted
+ * camelCase path from the payload root, `*` for each list or dictionary it
+ * crosses. Useful for labelling a value the operator picks or reads off a plot.
+ * Used by the graph's series picker, title and legend.
+ *
+ * @category Registering
+ */
+export function fieldDisplayNameOf(
+  topic: string,
+  path: string,
+): string | undefined {
+  return topicTags.get(topic)?.paths.get(path)?.displayName;
+}
+
+/**
+ * A number that changes whenever a contract's value tags or names are
+ * registered. Useful for knowing when something built from
+ * {@link topicDisplayNameOf} or {@link fieldDisplayNameOf} is stale. Used by
+ * the graph's series picker.
+ *
+ * @category Registering
  */
 export function contractTagsGeneration(): number {
   return generation;
@@ -250,6 +307,9 @@ export function appendReckonableRows(
 export function clearRegisteredContractTags(): void {
   for (const [topic, entry] of topicTags) {
     if (entry.owner !== CORE_CONTRACT_OWNER) topicTags.delete(topic);
+  }
+  for (const [topic, entry] of topicNames) {
+    if (entry.owner !== CORE_CONTRACT_OWNER) topicNames.delete(topic);
   }
   for (const owner of reckonableByOwner.keys()) {
     if (owner !== CORE_CONTRACT_OWNER) reckonableByOwner.delete(owner);

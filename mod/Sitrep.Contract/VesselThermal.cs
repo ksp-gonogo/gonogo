@@ -59,7 +59,7 @@ public class ThermalHottestPart
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.thermal")]
+[SitrepTopic("vessel.thermal", DisplayName = "Active vessel heat")]
 public class VesselThermal
 {
     /// <summary>The highest skin-temperature ratio (<c>skinTemperature / skinMaxTemp</c>) of any part this tick; 1 is at the limit. Not necessarily <see cref="HottestPart"/>'s. Null when no part had a valid (&gt; 0) <c>skinMaxTemp</c>, never 0.</summary>

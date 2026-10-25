@@ -227,7 +227,7 @@ public class CommsOcclusionBody
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("comms.occlusion")]
+[SitrepTopic("comms.occlusion", DisplayName = "Signal occlusion")]
 public class CommsOcclusion
 {
     /// <summary>The id of the occlusion model in use; <c>"unknown"</c> when no comms model is in use.</summary>

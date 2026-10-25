@@ -17,7 +17,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.identity")]
+[SitrepTopic("vessel.identity", DisplayName = "Active vessel identity")]
 public class VesselIdentity
 {
     /// <summary>The stable subject id: KSP's <c>Vessel.id</c> GUID as a string. The id vessel-scoped commands take, and the <c>&lt;guid&gt;</c> in <see cref="Meta"/>'s <c>"vessel:&lt;guid&gt;"</c> source.</summary>
