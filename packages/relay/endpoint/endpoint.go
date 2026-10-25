@@ -64,6 +64,8 @@ type session struct {
 	dc     *webrtc.DataChannel
 	open   bool
 	timer  *time.Timer
+	// announced tells the tab the station is open, once, before any of its messages.
+	announced sync.Once
 }
 
 // tab is the main screen's control socket. Writes are serialised because gorilla allows one writer.
@@ -273,15 +275,23 @@ func (e *Endpoint) offer(t *tab, f controlFrame) {
 		}
 		s.dc = dc
 		e.mu.Unlock()
-		dc.OnOpen(func() {
-			e.mu.Lock()
-			s.open = true
-			s.timer.Stop()
-			e.mu.Unlock()
-			log.Printf("station %s joined as session %d", s.peerID, s.sid)
-			e.send(controlFrame{Type: "open", Sid: s.sid, Path: pathOf(pc)})
-		})
+		/* Pion runs the open handler on a goroutine of its own while the read
+		   loop is already delivering, so a station's first message can arrive
+		   before it. Whichever comes first announces the station, and the
+		   message waits for that. */
+		announce := func() {
+			s.announced.Do(func() {
+				e.mu.Lock()
+				s.open = true
+				s.timer.Stop()
+				e.mu.Unlock()
+				log.Printf("station %s joined as session %d", s.peerID, s.sid)
+				e.send(controlFrame{Type: "open", Sid: s.sid, Path: pathOf(pc)})
+			})
+		}
+		dc.OnOpen(announce)
 		dc.OnMessage(func(m webrtc.DataChannelMessage) {
+			announce()
 			e.mu.Lock()
 			t := e.tab
 			e.mu.Unlock()
