@@ -256,8 +256,8 @@ function EndpointState() {
     <StatusIndicator tone="info" live>
       Stations on this network can join. For friends on other networks, forward
       port {status.port} (UDP and TCP) on your router to this computer, or turn
-      on Automatic port forwarding in Settings, under Relay, so Gonogo opens it
-      for you.
+      on Automatic port forwarding in Settings, under Relay, and enter your
+      router&apos;s address, so Gonogo opens it for you.
       {mapping && mapping.state !== "checking" && <> {mapping.message}</>} The{" "}
       <GuideLink href={SETUP_LINKS.relayPorts} target="_blank" rel="noreferrer">
         networking guide

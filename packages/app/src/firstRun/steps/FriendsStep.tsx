@@ -1,10 +1,12 @@
 import { useSetting } from "@ksp-gonogo/sitrep-sdk";
-import { Stack, Text } from "@ksp-gonogo/ui-kit";
+import { Stack, Text, TextField } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import {
   AUTO_PORT_FORWARD_SETTING,
+  isRouterAddress,
   type PortForwardState,
+  ROUTER_ADDRESS_SETTING,
   readPortForward,
 } from "../../relay/autoPortForward";
 import type { SetupCheck } from "../checks";
@@ -21,7 +23,8 @@ const POLL_MS = 3_000;
  * Asks whether friends will join from other networks, and how the relay's
  * port gets opened for them: by Gonogo asking the router (the "Automatic port
  * forwarding" setting), or by the player forwarding it. Choosing automatic
- * shows what the router answered.
+ * asks for the router's address, which is the only router the relay asks, and
+ * then shows what the router answered.
  */
 export function FriendsStep() {
   const [auto, setAuto] = useSetting<boolean>(AUTO_PORT_FORWARD_SETTING);
@@ -52,12 +55,48 @@ export function FriendsStep() {
           </label>
         ))}
       </Choices>
-      {choice === "auto" && <ForwardStatus />}
+      {choice === "auto" && <AutomaticForward />}
       {choice === "manual" && <ManualForward />}
       {choice === "local" && (
         <Text level="muted" size="sm">
           {say("friends.local")}
         </Text>
+      )}
+    </Stack>
+  );
+}
+
+/** The router's address field, then what the router answered once a valid address is in. */
+function AutomaticForward() {
+  const [router, setRouter] = useSetting<string>(ROUTER_ADDRESS_SETTING);
+  const [text, setText] = useState(router);
+  const valid = isRouterAddress(text);
+  function edit(next: string) {
+    setText(next);
+    if (isRouterAddress(next)) setRouter(next.trim());
+  }
+  return (
+    <Stack gap="related-dense">
+      <TextField
+        label={say("friends.router.label")}
+        value={text}
+        onChange={edit}
+        invalid={
+          text.trim() !== "" && !valid
+            ? say("friends.router.invalid")
+            : undefined
+        }
+        maxLength={15}
+      />
+      <Text level="muted" size="sm">
+        {say("friends.router.hint")}
+      </Text>
+      {valid && isRouterAddress(router) ? (
+        <ForwardStatus />
+      ) : (
+        <StepCheck
+          check={{ state: "attention", text: say("friends.check.needAddress") }}
+        />
       )}
     </Stack>
   );
