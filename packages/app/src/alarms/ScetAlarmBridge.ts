@@ -187,6 +187,7 @@ export class ScetAlarmBridge {
   private rosterAlarms: readonly ForeignScetAlarm[] = [];
   /** The ids the mod last said can never come due, because their craft is gone. */
   private rosterUnreachable: ReadonlySet<string> = new Set();
+  private rosterGameCopies: ReadonlySet<number> = new Set();
   private rosterSeen = false;
   /** Each time alarm's name, time and count of edits made in the game, off the last roster frame. */
   private rosterEdits: ReadonlyMap<string, RosterEdit> = new Map();
@@ -285,6 +286,11 @@ export class ScetAlarmBridge {
    */
   actsAboard(id: string): boolean {
     return this.rosterActing.has(id);
+  }
+
+  /** The ids in the game's alarm clock of the copies the mod holds of its roster's alarms. */
+  gameCopyIds(): readonly number[] {
+    return [...this.rosterGameCopies];
   }
 
   /** The ids the mod holds as unreachable, off its roster. */
@@ -666,6 +672,7 @@ export class ScetAlarmBridge {
       this.rosterIds = readRosterIds(payload);
       this.rosterActing = readActingIds(payload);
       this.rosterUnreachable = readUnreachableIds(payload);
+      this.rosterGameCopies = readGameCopyIds(payload);
       this.rosterAlarms = readRosterAlarms(payload);
       this.rosterEdits = readRosterEdits(payload);
       this.rosterSeen = true;
@@ -676,7 +683,7 @@ export class ScetAlarmBridge {
       if (deleted.length > 0) this.ctx.onDeletedInGame(deleted);
       const edited = this.editsMadeInGame();
       if (edited.length > 0) this.ctx.onEditedInGame(edited);
-      this.oweRestored(readIdsFlagged(payload, "restored"));
+      this.oweRestored(readRestoredIds(payload));
       this.latchFiredRows();
       this.reconcile();
       this.ctx.onRoster();
@@ -718,6 +725,7 @@ export class ScetAlarmBridge {
     this.rosterIds = [];
     this.rosterActing = new Set();
     this.rosterUnreachable = new Set();
+    this.rosterGameCopies = new Set();
     this.rosterAlarms = [];
     this.rosterEdits = new Map();
     this.rosterSeen = false;
@@ -888,8 +896,8 @@ const THRESHOLD_OP_OF_MEMBER = new Map<number, ThresholdOp>(
   ]),
 );
 
-/** The ids of the roster rows whose `field` is true. */
-function readIdsFlagged(payload: unknown, field: string): ReadonlySet<string> {
+/** The ids of the roster rows that came back from a save and that no client has armed again. */
+function readRestoredIds(payload: unknown): ReadonlySet<string> {
   const ids = new Set<string>();
   if (!Array.isArray(payload)) return ids;
   for (const row of payload) {
@@ -898,9 +906,27 @@ function readIdsFlagged(payload: unknown, field: string): ReadonlySet<string> {
       id !== null &&
       typeof row === "object" &&
       row !== null &&
-      Reflect.get(row, field) === true
+      "restored" in row &&
+      row.restored === true
     ) {
       ids.add(id);
+    }
+  }
+  return ids;
+}
+
+/** The game alarm ids of the copies the mod holds of its roster's alarms. */
+function readGameCopyIds(payload: unknown): ReadonlySet<number> {
+  const ids = new Set<number>();
+  if (!Array.isArray(payload)) return ids;
+  for (const row of payload) {
+    if (
+      typeof row === "object" &&
+      row !== null &&
+      "gameAlarmId" in row &&
+      typeof row.gameAlarmId === "number"
+    ) {
+      ids.add(row.gameAlarmId);
     }
   }
   return ids;
@@ -926,7 +952,7 @@ function readRosterEdits(payload: unknown): ReadonlyMap<string, RosterEdit> {
       continue;
     const ut = readWireUt(Reflect.get(condition, "ut"));
     const name: unknown = Reflect.get(row, "name");
-    const edits = readWireUt(Reflect.get(row, "gameEdits"));
+    const edits = "gameEdits" in row ? readWireUt(row.gameEdits) : null;
     if (ut === null || typeof name !== "string" || edits === null) continue;
     rows.set(id, { name, ut, edits });
   }

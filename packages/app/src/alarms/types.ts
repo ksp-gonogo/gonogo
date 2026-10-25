@@ -331,6 +331,12 @@ export interface AlarmSnapshot {
    */
   scetUnreachable?: string[];
   /**
+   * The ids in the game's own alarm clock of the copies the mod holds of this
+   * list's alarms, which the list already shows once. Absent when there are
+   * none.
+   */
+  scetGameCopyIds?: number[];
+  /**
    * Alarms the simulation holds that this list does not: armed by another
    * screen, or by an Uplink for itself. Absent when there are none.
    */

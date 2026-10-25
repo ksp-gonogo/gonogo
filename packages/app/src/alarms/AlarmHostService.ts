@@ -274,6 +274,7 @@ export class AlarmHostService {
           ? Object.fromEntries(this.onFireRefusals)
           : undefined,
       scetUnreachable: this.unreachableHeld(),
+      scetGameCopyIds: this.gameCopyIdsHeld(),
       scetForeign: this.foreignHeld(),
       scetForeignFired:
         this.foreignFires.size > 0
@@ -292,6 +293,12 @@ export class AlarmHostService {
   private foreignHeld(): AlarmSnapshot["scetForeign"] {
     const rows = this.scetBridge.foreignAlarms();
     return rows.length > 0 ? [...rows] : undefined;
+  }
+
+  /** The game alarm ids of the copies of this list's alarms, or undefined for none. */
+  private gameCopyIdsHeld(): number[] | undefined {
+    const ids = this.scetBridge.gameCopyIds();
+    return ids.length > 0 ? [...ids] : undefined;
   }
 
   /** The alarms of this list the simulation holds as unreachable, or undefined for none. */

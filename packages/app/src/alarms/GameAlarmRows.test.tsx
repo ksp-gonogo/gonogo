@@ -70,7 +70,6 @@ describe("GameAlarmFeed", () => {
     act(() => {
       fixture.transport.emit("alarm.game.list", {
         available: true,
-        absence: 0,
         alarms: [
           alarm(1, "Mun window", GameAlarmKind.Time),
           alarm(2, "Burn", GameAlarmKind.Time, { gonogoId: "g-burn" }),
@@ -91,7 +90,6 @@ describe("GameAlarmFeed", () => {
     act(() => {
       fixture.transport.emit("alarm.game.list", {
         available: true,
-        absence: 0,
         alarms: [],
       });
       fixture.transport.emit("trackingStation.catalog", {
@@ -118,7 +116,6 @@ describe("GameAlarmFeed", () => {
     act(() => {
       fixture.transport.emit("alarm.game.list", {
         available: true,
-        absence: 0,
         alarms: [alarm(7, "Mun window", GameAlarmKind.Time)],
       });
       fixture.emitFrame();
@@ -140,7 +137,6 @@ describe("GameAlarmFeed", () => {
     act(() => {
       fixture.transport.emit("alarm.game.list", {
         available: false,
-        absence: 1,
         alarms: [alarm(1, "Mun window", GameAlarmKind.Time)],
       });
       fixture.emitFrame();

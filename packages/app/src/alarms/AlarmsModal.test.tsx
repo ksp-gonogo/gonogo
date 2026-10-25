@@ -1103,7 +1103,6 @@ describe("AlarmsModal game alarms", () => {
     );
     emit("alarm.game.list", {
       available: true,
-      absence: 0,
       alarms: [
         {
           id: 9,
@@ -1139,6 +1138,49 @@ describe("AlarmsModal game alarms", () => {
     expect(order.findIndex((t) => t.includes("Circularise"))).toBeGreaterThan(
       order.findIndex((t) => t.includes("Mun window")),
     );
+  });
+});
+
+describe("AlarmsModal game alarm copies", () => {
+  it("lists a game alarm once when the roster says it is the copy of a Gonogo alarm", async () => {
+    const alarm: Alarm = {
+      id: "a-own",
+      name: "Circularise",
+      trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
+      state: "pending",
+      createdBy: "main",
+      createdAt: 1_700_000_000_000,
+    };
+    const { emit } = renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => ({
+          ...makeSnapshot([alarm]),
+          scetGameCopyIds: [9],
+        })}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    emit("alarm.game.list", {
+      available: true,
+      alarms: [
+        {
+          id: 9,
+          kind: 0,
+          title: "Circularise",
+          ut: 5000,
+          vessel: null,
+          warp: 0,
+          triggered: false,
+          gonogoId: null,
+        },
+      ],
+    });
+
+    await screen.findByText("Circularise");
+    expect(screen.getAllByText("Circularise")).toHaveLength(1);
+    expect(screen.getByText("Scheduled (1)")).toBeInTheDocument();
   });
 });
 

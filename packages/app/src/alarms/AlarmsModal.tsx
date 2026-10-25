@@ -363,9 +363,12 @@ export function AlarmsModal({
   };
 
   const [gameAlarms, setGameAlarms] = useState<ListedGameAlarm[]>([]);
+  const copies = new Set(snapshot.scetGameCopyIds);
   const sorted: ListRow[] = [
     ...snapshot.alarms.map((alarm): ListRow => ({ own: alarm })),
-    ...gameAlarms.map((listed): ListRow => ({ game: listed })),
+    ...gameAlarms
+      .filter((listed) => !copies.has(listed.alarm.id))
+      .map((listed): ListRow => ({ game: listed })),
   ].sort((a, b) => rowDueKey(a) - rowDueKey(b));
 
   return (
