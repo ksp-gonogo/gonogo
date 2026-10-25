@@ -53,9 +53,11 @@ docker run -d --name gonogo --restart unless-stopped --pull always \
 
    With Podman, type `podman` in place of `docker` in every command here (on macOS and Windows, run `podman machine start` first).
 
+   Every setting the container takes, such as `KSP_HOST`, is in [the settings table](docs/CONFIGURATION.md).
+
    If Docker answers that the name `gonogo` is already in use, a container from an earlier install exists. Run `docker rm -f gonogo`, then the command again.
 
-   Friends joining from another network need one port, `47100` (UDP and TCP), forwarded on your router to this computer. To let Gonogo open it for you, add `-e GONOGO_UPNP=1` to the command; the [networking guide](docs/NETWORKING.md#friends-on-other-networks) has the details.
+   Friends joining from another network need one port, `47100` (UDP and TCP), forwarded on your router to this computer. To let Gonogo open it for you, add `-e GONOGO_AUTO_PORT_FORWARD=1` to the command; the [networking guide](docs/NETWORKING.md#friends-on-other-networks) has the details.
 
 4. Start KSP and open [localhost:8080](http://localhost:8080)
 
