@@ -170,6 +170,7 @@
     <Compile Include="..\Gonogo.KSP\CraftFileTree.cs" />
     <Compile Include="..\Gonogo.KSP\StampedCache.cs" />
     <Compile Include="..\Gonogo.KSP\BalanceRounding.cs" />
+    <Compile Include="..\Gonogo.KSP\VesselResourceNames.cs" />
     <Compile Include="..\Gonogo.KSP\VariantMeshRule.cs" />
     <Compile Include="..\Gonogo.KSP\PartTreeRules.cs" />
   </ItemGroup>

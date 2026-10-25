@@ -12014,9 +12014,10 @@ export interface ResourceAmount
 * current amount and capacity. Every message holds the whole map. No value is
 * ever a sentinel such as `-1`.
 *
-* Only these stock resources are reported: `LiquidFuel`, `Oxidizer`,
-* `SolidFuel`, `MonoPropellant`, `ElectricCharge`, `XenonGas`, `Ore` and
-* `Ablator`.
+* Every resource the game defines is reported when the vessel has capacity for
+* it: the stock fuels (`LiquidFuel`, `Oxidizer`, `SolidFuel`,
+* `MonoPropellant`, `ElectricCharge`, `XenonGas`, `Ore`, `Ablator`) and any a
+* mod adds, such as life support supplies.
 *
 * **Absence.**
 *

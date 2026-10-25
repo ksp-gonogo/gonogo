@@ -607,19 +607,6 @@ namespace Gonogo.KSP
 
 
         /// <summary>
-        /// Resources tracked in <see cref="BuildResources"/>. Any resource a
-        /// vessel doesn't actually carry (maxAmount == 0) is omitted rather
-        /// than reported as a false <c>{0,0}</c> - the point of the omission
-        /// is to distinguish "vessel has no fuel cells" from "vessel simply
-        /// doesn't carry ElectricCharge at all."
-        /// </summary>
-        private static readonly string[] TrackedResourceNames =
-        {
-            "LiquidFuel", "Oxidizer", "SolidFuel", "MonoPropellant",
-            "ElectricCharge", "XenonGas", "Ore", "Ablator",
-        };
-
-        /// <summary>
         /// Primitives-only snapshot of <paramref name="vessel"/>, grouped by
         /// concern (identity/orbit/flight/attitude/resources/thermal/
         /// control/comms/misc). Each group is built independently and
@@ -1186,10 +1173,9 @@ namespace Gonogo.KSP
         /// Per-named-resource {current,max} via
         /// <c>Vessel.GetConnectedResourceTotals</c> (aggregates over every
         /// connected part, respecting crossfeed - not a raw part sum). A
-        /// resource id comes from <c>PartResourceLibrary.Instance.GetDefinition(name).id</c>;
-        /// a name the current save's resource config doesn't define (rare,
-        /// but modded installs can prune the stock list) yields a null
-        /// definition and is skipped, not faulted.
+        /// resource id comes from <c>PartResourceLibrary.Instance.GetDefinition(name).id</c>,
+        /// over every resource the game defines (see <see cref="VesselResourceNames"/>);
+        /// one the vessel has no capacity for is skipped.
         /// </summary>
         private static Dictionary<string, object?> BuildResources(Vessel vessel)
         {
@@ -1200,7 +1186,13 @@ namespace Gonogo.KSP
                 return result;
             }
 
-            foreach (var name in TrackedResourceNames)
+            var defined = new List<string>();
+            foreach (PartResourceDefinition candidate in library.resourceDefinitions)
+            {
+                defined.Add(candidate.name);
+            }
+
+            foreach (var name in VesselResourceNames.Order(defined))
             {
                 var definition = library.GetDefinition(name);
                 if (definition == null)

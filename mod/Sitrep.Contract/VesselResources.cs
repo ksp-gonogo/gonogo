@@ -47,10 +47,11 @@ public class ResourceAmount
 /// current amount and capacity. Every message holds the whole map. No value is
 /// ever a sentinel such as <c>-1</c>.
 ///
-/// <para>Only these stock resources are reported: <c>LiquidFuel</c>,
-/// <c>Oxidizer</c>, <c>SolidFuel</c>, <c>MonoPropellant</c>,
-/// <c>ElectricCharge</c>, <c>XenonGas</c>, <c>Ore</c> and
-/// <c>Ablator</c>.</para>
+/// <para>Every resource the game defines is reported when the vessel has
+/// capacity for it: the stock fuels (<c>LiquidFuel</c>, <c>Oxidizer</c>,
+/// <c>SolidFuel</c>, <c>MonoPropellant</c>, <c>ElectricCharge</c>,
+/// <c>XenonGas</c>, <c>Ore</c>, <c>Ablator</c>) and any a mod adds, such as
+/// life support supplies.</para>
 ///
 /// <para><b>Absence.</b></para>
 /// <list type="bullet">
@@ -74,7 +75,7 @@ public class ResourceAmount
 /// number that is not the game's own.</para>
 /// <internal>
 /// Filled by <c>Gonogo.KSP.KspHost.BuildResources</c> over
-/// <c>TrackedResourceNames</c>, mapped by
+/// <c>VesselResourceNames</c>, mapped by
 /// <c>Sitrep.Host.VesselViewProvider.BuildResources</c>. Rates belong to a
 /// parts/power channel family with per-module provenance.
 /// </internal>
