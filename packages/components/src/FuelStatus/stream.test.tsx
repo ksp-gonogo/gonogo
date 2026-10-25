@@ -41,7 +41,7 @@ describe("FuelStatus: genuinely runs off the stream", () => {
       });
     });
 
-    await waitFor(() => expect(visibleText()).toContain("Stage 1"));
+    await waitFor(() => expect(visibleText()).toContain("Stage 2"));
     // XenonGas streams max 0 and is filtered out, exercising the "absent from the vessel" rule on real streamed data.
     expect(screen.getByRole("meter", { name: "RCS · vessel" })).toBeTruthy();
     expect(screen.getByRole("meter", { name: "Power · vessel" })).toBeTruthy();
@@ -118,7 +118,7 @@ describe("FuelStatus: genuinely runs off the stream", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByText(/^Stage 0/)).toBeInTheDocument(),
+      expect(screen.getByText(/^Stage 1/)).toBeInTheDocument(),
     );
     // Totals row: default mode is "actual".
     expect(visibleText()).toContain("3900 m/s");
