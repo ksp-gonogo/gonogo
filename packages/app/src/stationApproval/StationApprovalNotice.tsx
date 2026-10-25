@@ -1,7 +1,7 @@
 import { BannerPill, Button } from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import type { PeerClientService } from "../peer/PeerClientService";
-import { getStationKey, stationTag } from "../peer/stationPeerId";
+import { useStationNameOptional } from "../stationIdentity";
 
 type Client = Pick<
   PeerClientService,
@@ -28,11 +28,13 @@ const REFUSED_LABEL: Record<string, string> = {
  * Tells a station's operator that the main screen has not approved this
  * station yet, so it is sent nothing and everything it sends is refused,
  * naming the last thing refused; or that the main screen refused it, with
- * the control that asks again. Renders nothing once approved.
+ * the control that asks again. While it waits it shows its own name, as the main
+ * screen shows it beside the request. Renders nothing once approved.
  */
 export function StationApprovalNotice({ client }: { client: Client }) {
   const [approval, setApproval] = useState(() => client.getApproval());
   const [lastRefused, setLastRefused] = useState<string | null>(null);
+  const name = useStationNameOptional();
 
   useEffect(() => {
     setApproval(client.getApproval());
@@ -53,7 +55,7 @@ export function StationApprovalNotice({ client }: { client: Client }) {
     return (
       <BannerPill accent="var(--color-warn-mark)" anchor="top" role="status">
         <span>Waiting for the main screen to approve this station</span>
-        <span>Code {stationTag(getStationKey())}</span>
+        {name && <span>{name}</span>}
         {lastRefused && <span>{lastRefused} not sent</span>}
       </BannerPill>
     );

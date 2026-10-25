@@ -5,6 +5,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { StationApproval } from "../peer/PeerClientService";
 import type { PendingStation } from "../peer/PeerHostService";
 import { stationApprovals } from "../peer/stationApprovals";
+import {
+  StationIdentityProvider,
+  StationIdentityService,
+} from "../stationIdentity";
 import { ApprovedStations } from "./ApprovedStations";
 import { StationApprovalNotice } from "./StationApprovalNotice";
 import { StationApprovalPrompt } from "./StationApprovalPrompt";
@@ -106,44 +110,29 @@ describe("StationApprovalPrompt", () => {
 });
 
 describe("StationApprovalPrompt naming", () => {
-  it("shows the code the station shows, so devices with one name can be told apart", () => {
-    const host = new FakeHost();
-    render(<StationApprovalPrompt host={host} />);
-    host.set([
-      { peerId: "p1", name: "Mission Control", tag: "7F3A" },
-      { peerId: "p2", name: "Mission Control", tag: "C9D1" },
-    ]);
-    expect(
-      screen.getByText("Station Mission Control (7F3A) wants to join"),
-    ).toBeVisible();
-    expect(
-      screen.getByText("Station Mission Control (C9D1) wants to join"),
-    ).toBeVisible();
-    expect(
-      screen.getByRole("button", {
-        name: "Approve station Mission Control (7F3A)",
-      }),
-    ).toBeVisible();
-  });
-
   it("does not say Station twice when the name already starts with it", () => {
     const host = new FakeHost();
     render(<StationApprovalPrompt host={host} />);
-    host.set([{ peerId: "p1", name: "Station JQ8C", tag: "7F3A" }]);
-    expect(screen.getByText("Station JQ8C (7F3A) wants to join")).toBeVisible();
+    host.set([{ peerId: "p1", name: "Station JQ8C" }]);
+    expect(screen.getByText("Station JQ8C wants to join")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Approve station JQ8C" }),
+    ).toBeVisible();
   });
 });
 
-describe("StationApprovalNotice code", () => {
-  it("shows the same code the main screen shows for this station", () => {
-    localStorage.setItem(
-      "gonogo.station.key",
-      "7f3a1c20-0000-4000-8000-000000000000",
-    );
+describe("StationApprovalNotice name", () => {
+  it("shows the station's own name and no code", () => {
+    localStorage.setItem("gonogo.station.name", "Station HHXQ");
     const client = new FakeClient();
     client.approval = "pending";
-    render(<StationApprovalNotice client={client} />);
-    expect(screen.getByText("Code 7F3A")).toBeVisible();
+    render(
+      <StationIdentityProvider service={new StationIdentityService()}>
+        <StationApprovalNotice client={client} />
+      </StationIdentityProvider>,
+    );
+    expect(screen.getByText("Station HHXQ")).toBeVisible();
+    expect(screen.queryByText(/code/i)).toBeNull();
   });
 });
 

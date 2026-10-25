@@ -11,13 +11,11 @@ type Host = Pick<
 >;
 
 /**
- * How a waiting station is named on the request: its name with the code the
- * station shows on its own screen, so devices sharing a name can be told apart.
- * The word "Station" is added only when the name does not already start with it.
+ * How a waiting station is named on the request: its name, with the word
+ * "Station" added only when the name does not already start with it.
  */
 export function stationLabel(station: PendingStation): string {
-  const named = `Station ${station.name.replace(/^station\s+/i, "")}`;
-  return station.tag ? `${named} (${station.tag})` : named;
+  return `Station ${station.name.replace(/^station\s+/i, "")}`;
 }
 
 /*
@@ -43,7 +41,7 @@ function subscribePanelCopies(cb: () => void): () => void {
 
 /**
  * Asks the main screen operator to approve each station that joins with the
- * share code, by the station's name and its code. Until approved, a station reads
+ * share code, by the station's name. Until approved, a station reads
  * telemetry but every command, flight request and Uplink call it sends is
  * refused. Approval is remembered, so a station is asked about once; Refuse
  * disconnects it. Renders nothing while no station is waiting. `inPanel` marks

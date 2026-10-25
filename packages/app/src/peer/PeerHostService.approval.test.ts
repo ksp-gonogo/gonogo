@@ -313,7 +313,7 @@ describe("a station the main screen has not approved", () => {
     host.onPendingStationsChange((p) => seen.push(p));
     const station = await join(host, "station-a", "cred-a", "Booster");
     expect(host.pendingStations()).toEqual([
-      { peerId: "station-a", name: "Booster", tag: "KEYS" },
+      { peerId: "station-a", name: "Booster" },
     ]);
     expect(seen.at(-1)).toEqual(host.pendingStations());
     expect(station.told).toContainEqual({
@@ -422,7 +422,7 @@ describe("a station the main screen approves", () => {
     await askEverything(back);
     refusedEverything(back);
     expect(host.pendingStations()).toEqual([
-      { peerId: "station-a2", name: "Flight", tag: "KEYS" },
+      { peerId: "station-a2", name: "Flight" },
     ]);
     host.stop();
   });

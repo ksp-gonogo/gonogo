@@ -43,7 +43,6 @@ import { SentOnChange } from "./sentOnChange";
 import { stationApprovals } from "./stationApprovals";
 import type { StationLink } from "./stationLink";
 import { StationPacer } from "./stationPace";
-import { stationTag } from "./stationPeerId";
 import { TypedListeners } from "./typedListeners";
 import { encodeWideNumbers } from "./wideNumbers";
 
@@ -327,8 +326,6 @@ export interface PendingStation {
   peerId: string;
   /** The name the station reported. */
   name: string;
-  /** The code the station shows while it waits, when it sent a stable identity. */
-  tag?: string;
 }
 
 /**
@@ -2281,12 +2278,7 @@ export class PeerHostService {
       return;
     }
     if (credential !== undefined) {
-      const stationKey = this.peerIdToStationKey.get(conn.peer);
-      const entry: PendingStation = {
-        peerId: conn.peer,
-        name,
-        ...(stationKey ? { tag: stationTag(stationKey) } : {}),
-      };
+      const entry: PendingStation = { peerId: conn.peer, name };
       const known = this.pending.some((p) => p.peerId === conn.peer);
       this.setPending(
         known
