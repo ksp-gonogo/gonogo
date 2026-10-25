@@ -56,6 +56,13 @@ export const WIZARD_COPY = {
     "You can change this later in Settings, under Relay, by turning on Automatic port forwarding.",
   "friends.manual":
     "In your router's settings, forward port {port}, UDP and TCP, to this computer, and give this computer a fixed address on your network. The [networking guide](relayPorts) has the steps.",
+  "friends.router.label": "Your router's address",
+  "friends.router.hint":
+    "Four numbers separated by dots. It is usually printed on the router's label, and this computer's network settings show it as Router or Default Gateway.",
+  "friends.router.invalid":
+    "That is not a router address: it should be four numbers from 0 to 255, separated by dots.",
+  "friends.check.needAddress":
+    "Enter your router's address and Gonogo asks it to open the port.",
   "friends.check.checking": "Asking your router to open port {port}",
   "friends.check.pass":
     "Your router opened port {port}: friends on other networks can join",
