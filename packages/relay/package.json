@@ -10,9 +10,7 @@
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit",
-    "endpoint:build": "cd endpoint && go build -o gonogo-endpoint .",
-    "endpoint:test": "cd endpoint && go test ./..."
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",

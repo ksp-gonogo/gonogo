@@ -1,5 +1,5 @@
 import { logger } from "@ksp-gonogo/logger";
-import type { StationLink } from "./stationLink";
+import type { DataConnection } from "peerjs";
 
 const iceLog = logger.tag("peer:ice");
 
@@ -17,10 +17,10 @@ const iceLog = logger.tag("peer:ice");
 const ICE_DISCONNECT_GRACE_MS = 4_000;
 
 export function attachIceDiagnostics(
-  conn: StationLink,
+  conn: DataConnection,
   onDead?: () => void,
 ): void {
-  const pc = (conn as StationLink & { peerConnection?: RTCPeerConnection })
+  const pc = (conn as DataConnection & { peerConnection?: RTCPeerConnection })
     .peerConnection;
   if (!pc) {
     iceLog.debug("no underlying peerConnection: skipping ICE diagnostics", {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { relayBaseUrl } from "../peer/relayAddress";
+import { relayBaseUrl } from "../peer/iceServers";
 
 const FETCH_TIMEOUT_MS = 4_000;
 /** How often an unanswered relay is asked again, so starting the container is noticed without a click. */

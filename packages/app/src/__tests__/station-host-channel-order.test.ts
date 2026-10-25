@@ -54,19 +54,9 @@ class RecordingPeerConnection extends EventTarget {
     });
   }
 
-  /* An offer for a host that is not in this test; the broker below answers only the join request. */
+  /* Never settles: the offer would go to a host that is not in this test. */
   createOffer() {
-    return Promise.resolve<RTCSessionDescriptionInit>({
-      type: "offer",
-      sdp: "v=0",
-    });
-  }
-
-  localDescription: RTCSessionDescriptionInit | null = null;
-
-  setLocalDescription(description: RTCSessionDescriptionInit) {
-    this.localDescription = description;
-    return Promise.resolve();
+    return new Promise<RTCSessionDescriptionInit>(() => {});
   }
 
   close() {
@@ -78,22 +68,6 @@ const broker = ws.link("wss://0.peerjs.com/peerjs");
 const server = setupServer(
   broker.addEventListener("connection", ({ client }) => {
     client.send(JSON.stringify({ type: "OPEN" }));
-    /* The main screen's answer to the station's join request: no endpoint, connect directly. */
-    client.addEventListener("message", (event) => {
-      const m = JSON.parse(String(event.data));
-      if (m.type !== "OFFER" || m.payload?.type !== "gonogo-endpoint") return;
-      client.send(
-        JSON.stringify({
-          type: "OFFER",
-          src: m.dst,
-          payload: {
-            type: "gonogo-endpoint",
-            connectionId: m.payload.connectionId,
-            signal: { kind: "direct" },
-          },
-        }),
-      );
-    });
   }),
 );
 
@@ -116,17 +90,13 @@ describe("station to host data channel", () => {
     const svc = new PeerClientService();
     svc.connect("ABCD");
     try {
-      /* The endpoint link's channel comes first, then PeerJS's once the main screen says to connect directly. */
-      await vi.waitFor(() => expect(recorded).toHaveLength(2));
-      for (const channel of recorded) {
-        expect(channel.init).toEqual({ ordered: true });
-      }
-      const direct = recorded.find((c) => c.label !== "gonogo");
+      await vi.waitFor(() => expect(recorded).toHaveLength(1));
+      expect(recorded[0]?.init).toEqual({ ordered: true });
       const peer = await svc.waitForPeer();
       /* `Peer.connections` is typed `Object`; at runtime it maps peer id to that peer's connections. */
       const connections = peer.connections as Record<string, DataConnection[]>;
       const [conn] = connections["gonogo-host-ABCD"] ?? [];
-      expect(conn).toMatchObject({ label: direct?.label, reliable: true });
+      expect(conn).toMatchObject({ label: recorded[0]?.label, reliable: true });
     } finally {
       svc.disconnect();
     }

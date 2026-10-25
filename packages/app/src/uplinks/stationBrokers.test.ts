@@ -8,6 +8,7 @@ import { asClientService, idlePeerClient } from "../test/peerFakes";
 import { attachStationBrokers } from "./stationBrokers";
 
 const UPLINK_ID = "planted";
+const TURN: RTCIceServer = { urls: "turn:relay.example:3478" };
 
 afterEach(() => {
   clearStationBrokers();
@@ -40,6 +41,29 @@ describe("attachStationBrokers", () => {
       answered: true,
     });
     expect(sendUplinkRelay).toHaveBeenCalledWith(UPLINK_ID, "ping", { n: 1 });
+  });
+
+  it("reads the host's broadcast TURN credentials and their rotation", () => {
+    const listeners: ((servers: RTCIceServer[]) => void)[] = [];
+    let current: RTCIceServer[] = [];
+    const client = asClientService({
+      ...idlePeerClient(),
+      getRelayIceServers: () => current,
+      onRelayIceServersChange: (cb: (servers: RTCIceServer[]) => void) => {
+        listeners.push(cb);
+        return () => {};
+      },
+    });
+    const { broker } = capture();
+    attachStationBrokers(client);
+
+    const rotated = vi.fn();
+    broker().iceServers.onChange(rotated);
+    current = [TURN];
+    for (const cb of listeners) cb(current);
+
+    expect(broker().iceServers.current()).toEqual([TURN]);
+    expect(rotated).toHaveBeenCalledWith([TURN]);
   });
 
   it("attaches an Uplink whose bundle registers after the station came up", () => {

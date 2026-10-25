@@ -274,7 +274,7 @@ for (const f of readdirSync(RELAY_SRC).sort()) {
   const id = f.replace(/\.ts$/, "");
   addElement(`gonogo.relay.${id}`, {
     kind: "component",
-    title: id === "endpointManager" ? "station endpoint" : id,
+    title: id === "coturnManager" ? "coturn TURN server" : id,
     technology: `packages/relay/src/${f}`,
     description: describe(`relay.${id}`, ""),
   });
@@ -946,15 +946,15 @@ const networkIds = [
   "gonogo.main.app.peer",
   "gonogo.main.app.telemetry",
   "gonogo.station.peer",
-  "gonogo.relay.endpointManager",
-  "gonogo.relay.stationsProxy",
+  "gonogo.relay.coturnManager",
+  "gonogo.relay.turnRoutes",
   "gonogo.mod.transport",
   "broker",
   "stun",
 ];
 views.push(`  view network {
     title 'Network: how stations reach the main screen'
-    description 'Stations find the main screen through the public PeerJS broker, then join through the station endpoint in the relay container on one port, which carries their messages to the main screen over a local WebSocket. With no relay running, a station on the LAN connects to the main screen directly, using public STUN at Google and Cloudflare.'
+    description 'Stations find the main screen through the public PeerJS broker. Public STUN at Google and Cloudflare opens a direct path, on the LAN or over the internet. When no direct path works, the traffic goes through the TURN server in the relay container.'
     include ${networkIds.join(", ")}
   }`);
 

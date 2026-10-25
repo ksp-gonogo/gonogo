@@ -46,9 +46,6 @@ const { FakeHub } = vi.hoisted(() => {
   }
 
   class FakePeer {
-    // The broker socket a real Peer carries; the endpoint join signal listens on it.
-
-    socket = { on() {}, off() {}, send(_m: unknown) {} };
     static registry = new Map<string, FakePeer>();
     private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
     id: string;
@@ -293,7 +290,7 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
     let callCount = 0;
     const BUNDLE_URL = "https://example.test/shared.js";
     // Scoped by url: the host's OWN boot sequence also calls global `fetch`
-    // (the relay's analytics-consent post): only
+    // (`/ice-config`, the relay's analytics-consent post): only
     // count/delay the bundle url itself, or those unrelated calls would
     // inflate callCount and defeat the dedup assertion below.
     vi.stubGlobal(

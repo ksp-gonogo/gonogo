@@ -69,9 +69,6 @@ vi.mock("peerjs", () => {
   }
 
   class FakePeer {
-    // The broker socket a real Peer carries; the endpoint join signal listens on it.
-
-    socket = { on() {}, off() {}, send(_m: unknown) {} };
     id: string;
     open = false;
     destroyed = false;

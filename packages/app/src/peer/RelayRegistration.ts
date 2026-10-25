@@ -1,5 +1,5 @@
 import { debugPeer } from "@ksp-gonogo/logger";
-import { relayBaseUrl } from "./relayAddress";
+import { relayBaseUrl } from "./iceServers";
 
 /** Heartbeat cadence for re-asserting analytics consent, so a relay restart
  *  (which resets its in-memory config to disabled) re-learns the real value

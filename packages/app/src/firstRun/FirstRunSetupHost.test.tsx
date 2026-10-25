@@ -5,8 +5,6 @@ import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { SettingsProvider } from "../settings/SettingsContext";
-import { SettingsService } from "../settings/SettingsService";
 import { say } from "./copy";
 import { FirstRunSetupHost } from "./FirstRunSetupHost";
 import {
@@ -17,7 +15,7 @@ import {
 import { requestFirstRunSetup } from "./firstRunRequest";
 
 function stepHeading(index: number, heading: string): string {
-  return say("shell.stepHeading", { index, total: 7, heading });
+  return say("shell.stepHeading", { index, total: 6, heading });
 }
 
 /**
@@ -30,9 +28,7 @@ function stepHeading(index: number, heading: string): string {
 function renderHost() {
   return render(
     <ModalProvider>
-      <SettingsProvider service={new SettingsService()}>
-        <FirstRunSetupHost />
-      </SettingsProvider>
+      <FirstRunSetupHost />
     </ModalProvider>,
   );
 }
@@ -99,9 +95,6 @@ describe("FirstRunSetupHost", () => {
       screen.getByRole("button", { name: say("container.advance") }),
     );
     await user.click(
-      screen.getByRole("button", { name: say("friends.advance") }),
-    );
-    await user.click(
       screen.getByRole("button", { name: say("connect.advance") }),
     );
     await user.click(
@@ -146,10 +139,8 @@ describe("FirstRunSetupHost", () => {
     markFirstRunSetupSeen();
     render(
       <ModalProvider>
-        <SettingsProvider service={new SettingsService()}>
-          <FirstRunSetupHost />
-          <SettingsOpener />
-        </SettingsProvider>
+        <FirstRunSetupHost />
+        <SettingsOpener />
       </ModalProvider>,
     );
     const user = userEvent.setup();

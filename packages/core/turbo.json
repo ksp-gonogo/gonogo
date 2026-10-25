@@ -69,7 +69,6 @@
         "!$TURBO_ROOT$/**/node_modules/**",
         "!$TURBO_ROOT$/**/dist/**",
         "!$TURBO_ROOT$/**/.turbo/**",
-        "!$TURBO_ROOT$/packages/relay/endpoint/gonogo-endpoint",
         "!$TURBO_ROOT$/packages/*/coverage/**",
         "!$TURBO_ROOT$/mod/*/client/coverage/**",
         "!$TURBO_ROOT$/mod/*/coverage/**",

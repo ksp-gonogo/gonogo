@@ -24,8 +24,6 @@ import {
   it,
   vi,
 } from "vitest";
-import { SettingsProvider } from "../settings/SettingsContext";
-import { SettingsService } from "../settings/SettingsService";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import type { LinkClient } from "../test/peerFakes";
 import {
@@ -46,7 +44,7 @@ import {
 import { __resetConnectionClock } from "./useConnectionCheck";
 
 function stepHeading(index: number, heading: string): string {
-  return say("shell.stepHeading", { index, total: 7, heading });
+  return say("shell.stepHeading", { index, total: 6, heading });
 }
 
 /** The words one of a sentence's links is drawn with. */
@@ -126,11 +124,9 @@ function makeSitrepStub(status: DataSourceStatus, host?: string): DataSource {
 
 function wrapper({ children }: { children: ReactNode }) {
   return (
-    <SettingsProvider service={new SettingsService()}>
-      <SitrepTelemetryProvider enabled host="localhost" port={8090}>
-        {children}
-      </SitrepTelemetryProvider>
-    </SettingsProvider>
+    <SitrepTelemetryProvider enabled host="localhost" port={8090}>
+      {children}
+    </SitrepTelemetryProvider>
   );
 }
 
@@ -173,9 +169,6 @@ async function goToUplinks() {
   );
   await user.click(
     screen.getByRole("button", { name: say("container.advance") }),
-  );
-  await user.click(
-    screen.getByRole("button", { name: say("friends.advance") }),
   );
   await user.click(
     screen.getByRole("button", { name: say("connect.advance") }),
@@ -255,8 +248,8 @@ describe("FirstRunSetup: recommended settings step", () => {
     expect(
       screen.getByText(
         say("shell.stepHeading", {
-          index: 6,
-          total: 8,
+          index: 5,
+          total: 7,
           heading: say("recommended.heading"),
         }),
       ),
@@ -271,7 +264,7 @@ describe("FirstRunSetup: recommended settings step", () => {
 });
 
 describe("FirstRunSetup: step sequence", () => {
-  it("opens on Welcome and walks the seven steps", async () => {
+  it("opens on Welcome and walks the six steps", async () => {
     const onFinish = vi.fn();
     const { wsClients } = renderSetup({ onFinish });
     const user = userEvent.setup();
@@ -292,14 +285,7 @@ describe("FirstRunSetup: step sequence", () => {
     );
 
     expect(
-      screen.getByText(stepHeading(3, say("friends.heading"))),
-    ).toBeInTheDocument();
-    await user.click(
-      screen.getByRole("button", { name: say("friends.advance") }),
-    );
-
-    expect(
-      screen.getByText(stepHeading(4, say("connect.heading"))),
+      screen.getByText(stepHeading(3, say("connect.heading"))),
     ).toBeInTheDocument();
     expect(screen.getByText("Sitrep Stream")).toBeInTheDocument();
     await user.click(
@@ -307,7 +293,7 @@ describe("FirstRunSetup: step sequence", () => {
     );
 
     expect(
-      screen.getByText(stepHeading(5, say("uplinks.heading"))),
+      screen.getByText(stepHeading(4, say("uplinks.heading"))),
     ).toBeInTheDocument();
     await emitRoster(wsClients, []);
     await user.click(
@@ -315,7 +301,7 @@ describe("FirstRunSetup: step sequence", () => {
     );
 
     expect(
-      screen.getByText(stepHeading(6, say("health.heading"))),
+      screen.getByText(stepHeading(5, say("health.heading"))),
     ).toBeInTheDocument();
     await screen.findByText(say("container.check.pass"));
     await user.click(
@@ -323,7 +309,7 @@ describe("FirstRunSetup: step sequence", () => {
     );
 
     expect(
-      screen.getByText(stepHeading(7, say("done.heading"))),
+      screen.getByText(stepHeading(6, say("done.heading"))),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: say("done.advance") }));
     expect(onFinish).toHaveBeenCalledTimes(1);
@@ -437,9 +423,6 @@ describe("FirstRunSetup: the KSP connection check", () => {
     await screen.findByText(say("container.check.pass"));
     await user.click(
       screen.getByRole("button", { name: say("container.advance") }),
-    );
-    await user.click(
-      screen.getByRole("button", { name: say("friends.advance") }),
     );
   }
 
@@ -952,9 +935,6 @@ describe("FirstRunSetup: accessibility", () => {
     await user.click(
       screen.getByRole("button", { name: say("container.advance") }),
     );
-    await user.click(
-      screen.getByRole("button", { name: say("friends.advance") }),
-    );
     expect(
       screen.getByRole("link", {
         name: linkWords(runs("connect.hint.blocked"), "networking"),
@@ -1001,7 +981,7 @@ describe("FirstRunSetup: accessibility", () => {
       .setup()
       .click(screen.getByRole("button", { name: say("health.advance") }));
     expect(
-      screen.getByText(stepHeading(7, say("done.heading"))),
+      screen.getByText(stepHeading(6, say("done.heading"))),
     ).toBeInTheDocument();
     expect(screen.getByText(/Add default layouts/)).toBeInTheDocument();
     await expectNoA11yViolations(container);
