@@ -687,7 +687,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
     // catalogue offers several, and a test that picks whichever sorts first is
     // asserting the sort order rather than the flow.
     const altitudeOption = (await screen.findAllByRole("option")).find((o) =>
-      o.textContent?.includes("Altitude ASL"),
+      o.textContent?.includes("Altitude (sea level)"),
     );
     expect(altitudeOption).toBeDefined();
     if (altitudeOption) await user.click(altitudeOption);
@@ -718,7 +718,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
     );
     await user.click(getDataKeyCombobox());
     const altitudeOption = (await screen.findAllByRole("option")).find((o) =>
-      o.textContent?.includes("Altitude ASL"),
+      o.textContent?.includes("Altitude (sea level)"),
     );
     if (altitudeOption) await user.click(altitudeOption);
 
@@ -752,7 +752,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
     );
     await user.click(getDataKeyCombobox());
     const altitudeOption = (await screen.findAllByRole("option")).find((o) =>
-      o.textContent?.includes("Altitude ASL"),
+      o.textContent?.includes("Altitude (sea level)"),
     );
     expect(altitudeOption).toBeDefined();
     if (altitudeOption) await user.click(altitudeOption);
@@ -792,8 +792,12 @@ describe("AlarmsModal threshold trigger key picker", () => {
     const observed = (await screen.findAllByRole("option")).map(
       (o) => o.textContent ?? "",
     );
-    expect(observed.some((t) => t.includes("Altitude ASL"))).toBe(false);
-    expect(observed.some((t) => t.includes("Altitude terrain"))).toBe(true);
+    expect(observed.some((t) => t.includes("Altitude (sea level)"))).toBe(
+      false,
+    );
+    expect(observed.some((t) => t.includes("Altitude (above terrain)"))).toBe(
+      true,
+    );
 
     await user.click(
       screen.getByRole("checkbox", { name: /include reckoned values/i }),
@@ -802,8 +806,10 @@ describe("AlarmsModal threshold trigger key picker", () => {
     const widened = (await screen.findAllByRole("option")).map(
       (o) => o.textContent ?? "",
     );
-    expect(widened.some((t) => t.includes("Altitude ASL"))).toBe(true);
-    expect(widened.some((t) => t.includes("Altitude terrain"))).toBe(true);
+    expect(widened.some((t) => t.includes("Altitude (sea level)"))).toBe(true);
+    expect(widened.some((t) => t.includes("Altitude (above terrain)"))).toBe(
+      true,
+    );
   });
 
   it("marks a listed alarm armed on a reckoned value", () => {
@@ -863,7 +869,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
     const options = await screen.findAllByRole("option");
     expect(options.length).toBeGreaterThan(0);
     expect(
-      options.find((o) => o.textContent?.includes("Altitude ASL")),
+      options.find((o) => o.textContent?.includes("Altitude (sea level)")),
     ).toBeUndefined();
   });
 });
