@@ -90,6 +90,7 @@ import { peerHostService } from "../peer/PeerHostService";
 import { PushedDashboardOverlay } from "../pushToMain/PushedDashboardOverlay";
 import { PushHostProvider } from "../pushToMain/PushHostContext";
 import { PushHostService } from "../pushToMain/PushHostService";
+import { syncAutoPortForward } from "../relay/autoPortForward";
 import {
   ConsoleSettingsFromHost,
   SettingsFab,
@@ -284,6 +285,11 @@ export function MainScreen({
   // it in sync. MAIN-ONLY: StationScreen never calls this, so station
   // tones stay structurally impossible. Default ON.
   useEffect(() => initSoundSettings(settingsService), [settingsService]);
+  useEffect(
+    () =>
+      screen === "main" ? syncAutoPortForward(settingsService) : undefined,
+    [screen, settingsService],
+  );
 
   useEffect(() => {
     // Auto-reopen previously-authorised serial ports on load. Silent no-op
