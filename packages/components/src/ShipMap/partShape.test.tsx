@@ -145,7 +145,6 @@ describe("a part drawn from its mesh outline", () => {
     "gear",
     "parachute",
     "strut",
-    "fairing",
     "clamp",
   ] as const)("keeps the shape of a %s, which says something the silhouette does not", (type) => {
     expect(drawn(type)).not.toContain('data-role="mesh-outline"');

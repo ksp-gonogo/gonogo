@@ -54,15 +54,15 @@ const FIN_TIP_TAPER = 0.2;
 /**
  * The part types drawn by what they do and not by the silhouette of their
  * mesh: a leg's strut and foot follow its deploy state, a parachute splits by
- * canopy state, a strut is a link and a clamp or fairing is a translucent
- * overlay on other parts. Every other type is drawn from its mesh outline when
- * the wire carries one.
+ * canopy state, a strut is a link and a clamp is a translucent overlay on
+ * other parts. A fairing is drawn from its mesh outline when the wire carries
+ * one, in the same translucent overlay style as its fallback box. Every other
+ * type is drawn from its mesh outline when the wire carries one.
  */
 const STATE_SHAPES: ReadonlySet<PartType> = new Set<PartType>([
   "gear",
   "parachute",
   "strut",
-  "fairing",
   "clamp",
 ]);
 
@@ -112,16 +112,25 @@ export function renderPartShape(
       seen.set(points, n + 1);
       return { points, key: `${points}#${n}` };
     });
+    const overlay = type === "fairing";
     return (
-      <g opacity={opacity}>
+      <g opacity={overlay ? 0.45 : opacity}>
         {outlines.map(({ points, key }) => (
           <polygon
             key={key}
             data-role="mesh-outline"
             points={points}
             fill={fill}
-            stroke={stroke}
-            strokeWidth={strokeWidth}
+            stroke={
+              overlay
+                ? isHot
+                  ? "var(--color-tag-yellow-fg)"
+                  : "var(--color-text-dim)"
+                : stroke
+            }
+            strokeWidth={
+              overlay ? Math.max(strokeWidth, 1 / zoom) : strokeWidth
+            }
           />
         ))}
       </g>
