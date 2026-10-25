@@ -62,10 +62,12 @@ Choose one of two ways to open it:
 
 **Open it yourself.** Forward `47100` (UDP and TCP) in your router's settings. Give the main screen computer a fixed address on your network first (a reservation in the router is easiest), or the forward points at nothing when its address changes.
 
-**Let Gonogo open it.** Choose "let Gonogo open the port on my router" in the setup's Friends on other networks step, or turn on **Automatic port forwarding** in Settings, under Relay. The relay then finds your router and talks to it directly (NAT-PMP, then UPnP), asks it to open the port, renews it while it runs, and removes it when it stops or you turn the setting off. It is off unless you turn it on. Adding `-e GONOGO_AUTO_PORT_FORWARD=1` to the run command turns it on from the start, for a relay whose main screen has never chosen. If the Add station window says the router refused or did not answer:
+**Let Gonogo open it.** Choose "let Gonogo open the port on my router" in the setup's Friends on other networks step, or turn on **Automatic port forwarding** in Settings, under Relay, and enter your router's address there. The address is usually printed on the router's label; this computer's network settings show it as Router or Default Gateway ("Default Gateway" in `ipconfig` on Windows). The relay then asks that router, and only that router, to open the port (NAT-PMP, then UPnP), renews it while it runs, and removes it when it stops or you turn the setting off. It is off unless you turn it on. If the setup or the Add station window says the router refused or did not answer:
 
+- Check the address you entered
 - Many routers have UPnP switched off, so check the router's settings
-- Add `-e ROUTER_IP=<router address>` and `-e LAN_IP=<this computer's address>` to the command. The router address is the "Default Gateway" in `ipconfig` on Windows, or the `via` address of `ip route get 1.1.1.1` on Linux
+- A router that opens ports only with UPnP forwards them to the address the relay names for this computer. `scripts/run-gonogo.sh` and `pnpm dev` give the container that address; with a run command of your own, add `-e LAN_IP=<this computer's address>`
+- Otherwise forward the port by hand, as above
 
 The relay finds your public address on its own. If it guesses wrong (more than one internet connection, a changing address on a dynamic DNS name), add `-e PUBLIC_IP=<your public IP>`. If your provider puts you behind carrier-grade NAT (an internet provider sharing one address between many customers), forwarding can't help, because the main screen computer has no public address to reach.
 
