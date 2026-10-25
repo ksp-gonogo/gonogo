@@ -20,7 +20,8 @@ export type PortMappingState =
   | "refused"
   | "no-answer"
   | "container-only"
-  | "no-address";
+  | "no-address"
+  | "ipv6-unsupported";
 
 /** What the relay tells the player about opening its ports on the router, in the words shown to them. */
 export interface PortMappingStatus {
@@ -61,6 +62,8 @@ const STATUS: Record<PortMappingState, string> = {
   "container-only":
     "Your router only opens ports for a program running directly on this computer, so the relay could not open it from inside the container.",
   "no-address": "Automatic port forwarding needs your router's address.",
+  "ipv6-unsupported":
+    "Gonogo cannot ask a router to open a port over IPv6 yet.",
 };
 
 const MANUAL = "Forward it by hand, as the networking guide describes.";
@@ -128,7 +131,10 @@ export class PortMapper {
 
   private set(state: PortMappingState, detail?: string): void {
     const message =
-      state === "mapped" || state === "checking" || state === "no-address"
+      state === "mapped" ||
+      state === "checking" ||
+      state === "no-address" ||
+      state === "ipv6-unsupported"
         ? STATUS[state]
         : state === "refused"
           ? `${STATUS.refused}${detail ? ` (${detail})` : ""}. ${MANUAL}`
