@@ -529,6 +529,23 @@ describe("SettingsModal: initialTabId", () => {
   });
 });
 
+describe("SettingsModal General tab: analytics switch", () => {
+  it("labels the switch with the same words as the empty dashboard", () => {
+    const service = new SettingsService(memoryStorage());
+    const view = render(
+      <ScreenProvider value="main">
+        <SettingsProvider service={service}>
+          <SettingsModal initialTabId="general" />
+        </SettingsProvider>
+      </ScreenProvider>,
+    );
+    renderedTrees.push(view.unmount);
+    expect(
+      screen.getByRole("checkbox", { name: "Send anonymous logs and errors" }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("SettingsModal registered-tab gating", () => {
   it("shows a registered main-only tab on the main screen", () => {
     registerSettingsTab({

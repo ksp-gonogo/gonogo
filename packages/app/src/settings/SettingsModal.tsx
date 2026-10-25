@@ -319,7 +319,7 @@ function AnalyticsConsentRow() {
   return (
     <SettingLine>
       <RowText>
-        <RowLabel>Send technical analytics</RowLabel>
+        <RowLabel>Send anonymous logs and errors</RowLabel>
         <RowDesc>
           Share anonymous technical logs and errors, including the mod's own
           lines from KSP.log, with the developer to help debugging. Applies to
@@ -338,7 +338,7 @@ function AnalyticsConsentRow() {
       <Switch
         checked={enabled}
         onChange={setEnabled}
-        aria-label="Send technical analytics"
+        aria-label="Send anonymous logs and errors"
       />
     </SettingLine>
   );

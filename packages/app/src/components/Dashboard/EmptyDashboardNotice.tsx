@@ -51,7 +51,7 @@ export function EmptyDashboardNotice() {
             <Switch
               checked={analytics}
               onChange={setAnalytics}
-              label="Share anonymous logs and errors with the developer"
+              label="Send anonymous logs and errors"
             />
           )}
         </Stack>

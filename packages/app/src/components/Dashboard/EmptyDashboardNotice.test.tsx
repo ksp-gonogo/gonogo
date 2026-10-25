@@ -72,7 +72,7 @@ describe("Dashboard with no widgets", () => {
   it("offers a switch for anonymous analytics, off until it is turned on", async () => {
     renderScreen([]);
     const toggle = screen.getByRole("checkbox", {
-      name: "Share anonymous logs and errors with the developer",
+      name: "Send anonymous logs and errors",
     });
     expect(toggle).not.toBeChecked();
     expect(analyticsConsentService.isEnabled()).toBe(false);
@@ -87,9 +87,7 @@ describe("Dashboard with no widgets", () => {
     analyticsConsentService.set("enabled");
     renderScreen([]);
     expect(
-      screen.getByRole("checkbox", {
-        name: "Share anonymous logs and errors with the developer",
-      }),
+      screen.getByRole("checkbox", { name: "Send anonymous logs and errors" }),
     ).toBeChecked();
   });
 
