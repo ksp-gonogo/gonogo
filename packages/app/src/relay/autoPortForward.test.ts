@@ -98,12 +98,14 @@ describe("automatic port forwarding setting", () => {
   it("refuses a typed address that is not one, and accepts an empty field", () => {
     expect(refuseAddress("")).toBeUndefined();
     expect(refuseAddress("203.0.113.1")).toBeUndefined();
-    expect(refuseAddress("203.0.113")).toMatch(/not an address/);
+    expect(refuseAddress("2001:db8::1")).toBeUndefined();
+    expect(refuseAddress("203.0.113")).toBe("That is not an IP address.");
   });
 
-  it("takes four numbers from 0 to 255 as a router address, and nothing else", () => {
+  it("takes an IPv4 or IPv6 address as a router address, and nothing else", () => {
     expect(isRouterAddress("203.0.113.1")).toBe(true);
     expect(isRouterAddress(" 203.0.113.1 ")).toBe(true);
+    expect(isRouterAddress("fe80::1%eth0")).toBe(true);
     for (const bad of [
       "203.0.113",
       "256.0.0.1",

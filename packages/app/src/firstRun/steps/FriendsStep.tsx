@@ -73,16 +73,8 @@ function AutomaticForward() {
   const computer = useAddressSetting(COMPUTER_ADDRESS_SETTING);
   return (
     <Stack gap="related-dense">
-      <AddressField
-        address={router}
-        label={say("friends.router.label")}
-        hint={say("friends.router.hint")}
-      />
-      <AddressField
-        address={computer}
-        label={say("friends.computer.label")}
-        hint={say("friends.computer.hint")}
-      />
+      <AddressField address={router} label={say("friends.router.label")} />
+      <AddressField address={computer} label={say("friends.computer.label")} />
       {router.saved && computer.saved ? (
         <ForwardStatus />
       ) : (
@@ -118,22 +110,16 @@ function useAddressSetting(id: string): AddressSetting {
 function AddressField({
   address,
   label,
-  hint,
-}: Readonly<{ address: AddressSetting; label: string; hint: string }>) {
+}: Readonly<{ address: AddressSetting; label: string }>) {
   const refused = address.text.trim() !== "" && !isRouterAddress(address.text);
   return (
-    <Stack gap="related-dense">
-      <TextField
-        label={label}
-        value={address.text}
-        onChange={address.edit}
-        invalid={refused ? say("friends.address.invalid") : undefined}
-        maxLength={15}
-      />
-      <Text level="muted" size="sm">
-        {hint}
-      </Text>
-    </Stack>
+    <TextField
+      label={label}
+      value={address.text}
+      onChange={address.edit}
+      invalid={refused ? say("friends.address.invalid") : undefined}
+      maxLength={60}
+    />
   );
 }
 

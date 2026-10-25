@@ -47,7 +47,7 @@ export const WIZARD_COPY = {
   "friends.heading": "Friends on other networks",
   "friends.advance": "Connect to KSP",
   "friends.question":
-    "Devices on this network can always join. Friends on other networks, such as a phone on mobile data or a friend at home, need one port on your router opened to this computer.",
+    "For someone who is not on your local network to join, one port on your router has to be opened to this computer.",
   "friends.legend": "Will friends join from other networks?",
   "friends.choice.local": "No, only devices on this network",
   "friends.choice.auto": "Yes, and let Gonogo open the port on my router",
@@ -56,16 +56,11 @@ export const WIZARD_COPY = {
     "You can change this later in Settings, under Relay, by turning on Automatic port forwarding.",
   "friends.manual":
     "In your router's settings, forward port {port}, UDP and TCP, to this computer, and give this computer a fixed address on your network. The [networking guide](relayPorts) has the steps.",
-  "friends.router.label": "Your router's address",
-  "friends.router.hint":
-    "Four numbers separated by dots. It is usually printed on the router's label, and this computer's network settings show it as Router or Default Gateway.",
-  "friends.computer.label": "This computer's address",
-  "friends.computer.hint":
-    "Also four numbers separated by dots: the address the router sends friends to. This computer's network settings show it as IP address or IPv4 Address.",
-  "friends.address.invalid":
-    "That is not an address: it should be four numbers from 0 to 255, separated by dots.",
+  "friends.router.label": "Your router's IP address",
+  "friends.computer.label": "This computer's IP address",
+  "friends.address.invalid": "That is not an IP address.",
   "friends.check.needAddress":
-    "Enter both addresses and Gonogo asks your router to open the port.",
+    "Enter both IP addresses and Gonogo asks your router to open the port.",
   "friends.check.checking": "Asking your router to open port {port}",
   "friends.check.pass":
     "Your router opened port {port}: friends on other networks can join",
