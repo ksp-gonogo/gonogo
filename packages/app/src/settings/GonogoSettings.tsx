@@ -116,7 +116,7 @@ export function GonogoSettings({
         {stationOnly
           ? "Waiting for the main screen to share KSP's settings"
           : hostDown
-            ? `${NO_TELEMETRY_HOST_MESSAGE}. These settings live in KSP's own settings file, so they can be read and changed only while KSP is connected`
+            ? `${NO_TELEMETRY_HOST_MESSAGE}. These settings show while KSP is connected`
             : "Waiting for KSP to report its settings"}
       </Empty>
     );

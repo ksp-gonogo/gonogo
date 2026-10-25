@@ -443,7 +443,7 @@ describe("FirstRunSetup: the KSP connection check", () => {
     );
   }
 
-  it("names the three causes, each with its way out, while there is no connection", async () => {
+  it("says how to start KSP and names the two causes, each with its way out, while there is no connection", async () => {
     renderSetup();
     await goToConnect();
 
@@ -453,7 +453,7 @@ describe("FirstRunSetup: the KSP connection check", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(MOD_LOG_COMMAND.posix)).toBeInTheDocument();
-    expect(screen.getByText(/KSP may not be running yet/)).toBeInTheDocument();
+    expect(screen.getByText(/wait for the main menu/)).toBeInTheDocument();
     expect(
       screen.getByRole("link", {
         name: linkWords(runs("connect.hint.notInstalled"), "kspSetup"),

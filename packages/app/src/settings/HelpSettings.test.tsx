@@ -32,33 +32,22 @@ describe("HelpSettings", () => {
     ).toHaveAttribute("href", expect.stringContaining("/releases"));
   });
 
-  it("explains physical controls, USB serial behind its switch and the browser's own prompt", async () => {
+  it("points physical controls at Settings, Devices and gives the Chrome page for USB serial on http", async () => {
     const user = userEvent.setup();
     const { container } = render(<HelpSettings />);
     await user.click(screen.getByRole("button", { name: "Physical controls" }));
-    expect(
-      screen.getByText(/off until you switch USB serial on/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/That prompt is the browser's/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/in Settings, Devices/)).toBeInTheDocument();
     expect(
       screen.getByText(/unsafely-treat-insecure-origin-as-secure/),
     ).toBeInTheDocument();
     await expectNoA11yViolations(container);
   });
 
-  it("explains signal delay, where to switch it off and what it leaves alone", async () => {
+  it("points signal delay at the game's Difficulty settings and says what CommNet off does", async () => {
     const user = userEvent.setup();
     const { container } = render(<HelpSettings />);
     await user.click(screen.getByRole("button", { name: "Signal delay" }));
     expect(screen.getByText(/Difficulty settings/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/a higher value shortens every delay/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/does not switch off loss of signal/),
-    ).toBeInTheDocument();
     expect(
       screen.getByText(
         /CommNet option disabled, every craft counts as connected/,
