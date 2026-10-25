@@ -78,9 +78,11 @@ import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { PeerTransport } from "../telemetry/PeerTransport";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
+import type { HostUplinkFailure } from "../uplinks/loadFailures";
 import { StationUplinkLoader } from "../uplinks/StationUplinkLoader";
 import { attachStationBrokers } from "../uplinks/stationBrokers";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
+import { UplinkLoadFailureScreen } from "../uplinks/UplinkLoadFailureScreen";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
 const RELAY_URL_KEY = "gonogo-station-relay-url";
@@ -204,6 +206,14 @@ export function StationScreen() {
   }, [serialService]);
 
   useFollowHostAnalytics(client);
+
+  const [hostUplinkFailures, setHostUplinkFailures] = useState<
+    HostUplinkFailure[]
+  >([]);
+  useEffect(
+    () => client.onHostUplinkFailuresChange(setHostUplinkFailures),
+    [client],
+  );
 
   // Each Uplink that registered a station broker gets one relaying through this station's link; a registration arriving later, as a bundle loads, is attached then.
   useEffect(() => attachStationBrokers(client), [client]);
@@ -362,6 +372,15 @@ export function StationScreen() {
   // its OWN `WebSocketTransport` straight to the mod, exactly the direct
   // station→KSP connection the peer architecture forbids.
   if (!peerTransport) return null;
+
+  if (hostUplinkFailures.length > 0) {
+    return (
+      <UplinkLoadFailureScreen
+        audience="station"
+        failures={hostUplinkFailures}
+      />
+    );
+  }
 
   return (
     <ScreenProvider value="station">

@@ -4,6 +4,7 @@ import { debugPeer, logger } from "@ksp-gonogo/logger";
 import type { ConnectProgress } from "@ksp-gonogo/ui";
 import Peer, { type DataConnection } from "peerjs";
 import type { RunningUplink } from "../uplinks/loaderState";
+import type { HostUplinkFailure } from "../uplinks/loadFailures";
 import { type ConnectionPath, readConnectionPath } from "./connectionPath";
 import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
 import { deriveHostPeerId } from "./hostPeerId";
@@ -160,6 +161,7 @@ type ClientEventMap = {
   flightChange: [flight: FlightRecord | null];
   hostCommandCentre: [centreId: string | null];
   hostUplinks: [uplinks: RunningUplink[] | null];
+  hostUplinkFailures: [failures: HostUplinkFailure[]];
   flightListChange: [];
   hostUnavailable: [hostPeerId: string];
   superseded: [superseded: boolean];
@@ -271,6 +273,7 @@ export class PeerClientService {
   // knows where mission control was.
   private hostCommandCentre: string | null = null;
   private hostUplinks: RunningUplink[] | null = null;
+  private hostUplinkFailures: HostUplinkFailure[] = [];
 
   private pendingQueries = new RequestTracker<{
     t: number[];
@@ -1310,6 +1313,19 @@ export class PeerClientService {
     return remove;
   }
 
+  /**
+   * Notified whenever the set of Uplinks that failed to load on the main
+   * screen changes. Fires immediately with the cached set, empty before the
+   * main screen has said or while it runs normally.
+   */
+  onHostUplinkFailuresChange(
+    cb: (failures: HostUplinkFailure[]) => void,
+  ): () => void {
+    const remove = this.events.on("hostUplinkFailures", cb);
+    cb(this.hostUplinkFailures);
+    return remove;
+  }
+
   /** Latest flight snapshot pushed by the host. Synchronous. */
   getCurrentFlight(): FlightRecord | null {
     return this.currentFlight;
@@ -1702,6 +1718,10 @@ export class PeerClientService {
     },
     "trigger-snapshot": (msg) => {
       this.events.emit("triggerSnapshot", msg.snapshot);
+    },
+    "host-uplink-failures": (msg) => {
+      this.hostUplinkFailures = msg.failures;
+      this.events.emit("hostUplinkFailures", msg.failures);
     },
     "host-uplinks": (msg) => {
       this.hostUplinks = msg.uplinks;
