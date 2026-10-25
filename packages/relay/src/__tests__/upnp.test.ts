@@ -195,7 +195,7 @@ describe("PortMapper against a router that speaks UPnP only", () => {
     const igd = await fakeIgd(options);
     const log: string[] = [];
     const mapper = new PortMapper({
-      gateways: ["127.0.0.1"],
+      router: "127.0.0.1",
       ports: portList(3478, 49160, 49162),
       timeoutMs: 40,
       natPmpPort: 9,
@@ -253,6 +253,5 @@ describe("PortMapper against a router that speaks UPnP only", () => {
     expect(log.at(-1)).toContain(
       "no router answered NAT-PMP or UPnP at 127.0.0.1",
     );
-    expect(log.at(-1)).toContain("set ROUTER_IP");
   });
 });

@@ -15,8 +15,8 @@ export interface RelayConfig {
    */
   appOrigins: string[];
   /**
-   * The router's address, from `ROUTER_IP`, when the relay should ask only that
-   * one to open its ports. Null lets the relay look for the router itself.
+   * The router to ask for automatic port forwarding, from `ROUTER_IP`, until
+   * the main screen sends the address the player gave. Null asks no router.
    */
   routerIp: string | null;
   /**

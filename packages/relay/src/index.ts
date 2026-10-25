@@ -14,13 +14,7 @@ import { startEndpoint } from "./endpointManager.js";
 import { EndpointSupervisor } from "./endpointSupervisor.js";
 import { registerHealthRoutes } from "./healthRoutes.js";
 import { PortForwarding, registerPortForwardRoutes } from "./portForwarding.js";
-import {
-  defaultGateway,
-  endpointPorts,
-  gatewayCandidates,
-  PortMapper,
-  sweepCandidates,
-} from "./portMapper.js";
+import { endpointPorts, PortMapper } from "./portMapper.js";
 import { registerStationsProxy } from "./stationsProxy.js";
 import { BUILD_TIME, VERSION } from "./version.js";
 
@@ -158,15 +152,17 @@ if (config.skipEndpoint) {
 }
 
 const forwarding = new PortForwarding(
-  () =>
+  (router) =>
     new PortMapper({
-      gateways: gatewayCandidates(config.routerIp, defaultGateway()),
+      router,
       ports: endpointPorts(config.endpointPort),
-      sweep: config.routerIp ? [] : sweepCandidates(),
       lanIp: config.lanIp,
       log: (msg) => bridgeInfo(`port mapping: ${msg}`),
     }),
-  config.portMapping && !config.skipEndpoint,
+  {
+    enabled: config.portMapping && !config.skipEndpoint,
+    router: config.routerIp,
+  },
 );
 void forwarding.start();
 registerPortForwardRoutes(fastify, forwarding);

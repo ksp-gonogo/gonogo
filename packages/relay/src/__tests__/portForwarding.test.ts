@@ -7,58 +7,76 @@ import {
 } from "../portForwarding.js";
 import type { PortMappingStatus } from "../portMapper.js";
 
-/** A mapper that records being started and stopped, standing in for the router. */
+const ROUTER = "198.51.100.1";
+const OTHER_ROUTER = "198.51.100.254";
+
+/** A mapper that records which router it was made for and when it starts and stops. */
 function recorder() {
   const events: string[] = [];
-  let n = 0;
-  const make = (): ForwardingMapper => {
-    const id = ++n;
-    return {
-      status: { state: "mapped", message: "opened" } as PortMappingStatus,
-      start: async () => {
-        events.push(`start ${id}`);
-      },
-      stop: async () => {
-        events.push(`stop ${id}`);
-      },
-    };
-  };
+  const make = (router: string): ForwardingMapper => ({
+    status: { state: "mapped", message: "opened" } as PortMappingStatus,
+    start: async () => {
+      events.push(`start ${router}`);
+    },
+    stop: async () => {
+      events.push(`stop ${router}`);
+    },
+  });
   return { events, make };
 }
 
 describe("automatic port forwarding", () => {
-  it("opens the port at start only when it starts switched on", async () => {
+  it("opens the port at start only when it starts on with a router address", async () => {
     const off = recorder();
-    const a = new PortForwarding(off.make, false);
+    const a = new PortForwarding(off.make, { enabled: false, router: ROUTER });
     await a.start();
     expect(off.events).toEqual([]);
     expect(a.status).toBeNull();
 
     const on = recorder();
-    const b = new PortForwarding(on.make, true);
+    const b = new PortForwarding(on.make, { enabled: true, router: ROUTER });
     await b.start();
-    expect(on.events).toEqual(["start 1"]);
+    expect(on.events).toEqual([`start ${ROUTER}`]);
     expect(b.status?.state).toBe("mapped");
     await b.stop();
-    expect(on.events).toEqual(["start 1", "stop 1"]);
+    expect(on.events.at(-1)).toBe(`stop ${ROUTER}`);
   });
 
-  it("opens and closes the port as the switch changes, in order", async () => {
+  it("asks nothing without a router address, and says it needs one", async () => {
     const r = recorder();
-    const f = new PortForwarding(r.make, false);
+    const f = new PortForwarding(r.make, { enabled: true, router: null });
     await f.start();
-    await Promise.all([f.set(true), f.set(false), f.set(true)]);
-    expect(r.events).toEqual(["start 1", "stop 1", "start 2"]);
-    expect(f.enabled).toBe(true);
-    await f.set(true);
-    expect(r.events).toHaveLength(3);
-    await f.stop();
-    expect(r.events.at(-1)).toBe("stop 2");
+    expect(r.events).toEqual([]);
+    expect(f.status?.state).toBe("no-address");
   });
 
-  it("takes the switch from the main screen, and reports it", async () => {
+  it("opens and closes the port as the switch changes, in order, and moves to a new router address", async () => {
     const r = recorder();
-    const f = new PortForwarding(r.make, false);
+    const f = new PortForwarding(r.make, { enabled: false, router: null });
+    await f.start();
+    await Promise.all([
+      f.set({ enabled: true, router: ROUTER }),
+      f.set({ enabled: false, router: ROUTER }),
+      f.set({ enabled: true, router: ROUTER }),
+    ]);
+    expect(r.events).toEqual([
+      `start ${ROUTER}`,
+      `stop ${ROUTER}`,
+      `start ${ROUTER}`,
+    ]);
+    await f.set({ enabled: true, router: ROUTER });
+    expect(r.events).toHaveLength(3);
+    await f.set({ enabled: true, router: OTHER_ROUTER });
+    expect(r.events.slice(3)).toEqual([
+      `stop ${ROUTER}`,
+      `start ${OTHER_ROUTER}`,
+    ]);
+    await f.stop();
+  });
+
+  it("takes the switch and the router address from the main screen, and reports them", async () => {
+    const r = recorder();
+    const f = new PortForwarding(r.make, { enabled: false, router: null });
     const app = Fastify();
     registerPortForwardRoutes(app, f);
     await app.ready();
@@ -66,24 +84,38 @@ describe("automatic port forwarding", () => {
     const on = await app.inject({
       method: "POST",
       url: "/port-forward",
-      payload: { enabled: true },
+      payload: { enabled: true, routerIp: ROUTER },
     });
     expect(on.statusCode).toBe(200);
     expect(on.json()).toMatchObject({
       enabled: true,
+      routerIp: ROUTER,
       portMapping: { state: "mapped" },
     });
-    expect(r.events).toEqual(["start 1"]);
+    expect(r.events).toEqual([`start ${ROUTER}`]);
 
-    const bad = await app.inject({
+    for (const payload of [
+      { enabled: "yes" },
+      { enabled: true, routerIp: "my router" },
+      { enabled: true, routerIp: "300.1.1.1" },
+    ]) {
+      const bad = await app.inject({
+        method: "POST",
+        url: "/port-forward",
+        payload,
+      });
+      expect(bad.statusCode).toBe(400);
+    }
+
+    const keep = await app.inject({
       method: "POST",
       url: "/port-forward",
-      payload: { enabled: "yes" },
+      payload: { enabled: true },
     });
-    expect(bad.statusCode).toBe(400);
+    expect(keep.json()).toMatchObject({ routerIp: ROUTER });
 
     const read = await app.inject({ method: "GET", url: "/port-forward" });
-    expect(read.json()).toMatchObject({ enabled: true });
+    expect(read.json()).toMatchObject({ enabled: true, routerIp: ROUTER });
     await app.close();
     await f.stop();
   });
