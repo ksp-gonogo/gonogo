@@ -169,7 +169,7 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
       ),
       list(
         "Can't reach the peer broker: the station has no internet route. Load any website on it, and check it is not on a guest network or a captive portal that blocks outbound connections",
-        "Broker doesn't know that code: check the code against the Add station window, that this tab is still open and awake, and that the code was not regenerated",
+        "Broker doesn't know that share code: check the share code against the Add station window, that this tab is still open and awake, and that the share code was not regenerated",
         "Reconnecting after a working session: this screen went away, by refresh, sleep or restart. A station retries by itself for five minutes",
         "Connects, then fails to open a channel: guest and public WiFi often block device-to-device traffic. Put both devices on your normal network",
         "The station's connect screen has a Download logs button, and the lines beginning [PeerClient] name the code being targeted and the reason for each retry",

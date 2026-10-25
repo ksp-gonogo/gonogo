@@ -23,13 +23,13 @@ describe("StationConnectView", () => {
   it("renders the connect prompt with an accessible host input and connect button", () => {
     render(<StationConnectView {...baseProps} />);
     expect(screen.getByText(/Connect to Mission Control/i)).not.toBeNull();
-    expect(screen.getByLabelText(/host id/i)).not.toBeNull();
+    expect(screen.getByLabelText(/share code/i)).not.toBeNull();
     expect(screen.getByRole("button", { name: /connect/i })).not.toBeNull();
   });
 
   it("replaces the host input's stripped outline with a :focus-visible ring", () => {
     render(<StationConnectView {...baseProps} />);
-    const input = screen.getByLabelText(/host id/i);
+    const input = screen.getByLabelText(/share code/i);
     const css = Array.from(document.querySelectorAll("style"))
       .map((el) => el.textContent ?? "")
       .join("\n");
@@ -57,7 +57,7 @@ describe("StationConnectView", () => {
     expect(onConnect).toHaveBeenCalledWith("AB3K");
 
     // Typing into the input forwards each change.
-    await userEvent.type(screen.getByLabelText(/host id/i), "Z");
+    await userEvent.type(screen.getByLabelText(/share code/i), "Z");
     expect(onHostInputChange).toHaveBeenCalled();
   });
 
@@ -76,7 +76,7 @@ describe("StationConnectView", () => {
         hostNotFound
       />,
     );
-    expect(screen.getByText(/Couldn't find code/i)).not.toBeNull();
+    expect(screen.getByText(/Couldn't find share code/i)).not.toBeNull();
     expect(screen.getByText(/ZZ9Q/)).not.toBeNull();
   });
 
@@ -126,7 +126,7 @@ describe("StationConnectView", () => {
       screen.getByText(/this device needs internet access/i),
     ).not.toBeNull();
     // The code-is-wrong copy would send the operator to the main screen for a fault on this device's network.
-    expect(screen.queryByText(/Couldn't find code/i)).toBeNull();
+    expect(screen.queryByText(/Couldn't find share code/i)).toBeNull();
     expect(screen.queryByText(/Check the host ID/i)).toBeNull();
   });
 
@@ -360,7 +360,7 @@ describe("connect progress", () => {
 describe("connect status helpers", () => {
   it("describes the never-connected not-found state distinctly from reconnect", () => {
     expect(describeConnStatus("disconnected", true, false)).toMatch(
-      /Broker doesn't know that code/i,
+      /Broker doesn't know that share code/i,
     );
     expect(describeConnStatus("reconnecting", true, true)).toMatch(
       /Host reconnecting/i,

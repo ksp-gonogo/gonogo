@@ -104,7 +104,7 @@ export function StationConnectView({
     <ConnectLayout as="main" aria-label="Connect to mission control">
       <ConnectBox>
         <h1>Connect to Mission Control</h1>
-        <p>Enter the host ID shown on the main screen.</p>
+        <p>Enter the share code shown on the main screen.</p>
         <ConnectRow>
           <HostInput
             value={hostInput}
@@ -112,7 +112,7 @@ export function StationConnectView({
             onKeyDown={(e) => e.key === "Enter" && onConnect(hostInput)}
             placeholder="e.g. AB3KP7"
             maxLength={8}
-            aria-label="Host ID"
+            aria-label="Share code"
             autoFocus
           />
           <ConnectButton
@@ -142,11 +142,11 @@ export function StationConnectView({
         )}
         {!brokerUnreachable && hostNotFound && !everConnected && (
           <ErrorMsg>
-            Couldn't find code &ldquo;{hostInput.trim().toUpperCase()}&rdquo;.
-            The main screen may not be ready yet: it may still be starting, or
-            waiting for an answer to its start-up questions, or its tab may be
-            closed or asleep. Check the code matches the main screen. This
-            station keeps trying.
+            Couldn't find share code &ldquo;{hostInput.trim().toUpperCase()}
+            &rdquo;. The main screen may not be ready yet: it may still be
+            starting, or waiting for an answer to its start-up questions, or its
+            tab may be closed or asleep. Check the share code matches the main
+            screen. This station keeps trying.
           </ErrorMsg>
         )}
         {!brokerUnreachable && !hostNotFound && hostChannelFailed && (
@@ -178,7 +178,7 @@ export function StationConnectView({
           !hostChannelFailed &&
           connStatus === "disconnected" && (
             <ErrorMsg>
-              Connection lost. Check the host ID and try again.
+              Connection lost. Check the share code and try again.
             </ErrorMsg>
           )}
         {stalled && progress && (
