@@ -152,16 +152,17 @@ if (config.skipEndpoint) {
 }
 
 const forwarding = new PortForwarding(
-  (router) =>
+  (router, lan) =>
     new PortMapper({
       router,
       ports: endpointPorts(config.endpointPort),
-      lanIp: config.lanIp,
+      lanIp: lan,
       log: (msg) => bridgeInfo(`port mapping: ${msg}`),
     }),
   {
     enabled: config.portMapping && !config.skipEndpoint,
     router: config.routerIp,
+    lan: config.lanIp,
   },
 );
 void forwarding.start();
