@@ -14,13 +14,14 @@
  * to arrive except the roster itself.
  */
 
+import { logger } from "@ksp-gonogo/logger";
 import type {
   ContractVersionReading,
   SystemUplinkHealth,
   UplinkHealthEntry,
 } from "@ksp-gonogo/sitrep-client";
 import { useStream } from "@ksp-gonogo/sitrep-client";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import {
   getUplinkOutcomes,
   subscribeUplinkOutcomes,
@@ -186,11 +187,7 @@ export function computeUplinkReadiness(
       declaredContract,
       coreContract,
       rosterEntry: rosterEntry ?? null,
-      bundled:
-        installed &&
-        modAvailable &&
-        outcome?.status !== "quarantined" &&
-        (bundledIds?.has(id) ?? false),
+      bundled: installed && (bundledIds?.has(id) ?? false),
       outcome,
       state: stateOf(
         outcome,
@@ -212,6 +209,36 @@ interface RawClientDeclarations {
     clientSource?: unknown;
   }>;
 }
+
+/**
+ * The Uplinks compiled into the core mod that are not working as shipped: the
+ * mod could not load the assembly, or the browser quarantined the client. An
+ * expansion that is not installed reads as unavailable health and is not one.
+ */
+export function bundledDefects(
+  entries: readonly UplinkReadinessEntry[],
+): Array<{ id: string; reason: string }> {
+  const defects: Array<{ id: string; reason: string }> = [];
+  for (const entry of entries) {
+    if (!entry.bundled) continue;
+    if (entry.outcome?.status === "quarantined") {
+      defects.push({
+        id: entry.id,
+        reason: entry.outcome.reason ?? "the client was refused",
+      });
+      continue;
+    }
+    if (entry.rosterEntry?.available === false)
+      defects.push({
+        id: entry.id,
+        reason: entry.rosterEntry.reason ?? "the mod did not load it",
+      });
+  }
+  return defects;
+}
+
+const bundledLog = logger.tag("uplink-bundled");
+const reportedDefects = new Set<string>();
 
 export interface UseUplinkReadinessResult {
   entries: UplinkReadinessEntry[];
@@ -262,6 +289,15 @@ export function useUplinkReadiness(): UseUplinkReadinessResult {
     bundledIds,
   );
   const notes = useUplinkClientNotes(joined.map((entry) => entry.id));
+
+  useEffect(() => {
+    for (const { id, reason } of bundledDefects(joined)) {
+      const key = `${id}:${reason}`;
+      if (reportedDefects.has(key)) continue;
+      reportedDefects.add(key);
+      bundledLog.error(`bundled Uplink ${id} is not working: ${reason}`);
+    }
+  });
 
   return {
     entries: joined.map((entry) => ({

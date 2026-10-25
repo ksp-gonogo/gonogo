@@ -4,7 +4,7 @@ import type {
 } from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it } from "vitest";
 import type { UplinkLoadOutcome } from "../uplinks/loaderState";
-import { computeUplinkReadiness } from "./useUplinkReadiness";
+import { bundledDefects, computeUplinkReadiness } from "./useUplinkReadiness";
 
 /*
  * Fixture ids are deliberately generic (never a real mod name): this file
@@ -307,7 +307,7 @@ describe("computeUplinkReadiness: Uplinks inside the core mod", () => {
     ]);
   });
 
-  it("keeps a contract-refused Uplink visible, since it is an add-on whose refusal the operator needs", () => {
+  it("keeps a contract-refused add-on visible even when the mod flags it bundled", () => {
     const entries = computeUplinkReadiness(
       roster(
         [
@@ -321,7 +321,7 @@ describe("computeUplinkReadiness: Uplinks inside the core mod", () => {
       ),
       [],
       undefined,
-      new Set(["widget-a"]),
+      new Set(),
     );
     expect(entries[0]).toMatchObject({
       bundled: false,
@@ -329,17 +329,7 @@ describe("computeUplinkReadiness: Uplinks inside the core mod", () => {
     });
   });
 
-  it("keeps an Uplink whose assembly the mod could not load visible, with no contract numbers declared", () => {
-    const entries = computeUplinkReadiness(
-      roster([{ id: "widget-a", available: false, reason: "failed to load" }]),
-      [],
-      undefined,
-      new Set(["widget-a"]),
-    );
-    expect(entries[0].bundled).toBe(false);
-  });
-
-  it("keeps an Uplink visible whose health reads unavailable", () => {
+  it("keeps an add-on visible whose health reads unavailable", () => {
     const entries = computeUplinkReadiness(
       roster([
         {
@@ -349,25 +339,76 @@ describe("computeUplinkReadiness: Uplinks inside the core mod", () => {
       ]),
       [],
       undefined,
-      new Set(["widget-a"]),
+      new Set(),
     );
     expect(entries[0].bundled).toBe(false);
   });
 
-  it("keeps an Uplink visible whose client was quarantined", () => {
+  it("stays bundled when its health reads unavailable, as for an expansion that is not installed", () => {
     const entries = computeUplinkReadiness(
-      roster([{ id: "widget-a" }]),
-      [
+      roster([
         {
           id: "widget-a",
-          name: "Widget A",
+          health: { state: "unavailable", detail: "no expansion", facts: [] },
+        },
+      ]),
+      [],
+      undefined,
+      new Set(["widget-a"]),
+    );
+    expect(entries[0].bundled).toBe(true);
+  });
+
+  it("stays bundled when the mod could not load its assembly or its client was quarantined", () => {
+    const entries = computeUplinkReadiness(
+      roster([
+        { id: "widget-a", available: false, reason: "failed to load" },
+        { id: "widget-b" },
+      ]),
+      [
+        {
+          id: "widget-b",
+          name: "Widget B",
           status: "quarantined",
           reason: "integrity",
         },
       ],
       undefined,
-      new Set(["widget-a"]),
+      new Set(["widget-a", "widget-b"]),
     );
-    expect(entries[0].bundled).toBe(false);
+    expect(entries.map((e) => [e.id, e.bundled])).toEqual([
+      ["widget-a", true],
+      ["widget-b", true],
+    ]);
+  });
+});
+
+describe("bundledDefects", () => {
+  it("names a bundled Uplink whose assembly failed or whose client was quarantined, and nothing else", () => {
+    const entries = computeUplinkReadiness(
+      roster([
+        { id: "widget-a", available: false, reason: "failed to load" },
+        { id: "widget-b" },
+        {
+          id: "widget-c",
+          health: { state: "unavailable", detail: "no expansion", facts: [] },
+        },
+        { id: "widget-d", available: false, reason: "failed to load" },
+      ]),
+      [
+        {
+          id: "widget-b",
+          name: "Widget B",
+          status: "quarantined",
+          reason: "integrity",
+        },
+      ],
+      undefined,
+      new Set(["widget-a", "widget-b", "widget-c"]),
+    );
+    expect(bundledDefects(entries)).toEqual([
+      { id: "widget-a", reason: "failed to load" },
+      { id: "widget-b", reason: "integrity" },
+    ]);
   });
 });
