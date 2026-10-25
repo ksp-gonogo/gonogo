@@ -9,6 +9,7 @@ import type { StationBroker } from "./types";
 
 const BROKER: StationBroker = {
   relay: () => Promise.resolve(undefined),
+  iceServers: { current: () => [], onChange: () => () => {} },
 };
 
 afterEach(() => {
