@@ -18,6 +18,7 @@ import {
 import type { EndpointStatus } from "../peer/endpointStations";
 import { peerHostService } from "../peer/PeerHostService";
 import { relayBaseUrl } from "../peer/relayAddress";
+import { requestSettings } from "../settings/settingsRequest";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
 import { CHANNEL } from "../version";
 import { StationAddressList } from "./StationAddressList";
@@ -211,16 +212,17 @@ function pathText(path: ConnectionPath | null): string {
 }
 
 /**
- * Whether stations on other networks can join: the relay's endpoint is
- * running, and the router forwards its one port to this computer, either
- * opened by the relay or forwarded by hand. Read again every 30 s while the
- * window is open, so a forward made or a relay started meanwhile shows up.
+ * What stops stations on other networks joining: the relay not running, or
+ * its port not opened on the router. Shows nothing once the relay has had the
+ * router open it. A port forwarded by hand cannot be seen from here, so that
+ * case reads the same as no forward. Read again every 30 s while the window is
+ * open.
  */
 function EndpointState() {
   const [status, setStatus] = useState<EndpointStatus | null>(
     peerHostService.endpoint.status,
   );
-  const mapping = usePortMapping();
+  const opened = usePortOpened();
   useEffect(
     () =>
       peerHostService.endpoint.onAvailable(() =>
@@ -232,50 +234,32 @@ function EndpointState() {
   if (!status) {
     return (
       <StatusIndicator tone="warn" live>
-        The relay is not running, so only devices on this network can join. The{" "}
+        The relay is not running, so only devices on this network can join.{" "}
         <GuideLink
           href={SETUP_LINKS.relayPorts}
           target="_blank"
           rel="noreferrer"
         >
-          networking guide
-        </GuideLink>{" "}
-        sets it up for friends on other networks.
+          Networking guide
+        </GuideLink>
       </StatusIndicator>
     );
   }
-  if (mapping?.state === "mapped") {
-    return (
-      <StatusIndicator tone="go" live>
-        Ready for stations on other networks: your router opened port{" "}
-        {status.port}.
-      </StatusIndicator>
-    );
-  }
+  if (opened) return null;
   return (
     <StatusIndicator tone="info" live>
-      Stations on this network can join. For friends on other networks, forward
-      port {status.port} (UDP and TCP) on your router to this computer, or turn
-      on Automatic port forwarding in Settings, under Relay, and enter your
-      router&apos;s address and this computer&apos;s, so Gonogo opens it for
-      you.
-      {mapping && mapping.state !== "checking" && <> {mapping.message}</>} The{" "}
-      <GuideLink href={SETUP_LINKS.relayPorts} target="_blank" rel="noreferrer">
-        networking guide
-      </GuideLink>{" "}
-      has the steps.
+      Stations on this network can join. For other networks, see{" "}
+      <SettingLink type="button" onClick={() => requestSettings("general")}>
+        Automatic port forwarding
+      </SettingLink>{" "}
+      in Settings, under Relay.
     </StatusIndicator>
   );
 }
 
-interface PortMapping {
-  state: string;
-  message: string;
-}
-
-/** The relay's own attempt to open its port on the router, from `/health`; null while it makes none. */
-function usePortMapping(): PortMapping | null {
-  const [mapping, setMapping] = useState<PortMapping | null>(null);
+/** Whether the relay reports, in `/health`, that the router opened its port. */
+function usePortOpened(): boolean {
+  const [opened, setOpened] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
     const read = () =>
@@ -286,14 +270,10 @@ function usePortMapping(): PortMapping | null {
             typeof body === "object" && body !== null
               ? Reflect.get(body, "portMapping")
               : null;
-          const state =
-            m && typeof m === "object" ? Reflect.get(m, "state") : null;
-          const message =
-            m && typeof m === "object" ? Reflect.get(m, "message") : null;
-          setMapping(
-            typeof state === "string" && typeof message === "string"
-              ? { state, message }
-              : null,
+          setOpened(
+            !!m &&
+              typeof m === "object" &&
+              Reflect.get(m, "state") === "mapped",
           );
         })
         .catch(() => {});
@@ -304,7 +284,7 @@ function usePortMapping(): PortMapping | null {
       controller.abort();
     };
   }, []);
-  return mapping;
+  return opened;
 }
 
 const PathList = styled.ul`
@@ -321,6 +301,22 @@ const PathList = styled.ul`
 const GuideLink = styled.a`
   color: var(--color-info-text);
   text-decoration: underline;
+`;
+
+/* A button that reads as the link beside it, inside a sentence. */
+const SettingLink = styled.button`
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--color-info-text);
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
 `;
 
 const PathRow = styled.li`
