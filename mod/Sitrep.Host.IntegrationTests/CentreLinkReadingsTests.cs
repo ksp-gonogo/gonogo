@@ -469,6 +469,19 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Null(seated.HomeView.Latest(ContactPlanSource.DegradeTopic));
         }
 
+        /// <summary>A steady reading is said again on the keyframe interval, so a screen that holds a reading only while it is fresh keeps showing one.</summary>
+        [Fact]
+        public async Task ASteadyReadingIsSaidAgainOnTheKeyframeInterval()
+        {
+            await using var seated = await SeatedAsync(Direct(0.9));
+            await seated.TickAsync(1, 2, 3, 4, 700, 702);
+            var before = seated.HomeView.SignalStrengths.Count;
+
+            await seated.TickAsync(710, 720, 730, 740, 750);
+
+            Assert.True(seated.HomeView.SignalStrengths.Count > before, "no frame of a steady reading arrived in 48 seconds");
+        }
+
         /// <summary>A reading is state, and an addressed sample is not kept for whoever subscribes after it landed, so it is said again.</summary>
         [Fact]
         public async Task ASessionThatSitsDownLaterIsSentItsCentresDelayAndReading()

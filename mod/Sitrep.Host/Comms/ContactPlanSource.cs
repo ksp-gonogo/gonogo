@@ -456,6 +456,8 @@ namespace Sitrep.Host.Comms
         /// <summary>What each centre was last told of the signal and its grading, to the quantum a change is said at, and which kind of figure it was: measured on its path, worked out, or measured on another.</summary>
         private readonly Dictionary<string, (long? Strength, SignalQuantity Quantity, int Kind, string? GradedBy, long? Grade, string? MeasuredOn)> _signalSent =
             new Dictionary<string, (long?, SignalQuantity, int, string?, long?, string?)>(StringComparer.Ordinal);
+        /// <summary>The look each centre was last sent a reading at, so a steady one is said again once the keyframe interval has gone by.</summary>
+        private readonly Dictionary<string, double> _signalSentAt = new Dictionary<string, double>(StringComparer.Ordinal);
         private readonly HashSet<string> _vesselsAsked = new HashSet<string>(StringComparer.Ordinal);
         private readonly Dictionary<string, long> _vesselsNews = new Dictionary<string, long>(StringComparer.Ordinal);
         private volatile bool _timelineReset;
@@ -509,6 +511,9 @@ namespace Sitrep.Host.Comms
                 ? UplinkHealth.Healthy
                 : UplinkHealth.Degraded("the last contact plan failed: " + failure);
         }
+
+        /// <summary>How long a reading may go unsaid before it is sent again unchanged, matching the 30 the path channels declare (a literal there, which the AsyncAPI document reads).</summary>
+        private const double SignalKeyframeIntervalUt = 30;
 
         /// <summary>
         /// One of the three path channels. Addressed: each centre is sent the
@@ -1064,6 +1069,7 @@ namespace Sitrep.Host.Comms
                 _radioCraft = null;
                 _radioSent.Clear();
                 _signalSent.Clear();
+                _signalSentAt.Clear();
                 _believed.Clear();
                 _rosterSent.Clear();
                 _said.Clear();
@@ -1830,6 +1836,7 @@ namespace Sitrep.Host.Comms
                     _pathShapes.Remove(centre);
                     _radioSent.Remove(centre);
                     _signalSent.Remove(centre);
+                    _signalSentAt.Remove(centre);
                     _believed.Forget(centre);
                     System.Threading.Interlocked.Increment(ref _plansVersion);
                 }
@@ -2280,8 +2287,13 @@ namespace Sitrep.Host.Comms
                 degrade?.ModelId,
                 degrade?.Level == null ? (long?)null : Quanta(degrade.Level.Value),
                 measuredPath == null ? null : ShapeOf(measuredPath));
-            var news = !_signalSent.TryGetValue(centre, out var was) || !was.Equals(said);
+            var news = !_signalSent.TryGetValue(centre, out var was) || !was.Equals(said)
+                || !_signalSentAt.TryGetValue(centre, out var sentAt) || looked.Ut - sentAt >= SignalKeyframeIntervalUt;
             _signalSent[centre] = said;
+            if (news)
+            {
+                _signalSentAt[centre] = looked.Ut;
+            }
             var to = ToItself(centre);
             var frames = 0;
             if (_host!.IsAnyTopicSubscribed(SignalTopic) && (news || _pathsAsked[SignalTopic].Contains(centre)))
