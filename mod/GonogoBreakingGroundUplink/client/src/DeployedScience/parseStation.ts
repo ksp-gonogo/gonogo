@@ -19,6 +19,8 @@ export interface DeployedExperiment {
   progress: number | null;
   /** Data the experiment holds that has not been sent home, in Mits. `null` is unread, and 0 is a real empty store. */
   backlog: number | null;
+  /** Whether the experiment finished with data still stored, which stays until a kerbal retrieves it. `null` is unread. */
+  stranded: boolean | null;
   transmitted: number | null;
   collecting: boolean | null;
 }
@@ -90,6 +92,7 @@ function experimentFrom(
     limit: numOrNull(e.scienceLimit),
     progress,
     backlog: numOrNull(e.storedData),
+    stranded: boolOrNull(e.stranded),
     transmitted:
       value === null || transmittedShare === null
         ? null
