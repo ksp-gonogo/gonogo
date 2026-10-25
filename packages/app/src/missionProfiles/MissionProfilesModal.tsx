@@ -246,8 +246,7 @@ export function MissionProfilesModal({
           </Button>
         </CurrentRow>
         <Hint>
-          Every change to the dashboard saves into the current layout. Undo and
-          Redo step back through changes and layout switches.
+          Every change to the dashboard saves into the current layout.
         </Hint>
         {hostLink && (
           <HostLayoutsSection
@@ -342,12 +341,6 @@ export function MissionProfilesModal({
             </AutoSwitchRow>
           </Tooltip>
         </BindingsField>
-        <Hint>
-          The new layout opens straight away. A layout can follow several
-          scenes: tagged scenes show a switch prompt at the bottom of the screen
-          when KSP enters that scene, or switch straight away if "Switch
-          automatically" is on.
-        </Hint>
       </Stack>
 
       <Stack as="section" gap="related-comfortable">

@@ -323,13 +323,12 @@ describe("MissionProfilesModal", () => {
       );
     }
 
-    it("names scenes in player words and says a layout can follow several", () => {
+    it("names scenes in player words", () => {
       renderWithBound();
 
       expect(screen.getByText("Space Center")).toBeTruthy();
       expect(screen.getByText("Tracking Station")).toBeTruthy();
       expect(screen.queryByText("TrackingStation")).toBeNull();
-      expect(screen.getByText(/can follow several scenes/)).toBeTruthy();
     });
 
     it("shows a saved row's bound scenes as text, not as four chips", () => {
