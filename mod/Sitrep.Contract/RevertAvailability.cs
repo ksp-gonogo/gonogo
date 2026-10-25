@@ -32,7 +32,7 @@ namespace Sitrep.Contract;
 /// </summary>
 /// <category>Flights</category>
 [SitrepContract]
-[SitrepTopic("ksp.revertAvailability")]
+[SitrepTopic("ksp.revertAvailability", DisplayName = "Revert")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

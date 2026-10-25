@@ -199,7 +199,7 @@ public class EvaCrewMember
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("eva.crew")]
+[SitrepTopic("eva.crew", DisplayName = "Crew on EVA")]
 public class EvaCrew
 {
     /// <summary>How many kerbals are outside, so a client need not count to

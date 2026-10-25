@@ -33,7 +33,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("isru.drills", isArray: true)]
+[SitrepTopic("isru.drills", isArray: true, DisplayName = "Drills")]
 public class IsruDrillEntry
 {
     /// <summary>The part's flight id, as a string: the same join key <c>vessel.parts</c> and <c>parts.power</c> use.</summary>
@@ -131,7 +131,7 @@ public class IsruResourceFlow
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("isru.converters", isArray: true)]
+[SitrepTopic("isru.converters", isArray: true, DisplayName = "Converters")]
 public class IsruConverterEntry
 {
     /// <summary>The part's flight id, as a string: the same join key as

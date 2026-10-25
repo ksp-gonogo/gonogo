@@ -200,7 +200,7 @@ public class GameAlarm
 /// </summary>
 /// <category>Alarms</category>
 [SitrepContract]
-[SitrepTopic("alarm.game.list")]
+[SitrepTopic("alarm.game.list", DisplayName = "Game alarms")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

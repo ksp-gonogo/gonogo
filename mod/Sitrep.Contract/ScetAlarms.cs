@@ -390,7 +390,7 @@ public class ScetAlarmAction
 /// has got, and which Topics a threshold may be set against.
 /// </categoryDescription>
 [SitrepContract]
-[SitrepTopic("alarm.activeList", isArray: true)]
+[SitrepTopic("alarm.activeList", isArray: true, DisplayName = "Alarms")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -582,7 +582,7 @@ public class ScetAlarm
 /// </summary>
 /// <category>Alarms</category>
 [SitrepContract]
-[SitrepTopic("alarm.scet.fired")]
+[SitrepTopic("alarm.scet.fired", DisplayName = "Fired alarm")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -729,7 +729,7 @@ public class ScetAlarmDisarmArgs
 /// </summary>
 /// <category>Alarms</category>
 [SitrepContract]
-[SitrepTopic("alarm.scet.topics", isArray: true)]
+[SitrepTopic("alarm.scet.topics", isArray: true, DisplayName = "Alarm topics")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

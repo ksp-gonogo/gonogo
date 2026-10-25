@@ -17,7 +17,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.propulsion")]
+[SitrepTopic("vessel.propulsion", DisplayName = "Active vessel propulsion")]
 public class VesselPropulsion
 {
     /// <summary>The vessel's total mass including resources, in tonnes (KSP's <c>Vessel.totalMass</c>).</summary>

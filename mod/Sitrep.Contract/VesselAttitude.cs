@@ -29,7 +29,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.attitude")]
+[SitrepTopic("vessel.attitude", DisplayName = "Active vessel attitude")]
 public class VesselAttitude
 {
     /// <summary>Pitch above the horizon, measured at the centre of mass. Degrees, -90 (nose down) to 90 (nose up).</summary>

@@ -22,7 +22,7 @@ namespace Sitrep.Contract;
 /// </summary>
 /// <category>Parts</category>
 [SitrepContract]
-[SitrepTopic("parts.power")]
+[SitrepTopic("parts.power", DisplayName = "Electric power")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -92,7 +92,7 @@ public class PartsPower
 /// </summary>
 /// <category>Parts</category>
 [SitrepContract]
-[SitrepTopic("robotics.servos", isArray: true)]
+[SitrepTopic("robotics.servos", isArray: true, DisplayName = "Servos")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -229,7 +229,7 @@ public class ServoEntry
 /// </summary>
 /// <category>Parts</category>
 [SitrepContract]
-[SitrepTopic("robotics.available")]
+[SitrepTopic("robotics.available", DisplayName = "Robotics")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
