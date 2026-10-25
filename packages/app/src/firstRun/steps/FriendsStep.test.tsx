@@ -3,7 +3,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   AUTO_PORT_FORWARD_SETTING,
   COMPUTER_ADDRESS_SETTING,
@@ -21,7 +21,8 @@ const server = setupServer(
   ),
 );
 beforeAll(() => server.listen());
-afterEach(() => {
+/* Cleared before each test rather than after: a step still mounted after its test can write its settings back to storage. */
+beforeEach(() => {
   mapping = null;
   localStorage.clear();
 });
