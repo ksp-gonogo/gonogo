@@ -63,6 +63,19 @@ describe("automatic port forwarding", () => {
     expect(f.status?.state).toBe("no-address");
   });
 
+  it("takes an IPv6 router address and says it cannot ask it yet, asking nothing", async () => {
+    const r = recorder();
+    const f = new PortForwarding(r.make, {
+      enabled: true,
+      router: "fe80::1%eth0",
+      lan: null,
+    });
+    await f.start();
+    expect(r.events).toEqual([]);
+    expect(f.status?.state).toBe("ipv6-unsupported");
+    expect(f.status?.message).toMatch(/IPv6/);
+  });
+
   it("opens and closes the port as the switch changes, in order, and moves to a new router address", async () => {
     const r = recorder();
     const f = new PortForwarding(r.make, {
@@ -114,6 +127,22 @@ describe("automatic port forwarding", () => {
       portMapping: { state: "mapped" },
     });
     expect(r.events).toEqual([`start ${ROUTER}`]);
+
+    const v6 = await app.inject({
+      method: "POST",
+      url: "/port-forward",
+      payload: { enabled: true, routerIp: "2001:db8::1" },
+    });
+    expect(v6.statusCode).toBe(200);
+    expect(v6.json()).toMatchObject({
+      routerIp: "2001:db8::1",
+      portMapping: { state: "ipv6-unsupported" },
+    });
+    await app.inject({
+      method: "POST",
+      url: "/port-forward",
+      payload: { enabled: true, routerIp: ROUTER },
+    });
 
     for (const payload of [
       { enabled: "yes" },
