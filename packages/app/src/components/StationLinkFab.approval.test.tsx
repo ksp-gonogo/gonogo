@@ -111,4 +111,33 @@ describe("Add station panel with a join request waiting", () => {
     expect(peerHostService.pendingStations()).toEqual([]);
     expect(capcom.open).toBe(false);
   });
+
+  it("leaves one Approve on screen while the panel is open, and the banner's returns when it closes", async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      await peerHostService.start();
+    });
+    render(
+      <ModalProvider>
+        <StationApprovalPrompt host={peerHostService} />
+        <StationLinkFab />
+      </ModalProvider>,
+    );
+    await join("p3", "Flight");
+    expect(
+      screen.getAllByRole("button", { name: /^Approve station Flight/ }),
+    ).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: "Add station" }));
+    const buttons = screen.getAllByRole("button", {
+      name: /^Approve station Flight/,
+    });
+    expect(buttons).toHaveLength(1);
+    expect(screen.getByRole("dialog")).toContainElement(buttons[0]);
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(
+      screen.getAllByRole("button", { name: /^Approve station Flight/ }),
+    ).toHaveLength(1);
+  });
 });

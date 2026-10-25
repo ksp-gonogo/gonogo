@@ -77,7 +77,7 @@ function StationLinkPanel() {
   if (!peerId && !reclaiming) {
     return (
       <Wrap>
-        <StationApprovalPrompt host={peerHostService} />
+        <StationApprovalPrompt host={peerHostService} inPanel />
         <Empty>Connecting to peer network...</Empty>
       </Wrap>
     );
@@ -95,7 +95,7 @@ function StationLinkPanel() {
   return (
     <Wrap>
       {/* The banner strip sits under the modal overlay, so a request is answered here while the panel is open. */}
-      <StationApprovalPrompt host={peerHostService} />
+      <StationApprovalPrompt host={peerHostService} inPanel />
       {reclaiming && (
         <StatusIndicator tone="info" live>
           Reclaiming your share code after an unexpected restart, stations
