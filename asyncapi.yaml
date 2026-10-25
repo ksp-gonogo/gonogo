@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 49.3.0
+  version: 49.2.0
   description: |-
     The WebSocket API of the Gonogo mod: 89 telemetry channels a client
     subscribes to and 71 commands it sends, each with its payload and what it
@@ -214,7 +214,6 @@ servers:
 channels:
   alarm.activeList:
     address: alarm.activeList
-    title: Alarms
     description: |-
       One SCET alarm (an alarm on the craft's own clock, spacecraft event time) as
       the game holds it: the `alarm.activeList` Topic is a bare array of these.
@@ -253,7 +252,6 @@ channels:
         $ref: "#/components/messages/commandResponse.alarm.game.delete"
   alarm.game.list:
     address: alarm.game.list
-    title: Game alarms
     description: |-
       The game's alarm clock as every command centre sees it at once: the
       `alarm.game.list` Topic.
@@ -308,7 +306,6 @@ channels:
         $ref: "#/components/messages/commandResponse.alarm.scet.disarm"
   alarm.scet.fired:
     address: alarm.scet.fired
-    title: Fired alarm
     description: |-
       The notice that an alarm judged on the craft's own clock (a SCET alarm, for
       spacecraft event time) has fired and the warp has been stopped.
@@ -338,7 +335,6 @@ channels:
         $ref: "#/components/messages/event"
   alarm.scet.topics:
     address: alarm.scet.topics
-    title: Alarm topics
     description: |-
       One Topic a SCET (spacecraft event time) threshold alarm may be armed
       against: a row of the `alarm.scet.topics` channel.
@@ -494,7 +490,6 @@ channels:
         $ref: "#/components/messages/commandAccepted"
   career.mode:
     address: career.mode
-    title: Career mode
     description: |-
       The active save's `GameMode`, as `{ "mode": <int> }`. The whole payload is
       `null` when no game is loaded (main menu, no save). Once a save is loaded
@@ -628,7 +623,6 @@ channels:
         $ref: "#/components/messages/event"
   commandCentre.roster:
     address: commandCentre.roster
-    title: Command centres
     description: |-
       One command centre in the `commandCentre.roster` channel: a vantage the
       operator can command from and observe at. The roster is the union of the
@@ -691,7 +685,6 @@ channels:
         $ref: "#/components/messages/event"
   commandCentre.unreachable:
     address: commandCentre.unreachable
-    title: Unreachable command centres
     description: |-
       One command centre that was on `commandCentre.roster` earlier in this
       session and is not now, in the `commandCentre.unreachable` channel: a ground
@@ -863,7 +856,6 @@ channels:
         $ref: "#/components/messages/event"
   comms.commandCentre:
     address: comms.commandCentre
-    title: Command centre comms
     description: |-
       The `comms.commandCentre` payload: which command centre the active route
       ends at as it stands now, so a client can show its own stats against the
@@ -889,7 +881,6 @@ channels:
         $ref: "#/components/messages/event"
   comms.connectivity:
     address: comms.connectivity
-    title: Comms connectivity
     description: |-
       Whether the active vessel has a control link home right now, and the degree
       of control it has. Read from the comms mod in force: ground-side truth, with
@@ -912,7 +903,6 @@ channels:
         $ref: "#/components/messages/event"
   comms.contacts:
     address: comms.contacts
-    title: Comms contacts
     description: |-
       One command centre's contact plan: for each pair of nodes that could hold a
       link (a ground station and a craft, or two craft), the windows over the
@@ -944,7 +934,6 @@ channels:
         $ref: "#/components/messages/event"
   comms.control:
     address: comms.control
-    title: Comms control
     description: |-
       What the active vessel can be commanded to do right now, which is a
       different question from whether it is connected. Always present, and read
@@ -962,7 +951,6 @@ channels:
         $ref: "#/components/messages/event"
   comms.degrade:
     address: comms.degrade
-    title: Comms degradation
     description: |-
       The `comms.degrade` payload: how degraded the active vessel's link home is
       right now, on one fixed scale, as the comms backend in force grades it.
@@ -1000,7 +988,6 @@ channels:
         $ref: "#/components/messages/event"
   comms.delay:
     address: comms.delay
-    title: Signal delay
     description: |-
       The `comms.delay` payload: the one-way signal delay to the active vessel,
       gated by the `comms.signalDelay.enabled` setting. `CommsDelay.oneWaySeconds`
@@ -1046,7 +1033,6 @@ channels:
         $ref: "#/components/messages/event"
   comms.journey:
     address: comms.journey
-    title: Comms journey
     description: |-
       Journey reports for this vantage's commands in the current timeline: where
       each was held, sent on, stopped or run, as reports from those nodes arrive
@@ -1079,7 +1065,6 @@ channels:
         $ref: "#/components/messages/event"
   comms.link:
     address: comms.link
-    title: Comms link
     description: |-
       The `comms.link` payload: the one statement a client should read for "is
       there a control link home right now?". Read `comms.link.connected` for that
@@ -1125,7 +1110,6 @@ channels:
         $ref: "#/components/messages/event"
   comms.nextLoss:
     address: comms.nextLoss
-    title: Next signal loss
     description: |-
       When the active craft is next predicted to drop out of contact with one
       command centre, on `comms.nextLoss`: the first moment its contact plan has
@@ -1151,7 +1135,6 @@ channels:
         $ref: "#/components/messages/event"
   comms.occlusion:
     address: comms.occlusion
-    title: Signal occlusion
     description: |-
       The model of which bodies block a radio path, named, with its rule already
       applied to every celestial body the game knows about: each body's blocking
@@ -1248,7 +1231,6 @@ channels:
         $ref: "#/components/messages/event"
   comms.signal:
     address: comms.signal
-    title: Signal
     description: |-
       The `comms.signal` payload: the active vessel's own reading of its link,
       from the comms backend in use (stock CommNet, or a replacement an Uplink
@@ -1283,7 +1265,6 @@ channels:
         $ref: "#/components/messages/event"
   crash.hasRecent:
     address: crash.hasRecent
-    title: Recent crash
     description: |-
       The payload for the `crash.hasRecent` channel: one flag saying a notable
       crash is on record for the current save, published beside `CrashReport` on
@@ -1302,7 +1283,6 @@ channels:
         $ref: "#/components/messages/event"
   crash.lastCrash:
     address: crash.lastCrash
-    title: Last crash
     description: |-
       The last notable crash of the current save. A subscriber that joins late
       still receives the most recent record, since every value is delivered, in
@@ -1328,7 +1308,6 @@ channels:
         $ref: "#/components/messages/event"
   dv.stages:
     address: dv.stages
-    title: Delta-v by stage
     description: |-
       One ΔV-producing stage of the active vessel, from the game's own stage
       simulation: the same numbers the in-game ΔV app shows, with atmosphere, ISP,
@@ -1360,7 +1339,6 @@ channels:
         $ref: "#/components/messages/event"
   dv.summary:
     address: dv.summary
-    title: Delta-v
     description: |-
       The whole-vessel ΔV rollup the game's own ΔV simulation (`VesselDeltaV`)
       exposes alongside the per-stage `StageDeltaVEntry` list: the ΔV-producing
@@ -1382,7 +1360,6 @@ channels:
         $ref: "#/components/messages/event"
   eva.crew:
     address: eva.crew
-    title: Crew on EVA
     description: |-
       The roster of kerbals currently outside a craft, so a client can find each
       one's own `eva.kerbal.<vessel id>.state` Topic. The suit state is on those
@@ -1408,7 +1385,6 @@ channels:
         $ref: "#/components/messages/event"
   flight.current:
     address: flight.current
-    title: Current flight
     description: |-
       Which flight is active and what phase it is in, for the vessel gonogo is
       reporting as active. Only the newest value matters, and it is delayed by the
@@ -1432,7 +1408,6 @@ channels:
         $ref: "#/components/messages/event"
   flight.ended:
     address: flight.ended
-    title: Ended flight
     description: |-
       An event that is always delivered, in the order it happened, and held back
       by the signal delay like any value about a craft, sent once per flight when
@@ -1468,7 +1443,6 @@ channels:
         $ref: "#/components/messages/event"
   flight.started:
     address: flight.started
-    title: Started flight
     description: |-
       An event that is always delivered, in the order it happened, and held back
       by the signal delay like any value about a craft, sent when a new flight
@@ -1495,7 +1469,6 @@ channels:
         $ref: "#/components/messages/event"
   flight.vesselChanged:
     address: flight.vesselChanged
-    title: Vessel change
     description: |-
       An event that is always delivered, in the order it happened, and held back
       by the signal delay like any value about a craft, sent whenever the active
@@ -1518,7 +1491,6 @@ channels:
         $ref: "#/components/messages/event"
   game.dlc:
     address: game.dlc
-    title: Game DLC
     description: |-
       Which KSP expansions ("DLC") are installed. A fact about the install,
       independent of scene, so a widget can tell "the player has no DLC" from "the
@@ -1543,7 +1515,6 @@ channels:
         $ref: "#/components/messages/event"
   isru.converters:
     address: isru.converters
-    title: Converters
     description: |-
       One chemical converter on the active vessel. Field set matches stock's
       surface: whether it is running, and the recipe it is running, at live rates.
@@ -1562,7 +1533,6 @@ channels:
         $ref: "#/components/messages/event"
   isru.drills:
     address: isru.drills
-    title: Drills
     description: |-
       One drill (resource harvester) on the active vessel. The field set is what
       every ISRU model shares, which is exactly what stock ISRU has: resource,
@@ -1636,7 +1606,6 @@ channels:
         $ref: "#/components/messages/commandResponse.ksp.recoverVessel"
   ksp.revertAvailability:
     address: ksp.revertAvailability
-    title: Revert
     description: |-
       Whether the two stock in-flight revert actions are available right now, so a
       widget can enable its Revert to Launch and Revert to Editor controls exactly
@@ -1736,7 +1705,6 @@ channels:
         $ref: "#/components/messages/commandResponse.ksp.toTrackingStation"
   missions.active:
     address: missions.active
-    title: Active missions
     description: |-
       The Making History mission that is running, or has just ended, in the
       current game. The whole payload is `null` when there is no mission game,
@@ -1769,7 +1737,6 @@ channels:
         $ref: "#/components/messages/event"
   parts.power:
     address: parts.power
-    title: Electric power
     description: |-
       The active vessel's rolled-up electric-charge production. A single object,
       or `null` when there is no active vessel or it carries no solar panel,
@@ -1788,7 +1755,6 @@ channels:
         $ref: "#/components/messages/event"
   recovery.hasRecent:
     address: recovery.hasRecent
-    title: Recent recovery
     description: |-
       The payload for the `recovery.hasRecent` channel: one flag saying a vessel
       recovery is on record for the current save, published beside
@@ -1807,7 +1773,6 @@ channels:
         $ref: "#/components/messages/event"
   recovery.lastSummary:
     address: recovery.lastSummary
-    title: Last recovery
     description: |-
       The payload for the `recovery.lastSummary` channel: the most recent vessel
       recovery in the current save, as KSP's mission recovery dialog reports it.
@@ -1835,7 +1800,6 @@ channels:
         $ref: "#/components/messages/event"
   robotics.available:
     address: robotics.available
-    title: Robotics
     description: |-
       A single object (or `null` when there is no active vessel) whose one field
       states whether the active vessel carries any Breaking Ground robotic servo.
@@ -2021,7 +1985,6 @@ channels:
         $ref: "#/components/messages/commandAccepted"
   robotics.servos:
     address: robotics.servos
-    title: Servos
     description: |-
       One entry in the `robotics.servos` Topic payload, a single Breaking Ground
       robotic servo on the active vessel. The payload is a bare array of these, or
@@ -2052,7 +2015,6 @@ channels:
         $ref: "#/components/messages/event"
   science.archive:
     address: science.archive
-    title: Science archive
     description: |-
       One entry in the `science.archive` Topic payload: a single subject out of
       the whole-career R&D archive (`ResearchAndDevelopment.GetSubjects()`). That
@@ -2134,7 +2096,6 @@ channels:
         $ref: "#/components/messages/commandAccepted"
   science.experimentBreakdown:
     address: science.experimentBreakdown
-    title: Science experiment breakdown
     description: |-
       One entry in the `science.experimentBreakdown` Topic payload: a per-subject
       rollup of the stored science results that `science.experiments` lists one
@@ -2166,7 +2127,6 @@ channels:
         $ref: "#/components/messages/event"
   science.experiments:
     address: science.experiments
-    title: Science experiments
     description: |-
       One entry in the `science.experiments` Topic payload: a single stored
       science result on the active vessel, held either by the science module that
@@ -2191,7 +2151,6 @@ channels:
         $ref: "#/components/messages/event"
   science.instruments:
     address: science.instruments
-    title: Science instruments
     description: |-
       One entry in the `science.instruments` Topic payload: a single
       `ModuleScienceExperiment` on the active vessel, as an inventory and status
@@ -2221,7 +2180,6 @@ channels:
         $ref: "#/components/messages/event"
   science.lab:
     address: science.lab
-    title: Science lab
     description: |-
       One entry in the `science.lab` Topic payload: a Mobile Processing Lab (KSP's
       `ModuleScienceLab`) on the active vessel. The channel payload is a bare
@@ -2267,7 +2225,6 @@ channels:
         $ref: "#/components/messages/commandAccepted"
   science.sensors:
     address: science.sensors
-    title: Science sensors
     description: |-
       One entry in the `science.sensors` Topic payload: a single
       environmental-sensor module (`ModuleEnviroSensor`: thermometer, barometer,
@@ -2294,7 +2251,6 @@ channels:
         $ref: "#/components/messages/event"
   science.transmissions:
     address: science.transmissions
-    title: Science transmissions
     description: |-
       One entry of the `science.transmissions` Topic payload: a science result
       that has finished leaving the vessel's transmitter. The payload is a bare
@@ -2433,7 +2389,6 @@ channels:
         $ref: "#/components/messages/commandResponse.settings.save"
   spaceCenter.astronautComplex:
     address: spaceCenter.astronautComplex
-    title: Astronaut complex
     description: |-
       The Astronaut Complex hire tab, the rolling pool of applicants the operator
       can recruit, plus the roster-cap context a hire is gated on.
@@ -2463,7 +2418,6 @@ channels:
         $ref: "#/components/messages/event"
   spaceCenter.crewRoster:
     address: spaceCenter.crewRoster
-    title: Crew roster
     description: |-
       One kerbal in the `spaceCenter.crewRoster` channel (the hired-crew roster:
       KSP's `KerbalRoster.Crew`, owned crew that is either available or currently
@@ -2493,7 +2447,6 @@ channels:
         $ref: "#/components/messages/event"
   spaceCenter.launchSites:
     address: spaceCenter.launchSites
-    title: Launch sites
     description: |-
       One launch site in the `spaceCenter.launchSites` channel: the stock KSC pad
       and runway, any Making History sites, and any Kerbal Konstructs sites, which
@@ -2523,7 +2476,6 @@ channels:
         $ref: "#/components/messages/event"
   spaceCenter.partsAvailable:
     address: spaceCenter.partsAvailable
-    title: Parts available
     description: |-
       A wrapper carrying the count of parts the player can place right now
       (tech-unlocked and purchased in career; the full `PartLoader` catalogue in
@@ -2546,7 +2498,6 @@ channels:
         $ref: "#/components/messages/event"
   spaceCenter.pois:
     address: spaceCenter.pois
-    title: Points of interest
     description: |-
       One point of interest in the `spaceCenter.pois` channel: the union of every
       launch site (`ksc`/`launchSite` kinds, the same sites as `LaunchSiteEntry`,
@@ -2572,7 +2523,6 @@ channels:
         $ref: "#/components/messages/event"
   spaceCenter.savedShips:
     address: spaceCenter.savedShips
-    title: Saved ships
     description: |-
       One craft file in the `spaceCenter.savedShips` channel, a saved VAB or SPH
       design the player can launch, read from the save's craft folders via the
@@ -2595,7 +2545,6 @@ channels:
         $ref: "#/components/messages/event"
   spaceCenter.scene:
     address: spaceCenter.scene
-    title: Space centre scene
     description: |-
       The single current KSP game scene. `SpaceCenterScene.scene` carries exactly
       one of the six strings
@@ -2621,7 +2570,6 @@ channels:
         $ref: "#/components/messages/event"
   surface.sites:
     address: surface.sites
-    title: Surface sites
     description: |-
       One planted flag, on the `surface.sites` Topic: the named site a kerbal has
       claimed on the surface of a body. The payload is a bare array with one entry
@@ -2808,7 +2756,6 @@ channels:
         $ref: "#/components/messages/event"
   time.calendar:
     address: time.calendar
-    title: Game clock
     description: |-
       How long a minute, hour, day and year are, and what real-world instant UT 0
       is (when the game has one), as the running game defines them.
@@ -2875,7 +2822,6 @@ channels:
         $ref: "#/components/messages/commandResponse.time.setWarpIndex"
   time.warp:
     address: time.warp
-    title: Time warp
     description: |-
       The game's time-warp and pause state, as separate typed fields.
 
@@ -3011,7 +2957,6 @@ channels:
         $ref: "#/components/messages/commandResponse.trackingStation.catalog.dismiss"
   vessel.attitude:
     address: vessel.attitude
-    title: Active vessel attitude
     description: |-
       Pitch, heading and roll of the vessel's control reference, the orientation
       the pilot steers by, against the local surface up and north, in two named
@@ -3040,7 +2985,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.comms:
     address: vessel.comms
-    title: Active vessel antenna
     description: |-
       The active vessel's own CommNet connection, from KSP's `vessel.connection`.
       The whole payload is null when the vessel has no CommNet connection object;
@@ -3061,7 +3005,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.control:
     address: vessel.control
-    title: Active vessel controls
     description: |-
       The active vessel's control state (the stock toggles, SAS mode, throttle,
       the commanded fly-by-wire axes and the custom action groups). The payload is
@@ -3287,7 +3230,6 @@ channels:
         $ref: "#/components/messages/commandAccepted"
   vessel.crew:
     address: vessel.crew
-    title: Active vessel crew
     description: |-
       The `vessel.crew` payload: who is aboard the active vessel and how many
       seats it has.
@@ -3304,7 +3246,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.dock:
     address: vessel.dock
-    title: Active vessel docking
     description: |-
       The relative position, velocity and coarse orientation between the active
       vessel's nearest free (undocked) docking port and the targeted docking port,
@@ -3331,7 +3272,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.flight:
     address: vessel.flight
-    title: Active vessel
     description: |-
       Quantities the game measures, either because they cannot be derived from
       orbital elements (terrain height, aerodynamic state) or because they are the
@@ -3354,7 +3294,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.identity:
     address: vessel.identity
-    title: Active vessel identity
     description: |-
       Who the active vessel is, what kind of craft it is, and where it is.
 
@@ -3426,7 +3365,6 @@ channels:
         $ref: "#/components/messages/commandAccepted"
   vessel.landing:
     address: vessel.landing
-    title: Active vessel landing
     description: |-
       Landing data for the active vessel that needs the terrain map of the body
       below (slope, roughness and elevation at the touchdown site), plus an
@@ -3454,7 +3392,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.light:
     address: vessel.light
-    title: Active vessel light
     description: |-
       Whether the active craft is in sunlight now, and the next two instants at
       which that changes, for a widget that warps to sunrise or sunset or plans
@@ -3482,7 +3419,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.maneuver:
     address: vessel.maneuver
-    title: Active vessel maneuver
     description: |-
       The active vessel's planned burns. `VesselManeuver.nodes` is always an
       array, empty when no burn is queued, never null.
@@ -3558,7 +3494,6 @@ channels:
         $ref: "#/components/messages/commandAccepted"
   vessel.orbit:
     address: vessel.orbit
-    title: Active vessel orbit
     description: |-
       The active vessel's orbital elements. Elements are the cause; every
       kinematic quantity (position, velocity, apsides, anomalies, period) is
@@ -3594,7 +3529,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.orbit.truth:
     address: vessel.orbit.truth
-    title: Active vessel orbit (true)
     description: |-
       KSP's own maintained state vector for the active vessel (`Orbit.pos` and
       `Orbit.vel`), relative to the body it orbits. Read `vessel.orbit` for
@@ -3645,7 +3579,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.physics.mode:
     address: vessel.physics.mode
-    title: Active vessel physics
     description: |-
       The active vessel's physics regime (`PhysicsMode`). Delayed like every other
       vessel-derived channel: it describes the vessel itself, so the ground learns
@@ -3664,7 +3597,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.propulsion:
     address: vessel.propulsion
-    title: Active vessel propulsion
     description: |-
       The active vessel's mass and thrust, the inputs to thrust-to-weight and
       burn-time figures. Mass is in tonnes and thrust in kN, so `thrust / (mass ·
@@ -3685,7 +3617,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.resources:
     address: vessel.resources
-    title: Active vessel resources
     description: |-
       What the active vessel carries, keyed by resource name, each with its
       current amount and capacity. Every message holds the whole map. No value is
@@ -3726,7 +3657,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.structure:
     address: vessel.structure
-    title: Active vessel structure
     description: |-
       The active vessel's stage and part counts. Absent when there is no active
       vessel.
@@ -3747,7 +3677,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.surface:
     address: vessel.surface
-    title: Active vessel surface
     description: |-
       Surface data a landing widget needs that `vessel.flight` doesn't already
       carry. `vessel.flight.AltitudeTerrain` is the height of the vessel's root
@@ -3770,7 +3699,6 @@ channels:
         $ref: "#/components/messages/event"
   vessel.target:
     address: vessel.target
-    title: Active vessel target
     description: |-
       The active vessel's current target only.
       `VesselTarget.relativePosition`/`VesselTarget.relativeVelocity` both use the
@@ -3833,7 +3761,6 @@ channels:
         $ref: "#/components/messages/commandAccepted"
   vessel.thermal:
     address: vessel.thermal
-    title: Active vessel heat
     description: |-
       The active vessel's thermal rollup, its hottest part, heat shield and
       engine. Each ratio is null when no part had a valid maximum temperature this
@@ -14223,7 +14150,6 @@ components:
             x-sitrep-unit: text
           description: Names of the crew aboard at the crash.
         altitude:
-          title: Altitude at impact
           type: number
           x-sitrep-unit: m
           description: |-
@@ -22628,12 +22554,10 @@ components:
             `Vessel.longitude`, passed through without normalising its range). Same
             presence rule as `VesselFlight.latitude`.
         altitudeAsl:
-          title: Altitude (sea level)
           type: number
           x-sitrep-unit: m
           description: Altitude above sea level, metres (KSP's `Vessel.altitude`).
         altitudeTerrain:
-          title: Altitude (above terrain)
           type: number
           x-sitrep-unit: m
           description: |-
@@ -22660,19 +22584,16 @@ components:
             Speed relative to the parent body's centre, ignoring its rotation, metres
             per second (KSP's `Vessel.obt_speed`). This is the speed of the orbit.
         gForce:
-          title: G-force
           type: number
           x-sitrep-unit: g
           description: Multiples of standard gravity (KSP's `Vessel.geeForce`).
         dynamicPressureKPa:
-          title: Dynamic pressure
           type: number
           x-sitrep-unit: kPa
           description: |-
             Dynamic pressure on the vessel, kilopascals (KSP's
             `Vessel.dynamicPressurekPa`). `0` outside an atmosphere.
         mach:
-          title: Mach number
           type: number
           x-sitrep-unit: "1"
           description: Mach number (KSP's `Vessel.mach`), dimensionless.
@@ -23235,24 +23156,20 @@ components:
           x-sitrep-unit: id
           description: Index into `trackingStation.bodies` of the body this orbit is around.
         sma:
-          title: Semi-major axis
           type: number
           x-sitrep-unit: m
           description: Semi-major axis, in metres.
         ecc:
-          title: Eccentricity
           type: number
           x-sitrep-unit: "1"
           description: |-
             Eccentricity. Below 1 for a closed orbit, 1 or above for an escape
             trajectory.
         inc:
-          title: Inclination
           type: number
           x-sitrep-unit: °
           description: Inclination, in degrees (KSP's `Orbit.inclination`).
         lan:
-          title: Longitude of ascending node
           type:
             - number
             - "null"
@@ -23261,7 +23178,6 @@ components:
             Longitude of ascending node, degrees; `null` only when absent, never NaN and
             never 0 as a stand-in. An equatorial orbit still has one.
         argPe:
-          title: Argument of periapsis
           type:
             - number
             - "null"

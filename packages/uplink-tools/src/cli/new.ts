@@ -235,7 +235,7 @@ export const ${upper} = defineUplinkClient({
   version: UPLINK_VERSION,
   name: ${JSON.stringify(o.name)},
   description: "Shows that the ${nameInString} Uplink is installed and publishing: a count of its samples and the game time of the latest.",
-  // What the contract slice declares about its values: how each relates in time, the names a picker lists them under, and any value a model of yours carries forward.
+  // What the contract slice declares about its values: how each relates in time, and any value a model of yours carries forward.
   tags: GENERATED_CONTRACT_TAGS,
 });
 `,
@@ -569,7 +569,7 @@ namespace ${ns};
 /// </internal>
 /// </summary>
 [SitrepContract]
-[SitrepTopic("${topic}", DisplayName = ${JSON.stringify(`${o.name} heartbeat`)})]
+[SitrepTopic("${topic}")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -581,7 +581,6 @@ public sealed class ${Id}Heartbeat
 
     /// <summary>How many samples this Uplink has published since the game started, this one included. It starts again from 1 when the game restarts.</summary>
     [SitrepUnit(Units.Count)]
-    [SitrepDisplayName("Samples published")]
     public double? Ticks { get; set; }
 }
 `,

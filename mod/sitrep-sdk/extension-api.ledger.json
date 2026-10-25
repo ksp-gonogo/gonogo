@@ -11877,10 +11877,6 @@
         "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
       },
       {
-        "key": "sitrep-sdk . ContractTagTable#names?",
-        "note": "Each Topic's display name, as a contract's codegen writes it from SitrepTopic's DisplayName"
-      },
-      {
         "key": "sitrep-sdk . ContractTagTable#reckonable?",
         "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
       },
@@ -12561,10 +12557,6 @@
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
       {
-        "key": "sitrep-sdk . ValueTags#displayName?",
-        "note": "The name a value is listed under in a picker, from the contract's SitrepDisplayName"
-      },
-      {
         "key": "sitrep-sdk . ValueTags#entryKey?",
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
@@ -12609,10 +12601,6 @@
         "note": "Exported from the root barrel, where its documentation already said it was"
       },
       {
-        "key": "sitrep-sdk . contractTagsGeneration",
-        "note": "Tells a cache built from the registered tags and names when it is stale"
-      },
-      {
         "key": "sitrep-sdk . delayVisibility",
         "note": "Decides in one place whether a delay readout is shown, left out for a delay of zero, or replaced by the no-path state"
       },
@@ -12623,10 +12611,6 @@
       {
         "key": "sitrep-sdk . familyPrefix",
         "note": "The literal text before a family's first placeholder, empty when it starts with one"
-      },
-      {
-        "key": "sitrep-sdk . fieldDisplayNameOf",
-        "note": "The name the publishing contract gives a field, for a picker, a graph title or a legend"
       },
       {
         "key": "sitrep-sdk . phaseAngleBetween",
@@ -12663,10 +12647,6 @@
       {
         "key": "sitrep-sdk . systemPosesAt",
         "note": "The same placement without a stream, for a test or a figure computed at an instant of the caller's choosing"
-      },
-      {
-        "key": "sitrep-sdk . topicDisplayNameOf",
-        "note": "The name the publishing contract gives a Topic, for a picker's headings"
       },
       {
         "key": "sitrep-sdk . topicMatchesFamily",
@@ -14913,10 +14893,6 @@
         "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
       },
       {
-        "key": "sitrep-sdk ./spine ~ContractTagTable#names?",
-        "note": "Each Topic's display name, as a contract's codegen writes it from SitrepTopic's DisplayName"
-      },
-      {
         "key": "sitrep-sdk ./spine ~ContractTagTable#reckonable?",
         "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
       },
@@ -15213,10 +15189,6 @@
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
       {
-        "key": "sitrep-sdk ./spine ~ValueTags#displayName?",
-        "note": "The name a value is listed under in a picker, from the contract's SitrepDisplayName"
-      },
-      {
         "key": "sitrep-sdk ./spine ~ValueTags#entryKey?",
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
@@ -15351,10 +15323,6 @@
       {
         "key": "sitrep-sdk ./testing ~ContractTagTable",
         "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ContractTagTable#names?",
-        "note": "Each Topic's display name, as a contract's codegen writes it from SitrepTopic's DisplayName"
       },
       {
         "key": "sitrep-sdk ./testing ~ContractTagTable#reckonable?",
@@ -15899,10 +15867,6 @@
       {
         "key": "sitrep-sdk ./testing ~ValueTags",
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ValueTags#displayName?",
-        "note": "The name a value is listed under in a picker, from the contract's SitrepDisplayName"
       },
       {
         "key": "sitrep-sdk ./testing ~ValueTags#entryKey?",

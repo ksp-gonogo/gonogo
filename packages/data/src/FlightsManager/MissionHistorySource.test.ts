@@ -173,10 +173,7 @@ describe("MissionHistorySource", () => {
       const altitude = schema.find(
         (k) => k.key === "vessel.flight.altitudeAsl",
       );
-      expect(altitude).toMatchObject({
-        label: "Altitude (sea level)",
-        unit: "m",
-      });
+      expect(altitude).toMatchObject({ label: "Altitude ASL", unit: "m" });
     });
 
     it("offers the same vocabulary a live picker does", () => {

@@ -30,7 +30,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.landing", DisplayName = "Active vessel landing")]
+[SitrepTopic("vessel.landing")]
 public class VesselLanding
 {
     /// <summary>

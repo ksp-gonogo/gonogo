@@ -2,10 +2,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   CORE_CONTRACT_OWNER,
   clearRegisteredContractTags,
-  fieldDisplayNameOf,
   reckonableRowsOf,
   registerContractTags,
-  topicDisplayNameOf,
   valueTagsOf,
 } from "./contract-tags";
 import { isReckonableTopic, reckonableValuesOf } from "./reckonability";
@@ -141,44 +139,5 @@ describe("a model on an Event channel", () => {
         reckon: () => ({ declined: { reason: "model-inapplicable" } }),
       }),
     ).toThrow(/crash\.lastCrash is an Event channel/);
-  });
-});
-
-describe("display names are declared by the owner that publishes the Topic", () => {
-  it("names core's Topics and fields from the moment the module loads", () => {
-    expect(topicDisplayNameOf("vessel.flight")).toBe("Active vessel");
-    expect(fieldDisplayNameOf("vessel.flight", "altitudeAsl")).toBe(
-      "Altitude (sea level)",
-    );
-    expect(fieldDisplayNameOf("vessel.target", "orbit.sma")).toBe(
-      "Semi-major axis",
-    );
-  });
-
-  it("names nothing a contract does not declare", () => {
-    expect(fieldDisplayNameOf("vessel.flight", "latitude")).toBeUndefined();
-    expect(topicDisplayNameOf("acme.tank")).toBeUndefined();
-  });
-
-  it("sees an Uplink's names once it registers them, and forgets them when it registers again", () => {
-    registerContractTags("acme", {
-      topics: { "acme.tank": { level: { displayName: "Fill level" } } },
-      names: { "acme.tank": "Fuel tank" },
-    });
-    expect(topicDisplayNameOf("acme.tank")).toBe("Fuel tank");
-    expect(fieldDisplayNameOf("acme.tank", "level")).toBe("Fill level");
-
-    registerContractTags("acme", {});
-    expect(topicDisplayNameOf("acme.tank")).toBeUndefined();
-  });
-
-  it("refuses a second owner naming a Topic another owner publishes", () => {
-    registerContractTags("acme", { names: { "acme.tank": "Fuel tank" } });
-    expect(() =>
-      registerContractTags("rival", { names: { "acme.tank": "Tank" } }),
-    ).toThrow(/acme\.tank.*"acme"/s);
-    expect(() =>
-      registerContractTags("rival", { names: { "vessel.flight": "Craft" } }),
-    ).toThrow(/vessel\.flight.*"core"/s);
   });
 });

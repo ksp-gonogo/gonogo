@@ -7,10 +7,8 @@ import {
   PRODUCTION_DERIVED_CHANNELS,
 } from "@ksp-gonogo/sitrep-client";
 import {
-  contractTagsGeneration,
   type EnumEncoding,
   enumerateTopicFields,
-  fieldDisplayNameOf,
   getAllKnownTopicIds,
   getRuntimeRegisteredTopicIds,
   isCollectionTopic,
@@ -79,33 +77,6 @@ export function humaniseFieldPath(path: string): string {
 }
 
 /**
- * A field as the operator reads it: the name the Topic's contract declares for
- * it, or its path split into words where it declares none. A nested path joins
- * each named segment to the words of the rest, so `orbit.sma` of
- * `vessel.target` reads "Orbit › Semi-major axis".
- */
-export function fieldLabel(topic: string, path: string): string {
-  const segments = path.split(".");
-  const parts: string[] = [];
-  let pending: string[] = [];
-  let named = false;
-  for (let i = 0; i < segments.length; i++) {
-    const name = fieldDisplayNameOf(topic, segments.slice(0, i + 1).join("."));
-    if (name === undefined) {
-      pending.push(segments[i]);
-      continue;
-    }
-    if (pending.length > 0) parts.push(humaniseFieldPath(pending.join(".")));
-    pending = [];
-    parts.push(name);
-    named = true;
-  }
-  if (!named) return humaniseFieldPath(path);
-  if (pending.length > 0) parts.push(humaniseFieldPath(pending.join(".")));
-  return parts.join(" › ");
-}
-
-/**
  * Whether a read of `<topic>.<fieldPath>` lands back on `topic`.
  *
  * Asked of the store's own split rather than of the key's shape: a raw field
@@ -132,7 +103,7 @@ function readLandsOnTopic(
 function entryFor(topic: string, field: TopicField): TopicFieldKey {
   return {
     key: `${topic}.${field.path}`,
-    label: fieldLabel(topic, field.path),
+    label: humaniseFieldPath(field.path),
     group: topic,
     unit: field.unit,
     kind: field.kind,
@@ -200,9 +171,8 @@ export function getDerivedTopicIds(): string[] {
 
 /**
  * The catalogue is a pure function of what has registered, and that moves: an
- * Uplink registers its Topics, its value tags and names, and contributes its
- * channels when its bundle loads. So it is built on demand and cached against
- * all three.
+ * Uplink registers its Topics and contributes its channels when its bundle
+ * loads. So it is built on demand and cached against the pair.
  */
 let cache: { key: string; built: BuiltCatalog } | undefined;
 
@@ -210,7 +180,7 @@ function builtFor(
   registered: readonly string[],
   derived: readonly string[],
 ): BuiltCatalog {
-  const key = `${registered.join(",")}|${derived.join(",")}|${contractTagsGeneration()}`;
+  const key = `${registered.join(",")}|${derived.join(",")}`;
   if (cache?.key === key) return cache.built;
   const built = buildTopicFieldCatalog(registered, derived);
   cache = { key, built };

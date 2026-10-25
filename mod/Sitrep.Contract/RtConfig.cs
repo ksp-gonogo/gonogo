@@ -1917,12 +1917,6 @@ public static class RtConfig
                 tags.Add("entryKey: true");
             }
 
-            var displayName = value.Property.GetCustomAttribute<SitrepDisplayNameAttribute>(false);
-            if (displayName != null)
-            {
-                tags.Add("displayName: " + UnitDescriptor.JsonString(displayName.Name));
-            }
-
             if (tags.Count == 0)
             {
                 continue;
@@ -1937,22 +1931,11 @@ public static class RtConfig
             paths[value.Path] = "{ " + string.Join(", ", tags) + " }";
         }
 
-        var names = new SortedDictionary<string, string>(StringComparer.Ordinal);
-        foreach (var type in UnitDescriptor.LoadableTypes(assembly))
-        {
-            var topic = type.GetCustomAttribute<SitrepTopicAttribute>(false);
-            if (topic?.DisplayName != null)
-            {
-                names[topic.TopicId] = topic.DisplayName;
-            }
-        }
-
         sb.Append("/**\n");
         sb.Append(" * The value tags this contract declares, registered by its client under its\n");
-        sb.Append(" * own id: `topics` holds each value's declared sample kind, entry key and\n");
-        sb.Append(" * display name by Topic and path (`*` crosses a list or dictionary), `names`\n");
-        sb.Append(" * each Topic's display name, and `reckonable` every value a declared model\n");
-        sb.Append(" * carries forward, with the inputs it needs.\n");
+        sb.Append(" * own id: `topics` holds each value's declared sample kind and entry key by\n");
+        sb.Append(" * Topic and path (`*` crosses a list or dictionary), and `reckonable` every\n");
+        sb.Append(" * value a declared model carries forward, with the inputs it needs.\n");
         sb.Append(" */\n");
         sb.Append("export const GENERATED_CONTRACT_TAGS = {\n");
         sb.Append("  topics: {\n");
@@ -1964,12 +1947,6 @@ public static class RtConfig
                 sb.Append("      \"").Append(path.Key).Append("\": ").Append(path.Value).Append(",\n");
             }
             sb.Append("    },\n");
-        }
-        sb.Append("  },\n");
-        sb.Append("  names: {\n");
-        foreach (var name in names)
-        {
-            sb.Append("    \"").Append(name.Key).Append("\": ").Append(UnitDescriptor.JsonString(name.Value)).Append(",\n");
         }
         sb.Append("  },\n");
         sb.Append("  reckonable: [\n");

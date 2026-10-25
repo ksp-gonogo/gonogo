@@ -335,10 +335,6 @@ namespace Sitrep.Core.Tests
 
         private static object InnerProbe(Type valueType)
         {
-            if (valueType == typeof(string))
-            {
-                return "probeValue";
-            }
             if (valueType == typeof(SortedSet<string>))
             {
                 return new SortedSet<string> { "probeField" };

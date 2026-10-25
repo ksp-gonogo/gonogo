@@ -33,7 +33,7 @@ namespace Sitrep.Contract;
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
-[SitrepTopic("comms.contacts", DisplayName = "Comms contacts")]
+[SitrepTopic("comms.contacts")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

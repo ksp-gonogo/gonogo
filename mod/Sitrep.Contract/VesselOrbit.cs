@@ -40,7 +40,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.orbit", DisplayName = "Active vessel orbit")]
+[SitrepTopic("vessel.orbit")]
 public class VesselOrbit
 {
     /// <summary>Index into <c>trackingStation.bodies</c> of the body this orbit is around.</summary>
@@ -50,31 +50,26 @@ public class VesselOrbit
     /// <summary>Semi-major axis, in metres.</summary>
     [SitrepUnit(Units.Metres)]
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
-    [SitrepDisplayName("Semi-major axis")]
     public double Sma { get; set; }
 
     /// <summary>Eccentricity. Below 1 for a closed orbit, 1 or above for an escape trajectory.</summary>
     [SitrepUnit(Units.Dimensionless)]
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
-    [SitrepDisplayName("Eccentricity")]
     public double Ecc { get; set; }
 
     /// <summary>Inclination, in degrees (KSP's <c>Orbit.inclination</c>).</summary>
     [SitrepUnit(Units.Degrees)]
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
-    [SitrepDisplayName("Inclination")]
     public double Inc { get; set; }
 
     /// <summary>Longitude of ascending node, degrees; <c>null</c> only when absent, never NaN and never 0 as a stand-in. An equatorial orbit still has one.</summary>
     [SitrepUnit(Units.Degrees)]
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
-    [SitrepDisplayName("Longitude of ascending node")]
     public double? Lan { get; set; }
 
     /// <summary>Argument of periapsis, degrees; <c>null</c> only when absent, never NaN and never 0 as a stand-in. A circular orbit still has one.</summary>
     [SitrepUnit(Units.Degrees)]
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
-    [SitrepDisplayName("Argument of periapsis")]
     public double? ArgPe { get; set; }
 
     /// <summary>

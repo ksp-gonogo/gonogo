@@ -51,7 +51,7 @@ public enum GameMode
 /// </summary>
 /// <category>Career</category>
 [SitrepContract]
-[SitrepTopic("career.mode", DisplayName = "Career mode")]
+[SitrepTopic("career.mode")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

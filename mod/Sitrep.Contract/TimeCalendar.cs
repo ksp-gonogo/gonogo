@@ -48,7 +48,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("time.calendar", DisplayName = "Game clock")]
+[SitrepTopic("time.calendar")]
 public class TimeCalendar
 {
     /// <summary>Seconds in one minute, as the game's date formatter defines it.

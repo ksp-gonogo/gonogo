@@ -36,7 +36,7 @@ namespace Sitrep.Contract;
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]
-[SitrepTopic("dv.stages", isArray: true, DisplayName = "Delta-v by stage")]
+[SitrepTopic("dv.stages", isArray: true)]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -135,7 +135,7 @@ public class StageDeltaVEntry
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]
-[SitrepTopic("dv.summary", DisplayName = "Delta-v")]
+[SitrepTopic("dv.summary")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
