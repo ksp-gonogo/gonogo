@@ -59,10 +59,13 @@ export const WIZARD_COPY = {
   "friends.router.label": "Your router's address",
   "friends.router.hint":
     "Four numbers separated by dots. It is usually printed on the router's label, and this computer's network settings show it as Router or Default Gateway.",
-  "friends.router.invalid":
-    "That is not a router address: it should be four numbers from 0 to 255, separated by dots.",
+  "friends.computer.label": "This computer's address",
+  "friends.computer.hint":
+    "Also four numbers separated by dots: the address the router sends friends to. This computer's network settings show it as IP address or IPv4 Address.",
+  "friends.address.invalid":
+    "That is not an address: it should be four numbers from 0 to 255, separated by dots.",
   "friends.check.needAddress":
-    "Enter your router's address and Gonogo asks it to open the port.",
+    "Enter both addresses and Gonogo asks your router to open the port.",
   "friends.check.checking": "Asking your router to open port {port}",
   "friends.check.pass":
     "Your router opened port {port}: friends on other networks can join",

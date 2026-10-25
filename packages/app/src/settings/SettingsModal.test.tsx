@@ -125,7 +125,7 @@ function renderModal(
     </ScreenProvider>,
   );
   renderedTrees.push(view.unmount);
-  return view;
+  return Object.assign(view, { service });
 }
 
 /**
@@ -890,6 +890,35 @@ describe("SettingsModal: typed writable rows", () => {
     expect(screen.getByRole("textbox", { name: /callsign/i })).toHaveValue(
       "Capcom",
     );
+  });
+});
+
+describe("SettingsModal: a text preference with a fixed form", () => {
+  it("refuses typed text the setting does not accept, and keeps the last accepted value", () => {
+    registerSetting({
+      id: "example.address",
+      type: SettingKind.Text,
+      label: "Address",
+      category: "Example",
+      defaultValue: "",
+      screens: ["main"],
+      validate: (text) =>
+        text === "" || /^\d+\.\d+$/.test(text)
+          ? undefined
+          : "Two numbers, please",
+    });
+    const { service } = renderModal("main");
+
+    const input = screen.getByRole("textbox", { name: /address/i });
+    fireEvent.change(input, { target: { value: "1." } });
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription("Two numbers, please");
+    expect(service.get("example.address", "unset")).toBe("unset");
+
+    fireEvent.change(input, { target: { value: "1.2" } });
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(screen.queryByText("Two numbers, please")).toBeNull();
+    expect(service.get("example.address", "unset")).toBe("1.2");
   });
 });
 
