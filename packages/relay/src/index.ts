@@ -13,6 +13,7 @@ import { discoverPublicIp } from "./discoverPublicIp.js";
 import { startEndpoint } from "./endpointManager.js";
 import { EndpointSupervisor } from "./endpointSupervisor.js";
 import { registerHealthRoutes } from "./healthRoutes.js";
+import { PortForwarding, registerPortForwardRoutes } from "./portForwarding.js";
 import {
   defaultGateway,
   endpointPorts,
@@ -156,23 +157,25 @@ if (config.skipEndpoint) {
   await endpoint.begin();
 }
 
-const portMapper =
-  config.skipEndpoint || !config.portMapping
-    ? null
-    : new PortMapper({
-        gateways: gatewayCandidates(config.routerIp, defaultGateway()),
-        ports: endpointPorts(config.endpointPort),
-        sweep: config.routerIp ? [] : sweepCandidates(),
-        lanIp: config.lanIp,
-        log: (msg) => bridgeInfo(`port mapping: ${msg}`),
-      });
-void portMapper?.start();
+const forwarding = new PortForwarding(
+  () =>
+    new PortMapper({
+      gateways: gatewayCandidates(config.routerIp, defaultGateway()),
+      ports: endpointPorts(config.endpointPort),
+      sweep: config.routerIp ? [] : sweepCandidates(),
+      lanIp: config.lanIp,
+      log: (msg) => bridgeInfo(`port mapping: ${msg}`),
+    }),
+  config.portMapping && !config.skipEndpoint,
+);
+void forwarding.start();
+registerPortForwardRoutes(fastify, forwarding);
 
 registerHealthRoutes(fastify, {
   getEndpoint: () => endpoint.handle,
   getPendingReason: () => endpoint.pendingReason,
   endpointExpected: !config.skipEndpoint,
-  getPortMapping: () => portMapper?.status ?? null,
+  getPortMapping: () => forwarding.status,
 });
 
 registerStationsProxy(fastify, {
@@ -204,7 +207,7 @@ bridgeInfo(`relay listening on :${config.port}`);
 
 const shutdown = async () => {
   bridgeInfo("shutting down");
-  await portMapper?.stop();
+  await forwarding.stop();
   await endpoint.stop();
   await fastify.close();
   await exitNow(0);
