@@ -69,7 +69,10 @@ type ArmedCondition =
 
 /** One arm as the stand-in received it: the condition and who it named. */
 interface ArmedAlarm {
+  restored: boolean;
   name: string;
+  /** How many times the player has edited the alarm's copy in the game. */
+  gameEdits: number;
   condition: ArmedCondition;
   subject: string;
   /** The onboard actions, as `{kind, group}` ordinals, and the craft they act on. */
@@ -163,6 +166,13 @@ interface ModStandIn {
   copyToGame(id: string, gameAlarmId: number): void;
   /** The player deletes this alarm's copy in the game's own alarm clock, and the mod deletes the alarm. */
   deleteInGame(id: string): void;
+  /** The player editing the alarm's copy in the game's alarm clock: the mod takes the new name and time. */
+  editInGame(id: string, name: string, ut: number): void;
+  /** A quickload puts the alarm back on the roster as the save held it, until a client arms it again. */
+  restoreFromSave(
+    id: string,
+    held: { name: string; ut: number; gameEdits: number },
+  ): void;
   /** Tell the client an altitude, stamped now, so a test can show this side judges nothing off it. */
   showClientAltitude(altitudeAsl: number): void;
   /** Tell the client one contract objective's state, stamped now, so a test can show this side judges nothing off it. */
@@ -275,7 +285,9 @@ function startSession(owlt: number): ModStandIn {
       }
       const subject = String(bag.subject ?? "");
       conditions.set(id, {
+        restored: false,
         name: String(bag.name ?? ""),
+        gameEdits: conditions.get(id)?.gameEdits ?? 0,
         subject,
         onFire: Array.isArray(bag.onFire)
           ? bag.onFire.map((a: { kind?: unknown; group?: unknown }) => ({
@@ -351,7 +363,7 @@ function startSession(owlt: number): ModStandIn {
   function publishRoster(): void {
     lastRoster = [...conditions.entries()].map(([id, arm]) => ({
       id,
-      name: id,
+      name: arm.name,
       armedBy: HOME,
       vantage: arm.vantage,
       subject: arm.subject,
@@ -402,6 +414,8 @@ function startSession(owlt: number): ModStandIn {
       onFire: arm.onFire,
       actsOn: arm.actsOn,
       gameAlarmId: inGame.get(id) ?? null,
+      gameEdits: arm.gameEdits,
+      restored: arm.restored,
     }));
     /* Gated as `ScetRosterAudience` gates it on the mod: nothing while nobody
        is subscribed, one frame to an audience that has not been answered (the
@@ -434,7 +448,9 @@ function startSession(owlt: number): ModStandIn {
     armed: () => [...conditions.keys()],
     armForeign(id) {
       conditions.set(id, {
-        name: "",
+        restored: false,
+        name: id,
+        gameEdits: 0,
         subject: "game",
         vantage: "game",
         onFire: [],
@@ -498,6 +514,21 @@ function startSession(owlt: number): ModStandIn {
     },
     copyToGame(id, gameAlarmId) {
       inGame.set(id, gameAlarmId);
+    },
+    restoreFromSave(id, held) {
+      const arm = conditions.get(id);
+      if (!arm || arm.condition.kind !== "time") return;
+      arm.name = held.name;
+      arm.condition.ut = held.ut;
+      arm.gameEdits = held.gameEdits;
+      arm.restored = true;
+    },
+    editInGame(id, name, ut) {
+      const arm = conditions.get(id);
+      if (!arm || arm.condition.kind !== "time") return;
+      arm.name = name;
+      arm.condition.ut = ut;
+      arm.gameEdits += 1;
     },
     deleteInGame(id) {
       deletedInGame.add(id);
@@ -792,7 +823,39 @@ describe("SCET alarms", () => {
       svc.dispose();
     });
 
-    it("knows which of its alarms the mod copied into the game's alarm clock", async () => {
+    it("takes the new name and time when the copy is edited in the game, and does not arm it again", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const storage = memoryStorage();
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage,
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Burn",
+        trigger: { kind: "time", ut: UT_START + 20 * DT, leadSeconds: 10 },
+      });
+      await run(session, UT_START + 4 * DT);
+      const attempts = session.armAttempts(alarm.id);
+
+      session.editInGame(alarm.id, "Burn later", UT_START + 40 * DT);
+      await runFrom(session, UT_START + 4 * DT, UT_START + 8 * DT);
+
+      const held = svc.snapshot().alarms.find((a) => a.id === alarm.id);
+      expect(held?.name).toBe("Burn later");
+      expect(held?.trigger).toEqual({
+        kind: "time",
+        ut: UT_START + 40 * DT,
+        leadSeconds: 10,
+      });
+      expect(session.armAttempts(alarm.id)).toBe(attempts);
+      expect(storage.getItem("gonogo.alarms.list")).toContain("Burn later");
+      svc.dispose();
+    });
+
+    it("arms its own edit over what a quickload restored, and takes the game edit a save held", async () => {
       const session = startSession(OWLT);
       session.emitAt(UT_START);
       const svc = new AlarmHostService(null, {
@@ -801,17 +864,36 @@ describe("SCET alarms", () => {
         storage: memoryStorage(),
         getOwltSeconds: () => OWLT,
       });
-      const alarm = svc.addAlarm({
+      const edited = svc.addAlarm({
         name: "Burn",
         trigger: { kind: "time", ut: UT_START + 20 * DT, leadSeconds: 10 },
       });
+      const played = svc.addAlarm({
+        name: "Coast",
+        trigger: { kind: "time", ut: UT_START + 30 * DT, leadSeconds: 10 },
+      });
       await run(session, UT_START + 4 * DT);
-      expect(svc.snapshot().scetInGameClock).toBeUndefined();
+      svc.updateAlarm(edited.id, { name: "Burn later" });
+      await runFrom(session, UT_START + 4 * DT, UT_START + 6 * DT);
 
-      session.copyToGame(alarm.id, 42);
-      await runFrom(session, UT_START + 4 * DT, UT_START + 8 * DT);
+      session.restoreFromSave(edited.id, {
+        name: "Burn",
+        ut: UT_START + 20 * DT,
+        gameEdits: 0,
+      });
+      session.restoreFromSave(played.id, {
+        name: "Coast in the game",
+        ut: UT_START + 35 * DT,
+        gameEdits: 1,
+      });
+      await runFrom(session, UT_START + 6 * DT, UT_START + 12 * DT);
 
-      expect(svc.snapshot().scetInGameClock).toEqual([alarm.id]);
+      expect(session.armOf(edited.id)?.name).toBe("Burn later");
+      expect(session.armOf(edited.id)?.restored).toBe(false);
+      expect(session.armOf(played.id)?.name).toBe("Coast in the game");
+      expect(session.armOf(played.id)?.restored).toBe(false);
+      const names = svc.snapshot().alarms.map((a) => a.name);
+      expect(names).toEqual(["Burn later", "Coast in the game"]);
       svc.dispose();
     });
 

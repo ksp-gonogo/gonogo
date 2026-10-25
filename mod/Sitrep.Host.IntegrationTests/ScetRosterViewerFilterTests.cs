@@ -100,6 +100,35 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task AnAlarmCarriesItsGameEditsAndWhetherItCameBackFromASave()
+        {
+            var uplink = new ScetRosterTestUplink();
+            using var engine = NewEngine(uplink);
+            engine.Start();
+            engine.TickAndWait(0.0, null, Timeout);
+            try
+            {
+                var edited = Time("edited");
+                edited.GameEdits = 2;
+                edited.Restored = true;
+                uplink.Arm(edited);
+
+                await using var armer = await AtVantageAsync(engine, Armer);
+                await SubscribeAsync(armer, ScetRosterTestUplink.Topic, Timeout);
+                engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+                engine.TickAndWait(2.0, new KspSnapshot { Ut = 2.0 }, Timeout);
+
+                var row = Row(await ReceiveRosterAsync(armer), "edited");
+                Assert.Equal(2, row.GetProperty("gameEdits").GetInt32());
+                Assert.True(row.GetProperty("restored").GetBoolean());
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public async Task ALiveRosterChangeAndALateSubscriberElsewhereAreRedactedToo()
         {
             var uplink = new ScetRosterTestUplink();

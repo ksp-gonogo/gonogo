@@ -7,7 +7,7 @@ import { dispatchActionGroup } from "../dispatchActionGroup";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
 import { AlarmWarpPlanner } from "./AlarmWarpPlanner";
-import { ScetAlarmBridge } from "./ScetAlarmBridge";
+import { type EditedInGame, ScetAlarmBridge } from "./ScetAlarmBridge";
 import {
   type Alarm,
   type AlarmSnapshot,
@@ -232,6 +232,7 @@ export class AlarmHostService {
       },
       onCancelled: (ids) => this.onScetCancelled(ids),
       onDeletedInGame: (ids) => this.onScetDeletedInGame(ids),
+      onEditedInGame: (edits) => this.onScetEditedInGame(edits),
       nowMs: () => this.opts.nowMs(),
     });
     /* Bound only once assigned: a replayed fire notice ticks the host, and the
@@ -273,7 +274,7 @@ export class AlarmHostService {
           ? Object.fromEntries(this.onFireRefusals)
           : undefined,
       scetUnreachable: this.unreachableHeld(),
-      scetInGameClock: this.inGameClockHeld(),
+      scetGameCopyIds: this.gameCopyIdsHeld(),
       scetForeign: this.foreignHeld(),
       scetForeignFired:
         this.foreignFires.size > 0
@@ -294,12 +295,10 @@ export class AlarmHostService {
     return rows.length > 0 ? [...rows] : undefined;
   }
 
-  /** The alarms of this list the mod has copied into the game's own alarm clock, or undefined for none. */
-  private inGameClockHeld(): string[] | undefined {
-    const ids = this.scetBridge
-      .inGameClockIds()
-      .filter((id) => this.alarms.some((a) => a.id === id));
-    return ids.length > 0 ? ids : undefined;
+  /** The game alarm ids of the copies of this list's alarms, or undefined for none. */
+  private gameCopyIdsHeld(): number[] | undefined {
+    const ids = this.scetBridge.gameCopyIds();
+    return ids.length > 0 ? [...ids] : undefined;
   }
 
   /** The alarms of this list the simulation holds as unreachable, or undefined for none. */
@@ -627,6 +626,31 @@ export class AlarmHostService {
       if (deleted.has(alarm.id)) this.forgetAlarm(alarm.id);
     }
     this.alarms = this.alarms.filter((a) => !deleted.has(a.id));
+    this.persist();
+    this.emit();
+  }
+
+  /**
+   * The player edited these alarms' copies in the game's alarm clock, and the
+   * simulation already holds the new name and time, so they are taken as they
+   * are without arming again.
+   */
+  private onScetEditedInGame(edits: readonly EditedInGame[]): void {
+    let changed = false;
+    for (const edit of edits) {
+      const idx = this.alarms.findIndex((a) => a.id === edit.id);
+      if (idx < 0) continue;
+      const prev = this.alarms[idx];
+      if (prev.trigger.kind !== "time") continue;
+      this.alarms[idx] = {
+        ...prev,
+        name: edit.name === "" ? prev.name : edit.name,
+        trigger: { ...prev.trigger, ut: edit.ut },
+        gameEditsSeen: edit.edits,
+      };
+      changed = true;
+    }
+    if (!changed) return;
     this.persist();
     this.emit();
   }

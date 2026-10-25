@@ -368,15 +368,16 @@ public class ScetAlarmAction
 ///
 /// <para>The roster exists so an operator can see which alarms are still set
 /// after a reconnect, and so a client can remove an entry it no longer
-/// remembers. The roster is held in memory for the game session and is not
-/// written to the save: when the session ends it is gone, and a client sets its
-/// alarms again. It is a list of what somebody asked for, not a reading of any
-/// craft, so the channel is not delayed by signal delay.</para>
+/// remembers. Every alarm still armed is written to the save, so loading a save
+/// puts back the alarms it held when it was made, as it does the game's own.
+/// It is a list of what somebody asked for, not a reading of any craft, so the
+/// channel is not delayed by signal delay.</para>
 /// <internal>
-/// Held in memory by <c>Sitrep.Host.Alarms.ScetAlarmRoster</c> and published by
-/// <c>Gonogo.KSP.ScetAlarmUplink</c>. Not written to the save because the
-/// client's own list is the one the operator edits, and two authorities for one
-/// list diverge across a quickload. Published raw, so <c>JsonWriter.AppendScetAlarm</c> is what puts it on the
+/// Held by <c>Sitrep.Host.Alarms.ScetAlarmRoster</c>, published by
+/// <c>Gonogo.KSP.ScetAlarmUplink</c> and saved by
+/// <c>Gonogo.KSP.GameAlarmLinkScenario</c>. A client that holds an alarm arms it
+/// again after a load, so its own list stays the one the operator edits.
+/// Published raw, so <c>JsonWriter.AppendScetAlarm</c> is what puts it on the
 /// wire.
 /// </internal>
 /// </summary>
@@ -554,6 +555,25 @@ public class ScetAlarm
     /// </summary>
     [SitrepUnit(Units.Id)]
     public long? GameAlarmId { get; set; }
+
+    /// <summary>
+    /// How many times the player has edited this alarm's copy in the game's
+    /// own alarm clock (see <see cref="GameAlarmId"/>). Each edit moves this
+    /// alarm's <see cref="Name"/> and <see cref="ScetAlarmCondition.Ut"/> to
+    /// the copy's title and time, so a client that has not yet taken the
+    /// count it last saw can tell the new name and time are the player's and
+    /// take them, instead of arming its own over them.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int GameEdits { get; set; }
+
+    /// <summary>
+    /// Whether this alarm came back from a save and no client has armed it
+    /// since. A client that holds the alarm arms it again, so its own name and
+    /// time, or the player's edit in the game, replace what the save held.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool Restored { get; set; }
 }
 
 /// <summary>
