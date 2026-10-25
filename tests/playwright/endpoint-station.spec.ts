@@ -80,6 +80,18 @@ function selectedProtocol(page: import("@playwright/test").Page) {
   });
 }
 
+/** The stations the main screen is serving, by broker peer id. */
+function served(page: import("@playwright/test").Page) {
+  return page.evaluate(
+    () =>
+      (
+        window as unknown as {
+          peerHostService?: { getConnectedPeerIds(): string[] };
+        }
+      ).peerHostService?.getConnectedPeerIds() ?? [],
+  );
+}
+
 test.describe("stations through the endpoint @chromium-only", () => {
   test("two stations join at once, each on its own path through the one port", async ({
     browser,
@@ -118,19 +130,28 @@ test.describe("stations through the endpoint @chromium-only", () => {
         )
         .toEqual(["lan", "lan"]);
       expect(await selectedProtocol(a.page)).toBe("udp");
-      // Neither station holds a PeerJS connection to the main screen: both came through the endpoint.
-      expect(
-        await main.page.evaluate(
-          () =>
-            Object.keys(
-              (
-                window as unknown as {
-                  peerHostService: { peer: { connections: object } };
-                }
-              ).peerHostService.peer.connections,
-            ).length,
-        ),
-      ).toBe(0);
+      /* Neither station is carried by a PeerJS connection: both came through the endpoint. Their data
+         connections carried the offer and are closed once the endpoint link opens. */
+      await expect
+        .poll(() =>
+          main.page.evaluate(
+            () =>
+              Object.values(
+                (
+                  window as unknown as {
+                    peerHostService: {
+                      peer: {
+                        connections: Record<string, Array<{ open: boolean }>>;
+                      };
+                    };
+                  }
+                ).peerHostService.peer.connections,
+              )
+                .flat()
+                .filter((c) => c.open).length,
+          ),
+        )
+        .toBe(0);
       await a.context.close();
       await b.context.close();
       await main.context.close();
@@ -155,6 +176,75 @@ test.describe("stations through the endpoint @chromium-only", () => {
         s.page.getByRole("button", { name: /add widget/i }),
       ).toBeVisible({ timeout: 30_000 });
       expect(await selectedProtocol(s.page)).toBe("tcp");
+      await s.context.close();
+      await main.context.close();
+    } finally {
+      await relay.stop();
+    }
+  });
+
+  test("a station rejoins on its own after the main screen is away for 30 seconds", async ({
+    browser,
+  }) => {
+    test.setTimeout(180_000);
+    const relay = await startEndpointRelay({
+      port: 13014,
+      endpointPort: 47183,
+    });
+    try {
+      const main = await mainScreen(browser, relay);
+      const s = await station(browser, main.code);
+      await expect(
+        s.page.getByRole("button", { name: /add widget/i }),
+      ).toBeVisible({ timeout: 30_000 });
+      await expect.poll(() => served(main.page)).toHaveLength(1);
+
+      await main.page.close();
+      await s.page.waitForTimeout(30_000);
+      const back = await main.context.newPage();
+      await back.goto("/?uplinkLoaderIds=");
+
+      await expect
+        .poll(() => served(back), { timeout: 60_000 })
+        .toHaveLength(1);
+      await s.context.close();
+      await main.context.close();
+    } finally {
+      await relay.stop();
+    }
+  });
+
+  test("a station that reloads is served again without pressing Connect", async ({
+    browser,
+  }) => {
+    test.setTimeout(90_000);
+    const relay = await startEndpointRelay({
+      port: 13016,
+      endpointPort: 47184,
+    });
+    try {
+      const main = await mainScreen(browser, relay);
+      const s = await station(browser, main.code);
+      await expect(
+        s.page.getByRole("button", { name: /add widget/i }),
+      ).toBeVisible({ timeout: 30_000 });
+      const first = await served(main.page);
+      expect(first).toHaveLength(1);
+
+      await s.page.reload();
+
+      await expect
+        .poll(
+          async () => {
+            const now = await served(main.page);
+            return now.length === 1 && now[0] !== first[0];
+          },
+          { timeout: 30_000 },
+        )
+        .toBe(true);
+      await expect(
+        s.page.getByRole("button", { name: /add widget/i }),
+      ).toBeVisible();
       await s.context.close();
       await main.context.close();
     } finally {

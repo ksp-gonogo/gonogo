@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http/httptest"
 	"strings"
@@ -44,7 +45,9 @@ type fakeTab struct {
 	conn *websocket.Conn
 	text chan map[string]any
 	data chan []byte
-	done chan struct{}
+	// order names every frame as it arrives: its control type, or "data".
+	order chan string
+	done  chan struct{}
 }
 
 func dialTab(t *testing.T, url string) *fakeTab {
@@ -53,7 +56,7 @@ func dialTab(t *testing.T, url string) *fakeTab {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tb := &fakeTab{t: t, conn: conn, text: make(chan map[string]any, 32), data: make(chan []byte, 32), done: make(chan struct{})}
+	tb := &fakeTab{t: t, conn: conn, text: make(chan map[string]any, 32), data: make(chan []byte, 32), order: make(chan string, 256), done: make(chan struct{})}
 	go func() {
 		defer close(tb.done)
 		for {
@@ -64,8 +67,10 @@ func dialTab(t *testing.T, url string) *fakeTab {
 			if kind == websocket.TextMessage {
 				var m map[string]any
 				_ = json.Unmarshal(msg, &m)
+				tb.order <- fmt.Sprint(m["type"])
 				tb.text <- m
 			} else {
+				tb.order <- "data"
 				tb.data <- msg
 			}
 		}
@@ -236,6 +241,49 @@ func TestTwoStationsAtOnceEachGetTheirOwnMessages(t *testing.T) {
 	}
 	if got := b.nextMessage(t); got != "to b" {
 		t.Fatalf("station b got %q", got)
+	}
+}
+
+// A browser opens its data channel, and sends on it, without waiting for the endpoint to acknowledge the channel. A detached Pion channel opens the same way.
+func TestAStationThatSendsTheMomentItOpensIsAnnouncedBeforeItsMessage(t *testing.T) {
+	_, url := startEndpoint(t, Config{})
+	for sid := uint32(1); sid <= 20; sid++ {
+		tb := dialTab(t, url)
+		se := webrtc.SettingEngine{}
+		se.SetIncludeLoopbackCandidate(true)
+		se.DetachDataChannels()
+		pc, err := webrtc.NewAPI(webrtc.WithSettingEngine(se)).NewPeerConnection(webrtc.Configuration{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		dc, err := pc.CreateDataChannel("gonogo", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		dc.OnOpen(func() {
+			raw, err := dc.Detach()
+			if err == nil {
+				_, _ = raw.Write([]byte("credential"))
+			}
+		})
+		s := &station{pc: pc}
+		tb.send(map[string]any{"type": "offer", "sid": sid, "peerId": "station-a", "sdp": s.offer(t)})
+		s.answer(t, tb.next("answer")["sdp"].(string))
+		var seen []string
+		for len(seen) < 4 {
+			select {
+			case kind := <-tb.order:
+				seen = append(seen, kind)
+			case <-time.After(wait):
+				t.Fatalf("join %d: the tab saw only %v", sid, seen)
+			}
+		}
+		if strings.Join(seen, " ") != "status answer open data" {
+			t.Fatalf("join %d: the tab saw %v, wanted the open frame before the station's message", sid, seen)
+		}
+		pc.Close()
+		tb.conn.Close()
+		<-tb.done
 	}
 }
 
