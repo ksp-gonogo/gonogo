@@ -36,7 +36,6 @@ import type {
   AnyContribution,
   AugmentDefinition,
   DataSourceState,
-  HostIceServers,
   LateTelemetrySubscribe,
   PerfBudgetHandle,
   PerfBudgetOptions,
@@ -93,8 +92,6 @@ export interface GonogoHost {
   sendTogether(build: () => void): CommandGroupHandle;
   /** What {@link useUplinkRelay} calls. */
   useUplinkRelay(uplinkId: string): UplinkRelay;
-  /** What {@link useHostIceServers} calls. */
-  useHostIceServers(): HostIceServers;
   /** What {@link useRouteCommands} calls. */
   useRouteCommands(topic: string): UseRouteCommandsResult;
   /** What {@link useStream} calls. */
