@@ -69,6 +69,27 @@ describe("what an operator reads when the game says no", () => {
     );
   });
 
+  it("writes funds without their fraction, as the game does", () => {
+    expect(
+      commandRefusalSentence({
+        errorCode: CommandErrorCode.InsufficientFunds,
+        command: "career.facility.upgrade",
+        args: { facilityId: "LaunchPad" },
+        breach: {
+          facility: "LaunchPad",
+          facilityName: "Launch Pad",
+          facilityLevel: value("ratio", 1),
+          quantity: "funds",
+          limit: 45834.859,
+          actual: 45999.5,
+          unit: "funds",
+        },
+      }),
+    ).toBe(
+      "Upgrade Launch Pad refused: it costs 45,999f and funds are 45,834f.",
+    );
+  });
+
   it("uses a dispatch's own label over anything it could derive", () => {
     expect(
       commandRefusalSentence({

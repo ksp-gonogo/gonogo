@@ -100,8 +100,8 @@ function comparison(
     case CommandErrorCode.AlreadyAtMaximum:
       return `it is already at ${breach.quantity || "level"} ${quantity(actual, unit)} of ${quantity(limit, unit)}`;
     case CommandErrorCode.InsufficientFunds:
-      // Actual is the price and Limit is the balance.
-      return `it costs ${quantity(actual, unit)} and funds are ${quantity(limit, unit)}`;
+      // Actual is the price and Limit is the balance; the game's own readouts drop the fraction of funds.
+      return `it costs ${quantity(Math.trunc(actual), unit)} and funds are ${quantity(Math.trunc(limit), unit)}`;
     case CommandErrorCode.InsufficientScience:
       return `it costs ${quantity(actual, unit)} and science is ${quantity(limit, unit)}`;
     default:
