@@ -205,7 +205,12 @@ export const describe = {
     "GET /ice-config: TURN credentials with a secret rotated on each restart",
   "relay.coturnManager":
     "Spawns coturn, the TURN server process that carries relayed traffic",
-  "relay.turnSupervisor": "Restarts coturn and reports its health",
+  "relay.publicServiceSupervisor":
+    "Starts coturn and the station endpoint once the public IP is known, and reports why not",
+  "relay.endpointManager":
+    "Spawns the station endpoint, the one-port WebRTC server for stations on other networks",
+  "relay.stationsProxy":
+    "WebSocket /stations: carries the main screen's socket through to the endpoint",
   "relay.appOrigins": "Which page origins may call the relay",
   "relay.analyticsConfig":
     "POST /analytics-config: the main screen's analytics consent",
