@@ -141,41 +141,10 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
     title: "Adding a station screen",
     blocks: [
       text(
-        "A station is any other browser that joins the session: a tablet, a phone, a second laptop. It never talks to KSP. It gets everything through this screen's browser tab, so a station works only while this tab stays open and awake.",
+        "A station is another device, such as a tablet or a phone, that shows its own dashboard from this screen.",
       ),
       text(
-        "Hover the three-dot button in the bottom-right corner, or Tab to it, and press Add station. The window shows a six-character share code, as a link and as a QR code. On the other device scan the QR code or open the link and it connects with nothing to type. Otherwise open the station page and type the code on the Connect to Mission Control screen.",
-      ),
-      text(
-        "The station remembers the code and reconnects by itself while this tab is open. New share code in the same window drops every connected station, and they all need the new code.",
-      ),
-      text(
-        "The share code is kept in this browser's site data. It survives a reload and a restart, and changes only when you press New share code or the site data is cleared. A private window, another browser, and another address for the same app (localhost against a network address) each keep their own code, so read the code from the window you are sharing from. Codes are not case-sensitive and never contain 0, O, 1, I or L.",
-      ),
-      text(
-        "A station on a different network, such as a friend at home or a phone on cellular, joins through the relay in the container on one port: the router in front of this computer must forward port 47100 (UDP and TCP) to it. Alternatively, turn on Automatic port forwarding in Settings, under Relay, and enter your router's address and this computer's address beside it: Gonogo asks that router to open the port to this computer and removes it when it stops. The station page itself loads from the public build with nothing forwarded. A device on the same WiFi never needs the forward. The relay line in the Add station window says whether the relay is running and whether your router opened the port; a friend elsewhere connecting is the only proof that outside traffic gets in.",
-      ),
-      text(
-        "Both devices need internet access, even on the same WiFi, because a station finds this main screen through a public broker before it connects. The broker carries no telemetry.",
-      ),
-    ],
-  },
-  {
-    id: "station-trouble",
-    title: "A station will not connect",
-    blocks: [
-      text(
-        "Work down these in order. The station's own status line says which applies.",
-      ),
-      list(
-        "Can't reach the peer broker: the station has no internet route. Load any website on it, and check it is not on a guest network or a captive portal that blocks outbound connections",
-        "Broker doesn't know that share code: check the share code against the Add station window, that this tab is still open and awake, and that the share code was not regenerated",
-        "Reconnecting after a working session: this screen went away, by refresh, sleep or restart. A station retries by itself for five minutes",
-        "Connects, then fails to open a channel: on another network, the router in front of this computer is not forwarding port 47100 (UDP and TCP), or the relay is not running. Without the relay, guest and public WiFi often block device-to-device traffic, so put both devices on your normal network",
-        "The station's connect screen has a Download logs button, and the lines beginning [PeerClient] name the code being targeted and the reason for each retry",
-      ),
-      text(
-        "A station on another network, such as a phone on cellular, also needs the relay running with port 47100 forwarded, described in the networking guide on the project page.",
+        "Open the green menu button in the bottom-right corner and press Add station. That window has the link to open on the other device.",
       ),
     ],
   },
