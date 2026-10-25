@@ -42,6 +42,15 @@ describe("attachStationBrokers", () => {
     expect(sendUplinkRelay).toHaveBeenCalledWith(UPLINK_ID, "ping", { n: 1 });
   });
 
+  it("offers no ICE servers, to an Uplink that still reads them", () => {
+    const { broker } = capture();
+    attachStationBrokers(asClientService(idlePeerClient()));
+    const changed = vi.fn();
+    broker().iceServers.onChange(changed);
+    expect(broker().iceServers.current()).toEqual([]);
+    expect(changed).not.toHaveBeenCalled();
+  });
+
   it("attaches an Uplink whose bundle registers after the station came up", () => {
     const client = asClientService(idlePeerClient());
     attachStationBrokers(client);
