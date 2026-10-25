@@ -31,8 +31,8 @@ services:
       # Set to 1 to let the relay ask your router to open the port above
       # (NAT-PMP, then UPnP) and remove it when it stops. Off by default.
       GONOGO_AUTO_PORT_FORWARD: ${GONOGO_AUTO_PORT_FORWARD:-}
-      # With GONOGO_AUTO_PORT_FORWARD=1: the router's address, when the relay cannot find
-      # it on its own.
+      # The router automatic port forwarding asks, until the app sends the
+      # address the player entered. The relay asks no other router.
       ROUTER_IP: ${ROUTER_IP:-}
       # This computer's address on the home network: the address the endpoint
       # gives stations on this network, and the one a UPnP router forwards

@@ -29,16 +29,14 @@ elif [ -n "${KSP_HOST:-}" ]; then
 fi
 
 # The station endpoint gives stations on this network this computer's LAN
-# address, and automatic port forwarding asks the router, and the container can
-# see neither for itself. Set LAN_IP or ROUTER_IP to override.
+# address, and a UPnP router is asked to forward to it, and the container cannot
+# see it for itself. Set LAN_IP to override.
 if route_out=$(route -n get default 2>/dev/null); then
   iface=$(printf '%s\n' "$route_out" | awk '/interface:/{print $2; exit}')
   : "${LAN_IP:=$(ipconfig getifaddr "$iface" 2>/dev/null || true)}"
-  : "${ROUTER_IP:=$(printf '%s\n' "$route_out" | awk '/gateway:/{print $2; exit}')}"
 elif command -v ip >/dev/null 2>&1; then
-  route_out=$(ip route get 1.1.1.1 2>/dev/null || true)
-  : "${LAN_IP:=$(printf '%s\n' "$route_out" | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')}"
-  : "${ROUTER_IP:=$(printf '%s\n' "$route_out" | awk '{for(i=1;i<=NF;i++) if($i=="via"){print $(i+1); exit}}')}"
+  : "${LAN_IP:=$(ip route get 1.1.1.1 2>/dev/null |
+    awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')}"
 fi
 [ -n "${LAN_IP:-}" ] && EXTRA_ARGS+=(-e LAN_IP="$LAN_IP")
 [ -n "${ROUTER_IP:-}" ] && EXTRA_ARGS+=(-e ROUTER_IP="$ROUTER_IP")
