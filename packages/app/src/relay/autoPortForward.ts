@@ -1,6 +1,7 @@
 import { SettingKind } from "@ksp-gonogo/sitrep-sdk";
 import { relayBaseUrl } from "../peer/relayAddress";
 import { registerSetting } from "../settings/registry";
+import { isIpAddress } from "./ipAddress";
 
 /** The setting's id; the container's `GONOGO_AUTO_PORT_FORWARD` is its starting value. */
 export const AUTO_PORT_FORWARD_SETTING = "relay.autoPortForward";
@@ -16,7 +17,7 @@ registerSetting({
   type: SettingKind.Bool,
   label: "Automatic port forwarding",
   description:
-    "Asks your router, at the address below, to open the relay's port to this computer, so friends on other networks can join, and closes it again when the relay stops. Off: forward port 47100 (UDP and TCP) to this computer yourself, or play on this network only.",
+    "Asks your router to open the relay's port to this computer, for someone who is not on your local network, and closes it again when the relay stops.",
   category: "Relay",
   defaultValue: false,
   screens: ["main"],
@@ -25,9 +26,7 @@ registerSetting({
 registerSetting({
   id: ROUTER_ADDRESS_SETTING,
   type: SettingKind.Text,
-  label: "Router address",
-  description:
-    "Your router's address, four numbers separated by dots. It is usually printed on the router's label, and this computer's network settings show it as Router or Default Gateway.",
+  label: "Your router's IP address",
   category: "Relay",
   defaultValue: "",
   screens: ["main"],
@@ -38,9 +37,7 @@ registerSetting({
 registerSetting({
   id: COMPUTER_ADDRESS_SETTING,
   type: SettingKind.Text,
-  label: "This computer's address",
-  description:
-    "This computer's address on your home network, four numbers separated by dots, which the router sends friends' connections to. This computer's network settings show it as IP address or IPv4 Address.",
+  label: "This computer's IP address",
   category: "Relay",
   defaultValue: "",
   screens: ["main"],
@@ -48,19 +45,16 @@ registerSetting({
   validate: refuseAddress,
 });
 
-const IPV4 =
-  /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
-
-/** Whether `text` is an address the relay takes: four numbers from 0 to 255, separated by dots. */
+/** Whether `text` is an address the relay takes, IPv4 or IPv6. */
 export function isRouterAddress(text: string): boolean {
-  return IPV4.test(text.trim());
+  return isIpAddress(text);
 }
 
 /** The sentence refusing a typed address, or undefined for an address or an empty field. */
 export function refuseAddress(text: string): string | undefined {
   return text.trim() === "" || isRouterAddress(text)
     ? undefined
-    : "That is not an address: it should be four numbers from 0 to 255, separated by dots.";
+    : "That is not an IP address.";
 }
 
 /** How often a chosen value is sent again, so a relay that restarted picks it up. */

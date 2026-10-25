@@ -1,3 +1,4 @@
+import { isIP } from "node:net";
 import type { FastifyInstance } from "fastify";
 import type { PortMappingStatus } from "./portMapper.js";
 
@@ -22,12 +23,24 @@ const NO_ADDRESS: PortMappingStatus = {
   message: "Automatic port forwarding needs your router's address.",
 };
 
-const IPV4 =
-  /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+/*
+ * The relay speaks NAT-PMP, which is IPv4 only, and UPnP's IPv4 port mapping
+ * (WANIPConnection AddPortMapping). Opening an IPv6 pinhole needs PCP or UPnP's
+ * WANIPv6FirewallControl, neither of which it speaks.
+ */
+const IPV6_UNSUPPORTED: PortMappingStatus = {
+  state: "ipv6-unsupported",
+  message:
+    "Gonogo cannot ask a router to open a port over IPv6 yet. Forward it by hand, as the networking guide describes.",
+};
 
-/** Whether `text` is a dotted IPv4 address. */
-export function isIpv4(text: string): boolean {
-  return IPV4.test(text);
+/** Whether `text` is an IPv4 or IPv6 address, a link-local one with its zone included. */
+export function isIpAddress(text: string): boolean {
+  return isIP(text) !== 0;
+}
+
+function usesIpv6(choice: ForwardingChoice): boolean {
+  return isIP(choice.router ?? "") === 6 || isIP(choice.lan ?? "") === 6;
 }
 
 /**
@@ -64,6 +77,7 @@ export class PortForwarding {
   /** Where the router forward stands, or null while forwarding is off. */
   get status(): PortMappingStatus | null {
     if (!this.choice.enabled) return null;
+    if (this.choice.router && usesIpv6(this.choice)) return IPV6_UNSUPPORTED;
     return this.mapper?.status ?? NO_ADDRESS;
   }
 
@@ -95,7 +109,7 @@ export class PortForwarding {
 
   private async open(): Promise<void> {
     const { enabled, router, lan } = this.choice;
-    if (!enabled || !router || this.mapper) return;
+    if (!enabled || !router || this.mapper || usesIpv6(this.choice)) return;
     const mapper = this.make(router, lan);
     this.mapper = mapper;
     await mapper.start();
@@ -138,16 +152,14 @@ export function registerPortForwardRoutes(
       return reply.status(400).send({ error: "enabled must be true or false" });
     }
     const bad = (v: unknown) =>
-      v !== undefined && (typeof v !== "string" || !isIpv4(v));
+      v !== undefined && (typeof v !== "string" || !isIpAddress(v));
     if (bad(sentLan)) {
-      return reply
-        .status(400)
-        .send({ error: "lanIp must be an address such as 192.0.2.10" });
+      return reply.status(400).send({ error: "lanIp must be an IP address" });
     }
     if (bad(sent)) {
       return reply
         .status(400)
-        .send({ error: "routerIp must be an address such as 192.0.2.1" });
+        .send({ error: "routerIp must be an IP address" });
     }
     // A post without an address keeps the one the relay has, which may be `ROUTER_IP` or `LAN_IP`.
     await forwarding.set({

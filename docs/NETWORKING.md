@@ -70,6 +70,7 @@ Choose one of two ways to open it:
 The relay then asks that router, and only that router, to open the port to this computer (NAT-PMP, then UPnP), renews it while it runs, and removes it when it stops or you turn the setting off. It is off unless you turn it on. If the setup or the Add station window says the router refused or did not answer:
 
 - Check both addresses you entered
+- If you entered IPv6 addresses: Gonogo cannot ask a router to open a port over IPv6 yet, so forward the port by hand
 - Many routers have UPnP switched off, so check the router's settings
 - Otherwise forward the port by hand, as above
 

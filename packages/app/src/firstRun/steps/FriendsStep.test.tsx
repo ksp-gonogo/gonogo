@@ -125,6 +125,23 @@ describe("the setup's friends on other networks step", () => {
     expect(screen.queryByText(/Your router opened port/)).toBeNull();
   });
 
+  it("takes an IPv6 router address, and shows the relay's answer that it cannot ask it yet", async () => {
+    mapping = {
+      state: "ipv6-unsupported",
+      message: "Gonogo cannot ask a router to open a port over IPv6 yet.",
+    };
+    const { settings } = renderStep();
+    await chooseAutomatic("fe80::1%eth0", "2001:db8::20");
+    expect(screen.queryByText(say("friends.address.invalid"))).toBeNull();
+    expect(settings.get(ROUTER_ADDRESS_SETTING, null)).toBe("fe80::1%eth0");
+    expect(
+      await screen.findByText(/cannot ask a router to open a port over IPv6/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/forward port 47100, UDP and TCP/),
+    ).toBeInTheDocument();
+  });
+
   it("gives the port to forward by hand, and leaves automatic forwarding off", async () => {
     const { settings } = renderStep();
     await userEvent
