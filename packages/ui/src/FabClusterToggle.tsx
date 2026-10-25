@@ -1,8 +1,9 @@
 import styled from "styled-components";
 import { useFabCluster } from "./FabCluster";
+import { MenuIcon } from "./Icons";
 
 /**
- * The primary button of a FabCluster: a three-dot control that opens the
+ * The primary button of a FabCluster: a menu control that opens the
  * cluster's buttons on click, Enter or Space and closes it the same way.
  * Hover and focus still reveal the cluster, so the toggle is the way to keep it
  * open without holding the pointer over it. Renders nothing outside a
@@ -25,17 +26,7 @@ export function FabClusterToggle() {
       onFocus={cluster.onFocus}
       onBlur={cluster.onBlur}
     >
-      <svg
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        aria-hidden="true"
-      >
-        <circle cx="5" cy="12" r="2" />
-        <circle cx="12" cy="12" r="2" />
-        <circle cx="19" cy="12" r="2" />
-      </svg>
+      <MenuIcon size={22} />
     </Toggle>
   );
 }

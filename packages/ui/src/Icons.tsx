@@ -24,6 +24,7 @@ export {
   type IconProps,
   JoystickIcon,
   LayersIcon,
+  MenuIcon,
   MicroscopeIcon,
   PauseIcon,
   PencilIcon,

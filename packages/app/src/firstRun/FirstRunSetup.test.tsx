@@ -590,7 +590,7 @@ describe("FirstRunSetup: the health check", () => {
 });
 
 describe("FirstRunSetup: the Uplinks reading", () => {
-  it("counts the add-ons installed, not the Uplinks inside the core mod, and says a mod-only add-on adds no widgets", async () => {
+  it("counts the add-ons installed, not the Uplinks inside the core mod, and gives a mod-only add-on no label", async () => {
     setUplinkOutcome({ id: "widget-loaded", name: "Loaded", status: "loaded" });
     const { wsClients } = renderSetup();
     await goToUplinks();
@@ -603,34 +603,15 @@ describe("FirstRunSetup: the Uplinks reading", () => {
 
     await screen.findByText(say("uplinks.check.allWorking", { installed: 2 }));
     expect(screen.getByText("data-only")).toBeInTheDocument();
-    expect(screen.getByText(say("uplinks.row.modOnly"))).toBeInTheDocument();
+    expect(screen.queryByText(/no widgets/i)).toBeNull();
     expect(screen.queryByText("core-a")).toBeNull();
     expect(screen.queryByText("core-b")).toBeNull();
-    expect(
-      screen.queryByText(say("uplinks.summary", { loaded: 1, installed: 1 })),
-    ).toBeNull();
     expect(
       screen.queryByText(say("uplinks.row.noClient")),
     ).not.toBeInTheDocument();
   });
 
-  it("words the loaded count over the Uplinks that have a client, so it agrees with the installed count beside it", async () => {
-    setUplinkOutcome({ id: "widget-loaded", name: "Loaded", status: "loaded" });
-    const { wsClients } = renderSetup();
-    await goToUplinks();
-    await emitRoster(wsClients, [
-      rosterEntry({ id: "widget-loaded" }),
-      rosterEntry({ id: "widget-noclient" }),
-      rosterEntry({ id: "data-only", expectedClientHash: null }),
-    ]);
-
-    await screen.findByText("3 Uplinks installed, 1 needs attention");
-    expect(
-      screen.getByText("Client loaded for 1 of 2 Uplinks that have one"),
-    ).toBeInTheDocument();
-  });
-
-  it("counts the loaded clients when an Uplink needs a look, leaving mod-only capabilities out", async () => {
+  it("lists an Uplink that needs a look beside the loaded one, leaving mod-only capabilities out", async () => {
     setUplinkOutcome({ id: "widget-loaded", name: "Loaded", status: "loaded" });
     const { wsClients } = renderSetup();
     await goToUplinks();
@@ -640,10 +621,7 @@ describe("FirstRunSetup: the Uplinks reading", () => {
       coreEntry("core-a"),
     ]);
 
-    await screen.findByText(
-      say("uplinks.summary", { loaded: 1, installed: 2 }),
-    );
-    expect(screen.getByText(say("uplinks.hint.attention"))).toBeInTheDocument();
+    await screen.findByText("widget-noclient");
   });
 
   it("says the mod cannot list its Uplinks while the connection has failed, instead of waiting on it", async () => {
@@ -732,11 +710,7 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     // outcome rows are already in the store before render, so waiting for
     // "Client loaded" resolves before the roster frame has arrived and every
     // assertion below it then reads a list that is still outcome-only.
-    await waitFor(() =>
-      expect(
-        screen.getByText(say("uplinks.summary", { loaded: 1, installed: 4 })),
-      ).toBeInTheDocument(),
-    );
+    await screen.findByText(say("uplinks.row.noClient"));
     expect(screen.getByText(say("uplinks.row.loaded"))).toBeInTheDocument();
     expect(
       screen.getByText(say("uplinks.row.quarantined")),
@@ -860,9 +834,7 @@ describe("FirstRunSetup: the Uplinks reading", () => {
      * already in the store before render, so it is on screen before the
      * roster frame that adds the row it is compared against.
      */
-    await screen.findByText(
-      say("uplinks.summary", { loaded: 1, installed: 2 }),
-    );
+    await screen.findByText("widget-noclient");
     expect(screen.getByText("widget-noclient")).toBeInTheDocument();
     expect(screen.getByText("by tester")).toBeInTheDocument();
     expect(screen.getByText("example/repo")).toBeInTheDocument();
@@ -892,9 +864,7 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     await goToUplinks();
     await emitRoster(wsClients, [rosterEntry({ id: "widget-tampered" })]);
 
-    await screen.findByText(
-      say("uplinks.summary", { loaded: 0, installed: 1 }),
-    );
+    await screen.findByText(say("uplinks.row.quarantined"));
     expect(
       screen.getByText(say("uplinks.row.quarantined")),
     ).toBeInTheDocument();
@@ -955,9 +925,7 @@ describe("FirstRunSetup: accessibility", () => {
       rosterEntry({ id: "widget-loaded" }),
       rosterEntry({ id: "widget-noclient" }),
     ]);
-    await screen.findByText(
-      say("uplinks.summary", { loaded: 1, installed: 2 }),
-    );
+    await screen.findByText("widget-noclient");
     expect(screen.getByText(say("uplinks.row.loaded"))).toBeInTheDocument();
     await expectNoA11yViolations(container);
   });
@@ -983,7 +951,7 @@ describe("FirstRunSetup: accessibility", () => {
     expect(
       screen.getByText(stepHeading(6, say("done.heading"))),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Add default layouts/)).toBeInTheDocument();
+    expect(screen.getByText(/green menu button/)).toBeInTheDocument();
     await expectNoA11yViolations(container);
   });
 });

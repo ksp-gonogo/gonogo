@@ -89,16 +89,10 @@ export const WIZARD_COPY = {
     "{installed} {installed?Uplink|Uplinks} installed, {attention} {attention?needs|need} attention",
   "uplinks.check.skipped":
     "{installed} {installed?Uplink|Uplinks} installed, {skipped} skipped by you. Load {skipped?it|them} later from Settings, Uplinks",
-  "uplinks.summary":
-    "Client loaded for {loaded} of {installed} {installed?Uplink|Uplinks} that {installed?has|have} one",
-  "uplinks.summaryRefused":
-    "{summary}; {refused} refused due to a contract mismatch",
   "uplinks.find.label": "Find Uplinks",
   "uplinks.find.search":
     "Uplinks are add-ons that integrate Gonogo with other mods. In CKAN, search for:",
   "uplinks.find.searchLabel": "CKAN search",
-  "uplinks.hint.attention":
-    "Each Uplink that needs attention lists its reason under its name. Everything else in Gonogo keeps working.",
   "uplinks.row.version": "v{version}",
   "uplinks.row.contractMismatchOlder":
     "Built for contract {declared}; this Gonogo uses {core}. It was made for an older Gonogo and needs its own update: update it in CKAN, using the search under Find Uplinks. Gonogo works without it, but its widgets and commands stay off until then.",
@@ -113,7 +107,6 @@ export const WIZARD_COPY = {
   "uplinks.row.refused": "Refused: contract mismatch",
   "uplinks.row.unavailable": "Mod reports unavailable",
   "uplinks.row.noClient": "No client loaded",
-  "uplinks.row.modOnly": "Data only, no widgets",
   "uplinks.row.details": "Details",
 
   "recommended.heading": "Recommended settings",
@@ -142,9 +135,7 @@ export const WIZARD_COPY = {
   "done.heading": "Done",
   "done.advance": "Finish",
   "done.next":
-    "Load a save in KSP. An empty dashboard offers Add default layouts, which fills it with ready-made flight and space centre layouts, or Add a widget to pick your own. Later, add more with the round button with three dots in the bottom-right corner, then Add widget.",
-  "done.settings":
-    "This setup opens by itself once. Settings, in the same three-dot menu, keeps the same readings: the KSP connection under Connection and each Uplink under Uplinks. Run setup again, under Connection, reopens it.",
+    "Load a save in KSP, then add widgets with the green menu button in the bottom-right corner.",
 
   "settings.heading": "Setup",
   "settings.label": "First-run setup",

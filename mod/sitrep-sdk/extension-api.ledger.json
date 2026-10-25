@@ -16817,6 +16817,10 @@
         "note": "What a figure is for the purpose of marking it: current, or a ReckoningKind. The type of the widened kind on ReckoningMark and HeldFigure"
       },
       {
+        "key": "ui-kit . MenuIcon",
+        "note": "Three horizontal lines, the icon of the dashboard menu button"
+      },
+      {
         "key": "ui-kit . ModalContextValue",
         "note": "exported, since a published component's props or return type already names it"
       },
