@@ -62,7 +62,7 @@ Choose one of two ways to open it:
 
 **Open it yourself.** Forward `47100` (UDP and TCP) in your router's settings. Give the main screen computer a fixed address on your network first (a reservation in the router is easiest), or the forward points at nothing when its address changes.
 
-**Let Gonogo open it.** Add `-e GONOGO_AUTO_PORT_FORWARD=1` to the run command. The relay then talks directly to your router (NAT-PMP, then UPnP), asks it to open the port, renews it while it runs, and removes it when the container stops. It is off unless you set it. If the Add station window says the router refused or did not answer:
+**Let Gonogo open it.** Choose "let Gonogo open the port on my router" in the setup's Friends on other networks step, or turn on **Automatic port forwarding** in Settings, under Relay. The relay then finds your router and talks to it directly (NAT-PMP, then UPnP), asks it to open the port, renews it while it runs, and removes it when it stops or you turn the setting off. It is off unless you turn it on. Adding `-e GONOGO_AUTO_PORT_FORWARD=1` to the run command turns it on from the start, for a relay whose main screen has never chosen. If the Add station window says the router refused or did not answer:
 
 - Many routers have UPnP switched off, so check the router's settings
 - Add `-e ROUTER_IP=<router address>` and `-e LAN_IP=<this computer's address>` to the command. The router address is the "Default Gateway" in `ipconfig` on Windows, or the `via` address of `ip route get 1.1.1.1` on Linux

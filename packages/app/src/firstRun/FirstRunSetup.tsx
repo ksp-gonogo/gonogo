@@ -7,6 +7,7 @@ import { useHasSetupSettings } from "./setupSettings";
 import { ConnectStep } from "./steps/ConnectStep";
 import { ContainerStep } from "./steps/ContainerStep";
 import { DoneStep } from "./steps/DoneStep";
+import { FriendsStep } from "./steps/FriendsStep";
 import { HealthStep } from "./steps/HealthStep";
 import { RecommendedStep } from "./steps/RecommendedStep";
 import { UplinkReadinessStep } from "./steps/UplinkReadinessStep";
@@ -15,6 +16,7 @@ import { WelcomeStep } from "./steps/WelcomeStep";
 export type SetupStep =
   | "welcome"
   | "container"
+  | "friends"
   | "connect"
   | "uplinks"
   | "recommended"
@@ -24,6 +26,7 @@ export type SetupStep =
 const ORDER: readonly SetupStep[] = [
   "welcome",
   "container",
+  "friends",
   "connect",
   "uplinks",
   "recommended",
@@ -34,6 +37,7 @@ const ORDER: readonly SetupStep[] = [
 const HEADING = {
   welcome: "welcome.heading",
   container: "container.heading",
+  friends: "friends.heading",
   connect: "connect.heading",
   uplinks: "uplinks.heading",
   recommended: "recommended.heading",
@@ -49,6 +53,7 @@ const HEADING = {
 const ADVANCE_LABEL = {
   welcome: "welcome.advance",
   container: "container.advance",
+  friends: "friends.advance",
   connect: "connect.advance",
   uplinks: "uplinks.advance",
   recommended: "recommended.advance",
@@ -123,6 +128,7 @@ export function FirstRunSetup({
         </StepHeading>
         {step === "welcome" && <WelcomeStep />}
         {step === "container" && <ContainerStep />}
+        {step === "friends" && <FriendsStep />}
         {step === "connect" && <ConnectStep />}
         {step === "uplinks" && <UplinkReadinessStep />}
         {step === "recommended" && <RecommendedStep />}
