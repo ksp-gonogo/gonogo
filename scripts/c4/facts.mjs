@@ -203,7 +203,7 @@ export const describe = {
   "relay.index": "Fastify server and process lifecycle",
   "relay.healthRoutes":
     "GET /health: the endpoint's port and public address, and the router forward",
-  "relay.publicServiceSupervisor":
+  "relay.endpointSupervisor":
     "Starts the station endpoint once the public IP is known, and reports why not",
   "relay.endpointManager":
     "Spawns the station endpoint, the one-port WebRTC server every station joins through, which also bridges camera feeds",

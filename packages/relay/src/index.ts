@@ -10,7 +10,8 @@ import { registerAppOrigins } from "./appOrigins.js";
 import { registerBootstrapConfigRoutes } from "./bootstrapConfig.js";
 import { loadConfig } from "./config.js";
 import { discoverPublicIp } from "./discoverPublicIp.js";
-import { type EndpointHandle, startEndpoint } from "./endpointManager.js";
+import { startEndpoint } from "./endpointManager.js";
+import { EndpointSupervisor } from "./endpointSupervisor.js";
 import { registerHealthRoutes } from "./healthRoutes.js";
 import {
   defaultGateway,
@@ -19,7 +20,6 @@ import {
   PortMapper,
   sweepCandidates,
 } from "./portMapper.js";
-import { PublicServiceSupervisor } from "./publicServiceSupervisor.js";
 import { registerStationsProxy } from "./stationsProxy.js";
 import { BUILD_TIME, VERSION } from "./version.js";
 
@@ -116,15 +116,10 @@ async function exitNow(code: number): Promise<never> {
   process.exit(code);
 }
 
-const UNDISCOVERED =
-  "public IP not discovered; set PUBLIC_IP or restore internet access";
-
 const discover = () =>
   discoverPublicIp({ override: config.publicIp ?? undefined });
 
-const endpoint = new PublicServiceSupervisor<EndpointHandle>({
-  name: "endpoint",
-  undiscoveredReason: UNDISCOVERED,
+const endpoint = new EndpointSupervisor({
   discover,
   onDiscoveryFailed: (err) =>
     bridgeError(
