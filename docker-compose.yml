@@ -30,8 +30,8 @@ services:
       ENDPOINT_PORT: ${ENDPOINT_PORT:-47100}
       # Set to 1 to let the relay ask your router to open the port above
       # (NAT-PMP, then UPnP) and remove it when it stops. Off by default.
-      GONOGO_UPNP: ${GONOGO_UPNP:-}
-      # With GONOGO_UPNP=1: the router's address, when the relay cannot find
+      GONOGO_AUTO_PORT_FORWARD: ${GONOGO_AUTO_PORT_FORWARD:-}
+      # With GONOGO_AUTO_PORT_FORWARD=1: the router's address, when the relay cannot find
       # it on its own.
       ROUTER_IP: ${ROUTER_IP:-}
       # This computer's address on the home network: the address the endpoint
