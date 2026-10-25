@@ -16,7 +16,7 @@ import {
   Staleness,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
-import Peer from "peerjs";
+import Peer, { type DataConnection } from "peerjs";
 import type { RunningUplink } from "../uplinks/loaderState";
 import type { HostUplinkFailure } from "../uplinks/loadFailures";
 import { BUILD_TIME, VERSION } from "../version";
@@ -25,9 +25,9 @@ import {
   fetchWithDeadline,
   rebaseBundleUrl,
 } from "./BundleFetchCache";
-import { type EndpointSignal, onSignal, sendSignal } from "./brokerSignal";
 import { type ConnectionPath, readConnectionPath } from "./connectionPath";
 import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
+import { joinMetadata, readJoin } from "./endpointJoin";
 import { EndpointConnection, EndpointStations } from "./endpointStations";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
@@ -48,6 +48,9 @@ import { encodeWideNumbers } from "./wideNumbers";
 // same id from the operator-typed code and connect directly, no broker
 // directory in between. See `hostPeerId.ts` for the derivation.
 const SHARE_CODE_KEY = "gonogo-host-share-code";
+
+/** How long the connection carrying the endpoint's answer to a station is kept, for a station that never reads it. */
+const ANSWER_CARRIER_MS = 15_000;
 
 /**
  * Host-side counterpart of a station's `uplink-relay-request`: an object
@@ -560,7 +563,6 @@ export class PeerHostService {
   shareCode: string = getOrCreateShareCode();
   /** The relay's station endpoint, which carries every station that joins while it is up. */
   readonly endpoint = new EndpointStations(stationsSocketUrl);
-  private signalUnsub: (() => void) | null = null;
   private flightListChangeUnsub: (() => void) | null = null;
   /** True while we're retry-reclaiming the derived peer id after an
    *  `unavailable-id` (broker still holds a stale slot from an unclean
@@ -647,10 +649,6 @@ export class PeerHostService {
       config: { iceServers: STUN_SERVERS },
     });
     this.peer = peer;
-    this.signalUnsub?.();
-    this.signalUnsub = onSignal(peer, (from, connectionId, signal) =>
-      this.handleSignal(peer, from, connectionId, signal),
-    );
 
     this.peer.on("open", (id) => {
       this.peerId = id;
@@ -682,7 +680,7 @@ export class PeerHostService {
       this.relayRegistration.startHeartbeat();
     });
 
-    this.peer.on("connection", (conn) => this.acceptStation(conn));
+    this.peer.on("connection", (conn) => this.takeStation(peer, conn));
 
     // PeerJS quirk: when the broker WebSocket drops, PeerJS sets
     // `peer.disconnected = true` and emits "disconnected", but it does
@@ -725,7 +723,12 @@ export class PeerHostService {
       // above owns the backed-off reconnect) and `unavailable-id` is owned
       // by the reclaim loop below: both are recovered automatically, so
       // they log at warn and the error stream stays meaningful.
-      if (peerErr.type === "network" || peerErr.type === "unavailable-id") {
+      // `peer-unavailable` is a station that left before the endpoint's answer to it was sent.
+      if (
+        peerErr.type === "network" ||
+        peerErr.type === "unavailable-id" ||
+        peerErr.type === "peer-unavailable"
+      ) {
         logger.warn(`[PeerHost] peer error (recovering): type=${peerErr.type}`);
       } else {
         logger.error("[PeerHost] peer error", err);
@@ -745,10 +748,15 @@ export class PeerHostService {
   /**
    * Serve one station's connection, whichever path it joined by: a PeerJS
    * data connection from the broker, or a link through the endpoint.
+   * `earlier` is what the station sent while the connection was held
+   * unserved, handled once it is served.
    */
-  private acceptStation(conn: StationLink): void {
+  private acceptStation(conn: StationLink, earlier: unknown[] = []): void {
     logger.info(`[PeerHost] incoming connection from ${conn.peer}`);
-    conn.on("open", () => {
+    let served = false;
+    const serve = () => {
+      if (served) return;
+      served = true;
       this.waiting.add(conn);
       // PeerJS can lose an open data connection without ever firing
       // `close`: the RTCPeerConnection goes silent and the events stop. A
@@ -785,47 +793,59 @@ export class PeerHostService {
       } satisfies PeerMessage);
       // Sent before approval, so a station still waiting, or refused, can ship the logs that say why it never joined.
       conn.send(this.analyticsConsentMessage());
-    });
-    conn.on("data", (raw) => {
+    };
+    const receive = (raw: unknown) => {
       if (this.droppedConnections.has(conn)) return;
       const msg = asPeerMessage(raw);
       if (msg) this.handleIncoming(msg, conn);
-    });
+    };
+    conn.on("open", serve);
+    conn.on("data", receive);
     conn.on("close", () => this.dropConnection(conn, "closed"));
     conn.on("error", (err) => {
       logger.error(`[PeerHost] connection error: peer=${conn.peer}`, err);
     });
+    if (conn.open) serve();
+    for (const raw of earlier) receive(raw);
   }
 
   /**
-   * A station asking through the broker to join. With the endpoint up, the
-   * station's offer goes to it and the station is told the endpoint's
-   * answer; without it, or if the endpoint will not take the station, the
-   * station is told to connect here directly.
+   * A station's data connection. One that carries an offer for the endpoint
+   * joins through the endpoint while it is up, and the data connection is
+   * held unserved in case the endpoint will not take the station.
    */
-  private handleSignal(
-    peer: Peer,
-    from: string,
-    connectionId: string,
-    signal: EndpointSignal,
-  ): void {
-    if (signal.kind !== "join") return;
-    const reply = (answer: EndpointSignal) => {
-      if (this.peer === peer) sendSignal(peer, from, connectionId, answer);
-    };
-    if (!this.endpoint.available) {
-      reply({ kind: "direct" });
+  private takeStation(peer: Peer, conn: DataConnection): void {
+    const join = readJoin(conn.metadata);
+    if (join?.kind !== "join" || !this.endpoint.available) {
+      this.acceptStation(conn);
       return;
     }
-    const { conn, answer } = this.endpoint.join(from, signal.sdp);
-    this.acceptStation(conn);
+    const { conn: link, answer } = this.endpoint.join(conn.peer, join.sdp);
+    this.acceptStation(link);
+    let held: unknown[] | null = [];
+    conn.on("data", (raw) => held?.push(raw));
+    link.on("open", () => {
+      held = null;
+      conn.close();
+    });
     answer.then(
-      (sdp) => reply({ kind: "answer", sdp }),
+      (sdp) => {
+        if (this.peer !== peer) return;
+        /* The broker carries nothing to a station but PeerJS's own offers,
+           so the answer rides one. The station closes it once read; closing
+           it here as well covers a station that left first. */
+        const carrier = peer.connect(conn.peer, {
+          metadata: joinMetadata({ kind: "answer", id: join.id, sdp }),
+        });
+        setTimeout(() => carrier?.close(), ANSWER_CARRIER_MS);
+      },
       (err: unknown) => {
         logger.warn(
-          `[PeerHost] endpoint did not take ${from}, sending it here directly: ${err instanceof Error ? err.message : String(err)}`,
+          `[PeerHost] endpoint did not take ${conn.peer}, serving it here directly: ${err instanceof Error ? err.message : String(err)}`,
         );
-        reply({ kind: "direct" });
+        const earlier = held ?? [];
+        held = null;
+        if (this.peer === peer) this.acceptStation(conn, earlier);
       },
     );
   }

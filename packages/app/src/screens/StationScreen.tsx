@@ -98,6 +98,7 @@ export function StationScreen() {
   const [connStatus, setConnStatus] = useState<ConnStatus>("idle");
   const [hostNotFound, setHostNotFound] = useState(false);
   const [brokerUnreachable, setBrokerUnreachable] = useState(false);
+  const [brokerClosed, setBrokerClosed] = useState(false);
   const [hostChannelFailed, setHostChannelFailed] = useState(false);
   const [progress, setProgress] = useState<ConnectProgress>();
   const [hostInput, setHostInput] = useState(
@@ -258,6 +259,7 @@ export function StationScreen() {
         setBrokerUnreachable(!reachable);
       }),
     );
+    unsubsRef.current.push(client.onBrokerClosed(setBrokerClosed));
     unsubsRef.current.push(client.onHostChannelFailed(setHostChannelFailed));
     // `HOST_ID_KEY` holds the stable share-code. The host's broker peer id
     // is derived from it (`gonogo-host-<code>`) and never changes for a
@@ -337,6 +339,7 @@ export function StationScreen() {
                 connStatus={connStatus}
                 hostNotFound={hostNotFound}
                 brokerUnreachable={brokerUnreachable}
+                brokerClosed={brokerClosed}
                 hostChannelFailed={hostChannelFailed}
                 progress={progress}
                 everConnected={everConnected}

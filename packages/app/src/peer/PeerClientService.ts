@@ -2,12 +2,12 @@ import { safeRandomUuid } from "@ksp-gonogo/core";
 import type { FlightRecord } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import type { ConnectProgress } from "@ksp-gonogo/ui";
-import Peer from "peerjs";
+import Peer, { type DataConnection } from "peerjs";
 import type { RunningUplink } from "../uplinks/loaderState";
 import type { HostUplinkFailure } from "../uplinks/loadFailures";
-import { onSignal, sendSignal } from "./brokerSignal";
 import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
 import { EndpointHostLink } from "./endpointHostLink";
+import { joinMetadata, readJoin } from "./endpointJoin";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
@@ -65,12 +65,6 @@ const DEFAULT_ATTEMPT_DEADLINE_MS = 10_000;
  * direct path, which a further identical attempt does not change.
  */
 const MAX_HOST_CHANNEL_ATTEMPTS = 4;
-
-/**
- * How long a station waits for the main screen to say how to join (through
- * the endpoint, or directly) before it connects directly anyway.
- */
-const JOIN_REPLY_MS = 4_000;
 
 /** PeerJS error shape: `.type` is the discriminator. */
 interface PeerJsError extends Error {
@@ -167,6 +161,7 @@ type ClientEventMap = {
   approval: [approval: StationApproval];
   writeRefused: [refused: string];
   brokerReachable: [reachable: boolean];
+  brokerClosed: [closed: boolean];
   hostChannelFailed: [failed: boolean];
   // Sitrep telemetry-stream forwarding: see protocol.ts's `sitrep-frame`/
   // `sitrep-command-*` doc comment. `sitrepFrame` carries the host-relayed
@@ -193,6 +188,8 @@ export class PeerClientService {
   private conn: (StationLink & { peerConnection?: RTCPeerConnection }) | null =
     null;
   private lastHostMessageAt = 0;
+  /** The endpoint link this station offered the main screen, until it is answered or the direct path opens. */
+  private pendingEndpoint: { id: string; link: EndpointHostLink } | null = null;
   private silenceTimer: ReturnType<typeof setInterval> | null = null;
   private attemptTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly attemptDeadlineMs: number;
@@ -230,6 +227,8 @@ export class PeerClientService {
   };
   /** Last broker-reachability verdict; `null` until the first attempt resolves. */
   private brokerReachable: boolean | null = null;
+  /** Set when the broker closed this station's socket after answering it, until the station connects. */
+  private brokerClosed = false;
   /** Attempts in a row that reached the host stage and never opened the data channel. */
   private hostChannelStalls = 0;
   /** Set when the last attempt ended because the broker had no such host, which is a wait for the main rather than a stalled channel. */
@@ -367,6 +366,7 @@ export class PeerClientService {
     this.tearDownPeer();
     this.hostChannelStalls = 0;
     this.setHostChannelFailed(false);
+    this.setBrokerClosed(false);
     this.connectProgress = { startedAt: Date.now(), attempt: 0, entered: {} };
     this.openPeer();
   }
@@ -427,20 +427,26 @@ export class PeerClientService {
     });
     this.peer = peer;
     this.armAttemptDeadline(peer);
+    let answered = false;
     peer.on("open", () => {
       if (this.peer !== peer) return;
+      answered = true;
       // Reaching `open` means the broker answered and holds our id, so any earlier "can't reach the broker" verdict is stale.
       this.setBrokerReachable(true);
       this.enterStage("host");
-      this.askHowToJoin(peer);
+      this.joinHost(peer);
     });
+    peer.on("connection", (conn) => this.takeEndpointAnswer(peer, conn));
     peer.on("error", (err) => {
       if (this.peer !== peer) return;
       /* Classify BEFORE the peer-unavailable branches below: a broker we
          never reached is a different fault from a host that isn't there,
          and only this branch can tell the operator which one they have. */
       if (isPeerJsError(err) && BROKER_ERROR_TYPES.has(err.type ?? "")) {
-        this.setBrokerReachable(false);
+        /* PeerJS reports a socket the broker closed the same way as one that
+           never opened, and only the second means this device is offline. */
+        if (answered) this.setBrokerClosed(true);
+        else this.setBrokerReachable(false);
       }
       // PeerJS emits `peer-unavailable` on the *Peer* (not the conn) when
       // any outgoing peer.connect() targets a missing id, so a failed
@@ -475,7 +481,7 @@ export class PeerClientService {
 
   /** Open the data channel to the host's derived id. Requires the Peer to
    *  be open and `hostPeerId` set. */
-  private connectToHost(): void {
+  private connectToHost(metadata?: Record<string, unknown>): void {
     if (!this.peer || !this.hostPeerId) return;
     logger.info(`[PeerClient] connecting to host=${this.hostPeerId}`);
     /*
@@ -488,7 +494,10 @@ export class PeerClientService {
      * radio chunks play in arrival order. Delivery is unchanged either way, so
      * the only cost is head-of-line waiting behind a lost packet's retransmit.
      */
-    const conn = this.peer.connect(this.hostPeerId, { reliable: true });
+    const conn = this.peer.connect(this.hostPeerId, {
+      reliable: true,
+      metadata,
+    });
     this.wireHostLink(conn);
     /* A large message such as an Uplink bundle arrives in many pieces and
        raises `data` only once the last one is in. On a slow link that takes
@@ -510,13 +519,14 @@ export class PeerClientService {
   }
 
   /**
-   * Ask the main screen, through the broker, how to join: it answers with
-   * the endpoint's answer to this station's offer when the relay's endpoint
-   * is up, or says to connect directly when it is not. A main screen that
-   * does not answer in time is joined directly as well, and so is one this
-   * browser could not make an offer for.
+   * Connect to the main screen, offering the relay's endpoint as well: the
+   * data connection carries this station's offer for the endpoint, and a main
+   * screen running one answers with a connection of its own back to this
+   * station, which then joins through the endpoint. A main screen without
+   * one serves the data connection. A browser that cannot make an offer
+   * connects directly only.
    */
-  private askHowToJoin(peer: Peer): void {
+  private joinHost(peer: Peer): void {
     const hostPeerId = this.hostPeerId;
     if (!hostPeerId) return;
     if (typeof RTCPeerConnection === "undefined") {
@@ -524,51 +534,66 @@ export class PeerClientService {
       return;
     }
     const link = new EndpointHostLink(hostPeerId);
-    const connectionId = `gne-${Math.random().toString(36).slice(2, 10)}`;
-    let settled = false;
-    const settle = (): boolean => {
-      if (settled || this.peer !== peer) return false;
-      settled = true;
-      off();
-      clearTimeout(timer);
-      return true;
-    };
-    const direct = () => {
-      if (!settle()) return;
-      link.close();
-      this.connectToHost();
-    };
-    const off = onSignal(peer, (from, id, signal) => {
-      if (from !== hostPeerId || id !== connectionId) return;
-      if (signal.kind === "direct") {
-        direct();
-        return;
-      }
-      if (signal.kind !== "answer" || !settle()) return;
-      logger.info(
-        `[PeerClient] joining host=${hostPeerId} through the endpoint`,
-      );
-      this.wireHostLink(link);
-      link.onPiece = (bytes) => {
-        if (this.conn !== link) return;
-        this.lastHostMessageAt = Date.now();
-        this.countBundlePiece(bytes);
-      };
-      link.accept(signal.sdp).catch((err: unknown) => {
-        logger.warn("[PeerClient] the endpoint's answer did not apply", {
-          error: err instanceof Error ? err.message : String(err),
-        });
-        if (this.conn === link) this.retryPolicy.handleUnexpectedClose();
-      });
-    });
-    const timer = setTimeout(direct, JOIN_REPLY_MS);
+    const id = `gne-${Math.random().toString(36).slice(2, 10)}`;
+    this.pendingEndpoint = { id, link };
     link.createOffer().then(
       (sdp) => {
-        if (settled || this.peer !== peer) return;
-        sendSignal(peer, hostPeerId, connectionId, { kind: "join", sdp });
+        if (this.peer !== peer) return;
+        this.connectToHost(joinMetadata({ kind: "join", id, sdp }));
       },
-      () => direct(),
+      () => {
+        if (this.peer !== peer) return;
+        this.dropPendingEndpoint();
+        this.connectToHost();
+      },
     );
+  }
+
+  /**
+   * A connection the main screen opened to this station. Its only use is to
+   * carry the endpoint's answer to this station's offer, so it is closed as
+   * soon as it is read.
+   */
+  private takeEndpointAnswer(peer: Peer, conn: DataConnection): void {
+    const answer = readJoin(conn.metadata);
+    try {
+      conn.close();
+    } catch {
+      /* already closed */
+    }
+    const pending = this.pendingEndpoint;
+    if (this.peer !== peer || answer?.kind !== "answer") return;
+    if (!pending || answer.id !== pending.id) return;
+    this.pendingEndpoint = null;
+    const { link } = pending;
+    const direct = this.conn;
+    logger.info(
+      `[PeerClient] joining host=${this.hostPeerId} through the endpoint`,
+    );
+    this.wireHostLink(link);
+    try {
+      direct?.close();
+    } catch {
+      /* already closed */
+    }
+    link.onPiece = (bytes) => {
+      if (this.conn !== link) return;
+      this.lastHostMessageAt = Date.now();
+      this.countBundlePiece(bytes);
+    };
+    link.accept(answer.sdp).catch((err: unknown) => {
+      logger.warn("[PeerClient] the endpoint's answer did not apply", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      if (this.conn === link) this.retryPolicy.handleUnexpectedClose();
+    });
+  }
+
+  /** Close the endpoint link offered to the main screen and not taken. */
+  private dropPendingEndpoint(): void {
+    const pending = this.pendingEndpoint;
+    this.pendingEndpoint = null;
+    pending?.link.close();
   }
 
   /**
@@ -601,6 +626,7 @@ export class PeerClientService {
       this.clearAttemptDeadline();
       this.retryPolicy.onConnected();
       this.hostChannelStalls = 0;
+      this.setBrokerClosed(false);
       this.enterStage("data");
       // First, so the host knows whether this station is approved before any request it sends.
       conn.send({
@@ -617,6 +643,10 @@ export class PeerClientService {
     });
     conn.on("data", (raw) => {
       if (!current()) return;
+      /* A main screen running the endpoint holds a station's data connection
+         unserved, so the first message on it, not its opening, says this is
+         the path the station stays on. */
+      this.dropPendingEndpoint();
       this.lastHostMessageAt = Date.now();
       const msg = asPeerMessage(raw);
       if (msg) this.handleMessage(msg);
@@ -675,6 +705,7 @@ export class PeerClientService {
 
   private tearDownPeer() {
     this.clearAttemptDeadline();
+    this.dropPendingEndpoint();
     if (this.silenceTimer !== null) {
       clearInterval(this.silenceTimer);
       this.silenceTimer = null;
@@ -1464,6 +1495,28 @@ export class PeerClientService {
       );
     }
     this.events.emit("brokerReachable", reachable);
+  }
+
+  /**
+   * Fires `true` when the broker closed this station's socket after
+   * answering it, and `false` once the station connects or a new connect
+   * begins. Replays the current verdict on subscribe.
+   */
+  onBrokerClosed(cb: (closed: boolean) => void) {
+    const unsub = this.events.on("brokerClosed", cb);
+    cb(this.brokerClosed);
+    return unsub;
+  }
+
+  private setBrokerClosed(closed: boolean): void {
+    if (this.brokerClosed === closed) return;
+    this.brokerClosed = closed;
+    if (closed) {
+      logger.warn(
+        "[PeerClient] the PeerJS broker closed this station's socket after answering it",
+      );
+    }
+    this.events.emit("brokerClosed", closed);
   }
 
   /**

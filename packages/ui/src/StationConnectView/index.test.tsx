@@ -130,6 +130,26 @@ describe("StationConnectView", () => {
     expect(screen.queryByText(/Check the host ID/i)).toBeNull();
   });
 
+  it("says the broker closed the connection, not that the device is offline or the main screen is shut", () => {
+    render(
+      <StationConnectView
+        {...baseProps}
+        hostInput="AB3K"
+        connStatus="disconnected"
+        brokerClosed
+        hostChannelFailed
+      />,
+    );
+    expect(
+      screen.getByText(
+        "Connection closed by peer broker service. Press Connect to try again.",
+      ),
+    ).not.toBeNull();
+    expect(screen.getByText(/Press Connect to try again/i)).not.toBeNull();
+    expect(screen.queryByText(/internet/i)).toBeNull();
+    expect(screen.queryByText(/Check that it is open/i)).toBeNull();
+  });
+
   it("states why it stopped when the host channel never opened, and Connect tries again", async () => {
     const onConnect = vi.fn();
     render(

@@ -49,6 +49,8 @@ export interface StationConnectViewProps {
   hostNotFound: boolean;
   /** This browser cannot reach the PeerJS broker at all: unlike `hostNotFound`, nothing about the code is wrong, and the device has no route to the service both ends meet on. */
   brokerUnreachable?: boolean;
+  /** The broker answered this browser, then closed its connection: the device is online, and the broker refused what the station sent it. */
+  brokerClosed?: boolean;
   /** The station stopped retrying: the broker answered but the main screen's data channel never opened, so the two devices have no direct path. Connecting again starts a fresh set of attempts. */
   hostChannelFailed?: boolean;
   /** This station reached "connected" at least once this session. */
@@ -70,6 +72,7 @@ export function StationConnectView({
   connStatus,
   hostNotFound,
   brokerUnreachable = false,
+  brokerClosed = false,
   hostChannelFailed = false,
   everConnected,
   onHostInputChange,
@@ -86,6 +89,7 @@ export function StationConnectView({
     waiting &&
     progress !== undefined &&
     !brokerUnreachable &&
+    !brokerClosed &&
     !hostNotFound &&
     !hostChannelFailed &&
     now - progress.startedAt >= CONNECT_STALL_MS;
@@ -123,6 +127,14 @@ export function StationConnectView({
             online and that the network allows outbound HTTPS.
           </ErrorMsg>
         )}
+        {!brokerUnreachable && brokerClosed && (
+          <ErrorMsg role="alert">
+            Connection closed by peer broker service.
+            {hostChannelFailed
+              ? " Press Connect to try again."
+              : " Retrying..."}
+          </ErrorMsg>
+        )}
         {!brokerUnreachable && hostNotFound && everConnected && (
           <ReconnectMsg>
             Host reconnecting... The main screen is restarting and will be back
@@ -138,13 +150,17 @@ export function StationConnectView({
             screen. This station keeps trying.
           </ErrorMsg>
         )}
-        {!brokerUnreachable && !hostNotFound && hostChannelFailed && (
-          <ErrorMsg role="alert">
-            Couldn&apos;t reach the main screen. Check that it is open, then
-            press Connect to try again.
-          </ErrorMsg>
-        )}
         {!brokerUnreachable &&
+          !brokerClosed &&
+          !hostNotFound &&
+          hostChannelFailed && (
+            <ErrorMsg role="alert">
+              Couldn&apos;t reach the main screen. Check that it is open, then
+              press Connect to try again.
+            </ErrorMsg>
+          )}
+        {!brokerUnreachable &&
+          !brokerClosed &&
           !hostNotFound &&
           !hostChannelFailed &&
           connStatus === "disconnected" && (
@@ -165,6 +181,7 @@ export function StationConnectView({
               hostNotFound,
               everConnected,
               brokerUnreachable,
+              brokerClosed,
             )}
             live
           >
@@ -173,6 +190,7 @@ export function StationConnectView({
               hostNotFound,
               everConnected,
               brokerUnreachable,
+              brokerClosed,
             )}
           </StatusIndicator>
         </StatusSlot>

@@ -13,9 +13,6 @@ import { describe, expect, it, vi } from "vitest";
 type Listener = (...args: unknown[]) => void;
 
 class FakePeer {
-  // The broker socket a real Peer carries; the endpoint join signal listens on it.
-
-  socket = { on() {}, off() {}, send(_m: unknown) {} };
   private listeners = new Map<string, Listener[]>();
   static last: FakePeer | null = null;
   constructor(_id?: string) {

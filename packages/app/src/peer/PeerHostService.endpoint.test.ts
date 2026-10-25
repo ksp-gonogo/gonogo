@@ -1,8 +1,8 @@
 /**
- * A station joining the main screen through the relay's endpoint: the join
- * request arrives through the broker, the offer goes to the endpoint, the
- * answer goes back to the station, and the station is then served over the
- * endpoint like any other.
+ * A station joining the main screen through the relay's endpoint: the
+ * station's data connection carries its offer, the offer goes to the
+ * endpoint, the answer goes back in a connection opened to the station, and
+ * the station is then served over the endpoint like any other.
  */
 
 import { ws } from "msw";
@@ -18,21 +18,36 @@ import {
 } from "vitest";
 
 const { FakeHub } = vi.hoisted(() => {
-  /** A Peer whose broker socket is real enough to carry the join signal both ways. */
+  class FakeDataConnection {
+    private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
+    open = false;
+    closed = false;
+    constructor(
+      readonly peer: string,
+      readonly metadata?: unknown,
+    ) {}
+    on(event: string, cb: (...args: unknown[]) => void) {
+      const bucket = this.listeners.get(event) ?? [];
+      bucket.push(cb);
+      this.listeners.set(event, bucket);
+    }
+    emit(event: string, ...args: unknown[]) {
+      for (const cb of this.listeners.get(event) ?? []) cb(...args);
+    }
+    close() {
+      this.closed = true;
+    }
+    readonly sent: unknown[] = [];
+    send(m: unknown) {
+      this.sent.push(m);
+    }
+  }
+
   class FakePeer {
     static current: FakePeer | null = null;
     private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
-    private socketListeners = new Set<(m: unknown) => void>();
-    readonly toBroker: Array<{ type: string; dst: string; payload: unknown }> =
-      [];
-    socket = {
-      on: (_e: string, cb: (m: unknown) => void) =>
-        this.socketListeners.add(cb),
-      off: (_e: string, cb: (m: unknown) => void) =>
-        this.socketListeners.delete(cb),
-      send: (m: { type: string; dst: string; payload: unknown }) =>
-        this.toBroker.push(m),
-    };
+    /** Connections this main screen opened to stations. */
+    readonly opened: FakeDataConnection[] = [];
 
     constructor(readonly id: string) {
       FakePeer.current = this;
@@ -49,8 +64,17 @@ const { FakeHub } = vi.hoisted(() => {
       for (const cb of this.listeners.get(event) ?? []) cb(...args);
     }
 
-    fromBroker(m: unknown) {
-      for (const cb of this.socketListeners) cb(m);
+    connect(id: string, options?: { metadata?: unknown }) {
+      const conn = new FakeDataConnection(id, options?.metadata);
+      this.opened.push(conn);
+      return conn;
+    }
+
+    /** A station's data connection arriving through the broker. */
+    incoming(from: string, metadata?: unknown) {
+      const conn = new FakeDataConnection(from, metadata);
+      this.emit("connection", conn);
+      return conn;
     }
 
     destroy() {}
@@ -74,8 +98,8 @@ import {
   unregisterUplinkHandle,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { Packable } from "peerjs-js-binarypack";
-import { ENDPOINT_SIGNAL } from "./brokerSignal";
 import { encodeFrames, FrameReader } from "./endpointFraming";
+import { joinMetadata, readJoin } from "./endpointJoin";
 import { PeerHostService } from "./PeerHostService";
 
 const link = ws.link("ws://localhost:3002/stations");
@@ -172,17 +196,12 @@ function endpoint() {
 function join(
   peer: InstanceType<typeof FakeHub.Peer>,
   from: string,
-  connectionId: string,
+  id: string,
 ) {
-  peer.fromBroker({
-    type: "OFFER",
-    src: from,
-    payload: {
-      type: ENDPOINT_SIGNAL,
-      connectionId,
-      signal: { kind: "join", sdp: `offer from ${from}` },
-    },
-  });
+  return peer.incoming(
+    from,
+    joinMetadata({ kind: "join", id, sdp: `offer from ${from}` }),
+  );
 }
 
 async function startedHost(): Promise<{
@@ -198,28 +217,25 @@ async function startedHost(): Promise<{
 }
 
 describe("a station joining through the endpoint", () => {
-  it("is told the endpoint's answer, then served over the endpoint", async () => {
+  it("sends the station the endpoint's answer, then serves it over the endpoint", async () => {
     const ep = endpoint();
     const { host, peer } = await startedHost();
     await vi.waitFor(() => expect(host.endpoint.available).toBe(true));
 
-    join(peer, "station-a", "gne-1");
+    const direct = join(peer, "station-a", "gne-1");
 
-    await vi.waitFor(() => expect(peer.toBroker).toHaveLength(1));
+    await vi.waitFor(() => expect(peer.opened).toHaveLength(1));
     expect(ep.offers).toEqual([
       expect.objectContaining({
         peerId: "station-a",
         sdp: "offer from station-a",
       }),
     ]);
-    expect(peer.toBroker[0]).toEqual({
-      type: "OFFER",
-      dst: "station-a",
-      payload: {
-        type: ENDPOINT_SIGNAL,
-        connectionId: "gne-1",
-        signal: { kind: "answer", sdp: "answer for station-a" },
-      },
+    expect(peer.opened[0]?.peer).toBe("station-a");
+    expect(readJoin(peer.opened[0]?.metadata)).toEqual({
+      kind: "answer",
+      id: "gne-1",
+      sdp: "answer for station-a",
     });
 
     const sid = ep.offers[0]?.sid ?? -1;
@@ -233,6 +249,38 @@ describe("a station joining through the endpoint", () => {
         expect.objectContaining({ peerId: "station-a", path: "internet" }),
       ]),
     );
+    expect(direct.closed).toBe(true);
+    expect(direct.sent).toEqual([]);
+    host.stop();
+  });
+
+  it("serves the station's data connection, with what it already sent, when the endpoint refuses it", async () => {
+    server.use(
+      link.addEventListener("connection", ({ client }) => {
+        client.send(JSON.stringify({ type: "status", port: 47100 }));
+        client.addEventListener("message", (m) => {
+          if (typeof m.data !== "string") return;
+          const f = JSON.parse(m.data);
+          if (f.type === "offer")
+            client.send(
+              JSON.stringify({ type: "close", sid: f.sid, reason: "busy" }),
+            );
+        });
+      }),
+    );
+    const { host, peer } = await startedHost();
+    await vi.waitFor(() => expect(host.endpoint.available).toBe(true));
+    const direct = join(peer, "station-a", "gne-1");
+    direct.open = true;
+    direct.emit("open");
+    direct.emit("data", { type: "station-credential", credential: "c" });
+    await vi.waitFor(() =>
+      expect(direct.sent).toContainEqual(
+        expect.objectContaining({ type: "hello" }),
+      ),
+    );
+    expect(peer.opened).toHaveLength(0);
+    expect(direct.closed).toBe(false);
     host.stop();
   });
 
@@ -242,12 +290,9 @@ describe("a station joining through the endpoint", () => {
     await vi.waitFor(() => expect(host.endpoint.available).toBe(true));
     join(peer, "station-a", "gne-a");
     join(peer, "station-b", "gne-b");
-    await vi.waitFor(() => expect(peer.toBroker).toHaveLength(2));
+    await vi.waitFor(() => expect(peer.opened).toHaveLength(2));
     const replies = Object.fromEntries(
-      peer.toBroker.map((m) => [
-        m.dst,
-        Reflect.get(Object(Reflect.get(Object(m.payload), "signal")), "sdp"),
-      ]),
+      peer.opened.map((c) => [c.peer, readJoin(c.metadata)?.sdp]),
     );
     expect(replies).toEqual({
       "station-a": "answer for station-a",
@@ -257,15 +302,12 @@ describe("a station joining through the endpoint", () => {
     host.stop();
   });
 
-  it("is told to connect directly when the relay is not running", async () => {
+  it("serves the station's data connection alone when the relay is not running", async () => {
     const { host, peer } = await startedHost();
-    join(peer, "station-a", "gne-1");
-    await vi.waitFor(() => expect(peer.toBroker).toHaveLength(1));
-    expect(peer.toBroker[0]?.payload).toEqual({
-      type: ENDPOINT_SIGNAL,
-      connectionId: "gne-1",
-      signal: { kind: "direct" },
-    });
+    const direct = join(peer, "station-a", "gne-1");
+    await new Promise((r) => setTimeout(r, 50));
+    expect(peer.opened).toHaveLength(0);
+    expect(direct.closed).toBe(false);
     host.stop();
   });
 
