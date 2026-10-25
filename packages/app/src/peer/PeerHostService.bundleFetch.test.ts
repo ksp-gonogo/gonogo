@@ -395,6 +395,8 @@ describe("PeerHostService.handleUplinkManifestRequest (station conduit for a man
 
   const LAN_BUNDLE = "http://builder.example.test:8099/third.client.js";
   const LAN_MANIFEST = "http://builder.example.test:8099/gonogo-uplink.json";
+  const LAN_UPLINK_MANIFEST =
+    "http://builder.example.test:8099/third.gonogo-uplink.json";
 
   it("fetches the manifest on the host's network and relays the parsed document", async () => {
     const manifest = { id: "third", version: "1.0.0", integrity: "sha256-x" };
@@ -460,6 +462,70 @@ describe("PeerHostService.handleUplinkManifestRequest (station conduit for a man
       vi.fn(async (url: string) => {
         if (String(url) === LAN_BUNDLE) {
           return { ok: true, status: 200, arrayBuffer: async () => bundle };
+        }
+        if (String(url) === LAN_UPLINK_MANIFEST) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              id: "third",
+              version: "1.0.0",
+              minAppVersion: "0.0.0",
+              apiVersion: hostCompat.apiVersion,
+              contractMajor: hostCompat.contractMajor,
+              contractMinor: hostCompat.contractMinor,
+              integrity: hash,
+            }),
+          };
+        }
+        if (String(url).includes("registry.json")) {
+          return { ok: true, status: 200, json: async () => ({ uplinks: [] }) };
+        }
+        return { ok: true, status: 200, json: async () => ({}) };
+      }),
+    );
+
+    const { client } = await connectedPair();
+    const importBundle = vi.fn(async () => ({}));
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.json" },
+      hostCompat,
+      appVersion: "1.0.0",
+      roster: [
+        {
+          id: "third",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          expectedClientHash: hash,
+          clientSource: { url: "", devPath: LAN_BUNDLE },
+        },
+      ],
+      override: ["third"],
+      ensureConsent: async () => true,
+      fetchBytes: createPeerBundleFetcher(client),
+      fetchManifest: createPeerManifestFetcher(client),
+      bundlesFromHost: true,
+      importBundle,
+    });
+
+    expect(outcomes.map((o) => [o.id, o.status])).toEqual([
+      ["third", "loaded"],
+    ]);
+    expect(importBundle).toHaveBeenCalledOnce();
+  });
+
+  it("falls back to the shared manifest name through the host when the Uplink's own is absent", async () => {
+    const bundle = textBytes("export const marker = 'third';");
+    const hash = await sha256Hex(bundle);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (String(url) === LAN_BUNDLE) {
+          return { ok: true, status: 200, arrayBuffer: async () => bundle };
+        }
+        if (String(url) === LAN_UPLINK_MANIFEST) {
+          return { ok: false, status: 404, json: async () => ({}) };
         }
         if (String(url) === LAN_MANIFEST) {
           return {

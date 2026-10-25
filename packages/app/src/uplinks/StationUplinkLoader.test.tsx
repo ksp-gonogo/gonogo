@@ -509,7 +509,8 @@ describe("StationUplinkLoader", () => {
 
 describe("a station loads a third-party client whose dev path is on the main screen's network", () => {
   const DEV_BUNDLE = "http://builder.example.test:8099/third.client.js";
-  const DEV_MANIFEST = "http://builder.example.test:8099/gonogo-uplink.json";
+  const DEV_MANIFEST =
+    "http://builder.example.test:8099/third.gonogo-uplink.json";
 
   function manifestWith(integrity: string) {
     return {

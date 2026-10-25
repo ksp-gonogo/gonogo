@@ -142,17 +142,16 @@ async function compatVersions(clientDir: string): Promise<CompatVersions> {
  * Build the standalone ESM bundle the app `import()`s, plus the
  * `gonogo-uplink.json` sidecar beside it.
  *
- * The sidecar's name and location are not free: the loader derives its URL from
- * the bundle's own by stripping the last path segment and appending
- * `gonogo-uplink.json`, so it must sit next to the bundle under exactly that
- * name. Publishing several Uplinks into one flat directory therefore gives them
- * all the same sidecar path and the last one wins, which is why each gets its own
- * directory here.
+ * The sidecar is written twice beside the bundle: `<id>.gonogo-uplink.json`,
+ * which the loader fetches first so several Uplinks can be served from one
+ * host, and `gonogo-uplink.json`, which it falls back to and which a released
+ * client's tooling reads.
  */
 const BUNDLE_USAGE = `uplink-tools bundle [options]
 
-  Build the ESM bundle the app import()s, plus the gonogo-uplink.json sidecar
-  beside it with its integrity hash already filled.
+  Build the ESM bundle the app import()s, plus its sidecar beside it with its
+  integrity hash already filled, as <id>.gonogo-uplink.json (the name the app
+  fetches first, so several Uplinks can share one host) and gonogo-uplink.json.
 
   --client <dir>   the Uplink client package (default: cwd)
   --entry <file>   the module to bundle (default: src/index.ts)
@@ -292,19 +291,21 @@ async function bundle(argv: readonly string[]): Promise<number> {
     }
 
     writeFileSync(outFile, bytes);
+    const manifestText = serialiseUplinkManifest(
+      buildUplinkManifest({
+        clientDir,
+        compat: {
+          apiVersion: compat.EXTENSION_API_VERSION,
+          contractMajor: compat.CONTRACT_MAJOR,
+          contractMinor: compat.CONTRACT_MINOR,
+        },
+        integrity,
+      }),
+    );
+    writeFileSync(join(bundleDir, UPLINK_MANIFEST_FILE), manifestText);
     writeFileSync(
-      join(bundleDir, UPLINK_MANIFEST_FILE),
-      serialiseUplinkManifest(
-        buildUplinkManifest({
-          clientDir,
-          compat: {
-            apiVersion: compat.EXTENSION_API_VERSION,
-            contractMajor: compat.CONTRACT_MAJOR,
-            contractMinor: compat.CONTRACT_MINOR,
-          },
-          integrity,
-        }),
-      ),
+      join(bundleDir, `${id}.${UPLINK_MANIFEST_FILE}`),
+      manifestText,
     );
     writeFileSync(`${outFile}.sha256`, `${integrity}\n`);
     console.log(`${id}: ${(bytes.length / 1024).toFixed(1)} KB -> ${outFile}`);

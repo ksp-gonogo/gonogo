@@ -271,6 +271,10 @@ export function copyRelease(
     [bundleName, basename(plan.treePath)],
     ["gonogo-uplink.json", "gonogo-uplink.json"],
   ];
+  const perUplinkManifest = `${plan.id}.gonogo-uplink.json`;
+  if (existsSync(join(from, perUplinkManifest))) {
+    copies.push([perUplinkManifest, perUplinkManifest]);
+  }
   const withSpec = specSheet !== undefined && existsSync(specSheet);
   const sources = new Map<string, string>(
     copies.map(([file, as]) => [as, join(from, file)]),

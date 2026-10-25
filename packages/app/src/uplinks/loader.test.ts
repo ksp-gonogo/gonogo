@@ -777,21 +777,27 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
 });
 
 describe("manifestUrlFor", () => {
+  it("falls back to the shared name for a bundle not named <id>.client.js", () => {
+    expect(manifestUrlFor("https://cdn.example/uplinks/bundle.js")).toBe(
+      "https://cdn.example/uplinks/gonogo-uplink.json",
+    );
+  });
+
   it("derives the sidecar URL from the bundle's directory (full origin)", () => {
     expect(
       manifestUrlFor("https://cdn.example/uplinks/widget-y.client.js"),
-    ).toBe("https://cdn.example/uplinks/gonogo-uplink.json");
+    ).toBe("https://cdn.example/uplinks/widget-y.gonogo-uplink.json");
   });
 
   it("works for a bare path with no origin", () => {
     expect(manifestUrlFor("/uplinks/widget-y.client.js")).toBe(
-      "/uplinks/gonogo-uplink.json",
+      "/uplinks/widget-y.gonogo-uplink.json",
     );
   });
 
   it("works for a dev-server URL with a port", () => {
     expect(manifestUrlFor("http://localhost:5173/widget-y.client.js")).toBe(
-      "http://localhost:5173/gonogo-uplink.json",
+      "http://localhost:5173/widget-y.gonogo-uplink.json",
     );
   });
 });
@@ -1143,6 +1149,83 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     expect(seen[0].author).toBe("A Stranger");
   });
 
+  it("verifies two dev Uplinks served from one host, each against its own manifest", async () => {
+    stubRegistryFetch(indexWith(goodHash));
+    const hashA = await sha256Of(THIRD_PARTY_BYTES);
+    const bytesB = new TextEncoder().encode("export const other = 2;").buffer;
+    const hashB = await sha256Of(bytesB);
+    const entry = (id: string, expectedClientHash: string): RosterEntry => ({
+      id,
+      version: "2.0.0",
+      available: true,
+      reason: null,
+      expectedClientHash,
+      clientSource: {
+        url: `https://cdn.example/${id}.client.js`,
+        devPath: `http://localhost:5390/${id}.client.js`,
+      },
+    });
+    const manifests: Record<string, string> = {
+      "http://localhost:5390/widget-a.gonogo-uplink.json": hashA,
+      "http://localhost:5390/widget-b.gonogo-uplink.json": hashB,
+    };
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster: [entry("widget-a", hashA), entry("widget-b", hashB)],
+      ensureConsent: async () => true,
+      fetchBytes: async (url: string) =>
+        url.includes("widget-a") ? THIRD_PARTY_BYTES : bytesB,
+      fetchManifest: async (url: string) => {
+        const integrity = manifests[url];
+        if (!integrity) throw new Error(`HTTP 404 for ${url}`);
+        return manifestFor({ integrity });
+      },
+      importBundle: async () => ({}),
+    });
+    expect(outcomes.map((o) => o.status)).toEqual(["loaded", "loaded"]);
+  });
+
+  it("falls back to gonogo-uplink.json for a bundle published with only the shared name", async () => {
+    stubRegistryFetch(indexWith(goodHash));
+    const hash = await sha256Of(THIRD_PARTY_BYTES);
+    const urls: string[] = [];
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster: [
+        {
+          id: "widget-y",
+          version: "2.0.0",
+          available: true,
+          reason: null,
+          expectedClientHash: hash,
+          clientSource: {
+            url: "https://cdn.example/widget-y.client.js",
+            devPath: null,
+          },
+        },
+      ],
+      ensureConsent: async () => true,
+      fetchBytes: async () => THIRD_PARTY_BYTES,
+      fetchManifest: async (url: string) => {
+        urls.push(url);
+        if (url.endsWith("/widget-y.gonogo-uplink.json")) {
+          throw new Error("HTTP 404");
+        }
+        return manifestFor({ integrity: hash });
+      },
+      importBundle: async () => ({}),
+    });
+    expect(outcomes[0].status).toBe("loaded");
+    expect(urls).toEqual([
+      "https://cdn.example/widget-y.gonogo-uplink.json",
+      "https://cdn.example/gonogo-uplink.json",
+    ]);
+  });
+
   /*
    * The manifest sidecar is fetched from its conventional URL BEFORE the bundle
    * bytes, so the mod's claims and the bundle's are both on hand while the
@@ -1269,7 +1352,7 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       },
     ];
     const fetchManifest = vi.fn(async (url: string) => {
-      expect(url).toBe("http://localhost:5173/gonogo-uplink.json");
+      expect(url).toBe("http://localhost:5173/widget-y.gonogo-uplink.json");
       return manifestFor({ integrity: thirdPartyHash });
     });
     const fetchBytes = vi.fn(async (url: string) => {
@@ -1315,7 +1398,7 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       },
     ];
     const fetchManifest = vi.fn(async (url: string) => {
-      expect(url).toBe("https://cdn.example/gonogo-uplink.json");
+      expect(url).toBe("https://cdn.example/widget-y.gonogo-uplink.json");
       return manifestFor({ integrity: thirdPartyHash });
     });
     const outcomes = await loadEnabledUplinks({

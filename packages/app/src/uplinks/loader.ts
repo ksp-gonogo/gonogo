@@ -508,23 +508,34 @@ async function defaultFetchManifest(url: string): Promise<unknown> {
 }
 
 /**
- * Derive a client bundle's manifest-sidecar URL by convention: same
- * directory as the bundle, filename `gonogo-uplink.json`, the name already
- * named (but not yet load-bearing) in two doc comments predating this
- * follow-on: `UplinkClientHandle.id` (core's `uplinkClients.ts`: "MUST
- * match ... its gonogo-uplink.json id") and `parseUplinkManifest` (core's
- * `uplinkVersionCompat.ts`: "as fetched from a bundle's sidecar
- * `gonogo-uplink.json`"). This function is what makes that convention real:
- * it's the one place the sidecar filename is spelled out, so a future rename
- * only touches here.
+ * The manifest sidecar's URL for a client bundle: the bundle's own file name
+ * with `.client.js` swapped for `.gonogo-uplink.json`, in the bundle's
+ * directory (`widget-y.client.js` gives `widget-y.gonogo-uplink.json`). A name
+ * per Uplink lets several Uplinks be served from one host, which a shared
+ * `gonogo-uplink.json` could not: they would all resolve to the same file. A
+ * bundle not named `<id>.client.js` has no per-Uplink name, so this is the
+ * shared one.
  *
- * Plain string slicing, not `new URL(rel, base)`: a `clientSource.url`/
- * `devPath` may be a bare path with no origin (a same-origin fixture in
- * dev/test), and `URL`'s relative-base form throws when the base itself
- * isn't an absolute URL: string slicing works for both a bare path and a
- * full `http://host:port/...` URL uniformly.
+ * Plain string slicing, not `new URL(rel, base)`: a `clientSource.url` or
+ * `devPath` may be a bare path with no origin, and `URL`'s relative-base form
+ * throws when the base is not an absolute URL.
  */
 export function manifestUrlFor(bundleUrl: string): string {
+  const idx = bundleUrl.lastIndexOf("/");
+  const dir = idx === -1 ? "" : bundleUrl.slice(0, idx + 1);
+  const file = bundleUrl.slice(idx + 1);
+  const stem = file.match(/^(.+)\.client\.js$/)?.[1];
+  return stem
+    ? `${dir}${stem}.gonogo-uplink.json`
+    : legacyManifestUrlFor(bundleUrl);
+}
+
+/**
+ * The shared `gonogo-uplink.json` beside a bundle: where a released Uplink
+ * published before per-Uplink manifest names keeps its manifest. Used when
+ * the per-Uplink name from {@link manifestUrlFor} is absent.
+ */
+export function legacyManifestUrlFor(bundleUrl: string): string {
   const idx = bundleUrl.lastIndexOf("/");
   const dir = idx === -1 ? "" : bundleUrl.slice(0, idx + 1);
   return `${dir}gonogo-uplink.json`;
@@ -798,11 +809,19 @@ async function loadThirdParty(
     );
   }
 
-  const manifestUrl = manifestUrlFor(bundleUrl);
+  let manifestUrl = manifestUrlFor(bundleUrl);
   const fetchManifest = ctx.fetchManifest ?? defaultFetchManifest;
   let manifest: GonogoUplinkManifest;
   try {
-    const raw = await fetchManifest(manifestUrl);
+    let raw: unknown;
+    try {
+      raw = await fetchManifest(manifestUrl);
+    } catch (perUplinkErr) {
+      const legacyUrl = legacyManifestUrlFor(bundleUrl);
+      if (legacyUrl === manifestUrl) throw perUplinkErr;
+      manifestUrl = legacyUrl;
+      raw = await fetchManifest(manifestUrl);
+    }
     manifest = parseUplinkManifest(raw);
   } catch (err) {
     return quarantineOutcome(

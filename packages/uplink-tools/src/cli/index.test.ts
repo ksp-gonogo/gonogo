@@ -735,6 +735,34 @@ describe("uplink-tools bundle", () => {
     });
     expect(sidecar).not.toHaveProperty("uiKitVersion");
   });
+
+  it("writes the sidecar under the Uplink's own name as well, so several Uplinks can share one host", () => {
+    const dir = workdir();
+    writeFileSync(
+      join(dir, "uplink.json"),
+      JSON.stringify({
+        id: "fixture",
+        name: "Fixture",
+        minAppVersion: "0.0.0",
+      }),
+    );
+    writeFileSync(
+      join(dir, "package.json"),
+      JSON.stringify({ name: "fixture-client", version: "1.2.3" }),
+    );
+    mkdirSync(join(dir, "src"));
+    writeFileSync(join(dir, "src", "index.ts"), "export const marker = 1;\n");
+
+    execFileSync(process.execPath, [BIN, "bundle"], {
+      cwd: dir,
+      stdio: "pipe",
+    });
+
+    const out = join(dir, "dist", "fixture");
+    expect(readFileSync(join(out, "fixture.gonogo-uplink.json"), "utf8")).toBe(
+      readFileSync(join(out, "gonogo-uplink.json"), "utf8"),
+    );
+  });
 });
 
 /** A client with a bundleable entry, for the bundle command. */
