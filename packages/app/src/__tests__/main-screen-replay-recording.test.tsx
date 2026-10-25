@@ -48,12 +48,22 @@ describe("MainScreen: a replay and the live recording", () => {
       </ErrorBoundary>,
     );
 
-    // The stub delivers only to a subscribed Topic, so the event is offered until the recorder has subscribed and taken it.
+    // The stub delivers only to a subscribed Topic, so the events are offered until the recorder has subscribed and taken them. The scene and a tick in it come with the flight, as they do on a real load.
     await waitFor(() => {
       act(() => {
         transport.emit(
+          "spaceCenter.scene",
+          { scene: "Flight" },
+          { validAt: 10, deliveredAt: 10 },
+        );
+        transport.emit(
           "flight.started",
           { flightId: "f1", vesselId: "v1", vesselName: "Kerbal X", ut: 10 },
+          { validAt: 10, deliveredAt: 10 },
+        );
+        transport.emit(
+          "flight.current",
+          { flightId: "f1", vesselName: "Kerbal X", ut: 10 },
           { validAt: 10, deliveredAt: 10 },
         );
       });

@@ -203,6 +203,62 @@ describe("AutoRecordController", () => {
     expect(await rig.source.listFlights()).toHaveLength(1);
   });
 
+  it("adds no row when the retained events of a destroyed flight arrive before the scene does", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene="Unknown" />
+      </TelemetryProvider>,
+    );
+
+    act(() => {
+      const meta = { validAt: 0, deliveredAt: 100 };
+      rig.transport.emit(
+        "flight.started",
+        { flightId: "vA", vesselId: "vA", vesselName: "Alpha", ut: 0 },
+        meta,
+      );
+      rig.transport.emit(
+        "flight.current",
+        { flightId: "vA", vesselId: "vA", vesselName: "Alpha", phase: 0 },
+        meta,
+      );
+      rig.transport.emit(
+        "flight.ended",
+        {
+          flightId: "vA",
+          vesselId: "vA",
+          vesselName: "Alpha",
+          reason: 2,
+          ut: 6,
+        },
+        meta,
+      );
+      rig.clock.scrubTo(100);
+      rig.raf.flush();
+    });
+
+    expect(getAutoRecordStatus().recording).toBe(false);
+    expect(await rig.source.listFlights()).toHaveLength(0);
+  });
+
+  it("starts recording an open flight on its first tick once the scene says Flight", () => {
+    const rig = buildRig();
+    const tree = (scene: "Unknown" | "Flight") => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene={scene} />
+      </TelemetryProvider>
+    );
+    const { rerender } = render(tree("Unknown"));
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    expect(getAutoRecordStatus().recording).toBe(false);
+
+    act(() => rerender(tree("Flight")));
+    tickFrame(rig, 5, "vA", "Alpha");
+
+    expect(getAutoRecordStatus().recording).toBe(true);
+  });
+
   describe("at the Space Center, where no vessel is active", () => {
     /** What the stream says when the page opens, or a flight is recovered, with the game at the Space Center. */
     function spaceCenterFrames(rig: Rig, ut: number): void {

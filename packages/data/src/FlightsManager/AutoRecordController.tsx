@@ -73,7 +73,10 @@ export interface AutoRecordControllerProps {
    * outside the flight scene, so without this the `FlightDetector` tick
    * below would never fire again and a recording would be silently
    * orphaned (never saved) if the player just returns to the Space Center.
-   * Default `"Unknown"`: no scene signal, no scene-exit finalization.
+   * `"Unknown"` is a scene reading that has not arrived yet: a flight announced
+   * meanwhile is tracked but not recorded, since the mod's retained events of a
+   * closed flight reach a new page before the scene does. Left out, there is
+   * no scene signal at all, and a flight announced is recorded at once.
    */
   scene?: GameScene;
   /**
@@ -131,7 +134,7 @@ export function AutoRecordController({
   missionHistoryEnabled = true,
   recordAllTopics = false,
   videoRecordingEnabled: _videoRecordingEnabled = false,
-  scene = "Unknown",
+  scene,
   partSizeLimit = MISSION_PART_SIZE_LIMIT,
   partSeconds = MISSION_PART_SECONDS,
 }: AutoRecordControllerProps = {}) {
@@ -158,7 +161,7 @@ export function AutoRecordController({
    * the mission it was stored as so far. An entry goes once its flight has ended.
    */
   const parkedFlightsRef = useRef<Map<string, ParkedFlight>>(new Map());
-  const prevSceneRef = useRef<GameScene>(scene);
+  const prevSceneRef = useRef<GameScene | undefined>(scene);
   const missionHistoryEnabledRef = useRef(missionHistoryEnabled);
   missionHistoryEnabledRef.current = missionHistoryEnabled;
   const sceneRef = useRef(scene);
@@ -396,12 +399,13 @@ export function AutoRecordController({
         /*
          * A flight starts in the Flight scene. The mod sends the retained
          * started, ended and current of the last flight to every new
-         * subscriber, so one seen anywhere else is that replay, which
-         * recording would turn into a row of its own on each page load. The
-         * flight is still tracked, so its end reason reaches the mission it
-         * was stored as.
+         * subscriber, so one seen anywhere else, or before the scene has
+         * arrived, is that replay, which recording would turn into a row of its
+         * own on each page load. The flight is still tracked, so its end reason
+         * reaches the mission it was stored as, and its first tick in the
+         * Flight scene starts the recording.
          */
-        if (sceneRef.current !== "Flight" && sceneRef.current !== "Unknown") {
+        if (sceneRef.current !== undefined && sceneRef.current !== "Flight") {
           return;
         }
         recorder.start();
