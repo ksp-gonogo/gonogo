@@ -228,6 +228,7 @@ export type {
   DelayClockLike,
   DelayMode,
   DepTopics,
+  HostIceServers,
   InFlightCommand,
   LateTelemetrySubscribe,
   MapPoi,

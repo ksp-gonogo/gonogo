@@ -8287,18 +8287,6 @@
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
-        "key": "sitrep-sdk . HostIceServers",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
-      },
-      {
-        "key": "sitrep-sdk . HostIceServers#current",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
-      },
-      {
-        "key": "sitrep-sdk . HostIceServers#onChange",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
-      },
-      {
         "key": "sitrep-sdk . LaunchDirectorSlotContext#inFlight",
         "note": "Removed. The slot draws only in the pad list, which the widget hides in flight, so the member was always false"
       },
@@ -8557,10 +8545,6 @@
       {
         "key": "sitrep-sdk . StateVector#velocity",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
-      },
-      {
-        "key": "sitrep-sdk . StationBroker#iceServers",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
         "key": "sitrep-sdk . StrategiesScreenBodyContext",
@@ -9283,18 +9267,6 @@
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
-        "key": "sitrep-sdk ./registry ~HostIceServers",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~HostIceServers#current",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~HostIceServers#onChange",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
-      },
-      {
         "key": "sitrep-sdk ./registry ~PlotLayer",
         "note": "The plot layer union gains open water (PlotWaterLayer)"
       },
@@ -9345,10 +9317,6 @@
       {
         "key": "sitrep-sdk ./registry ~StatEntry#value?",
         "note": "A stat figure may be a whole Reading, drawn held while it is held"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~StationBroker#iceServers",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
         "key": "sitrep-sdk ./registry ~StrategiesScreenEntry",
@@ -10261,18 +10229,6 @@
       {
         "key": "sitrep-sdk ./testing ~HeldGrade",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~HostIceServers",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~HostIceServers#current",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~HostIceServers#onChange",
-        "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
         "key": "sitrep-sdk ./testing ~LaunchDirectorSlotContext#inFlight",
@@ -15883,6 +15839,10 @@
       {
         "key": "sitrep-sdk ./testing ~StationBroker",
         "note": "The type a watcher on the testing subpath receives from watchStationBrokers"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StationBroker#iceServers",
+        "note": "The type a watcher on the testing subpath receives from watchStationBrokers; always empty, kept so an Uplink that still reads it builds"
       },
       {
         "key": "sitrep-sdk ./testing ~StationBroker#relay",

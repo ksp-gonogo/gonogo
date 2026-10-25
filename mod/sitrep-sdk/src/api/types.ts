@@ -2226,6 +2226,26 @@ export interface RelayCaller {
 export interface StationBroker {
   /** Calls a method of the Uplink's registered handle on the main screen and resolves with what it returns. */
   relay: UplinkRelay;
+  /**
+   * Always empty: the main screen hands out no ICE servers, and a station's
+   * media connection is negotiated through `relay` instead, with
+   * {@link RelayCaller.bridgeMedia} on the main screen. Present so an Uplink
+   * that still reads it builds and runs.
+   */
+  iceServers: HostIceServers;
+}
+
+/**
+ * The ICE servers a {@link StationBroker} offers, which are always none.
+ * Present so an Uplink that still reads them builds and runs.
+ *
+ * @category Host and runtime
+ */
+export interface HostIceServers {
+  /** What to use right now: always empty. */
+  current(): RTCIceServer[];
+  /** Never called back. Returns an unsubscribe. */
+  onChange(cb: (servers: RTCIceServer[]) => void): () => void;
 }
 
 /**
