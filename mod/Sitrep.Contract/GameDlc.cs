@@ -22,7 +22,7 @@ namespace Sitrep.Contract;
 /// </summary>
 /// <category>Game</category>
 [SitrepContract]
-[SitrepTopic("game.dlc", DisplayName = "Game DLC")]
+[SitrepTopic("game.dlc")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

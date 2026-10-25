@@ -22,7 +22,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.structure", DisplayName = "Active vessel structure")]
+[SitrepTopic("vessel.structure")]
 public class VesselStructure
 {
     /// <summary>KSP's own <c>Vessel.currentStage</c> numbering (capsule and upper stages have low numbers); see the class doc comment.</summary>

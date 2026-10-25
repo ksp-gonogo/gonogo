@@ -223,7 +223,7 @@ public static class CommsDegradeModels
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("comms.degrade", DisplayName = "Comms degradation")]
+[SitrepTopic("comms.degrade")]
 public class CommsDegrade
 {
     /// <summary>The grading rule's id; <c>"unknown"</c> when nothing graded the

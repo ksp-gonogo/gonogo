@@ -122,11 +122,6 @@ export type {
   ValueTags,
 } from "./contract-tags";
 export {
-  contractTagsGeneration,
-  fieldDisplayNameOf,
-  topicDisplayNameOf,
-} from "./contract-tags";
-export {
   type ControlChannelHandle,
   type ControlChannelId,
   controlChannelIds,

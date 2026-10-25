@@ -20,7 +20,7 @@ namespace Sitrep.Contract;
 /// </summary>
 /// <category>Surface</category>
 [SitrepContract]
-[SitrepTopic("surface.sites", isArray: true, DisplayName = "Surface sites")]
+[SitrepTopic("surface.sites", isArray: true)]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

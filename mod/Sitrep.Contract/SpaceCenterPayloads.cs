@@ -32,7 +32,7 @@ namespace Sitrep.Contract;
 /// </summary>
 /// <category>Space center</category>
 [SitrepContract]
-[SitrepTopic("spaceCenter.launchSites", isArray: true, DisplayName = "Launch sites")]
+[SitrepTopic("spaceCenter.launchSites", isArray: true)]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -103,7 +103,7 @@ public class LaunchSiteEntry
 /// of interest, the saved craft in each editor, and the parts the player can place.
 /// </categoryDescription>
 [SitrepContract]
-[SitrepTopic("spaceCenter.scene", DisplayName = "Space centre scene")]
+[SitrepTopic("spaceCenter.scene")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -148,7 +148,7 @@ public class SpaceCenterScene
 /// to say whether a kerbal is available, assigned, missing or dead.
 /// </categoryDescription>
 [SitrepContract]
-[SitrepTopic("spaceCenter.crewRoster", isArray: true, DisplayName = "Crew roster")]
+[SitrepTopic("spaceCenter.crewRoster", isArray: true)]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -322,7 +322,7 @@ public class CrewRosterEntry
 /// </summary>
 /// <category>Space center</category>
 [SitrepContract]
-[SitrepTopic("spaceCenter.savedShips", isArray: true, DisplayName = "Saved ships")]
+[SitrepTopic("spaceCenter.savedShips", isArray: true)]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -485,7 +485,7 @@ public class CraftFileParts
 /// </summary>
 /// <category>Space center</category>
 [SitrepContract]
-[SitrepTopic("spaceCenter.partsAvailable", DisplayName = "Parts available")]
+[SitrepTopic("spaceCenter.partsAvailable")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -520,7 +520,7 @@ public class SpaceCenterPartsAvailable
 /// </summary>
 /// <category>Crew</category>
 [SitrepContract]
-[SitrepTopic("spaceCenter.astronautComplex", DisplayName = "Astronaut complex")]
+[SitrepTopic("spaceCenter.astronautComplex")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
@@ -560,7 +560,7 @@ public class AstronautComplexInfo
 /// </summary>
 /// <category>Space center</category>
 [SitrepContract]
-[SitrepTopic("spaceCenter.pois", isArray: true, DisplayName = "Points of interest")]
+[SitrepTopic("spaceCenter.pois", isArray: true)]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

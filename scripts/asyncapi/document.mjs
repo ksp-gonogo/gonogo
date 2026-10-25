@@ -536,7 +536,6 @@ export function buildDocument({
   commandSummaries,
   schemas,
   version,
-  topicNames = {},
 }) {
   const replyOf = new Map(
     commandReplies.map((entry) => [entry.key, entry.type]),
@@ -699,7 +698,6 @@ export function buildDocument({
     };
     channels[topic] = {
       address: topic,
-      ...(topicNames[topic] === undefined ? {} : { title: topicNames[topic] }),
       description: channelDescription(contract, type, topic),
       servers: [{ $ref: `#/servers/${SERVER_KEY}` }],
       ...dispositionExtensions(dispositions.get(topic)),

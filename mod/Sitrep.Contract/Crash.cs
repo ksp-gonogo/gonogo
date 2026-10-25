@@ -30,7 +30,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("crash.lastCrash", DisplayName = "Last crash")]
+[SitrepTopic("crash.lastCrash")]
 public class CrashReport
 {
     /// <summary>The crashed vessel's stable id (<c>Vessel.id</c> as a string GUID).</summary>
@@ -97,7 +97,6 @@ public class CrashReport
 
     /// <summary>The vessel's altitude above sea level at the crash (<c>Vessel.altitude</c>), in metres.</summary>
     [SitrepUnit(Units.Metres)]
-    [SitrepDisplayName("Altitude at impact")]
     public double Altitude { get; set; }
 
     /// <summary>When the crash was captured, in UT seconds.</summary>
@@ -225,7 +224,7 @@ public class CrashFlightStats
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("crash.hasRecent", DisplayName = "Recent crash")]
+[SitrepTopic("crash.hasRecent")]
 public class CrashRecent
 {
     /// <summary>True when a notable crash is on record, so <c>crash.lastCrash</c> has a report to read.</summary>

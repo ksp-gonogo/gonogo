@@ -103,7 +103,7 @@ public class MissionObjectiveEntry
 /// each of its objectives has got.
 /// </categoryDescription>
 [SitrepContract]
-[SitrepTopic("missions.active", DisplayName = "Active missions")]
+[SitrepTopic("missions.active")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

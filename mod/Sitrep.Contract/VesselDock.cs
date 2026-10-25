@@ -24,7 +24,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.dock", DisplayName = "Active vessel docking")]
+[SitrepTopic("vessel.dock")]
 public class DockAlignment
 {
     /// <summary>The target port's position relative to the own port (target minus own), metres.</summary>

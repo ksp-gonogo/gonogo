@@ -23,7 +23,7 @@ namespace Sitrep.Contract;
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
-[SitrepTopic("comms.nextLoss", DisplayName = "Next signal loss")]
+[SitrepTopic("comms.nextLoss")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

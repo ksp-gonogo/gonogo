@@ -61,7 +61,7 @@ public enum ControlState
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.comms", DisplayName = "Active vessel antenna")]
+[SitrepTopic("vessel.comms")]
 public class VesselComms
 {
     /// <summary>Whether the vessel has a CommNet connection home, from <c>vessel.connection.IsConnected</c>.</summary>

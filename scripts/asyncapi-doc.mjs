@@ -189,7 +189,7 @@ export function generate() {
   }
 
   const units = readUnitMap(ROOT);
-  const schemas = new SchemaBuilder(contract, units.types, units.typeNames);
+  const schemas = new SchemaBuilder(contract, units.types);
   const document = buildDocument({
     contract,
     topics,
@@ -200,7 +200,6 @@ export function generate() {
     commandSummaries: readCommandSummaries(ROOT),
     schemas,
     version: readContractVersion(ROOT),
-    topicNames: units.topicNames,
   });
 
   assertUnitRoutesAgree(contract, units);

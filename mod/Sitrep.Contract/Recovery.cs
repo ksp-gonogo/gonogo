@@ -35,7 +35,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("recovery.lastSummary", DisplayName = "Last recovery")]
+[SitrepTopic("recovery.lastSummary")]
 public class RecoveryReport
 {
     /// <summary>When the recovery was captured, in UT seconds.</summary>
@@ -273,7 +273,7 @@ public class RecoveryCrewEntry
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("recovery.hasRecent", DisplayName = "Recent recovery")]
+[SitrepTopic("recovery.hasRecent")]
 public class RecoveryRecent
 {
     /// <summary>True when a recovery is on record, so <c>recovery.lastSummary</c> has a summary to read.</summary>

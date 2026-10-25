@@ -299,7 +299,7 @@ describe("Graph: genuinely runs off the stream", () => {
     expect(tickText("start")).not.toContain("12.0k");
     expect(container.textContent ?? "").not.toContain("m x m/s");
     expect(container.textContent ?? "").toContain(
-      "GRAPH Altitude (above terrain) / Vertical speed",
+      "GRAPH Altitude terrain / Vertical speed",
     );
   });
 

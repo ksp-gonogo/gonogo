@@ -84,7 +84,7 @@ public class ResourceAmount
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepTopic("vessel.resources", DisplayName = "Active vessel resources")]
+[SitrepTopic("vessel.resources")]
 public class VesselResources
 {
     /// <summary>
