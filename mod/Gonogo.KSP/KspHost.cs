@@ -307,7 +307,7 @@ namespace Gonogo.KSP
                         // Null when there's no target / no encounter -- stamped onto
                         // vessel.target below.
                         var closestApproach = SolveClosestApproach(ut);
-                        var vesselEntry = BuildVesselEntry(activeVessel, _actionGroupsBackend?.Invoke(), _maneuverPlanSource?.Invoke(), closestApproach, _thrustObserver, _signalQuantity?.Invoke(), ut);
+                        var vesselEntry = BuildVesselEntry(activeVessel, ActiveVesselScope.Focused ?? activeVessel, _actionGroupsBackend?.Invoke(), _maneuverPlanSource?.Invoke(), closestApproach, _thrustObserver, _signalQuantity?.Invoke(), ut);
                         TryBuildGroup(vesselEntry, "light", () => SolveLight(activeVessel, ut));
                         values["vessel"] = vesselEntry;
 
@@ -362,12 +362,13 @@ namespace Gonogo.KSP
                      * the suit they are outside in (eva.crew).
                      *
                      * A separate walk rather than a group on the vessel entry,
-                     * because while a kerbal is on EVA the vessel entry is the
-                     * craft they LEFT: ActiveVesselScope reports the parent, so
-                     * a kerbal outside belongs to no vessel entry at all. It
+                     * because while the craft a kerbal left is loaded the vessel
+                     * entry is that craft: ActiveVesselScope reports the parent,
+                     * so a kerbal outside belongs to no vessel entry at all. It
                      * also covers several kerbals outside at once, which the
                      * active-vessel resolution cannot see past the one KSP is
-                     * flying.
+                     * flying. Only kerbals the game has loaded, those within
+                     * physics range of the vessel in focus, are listed.
                      *
                      * An empty list is published rather than the key omitted:
                      * "nobody is outside" is a real answer, and the mapper
@@ -382,7 +383,7 @@ namespace Gonogo.KSP
                         {
                             foreach (var candidate in allVessels)
                             {
-                                if (candidate == null || candidate.vesselType != VesselType.EVA)
+                                if (candidate == null || candidate.vesselType != VesselType.EVA || !candidate.loaded || candidate.state == Vessel.State.DEAD)
                                 {
                                     continue;
                                 }
@@ -614,8 +615,13 @@ namespace Gonogo.KSP
         /// (e.g. a resource lookup on a vessel mid-destruction) degrades
         /// only that group, not the whole vessel entry - matching this
         /// class's existing "never let Sample() throw" discipline.
+        ///
+        /// <para><paramref name="focused"/> is the vessel KSP is flying: where it is and how
+        /// it moves (orbit, flight, attitude, surface, landing) is read off it, while
+        /// everything else is the craft, <paramref name="vessel"/>. They differ while a
+        /// kerbal is focused and the craft they left is loaded.</para>
         /// </summary>
-        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, IActionGroupsBackend? actionGroupsBackend, IManeuverPlanSource? maneuverPlanSource, ClosestApproach? closestApproach, ThrustObserver thrustObserver, SignalQuantity? signalQuantity, double ut)
+        private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, Vessel focused, IActionGroupsBackend? actionGroupsBackend, IManeuverPlanSource? maneuverPlanSource, ClosestApproach? closestApproach, ThrustObserver thrustObserver, SignalQuantity? signalQuantity, double ut)
         {
             // vessel.orbit is a computed property (orbitDriver.orbit) that
             // NREs if orbitDriver is null (e.g. a just-spawned/EVA vessel
@@ -627,22 +633,22 @@ namespace Gonogo.KSP
 
             /* A group read off the vessel's live parts is omitted while the vessel is
                unloaded. Its part list is then empty and every sum over it reads as a zero,
-               so such a group would publish an empty craft rather than an unknown one. The
-               reported vessel is unloaded while a kerbal on EVA is past physics range of
-               the craft they left. */
+               so such a group would publish an empty craft rather than an unknown one. */
             var loaded = vessel.loaded;
-            void PartsGroup(string key, Func<object?> build)
+            void PartsGroup(string key, Func<object?> build, Vessel? readFrom = null)
             {
-                if (loaded)
+                if (readFrom != null ? readFrom.loaded : loaded)
                 {
                     TryBuildGroup(entry, key, build);
                 }
             }
 
+            var focusedOrbit = focused.orbitDriver != null ? focused.orbitDriver.orbit : null;
+
             TryBuildGroup(entry, "identity", () => BuildIdentity(vessel, orbit));
-            TryBuildGroup(entry, "orbit", () => BuildOrbit(orbit));
-            TryBuildGroup(entry, "flight", () => BuildFlight(vessel));
-            PartsGroup("attitude", () => BuildAttitude(vessel, orbit));
+            TryBuildGroup(entry, "orbit", () => BuildOrbit(focusedOrbit));
+            TryBuildGroup(entry, "flight", () => BuildFlight(focused));
+            PartsGroup("attitude", () => BuildAttitude(focused, focusedOrbit), focused);
             PartsGroup("resources", () => BuildResources(vessel));
             PartsGroup("thermal", () => BuildThermal(vessel));
             TryBuildGroup(entry, "control", () => BuildControl(vessel, actionGroupsBackend));
@@ -667,9 +673,9 @@ namespace Gonogo.KSP
             TryBuildGroup(entry, "target", () => BuildTarget(vessel, closestApproach));
             PartsGroup("dock", () => BuildDock(vessel));
             // One walk of every part's geometry serves both groups that read it.
-            var lowestPoint = LowestPointHeightOrNull(vessel);
-            TryBuildGroup(entry, "surface", () => BuildSurface(vessel, orbit, lowestPoint));
-            PartsGroup("landing", () => BuildLanding(vessel, orbit, lowestPoint));
+            var lowestPoint = LowestPointHeightOrNull(focused);
+            TryBuildGroup(entry, "surface", () => BuildSurface(focused, focusedOrbit, lowestPoint));
+            PartsGroup("landing", () => BuildLanding(focused, focusedOrbit, lowestPoint), focused);
             // The full part tree the vessel.parts channel
             // (VesselPartsViewProvider) maps. Per-part reads are individually
             // guarded in BuildTopology so one bad part can't blank the list.
@@ -1874,9 +1880,8 @@ namespace Gonogo.KSP
         /// kerbal mid-spawn has no module yet and yields null rather than a row
         /// of nulls that would read as a kerbal with an empty tank.</para>
         ///
-        /// <para>A kerbal on an unloaded vessel, standing where an earlier flight
-        /// left them, has no parts to read but is still outside: the row carries who
-        /// and where, and every suit field is absent.</para>
+        /// <para>Only a loaded kerbal is asked about: a kerbal past physics range is
+        /// not part of the craft being flown, so it has no row.</para>
         ///
         /// <para>Each read is its own try/catch for the same reason
         /// <see cref="BuildVesselRosterEntry"/>'s are: one bad kerbal must not
@@ -1884,23 +1889,20 @@ namespace Gonogo.KSP
         /// </summary>
         private static Dictionary<string, object?>? BuildEvaKerbalEntry(Vessel vessel)
         {
-            KerbalEVA? eva = null;
-            if (vessel.loaded)
+            KerbalEVA? eva;
+            try
             {
-                try
-                {
-                    eva = vessel.rootPart != null
-                        ? vessel.rootPart.FindModuleImplementing<KerbalEVA>()
-                        : null;
-                }
-                catch
-                {
-                    eva = null;
-                }
-                if (eva == null)
-                {
-                    return null;
-                }
+                eva = vessel.rootPart != null
+                    ? vessel.rootPart.FindModuleImplementing<KerbalEVA>()
+                    : null;
+            }
+            catch
+            {
+                eva = null;
+            }
+            if (eva == null)
+            {
+                return null;
             }
 
             var entry = new Dictionary<string, object?>
@@ -1913,12 +1915,6 @@ namespace Gonogo.KSP
             if (ActiveVesselScope.Book.TryParentOf(vessel.id, out var parentId))
             {
                 entry["parentVesselId"] = parentId.ToString();
-            }
-
-            if (eva == null)
-            {
-                TrySet(entry, "heldData", () => ToWire(SavedModuleReads.HeldData(SavedModules(vessel))));
-                return entry;
             }
 
             TrySet(entry, "propellantAmount", () => (object?)eva.Fuel);

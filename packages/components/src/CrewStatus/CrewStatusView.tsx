@@ -70,15 +70,16 @@ export function CrewStatusComponent(
   // Read here as well as in the roster's own rows so the EVA solo-row check can see this kerbal's meters.
   const meterContributions = useContributions("meters");
 
-  // Kerbals outside the craft are part of its crew, so they are listed beside who is aboard and counted with them.
+  // Kerbals outside within physics range are part of the craft's crew, so they are listed beside who is aboard and counted with them. A kerbal that is the craft itself has its own row above.
   const evaReading = crewStatusTopics.useTelemetry("eva.crew");
   const evaCrew = stillTrue(evaReading, undefined);
-  const outsideNames =
-    isEVA === true
-      ? []
-      : (evaCrew?.kerbals ?? []).flatMap((kerbal) =>
-          kerbal.name ? [kerbal.name] : [],
-        );
+  const outsideNames = (evaCrew?.kerbals ?? []).flatMap((kerbal) =>
+    kerbal.name &&
+    (identity?.vesselId === undefined ||
+      kerbal.kerbalVesselId !== identity.vesselId)
+      ? [kerbal.name]
+      : [],
+  );
 
   // With no roster ever received and no link home, the craft is not being waited on: it cannot be heard.
   const linkReading = crewStatusTopics.useTelemetry("comms.connectivity");

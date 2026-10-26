@@ -6,13 +6,12 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One kerbal currently outside a craft, on that kerbal's own
-/// <c>eva.kerbal.&lt;vessel id&gt;.state</c> Topic.
+/// One kerbal currently outside a craft and within physics range of the vessel in
+/// focus, on that kerbal's own <c>eva.kerbal.&lt;vessel id&gt;.state</c> Topic.
 ///
-/// <para>The Topic is recorded on the kerbal's own node, so it reaches a command centre
-/// by the kerbal's own link and signal delay. A stock kerbal has no antenna, so its
-/// state is held; a kerbal carrying a radio from a mod is live. The craft it left has
-/// no say either way.</para>
+/// <para>The Topic reaches a command centre by the link and signal delay of the craft
+/// being reported, the same as the rest of that craft's readings. A kerbal beyond
+/// physics range has no Topic.</para>
 ///
 /// <para>A kerbal on EVA is a vessel in KSP's model, with its own id, so it
 /// already appears on <c>trackingStation.catalog</c> and on its own per-craft Topics
@@ -127,8 +126,7 @@ public class EvaKerbal
     /// The science results this kerbal is holding, such as a surface sample or an EVA
     /// report, which are on no other Topic: <c>science.experiments</c> lists the
     /// active vessel's results and a kerbal outside is not that vessel. Empty when the
-    /// kerbal holds none, and <c>null</c> when it could not be read. A kerbal that is not
-    /// loaded is read from the game's saved state, so its results are listed all the same.
+    /// kerbal holds none, and <c>null</c> when it could not be read.
     /// </summary>
     public List<EvaHeldData>? HeldData { get; set; }
 }
@@ -159,7 +157,7 @@ public class EvaHeldData
 }
 
 /// <summary>
-/// One kerbal listed on <c>eva.crew</c>: who is outside and which craft they left,
+/// One kerbal listed on <c>eva.crew</c>: who is outside, in physics range, and which craft they left,
 /// enough to find the kerbal's own <c>eva.kerbal.&lt;vessel id&gt;.state</c> Topic.
 /// </summary>
 /// <category>Crew</category>
@@ -185,7 +183,8 @@ public class EvaCrewMember
 }
 
 /// <summary>
-/// The roster of kerbals currently outside a craft, so a client can find each one's own
+/// The roster of kerbals currently outside a craft and within physics range of the vessel
+/// in focus (a loaded vessel in the game), so a client can find each one's own
 /// <c>eva.kerbal.&lt;vessel id&gt;.state</c> Topic. The suit state is on those Topics, not here.
 ///
 /// <para>The roster is a fact the home command holds, so it is not held by the link of the

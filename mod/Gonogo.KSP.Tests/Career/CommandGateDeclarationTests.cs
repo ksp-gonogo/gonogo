@@ -242,7 +242,9 @@ namespace Gonogo.KSP.Tests.Career
                         && r.Facility == "MissionControl"
                         && r.Quantity == KspGateEvaluators.Quantities.FlightPlanning);
             }
-            Assert.False(byCommand.ContainsKey("vessel.maneuver.remove"));
+            Assert.DoesNotContain(
+                byCommand["vessel.maneuver.remove"],
+                r => r.Kind != KspGateEvaluators.Kinds.KerbalIsTheCraft);
         }
 
         [Fact]
@@ -253,7 +255,7 @@ namespace Gonogo.KSP.Tests.Career
             Assert.Equal(10, robotics.Count);
             foreach (var entry in robotics)
             {
-                var requirement = Assert.Single(entry.Value);
+                var requirement = Assert.Single(entry.Value, r => r.Kind != KspGateEvaluators.Kinds.KerbalIsTheCraft);
                 Assert.Equal(KspGateEvaluators.Kinds.PartModuleResearched, requirement.Kind);
                 var expected = entry.Key.StartsWith("robotics.rotor.") ? "ModuleRoboticServoRotor" : "ModuleRoboticServoHinge";
                 Assert.Contains(expected, requirement.Quantity);

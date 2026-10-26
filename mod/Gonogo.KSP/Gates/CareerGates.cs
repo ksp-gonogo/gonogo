@@ -91,6 +91,12 @@ namespace Gonogo.KSP.Gates
             public const string ServoRotor = nameof(ModuleRoboticServoRotor);
         }
 
+        /// <summary>The craft is not a kerbal: the craft they left is loaded, or there was none.</summary>
+        public static CommandRequirement KerbalIsNotTheCraft => new CommandRequirement
+        {
+            Kind = KspGateEvaluators.Kinds.KerbalIsTheCraft,
+        };
+
         /// <summary>The game is in one of these scenes (<c>HighLogic.LoadedScene</c>).</summary>
         public static CommandRequirement Scene(params GameScenes[] scenes)
         {

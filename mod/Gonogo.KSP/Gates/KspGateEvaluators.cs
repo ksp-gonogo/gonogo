@@ -46,8 +46,12 @@ namespace Gonogo.KSP.Gates
     internal static class KspGateEvaluators
     {
         public static IEnumerable<ICommandGateEvaluator> All(
-            ICareerItemJudge careerItems, Func<string, string, LaunchReach> launchReach, IInstrumentJudge instruments)
+            ICareerItemJudge careerItems,
+            Func<string, string, LaunchReach> launchReach,
+            IInstrumentJudge instruments,
+            Func<bool>? craftIsKerbal = null)
         {
+            yield return new KerbalIsTheCraftGate(craftIsKerbal);
             yield return new LaunchAuthorityGate(launchReach);
             yield return new GameModeGate();
             yield return new SceneGate();
@@ -81,6 +85,7 @@ namespace Gonogo.KSP.Gates
             public const string PartModuleResearched = "part-module-researched";
             public const string InstrumentDeploy = "instrument-deploy";
             public const string TransmitterAvailable = "transmitter-available";
+            public const string KerbalIsTheCraft = "kerbal-is-the-craft";
         }
 
         /// <summary>Quantities the facility gates understand, spelled once for the same reason.</summary>
@@ -203,6 +208,42 @@ namespace Gonogo.KSP.Gates
             }
             return GateVerdict.Fail(
                 CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(actual)} scene");
+        }
+    }
+
+    /// <summary>
+    /// A kerbal is the craft: the craft they left is out of physics range, so a vessel
+    /// command has no controls, parts or maneuver plan to act on. Decided before the
+    /// command is sent on, so it is refused at once with one reason rather than held
+    /// for a craft that is not there and run when that craft loads again.
+    /// </summary>
+    internal sealed class KerbalIsTheCraftGate : ICommandGateEvaluator
+    {
+        /// <summary>What the operator is told, the same for every vessel command.</summary>
+        public const string Reason = "no vessel in range";
+
+        private readonly Func<bool> _craftIsKerbal;
+
+        /// <param name="craftIsKerbal">The live read; replaceable for a headless test. Null is never a kerbal.</param>
+        public KerbalIsTheCraftGate(Func<bool>? craftIsKerbal = null)
+        {
+            _craftIsKerbal = craftIsKerbal ?? (() => false);
+        }
+
+        public string Kind => KspGateEvaluators.Kinds.KerbalIsTheCraft;
+
+        public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
+        {
+            try
+            {
+                return _craftIsKerbal()
+                    ? GateVerdict.Fail(CommandErrorCode.NoVessel, Reason)
+                    : GateVerdict.Pass();
+            }
+            catch (Exception ex)
+            {
+                return GateVerdict.Unknown("could not tell whether a kerbal is the craft: " + ex.Message);
+            }
         }
     }
 

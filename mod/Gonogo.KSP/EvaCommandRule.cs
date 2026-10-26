@@ -39,28 +39,18 @@ namespace Gonogo.KSP
         /// there is no second route to it either.
         /// </summary>
         public const string Throttle =
-            "a kerbal is outside, and KSP applies the throttle to them rather than to this craft";
+            "KSP applies the throttle to the vessel it is flying, which is not this one";
 
         /// <summary>The stage stack belongs to whatever KSP is flying, and a kerbal has none.</summary>
         public const string Stage =
-            "a kerbal is outside, and the stage stack KSP would fire is theirs rather than this craft's";
+            "KSP fires the stages of the vessel it is flying, which is not this one";
 
         /// <summary>
         /// A target set now would land on the kerbal's own
         /// <c>targetObject</c> and go with them when they board.
         /// </summary>
         public const string Target =
-            "a kerbal is outside, and the target KSP would set is theirs rather than this craft's";
-
-        /// <summary>
-        /// Recovery of the craft would go through, and that is the problem: the
-        /// kerbal was removed from its crew when they stepped out
-        /// (<c>FlightEVA</c> calls <c>Part.RemoveCrewmember</c> before it
-        /// switches vessel), so the crew recovery never sees them and they are
-        /// left as a one-part EVA craft with nothing to board.
-        /// </summary>
-        public const string Recover =
-            "a kerbal is outside this craft, and recovering it would leave them with nothing to board";
+            "a target set now would be set on the vessel KSP is flying, which is not this one";
 
         /// <summary>
         /// <c>Vessel.MakeInactive</c> calls <c>DetachPatchedConicsSolver</c>,
@@ -69,7 +59,7 @@ namespace Gonogo.KSP
         /// there is nothing live to edit until the kerbal boards.
         /// </summary>
         public const string Maneuver =
-            "a kerbal is outside, and KSP takes this craft's maneuver solver away while they are";
+            "this vessel's maneuver solver is not available while KSP is flying another vessel";
 
         /// <summary>
         /// The refusal, or null when the command may proceed.

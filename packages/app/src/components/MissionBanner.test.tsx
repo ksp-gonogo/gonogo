@@ -64,8 +64,7 @@ function setupTelemetryStream() {
     emitIdentity: (identity: unknown) =>
       transport.emit("vessel.identity", identity),
     emitDelay: (delay: unknown) => transport.emit("comms.delay", delay),
-    emitFlightCurrent: (current: unknown) =>
-      transport.emit("flight.current", current),
+    emitEvaCrew: (crew: unknown) => transport.emit("eva.crew", crew),
     emitRoster: (roster: unknown) =>
       transport.emit("commandCentre.roster", roster, { vantage: KSC }),
     Provider,
@@ -215,7 +214,7 @@ describe("MissionBanner", () => {
     expect(screen.queryByText("Vessel")).toBeNull();
   });
 
-  it("says a kerbal is on EVA, by name, while the flight reading reports one", async () => {
+  it("names every kerbal outside within physics range, and drops the one the vessel field already names", async () => {
     const fixture = setupTelemetryStream();
     const { container } = render(
       <fixture.Provider>
@@ -223,27 +222,41 @@ describe("MissionBanner", () => {
       </fixture.Provider>,
     );
     act(() => {
-      fixture.emitFlightCurrent({
-        flightId: "f1",
-        vesselId: "v1",
-        vesselName: "Kerbal X",
-        phase: 5,
-        onEva: true,
-        evaKerbalName: "Jebediah Kerman",
+      fixture.emitIdentity({
+        vesselId: "pod",
+        name: "Kerbal X",
+        meta: { source: "vessel:pod" },
+      });
+      fixture.emitEvaCrew({
+        count: 2,
+        kerbals: [
+          {
+            kerbalVesselId: "k1",
+            parentVesselId: "pod",
+            name: "Jebediah Kerman",
+          },
+          { kerbalVesselId: "k2", parentVesselId: "pod", name: "Bob Kerman" },
+        ],
       });
     });
 
-    expect(await screen.findByText("Jebediah Kerman")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Jebediah Kerman, Bob Kerman"),
+    ).toBeInTheDocument();
     expect(screen.getByText("EVA")).toBeInTheDocument();
+
     act(() => {
-      fixture.emitFlightCurrent({
-        flightId: "f1",
-        vesselId: "v1",
-        vesselName: "Kerbal X",
-        phase: 5,
-        onEva: false,
-        evaKerbalName: null,
+      fixture.emitIdentity({
+        vesselId: "k1",
+        name: "Jebediah Kerman",
+        meta: { source: "vessel:k1" },
       });
+    });
+    expect(await screen.findByText("Bob Kerman")).toBeInTheDocument();
+    expect(screen.queryByText("Jebediah Kerman, Bob Kerman")).toBeNull();
+
+    act(() => {
+      fixture.emitEvaCrew({ count: 0, kerbals: [] });
     });
     await waitFor(() => expect(screen.queryByText("EVA")).toBeNull());
     await expectNoA11yViolations(container);

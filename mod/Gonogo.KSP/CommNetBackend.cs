@@ -58,8 +58,8 @@ namespace Gonogo.KSP
         /// </summary>
         private static CommNetVessel? Connection()
         {
-            var vessel = ActiveVesselScope.CurrentFor(out var substitutedForEva);
-            if (vessel == null || (!vessel.loaded && !substitutedForEva))
+            var vessel = ActiveVesselScope.Current;
+            if (vessel == null || !vessel.loaded)
             {
                 return null;
             }

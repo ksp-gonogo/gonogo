@@ -11,8 +11,8 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// A kerbal outside a craft reports over its own link. The craft it left may have none,
-    /// and a kerbal's state is neither held nor released by that craft.
+    /// A kerbal outside a craft is heard over the link of the craft being reported, so a
+    /// stock kerbal with no antenna of its own still reports its suit.
     /// </summary>
     public class EvaKerbalLinkTests
     {
@@ -21,7 +21,7 @@ namespace Sitrep.Host.IntegrationTests
         private const string Kerbal = "kkkkkkkk-0000-0000-0000-000000000000";
         private const string Topic = "eva.kerbal." + Kerbal + ".state";
 
-        private static KspSnapshot Snap(double ut, bool kerbalConnected) => new KspSnapshot
+        private static KspSnapshot Snap(double ut) => new KspSnapshot
         {
             Ut = ut,
             Values = new Dictionary<string, object?>
@@ -36,12 +36,11 @@ namespace Sitrep.Host.IntegrationTests
                         ["propellantAmount"] = 3.5,
                     },
                 },
-                ["kerbalLinks"] = new Dictionary<string, bool> { [Kerbal] = kerbalConnected },
             },
         };
 
         [Fact]
-        public async Task AKerbalWithItsOwnLinkReportsWhateverTheCraftItLeftIsDoing()
+        public async Task AKerbalWithNoAntennaOfItsOwnStillReportsItsSuit()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new EvaKerbalTestUplink());
@@ -51,34 +50,11 @@ namespace Sitrep.Host.IntegrationTests
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 await SubscribeAsync(client, Topic, Timeout);
 
-                engine.TickAndWait(1.0, Snap(1.0, kerbalConnected: true), Timeout);
-                engine.TickAndWait(2.0, Snap(2.0, kerbalConnected: true), Timeout);
+                engine.TickAndWait(1.0, Snap(1.0), Timeout);
+                engine.TickAndWait(2.0, Snap(2.0), Timeout);
 
                 var frames = (await DrainAllStreamDataAsync(client, Quiet)).Where(f => f.Topic == Topic).ToList();
                 Assert.Contains(frames, f => f.Payload != null);
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        [Fact]
-        public async Task AKerbalWithNoLinkOfItsOwnIsHeld()
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new EvaKerbalTestUplink());
-            engine.Start();
-            try
-            {
-                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, Topic, Timeout);
-
-                engine.TickAndWait(1.0, Snap(1.0, kerbalConnected: false), Timeout);
-                engine.TickAndWait(2.0, Snap(2.0, kerbalConnected: false), Timeout);
-
-                var frames = (await DrainAllStreamDataAsync(client, Quiet)).Where(f => f.Topic == Topic).ToList();
-                Assert.DoesNotContain(frames, f => f.Payload != null);
             }
             finally
             {

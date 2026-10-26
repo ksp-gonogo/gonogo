@@ -268,6 +268,34 @@ describe("CrewStatusComponent", () => {
     expect(within(out as HTMLElement).getByText("EVA")).toBeInTheDocument();
   });
 
+  it("lists the other kerbals in range while a kerbal is the craft, and not the kerbal itself", async () => {
+    const fixture = newFixture();
+    renderCrew(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 1,
+        capacity: 1,
+        crew: [{ name: "Valentina Kerman" }],
+      });
+      fixture.emit("vessel.identity", {
+        vesselId: "k1",
+        vesselType: VESSEL_TYPE_EVA,
+      });
+      fixture.emit("eva.crew", {
+        count: 2,
+        kerbals: [
+          { kerbalVesselId: "k1", name: "Valentina Kerman" },
+          { kerbalVesselId: "k2", name: "Bob Kerman" },
+        ],
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Bob Kerman")).toBeInTheDocument(),
+    );
+    expect(screen.getAllByText(/Valentina Kerman/)).toHaveLength(1);
+  });
+
   it("says nothing of EVA while nobody is outside", async () => {
     const fixture = newFixture();
     renderCrew(fixture);

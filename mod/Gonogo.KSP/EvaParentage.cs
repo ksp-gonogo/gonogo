@@ -91,11 +91,21 @@ namespace Gonogo.KSP
         /// degrades to stock behaviour rather than inventing a craft. A kerbal whose
         /// craft is no longer in the world is the same, and the dead relation is
         /// dropped on the way out so the roster is not walked for it again.</para>
+        ///
+        /// <para>A craft that is in the world but not loaded, on rails beyond
+        /// physics range, is not reported either, and the relation is kept: the
+        /// kerbal is reported as themselves until the craft loads again, and then
+        /// the craft is reported again.</para>
         /// </summary>
         /// <param name="kspActiveId"><c>FlightGlobals.ActiveVessel.id</c>, or null when there is no flight.</param>
         /// <param name="kspActiveIsEva">Whether that vessel is a kerbal on EVA.</param>
         /// <param name="stillFlying">Whether a vessel id is still in the world.</param>
-        public Guid? Reported(Guid? kspActiveId, bool kspActiveIsEva, Func<Guid, bool> stillFlying)
+        /// <param name="loaded">Whether a vessel in the world is loaded; asked only of a craft that is still flying. Null counts every craft as loaded.</param>
+        public Guid? Reported(
+            Guid? kspActiveId,
+            bool kspActiveIsEva,
+            Func<Guid, bool> stillFlying,
+            Func<Guid, bool>? loaded = null)
         {
             if (kspActiveId == null || kspActiveId.Value == Guid.Empty)
             {
@@ -116,6 +126,11 @@ namespace Gonogo.KSP
             if (stillFlying == null || !stillFlying(parent))
             {
                 _parentOf.Remove(active);
+                return active;
+            }
+
+            if (loaded != null && !loaded(parent))
+            {
                 return active;
             }
 

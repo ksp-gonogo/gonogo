@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Contract;
 using Sitrep.Host;
 
@@ -23,6 +24,48 @@ namespace Gonogo.KSP.Gates
     /// </summary>
     internal static class GateDeclarations
     {
+        /// <summary>The commands that need a craft to act on, and so are refused while a kerbal is the craft.</summary>
+        internal static readonly string[] KerbalGated =
+        {
+            VesselCommandProvider.SetSasCommand,
+            VesselCommandProvider.SetSasModeCommand,
+            VesselCommandProvider.SetRcsCommand,
+            VesselCommandProvider.SetPrecisionControlCommand,
+            VesselCommandProvider.SetGearCommand,
+            VesselCommandProvider.SetBrakesCommand,
+            VesselCommandProvider.SetLightsCommand,
+            VesselCommandProvider.SetAbortCommand,
+            VesselCommandProvider.SetThrottleCommand,
+            VesselCommandProvider.StageCommand,
+            VesselCommandProvider.SetActionGroupCommand,
+            VesselCommandProvider.SetFlyByWireCommand,
+            VesselCommandProvider.SetControlAxesCommand,
+            VesselCommandProvider.ManeuverAddCommand,
+            VesselCommandProvider.ManeuverUpdateCommand,
+            VesselCommandProvider.ManeuverRemoveCommand,
+            VesselCommandProvider.TargetSetCommand,
+            VesselCommandProvider.TargetClearCommand,
+            PartActionCommandProvider.InvokePartActionCommand,
+            ScienceCommandProvider.DeployCommand,
+            ScienceCommandProvider.TransmitCommand,
+            ScienceCommandProvider.StartExperimentCommand,
+            ScienceCommandProvider.StopExperimentCommand,
+            ScienceCommandProvider.StartLabCommand,
+            ScienceCommandProvider.StopLabCommand,
+            RoboticsCommandProvider.ServoSetAngleCommand,
+            RoboticsCommandProvider.ServoSetExtensionCommand,
+            RoboticsCommandProvider.ServoSetMotorCommand,
+            RoboticsCommandProvider.ServoSetLockCommand,
+            RoboticsCommandProvider.RotorSetRpmLimitCommand,
+            RoboticsCommandProvider.RotorSetTorqueLimitCommand,
+            RoboticsCommandProvider.RotorSetBrakeCommand,
+            RoboticsCommandProvider.RotorSetMotorCommand,
+            RoboticsCommandProvider.RotorSetLockCommand,
+            RoboticsCommandProvider.RotorReverseCommand,
+            FlightOpsCommandProvider.RecoverCommand,
+        };
+
+        // Declared after KerbalGated, which Build reads: static fields initialise in order.
         private static readonly Dictionary<string, CommandRequirement[]> Table = Build();
 
         /// <summary>The requirements for one command, or none if it is ungated.</summary>
@@ -261,7 +304,18 @@ namespace Gonogo.KSP.Gates
                 new CommandRequirement { Kind = KspGateEvaluators.Kinds.TransmitterAvailable },
             };
 
+            // A vessel command acts on the craft's controls, parts and maneuver plan, which are not
+            // there while a kerbal is the craft. Refused when sent, with one reason, so it is never
+            // held and run when the craft loads again.
+            foreach (var command in KerbalGated)
+            {
+                table[command] = table.TryGetValue(command, out var declared)
+                    ? declared.Concat(new[] { CareerGates.KerbalIsNotTheCraft }).ToArray()
+                    : new[] { CareerGates.KerbalIsNotTheCraft };
+            }
+
             return table;
         }
+
     }
 }

@@ -90,6 +90,37 @@ namespace Gonogo.KSP.Tests.ActiveVessel
         }
 
         /// <summary>
+        /// A craft on rails is in the world but not loaded: the kerbal is reported as
+        /// themselves, and the relation is kept so the craft comes back with them.
+        /// </summary>
+        [Fact]
+        public void ReportsTheKerbalWhileTheCraftIsUnloadedAndTheCraftAgainOnceItLoads()
+        {
+            var book = new EvaParentage();
+            book.RecordEgress(Kerbal, Ship);
+            var onRails = true;
+
+            Assert.Equal(Kerbal, book.Reported(Kerbal, kspActiveIsEva: true, Flying(Ship, Kerbal), id => !onRails));
+            Assert.True(book.TryParentOf(Kerbal, out var parent));
+            Assert.Equal(Ship, parent);
+
+            onRails = false;
+            Assert.Equal(Ship, book.Reported(Kerbal, kspActiveIsEva: true, Flying(Ship, Kerbal), id => !onRails));
+        }
+
+        [Fact]
+        public void BoardingWhileTheCraftIsUnloadedStillEndsTheRelation()
+        {
+            var book = new EvaParentage();
+            book.RecordEgress(Kerbal, Ship);
+            book.Reported(Kerbal, kspActiveIsEva: true, Flying(Ship, Kerbal), id => false);
+
+            book.Forget(Kerbal);
+
+            Assert.False(book.TryParentOf(Kerbal, out _));
+        }
+
+        /// <summary>
         /// Boarding ends the substitution whatever was boarded, so whatever KSP makes
         /// active next is reported as-is. A kerbal walking into a craft that is not
         /// the one they left is a routine vessel switch and looks like one.

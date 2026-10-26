@@ -428,21 +428,17 @@ namespace Gonogo.KSP
         /// destructive recovery, carrying which of
         /// <c>ClearToSaveStatus</c>'s five reachable arms it was.
         ///
-        /// <para><b>Refused outright while a kerbal is outside the craft</b>, the
-        /// one case where KSP honouring the target is the problem rather than the
-        /// reassurance. Two things are wrong at once. The recovery goes through
-        /// and strands the kerbal: <c>FlightEVA</c> called
-        /// <c>Part.RemoveCrewmember</c> on the way out, so the craft's crew
-        /// recovery never sees them and they are left as a one-part EVA vessel,
-        /// still rostered as Assigned, with nothing to board. And the permission
-        /// gate cannot see it: <c>FlightGlobals.ClearToSave()</c> reads KSP's own
-        /// active vessel in every arm, so it judges the Kerbal, and a kerbal
-        /// drifting beside an accelerating craft reads clear. See
-        /// <see cref="EvaCommandRule"/>.</para>
+        /// <para><b>Not refused while a kerbal is outside the craft.</b> The game goes
+        /// ahead and recovers the craft's own crew, which is the player's call to
+        /// make: <c>FlightEVA</c> took the kerbal out of the part's crew on the way
+        /// out, so the recovery does not include them and they are left as a
+        /// one-part EVA vessel with nothing to board. The widget that sends this
+        /// command says who would be left. <c>FlightGlobals.ClearToSave()</c> reads
+        /// KSP's own active vessel in every arm, so with a kerbal focused it judges
+        /// the kerbal, not the craft.</para>
         ///
-        /// <para>The <c>ClearToSave</c> gate below is unchanged for every other
-        /// case: it is the question stock's own button asks, and outside an EVA
-        /// the vessel it judges is the one being recovered.</para>
+        /// <para>The <c>ClearToSave</c> gate below is the question stock's own button
+        /// asks.</para>
         /// </summary>
         public CommandResult Recover()
         {
@@ -450,13 +446,6 @@ namespace Gonogo.KSP
             if (vessel == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
-            }
-
-            var evaRefusal = EvaCommandRule.RefusalFor(
-                ActiveVesselScope.SubstitutedForEva, EvaCommandRule.Recover);
-            if (evaRefusal != null)
-            {
-                return CommandResult.Fail(evaRefusal.Value.Code, evaRefusal.Value.Detail);
             }
 
             var clear = FlightGlobals.ClearToSave();

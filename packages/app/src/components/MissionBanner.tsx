@@ -119,15 +119,25 @@ function VesselField() {
   );
 }
 
-/** The kerbal outside the craft being reported, named, and nothing while nobody is. */
+/** The kerbals outside within physics range, named, and nothing while nobody is. The kerbal the vessel field already names is left out. */
 function EvaField() {
-  const current = useTelemetry("flight.current");
-  if (current.state !== "observed" && current.state !== "held") return null;
-  if (current.value.onEva !== true) return null;
-  const name = current.value.evaKerbalName?.trim();
+  const crew = useTelemetry("eva.crew");
+  const identity = useTelemetry("vessel.identity");
+  if (crew.state !== "observed" && crew.state !== "held") return null;
+  const ownId =
+    identity.state === "observed" || identity.state === "held"
+      ? identity.value.vesselId
+      : undefined;
+  const names = crew.value.kerbals.flatMap((kerbal) => {
+    const name = kerbal.name?.trim();
+    return name && (ownId === undefined || kerbal.kerbalVesselId !== ownId)
+      ? [name]
+      : [];
+  });
+  if (names.length === 0) return null;
   return (
     <BannerField label="EVA">
-      {name ? <VesselName>{name}</VesselName> : "in progress"}
+      <VesselName>{names.join(", ")}</VesselName>
     </BannerField>
   );
 }

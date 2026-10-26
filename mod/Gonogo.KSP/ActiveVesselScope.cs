@@ -21,6 +21,11 @@ namespace Gonogo.KSP
     /// ends it, so that transition is indistinguishable on the wire from the
     /// operator switching craft normally.</para>
     ///
+    /// <para>The craft is reported only while KSP has it loaded. Past physics range
+    /// it is on rails, <c>Vessel.loaded</c> is false, and the kerbal is reported as
+    /// themselves; the relation is kept, so the craft is reported again once the
+    /// kerbal is back in range. KSP's own load and unload distances decide when.</para>
+    ///
     /// <para>The relation is held by <see cref="EvaParentage"/> and recorded off
     /// <c>GameEvents.onCrewOnEva</c>: stock has no back-reference from a kerbal to
     /// the craft they left, so the egress event is the only carrier there is.
@@ -102,16 +107,35 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// <see cref="Current"/> and <see cref="SubstitutedForEva"/> off one walk of the
-        /// book, for a reader whose rule differs for the craft a kerbal left: that craft
-        /// stays reported after it falls out of physics range, so it can be unloaded
-        /// while it is the vessel being reported.
+        /// The vessel KSP is flying, which is the kerbal while one is focused: where it
+        /// is, how it moves and what it is pointing at are about the vessel in focus,
+        /// where <see cref="Current"/> answers for the craft. Null when there is no
+        /// flight or the game has destroyed the focused vessel.
         /// </summary>
-        internal static Vessel? CurrentFor(out bool substitutedForEva)
+        public static Vessel? Focused
         {
-            var reported = Resolve(out var kspActive);
-            substitutedForEva = !ReferenceEquals(reported, null) && !ReferenceEquals(reported, kspActive);
-            return reported;
+            get
+            {
+                Resolve(out var kspActive);
+                return Living(kspActive);
+            }
+        }
+
+        /// <summary>
+        /// True while KSP is flying a kerbal on EVA and that kerbal is the craft being
+        /// reported: the craft they left is out of physics range, or there is none on
+        /// record. A kerbal has none of a craft's controls, parts or maneuver plan, so
+        /// a vessel command has nothing to act on in this state.
+        /// </summary>
+        public static bool CraftIsKerbal
+        {
+            get
+            {
+                var reported = Resolve(out var kspActive);
+                return !ReferenceEquals(kspActive, null)
+                    && kspActive!.isEVA
+                    && ReferenceEquals(reported, kspActive);
+            }
         }
 
         /// <summary>
@@ -155,7 +179,8 @@ namespace Gonogo.KSP
                     {
                         parent = FindLiving(id);
                         return !ReferenceEquals(parent, null);
-                    });
+                    },
+                    id => !ReferenceEquals(parent, null) && parent!.loaded);
             }
 
             if (reported == null || reported.Value == active.id)

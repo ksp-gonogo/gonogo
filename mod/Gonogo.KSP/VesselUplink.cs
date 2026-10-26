@@ -155,7 +155,7 @@ namespace Gonogo.KSP
                 // publishes an empty roster rather than going quiet. Held at
                 // the home command so no craft's link gates it: each kerbal's
                 // own state is on its own eva.kerbal.<id>.state Topic, recorded
-                // on that kerbal's node.
+                // on the reported craft's node.
                 new ChannelDeclaration
                 {
                     Kind = SampleKind.Discrete,
@@ -400,9 +400,9 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Wires one Topic per kerbal outside (<c>eva.kerbal.&lt;vessel id&gt;.state</c>),
-        /// recorded on that kerbal's own node so it is held or revealed by the kerbal's
-        /// own link, which the fleet Uplink reports for every vessel the game has, and
-        /// never by the link of the craft the kerbal left.
+        /// recorded on the node of the craft being reported, so a kerbal in physics range
+        /// is heard over that craft's link and delay. A stock kerbal has no antenna of
+        /// its own, so a node of its own would hold its state for good.
         /// </summary>
         private void RegisterEvaKerbals(IUplinkHost host)
         {
@@ -415,7 +415,6 @@ namespace Gonogo.KSP
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
-                    PerVesselNode = true,
                 });
 
             // Ungated, because a kerbal that steps back aboard has to be withdrawn

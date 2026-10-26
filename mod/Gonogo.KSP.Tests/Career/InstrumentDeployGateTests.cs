@@ -24,7 +24,7 @@ namespace Gonogo.KSP.Tests.Career
         {
             var declared = GateDeclarations.For("science.experiment.deploy");
 
-            var requirement = Assert.Single(declared);
+            var requirement = Assert.Single(declared, r => r.Kind != KspGateEvaluators.Kinds.KerbalIsTheCraft);
             Assert.Equal(KspGateEvaluators.Kinds.InstrumentDeploy, requirement.Kind);
             Assert.Equal(new[] { "partId", "experimentId" }, requirement.Needs);
         }
@@ -101,7 +101,7 @@ namespace Gonogo.KSP.Tests.Career
                 new Bag(new Dictionary<string, object>()));
 
             Assert.Equal(GateOutcome.Pass, verdict.Outcome);
-            var declared = Assert.Single(GateDeclarations.For("science.experiment.transmit"));
+            var declared = Assert.Single(GateDeclarations.For("science.experiment.transmit"), r => r.Kind != KspGateEvaluators.Kinds.KerbalIsTheCraft);
             Assert.Equal(KspGateEvaluators.Kinds.TransmitterAvailable, declared.Kind);
             Assert.Empty(declared.Needs ?? new string[0]);
         }

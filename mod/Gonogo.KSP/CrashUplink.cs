@@ -105,7 +105,7 @@ namespace Gonogo.KSP
             PublishDeaths(snapshot?.Ut ?? Planetarium.GetUniversalTime());
             try
             {
-                var vessel = ActiveVesselScope.Current;
+                var vessel = ActiveVesselScope.Focused;
                 if (vessel == null)
                 {
                     return null;
@@ -249,7 +249,7 @@ namespace Gonogo.KSP
                 }
 
                 var vesselType = vessel.vesselType.ToString();
-                var active = ActiveVesselScope.Current;
+                var active = ActiveVesselScope.Focused;
                 if (!CrashPayload.ShouldPublish(vesselType) || BoardedVessels.Covers(vessel.id.ToString(), Planetarium.GetUniversalTime()))
                 {
                     _tracker.Forget(vessel.id.ToString());

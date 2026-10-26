@@ -51,7 +51,6 @@ namespace Gonogo.KSP.Tests.ActiveVessel
         [InlineData(nameof(EvaCommandRule.Throttle))]
         [InlineData(nameof(EvaCommandRule.Stage))]
         [InlineData(nameof(EvaCommandRule.Target))]
-        [InlineData(nameof(EvaCommandRule.Recover))]
         [InlineData(nameof(EvaCommandRule.Maneuver))]
         public void EveryRefusalIsWrongStateAndCarriesItsOwnReason(string which)
         {
@@ -62,7 +61,7 @@ namespace Gonogo.KSP.Tests.ActiveVessel
             Assert.Equal(CommandErrorCode.WrongState, refusal!.Value.Code);
             Assert.Equal(detail, refusal.Value.Detail);
             // An empty detail is legal on a Refusal and would be useless here:
-            // five commands sharing one code need the sentence to tell them
+            // commands sharing one code need the sentence to tell them
             // apart, and each one names a different stock mechanism.
             Assert.NotEqual("", refusal.Value.Detail);
         }
@@ -79,7 +78,6 @@ namespace Gonogo.KSP.Tests.ActiveVessel
             { "KspVesselActuator.cs", "public CommandResult<int> Stage(" },
             { "KspVesselActuator.cs", "public CommandResult SetTarget(" },
             { "KspVesselActuator.cs", "public CommandResult ClearTarget(" },
-            { "KspFlightOpsActuator.cs", "public CommandResult Recover(" },
         };
 
         [Theory]
@@ -90,6 +88,20 @@ namespace Gonogo.KSP.Tests.ActiveVessel
                 CurrencyDelaySourceText.ReadRelative(file), declaration);
 
             Assert.Contains("EvaCommandRule.RefusalFor(", body);
+        }
+
+        /// <summary>
+        /// Recovery is the player's call while crew are outside: the command goes ahead,
+        /// and the widget that sends it says who would be left behind.
+        /// </summary>
+        [Fact]
+        public void RecoverIsNotRefusedWhileCrewAreOutside()
+        {
+            var body = CurrencyDelaySourceText.MethodBody(
+                CurrencyDelaySourceText.ReadRelative("KspFlightOpsActuator.cs"),
+                "public CommandResult Recover(");
+
+            Assert.DoesNotContain("EvaCommandRule", body);
         }
 
         /// <summary>
