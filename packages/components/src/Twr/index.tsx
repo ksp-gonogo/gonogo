@@ -46,8 +46,7 @@ interface NextStageTwr {
 
 /**
  * Thrust over weight at standard gravity: the wire carries thrust and mass, not
- * their ratio. The thrust is the lesser of what is reported and what the engines
- * can produce now. While the craft is making no thrust the active stage's ratio is a
+ * their ratio. While the craft is making no thrust the active stage's ratio is a
  * known zero, so the figure is the next stage that has thrust, from the stage
  * list at its ignition mass and on the same gravity basis, and `stage` names
  * which one it is.
@@ -62,18 +61,9 @@ function useTwrReading(): { reading: Reading<Value<"1">>; stage?: number } {
       ? budgetReading.value?.stages
       : undefined;
   const live = combineReadings(
-    [
-      propulsionReading.currentThrust,
-      propulsionReading.availableThrust,
-      propulsionReading.totalMass,
-    ],
-    (currentThrust, availableThrust, totalMass) => {
-      // No engine makes more than it can: a thrust still reported after every engine stopped is not thrust the craft has.
-      const capped =
-        currentThrust && availableThrust
-          ? currentThrust.min(availableThrust)
-          : currentThrust;
-      const thrust = magnitudeOf(capped);
+    [propulsionReading.currentThrust, propulsionReading.totalMass],
+    (currentThrust, totalMass) => {
+      const thrust = magnitudeOf(currentThrust);
       const mass = magnitudeOf(totalMass);
       const ratio =
         thrust === null || mass === null ? null : twrOf(thrust, mass);
@@ -145,8 +135,6 @@ function TwrComponent({ w }: Readonly<ComponentProps<TwrConfig>>) {
     twrOf,
   );
   const sparkValues = useMemo(() => plotColumnsOf(series).v, [series]);
-  // A trend is drawn while the craft is thrusting and has a line to show; without one the dial takes the frame.
-  const showTrend = stage === undefined && sparkValues.length > 1;
 
   // Only the drawings inside the frame are measured, and the frame's size never depends on them.
   const cols = w ?? 4;
@@ -204,7 +192,7 @@ function TwrComponent({ w }: Readonly<ComponentProps<TwrConfig>>) {
                   : `Stage ${stage} at ignition`
             }
             strip={
-              showTrend ? (
+              stage === undefined ? (
                 <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
                   <div style={SPARK_PLOT_STYLE}>
                     <Sparkline
@@ -219,44 +207,23 @@ function TwrComponent({ w }: Readonly<ComponentProps<TwrConfig>>) {
               ) : undefined
             }
           >
-            {showTrend ? (
-              <div
-                ref={gaugeRef}
-                style={
-                  showCaption ? GAUGE_SLOT_UNDER_CAPTION : GAUGE_SLOT_STYLE
-                }
-              >
-                <Dial
-                  startAngle={-90}
-                  sweep={180}
-                  value={twrReading}
-                  min={GAUGE_MIN}
-                  max={GAUGE_MAX}
-                  zones={ZONES}
-                  width={gaugeW}
-                  height={gaugeH}
-                  readout="large"
-                  aria-label={`TWR ${writeQuantity(twr)}`}
-                />
-              </div>
-            ) : (
-              <div style={FACE_STYLE}>
-                <div ref={gaugeRef} style={GAUGE_LAYER_STYLE}>
-                  <Dial
-                    startAngle={-90}
-                    sweep={180}
-                    value={twrReading}
-                    min={GAUGE_MIN}
-                    max={GAUGE_MAX}
-                    zones={ZONES}
-                    width={gaugeW}
-                    height={gaugeH}
-                    readout="large"
-                    aria-label={`TWR ${writeQuantity(twr)}`}
-                  />
-                </div>
-              </div>
-            )}
+            <div
+              ref={gaugeRef}
+              style={showCaption ? GAUGE_SLOT_UNDER_CAPTION : GAUGE_SLOT_STYLE}
+            >
+              <Dial
+                startAngle={-90}
+                sweep={180}
+                value={twrReading}
+                min={GAUGE_MIN}
+                max={GAUGE_MAX}
+                zones={ZONES}
+                width={gaugeW}
+                height={gaugeH}
+                readout="large"
+                aria-label={`TWR ${writeQuantity(twr)}`}
+              />
+            </div>
           </FramedDisplay>
         </Section>
       }
@@ -284,23 +251,6 @@ const GAUGE_SLOT_STYLE = {
   minHeight: 0,
   display: "flex",
   alignItems: "center",
-  justifyContent: "center",
-  overflow: "hidden",
-} as const;
-
-/** With no trend drawn the dial takes the frame's whole face and its figure sits at the bottom edge. */
-const FACE_STYLE = {
-  position: "relative",
-  flex: 1,
-  minWidth: 0,
-  minHeight: 0,
-} as const;
-
-const GAUGE_LAYER_STYLE = {
-  position: "absolute",
-  inset: 0,
-  display: "flex",
-  alignItems: "flex-end",
   justifyContent: "center",
   overflow: "hidden",
 } as const;

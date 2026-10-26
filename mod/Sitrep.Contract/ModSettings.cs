@@ -172,8 +172,9 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// The value spelled as a settings row spells it: <c>True</c> or
-        /// <c>False</c>, a number with a full stop as its decimal point and no
-        /// exponent, or the text itself. Null when unavailable.
+        /// <c>False</c>, a number with a full stop as its decimal point, or the
+        /// text itself. Null
+        /// when unavailable.
         /// </summary>
         public string? Spelled()
         {
@@ -182,51 +183,12 @@ namespace Sitrep.Contract
                 case SettingKind.Bool:
                     return _bool ? "True" : "False";
                 case SettingKind.Number:
-                    return Plain(_number);
+                    return _number.ToString("R", CultureInfo.InvariantCulture);
                 case SettingKind.Text:
                     return _text;
                 default:
                     return null;
             }
-        }
-
-        /*
-         * The shortest text that reads back as the same double, with the exponent
-         * written out: a row's text is typed back by hand, and 1E-08 is not what
-         * anyone types for 0.00000001.
-         */
-        private static string Plain(double value)
-        {
-            var text = value.ToString("R", CultureInfo.InvariantCulture);
-            var e = text.IndexOf('E');
-            if (e < 0)
-            {
-                return text;
-            }
-
-            var exponent = int.Parse(text.Substring(e + 1), CultureInfo.InvariantCulture);
-            var mantissa = text.Substring(0, e);
-            var negative = mantissa.StartsWith("-", StringComparison.Ordinal);
-            if (negative)
-            {
-                mantissa = mantissa.Substring(1);
-            }
-
-            var point = mantissa.IndexOf('.');
-            var digits = point < 0 ? mantissa : mantissa.Remove(point, 1);
-            var integerDigits = (point < 0 ? mantissa.Length : point) + exponent;
-            var sign = negative ? "-" : "";
-            if (integerDigits <= 0)
-            {
-                return sign + "0." + new string('0', -integerDigits) + digits;
-            }
-
-            if (integerDigits >= digits.Length)
-            {
-                return sign + digits + new string('0', integerDigits - digits.Length);
-            }
-
-            return sign + digits.Substring(0, integerDigits) + "." + digits.Substring(integerDigits);
         }
 
         private InvalidOperationException Wrong(SettingKind wanted) =>

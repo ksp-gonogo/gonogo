@@ -114,7 +114,6 @@ describe("TwrComponent off the stream", () => {
       renderTwr(fixture);
       expect(await screen.findByText(/no engine data/i)).toBeInTheDocument();
       act(() => {
-        emitTwr(fixture, 1.7);
         emitTwr(fixture, 1.832);
       });
       const trend = await screen.findByLabelText("TWR trend");
@@ -187,7 +186,6 @@ describe("TwrComponent frame", () => {
       </fixture.Provider>,
     );
     act(() => {
-      emitTwr(fixture, 1.7);
       emitTwr(fixture, 1.832);
     });
     const gauge = await screen.findByRole("meter");
@@ -197,22 +195,5 @@ describe("TwrComponent frame", () => {
     // The strip's parent is the frame itself, and the gauge sits in that same box.
     expect(strip?.parentElement).toContainElement(gauge);
     expect(document.querySelector("[data-panel-lone-frame]")).not.toBeNull();
-  });
-});
-
-describe("TwrComponent with thrust reported that no engine can make", () => {
-  it("draws the thrust the engines can produce, not the stale reading", async () => {
-    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
-    renderTwr(fixture);
-    act(() => {
-      fixture.emit("vessel.propulsion", {
-        totalMass: 54,
-        dryMass: 20,
-        currentThrust: 650,
-        availableThrust: 0,
-      });
-    });
-    await waitFor(() => expect(visibleText()).toContain("0.00"));
-    expect(visibleText()).not.toContain("1.22");
   });
 });

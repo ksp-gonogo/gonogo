@@ -9,7 +9,6 @@ import { HyperbolicNotice, WaitingPanel } from "./styles";
 interface NotPlannableNoticeProps {
   hyperbolic: boolean;
   landed: boolean;
-  meetsSurface: boolean;
   currentTrajectory: OrbitTrajectory | null;
 }
 
@@ -17,7 +16,6 @@ interface NotPlannableNoticeProps {
 export function NotPlannableNotice({
   hyperbolic,
   landed,
-  meetsSurface,
   currentTrajectory,
 }: NotPlannableNoticeProps) {
   if (landed) {
@@ -27,13 +25,6 @@ export function NotPlannableNotice({
         <HyperbolicNotice>
           The vessel is landed, so there is no orbit to plan a maneuver on.
         </HyperbolicNotice>
-      </WaitingPanel>
-    );
-  }
-  if (meetsSurface) {
-    return (
-      <WaitingPanel>
-        <SectionTitle as="h4">Meets the surface</SectionTitle>
       </WaitingPanel>
     );
   }

@@ -70,20 +70,6 @@ namespace Sitrep.Host.Tests
             Assert.True(delay.OneWaySeconds.Value > 3 * 3600);
         }
 
-        [Fact]
-        public void TheSmallestLightSpeedGivesDelaysOfYearsWithoutOverflowOrLosingPrecision()
-        {
-            var cfg = new SignalDelayConfig { Enabled = true, LightSpeedScale = 1e-8 };
-
-            var mun = SignalDelay.Compute(cfg, PathOf(12.0e6), "s");
-            var eeloo = SignalDelay.Compute(cfg, PathOf(EightHops.Select(d => (double?)d).ToArray()), "s");
-
-            Assert.Equal(12.0e6 / (C * 1e-8), mun.OneWaySeconds!.Value, 3);
-            Assert.InRange(mun.OneWaySeconds.Value, 3.9e6, 4.1e6);
-            Assert.Equal(EightHops.Sum() / (C * 1e-8), eeloo.OneWaySeconds!.Value, 0);
-            Assert.True(eeloo.OneWaySeconds.Value > int.MaxValue);
-        }
-
         [Theory]
         [InlineData(double.NaN)]
         [InlineData(double.PositiveInfinity)]

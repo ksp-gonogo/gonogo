@@ -31,7 +31,7 @@ Gonogo makes distance matter. Commands to a craft and readings from it take the 
 The choice belongs to the save, so each game has its own. Set it in KSP under **Settings, Difficulty options, Gonogo**, when you create a game or at any time in one that is running. It has two settings:
 
 - **Signal delay** is the switch. Off, commands and readings arrive at once
-- **Light speed** is how fast signals travel as a fraction of the speed of light, from 0.00000001 to 100, typed into the field. 1 is real light speed, and 0.5 doubles every delay. It cannot be 0, because that would mean a delay that never ends
+- **Light speed** is how fast signals travel as a fraction of the speed of light, from 0.01 to 100. 1 is real light speed, and 0.5 doubles every delay. It cannot be 0, because that would mean a delay that never ends
 
 The same two settings appear in the Gonogo app, under **Settings, Gonogo, Signal delay**, while KSP is connected, and a change in either place shows in the other within a second. Turning delay off delivers every command still on its way at once, in the order you sent them, and releases the science, reputation and funds still waiting to reach mission control. Raising the light speed brings both forward by the same share, and lowering it changes nothing already sent. A command held because its craft has no path stays held: only the waiting is removed, not the missing path.
 

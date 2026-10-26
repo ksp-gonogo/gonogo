@@ -64,7 +64,7 @@ describe("ContractManagerComponent", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows the briefing, difficulty and each objective as a plain item", async () => {
+  it("shows the briefing, prestige and each objective's live state", async () => {
     const fixture = newFixture();
     renderContract(fixture);
     act(() => {
@@ -114,10 +114,7 @@ describe("ContractManagerComponent", () => {
     await waitFor(() =>
       expect(screen.getByText("Survey the Mun")).toBeInTheDocument(),
     );
-    expect(
-      screen.getByRole("img", { name: "Difficulty: 2 of 3" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("DIFFICULTY")).toBeInTheDocument();
+    expect(screen.getByText("Significant")).toBeInTheDocument();
     expect(
       screen.getByText("Visit the Mun and bring the data home"),
     ).toBeInTheDocument();
@@ -130,13 +127,13 @@ describe("ContractManagerComponent", () => {
     expect(screen.getByText("Recover the vessel intact.")).toBeInTheDocument();
     expect(screen.getByText("Any orbit will do")).toBeInTheDocument();
     const reach = screen.getByText("Reach the Mun").closest("li");
-    expect(reach).not.toHaveTextContent(/Done/);
+    expect(reach).toHaveTextContent(/Done/);
     const nested = screen
       .getByText("Enter the sphere of influence")
       .closest("li");
-    expect(nested).not.toHaveTextContent(/Open/);
+    expect(nested).toHaveTextContent(/Open/);
     const kerbal = screen.getByText("Bring a kerbal").closest("li");
-    expect(kerbal).not.toHaveTextContent(/Failed/);
+    expect(kerbal).toHaveTextContent(/Failed/);
     expect(kerbal).toHaveTextContent(/optional/);
     expect(visibleText()).toMatch(/4\.0/);
     expect(visibleText()).toMatch(/6\.0/);

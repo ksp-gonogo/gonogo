@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Reflection;
 using Sitrep.Contract;
 using Sitrep.Host.Settings;
@@ -36,19 +35,6 @@ namespace Gonogo.KSP.Tests.Comms
             var scale = typeof(GonogoGameParameters).GetField(nameof(GonogoGameParameters.lightSpeedScale))!;
             var ui = scale.GetCustomAttribute<GameParameters.CustomFloatParameterUI>()!;
             Assert.True(ui.minValue > 0f, "the in-game slider must not reach zero");
-        }
-
-        [Fact]
-        public void TheLightSpeedIsTypedAndKeepsItsSmallestValueIntactWhenKspRoundsIt()
-        {
-            var scale = typeof(GonogoGameParameters).GetField(nameof(GonogoGameParameters.lightSpeedScale))!;
-            var ui = scale.GetCustomAttribute<GameParameters.CustomFloatParameterUI>()!;
-
-            Assert.True(ui.addTextField);
-            Assert.Equal(0f, ui.logBase);
-            var committed = float.Parse(((float)SignalDelayChoice.MinLightSpeedScale).ToString(ui.displayFormat, CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
-            Assert.Equal(1e-8, committed, 12);
-            Assert.Equal("0.00000001", ((float)1e-8).ToString(ui.displayFormat, CultureInfo.InvariantCulture));
         }
 
         [Fact]
@@ -121,12 +107,10 @@ namespace Gonogo.KSP.Tests.Comms
             {
                 var uplink = new CommsCoreUplink();
 
-                Assert.False(uplink.WriteModSetting(CommsDelayModSettings.LightSpeedScaleId, ModSettingValue.Of(1e-9)).Success);
+                Assert.False(uplink.WriteModSetting(CommsDelayModSettings.LightSpeedScaleId, ModSettingValue.Of(0.001)).Success);
                 Assert.False(uplink.WriteModSetting(CommsDelayModSettings.LightSpeedScaleId, ModSettingValue.Of(1000.0)).Success);
                 Assert.True(uplink.WriteModSetting(CommsDelayModSettings.LightSpeedScaleId, ModSettingValue.Of(0.5)).Success);
                 Assert.Equal(0.5f, node.lightSpeedScale);
-                Assert.True(uplink.WriteModSetting(CommsDelayModSettings.LightSpeedScaleId, ModSettingValue.Of(0.00000001)).Success);
-                Assert.Equal(1e-8, uplink.ReadModSetting(CommsDelayModSettings.LightSpeedScaleId).AsNumber, 12);
             });
         }
 
@@ -147,17 +131,6 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         [Fact]
-        public void TheSmallestLightSpeedTypedInTheFieldIsInForceToTheLastDigit()
-        {
-            WithSave(enabled: true, scale: 1e-8f, _ =>
-            {
-                CommsCoreUplink.SyncSignalDelayFromSave();
-
-                Assert.Equal(1e-8, CommsCoreUplink.AuthoredSignalDelayConfig.LightSpeedScale, 14);
-            });
-        }
-
-        [Fact]
         public void TheSliderSetToItsLowestWithTheSwitchOffReadsBackAsBoth()
         {
             WithSave(enabled: false, scale: (float)SignalDelayChoice.MinLightSpeedScale, node =>
@@ -165,7 +138,7 @@ namespace Gonogo.KSP.Tests.Comms
                 var uplink = new CommsCoreUplink();
 
                 Assert.False(uplink.ReadModSetting(CommsDelayModSettings.EnabledId).AsBool);
-                Assert.Equal(1e-8, uplink.ReadModSetting(CommsDelayModSettings.LightSpeedScaleId).AsNumber, 12);
+                Assert.Equal(0.01, uplink.ReadModSetting(CommsDelayModSettings.LightSpeedScaleId).AsNumber, 6);
             });
         }
 

@@ -5,7 +5,7 @@ import {
   type Reading,
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import type { BurnContext } from "./burnFlown";
 import type { NodeEditPatch } from "./NodeRow";
@@ -20,9 +20,6 @@ export interface SendDelay {
   oneWaySeconds: number | null;
   reading: Reading<Value<"s">> | null;
 }
-
-/** How long a node the game accepted may take to be listed before the wait is given up. */
-const NODE_LISTING_TIMEOUT_MS = 15_000;
 
 const ADD_NODE = "vessel.maneuver.add";
 const UPDATE_NODE = "vessel.maneuver.update";
@@ -42,27 +39,6 @@ export function useNodeCommands(
   const [removing, setRemoving] = useState(false);
   const removingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  /*
-   * The node count the plan reaches once the nodes the game accepted are
-   * listed. The command settles before the plan stream carries the node, and
-   * until it does the Add control would invite a second press that plans the
-   * burn twice.
-   */
-  const [expectedNodes, setExpectedNodes] = useState<number | null>(null);
-  const adding = expectedNodes !== null && nodes.length < expectedNodes;
-
-  useEffect(() => {
-    if (expectedNodes === null) return;
-    if (nodes.length >= expectedNodes) {
-      setExpectedNodes(null);
-      return;
-    }
-    const timer = setTimeout(() => {
-      setExpectedNodes(null);
-      setError("The new node has not appeared in the flight plan.");
-    }, NODE_LISTING_TIMEOUT_MS);
-    return () => clearTimeout(timer);
-  }, [expectedNodes, nodes.length]);
 
   // Node commands actuate the flight plan, so each is subject to signal delay.
   const addNodeCmd = useCommand(ADD_NODE);
@@ -85,7 +61,7 @@ export function useNodeCommands(
     burnContext,
   );
 
-  async function dispatchPlanBurns(toDispatch: PlanResult): Promise<number> {
+  async function dispatchPlanBurns(toDispatch: PlanResult): Promise<void> {
     const burns = isSequence(toDispatch) ? toDispatch.burns : [toDispatch];
     let confirmed = 0;
     for (const b of burns) {
@@ -112,7 +88,6 @@ export function useNodeCommands(
       }
       confirmed += 1;
     }
-    return confirmed;
   }
 
   async function handleCommit() {
@@ -120,8 +95,7 @@ export function useNodeCommands(
     setCommitting(true);
     setError(null);
     try {
-      const added = await dispatchPlanBurns(plan);
-      setExpectedNodes(nodes.length + added);
+      await dispatchPlanBurns(plan);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -221,8 +195,7 @@ export function useNodeCommands(
 
   return {
     sendDelay,
-    committing: committing || adding,
-    adding,
+    committing,
     removing,
     error,
     setError,

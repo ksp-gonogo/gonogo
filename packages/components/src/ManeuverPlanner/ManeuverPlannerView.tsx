@@ -75,12 +75,10 @@ export function ManeuverPlannerComponent({
     planReady,
     hyperbolic,
     landed,
-    meetsSurface,
   } = usePlan(inputs, telemetry);
   const {
     sendDelay,
     committing,
-    adding,
     removing,
     error,
     setError,
@@ -135,7 +133,6 @@ export function ManeuverPlannerComponent({
       <ManeuverNodeList
         nodes={nodes}
         awaiting={planAwaited}
-        adding={adding}
         completedNodes={completedNodes}
         currentUT={currentUT}
         availableDv={availableDeltaV}
@@ -220,7 +217,6 @@ export function ManeuverPlannerComponent({
       <NotPlannableNotice
         hyperbolic={hyperbolic}
         landed={landed}
-        meetsSurface={meetsSurface}
         currentTrajectory={currentTrajectory}
       />
     </Section>

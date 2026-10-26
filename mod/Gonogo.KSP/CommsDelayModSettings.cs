@@ -8,7 +8,7 @@ namespace Gonogo.KSP
     internal readonly struct SignalDelayChoice
     {
         /// <summary>The slowest light speed a save can hold, as a fraction of the speed of light.</summary>
-        public const double MinLightSpeedScale = 1e-8;
+        public const double MinLightSpeedScale = 0.01;
 
         /// <summary>The fastest light speed a save can hold, as a fraction of the speed of light.</summary>
         public const double MaxLightSpeedScale = 100.0;
@@ -55,7 +55,7 @@ namespace Gonogo.KSP
                 null,
                 ModSettingRefresh.Live,
                 description: "How fast signals travel, as a fraction of the speed of light. "
-                    + "1 is real light speed and 0.5 doubles every delay. Any value from 0.00000001 to 100",
+                    + "1 is real light speed and 0.5 doubles every delay",
                 setIn: SetIn,
                 writable: true),
         };
@@ -168,9 +168,9 @@ namespace Gonogo.KSP
             if (scale < SignalDelayChoice.MinLightSpeedScale || scale > SignalDelayChoice.MaxLightSpeedScale)
             {
                 return "Light speed must be between "
-                    + ModSettingValue.Of(SignalDelayChoice.MinLightSpeedScale).Spelled()
+                    + SignalDelayChoice.MinLightSpeedScale.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)
                     + " and "
-                    + ModSettingValue.Of(SignalDelayChoice.MaxLightSpeedScale).Spelled();
+                    + SignalDelayChoice.MaxLightSpeedScale.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
             }
 
             return null;

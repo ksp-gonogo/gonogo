@@ -11,8 +11,6 @@ interface ManeuverNodeListProps {
   nodes: readonly ParsedManeuverNode[];
   /** True until the plan has arrived, so an empty list is not read as an empty plan. */
   awaiting: boolean;
-  /** True while a node the game accepted is not listed yet, so an empty list is not read as nothing having happened. */
-  adding: boolean;
   completedNodes: ReadonlyMap<number, CompletedEntry>;
   currentUT: Value<"ut"> | undefined;
   /** Vessel ΔV available, or null when there is no usable reading. */
@@ -38,7 +36,6 @@ interface DisplayedNode {
 export function ManeuverNodeList({
   nodes,
   awaiting,
-  adding,
   completedNodes,
   currentUT,
   availableDv,
@@ -72,11 +69,7 @@ export function ManeuverNodeList({
     <>
       {displayedNodes.length === 0 ? (
         <EmptyState>
-          {adding
-            ? "Adding maneuver node"
-            : awaiting
-              ? "Awaiting maneuver plan"
-              : "No maneuver nodes planned"}
+          {awaiting ? "Awaiting maneuver plan" : "No maneuver nodes planned"}
         </EmptyState>
       ) : (
         <Stack as="ul" style={NODE_LIST_STYLE}>

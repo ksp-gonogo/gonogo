@@ -521,7 +521,6 @@ export {
 } from "./Panel";
 export { type BadgeEntry, PanelBadgesProvider } from "./PanelBadges";
 export { PanZoomViewport } from "./PanZoomViewport";
-export { Pips, type PipsProps } from "./Pips";
 export {
   PlotCrosshair,
   type PlotCrosshairProps,

@@ -12,8 +12,7 @@ export type EncounterCheck =
 
 /**
  * Whether the game's own patched conics put the craft in `target`'s sphere of
- * influence after a node, entering it or, for the body the craft's own body
- * orbits, leaving into it, and at what periapsis altitude.
+ * influence after a node, and at what periapsis altitude.
  *
  * A node whose chain has not arrived reads as pending: the solver has produced
  * no post-burn patch yet, which says nothing about an encounter. Only a chain
@@ -27,8 +26,7 @@ export function checkEncounter(
   const entered = patches.find(
     (p) =>
       p.referenceBody === target &&
-      (p.patchStartTransition === TransitionType.Encounter ||
-        p.patchStartTransition === TransitionType.Escape),
+      p.patchStartTransition === TransitionType.Encounter,
   );
   if (!entered) return { kind: "none" };
   return {

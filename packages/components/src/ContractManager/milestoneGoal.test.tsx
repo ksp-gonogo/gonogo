@@ -51,19 +51,20 @@ function mount() {
         failedRecent: [],
       },
     });
+    fixture.emit("vessel.flight", { altitudeAsl: 12300 });
     fixture.store.beginFrame();
   });
   return fixture;
 }
 
 describe("ContractManager: a milestone objective's target and progress", () => {
-  it("says what the goal is and where it is reached, and no live progress against it", () => {
+  it("says what the goal is and where it is reached, with the vessel's altitude against it", () => {
     mount();
 
     const text = visibleText(document.body);
     expect(text).toContain("Achieve goal");
     expect(text).toContain("Reach space at Kerbin");
     expect(text).toMatch(/70(\.0)?\s*km/);
-    expect(text).not.toMatch(/now/);
+    expect(text).toMatch(/now 12\.3\s*km/);
   });
 });

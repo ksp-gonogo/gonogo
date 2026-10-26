@@ -372,72 +372,6 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().countdown).toBeNull();
   });
 
-  it("holds the countdown with the station that dropped, and tells every screen", () => {
-    host.fireConnect("peer-1");
-    host.fireConnect("peer-2");
-    host.fireStationInfo("peer-2", "FVJ4");
-    host.fireVote("peer-1", "go");
-    host.fireVote("peer-2", "go");
-    host.fireDisconnect("peer-2");
-    expect(lastBroadcast(host, "gonogo-countdown-cancel").hold).toEqual({
-      cause: "dropped",
-      station: "FVJ4",
-    });
-    expect(svc.getSnapshot().notice).toEqual({
-      kind: "held",
-      cause: "dropped",
-      station: "FVJ4",
-    });
-    host.fireConnect("peer-3");
-    host.fireVote("peer-1", "go");
-    expect(svc.getSnapshot().notice).toBeNull();
-  });
-
-  it("names the station that voted NO-GO in the hold", () => {
-    host.fireConnect("peer-1");
-    host.fireStationInfo("peer-1", "9A35");
-    host.fireVote("peer-1", "go");
-    host.fireVote("peer-1", "no-go");
-    expect(svc.getSnapshot().notice).toEqual({
-      kind: "held",
-      cause: "no-go",
-      station: "9A35",
-    });
-  });
-
-  it("reports the action sent when T-0 is reached", async () => {
-    svc.setConfig({ countdownLengthMs: 5_000 });
-    host.fireConnect("peer-1");
-    host.fireVote("peer-1", "go");
-    vi.advanceTimersByTime(5_001);
-    await drainDispatch();
-    expect(lastBroadcast(host, "gonogo-outcome")).toEqual({
-      type: "gonogo-outcome",
-      action: "Stage",
-      sent: true,
-    });
-    expect(svc.getSnapshot().notice).toEqual({
-      kind: "outcome",
-      action: "Stage",
-      sent: true,
-    });
-  });
-
-  it("reports the action not sent when the game refuses it at T-0", async () => {
-    transport.setCommandHandler(() => {
-      throw new Error("no vessel");
-    });
-    svc.setConfig({ countdownLengthMs: 5_000 });
-    host.fireConnect("peer-1");
-    host.fireVote("peer-1", "go");
-    vi.advanceTimersByTime(5_001);
-    await drainDispatch();
-    expect(lastBroadcast(host, "gonogo-outcome")).toMatchObject({
-      action: "Stage",
-      sent: false,
-    });
-  });
-
   it("keeps counting down when a screen that never voted disconnects", () => {
     host.fireConnect("peer-1");
     host.fireConnect("peer-2");
@@ -587,7 +521,6 @@ describe("GoNoGoHostService", () => {
       expect(host.broadcasts).toContainEqual({
         type: "gonogo-countdown-cancel",
         reason: "reset",
-        hold: { cause: "reset" },
       });
       vi.advanceTimersByTime(60_000);
       expect(oscillators).toHaveLength(0);

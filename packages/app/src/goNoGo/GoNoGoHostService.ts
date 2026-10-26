@@ -25,7 +25,6 @@ import { dispatchActionGroup } from "../dispatchActionGroup";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 import { playAbortTone, playCountdownTone } from "../sound";
-import type { CountdownHold, GoNoGoNotice } from "./notice";
 import { DEFAULT_ON_GO, ON_GO_NONE } from "./onGo";
 
 /** The slice of the peer host this aggregator reads: five lifecycle subscriptions plus the sends it makes. */
@@ -71,8 +70,6 @@ export interface GoNoGoSnapshot {
   /** The operator reset the poll after launch, so votes and countdowns run again until the craft is back on the pad. */
   reopened: boolean;
   abort: { peerId: string; stationName: string; at: number } | null;
-  /** What the poll last did, until the next countdown starts or the poll is reset. */
-  notice: GoNoGoNotice | null;
   config: GoNoGoConfig;
 }
 
@@ -103,7 +100,6 @@ export class GoNoGoHostService {
   private launched = false;
   private reopened = false;
   private abortInFlight = false;
-  private notice: GoNoGoNotice | null = null;
   /**
    * Set when a countdown reaches T-0, and what keeps a second one from
    * starting. `launched` cannot do that job: it turns true only when the
@@ -138,16 +134,12 @@ export class GoNoGoHostService {
     this.unsubs.push(
       host.onPeerDisconnect((peerId) => {
         this.connectedPeers.delete(peerId);
-        const stationName = this.peerIdToName.get(peerId) ?? "Unknown";
         this.peerIdToName.delete(peerId);
         const hadVote = (this.peerIdToVote.get(peerId) ?? null) !== null;
         this.peerIdToVote.delete(peerId);
         // A screen with no vote was not in the poll, so its leaving changes nothing for a countdown.
         if (hadVote || !this.pollIsGo()) {
-          this.cancelCountdownIfRunning("station disconnected", {
-            cause: "dropped",
-            station: stationName,
-          });
+          this.cancelCountdownIfRunning("station disconnected");
         }
         this.emit();
       }),
@@ -171,10 +163,6 @@ export class GoNoGoHostService {
             status === null
               ? "the last GO vote was withdrawn"
               : `vote flipped to ${status}`,
-            {
-              cause: status === null ? "withdrawn" : "no-go",
-              station: this.peerIdToName.get(peerId) ?? "Unknown",
-            },
           );
         }
         this.emit();
@@ -234,7 +222,7 @@ export class GoNoGoHostService {
       }
     }
     if (this.launched && !this.reopened && this.countdown) {
-      this.cancelCountdownIfRunning("launch detected", { cause: "launch" });
+      this.cancelCountdownIfRunning("launch detected");
     }
     if (wasLaunched !== this.launched || wasLaunched) this.emit();
   }
@@ -310,7 +298,6 @@ export class GoNoGoHostService {
       launched: this.launched,
       reopened: this.reopened,
       abort: this.abort,
-      notice: this.notice,
       config: { ...this.config },
     };
   }
@@ -341,8 +328,7 @@ export class GoNoGoHostService {
    * attribution are untouched.
    */
   reset(): void {
-    this.notice = null;
-    this.cancelCountdownIfRunning("reset", { cause: "reset" });
+    this.cancelCountdownIfRunning("reset");
     this.peerIdToVote.clear();
     this.committed = false;
     this.reopened = this.launched;
@@ -388,16 +374,14 @@ export class GoNoGoHostService {
       this.onCountdownReached();
     }, this.config.countdownLengthMs);
     this.countdown = { t0Ms, timer };
-    this.notice = null;
     this.host.broadcast({ type: "gonogo-countdown-start", t0Ms });
   }
 
-  private cancelCountdownIfRunning(reason: string, hold: CountdownHold): void {
+  private cancelCountdownIfRunning(reason: string): void {
     if (!this.countdown) return;
     clearTimeout(this.countdown.timer);
     this.countdown = null;
-    this.notice = { kind: "held", ...hold };
-    this.host.broadcast({ type: "gonogo-countdown-cancel", reason, hold });
+    this.host.broadcast({ type: "gonogo-countdown-cancel", reason });
   }
 
   private onCountdownReached(): void {
@@ -414,11 +398,7 @@ export class GoNoGoHostService {
     // Internally gated by isSoundEnabled(); main-only since this service
     // is instantiated only on MainScreen.
     playCountdownTone(true);
-    if (this.config.onGo !== ON_GO_NONE) {
-      void this.fireOnGo(this.config.onGo);
-    } else {
-      this.announceOutcome(null, true);
-    }
+    if (this.config.onGo !== ON_GO_NONE) void this.fireOnGo(this.config.onGo);
     this.emit();
   }
 
@@ -431,18 +411,9 @@ export class GoNoGoHostService {
     const refusal = outcome.routed
       ? (await outcome.settled)?.message
       : outcome.refusal;
-    if (refusal !== undefined) {
-      logger.warn(`[GoNoGoHost] T-0 action not sent: ${refusal}`);
-      this.committed = false;
-    }
-    this.announceOutcome(this.config.onGoLabel, refusal === undefined);
-  }
-
-  /** Record what T-0 did and tell every station, so none is left reading a reset as the answer. */
-  private announceOutcome(action: string | null, sent: boolean): void {
-    this.notice = { kind: "outcome", action, sent };
-    this.host.broadcast({ type: "gonogo-outcome", action, sent });
-    this.emit();
+    if (refusal === undefined) return;
+    logger.warn(`[GoNoGoHost] T-0 action not sent: ${refusal}`);
+    this.committed = false;
   }
 
   private emit(): void {

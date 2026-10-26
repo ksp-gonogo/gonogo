@@ -63,56 +63,6 @@ export function isSequence(result: PlanResult): result is ManeuverSequence {
   return "burns" in result;
 }
 
-export interface SurfaceMeetingInputs {
-  preset: PresetId;
-  /** Gravitational parameter of the reference body. */
-  mu: number;
-  sma: number | undefined;
-  ecc: number | undefined;
-  /** Periapsis radius from the body's centre. */
-  PeR: number | undefined;
-  bodyRadius: number | undefined;
-  timeToAp: number | undefined;
-  timeToPe: number | undefined;
-}
-
-/**
- * Whether an orbit with its periapsis below the surface meets the surface
- * before the apsis a burn preset is placed at, so that burn point is never
- * reached. Only the four presets placed at an apsis can be affected: a burn at
- * a chosen instant is the operator's own to place.
- */
-export function meetsSurfaceBeforeBurn(i: SurfaceMeetingInputs): boolean {
-  const atApoapsis =
-    i.preset === "circularize-apo" || i.preset === "custom-apo";
-  const atPeriapsis =
-    i.preset === "circularize-peri" || i.preset === "custom-peri";
-  if (!atApoapsis && !atPeriapsis) return false;
-  const { sma, ecc, PeR, bodyRadius, timeToAp, timeToPe } = i;
-  if (
-    sma === undefined ||
-    ecc === undefined ||
-    PeR === undefined ||
-    bodyRadius === undefined ||
-    timeToAp === undefined ||
-    timeToPe === undefined ||
-    !(sma > 0) ||
-    !(ecc > 0 && ecc < 1) ||
-    !(i.mu > 0) ||
-    !(PeR < bodyRadius)
-  ) {
-    return false;
-  }
-  const eccentricAnomaly = Math.acos(
-    Math.max(-1, Math.min(1, (1 - bodyRadius / sma) / ecc)),
-  );
-  const meanAnomaly = eccentricAnomaly - ecc * Math.sin(eccentricAnomaly);
-  const secondsFromSurfaceToPeriapsis =
-    meanAnomaly / Math.sqrt(i.mu / sma ** 3);
-  const impactIn = timeToPe - secondsFromSurfaceToPeriapsis;
-  return (atApoapsis ? timeToAp : timeToPe) > impactIn;
-}
-
 /** A custom burn with no component entered is not a burn: there is nothing to send until one is. */
 function hasNoBurn(i: PlanInputs): boolean {
   return i.prograde === 0 && i.normal === 0 && i.radial === 0;
