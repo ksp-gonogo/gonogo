@@ -161,7 +161,7 @@ describe("ContractManager: partial payloads inside an arrived record", () => {
       "1 active · 0 offered · 0 recent",
     );
     expect(screen.queryByText("Offered")).toBeNull();
-    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Active" })).toBeInTheDocument();
   });
 
   it("renders the null token, not `no deadline`, when the contract's own deadline field is absent", async () => {

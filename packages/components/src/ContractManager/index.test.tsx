@@ -407,7 +407,7 @@ describe("recently failed contracts", () => {
         screen.getByText(/1 active · 0 offered · 0 recent/i),
       ).toBeInTheDocument(),
     );
-    expect(screen.queryByText(/failed/i)).toBeNull();
+    expect(screen.queryByText(/\d+ failed/i)).toBeNull();
   });
 });
 
@@ -532,5 +532,70 @@ describe("formatDeadline", () => {
 
   it("formats minutes when less than an hour remains", () => {
     expect(formatDeadline(45 * 60, 0)).toBe("45min left");
+  });
+});
+
+describe("finished contracts", () => {
+  it("leaves the Completed and Failed tabs unselectable while nothing has finished", async () => {
+    const fixture = newFixture();
+    renderContract(fixture);
+    act(() => {
+      emitContracts(fixture, {
+        active: [{ id: 1, title: "A", parameters: [] }],
+        offered: [],
+        completedRecent: [],
+        failedRecent: [],
+      });
+    });
+    await waitFor(() => expect(screen.getByText("A")).toBeInTheDocument());
+    expect(screen.getByRole("tab", { name: "Active" })).toBeEnabled();
+    expect(screen.getByRole("tab", { name: "Completed" })).toBeDisabled();
+    expect(screen.getByRole("tab", { name: "Failed" })).toBeDisabled();
+  });
+
+  it("lists each completed contract with what it paid and each failed one with what it cost", async () => {
+    const fixture = newFixture();
+    renderContract(fixture);
+    act(() => {
+      emitContracts(fixture, {
+        active: [{ id: 1, title: "A", parameters: [] }],
+        offered: [],
+        completedRecent: [
+          {
+            id: 90,
+            title: "Launch a new vessel",
+            agent: "Kerbin Space Program",
+            fundsCompletion: 3000,
+            reputationCompletion: 1,
+            parameters: [],
+          },
+        ],
+        failedRecent: [
+          {
+            id: 51,
+            title: "Test the RT-5 Flea",
+            agent: "Rockomax Conglomerate",
+            fundsFailure: 2000,
+            reputationFailure: 2,
+            parameters: [],
+          },
+        ],
+      });
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("tab", { name: "Completed" }),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("Launch a new vessel")).toBeNull();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Completed" }));
+    expect(screen.getByText("Launch a new vessel")).toBeInTheDocument();
+    expect(visibleText()).toMatch(/3,000/);
+    await user.click(screen.getByRole("tab", { name: "Failed" }));
+    expect(screen.getByText("Test the RT-5 Flea")).toBeInTheDocument();
+    expect(visibleText()).toMatch(/−2,000/);
+    expect(visibleText()).toMatch(/−2\.0/);
+    expect(visibleText()).toMatch(/Rockomax Conglomerate/);
   });
 });

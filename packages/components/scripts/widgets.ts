@@ -630,6 +630,39 @@ const WIDGETS: WidgetRenderConfig[] = [
         scroll: 800,
         forFixtures: ["multiple-active-contracts"],
       },
+      // The Completed and Failed tabs, opened.
+      {
+        name: "completed-tab-default-6x8",
+        w: 6,
+        h: 8,
+        forFixtures: ["finished-contracts"],
+        clicks: [
+          { selector: '[role="tab"][id$="completed-tab"]', awaitMs: 100 },
+        ],
+      },
+      {
+        name: "completed-tab-compact-4x5",
+        w: 4,
+        h: 5,
+        forFixtures: ["finished-contracts"],
+        clicks: [
+          { selector: '[role="tab"][id$="completed-tab"]', awaitMs: 100 },
+        ],
+      },
+      {
+        name: "failed-tab-default-6x8",
+        w: 6,
+        h: 8,
+        forFixtures: ["finished-contracts"],
+        clicks: [{ selector: '[role="tab"][id$="failed-tab"]', awaitMs: 100 }],
+      },
+      {
+        name: "failed-tab-compact-4x5",
+        w: 4,
+        h: 5,
+        forFixtures: ["finished-contracts"],
+        clicks: [{ selector: '[role="tab"][id$="failed-tab"]', awaitMs: 100 }],
+      },
     ],
   },
   {

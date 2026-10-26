@@ -176,3 +176,32 @@ export function ContractCancelCost({
     </div>
   );
 }
+
+/** What a failed contract cost the career, as the funds and reputation it took; a figure the wire did not carry is left off. */
+export function ContractFailureCost({
+  contract: c,
+}: Readonly<{ contract: ContractEntry }>) {
+  const funds = c.fundsFailure !== null && c.fundsFailure > 0;
+  const rep = c.repFailure !== null && c.repFailure > 0;
+  if (!funds && !rep) return null;
+  return (
+    <div style={REWARDS_STYLE}>
+      {funds && c.fundsFailure !== null && (
+        <div style={REWARD_STYLE}>
+          <span style={REWARD_LABEL_STYLE}>FUNDS</span>
+          <span style={PENALTY_VALUE_STYLE}>
+            −<Unit value={value("funds", c.fundsFailure)} />
+          </span>
+        </div>
+      )}
+      {rep && c.repFailure !== null && (
+        <div style={REWARD_STYLE}>
+          <span style={REWARD_LABEL_STYLE}>REP</span>
+          <span style={PENALTY_VALUE_STYLE}>
+            −<Unit value={value("rep", c.repFailure)} />
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}

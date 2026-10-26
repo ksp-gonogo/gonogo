@@ -1,0 +1,135 @@
+{
+  "_meta": {
+    "shows": "No active or offered contracts, with one contract recently completed and two recently failed, each listed.",
+    "scenario": "finished-contracts",
+    "notes": "The board after a flight: the completed contract with what it paid and each failed contract with what it cost."
+  },
+  "contracts.active": [],
+  "contracts.offered": [],
+  "contracts.completedRecent": [
+    {
+      "id": "90",
+      "title": "Launch a new vessel",
+      "agency": "Kerbin Space Program",
+      "state": "Completed",
+      "fundsAdvance": 0,
+      "fundsCompletion": 3000,
+      "scienceCompletion": 0,
+      "repCompletion": 1,
+      "deadlineUt": 0,
+      "parameters": []
+    }
+  ],
+  "t.universalTime": 125340,
+  "_stream": {
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "balances": null,
+          "contracts": {
+            "active": [],
+            "offered": [],
+            "completedRecent": [
+              {
+                "id": "90",
+                "title": "Launch a new vessel",
+                "state": "Completed",
+                "fundsAdvance": 0,
+                "fundsCompletion": 3000,
+                "scienceCompletion": 0,
+                "parameters": [],
+                "agent": "Kerbin Space Program",
+                "reputationCompletion": 1,
+                "dateDeadline": 0
+              }
+            ],
+            "failedRecent": [
+              {
+                "id": "51",
+                "title": "Test the RT-5 Flea in flight over Kerbin",
+                "state": "Failed",
+                "fundsAdvance": 800,
+                "fundsCompletion": 6000,
+                "scienceCompletion": 0,
+                "parameters": [
+                  {
+                    "title": "Test the RT-5 Flea in flight over Kerbin",
+                    "state": "Failed",
+                    "stateOrdinal": 2
+                  }
+                ],
+                "agent": "Rockomax Conglomerate",
+                "reputationCompletion": 1,
+                "fundsFailure": 2000,
+                "reputationFailure": 2.0
+              },
+              {
+                "id": "58",
+                "title": "Rescue Jebediah from Kerbin orbit",
+                "state": "Failed",
+                "fundsAdvance": 3000,
+                "fundsCompletion": 18000,
+                "scienceCompletion": 0,
+                "parameters": [
+                  {
+                    "title": "Recover Jebediah Kerman on Kerbin",
+                    "state": "Failed",
+                    "stateOrdinal": 2
+                  }
+                ],
+                "agent": "Kerbin Space Program",
+                "reputationCompletion": 4,
+                "fundsFailure": 9000,
+                "reputationFailure": 6.0
+              }
+            ]
+          },
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ],
+    "pinnedUt": 125340
+  },
+  "contracts.failedRecent": [
+    {
+      "id": "51",
+      "title": "Test the RT-5 Flea in flight over Kerbin",
+      "state": "Failed",
+      "fundsAdvance": 800,
+      "fundsCompletion": 6000,
+      "scienceCompletion": 0,
+      "parameters": [
+        {
+          "title": "Test the RT-5 Flea in flight over Kerbin",
+          "state": "Failed",
+          "stateOrdinal": 2
+        }
+      ],
+      "agent": "Rockomax Conglomerate",
+      "reputationCompletion": 1,
+      "fundsFailure": 2000,
+      "reputationFailure": 2.0
+    },
+    {
+      "id": "58",
+      "title": "Rescue Jebediah from Kerbin orbit",
+      "state": "Failed",
+      "fundsAdvance": 3000,
+      "fundsCompletion": 18000,
+      "scienceCompletion": 0,
+      "parameters": [
+        {
+          "title": "Recover Jebediah Kerman on Kerbin",
+          "state": "Failed",
+          "stateOrdinal": 2
+        }
+      ],
+      "agent": "Kerbin Space Program",
+      "reputationCompletion": 4,
+      "fundsFailure": 9000,
+      "reputationFailure": 6.0
+    }
+  ]
+}

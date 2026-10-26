@@ -10,6 +10,7 @@ import {
   getWidgetShape,
   Panel,
   Section,
+  Tabs,
 } from "@ksp-gonogo/ui-kit";
 import { heldGrade } from "../shared/heldGrade";
 import { noCareerLabel } from "../shared/noCareerLabel";
@@ -17,6 +18,7 @@ import { ContractBriefing, ContractDifficulty } from "./ContractBriefing";
 import {
   ContractCancelCost,
   ContractDeadline,
+  ContractFailureCost,
   ContractRewards,
 } from "./ContractCardParts";
 import { ContractTerms } from "./ContractTerms";
@@ -100,6 +102,119 @@ export function ContractManagerComponent({
   const recentCount = recent?.length ?? 0;
   const failedCount = failed?.length ?? 0;
 
+  const board = (
+    <>
+      {activeCount === 0 && offeredCount === 0 && (
+        <EmptyState>No active contracts</EmptyState>
+      )}
+      <div style={cardListStyle(multiColumn)}>
+        {active.map((c) => (
+          <Card
+            key={c.id}
+            title={c.title}
+            titleRight={
+              <ContractDeadline
+                contract={c}
+                offered={false}
+                universalTime={universalTime}
+                boardHeld={boardHeld}
+              />
+            }
+          >
+            <div style={AGENCY_ROW_STYLE}>
+              {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
+            </div>
+            <ContractDifficulty contract={c} />
+            <ContractBriefing contract={c} />
+            <ContractRewards contract={c} boardHeld={boardHeld} />
+            <ContractTerms contract={c} />
+            <div style={ACTIVE_ACTIONS_STYLE}>
+              <ContractCancelCost contract={c} boardHeld={boardHeld} />
+              <CommandButton
+                handle={cancelCmd}
+                args={{ contractId: c.id }}
+                commandLabel={`Cancel ${c.title}`}
+                size="sm"
+                label="Cancel"
+                /* Cancel forfeits work in progress and spent funds, so its confirm is stronger than Decline's. */
+                confirmLabel="Forfeit contract"
+                confirmTone="nogo"
+                pendingLabel="Cancelling..."
+                title="Cancel this contract: forfeits all progress"
+              />
+            </div>
+          </Card>
+        ))}
+      </div>
+      {offeredCount > 0 && <div style={SECTION_LABEL_STYLE}>Offered</div>}
+      <div style={cardListStyle(multiColumn)}>
+        {offered?.map((c) => (
+          <Card
+            key={c.id}
+            title={c.title}
+            titleRight={
+              <ContractDeadline
+                contract={c}
+                offered
+                universalTime={universalTime}
+                boardHeld={boardHeld}
+              />
+            }
+          >
+            <div style={AGENCY_ROW_STYLE}>
+              {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
+            </div>
+            <ContractDifficulty contract={c} />
+            <ContractBriefing contract={c} />
+            <ContractRewards contract={c} boardHeld={boardHeld} />
+            <ContractTerms contract={c} />
+            <ButtonGroup style={OFFERED_ACTIONS_STYLE}>
+              <CommandButton
+                handle={acceptCmd}
+                args={{ contractId: c.id }}
+                commandLabel={`Accept ${c.title}`}
+                size="sm"
+                tone="go"
+                label="Accept"
+                pendingLabel="Accepting..."
+              />
+              <CommandButton
+                handle={declineCmd}
+                args={{ contractId: c.id }}
+                commandLabel={`Decline ${c.title}`}
+                size="sm"
+                label="Decline"
+                confirmLabel="Confirm decline"
+                confirmTone="nogo"
+                pendingLabel="Declining..."
+              />
+            </ButtonGroup>
+          </Card>
+        ))}
+      </div>
+    </>
+  );
+  const completed = (
+    <div style={cardListStyle(multiColumn)}>
+      {recent?.map((c) => (
+        <Card key={c.id} title={c.title}>
+          {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
+          <ContractRewards contract={c} boardHeld={boardHeld} />
+        </Card>
+      ))}
+    </div>
+  );
+  const failedList = (
+    <div style={cardListStyle(multiColumn)}>
+      {failed?.map((c) => (
+        <Card key={c.id} title={c.title}>
+          {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
+          <ContractFailureCost contract={c} />
+        </Card>
+      ))}
+    </div>
+  );
+
   return (
     <Panel
       panelTitle="CONTRACT MANAGER"
@@ -113,95 +228,24 @@ export function ContractManagerComponent({
               {failedCount > 0 && ` · ${failedCount} failed`}
             </div>
           )}
-          {activeCount === 0 && offeredCount === 0 && (
-            <EmptyState>No active contracts</EmptyState>
-          )}
-          {activeCount > 0 && <div style={SECTION_LABEL_STYLE}>Active</div>}
-          <div style={cardListStyle(multiColumn)}>
-            {active.map((c) => (
-              <Card
-                key={c.id}
-                title={c.title}
-                titleRight={
-                  <ContractDeadline
-                    contract={c}
-                    offered={false}
-                    universalTime={universalTime}
-                    boardHeld={boardHeld}
-                  />
-                }
-              >
-                <div style={AGENCY_ROW_STYLE}>
-                  {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
-                </div>
-                <ContractDifficulty contract={c} />
-                <ContractBriefing contract={c} />
-                <ContractRewards contract={c} boardHeld={boardHeld} />
-                <ContractTerms contract={c} />
-                <div style={ACTIVE_ACTIONS_STYLE}>
-                  <ContractCancelCost contract={c} boardHeld={boardHeld} />
-                  <CommandButton
-                    handle={cancelCmd}
-                    args={{ contractId: c.id }}
-                    commandLabel={`Cancel ${c.title}`}
-                    size="sm"
-                    label="Cancel"
-                    /* Cancel forfeits work in progress and spent funds, so its confirm is stronger than Decline's. */
-                    confirmLabel="Forfeit contract"
-                    confirmTone="nogo"
-                    pendingLabel="Cancelling..."
-                    title="Cancel this contract: forfeits all progress"
-                  />
-                </div>
-              </Card>
-            ))}
-          </div>
-          {offeredCount > 0 && <div style={SECTION_LABEL_STYLE}>Offered</div>}
-          <div style={cardListStyle(multiColumn)}>
-            {offered?.map((c) => (
-              <Card
-                key={c.id}
-                title={c.title}
-                titleRight={
-                  <ContractDeadline
-                    contract={c}
-                    offered
-                    universalTime={universalTime}
-                    boardHeld={boardHeld}
-                  />
-                }
-              >
-                <div style={AGENCY_ROW_STYLE}>
-                  {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
-                </div>
-                <ContractDifficulty contract={c} />
-                <ContractBriefing contract={c} />
-                <ContractRewards contract={c} boardHeld={boardHeld} />
-                <ContractTerms contract={c} />
-                <ButtonGroup style={OFFERED_ACTIONS_STYLE}>
-                  <CommandButton
-                    handle={acceptCmd}
-                    args={{ contractId: c.id }}
-                    commandLabel={`Accept ${c.title}`}
-                    size="sm"
-                    tone="go"
-                    label="Accept"
-                    pendingLabel="Accepting..."
-                  />
-                  <CommandButton
-                    handle={declineCmd}
-                    args={{ contractId: c.id }}
-                    commandLabel={`Decline ${c.title}`}
-                    size="sm"
-                    label="Decline"
-                    confirmLabel="Confirm decline"
-                    confirmTone="nogo"
-                    pendingLabel="Declining..."
-                  />
-                </ButtonGroup>
-              </Card>
-            ))}
-          </div>
+          <Tabs
+            aria-label="Contract Manager views"
+            tabs={[
+              { id: "active", label: "Active", content: board },
+              {
+                id: "completed",
+                label: "Completed",
+                content: completed,
+                disabled: recentCount === 0,
+              },
+              {
+                id: "failed",
+                label: "Failed",
+                content: failedList,
+                disabled: failedCount === 0,
+              },
+            ]}
+          />
         </Section>
       }
     />
