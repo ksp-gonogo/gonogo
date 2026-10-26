@@ -39,7 +39,7 @@ function scene(orbit: Record<string, unknown>, quality = Quality.OnRails) {
       vesselId: "co-ms-vessel",
       name: "Test Vessel",
       vesselType: 0,
-      situation: 0,
+      situation: 3,
       parentBodyIndex: 1,
     });
     fixture.emit(

@@ -21,6 +21,7 @@ const HIGH_CIRCULAR = 6371000 + 400000;
 function scene(
   orbit: Record<string, unknown>,
   quality: Quality = Quality.OnRails,
+  situation = 3,
 ) {
   const fixture = setupStreamFixture({
     pinnedUt: 10,
@@ -39,7 +40,7 @@ function scene(
       vesselId: "ov-nos-vessel",
       name: "Test Vessel",
       vesselType: 0,
-      situation: 0,
+      situation,
       parentBodyIndex: 1,
     });
     fixture.emit(
@@ -96,5 +97,23 @@ describe("OrbitView's empty sentence follows the reason the conic withdrew", () 
     expect(document.querySelector("svg")).toBeNull();
     // The figures come from the other elements, so they stand and nothing claims the orbit is missing.
     expect(screen.queryByText("No orbital data")).toBeNull();
+  });
+
+  it.each([
+    [0, "Landed"],
+    [1, "Splashed"],
+    [2, "On the pad"],
+  ])("names a craft at rest in the status pill instead of drawing its frozen orbit (situation %i)", (situation, sentence) => {
+    scene({ ecc: 0.2 }, Quality.OnRails, situation);
+
+    expect(screen.getByText(sentence)).toBeInTheDocument();
+    expect(screen.queryByText(/Sub-orbital|SUB-O/)).toBeNull();
+    expect(screen.queryByText("Pe")).toBeNull();
+  });
+
+  it("keeps the periapsis row for the same orbit on a craft in flight", () => {
+    scene({ ecc: 0.2 }, Quality.OnRails, 5);
+
+    expect(screen.getByText("Pe")).toBeInTheDocument();
   });
 });

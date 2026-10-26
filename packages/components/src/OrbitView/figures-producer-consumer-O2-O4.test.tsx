@@ -48,7 +48,7 @@ describe("Orbit View figures: a hyperbolic orbit still counts as hasOrbit", () =
         vesselId: "v1",
         name: "Escape Pod",
         vesselType: 0,
-        situation: 1,
+        situation: 3,
         parentBodyIndex: 1,
         launchUt: 0,
       });
@@ -109,7 +109,7 @@ describe("Orbit View figures: a craft under physics keeps every figure", () => {
         vesselId: "v1",
         name: "Loaded Ship",
         vesselType: 0,
-        situation: 1,
+        situation: 3,
         parentBodyIndex: 1,
         launchUt: 0,
       });
