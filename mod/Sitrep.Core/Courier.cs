@@ -1680,18 +1680,6 @@ namespace Sitrep.Core
         }
 
         /// <summary>
-        /// Drops what <paramref name="topic"/> on <paramref name="node"/> holds that no reader
-        /// at or after <paramref name="cutoffUt"/> can reach, for a topic nobody reads.
-        /// </summary>
-        public void TrimTopic(string node, string topic, double cutoffUt)
-        {
-            if (_archives.TryGetValue(node, out var archive))
-            {
-                archive.TrimTopic(topic, cutoffUt);
-            }
-        }
-
-        /// <summary>
         /// Lets go of what is recorded for <paramref name="topic"/> on
         /// <paramref name="node"/>, including the keyframe a late subscriber is
         /// seeded from, so the next subscriber is handed nothing until the topic

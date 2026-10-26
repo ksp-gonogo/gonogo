@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Sitrep.Contract;
-using Sitrep.Contract.Serialization;
 using Xunit;
 
 using static Sitrep.Host.IntegrationTests.WsTestHarness;
@@ -161,51 +160,6 @@ namespace Sitrep.Host.IntegrationTests
                     Assert.NotNull(last);
                     Assert.Equal("Paused", last!.Payload?.ToString());
                     Assert.Equal(pausedUt, last.Meta.ValidAt);
-                }
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        [Theory]
-        [InlineData(0.001)]
-        [InlineData(2.0)]
-        public async Task AClientJoiningWhilePausedIsGivenTheNewestCraftStateThatHasArrivedAcrossTheDelay(double delaySeconds)
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: delaySeconds);
-            engine.RegisterUplink(new StoppedClockTestUplink());
-            engine.Start();
-            try
-            {
-                var game = new PhysicsLoop(engine);
-                game.Run(12.0, realSec => SpaceCenterUt + realSec, "Burning");
-                var pausedUt = SpaceCenterUt + 12.0;
-                game.RunPausedFrames(0.5, pausedUt, "Paused");
-
-                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                foreach (var topic in StoppedClockTestUplink.Topics)
-                {
-                    await client.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = topic }));
-                }
-                game.RunPausedFrames(0.2, pausedUt, "Paused");
-                var frames = await DrainAllStreamDataAsync(client, TestBudgets.Quiet);
-
-                var held = frames.Where(f => f.Topic == StoppedClockTestUplink.HeldAtHomeTopic).LastOrDefault();
-                Assert.NotNull(held);
-                Assert.True(held!.Meta.ValidAt <= pausedUt);
-
-                foreach (var topic in new[] { StoppedClockTestUplink.DelayedTopic })
-                {
-                    var frame = frames.Where(f => f.Topic == topic).LastOrDefault();
-                    Assert.NotNull(frame);
-                    Assert.True(
-                        frame!.Meta.ValidAt <= pausedUt - delaySeconds,
-                        topic + " was given a sample from UT " + frame.Meta.ValidAt + ", which has not arrived at UT " + pausedUt + " across " + delaySeconds + " s");
-                    Assert.True(
-                        frame.Meta.ValidAt >= pausedUt - delaySeconds - ChannelEngine.WarmIntervalUt - 0.1,
-                        topic + " was given a sample from UT " + frame.Meta.ValidAt + ", older than the newest that had arrived");
                 }
             }
             finally

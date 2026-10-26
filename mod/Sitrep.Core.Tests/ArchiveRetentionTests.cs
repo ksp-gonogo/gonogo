@@ -24,24 +24,6 @@ namespace Sitrep.Core.Tests
     public class ArchiveRetentionTests
     {
         [Fact]
-        public void TrimTopicBoundsATopicNoVantageHasReadAndKeepsTheNewestSampleAtTheCutoff()
-        {
-            var archive = new Archive();
-            foreach (var ut in new[] { 100.0, 105.0, 110.0, 115.0, 120.0 })
-            {
-                archive.Record("vessel.flight", ut, ut);
-            }
-
-            archive.PruneToVantageCursors();
-            Assert.Equal(5, archive.Samples("vessel.flight").Count);
-
-            archive.TrimTopic("vessel.flight", 112);
-
-            var kept = archive.Samples("vessel.flight");
-            Assert.Equal(new[] { 100.0, 110.0, 115.0, 120.0 }, new[] { kept[0].ValidAt, kept[1].ValidAt, kept[2].ValidAt, kept[3].ValidAt });
-        }
-
-        [Fact]
         public void KeepsTheSampleThatIsStillCurrentEvenThoughItIsOld()
         {
             // THE case, and the one a naive prune gets wrong. A slow-changing topic

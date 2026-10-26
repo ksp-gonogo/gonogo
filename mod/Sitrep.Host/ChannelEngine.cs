@@ -1235,44 +1235,6 @@ namespace Sitrep.Host
 
         private PerfBudget? _binaryFrameBudget;
 
-        /// <summary>
-        /// UT between two builds of a Delayed topic nobody is subscribed to. What a
-        /// client joining later is handed is the newest sample that has arrived, so
-        /// this bounds how old that can be beyond the delay itself.
-        /// </summary>
-        internal const double WarmIntervalUt = 5.0;
-
-        /// <summary>Warm builds per UT second above which <see cref="_warmSampleBudget"/> warns: every Delayed topic of a large install, well within one tick's worth.</summary>
-        internal const double WarmSampleBudget = 400;
-
-        private PerfBudget? _warmSampleBudget;
-
-        /// <summary>Courier-thread-only: the UT each unsubscribed Delayed topic was last built at.</summary>
-        private readonly Dictionary<string, double> _lastWarmUt = new Dictionary<string, double>(StringComparer.Ordinal);
-
-        /// <summary>
-        /// Courier-thread-only: whether a topic nobody reads is built this tick so its
-        /// newest arrived sample is current when someone does. Only Delayed topics
-        /// qualify, since a topic that reaches the centre at once is built for its
-        /// first subscriber the moment it subscribes. A UT that has not advanced
-        /// past the last build, a stopped clock or a rewind, is due.
-        /// </summary>
-        private bool WarmSampleDue(string topic, double ut)
-        {
-            if (!_channelDeclarations.TryGetValue(topic, out var declaration) || declaration.Delay != DelayRole.Delayed)
-            {
-                return false;
-            }
-            if (_lastWarmUt.TryGetValue(topic, out var last) && ut > last && ut - last < WarmIntervalUt)
-            {
-                return false;
-            }
-            _lastWarmUt[topic] = ut;
-            _warmSampleBudget?.Record(1, ut);
-            _emitter.NotifySubscribed(topic);
-            return true;
-        }
-
         // Ground-side pending-uplink roster backing system.uplink.pending (see
         // UplinkPendingTopic's doc comment). Courier-thread-only, same
         // discipline as _signalDelaySeconds above: EVERY mutation/read happens
@@ -1975,13 +1937,6 @@ namespace Sitrep.Host
                 threshold: BinaryFrameBudget,
                 windowSec: 1.0,
                 unit: "frames",
-                warn: LogHost);
-
-            _warmSampleBudget = new PerfBudget(
-                "ChannelEngine unsubscribed-topic warm builds/sec",
-                threshold: WarmSampleBudget,
-                windowSec: 1.0,
-                unit: "builds",
                 warn: LogHost);
         }
 
@@ -9595,7 +9550,6 @@ namespace Sitrep.Host
                 }
                 _emitter.Reset(tick.Ut);
                 Cadence.ResetTimeline();
-                _lastWarmUt.Clear();
                 // Drop every un-revealed buffered sample: they belong to the
                 // abandoned pre-rewind timeline and must never surface on the
                 // new one (the reveal-gate analogue of ResetTimeline dropping
@@ -9819,8 +9773,7 @@ namespace Sitrep.Host
                 }
 
                 var map = channelSource.Value;
-                var warm = !_subscriptions.IsSubscribed(topic);
-                if (warm ? !WarmSampleDue(topic, tick.Ut) : !Cadence.IsDue(topic, tick.Ut))
+                if (!_subscriptions.IsSubscribed(topic) || !Cadence.IsDue(topic, tick.Ut))
                 {
                     continue;
                 }
@@ -9927,11 +9880,6 @@ namespace Sitrep.Host
                 {
                     PublishStats.RecordEmit(topic);
                     Emit(topic, decision.Value, tick.Ut);
-                }
-                if (warm)
-                {
-                    var retain = Longest(_network.StampFor(NodeFor(topic))) + 2 * WarmIntervalUt;
-                    _courier.TrimTopic(NodeFor(topic), topic, tick.Ut - retain);
                 }
             }
 
