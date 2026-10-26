@@ -103,8 +103,8 @@ function kspSettings(state: number, reason: string | null = null) {
         kind: NUMBER,
         label: "Light speed",
         description:
-          "How fast signals travel, as a fraction of the speed of light. 1 is real light speed and 0.5 doubles every delay",
-        value: "0.1",
+          "How fast signals travel, as a fraction of the speed of light. 1 is real light speed and 0.5 doubles every delay. Any value from 0.00000001 to 100",
+        value: "0.00000001",
         default: "1",
       },
       {

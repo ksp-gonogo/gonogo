@@ -16,11 +16,17 @@ namespace Gonogo.KSP
         [GameParameters.CustomFloatParameterUI("Light speed",
             minValue = (float)SignalDelayChoice.MinLightSpeedScale,
             maxValue = (float)SignalDelayChoice.MaxLightSpeedScale,
-            logBase = 10f,
-            stepCount = 100,
-            displayFormat = "F2",
+            addTextField = true,
+            displayFormat = "0.############",
             toolTip = "How fast signals travel, as a fraction of the speed of light. "
-                + "1 is real light speed and 0.5 doubles every delay")]
+                + "1 is real light speed and 0.5 doubles every delay. Any value from 0.00000001 to 100")]
+        /*
+         * Typed, not dragged: the slider KSP draws beside the field is linear, so it
+         * cannot reach the small end. A log scale is not an option because KSP reads
+         * the typed text as the exponent when logBase is set. The format has to keep
+         * a value like 0.00000001 intact, since KSP rounds every committed value
+         * through it (F2 would store 0).
+         */
         public float lightSpeedScale = 1f;
 
         public override string Title => "Signal delay";

@@ -14,6 +14,22 @@ namespace Sitrep.Host.Tests.Settings
     /// </summary>
     public class ModSettingsTests
     {
+        [Theory]
+        [InlineData(1e-8, "0.00000001")]
+        [InlineData(0.5, "0.5")]
+        [InlineData(100.0, "100")]
+        [InlineData(1.5e-7, "0.00000015")]
+        [InlineData(-2.5e-9, "-0.0000000025")]
+        [InlineData(1.25e22, "12500000000000000000000")]
+        [InlineData(0.0, "0")]
+        public void ANumberIsSpelledWithoutAnExponent(double value, string expected)
+        {
+            var spelled = ModSettingValue.Of(value).Spelled();
+
+            Assert.Equal(expected, spelled);
+            Assert.Equal(value, double.Parse(spelled!, System.Globalization.CultureInfo.InvariantCulture));
+        }
+
         /// <summary>A mod whose settings are fields the test sets, as a real Uplink's reflection hop would read them.</summary>
         private class ModUplink : ISitrepUplink, IModSettingsSource
         {
