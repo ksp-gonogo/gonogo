@@ -1,9 +1,9 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 49.6.0
+  version: 49.5.0
   description: |-
-    The WebSocket API of the Gonogo mod: 90 telemetry channels a client
+    The WebSocket API of the Gonogo mod: 89 telemetry channels a client
     subscribes to and 71 commands it sends, each with its payload and what it
     means, all over one socket.
 
@@ -399,31 +399,6 @@ channels:
         $ref: "#/components/messages/commandResponse.career.contract.decline"
       commandAccepted:
         $ref: "#/components/messages/commandAccepted"
-  career.contractEvent:
-    address: career.contractEvent
-    title: Contract finished
-    description: |-
-      One contract that has just finished: completed or failed. Each finish is its
-      own event, separate from what the contract board holds in
-      `CareerContracts.completedRecent`. Useful for announcing a finish the moment
-      it reaches the operator. The event is stamped with the game time the
-      contract finished, and reaches an observer later, at the time that observer
-      would learn of it.
-
-      The event arrives after the active vessel's comms delay, because a contract
-      has no single source vessel to hold it to. It never arrives before that
-      delay.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delivery: reliable-ordered
-    x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: event
-    x-sitrep-keyframe-interval-ut: 3600
-    messages:
-      streamData:
-        $ref: "#/components/messages/streamData.career.contractEvent"
-      event:
-        $ref: "#/components/messages/event"
   career.crew.fire:
     address: career.crew.fire
     description: |-
@@ -4962,17 +4937,6 @@ operations:
     messages:
       - $ref: "#/channels/alarm.scet.topics/messages/streamData"
       - $ref: "#/channels/alarm.scet.topics/messages/event"
-  read:career.contractEvent:
-    action: receive
-    channel:
-      $ref: "#/channels/career.contractEvent"
-    title: Read career.contractEvent
-    description: Delivered only after `subscribe` names `career.contractEvent` on the session channel, which the mod answers here with an `event` named `subscribed`.
-    tags:
-      - name: career
-    messages:
-      - $ref: "#/channels/career.contractEvent/messages/streamData"
-      - $ref: "#/channels/career.contractEvent/messages/event"
   read:career.facilities:
     action: receive
     channel:
@@ -8150,19 +8114,6 @@ components:
                 type: array
                 items:
                   $ref: "#/components/schemas/ScetAddressableTopic"
-    streamData.career.contractEvent:
-      name: stream-data
-      title: A frame on career.contractEvent
-      contentType: application/json
-      payload:
-        description: The `stream-data` envelope carrying `career.contractEvent`.
-        allOf:
-          - $ref: "#/components/schemas/StreamData"
-          - properties:
-              topic:
-                const: career.contractEvent
-              payload:
-                $ref: "#/components/schemas/CareerContractEvent"
     streamData.career.facilities:
       name: stream-data
       title: A frame on career.facilities
@@ -10203,48 +10154,6 @@ components:
             The contract's top-level objectives, in KSP's order, each carrying its own
             nested objectives in `CareerContractParameter.children`. Always present,
             empty when the contract has none.
-    CareerContractEvent:
-      type: object
-      description: |-
-        One contract that has just finished: completed or failed. Each finish is its
-        own event, separate from what the contract board holds in
-        `CareerContracts.completedRecent`. Useful for announcing a finish the moment
-        it reaches the operator. The event is stamped with the game time the
-        contract finished, and reaches an observer later, at the time that observer
-        would learn of it.
-
-        The event arrives after the active vessel's comms delay, because a contract
-        has no single source vessel to hold it to. It never arrives before that
-        delay.
-      properties:
-        id:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            The contract's id, `Contract.ContractID` as a decimal string, the same id
-            `CareerContract.id` carries.
-        title:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: The contract's display title.
-        agent:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: |-
-            The name of the agency that offered the contract. `null` when it has no
-            agent.
-        outcome:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: "How it finished: `\"Completed\"` or `\"Failed\"`."
     CareerContractParameter:
       type: object
       description: One parameter (objective) of a `CareerContract`.

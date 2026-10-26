@@ -194,12 +194,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     synopsis: "text",
     title: "text",
   },
-  "CareerContractEvent": {
-    agent: "text",
-    id: "id",
-    outcome: "text",
-    title: "text",
-  },
   "CareerContractParameter": {
     maxAltitude: "m",
     milestone: "text",
@@ -1839,12 +1833,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "alarm.scet.topics": {
     topic: "id",
-  },
-  "career.contractEvent": {
-    agent: "text",
-    id: "id",
-    outcome: "text",
-    title: "text",
   },
   "career.mode": {
     mode: "enum",
@@ -3807,7 +3795,6 @@ export const GENERATED_CONTRACT_TAGS = {
     "alarm.game.list": "Game alarms",
     "alarm.scet.fired": "Fired alarm",
     "alarm.scet.topics": "Alarm topics",
-    "career.contractEvent": "Contract finished",
     "career.mode": "Career mode",
     "commandCentre.roster": "Command centres",
     "commandCentre.unreachable": "Unreachable command centres",

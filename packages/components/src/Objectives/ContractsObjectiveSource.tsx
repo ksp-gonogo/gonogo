@@ -1,14 +1,7 @@
 import { defineTopicManifest } from "@ksp-gonogo/core";
-import { useStreamEvent } from "@ksp-gonogo/sitrep-client";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { BellIcon, IconButton, Tooltip } from "@ksp-gonogo/ui-kit";
-import {
-  type CSSProperties,
-  type ReactNode,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   type ContractEntry,
   type ContractParameter,
@@ -23,66 +16,9 @@ import type {
 } from "./types";
 
 export const contractsTopics = defineTopicManifest({
-  channels: ["career.status", "career.contractEvent", "spaceCenter.scene"],
-  fields: [
-    "career.status.contracts.active",
-    "career.contractEvent.id",
-    "career.contractEvent.title",
-    "career.contractEvent.agent",
-    "career.contractEvent.outcome",
-    "spaceCenter.scene.scene",
-  ],
+  channels: ["career.status"],
+  fields: ["career.status.contracts.active"],
 });
-
-/** A contract heard completing, as the objectives list draws it. */
-interface FinishedContract {
-  id: string;
-  title: string;
-  agency: string;
-}
-
-/** The completion a `career.contractEvent` payload names, or null for a failure or a payload with no id. */
-function completionOf(payload: unknown): FinishedContract | null {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return null;
-  }
-  const e = payload as Record<string, unknown>;
-  if (e.outcome !== "Completed" || typeof e.id !== "string") return null;
-  return {
-    id: e.id,
-    title: typeof e.title === "string" ? e.title : "(unnamed contract)",
-    agency: typeof e.agent === "string" ? e.agent : "",
-  };
-}
-
-/**
- * The contracts heard completing since the scene last changed. Held in memory
- * only, so a refresh or a scene change empties it; the events replayed on
- * subscribe are not counted.
- */
-function useFinishedContracts(): FinishedContract[] {
-  const [finished, setFinished] = useState<FinishedContract[]>([]);
-  useStreamEvent<unknown>("career.contractEvent", (payload) => {
-    const done = completionOf(payload);
-    if (done === null) return;
-    setFinished((held) =>
-      held.some((c) => c.id === done.id) ? held : [...held, done],
-    );
-  });
-  const scene = stillTrue(
-    contractsTopics.useTelemetry("spaceCenter.scene"),
-    undefined,
-  )?.scene;
-  const lastScene = useRef(scene);
-  useEffect(() => {
-    if (scene == null) return;
-    if (lastScene.current != null && scene !== lastScene.current) {
-      setFinished([]);
-    }
-    lastScene.current = scene;
-  }, [scene]);
-  return finished;
-}
 
 /**
  * Trigger shape for the parameter bells. Mirrors the app's
@@ -150,18 +86,7 @@ export function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
   const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
   const alarmManager = useAlarmManager();
 
-  const finished = useFinishedContracts();
-  const items = [
-    ...contractObjectives(parseContracts(contractsRaw) ?? []),
-    ...finished.map(
-      (c): ObjectiveItem => ({
-        id: `done:${c.id}`,
-        title: c.title,
-        state: "reached",
-        source: c.agency || "Contract",
-      }),
-    ),
-  ];
+  const items = contractObjectives(parseContracts(contractsRaw) ?? []);
   if (items.length === 0) return null;
 
   const renderAlarm = (o: ObjectiveItem): ReactNode => {

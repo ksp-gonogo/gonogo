@@ -61,25 +61,6 @@ namespace Sitrep.Host
         /// <summary>The typed stream topic this provider feeds.</summary>
         public const string Topic = "career.status";
 
-        /// <summary>The <c>career.contractEvent</c> topic: one event per contract that completes or fails.</summary>
-        public const string ContractEventTopic = "career.contractEvent";
-
-        /// <summary>One finished contract as the <c>career.contractEvent</c> wire dictionary.</summary>
-        public static Dictionary<string, object?> BuildContractEvent(
-            string id,
-            string title,
-            string? agent,
-            bool completed)
-        {
-            return new Dictionary<string, object?>
-            {
-                ["id"] = id,
-                ["title"] = title,
-                ["agent"] = agent,
-                ["outcome"] = completed ? "Completed" : "Failed",
-            };
-        }
-
         /// <summary>
         /// The <c>career.mode</c> topic: the save's <see cref="GameMode"/>.
         /// A separate channel from <see cref="Topic"/> because

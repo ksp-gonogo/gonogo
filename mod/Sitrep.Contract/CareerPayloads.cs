@@ -282,46 +282,6 @@ public class CareerContracts
     public List<CareerContract> FailedRecent { get; set; } = new();
 }
 
-/// <summary>
-/// One contract that has just finished: completed or failed. Each finish is its own
-/// event, separate from what the contract board holds in
-/// <see cref="CareerContracts.CompletedRecent"/>. Useful for announcing a finish
-/// the moment it reaches the operator. The event is stamped with the game time
-/// the contract finished, and reaches an observer later, at the time that
-/// observer would learn of it.
-/// <para>The event arrives after the active vessel's comms delay, because a contract
-/// has no single source vessel to hold it to. It never arrives before that delay.</para>
-/// <internal>
-/// Filled by <c>Gonogo.KSP.CareerUplink</c> from <c>GameEvents.Contract.onCompleted</c>
-/// and <c>onFailed</c> through <c>Sitrep.Host.CareerViewProvider.BuildContractEvent</c>;
-/// the wire is written by JsonWriter walking that dictionary.
-/// </internal>
-/// </summary>
-/// <category>Career</category>
-[SitrepContract]
-[SitrepTopic("career.contractEvent", DisplayName = "Contract finished")]
-#if SITREP_CODEGEN
-[TsInterface]
-#endif
-public class CareerContractEvent
-{
-    /// <summary>The contract's id, <c>Contract.ContractID</c> as a decimal string, the same id <see cref="CareerContract.Id"/> carries.</summary>
-    [SitrepUnit(Units.Id)]
-    public string? Id { get; set; }
-
-    /// <summary>The contract's display title.</summary>
-    [SitrepUnit(Units.Text)]
-    public string? Title { get; set; }
-
-    /// <summary>The name of the agency that offered the contract. <c>null</c> when it has no agent.</summary>
-    [SitrepUnit(Units.Text)]
-    public string? Agent { get; set; }
-
-    /// <summary>How it finished: <c>"Completed"</c> or <c>"Failed"</c>.</summary>
-    [SitrepUnit(Units.Text)]
-    public string? Outcome { get; set; }
-}
-
 /// <summary>One contract in <see cref="CareerContracts.Active"/>, <see
 /// cref="CareerContracts.Offered"/>, <see
 /// cref="CareerContracts.CompletedRecent"/> or <see
