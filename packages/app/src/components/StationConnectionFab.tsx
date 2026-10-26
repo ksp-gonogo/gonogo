@@ -58,7 +58,7 @@ function StationConnectionPanel({
   return (
     <Wrap>
       <Cluster>
-        <Label>Share code</Label>
+        <Label>Join code</Label>
         <Code>{hostId ?? NULL_DISPLAY}</Code>
       </Cluster>
       <Cluster>

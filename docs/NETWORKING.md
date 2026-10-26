@@ -23,14 +23,14 @@ If it won't connect, a firewall on the KSP computer is the usual cause. It must 
 
 ## Adding stations
 
-Open **Add station** on the main screen. It shows a link and a share code. A friend opens the link, enters the code, and you approve them. The link points at the public site for the version you run: `https://ksp-gonogo.github.io/app/station` if you run a release, `https://ksp-gonogo.github.io/rc/station` if you run the release candidate (`:rc`) image.
+Open **Add station** on the main screen. It shows a link and a join code. A friend opens the link, enters the code, and you approve them. The link points at the public site for the version you run: `https://ksp-gonogo.github.io/app/station` if you run a release, `https://ksp-gonogo.github.io/rc/station` if you run the release candidate (`:rc`) image.
 
 How a station joins depends on whether the relay in the container is running:
 
 - **With the relay running**, every station joins through it, on one port: friends on your home network and friends over the internet alike. A friend on your home network needs nothing set up. A friend on another network needs that one port open on your router, as described below
 - **Without the relay**, stations connect to the main screen tab directly. That works for friends on your home network only
 
-The share code stays the same until you press **New share code**, or until the main screen browser's site data is cleared.
+The join code stays the same until you press **New join code**, or until the main screen browser's site data is cleared.
 
 ### What the chips mean
 
@@ -56,7 +56,7 @@ A friend on another network (a phone on mobile data, a friend at home) reaches t
 
 Forward both protocols. Don't forward `3002` or `8080`. To use another port, add `-e ENDPOINT_PORT=<port>` to the run command, change both `-p 47100:47100` parts to that port, and forward it instead.
 
-The port only answers stations that joined with your share code: nothing else on the internet can use it.
+The port only answers stations that joined with your join code: nothing else on the internet can use it.
 
 Choose one of two ways to open it:
 
@@ -85,11 +85,11 @@ Kerbcast video for a station on another network comes through the same port. The
 ## A station won't connect
 
 - **Is the main screen tab open and awake?** If it closed or the computer slept, every station stops
-- **Is the share code right?** Copy it from the Add station panel the friend is joining. After **New share code**, the old one stops working
+- **Is the join code right?** Copy it from the Add station panel the friend is joining. After **New join code**, the old one stops working
 - **Is the friend on another network?** Check the status line in the Add station panel, and [Friends on other networks](#friends-on-other-networks)
 - **Is a station on another network slow?** Those stations send everything through your internet upload
 - **Does nothing connect, even on your home network?** Stations need an internet connection to find the main screen, so check that both ends are online
 
 ## Privacy
 
-A station finds the main screen through a public PeerJS server, which sees each device's address and share code at join time and carries no game data. The relay asks a public lookup service what your public address is when it starts. A station on your home network without the relay asks a public Google or Cloudflare server what its own public address is; those servers see that address and carry no game data or share code.
+A station finds the main screen through a public PeerJS server, which sees each device's address and join code at join time and carries no game data. The relay asks a public lookup service what your public address is when it starts. A station on your home network without the relay asks a public Google or Cloudflare server what its own public address is; those servers see that address and carry no game data or join code.

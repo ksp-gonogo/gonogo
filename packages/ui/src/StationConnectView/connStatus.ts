@@ -23,11 +23,11 @@ export function describeConnStatus(
   if (hostNotFound) {
     return everConnected
       ? "Host reconnecting: waiting for the main screen to come back..."
-      : "Broker doesn't know that share code. Retrying in case it comes back...";
+      : "Broker doesn't know that join code. Retrying in case it comes back...";
   }
   switch (status) {
     case "idle":
-      return "Waiting for a share code.";
+      return "Waiting for a join code.";
     case "connecting":
       return "Reaching the main screen...";
     case "connected":

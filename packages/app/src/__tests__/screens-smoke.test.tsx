@@ -184,7 +184,7 @@ describe("StationScreen smoke", () => {
 
     expect(localStorage.getItem("gonogo-station-host-id")).toBe("ABC123");
     expect(globalThis.location.search).toBe("");
-    expect(screen.getByRole("textbox", { name: "Share code" })).toHaveValue(
+    expect(screen.getByRole("textbox", { name: "Join code" })).toHaveValue(
       "ABC123",
     );
 

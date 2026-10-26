@@ -52,7 +52,7 @@ function StationLinkPanel() {
   // to the service singleton directly: it already drives the provider's
   // state, so this sees the same value without relying on React context.
   const [peerId, setPeerId] = useState<string | null>(peerHostService.peerId);
-  // The operator-facing short share code. Stable across refreshes; only a
+  // The operator-facing short join code. Stable across refreshes; only a
   // regenerate changes it. Both the QR and the typed value are this code,
   // the station derives the broker peer id (`gonogo-host-<code>`) from it.
   const [shareCode, setShareCode] = useState(peerHostService.shareCode);
@@ -72,7 +72,7 @@ function StationLinkPanel() {
   }, []);
 
   // While reclaiming the broker hasn't confirmed the derived id (peerId is
-  // null), but the share code IS valid, show it with a clear status so the
+  // null), but the join code IS valid, show it with a clear status so the
   // operator can already share the link; stations retry until the host's back.
   if (!peerId && !reclaiming) {
     return (
@@ -97,12 +97,12 @@ function StationLinkPanel() {
       <StationApprovalPrompt host={peerHostService} inPanel />
       {reclaiming && (
         <StatusIndicator tone="info" live>
-          Reclaiming your share code after an unexpected restart, stations
+          Reclaiming your join code after an unexpected restart, stations
           reconnect automatically.
         </StatusIndicator>
       )}
       <Cluster>
-        <Label>Share code</Label>
+        <Label>Join code</Label>
         <Code>{shareCode}</Code>
       </Cluster>
       <StationAddressList addresses={addresses} qr={qr} />
@@ -122,8 +122,8 @@ function StationLinkPanel() {
 }
 
 /**
- * Two-step button: idle → "New share code" → "Confirm" → mints a fresh
- * operator-facing share code and re-claims the new derived
+ * Two-step button: idle → "New join code" → "Confirm" → mints a fresh
+ * operator-facing join code and re-claims the new derived
  * `gonogo-host-<newCode>` peer id (clean teardown of the old, claim of the
  * new). The old code stops working and every live station channel drops, so
  * stations must be re-shared the new code. Also the recovery path when a
@@ -155,7 +155,7 @@ function RegenerateRow() {
           type="button"
           onClick={() => setPhase("confirming")}
         >
-          New share code
+          New join code
         </Button>
       )}
       {phase === "confirming" && (
@@ -169,7 +169,7 @@ function RegenerateRow() {
         </Button>
       )}
       <RegenerateHint>
-        Mints a fresh share code. The old code stops working, anyone who had it
+        Mints a fresh join code. The old code stops working, anyone who had it
         (including connected stations once they drop) needs the new code shown
         above.
       </RegenerateHint>

@@ -43,7 +43,7 @@ test.describe("fab tower over the dashboard grid", () => {
     expect(topmost).toBe(true);
 
     await station.click();
-    await expect(page.getByText("Share code", { exact: true })).toBeVisible();
+    await expect(page.getByText("Join code", { exact: true })).toBeVisible();
     await context.close();
   });
 });
