@@ -6,6 +6,7 @@ import {
   computeMu,
   computePlan,
   computeRelInc,
+  meetsSurfaceBeforeBurn,
   type PlanInputs,
 } from "./planning";
 
@@ -233,5 +234,75 @@ describe("computeBurnTrueAnomaly", () => {
         burnInSeconds: 0,
       }),
     ).toBeNull();
+  });
+});
+
+describe("meetsSurfaceBeforeBurn", () => {
+  const MUN_MU = 6.5138398e10;
+  const sma = 189_150;
+  const half = Math.PI * Math.sqrt(sma ** 3 / MUN_MU);
+  const base = {
+    preset: "circularize-apo" as const,
+    mu: MUN_MU,
+    sma,
+    ecc: 0.21597,
+    PeR: 148_300,
+    bodyRadius: 200_000,
+  };
+
+  it("is true when a descent below the surface comes before the apoapsis", () => {
+    expect(
+      meetsSurfaceBeforeBurn({
+        ...base,
+        timeToPe: 300,
+        timeToAp: 300 + half,
+      }),
+    ).toBe(true);
+  });
+
+  it("is true for a burn at the periapsis that is under the surface", () => {
+    expect(
+      meetsSurfaceBeforeBurn({
+        ...base,
+        preset: "circularize-peri",
+        timeToPe: 300,
+        timeToAp: 300 + half,
+      }),
+    ).toBe(true);
+  });
+
+  it("is false on the way up, where the apoapsis comes before the descent", () => {
+    expect(
+      meetsSurfaceBeforeBurn({
+        ...base,
+        timeToAp: 100,
+        timeToPe: 100 + half,
+      }),
+    ).toBe(false);
+  });
+
+  it("is false when the periapsis is above the surface", () => {
+    expect(
+      meetsSurfaceBeforeBurn({
+        ...base,
+        PeR: 230_000 - 2 * 20_000,
+        ecc: 0.05,
+        sma: 210_000,
+        bodyRadius: 150_000,
+        timeToPe: 300,
+        timeToAp: 300 + half,
+      }),
+    ).toBe(false);
+  });
+
+  it("is false for a burn at a chosen instant", () => {
+    expect(
+      meetsSurfaceBeforeBurn({
+        ...base,
+        preset: "custom-ut",
+        timeToPe: 300,
+        timeToAp: 300 + half,
+      }),
+    ).toBe(false);
   });
 });

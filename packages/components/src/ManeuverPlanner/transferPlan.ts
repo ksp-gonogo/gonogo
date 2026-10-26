@@ -7,6 +7,7 @@ import {
   type BodyTransferPlan,
   type ManeuverPlan,
   planMoonTransfer,
+  planParentReturn,
   planPlanetTransfer,
 } from "@ksp-gonogo/core";
 import {
@@ -33,14 +34,23 @@ export interface TransferContext {
 }
 
 /**
- * Whether the target is a moon of the craft's body or another body of the craft
- * body's own parent, the two a single burn can be planned to; null for any other.
+ * Whether the target is a moon of the craft's body, the body the craft's body
+ * orbits, or another body of the craft body's own parent, the three a single
+ * burn can be planned to; null for any other. A star is never a parent to
+ * return to.
  */
 export function transferKind(
   craftBody: CelestialBody,
   target: CelestialBody,
-): "moon" | "planet" | null {
+): "moon" | "parent" | "planet" | null {
   if (target.name === craftBody.name) return null;
+  if (
+    target.name !== null &&
+    target.name === craftBody.referenceBody &&
+    target.referenceBody !== null
+  ) {
+    return "parent";
+  }
   if (
     target.referenceBody !== null &&
     target.referenceBody === craftBody.name
@@ -56,7 +66,7 @@ export function transferKind(
   return null;
 }
 
-/** The bodies a transfer can be planned to from `craftBody`: its moons first, then its parent's other bodies. */
+/** The bodies a transfer can be planned to from `craftBody`: its moons first, then its parent, then its parent's other bodies. */
 export function transferTargets(
   bodies: readonly CelestialBody[],
   craftBody: CelestialBody | undefined,
@@ -66,10 +76,13 @@ export function transferTargets(
   const moons = bodies.filter(
     (b) => named(b) && transferKind(craftBody, b) === "moon",
   );
+  const parent = bodies.filter(
+    (b) => named(b) && transferKind(craftBody, b) === "parent",
+  );
   const siblings = bodies.filter(
     (b) => named(b) && transferKind(craftBody, b) === "planet",
   );
-  return [...moons, ...siblings];
+  return [...moons, ...parent, ...siblings];
 }
 
 /** A body's own orbit as propagation elements, or null while any of them has not arrived. */
@@ -128,6 +141,24 @@ export function planBodyTransfer(ctx: TransferContext): ManeuverPlan | null {
   const craftState = (ut: number) => solve(craft, ut);
 
   let plan: BodyTransferPlan | null = null;
+  if (kind === "parent") {
+    const originElements = bodyElements(craftBody, bodies);
+    if (!originElements || craftBody.soi == null) return null;
+    plan = planParentReturn({
+      muParent: target.gravParameter,
+      parentRadius: target.radius,
+      origin: {
+        state: (ut) => solve(originElements, ut),
+        mu: craftBody.gravParameter,
+        soi: craftBody.soi,
+        period: periodOf(originElements),
+      },
+      craft: craftState,
+      craftPeriod,
+      nowUt,
+      periapsisAltitude: ctx.periapsisAltitude,
+    });
+  }
   if (kind === "moon") {
     if (target.soi == null) return null;
     plan = planMoonTransfer({
@@ -144,7 +175,8 @@ export function planBodyTransfer(ctx: TransferContext): ManeuverPlan | null {
       },
       periapsisAltitude: ctx.periapsisAltitude,
     });
-  } else {
+  }
+  if (kind === "planet") {
     const originElements = bodyElements(craftBody, bodies);
     const parentMu = targetElements.mu;
     if (!originElements || craftBody.soi == null) return null;

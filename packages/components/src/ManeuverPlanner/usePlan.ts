@@ -5,6 +5,7 @@ import {
   computeBurnTrueAnomaly,
   computePlan,
   isSequence,
+  meetsSurfaceBeforeBurn,
   type PlanResult,
 } from "./planning";
 import { isFiniteNumber, usesBodyTransfer } from "./presets";
@@ -195,8 +196,19 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
    * withheld too: its elements describe a path through the ground, which no
    * burn can be planned on.
    */
+  const meetsSurface = meetsSurfaceBeforeBurn({
+    preset,
+    mu,
+    sma,
+    ecc,
+    PeR,
+    bodyRadius: body?.radius,
+    timeToAp,
+    timeToPe,
+  });
   const planReady =
     !landed &&
+    !meetsSurface &&
     orbitObserved &&
     isFiniteNumber(sma) &&
     isFiniteNumber(ecc) &&
@@ -218,5 +230,6 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     planReady,
     hyperbolic,
     landed,
+    meetsSurface,
   };
 }

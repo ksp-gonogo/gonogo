@@ -9,6 +9,7 @@ import {
   flybyPeriapsisRadius,
   nodeComponents,
   planMoonTransfer,
+  planParentReturn,
   planPlanetTransfer,
 } from "./bodyTransfer";
 import type { Vec3Tuple } from "./lambert";
@@ -503,5 +504,87 @@ describe("a burn in the node basis", () => {
     const parts = nodeComponents(craft, [5, 0, 7]);
     expect(parts.radial).toBeCloseTo(5, 9);
     expect(parts.normal).toBeCloseTo(7, 9);
+  });
+});
+
+describe("return from a moon to its parent", () => {
+  const MUN_MU = MUN_BODY.mu;
+  const orbit = (incDeg: number): OrbitElements => ({
+    sma: 230_000,
+    ecc: 0,
+    inc: rad(incDeg),
+    lan: 0,
+    argPe: 0,
+    meanAnomalyAtEpoch: 1.1,
+    epoch: 0,
+    mu: MUN_MU,
+  });
+  const returnPlan = (craft: OrbitElements, periapsisAltitude = 40_000) =>
+    planParentReturn({
+      muParent: KERBIN_MU,
+      parentRadius: KERBIN_R,
+      origin: {
+        state: MUN_BODY.state,
+        mu: MUN_MU,
+        soi: MUN_BODY.soi,
+        period: MUN_BODY.period,
+      },
+      craft: (ut) => solve(craft, ut),
+      craftPeriod: periodOf(craft),
+      nowUt: NOW,
+      periapsisAltitude,
+    });
+
+  it("leaves a 30 km Mun orbit for a 40 km Kerbin periapsis", () => {
+    const plan = returnPlan(orbit(0));
+    expect(plan).not.toBeNull();
+    if (!plan) return;
+    expect(plan.deltaV).toBeGreaterThan(250);
+    expect(plan.deltaV).toBeLessThan(350);
+    expect(plan.burnUt).toBeGreaterThanOrEqual(NOW + 60);
+    expect(plan.periapsisAltitude).toBeCloseTo(40_000, -2);
+    expect(plan.arrivalUt).toBeGreaterThan(plan.burnUt);
+  });
+
+  it("escapes against the Mun's motion at the excess speed that lowers the periapsis", () => {
+    const craft = orbit(0);
+    const plan = returnPlan(craft);
+    if (!plan) throw new Error("no plan");
+    const before = solve(craft, plan.burnUt);
+    const burn = burnVector(plan, before);
+    const after: StateLike = {
+      position: before.position,
+      velocity: [
+        before.velocity[0] + burn[0],
+        before.velocity[1] + burn[1],
+        before.velocity[2] + burn[2],
+      ],
+    };
+    const leaving = escapeAsymptote(after, MUN_MU);
+    expect(leaving).not.toBeNull();
+    if (!leaving) return;
+    const exitUt = plan.burnUt + 3600;
+    const moonVelocity = MUN_BODY.state(exitUt).velocity;
+    const against = -dot(leaving.direction, unit(moonVelocity));
+    expect(against).toBeGreaterThan(0.99);
+    const speed = norm(moonVelocity) - leaving.excessSpeed;
+    // Tangential departure from the orbit radius gives the periapsis by vis-viva.
+    const r = norm(MUN_BODY.state(exitUt).position);
+    const peri =
+      (2 * KERBIN_MU * (KERBIN_R + 40_000)) / (r * (r + KERBIN_R + 40_000));
+    expect(speed).toBeCloseTo(Math.sqrt(peri), -1);
+  });
+
+  it("costs more for an inclined orbit than the one in the Mun's plane", () => {
+    const flat = returnPlan(orbit(0));
+    const tilted = returnPlan(orbit(60));
+    expect(flat).not.toBeNull();
+    expect(tilted).not.toBeNull();
+    if (!flat || !tilted) return;
+    expect(tilted.deltaV).toBeGreaterThanOrEqual(flat.deltaV - 1);
+  });
+
+  it("finds no return to a periapsis above the Mun's own orbit", () => {
+    expect(returnPlan(orbit(0), 20_000_000)).toBeNull();
   });
 });
