@@ -30,10 +30,11 @@ namespace Sitrep.Host.Comms
 
         /// <summary>
         /// How far the craft can be at <paramref name="ut"/> from where the centre
-        /// reckons it, in metres: zero while in contact, otherwise
-        /// <see cref="PositionUncertainty.Bound"/> from <see cref="LastKnownUt"/>.
+        /// reckons it, in metres: <see cref="PositionUncertainty.Bound"/> from
+        /// <see cref="LastKnownUt"/>, in contact or not, since the newest word
+        /// to reach a centre left the craft at least one delay ago.
         /// Null when it cannot be bounded, which is not zero.
         /// </summary>
-        public double? UncertaintyMAt(double ut) => InContact ? 0.0 : PositionUncertainty.Bound(Known, LastKnownUt, ut);
+        public double? UncertaintyMAt(double ut) => PositionUncertainty.Bound(Known, LastKnownUt, ut);
     }
 }

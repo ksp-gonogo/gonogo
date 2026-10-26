@@ -52,10 +52,6 @@ namespace Sitrep.Contract.TestSupport
             Assert.True(
                 reading.UncertaintyM is not double radius || (radius >= 0.0 && !double.IsNaN(radius) && !double.IsInfinity(radius)),
                 what + ": UncertaintyM is a finite radius in metres, or null when it cannot be bounded; never negative and never a stand-in for unbounded.");
-            if (reading.State == CraftKnowledgeState.Heard)
-            {
-                Assert.True(reading.UncertaintyM == 0.0, what + ": a heard craft is where it says it is, so its UncertaintyM is zero.");
-            }
         }
 
         private static void AssertUnknown(CraftKnowledgeReading? reading, string what)

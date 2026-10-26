@@ -118,8 +118,8 @@ namespace Sitrep.Contract
         /// <summary>
         /// The radius, in metres, within which the craft lies around where the
         /// centre places it, grown from what the craft could have done with its
-        /// own delta-v and thrust since <see cref="LastKnownUt"/>. Zero while
-        /// heard. Null when it cannot be bounded (its delta-v was never heard,
+        /// own delta-v and thrust since <see cref="LastKnownUt"/>, which is
+        /// at least one signal delay old even while heard. Null when it cannot be bounded (its delta-v was never heard,
         /// or wheels or rotors can move it) and always for
         /// <see cref="CraftKnowledgeState.Unknown"/>; null is not zero.
         /// </summary>

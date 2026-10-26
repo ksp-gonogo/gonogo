@@ -51,7 +51,7 @@ namespace Sitrep.Host.Tests.Comms
 
             Assert.Equal(CraftKnowledgeState.Heard, reading.State);
             Assert.Equal(1000.0, reading.LastKnownUt);
-            Assert.Equal(0.0, reading.UncertaintyM);
+            Assert.Equal(18_000.0, reading.UncertaintyM!.Value, 1);
             Assert.False(reading.LineOfSight);
         }
 

@@ -50,12 +50,12 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
-        public void ACoastingCraftIsWhereItIsReckonedWhileInContactAndFromTheInstantItWasLastKnown()
+        public void ACoastingCraftIsBoundedFromTheInstantItWasLastKnownInContactOrNot()
         {
             var craft = Orbiting(FarOrbit, Can(50.0, null));
 
-            Assert.Equal(0.0, new CraftFix(craft, true, 1000.0).UncertaintyMAt(5000.0));
             Assert.Equal(0.0, new CraftFix(craft, false, 1000.0).UncertaintyMAt(1000.0));
+            Assert.Equal(5_000.0, new CraftFix(craft, true, 1000.0).UncertaintyMAt(1100.0)!.Value, 1);
             // Its acceleration was not read, so its 50 m/s is taken as spent at once: 50 × 100 = 5 000 m.
             Assert.Equal(5_000.0, new CraftFix(craft, false, 1000.0).UncertaintyMAt(1100.0)!.Value, 1);
         }
@@ -233,7 +233,8 @@ namespace Sitrep.Host.Tests.Comms
             host.State!(Orbiting(FarOrbit, Can(2000.0, 10.0)));
             host.Reach!(new CraftReach(Probe, 1500.0, reached));
             Assert.True(hearing.FixAt(Home, Probe)!.InContact);
-            Assert.Equal(0.0, hearing.FixAt(Home, Probe)!.UncertaintyMAt(9000.0));
+            Assert.Equal(1500.0, hearing.FixAt(Home, Probe)!.LastKnownUt);
+            Assert.True(hearing.FixAt(Home, Probe)!.UncertaintyMAt(1560.0) > 0.0);
 
             host.Reach!(new CraftReach(Probe, 1600.0, reached));
             var fix = hearing.FixAt(Home, Probe)!;
@@ -244,6 +245,24 @@ namespace Sitrep.Host.Tests.Comms
             // Read mid-burn, it is read again only so often, so the link's silence says nothing of where it went.
             host.State!(Orbiting(FarOrbit, Can(2000.0, 10.0), capturedUt: 1100.0).Unsettled());
             Assert.Equal(1100.0, hearing.FixAt(Home, Probe)!.LastKnownUt);
+        }
+
+        [Fact]
+        public void ACraftInContactIsBoundedFromTheCraftSideInstantOfItsNewestWord()
+        {
+            var host = new Telling();
+            var hearing = new CentreHearing(host);
+            hearing.Listen(new[] { Home }, new[] { "probe" });
+            host.State!(Orbiting(FarOrbit, Can(2000.0, 10.0)));
+            host.Reach!(new CraftReach(Probe, 1500.0, new Dictionary<string, double> { [Home] = 1500.0 }));
+
+            var fix = hearing.FixAt(Home, Probe)!;
+
+            // Word captured at 1500 reaches the centre one delay (say 2 s) later, so the centre's newest fix is 2 s old when it arrives.
+            Assert.True(fix.InContact);
+            Assert.Equal(1500.0, fix.LastKnownUt);
+            Assert.Equal(PositionUncertainty.Bound(fix.Known, 1500.0, 1502.0), fix.UncertaintyMAt(1502.0));
+            Assert.True(fix.UncertaintyMAt(1502.0) > 0.0);
         }
 
         private sealed class Telling : ICraftStateHost
