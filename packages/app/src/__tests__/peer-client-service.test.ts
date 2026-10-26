@@ -1528,6 +1528,29 @@ describe("PeerClientService.sendFlightRpc", () => {
 });
 
 describe("PeerClientService: GO/NO-GO broadcasts", () => {
+  describe("reopened poll sticky replay", () => {
+    it("replays a reopened poll to a widget that mounts after the message landed", async () => {
+      const svc = new PeerClientService();
+      fromHost(svc).send({ type: "gonogo-reset", reopened: true });
+
+      const received: boolean[] = [];
+      svc.onGonogoReset((reopened) => received.push(reopened));
+      await Promise.resolve();
+      expect(received).toEqual([true]);
+    });
+
+    it("does not replay once the poll was closed again", async () => {
+      const svc = new PeerClientService();
+      fromHost(svc).send({ type: "gonogo-reset", reopened: true });
+      fromHost(svc).send({ type: "gonogo-reset", reopened: false });
+
+      const received: boolean[] = [];
+      svc.onGonogoReset((reopened) => received.push(reopened));
+      await Promise.resolve();
+      expect(received).toEqual([]);
+    });
+  });
+
   describe("countdown sticky replay", () => {
     // gonogo-countdown-start is a fire-and-forget broadcast.
     it("replays a running countdown to a late subscriber", async () => {

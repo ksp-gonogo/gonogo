@@ -300,7 +300,8 @@ export interface AlarmSnapshot {
   owltSeconds?: number;
   /**
    * Why the simulation would not arm a SCET alarm, keyed by alarm id, in the
-   * mod's own words. Absent when nothing has been refused.
+   * mod's own words. Absent when nothing has been refused, and null on a
+   * station, whose peer link carries an absent field as null.
    *
    * The refusal is the only way a client learns a Topic cannot be read
    * pre-reveal: what a SCET threshold may be armed against is a table inside
@@ -309,7 +310,7 @@ export interface AlarmSnapshot {
    * rather than sitting armed-looking and never firing, which an operator
    * cannot tell apart from a condition that simply has not come due.
    */
-  scetArmRefusals?: Record<string, string>;
+  scetArmRefusals?: Record<string, string> | null;
   /**
    * Why an alarm's `onFire` list did not all reach the wire the last time it
    * fired, keyed by alarm id. Absent when nothing has been refused.

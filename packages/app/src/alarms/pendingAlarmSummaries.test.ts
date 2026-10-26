@@ -54,6 +54,11 @@ describe("pendingAlarmSummaries", () => {
     expect(list.map((a) => a.id)).toEqual(["armed"]);
   });
 
+  it("treats null refusals, as a station snapshot carries, as none", () => {
+    const list = pendingAlarmSummaries([alarm("a", "pending", at(100))], null);
+    expect(list.map((a) => a.id)).toEqual(["a"]);
+  });
+
   it("keeps an alarm with no instant, after every one that has one", () => {
     const list = pendingAlarmSummaries([
       alarm("altitude", "pending", threshold),

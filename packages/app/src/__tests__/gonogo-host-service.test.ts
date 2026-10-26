@@ -469,6 +469,47 @@ describe("GoNoGoHostService", () => {
     });
   });
 
+  it("clears the votes and tells every station when the countdown reaches T-0", async () => {
+    svc.setConfig({ countdownLengthMs: 5_000 });
+    host.fireConnect("peer-1");
+    host.fireStationInfo("peer-1", "A");
+    host.fireVote("peer-1", "go");
+    host.broadcasts.length = 0;
+    vi.advanceTimersByTime(5_001);
+    await drainDispatch();
+    expect(host.broadcasts).toContainEqual({
+      type: "gonogo-reset",
+      reopened: false,
+    });
+    expect(svc.getSnapshot().stations).toEqual([
+      { peerId: "peer-1", name: "A", status: null },
+    ]);
+  });
+
+  it("tells a station that joins a reopened poll, so a reload keeps its vote", () => {
+    host.fireConnect("peer-1");
+    timeline.emitMet(10);
+    svc.reset();
+    host.sent.length = 0;
+    host.fireConnect("peer-2");
+    expect(host.sent).toContainEqual({
+      peerId: "peer-2",
+      msg: { type: "gonogo-reset", reopened: true },
+    });
+  });
+
+  it("tells every station the poll is closed again when the craft is back on the pad", () => {
+    host.fireConnect("peer-1");
+    timeline.emitMet(10);
+    svc.reset();
+    host.broadcasts.length = 0;
+    timeline.emitMet(0);
+    expect(host.broadcasts).toContainEqual({
+      type: "gonogo-reset",
+      reopened: false,
+    });
+  });
+
   describe("reset", () => {
     it("cancels a running countdown the way a NO-GO does, without a tone", () => {
       host.fireConnect("peer-1");

@@ -108,11 +108,12 @@ export function AlarmsLauncherBridge({
  */
 export function pendingAlarmSummaries(
   alarms: readonly Alarm[],
-  refused: Readonly<Record<string, string>> = {},
+  refused: Readonly<Record<string, string>> | null = {},
 ): PendingAlarmSummary[] {
+  const refusals = refused ?? {};
   return alarms
     .filter((a) => a.state === "pending" || a.state === "arming")
-    .filter((a) => !(a.id in refused))
+    .filter((a) => !(a.id in refusals))
     .map((a) => ({
       id: a.id,
       name: a.name,

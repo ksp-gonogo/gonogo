@@ -289,6 +289,9 @@ export class PeerClientService {
   // the future; cleared on cancel.
   private lastCountdownT0Ms: number | null = null;
 
+  // Whether the host has reopened the poll after launch, kept so a widget that mounts after the message landed (a reloaded station) still offers its vote beside ABORT.
+  private lastPollReopened = false;
+
   // The host's T-0 action, kept for the same reason: the message is sent once, on join or change, and a widget that mounts afterwards still shows it. `undefined` until the host has said.
   private lastOnGoLabel: string | null | undefined;
 
@@ -1557,7 +1560,9 @@ export class PeerClientService {
   }
 
   onGonogoReset(cb: (reopened: boolean) => void) {
-    return this.events.on("gonogoReset", cb);
+    const unsub = this.events.on("gonogoReset", cb);
+    if (this.lastPollReopened) queueMicrotask(() => cb(true));
+    return unsub;
   }
 
   onGonogoCountdownCancel(cb: (reason: string | undefined) => void) {
@@ -1739,6 +1744,7 @@ export class PeerClientService {
     },
     "gonogo-reset": (msg) => {
       this.lastCountdownT0Ms = null;
+      this.lastPollReopened = msg.reopened;
       this.events.emit("gonogoReset", msg.reopened);
     },
     "gonogo-countdown-cancel": (msg) => {

@@ -121,6 +121,12 @@ export class GoNoGoHostService {
         // A screen that has just joined has no vote, and a screen with no vote is not in the poll: its first vote decides what it does to a countdown.
         this.connectedPeers.add(peerId);
         this.host.sendToPeer(peerId, this.onGoMessage());
+        if (this.reopened) {
+          this.host.sendToPeer(peerId, {
+            type: "gonogo-reset",
+            reopened: true,
+          });
+        }
         this.emit();
       }),
     );
@@ -210,7 +216,10 @@ export class GoNoGoHostService {
       // Revert to pad: clear abort so the operator can try again.
       this.abort = null;
       this.committed = false;
-      this.reopened = false;
+      if (this.reopened) {
+        this.reopened = false;
+        this.host.broadcast({ type: "gonogo-reset", reopened: false });
+      }
     }
     if (this.launched && !this.reopened && this.countdown) {
       this.cancelCountdownIfRunning("launch detected");
@@ -379,6 +388,9 @@ export class GoNoGoHostService {
     if (!this.countdown) return;
     this.countdown = null;
     this.committed = true;
+    // The countdown is spent: clear the votes and tell every station, so none keeps a chip at T-0 or a vote for a poll that has finished.
+    this.peerIdToVote.clear();
+    this.host.broadcast({ type: "gonogo-reset", reopened: this.reopened });
     // T-0 commit tone. Fired here (not in CountdownTone) because the
     // component unmounts the instant the countdown clears, so a 100ms tick
     // can't reliably observe secondsLeft === 0. This is the success path
