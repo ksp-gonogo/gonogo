@@ -10,7 +10,6 @@
 
 export { gridToPixels } from "@ksp-gonogo/ui-kit/grid";
 export { run } from "./cli";
-export type { ModChannel } from "./deps/channels";
 export {
   type ChannelDisposition,
   readChannelDispositions,
