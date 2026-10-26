@@ -130,11 +130,11 @@ describe("ComponentOverlay: owner-derived mod search tags", () => {
     expect(
       within(
         await screen.findByRole("option", { name: /Owned Widget/ }),
-      ).getByText("from Mod Alpha"),
+      ).getByText("Mod Alpha"),
     ).toBeInTheDocument();
     expect(
       within(screen.getByRole("option", { name: /Core Widget/ })).queryByText(
-        /^from /,
+        "Mod Alpha",
       ),
     ).toBeNull();
   });

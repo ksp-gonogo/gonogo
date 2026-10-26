@@ -645,6 +645,7 @@ export {
   Tabs,
   type TabsProps,
 } from "./Tabs";
+export { Tag, type TagProps } from "./Tag";
 export {
   Tape,
   type TapeMarker,

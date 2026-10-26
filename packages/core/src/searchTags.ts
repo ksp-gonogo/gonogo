@@ -70,7 +70,7 @@ export function effectiveSearchTags(def: ComponentDefinition): string[] {
   return Array.from(result);
 }
 
-/** One Uplink that augments or contributes to a widget, for the picker's description addendum. */
+/** One Uplink that augments or contributes to a widget, for the picker's extender badges. */
 export interface UplinkAddition {
   /** The Uplink client id. */
   id: string;
@@ -80,8 +80,8 @@ export interface UplinkAddition {
 
 /**
  * The Uplinks that extend a widget by augmenting or contributing to it, deduped
- * by id, for the description addendum shown in the widget picker (a per-Uplink
- * line making the addition explicit). Empty when nothing extends the widget.
+ * by id, for the badges shown on a widget's card in the picker (one per Uplink,
+ * making the addition explicit). Empty when nothing extends the widget.
  * The built-in Core client is left out: every widget is Core, so naming it
  * tells the operator nothing.
  */
@@ -92,8 +92,9 @@ export function uplinkAdditions(def: ComponentDefinition): UplinkAddition[] {
 }
 
 /**
- * The Uplink that registered a widget, for the picker's "from" line, so a widget
- * an Uplink ships reads as that Uplink's the way one it only extends does.
+ * The Uplink that registered a widget, for the name the picker shows beside
+ * the widget's title, so a widget an Uplink ships reads as that Uplink's the
+ * way one it only extends does.
  * Undefined for a widget with no owner or one the built-in Core client owns.
  */
 export function uplinkOwner(

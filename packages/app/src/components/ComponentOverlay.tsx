@@ -484,17 +484,22 @@ export function ComponentOverlay({
                     onClick={() => toggleSelected(def.id)}
                   >
                     <ItemHead>
-                      <TickBox $ticked={ticked} aria-hidden="true">
-                        {ticked && <CheckIcon size={12} />}
-                      </TickBox>
-                      <ItemName>{def.name}</ItemName>
+                      <ItemTitle>
+                        <ItemName>{def.name}</ItemName>
+                        {uplinkOwner(def) && (
+                          <ItemOwner>{uplinkOwner(def)?.name}</ItemOwner>
+                        )}
+                      </ItemTitle>
                       {onHere !== undefined && (
-                        <Badge tone="info" size="sm">
-                          <BadgeContent>
-                            <CheckIcon size={10} />
-                            On this layout{onHere > 1 ? ` x${onHere}` : ""}
-                          </BadgeContent>
-                        </Badge>
+                        <OnLayoutMark
+                          role="img"
+                          aria-label={`On this layout${onHere > 1 ? ` x${onHere}` : ""}`}
+                        >
+                          <LayersIcon size={22} />
+                          <OnLayoutTick>
+                            <CheckIcon size={13} />
+                          </OnLayoutTick>
+                        </OnLayoutMark>
                       )}
                       {onOthers !== undefined && (
                         <Tooltip text={`On ${onOthers.join(", ")}`}>
@@ -506,16 +511,23 @@ export function ComponentOverlay({
                           </Badge>
                         </Tooltip>
                       )}
+                      <TickBox $ticked={ticked} aria-hidden="true">
+                        {ticked && <CheckIcon size={12} />}
+                      </TickBox>
                     </ItemHead>
-                    <ItemDesc>{def.description}</ItemDesc>
-                    {uplinkOwner(def) && (
-                      <UplinkAddLine>
-                        from {uplinkOwner(def)?.name}
-                      </UplinkAddLine>
+                    {uplinkAdditions(def).length > 0 && (
+                      <ExtenderRow>
+                        {uplinkAdditions(def).map((u) => (
+                          <Tag
+                            key={u.id}
+                            label={u.name}
+                            symbol={<PlusIcon size={8} />}
+                            name
+                          />
+                        ))}
+                      </ExtenderRow>
                     )}
-                    {uplinkAdditions(def).map((u) => (
-                      <UplinkAddLine key={u.id}>+ {u.name}</UplinkAddLine>
-                    ))}
+                    <ItemDesc>{def.description}</ItemDesc>
                     <TagRow>
                       {def.tags.map((t) => (
                         <Tag key={t} label={t} />
@@ -738,8 +750,49 @@ const AddBar = styled.div`
   flex-shrink: 0;
 `;
 
-const ItemName = styled.span`
+const ItemTitle = styled.span`
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-related);
+  min-width: 0;
   margin-right: auto;
+`;
+
+const ItemOwner = styled.span`
+  font-size: var(--font-size-compact);
+  color: var(--color-text-muted);
+`;
+
+const OnLayoutMark = styled.span`
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-go-text);
+`;
+
+/* The disc is a little larger than the tick so the tick does not run into the layers glyph behind it. */
+const OnLayoutTick = styled.span`
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: var(--radius-circle);
+  background: var(--color-surface-panel);
+  color: var(--color-go-text);
+`;
+
+const ExtenderRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-related);
+`;
+
+const ItemName = styled.span`
   font-size: var(--font-size-value);
   font-weight: 600;
   color: var(--color-text-primary);
@@ -748,15 +801,6 @@ const ItemName = styled.span`
 const ItemDesc = styled.span`
   font-size: var(--font-size-compact);
   color: var(--color-text-faint);
-  line-height: var(--line-height-body);
-`;
-
-// One line per Uplink that augments or contributes to the widget, making the
-// addition explicit next to the base description. Accent-toned so it reads as
-// an extension rather than part of the stock description.
-const UplinkAddLine = styled.span`
-  font-size: var(--font-size-compact);
-  color: var(--color-accent-fg);
   line-height: var(--line-height-body);
 `;
 

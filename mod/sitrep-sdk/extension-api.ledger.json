@@ -17245,6 +17245,26 @@
         "note": "The one kit-wide tiny size, 3x3, which every widget with a tiny mode shrinks to"
       },
       {
+        "key": "ui-kit . Tag",
+        "note": "New: the squared uppercase label for a property, moved into the kit from the app so an Uplink can use it"
+      },
+      {
+        "key": "ui-kit . TagProps",
+        "note": "New: props of Tag, any span attribute passes through"
+      },
+      {
+        "key": "ui-kit . TagProps#label",
+        "note": "New: the tag's words, which pick its colour"
+      },
+      {
+        "key": "ui-kit . TagProps#name?",
+        "note": "New: marks a tag that names a specific thing, drawn as written at regular weight in the compact text size"
+      },
+      {
+        "key": "ui-kit . TagProps#symbol?",
+        "note": "New: a filled segment at the start of a tag holding a mark such as a plus"
+      },
+      {
         "key": "ui-kit . ThresholdKind",
         "note": "what a threshold line is for, moved here unchanged"
       },

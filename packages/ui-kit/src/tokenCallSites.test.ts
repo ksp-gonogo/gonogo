@@ -49,6 +49,8 @@ const AWAITING_RULING: Readonly<Record<string, string>> = {};
 const NOT_DRAWN_TOGETHER: Readonly<Record<string, string>> = {
   "Switch.tsx SwitchThumb: text-faint background on go-mark":
     "the thumb is faint only while unchecked, when the track is raised; the scan does not pair two components' $checked",
+  "Tag.tsx TagSymbolInk: surface-panel color on surface-panel":
+    "the symbol is drawn over TagSymbol, its parent, which fills with currentColor; a parent's fill is not a ground the scan can see",
   "Tabs.tsx Tabs__Button: text-inverse color on surface-sunken":
     "the active label is drawn over Tabs__Blob, a sibling painted in accent-bg; a sibling's paint is not a ground the scan can see",
 };

@@ -32,9 +32,9 @@ export type BadgeSize = "sm" | "md";
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   /**
    * The state the badge shows. Sets its colour and, with `report`, where it
-   * ranks in the panel's summary. Omit it, or pass `neutral`, for a purely
-   * decorative badge (a kind tag, a count), which renders a grey chip and never
-   * moves a panel summary.
+   * ranks in the panel's summary. Omit it, or pass `neutral`, for a state with
+   * no good or bad side (such as "1 of 2 crew"), which renders a grey chip and
+   * never moves a panel summary.
    */
   tone?: Tone;
   /** Text size, `sm` or `md`. Absent, `md`. */
@@ -72,15 +72,17 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 /**
- * A compact uppercase pill that shows a label in one `Tone`. Useful for telling
- * the operator the state of a part, vessel or connection at a glance, or for
- * tagging a kind or a count. Used by the panel's summary badge and
- * {@link StreamStatusBadge}.
+ * A compact uppercase pill that shows a state in one `Tone`: something that can
+ * change while the operator watches, such as a connection, an alarm or "1 of 2
+ * crew". Useful for telling the operator the state of a part, vessel or
+ * connection at a glance. Used by the panel's summary badge and
+ * {@link StreamStatusBadge}. A fixed property of the thing it labels, such as a
+ * widget's kind or owner, is a {@link Tag} instead.
  *
  * A stateful tone (`info`, `go`, `caution`, `warn`, `nogo` or `offline`; `Tone`
  * has the full set and `Button` takes a narrower one) draws an outlined pill in
  * that tone's colour, with a glow that grows with severity. No tone, or
- * `neutral`, draws a grey rounded chip for a kind tag or a count.
+ * `neutral`, draws a grey rounded chip for a state with no good or bad side.
  *
  * @example
  * ```tsx
