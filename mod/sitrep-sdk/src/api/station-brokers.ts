@@ -33,24 +33,20 @@ function slot(): Slot {
  * the main screen holds, such as a media stream.
  *
  * For an Uplink whose client keeps a long-lived object outside React, such as a
- * media connection, and so cannot use `useUplinkRelay`. `attach` is never
- * called on the main screen, and is called on a station whether the Uplink
- * registered before the station screen came up or after. It receives a
- * {@link StationBroker}, whose `relay` calls a method of the Uplink's
- * registered handle on the main screen. The broker can arrive before the
- * connection to the main screen does, and `relay` rejects until it is up, so a
- * caller retries rather than giving up.
- *
- * A media connection a station opens to a server on the main screen's network
- * is negotiated through `relay`: the station sends its offer, and the handle on
- * the main screen answers it, through {@link RelayCaller.bridgeMedia} when the
- * station joined through the relay's endpoint.
+ * media connection, and so cannot use `useUplinkRelay` or `useHostIceServers`.
+ * `attach` is never called on the main screen, and is called on a station
+ * whether the Uplink registered before the station screen came up or after.
+ * It receives a {@link StationBroker}: `relay` calls a method of the Uplink's
+ * registered handle on the main screen, and `iceServers` gives the turn and
+ * STUN servers for a connection the station opens itself. The broker can
+ * arrive before the connection to the main screen does, and `relay` rejects until it
+ * is up, so a caller retries rather than giving up.
  *
  * ```ts
  * // The object on the right is the Uplink's own long-lived one, such as its
- * // media connection, with a method of its own that takes the relay.
- * registerStationBroker("my-uplink", ({ relay }) =>
- *   myMediaConnection.routeThrough(relay));
+ * // media connection, with a method of its own that takes the two.
+ * registerStationBroker("my-uplink", ({ relay, iceServers }) =>
+ *   myMediaConnection.routeThrough(relay, iceServers));
  * ```
  *
  * Last write wins: registering the same id again replaces the previous attach,

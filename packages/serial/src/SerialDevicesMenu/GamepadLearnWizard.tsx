@@ -185,7 +185,8 @@ export function GamepadLearnWizard({
           {assignedCount} of {GAMEPAD_ROLES.length} roles assigned
         </Progress>
         <FinishedHint role="status" aria-live="polite">
-          Walked every role.
+          Walked every role. Re-open this wizard any time to relearn one, it's
+          safe to run again, and never touches existing bindings.
         </FinishedHint>
         <Actions>
           <Button variant="primary" type="button" onClick={onClose}>

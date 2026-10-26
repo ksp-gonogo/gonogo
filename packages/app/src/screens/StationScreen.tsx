@@ -58,9 +58,10 @@ import {
 } from "../missionProfiles";
 import { HostDisconnectBanner } from "../peer/HostDisconnectBanner";
 import { HostVersionBanner } from "../peer/HostVersionBanner";
+import { parseRelayUrl } from "../peer/iceServers";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
-import type { ConnStatus } from "../peer/PeerClientService";
+import type { ConnStatus, RelayLookupState } from "../peer/PeerClientService";
 import { PeerClientService } from "../peer/PeerClientService";
 import { StationInfoBroadcaster } from "../peer/StationInfoBroadcaster";
 import { PushClientProvider } from "../pushToMain/PushClientContext";
@@ -84,6 +85,7 @@ import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { UplinkLoadFailureScreen } from "../uplinks/UplinkLoadFailureScreen";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
+const RELAY_URL_KEY = "gonogo-station-relay-url";
 
 const DEFAULT_CONFIG: DashboardConfig = {
   items: [],
@@ -98,8 +100,8 @@ export function StationScreen() {
   const [connStatus, setConnStatus] = useState<ConnStatus>("idle");
   const [hostNotFound, setHostNotFound] = useState(false);
   const [brokerUnreachable, setBrokerUnreachable] = useState(false);
-  const [brokerClosed, setBrokerClosed] = useState(false);
   const [hostChannelFailed, setHostChannelFailed] = useState(false);
+  const [relayLookup, setRelayLookup] = useState<RelayLookupState>("none");
   const [progress, setProgress] = useState<ConnectProgress>();
   const [hostInput, setHostInput] = useState(
     localStorage.getItem(HOST_ID_KEY) ?? "",
@@ -216,7 +218,7 @@ export function StationScreen() {
   // Each Uplink that registered a station broker gets one relaying through this station's link; a registration arriving later, as a bundle loads, is attached then.
   useEffect(() => attachStationBrokers(client), [client]);
 
-  function attemptConnect(hostId: string) {
+  function attemptConnect(hostId: string, relayUrl?: string | null) {
     const trimmed = hostId.trim().toUpperCase();
     if (!trimmed) return;
     localStorage.setItem(HOST_ID_KEY, trimmed);
@@ -259,8 +261,8 @@ export function StationScreen() {
         setBrokerUnreachable(!reachable);
       }),
     );
-    unsubsRef.current.push(client.onBrokerClosed(setBrokerClosed));
     unsubsRef.current.push(client.onHostChannelFailed(setHostChannelFailed));
+    unsubsRef.current.push(client.onRelayLookup(setRelayLookup));
     // `HOST_ID_KEY` holds the stable share-code. The host's broker peer id
     // is derived from it (`gonogo-host-<code>`) and never changes for a
     // given code, so a refresh re-derives the same target, no persistence
@@ -280,7 +282,7 @@ export function StationScreen() {
         setConnected(true);
       }),
     );
-    client.connect(trimmed);
+    client.connect(trimmed, relayUrl);
   }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only, attemptConnect and client are captured once at mount; re-running would cause reconnect loops
@@ -293,13 +295,21 @@ export function StationScreen() {
     // from the second load onwards.
     const params = new URLSearchParams(globalThis.location.search);
     const hostFromUrl = params.get("host");
+    /* The relay rides along with the host code: a link replaces the stored one, and a link without a relay clears it. The URL is stripped below, so the second mount of a StrictMode pair reads the stored value. */
+    if (hostFromUrl) {
+      const linked = parseRelayUrl(params.get("relay"));
+      if (linked) localStorage.setItem(RELAY_URL_KEY, linked);
+      else localStorage.removeItem(RELAY_URL_KEY);
+    }
+    const relayFromUrl = parseRelayUrl(localStorage.getItem(RELAY_URL_KEY));
     if (hostFromUrl) {
       const url = new URL(globalThis.location.href);
       url.searchParams.delete("host");
+      url.searchParams.delete("relay");
       globalThis.history.replaceState({}, "", url.toString());
     }
     const initialHost = hostFromUrl ?? localStorage.getItem(HOST_ID_KEY);
-    if (initialHost) attemptConnect(initialHost);
+    if (initialHost) attemptConnect(initialHost, relayFromUrl);
     return () => {
       unsubsRef.current.forEach((u) => {
         u();
@@ -339,8 +349,8 @@ export function StationScreen() {
                 connStatus={connStatus}
                 hostNotFound={hostNotFound}
                 brokerUnreachable={brokerUnreachable}
-                brokerClosed={brokerClosed}
                 hostChannelFailed={hostChannelFailed}
+                relayLookup={relayLookup}
                 progress={progress}
                 everConnected={everConnected}
                 onHostInputChange={setHostInput}

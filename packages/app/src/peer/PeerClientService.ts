@@ -5,11 +5,11 @@ import type { ConnectProgress } from "@ksp-gonogo/ui";
 import Peer, { type DataConnection } from "peerjs";
 import type { RunningUplink } from "../uplinks/loaderState";
 import type { HostUplinkFailure } from "../uplinks/loadFailures";
+import { type ConnectionPath, readConnectionPath } from "./connectionPath";
 import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
-import { EndpointHostLink } from "./endpointHostLink";
-import { joinMetadata, readJoin } from "./endpointJoin";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
+import { fetchRelayIceConfig, withStun } from "./iceServers";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type {
@@ -21,8 +21,6 @@ import type {
 import { asPeerMessage, HOST_SILENCE_MS } from "./protocol";
 import { RequestTracker } from "./RequestTracker";
 import { RetryPolicy } from "./RetryPolicy";
-import { STUN_SERVERS } from "./relayAddress";
-import type { StationLink } from "./stationLink";
 import {
   getStationCredential,
   getStationKey,
@@ -54,7 +52,7 @@ const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
  * How long one attempt may run with no connection, error or close before it is
  * torn down and the next is scheduled. The public broker never answers an offer
  * to an id it does not hold, so silence is the normal result of reaching for a
- * main screen that is not up yet. Long enough for a join through the endpoint to open.
+ * main screen that is not up yet. Long enough for a relayed connection to open.
  */
 const DEFAULT_ATTEMPT_DEADLINE_MS = 10_000;
 
@@ -65,6 +63,14 @@ const DEFAULT_ATTEMPT_DEADLINE_MS = 10_000;
  * direct path, which a further identical attempt does not change.
  */
 const MAX_HOST_CHANNEL_ATTEMPTS = 4;
+
+/**
+ * What the relay named in the station's link did: `none` when the link names
+ * no relay, `pending` while its `/ice-config` is being fetched, `used` when
+ * its relay entries are in the station's ICE config, `unreachable` when the
+ * fetch failed.
+ */
+export type RelayLookupState = "none" | "pending" | "used" | "unreachable";
 
 /** PeerJS error shape: `.type` is the discriminator. */
 interface PeerJsError extends Error {
@@ -130,7 +136,7 @@ export interface PeerClientOptions {
  * per-field `ListenerSet<[...]>` fired; the dispatcher handlers still derive
  * these args, so swapping `.fire`/`.add` for `emit`/`on` is behaviour-
  * preserving. Several keys (`connStatus`, `hostRestart`, `flightChange`,
- * `hostUnavailable`, ...) aren't wire messages.
+ * `hostUnavailable`, `relayIceServers`, ...) aren't wire messages.
  */
 type ClientEventMap = {
   data: [sourceId: string, key: string, value: unknown];
@@ -138,6 +144,7 @@ type ClientEventMap = {
   connStatus: [status: ConnStatus];
   connectProgress: [progress: ConnectProgress];
   schema: [sources: PeerSchemaSource[]];
+  relayIceServers: [servers: RTCIceServer[]];
   hostHello: [info: { version: string; buildTime: string }];
   hostRestart: [];
   gonogoCountdownStart: [t0Ms: number];
@@ -161,8 +168,8 @@ type ClientEventMap = {
   approval: [approval: StationApproval];
   writeRefused: [refused: string];
   brokerReachable: [reachable: boolean];
-  brokerClosed: [closed: boolean];
   hostChannelFailed: [failed: boolean];
+  relayLookup: [state: RelayLookupState];
   // Sitrep telemetry-stream forwarding: see protocol.ts's `sitrep-frame`/
   // `sitrep-command-*` doc comment. `sitrepFrame` carries the host-relayed
   // `ServerMessage` verbatim (unwrapped from its `sitrep-frame` envelope);
@@ -185,11 +192,8 @@ type ClientEventMap = {
 export class PeerClientService {
   private readonly deliveryMeter = new DeliveryMeter("station");
   private peer: Peer | null = null;
-  private conn: (StationLink & { peerConnection?: RTCPeerConnection }) | null =
-    null;
+  private conn: DataConnection | null = null;
   private lastHostMessageAt = 0;
-  /** The endpoint link this station offered the main screen, until it is answered or the direct path opens. */
-  private pendingEndpoint: { id: string; link: EndpointHostLink } | null = null;
   private silenceTimer: ReturnType<typeof setInterval> | null = null;
   private attemptTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly attemptDeadlineMs: number;
@@ -227,13 +231,30 @@ export class PeerClientService {
   };
   /** Last broker-reachability verdict; `null` until the first attempt resolves. */
   private brokerReachable: boolean | null = null;
-  /** Set when the broker closed this station's socket after answering it, until the station connects. */
-  private brokerClosed = false;
   /** Attempts in a row that reached the host stage and never opened the data channel. */
   private hostChannelStalls = 0;
   /** Set when the last attempt ended because the broker had no such host, which is a wait for the main rather than a stalled channel. */
   private hostMissingOnLastAttempt = false;
   private hostChannelFailed = false;
+  /** The relay address from the station's link, or null. */
+  private linkRelayUrl: string | null = null;
+  private relayLookup: RelayLookupState = "none";
+  private relayLookupPromise: Promise<void> | null = null;
+  /** Bumped by every `connect`, so a lookup that settles after a newer connect starts does not open a second Peer. */
+  private connectEpoch = 0;
+  // Relay TURN creds from the latest `relay-ice-servers` broadcast. Applied to
+  // the station's own Peer (see applyRelayIceServers) AND exposed here so an
+  // Uplink's station broker can feed them to a media connection of its own,
+  // a path separate from PeerJS. Empty until the first broadcast arrives.
+  private relayIceServers: RTCIceServer[] = [];
+  /*
+   * Whether this station has shown it needs the relay: its host channel
+   * stalled, or the one that opened is carried by it. Until then the relay
+   * servers are withheld from the station's media connections, because every
+   * connection handed them allocates a relay port per local network even when
+   * a direct path would have worked.
+   */
+  private relayNeeded = false;
   private hostVersion: { version: string; buildTime: string } | null = null;
   private hostSessionToken: string | null = null;
   /** The share code last passed to `connect`, kept so the station can be taken back. */
@@ -328,9 +349,9 @@ export class PeerClientService {
   }
 
   /*
-   * A page that unloads without closing its RTCPeerConnections leaves the
-   * other end holding the session until ICE gives up on it. Closing the Peer on
-   * pagehide ends it straight away.
+   * A page that unloads without closing its RTCPeerConnections leaves their
+   * relay allocations on the TURN server until they expire, each one holding a
+   * relay port. Closing the Peer on pagehide releases them straight away.
    */
   private readonly onPageHide = () => this.tearDownPeer();
 
@@ -347,7 +368,12 @@ export class PeerClientService {
     this.connect(this.shareCode);
   };
 
-  connect(code: string) {
+  /**
+   * `relayUrl` is the relay address from the station's link. Omitted, the
+   * relay of an earlier call is kept, so pressing Connect again on the
+   * connect screen reuses it.
+   */
+  connect(code: string, relayUrl?: string | null) {
     this.deliveryMeter.start();
     if (typeof window !== "undefined") {
       window.removeEventListener("pagehide", this.onPageHide);
@@ -366,9 +392,50 @@ export class PeerClientService {
     this.tearDownPeer();
     this.hostChannelStalls = 0;
     this.setHostChannelFailed(false);
-    this.setBrokerClosed(false);
     this.connectProgress = { startedAt: Date.now(), attempt: 0, entered: {} };
+    this.connectEpoch += 1;
+    if (relayUrl !== undefined) this.linkRelayUrl = relayUrl;
+    this.startRelayLookup();
     this.openPeer();
+  }
+
+  /**
+   * Fetch the linked relay's entries so the first offer already carries
+   * them: a station whose direct paths all fail would otherwise never reach
+   * the host, the only other source of these entries being the host's own
+   * channel. A failed fetch leaves the STUN-only path.
+   */
+  private startRelayLookup(): void {
+    const relayUrl = this.linkRelayUrl;
+    if (!relayUrl) {
+      this.relayLookupPromise = null;
+      this.setRelayLookup("none");
+      return;
+    }
+    this.setRelayLookup("pending");
+    const lookup = fetchRelayIceConfig(relayUrl).then((config) => {
+      if (this.relayLookupPromise !== lookup) return;
+      this.relayLookupPromise = null;
+      if (config && config.iceServers.length > 0) {
+        this.applyRelayIceServers(config.iceServers);
+        this.setRelayLookup("used");
+      } else {
+        this.setRelayLookup("unreachable");
+      }
+    });
+    this.relayLookupPromise = lookup;
+  }
+
+  private setRelayLookup(state: RelayLookupState): void {
+    if (this.relayLookup === state) return;
+    this.relayLookup = state;
+    this.events.emit("relayLookup", state);
+  }
+
+  onRelayLookup(cb: (state: RelayLookupState) => void): () => void {
+    const unsub = this.events.on("relayLookup", cb);
+    cb(this.relayLookup);
+    return unsub;
   }
 
   /**
@@ -379,6 +446,14 @@ export class PeerClientService {
    */
   private openPeer() {
     if (!this.hostPeerId) return;
+    const lookup = this.relayLookupPromise;
+    if (lookup) {
+      const epoch = this.connectEpoch;
+      void lookup.then(() => {
+        if (epoch === this.connectEpoch) this.openPeer();
+      });
+      return;
+    }
     const { entered } = this.connectProgress;
     const hostMissing = this.hostMissingOnLastAttempt;
     this.hostMissingOnLastAttempt = false;
@@ -388,6 +463,8 @@ export class PeerClientService {
       entered.data === undefined
     ) {
       this.hostChannelStalls += 1;
+      this.markRelayNeeded();
+      this.connectProgress = { ...this.connectProgress, viaRelay: true };
       if (this.hostChannelStalls >= MAX_HOST_CHANNEL_ATTEMPTS) {
         logger.warn(
           `[PeerClient] host channel never opened in ${this.hostChannelStalls} attempts: stopping`,
@@ -418,35 +495,34 @@ export class PeerClientService {
       entered: { broker: Date.now() },
     };
     this.events.emit("connectProgress", this.connectProgress);
+    // Stations start on the public STUN list plus whatever TURN entries they
+    // already hold: those of the relay named in the link, or an earlier
+    // `relay-ice-servers` from the host. There is no relay default, since
+    // `turn:localhost:3478` means the phone itself.
+    //
     // `key: "gonogo"` puts the station in our private namespace on the
     // public broker. MUST match PeerHostService, a station with a different
     // key is invisible to the host on the broker even if the ids match.
     const peer = new Peer(this.stationPeerId, {
       ...peerBrokerOptions(),
-      config: { iceServers: STUN_SERVERS },
+      config: { iceServers: withStun(this.relayIceServers) },
     });
     this.peer = peer;
     this.armAttemptDeadline(peer);
-    let answered = false;
     peer.on("open", () => {
       if (this.peer !== peer) return;
-      answered = true;
       // Reaching `open` means the broker answered and holds our id, so any earlier "can't reach the broker" verdict is stale.
       this.setBrokerReachable(true);
       this.enterStage("host");
-      this.joinHost(peer);
+      this.connectToHost();
     });
-    peer.on("connection", (conn) => this.takeEndpointAnswer(peer, conn));
     peer.on("error", (err) => {
       if (this.peer !== peer) return;
       /* Classify BEFORE the peer-unavailable branches below: a broker we
          never reached is a different fault from a host that isn't there,
          and only this branch can tell the operator which one they have. */
       if (isPeerJsError(err) && BROKER_ERROR_TYPES.has(err.type ?? "")) {
-        /* PeerJS reports a socket the broker closed the same way as one that
-           never opened, and only the second means this device is offline. */
-        if (answered) this.setBrokerClosed(true);
-        else this.setBrokerReachable(false);
+        this.setBrokerReachable(false);
       }
       // PeerJS emits `peer-unavailable` on the *Peer* (not the conn) when
       // any outgoing peer.connect() targets a missing id, so a failed
@@ -481,7 +557,7 @@ export class PeerClientService {
 
   /** Open the data channel to the host's derived id. Requires the Peer to
    *  be open and `hostPeerId` set. */
-  private connectToHost(metadata?: Record<string, unknown>): void {
+  private connectToHost(): void {
     if (!this.peer || !this.hostPeerId) return;
     logger.info(`[PeerClient] connecting to host=${this.hostPeerId}`);
     /*
@@ -494,115 +570,7 @@ export class PeerClientService {
      * radio chunks play in arrival order. Delivery is unchanged either way, so
      * the only cost is head-of-line waiting behind a lost packet's retransmit.
      */
-    const conn = this.peer.connect(this.hostPeerId, {
-      reliable: true,
-      metadata,
-    });
-    this.wireHostLink(conn);
-    /* A large message such as an Uplink bundle arrives in many pieces and
-       raises `data` only once the last one is in. On a slow link that takes
-       longer than the silence limit, and each piece shows the host is there. */
-    conn.on("open", () => {
-      conn.dataChannel?.addEventListener("message", (event) => {
-        if (this.conn !== conn) return;
-        this.lastHostMessageAt = Date.now();
-        const data = (event as MessageEvent).data;
-        this.countBundlePiece(
-          data instanceof ArrayBuffer
-            ? data.byteLength
-            : data instanceof Blob
-              ? data.size
-              : 0,
-        );
-      });
-    });
-  }
-
-  /**
-   * Connect to the main screen, offering the relay's endpoint as well: the
-   * data connection carries this station's offer for the endpoint, and a main
-   * screen running one answers with a connection of its own back to this
-   * station, which then joins through the endpoint. A main screen without
-   * one serves the data connection. A browser that cannot make an offer
-   * connects directly only.
-   */
-  private joinHost(peer: Peer): void {
-    const hostPeerId = this.hostPeerId;
-    if (!hostPeerId) return;
-    if (typeof RTCPeerConnection === "undefined") {
-      this.connectToHost();
-      return;
-    }
-    const link = new EndpointHostLink(hostPeerId);
-    const id = `gne-${Math.random().toString(36).slice(2, 10)}`;
-    this.pendingEndpoint = { id, link };
-    link.createOffer().then(
-      (sdp) => {
-        if (this.peer !== peer) return;
-        this.connectToHost(joinMetadata({ kind: "join", id, sdp }));
-      },
-      () => {
-        if (this.peer !== peer) return;
-        this.dropPendingEndpoint();
-        this.connectToHost();
-      },
-    );
-  }
-
-  /**
-   * A connection the main screen opened to this station. Its only use is to
-   * carry the endpoint's answer to this station's offer, so it is closed as
-   * soon as it is read.
-   */
-  private takeEndpointAnswer(peer: Peer, conn: DataConnection): void {
-    const answer = readJoin(conn.metadata);
-    try {
-      conn.close();
-    } catch {
-      /* already closed */
-    }
-    const pending = this.pendingEndpoint;
-    if (this.peer !== peer || answer?.kind !== "answer") return;
-    if (!pending || answer.id !== pending.id) return;
-    this.pendingEndpoint = null;
-    const { link } = pending;
-    const direct = this.conn;
-    logger.info(
-      `[PeerClient] joining host=${this.hostPeerId} through the endpoint`,
-    );
-    this.wireHostLink(link);
-    try {
-      direct?.close();
-    } catch {
-      /* already closed */
-    }
-    link.onPiece = (bytes) => {
-      if (this.conn !== link) return;
-      this.lastHostMessageAt = Date.now();
-      this.countBundlePiece(bytes);
-    };
-    link.accept(answer.sdp).catch((err: unknown) => {
-      logger.warn("[PeerClient] the endpoint's answer did not apply", {
-        error: err instanceof Error ? err.message : String(err),
-      });
-      if (this.conn === link) this.retryPolicy.handleUnexpectedClose();
-    });
-  }
-
-  /** Close the endpoint link offered to the main screen and not taken. */
-  private dropPendingEndpoint(): void {
-    const pending = this.pendingEndpoint;
-    this.pendingEndpoint = null;
-    pending?.link.close();
-  }
-
-  /**
-   * Run the station's side of a link to the main screen, whichever path
-   * carries it.
-   */
-  private wireHostLink(
-    conn: StationLink & { peerConnection?: RTCPeerConnection },
-  ): void {
+    const conn = this.peer.connect(this.hostPeerId, { reliable: true });
     this.conn = conn;
     /* Every handler below drops an event from a connection that is no longer
        the current one. Closing a connection emits its `close` synchronously,
@@ -626,8 +594,8 @@ export class PeerClientService {
       this.clearAttemptDeadline();
       this.retryPolicy.onConnected();
       this.hostChannelStalls = 0;
-      this.setBrokerClosed(false);
       this.enterStage("data");
+      void this.noteRelayIfCarried(conn);
       // First, so the host knows whether this station is approved before any request it sends.
       conn.send({
         type: "station-credential",
@@ -640,13 +608,17 @@ export class PeerClientService {
       this.sendDataMode("selective");
       this.emitConnStatus("connected");
       this.watchForSilence();
+      /* A large message such as an Uplink bundle arrives in many pieces and
+         raises `data` only once the last one is in. On a slow link that takes
+         longer than the silence limit, and each piece shows the host is there. */
+      conn.dataChannel?.addEventListener("message", (event) => {
+        if (!current()) return;
+        this.lastHostMessageAt = Date.now();
+        this.countBundlePiece(event);
+      });
     });
     conn.on("data", (raw) => {
       if (!current()) return;
-      /* A main screen running the endpoint holds a station's data connection
-         unserved, so the first message on it, not its opening, says this is
-         the path the station stays on. */
-      this.dropPendingEndpoint();
       this.lastHostMessageAt = Date.now();
       const msg = asPeerMessage(raw);
       if (msg) this.handleMessage(msg);
@@ -705,7 +677,6 @@ export class PeerClientService {
 
   private tearDownPeer() {
     this.clearAttemptDeadline();
-    this.dropPendingEndpoint();
     if (this.silenceTimer !== null) {
       clearInterval(this.silenceTimer);
       this.silenceTimer = null;
@@ -1498,28 +1469,6 @@ export class PeerClientService {
   }
 
   /**
-   * Fires `true` when the broker closed this station's socket after
-   * answering it, and `false` once the station connects or a new connect
-   * begins. Replays the current verdict on subscribe.
-   */
-  onBrokerClosed(cb: (closed: boolean) => void) {
-    const unsub = this.events.on("brokerClosed", cb);
-    cb(this.brokerClosed);
-    return unsub;
-  }
-
-  private setBrokerClosed(closed: boolean): void {
-    if (this.brokerClosed === closed) return;
-    this.brokerClosed = closed;
-    if (closed) {
-      logger.warn(
-        "[PeerClient] the PeerJS broker closed this station's socket after answering it",
-      );
-    }
-    this.events.emit("brokerClosed", closed);
-  }
-
-  /**
    * Fires `true` when the station stops retrying because the broker answered
    * but the host's data channel never opened, and `false` when a new connect
    * begins. Replays the current verdict on subscribe.
@@ -1704,6 +1653,9 @@ export class PeerClientService {
       );
       this.events.emit("schema", msg.sources);
     },
+    "relay-ice-servers": (msg) => {
+      this.applyRelayIceServers(msg.iceServers);
+    },
     "host-heartbeat": () => {},
     "station-superseded": () => {
       logger.info("[PeerClient] station taken over by another page");
@@ -1822,9 +1774,16 @@ export class PeerClientService {
    * carry a few bytes of framing each, so the count stops short of the total
    * until the response itself arrives.
    */
-  private countBundlePiece(size: number): void {
+  private countBundlePiece(event: Event): void {
     const arriving = this.arrivingBundle;
     if (!arriving) return;
+    const data = (event as MessageEvent).data;
+    const size =
+      data instanceof ArrayBuffer
+        ? data.byteLength
+        : data instanceof Blob
+          ? data.size
+          : 0;
     arriving.received = Math.min(arriving.received + size, arriving.total);
     this.bundleProgressListeners.get(arriving.requestId)?.(
       arriving.received,
@@ -1836,6 +1795,69 @@ export class PeerClientService {
     const channel = deliveryChannel(msg);
     if (channel) this.deliveryMeter.record(channel);
     this.dispatcher.dispatch(msg, undefined);
+  }
+
+  /**
+   * Inject the host's relay iceServers into this station's Peer config.
+   * Mirrors `PeerHostService.refreshIceConfig`: PeerJS doesn't expose a
+   * public setter for `iceServers`, but `_options.config` is read every
+   * time the Peer constructs an underlying RTCPeerConnection, so a fresh
+   * `peer.connect()` picks up the new value.
+   * Existing connections (the station→host data channel) keep their
+   * already-negotiated ICE pair and aren't disturbed.
+   */
+  private applyRelayIceServers(iceServers: RTCIceServer[]): void {
+    // Expose for station brokers regardless of whether the Peer is up yet, an Uplink's media connection reads these for itself.
+    this.relayIceServers = iceServers;
+    this.events.emit("relayIceServers", this.exposedRelayIceServers());
+    if (!this.peer) return;
+    const opts: unknown = Reflect.get(this.peer, "_options");
+    if (typeof opts === "object" && opts !== null) {
+      Reflect.set(opts, "config", { iceServers: withStun(iceServers) });
+      logger.info(
+        `[PeerClient] applied ${iceServers.length} iceServer(s) from the host, future connections on this Peer can now use TURN`,
+      );
+    }
+  }
+
+  /** Latest relay turn creds the host has broadcast, empty until one arrives and until this station has shown it needs the relay. */
+  getRelayIceServers(): RTCIceServer[] {
+    return this.exposedRelayIceServers();
+  }
+
+  private exposedRelayIceServers(): RTCIceServer[] {
+    return this.relayNeeded ? this.relayIceServers : [];
+  }
+
+  /**
+   * Release the relay servers to this station's media connections, for a
+   * station that cannot reach the main screen directly.
+   */
+  markRelayNeeded(): void {
+    if (this.relayNeeded) return;
+    this.relayNeeded = true;
+    if (this.relayIceServers.length > 0) {
+      this.events.emit("relayIceServers", this.relayIceServers);
+    }
+  }
+
+  private async noteRelayIfCarried(conn: DataConnection): Promise<void> {
+    const pc = (conn as DataConnection & { peerConnection?: RTCPeerConnection })
+      .peerConnection;
+    if (!pc) return;
+    const path: ConnectionPath | null = await readConnectionPath(pc);
+    /* A station off the main screen's network needs the relay for media even
+       when its own link reached the main screen directly: the media comes from
+       another machine on that network, which offers only its local address. */
+    if (path === "internet" || path === "relayed") this.markRelayNeeded();
+    if (path !== "relayed") return;
+    this.connectProgress = { ...this.connectProgress, relayed: true };
+    this.events.emit("connectProgress", this.connectProgress);
+  }
+
+  /** Notified whenever the host broadcasts a fresh set of relay turn creds. */
+  onRelayIceServersChange(cb: (servers: RTCIceServer[]) => void): () => void {
+    return this.events.on("relayIceServers", cb);
   }
 
   /**

@@ -5,7 +5,7 @@
  */
 
 import type { DataSourceStatus } from "@ksp-gonogo/core";
-import { relayBaseUrl } from "../peer/relayAddress";
+import { relayBaseUrl } from "../peer/iceServers";
 import { say } from "./copy";
 import type { RelayHealth } from "./useRelayHealth";
 import type {

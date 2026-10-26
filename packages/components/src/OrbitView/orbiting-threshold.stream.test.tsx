@@ -45,7 +45,7 @@ function setup(sma: number, ecc: number, meanAnomalyAtEpoch = 0) {
       vesselId: "ov-orb-vessel",
       name: "Test Vessel",
       vesselType: 0,
-      situation: 3,
+      situation: 0,
       parentBodyIndex: 1,
     });
   });

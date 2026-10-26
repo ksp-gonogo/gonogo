@@ -15,11 +15,7 @@ import {
   useProcessor,
 } from "@ksp-gonogo/sitrep-client";
 import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
-import {
-  apsidesExist,
-  type ControlFrame,
-  Situation,
-} from "@ksp-gonogo/sitrep-sdk";
+import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import {
   declinedState,
   derivedMarking,
@@ -111,11 +107,9 @@ function OrbitViewComponent({
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;
   const argPe = orbit?.argPe ?? undefined;
-  const identity = useStreamOptional<VesselIdentity>("vessel.identity");
-  const parentBodyName = useBodyName(identity?.parentBodyIndex);
-  // KSP keeps the last solved orbit on a craft at rest, so its figures are a frozen arc with no flight behind them.
-  const restingLabel = restingSituationLabel(identity?.situation);
-  const resting = restingLabel !== undefined;
+  const parentBodyName = useBodyName(
+    useStreamOptional<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+  );
   // The body name is a label, so it holds off the last observation.
   const refBody = useBodyName(orbitObserved?.referenceBodyIndex);
   const declined =
@@ -161,8 +155,7 @@ function OrbitViewComponent({
 
   // Periapsis, not apoapsis, is the orbit signal: apoapsis is `null` on a hyperbolic orbit.
   // The argument of periapsis places the conic in its plane, so an orbit without one cannot be drawn or handed to an overlay.
-  const hasConic =
-    !resting && sma != null && eccentricity != null && periapsisR != null;
+  const hasConic = sma != null && eccentricity != null && periapsisR != null;
   const hasOrbit = hasConic && argPe != null;
 
   // A withheld trajectory is not a missing orbit; the two get different sentences because they have different remedies.
@@ -174,16 +167,12 @@ function OrbitViewComponent({
   const diagramSlot =
     showDiagramConfig &&
     layout.hasDiagramRoom &&
-    (hasTrajectory ||
-      (hasOrbit && withheld !== null) ||
-      (resting && body?.radius !== undefined));
+    (hasTrajectory || (hasOrbit && withheld !== null));
 
   const escaping = hasOrbit && eccentricity.greaterThanOrEqual(1);
-  const pill = resting
-    ? { label: restingLabel, tone: "neutral" as const }
-    : hasOrbit
-      ? orbitPill(hasOrbit, escaping, isOrbiting, layout.compactBadge)
-      : null;
+  const pill = hasOrbit
+    ? orbitPill(hasOrbit, escaping, isOrbiting, layout.compactBadge)
+    : null;
   // The frame the figures are read in. An apsis needs a centre, so a centreless Control Frame is read about the vessel's own body instead.
   const factsReading = useProcessor(CELESTIAL_FACTS);
   // A held catalogue is still the catalogue.
@@ -223,8 +212,7 @@ function OrbitViewComponent({
       ownFrameLabel={readFrame.ownFrameLabel}
       modelState={modelState}
       modelNote={modelDeclined?.note}
-      noOrbit={!hasConic && withheld === null && !resting ? { declined } : null}
-      atRest={resting}
+      noOrbit={!hasConic && withheld === null ? { declined } : null}
       withheld={diagramSlot ? null : withheld}
       grid={{
         tight: layout.tight,
@@ -247,30 +235,7 @@ function OrbitViewComponent({
     />
   );
 
-  // The body alone, framed by a circle just clear of its surface; the craft has no place the diagram can mark.
-  const surfaceR = body?.radius === undefined ? 0 : body.radius * 1.25;
-  const diagram = resting ? (
-    body?.radius === undefined ? null : (
-      <OrbitDiagram
-        variant="full"
-        bodyOnly
-        trajectoryPath={null}
-        trailPath={null}
-        sma={surfaceR}
-        ecc={0}
-        apoapsis={surfaceR}
-        periapsis={surfaceR}
-        craft={null}
-        argPe={0}
-        showMarkers={false}
-        bodyColor={body.color}
-        bodyRadius={body.radius}
-        rotationAngleDeg={rotates === false ? null : rotationAngleDeg}
-        atmosphereDepthM={body.hasAtmosphere ? body.maxAtmosphere : null}
-        atmosphereHasOxygen={body.hasOxygen ?? false}
-      />
-    )
-  ) : hasTrajectory ? (
+  const diagram = hasTrajectory ? (
     <OrbitDiagram
       variant="full"
       // `null` on the conic arm, where the diagram draws its own conic.
@@ -326,19 +291,6 @@ function OrbitViewComponent({
       overlay={overlay}
     />
   );
-}
-
-function restingSituationLabel(situation: Situation | undefined) {
-  switch (situation) {
-    case Situation.Landed:
-      return "Landed";
-    case Situation.Splashed:
-      return "Splashed";
-    case Situation.PreLaunch:
-      return "On the pad";
-    default:
-      return undefined;
-  }
 }
 
 registerComponent<OrbitViewConfig>({

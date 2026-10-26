@@ -43,45 +43,10 @@ Once it is in an Uplink's devDependencies the same commands answer to
 | `release` | `bundle`, `bake`, compile the plugin, check the DLL carries what was baked, and `package`, in that order. It refuses when the Uplink's version is not the same in `client/package.json`, in `defineUplinkClient` and in the version folder of `client.url` |
 | `release prepare` | move the version, then run `codegen --check`, `check`, the client's tests, `docs --check` and a full `release` into a scratch folder, and only then commit `release: <id> v<version>` (with `--tag`, tag `<id>-v<version>`; with `--push`, push both in one atomic push). A failure at any step restores every file and makes no commit or tag. It refuses a dirty tree and a tag already on origin |
 | `version` | move the Uplink to its next version in every place it is written (`client/package.json`, its lockfile, `UPLINK_VERSION`, the version folder of `client.url`), then write the page. `--bump auto --commits <file>` reads the bump from the Uplink's own commits and writes its `CHANGELOG.md` section |
-| `deps` | read every dependency the Uplink pins (the wrapped mod, the packages that move with it, a `ckanDepends` mod that lists channels, and gonogo's own packages) against every channel `uplink.json` lists, one row each: pinned, newest stable, which channel said so, and `current`, `behind`, `ahead`, `unwatched`, `vendored` or `unreachable`. Exits 0 when nothing is behind, 10 when something is, 2 when a channel could not be read; `--json` prints `uplink-deps/1`. gonogo's own packages are reported and never counted as behind |
-| `deps bump` | move the pins of the named dependencies, or of every one that is behind, then write the page and run `codegen --check`, `check`, the client's typecheck and tests, `dotnet build` and `dotnet test`, and `docs --check` where a browser is installed. It writes an `uplink-bump/1` result (`--result <file>`) whose verdict is `green`, `red`, or `unverified`: every check passed and none of them touched the new bytes, as for a mod the C# reaches by reflection. Exits 0, 1, 3, and 2 when the bump could not be applied. It touches no git |
-| `deps pin-ckan` | write `mod.ckanVersion`, the pinned version in the spelling CKAN lists it under, with its epoch and leading `v` |
 | `page` | write `README.md`, `gonogo-uplink.json`, `docs/widgets.json` and `docs/spec.json` from what the client registers, with no browser |
 | `render` | render every scene to `renders/` |
 | `story <id>` | render one Storybook story to a PNG, or to a GIF when the story is tagged `playback`; see below |
 | `docs` | write `README.md`, `gonogo-uplink.json`, `docs/widgets.json`, `docs/spec.json` and `docs/assets/`; `docs --check` fails on drift |
-
-### Declaring the channels a mod publishes on
-
-`deps` reads the `mod` block of `uplink.json`. `channels` lists every place the
-wrapped mod publishes, CKAN first where it is listed, and a dependency is read
-on each of them, so one that lags shows as lagging:
-
-```json
-"mod": {
-  "name": "Kerbcast",
-  "tier": "ckan",
-  "ckan": "Kerbcast",
-  "builtAgainst": "1.11.0",
-  "channels": [{ "ckan": "Kerbcast" }, { "github": "ksp-gonogo/kerbcast" }, { "spacedock": 4366 }],
-  "packages": ["@ksp-gonogo/kerbcast", "@ksp-gonogo/kerbcast-react"]
-}
-```
-
-| kind | newest means |
-|---|---|
-| `{ "ckan": "<identifier>" }` | the highest `stable` CKAN-meta entry, by CKAN's own ordering |
-| `{ "github": "owner/repo", "tag"?, "asset"? }` | the release GitHub marks latest, never a prerelease; `tag` is a regular expression whose `version` group reads the version from the tag, and `asset` picks the archive a bump downloads |
-| `{ "githubTags": "owner/repo", "pattern": "^(?<order>\\d{10})-" }` | the highest `order` among the matching tags, for a mod that releases by tag |
-| `{ "spacedock": 1685 }` | the first version SpaceDock lists |
-| `{ "npm": "<package>", "distTag"?: "latest" }` | that dist-tag, never the highest version |
-
-`packages` are npm packages that move with the mod, pinned exactly in
-`client/package.json`. A `ckanDepends` entry may carry `channels` too. An Uplink
-on the `ckan` tier lists the CKAN channel, and a pin that names a prerelease is
-an error in `check` on `main` and a refusal in `release`. `ckanVersion` is the
-pinned release as CKAN lists it, which is what a CKAN relationship's
-`min_version` carries.
 
 ### Seeing a build in the app
 

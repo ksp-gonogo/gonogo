@@ -24,9 +24,11 @@ export const WIZARD_COPY = {
   "welcome.advance": "Setup",
   "welcome.parts":
     "Gonogo has two parts: this app, which runs in a container, and the Gonogo mod, which runs inside KSP and sends the game's data to it.",
+  "welcome.steps":
+    "The next steps check the container, the connection to KSP and for any installed Uplinks.",
 
   "container.heading": "Start the app",
-  "container.advance": "Friends on other networks",
+  "container.advance": "Connect to KSP",
   "container.instruction":
     "In a terminal, start the Gonogo container. It serves this app and the relay that lets other screens join yours. You can change `{tag}` to a specific version if you want.",
   "container.runCommandLabel": "run command",
@@ -42,29 +44,6 @@ export const WIZARD_COPY = {
     "If that lists no container, run the command above. If it lists one, port 3002 was not published: remove it and run the command above again, unchanged. The [networking guide](relayPorts) covers configuring ports.",
   "container.recheck": "Check again",
 
-  "friends.heading": "Friends on other networks",
-  "friends.advance": "Connect to KSP",
-  "friends.question":
-    "For someone who is not on your local network to join, one port on your router has to be opened to this computer.",
-  "friends.legend": "Will friends join from other networks?",
-  "friends.choice.local": "No, only devices on this network",
-  "friends.choice.auto": "Yes, and let Gonogo open the port on my router",
-  "friends.choice.manual": "Yes, and I will forward the port myself",
-  "friends.local":
-    "You can change this later in Settings, under Relay, by turning on Automatic port forwarding.",
-  "friends.manual":
-    "In your router's settings, forward port {port}, UDP and TCP, to this computer, and give this computer a fixed address on your network. The [networking guide](relayPorts) has the steps.",
-  "friends.router.label": "Your router's IP address",
-  "friends.computer.label": "This computer's IP address",
-  "friends.address.invalid": "That is not an IP address.",
-  "friends.check.needAddress":
-    "Enter both IP addresses and Gonogo asks your router to open the port.",
-  "friends.check.checking": "Asking your router to open port {port}",
-  "friends.check.pass":
-    "Your router opened port {port}: friends on other networks can join",
-  "friends.check.noRelay":
-    "The relay is not answering, so it cannot ask your router. Check the container is running.",
-
   "connect.heading": "Connect to KSP",
   "connect.advance": "Check Uplinks",
   "connect.instruction":
@@ -72,7 +51,7 @@ export const WIZARD_COPY = {
   "connect.twoComputers":
     "By default, KSP will not run when minimised. If that's an issue for you, check that settings.cfg in the KSP install folder has the line SIMULATE_IN_BACKGROUND = True, or keep the dashboard on a second screen or device.",
   "connect.confirm":
-    'To confirm the mod started, run this in your KSP install folder. It prints a line beginning "[Gonogo] Started".',
+    'To confirm the mod started, run this in your KSP install folder. It prints a line beginning "[Gonogo] Started". If nothing appears, try the previous step again.',
   "connect.logCommandLabel": "mod log command",
   "connect.hint.address":
     "To find the KSP computer's address, run the command:",
@@ -87,6 +66,8 @@ export const WIZARD_COPY = {
   "connect.check.fail": "Not connected to KSP at {address}",
   "connect.check.retrying":
     "No answer from KSP at {address} yet. Still trying.",
+  "connect.hint.notRunning":
+    "KSP may not be running yet: start it and wait for the main menu",
   "connect.hint.notInstalled":
     "The command above prints nothing: the mod is not installed. The [KSP setup guide](kspSetup) covers installing it",
   "connect.hint.blocked":
@@ -108,10 +89,16 @@ export const WIZARD_COPY = {
     "{installed} {installed?Uplink|Uplinks} installed, {attention} {attention?needs|need} attention",
   "uplinks.check.skipped":
     "{installed} {installed?Uplink|Uplinks} installed, {skipped} skipped by you. Load {skipped?it|them} later from Settings, Uplinks",
+  "uplinks.summary":
+    "Client loaded for {loaded} of {installed} {installed?Uplink|Uplinks} that {installed?has|have} one",
+  "uplinks.summaryRefused":
+    "{summary}; {refused} refused due to a contract mismatch",
   "uplinks.find.label": "Find Uplinks",
   "uplinks.find.search":
     "Uplinks are add-ons that integrate Gonogo with other mods. In CKAN, search for:",
   "uplinks.find.searchLabel": "CKAN search",
+  "uplinks.hint.attention":
+    "Each Uplink that needs attention lists its reason under its name. Everything else in Gonogo keeps working.",
   "uplinks.row.version": "v{version}",
   "uplinks.row.contractMismatchOlder":
     "Built for contract {declared}; this Gonogo uses {core}. It was made for an older Gonogo and needs its own update: update it in CKAN, using the search under Find Uplinks. Gonogo works without it, but its widgets and commands stay off until then.",
@@ -126,6 +113,7 @@ export const WIZARD_COPY = {
   "uplinks.row.refused": "Refused: contract mismatch",
   "uplinks.row.unavailable": "Mod reports unavailable",
   "uplinks.row.noClient": "No client loaded",
+  "uplinks.row.modOnly": "Data only, no widgets",
   "uplinks.row.details": "Details",
 
   "recommended.heading": "Recommended settings",
@@ -154,12 +142,14 @@ export const WIZARD_COPY = {
   "done.heading": "Done",
   "done.advance": "Finish",
   "done.next":
-    "Load a save in KSP, then add widgets with the green menu button in the bottom-right corner.",
+    "Load a save in KSP. An empty dashboard offers Add default layouts, which fills it with ready-made flight and space centre layouts, or Add a widget to pick your own. Later, add more with the round button with three dots in the bottom-right corner, then Add widget.",
+  "done.settings":
+    "This setup opens by itself once. Settings, in the same three-dot menu, keeps the same readings: the KSP connection under Connection and each Uplink under Uplinks. Run setup again, under Connection, reopens it.",
 
   "settings.heading": "Setup",
   "settings.label": "First-run setup",
   "settings.description":
-    "Checks the app, the connection to KSP and your Uplinks.",
+    "Open the setup again. It checks the app, the connection to KSP and your Uplinks.",
   "settings.action": "Run setup again",
 } as const;
 

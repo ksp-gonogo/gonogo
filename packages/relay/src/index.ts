@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { networkInterfaces } from "node:os";
 import {
   AxiomConsentController,
   AxiomTransport,
@@ -9,13 +10,16 @@ import { registerAnalyticsConfigRoutes } from "./analyticsConfig.js";
 import { registerAppOrigins } from "./appOrigins.js";
 import { registerBootstrapConfigRoutes } from "./bootstrapConfig.js";
 import { loadConfig } from "./config.js";
+import { startCoturn } from "./coturnManager.js";
 import { discoverPublicIp } from "./discoverPublicIp.js";
-import { startEndpoint } from "./endpointManager.js";
-import { EndpointSupervisor } from "./endpointSupervisor.js";
-import { registerHealthRoutes } from "./healthRoutes.js";
-import { PortForwarding, registerPortForwardRoutes } from "./portForwarding.js";
-import { endpointPorts, PortMapper } from "./portMapper.js";
-import { registerStationsProxy } from "./stationsProxy.js";
+import {
+  defaultGateway,
+  gatewayCandidates,
+  PortMapper,
+  sweepCandidates,
+} from "./portMapper.js";
+import { registerTurnRoutes } from "./turnRoutes.js";
+import { TurnSupervisor } from "./turnSupervisor.js";
 import { BUILD_TIME, VERSION } from "./version.js";
 
 const config = loadConfig();
@@ -95,10 +99,27 @@ fastify.addHook("onResponse", async (req, reply) => {
   else logger.info(msg, ctx);
 });
 
-// Discover the public IP the station endpoint advertises, then start it. With
-// no public IP the relay stays up without it and retries discovery; an
-// endpoint that cannot spawn or that dies makes the relay exit non-zero so
-// the container restarts.
+/**
+ * This process's primary non-internal IPv4: the address coturn can actually
+ * bind relay sockets to. In a container that's the bridge IP (e.g.
+ * `10.89.x.x`); running natively it's the host's LAN IP. Used as the
+ * `/private` half of coturn's external-ip mapping. `undefined` if none found.
+ */
+function primaryLocalIpv4(): string | undefined {
+  for (const addrs of Object.values(networkInterfaces())) {
+    for (const a of addrs ?? []) {
+      if (a.family === "IPv4" && !a.internal) return a.address;
+    }
+  }
+  return undefined;
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Discover the public IP coturn should advertise, then start coturn as a
+// child process with a fresh per-restart secret. With no public IP the relay
+// stays up without TURN and retries discovery; a coturn that cannot spawn or
+// that dies makes the relay exit non-zero so the container restarts.
+// ──────────────────────────────────────────────────────────────────────
 
 let exiting = false;
 
@@ -111,73 +132,74 @@ async function exitNow(code: number): Promise<never> {
   process.exit(code);
 }
 
-const discover = () =>
-  discoverPublicIp({ override: config.publicIp ?? undefined });
-
-const endpoint = new EndpointSupervisor({
-  discover,
+const turn = new TurnSupervisor({
+  discover: () =>
+    discoverPublicIp({ override: config.turnExternalIp ?? undefined }),
   onDiscoveryFailed: (err) =>
     bridgeError(
-      "public IP discovery failed, the station endpoint is unavailable until a retry succeeds",
+      "public IP discovery failed, TURN unavailable until a retry succeeds",
       err,
     ),
   onFatal: (reason) => {
-    bridgeError(
-      `endpoint failed (${reason}), exiting so the container restarts`,
-    );
+    bridgeError(`coturn failed (${reason}), exiting so the container restarts`);
     void exitNow(1);
   },
-  start: (publicIp, onExit) =>
-    startEndpoint({
-      binaryPath: config.endpointBinary,
-      port: config.endpointPort,
-      control: `127.0.0.1:${config.endpointControlPort}`,
-      publicIp,
-      lanIp: config.lanIp,
-      omitUdp: config.endpointOmitUdp,
+  start: (externalIp, onExit) => {
+    // The address coturn actually binds relay sockets on. When externalIp is
+    // a NAT / published / host-LAN address (the container case, externalIp is
+    // the host's LAN IP, this process sees only the container's 10.x), coturn
+    // must bind the local interface and merely advertise externalIp. Pass our
+    // own primary non-internal IPv4 as the `/private` half.
+    const localIp = primaryLocalIpv4();
+    bridgeInfo(
+      `relay TURN advertise=${externalIp}${localIp && localIp !== externalIp ? ` bind=${localIp}` : ""}`,
+    );
+    return startCoturn({
+      externalIp,
+      port: config.turnPort,
+      minPort: config.turnMinPort,
+      maxPort: config.turnMaxPort,
+      // Only attach the private half when it differs, `X/X` is pointless, and when externalIp is itself local (native runs) coturn binds it fine.
+      localIp: localIp && localIp !== externalIp ? localIp : undefined,
+      denyPrivatePeers: config.publicRelay,
       onExit,
       logger: {
-        info: (msg) => bridgeInfo(msg),
-        error: (msg) => bridgeError(msg),
+        info: (msg, ...args) => bridgeInfo(msg, { args }),
+        error: (msg, ...args) => bridgeError(msg, undefined, { args }),
       },
-    }),
+    });
+  },
 });
 
-if (config.skipEndpoint) {
+if (config.skipCoturn) {
   bridgeInfo(
-    "SKIP_ENDPOINT set: relay will run without the station endpoint, so only stations on this network can join",
+    "SKIP_COTURN set: relay will run without TURN (intended for localhost tests)",
   );
 } else {
-  await endpoint.begin();
+  await turn.begin();
 }
 
-const forwarding = new PortForwarding(
-  (router, lan) =>
-    new PortMapper({
-      router,
-      ports: endpointPorts(config.endpointPort),
-      lanIp: lan,
-      log: (msg) => bridgeInfo(`port mapping: ${msg}`),
-    }),
-  {
-    enabled: config.portMapping && !config.skipEndpoint,
-    router: config.routerIp,
-    lan: config.lanIp,
-  },
-);
-void forwarding.start();
-registerPortForwardRoutes(fastify, forwarding);
+const portMapper =
+  config.skipCoturn || !config.portMapping
+    ? null
+    : new PortMapper({
+        gateways: gatewayCandidates(config.routerIp, defaultGateway()),
+        turnPort: config.turnPort,
+        minPort: config.turnMinPort,
+        maxPort: config.turnMaxPort,
+        sweep: config.routerIp ? [] : sweepCandidates(),
+        lanIp: config.lanIp,
+        log: (msg) => bridgeInfo(`port mapping: ${msg}`),
+      });
+void portMapper?.start();
 
-registerHealthRoutes(fastify, {
-  getEndpoint: () => endpoint.handle,
-  getPendingReason: () => endpoint.pendingReason,
-  endpointExpected: !config.skipEndpoint,
-  getPortMapping: () => forwarding.status,
-});
-
-registerStationsProxy(fastify, {
-  target: { host: "127.0.0.1", port: config.endpointControlPort },
-  extraOrigins: new Set(config.appOrigins),
+registerTurnRoutes(fastify, {
+  getCoturn: () => turn.handle,
+  getPendingReason: () => turn.pendingReason,
+  turnExpected: !config.skipCoturn,
+  publicUrl: config.publicUrl,
+  tcpRelay: config.turnTcp,
+  getPortMapping: () => portMapper?.status ?? null,
 });
 
 fastify.get("/version", async () => ({
@@ -204,8 +226,8 @@ bridgeInfo(`relay listening on :${config.port}`);
 
 const shutdown = async () => {
   bridgeInfo("shutting down");
-  await forwarding.stop();
-  await endpoint.stop();
+  await portMapper?.stop();
+  await turn.stop();
   await fastify.close();
   await exitNow(0);
 };

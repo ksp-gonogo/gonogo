@@ -11,14 +11,10 @@ export function describeConnStatus(
   hostNotFound: boolean,
   everConnected: boolean,
   brokerUnreachable = false,
-  brokerClosed = false,
 ): string {
   // Ranked above hostNotFound: a station that never reached the broker learned nothing about the host.
   if (brokerUnreachable) {
     return "Can't reach the peer broker: this device needs internet access.";
-  }
-  if (brokerClosed) {
-    return "Connection closed by peer broker service.";
   }
   if (hostNotFound) {
     return everConnected
@@ -44,9 +40,8 @@ export function statusTone(
   hostNotFound: boolean,
   everConnected: boolean,
   brokerUnreachable = false,
-  brokerClosed = false,
 ): "neutral" | "info" | "go" | "nogo" {
-  if (brokerUnreachable || brokerClosed) return "nogo";
+  if (brokerUnreachable) return "nogo";
   // A reclaim window after a prior connection is transient info, not the hard nogo of a wrong code.
   if (hostNotFound) return everConnected ? "info" : "nogo";
   switch (status) {
@@ -69,11 +64,42 @@ export type ConnectStage = "broker" | "host" | "data";
 export interface ConnectProgress {
   startedAt: number;
   attempt: number;
+  /** The direct path never opened and the station is now trying through the relay. */
+  viaRelay?: boolean;
+  /** The open connection is carried by the relay. */
+  relayed?: boolean;
   entered: Partial<Record<ConnectStage, number>>;
 }
 
 /** Time without a connection after which the connect screen reports a stall rather than waiting. */
 export const CONNECT_STALL_MS = 30_000;
+
+/** Time in the main-screen stage after which a direct attempt is reported as failing, matching when the main screen starts offering the relay. */
+export const DIRECT_PATH_GRACE_MS = 6_000;
+
+/**
+ * The one-line plain-words stage of a connect that may fall back to the relay,
+ * or null when nothing beyond the generic status applies.
+ */
+export function describeRelayStage(
+  status: StationConnStatus,
+  progress: ConnectProgress | undefined,
+  now: number,
+  relayAvailable: boolean,
+): string | null {
+  if (!progress) return null;
+  if (status === "connected") {
+    return progress.relayed ? "Connected through the relay." : null;
+  }
+  if (status !== "connecting" && status !== "reconnecting") return null;
+  if (progress.viaRelay) return "No direct path, switching to the relay...";
+  const began = progress.entered.host;
+  if (began === undefined) return null;
+  if (relayAvailable && now - began >= DIRECT_PATH_GRACE_MS) {
+    return "No direct path yet, switching to the relay...";
+  }
+  return "Trying a direct connection...";
+}
 
 export const CONNECT_STAGES: ReadonlyArray<{
   stage: ConnectStage;

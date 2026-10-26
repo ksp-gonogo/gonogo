@@ -290,7 +290,7 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
     let callCount = 0;
     const BUNDLE_URL = "https://example.test/shared.js";
     // Scoped by url: the host's OWN boot sequence also calls global `fetch`
-    // (the relay's analytics-consent post): only
+    // (`/ice-config`, the relay's analytics-consent post): only
     // count/delay the bundle url itself, or those unrelated calls would
     // inflate callCount and defeat the dedup assertion below.
     vi.stubGlobal(

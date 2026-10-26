@@ -726,10 +726,6 @@
         "note": "A field of the fixture file's FixtureStream block, unchanged in meaning"
       },
       {
-        "key": "uplink-tools . ModChannel",
-        "note": "The type of an entry of uplink.json mod.channels, read by uplink-tools deps"
-      },
-      {
         "key": "uplink-tools . SPEC_FILE",
         "note": "Where uplink-tools writes an Uplink's spec sheet: docs/spec.json"
       },

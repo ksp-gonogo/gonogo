@@ -12,7 +12,6 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { prereleasePinFault } from "../deps/pins";
 import {
   bakeUplink,
   describeBake,
@@ -177,9 +176,6 @@ export async function release(
         `mod/<gamedata>.csproj must exist (looked for ${project}).`,
     );
   }
-
-  const candidatePin = prereleasePinFault(uplinkDir);
-  if (candidatePin) throw new Error(candidatePin);
 
   const placeholder = givenDevPath ? undefined : placeholderUrlFault(url);
   if (placeholder) throw new Error(placeholder);

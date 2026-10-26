@@ -38,10 +38,13 @@ export const PRIVATE_REFERENCE_ANY = Object.values(PRIVATE_REFERENCE_PATTERNS)
   .join("|");
 
 /**
- * Files whose subject is the private address ranges themselves (the network
- * candidate classifier), so naming them is the point.
+ * Files whose subject is the private address ranges themselves (the relay's
+ * peer-relay deny list and the network candidate classifier), so naming them is
+ * the point.
  */
 const PRIVATE_ADDRESS_SUBJECT_PATHS = new Set([
+  "packages/relay/src/coturnManager.ts",
+  "packages/relay/src/__tests__/coturnManager.test.ts",
   "packages/app/src/__tests__/ice-liveness.test.ts",
 ]);
 

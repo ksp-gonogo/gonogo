@@ -19,7 +19,31 @@ import {
   type UplinkReadinessEntry,
   useUplinkReadiness,
 } from "../useUplinkReadiness";
-import { StepCheck } from "./StepParts";
+import { Hint, StepCheck } from "./StepParts";
+
+/**
+ * The count line, the one thing here worth announcing when it changes. A
+ * contract refusal gets its own clause rather than only a row, because it used
+ * to be the state with no surface at all: nine Uplinks refused for a stale
+ * contract were absent from the roster entirely, and an operator read that as
+ * nine capabilities that simply did not exist.
+ */
+function summarise(entries: readonly UplinkReadinessEntry[]): string {
+  const installed = entries.filter(
+    (entry) => entry.installed && !entry.bundled && entry.state !== "mod-only",
+  );
+  const loaded = installed.filter((entry) => entry.state === "loaded");
+  const refused = installed.filter(
+    (entry) => entry.state === "contract-mismatch",
+  );
+  const summary = say("uplinks.summary", {
+    loaded: loaded.length,
+    installed: installed.length,
+  });
+  return refused.length === 0
+    ? summary
+    : say("uplinks.summaryRefused", { summary, refused: refused.length });
+}
 
 /**
  * The step that answers "are the Uplinks I installed actually working". One row
@@ -37,7 +61,7 @@ export function UplinkReadinessStep() {
   const check = uplinksCheck(readiness, useConnectionCheck());
   /*
    * Uplinks inside the core mod are not something the operator installed, so
-   * they get no row.
+   * they get no row and no share of the count.
    */
   const entries = readiness.entries.filter((entry) => !entry.bundled);
   const installed = entries.filter((entry) => entry.installed);
@@ -45,10 +69,17 @@ export function UplinkReadinessStep() {
   /*
    * Rows do not wait for the mod: a client loaded in an earlier session is
    * already a reading, and holding it back behind a connection would hide it.
+   * The count line only says something when a row needs a look, since "all
+   * working" already says the rest.
    */
   return (
     <Stack gap="related-comfortable">
       <StepCheck check={check} />
+      {check.state === "attention" && (
+        <Text level="muted" size="sm">
+          {summarise(entries)}
+        </Text>
+      )}
       {entries.length > 0 && (
         <RowList>
           {entries.map((entry) => (
@@ -68,6 +99,11 @@ export function UplinkReadinessStep() {
             />
           </Stack>
         </Disclosure>
+      )}
+      {check.state === "attention" && (
+        <Hint>
+          <span>{say("uplinks.hint.attention")}</span>
+        </Hint>
       )}
     </Stack>
   );
@@ -210,7 +246,11 @@ function ReadinessReading({
         </StatusIndicator>
       );
     case "mod-only":
-      return null;
+      return (
+        <Text level="faint" size="xs">
+          {say("uplinks.row.modOnly")}
+        </Text>
+      );
     case "no-client":
       return (
         <StatusIndicator tone="warn">

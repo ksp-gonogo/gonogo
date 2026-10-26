@@ -2,25 +2,13 @@ import { createSocket, type Socket } from "node:dgram";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { type MappedPort, PortMapper } from "../portMapper.js";
+import { PortMapper } from "../portMapper.js";
 import {
   addPortMapping,
   deletePortMapping,
   discoverIgd,
   getPortMapping,
 } from "../upnp.js";
-
-/** One port on UDP and TCP, then a window on UDP alone: a port list of more than one shape. */
-function portList(both: number, from: number, to: number): MappedPort[] {
-  const window: MappedPort[] = [];
-  for (let port = from; port <= to; port++)
-    window.push({ protocol: "udp", port });
-  return [
-    { protocol: "udp", port: both },
-    { protocol: "tcp", port: both },
-    ...window,
-  ];
-}
 
 const SERVICE = "urn:schemas-upnp-org:service:WANIPConnection:2";
 
@@ -195,8 +183,10 @@ describe("PortMapper against a router that speaks UPnP only", () => {
     const igd = await fakeIgd(options);
     const log: string[] = [];
     const mapper = new PortMapper({
-      router: "127.0.0.1",
-      ports: portList(3478, 49160, 49162),
+      gateways: ["127.0.0.1"],
+      turnPort: 3478,
+      minPort: 49160,
+      maxPort: 49162,
       timeoutMs: 40,
       natPmpPort: 9,
       ssdpPort: igd.ssdpPort,
@@ -207,7 +197,7 @@ describe("PortMapper against a router that speaks UPnP only", () => {
     return { igd, mapper, log };
   }
 
-  it("maps a port on both protocols and a window on UDP, and nothing else", async () => {
+  it("maps the TURN port on both protocols and the session window on UDP, and nothing else", async () => {
     const { igd, mapper } = await setup();
     await mapper.start();
     expect(mapper.status.state).toBe("mapped");
@@ -253,5 +243,6 @@ describe("PortMapper against a router that speaks UPnP only", () => {
     expect(log.at(-1)).toContain(
       "no router answered NAT-PMP or UPnP at 127.0.0.1",
     );
+    expect(log.at(-1)).toContain("set ROUTER_IP");
   });
 });

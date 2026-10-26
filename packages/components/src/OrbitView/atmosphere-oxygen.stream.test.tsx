@@ -39,7 +39,7 @@ function setup(body: Record<string, unknown>) {
       vesselId: "ov-o2-vessel",
       name: "Test Vessel",
       vesselType: 0,
-      situation: 3,
+      situation: 0,
       parentBodyIndex: 1,
     });
   });

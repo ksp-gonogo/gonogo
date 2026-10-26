@@ -36,28 +36,6 @@ const server = PeerServer({
   allow_discovery: true,
 });
 
-/*
- * The public broker, 0.peerjs.com, passes an OFFER or ANSWER only when its
- * payload is PeerJS's own: type "data" or "media", with a real session
- * description. Anything else is never delivered, and the sender's socket is
- * closed about 35 ms later. This broker does the same, so a join that would
- * not get through there does not get through here either. `peer` emits
- * "message" before it hands the message on, and has no handler for the type
- * it is renamed to.
- */
-server.on("message", (client, message) => {
-  if (message.type !== "OFFER" && message.type !== "ANSWER") return;
-  const payload = message.payload ?? {};
-  const sdp = payload.sdp?.sdp;
-  const own = payload.type === "data" || payload.type === "media";
-  if (own && typeof sdp === "string" && sdp.includes("\nm=")) return;
-  process.stdout.write(
-    `[broker] refused a ${message.type} from ${client.getId()} (payload type ${payload.type}), closing its socket\n`,
-  );
-  message.type = "REFUSED";
-  setTimeout(() => client.getSocket()?.close(), 35);
-});
-
 server.on("connection", (client) => {
   process.stdout.write(`[broker] connect ${client.getId()}\n`);
 });

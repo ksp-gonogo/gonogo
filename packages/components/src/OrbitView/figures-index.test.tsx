@@ -61,7 +61,7 @@ describe("OrbitViewComponent", () => {
         vesselId: "v1",
         name: "Kerbal X",
         vesselType: 0,
-        situation: 3,
+        situation: 1,
         parentBodyIndex: 1,
         launchUt: 0,
       });

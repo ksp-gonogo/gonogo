@@ -5,8 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { useFollowHostAnalytics } from "../analytics/useFollowHostAnalytics";
 import { StationSupersededNotice } from "../components/StationSupersededNotice";
+import { parseRelayUrl } from "../peer/iceServers";
 import { PeerClientProvider } from "../peer/PeerClientContext";
-import { PeerClientService } from "../peer/PeerClientService";
+import {
+  PeerClientService,
+  type RelayLookupState,
+} from "../peer/PeerClientService";
 import { StationInfoBroadcaster } from "../peer/StationInfoBroadcaster";
 import { StationApprovalNotice } from "../stationApproval/StationApprovalNotice";
 import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
@@ -50,8 +54,8 @@ export function PilotScreen() {
   const [status, setStatus] = useState<ConnStatus>("idle");
   const [hostNotFound, setHostNotFound] = useState(false);
   const [brokerUnreachable, setBrokerUnreachable] = useState(false);
-  const [brokerClosed, setBrokerClosed] = useState(false);
   const [hostChannelFailed, setHostChannelFailed] = useState(false);
+  const [relayLookup, setRelayLookup] = useState<RelayLookupState>("none");
   const [everConnected, setEverConnected] = useState(false);
   const [hostInput, setHostInput] = useState(
     () => localStorage.getItem(HOST_ID_KEY) ?? "",
@@ -69,7 +73,7 @@ export function PilotScreen() {
 
   useFollowHostAnalytics(client);
 
-  const connect = (code: string) => {
+  const connect = (code: string, relayUrl?: string | null) => {
     const trimmed = code.trim().toUpperCase();
     if (!trimmed) return;
     localStorage.setItem(HOST_ID_KEY, trimmed);
@@ -87,10 +91,10 @@ export function PilotScreen() {
       }),
       client.onHostUnavailable(() => setHostNotFound(true)),
       client.onBrokerReachable((reachable) => setBrokerUnreachable(!reachable)),
-      client.onBrokerClosed(setBrokerClosed),
       client.onHostChannelFailed(setHostChannelFailed),
+      client.onRelayLookup(setRelayLookup),
     );
-    client.connect(trimmed);
+    client.connect(trimmed, relayUrl);
   };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only; re-running would restart the connection on every render
@@ -98,7 +102,7 @@ export function PilotScreen() {
     const params = new URLSearchParams(globalThis.location.search);
     const fromUrl = params.get("host");
     const initial = fromUrl ?? localStorage.getItem(HOST_ID_KEY);
-    if (initial) connect(initial);
+    if (initial) connect(initial, parseRelayUrl(params.get("relay")));
     return () => {
       for (const u of unsubs.current) u();
       unsubs.current = [];
@@ -147,8 +151,8 @@ export function PilotScreen() {
           connStatus={status}
           hostNotFound={hostNotFound}
           brokerUnreachable={brokerUnreachable}
-          brokerClosed={brokerClosed}
           hostChannelFailed={hostChannelFailed}
+          relayLookup={relayLookup}
           everConnected={everConnected}
           onHostInputChange={setHostInput}
           onConnect={connect}

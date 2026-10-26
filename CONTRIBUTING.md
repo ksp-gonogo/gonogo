@@ -18,12 +18,14 @@ pnpm --filter @ksp-gonogo/app dev
 
 ## Running the relay
 
-- `pnpm dev` starts the app and the relay container. It reads this computer's LAN address and the router from the default route and passes them as `LAN_IP` and `ROUTER_IP`, which saves typing the router's address on a dev machine. Put `GONOGO_AUTO_PORT_FORWARD=1` in the repo-root `.env` to let the relay open its port on the router
-- The relay runs the station endpoint, a Go program under `packages/relay/endpoint` that the relay image builds. Every station joins through it on port `47100`, UDP and TCP, while it runs. `pnpm --filter @ksp-gonogo/relay endpoint:build` builds it beside the relay for a relay run outside the container, and `endpoint:test` runs its tests (both need Go). `SKIP_ENDPOINT=1` runs the relay without it, and stations then join the main screen directly
-- Unless automatic port forwarding is on (the app's Settings, Relay, or `GONOGO_AUTO_PORT_FORWARD=1` at start), the relay never contacts the router. The main screen switches it with `POST /port-forward` on port 3002. With it on, the relay asks only the router whose address it was given (the app's Your router's IP address setting, or `ROUTER_IP` until the app sends one), and a UPnP router forwards to `LAN_IP`
+- `pnpm dev` starts the app and the relay container. It reads this computer's LAN address and the router from the default route, passes the address as `TURN_EXTERNAL_IP` (so stations on the same WiFi relay through this machine) and the router as `ROUTER_IP` and `LAN_IP`. Put `TURN_EXTERNAL_IP=<your public IP>` in the repo-root `.env` to test with stations on the internet, and `GONOGO_UPNP=1` to let the relay open the router ports
+- Without `GONOGO_UPNP=1` the relay never contacts the router. With it, a container on the computer's own network (`--network host`) reads the real default route, while one on Docker Desktop or a bridge asks the usual router addresses and every `.1` and `.254` of the `192.168.x.x` networks, so `ROUTER_IP` and `LAN_IP` name them when that fails
 - The main screen looks for the relay at `http://localhost:3002`. A build with the relay elsewhere sets `VITE_RELAY_URL` at build time
 - The relay answers only the app's own pages and the public site. Another origin goes in `RELAY_APP_ORIGINS` (comma-separated)
-- `GET /health` and `/version` on port 3002 report the relay and endpoint status and the image version, and the main screen's socket to the endpoint is `/stations` on the same port. Keep `3002` closed to the internet: only `47100` is forwarded
+- `GET /health`, `/version` and `/ice-config` on port 3002 report the relay status, the image version, and the relay address and credentials the main screen reads on boot. Keep `3002` closed to the internet
+- To let a station fetch the relay details from its link before it has connected, set `RELAY_HTTP_BIND=0.0.0.0` and `RELAY_PUBLIC_URL=https://<address>` where the address is an https reverse proxy with a certificate in front of `3002`. Anyone holding that link can read the relay's time-limited credentials. Unset, a station learns the relay from the main screen once connected
+- To run the relay alone on a public host, use the `ghcr.io/ksp-gonogo/gonogo-relay` image with the same ports and `RELAY_PUBLIC=1`
+- `TURN_TCP=1` adds a TCP relay address for stations on a network that blocks UDP, which doubles the ports each relayed connection holds
 
 ## Making a change
 

@@ -1,9 +1,5 @@
 import { useModal } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef } from "react";
-import {
-  SettingsProvider,
-  useSettingsService,
-} from "../settings/SettingsContext";
 import { ModalTelemetryBridge } from "../telemetry/ModalTelemetryBridge";
 import { say } from "./copy";
 import { FirstRunSetup } from "./FirstRunSetup";
@@ -31,24 +27,19 @@ import { onFirstRunSetupRequested } from "./firstRunRequest";
  * component's own provider tree, so the content passed to `open()` re-wraps
  * `ModalTelemetryBridge` itself; see that component's own doc comment for why
  * the portal does not inherit it. That bridge is what lets the Uplinks and
- * health steps read the live `system.uplinkHealth` stream. The settings are
- * re-provided the same way, for the step that asks about friends on other
- * networks.
+ * health steps read the live `system.uplinkHealth` stream.
  */
 export function FirstRunSetupHost() {
   const { open, close } = useModal();
-  const settings = useSettingsService();
   const openedRef = useRef(false);
 
   useEffect(() => {
     const openSetup = () => {
       let modalId = "";
       modalId = open(
-        <SettingsProvider service={settings}>
-          <ModalTelemetryBridge>
-            <FirstRunSetup onFinish={() => close(modalId)} />
-          </ModalTelemetryBridge>
-        </SettingsProvider>,
+        <ModalTelemetryBridge>
+          <FirstRunSetup onFinish={() => close(modalId)} />
+        </ModalTelemetryBridge>,
         { title: say("shell.title") },
       );
     };
@@ -66,7 +57,7 @@ export function FirstRunSetupHost() {
     return () => {
       stopWatchingRequests();
     };
-  }, [open, close, settings]);
+  }, [open, close]);
 
   return null;
 }

@@ -280,7 +280,7 @@ function DeviceRow({
           </Tooltip>
         )}
         {device.transport === "web-serial" && status === "error" && (
-          <Tooltip text="Refreshes the page to release a stuck device">
+          <Tooltip text="Refreshes the page: only Web Serial knows how to release a stuck-open SerialPort, and only a fresh JS context lets it">
             <Button
               variant="ghost"
               onClick={() => {

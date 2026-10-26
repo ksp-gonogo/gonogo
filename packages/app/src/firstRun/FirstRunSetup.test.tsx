@@ -24,8 +24,6 @@ import {
   it,
   vi,
 } from "vitest";
-import { SettingsProvider } from "../settings/SettingsContext";
-import { SettingsService } from "../settings/SettingsService";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import type { LinkClient } from "../test/peerFakes";
 import {
@@ -46,7 +44,7 @@ import {
 import { __resetConnectionClock } from "./useConnectionCheck";
 
 function stepHeading(index: number, heading: string): string {
-  return say("shell.stepHeading", { index, total: 7, heading });
+  return say("shell.stepHeading", { index, total: 6, heading });
 }
 
 /** The words one of a sentence's links is drawn with. */
@@ -126,11 +124,9 @@ function makeSitrepStub(status: DataSourceStatus, host?: string): DataSource {
 
 function wrapper({ children }: { children: ReactNode }) {
   return (
-    <SettingsProvider service={new SettingsService()}>
-      <SitrepTelemetryProvider enabled host="localhost" port={8090}>
-        {children}
-      </SitrepTelemetryProvider>
-    </SettingsProvider>
+    <SitrepTelemetryProvider enabled host="localhost" port={8090}>
+      {children}
+    </SitrepTelemetryProvider>
   );
 }
 
@@ -173,9 +169,6 @@ async function goToUplinks() {
   );
   await user.click(
     screen.getByRole("button", { name: say("container.advance") }),
-  );
-  await user.click(
-    screen.getByRole("button", { name: say("friends.advance") }),
   );
   await user.click(
     screen.getByRole("button", { name: say("connect.advance") }),
@@ -255,8 +248,8 @@ describe("FirstRunSetup: recommended settings step", () => {
     expect(
       screen.getByText(
         say("shell.stepHeading", {
-          index: 6,
-          total: 8,
+          index: 5,
+          total: 7,
           heading: say("recommended.heading"),
         }),
       ),
@@ -271,7 +264,7 @@ describe("FirstRunSetup: recommended settings step", () => {
 });
 
 describe("FirstRunSetup: step sequence", () => {
-  it("opens on Welcome and walks the seven steps", async () => {
+  it("opens on Welcome and walks the six steps", async () => {
     const onFinish = vi.fn();
     const { wsClients } = renderSetup({ onFinish });
     const user = userEvent.setup();
@@ -292,14 +285,7 @@ describe("FirstRunSetup: step sequence", () => {
     );
 
     expect(
-      screen.getByText(stepHeading(3, say("friends.heading"))),
-    ).toBeInTheDocument();
-    await user.click(
-      screen.getByRole("button", { name: say("friends.advance") }),
-    );
-
-    expect(
-      screen.getByText(stepHeading(4, say("connect.heading"))),
+      screen.getByText(stepHeading(3, say("connect.heading"))),
     ).toBeInTheDocument();
     expect(screen.getByText("Sitrep Stream")).toBeInTheDocument();
     await user.click(
@@ -307,7 +293,7 @@ describe("FirstRunSetup: step sequence", () => {
     );
 
     expect(
-      screen.getByText(stepHeading(5, say("uplinks.heading"))),
+      screen.getByText(stepHeading(4, say("uplinks.heading"))),
     ).toBeInTheDocument();
     await emitRoster(wsClients, []);
     await user.click(
@@ -315,7 +301,7 @@ describe("FirstRunSetup: step sequence", () => {
     );
 
     expect(
-      screen.getByText(stepHeading(6, say("health.heading"))),
+      screen.getByText(stepHeading(5, say("health.heading"))),
     ).toBeInTheDocument();
     await screen.findByText(say("container.check.pass"));
     await user.click(
@@ -323,7 +309,7 @@ describe("FirstRunSetup: step sequence", () => {
     );
 
     expect(
-      screen.getByText(stepHeading(7, say("done.heading"))),
+      screen.getByText(stepHeading(6, say("done.heading"))),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: say("done.advance") }));
     expect(onFinish).toHaveBeenCalledTimes(1);
@@ -438,12 +424,9 @@ describe("FirstRunSetup: the KSP connection check", () => {
     await user.click(
       screen.getByRole("button", { name: say("container.advance") }),
     );
-    await user.click(
-      screen.getByRole("button", { name: say("friends.advance") }),
-    );
   }
 
-  it("says how to start KSP and names the two causes, each with its way out, while there is no connection", async () => {
+  it("names the three causes, each with its way out, while there is no connection", async () => {
     renderSetup();
     await goToConnect();
 
@@ -453,7 +436,7 @@ describe("FirstRunSetup: the KSP connection check", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(MOD_LOG_COMMAND.posix)).toBeInTheDocument();
-    expect(screen.getByText(/wait for the main menu/)).toBeInTheDocument();
+    expect(screen.getByText(/KSP may not be running yet/)).toBeInTheDocument();
     expect(
       screen.getByRole("link", {
         name: linkWords(runs("connect.hint.notInstalled"), "kspSetup"),
@@ -607,7 +590,7 @@ describe("FirstRunSetup: the health check", () => {
 });
 
 describe("FirstRunSetup: the Uplinks reading", () => {
-  it("counts the add-ons installed, not the Uplinks inside the core mod, and gives a mod-only add-on no label", async () => {
+  it("counts the add-ons installed, not the Uplinks inside the core mod, and says a mod-only add-on adds no widgets", async () => {
     setUplinkOutcome({ id: "widget-loaded", name: "Loaded", status: "loaded" });
     const { wsClients } = renderSetup();
     await goToUplinks();
@@ -620,15 +603,34 @@ describe("FirstRunSetup: the Uplinks reading", () => {
 
     await screen.findByText(say("uplinks.check.allWorking", { installed: 2 }));
     expect(screen.getByText("data-only")).toBeInTheDocument();
-    expect(screen.queryByText(/no widgets/i)).toBeNull();
+    expect(screen.getByText(say("uplinks.row.modOnly"))).toBeInTheDocument();
     expect(screen.queryByText("core-a")).toBeNull();
     expect(screen.queryByText("core-b")).toBeNull();
+    expect(
+      screen.queryByText(say("uplinks.summary", { loaded: 1, installed: 1 })),
+    ).toBeNull();
     expect(
       screen.queryByText(say("uplinks.row.noClient")),
     ).not.toBeInTheDocument();
   });
 
-  it("lists an Uplink that needs a look beside the loaded one, leaving mod-only capabilities out", async () => {
+  it("words the loaded count over the Uplinks that have a client, so it agrees with the installed count beside it", async () => {
+    setUplinkOutcome({ id: "widget-loaded", name: "Loaded", status: "loaded" });
+    const { wsClients } = renderSetup();
+    await goToUplinks();
+    await emitRoster(wsClients, [
+      rosterEntry({ id: "widget-loaded" }),
+      rosterEntry({ id: "widget-noclient" }),
+      rosterEntry({ id: "data-only", expectedClientHash: null }),
+    ]);
+
+    await screen.findByText("3 Uplinks installed, 1 needs attention");
+    expect(
+      screen.getByText("Client loaded for 1 of 2 Uplinks that have one"),
+    ).toBeInTheDocument();
+  });
+
+  it("counts the loaded clients when an Uplink needs a look, leaving mod-only capabilities out", async () => {
     setUplinkOutcome({ id: "widget-loaded", name: "Loaded", status: "loaded" });
     const { wsClients } = renderSetup();
     await goToUplinks();
@@ -638,8 +640,10 @@ describe("FirstRunSetup: the Uplinks reading", () => {
       coreEntry("core-a"),
     ]);
 
-    await screen.findByText("widget-noclient");
-    await act(async () => {});
+    await screen.findByText(
+      say("uplinks.summary", { loaded: 1, installed: 2 }),
+    );
+    expect(screen.getByText(say("uplinks.hint.attention"))).toBeInTheDocument();
   });
 
   it("says the mod cannot list its Uplinks while the connection has failed, instead of waiting on it", async () => {
@@ -728,7 +732,11 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     // outcome rows are already in the store before render, so waiting for
     // "Client loaded" resolves before the roster frame has arrived and every
     // assertion below it then reads a list that is still outcome-only.
-    await screen.findByText(say("uplinks.row.noClient"));
+    await waitFor(() =>
+      expect(
+        screen.getByText(say("uplinks.summary", { loaded: 1, installed: 4 })),
+      ).toBeInTheDocument(),
+    );
     expect(screen.getByText(say("uplinks.row.loaded"))).toBeInTheDocument();
     expect(
       screen.getByText(say("uplinks.row.quarantined")),
@@ -848,11 +856,13 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     ]);
 
     /*
-     * The roster-derived row, not the identity: the identity comes from an
-     * outcome already in the store before render, so it is on screen before
-     * the roster frame that adds the row it is compared against.
+     * The roster count, not the identity: the identity comes from an outcome
+     * already in the store before render, so it is on screen before the
+     * roster frame that adds the row it is compared against.
      */
-    await screen.findByText("widget-noclient");
+    await screen.findByText(
+      say("uplinks.summary", { loaded: 1, installed: 2 }),
+    );
     expect(screen.getByText("widget-noclient")).toBeInTheDocument();
     expect(screen.getByText("by tester")).toBeInTheDocument();
     expect(screen.getByText("example/repo")).toBeInTheDocument();
@@ -863,7 +873,6 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     expect(screen.getAllByText(/vouched|listed|self-declared/i)).toHaveLength(
       1,
     );
-    await act(async () => {});
   });
 
   it("reads out both hashes when a client was refused for disagreeing with the mod", async () => {
@@ -883,13 +892,14 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     await goToUplinks();
     await emitRoster(wsClients, [rosterEntry({ id: "widget-tampered" })]);
 
-    await screen.findByText(say("uplinks.row.quarantined"));
+    await screen.findByText(
+      say("uplinks.summary", { loaded: 0, installed: 1 }),
+    );
     expect(
       screen.getByText(say("uplinks.row.quarantined")),
     ).toBeInTheDocument();
     expect(screen.getByText(/sha256-aaa/)).toBeInTheDocument();
     expect(screen.getByText(/sha256-bbb/)).toBeInTheDocument();
-    await act(async () => {});
   });
 });
 
@@ -925,9 +935,6 @@ describe("FirstRunSetup: accessibility", () => {
     await user.click(
       screen.getByRole("button", { name: say("container.advance") }),
     );
-    await user.click(
-      screen.getByRole("button", { name: say("friends.advance") }),
-    );
     expect(
       screen.getByRole("link", {
         name: linkWords(runs("connect.hint.blocked"), "networking"),
@@ -948,7 +955,9 @@ describe("FirstRunSetup: accessibility", () => {
       rosterEntry({ id: "widget-loaded" }),
       rosterEntry({ id: "widget-noclient" }),
     ]);
-    await screen.findByText("widget-noclient");
+    await screen.findByText(
+      say("uplinks.summary", { loaded: 1, installed: 2 }),
+    );
     expect(screen.getByText(say("uplinks.row.loaded"))).toBeInTheDocument();
     await expectNoA11yViolations(container);
   });
@@ -972,9 +981,9 @@ describe("FirstRunSetup: accessibility", () => {
       .setup()
       .click(screen.getByRole("button", { name: say("health.advance") }));
     expect(
-      screen.getByText(stepHeading(7, say("done.heading"))),
+      screen.getByText(stepHeading(6, say("done.heading"))),
     ).toBeInTheDocument();
-    expect(screen.getByText(/green menu button/)).toBeInTheDocument();
+    expect(screen.getByText(/Add default layouts/)).toBeInTheDocument();
     await expectNoA11yViolations(container);
   });
 });

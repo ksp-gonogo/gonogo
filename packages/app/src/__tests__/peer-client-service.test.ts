@@ -102,6 +102,7 @@ vi.mock("peerjs", () => ({ default: FakePeer }));
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { sha256Integrity } from "@ksp-gonogo/sitrep-sdk/uplink-load";
+import { STUN_SERVERS } from "../peer/iceServers";
 import type { ConnStatus } from "../peer/PeerClientService";
 import { PeerClientService } from "../peer/PeerClientService";
 import type { PeerMessage } from "../peer/protocol";
@@ -794,32 +795,6 @@ describe("PeerClientService reconnect loop", () => {
     vi.advanceTimersByTime(50);
     driveOpen(FakePeer.instances[1]);
     expect(reachable).toEqual([false, true]);
-  });
-
-  it("says the broker closed the socket, not that the device is offline, when it closes after answering", () => {
-    const svc = new PeerClientService({
-      retryIntervalMs: 50,
-      retryTimeoutMs: 60_000,
-    });
-    const reachable: boolean[] = [];
-    const closed: boolean[] = [];
-    svc.onBrokerReachable((r) => reachable.push(r));
-    svc.onBrokerClosed((c) => closed.push(c));
-
-    svc.connect("Z6HK");
-    FakePeer.instances[0].emit("open");
-    FakePeer.instances[0].emit(
-      "error",
-      Object.assign(new Error("Lost connection to server."), {
-        type: "network",
-      }),
-    );
-    expect(reachable).toEqual([true]);
-    expect(closed).toEqual([false, true]);
-
-    vi.advanceTimersByTime(50);
-    driveOpen(FakePeer.instances[1]);
-    expect(closed).toEqual([false, true, false]);
   });
 
   it("replays the last broker verdict to a listener that subscribes later", () => {
@@ -1527,7 +1502,153 @@ describe("PeerClientService.sendFlightRpc", () => {
   });
 });
 
-describe("PeerClientService: GO/NO-GO broadcasts", () => {
+// ---------------------------------------------------------------------------
+// relay-ice-servers: applying iceServers to the station's Peer. The station's
+// Peer starts on the STUN list alone (see iceServers.ts) and cannot reach
+// the relay's container-bridge ICE candidates on its own, so the host sends
+// its iceServers, and the station mutates its Peer's _options.config so a
+// fresh peer.connect() uses them.
+// ---------------------------------------------------------------------------
+
+describe("PeerClientService: relay-ice-servers application", () => {
+  it("mutates the Peer's _options.config.iceServers when the message carries them", () => {
+    const { svc, peer } = connectedSvc();
+
+    const turn: RTCIceServer[] = [
+      {
+        urls: ["turn:relay.example.com:3478?transport=udp"],
+        username: "test-user",
+        credential: "test-secret",
+      },
+    ];
+
+    fromHost(svc).send({
+      type: "relay-ice-servers",
+      iceServers: turn,
+    });
+
+    expect(peer._options.config).toBeDefined();
+    expect(peer._options.config?.iceServers).toEqual([
+      ...STUN_SERVERS,
+      ...turn,
+    ]);
+  });
+
+  it("starts on the STUN list with no TURN entry", () => {
+    const { peer } = connectedSvc();
+    expect(peer._options.config?.iceServers).toEqual(STUN_SERVERS);
+  });
+
+  describe("relay named in the station link", () => {
+    const turn: RTCIceServer[] = [
+      { urls: ["turn:relay.example.com:3478"], username: "u", credential: "c" },
+    ];
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it("fetches the relay's entries before the first Peer is created", async () => {
+      const fetchMock = vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ iceServers: turn, publicUrl: "https://r.test" }),
+          ),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+      FakePeer.instances.length = 0;
+      const svc = new PeerClientService();
+      const states: string[] = [];
+      svc.onRelayLookup((s) => states.push(s));
+
+      svc.connect("AB3K", "https://r.test");
+      expect(FakePeer.instances).toHaveLength(0);
+      await vi.waitFor(() => expect(FakePeer.instances).toHaveLength(1));
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://r.test/ice-config",
+        expect.anything(),
+      );
+      expect(FakePeer.instances[0]._options.config?.iceServers).toEqual([
+        ...STUN_SERVERS,
+        ...turn,
+      ]);
+      expect(states).toEqual(["none", "pending", "used"]);
+    });
+
+    it("falls back to the STUN list and says the relay was unreachable when the fetch fails", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => {
+          throw new Error("blocked");
+        }),
+      );
+      FakePeer.instances.length = 0;
+      const svc = new PeerClientService();
+      const states: string[] = [];
+      svc.onRelayLookup((s) => states.push(s));
+
+      svc.connect("AB3K", "https://r.test");
+      await vi.waitFor(() => expect(FakePeer.instances).toHaveLength(1));
+
+      expect(FakePeer.instances[0]._options.config?.iceServers).toEqual(
+        STUN_SERVERS,
+      );
+      expect(states).toEqual(["none", "pending", "unreachable"]);
+    });
+  });
+
+  describe("relay servers for a station's media", () => {
+    const turn = [{ urls: "turn:r" }];
+
+    function linkedOver(pair: [string, string]) {
+      const svc = new PeerClientService();
+      svc.connect("HOST");
+      const peer = FakePeer.instances[FakePeer.instances.length - 1];
+      peer.emit("open");
+      const conn = peer._lastConn;
+      if (!conn) throw new Error("expected an active peer connection");
+      conn.selectPair(pair);
+      conn.emit("open");
+      conn.emit("data", { type: "relay-ice-servers", iceServers: turn });
+      return svc;
+    }
+
+    it("are kept from a station on the main screen's own network", async () => {
+      const svc = linkedOver(["host", "host"]);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(svc.getRelayIceServers()).toEqual([]);
+      svc.disconnect();
+    });
+
+    it("are given to a station that reached the main screen directly over the internet", async () => {
+      const svc = linkedOver(["srflx", "host"]);
+      await vi.waitFor(() => expect(svc.getRelayIceServers()).toEqual(turn));
+      svc.disconnect();
+    });
+
+    it("are given to a station whose link to the main screen is relayed", async () => {
+      const svc = linkedOver(["relay", "host"]);
+      await vi.waitFor(() => expect(svc.getRelayIceServers()).toEqual(turn));
+      svc.disconnect();
+    });
+  });
+
+  it("drops iceServers that arrive on a connection the station has torn down", () => {
+    const { svc } = connectedSvc();
+    const host = fromHost(svc);
+    svc.disconnect();
+
+    expect(() =>
+      host.send({
+        type: "relay-ice-servers",
+        iceServers: [{ urls: "turn:r" }],
+      }),
+    ).not.toThrow();
+    expect(svc.getRelayIceServers()).toEqual([]);
+  });
+
   describe("countdown sticky replay", () => {
     // gonogo-countdown-start is a fire-and-forget broadcast.
     it("replays a running countdown to a late subscriber", async () => {
