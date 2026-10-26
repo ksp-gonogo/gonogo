@@ -234,6 +234,12 @@ export class ScetAlarmBridge {
    * roster: the only ids a reconcile may disarm unasked.
    */
   private readonly armedIds: Set<string>;
+  /**
+   * Every id this list has held since the page loaded, kept after the alarm
+   * leaves it. A fire notice is replayed to a reconnecting client, and one for
+   * an alarm this list acknowledged is a repeat, not another screen's alarm.
+   */
+  private readonly heldIds = new Set<string>();
   private disposed = false;
 
   constructor(ctx: ScetAlarmBridgeContext) {
@@ -330,6 +336,7 @@ export class ScetAlarmBridge {
   reconcile(): void {
     if (this.disposed || !this.rosterSeen) return;
 
+    for (const alarm of this.ctx.getAlarms()) this.heldIds.add(alarm.id);
     const wanted = new Map<string, Alarm>();
     for (const alarm of this.ctx.getAlarms()) {
       /* A PENDING alarm, or one still owed its arm. An alarm that fired after
@@ -693,9 +700,10 @@ export class ScetAlarmBridge {
       if (!notice) return;
       if (this.ctx.getAlarms().some((alarm) => alarm.id === notice.id)) {
         this.ctx.onFired(notice.id, notice.firedAtUt, notice.actionsWithheld);
-      } else {
-        this.ctx.onForeignFired(notice.id, notice.firedAtUt);
+        return;
       }
+      if (this.heldIds.has(notice.id) || this.armedIds.has(notice.id)) return;
+      this.ctx.onForeignFired(notice.id, notice.firedAtUt);
     });
   }
 

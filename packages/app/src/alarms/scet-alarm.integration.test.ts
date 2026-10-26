@@ -981,6 +981,34 @@ describe("SCET alarms", () => {
     }
   });
 
+  it("does not announce its own alarm as another screen's when the fire notice is replayed after it was acknowledged", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    try {
+      const alarm = svc.addAlarm({
+        name: "Apoapsis",
+        trigger: { kind: "time", ut: UT_START + 3 * DT, leadSeconds: 0 },
+      });
+      await run(session, UT_START + 8 * DT);
+      expect(svc.snapshot().alarms.map((a) => a.state)).toEqual(["fired"]);
+
+      svc.acknowledgeAlarm(alarm.id);
+      expect(svc.snapshot().alarms).toEqual([]);
+
+      session.reconnect();
+      await run(session, UT_START + 12 * DT);
+      expect(svc.snapshot().scetForeignFired).toBeUndefined();
+    } finally {
+      svc.dispose();
+    }
+  });
+
   it("lists an alarm it never asked for, and disarms it when told to", async () => {
     const session = startSession(OWLT);
     session.emitAt(UT_START);
