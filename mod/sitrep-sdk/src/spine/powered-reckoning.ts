@@ -1,4 +1,4 @@
-import { Quality } from "../__generated__/contract";
+import { Quality, type VesselOrbit } from "../__generated__/contract";
 import type { Quantityish } from "../magnitude";
 import type {
   ModelledField,
@@ -465,6 +465,10 @@ export interface PoweredOrbitProjection {
   meanAnomalyAtEpoch: Value<"rad">;
   /** The instant the elements are given for. */
   epoch: Value<"ut">;
+  /** Index into `trackingStation.bodies` of the body the orbit is around. Present only on a projection onto another body's patch. */
+  referenceBodyIndex?: number;
+  /** The reference body's gravitational parameter. Present only on a projection onto another body's patch. */
+  mu?: VesselOrbit["mu"];
 }
 
 /** Every path the powered model moves, in the order they are banded. */

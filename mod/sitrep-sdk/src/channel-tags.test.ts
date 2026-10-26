@@ -58,8 +58,9 @@ describe("a value's sample kind", () => {
     expect(sampleKindOf("nobody.declares.this")).toBe("continuous");
   });
 
-  it("is continuous for every value a declared model carries forward", () => {
-    // A model carries a value across the gap between samples, which only a continuous value has.
+  it("is continuous for every value a declared model moves continuously, and discrete for every stepped one", () => {
+    // A model carries a continuous value across the gap between samples, which only a continuous value has.
+    // A stepped value changes only at a boundary the sample states, so it must be held, never blended.
     for (const row of GENERATED_CONTRACT_TAGS.reckonable) {
       const path = row.field
         .split(".")
@@ -69,9 +70,20 @@ describe("a value's sample kind", () => {
         kind: sampleKindOf(row.topic, path),
       }).toEqual({
         row: `${row.topic} ${row.field}`,
-        kind: "continuous",
+        kind:
+          "carried" in row && row.carried === "stepped"
+            ? "discrete"
+            : "continuous",
       });
     }
+  });
+
+  it("declares the body an orbit is about as stepped", () => {
+    expect(
+      GENERATED_CONTRACT_TAGS.reckonable
+        .filter((row) => "carried" in row && row.carried === "stepped")
+        .map((row) => `${row.topic} ${row.field}`),
+    ).toEqual(["vessel.orbit referenceBodyIndex"]);
   });
 });
 
@@ -168,6 +180,24 @@ describe("an interpolated read between two samples", () => {
     );
     expect(payload?.referenceBodyIndex).toBe(1);
     expect(payload?.sma).toBeCloseTo(750_000);
+  });
+
+  it("never blends a stepped value between two samples, whichever model carries it", () => {
+    const stepped = GENERATED_CONTRACT_TAGS.reckonable.filter(
+      (row) => "carried" in row && row.carried === "stepped",
+    );
+    expect(stepped.length).toBeGreaterThan(0);
+    for (const row of stepped) {
+      const payload = between(
+        row.topic,
+        { [row.field]: 2 },
+        { [row.field]: 1 },
+      );
+      expect({ row: row.field, held: payload?.[row.field] }).toEqual({
+        row: row.field,
+        held: 2,
+      });
+    }
   });
 
   it("holds the whole of a discrete channel", () => {

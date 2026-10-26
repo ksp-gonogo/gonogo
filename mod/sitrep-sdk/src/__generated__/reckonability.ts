@@ -49,6 +49,8 @@ export interface GeneratedReckonableValue {
   readonly field: string;
   /** The kind of model that moves it. */
   readonly basis: GeneratedReckoningBasis;
+  /** `"stepped"` for a value that changes only at a boundary the sample states and is never interpolated; absent for a continuous one. */
+  readonly carried?: "stepped";
   /** What the model reads. */
   readonly inputs: readonly GeneratedReckonableInput[];
 }
@@ -63,7 +65,7 @@ export const GENERATED_RECKONABLE_FIELDS = {
   "target.available": ["entries"],
   "vessel.dock": ["distance", "relativePosition"],
   "vessel.flight": ["altitudeAsl", "orbitalSpeed"],
-  "vessel.orbit": ["argPe", "ecc", "epoch", "inc", "lan", "meanAnomalyAtEpoch", "sma"],
+  "vessel.orbit": ["argPe", "ecc", "epoch", "inc", "lan", "meanAnomalyAtEpoch", "mu", "referenceBodyIndex", "sma"],
   "vessel.orbit.truth": ["position", "velocity"],
   "vessel.target": ["relativePosition"],
 } as const satisfies Record<string, readonly string[]>;

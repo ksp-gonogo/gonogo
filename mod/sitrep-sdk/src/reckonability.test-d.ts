@@ -53,14 +53,23 @@ type _OrbitTruthFields = Expect<
 >;
 
 /*
- * A coast moves the phase and a burn moves every element, so the union is every
- * element the burn model moves. `mu` and the patch chain are not among them: a
- * burn changes neither the body nor what KSP has already solved.
+ * A coast moves the phase, a burn moves every element, and a coast across a
+ * sphere-of-influence change moves the body and its gravitational parameter
+ * with them, so the union is every element any of those models moves. The patch
+ * chain is not among them: nothing changes what KSP has already solved.
  */
 type _OrbitFields = Expect<
   Equal<
     ReckonableFields<"vessel.orbit">,
-    "sma" | "ecc" | "inc" | "lan" | "argPe" | "meanAnomalyAtEpoch" | "epoch"
+    | "referenceBodyIndex"
+    | "sma"
+    | "ecc"
+    | "inc"
+    | "lan"
+    | "argPe"
+    | "meanAnomalyAtEpoch"
+    | "epoch"
+    | "mu"
   >
 >;
 

@@ -1,3 +1,4 @@
+import { logger } from "@ksp-gonogo/logger";
 import {
   type BodyRadiusTable,
   bodyRadiusOf,
@@ -9,7 +10,9 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { deriveReading, type Reading } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk/spine";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
+
+const reckonLog = logger.tag("orbit:reckon");
 
 /**
  * The self vessel's orbit solved at the received edge: apsides, their
@@ -67,14 +70,46 @@ export function useOrbitSolve(): OrbitalSolve | null {
    * point as an observed one. Whether they may be ADVANCED is the reckoning's
    * answer, which `solveSelfOrbit` asks.
    */
-  const elements =
+  const reckoning = reading.reckoning;
+  const observed =
     reading.state === "observed" || reading.state === "held"
       ? reading.value
       : undefined;
+  /*
+   * Where the model carried the craft onto another body's patch, the elements
+   * to solve are that patch's, which the reckoning holds and the observation
+   * does not.
+   */
+  const elements = useMemo(
+    () =>
+      observed !== undefined && reckoning.status === "available"
+        ? { ...observed, ...reckoning.value }
+        : observed,
+    [observed, reckoning],
+  );
+
+  const declinedReason =
+    reckoning.status === "declined" ? reckoning.declined.reason : undefined;
+  const declinedNote =
+    reckoning.status === "declined" ? reckoning.declined.note : undefined;
+  const lastLogged = useRef<string>();
+  useEffect(() => {
+    const summary = `${reading.state}/${reckoning.status}/${declinedReason ?? "-"}`;
+    if (lastLogged.current === summary) return;
+    lastLogged.current = summary;
+    reckonLog.debug("vessel.orbit reckoning changed", {
+      state: reading.state,
+      status: reckoning.status,
+      declined: declinedReason,
+      note: declinedNote,
+      validAt: reading.state === "observed" ? String(reading.atUt) : undefined,
+      viewUt: solveUt === undefined ? undefined : String(solveUt),
+      referenceBodyIndex: observed?.referenceBodyIndex,
+    });
+  });
 
   /* Memoised on the frame's own inputs: a Kepler solve per widget per render
      is the cost otherwise, and several widgets read this. */
-  const reckoning = reading.reckoning;
   const observedAtUt = reading.state === "observed" ? reading.atUt : undefined;
   return useMemo(
     () => solveSelfOrbit(elements, reckoning, bodies, solveUt, observedAtUt),

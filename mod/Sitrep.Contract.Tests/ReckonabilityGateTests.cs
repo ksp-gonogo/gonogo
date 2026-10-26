@@ -139,7 +139,12 @@ namespace Sitrep.Contract.Tests
                     ReckoningBases.KeplerPropagation,
                     ReckoningBases.PoweredIntegration,
                 },
-                ["VesselOrbit.Sma"] = new[] { ReckoningBases.PoweredIntegration },
+                // A coast across a change of sphere of influence moves the body and the elements with it, so the elements carry both.
+                ["VesselOrbit.Sma"] = new[]
+                {
+                    ReckoningBases.KeplerPropagation,
+                    ReckoningBases.PoweredIntegration,
+                },
                 ["VesselOrbitTruth.Position"] = new[] { ReckoningBases.KeplerPropagation },
                 ["VesselOrbitTruth.Velocity"] = new[] { ReckoningBases.KeplerPropagation },
             };

@@ -11248,7 +11248,12 @@ export interface VesselManeuver
 */
 export interface VesselOrbit
 {
-	/** Index into `trackingStation.bodies` of the body this orbit is around. */
+	/**
+	* Index into `trackingStation.bodies` of the body this orbit is around.
+	* Reckonable past the sphere-of-influence change that ends this patch: a
+	* client carries it, with the elements and `VesselOrbit.mu`, onto the next
+	* patch of `VesselOrbit.patches`.
+	*/
 	referenceBodyIndex: number;
 	/** Semi-major axis, in metres. */
 	sma: Value<"m">;

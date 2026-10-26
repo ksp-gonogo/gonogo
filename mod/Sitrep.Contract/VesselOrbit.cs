@@ -43,36 +43,47 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.orbit", DisplayName = "Active vessel orbit")]
 public class VesselOrbit
 {
-    /// <summary>Index into <c>trackingStation.bodies</c> of the body this orbit is around.</summary>
+    /// <summary>
+    /// Index into <c>trackingStation.bodies</c> of the body this orbit is around.
+    /// Reckonable past the sphere-of-influence change that ends this patch: a
+    /// client carries it, with the elements and <see cref="Mu"/>, onto the next
+    /// patch of <see cref="Patches"/>.
+    /// </summary>
     [SitrepUnit(Units.Id)]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "patches", "horizon", "@trackingStation.bodies", Stepped = true)]
     public int ReferenceBodyIndex { get; set; }
 
     /// <summary>Semi-major axis, in metres.</summary>
     [SitrepUnit(Units.Metres)]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "patches", "horizon", "@trackingStation.bodies")]
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     [SitrepDisplayName("Semi-major axis")]
     public double Sma { get; set; }
 
     /// <summary>Eccentricity. Below 1 for a closed orbit, 1 or above for an escape trajectory.</summary>
     [SitrepUnit(Units.Dimensionless)]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "patches", "horizon", "@trackingStation.bodies")]
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     [SitrepDisplayName("Eccentricity")]
     public double Ecc { get; set; }
 
     /// <summary>Inclination, in degrees (KSP's <c>Orbit.inclination</c>).</summary>
     [SitrepUnit(Units.Degrees)]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "patches", "horizon", "@trackingStation.bodies")]
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     [SitrepDisplayName("Inclination")]
     public double Inc { get; set; }
 
     /// <summary>Longitude of ascending node, degrees; <c>null</c> only when absent, never NaN and never 0 as a stand-in. An equatorial orbit still has one.</summary>
     [SitrepUnit(Units.Degrees)]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "patches", "horizon", "@trackingStation.bodies")]
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     [SitrepDisplayName("Longitude of ascending node")]
     public double? Lan { get; set; }
 
     /// <summary>Argument of periapsis, degrees; <c>null</c> only when absent, never NaN and never 0 as a stand-in. A circular orbit still has one.</summary>
     [SitrepUnit(Units.Degrees)]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "patches", "horizon", "@trackingStation.bodies")]
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     [SitrepDisplayName("Argument of periapsis")]
     public double? ArgPe { get; set; }
@@ -91,7 +102,7 @@ public class VesselOrbit
      * without a mark that withdrawal reads as `reckoning: "none"`, indistinguishable from an
      * unmodelled topic.
      */
-    [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "horizon", "@trackingStation.bodies")]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "patches", "horizon", "@trackingStation.bodies")]
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     public double MeanAnomalyAtEpoch { get; set; }
 
@@ -102,13 +113,14 @@ public class VesselOrbit
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     // Moves with MeanAnomalyAtEpoch: advancing one without the other would date the phase to the wrong instant.
-    [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "horizon", "@trackingStation.bodies")]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "patches", "horizon", "@trackingStation.bodies")]
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@trackingStation.bodies")]
     [SitrepSampleKind(SampleKind.Continuous)]
     public double Epoch { get; set; }
 
     /// <summary>The reference body's standard gravitational parameter (GM), so the elements propagate without a separate body lookup.</summary>
     [SitrepUnit(Units.CubicMetresPerSecondSquared)]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "patches", "horizon", "@trackingStation.bodies")]
     public double Mu { get; set; }
 
     /// <summary>

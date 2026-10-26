@@ -1978,6 +1978,7 @@ public static class RtConfig
             sb.Append("    { topic: \"").Append(r.Topic)
                 .Append("\", field: \"").Append(r.Field)
                 .Append("\", basis: \"").Append(r.Basis)
+                .Append(r.Stepped ? "\", carried: \"stepped" : "")
                 .Append("\", inputs: [");
             for (var i = 0; i < r.Inputs.Count; i++)
             {
@@ -2241,6 +2242,8 @@ public static class RtConfig
         sb.Append("  readonly field: string;\n");
         sb.Append("  /** The kind of model that moves it. */\n");
         sb.Append("  readonly basis: GeneratedReckoningBasis;\n");
+        sb.Append("  /** `\"stepped\"` for a value that changes only at a boundary the sample states and is never interpolated; absent for a continuous one. */\n");
+        sb.Append("  readonly carried?: \"stepped\";\n");
         sb.Append("  /** What the model reads. */\n");
         sb.Append("  readonly inputs: readonly GeneratedReckonableInput[];\n");
         sb.Append("}\n\n");

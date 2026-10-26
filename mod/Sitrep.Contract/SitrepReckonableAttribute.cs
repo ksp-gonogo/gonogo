@@ -113,6 +113,16 @@ namespace Sitrep.Contract
         public string Basis { get; }
 
         /// <summary>
+        /// Whether the value changes only at a boundary the sample already states,
+        /// rather than continuously. A stepped value is carried onto its new
+        /// figure at that boundary and held as it stands everywhere else, so a
+        /// reader never interpolates it between two samples. It must be
+        /// <see cref="SampleKind.Discrete"/>. False, the default, means the value
+        /// is continuous and the model may move it at any instant.
+        /// </summary>
+        public bool Stepped { get; set; }
+
+        /// <summary>
         /// The published inputs the model needs, beyond the value itself, in the
         /// spelling the class summary describes. Never empty.
         /// </summary>

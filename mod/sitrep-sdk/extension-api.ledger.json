@@ -11849,6 +11849,58 @@
         "note": "the reasons a widget can stay open while a game state it requires is not met: the crash that ended a flight"
       },
       {
+        "key": "sitrep-sdk . ConicOrbitInput#patches?",
+        "note": "the patch chain the orbit reckoner reads to find the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk . ConicPatchInput",
+        "note": "one entry of a vessel.orbit patch chain, as the orbit reckoner reads it"
+      },
+      {
+        "key": "sitrep-sdk . ConicPatchInput#argPe?",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk . ConicPatchInput#ecc",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk . ConicPatchInput#endUt?",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk . ConicPatchInput#epoch",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk . ConicPatchInput#inc",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk . ConicPatchInput#lan?",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk . ConicPatchInput#meanAnomalyAtEpoch?",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk . ConicPatchInput#mu?",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk . ConicPatchInput#referenceBodyIndex?",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk . ConicPatchInput#sma",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk . ConicPatchInput#startUt",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
         "key": "sitrep-sdk . ConicShape",
         "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
       },
@@ -11899,6 +11951,10 @@
       {
         "key": "sitrep-sdk . ContractReckonableRow#basis",
         "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
+      },
+      {
+        "key": "sitrep-sdk . ContractReckonableRow#carried?",
+        "note": "a reckonable row says whether its value is stepped, held between samples and moved only at a boundary the sample states"
       },
       {
         "key": "sitrep-sdk . ContractReckonableRow#field",
@@ -12171,6 +12227,14 @@
       {
         "key": "sitrep-sdk . PowerSystemsScope#resource",
         "note": "Exported by name, so a widget or augment reading this scope can name its type"
+      },
+      {
+        "key": "sitrep-sdk . PoweredOrbitProjection#mu?",
+        "note": "the orbit projection carries the body and its gravitational parameter once the craft is on another body's patch"
+      },
+      {
+        "key": "sitrep-sdk . PoweredOrbitProjection#referenceBodyIndex?",
+        "note": "the orbit projection carries the body and its gravitational parameter once the craft is on another body's patch"
       },
       {
         "key": "sitrep-sdk . ProcessorFrame",
@@ -12683,6 +12747,10 @@
       {
         "key": "sitrep-sdk . fieldDisplayNameOf",
         "note": "The name the publishing contract gives a field, for a picker, a graph title or a legend"
+      },
+      {
+        "key": "sitrep-sdk . keplerAdmissibilityAcrossPatches",
+        "note": "the orbit admissibility answer that also says which patch the craft is on past a sphere-of-influence change"
       },
       {
         "key": "sitrep-sdk . phaseAngleBetween",
@@ -14473,6 +14541,58 @@
         "note": "connected is optional and may be null, as comms.link now says when nothing is reported yet"
       },
       {
+        "key": "sitrep-sdk ./spine ConicOrbitInput#patches?",
+        "note": "the patch chain the orbit reckoner reads to find the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicPatchInput",
+        "note": "one entry of a vessel.orbit patch chain, as the orbit reckoner reads it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicPatchInput#argPe?",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicPatchInput#ecc",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicPatchInput#endUt?",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicPatchInput#epoch",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicPatchInput#inc",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicPatchInput#lan?",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicPatchInput#meanAnomalyAtEpoch?",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicPatchInput#mu?",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicPatchInput#referenceBodyIndex?",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicPatchInput#sma",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
+        "key": "sitrep-sdk ./spine ConicPatchInput#startUt",
+        "note": "the patch field the orbit reckoner needs to carry the craft onto the next body's patch"
+      },
+      {
         "key": "sitrep-sdk ./spine ConicShape",
         "note": "The quantities solveConic reads: semi-major axis, eccentricity, mean anomaly at epoch and the epoch"
       },
@@ -14865,6 +14985,10 @@
         "note": "New spine plumbing that says whether a gate report names the item a call is about; not an author surface"
       },
       {
+        "key": "sitrep-sdk ./spine keplerAdmissibilityAcrossPatches",
+        "note": "the orbit admissibility answer that also says which patch the craft is on past a sphere-of-influence change"
+      },
+      {
         "key": "sitrep-sdk ./spine openCommandGroup",
         "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
       },
@@ -14999,6 +15123,10 @@
       {
         "key": "sitrep-sdk ./spine ~ContractReckonableRow#basis",
         "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContractReckonableRow#carried?",
+        "note": "a reckonable row says whether its value is stepped, held between samples and moved only at a boundary the sample states"
       },
       {
         "key": "sitrep-sdk ./spine ~ContractReckonableRow#field",
@@ -15439,6 +15567,10 @@
       {
         "key": "sitrep-sdk ./testing ~ContractReckonableRow#basis",
         "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContractReckonableRow#carried?",
+        "note": "a reckonable row says whether its value is stepped, held between samples and moved only at a boundary the sample states"
       },
       {
         "key": "sitrep-sdk ./testing ~ContractReckonableRow#field",

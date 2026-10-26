@@ -45,8 +45,9 @@ namespace Sitrep.Contract
     /// </summary>
     internal sealed class ReckonableRow
     {
-        internal ReckonableRow(string topic, string field, string basis, IReadOnlyList<(string Topic, string Path)> inputs)
+        internal ReckonableRow(string topic, string field, string basis, IReadOnlyList<(string Topic, string Path)> inputs, bool stepped = false)
         {
+            Stepped = stepped;
             Topic = topic;
             Field = field;
             Basis = basis;
@@ -58,6 +59,8 @@ namespace Sitrep.Contract
         public string Field { get; }
 
         public string Basis { get; }
+
+        public bool Stepped { get; }
 
         public IReadOnlyList<(string Topic, string Path)> Inputs { get; }
     }
@@ -151,7 +154,7 @@ namespace Sitrep.Contract
             {
                 foreach (var mark in value.Property.GetCustomAttributes<SitrepReckonableAttribute>(false))
                 {
-                    rows.Add(new ReckonableRow(value.Topic, value.Path, mark.Basis, mark.Inputs.Select(SplitInput).ToList()));
+                    rows.Add(new ReckonableRow(value.Topic, value.Path, mark.Basis, mark.Inputs.Select(SplitInput).ToList(), mark.Stepped));
                 }
             }
 

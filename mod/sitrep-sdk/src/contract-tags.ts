@@ -71,6 +71,8 @@ export interface ContractReckonableRow {
   readonly field: string;
   /** The model that carries it forward, one of the reckoning bases. */
   readonly basis: string;
+  /** `"stepped"` for a value that changes only at a boundary the sample states and is never interpolated; absent for a continuous one. */
+  readonly carried?: "stepped";
   /** The published inputs the model needs beyond the value itself. */
   readonly inputs: readonly GeneratedReckonableInput[];
 }

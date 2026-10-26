@@ -60,6 +60,41 @@ export interface ConicOrbitInput {
   encounter?: { transitionUt: Quantityish } | LockedValue | null;
   /** How far ahead the elements hold. */
   horizon?: PropagationHorizonLike;
+  /** The patch chain, element 0 being the current patch, as `vessel.orbit` carries it. */
+  patches?: readonly ConicPatchInput[] | null;
+}
+
+/**
+ * One entry of a `vessel.orbit` patch chain, with the fields needed to carry
+ * the craft onto it. Useful for deciding where the craft is after the
+ * sphere-of-influence change that ends the current patch. Taken by
+ * {@link keplerAdmissibilityAcrossPatches}.
+ *
+ * @category Reckoners
+ */
+export interface ConicPatchInput {
+  /** Index into `trackingStation.bodies` of the body the patch is around. Absent on a patch recorded without it. */
+  referenceBodyIndex?: number | null;
+  /** Semi-major axis. */
+  sma: Quantityish;
+  /** Eccentricity. */
+  ecc: Quantityish;
+  /** Inclination. */
+  inc: Quantityish;
+  /** Longitude of the ascending node. */
+  lan?: Quantityish | null;
+  /** Argument of periapsis. */
+  argPe?: Quantityish | null;
+  /** Mean anomaly at `epoch`. Absent on a patch recorded without it. */
+  meanAnomalyAtEpoch?: Quantityish | null;
+  /** The instant the elements are given for. */
+  epoch: Quantityish;
+  /** The universal time the patch begins. */
+  startUt: Quantityish;
+  /** The universal time the patch ends. Not a number on a patch that never ends. */
+  endUt?: Quantityish | null;
+  /** The body's gravitational parameter. Absent on a patch recorded without it. */
+  mu?: Quantityish | null;
 }
 
 /**
@@ -433,7 +468,7 @@ export function keplerAdmissibility(
         declined: {
           reason: "beyond-horizon",
           input: "@vessel.orbit",
-          note: "this patch ends at the SOI transition",
+          note: PATCH_END_NOTE,
         },
       };
     }
@@ -495,6 +530,110 @@ export function keplerAdmissibility(
     }
   }
   return { ok: true };
+}
+
+/** The note a decline carries when the view time is past the end of the current patch. */
+const PATCH_END_NOTE = "this patch ends at the SOI transition";
+
+/** Slack, in seconds, between a patch's `startUt` and the transition that ends the one before it. */
+const PATCH_JOIN_SLACK = 1;
+
+/**
+ * The patch the craft is on once the current one has ended at `transitionUt`,
+ * as an orbit of its own, or `undefined` when the chain does not carry it.
+ * A patch missing its body, its gravitational parameter, its phase or the
+ * orientation of its plane is not used, because none of them can be guessed.
+ */
+function successorOrbit(
+  orbit: ConicOrbitInput,
+  transitionUt: number,
+  viewUt: number,
+): ConicOrbitInput | undefined {
+  const chain = orbit.patches ?? [];
+  const at = chain.findIndex(
+    (patch, i) =>
+      i > 0 && Math.abs(mag(patch.startUt) - transitionUt) <= PATCH_JOIN_SLACK,
+  );
+  if (at < 1) return undefined;
+  const patch = chain[at];
+  const endUt = mag(patch.endUt);
+  if (endUt <= viewUt) return undefined;
+  const mu = mag(patch.mu);
+  const body = patch.referenceBodyIndex;
+  if (!(mu > 0) || body == null) return undefined;
+  if (!Number.isFinite(mag(patch.meanAnomalyAtEpoch))) return undefined;
+  if (!Number.isFinite(mag(patch.lan)) || !Number.isFinite(mag(patch.argPe))) {
+    return undefined;
+  }
+  const followed = chain[at + 1];
+  const follows =
+    followed !== undefined && Number.isFinite(endUt)
+      ? { transitionUt: patch.endUt as Quantityish }
+      : null;
+  return {
+    referenceBodyIndex: body,
+    sma: patch.sma,
+    ecc: patch.ecc,
+    inc: patch.inc,
+    lan: patch.lan,
+    argPe: patch.argPe,
+    meanAnomalyAtEpoch: patch.meanAnomalyAtEpoch as Quantityish,
+    epoch: patch.epoch,
+    mu: patch.mu as Quantityish,
+    encounter: follows,
+    horizon: orbit.horizon,
+    patches: chain.slice(at),
+  };
+}
+
+/**
+ * Returns whether the craft's orbit may be carried forward to `viewUt`, and the
+ * orbit it is carried on: the point's own, or the next patch of its chain when
+ * `viewUt` is past the sphere-of-influence change that ends the current one.
+ * Useful for showing the operator the body the craft is about to be around
+ * before the game's next sample arrives. The next patch is a prediction already
+ * in the delivered sample, so nothing is shown that the link has not carried.
+ * Used by the orbit reckoner.
+ *
+ * @category Reckoners
+ */
+export function keplerAdmissibilityAcrossPatches(
+  orbitPoint: TimelinePoint<ConicOrbitInput> | undefined,
+  bodies: ConicBodiesInput | undefined,
+  viewUt: number,
+  coast?: LoadedCoastEvidence,
+):
+  | {
+      readonly ok: true;
+      readonly orbit: ConicOrbitInput;
+      readonly carried: boolean;
+    }
+  | { readonly declined: ReckoningDecline } {
+  const own = keplerAdmissibility(orbitPoint, bodies, viewUt, coast);
+  const orbit = orbitPoint?.payload;
+  if (orbitPoint === undefined || orbit == null) return own as never;
+  if ("ok" in own) return { ok: true, orbit, carried: false };
+  const declined = own.declined;
+  if (
+    declined.reason !== "beyond-horizon" ||
+    declined.note !== PATCH_END_NOTE
+  ) {
+    return own;
+  }
+  const transitionUt = mag(
+    (unlessLocked(orbit.encounter ?? null) as { transitionUt: Quantityish })
+      .transitionUt,
+  );
+  const next = successorOrbit(orbit, transitionUt, viewUt);
+  if (next === undefined) return own;
+  const onward = keplerAdmissibility(
+    { ...orbitPoint, payload: next },
+    bodies,
+    viewUt,
+    coast,
+  );
+  if ("declined" in onward) return onward;
+  return { ok: true, orbit: next, carried: true };
 }
 
 /** The radius of a body's sphere of influence, in metres, or `undefined` when `bodies` does not state one for it. */

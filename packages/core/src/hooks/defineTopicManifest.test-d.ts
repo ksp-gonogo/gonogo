@@ -82,7 +82,15 @@ export type _AcRequired2IsReading = Expect<
     _AcRequired2,
     ReckonableReading<
       VesselOrbit,
-      "sma" | "ecc" | "inc" | "lan" | "argPe" | "meanAnomalyAtEpoch" | "epoch"
+      | "referenceBodyIndex"
+      | "sma"
+      | "ecc"
+      | "inc"
+      | "lan"
+      | "argPe"
+      | "meanAnomalyAtEpoch"
+      | "epoch"
+      | "mu"
     >
   >
 >;
@@ -190,7 +198,15 @@ export type _DerivedWireReadIsReading = Expect<
     ReturnType<typeof derivedManifest.useTelemetry<"vessel.orbit">>,
     ReckonableReading<
       VesselOrbit,
-      "sma" | "ecc" | "inc" | "lan" | "argPe" | "meanAnomalyAtEpoch" | "epoch"
+      | "referenceBodyIndex"
+      | "sma"
+      | "ecc"
+      | "inc"
+      | "lan"
+      | "argPe"
+      | "meanAnomalyAtEpoch"
+      | "epoch"
+      | "mu"
     >
   >
 >;

@@ -125,8 +125,8 @@ function OrbitViewComponent({
   const flight = useStreamOptional<VesselFlight>("vessel.flight");
   const restingLabel = restingSituationLabel(identity?.situation);
   const resting = restingLabel !== undefined;
-  // The body name is a label, so it holds off the last observation.
-  const refBody = useBodyName(orbitObserved?.referenceBodyIndex);
+  // The body the figures are about, which is the next patch's once the model has carried the craft past a change of sphere of influence.
+  const refBody = useBodyName(orbit?.referenceBodyIndex);
   const declined =
     orbitReading.reckoning.status === "declined"
       ? orbitReading.reckoning.declined
@@ -195,7 +195,7 @@ function OrbitViewComponent({
     controlFrame,
     controlFrameToReadFrameChoice(controlFrame, facts),
     {
-      index: orbitObserved?.referenceBodyIndex ?? undefined,
+      index: orbit?.referenceBodyIndex ?? undefined,
       name: refBody ?? undefined,
     },
   );

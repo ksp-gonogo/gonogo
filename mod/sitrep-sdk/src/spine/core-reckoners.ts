@@ -33,6 +33,7 @@ import {
   buildElements,
   isUnderThrust,
   keplerAdmissibility,
+  keplerAdmissibilityAcrossPatches,
   loadedCoastEvidence,
   magnitude,
   propagateVesselOrbit,
@@ -1077,16 +1078,24 @@ function registerOrbitReckoner(): void {
         roster.state === "observed" || roster.state === "held"
           ? roster.value
           : undefined;
-      const admissible = keplerAdmissibility(
+      const admissible = keplerAdmissibilityAcrossPatches(
         point,
         bodies,
         reckonUt,
         loadedCoastEvidence(thrust, pending),
       );
-      const orbit = point.payload;
-      if (orbit == null) {
+      if (point.payload == null) {
         return { declined: { reason: "input-absent", input: "@vessel.orbit" } };
       }
+      /*
+       * Past the transition that ends the current patch, the orbit carried is
+       * the next patch of the chain the sample already holds, so every element
+       * below is that patch's rather than the observation's.
+       */
+      const carried = "ok" in admissible && admissible.carried;
+      const orbit = (
+        "ok" in admissible ? admissible.orbit : point.payload
+      ) as NonNullable<typeof point.payload>;
       /*
        * The constants of the orbit, copied verbatim on the conic branch: one
        * reading carries one projection over every marked field, and the conic
@@ -1094,11 +1103,13 @@ function registerOrbitReckoner(): void {
        * observation itself.
        */
       const held = {
+        referenceBodyIndex: orbit.referenceBodyIndex,
         sma: orbit.sma,
         ecc: orbit.ecc,
         inc: orbit.inc,
-        lan: orbit.lan,
-        argPe: orbit.argPe,
+        lan: orbit.lan as Value<"°">,
+        argPe: orbit.argPe as Value<"°">,
+        mu: orbit.mu,
       };
       if ("declined" in admissible) {
         const coldOrUnknown =
@@ -1132,11 +1143,20 @@ function registerOrbitReckoner(): void {
         };
       }
       return {
-        modelled: movedFields(
-          "kepler-propagation",
-          "meanAnomalyAtEpoch",
-          "epoch",
-        ),
+        modelled: carried
+          ? movedFields(
+              "kepler-propagation",
+              "meanAnomalyAtEpoch",
+              "epoch",
+              "referenceBodyIndex",
+              "sma",
+              "ecc",
+              "inc",
+              "lan",
+              "argPe",
+              "mu",
+            )
+          : movedFields("kepler-propagation", "meanAnomalyAtEpoch", "epoch"),
         bandAt: (at) => {
           const drift = departureAt(
             orbit.horizon?.departure,
