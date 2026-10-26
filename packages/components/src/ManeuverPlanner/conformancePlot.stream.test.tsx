@@ -181,6 +181,18 @@ describe("ManeuverPlanner: the conformance plot's planned conic", () => {
     expect(text).not.toContain("burn in");
   });
 
+  it("states how far the flown orbit is from the plan when the gap is too wide for the detail strip", async () => {
+    const view = await mountOnConformance([POST_BURN_PATCH], {
+      pinnedUt: 1_000_181,
+    });
+    await waitFor(() => {
+      expect(visibleText(view.container)).toContain(
+        "widest gap, flown vs planned",
+      );
+    });
+    expect(visibleText(view.container)).not.toContain("detail: widest gap");
+  });
+
   it("draws NO planned conic when the patch chain is empty", async () => {
     const view = await mountOnConformance([]);
     await waitFor(() => {

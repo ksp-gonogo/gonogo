@@ -191,6 +191,17 @@ export function ConformancePlot({
       ) : (
         <span style={CAPTION}>{NULL_DISPLAY} no current orbit</span>
       )}
+      {separation && !inset ? (
+        <span style={CAPTION}>
+          widest gap, flown vs planned:{" "}
+          <Unit
+            value={value("m", separation.gap)}
+            marked={marking}
+            decimals={0}
+          />{" "}
+          apart
+        </span>
+      ) : null}
       {inset && current ? (
         <div style={{ opacity: currentIsObserved ? 1 : 0.55 }}>
           {/* Named, so it reads as a closer look at the plot above rather than another plot. */}
