@@ -173,6 +173,7 @@ describe("the built-in catalogue, derived", () => {
         {
           "domains": [
             "career",
+            "spaceCenter",
           ],
           "id": "objectives",
         },

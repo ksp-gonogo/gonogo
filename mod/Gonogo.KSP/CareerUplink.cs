@@ -34,6 +34,8 @@ namespace Gonogo.KSP
     public sealed class CareerUplink : ISitrepUplink
     {
         private readonly ICareerActuator _actuator;
+        private IChannelPublisher? _contractEvents;
+        private bool _subscribed;
 
         public CareerUplink(ICareerActuator actuator)
         {
@@ -93,6 +95,22 @@ namespace Gonogo.KSP
                     // ledger itself, so it is held where career.status is.
                     Delay = DelayRole.Delayed,
                     HeldAtHome = true,
+                },
+                new ChannelDeclaration
+                {
+                    Kind = SampleKind.Event,
+                    Requires = Requirement.None,
+                    Topic = CareerViewProvider.ContractEventTopic,
+                    // Every finish is delivered, in order: a contract that completes
+                    // and one that fails a frame apart are two facts, and a client
+                    // that reconnects a moment later still learns of the last one.
+                    Delivery = Delivery.ReliableOrdered,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
+                    // A contract names no single vessel, so there is no craft clock
+                    // to hold the finish to: it rides the whole-network delay, the
+                    // active vessel's comms delay, like any other fact with no one
+                    // source. It is not held at the home command.
+                    Delay = DelayRole.Delayed,
                 },
                 new ChannelDeclaration
                 {
@@ -162,6 +180,8 @@ namespace Gonogo.KSP
             host.AddChannelSource(CareerViewProvider.Topic, CareerViewProvider.BuildCareer);
             host.AddChannelSource(CareerViewProvider.ModeTopic, CareerViewProvider.BuildCareerMode);
             host.AddChannelSource(CareerViewProvider.FacilitiesTopic, CareerViewProvider.BuildFacilities);
+            _contractEvents = host.Publisher(CareerViewProvider.ContractEventTopic);
+            HookContractEvents();
 
             host.AddCommandHandler<ActivateStrategyArgs, CommandResult>(CareerCommandProvider.ActivateStrategyCommand, args => CareerCommandProvider.HandleActivateStrategy(_actuator, args));
             host.AddCommandHandler<DeactivateStrategyArgs, CommandResult>(CareerCommandProvider.DeactivateStrategyCommand, args => CareerCommandProvider.HandleDeactivateStrategy(_actuator, args));
@@ -172,6 +192,39 @@ namespace Gonogo.KSP
             host.AddCommandHandler<UpgradeFacilityArgs, CommandResult>(CareerCommandProvider.UpgradeFacilityCommand, args => CareerCommandProvider.HandleUpgradeFacility(_actuator, args));
             host.AddCommandHandler<HireApplicantArgs, CommandResult>(CareerCommandProvider.HireApplicantCommand, args => CareerCommandProvider.HandleHireApplicant(_actuator, args));
             host.AddCommandHandler<FireCrewArgs, CommandResult>(CareerCommandProvider.FireCrewCommand, args => CareerCommandProvider.HandleFireCrew(_actuator, args));
+        }
+
+        /// <summary>
+        /// The hooks live for the whole process: the addon that hosts this uplink is
+        /// created once and kept across scenes, so Register runs once and a finish is
+        /// seen in whichever scene it happens in.
+        /// </summary>
+        private void HookContractEvents()
+        {
+            if (_subscribed)
+            {
+                return;
+            }
+            _subscribed = true;
+
+            GameEvents.Contract.onCompleted.Add(contract => PublishFinish(contract, completed: true));
+            GameEvents.Contract.onFailed.Add(contract => PublishFinish(contract, completed: false));
+        }
+
+        private void PublishFinish(global::Contracts.Contract? contract, bool completed)
+        {
+            if (contract == null || _contractEvents == null)
+            {
+                return;
+            }
+
+            var finishedUt = contract.DateFinished;
+            var payload = CareerViewProvider.BuildContractEvent(
+                contract.ContractID.ToString(),
+                contract.Title,
+                contract.Agent != null ? contract.Agent.Name : null,
+                completed);
+            _contractEvents.Publish(payload, finishedUt);
         }
 
         private static CommandDeclaration Command(string command, string subject) =>

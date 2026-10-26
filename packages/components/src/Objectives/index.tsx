@@ -55,7 +55,7 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
   );
 }
 
-// gonogo:augment-reads objectives-contracts career.status
+// gonogo:augment-reads objectives-contracts career.status career.contractEvent spaceCenter.scene
 registerComponent<ObjectivesConfig>({
   id: "objectives",
   name: "Objectives",
@@ -78,7 +78,7 @@ registerAugment({
   id: "objectives-contracts",
   augments: "objectives.source",
   component: ContractsObjectiveSource,
-  channels: ["career.status"],
+  channels: contractsTopics.channels,
   priority: 20,
   settings: [
     {
