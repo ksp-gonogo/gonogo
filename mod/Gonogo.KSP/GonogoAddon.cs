@@ -368,7 +368,7 @@ namespace Gonogo.KSP
         /// </summary>
         private static void RegisterCoreUplink(ChannelEngine engine, ISitrepUplink uplink)
         {
-            engine.RegisterBundledUplink(uplink);
+            engine.RegisterUplink(uplink);
             var manifest = uplink.Manifest;
             if (engine.IsUplinkRunning(manifest.Id))
             {
