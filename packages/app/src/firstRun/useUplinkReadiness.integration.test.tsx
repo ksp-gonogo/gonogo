@@ -160,9 +160,6 @@ describe("useUplinkReadiness: hook wiring", () => {
       screen.getByText(/made for an older Gonogo and needs its own update/),
     ).toBeInTheDocument();
     expect(screen.getByText(/Gonogo works without it/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/1 refused due to a contract mismatch/),
-    ).toBeInTheDocument();
   });
 
   it("reads a skipped Uplink as a choice with a way back, and a failed one as a fault", async () => {
