@@ -238,6 +238,8 @@ const Grid__SquaresArea = styled.div<{
 }>`
   container: grid-squares / size;
   flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
   ${({ $count, $min, $headingPx, $gap, $rowMin }) =>
     squareAreaRules($count, $min, $headingPx, $gap, $rowMin)}
 `;
@@ -253,7 +255,8 @@ const Grid__Squares = styled.div<{
   --cols: 1;
   --rows: ${({ $count }) => $count};
   display: grid;
-  height: 100%;
+  flex: 1 1 0;
+  min-height: 0;
   grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
   grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
   gap: ${({ $gap }) => $gap};
