@@ -276,6 +276,11 @@ namespace Sitrep.Core
         /// than an internal one. Left deliberately, in the open, rather than
         /// guessed at.</para>
         ///
+        /// <para><paramref name="sentAtUt"/> is the instant the command left, when
+        /// the caller knows a later one than the clock has reached: the clock moves
+        /// only as the caller ticks it, so a command sent between two ticks would
+        /// otherwise be dated at the earlier tick and execute that much early.</para>
+        ///
         /// <para><paramref name="correlation"/> is saved with the command and
         /// handed back by <see cref="RestoreCommands"/>, for a dispatcher that
         /// has to find who asked once <paramref name="onResponse"/> is gone.
@@ -294,7 +299,8 @@ namespace Sitrep.Core
             string label = "",
             string topic = "",
             string? craft = null,
-            long sendOrder = 0)
+            long sendOrder = 0,
+            double? sentAtUt = null)
         {
             if (!_network.Reachable(vantage, node))
             {
@@ -310,7 +316,7 @@ namespace Sitrep.Core
             // site) ⇒ the historical _network.DelayTo, byte-for-byte unchanged.
             var up = uplinkDelaySeconds ?? _network.DelayTo(vantage, node);
             var down = up;
-            var t0 = _clock.Now();
+            var t0 = sentAtUt ?? _clock.Now();
             var executeUt = t0 + up;
             var confirmUt = executeUt + down;
 

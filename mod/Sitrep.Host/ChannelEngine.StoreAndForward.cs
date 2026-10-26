@@ -443,7 +443,7 @@ namespace Sitrep.Host
                 return DroppedAsContinuousAcrossAHold(job, craft);
             }
 
-            var now = _clock.Now();
+            var now = PressUt();
             var lane = new LaneKey(_courier.CurrentEpoch, job.Vantage, craft);
             _laneCraftNodes[craft] = node;
             var requestId = NextRequestId();
@@ -665,7 +665,7 @@ namespace Sitrep.Host
             {
                 return null;
             }
-            var now = _clock.Now();
+            var now = PressUt();
             var route = SenderPlans.PlanOf(job.Vantage)?.Route(job.Vantage, craft, now, now + DeliveryNetwork.CommandLifetimeSeconds);
             if (route == null || route.Count == 0)
             {
