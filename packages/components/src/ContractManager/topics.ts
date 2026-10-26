@@ -8,6 +8,5 @@ export const contractManagerTopics = defineTopicManifest({
     "career.status.contracts.offered",
     "career.status.contracts.completedRecent",
     "career.status.contracts.failedRecent",
-    "vessel.flight.altitudeAsl",
   ],
 });

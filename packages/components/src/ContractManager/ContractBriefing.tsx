@@ -1,24 +1,30 @@
-import { Badge, Disclosure, Tooltip } from "@ksp-gonogo/ui-kit";
+import { Disclosure, Pips } from "@ksp-gonogo/ui-kit";
 import type { ContractEntry, ContractPrestige } from "./contracts";
-import { BRIEFING_BODY_STYLE, NOTES_STYLE, SYNOPSIS_STYLE } from "./styles";
+import {
+  BRIEFING_BODY_STYLE,
+  NOTES_STYLE,
+  REWARD_LABEL_STYLE,
+  REWARD_STYLE,
+  SYNOPSIS_STYLE,
+} from "./styles";
 
-const PRESTIGE_TONE = {
-  Trivial: "neutral",
-  Significant: "caution",
-  Exceptional: "go",
-} as const satisfies Record<ContractPrestige, string>;
+const PIPS = {
+  Trivial: 1,
+  Significant: 2,
+  Exceptional: 3,
+} as const satisfies Record<ContractPrestige, number>;
 
-/** The contract's difficulty tier as a small chip, or nothing when the wire carried none. */
-export function ContractPrestigeBadge({
+/** The contract's difficulty on its own line: one to three filled pips out of three (KSP's own contract rating), or nothing when the wire carried none. */
+export function ContractDifficulty({
   contract: c,
 }: Readonly<{ contract: ContractEntry }>) {
   if (c.prestige === undefined) return null;
+  const filled = PIPS[c.prestige];
   return (
-    <Tooltip text="Contract prestige">
-      <Badge tone={PRESTIGE_TONE[c.prestige]} size="sm">
-        {c.prestige}
-      </Badge>
-    </Tooltip>
+    <div style={REWARD_STYLE}>
+      <span style={REWARD_LABEL_STYLE}>DIFFICULTY</span>
+      <Pips filled={filled} of={3} label="Difficulty" />
+    </div>
   );
 }
 
