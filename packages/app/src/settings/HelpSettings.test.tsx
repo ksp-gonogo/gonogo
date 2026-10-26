@@ -1,7 +1,7 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { HelpSettings } from "./HelpSettings";
 import { HELP_TOPICS } from "./helpTopics";
 
@@ -69,6 +69,49 @@ describe("HelpSettings", () => {
     ).toEqual(["Ctrl", "Z"]);
     expect(keys?.textContent).toBe("Ctrl+Z");
     await expectNoA11yViolations(container);
+  });
+
+  function keysOf(action: string) {
+    const keys = screen.getByText(action).closest("dd")?.previousElementSibling;
+    return Array.from(
+      keys?.querySelectorAll("kbd") ?? [],
+      (k) => k.textContent,
+    );
+  }
+
+  describe("keyboard shortcut tabs", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("opens on Windows and Linux off a Mac, with Ctrl Y as a second way to redo", async () => {
+      vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32");
+      const user = userEvent.setup();
+      const { container } = render(<HelpSettings />);
+      await user.click(
+        screen.getByRole("button", { name: "Keyboard shortcuts" }),
+      );
+      expect(
+        screen.getByRole("tab", { name: "Windows and Linux" }),
+      ).toHaveAttribute("aria-selected", "true");
+      expect(keysOf("Redo")).toEqual(["Ctrl", "Shift", "Z", "Ctrl", "Y"]);
+      await expectNoA11yViolations(container);
+    });
+
+    it("opens on macOS on a Mac, with Cmd and only the redo that works there", async () => {
+      vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+      const user = userEvent.setup();
+      render(<HelpSettings />);
+      await user.click(
+        screen.getByRole("button", { name: "Keyboard shortcuts" }),
+      );
+      expect(screen.getByRole("tab", { name: "macOS" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      expect(keysOf("Undo a layout change or switch")).toEqual(["Cmd", "Z"]);
+      expect(keysOf("Redo")).toEqual(["Cmd", "Shift", "Z"]);
+    });
   });
 
   it("never prints the engineering codename or an em-dash", () => {

@@ -1,9 +1,22 @@
 import { CommandBlock } from "@ksp-gonogo/ui";
-import { Disclosure, Kbd, SectionTitle, Stack, Text } from "@ksp-gonogo/ui-kit";
-import { Fragment } from "react";
+import {
+  Disclosure,
+  Kbd,
+  SectionTitle,
+  Stack,
+  Tabs,
+  Text,
+} from "@ksp-gonogo/ui-kit";
+import { Fragment, useState } from "react";
 import styled from "styled-components";
 import { DocLink } from "../firstRun/steps/StepParts";
-import { HELP_TOPICS, type HelpBlock, type Shortcut } from "./helpTopics";
+import {
+  HELP_TOPICS,
+  type HelpBlock,
+  MOD_KEY,
+  type Shortcut,
+  type ShortcutTable,
+} from "./helpTopics";
 
 /**
  * The Help tab: how to install the Gonogo mod and its Uplinks, point this app
@@ -62,11 +75,68 @@ function HelpBlockView({ block }: Readonly<{ block: HelpBlock }>) {
     case "command":
       return <CommandBlock command={block.command} label={block.label} />;
     case "shortcuts":
-      return <ShortcutTable heading={block.heading} rows={block.rows} />;
+      return <ShortcutTabs tables={block.tables} />;
   }
 }
 
-function ShortcutTable({
+type KeyboardSystem = "windows-linux" | "macos";
+
+/** macOS when the browser says it runs on a Mac, Windows and Linux for anything else. */
+function browserKeyboardSystem(): KeyboardSystem {
+  const nav = globalThis.navigator as
+    | (Navigator & { userAgentData?: { platform?: string } })
+    | undefined;
+  const platform = nav?.userAgentData?.platform || nav?.platform || "";
+  return /mac/i.test(platform) ? "macos" : "windows-linux";
+}
+
+function keysFor(row: Shortcut, system: KeyboardSystem) {
+  const mod = system === "macos" ? "Cmd" : "Ctrl";
+  const combos =
+    system === "macos"
+      ? row.keys
+      : [...row.keys, ...(row.windowsAndLinuxKeys ?? [])];
+  return combos.map((combo) =>
+    combo.map((key) => (key === MOD_KEY ? mod : key)),
+  );
+}
+
+function ShortcutTabs({
+  tables,
+}: Readonly<{ tables: readonly ShortcutTable[] }>) {
+  const [system, setSystem] = useState(browserKeyboardSystem);
+  const panel = (forSystem: KeyboardSystem) => (
+    <Stack gap="related-comfortable">
+      {tables.map((table) => (
+        <ShortcutTableView
+          key={table.heading ?? ""}
+          heading={table.heading}
+          rows={table.rows.map((row) => ({
+            action: row.action,
+            keys: keysFor(row, forSystem),
+          }))}
+        />
+      ))}
+    </Stack>
+  );
+  return (
+    <Tabs
+      aria-label="Keyboard"
+      activeId={system}
+      onChange={(id) => setSystem(id as KeyboardSystem)}
+      tabs={[
+        {
+          id: "windows-linux",
+          label: "Windows and Linux",
+          content: panel("windows-linux"),
+        },
+        { id: "macos", label: "macOS", content: panel("macos") },
+      ]}
+    />
+  );
+}
+
+function ShortcutTableView({
   heading,
   rows,
 }: Readonly<{ heading?: string; rows: readonly Shortcut[] }>) {

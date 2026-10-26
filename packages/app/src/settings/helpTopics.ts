@@ -10,16 +10,26 @@ export type HelpBlock =
   | { kind: "list"; items: readonly string[] }
   | { kind: "link"; label: string; href: string }
   | { kind: "command"; command: string; label: string }
-  | { kind: "shortcuts"; heading?: string; rows: readonly Shortcut[] };
+  | { kind: "shortcuts"; tables: readonly ShortcutTable[] };
 
 /**
  * One row of a shortcuts table: the action, and each way to do it as the keys
- * pressed together, so `[["Ctrl", "Y"]]` is Ctrl + Y.
+ * pressed together, so `[["Ctrl", "Y"]]` is Ctrl + Y. The key `MOD_KEY` reads
+ * Ctrl on Windows and Linux and Cmd on macOS. `windowsAndLinuxKeys` are further
+ * ways that work only off macOS.
  */
 export interface Shortcut {
   keys: readonly (readonly string[])[];
+  windowsAndLinuxKeys?: readonly (readonly string[])[];
   action: string;
 }
+
+export interface ShortcutTable {
+  heading?: string;
+  rows: readonly Shortcut[];
+}
+
+export const MOD_KEY = "Mod";
 
 export interface HelpTopic {
   id: string;
@@ -148,38 +158,42 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
     title: "Keyboard shortcuts",
     blocks: [
       text(
-        "Ctrl on Windows and Linux, Cmd on a Mac. They do nothing while you are typing in a field or a dialog is open.",
+        "They do nothing while you are typing in a field or a dialog is open.",
       ),
       {
         kind: "shortcuts",
-        rows: [
-          { keys: [["Ctrl", "Z"]], action: "Undo a layout change or switch" },
+        tables: [
           {
-            keys: [
-              ["Ctrl", "Shift", "Z"],
-              ["Ctrl", "Y"],
+            rows: [
+              {
+                keys: [[MOD_KEY, "Z"]],
+                action: "Undo a layout change or switch",
+              },
+              {
+                keys: [[MOD_KEY, "Shift", "Z"]],
+                windowsAndLinuxKeys: [["Ctrl", "Y"]],
+                action: "Redo",
+              },
+              { keys: [[MOD_KEY, "K"]], action: "Open Add widget" },
+              { keys: [[MOD_KEY, "/"]], action: "Open Help" },
             ],
-            action: "Redo",
           },
-          { keys: [["Ctrl", "K"]], action: "Open Add widget" },
-          { keys: [["Ctrl", "/"]], action: "Open Help" },
-        ],
-      },
-      {
-        kind: "shortcuts",
-        heading: "In Add widget",
-        rows: [
           {
-            keys: [["Up"], ["Down"], ["Home"], ["End"]],
-            action: "Move through the list",
+            heading: "In Add widget",
+            rows: [
+              {
+                keys: [["Up"], ["Down"], ["Home"], ["End"]],
+                action: "Move through the list",
+              },
+              { keys: [["Shift", "Enter"]], action: "Tick or untick a widget" },
+              {
+                keys: [["Enter"]],
+                action:
+                  "Add every ticked widget, or the highlighted one when none is ticked",
+              },
+              { keys: [["Escape"]], action: "Close" },
+            ],
           },
-          { keys: [["Shift", "Enter"]], action: "Tick or untick a widget" },
-          {
-            keys: [["Enter"]],
-            action:
-              "Add every ticked widget, or the highlighted one when none is ticked",
-          },
-          { keys: [["Escape"]], action: "Close" },
         ],
       },
     ],
