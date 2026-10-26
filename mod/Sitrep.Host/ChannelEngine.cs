@@ -1467,9 +1467,23 @@ namespace Sitrep.Host
         /// feeds also makes the next frame's sample due at once, because it has
         /// published nothing for a topic nobody was reading.
         /// </summary>
+        private int _sampleRequested;
+
+        /// <summary>
+        /// Asks the sampling loop for a fresh sample at its next opportunity, outside its
+        /// cadence. A topic's first subscriber is otherwise handed the last value held
+        /// from the previous subscriber and waits out the cadence for a current one, which
+        /// while the game is paused is up to a second.
+        /// </summary>
+        public void RequestSample() => Volatile.Write(ref _sampleRequested, 1);
+
+        /// <summary>True once per <see cref="RequestSample"/>, to the sampling loop that acts on it.</summary>
+        public bool TakeSampleRequest() => Interlocked.Exchange(ref _sampleRequested, 0) == 1;
+
         private void NoteTopicSubscribed(string topic)
         {
             _subscribedTopics[topic] = 0;
+            RequestSample();
             if (topic == UplinkGatesTopic || _fieldRequirements.ContainsKey(topic))
             {
                 Volatile.Write(ref _gateSampleDue, 1);

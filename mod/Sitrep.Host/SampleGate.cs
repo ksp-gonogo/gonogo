@@ -53,6 +53,22 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// Admits a sample outside the cadence, which becomes the last sample. Refused
+        /// while a scene is loading, when the game is not safe to read.
+        /// </summary>
+        public bool TryForce(double ut, double realSec)
+        {
+            if (_load.Phase == GamePhase.Loading)
+            {
+                return false;
+            }
+            _previousTickUt = ut;
+            _lastSampledUt = ut;
+            _lastSampledRealSec = realSec;
+            return true;
+        }
+
+        /// <summary>
         /// Called once per rendered frame with the engine's time scale. A paused
         /// game (time scale 0) runs no physics tick, so the frame stands in for
         /// it: the clock is stopped, and the stopped-clock rule samples it on

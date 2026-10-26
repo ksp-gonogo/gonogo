@@ -125,6 +125,50 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task AClientJoiningWhilePausedIsGivenTheStateTheGameIsInWithinAFewFrames()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new StoppedClockTestUplink());
+            engine.Start();
+            try
+            {
+                var game = new PhysicsLoop(engine);
+                await using (var first = await TestClient.ConnectAsync(engine.BoundPort, Timeout))
+                {
+                    foreach (var topic in StoppedClockTestUplink.Topics)
+                    {
+                        await SubscribeAsync(first, topic, Timeout);
+                    }
+                    game.Run(1.0, realSec => SpaceCenterUt + realSec, "Pad");
+                }
+
+                game.Run(5.0, realSec => SpaceCenterUt + realSec, "Burning");
+                var pausedUt = SpaceCenterUt + 6.0;
+                game.RunPausedFrames(0.5, pausedUt, "Paused");
+
+                await using var second = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                foreach (var topic in StoppedClockTestUplink.Topics)
+                {
+                    await SubscribeAsync(second, topic, Timeout);
+                }
+                game.RunPausedFrames(0.2, pausedUt, "Paused");
+                var frames = await DrainAllStreamDataAsync(second, TestBudgets.Quiet);
+
+                foreach (var topic in StoppedClockTestUplink.Topics)
+                {
+                    var last = frames.Where(f => f.Topic == topic).LastOrDefault();
+                    Assert.NotNull(last);
+                    Assert.Equal("Paused", last!.Payload?.ToString());
+                    Assert.Equal(pausedUt, last.Meta.ValidAt);
+                }
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public void AZeroDelayOrderGivenWhilePausedExecutesAndConfirmsWithoutUnpausing()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
@@ -180,7 +224,13 @@ namespace Sitrep.Host.IntegrationTests
                 var end = _realSec + seconds;
                 for (; _realSec < end - frameRealSec / 2; _realSec += frameRealSec)
                 {
-                    if (!_gate.AdmitFrame(ut, warpRate: 1.0, _realSec, timeScale: 0)) continue;
+                    var admitted = _gate.AdmitFrame(ut, warpRate: 1.0, _realSec, timeScale: 0);
+                    var requested = _engine.TakeSampleRequest();
+                    if (!admitted && !(requested && _gate.TryForce(ut, _realSec)))
+                    {
+                        if (requested) _engine.RequestSample();
+                        continue;
+                    }
                     _engine.TickAndWait(ut, new KspSnapshot
                     {
                         Ut = ut,

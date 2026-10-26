@@ -593,11 +593,22 @@ namespace Gonogo.KSP
                 // never sample them again: SampleCadence.ShouldSampleStoppedClock
                 // samples a clock that did not move since the last physics tick
                 // on real time instead. SampleGate holds both.
-                if (_sampleGate == null
-                    || !(paused
-                        ? _sampleGate.AdmitFrame(_host.NowUt(), TimeWarp.CurrentRate, nowRealtime, Time.timeScale)
-                        : _sampleGate.Admit(_host.NowUt(), TimeWarp.CurrentRate, nowRealtime)))
+                if (_sampleGate == null)
                 {
+                    return;
+                }
+
+                var ut = _host.NowUt();
+                var admitted = paused
+                    ? _sampleGate.AdmitFrame(ut, TimeWarp.CurrentRate, nowRealtime, Time.timeScale)
+                    : _sampleGate.Admit(ut, TimeWarp.CurrentRate, nowRealtime);
+                var requested = _engine.TakeSampleRequest();
+                if (!admitted && !(requested && _sampleGate.TryForce(ut, nowRealtime)))
+                {
+                    if (requested)
+                    {
+                        _engine.RequestSample();
+                    }
                     return;
                 }
 
@@ -614,7 +625,7 @@ namespace Gonogo.KSP
                  * live stream, which gates only the engine's emit path.
                  */
                 _engine.NoteSave(HighLogic.SaveFolder);
-                _engine.TryTick(() =>
+                var taken = _engine.TryTick(() =>
                 {
                     var snapshot = _host.Sample();
                     if (_recordingEnabled)
@@ -624,6 +635,10 @@ namespace Gonogo.KSP
                     }
                     return snapshot;
                 });
+                if (!taken && requested)
+                {
+                    _engine.RequestSample();
+                }
             }
             catch (Exception ex)
             {

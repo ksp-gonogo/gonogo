@@ -8445,12 +8445,19 @@ namespace Gonogo.KSP
         /// <summary>The craft whose stock ΔV sim was last asked to calculate and has not answered yet.</summary>
         private static Guid _deltaVAskedFor;
 
+        private static readonly PausedStageWatch PausedStages = new PausedStageWatch();
+
         private static Dictionary<string, object?>? BuildDeltaV(Vessel vessel)
         {
             var dv = vessel.VesselDeltaV;
             if (dv == null)
             {
                 return null;
+            }
+
+            if (PausedStages.ShouldRecalculate(vessel.id.ToString(), vessel.currentStage, FlightDriver.Pause) && dv.DoStockSimulation)
+            {
+                dv.SetCalcsDirty(true);
             }
 
             if (!dv.IsReady)
