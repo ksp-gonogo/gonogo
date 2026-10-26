@@ -75,7 +75,7 @@ function emitOrbit(fixture: StreamFixture, o: OrbitEmission) {
         vesselId: "v1",
         name: "Test Vessel",
         vesselType: 0,
-        situation: 1,
+        situation: 3,
         parentBodyIndex: 0,
         launchUt: 0,
       });

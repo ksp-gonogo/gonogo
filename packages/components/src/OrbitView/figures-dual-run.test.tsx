@@ -60,7 +60,7 @@ describe("Orbit View figures: full render off the stream", () => {
         vesselId: "v1",
         name: "Kerbal X",
         vesselType: 0,
-        situation: 1,
+        situation: 3,
         parentBodyIndex: 1,
         launchUt: 0,
       });

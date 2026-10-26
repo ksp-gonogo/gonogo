@@ -28,6 +28,8 @@ export interface OrbitFiguresProps {
   /** A refusal of the path, spoken here while the diagram is not there to speak it. */
   withheld: Extract<OrbitTrajectory, { shape: "withheld" }> | null;
   grid: OrbitReadoutGridProps;
+  /** True for a craft at rest, whose last orbit is not a flight and so has no figures to read. */
+  atRest?: boolean;
 }
 
 /** The orbit's numbers and the words that qualify them: the body, the frame they are read in, and why any of them is a dash. */
@@ -40,6 +42,7 @@ export function OrbitFigures({
   noOrbit,
   withheld,
   grid,
+  atRest = false,
 }: Readonly<OrbitFiguresProps>): ReactNode {
   return (
     <Stack style={COLUMN}>
@@ -68,7 +71,7 @@ export function OrbitFigures({
       {ownFrameLabel !== undefined && (
         <ReadoutCaption>{`Frame: ${ownFrameLabel}`}</ReadoutCaption>
       )}
-      <OrbitReadoutGrid {...grid} />
+      {!atRest && <OrbitReadoutGrid {...grid} />}
     </Stack>
   );
 }

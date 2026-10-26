@@ -130,6 +130,8 @@ export interface OrbitDiagramProps {
   atmosphereDepthM?: number | null;
   /** Tint the atmosphere band blue when oxygen, amber when not. */
   atmosphereHasOxygen?: boolean | null;
+  /** Draws the body and its atmosphere with no orbit line, so a craft at rest is framed by the world it sits on. */
+  bodyOnly?: boolean;
   /**
    * Supplied trajectory points in the orbit plane (periapsis on +x). When
    * present they replace the conic; `sma`/`ecc` still set the frame extent
@@ -344,6 +346,7 @@ function OrbitDiagramScene({
   rotationAngleDeg = null,
   atmosphereDepthM = null,
   atmosphereHasOxygen = null,
+  bodyOnly = false,
   trajectoryPath = null,
   trailPath = null,
   trajectoryFarEnd = null,
@@ -634,7 +637,10 @@ function OrbitDiagramScene({
           )}
 
           {/* Trajectory first so the body overdraws it at the focus */}
-          <g transform={`rotate(${-argPe})`}>
+          <g
+            transform={`rotate(${-argPe})`}
+            display={bodyOnly ? "none" : undefined}
+          >
             {trailPath && trailPath.length > 1 && (
               <path
                 data-trajectory="trail"
