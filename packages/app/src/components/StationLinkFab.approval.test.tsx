@@ -82,6 +82,37 @@ afterEach(() => {
   stations.length = 0;
 });
 
+describe("Add station panel approved stations", () => {
+  it("lists an approved station and forgets it, disconnecting it", async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      await peerHostService.start();
+    });
+    render(
+      <ModalProvider>
+        <StationLinkFab />
+      </ModalProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "Add station" }));
+    const flight = await join("p9", "Flight");
+    const dialog = screen.getByRole("dialog");
+    await user.click(
+      within(dialog).getByRole("button", { name: /^Approve station Flight/ }),
+    );
+    expect(
+      within(dialog).getByRole("button", { name: "Remove station Flight" }),
+    ).toBeVisible();
+
+    await user.click(
+      within(dialog).getByRole("button", { name: "Remove station Flight" }),
+    );
+    expect(flight.open).toBe(false);
+    expect(
+      within(dialog).queryByRole("button", { name: "Remove station Flight" }),
+    ).toBeNull();
+  });
+});
+
 describe("Add station panel with a join request waiting", () => {
   it("offers Approve and Refuse inside the dialog, where the modal's overlay cannot cover them", async () => {
     const user = userEvent.setup();

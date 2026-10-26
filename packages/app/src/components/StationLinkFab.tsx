@@ -19,6 +19,7 @@ import type { EndpointStatus } from "../peer/endpointStations";
 import { peerHostService } from "../peer/PeerHostService";
 import { relayBaseUrl } from "../peer/relayAddress";
 import { requestSettings } from "../settings/settingsRequest";
+import { ApprovedStations } from "../stationApproval/ApprovedStations";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
 import { CHANNEL } from "../version";
 import { StationAddressList } from "./StationAddressList";
@@ -107,6 +108,10 @@ function StationLinkPanel() {
       <StationAddressList addresses={addresses} qr={qr} />
       <EndpointState />
       <StationPaths />
+      <Cluster>
+        <Label>Approved stations</Label>
+      </Cluster>
+      <ApprovedStations />
       <Hint>
         Scan to open <code>/station</code> on another device, it&apos;ll
         auto-connect to this host. Or copy the link above.
