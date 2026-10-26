@@ -197,3 +197,20 @@ describe("TwrComponent frame", () => {
     expect(document.querySelector("[data-panel-lone-frame]")).not.toBeNull();
   });
 });
+
+describe("TwrComponent with thrust reported that no engine can make", () => {
+  it("draws the thrust the engines can produce, not the stale reading", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+    renderTwr(fixture);
+    act(() => {
+      fixture.emit("vessel.propulsion", {
+        totalMass: 54,
+        dryMass: 20,
+        currentThrust: 650,
+        availableThrust: 0,
+      });
+    });
+    await waitFor(() => expect(visibleText()).toContain("0.00"));
+    expect(visibleText()).not.toContain("1.22");
+  });
+});

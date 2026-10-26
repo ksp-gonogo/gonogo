@@ -146,6 +146,7 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
             />
           )}
           <Button
+            data-add-node=""
             onClick={() => void props.onCommit()}
             disabled={props.committing || props.feasible === false}
             disabledReason={

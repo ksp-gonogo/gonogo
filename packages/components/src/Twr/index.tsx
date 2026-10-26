@@ -46,7 +46,8 @@ interface NextStageTwr {
 
 /**
  * Thrust over weight at standard gravity: the wire carries thrust and mass, not
- * their ratio. While the craft is making no thrust the active stage's ratio is a
+ * their ratio. The thrust is the lesser of what is reported and what the engines
+ * can produce now. While the craft is making no thrust the active stage's ratio is a
  * known zero, so the figure is the next stage that has thrust, from the stage
  * list at its ignition mass and on the same gravity basis, and `stage` names
  * which one it is.
@@ -61,9 +62,18 @@ function useTwrReading(): { reading: Reading<Value<"1">>; stage?: number } {
       ? budgetReading.value?.stages
       : undefined;
   const live = combineReadings(
-    [propulsionReading.currentThrust, propulsionReading.totalMass],
-    (currentThrust, totalMass) => {
-      const thrust = magnitudeOf(currentThrust);
+    [
+      propulsionReading.currentThrust,
+      propulsionReading.availableThrust,
+      propulsionReading.totalMass,
+    ],
+    (currentThrust, availableThrust, totalMass) => {
+      // No engine makes more than it can: a thrust still reported after every engine stopped is not thrust the craft has.
+      const capped =
+        currentThrust && availableThrust
+          ? currentThrust.min(availableThrust)
+          : currentThrust;
+      const thrust = magnitudeOf(capped);
       const mass = magnitudeOf(totalMass);
       const ratio =
         thrust === null || mass === null ? null : twrOf(thrust, mass);

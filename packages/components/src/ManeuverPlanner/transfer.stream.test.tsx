@@ -1,5 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { ManeuverFrame, TransitionType } from "@ksp-gonogo/sitrep-sdk";
+import { ManeuverFrame, Quality, TransitionType } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -98,7 +98,9 @@ const KERBIN_SYSTEM = [
   },
 ];
 
-function mount() {
+const MUN_ORBIT = { referenceBodyIndex: 2, sma: 230_000, mu: 6.5138398e10 };
+
+function mount(orbit: Record<string, number> = {}) {
   const fixture = setupStreamFixture({ pinnedUt: NOW, suspendFrames: true });
   const commandHandler = vi.fn(() => ({ ok: true }));
   fixture.transport.setCommandHandler(commandHandler);
@@ -121,6 +123,7 @@ function mount() {
       meanAnomalyAtEpoch: 0.4,
       epoch: NOW,
       mu: 3.5316e12,
+      ...orbit,
       horizon: ANALYTIC_UNBOUNDED_HORIZON,
     });
   });
@@ -260,6 +263,131 @@ describe("Maneuver Planner transfer to a body", () => {
   });
 });
 
+describe("Maneuver Planner adding a node", () => {
+  it("holds the control and says so until the plan lists the node, so a second press cannot plan it twice", async () => {
+    const { fixture, commandHandler } = mount();
+    const user = await pickBody("Mun");
+    await waitFor(() => expect(previewValue("Mun Pe")).not.toBeNull());
+    await user.click(screen.getByRole("button", { name: "Add node" }));
+    await waitFor(() => expect(commandHandler).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("button", { name: "Adding..." })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(screen.getByText("Adding maneuver node")).toBeInTheDocument();
+    emitNode(fixture, []);
+    expect(
+      await screen.findByRole("button", { name: "Add node" }),
+    ).not.toHaveAttribute("aria-disabled");
+    expect(commandHandler).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Maneuver Planner burn at an apsis below the surface", () => {
+  const MUN_MU = 6.5138398e10;
+  const SMA = 189_150;
+  const ECC = 0.21597;
+  const MEAN_MOTION = Math.sqrt(MUN_MU / SMA ** 3);
+
+  /** A coasting craft on the orbit at mean anomaly `meanAnomaly`, 30 km above the Mun at its apoapsis. */
+  function mountAt(meanAnomaly: number) {
+    const { fixture } = mount();
+    let eccentric = meanAnomaly;
+    for (let i = 0; i < 50; i++) {
+      eccentric -=
+        (eccentric - ECC * Math.sin(eccentric) - meanAnomaly) /
+        (1 - ECC * Math.cos(eccentric));
+    }
+    const radius = SMA * (1 - ECC * Math.cos(eccentric));
+    const toPe =
+      meanAnomaly < 0
+        ? -meanAnomaly / MEAN_MOTION
+        : (2 * Math.PI - meanAnomaly) / MEAN_MOTION;
+    const toAp =
+      meanAnomaly < Math.PI && meanAnomaly > 0
+        ? (Math.PI - meanAnomaly) / MEAN_MOTION
+        : toPe + Math.PI / MEAN_MOTION;
+    act(() => {
+      fixture.emit("vessel.flight", {
+        orbitalSpeed: Math.sqrt(MUN_MU * (2 / radius - 1 / SMA)),
+      });
+      fixture.emit("vessel.propulsion", {
+        totalMass: 54,
+        dryMass: 20,
+        currentThrust: 0,
+        availableThrust: 650,
+      });
+      fixture.emit(
+        "vessel.orbit",
+        {
+          referenceBodyIndex: 2,
+          sma: SMA,
+          ecc: ECC,
+          inc: 0,
+          lan: 0,
+          argPe: 0,
+          meanAnomalyAtEpoch: meanAnomaly,
+          timeToPe: toPe,
+          timeToAp: toAp,
+          epoch: NOW,
+          mu: MUN_MU,
+          horizon: ANALYTIC_UNBOUNDED_HORIZON,
+        },
+        { quality: Quality.Loaded, validAt: NOW, deliveredAt: NOW },
+      );
+    });
+  }
+
+  it("says the trajectory meets the surface where the apoapsis comes after the descent", async () => {
+    mountAt(-2.2);
+    expect(await screen.findByText("Meets the surface")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add node" })).toBeNull();
+  });
+
+  it("plans the circularise burn on the way up, where the apoapsis comes first", async () => {
+    mountAt(2.2);
+    expect(
+      await screen.findByRole("button", { name: "Add node" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Meets the surface")).toBeNull();
+  });
+});
+
+describe("Maneuver Planner return to the parent body", () => {
+  it("offers the body the Mun orbits beside the Mun's sibling", async () => {
+    mount(MUN_ORBIT);
+    await pickBody("Kerbin");
+    const names = (await screen.findAllByRole("option")).map(
+      (o) => o.textContent,
+    );
+    expect(names).toEqual(expect.arrayContaining(["Kerbin", "Minmus"]));
+    expect(names).not.toContain("Kerbol");
+    expect(names).not.toContain("Mun");
+  });
+
+  it("plans the ejection to Kerbin with the periapsis asked for", async () => {
+    mount(MUN_ORBIT);
+    await pickBody("Kerbin");
+    await waitFor(() => expect(previewValue("Kerbin Pe")).not.toBeNull());
+    const metres = Number.parseFloat(
+      (previewValue("ΔV") ?? "").replace(/[^\d.]/g, ""),
+    );
+    expect(metres).toBeGreaterThan(250);
+    expect(metres).toBeLessThan(350);
+    expect(previewValue("Burn in")).not.toBeNull();
+    expect(previewValue("Flight")).not.toBeNull();
+  });
+
+  it("offers no star as a body to return to from Kerbin", async () => {
+    mount();
+    await pickBody("Mun");
+    const names = (await screen.findAllByRole("option")).map(
+      (o) => o.textContent,
+    );
+    expect(names).not.toContain("Kerbol");
+  });
+});
+
 describe("Maneuver Planner encounter check", () => {
   it("reads a node whose patches have not arrived as pending, never as no encounter", async () => {
     const { fixture } = mount();
@@ -282,6 +410,19 @@ describe("Maneuver Planner encounter check", () => {
     ]);
     await waitFor(() => expect(previewValue("Mun encounter")).toContain("Pe"));
     expect(previewValue("Mun encounter")).toContain("181");
+  });
+
+  it("reads the escape into the parent body as reaching it", async () => {
+    const fixture = mount(MUN_ORBIT).fixture;
+    await pickBody("Kerbin");
+    emitNode(fixture, [
+      patch({
+        referenceBody: "Kerbin",
+        patchStartTransition: TransitionType.Escape,
+        peA: 40_000,
+      }),
+    ]);
+    expect(await screen.findByText(/encounter, Pe/)).toBeInTheDocument();
   });
 
   it("says none, and offers a nudge, when the patches never reach the target", async () => {
