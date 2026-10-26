@@ -224,6 +224,7 @@ describe("an Uplink with no client", () => {
       name: "Example",
       builtAgainst: "1.0",
       tier: "ckan",
+      channels: [{ ckan: "Example" }],
     });
     expect((await checkIn(ok, ["--only", "manifest"])).code).toBe(0);
   });
