@@ -32,7 +32,7 @@ import { hohmannTransferTime } from "./transfer";
 /**
  * Lambert solves per second across every body-transfer plan.
  *
- * A moon plan costs about a thousand solves and a planet plan about two thousand, so a
+ * A moon plan costs about fifteen hundred solves and a planet plan about two thousand, so a
  * plan fits inside a frame. The budget is there to catch a plan rebuilt on every render,
  * which burns a core for an answer that has not changed. Threshold is four full planet
  * plans per second.
@@ -231,6 +231,9 @@ function aimOffset(
   return scale(unit(side), b);
 }
 
+/** How many times the aim point is recomputed from the arc that was aimed at the previous one; one pass brings the pass within a kilometre of the one asked for. */
+const AIM_REFINEMENTS = 1;
+
 /** Periapsis altitude of the pass an arc makes with a target when aimed at `offset` from its centre. */
 function passAltitude(
   target: TargetBody,
@@ -422,16 +425,29 @@ export function planMoonTransfer(
       true,
     );
     if (!toCentre) return null;
-    const offset = aimOffset(moon, moonAt, toCentre.v2, periapsisRadius);
-    const arc = solveArc(
-      from.position,
-      add(moonAt.position, offset),
-      tof,
-      mu,
-      hRef,
-      true,
-    );
-    if (!arc) return null;
+    /*
+     * Aimed once from the arc to the centre, the pass comes out at a different
+     * altitude because the arc to the offset point arrives at a different
+     * speed and angle. Re-aiming from each new arc converges on the asked
+     * altitude.
+     */
+    let arc = toCentre;
+    let offset = aimOffset(moon, moonAt, arc.v2, periapsisRadius);
+    for (let i = 0; i <= AIM_REFINEMENTS; i++) {
+      const next = solveArc(
+        from.position,
+        add(moonAt.position, offset),
+        tof,
+        mu,
+        hRef,
+        true,
+      );
+      if (!next) return null;
+      arc = next;
+      if (i < AIM_REFINEMENTS) {
+        offset = aimOffset(moon, moonAt, arc.v2, periapsisRadius);
+      }
+    }
     const burnVector = sub(arc.v1, from.velocity);
     return {
       cost: norm(burnVector),
@@ -447,7 +463,9 @@ export function planMoonTransfer(
     evaluate,
     { rounds: 3, size: 9, shrink: 0.35 },
   );
-  BODY_TRANSFER_SOLVE_BUDGET.record((found?.solves ?? 0) * 2);
+  BODY_TRANSFER_SOLVE_BUDGET.record(
+    (found?.solves ?? 0) * (AIM_REFINEMENTS + 2),
+  );
   if (!found) return null;
 
   const { burnVector, arc, offset, moonAt, from } = found.result;

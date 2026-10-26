@@ -256,6 +256,13 @@ describe("transfer to a moon", () => {
     expect(plan?.periapsisAltitude).toBeLessThan(120_000);
   });
 
+  it("gives the periapsis asked for to within a kilometre", () => {
+    const plan = moonPlan(MUN_BODY);
+    expect(Math.abs((plan?.periapsisAltitude ?? 0) - 100_000)).toBeLessThan(
+      1_000,
+    );
+  });
+
   it("reaches the Mun's sphere of influence once Kerbin's and the Mun's gravity both act", () => {
     const craft = craftOrbit(0);
     const plan = moonPlan(MUN_BODY, craft);
