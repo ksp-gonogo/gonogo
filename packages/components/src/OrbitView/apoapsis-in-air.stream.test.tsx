@@ -58,11 +58,11 @@ function setup(periapsisRadius: number, apoapsisRadius: number) {
 }
 
 describe("OrbitView apoapsis in the air", () => {
-  it("shows no apoapsis when the path never leaves the atmosphere", async () => {
+  it("shows the apoapsis even when the path never leaves the atmosphere", async () => {
     // A near-vertical plunge: 590 km below the surface, apoapsis 363 m above it.
     setup(10_000, 600_363);
     await waitFor(() => expect(visibleText()).toContain("Pe"));
-    expect(visibleText()).not.toContain("363");
+    expect(visibleText()).toContain("363");
   });
 
   it("still shows the apoapsis of a suborbital path that climbs out of the atmosphere", async () => {

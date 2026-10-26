@@ -78,8 +78,6 @@ export interface OrbitReadoutGridProps {
   showEccentricityRows: boolean;
   apsides: Apsides;
   noApsidesHere: boolean;
-  /** The apoapsis lies inside the atmosphere of a craft that is not in orbit, so it is not shown as a figure to plan against. */
-  apoapsisInAir?: boolean;
   apoapsisAltitude: number | undefined;
   periapsisAltitude: number | undefined;
   timeToAp: Reading<Value<"s">> | undefined;
@@ -99,7 +97,6 @@ export function OrbitReadoutGrid({
   showEccentricityRows,
   apsides,
   noApsidesHere,
-  apoapsisInAir = false,
   apoapsisAltitude,
   periapsisAltitude,
   timeToAp,
@@ -129,7 +126,7 @@ export function OrbitReadoutGrid({
         <OrbitLabel>Ap</OrbitLabel>
         <OrbitValue accent="ap" tight={tight} narrow={narrow}>
           <ApsisCell apsis="Ap" {...cell}>
-            {apoapsisAltitude === undefined || apoapsisInAir ? (
+            {apoapsisAltitude === undefined ? (
               NULL_DISPLAY
             ) : (
               <Unit value={value("m", apoapsisAltitude)} marked={marking} />
@@ -167,7 +164,7 @@ export function OrbitReadoutGrid({
             <OrbitValue accent="ap" tight={tight} narrow={narrow}>
               {/* A countdown to an apsis that does not exist would read as an imminent event. */}
               <ApsisCell apsis="Ap" {...cell}>
-                {timeToAp === undefined || apoapsisInAir ? (
+                {timeToAp === undefined ? (
                   NULL_DISPLAY
                 ) : (
                   <Countdown value={timeToAp} />
