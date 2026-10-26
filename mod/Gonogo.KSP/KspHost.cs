@@ -2661,9 +2661,10 @@ namespace Gonogo.KSP
         /// "the docking port" concept for a vessel that may carry several --
         /// picking the one physically closest to the target is the port a
         /// player doing a real rendezvous is actually about to use.
-        /// <c>ModuleDockingNode.state == "Ready"</c> is the confirmed
-        /// (decompile) idle/available state string; a port already
-        /// docked/disabled/mid-acquire is excluded.</para>
+        /// A port that is shut off (<c>ModuleDockingNode.state == "Disabled"</c>)
+        /// is excluded; one already acquiring or docked to the target stays, so
+        /// the channel keeps reporting through the dock and carries each port's
+        /// state.</para>
         ///
         /// <para><see cref="ModuleDockingNode.GetFwdVector"/> (not the
         /// node's raw <c>Transform.forward</c>) is used for
@@ -2671,70 +2672,54 @@ namespace Gonogo.KSP
         /// for "which way does this docking port face," so it's safe against
         /// a docking node's local axis convention differing from its
         /// transform's own forward axis.</para>
+        ///
+        /// <para>KSP clears the target as the ports dock, so the pair last
+        /// approached is kept in <see cref="DockPairs"/> and reported through
+        /// the capture, the join and the release; see
+        /// <see cref="DockPairMemory{TPort}"/>.</para>
         /// </summary>
         private static Dictionary<string, object?>? BuildDock(Vessel vessel)
         {
             var fetch = FlightGlobals.fetch;
             var target = fetch != null ? fetch.VesselTarget : null;
-            if (target is not ModuleDockingNode targetPort)
+            ModuleDockingNode? ownPort;
+            ModuleDockingNode? targetPort = target as ModuleDockingNode;
+            if (targetPort != null)
             {
-                // Not targeting a specific docking port -- the common case
-                // (nothing targeted, or targeting a whole vessel/body
-                // instead). No docking alignment to report.
+                ownPort = NearestOwnPort(vessel, targetPort);
+                if (ownPort != null)
+                {
+                    DockPairs.Seen(ownPort, targetPort);
+                }
+            }
+            else
+            {
+                // The game clears the target as the ports dock, so the pair last
+                // approached is recalled while the own port is in a stage of the
+                // dock. With no pair known nothing is reported.
+                var pair = DockPairs.Recall(
+                    node => node.state,
+                    node => node != null && node.part != null && node.part.vessel == vessel,
+                    node => node != null && node.part != null);
+                if (pair == null)
+                {
+                    return null;
+                }
+
+                ownPort = pair.Value.Own;
+                targetPort = pair.Value.Target;
+            }
+
+            if (ownPort == null || targetPort == null)
+            {
+                // Nothing targeted that is a docking port, or this vessel has no
+                // port that is not shut off -- nothing to report.
                 return null;
             }
 
             var targetTransform = targetPort.GetTransform();
             if (targetTransform == null)
             {
-                return null;
-            }
-
-            ModuleDockingNode? ownPort = null;
-            var bestDistanceSqr = double.MaxValue;
-            var parts = vessel.parts;
-            if (parts != null)
-            {
-                foreach (var part in parts)
-                {
-                    if (part == null || part.Modules == null)
-                    {
-                        continue;
-                    }
-
-                    var candidates = part.Modules.GetModules<ModuleDockingNode>();
-                    if (candidates == null)
-                    {
-                        continue;
-                    }
-
-                    foreach (var candidate in candidates)
-                    {
-                        if (candidate == null || candidate.state != "Ready")
-                        {
-                            continue;
-                        }
-
-                        var candidateTransform = candidate.GetTransform();
-                        if (candidateTransform == null)
-                        {
-                            continue;
-                        }
-
-                        var distanceSqr = ((Vector3d)candidateTransform.position - (Vector3d)targetTransform.position).sqrMagnitude;
-                        if (distanceSqr < bestDistanceSqr)
-                        {
-                            bestDistanceSqr = distanceSqr;
-                            ownPort = candidate;
-                        }
-                    }
-                }
-            }
-
-            if (ownPort == null)
-            {
-                // This vessel has no port free to dock with -- nothing to
-                // report (e.g. every port is already docked/disabled).
                 return null;
             }
 
@@ -2756,7 +2741,68 @@ namespace Gonogo.KSP
                 ["relativeVelocity"] = new[] { relVel.x, relVel.y, relVel.z },
                 ["distance"] = relPos.magnitude,
                 ["forwardDot"] = forwardDot,
+                ["ownPortState"] = ownPort.state,
+                ["targetPortState"] = targetPort.state,
+                ["targetVesselPersistentId"] = targetPort.vessel != null ? (double?)targetPort.vessel.persistentId : null,
+                ["targetPortPersistentId"] = targetPort.part != null ? (double?)targetPort.part.persistentId : null,
             };
+        }
+
+        private static readonly DockPairMemory<ModuleDockingNode> DockPairs = new DockPairMemory<ModuleDockingNode>();
+
+        /// <summary>The vessel's docking port nearest <paramref name="targetPort"/> that is not shut off, or null.</summary>
+        private static ModuleDockingNode? NearestOwnPort(Vessel vessel, ModuleDockingNode targetPort)
+        {
+            var targetTransform = targetPort.GetTransform();
+            if (targetTransform == null)
+            {
+                return null;
+            }
+
+            ModuleDockingNode? ownPort = null;
+            var bestDistanceSqr = double.MaxValue;
+            var parts = vessel.parts;
+            if (parts == null)
+            {
+                return null;
+            }
+
+            foreach (var part in parts)
+            {
+                if (part == null || part.Modules == null)
+                {
+                    continue;
+                }
+
+                var candidates = part.Modules.GetModules<ModuleDockingNode>();
+                if (candidates == null)
+                {
+                    continue;
+                }
+
+                foreach (var candidate in candidates)
+                {
+                    if (candidate == null || candidate.state == "Disabled")
+                    {
+                        continue;
+                    }
+
+                    var candidateTransform = candidate.GetTransform();
+                    if (candidateTransform == null)
+                    {
+                        continue;
+                    }
+
+                    var distanceSqr = ((Vector3d)candidateTransform.position - (Vector3d)targetTransform.position).sqrMagnitude;
+                    if (distanceSqr < bestDistanceSqr)
+                    {
+                        bestDistanceSqr = distanceSqr;
+                        ownPort = candidate;
+                    }
+                }
+            }
+
+            return ownPort;
         }
 
         private static Vector3d ToPortFrame(Transform port, Vector3d world)

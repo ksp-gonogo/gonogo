@@ -12573,6 +12573,10 @@
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
       {
+        "key": "sitrep-sdk . RendezvousHudContext#docked",
+        "note": "The docking HUD tells a camera augment when the port has joined the target, from the port state on the wire"
+      },
+      {
         "key": "sitrep-sdk . RendezvousHudContext#held",
         "note": "RendezvousHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
@@ -12591,6 +12595,10 @@
       {
         "key": "sitrep-sdk . RendezvousHudContext#reticleTravelPx",
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . RendezvousHudContext#targetPort",
+        "note": "The docking HUD hands a camera augment the target port ids so a camera can mark the port"
       },
       {
         "key": "sitrep-sdk . RendezvousPicture",
@@ -14309,6 +14317,10 @@
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
       {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext#docked",
+        "note": "The docking HUD tells a camera augment when the port has joined the target, from the port state on the wire"
+      },
+      {
         "key": "sitrep-sdk ./registry ~RendezvousHudContext#held",
         "note": "RendezvousHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
@@ -14327,6 +14339,10 @@
       {
         "key": "sitrep-sdk ./registry ~RendezvousHudContext#reticleTravelPx",
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext#targetPort",
+        "note": "The docking HUD hands a camera augment the target port ids so a camera can mark the port"
       },
       {
         "key": "sitrep-sdk ./registry ~RendezvousPicture",
@@ -16517,6 +16533,10 @@
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
       {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext#docked",
+        "note": "The docking HUD tells a camera augment when the port has joined the target, from the port state on the wire"
+      },
+      {
         "key": "sitrep-sdk ./testing ~RendezvousHudContext#held",
         "note": "RendezvousHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
@@ -16535,6 +16555,10 @@
       {
         "key": "sitrep-sdk ./testing ~RendezvousHudContext#reticleTravelPx",
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext#targetPort",
+        "note": "The docking HUD hands a camera augment the target port ids so a camera can mark the port"
       },
       {
         "key": "sitrep-sdk ./testing ~RendezvousPicture",

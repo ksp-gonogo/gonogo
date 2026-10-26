@@ -37,6 +37,8 @@ const RENDEZVOUS_CAMERA: SlotProps<"rendezvous.camera"> = {
   reticleTravelPx: 40,
   reportPicture: () => {},
   aligned: false,
+  docked: false,
+  targetPort: undefined,
   ax: undefined,
   ay: undefined,
   distance: undefined,

@@ -38,6 +38,10 @@ interface DockingHudProps {
   y: number | undefined;
   /** Cosine of the angle between the two ports' forward vectors (-1 = facing head-on, aligned); takes priority for the reticle tint. */
   forwardDot: number | undefined;
+  /** True once the own docking port is pre-attached or docked to the target. */
+  docked: boolean;
+  /** The targeted port's persistent ids, handed to the augments so a camera can mark it. */
+  targetPort: RendezvousHudContext["targetPort"];
   /** Present when the separation was carried forward rather than observed, with the model's basis. */
   modelled: { basis: ReckoningBasis } | undefined;
   showCamera: boolean;
@@ -68,6 +72,8 @@ export function DockingHud(props: DockingHudProps) {
     x,
     y,
     forwardDot,
+    targetPort,
+    docked,
     modelled,
     showCamera,
     cleared = false,
@@ -134,6 +140,8 @@ export function DockingHud(props: DockingHudProps) {
     ax,
     ay,
     distance,
+    targetPort,
+    docked,
     held: figuresReading,
     cameraFlightId,
   };
@@ -304,23 +312,23 @@ export function DockingHud(props: DockingHudProps) {
                     "radial-gradient(circle at center, rgba(0, 255, 136, 0.08) 0%, rgba(0, 0, 0, 0.3) 70%)",
                 }}
               >
-                {!cleared && <Crosshair />}
-                {!cleared && (
-                  <Reticle
-                    aligned={aligned}
-                    left={along(dx, layer.w / 2)}
-                    top={along(dy, layer.h / 2)}
-                  />
+                {picture === null && !cleared && (
+                  <>
+                    <Crosshair />
+                    <Reticle
+                      aligned={aligned}
+                      left={along(dx, layer.w / 2)}
+                      top={along(dy, layer.h / 2)}
+                    />
+                    {/* Axis ticks at half and full travel give the pilot the scale, the same on both axes. */}
+                    {[-1, -0.5, 0.5, 1].map((units) => (
+                      <HorizTick key={`h${units}`} left={tick(units)} />
+                    ))}
+                    {[-1, -0.5, 0.5, 1].map((units) => (
+                      <VertTick key={`v${units}`} top={tick(units)} />
+                    ))}
+                  </>
                 )}
-                {/* Axis ticks at half and full travel give the pilot the scale, the same on both axes. */}
-                {!cleared &&
-                  [-1, -0.5, 0.5, 1].map((units) => (
-                    <HorizTick key={`h${units}`} left={tick(units)} />
-                  ))}
-                {!cleared &&
-                  [-1, -0.5, 0.5, 1].map((units) => (
-                    <VertTick key={`v${units}`} top={tick(units)} />
-                  ))}
                 {!cleared && (
                   <AugmentSlot name="rendezvous.overlay" props={hudContext} />
                 )}

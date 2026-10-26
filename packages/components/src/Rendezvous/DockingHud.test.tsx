@@ -15,6 +15,8 @@ function reticle(ax: number, ay: number): HTMLElement {
       x={0}
       y={0}
       forwardDot={0.99}
+      targetPort={undefined}
+      docked={false}
       modelled={undefined}
       showCamera={false}
       cameraFlightId={undefined}
@@ -64,6 +66,8 @@ describe("DockingHud aligned tint", () => {
         x={0}
         y={0}
         forwardDot={forwardDot}
+        targetPort={undefined}
+        docked={false}
         modelled={undefined}
         showCamera={false}
         cameraFlightId={undefined}

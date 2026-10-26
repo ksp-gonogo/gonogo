@@ -123,6 +123,16 @@ export interface RendezvousHudContext {
   ay: number | undefined;
   /** Distance to the target port in metres, as a plain number so a drawing needs no unit conversion. `undefined` until the position is reported. */
   distance: number | undefined;
+  /** True once the active vessel's docking port is joined to the target port, from the port's state reaching pre-attached or docked. `false` while approaching or capturing, and `false` while the port state is not reported. */
+  docked: boolean;
+  /**
+   * The ids of the targeted docking port and of the vessel it belongs to, as KSP's persistent ids, the ones
+   * a camera marker names a port by. `undefined` while the port is not reported.
+   * Useful for marking the target port on a camera picture.
+   */
+  targetPort:
+    | { vesselPersistentId: number; portPersistentId: number }
+    | undefined;
   /**
    * The reading `aligned`, `ax`, `ay`, {@link RendezvousHudContext.reticleOffset} and `distance` were drawn from, or just its grade. Only a held reading
    * changes anything; while it is held, draw them as held rather than as

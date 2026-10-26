@@ -1,6 +1,11 @@
 import { defineTopicManifest } from "@ksp-gonogo/core";
 import { useViewUt, withoutReckoning } from "@ksp-gonogo/sitrep-client";
-import { deriveReading, stillTrue, TargetKind } from "@ksp-gonogo/sitrep-sdk";
+import {
+  DockingPortState,
+  deriveReading,
+  stillTrue,
+  TargetKind,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   bare,
   closingRateReading,
@@ -74,6 +79,20 @@ export function useRendezvousReading() {
   const dockRelVelVec = dock?.relativeVelocity && bare(dock.relativeVelocity);
   const dockDistanceStream = dock?.distance?.magnitude;
   const dockForwardDot = dock?.forwardDot?.magnitude;
+  // The port's own state is the craft's reading. Capture is the last state `vessel.dock` delivers before the target clears at the dock, so a captured port counts as joined along with pre-attached and docked.
+  const dockOwnState = dock?.ownPortState;
+  const dockJoined =
+    dockOwnState === DockingPortState.Acquire ||
+    dockOwnState === DockingPortState.PreAttached ||
+    dockOwnState === DockingPortState.Docked;
+  // Ids are facts about the pairing: they stay while the geometry is held.
+  const vesselPersistentId = dockPairing?.targetVesselPersistentId;
+  const portPersistentId = dockPairing?.targetPortPersistentId;
+  const dockTargetPort =
+    typeof vesselPersistentId === "number" &&
+    typeof portPersistentId === "number"
+      ? { vesselPersistentId, portPersistentId }
+      : undefined;
 
   const tarDistance = tarRelPos ? vecMagnitude(tarRelPos) : undefined;
   const relVel =
@@ -165,6 +184,8 @@ export function useRendezvousReading() {
     dockingDistance,
     dockingFiguresReading,
     dockForwardDot,
+    dockTargetPort,
+    dockJoined,
     dockingAvailable,
     alignmentWithheld,
     modelledAlignment,

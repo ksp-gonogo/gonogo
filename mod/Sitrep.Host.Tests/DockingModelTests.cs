@@ -1,3 +1,4 @@
+using Sitrep.Contract;
 using Sitrep.Host;
 using Xunit;
 
@@ -33,6 +34,30 @@ namespace Sitrep.Host.Tests
             var s = System.Math.Sqrt(0.5);
             var (x, y, z) = DockingModel.ToPortFrame((3, 4, 12), (s, 0, -s), Up, (s, 0, s));
             Assert.Equal(13.0, System.Math.Sqrt(x * x + y * y + z * z), 9);
+        }
+
+        [Theory]
+        [InlineData("Ready", DockingPortState.Ready)]
+        [InlineData("Acquire", DockingPortState.Acquire)]
+        [InlineData("Acquire (dockee)", DockingPortState.Acquire)]
+        [InlineData("PreAttached", DockingPortState.PreAttached)]
+        [InlineData("Docked (docker)", DockingPortState.Docked)]
+        [InlineData("Docked (dockee)", DockingPortState.Docked)]
+        [InlineData("Docked (same vessel)", DockingPortState.Docked)]
+        [InlineData("Disengage", DockingPortState.Disengage)]
+        [InlineData("Disabled", DockingPortState.Disabled)]
+        public void KspsPortStateNamesMapToTheContractVocabulary(string state, DockingPortState expected)
+        {
+            Assert.Equal(expected, DockingModel.ParsePortState(state));
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("Teleporting")]
+        public void AStateTheContractDoesNotNameIsNullNeverAGuess(string? state)
+        {
+            Assert.Null(DockingModel.ParsePortState(state));
         }
     }
 }

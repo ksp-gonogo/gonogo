@@ -34,7 +34,10 @@
           "relativePosition": { "x": 4.8, "y": -3.6, "z": 35 },
           "relativeVelocity": { "x": 0, "y": 0, "z": 1.2 },
           "distance": 35,
-          "forwardDot": -0.985
+          "forwardDot": -0.985,
+          "ownPortState": 0,
+          "targetVesselPersistentId": 4000000001,
+          "targetPortPersistentId": 1234
         }
       }
     ]
