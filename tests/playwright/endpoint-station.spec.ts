@@ -50,10 +50,53 @@ async function mainScreen(browser: Browser, relay: EndpointRelay) {
   return { context, page, code };
 }
 
-async function station(browser: Browser, code: string) {
+/**
+ * Makes the station's link through the endpoint unable to connect, as for a
+ * station on another network when no port is forwarded: the endpoint's answer
+ * reaches it with no address to try.
+ */
+async function cannotReachEndpoint(
+  context: import("@playwright/test").BrowserContext,
+) {
+  await context.addInitScript(() => {
+    /* The endpoint link is the connection that opens a channel named "gonogo"; PeerJS names its own. */
+    const endpointLinks = new WeakSet<RTCPeerConnection>();
+    const createDataChannel = RTCPeerConnection.prototype.createDataChannel;
+    RTCPeerConnection.prototype.createDataChannel = function (
+      this: RTCPeerConnection,
+      label: string,
+      init?: RTCDataChannelInit,
+    ) {
+      if (label === "gonogo") endpointLinks.add(this);
+      return createDataChannel.call(this, label, init);
+    };
+    const setRemoteDescription =
+      RTCPeerConnection.prototype.setRemoteDescription;
+    RTCPeerConnection.prototype.setRemoteDescription = function (
+      this: RTCPeerConnection,
+      description: RTCSessionDescriptionInit,
+    ) {
+      const sdp =
+        endpointLinks.has(this) && description.sdp
+          ? description.sdp
+              .split("\r\n")
+              .filter((line) => !line.startsWith("a=candidate"))
+              .join("\r\n")
+          : description.sdp;
+      return setRemoteDescription.call(this, { type: description.type, sdp });
+    } as typeof setRemoteDescription;
+  });
+}
+
+async function station(
+  browser: Browser,
+  code: string,
+  { endpointReachable = true }: { endpointReachable?: boolean } = {},
+) {
   const context = await browser.newContext();
   await seedApprovedStation(context);
   await keepPeerConnections(context);
+  if (!endpointReachable) await cannotReachEndpoint(context);
   const page = await context.newPage();
   await page.goto(`/station?host=${code}&uplinkLoaderIds=`);
   return { context, page };
@@ -176,6 +219,35 @@ test.describe("stations through the endpoint @chromium-only", () => {
         s.page.getByRole("button", { name: /add widget/i }),
       ).toBeVisible({ timeout: 30_000 });
       expect(await selectedProtocol(s.page)).toBe("tcp");
+      await s.context.close();
+      await main.context.close();
+    } finally {
+      await relay.stop();
+    }
+  });
+
+  test("a station that cannot reach the endpoint is served on its data connection", async ({
+    browser,
+  }) => {
+    test.setTimeout(90_000);
+    const relay = await startEndpointRelay({
+      port: 13015,
+      endpointPort: 47185,
+    });
+    try {
+      const main = await mainScreen(browser, relay);
+      const s = await station(browser, main.code, { endpointReachable: false });
+      await expect(
+        s.page.getByRole("button", { name: /add widget/i }),
+      ).toBeVisible({ timeout: 30_000 });
+      await expect.poll(() => served(main.page)).toHaveLength(1);
+      /* Still served once the station's silence window has passed, so it is not
+         joining and dropping in a loop. */
+      await s.page.waitForTimeout(8_000);
+      expect(await served(main.page)).toHaveLength(1);
+      await expect(
+        s.page.getByRole("button", { name: /add widget/i }),
+      ).toBeVisible();
       await s.context.close();
       await main.context.close();
     } finally {

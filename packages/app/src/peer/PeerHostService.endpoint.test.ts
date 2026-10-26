@@ -100,7 +100,7 @@ import {
 import type { Packable } from "peerjs-js-binarypack";
 import { encodeFrames, FrameReader } from "./endpointFraming";
 import { joinMetadata, readJoin } from "./endpointJoin";
-import { PeerHostService } from "./PeerHostService";
+import { ENDPOINT_OPEN_MS, PeerHostService } from "./PeerHostService";
 
 const link = ws.link("ws://localhost:3002/stations");
 const server = setupServer();
@@ -111,9 +111,15 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
-/** An endpoint that answers every offer and opens every station at once, recording what the main screen sends each one. */
-function endpoint() {
+/**
+ * An endpoint that answers every offer and opens every station at once,
+ * recording what the main screen sends each one. With `opens: false` it
+ * answers and no station ever reaches it, as for a station on another
+ * network with no port forwarded.
+ */
+function endpoint({ opens = true }: { opens?: boolean } = {}) {
   const offers: Array<{ sid: number; peerId: string; sdp: string }> = [];
+  const closes: number[] = [];
   const toStation = new Map<number, unknown[]>();
   const bridges: Array<Record<string, unknown>> = [];
   let socket: { send(data: string | ArrayBuffer): void } | null = null;
@@ -153,6 +159,7 @@ function endpoint() {
             );
             return;
           }
+          if (f.type === "close") closes.push(f.sid);
           if (f.type !== "offer") return;
           offers.push(f);
           client.send(
@@ -162,9 +169,10 @@ function endpoint() {
               sdp: `answer for ${f.peerId}`,
             }),
           );
-          client.send(
-            JSON.stringify({ type: "open", sid: f.sid, path: "internet" }),
-          );
+          if (opens)
+            client.send(
+              JSON.stringify({ type: "open", sid: f.sid, path: "internet" }),
+            );
           return;
         }
         const buf = new Uint8Array(m.data as ArrayBuffer);
@@ -179,6 +187,7 @@ function endpoint() {
   );
   return {
     offers,
+    closes,
     toStation,
     bridges,
     /** Deliver a message from a station on session `sid` to the main screen. */
@@ -281,6 +290,28 @@ describe("a station joining through the endpoint", () => {
     );
     expect(peer.opened).toHaveLength(0);
     expect(direct.closed).toBe(false);
+    host.stop();
+  });
+
+  it("serves the station's data connection when its link through the endpoint does not open in time", async () => {
+    const ep = endpoint({ opens: false });
+    const { host, peer } = await startedHost();
+    await vi.waitFor(() => expect(host.endpoint.available).toBe(true));
+    const direct = join(peer, "station-a", "gne-1");
+    direct.open = true;
+    direct.emit("open");
+    direct.emit("data", { type: "station-credential", credential: "c" });
+    await vi.waitFor(() => expect(peer.opened).toHaveLength(1));
+    expect(direct.sent).toEqual([]);
+    await vi.waitFor(
+      () =>
+        expect(direct.sent).toContainEqual(
+          expect.objectContaining({ type: "hello" }),
+        ),
+      { timeout: ENDPOINT_OPEN_MS + 2_000 },
+    );
+    expect(direct.closed).toBe(false);
+    expect(ep.closes).toEqual([ep.offers[0]?.sid]);
     host.stop();
   });
 

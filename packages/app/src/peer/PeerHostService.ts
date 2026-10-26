@@ -53,6 +53,13 @@ const SHARE_CODE_KEY = "gonogo-host-share-code";
 const ANSWER_CARRIER_MS = 15_000;
 
 /**
+ * How long a station has to open its link through the endpoint before it is
+ * served on its data connection instead. Under the station's silence window,
+ * so a station waiting on that connection does not give up on it first.
+ */
+export const ENDPOINT_OPEN_MS = 4_000;
+
+/**
  * Host-side counterpart of a station's `uplink-relay-request`: an object
  * registered under an Uplink's id (via `@ksp-gonogo/core`'s
  * `registerUplinkHandle`) that knows how to dispatch its own named methods.
@@ -812,7 +819,8 @@ export class PeerHostService {
   /**
    * A station's data connection. One that carries an offer for the endpoint
    * joins through the endpoint while it is up, and the data connection is
-   * held unserved in case the endpoint will not take the station.
+   * held unserved in case the endpoint will not take the station, or the
+   * station cannot reach it within `ENDPOINT_OPEN_MS`.
    */
   private takeStation(peer: Peer, conn: DataConnection): void {
     const join = readJoin(conn.metadata);
@@ -824,7 +832,24 @@ export class PeerHostService {
     this.acceptStation(link);
     let held: unknown[] | null = [];
     conn.on("data", (raw) => held?.push(raw));
+    /* A station on another network reaches the endpoint only through a
+       forwarded port. Without one its link never opens, and the data
+       connection, which crosses the two networks' routers, is the path that
+       carries it. */
+    const fallback = setTimeout(() => {
+      if (held === null) return;
+      logger.info(
+        `[PeerHost] ${conn.peer} did not reach the endpoint, serving it here directly`,
+      );
+      const earlier = held;
+      held = null;
+      link.close();
+      if (this.peer === peer) this.acceptStation(conn, earlier);
+    }, ENDPOINT_OPEN_MS);
+    conn.on("close", () => clearTimeout(fallback));
     link.on("open", () => {
+      if (held === null) return;
+      clearTimeout(fallback);
       held = null;
       conn.close();
     });
@@ -843,7 +868,9 @@ export class PeerHostService {
         logger.warn(
           `[PeerHost] endpoint did not take ${conn.peer}, serving it here directly: ${err instanceof Error ? err.message : String(err)}`,
         );
-        const earlier = held ?? [];
+        clearTimeout(fallback);
+        if (held === null) return;
+        const earlier = held;
         held = null;
         if (this.peer === peer) this.acceptStation(conn, earlier);
       },

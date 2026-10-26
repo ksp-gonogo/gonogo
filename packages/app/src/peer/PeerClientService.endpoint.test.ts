@@ -1,8 +1,8 @@
 /**
  * How a station chooses its path to the main screen: its data connection
  * carries an offer for the endpoint, and it joins through the endpoint when
- * the main screen answers that offer, or stays on the data connection when
- * the main screen serves it instead.
+ * the main screen answers that offer and the link opens, or stays on the
+ * data connection when the main screen serves it instead.
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -94,7 +94,10 @@ class FakeRTCPeerConnection {
     this.remote = d;
   }
   addEventListener() {}
-  close() {}
+  closed = false;
+  close() {
+    this.closed = true;
+  }
 }
 
 import { FrameReader } from "./endpointFraming";
@@ -134,13 +137,16 @@ describe("a station choosing its path to the main screen", () => {
     const carrier = peer.incoming(
       joinMetadata({ kind: "answer", id, sdp: "v=endpoint-answer" }),
     );
+    expect(carrier.closed).toBe(false);
+    carrier.emit("open");
     expect(carrier.closed).toBe(true);
     const pc = FakeRTCPeerConnection.last;
     await vi.waitFor(() =>
       expect(pc?.remote).toEqual({ type: "answer", sdp: "v=endpoint-answer" }),
     );
-    expect(direct.closed).toBe(true);
+    expect(direct.closed).toBe(false);
     pc?.channel.dispatchEvent(new Event("open"));
+    expect(direct.closed).toBe(true);
     expect(svc.getConnStatus()).toBe("connected");
     const first = new FrameReader().push(pc?.channel.sent[0] as Uint8Array);
     expect(first).toMatchObject({ type: "station-credential" });
@@ -152,10 +158,27 @@ describe("a station choosing its path to the main screen", () => {
     direct.open = true;
     direct.emit("open");
     peer.incoming(joinMetadata({ kind: "answer", id, sdp: "v=endpoint" }));
-    await vi.waitFor(() =>
-      expect(FakeRTCPeerConnection.last?.remote?.sdp).toBe("v=endpoint"),
-    );
+    const pc = FakeRTCPeerConnection.last;
+    await vi.waitFor(() => expect(pc?.remote?.sdp).toBe("v=endpoint"));
+    pc?.channel.dispatchEvent(new Event("open"));
     expect(direct.closed).toBe(true);
+    const first = new FrameReader().push(pc?.channel.sent[0] as Uint8Array);
+    expect(first).toMatchObject({ type: "station-credential" });
+  });
+
+  it("stays on its data connection when the endpoint answers but its link never opens", async () => {
+    const { svc, peer, direct, id } = await joining();
+    direct.open = true;
+    direct.emit("open");
+    expect(svc.getConnStatus()).not.toBe("connected");
+    peer.incoming(joinMetadata({ kind: "answer", id, sdp: "v=unreachable" }));
+    const pc = FakeRTCPeerConnection.last;
+    await vi.waitFor(() => expect(pc?.remote?.sdp).toBe("v=unreachable"));
+    direct.emit("data", { type: "host-heartbeat" });
+    expect(pc?.closed).toBe(true);
+    expect(direct.closed).toBe(false);
+    expect(svc.getConnStatus()).toBe("connected");
+    svc.disconnect();
   });
 
   it("stays on its data connection once the main screen serves it", async () => {

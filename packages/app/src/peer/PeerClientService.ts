@@ -188,7 +188,7 @@ export class PeerClientService {
   private conn: (StationLink & { peerConnection?: RTCPeerConnection }) | null =
     null;
   private lastHostMessageAt = 0;
-  /** The endpoint link this station offered the main screen, until it is answered or the direct path opens. */
+  /** The endpoint link this station offered the main screen, until it opens or the main screen serves the data connection instead. */
   private pendingEndpoint: { id: string; link: EndpointHostLink } | null = null;
   private silenceTimer: ReturnType<typeof setInterval> | null = null;
   private attemptTimer: ReturnType<typeof setTimeout> | null = null;
@@ -554,31 +554,34 @@ export class PeerClientService {
 
   /**
    * A connection the main screen opened to this station. Its only use is to
-   * carry the endpoint's answer to this station's offer, so it is closed as
-   * soon as it is read.
+   * carry the endpoint's answer to this station's offer, read from its
+   * metadata, so it is closed once open. The data connection stays the station's link until
+   * the endpoint link opens, since a station on another network may never
+   * reach the endpoint and the main screen then serves it on that connection.
    */
   private takeEndpointAnswer(peer: Peer, conn: DataConnection): void {
     const answer = readJoin(conn.metadata);
-    try {
-      conn.close();
-    } catch {
-      /* already closed */
-    }
+    /* Not closed at once: PeerJS is still applying the connection's offer,
+       and closing under it fails that with an error on the whole peer. */
+    conn.on("open", () => conn.close());
     const pending = this.pendingEndpoint;
     if (this.peer !== peer || answer?.kind !== "answer") return;
     if (!pending || answer.id !== pending.id) return;
-    this.pendingEndpoint = null;
     const { link } = pending;
-    const direct = this.conn;
     logger.info(
       `[PeerClient] joining host=${this.hostPeerId} through the endpoint`,
     );
-    this.wireHostLink(link);
-    try {
-      direct?.close();
-    } catch {
-      /* already closed */
-    }
+    link.on("open", () => {
+      if (this.pendingEndpoint !== pending) return;
+      this.pendingEndpoint = null;
+      const direct = this.conn;
+      this.wireHostLink(link, { open: true });
+      try {
+        direct?.close();
+      } catch {
+        /* already closed */
+      }
+    });
     link.onPiece = (bytes) => {
       if (this.conn !== link) return;
       this.lastHostMessageAt = Date.now();
@@ -588,11 +591,11 @@ export class PeerClientService {
       logger.warn("[PeerClient] the endpoint's answer did not apply", {
         error: err instanceof Error ? err.message : String(err),
       });
-      if (this.conn === link) this.retryPolicy.handleUnexpectedClose();
+      if (this.pendingEndpoint === pending) this.dropPendingEndpoint();
     });
   }
 
-  /** Close the endpoint link offered to the main screen and not taken. */
+  /** Close the endpoint link offered to the main screen and not opened. */
   private dropPendingEndpoint(): void {
     const pending = this.pendingEndpoint;
     this.pendingEndpoint = null;
@@ -601,10 +604,12 @@ export class PeerClientService {
 
   /**
    * Run the station's side of a link to the main screen, whichever path
-   * carries it.
+   * carries it. `open` is for a link already open, which announces the
+   * station at once rather than on an `open` event that has passed.
    */
   private wireHostLink(
     conn: StationLink & { peerConnection?: RTCPeerConnection },
+    { open = false }: { open?: boolean } = {},
   ): void {
     this.conn = conn;
     /* Every handler below drops an event from a connection that is no longer
@@ -623,33 +628,26 @@ export class PeerClientService {
       );
       this.retryPolicy.handleUnexpectedClose();
     });
-    conn.on("open", () => {
-      if (!current()) return;
-      logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
-      this.clearAttemptDeadline();
-      this.retryPolicy.onConnected();
-      this.hostChannelStalls = 0;
-      this.setBrokerClosed(false);
-      this.enterStage("data");
-      // First, so the host knows whether this station is approved before any request it sends.
-      conn.send({
-        type: "station-credential",
-        credential: getStationCredential(),
-      } satisfies PeerMessage);
-      // Opt into selective broadcast immediately. The host's default
-      // is broadcast-all so v1 stations still work; v2 stations switch
-      // here. Following peer-data-subscribe messages from
-      // PeerClientDataSource are then respected per peer.
-      this.sendDataMode("selective");
-      this.emitConnStatus("connected");
-      this.watchForSilence();
-    });
+    /* A main screen running the endpoint holds the data connection of a
+       station that offered to join through it, unserved, so for that
+       connection the first message, not its opening, says this is the path
+       the station stays on. */
+    const held = this.pendingEndpoint !== null;
+    let announced = false;
+    const announce = () => {
+      if (announced) return;
+      announced = true;
+      this.hostLinkOpened(conn);
+    };
+    if (open) announce();
+    if (!open && !held)
+      conn.on("open", () => {
+        if (current()) announce();
+      });
     conn.on("data", (raw) => {
       if (!current()) return;
-      /* A main screen running the endpoint holds a station's data connection
-         unserved, so the first message on it, not its opening, says this is
-         the path the station stays on. */
       this.dropPendingEndpoint();
+      announce();
       this.lastHostMessageAt = Date.now();
       const msg = asPeerMessage(raw);
       if (msg) this.handleMessage(msg);
@@ -663,6 +661,28 @@ export class PeerClientService {
       if (!current()) return;
       logger.error("[PeerClient] connection error", err);
     });
+  }
+
+  /** The station's link to the main screen is open: announce this station on it. */
+  private hostLinkOpened(conn: StationLink): void {
+    logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
+    this.clearAttemptDeadline();
+    this.retryPolicy.onConnected();
+    this.hostChannelStalls = 0;
+    this.setBrokerClosed(false);
+    this.enterStage("data");
+    // First, so the host knows whether this station is approved before any request it sends.
+    conn.send({
+      type: "station-credential",
+      credential: getStationCredential(),
+    } satisfies PeerMessage);
+    // Opt into selective broadcast immediately. The host's default
+    // is broadcast-all so v1 stations still work; v2 stations switch
+    // here. Following peer-data-subscribe messages from
+    // PeerClientDataSource are then respected per peer.
+    this.sendDataMode("selective");
+    this.emitConnStatus("connected");
+    this.watchForSilence();
   }
 
   /**
