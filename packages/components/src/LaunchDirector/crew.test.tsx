@@ -364,6 +364,10 @@ describe("crewReading", () => {
 
   it("prints only the terms that are not zero", () => {
     expect(crewTally([member(), member({ name: "Bill" })])).toBe(" (2)");
+    expect(crewTally([member(), member({ name: "Bill" })], 0, 3)).toBe(
+      " (2) · 3 seats",
+    );
+    expect(crewTally([member()], 1, 1)).toBe(" (1) · 1 selected · 1 seat");
     expect(
       crewTally([
         member(),

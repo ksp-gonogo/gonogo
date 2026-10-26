@@ -28,12 +28,21 @@ export function crewReading(k: CrewMember): CrewReading {
   return "unread";
 }
 
+/** How many kerbals a craft seats, as the crew line writes it. */
+export function seatsOf(seats: number): string {
+  return `${seats} ${seats === 1 ? "seat" : "seats"}`;
+}
+
 /**
  * The roster's own count and the three exceptions to it, each silent at zero.
  * The selected count lives here because this line is the part that survives a
  * short tile when the grid folds.
  */
-export function crewTally(crew: CrewMember[], selected = 0): string {
+export function crewTally(
+  crew: CrewMember[],
+  selected = 0,
+  seats: number | null = null,
+): string {
   const readings = crew.map(crewReading);
   const unavailable = readings.filter((r) => r === "unavailable").length;
   const unread = readings.filter((r) => r === "unread").length;
@@ -41,6 +50,7 @@ export function crewTally(crew: CrewMember[], selected = 0): string {
   if (unavailable > 0) terms.push(`${unavailable} unavailable`);
   if (unread > 0) terms.push(`${unread} no reading`);
   if (selected > 0) terms.push(`${selected} selected`);
+  if (seats !== null) terms.push(seatsOf(seats));
   return ` ${terms.join(" · ")}`;
 }
 

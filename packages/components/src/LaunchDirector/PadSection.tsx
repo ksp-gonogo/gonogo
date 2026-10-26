@@ -254,6 +254,7 @@ function OpenPad({
               crew={crew}
               selectedCrew={selectedCrew}
               manifestSize={manifest.length}
+              seats={ship.crewSeats}
               onToggleCrew={onToggleCrew}
               rows={rows}
             />

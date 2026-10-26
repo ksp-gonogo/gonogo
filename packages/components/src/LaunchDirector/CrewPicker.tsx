@@ -12,6 +12,7 @@ import {
   crewChipTitle,
   crewReading,
   crewTally,
+  seatsOf,
 } from "./crew";
 import {
   CrewDisclosure,
@@ -26,6 +27,7 @@ export function CrewPicker({
   crew,
   selectedCrew,
   manifestSize,
+  seats,
   onToggleCrew,
   rows,
 }: {
@@ -33,6 +35,8 @@ export function CrewPicker({
   selectedCrew: ReadonlySet<string>;
   /** The selection the launch would actually seat. */
   manifestSize: number;
+  /** How many kerbals the picked craft seats; null when the wire did not say. */
+  seats: number | null;
   onToggleCrew: (name: string) => void;
   /** The tile's height in grid rows; decides whether the crew grid stands open. */
   rows: number;
@@ -40,7 +44,9 @@ export function CrewPicker({
   if (crew === null) {
     return (
       <>
-        <SectionLabel>Crew</SectionLabel>
+        <SectionLabel>
+          Crew{seats !== null && ` · ${seatsOf(seats)}`}
+        </SectionLabel>
         {/* The roster's own absence, said out loud; nothing to fold, so no expander. */}
         <ReadoutCaption>Roster: no reading</ReadoutCaption>
       </>
@@ -57,7 +63,7 @@ export function CrewPicker({
       label={
         <SectionLabel>
           Crew
-          {crewTally(crew, manifestSize)}
+          {crewTally(crew, manifestSize, seats)}
         </SectionLabel>
       }
     >
