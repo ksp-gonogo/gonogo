@@ -396,6 +396,7 @@ export {
   JoystickIcon,
   LayersIcon,
   LockIcon,
+  MenuIcon,
   MicroscopeIcon,
   MutedIcon,
   PauseIcon,
