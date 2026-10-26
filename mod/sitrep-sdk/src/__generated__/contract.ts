@@ -514,6 +514,37 @@ export interface CareerContracts
 	failedRecent: CareerContract[];
 }
 /**
+* One contract that has just finished: completed or failed. Each finish is its
+* own event, separate from what the contract board holds in
+* `CareerContracts.completedRecent`. Useful for announcing a finish the moment
+* it reaches the operator. The event is stamped with the game time the
+* contract finished, and reaches an observer later, at the time that observer
+* would learn of it.
+*
+* The event arrives after the active vessel's comms delay, because a contract
+* has no single source vessel to hold it to. It never arrives before that
+* delay.
+*
+* @category Career
+*/
+export interface CareerContractEvent
+{
+	/**
+	* The contract's id, `Contract.ContractID` as a decimal string, the same id
+	* `CareerContract.id` carries.
+	*/
+	id?: string | null;
+	/** The contract's display title. */
+	title?: string | null;
+	/**
+	* The name of the agency that offered the contract. `null` when it has no
+	* agent.
+	*/
+	agent?: string | null;
+	/** How it finished: `"Completed"` or `"Failed"`. */
+	outcome?: string | null;
+}
+/**
 * One contract in `CareerContracts.active`, `CareerContracts.offered`,
 * `CareerContracts.completedRecent` or `CareerContracts.failedRecent`.
 *

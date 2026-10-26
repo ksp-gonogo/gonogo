@@ -154,6 +154,12 @@
       "synopsis": "text",
       "title": "text"
     },
+    "CareerContractEvent": {
+      "agent": "text",
+      "id": "id",
+      "outcome": "text",
+      "title": "text"
+    },
     "CareerContractParameter": {
       "maxAltitude": "m",
       "milestone": "text",
@@ -1788,6 +1794,12 @@
     },
     "alarm.scet.topics": {
       "topic": "id"
+    },
+    "career.contractEvent": {
+      "agent": "text",
+      "id": "id",
+      "outcome": "text",
+      "title": "text"
     },
     "career.mode": {
       "mode": "enum"
@@ -3653,6 +3665,7 @@
     "alarm.game.list": "Game alarms",
     "alarm.scet.fired": "Fired alarm",
     "alarm.scet.topics": "Alarm topics",
+    "career.contractEvent": "Contract finished",
     "career.mode": "Career mode",
     "commandCentre.roster": "Command centres",
     "commandCentre.unreachable": "Unreachable command centres",

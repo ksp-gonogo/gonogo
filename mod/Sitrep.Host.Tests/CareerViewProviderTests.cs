@@ -31,6 +31,26 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildContractEventForACompletionNamesTheContractAndItsOutcome()
+        {
+            var e = CareerViewProvider.BuildContractEvent("77", "Launch a vessel", "Kerbin Space Program", completed: true);
+
+            Assert.Equal("77", e["id"]);
+            Assert.Equal("Launch a vessel", e["title"]);
+            Assert.Equal("Kerbin Space Program", e["agent"]);
+            Assert.Equal("Completed", e["outcome"]);
+        }
+
+        [Fact]
+        public void BuildContractEventForAFailureHasNoAgentWhenTheContractHasNone()
+        {
+            var e = CareerViewProvider.BuildContractEvent("51", "Test the RT-5", null, completed: false);
+
+            Assert.Equal("Failed", e["outcome"]);
+            Assert.Null(e["agent"]);
+        }
+
+        [Fact]
         public void BuildCareerReturnsNullWhenSnapshotItselfIsNull()
         {
             Assert.Null(CareerViewProvider.BuildCareer(null));

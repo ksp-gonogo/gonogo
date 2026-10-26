@@ -13,6 +13,7 @@ export const GENERATED_CHANNEL_KINDS = {
   "alarm.game.list": "discrete",
   "alarm.scet.fired": "event",
   "alarm.scet.topics": "discrete",
+  "career.contractEvent": "event",
   "career.facilities": "discrete",
   "career.mode": "discrete",
   "career.status": "discrete",

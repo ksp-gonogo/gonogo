@@ -22,6 +22,7 @@
 import type {
   ArchiveEntry,
   AstronautComplexInfo,
+  CareerContractEvent,
   CareerFacilities,
   CareerMode,
   CareerStatus,
@@ -120,6 +121,8 @@ export interface GeneratedTopicPayloadMap {
   "alarm.scet.fired": ScetAlarmFired;
   /** One Topic a SCET (spacecraft event time) threshold alarm may be armed against: a row of the `alarm.scet.topics` channel. */
   "alarm.scet.topics": ScetAddressableTopic[];
+  /** One contract that has just finished: completed or failed. */
+  "career.contractEvent": CareerContractEvent;
   /** The space centre's buildings, each with the level it stands at and the full run of levels it can be upgraded through (its tier count and what each upgrade costs). */
   "career.facilities": CareerFacilities;
   /** The active save's `GameMode`, as `{ "mode": <int> }`. */
@@ -297,6 +300,7 @@ export const GENERATED_TOPIC_IDS = [
   "alarm.game.list",
   "alarm.scet.fired",
   "alarm.scet.topics",
+  "career.contractEvent",
   "career.facilities",
   "career.mode",
   "career.status",
