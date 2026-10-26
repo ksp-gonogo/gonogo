@@ -13,6 +13,10 @@ export interface PlannerInputs {
   targetInclination: number;
   targetAltitudeKm: number;
   standoffMeters: number;
+  /** Altitude of the circular orbit a capture aims for; null follows the approach periapsis. */
+  captureAltitudeKm: number | null;
+  /** Whether a capture circularises at that altitude with a second burn. */
+  captureCircularise: boolean;
   /** The body a transfer is planned to, by name; empty until one is picked. */
   transferBody: string;
 }
@@ -29,6 +33,8 @@ export interface PlannerInputsApi {
   setTargetInclination: (n: number) => void;
   setTargetAltitudeKm: (n: number) => void;
   setStandoffMeters: (n: number) => void;
+  setCaptureAltitudeKm: (n: number | null) => void;
+  setCaptureCircularise: (on: boolean) => void;
   setTransferBody: (name: string) => void;
 }
 
@@ -52,6 +58,11 @@ export function usePlannerInputs(
   const [standoffMeters, setStandoffMeters] = useState(
     config?.defaultStandoffMeters ?? 500,
   );
+
+  const [captureAltitudeKm, setCaptureAltitudeKm] = useState<number | null>(
+    null,
+  );
+  const [captureCircularise, setCaptureCircularise] = useState(true);
 
   const [transferBody, setTransferBody] = useState(
     config?.defaultTransferBody ?? "",
@@ -78,6 +89,8 @@ export function usePlannerInputs(
       targetInclination,
       targetAltitudeKm,
       standoffMeters,
+      captureAltitudeKm,
+      captureCircularise,
       transferBody,
     },
     setPreset,
@@ -90,6 +103,8 @@ export function usePlannerInputs(
     setTargetInclination,
     setTargetAltitudeKm,
     setStandoffMeters,
+    setCaptureAltitudeKm,
+    setCaptureCircularise,
     setTransferBody,
   };
 }

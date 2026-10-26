@@ -16,6 +16,7 @@ import { mergeMarkings } from "../shared/mergeMarkings";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { BurnWindowsSection } from "./BurnWindowsSection";
 import { ConformanceSection } from "./ConformanceSection";
+import { CAPTURE_PRESET } from "./capturePreset";
 import { ManeuverNodeList } from "./ManeuverNodeList";
 import { ManeuverPreview } from "./ManeuverPreview";
 import { NewManeuverSection } from "./NewManeuverSection";
@@ -74,6 +75,8 @@ export function ManeuverPlannerComponent({
     burnTrueAnomaly,
     planReady,
     hyperbolic,
+    capturable,
+    captureFault,
     landed,
     meetsSurface,
   } = usePlan(inputs, telemetry);
@@ -174,8 +177,14 @@ export function ManeuverPlannerComponent({
       from={planCurrency}
     />
   );
+  // An open orbit has one sensible burn, so the preset picker gives way to its statement.
   const newManeuver = (
-    <NewManeuverSection key="new" api={inputsApi} telemetry={telemetry} />
+    <NewManeuverSection
+      key="new"
+      api={inputsApi}
+      telemetry={telemetry}
+      capturing={capturable}
+    />
   );
   const preview = planReady ? (
     <ManeuverPreview
@@ -184,7 +193,7 @@ export function ManeuverPlannerComponent({
       currentOrbit={currentOrbit}
       currentTrajectory={currentTrajectory}
       body={body}
-      preset={inputs.preset}
+      preset={capturable ? CAPTURE_PRESET : inputs.preset}
       burnTrueAnomaly={burnTrueAnomaly}
       apsisDefined={apsisDefined}
       diagram={{
@@ -221,6 +230,7 @@ export function ManeuverPlannerComponent({
         hyperbolic={hyperbolic}
         landed={landed}
         meetsSurface={meetsSurface}
+        captureFault={captureFault}
         currentTrajectory={currentTrajectory}
       />
     </Section>
@@ -271,7 +281,7 @@ export function ManeuverPlannerComponent({
         sections={[
           caption,
           <Tabs
-            key="body"
+            key="tabs"
             aria-label="Maneuver planner views"
             expandWhenRoomy={tall}
             activeId={tab}

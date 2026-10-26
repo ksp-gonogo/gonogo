@@ -23,6 +23,8 @@ function burnIn(seconds: number): PlannerInputs {
     targetInclination: 0,
     targetAltitudeKm: 100,
     standoffMeters: 500,
+    captureAltitudeKm: null,
+    captureCircularise: true,
     transferBody: "",
   };
 }

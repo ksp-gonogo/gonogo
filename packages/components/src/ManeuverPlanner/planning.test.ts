@@ -2,6 +2,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   buildCurrentOrbit,
+  captureFault,
   computeBurnTrueAnomaly,
   computeMu,
   computePlan,
@@ -304,5 +305,40 @@ describe("meetsSurfaceBeforeBurn", () => {
         timeToAp: 300 + half,
       }),
     ).toBe(false);
+  });
+});
+
+describe("captureFault", () => {
+  const BODY_R = 600_000;
+  const ATMOSPHERE = 70_000;
+  const SOI = 84_000_000;
+
+  it("accepts a target between the atmosphere and the sphere of influence", () => {
+    expect(captureFault(BODY_R + 100_000, BODY_R, ATMOSPHERE, SOI)).toBeNull();
+  });
+
+  it("refuses a target inside the atmosphere, naming where it ends", () => {
+    expect(captureFault(BODY_R + 30_000, BODY_R, ATMOSPHERE, SOI)).toEqual({
+      kind: "inside-atmosphere",
+      limitAltitude: ATMOSPHERE,
+    });
+  });
+
+  it("refuses a target under the surface of a body with no atmosphere", () => {
+    expect(captureFault(BODY_R - 1, BODY_R, undefined, SOI)).toEqual({
+      kind: "below-surface",
+    });
+    expect(captureFault(BODY_R, BODY_R, undefined, SOI)).toBeNull();
+  });
+
+  it("refuses a target at or beyond the sphere of influence", () => {
+    expect(captureFault(SOI, BODY_R, ATMOSPHERE, SOI)).toEqual({
+      kind: "outside-influence",
+      limitAltitude: SOI - BODY_R,
+    });
+  });
+
+  it("bounds nothing above when the sphere of influence is unknown", () => {
+    expect(captureFault(1e12, BODY_R, ATMOSPHERE, undefined)).toBeNull();
   });
 });

@@ -18,7 +18,10 @@ export function ManeuverDiagram({
   setRadial,
   orbitMarking,
 }: ManeuverPreviewProps) {
-  if (!plan || !currentOrbit || !diagram.ApR || !diagram.PeR) return null;
+  // An open orbit has no apoapsis and no closed-orbit snapshot to wait for.
+  const open = (diagram.ecc ?? 0) >= 1 || (diagram.sma ?? 1) < 0;
+  if (!plan || !diagram.PeR) return null;
+  if (!open && (!currentOrbit || !diagram.ApR)) return null;
   // Every curve here extrapolates the current orbit, so a refusal withholds the whole drawing.
   if (currentTrajectory?.shape === "withheld") {
     return (
@@ -53,7 +56,7 @@ export function ManeuverDiagram({
           }
           sma={diagram.sma ?? 0}
           ecc={diagram.ecc ?? 0}
-          apoapsis={diagram.ApR}
+          apoapsis={diagram.ApR ?? 0}
           periapsis={diagram.PeR}
           craft={{
             [orbitMarking?.kind ?? "current"]: diagram.trueAnomaly ?? 0,

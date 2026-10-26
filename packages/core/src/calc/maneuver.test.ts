@@ -2,6 +2,8 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   type CurrentOrbit,
+  captureAtPeri,
+  captureToCircular,
   circularizeAtApo,
   circularizeAtPeri,
   customAtApsis,
@@ -85,6 +87,121 @@ describe("gravParameterFromState", () => {
     const v = Math.sqrt(KERBIN_MU * (2 / r - 1 / a));
     const mu = gravParameterFromState(v, r, a);
     expect(mu).toBeCloseTo(KERBIN_MU, -3);
+  });
+});
+
+describe("gravParameterFromState on an open orbit", () => {
+  it("recovers μ from a point on a hyperbola", () => {
+    const mu = 6.5138398e10;
+    const a = -mu / 300 ** 2;
+    const r = 5_000_000;
+    const v = Math.sqrt(mu * (2 / r - 1 / a));
+    expect(gravParameterFromState(v, r, a)).toBeCloseTo(mu, -3);
+  });
+});
+
+describe("captureAtPeri", () => {
+  // A Mun approach: 300 m/s at infinity, periapsis 10 km above the 200 km surface.
+  const MUN_MU = 6.5138398e10;
+  const PE_R = 210_000;
+  const V_INF = 300;
+  const open = {
+    sma: -MUN_MU / V_INF ** 2,
+    eccentricity: 1.290151,
+    PeR: PE_R,
+    timeToPe: value("s", 600),
+  };
+
+  it("burns retrograde by the circular speed less the periapsis speed", () => {
+    const plan = captureAtPeri(open, MUN_MU, ut(1000));
+    // v_pe = √(v∞² + 2μ/r) = 842.83, v_circ = √(μ/r) = 556.94
+    expect(plan.prograde).toBeCloseTo(-285.891, 2);
+    expect(plan.requiredDeltaV).toBeCloseTo(285.891, 2);
+    expect(plan.normal).toBe(0);
+    expect(plan.radial).toBe(0);
+  });
+
+  it("burns at periapsis and leaves a circular orbit at its radius", () => {
+    const plan = captureAtPeri(open, MUN_MU, ut(1000));
+    expect(plan.ut.magnitude).toBe(1600);
+    expect(plan.projected).toMatchObject({
+      sma: PE_R,
+      eccentricity: 0,
+      ApR: PE_R,
+      PeR: PE_R,
+    });
+    expect(plan.projected?.period).toBeCloseTo(2369.14, 1);
+  });
+
+  it("leaves its apoapsis at a radius above the periapsis and burns less than a circular capture", () => {
+    const AP_R = 1_000_000;
+    const plan = captureAtPeri(open, MUN_MU, ut(1000), AP_R);
+    const sma = (PE_R + AP_R) / 2;
+    expect(plan.projected).toMatchObject({ sma, ApR: AP_R, PeR: PE_R });
+    expect(plan.projected?.eccentricity).toBeCloseTo(
+      (AP_R - PE_R) / (AP_R + PE_R),
+      10,
+    );
+    const vAfter = Math.sqrt(MUN_MU * (2 / PE_R - 1 / sma));
+    const vBefore = Math.sqrt(MUN_MU * (2 / PE_R - 1 / open.sma));
+    expect(plan.prograde).toBeCloseTo(vAfter - vBefore, 6);
+    expect(plan.requiredDeltaV).toBeLessThan(285.891);
+  });
+
+  it("makes the approach periapsis the apoapsis when the other radius is lower", () => {
+    const LOW_R = 205_000;
+    const plan = captureAtPeri(open, MUN_MU, ut(1000), LOW_R);
+    expect(plan.projected).toMatchObject({ ApR: PE_R, PeR: LOW_R });
+    expect(plan.prograde).toBeLessThan(0);
+  });
+});
+
+describe("captureToCircular", () => {
+  const MUN_MU = 6.5138398e10;
+  const PE_R = 210_000;
+  const open = {
+    sma: -MUN_MU / 300 ** 2,
+    eccentricity: 1.290151,
+    PeR: PE_R,
+    timeToPe: value("s", 600),
+  };
+
+  it("circularises at the apoapsis of the capture ellipse, half a period later", () => {
+    const AP_R = 1_000_000;
+    const seq = captureToCircular(open, MUN_MU, ut(1000), AP_R);
+    if (seq === null) throw new Error("no sequence");
+    const [capture, circularise] = seq.burns;
+    expect(capture.ut.magnitude).toBe(1600);
+    const transferSma = (PE_R + AP_R) / 2;
+    const period = 2 * Math.PI * Math.sqrt(transferSma ** 3 / MUN_MU);
+    expect(circularise.ut.magnitude).toBeCloseTo(1600 + period / 2, 3);
+    // Circular speed at AP_R less the ellipse's speed there.
+    const expected =
+      Math.sqrt(MUN_MU / AP_R) -
+      Math.sqrt(MUN_MU * (2 / AP_R - 1 / transferSma));
+    expect(circularise.prograde).toBeCloseTo(expected, 6);
+    expect(circularise.prograde).toBeGreaterThan(0);
+    expect(seq.finalProjected).toMatchObject({ ApR: AP_R, PeR: AP_R });
+    expect(seq.totalDeltaV).toBeCloseTo(
+      capture.requiredDeltaV + circularise.requiredDeltaV,
+      9,
+    );
+  });
+
+  it("circularises at the periapsis of the capture ellipse when the target is below the approach periapsis", () => {
+    const LOW_R = 205_000;
+    const seq = captureToCircular(open, MUN_MU, ut(1000), LOW_R);
+    if (seq === null) throw new Error("no sequence");
+    const [capture, circularise] = seq.burns;
+    expect(capture.projected).toMatchObject({ ApR: PE_R, PeR: LOW_R });
+    expect(circularise.prograde).toBeLessThan(0);
+    expect(seq.finalProjected).toMatchObject({ ApR: LOW_R, PeR: LOW_R });
+  });
+
+  it("needs no second burn at the approach periapsis radius", () => {
+    const seq = captureToCircular(open, MUN_MU, ut(1000), PE_R);
+    if (seq === null) throw new Error("no sequence");
+    expect(seq.burns[1].requiredDeltaV).toBeLessThan(1e-6);
   });
 });
 

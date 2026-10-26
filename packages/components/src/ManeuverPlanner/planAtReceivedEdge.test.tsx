@@ -21,6 +21,8 @@ const BURN_IN_60: PlannerInputs = {
   targetInclination: 0,
   targetAltitudeKm: 100,
   standoffMeters: 500,
+  captureAltitudeKm: null,
+  captureCircularise: true,
   transferBody: "",
 };
 

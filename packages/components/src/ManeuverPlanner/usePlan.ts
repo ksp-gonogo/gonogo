@@ -2,6 +2,8 @@ import { useTelemetry } from "@ksp-gonogo/core";
 import { useMemo } from "react";
 import { isGroundedSituation } from "../LandingStatus/grounded";
 import {
+  type CaptureFault,
+  captureFault as captureFaultOf,
   computeBurnTrueAnomaly,
   computePlan,
   isSequence,
@@ -32,6 +34,8 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     targetInclination,
     targetAltitudeKm,
     standoffMeters,
+    captureAltitudeKm,
+    captureCircularise,
     transferBody,
   } = inputs;
   const {
@@ -55,6 +59,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     timeToAp,
     timeToPe,
     currentOrbit,
+    openOrbit,
     currentUT,
     trueAnomaly,
     targetTrueAnomaly,
@@ -93,11 +98,29 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     nowUtSeconds,
   ]);
 
+  // Altitude is over the body the craft is approaching; unset follows the periapsis, which is a circular capture.
+  const captureTargetRadius =
+    openOrbit && captureAltitudeKm !== null && body
+      ? body.radius + captureAltitudeKm * 1000
+      : undefined;
+  const captureFault: CaptureFault | null =
+    openOrbit && body && captureTargetRadius !== undefined
+      ? captureFaultOf(
+          captureTargetRadius,
+          body.radius,
+          craftBody?.atmosphere?.depth ?? undefined,
+          craftBody?.soi ?? undefined,
+        )
+      : null;
+
   const plan: PlanResult | null = useMemo(
     () =>
       computePlan({
         preset,
         currentOrbit,
+        openOrbit,
+        captureTargetRadius: captureFault ? undefined : captureTargetRadius,
+        captureCircularise,
         currentUT,
         mu,
         prograde,
@@ -125,6 +148,10 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
       }),
     [
       currentOrbit,
+      openOrbit,
+      captureTargetRadius,
+      captureCircularise,
+      captureFault,
       mu,
       currentUT,
       preset,
@@ -206,7 +233,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     timeToAp,
     timeToPe,
   });
-  const planReady =
+  const closedPlanReady =
     !landed &&
     !meetsSurface &&
     orbitObserved &&
@@ -219,6 +246,18 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     currentUT?.isFinite() === true &&
     mu > 0;
 
+  /*
+   * An open orbit still inbound is planned from its periapsis alone: it has no
+   * apoapsis or period to wait for. Past periapsis it reads as not plannable.
+   */
+  const capturable =
+    !landed &&
+    orbitObserved &&
+    openOrbit !== null &&
+    currentUT?.isFinite() === true &&
+    mu > 0;
+  const planReady = closedPlanReady || (capturable && captureFault === null);
+
   // An escape orbit has no apoapsis and reads as waiting, so raw ecc tells it apart from no telemetry.
   const hyperbolic = isFiniteNumber(ecc) && ecc >= 1;
 
@@ -229,6 +268,8 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     burnTrueAnomaly,
     planReady,
     hyperbolic,
+    capturable,
+    captureFault,
     landed,
     meetsSurface,
   };

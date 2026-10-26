@@ -23,7 +23,7 @@ import { useOrbitPlaneTrajectory } from "../shared/useOrbitPlaneTrajectory";
 import { useCelestialBodies } from "../TrackingStation/useCelestialBodies";
 import { apsisIsDefined, recordApsisInstant } from "./apsisSpread";
 import { type BurnContext, orbitShape } from "./burnFlown";
-import { buildCurrentOrbit, computeMu } from "./planning";
+import { buildCurrentOrbit, buildOpenOrbit, computeMu } from "./planning";
 
 /**
  * A reckonable reading's value, and whether it needs an age label. The model
@@ -212,6 +212,8 @@ export function usePlannerTelemetry() {
     timeToPe,
   });
 
+  const openOrbit = buildOpenOrbit({ sma, ecc, PeR, timeToPe });
+
   // The craft's orbit as propagation elements for a transfer to another body, null until every one has arrived.
   const craftElements = useMemo<OrbitElements | null>(() => {
     if (!orbit) return null;
@@ -234,6 +236,7 @@ export function usePlannerTelemetry() {
     thrustLatch,
     burnContext,
     currentTrajectory,
+    openOrbit,
     sma,
     ecc,
     ApR,

@@ -40,6 +40,21 @@ export interface CurrentOrbit {
   timeToPe: Value<"s">;
 }
 
+/**
+ * An open (hyperbolic) orbit the vessel is still inbound on. It has a periapsis
+ * and a negative semi-major axis but no apoapsis and no period.
+ */
+export interface OpenOrbit {
+  /** Semi-major axis, negative on a hyperbola. */
+  sma: number;
+  /** Eccentricity, above 1. */
+  eccentricity: number;
+  /** Periapsis distance from body centre. */
+  PeR: number;
+  /** Until the vessel reaches periapsis. */
+  timeToPe: Value<"s">;
+}
+
 /** Resulting orbit shape after a maneuver: for preview, not execution. */
 export interface ProjectedOrbit {
   sma: number;
@@ -114,9 +129,10 @@ export function gravParameterFromState(
   radius: number,
   sma: number,
 ): number {
-  const denom = 2 * sma - radius;
-  if (!(denom > 0)) return 0;
-  return (orbitalSpeed * orbitalSpeed * sma * radius) / denom;
+  // Written as v² / (2/r − 1/a) so a negative semi-major axis (a hyperbola) is as good as a positive one.
+  const k = 2 / radius - 1 / sma;
+  if (!(k > 0)) return 0;
+  return (orbitalSpeed * orbitalSpeed) / k;
 }
 
 /** Vis-viva: speed at radius `r` on an orbit with semi-major axis `a`. */
@@ -303,6 +319,84 @@ export function circularizeAtPeri(
       PeR: r,
       period: periodAt(mu, r),
     },
+  };
+}
+
+/**
+ * Capture burn: retrograde at the periapsis of an open orbit, leaving an orbit
+ * with the approach periapsis radius as one apsis and `farRadius` as the other
+ * (the periapsis radius when omitted, which is circular). A `farRadius` above
+ * the periapsis puts the apoapsis there; below it, the approach periapsis
+ * becomes the apoapsis and `farRadius` the periapsis. The ΔV is the speed of
+ * that orbit at the burn less the hyperbolic periapsis speed, so it is
+ * negative (retrograde) for any orbit that is closed.
+ */
+export function captureAtPeri(
+  open: OpenOrbit,
+  mu: number,
+  currentUT: Value<"ut">,
+  farRadius: number = open.PeR,
+): ManeuverPlan {
+  const r = open.PeR;
+  const sma = (r + farRadius) / 2;
+  const apoapsis = Math.max(r, farRadius);
+  const periapsis = Math.min(r, farRadius);
+  const prograde = speedAt(mu, r, sma) - speedAt(mu, r, open.sma);
+  return {
+    ut: currentUT.plus(open.timeToPe),
+    prograde,
+    normal: 0,
+    radial: 0,
+    requiredDeltaV: Math.abs(prograde),
+    projected: {
+      sma,
+      eccentricity: (apoapsis - periapsis) / (apoapsis + periapsis),
+      ApR: apoapsis,
+      PeR: periapsis,
+      period: periodAt(mu, sma),
+    },
+  };
+}
+
+/**
+ * Capture into a circular orbit at `targetR` in two burns: the capture burn at
+ * the approach periapsis into the ellipse that reaches `targetR`, then a burn
+ * half that ellipse's period later, at `targetR`, to circularise. A target
+ * above the approach periapsis circularises at the ellipse's apoapsis
+ * (prograde); one below it circularises at the ellipse's periapsis
+ * (retrograde).
+ */
+export function captureToCircular(
+  open: OpenOrbit,
+  mu: number,
+  currentUT: Value<"ut">,
+  targetR: number,
+): ManeuverSequence | null {
+  if (!(targetR > 0) || !(mu > 0) || !(open.PeR > 0)) return null;
+  const capture = captureAtPeri(open, mu, currentUT, targetR);
+  const transfer = capture.projected;
+  if (!transfer) return null;
+  const transferSma = transfer.sma;
+  const dv2 = circularSpeed(mu, targetR) - speedAt(mu, targetR, transferSma);
+  const circularise: ManeuverPlan = {
+    ut: capture.ut.plus(value("s", transfer.period / 2)),
+    prograde: dv2,
+    normal: 0,
+    radial: 0,
+    requiredDeltaV: Math.abs(dv2),
+    projected: {
+      sma: targetR,
+      eccentricity: 0,
+      ApR: targetR,
+      PeR: targetR,
+      period: periodAt(mu, targetR),
+    },
+  };
+  return {
+    burns: [capture, circularise],
+    totalDeltaV: capture.requiredDeltaV + circularise.requiredDeltaV,
+    finalProjected: circularise.projected ?? null,
+    transferEllipse: transfer,
   };
 }
 

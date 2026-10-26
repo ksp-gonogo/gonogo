@@ -5,6 +5,8 @@
  */
 import {
   type CurrentOrbit,
+  captureAtPeri,
+  captureToCircular,
   circularizeAtApo,
   circularizeAtPeri,
   customAtApsis,
@@ -16,6 +18,7 @@ import {
   type ManeuverSequence,
   matchInclination,
   matchTargetPlane,
+  type OpenOrbit,
   stateAtUT,
 } from "@ksp-gonogo/core";
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
@@ -25,6 +28,12 @@ import { planBodyTransfer, type TransferContext } from "./transferPlan";
 export interface PlanInputs {
   preset: PresetId;
   currentOrbit: CurrentOrbit | null;
+  /** Set while the craft is inbound on a hyperbolic orbit; the plan is then the capture burn, whatever the preset. */
+  openOrbit?: OpenOrbit | null;
+  /** The circular orbit a capture aims for, as a radius from the body's centre; the approach periapsis radius when absent. */
+  captureTargetRadius?: number;
+  /** Whether a capture goes on to circularise at the target; false stops after the capture burn. */
+  captureCircularise?: boolean;
   currentUT: Value<"ut"> | undefined;
   mu: number;
   prograde: number;
@@ -119,6 +128,15 @@ function hasNoBurn(i: PlanInputs): boolean {
 }
 
 export function computePlan(i: PlanInputs): PlanResult | null {
+  if (i.openOrbit) {
+    if (i.currentUT === undefined || !(i.mu > 0)) return null;
+    const target = i.captureTargetRadius ?? i.openOrbit.PeR;
+    // At the approach periapsis radius there is no second burn to make.
+    if (target === i.openOrbit.PeR || i.captureCircularise === false) {
+      return captureAtPeri(i.openOrbit, i.mu, i.currentUT, target);
+    }
+    return captureToCircular(i.openOrbit, i.mu, i.currentUT, target);
+  }
   if (!i.currentOrbit || i.currentUT === undefined || i.mu <= 0) return null;
   switch (i.preset) {
     case "circularize-apo":
@@ -323,6 +341,65 @@ export function buildCurrentOrbit(vals: {
   };
 }
 
+/** Why a capture cannot be planned to the target altitude, with the altitude that bounds it (metres). */
+export type CaptureFault =
+  | { kind: "inside-atmosphere"; limitAltitude: number }
+  | { kind: "below-surface" }
+  | { kind: "outside-influence"; limitAltitude: number };
+
+/**
+ * A circular orbit cannot lie in the atmosphere or under the surface, nor
+ * beyond the sphere of influence it is captured by. An unknown atmosphere or
+ * sphere of influence bounds nothing.
+ */
+export function captureFault(
+  targetRadius: number,
+  bodyRadius: number,
+  atmosphereDepth: number | undefined,
+  influenceRadius: number | undefined,
+): CaptureFault | null {
+  const hasAtmosphere = atmosphereDepth !== undefined && atmosphereDepth > 0;
+  if (hasAtmosphere && targetRadius < bodyRadius + atmosphereDepth) {
+    return { kind: "inside-atmosphere", limitAltitude: atmosphereDepth };
+  }
+  if (!hasAtmosphere && targetRadius < bodyRadius) {
+    return { kind: "below-surface" };
+  }
+  if (
+    influenceRadius !== undefined &&
+    Number.isFinite(influenceRadius) &&
+    targetRadius >= influenceRadius
+  ) {
+    return {
+      kind: "outside-influence",
+      limitAltitude: influenceRadius - bodyRadius,
+    };
+  }
+  return null;
+}
+
+/** An OpenOrbit, or null unless the orbit is hyperbolic, finite, and its periapsis is still ahead. */
+export function buildOpenOrbit(vals: {
+  sma: number | undefined;
+  ecc: number | undefined;
+  PeR: number | undefined;
+  timeToPe: number | undefined;
+}): OpenOrbit | null {
+  const { sma, ecc, PeR, timeToPe } = vals;
+  if (
+    !isFiniteNumber(sma) ||
+    !isFiniteNumber(ecc) ||
+    !isFiniteNumber(PeR) ||
+    !isFiniteNumber(timeToPe) ||
+    sma >= 0 ||
+    ecc <= 1 ||
+    timeToPe <= 0
+  ) {
+    return null;
+  }
+  return { sma, eccentricity: ecc, PeR, timeToPe: value("s", timeToPe) };
+}
+
 /** Relative inclination (°) between two orbits from each one's inclination and LAN, or null if any input is missing. */
 export function computeRelInc(
   inc1: number | undefined,
@@ -395,7 +472,7 @@ export function computeMu(
     isFiniteNumber(radius) &&
     isFiniteNumber(sma) &&
     orbitalSpeed > 0 &&
-    sma > 0
+    sma !== 0
   ) {
     const viaVisViva = gravParameterFromState(orbitalSpeed, radius, sma);
     if (viaVisViva > 0) return viaVisViva;

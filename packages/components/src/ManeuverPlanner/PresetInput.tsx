@@ -5,6 +5,7 @@ import {
   type ReckoningMarking,
   Select,
   Stack,
+  Text,
   ToggleButton,
   Unit,
   UnitInput,
@@ -32,12 +33,22 @@ interface PresetInputProps {
     targetMarking: ReckoningMarking | null;
     /** Names of the bodies a transfer can be planned to from the craft's current body. */
     transferTargets: readonly string[];
+    /** Set while the craft is inbound on a hyperbolic orbit, where a capture replaces the preset picker. */
+    capture: { periapsisKm: number | undefined } | null;
   };
 }
 
 export function PresetInput({ api, telemetry }: PresetInputProps) {
   const { inputs, setPreset } = api;
   const selectedPreset = PRESETS.find((p) => p.id === inputs.preset);
+  if (telemetry.capture) {
+    return (
+      <>
+        <Text weight="semibold">Capture at Periapsis</Text>
+        <PresetCustomInputs api={api} telemetry={telemetry} />
+      </>
+    );
+  }
   return (
     <>
       <PresetPicker value={inputs.preset} onChange={setPreset} />
@@ -58,11 +69,14 @@ function PresetCustomInputs({ api, telemetry }: PresetInputProps) {
     setRadial,
     setTargetInclination,
     setTargetAltitudeKm,
+    setCaptureAltitudeKm,
+    setCaptureCircularise,
     setTransferBody,
     setStandoffMeters,
   } = api;
+  const { capture } = telemetry;
   const selectedPreset = PRESETS.find((p) => p.id === inputs.preset);
-  if (!selectedPreset?.needsCustomInput) return null;
+  if (!capture && !selectedPreset?.needsCustomInput) return null;
   if (inputs.preset === "match-inclination") {
     return (
       <Stack style={CUSTOM_INPUTS_STYLE}>
@@ -75,12 +89,20 @@ function PresetCustomInputs({ api, telemetry }: PresetInputProps) {
       </Stack>
     );
   }
-  // One altitude field for both presets: a transfer's periapsis altitude is the same planner input a Hohmann target altitude is.
+  // One altitude field for all three: a capture's orbit altitude, a transfer's periapsis altitude and a Hohmann target altitude are the same planner input.
   if (
+    capture ||
     inputs.preset === "hohmann-to-altitude" ||
     inputs.preset === "transfer-to-body"
   ) {
-    const transfer = inputs.preset === "transfer-to-body";
+    const transfer = !capture && inputs.preset === "transfer-to-body";
+    const altitudeKm = capture
+      ? (inputs.captureAltitudeKm ?? capture.periapsisKm)
+      : inputs.targetAltitudeKm;
+    const setAltitudeKm = capture ? setCaptureAltitudeKm : setTargetAltitudeKm;
+    let label = "Target alt";
+    if (capture) label = "Orbit alt";
+    if (transfer) label = "Periapsis";
     return (
       <Stack style={CUSTOM_INPUTS_STYLE}>
         {transfer && (
@@ -97,12 +119,24 @@ function PresetCustomInputs({ api, telemetry }: PresetInputProps) {
             ))}
           </Select>
         )}
-        <UnitInput
-          label={transfer ? "Periapsis" : "Target alt"}
-          unit="km"
-          value={value("km", inputs.targetAltitudeKm)}
-          onChange={(next) => setTargetAltitudeKm(next.magnitude)}
-        />
+        {altitudeKm !== undefined && (
+          <UnitInput
+            label={label}
+            unit="km"
+            value={value("km", altitudeKm)}
+            onChange={(next) => setAltitudeKm(next.magnitude)}
+          />
+        )}
+        {capture && (
+          <ToggleButton
+            size="md"
+            pressed={inputs.captureCircularise}
+            type="button"
+            onClick={() => setCaptureCircularise(!inputs.captureCircularise)}
+          >
+            Circularise
+          </ToggleButton>
+        )}
       </Stack>
     );
   }

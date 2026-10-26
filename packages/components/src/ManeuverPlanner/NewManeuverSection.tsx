@@ -7,11 +7,14 @@ import type { PlannerTelemetry } from "./usePlannerTelemetry";
 interface NewManeuverSectionProps {
   api: PlannerInputsApi;
   telemetry: PlannerTelemetry;
+  /** Whether the craft is inbound on a hyperbolic orbit, where the section plans a capture. */
+  capturing: boolean;
 }
 
 export function NewManeuverSection({
   api,
   telemetry,
+  capturing,
 }: NewManeuverSectionProps) {
   const transferTargets = useMemo(
     () =>
@@ -34,6 +37,14 @@ export function NewManeuverSection({
         orbitMarking: telemetry.orbitMarking,
         targetMarking: telemetry.targetMarking,
         transferTargets,
+        capture:
+          capturing && telemetry.openOrbit
+            ? {
+                periapsisKm: telemetry.body
+                  ? (telemetry.openOrbit.PeR - telemetry.body.radius) / 1000
+                  : undefined,
+              }
+            : null,
       }}
     />
   );

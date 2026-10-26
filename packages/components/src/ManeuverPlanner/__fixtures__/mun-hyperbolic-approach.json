@@ -1,0 +1,159 @@
+{
+  "_meta": {
+    "shows": "A probe inbound on a hyperbolic Mun approach, 2 hours before a 10 km periapsis, with the capture burn planned.",
+    "capturedAt": "2026-10-26",
+    "vessel": "Mun probe",
+    "body": "Mun",
+    "notes": "DERIVED, not captured: a hyperbolic Mun approach with 300 m/s at infinity and a 10 km periapsis altitude, the elements built from the vis-viva relations so the capture burn is checkable by hand (retrograde 285.9 m/s to a circular orbit at 210 km)."
+  },
+  "_stream": {
+    "pinnedUt": 315659.0,
+    "emits": [
+      {
+        "channel": "trackingStation.bodies",
+        "value": {
+          "bodies": [
+            {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
+              "name": "Sun",
+              "index": 0,
+              "parentIndex": null,
+              "radius": 261600000,
+              "orbit": null,
+              "gravParameter": 1.17233279483249e18,
+              "mass": 1.75654591319326e28,
+              "surfaceGravity": 1.74684656100137,
+              "hillSphere": null,
+              "sphereOfInfluence": null,
+              "rotationPeriod": 432000,
+              "tidallyLocked": false,
+              "hasOcean": false,
+              "description": "#autoLOC_910002",
+              "isHome": false,
+              "atmosphere": {
+                "depth": 600000,
+                "hasOxygen": false,
+                "seaLevelPressure": 16
+              }
+            },
+            {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": {
+                "sma": 13571150574.6316,
+                "ecc": 0.00210575761409403,
+                "inc": 6.0865971597401e-5,
+                "lan": 283.857200410525,
+                "argPe": 179.701281195803,
+                "meanAnomalyAtEpoch": 3.11876407382173,
+                "epoch": 315661.495086984
+              },
+              "gravParameter": 3531600000000,
+              "mass": 5.29151583439215e22,
+              "surfaceGravity": 1.00034160493135,
+              "hillSphere": 196414707.77848,
+              "sphereOfInfluence": 84159286.4796305,
+              "rotationPeriod": 21549.4251830899,
+              "tidallyLocked": false,
+              "hasOcean": true,
+              "description": "#autoLOC_900101",
+              "isHome": true,
+              "atmosphere": {
+                "depth": 70000,
+                "hasOxygen": true,
+                "seaLevelPressure": 101.324996948242
+              }
+            },
+            {
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              },
+              "name": "Mun",
+              "index": 2,
+              "parentIndex": 1,
+              "radius": 200000,
+              "orbit": null,
+              "gravParameter": 65138398000.0,
+              "mass": 5.29151583439215e22,
+              "surfaceGravity": 1.00034160493135,
+              "hillSphere": 196414707.77848,
+              "sphereOfInfluence": 84159286.4796305,
+              "rotationPeriod": 21549.4251830899,
+              "tidallyLocked": false,
+              "hasOcean": true,
+              "description": "#autoLOC_900101",
+              "isHome": true,
+              "atmosphere": null
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "9398a45f-4a0c-428b-8caf-2fa6fe92cdc0",
+          "name": "Mun probe",
+          "vesselType": 6,
+          "situation": 3,
+          "parentBodyIndex": 2,
+          "launchUt": 52325.0798713929,
+          "meta": {
+            "source": "vessel:9398a45f-4a0c-428b-8caf-2fa6fe92cdc0"
+          }
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "meta": {
+            "source": "vessel:9398a45f-4a0c-428b-8caf-2fa6fe92cdc0",
+            "quality": 0
+          },
+          "referenceBodyIndex": 2,
+          "sma": -723759.9777777778,
+          "ecc": 1.290151440322496,
+          "inc": 0.0,
+          "lan": 0.0,
+          "argPe": 0.0,
+          "meanAnomalyAtEpoch": -3.0,
+          "epoch": 315659.0,
+          "mu": 65138398000.0,
+          "encounter": null,
+          "patches": [],
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          },
+          "timeToPe": 7237.6
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "orbitalSpeed": 363.9323652526868
+        }
+      },
+      {
+        "channel": "vessel.propulsion",
+        "value": {
+          "totalMass": 5,
+          "dryMass": 3,
+          "currentThrust": 0,
+          "availableThrust": 60,
+          "thrustStartedUt": 300000,
+          "lastThrustEndUt": 300400
+        }
+      }
+    ]
+  }
+}

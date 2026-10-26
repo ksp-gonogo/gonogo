@@ -50,7 +50,6 @@ export const COINCIDENTAL: readonly string[] = [
    * dereferences the payload's.
    */
   "packages/components/src/ManeuverPlanner#timeToAp",
-  "packages/components/src/ManeuverPlanner#timeToPe",
   // `spec.id`, the local facility spec used as a React key
   "packages/components/src/SpaceCenterStatus#id",
   // `reading.state`

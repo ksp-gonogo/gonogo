@@ -170,9 +170,7 @@ describe("ManeuverPlannerComponent", () => {
     });
     await flushViewUt();
     expect(screen.getByText(/Hyperbolic trajectory/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/maneuver planning is not available/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/nothing to plan a burn on/i)).toBeInTheDocument();
     expect(screen.queryByText(/^Waiting for telemetry$/i)).toBeNull();
   });
 

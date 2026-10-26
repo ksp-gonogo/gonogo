@@ -51,11 +51,11 @@ export function SequencePreview({
         <Label>ΔV</Label>
         <PreviewValue>
           <Unit
-            value={value("m/s", burn1.prograde)}
+            value={value("m/s", Math.abs(burn1.prograde))}
             marked={marking}
             decimals={1}
           />{" "}
-          prograde
+          {directionOf(burn1.prograde)}
         </PreviewValue>
         <Label>Burn in</Label>
         <PreviewValue>
@@ -76,11 +76,11 @@ export function SequencePreview({
             <Label>ΔV</Label>
             <PreviewValue>
               <Unit
-                value={value("m/s", burn2.prograde)}
+                value={value("m/s", Math.abs(burn2.prograde))}
                 marked={marking}
                 decimals={1}
               />{" "}
-              prograde
+              {directionOf(burn2.prograde)}
             </PreviewValue>
             <Label>Burn in</Label>
             <PreviewValue>
@@ -97,4 +97,9 @@ export function SequencePreview({
       )}
     </>
   );
+}
+
+/** Which way along the orbit a burn pushes: its ΔV is shown as a size, so the direction is the word. */
+function directionOf(prograde: number): string {
+  return prograde < 0 ? "retrograde" : "prograde";
 }
