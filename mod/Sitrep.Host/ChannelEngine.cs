@@ -7160,6 +7160,18 @@ namespace Sitrep.Host
             return true;
         }
 
+        private Action<KspSnapshot>? _afterCaptures;
+
+        /// <summary>
+        /// Sets what runs on the main thread after every capture of a tick and
+        /// before the tick leaves it, handed that tick's snapshot. A capture
+        /// can act on the game (an alarm stopping the warp), and what the
+        /// snapshot already holds was read before it did; this is the one place
+        /// the snapshot may be corrected, because nothing outside the main
+        /// thread holds it until the tick is queued.
+        /// </summary>
+        public void SetAfterCaptures(Action<KspSnapshot>? refresh) => _afterCaptures = refresh;
+
         /// <summary>Runs every main-thread capture a tick carries, on the calling thread, and times them.</summary>
         private TickJob CaptureTick(double ut, KspSnapshot? snapshot, ManualResetEventSlim? done)
         {
@@ -7170,6 +7182,10 @@ namespace Sitrep.Host
             timing.CommandCentres = Lap(ref mark);
             var captures = RunCaptures(snapshot, ref timing);
             timing.Sources = Lap(ref mark);
+            if (snapshot != null)
+            {
+                _afterCaptures?.Invoke(snapshot);
+            }
             var signalDelay = CaptureSignalDelayOnMain(snapshot);
             timing.SignalDelay = Lap(ref mark);
             var connectivity = CaptureConnectivityOnMain(snapshot);

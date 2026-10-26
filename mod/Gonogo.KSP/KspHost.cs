@@ -3824,6 +3824,22 @@ namespace Gonogo.KSP
         /// private static field (not instance-backed), so it's always safe
         /// to call too.
         /// </summary>
+        public void RefreshTime(KspSnapshot snapshot)
+        {
+            if (!snapshot.Values.ContainsKey("time"))
+            {
+                return;
+            }
+            try
+            {
+                snapshot.Values["time"] = BuildTime();
+            }
+            catch (Exception ex)
+            {
+                GonogoLog.WarnLimited("time snapshot refresh failed, keeping the earlier read", ex);
+            }
+        }
+
         private static Dictionary<string, object?> BuildTime()
         {
             // The calendar rides in the same group as warp/pause because it is
