@@ -13,6 +13,7 @@ import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import {
   KSP_ACTION_GROUP_NAMES,
   KspActionGroup,
+  unlessLocked,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -1042,6 +1043,18 @@ function RecommendedPresets({
   const solve = useOrbitSolve();
   const timeToAp = solve?.timeToAp ?? undefined;
   const timeToPe = solve?.timeToPe ?? undefined;
+  /*
+   * The current patch's apsides stop being the craft's at the next sphere of
+   * influence change, so an apsis after it is one the craft never reaches.
+   */
+  const orbitReading = useTelemetry("vessel.orbit");
+  const orbit =
+    orbitReading.state === "observed" || orbitReading.state === "held"
+      ? orbitReading.value
+      : undefined;
+  const soiChange = unlessLocked(orbit?.encounter ?? null)?.transitionUt;
+  const reachedBeforeSoiChange = (ut: number) =>
+    soiChange?.isFinite() !== true || soiChange.greaterThan(value("ut", ut));
   const nodes = useManeuverNodes();
   const { owltSeconds, scet } = useTimeContexts();
   const [open, setOpen] = useState(false);
@@ -1070,7 +1083,8 @@ function RecommendedPresets({
       computeScet: (viewUt) =>
         typeof timeToAp === "number" &&
         Number.isFinite(timeToAp) &&
-        timeToAp > 0
+        timeToAp > 0 &&
+        reachedBeforeSoiChange(viewUt + timeToAp)
           ? viewUt + timeToAp
           : null,
     },
@@ -1081,7 +1095,8 @@ function RecommendedPresets({
       computeScet: (viewUt) =>
         typeof timeToPe === "number" &&
         Number.isFinite(timeToPe) &&
-        timeToPe > 0
+        timeToPe > 0 &&
+        reachedBeforeSoiChange(viewUt + timeToPe)
           ? viewUt + timeToPe
           : null,
     },

@@ -292,6 +292,8 @@ function renderWithStream(
 const ORBIT_MU = 3.5316e12;
 const ORBIT_SMA = 700_000;
 const ORBIT_EPOCH = 10;
+// The `ut` `makeSnapshot` reports, which the presets anchor their countdowns to.
+const SNAPSHOT_UT = 1000;
 const TIME_TO_AP = Math.PI * Math.sqrt(ORBIT_SMA ** 3 / ORBIT_MU);
 
 // Emit an orbit whose derived `timeToAp` is `TIME_TO_AP` (mean anomaly 0 =
@@ -300,8 +302,10 @@ const TIME_TO_AP = Math.PI * Math.sqrt(ORBIT_SMA ** 3 / ORBIT_MU);
 function emitOrbitAtApsis(
   emit: (topic: string, payload: unknown) => void,
   meanAnomalyAtEpoch: number,
+  encounter?: { transitionType: number; transitionUt: number },
 ) {
   emit("vessel.orbit", {
+    ...(encounter ? { encounter } : {}),
     referenceBodyIndex: 1,
     sma: ORBIT_SMA,
     ecc: 0.01,
@@ -375,6 +379,53 @@ describe("AlarmsModal recommended presets", () => {
         screen.queryByRole("button", { name: /alarm at apoapsis/i }),
       ).toBeNull(),
     );
+  });
+
+  it("withholds the apsis presets once the craft changes sphere of influence before them", async () => {
+    const { emit } = renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+    );
+
+    emitOrbitAtApsis(emit, 0);
+    await screen.findByRole("button", { name: /recommended/i });
+
+    emitOrbitAtApsis(emit, 0, {
+      transitionType: 2,
+      transitionUt: SNAPSHOT_UT + TIME_TO_AP / 2,
+    });
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /recommended/i })).toBeNull(),
+    );
+  });
+
+  it("still offers the apsis presets when the sphere of influence change is after them", async () => {
+    const user = userEvent.setup();
+    const { emit } = renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+    );
+
+    emitOrbitAtApsis(emit, 0, {
+      transitionType: 2,
+      transitionUt: SNAPSHOT_UT + TIME_TO_AP * 2,
+    });
+    await user.click(
+      await screen.findByRole("button", { name: /recommended/i }),
+    );
+    expect(
+      await screen.findByRole("button", { name: /alarm at apoapsis/i }),
+    ).toBeDefined();
   });
 
   it("offers and creates an apoapsis time alarm once the orbit is live", async () => {
