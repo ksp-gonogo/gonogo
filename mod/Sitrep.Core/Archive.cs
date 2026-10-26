@@ -134,6 +134,20 @@ namespace Sitrep.Core
         }
 
         /// <summary>
+        /// Drop the samples of <paramref name="topic"/> that a reader at or after
+        /// <paramref name="cutoffUt"/> can no longer reach, keeping the newest one at or
+        /// before it and the topic's first. For a topic no vantage reads, which
+        /// <see cref="PruneToVantageCursors"/> leaves whole.
+        /// </summary>
+        public void TrimTopic(string topic, double cutoffUt)
+        {
+            if (_samplesByTopic.TryGetValue(topic, out var list))
+            {
+                RetainFrom(list, cutoffUt);
+            }
+        }
+
+        /// <summary>
         /// Ascending per-topic sample list (by ValidAt). Returns a fresh copy
         /// (not a reference to internal state), so callers can't mutate
         /// archive state through it. Empty list for a topic with no recorded

@@ -2896,6 +2896,7 @@ namespace Sitrep.Host.IntegrationTests
                     new ChannelDeclaration
                     { Kind = SampleKind.Continuous,
                         Topic = "chan.b",
+                        Delay = DelayRole.TrueNow,
                         Delivery = Delivery.LossyLatest,
                         Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     },
@@ -3587,6 +3588,7 @@ namespace Sitrep.Host.IntegrationTests
                     new ChannelDeclaration
                     { Kind = SampleKind.Continuous,
                         Topic = Topic,
+                        Delay = DelayRole.TrueNow,
                         Delivery = Delivery.LossyLatest,
                         Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     },
@@ -4144,24 +4146,15 @@ namespace Sitrep.Host.IntegrationTests
                 // rewind tick moments earlier.
                 engine.TickAndWait(2.5, VesselSnapshotForRewindTest(2.5, vesselB, hasTarget: false), Timeout);
 
-                // A late subscriber's synchronous catch-up still reads the
-                // stale "Mun" from the archive -- expected (this fix
-                // corrects forward, not retroactively); not what's under
-                // test here.
+                // The target topic is Delayed, so it was built on the forward
+                // tick even with nobody subscribed, and a birth that survived
+                // the switch let that build write the tombstone: the late
+                // subscriber's catch-up is the correction, not the stale
+                // "Mun".
                 await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 await late.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = VesselViewProvider.TargetTopic }));
                 var catchUp = await ReceiveStreamDataAsync(late, Timeout);
-                Assert.NotNull(catchUp.Payload);
-
-                // The null mapper result for the now-subscribed, still
-                // targetless vessel B must now flow into Decide and emit a
-                // corrective tombstone -- NOT hit a birth-gate skip left
-                // over from a spuriously reset birth.
-                engine.TickAndWait(2.6, VesselSnapshotForRewindTest(2.6, vesselB, hasTarget: false), Timeout);
-
-                var corrected = await ReceiveStreamDataAsync(late, Timeout);
-                Assert.Null(corrected.Payload);
-                Assert.Equal(Staleness.Fresh, corrected.Meta.Staleness);
+                Assert.Null(catchUp.Payload);
             }
             finally
             {
