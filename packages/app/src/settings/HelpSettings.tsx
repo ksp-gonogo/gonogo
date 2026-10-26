@@ -1,8 +1,9 @@
 import { CommandBlock } from "@ksp-gonogo/ui";
-import { Disclosure, SectionTitle, Stack, Text } from "@ksp-gonogo/ui-kit";
+import { Disclosure, Kbd, SectionTitle, Stack, Text } from "@ksp-gonogo/ui-kit";
+import { Fragment } from "react";
 import styled from "styled-components";
 import { DocLink } from "../firstRun/steps/StepParts";
-import { HELP_TOPICS, type HelpBlock } from "./helpTopics";
+import { HELP_TOPICS, type HelpBlock, type Shortcut } from "./helpTopics";
 
 /**
  * The Help tab: how to install the Gonogo mod and its Uplinks, point this app
@@ -60,7 +61,50 @@ function HelpBlockView({ block }: Readonly<{ block: HelpBlock }>) {
       return <DocLink href={block.href}>{block.label}</DocLink>;
     case "command":
       return <CommandBlock command={block.command} label={block.label} />;
+    case "shortcuts":
+      return <ShortcutTable heading={block.heading} rows={block.rows} />;
   }
+}
+
+function ShortcutTable({
+  heading,
+  rows,
+}: Readonly<{ heading?: string; rows: readonly Shortcut[] }>) {
+  return (
+    <Stack gap="related">
+      {heading && (
+        <Text level="muted" size="sm">
+          {heading}
+        </Text>
+      )}
+      <ShortcutGrid>
+        {rows.map((row) => (
+          <Fragment key={row.action}>
+            <dt>
+              {row.keys.map((combo, index) => (
+                <Fragment key={combo.join("+")}>
+                  {index > 0 && <Joiner>/</Joiner>}
+                  <Combo>
+                    {combo.map((key, keyIndex) => (
+                      <Fragment key={key}>
+                        {keyIndex > 0 && <Joiner>+</Joiner>}
+                        <Kbd>{key}</Kbd>
+                      </Fragment>
+                    ))}
+                  </Combo>
+                </Fragment>
+              ))}
+            </dt>
+            <dd>
+              <Text level="muted" size="sm">
+                {row.action}
+              </Text>
+            </dd>
+          </Fragment>
+        ))}
+      </ShortcutGrid>
+    </Stack>
+  );
 }
 
 const HelpList = styled.ul`
@@ -69,4 +113,35 @@ const HelpList = styled.ul`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
+`;
+
+const ShortcutGrid = styled.dl`
+  display: grid;
+  grid-template-columns: fit-content(50%) 1fr;
+  align-items: baseline;
+  gap: var(--gap-related) var(--gap-related-comfortable);
+  margin: 0;
+
+  dt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--gap-glyph);
+  }
+
+  dd {
+    margin: 0;
+  }
+`;
+
+const Combo = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gap-glyph);
+  white-space: nowrap;
+`;
+
+const Joiner = styled.span`
+  color: var(--color-text-dim);
+  font-size: var(--font-size-caption);
 `;

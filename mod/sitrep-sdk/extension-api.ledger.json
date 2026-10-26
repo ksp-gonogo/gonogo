@@ -16829,6 +16829,10 @@
         "note": "exported, since a published component's props or return type already names it"
       },
       {
+        "key": "ui-kit . Kbd",
+        "note": "a keycap for showing a key press, joined with + for a combination"
+      },
+      {
         "key": "ui-kit . KeyOption#common?",
         "note": "optional flag listing a key before anything is searched"
       },

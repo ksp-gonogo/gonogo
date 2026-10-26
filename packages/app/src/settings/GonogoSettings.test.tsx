@@ -312,12 +312,12 @@ describe("GonogoSettings", () => {
     ).toBeInTheDocument();
   });
 
-  it("says where the settings live when nothing has arrived and KSP is not connected", () => {
+  it("says the settings need KSP connected when nothing has arrived and KSP is not connected", () => {
     registerDataSource(sitrep("disconnected"));
     mount();
 
     expect(
-      screen.getByText(/can be read and changed only while KSP is connected/),
+      screen.getByText(/These settings show while KSP is connected/),
     ).toBeInTheDocument();
   });
 

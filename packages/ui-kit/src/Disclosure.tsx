@@ -208,6 +208,7 @@ const Disclosure__Trigger = styled.button<{
     css`
       justify-content: ${$align === "end" ? "flex-end" : "space-between"};
       width: 100%;
+      text-align: start;
       border-radius: var(--radius-regular);
       &:hover {
         background: var(--color-surface-sunken);

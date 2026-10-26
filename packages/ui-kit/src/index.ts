@@ -420,6 +420,7 @@ export {
   type JogWheelCommon,
   type JogWheelProps,
 } from "./JogWheel";
+export { Kbd } from "./Kbd";
 export {
   type KspCalendar,
   kspCalendar,
