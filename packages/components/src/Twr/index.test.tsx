@@ -114,6 +114,7 @@ describe("TwrComponent off the stream", () => {
       renderTwr(fixture);
       expect(await screen.findByText(/no engine data/i)).toBeInTheDocument();
       act(() => {
+        emitTwr(fixture, 1.7);
         emitTwr(fixture, 1.832);
       });
       const trend = await screen.findByLabelText("TWR trend");
@@ -186,6 +187,7 @@ describe("TwrComponent frame", () => {
       </fixture.Provider>,
     );
     act(() => {
+      emitTwr(fixture, 1.7);
       emitTwr(fixture, 1.832);
     });
     const gauge = await screen.findByRole("meter");
