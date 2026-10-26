@@ -25,6 +25,8 @@ export interface OrbitViewPanelProps {
   trajectory: OrbitTrajectory | null;
   centreBodyIndex: number | undefined;
   overlay: OrbitOverlayContext | null;
+  /** True for a craft at rest, whose diagram shows the body from above its north pole and is captioned by the plane it draws. */
+  atRest?: boolean;
 }
 
 export function OrbitViewPanel({
@@ -37,6 +39,7 @@ export function OrbitViewPanel({
   trajectory,
   centreBodyIndex,
   overlay,
+  atRest = false,
 }: OrbitViewPanelProps) {
   if (!diagramSlot) {
     return (
@@ -78,7 +81,9 @@ export function OrbitViewPanel({
           <FramedDisplay
             style={DIAGRAM_FRAME}
             caption={
-              withheld === null ? (
+              atRest ? (
+                "equator"
+              ) : withheld === null ? (
                 <InlaidTrajectoryFrameCaption
                   trajectory={trajectory}
                   centreBodyIndex={centreBodyIndex}

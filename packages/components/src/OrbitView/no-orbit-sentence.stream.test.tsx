@@ -109,6 +109,7 @@ describe("OrbitView's empty sentence follows the reason the conic withdrew", () 
     expect(screen.getByText(sentence)).toBeInTheDocument();
     expect(screen.queryByText(/Sub-orbital|SUB-O/)).toBeNull();
     expect(screen.queryByText("Pe")).toBeNull();
+    expect(screen.getByText("equator")).toBeInTheDocument();
   });
 
   it("keeps the periapsis row for the same orbit on a craft in flight", () => {

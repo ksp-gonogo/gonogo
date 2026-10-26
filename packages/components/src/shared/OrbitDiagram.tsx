@@ -132,6 +132,8 @@ export interface OrbitDiagramProps {
   atmosphereHasOxygen?: boolean | null;
   /** Draws the body and its atmosphere with no orbit line, so a craft at rest is framed by the world it sits on. */
   bodyOnly?: boolean;
+  /** With `bodyOnly`, where the craft rests on the body, in radians. It is drawn as seen from above the body's north pole, in the equatorial plane, turned with the body's spin. */
+  surfaceMark?: { latitudeRad: number; longitudeRad: number } | null;
   /**
    * Supplied trajectory points in the orbit plane (periapsis on +x). When
    * present they replace the conic; `sma`/`ecc` still set the frame extent
@@ -347,6 +349,7 @@ function OrbitDiagramScene({
   atmosphereDepthM = null,
   atmosphereHasOxygen = null,
   bodyOnly = false,
+  surfaceMark = null,
   trajectoryPath = null,
   trailPath = null,
   trajectoryFarEnd = null,
@@ -815,6 +818,29 @@ function OrbitDiagramScene({
               />
             </Rotated>
           ))}
+
+          {bodyOnly && surfaceMark !== null && (
+            <VesselMarkSvg
+              state="current"
+              x={
+                bodyDisc *
+                Math.cos(surfaceMark.latitudeRad) *
+                Math.cos(
+                  ((rotationAngleDeg ?? 0) * Math.PI) / 180 +
+                    surfaceMark.longitudeRad,
+                )
+              }
+              y={
+                -bodyDisc *
+                Math.cos(surfaceMark.latitudeRad) *
+                Math.sin(
+                  ((rotationAngleDeg ?? 0) * Math.PI) / 180 +
+                    surfaceMark.longitudeRad,
+                )
+              }
+              r={vesselR}
+            />
+          )}
 
           {/* Half way along the line, so the marker is named without meeting the apsis labels at the disc's rim. */}
           {rotationAngleDeg !== null &&

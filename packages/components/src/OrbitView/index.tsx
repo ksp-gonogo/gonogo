@@ -14,7 +14,7 @@ import {
   type OrbitTrajectory,
   useProcessor,
 } from "@ksp-gonogo/sitrep-client";
-import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
+import type { VesselFlight, VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import {
   apsidesExist,
   type ControlFrame,
@@ -55,7 +55,12 @@ export type { OrbitViewActions } from "./config";
 export type { OrbitOverlayContext } from "./slots";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.orbit", "vessel.identity", "trackingStation.bodies"],
+  channels: [
+    "vessel.orbit",
+    "vessel.identity",
+    "vessel.flight",
+    "trackingStation.bodies",
+  ],
   optionalChannels: read.optionalChannels,
   // Per field so alarms stay off a widget that does not draw them; `trackingStation.bodies` carries the body geometry.
   fields: [
@@ -65,6 +70,9 @@ const topics = defineTopicManifest({
     "vessel.orbit.argPe",
     "vessel.orbit.referenceBodyIndex",
     "vessel.identity.parentBodyIndex",
+    "vessel.identity.situation",
+    "vessel.flight.latitude",
+    "vessel.flight.longitude",
   ],
 });
 
@@ -114,6 +122,7 @@ function OrbitViewComponent({
   const identity = useStreamOptional<VesselIdentity>("vessel.identity");
   const parentBodyName = useBodyName(identity?.parentBodyIndex);
   // KSP keeps the last solved orbit on a craft at rest, so its figures are a frozen arc with no flight behind them.
+  const flight = useStreamOptional<VesselFlight>("vessel.flight");
   const restingLabel = restingSituationLabel(identity?.situation);
   const resting = restingLabel !== undefined;
   // The body name is a label, so it holds off the last observation.
@@ -247,7 +256,7 @@ function OrbitViewComponent({
     />
   );
 
-  // The body alone, framed by a circle just clear of its surface; the craft has no place the diagram can mark.
+  // The body framed by a circle just clear of its surface, seen from above its north pole with the craft marked where it rests.
   const surfaceR = body?.radius === undefined ? 0 : body.radius * 1.25;
   const diagram = resting ? (
     body?.radius === undefined ? null : (
@@ -261,6 +270,14 @@ function OrbitViewComponent({
         apoapsis={surfaceR}
         periapsis={surfaceR}
         craft={null}
+        surfaceMark={
+          flight?.latitude != null && flight.longitude != null
+            ? {
+                latitudeRad: flight.latitude.in("rad").valueOf(),
+                longitudeRad: flight.longitude.in("rad").valueOf(),
+              }
+            : null
+        }
         argPe={0}
         showMarkers={false}
         bodyColor={body.color}
@@ -324,6 +341,7 @@ function OrbitViewComponent({
       trajectory={trajectory}
       centreBodyIndex={orbit?.referenceBodyIndex}
       overlay={overlay}
+      atRest={resting}
     />
   );
 }
