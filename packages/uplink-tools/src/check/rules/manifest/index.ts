@@ -9,6 +9,9 @@ import {
   placeholderUrlFault,
   urlVersionFault,
 } from "../../../cli/release";
+import { parseChannels } from "../../../deps/channels";
+import { onMain, prereleasePins } from "../../../deps/pins";
+import { normalisedVersion, plainVersion } from "../../../deps/version";
 import { CheckUnableError } from "../../program";
 import type { CheckContext, FixableFinding, Rule } from "../../types";
 
@@ -281,8 +284,124 @@ export const modVersionRule: Rule = {
   },
 };
 
+/**
+ * The channels a wrapped mod publishes on. A malformed list and a
+ * `ckanVersion` that is not the pinned release in CKAN's spelling are errors.
+ * An Uplink on the `ckan` tier that does not list CKAN (the channel that
+ * decides whether a release is reachable to a player) is a warning.
+ */
+export const modChannelsRule: Rule = {
+  id: "manifest/mod-channels",
+  group: GROUP,
+  clientless: true,
+  check({ clientDir }: CheckContext): FixableFinding[] {
+    const uplinkDir = findUplinkDir(clientDir);
+    if (!uplinkDir) return [];
+    const uplinkFile = join(uplinkDir, "uplink.json");
+    const declared = readJson(uplinkFile);
+    const mod = declared?.mod;
+    if (mod === undefined || mod === null) return [];
+    const block = asRecord(mod);
+    const finding = (
+      message: string,
+      fix: string,
+      severity: "error" | "warning" = "error",
+    ): FixableFinding => ({
+      rule: "manifest/mod-channels",
+      severity,
+      file: uplinkFile,
+      line: 1,
+      message,
+      fixable: false,
+      fix,
+    });
+    const out: FixableFinding[] = [];
+    const parsed = parseChannels(block.channels, "uplink.json mod.channels");
+    for (const problem of parsed.problems) {
+      out.push(
+        finding(
+          problem,
+          'Declare each channel as one of { "ckan": "<identifier>" }, { "github": "owner/repo" }, { "githubTags": "owner/repo", "pattern": "..." }, { "spacedock": <id> } or { "npm": "<package>" }.',
+        ),
+      );
+    }
+    const depends = Array.isArray(declared?.ckanDepends)
+      ? declared.ckanDepends
+      : [];
+    depends.forEach((entry: unknown, index: number) => {
+      for (const problem of parseChannels(
+        asRecord(entry).channels,
+        `uplink.json ckanDepends[${index}].channels`,
+      ).problems) {
+        out.push(
+          finding(
+            problem,
+            "Declare each channel as an object naming one kind.",
+          ),
+        );
+      }
+    });
+    if (
+      text(block.tier) === "ckan" &&
+      parsed.problems.length === 0 &&
+      !parsed.channels.some((channel) => "ckan" in channel)
+    ) {
+      out.push(
+        finding(
+          'uplink.json\'s "mod.tier" is "ckan" and "mod.channels" does not list the CKAN channel. CKAN is the channel players install from, so it decides whether a release is reachable.',
+          'Add { "ckan": "<identifier>" } to "mod.channels", first in the list.',
+          "warning",
+        ),
+      );
+    }
+    const ckanVersion = text(block.ckanVersion);
+    const pin = text(block.builtAgainst);
+    if (
+      ckanVersion !== "" &&
+      pin !== "" &&
+      normalisedVersion(plainVersion(ckanVersion)) !== normalisedVersion(pin)
+    ) {
+      out.push(
+        finding(
+          `uplink.json's "mod.ckanVersion" (${ckanVersion}) is not the release "mod.builtAgainst" (${pin}) names.`,
+          "Run `uplink-tools deps pin-ckan` to write the spelling CKAN lists the pinned release under.",
+        ),
+      );
+    }
+    return out;
+  },
+};
+
+/**
+ * A pin that names a prerelease: the mod version, the version CKAN lists it
+ * under, a `ckanDepends` minimum or a package that moves with the mod. It is an
+ * error on `main`, where every pin is a release, and a warning elsewhere, so
+ * a candidate can be tried on `staging`.
+ */
+export const prereleasePinRule: Rule = {
+  id: "manifest/prerelease-pin",
+  group: GROUP,
+  clientless: true,
+  check({ clientDir }: CheckContext): FixableFinding[] {
+    const uplinkDir = findUplinkDir(clientDir);
+    if (!uplinkDir) return [];
+    const strict = onMain(uplinkDir);
+    return prereleasePins(uplinkDir).map((pin) => ({
+      rule: "manifest/prerelease-pin",
+      severity: strict ? ("error" as const) : ("warning" as const),
+      file: join(uplinkDir, "uplink.json"),
+      line: 1,
+      message: `${pin}, a prerelease. ${strict ? "A prerelease is never a pin on main" : "It may be tried here, and cannot be released or merged to main"}: CKAN orders it above the release it is for, so a relationship on it refuses that release.`,
+      fixable: false,
+      fix: "Pin the release, or run `uplink-tools deps bump` once the mod publishes it.",
+    }));
+  },
+};
+
 export const manifestRules: readonly Rule[] = [
   compatRule(),
   releaseFaultsRule,
   modVersionRule,
+  modChannelsRule,
+  prereleasePinRule,
 ];
