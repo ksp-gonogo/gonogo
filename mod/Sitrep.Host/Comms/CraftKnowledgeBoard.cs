@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Sitrep.Contract;
 
 namespace Sitrep.Host.Comms
@@ -7,9 +8,9 @@ namespace Sitrep.Host.Comms
     /// <summary>
     /// What each command centre knows of where each craft is, as the
     /// <c>craftKnowledge</c> capability answers it: written by the courier after
-    /// each look at the game, read from any thread under its own lock.
+    /// each look at the game, read from any thread off the board last swapped in.
     /// </summary>
-    public sealed class CraftKnowledgeBoard : ICraftKnowledge
+    public sealed class CraftKnowledgeBoard : IBulkCraftKnowledge
     {
         private readonly struct Entry
         {
@@ -57,8 +58,31 @@ namespace Sitrep.Host.Comms
 
         private readonly Dictionary<(string Centre, string Id), List<SightSample>> _samples = new Dictionary<(string, string), List<SightSample>>();
         private readonly Dictionary<(string Centre, string Id), double> _lastDelay = new Dictionary<(string, string), double>();
-        private Dictionary<string, Dictionary<string, Entry>> _byCentre = new Dictionary<string, Dictionary<string, Entry>>(StringComparer.Ordinal);
-        private readonly object _gate = new object();
+
+        /*
+         * Everything a reader needs from one look, built whole by the courier and
+         * swapped in as one reference, so a reader on any other thread holds a
+         * consistent board that nothing writes to again.
+         */
+        private sealed class Snapshot
+        {
+            public Snapshot(long version, double lookUt, Dictionary<string, Dictionary<string, Entry>> byCentre)
+            {
+                Version = version;
+                LookUt = lookUt;
+                ByCentre = byCentre;
+            }
+
+            public long Version { get; }
+
+            public double LookUt { get; }
+
+            public Dictionary<string, Dictionary<string, Entry>> ByCentre { get; }
+        }
+
+        private Snapshot _board = new Snapshot(0, double.NegativeInfinity, new Dictionary<string, Dictionary<string, Entry>>(StringComparer.Ordinal));
+
+        public long Version => Volatile.Read(ref _board).Version;
 
         public string ProviderId => "gonogo-craft-knowledge";
 
@@ -93,10 +117,8 @@ namespace Sitrep.Host.Comms
                 }
                 byCentre[centre] = entries;
             }
-            lock (_gate)
-            {
-                _byCentre = byCentre;
-            }
+            var previous = _board;
+            Volatile.Write(ref _board, new Snapshot(previous.Version + 1, ut, byCentre));
         }
 
         /*
@@ -164,33 +186,57 @@ namespace Sitrep.Host.Comms
 
         public CraftKnowledgeReading KnowledgeAt(string centreId, string vesselId, double ut)
         {
-            Entry entry;
-            lock (_gate)
+            var board = Volatile.Read(ref _board);
+            if (centreId == null || vesselId == null
+                || !board.ByCentre.TryGetValue(centreId, out var entries)
+                || !entries.TryGetValue(vesselId, out var entry))
             {
-                if (centreId == null || vesselId == null
-                    || !_byCentre.TryGetValue(centreId, out var entries)
-                    || !entries.TryGetValue(vesselId, out entry))
-                {
-                    return CraftKnowledgeReading.Unknown;
-                }
+                return CraftKnowledgeReading.Unknown;
             }
+            var sample = Sample(vesselId, entry, board.LookUt, ut);
+            return new CraftKnowledgeReading(sample.State, sample.HeldGrade, sample.LastKnownUt, sample.UncertaintyM, sample.LineOfSight);
+        }
+
+        public int ReadCentre(string centreId, double ut, CraftKnowledgeSample[] buffer, out long version)
+        {
+            var board = Volatile.Read(ref _board);
+            version = board.Version;
+            if (centreId == null || !board.ByCentre.TryGetValue(centreId, out var entries))
+            {
+                return 0;
+            }
+            var filled = 0;
+            foreach (var pair in entries)
+            {
+                if (filled < buffer.Length)
+                {
+                    buffer[filled] = Sample(pair.Key, pair.Value, board.LookUt, ut);
+                }
+                filled++;
+            }
+            return filled;
+        }
+
+        private static CraftKnowledgeSample Sample(string vesselId, Entry entry, double lookUt, double ut)
+        {
             var fix = entry.Fix;
             var uncertainty = fix.UncertaintyMAt(ut);
-            var lineOfSight = InViewByLight(entry, ut);
+            // No sample was taken after the last look, so light is not counted as arrived past it.
+            var lineOfSight = InViewByLight(entry, Math.Min(ut, lookUt));
             if (fix.InContact)
             {
-                return new CraftKnowledgeReading(CraftKnowledgeState.Heard, null, fix.LastKnownUt, uncertainty, lineOfSight);
+                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Heard, null, fix.LastKnownUt, uncertainty, lineOfSight);
             }
             if (entry.Sighted && lineOfSight)
             {
-                return new CraftKnowledgeReading(CraftKnowledgeState.Seen, null, fix.LastKnownUt, uncertainty, lineOfSight);
+                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Seen, null, fix.LastKnownUt, uncertainty, lineOfSight);
             }
             if (Reckonable(fix.Known))
             {
-                return new CraftKnowledgeReading(CraftKnowledgeState.Modelled, null, fix.LastKnownUt, uncertainty, lineOfSight);
+                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Modelled, null, fix.LastKnownUt, uncertainty, lineOfSight);
             }
             var grade = entry.EverInContact ? HeldGrade.LastBeforeBlackout : HeldGrade.Held;
-            return new CraftKnowledgeReading(CraftKnowledgeState.Held, grade, fix.LastKnownUt, uncertainty, lineOfSight);
+            return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Held, grade, fix.LastKnownUt, uncertainty, lineOfSight);
         }
 
         /// <summary>A craft that was holding its course above every atmosphere, or standing on the ground, when last known: its place can be carried forward.</summary>
