@@ -337,7 +337,7 @@ export function UnscheduledWarpPill() {
     <Wrap $tone="arm" role="alert">
       <Cluster justify="start" align="baseline" wrap>
         <Label>Unscheduled warp</Label>
-        <BannerValue>{snap.unscheduledWarp.index}×</BannerValue>
+        <BannerValue>{formatRate(snap.warp.rate)}</BannerValue>
         <AckButton
           type="button"
           onClick={() => host.acknowledgeUnscheduledWarp()}

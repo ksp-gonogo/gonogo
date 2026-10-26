@@ -34,6 +34,8 @@ export class WarpObserver {
   };
   private unscheduledWarp: AlarmSnapshot["unscheduledWarp"] = null;
   private lastIntentAt: number | null = null;
+  /** The rung an announced warp was first seen on, so it stays explained for as long as that rung holds. */
+  private announcedIndex: number | null = null;
   private readonly rateTable = new WarpRateTable();
   /** Each change in the reported rate, keyed by the view UT it was read at. */
   private readonly rateChanges: { ut: number; rate: number }[] = [];
@@ -149,6 +151,7 @@ export class WarpObserver {
     const elevated = this.observedWarp.rate > 1;
     if (!elevated) {
       this.unscheduledWarp = null;
+      this.announcedIndex = null;
       return;
     }
 
@@ -173,8 +176,11 @@ export class WarpObserver {
       this.lastIntentAt !== null &&
       now - this.lastIntentAt < WARP_INTENT_WINDOW_MS
     ) {
+      this.announcedIndex = this.observedWarp.index;
       return;
     }
+    if (this.announcedIndex === this.observedWarp.index) return;
+    this.announcedIndex = null;
 
     if (!this.unscheduledWarp) {
       this.unscheduledWarp = {

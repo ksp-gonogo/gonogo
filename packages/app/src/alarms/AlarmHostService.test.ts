@@ -421,6 +421,18 @@ describe("AlarmHostService", () => {
     expect(svc.snapshot().unscheduledWarp).toBeNull();
   });
 
+  it("keeps an announced warp unflagged for as long as that rate holds", async () => {
+    const { svc, telemetry } = makeService();
+    svc.announceWarpIntent();
+    telemetry.set("t.currentRateIndex", 3);
+    telemetry.set("t.currentRate", 10);
+    for (let i = 0; i < 6; i++) {
+      nowMs += 1000;
+      await vi.advanceTimersByTimeAsync(1000);
+    }
+    expect(svc.snapshot().unscheduledWarp).toBeNull();
+  });
+
   /**
    * The local half of the warp-intent fix: this is what the screen's own warp
    * control reaches through `WarpIntentProvider`, and it must quiet this
