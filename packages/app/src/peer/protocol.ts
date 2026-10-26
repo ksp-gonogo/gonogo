@@ -198,7 +198,15 @@ export type PeerMessage =
      already launched, so the station offers its vote again beside ABORT. */
   | { type: "gonogo-reset"; reopened: boolean }
   // Host → stations when a vote flips to NO-GO during an active countdown or when a station disconnects mid-countdown.
-  | { type: "gonogo-countdown-cancel"; reason?: string }
+  | {
+      type: "gonogo-countdown-cancel";
+      reason?: string;
+      hold?: import("../goNoGo/notice").CountdownHold;
+    }
+  /* Host → stations once the action fired at T-0 has been taken or refused,
+     after the reset that clears the votes. `action` is its display name, or
+     `null` when nothing fires. */
+  | { type: "gonogo-outcome"; action: string | null; sent: boolean }
   // Station → host after launch, when the operator hits the big red ABORT
   // button. Host re-sends the action group execution for `f.abort`.
   | { type: "gonogo-abort" }

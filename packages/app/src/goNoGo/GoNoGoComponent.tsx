@@ -12,13 +12,21 @@ import {
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
 import { Field, FieldLabel, Input, useModalSaveBar } from "@ksp-gonogo/ui";
-import { Button, Grid, NULL_DISPLAY, Select, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  Button,
+  Grid,
+  LiveRegion,
+  NULL_DISPLAY,
+  Select,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
 import { playCountdownTone } from "../sound";
 import { useGoNoGoHost, useGoNoGoSnapshot } from "./GoNoGoHostContext";
 import { DEFAULT_GONOGO_CONFIG } from "./GoNoGoHostService";
+import { type GoNoGoNotice, noticeLabel } from "./notice";
 import { DEFAULT_ON_GO, onGoLabelOf, useOnGoOptions } from "./onGo";
 
 interface GoNoGoWidgetConfig {
@@ -95,6 +103,15 @@ function StationView({
   const scene = stillTrue(useTelemetry("spaceCenter.scene"), undefined)?.scene;
   const noFlight = scene != null && scene !== "Flight";
   const [vote, setVote] = useState<"go" | "no-go">("no-go");
+  // A station the main screen has not approved is not in the poll: its vote goes nowhere, so none is shown.
+  const [approval, setApproval] = useState(() => client?.getApproval());
+  useEffect(() => {
+    if (!client) return;
+    setApproval(client.getApproval());
+    return client.onApprovalChange(setApproval);
+  }, [client]);
+  const inPoll = approval !== "pending" && approval !== "refused";
+  const [notice, setNotice] = useState<GoNoGoNotice | null>(null);
   // Set when the host resets the poll after launch, so the vote is offered again beside ABORT until the craft is back on the pad.
   const [pollOpen, setPollOpen] = useState(false);
   const [countdown, setCountdown] = useState<{ t0Ms: number } | null>(null);
@@ -113,7 +130,7 @@ function StationView({
 
   // A launched station has effectively "left the poll", null = not voting rather than stale no-go, which would render a confusing red cell on main.
   const polling = !launched || pollOpen;
-  const effectiveVote = polling ? vote : null;
+  const effectiveVote = polling && inPoll ? vote : null;
 
   // Push the current effective vote whenever it changes. Split from the
   // lifecycle effect below so vote flips don't transiently send null (which
@@ -180,14 +197,24 @@ function StationView({
   useEffect(() => {
     if (!client) return;
     const unsubs = [
-      client.onGonogoCountdownStart((t0Ms) => setCountdown({ t0Ms })),
-      client.onGonogoCountdownCancel(() => setCountdown(null)),
+      client.onGonogoCountdownStart((t0Ms) => {
+        setNotice(null);
+        setCountdown({ t0Ms });
+      }),
+      client.onGonogoCountdownCancel((_reason, hold) => {
+        setCountdown(null);
+        setNotice(hold ? { kind: "held", ...hold } : null);
+      }),
+      client.onGonogoOutcome((action, sent) =>
+        setNotice({ kind: "outcome", action, sent }),
+      ),
       client.onGonogoReset((reopened) => {
         // The host has forgotten every vote, and a vote already at NO-GO would not change and so would not be sent again: resend it, or this screen drops out of the poll.
         const next = reopened || !launchedRef.current ? "no-go" : null;
         effectiveVoteRef.current = next ?? "no-go";
         setVote("no-go");
         setCountdown(null);
+        setNotice(null);
         setPollOpen(reopened);
         client.sendGonogoVote(next);
       }),
@@ -222,7 +249,7 @@ function StationView({
   }, [launched, abortNotice]);
 
   const handleVoteToggle = () => {
-    if (!polling) return;
+    if (!polling || !inPoll) return;
     setVote((prev) => (prev === "go" ? "no-go" : "go"));
   };
 
@@ -269,6 +296,7 @@ function StationView({
     ? Math.max(0, (countdown.t0Ms - Date.now()) / 1000)
     : null;
 
+  const voteText = inPoll ? (vote === "go" ? "GO" : "NO-GO") : "NOT IN POLL";
   const showOnGo = onGoLabel !== undefined && (w ?? 4) >= 4 && (h ?? 4) >= 4;
 
   return (
@@ -278,14 +306,19 @@ function StationView({
           On go: <strong>{onGoLabel ?? "Nothing"}</strong>
         </OnGoReadout>
       )}
+      <NoticeLine>{notice ? noticeLabel(notice) : ""}</NoticeLine>
+      <span className="sr-only" role="status">
+        Vote {voteText}
+      </span>
       <BigButton
-        $variant={vote === "go" ? "go" : "nogo"}
+        $variant={inPoll ? (vote === "go" ? "go" : "nogo") : "idle"}
         onClick={handleVoteToggle}
-        role="status"
-        aria-live="polite"
+        disabled={!inPoll}
       >
-        <ButtonLabel>{vote === "go" ? "GO" : "NO-GO"}</ButtonLabel>
-        <VoteHint>Press to vote {vote === "go" ? "NO-GO" : "GO"}</VoteHint>
+        <ButtonLabel>{voteText}</ButtonLabel>
+        {inPoll && (
+          <VoteHint>Press to vote {vote === "go" ? "NO-GO" : "GO"}</VoteHint>
+        )}
         {secondsLeft !== null && (
           <CountdownOverlay role="timer" aria-label="Countdown">
             T − <Unit value={value("s", secondsLeft)} decimals={1} />
@@ -411,7 +444,7 @@ function MainView({
     return <Empty>GO/NO-GO host unavailable</Empty>;
   }
 
-  const { stations, countdown, abort, launched, reopened } = snapshot;
+  const { stations, countdown, abort, launched, reopened, notice } = snapshot;
   const polling = !launched || reopened;
   const secondsLeft = countdown
     ? Math.max(0, (countdown.t0Ms - Date.now()) / 1000)
@@ -464,6 +497,7 @@ function MainView({
           {secondsLeft !== null && <CountdownTone secondsLeft={secondsLeft} />}
         </>
       )}
+      <NoticeLine>{notice ? noticeLabel(notice) : ""}</NoticeLine>
       {abort && (
         <AbortBanner role="alert">
           ABORT: triggered by {abort.stationName}
@@ -575,7 +609,7 @@ function GoNoGoConfigComponent({
   );
 }
 
-type BigButtonVariant = "go" | "nogo" | "abort";
+type BigButtonVariant = "go" | "nogo" | "abort" | "idle";
 
 // Flat look-up tables keep the styled-template readable and quiet
 // SonarQube's nested-ternary warning (S3358). One entry per variant.
@@ -583,17 +617,20 @@ const BIG_BUTTON_BORDER: Record<BigButtonVariant, string> = {
   go: "var(--color-go-status)",
   abort: "var(--color-nogo-mark)",
   nogo: "var(--color-nogo-mark)",
+  idle: "var(--color-border-strong)",
 };
 const BIG_BUTTON_BG: Record<BigButtonVariant, string> = {
   go: "radial-gradient(circle at 50% 35%, var(--color-accent-fg) 0%, var(--color-go-status) 90%)",
   abort:
     "radial-gradient(circle at 50% 35%, var(--color-nogo-mark) 0%, var(--color-nogo-muted) 90%)",
   nogo: "radial-gradient(circle at 50% 35%, var(--color-nogo-muted) 0%, var(--color-nogo-muted) 90%)",
+  idle: "rgba(50, 50, 50, 0.25)",
 };
 const BIG_BUTTON_COLOR: Record<BigButtonVariant, string> = {
   go: "var(--color-go-text)",
   abort: "var(--color-nogo-text)",
   nogo: "var(--color-nogo-text)",
+  idle: "var(--color-text-muted)",
 };
 
 const NO_FLIGHT_REASON = "No flight in progress";
@@ -669,6 +706,19 @@ const CountdownOverlay = styled.span`
   color: var(--color-warn-text);
   font-size: var(--font-size-figure);
   letter-spacing: 0.15em;
+`;
+
+/** What the poll last did: why a countdown was held, or whether the T-0 action was sent. */
+const NoticeLine = styled(LiveRegion)`
+  display: block;
+  text-align: center;
+  font-size: var(--font-size-caption);
+  letter-spacing: 0.1em;
+  color: var(--color-warn-text);
+
+  &:empty {
+    display: none;
+  }
 `;
 
 const AbortNotice = styled.span`

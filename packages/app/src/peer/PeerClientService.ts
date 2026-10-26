@@ -141,7 +141,11 @@ type ClientEventMap = {
   hostHello: [info: { version: string; buildTime: string }];
   hostRestart: [];
   gonogoCountdownStart: [t0Ms: number];
-  gonogoCountdownCancel: [reason: string | undefined];
+  gonogoCountdownCancel: [
+    reason: string | undefined,
+    hold: import("../goNoGo/notice").CountdownHold | undefined,
+  ];
+  gonogoOutcome: [action: string | null, sent: boolean];
   gonogoOnGo: [label: string | null];
   gonogoReset: [reopened: boolean];
   alarmSnapshot: [snap: import("../alarms/types").AlarmSnapshot];
@@ -1585,8 +1589,17 @@ export class PeerClientService {
     return unsub;
   }
 
-  onGonogoCountdownCancel(cb: (reason: string | undefined) => void) {
+  onGonogoCountdownCancel(
+    cb: (
+      reason: string | undefined,
+      hold: import("../goNoGo/notice").CountdownHold | undefined,
+    ) => void,
+  ) {
     return this.events.on("gonogoCountdownCancel", cb);
+  }
+
+  onGonogoOutcome(cb: (action: string | null, sent: boolean) => void) {
+    return this.events.on("gonogoOutcome", cb);
   }
 
   onGonogoAbortNotify(cb: (stationName: string, t: number) => void) {
@@ -1769,7 +1782,10 @@ export class PeerClientService {
     },
     "gonogo-countdown-cancel": (msg) => {
       this.lastCountdownT0Ms = null;
-      this.events.emit("gonogoCountdownCancel", msg.reason);
+      this.events.emit("gonogoCountdownCancel", msg.reason, msg.hold);
+    },
+    "gonogo-outcome": (msg) => {
+      this.events.emit("gonogoOutcome", msg.action, msg.sent);
     },
     "gonogo-abort-notify": (msg) => {
       this.events.emit("gonogoAbortNotify", msg.stationName, msg.t);

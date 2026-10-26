@@ -202,6 +202,9 @@ class ScenePeerClient implements PeerClient {
   sendGonogoVote = () => {};
   sendGonogoAbort = () => {};
   onGonogoCountdownCancel = () => () => {};
+  onGonogoOutcome = () => () => {};
+  getApproval = () => "approved" as const;
+  onApprovalChange = () => () => {};
   sendWidgetPush = () => {};
   sendWidgetRecall = () => {};
   onNotesSnapshot = () => () => {};

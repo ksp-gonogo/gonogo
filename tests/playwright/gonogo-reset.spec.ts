@@ -12,7 +12,9 @@ const cells = (main: Page) =>
   main.locator('[data-i="gonogo"] [role="status"][aria-label*=":"]');
 
 const vote = (station: Page) =>
-  station.locator('[data-i="gonogo"] button[role="status"]');
+  station.locator('[data-i="gonogo"]').getByRole("button", {
+    name: /Press to vote/,
+  });
 
 test("resetting the poll keeps every station listed and the countdown waits for each", async ({
   browser,
