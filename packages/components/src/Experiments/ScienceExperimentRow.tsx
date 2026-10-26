@@ -124,7 +124,7 @@ export function ScienceExperimentRow({
         });
     };
   const actions = (
-    <Inline inset style={ACTION_SLOT}>
+    <Inline inset wrap style={ACTION_SLOT}>
       {continuous &&
         !instrument.inoperable &&
         instrument.running === false &&
