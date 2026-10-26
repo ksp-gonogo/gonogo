@@ -16961,6 +16961,30 @@
         "note": "focusable, so the keyboard can pan and zoom"
       },
       {
+        "key": "ui-kit . Pips",
+        "note": "a row of round pips, some filled, for a small whole-number rating"
+      },
+      {
+        "key": "ui-kit . PipsProps",
+        "note": "the props of Pips"
+      },
+      {
+        "key": "ui-kit . PipsProps#filled",
+        "note": "how many pips are filled"
+      },
+      {
+        "key": "ui-kit . PipsProps#label?",
+        "note": "what the row rates, spoken before the count"
+      },
+      {
+        "key": "ui-kit . PipsProps#of",
+        "note": "how many pips the row has"
+      },
+      {
+        "key": "ui-kit . PipsProps#tone?",
+        "note": "colour of the pips"
+      },
+      {
         "key": "ui-kit . PlotCrosshair",
         "note": "a crosshair for an SVG plot: a line at an instant, a dot per trace and a readout of every row's value"
       },

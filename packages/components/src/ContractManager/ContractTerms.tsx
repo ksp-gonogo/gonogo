@@ -1,5 +1,4 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
-import { Badge, Unit } from "@ksp-gonogo/ui-kit";
+import { Unit } from "@ksp-gonogo/ui-kit";
 import type { ContractEntry, ContractParameter } from "./contracts";
 import {
   NOTES_STYLE,
@@ -8,13 +7,6 @@ import {
   PARAMETER_TITLE_STYLE,
   PARAMETERS_STYLE,
 } from "./styles";
-
-const STATE_BADGE = {
-  Complete: { tone: "go", label: "Done" },
-  Failed: { tone: "nogo", label: "Failed" },
-  Incomplete: { tone: "neutral", label: "Open" },
-  Unknown: { tone: "neutral", label: "Unknown" },
-} as const;
 
 /** What a milestone objective asks for, in words the operator reads: "Reach space at Kerbin". */
 function goalOf(p: ContractParameter): string | null {
@@ -27,19 +19,11 @@ function goalOf(p: ContractParameter): string | null {
 
 function ObjectiveRow({
   parameter: p,
-  altitude,
-}: Readonly<{
-  parameter: ContractParameter;
-  altitude?: Value<"m"> | null;
-}>) {
-  const badge = STATE_BADGE[p.state];
+}: Readonly<{ parameter: ContractParameter }>) {
   const goal = goalOf(p);
   return (
     <li style={PARAMETER_STYLE}>
       <span style={PARAMETER_TITLE_STYLE}>
-        <Badge tone={badge.tone} size="sm">
-          {badge.label}
-        </Badge>
         <span>
           {p.title}
           {p.optional && <span style={OPTIONAL_STYLE}> (optional)</span>}
@@ -51,12 +35,6 @@ function ObjectiveRow({
                 <>
                   {": "}
                   <Unit value={p.targetAltitude} />
-                  {altitude != null && p.state === "Incomplete" && (
-                    <>
-                      {" · now "}
-                      <Unit value={altitude} />
-                    </>
-                  )}
                 </>
               )}
             </span>
@@ -65,7 +43,7 @@ function ObjectiveRow({
       </span>
       {p.notes && <div style={NOTES_STYLE}>{p.notes}</div>}
       {p.children.length > 0 && (
-        <ObjectiveList parameters={p.children} altitude={altitude} nested />
+        <ObjectiveList parameters={p.children} nested />
       )}
     </li>
   );
@@ -83,11 +61,9 @@ function keyed(parameters: ContractParameter[]) {
 
 function ObjectiveList({
   parameters,
-  altitude,
   nested = false,
 }: Readonly<{
   parameters: ContractParameter[];
-  altitude?: Value<"m"> | null;
   nested?: boolean;
 }>) {
   return (
@@ -98,25 +74,20 @@ function ObjectiveList({
       }}
     >
       {keyed(parameters).map(({ key, parameter }) => (
-        <ObjectiveRow key={key} parameter={parameter} altitude={altitude} />
+        <ObjectiveRow key={key} parameter={parameter} />
       ))}
     </ul>
   );
 }
 
 /**
- * A contract's objectives as its terms: each with its live state, its notes and the objectives
- * nested under it, plus a milestone's target and, for an accepted contract, how far the active
- * vessel is from it.
+ * A contract's objectives, listed as plain items with their notes, the objectives nested under
+ * them and a milestone's goal and target altitude. It draws no per-objective state: the
+ * Objectives widget tracks which goals are met.
  */
 export function ContractTerms({
   contract: c,
-  altitude,
-}: Readonly<{
-  contract: ContractEntry;
-  /** The active vessel's altitude above sea level; null when none is known. Only an accepted contract is measured against it. */
-  altitude?: Value<"m"> | null;
-}>) {
+}: Readonly<{ contract: ContractEntry }>) {
   if (c.parameters.length === 0) return null;
-  return <ObjectiveList parameters={c.parameters} altitude={altitude} />;
+  return <ObjectiveList parameters={c.parameters} />;
 }

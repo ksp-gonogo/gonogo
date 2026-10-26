@@ -13,7 +13,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { heldGrade } from "../shared/heldGrade";
 import { noCareerLabel } from "../shared/noCareerLabel";
-import { ContractBriefing, ContractPrestigeBadge } from "./ContractBriefing";
+import { ContractBriefing, ContractDifficulty } from "./ContractBriefing";
 import {
   ContractCancelCost,
   ContractDeadline,
@@ -56,9 +56,6 @@ export function ContractManagerComponent({
   const recentRaw = contracts?.completedRecent;
   const failedRaw = contracts?.failedRecent;
   const universalTime = useViewUt()?.magnitude;
-  // Progress toward an altitude goal is measured from the active vessel's last altitude.
-  const activeAltitude =
-    stillTrue(useTelemetry("vessel.flight"), undefined)?.altitudeAsl ?? null;
   // Career actions dispatch at the meta-vantage, with no vessel signal delay.
   const acceptCmd = useCommand("career.contract.accept", {
     vantage: META_VANTAGE,
@@ -136,11 +133,11 @@ export function ContractManagerComponent({
               >
                 <div style={AGENCY_ROW_STYLE}>
                   {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
-                  <ContractPrestigeBadge contract={c} />
                 </div>
+                <ContractDifficulty contract={c} />
                 <ContractBriefing contract={c} />
                 <ContractRewards contract={c} boardHeld={boardHeld} />
-                <ContractTerms contract={c} altitude={activeAltitude} />
+                <ContractTerms contract={c} />
                 <div style={ACTIVE_ACTIONS_STYLE}>
                   <ContractCancelCost contract={c} boardHeld={boardHeld} />
                   <CommandButton
@@ -176,8 +173,8 @@ export function ContractManagerComponent({
               >
                 <div style={AGENCY_ROW_STYLE}>
                   {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
-                  <ContractPrestigeBadge contract={c} />
                 </div>
+                <ContractDifficulty contract={c} />
                 <ContractBriefing contract={c} />
                 <ContractRewards contract={c} boardHeld={boardHeld} />
                 <ContractTerms contract={c} />

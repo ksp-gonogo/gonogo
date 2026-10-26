@@ -125,6 +125,7 @@
                   }
                 ],
                 "agent": "Kerbin Space Program",
+                "prestigeOrdinal": 1,
                 "reputationCompletion": 25,
                 "dateDeadline": 0,
                 "fundsFailure": 80000,
@@ -145,6 +146,7 @@
                   }
                 ],
                 "agent": "Periapsis Rocket Parts",
+                "prestigeOrdinal": 0,
                 "reputationCompletion": 2,
                 "dateDeadline": 128940,
                 "fundsFailure": 4000,
@@ -167,6 +169,7 @@
                   }
                 ],
                 "agent": "Research & Development Dept.",
+                "prestigeOrdinal": 2,
                 "reputationCompletion": 1,
                 "dateDeadline": 130740,
                 "fundsFailure": 2000,
