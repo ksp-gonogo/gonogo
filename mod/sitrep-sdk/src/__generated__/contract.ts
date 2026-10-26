@@ -11141,10 +11141,15 @@ export interface DockAlignment
 {
 	/**
 	* The target port's position relative to the own port (target minus own),
-	* metres.
+	* metres, in the own port's axes: `z` is along the docking axis, `x` and `y`
+	* are the sideways and vertical offsets, so the line-of-sight angles off the
+	* port's boresight are `atan(x / z)` and `atan(y / z)`.
 	*/
 	relativePosition: Vec3Of<"m">;
-	/** The target port's velocity relative to the own port, m/s. */
+	/**
+	* The target port's velocity relative to the own port, m/s, in the own port's
+	* axes like `DockAlignment.relativePosition`.
+	*/
 	relativeVelocity: Vec3Of<"m/s">;
 	/**
 	* Metres: `DockAlignment.relativePosition`'s magnitude, provided directly so a

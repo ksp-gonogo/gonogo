@@ -18,8 +18,12 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { Crosshair, HorizTick, Reticle, VertTick } from "./DockingReticle";
-import { reticleTravelPx } from "./reticleGeometry";
-import type { RendezvousHudContext } from "./slots";
+import {
+  type Picture,
+  reticleOffset,
+  reticleTravelPx,
+} from "./reticleGeometry";
+import type { RendezvousHudContext, RendezvousPicture } from "./slots";
 
 interface DockingHudProps {
   name: string;
@@ -32,7 +36,7 @@ interface DockingHudProps {
   az: number | undefined;
   x: number | undefined;
   y: number | undefined;
-  /** Cosine of the angle between the two ports' forward vectors (1 = aligned); takes priority for the reticle tint. */
+  /** Cosine of the angle between the two ports' forward vectors (-1 = facing head-on, aligned); takes priority for the reticle tint. */
   forwardDot: number | undefined;
   /** Present when the separation was carried forward rather than observed, with the model's basis. */
   modelled: { basis: ReckoningBasis } | undefined;
@@ -81,34 +85,38 @@ export function DockingHud(props: DockingHudProps) {
   // The smallest size keeps only the closing rate, the headline cue.
   const showAlignmentDetail = cols >= 4;
 
-  // Past ±8° the pilot is reorienting, not docking, so the reticle clamps.
+  // Without a picture, past ±8° the pilot is reorienting, not docking, so the reticle clamps.
   const MAX_DEG = 8;
-  const axClamped =
-    ax === undefined ? 0 : Math.max(-MAX_DEG, Math.min(MAX_DEG, ax));
-  const ayClamped =
-    ay === undefined ? 0 : Math.max(-MAX_DEG, Math.min(MAX_DEG, ay));
-  // -ay puts "nose up" at top.
-  const dx = axClamped / MAX_DEG;
-  const dy = -ayClamped / MAX_DEG;
 
   const { ref: layerRef, size: layer } = useElementSize<HTMLDivElement>({
     w: 1,
     h: 1,
   });
-  const [pictureAspect, reportPictureAspect] = useState<number | null>(null);
+  const [reported, reportPicture] = useState<RendezvousPicture | null>(null);
+  const picture: Picture | null =
+    showCamera && reported !== null
+      ? {
+          aspect: reported.frameWidth / reported.frameHeight,
+          verticalFovDeg: reported.vfovDeg,
+        }
+      : null;
   const travel = reticleTravelPx(
     { width: layer.w, height: layer.h },
-    showCamera ? pictureAspect : null,
+    picture,
+    MAX_DEG,
   );
+  // -ay puts "nose up" at top.
+  const dx = ax === undefined ? 0 : reticleOffset(ax, MAX_DEG, picture);
+  const dy = ay === undefined ? 0 : -reticleOffset(ay, MAX_DEG, picture);
   // The reticle stays in the frame even where the picture's own field runs past it.
   const along = (offset: number, half: number) =>
     `calc(50% + ${Math.max(-half, Math.min(half, offset * travel))}px)`;
   const tick = (units: number) => `calc(50% + ${units * travel}px)`;
 
-  // 0.9998 is within about 1° of dead-on, matching the derived-angle threshold.
+  // Head-on ports have antiparallel forward vectors, so aligned is a dot near -1; 0.9998 is within about 1° of dead-on.
   const aligned =
     forwardDot !== undefined
-      ? forwardDot > 0.9998
+      ? forwardDot < -0.9998
       : ax !== undefined &&
         ay !== undefined &&
         Math.abs(ax) < 1 &&
@@ -121,7 +129,7 @@ export function DockingHud(props: DockingHudProps) {
     maxDeg: MAX_DEG,
     reticleOffset: { x: dx, y: dy },
     reticleTravelPx: travel,
-    reportPictureAspect,
+    reportPicture,
     aligned,
     ax,
     ay,

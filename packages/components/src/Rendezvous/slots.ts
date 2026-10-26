@@ -1,1 +1,4 @@
-export type { RendezvousHudContext } from "@ksp-gonogo/sitrep-sdk";
+export type {
+  RendezvousHudContext,
+  RendezvousPicture,
+} from "@ksp-gonogo/sitrep-sdk";

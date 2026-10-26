@@ -27,16 +27,20 @@ namespace Sitrep.Contract;
 [SitrepTopic("vessel.dock", DisplayName = "Active vessel docking")]
 public class DockAlignment
 {
-    /// <summary>The target port's position relative to the own port (target minus own), metres.</summary>
+    /// <summary>The target port's position relative to the own port (target minus own), metres, in the own
+    /// port's axes: <c>z</c> is along the docking axis, <c>x</c> and <c>y</c> are
+    /// the sideways and vertical offsets, so the line-of-sight angles off the port's boresight are
+    /// <c>atan(x / z)</c> and <c>atan(y / z)</c>.</summary>
     [SitrepUnit(Units.Metres)]
-    [SitrepFrame(Frames.SubjectRelative)]
+    [SitrepFrame(Frames.PortRelative)]
     // Same one-payload dead reckoning as vessel.target: the closing velocity is right here.
     [SitrepReckonable(ReckoningBases.LinearDeadReckoning, "relativeVelocity")]
     public Vec3 RelativePosition { get; set; } = new();
 
-    /// <summary>The target port's velocity relative to the own port, m/s.</summary>
+    /// <summary>The target port's velocity relative to the own port, m/s, in the own port's axes like
+    /// <see cref="RelativePosition"/>.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
-    [SitrepFrame(Frames.SubjectRelative)]
+    [SitrepFrame(Frames.PortRelative)]
     public Vec3 RelativeVelocity { get; set; } = new();
 
     /// <summary>Metres: <see cref="RelativePosition"/>'s magnitude, provided

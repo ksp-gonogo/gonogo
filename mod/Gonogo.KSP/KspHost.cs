@@ -2744,8 +2744,10 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            var relPos = (Vector3d)targetTransform.position - (Vector3d)ownTransform.position;
-            var relVel = (Vector3d)targetPort.GetObtVelocity() - (Vector3d)ownPort.GetObtVelocity();
+            var worldPos = (Vector3d)targetTransform.position - (Vector3d)ownTransform.position;
+            var worldVel = (Vector3d)targetPort.GetObtVelocity() - (Vector3d)ownPort.GetObtVelocity();
+            var relPos = ToPortFrame(ownTransform, worldPos);
+            var relVel = ToPortFrame(ownTransform, worldVel);
             var forwardDot = (double)Vector3.Dot(ownPort.GetFwdVector(), targetPort.GetFwdVector());
 
             return new Dictionary<string, object?>
@@ -2756,6 +2758,18 @@ namespace Gonogo.KSP
                 ["forwardDot"] = forwardDot,
             };
         }
+
+        private static Vector3d ToPortFrame(Transform port, Vector3d world)
+        {
+            var (x, y, z) = DockingModel.ToPortFrame(
+                (world.x, world.y, world.z),
+                Axis(port.right),
+                Axis(port.up),
+                Axis(port.forward));
+            return new Vector3d(x, y, z);
+        }
+
+        private static (double, double, double) Axis(Vector3 v) => (v.x, v.y, v.z);
 
         /// <summary>
         /// The <c>vessel.surface</c> raw group: biome, landedAt and

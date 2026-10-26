@@ -35,7 +35,7 @@ const RENDEZVOUS_CAMERA: SlotProps<"rendezvous.camera"> = {
   maxDeg: 15,
   reticleOffset: { x: 0, y: 0 },
   reticleTravelPx: 40,
-  reportPictureAspect: () => {},
+  reportPicture: () => {},
   aligned: false,
   ax: undefined,
   ay: undefined,
