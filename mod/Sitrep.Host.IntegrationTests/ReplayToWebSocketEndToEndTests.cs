@@ -312,13 +312,14 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 // No client connected at all -- three ticks land with zero
-                // subscribers. The SubscriptionRegistry/ChannelEmitter outer
-                // gate means Decide is never called for any of them.
+                // subscribers. The topic is Delayed, so it is built once on the
+                // first tick for whoever joins later, and the next two ticks
+                // fall inside the warm interval and consider nothing.
                 server.TickAndWait(0.0, TestSystemUplink.RawSnapshot(0.0, BodiesPayload(1)), Timeout);
                 server.TickAndWait(1.0, TestSystemUplink.RawSnapshot(1.0, BodiesPayload(2)), Timeout);
                 server.TickAndWait(2.0, TestSystemUplink.RawSnapshot(2.0, BodiesPayload(3)), Timeout);
-                Assert.Equal(0, server.ChannelCounters(TestSystemUplink.RawTopic).Considered);
-                Assert.Equal(0, server.ChannelCounters(TestSystemUplink.RawTopic).Emitted);
+                Assert.Equal(1, server.ChannelCounters(TestSystemUplink.RawTopic).Considered);
+                Assert.Equal(1, server.ChannelCounters(TestSystemUplink.RawTopic).Emitted);
 
                 await using var client = await TestClient.ConnectAsync(server.BoundPort, Timeout);
                 await SubscribeAsync(client, TestSystemUplink.RawTopic, Timeout);
@@ -326,11 +327,14 @@ namespace Sitrep.Host.IntegrationTests
                 // The genuine 0 -> 1 subscribe transition forces a keyframe
                 // on the very next tick, regardless of keyframe cadence.
                 server.TickAndWait(3.0, TestSystemUplink.RawSnapshot(3.0, BodiesPayload(4)), Timeout);
-                Assert.Equal(1, server.ChannelCounters(TestSystemUplink.RawTopic).Considered);
-                Assert.Equal(1, server.ChannelCounters(TestSystemUplink.RawTopic).Emitted);
+                Assert.Equal(2, server.ChannelCounters(TestSystemUplink.RawTopic).Considered);
+                Assert.Equal(2, server.ChannelCounters(TestSystemUplink.RawTopic).Emitted);
 
-                var delivered = await ReceiveStreamDataAsync(client, Timeout);
-                AssertSma(delivered, 4);
+                // The warm sample may be delivered on subscribe, before or after
+                // the ack, so the newest frame is the one the tick produced.
+                var delivered = await DrainToLatestStreamDataAsync(client, TestBudgets.Quiet);
+                Assert.NotNull(delivered);
+                AssertSma(delivered!, 4);
             }
             finally
             {
