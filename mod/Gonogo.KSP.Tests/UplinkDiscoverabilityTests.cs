@@ -97,6 +97,16 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
+        public void HandRegisteredUplinksDeclareTheirCapabilitiesThroughTheEngine()
+        {
+            // The engine runs DeclareCapabilities only for discovered Uplinks and for RegisterBundledUplink.
+            var addon = File.ReadAllText(Path.Combine(GonogoKspDirectory(), "GonogoAddon.cs"));
+
+            Assert.DoesNotContain(".RegisterUplink(", addon);
+            Assert.Contains("engine.RegisterBundledUplink(uplink)", addon);
+        }
+
+        [Fact]
         public void EveryDiscoverableUplinkCanBeConstructedByDiscovery()
         {
             // UplinkDiscovery instantiates through GetConstructor(Type.EmptyTypes)

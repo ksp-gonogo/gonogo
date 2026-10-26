@@ -2802,6 +2802,25 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// Registers an Uplink the host constructs itself rather than finds by
+        /// scan: declares its capabilities first when it implements
+        /// <see cref="IUplinkCapabilityDeclarer"/>, then runs
+        /// <see cref="RegisterUplink"/>. The discovery pass does the same two
+        /// steps over every discovered Uplink, so a capability declared here
+        /// reaches the kernel the same way. An Uplink whose declaration throws
+        /// is marked unavailable and its <see cref="ISitrepUplink.Register"/>
+        /// does not run. Call before <see cref="ResolveCapabilities"/>.
+        /// </summary>
+        public void RegisterBundledUplink(ISitrepUplink uplink)
+        {
+            DeclareUplinkCapabilities(uplink);
+            if (IsUplinkAvailable(uplink.Manifest.Id))
+            {
+                RegisterUplink(uplink);
+            }
+        }
+
+        /// <summary>
         /// Two-pass discovery registration: the order-independent fix for the
         /// capability-vs-provider registration hazard. Assembly-scan discovery
         /// (<see cref="UplinkDiscovery.Discover()"/>) fixes no order between
