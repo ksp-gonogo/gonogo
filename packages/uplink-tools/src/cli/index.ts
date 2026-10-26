@@ -29,6 +29,7 @@ import {
   UPLINK_MANIFEST_FILE,
 } from "@ksp-gonogo/sitrep-sdk/uplink-manifest";
 import { CHECK_USAGE, check } from "../check/command";
+import { DEPS_USAGE, deps } from "../deps/command";
 import { usageOf } from "../render/usage";
 import { BAKE_USAGE, bake } from "./bake";
 import { CODEGEN_USAGE, codegen } from "./codegen";
@@ -59,6 +60,8 @@ const USAGE = `uplink-tools <command>
            gives a plugin the app will load a client for. \`release prepare\`
            moves the version, proves the release builds, then commits and
            tags it
+  deps     read the mod and packages this Uplink pins against every channel
+           they publish on, and move the pins that are behind
   version  move the Uplink to its next version in every place it is written,
            and write its changelog section from its commits
   publish  put the released client where its client.url is served from, and
@@ -432,6 +435,7 @@ export async function run(argv: readonly string[]): Promise<number> {
       bake: [BAKE_USAGE, bake],
       check: [CHECK_USAGE, check],
       codegen: [CODEGEN_USAGE, codegen],
+      deps: [DEPS_USAGE, (rest) => deps(rest)],
       package: [PACKAGE_USAGE, packageCommand],
       page: [PAGE_USAGE, page],
       publish: [PUBLISH_USAGE, publish],
