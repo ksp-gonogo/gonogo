@@ -82,6 +82,15 @@ describe("Orbit View figures names why the figures are dashes", () => {
     expect(screen.getByText("CANNOT MODEL")).toBeInTheDocument();
   });
 
+  it("shows no inclination or eccentricity beside the sentence that there is no orbit", () => {
+    // The sample that straddles an SOI change: the old orbit is past its transition, so it is no orbit now, and its figures are the old body's.
+    scene({ encounter: { transitionUt: 5 }, ecc: 0.5, inc: 12 });
+
+    expect(screen.getByText("No orbital data")).toBeInTheDocument();
+    expect(screen.queryByText("0.5000")).toBeNull();
+    expect(screen.queryByText(/12\.0/)).toBeNull();
+  });
+
   it("leaves a refused trajectory to its own note rather than saying it twice", () => {
     // A provider that stated no shape: the trajectory is withheld, and its note is the account on screen.
     scene({ horizon: UNBOUNDED_HORIZON });

@@ -225,6 +225,12 @@ function OrbitViewComponent({
       : undefined;
   const modelState = modelDeclined ? declinedState(modelDeclined) : null;
 
+  const noOrbit = !hasConic && withheld === null;
+  // The observed elements have run past where they hold, as at a change of sphere of influence, so they describe the body being left and are not shown beside the sentence saying there is no orbit.
+  const orbitUnsolved =
+    noOrbit &&
+    modelDeclined?.reason === "beyond-horizon" &&
+    modelDeclined.input === "@vessel.orbit";
   const figures = (
     <OrbitFigures
       bodyName={refBody ?? parentBodyName}
@@ -232,7 +238,7 @@ function OrbitViewComponent({
       ownFrameLabel={readFrame.ownFrameLabel}
       modelState={modelState}
       modelNote={modelDeclined?.note}
-      noOrbit={!hasConic && withheld === null && !resting ? { declined } : null}
+      noOrbit={noOrbit && !resting ? { declined } : null}
       atRest={resting}
       withheld={diagramSlot ? null : withheld}
       grid={{
@@ -248,8 +254,8 @@ function OrbitViewComponent({
         periapsisAltitude: current(solve?.periapsisAlt),
         timeToAp: current(countdownOf(solveReading, (s) => s.timeToAp)),
         timeToPe: current(countdownOf(solveReading, (s) => s.timeToPe)),
-        inclination: orbitReading.inc,
-        eccentricity: orbitReading.ecc,
+        inclination: orbitUnsolved ? undefined : orbitReading.inc,
+        eccentricity: orbitUnsolved ? undefined : orbitReading.ecc,
         period: current(solve?.period),
         marking: derivedMarking(orbitReading),
       }}
