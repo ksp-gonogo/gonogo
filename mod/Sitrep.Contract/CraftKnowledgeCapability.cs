@@ -34,7 +34,7 @@ namespace Sitrep.Contract
         /// <summary>The craft's own telemetry reaches the centre over a link, relays included.</summary>
         Heard = 1,
 
-        /// <summary>No link reaches the centre, but its ground stations have the craft in view and its place comes from that sighting.</summary>
+        /// <summary>No link reaches the centre, but its ground stations had the craft in view and its place comes from that sighting. A sighting counts once the light from that moment has reached the centre, so a craft stays seen for one light time after it passes behind a body.</summary>
         Seen = 2,
 
         /// <summary>Neither heard nor seen. The craft was holding its course when last known, so its place is carried forward on that orbit or surface position.</summary>
@@ -91,7 +91,7 @@ namespace Sitrep.Contract
         /// <param name="heldGrade">Why the place stopped updating, for <see cref="CraftKnowledgeState.Held"/> only.</param>
         /// <param name="lastKnownUt">The last instant the centre knows the craft's place.</param>
         /// <param name="uncertaintyM">How far the craft can be from where the centre places it, in metres.</param>
-        /// <param name="lineOfSight">Whether the centre has a line of sight to the craft now.</param>
+        /// <param name="lineOfSight">Whether the light that has reached the centre shows the craft in view.</param>
         public CraftKnowledgeReading(CraftKnowledgeState state, HeldGrade? heldGrade, double? lastKnownUt, double? uncertaintyM, bool lineOfSight)
         {
             State = state;
@@ -119,21 +119,23 @@ namespace Sitrep.Contract
         /// The radius, in metres, within which the craft lies around where the
         /// centre places it, grown from what the craft could have done with its
         /// own delta-v and thrust since <see cref="LastKnownUt"/>, which is
-        /// at least one signal delay old even while heard. Null when it cannot be bounded (its delta-v was never heard,
-        /// or wheels or rotors can move it) and always for
+        /// at least one signal delay old even while heard. Null when it cannot
+        /// be bounded (its delta-v was never heard, or wheels or rotors can
+        /// move it) and always for
         /// <see cref="CraftKnowledgeState.Unknown"/>; null is not zero.
         /// </summary>
         public double? UncertaintyM { get; }
 
         /// <summary>
-        /// Whether the centre has a straight line to the craft now: from where
-        /// the centre stands, and for the home centre from any ground station
-        /// that does. Bodies block
-        /// the line at the radius the comms model gives them, which is smaller
-        /// than their real one, so this can be true for a craft a camera at the
-        /// same place would find just behind the limb. Always false for
-        /// <see cref="CraftKnowledgeState.Unknown"/>, so it never reveals a craft
-        /// the centre has not learned of.
+        /// Whether the light that has reached the centre by the instant asked
+        /// about shows the craft in view of the centre, and for the home centre
+        /// of any ground station. The light of a moment takes one signal delay
+        /// to arrive, so this stays true for that long after the craft passes
+        /// behind a body. Bodies block the line at the radius the comms model
+        /// gives them, which is smaller than their real one, so it can be true
+        /// for a craft a camera at the same place would find just behind the
+        /// limb. Always false for <see cref="CraftKnowledgeState.Unknown"/>, so it
+        /// never reveals a craft the centre has not learned of.
         /// </summary>
         public bool LineOfSight { get; }
     }

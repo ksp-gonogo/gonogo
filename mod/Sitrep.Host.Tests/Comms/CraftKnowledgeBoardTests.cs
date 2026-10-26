@@ -46,13 +46,12 @@ namespace Sitrep.Host.Tests.Comms
             host.State!(Orbiting());
             host.Reach!(new CraftReach(Probe, 1000.0, Reached));
 
-            board.Note(new[] { Home }, hearing, OutOfView);
+            board.Note(new[] { Home }, hearing, 1100.0, OutOfView);
             var reading = Read(board, 1060.0);
 
             Assert.Equal(CraftKnowledgeState.Heard, reading.State);
             Assert.Equal(1000.0, reading.LastKnownUt);
             Assert.Equal(18_000.0, reading.UncertaintyM!.Value, 1);
-            Assert.False(reading.LineOfSight);
         }
 
         [Fact]
@@ -63,7 +62,7 @@ namespace Sitrep.Host.Tests.Comms
             host.Reach!(new CraftReach(Probe, 1000.0, Reached));
             host.Reach!(new CraftReach(Probe, 1100.0, Reached));
 
-            board.Note(new[] { Home }, hearing, OutOfView);
+            board.Note(new[] { Home }, hearing, 1100.0, OutOfView);
             var reading = Read(board, 1060.0);
 
             Assert.Equal(CraftKnowledgeState.Modelled, reading.State);
@@ -81,7 +80,7 @@ namespace Sitrep.Host.Tests.Comms
             host.Reach!(new CraftReach(Probe, 1000.0, Reached));
             host.Reach!(new CraftReach(Probe, 1100.0, Reached));
 
-            board.Note(new[] { Home }, hearing, OutOfView);
+            board.Note(new[] { Home }, hearing, 1100.0, OutOfView);
             var reading = Read(board, 1200.0);
 
             Assert.Equal(CraftKnowledgeState.Held, reading.State);
@@ -94,7 +93,7 @@ namespace Sitrep.Host.Tests.Comms
             var (board, hearing, host) = Listening();
             host.State!(Orbiting(airspeed: 1800.0));
 
-            board.Note(new[] { Home }, hearing, OutOfView);
+            board.Note(new[] { Home }, hearing, 1100.0, OutOfView);
             var reading = Read(board, 1200.0);
 
             Assert.Equal(CraftKnowledgeState.Held, reading.State);
@@ -109,36 +108,51 @@ namespace Sitrep.Host.Tests.Comms
             host.State!(CraftState.Landed(Probe, 1000.0, 1, surface, new Dictionary<string, CraftLink>())
                 .WithCapability(new CraftCapability(500.0, 5.0, 0.0, false)));
 
-            board.Note(new[] { Home }, hearing, OutOfView);
+            board.Note(new[] { Home }, hearing, 1100.0, OutOfView);
 
             Assert.Equal(CraftKnowledgeState.Modelled, Read(board, 1200.0).State);
         }
 
         [Fact]
-        public void ACraftNoLinkReachesIsSeenWhileTheCentreHasItInViewAndItsNewestPlaceIsASighting()
+        public void ACraftNoLinkReachesIsSeenWhileItsNewestPlaceIsASightingThatHasReachedTheCentre()
         {
             var (board, hearing, host) = Listening();
             host.State!(Orbiting().Unsettled());
             host.Sighting!(CraftSighting.Of(Probe, 1500.0, null, Orbiting(1500.0).PlaceOnly()));
 
-            board.Note(new[] { Home }, hearing, InView);
-            var seen = Read(board, 1500.0);
-            board.Note(new[] { Home }, hearing, OutOfView);
-            var lost = Read(board, 1500.0);
+            board.Note(new[] { Home }, hearing, 1500.0, InView);
 
+            var seen = Read(board, 1500.0);
             Assert.Equal(CraftKnowledgeState.Seen, seen.State);
-            Assert.True(seen.LineOfSight);
             Assert.Equal(1500.0, seen.LastKnownUt);
+            Assert.True(seen.LineOfSight);
+        }
+
+        [Fact]
+        public void ACraftThatWentBehindABodyIsStillSeenUntilTheLightOfItsGoingHasReachedTheCentre()
+        {
+            var (board, hearing, host) = Listening();
+            host.State!(Orbiting().Unsettled());
+            host.Sighting!(CraftSighting.Of(Probe, 1500.0, null, Orbiting(1500.0).PlaceOnly()));
+            board.Note(new[] { Home }, hearing, 1500.0, InView);
+
+            // It passes behind a body at 1600; its 0.3 s of light reaches the centre at 1600.3.
+            board.Note(new[] { Home }, hearing, 1600.0, OutOfView);
+
+            Assert.Equal(CraftKnowledgeState.Seen, Read(board, 1600.0).State);
+            Assert.True(Read(board, 1600.2).LineOfSight);
+            Assert.Equal(CraftKnowledgeState.Seen, Read(board, 1600.2).State);
+            var lost = Read(board, 1600.4);
             Assert.Equal(CraftKnowledgeState.Modelled, lost.State);
             Assert.False(lost.LineOfSight);
         }
 
         [Fact]
-        public void ACentreThatKnowsNothingOfACraftReadsUnknownWithNoLineOfSightEvenWhenOneExists()
+        public void ACentreThatKnowsNothingOfACraftReadsUnknownEvenWhenALineToItExists()
         {
             var (board, hearing, _) = Listening();
 
-            board.Note(new[] { Home }, hearing, InView);
+            board.Note(new[] { Home }, hearing, 1000.0, InView);
 
             Assert.Same(CraftKnowledgeReading.Unknown, Read(board, 1000.0));
             Assert.Same(CraftKnowledgeReading.Unknown, board.KnowledgeAt("ground:elsewhere", "probe", 1000.0));

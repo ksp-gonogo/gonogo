@@ -1117,7 +1117,7 @@ namespace Sitrep.Host.Comms
             NoteGroundCentres(looked);
             SayCentreReports(looked);
             JudgeAtHome(looked.Ut);
-            Knowledge.Note(listening, _hearing, looked.Craft.Sight);
+            Knowledge.Note(listening, _hearing, looked.Ut, looked.Craft.Sight);
             KeepHeardForSave(listening);
             // What is kept for a save is now what the centres were given back and have heard since.
             System.Threading.Volatile.Write(ref _restore, null);
