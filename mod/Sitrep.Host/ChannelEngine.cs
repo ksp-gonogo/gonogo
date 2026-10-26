@@ -176,6 +176,11 @@ namespace Sitrep.Host
             {
                 return HomeCommandNode;
             }
+            var lensNode = LensNodeFor(topic);
+            if (lensNode != null)
+            {
+                return lensNode;
+            }
             foreach (var prefix in _perVesselNamespacePrefixes)
             {
                 if (!topic.StartsWith(prefix, StringComparison.Ordinal))
@@ -4104,6 +4109,20 @@ namespace Sitrep.Host
                     + " a fact held at home reaches each vantage after its delay to home, and TrueNow says it reaches every vantage at once",
                     nameof(template));
             }
+            if (template.PerLensNode && (template.PerVesselNode || template.HeldAtHome))
+            {
+                throw new ArgumentException(
+                    "namespace \"" + prefix + "\" declares PerLensNode with PerVesselNode or HeldAtHome, which contradict:"
+                    + " a topic records on one node, and a lens's node is the place the lens stands",
+                    nameof(template));
+            }
+            if (template.PerLensNode && template.LensSiteForKey == null)
+            {
+                throw new ArgumentException(
+                    "namespace \"" + prefix + "\" declares PerLensNode without LensSiteForKey:"
+                    + " nothing says where a lens key stands, so its topics would be delayed as the active craft's",
+                    nameof(template));
+            }
             if (template.HeldAtHome && template.PerVesselNode)
             {
                 throw new ArgumentException(
@@ -4122,6 +4141,10 @@ namespace Sitrep.Host
             if (template.PerVesselNode && !_perVesselNamespacePrefixes.Contains(prefix))
             {
                 _perVesselNamespacePrefixes.Add(prefix);
+            }
+            if (template.PerLensNode && !_perLensNamespacePrefixes.Contains(prefix))
+            {
+                _perLensNamespacePrefixes.Add(prefix);
             }
             if (template.HeldAtHome && !_heldAtHomePrefixes.Contains(prefix))
             {
@@ -8495,7 +8518,7 @@ namespace Sitrep.Host
         private void CleanUpSubjectIfGone(string topic)
         {
             var node = NodeFor(topic);
-            if (node == NodeId || node == HomeCommandNode)
+            if (node == NodeId || node == HomeCommandNode || node.StartsWith(CentreNodePrefix, StringComparison.Ordinal))
             {
                 return;
             }
@@ -9596,6 +9619,7 @@ namespace Sitrep.Host
                 _emitter.Reset(tick.Ut);
                 Cadence.ResetTimeline();
                 _lastWarmUt.Clear();
+                ResetLensDelivery();
                 // Drop every un-revealed buffered sample: they belong to the
                 // abandoned pre-rewind timeline and must never surface on the
                 // new one (the reveal-gate analogue of ResetTimeline dropping
@@ -9779,6 +9803,7 @@ namespace Sitrep.Host
             // the sampled-source handles (SetVesselDelay) and the delay refresh
             // above run before it is known. See RefreshLedgerDelays.
             RefreshLedgerDelays();
+            AdvanceLensDelivery(tick.Ut);
             SayCraftReach();
             NoteActivePathMeasurement(tick);
             if (_activeVesselSwitched)

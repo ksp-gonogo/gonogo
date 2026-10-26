@@ -333,6 +333,35 @@ namespace Sitrep.Contract
         public Func<string, string?>? VesselIdForKey { get; set; }
 
         /// <summary>
+        /// Declares that topics under this dynamic namespace are keyed by lens,
+        /// <c>&lt;prefix&gt;&lt;key&gt;.&lt;field&gt;</c>, so each topic, and any
+        /// command whose Subject names one, takes the delay from the command
+        /// centre to the place that lens stands: a ground station, or a craft.
+        /// Requires <see cref="LensSiteForKey"/>.
+        ///
+        /// <para>Without it a lens on a craft or at a ground station is delayed
+        /// as the active craft, so a probe lens at Duna is aimed at KSC's near-zero
+        /// delay, and a lens at a ground station has no delay at all. Useful for a
+        /// camera Uplink whose commands must reach each lens after the delay
+        /// to that lens. Cannot be combined with <see cref="PerVesselNode"/> or
+        /// <see cref="HeldAtHome"/>.</para>
+        /// </summary>
+        public bool PerLensNode { get; set; } = false;
+
+        /// <summary>
+        /// Turns a lens key into the id of the command centre the lens stands at:
+        /// <c>"ground:&lt;name&gt;"</c> for a lens at a ground station, or
+        /// <c>"vessel:&lt;guid&gt;"</c> for a lens on a craft, the same ids
+        /// <c>commandCentre.roster</c> lists. Return null for a key that cannot be
+        /// placed yet, and the topic is delayed as the active craft's.
+        ///
+        /// <para><b>Must not read live game state.</b> It is called off the main
+        /// thread while resolving a topic, so maintain a snapshot during the
+        /// Uplink's own main-thread pass and have this read that.</para>
+        /// </summary>
+        public Func<string, string?>? LensSiteForKey { get; set; }
+
+        /// <summary>
         /// Whether this channel's samples are held aboard the subject through a
         /// loss of signal and replayed on reacquisition, rather than discarded.
         ///
