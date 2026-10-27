@@ -119,8 +119,8 @@ namespace Sitrep.Host
         /// <summary>
         /// The newest instant of its commanding centre's knowledge that has reached every
         /// lens in <paramref name="scope"/>, or null while none has. Never moves back, and
-        /// holds still while a path to any lens is lost or unmeasured, and for one delay
-        /// after it returns (see <see cref="UplinkFrontier"/>).
+        /// holds still while a path to any lens is lost, and for one delay after a path is
+        /// first seen or returns (see <see cref="UplinkFrontier"/>).
         /// </summary>
         public double? LensKnowledgeUt(string scope)
         {
