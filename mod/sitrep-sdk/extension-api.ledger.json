@@ -12509,6 +12509,10 @@
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
       {
+        "key": "sitrep-sdk . TinyControl#held?",
+        "note": "The words saying the state a tiny control shows is the last reading, drawn with the held mark on the button. Optional, so a control without it is drawn as before"
+      },
+      {
         "key": "sitrep-sdk . TinyEssential#mark?",
         "note": "The mark a tiny essential states for its figure where its Reading cannot say it: how current the figure is and whether it is of something other than its label names, drawn with the marks a full readout uses. Optional, so an essential without it is drawn as before"
       },
@@ -14299,6 +14303,10 @@
       {
         "key": "sitrep-sdk ./registry ~ThemeTypography#size",
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TinyControl#held?",
+        "note": "The words saying the state a tiny control shows is the last reading, drawn with the held mark on the button. Optional, so a control without it is drawn as before"
       },
       {
         "key": "sitrep-sdk ./registry ~TinyEssential#mark?",
