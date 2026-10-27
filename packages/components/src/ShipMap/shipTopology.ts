@@ -68,6 +68,8 @@ export interface ShipMapPart {
    * part that is not a plate, which is drawn as a plain box.
    */
   tipSign?: 1 | -1;
+  /** For a wing whose tip chord is cut from its trailing edge, the share of the chord cut there; its leading edge stays straight. */
+  trailingCut?: number;
   /**
    * For a landing leg or gear with its strut folded away: the stowed strut
    * as a capsule, in metres in the drawn box's frame (x across, y up the
@@ -278,6 +280,16 @@ function stowedStrutLocal(
   return { from, to, width: thin.size };
 }
 
+/**
+ * Stock delta wings whose trailing edge sweeps forward toward the tip, so the
+ * control surfaces hinged on it meet the wing. The wire box carries no
+ * outline to show it, so the share of the chord cut at the tip is known by
+ * part name.
+ */
+const TRAILING_CUT_PARTS: Readonly<Record<string, number>> = {
+  sweptWing2: 0.35,
+};
+
 interface Planform {
   rotationRad: number;
   tipSign: 1 | -1;
@@ -287,6 +299,8 @@ interface Planform {
 const CHORD_ACROSS_SCREEN = 0.1;
 /** A plate counts as a wing when its thin side is under this share of its next longest side. */
 const PLATE_THICKNESS_RATIO = 0.35;
+/** Two sides this close in length, the thin one at least this share of the other, are a round body (a tail cone), not a plate. */
+const ROUND_BODY_RATIO = 0.8;
 /** The root edge sits at the part's origin when the box centre is offset from it by at least this share of the span. */
 const ROOT_OFFSET_SHARE = 0.1;
 /** Two sides differ in how far the origin sits from their middle by at least this much to name the span. */
@@ -314,7 +328,11 @@ function planformOf(
     { dir: axes.forward, size: size.z, mid: offset.z },
   ].sort((a, b) => a.size - b.size);
   const [thin, first, second] = sides;
-  if (thin.size > second.size * PLATE_THICKNESS_RATIO || second.size < 1e-6) {
+  if (
+    thin.size > first.size * ROUND_BODY_RATIO ||
+    thin.size > second.size * PLATE_THICKNESS_RATIO ||
+    second.size < 1e-6
+  ) {
     return null;
   }
   const rootness = (s: { size: number; mid: number }) =>
@@ -470,6 +488,7 @@ export function buildShipMapPart(
     latHalfExtent: halfExtentAlong(cos, -sin),
     axialHalfExtent: halfExtentAlong(sin, cos),
     tipSign: planform?.tipSign,
+    trailingCut: planform ? TRAILING_CUT_PARTS[part.name] : undefined,
     stowedStrut,
     silhouette: silhouette.length ? silhouette : undefined,
     anchor,

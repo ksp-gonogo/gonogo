@@ -312,3 +312,31 @@ describe("captured Learstar orbiter turned", () => {
     expect((svg.match(/data-role="strut-anchor"/g) ?? []).length).toBe(3);
   });
 });
+
+describe("captured Learstar rear wing", () => {
+  const parts = craftParts(wireOf("learstar-orbiter"));
+
+  it("cuts the rear wing's tip from its trailing edge, so the elevons hinged on it sit on its edge", () => {
+    const rear = parts.filter((p) => p.name === "sweptWing2");
+    expect(rear.length).toBe(2);
+    for (const wing of rear) expect(wing.trailingCut, wing.name).toBe(0.35);
+  });
+
+  it("keeps the generic leading-edge cut on every other wing", () => {
+    for (const wing of parts.filter(
+      (p) => p.type === "fin" && p.name !== "sweptWing2",
+    )) {
+      expect(wing.trailingCut, wing.name).toBeUndefined();
+    }
+  });
+});
+
+describe("captured Seahawk tail cone", () => {
+  it("draws the round tail fuselage as its box, not as a wing planform", () => {
+    const cone = craftParts(wireOf("seahawk-gear-up")).find(
+      (p) => p.name === "airplaneTailB",
+    );
+    expect(cone).toBeDefined();
+    expect(cone?.tipSign).toBeUndefined();
+  });
+});

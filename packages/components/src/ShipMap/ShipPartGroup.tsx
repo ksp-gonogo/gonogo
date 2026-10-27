@@ -142,6 +142,7 @@ export function ShipPartGroup({
         chuteStateOf(p.partState),
         gearDown,
         marks,
+        p.trailingCut,
       )}
       {renderPartStateOverlays(p.partState, box, cam.zoom, throttle)}
       {tint && (

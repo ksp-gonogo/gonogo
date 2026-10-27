@@ -93,6 +93,7 @@ export function renderPartShape(
   chuteState?: string,
   gearDown = true,
   marks: PartMarks = {},
+  trailingCut = 0,
 ) {
   const stroke = isHot
     ? "var(--color-tag-yellow-fg)"
@@ -242,13 +243,14 @@ export function renderPartShape(
       );
     }
     case "fin": {
-      /* A wing drawn from its bounding box alone, which carries no sweep: the leading edge is screen-up, the full-chord root edge is on the side away from `outerSign` and the tip chord is cut slightly short from the leading edge, so the tip side and the nose-ward edge both read without implying a sweep the box does not hold. */
+      /* A wing drawn from its bounding box alone, which carries no sweep: the leading edge is screen-up (a part with `trailingCut` has a straight leading edge and its tip chord cut by that share from the trailing edge instead), the full-chord root edge is on the side away from `outerSign` and the tip chord is cut slightly short from the leading edge, so the tip side and the nose-ward edge both read without implying a sweep the box does not hold. */
       const rootX = outerSign >= 0 ? x : x + w;
       const tipX = outerSign >= 0 ? x + w : x;
-      const tipLeadY = y + h * FIN_TIP_TAPER;
+      const tipTop = trailingCut > 0 ? y : y + h * FIN_TIP_TAPER;
+      const tipBottom = y + h * (1 - trailingCut);
       return (
         <polygon
-          points={`${rootX},${y} ${tipX},${tipLeadY} ${tipX},${y + h} ${rootX},${y + h}`}
+          points={`${rootX},${y} ${tipX},${tipTop} ${tipX},${tipBottom} ${rootX},${y + h}`}
           fill={fill}
           stroke={stroke}
           strokeWidth={strokeWidth}
