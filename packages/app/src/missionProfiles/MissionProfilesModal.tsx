@@ -12,11 +12,6 @@ import styled from "styled-components";
 import type { PeerClient } from "../peer/PeerClientContext";
 import { HostLayoutsSection } from "./HostLayoutsSection";
 import {
-  DEFAULT_TEMPLATES,
-  type LayoutTemplate,
-  snapshotOf,
-} from "./layoutTemplates";
-import {
   useMissionProfiles,
   useMissionProfilesService,
 } from "./MissionProfilesContext";
@@ -29,13 +24,6 @@ import {
 import type { ProfileDashboard } from "./ProfileDashboard";
 import { ProfileInputSlot } from "./ProfileInputSlot";
 import { useHistoryState } from "./useProfileDashboard";
-
-/** What a new layout starts from: nothing, the dashboard on screen, or a starter. */
-type NewSource = "empty" | "current" | `template:${string}`;
-
-function templateFor(source: NewSource): LayoutTemplate | undefined {
-  return DEFAULT_TEMPLATES.find((t) => `template:${t.name}` === source);
-}
 
 interface MissionProfilesModalProps {
   /** The dashboard the layouts belong to: switched, copied and undone from here. */
@@ -62,7 +50,6 @@ export function MissionProfilesModal({
   const currentId = svc.getCurrentId();
   const { canUndo, canRedo } = useHistoryState(dashboard);
   const [newName, setNewName] = useState("");
-  const [newSource, setNewSource] = useState<NewSource>("empty");
   const [newBindings, setNewBindings] = useState<BindableScene[]>([]);
   const [newAutoSwitch, setNewAutoSwitch] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<MissionProfile | null>(
@@ -73,36 +60,12 @@ export function MissionProfilesModal({
   const [renameDraft, setRenameDraft] = useState("");
   const [inputNotice, setInputNotice] = useState<string | null>(null);
 
-  const chooseSource = (source: NewSource) => {
-    setNewSource(source);
-    const template = templateFor(source);
-    if (!template) return;
-    // A starter brings the scenes it is meant for; both stay editable.
-    setNewBindings([...template.scenes]);
-    setNewAutoSwitch(true);
-    if (!newName.trim() || DEFAULT_TEMPLATES.some((t) => t.name === newName)) {
-      setNewName(template.name);
-    }
-  };
-
   const handleCreate = () => {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    const scenes = newBindings;
     const auto = newBindings.length > 0 && newAutoSwitch;
-    if (newSource === "current") {
-      dashboard.saveAs(trimmed, scenes, auto);
-    } else {
-      const template = templateFor(newSource);
-      dashboard.createLayout(
-        trimmed,
-        template ? snapshotOf(template) : undefined,
-        scenes,
-        auto,
-      );
-    }
+    dashboard.createLayout(trimmed, undefined, newBindings, auto);
     setNewName("");
-    setNewSource("empty");
     setNewBindings([]);
     setNewAutoSwitch(false);
   };
@@ -283,29 +246,6 @@ export function MissionProfilesModal({
             Create layout
           </CreateButton>
         </SaveRow>
-        <BindingsField role="group" aria-label="Start from">
-          <BindingsLabel>Start from</BindingsLabel>
-          <BindingsRow>
-            <FilterChip
-              label="Empty"
-              selected={newSource === "empty"}
-              onToggle={() => chooseSource("empty")}
-            />
-            <FilterChip
-              label="This dashboard"
-              selected={newSource === "current"}
-              onToggle={() => chooseSource("current")}
-            />
-            {DEFAULT_TEMPLATES.map((t) => (
-              <FilterChip
-                key={t.name}
-                label={`${t.name} starter`}
-                selected={newSource === `template:${t.name}`}
-                onToggle={() => chooseSource(`template:${t.name}`)}
-              />
-            ))}
-          </BindingsRow>
-        </BindingsField>
         <BindingsField>
           <BindingsLabel>Offer this layout when entering</BindingsLabel>
           <BindingsRow>

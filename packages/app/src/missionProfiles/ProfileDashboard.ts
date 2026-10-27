@@ -211,15 +211,6 @@ export class ProfileDashboard {
     return true;
   }
 
-  /** Copies what is on screen into a new named profile and makes it current. */
-  saveAs(
-    name: string,
-    sceneBindings: BindableScene[] = [],
-    autoSwitch = false,
-  ): MissionProfile {
-    return this.createLayout(name, this.shown, sceneBindings, autoSwitch);
-  }
-
   /**
    * Makes a new named profile holding `content` (an empty dashboard when
    * omitted), shows it and makes it current. One undo step returns to the

@@ -145,21 +145,6 @@ describe("MissionProfilesModal", () => {
       ).toHaveLength(1);
     });
 
-    it("copies the dashboard under a name when started from this dashboard", () => {
-      const { svc, a } = renderTwo();
-
-      fireEvent.change(screen.getByPlaceholderText(/Launch, Orbit/), {
-        target: { value: "Docking" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: "This dashboard" }));
-      fireEvent.click(screen.getByRole("button", { name: "Create layout" }));
-
-      const copy = svc.list().find((p) => p.name === "Docking");
-      expect(copy?.items).toEqual(ITEMS);
-      expect(svc.getCurrentId()).toBe(copy?.id);
-      expect(svc.get(a.id)?.name).toBe("Launch");
-    });
-
     it("creates an empty layout in one step and shows it", () => {
       const { svc } = renderTwo();
 
@@ -172,27 +157,6 @@ describe("MissionProfilesModal", () => {
       expect(blank?.items).toEqual([]);
       expect(blank?.layout).toEqual([]);
       expect(svc.getCurrentId()).toBe(blank?.id);
-    });
-
-    it("starts from a starter with its scenes and automatic switching on", () => {
-      const { svc } = renderTwo();
-
-      fireEvent.click(
-        screen.getByRole("button", { name: "Space Center starter" }),
-      );
-      expect(screen.getByPlaceholderText(/Launch, Orbit/)).toHaveValue(
-        "Space Center",
-      );
-      fireEvent.click(screen.getByRole("button", { name: "Create layout" }));
-
-      const made = svc.list().find((p) => p.name === "Space Center");
-      expect(made?.items.length).toBeGreaterThan(0);
-      expect(made?.sceneBindings).toEqual([
-        "SpaceCenter",
-        "TrackingStation",
-        "Editor",
-      ]);
-      expect(made?.autoSwitch).toBe(true);
     });
 
     it("duplicates a layout under a copy name without its scenes", () => {
