@@ -29,6 +29,10 @@ plantContribution("comm-signal.hop-rates", {
     })) ?? null,
 });
 
+plantContribution("comm-signal.link-rate", {
+  compute: () => [{ bitsPerSec: 9_600, target: "comm-signal.link-rate" }],
+});
+
 /** The names of the kerbals aboard, as the crew roster reports them. */
 function crewNames(
   crew: { crew: { name?: string | null }[] } | null | undefined,

@@ -19,6 +19,7 @@ export const KNOWN_SLOT_IDS = [
   "astronaut-complex.readouts",
   "astronaut-complex.tab",
   "comm-signal.hop-rates",
+  "comm-signal.link-rate",
   "comm-signal.sections",
   "crew-status.avatar",
   "crew-status.meters",

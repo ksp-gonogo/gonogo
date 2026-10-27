@@ -8175,6 +8175,10 @@
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
       {
+        "key": "sitrep-sdk . ContributionRegistry#\"comm-signal.link-rate\"",
+        "note": "CommNet Signal gains one data rate and target slot that any Uplink can fill, by priority"
+      },
+      {
         "key": "sitrep-sdk . ContributionRegistry#\"strategies.screens\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -9227,6 +9231,10 @@
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
       {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"comm-signal.link-rate\"",
+        "note": "CommNet Signal gains one data rate and target slot that any Uplink can fill, by priority"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ContributionRegistry#\"strategies.screens\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -9835,6 +9843,10 @@
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
       {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"comm-signal.link-rate\"",
+        "note": "CommNet Signal gains one data rate and target slot that any Uplink can fill, by priority"
+      },
+      {
         "key": "sitrep-sdk ./spine ~ContributionRegistry#\"strategies.screens\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -10121,6 +10133,10 @@
       {
         "key": "sitrep-sdk ./testing ~ContributionRegistry#\"administration-building.screens\"",
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"comm-signal.link-rate\"",
+        "note": "CommNet Signal gains one data rate and target slot that any Uplink can fill, by priority"
       },
       {
         "key": "sitrep-sdk ./testing ~ContributionRegistry#\"strategies.screens\"",
@@ -10793,6 +10809,10 @@
       {
         "key": "ui-kit . ContributionRegistry#\"administration-building.screens\"",
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"comm-signal.link-rate\"",
+        "note": "CommNet Signal gains one data rate and target slot that any Uplink can fill, by priority"
       },
       {
         "key": "ui-kit . ContributionRegistry#\"strategies.screens\"",
@@ -11671,6 +11691,22 @@
       {
         "key": "sitrep-sdk . CommSignalHopRateEntry#held?",
         "note": "CommSignalHopRateEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk . CommSignalLinkRateEntry",
+        "note": "The entry a mod contributes to the new CommNet Signal data rate and target slot"
+      },
+      {
+        "key": "sitrep-sdk . CommSignalLinkRateEntry#bitsPerSec",
+        "note": "CommNet Signal's rate row takes the data rate in bits per second"
+      },
+      {
+        "key": "sitrep-sdk . CommSignalLinkRateEntry#held?",
+        "note": "The entry carries the reading its rate came from, so the rate is drawn held when the reading is held"
+      },
+      {
+        "key": "sitrep-sdk . CommSignalLinkRateEntry#target?",
+        "note": "CommNet Signal's target row takes what the first hop ends at, when the mod names it"
       },
       {
         "key": "sitrep-sdk . CommandFailure",
@@ -13295,6 +13331,22 @@
       {
         "key": "sitrep-sdk ./registry ~CommSignalHopRateEntry#held?",
         "note": "CommSignalHopRateEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommSignalLinkRateEntry",
+        "note": "The entry a mod contributes to the new CommNet Signal data rate and target slot"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommSignalLinkRateEntry#bitsPerSec",
+        "note": "CommNet Signal's rate row takes the data rate in bits per second"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommSignalLinkRateEntry#held?",
+        "note": "The entry carries the reading its rate came from, so the rate is drawn held when the reading is held"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommSignalLinkRateEntry#target?",
+        "note": "CommNet Signal's target row takes what the first hop ends at, when the mod names it"
       },
       {
         "key": "sitrep-sdk ./registry ~CommandArgsMap",
@@ -15153,6 +15205,22 @@
         "note": "CommSignalHopRateEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
       {
+        "key": "sitrep-sdk ./spine ~CommSignalLinkRateEntry",
+        "note": "The entry a mod contributes to the new CommNet Signal data rate and target slot"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~CommSignalLinkRateEntry#bitsPerSec",
+        "note": "CommNet Signal's rate row takes the data rate in bits per second"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~CommSignalLinkRateEntry#held?",
+        "note": "The entry carries the reading its rate came from, so the rate is drawn held when the reading is held"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~CommSignalLinkRateEntry#target?",
+        "note": "CommNet Signal's target row takes what the first hop ends at, when the mod names it"
+      },
+      {
         "key": "sitrep-sdk ./spine ~ContractReckonableRow",
         "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
       },
@@ -15551,6 +15619,22 @@
       {
         "key": "sitrep-sdk ./testing ~CommSignalHopRateEntry#held?",
         "note": "CommSignalHopRateEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommSignalLinkRateEntry",
+        "note": "The entry a mod contributes to the new CommNet Signal data rate and target slot"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommSignalLinkRateEntry#bitsPerSec",
+        "note": "CommNet Signal's rate row takes the data rate in bits per second"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommSignalLinkRateEntry#held?",
+        "note": "The entry carries the reading its rate came from, so the rate is drawn held when the reading is held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommSignalLinkRateEntry#target?",
+        "note": "CommNet Signal's target row takes what the first hop ends at, when the mod names it"
       },
       {
         "key": "sitrep-sdk ./testing ~CommandFailure",

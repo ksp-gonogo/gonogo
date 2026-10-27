@@ -144,6 +144,9 @@ export function CommSignalComponent({
     return { rateByHopId: rates, rateMarkingByHopId: markings };
   }, [hopRateEntries]);
 
+  // One Uplink fills the rate and target rows; the slot's own priority band picks which.
+  const linkRate = useContributions("comm-signal.link-rate")[0];
+
   /*
    * The empty state is for never-arrived only. A panel that has something
    * must not hide it when its verdicts are held: it renders with null lines
@@ -264,6 +267,7 @@ export function CommSignalComponent({
                     delay={delay}
                     noSignal={noSignal}
                     quantity={quantity}
+                    linkRate={connected === false ? undefined : linkRate}
                   />
                 </Grid>
               )}

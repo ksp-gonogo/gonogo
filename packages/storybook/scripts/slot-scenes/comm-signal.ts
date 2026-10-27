@@ -18,4 +18,12 @@ export const SCENES: readonly ExtensionScene[] = [
     w: 8,
     h: 10,
   },
+  {
+    id: "planted-slot:comm-signal.link-rate",
+    widgetId: "comm-signal",
+    fixture:
+      "packages/components/src/CommSignal/__fixtures__/strong-direct-ksc.json",
+    w: 6,
+    h: 7,
+  },
 ];

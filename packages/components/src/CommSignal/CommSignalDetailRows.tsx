@@ -1,5 +1,16 @@
-import { delayVisibility, type Value } from "@ksp-gonogo/sitrep-sdk";
-import { Countdown, NULL_DISPLAY, Text } from "@ksp-gonogo/ui-kit";
+import {
+  type CommSignalLinkRateEntry,
+  delayVisibility,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
+import {
+  Countdown,
+  heldMarking,
+  NULL_DISPLAY,
+  Text,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import type { ControlDescription } from "./signalVerdict";
 import { CAPTION_LABEL_STYLE, TONE_TEXT_COLOR } from "./tones";
 
@@ -9,6 +20,7 @@ export function CommSignalDetailRows({
   delay,
   noSignal,
   quantity,
+  linkRate,
 }: {
   control: ControlDescription;
   delay: Value<"s"> | null | undefined;
@@ -16,6 +28,8 @@ export function CommSignalDetailRows({
   noSignal?: boolean;
   /** What the strength measures; the row is left out where the headline figure already says it. */
   quantity?: string | null;
+  /** The contributed data rate and target; the rows are withheld with the control row, and when none is contributed. */
+  linkRate?: CommSignalLinkRateEntry;
 }) {
   return (
     <>
@@ -46,6 +60,27 @@ export function CommSignalDetailRows({
           <Text size="sm">
             {delay == null ? NULL_DISPLAY : <Countdown value={delay} precise />}
           </Text>
+        </>
+      )}
+      {linkRate !== undefined && !noSignal && (
+        <>
+          <Text level="muted" size="xs" style={CAPTION_LABEL_STYLE}>
+            Data rate
+          </Text>
+          <Text size="sm">
+            <Unit
+              value={value("bit/s", linkRate.bitsPerSec)}
+              marked={heldMarking(linkRate.held)}
+            />
+          </Text>
+          {linkRate.target !== undefined && (
+            <>
+              <Text level="muted" size="xs" style={CAPTION_LABEL_STYLE}>
+                Target
+              </Text>
+              <Text size="sm">{linkRate.target}</Text>
+            </>
+          )}
         </>
       )}
     </>

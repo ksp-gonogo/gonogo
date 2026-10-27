@@ -22,7 +22,7 @@ registerComponent<CommSignalConfig>({
   },
   augmentSlots: ["comm-signal.sections"],
   // A contribution only computes for a slot its widget declares.
-  contributionSlots: ["comm-signal.hop-rates"],
+  contributionSlots: ["comm-signal.hop-rates", "comm-signal.link-rate"],
   // Connectivity is the freeze-exempt `comms.link`; `vessel.comms` holds its last value through a blackout.
   channels: commSignalTopics.channels,
   ...read,

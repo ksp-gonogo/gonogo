@@ -159,6 +159,39 @@ export interface CommSignalHopRateEntry {
 }
 
 /**
+ * The rate the craft sends data to the command centre at, and where the first
+ * hop of the route ends, contributed to `comm-signal.link-rate`.
+ *
+ * CommNet Signal draws one "Data rate" row from the first entry and, when
+ * `target` is given, a "Target" row beneath it. The rate is drawn through the
+ * unit system as bits per second, so a contributor passes the number and never
+ * formats it. When several Uplinks contribute, only the highest `priority` band
+ * runs, so the comms mod that models the rate in most detail wins over one that
+ * reads a simpler figure.
+ * Useful for showing the operator how fast the craft can send science and
+ * telemetry home, and who it is talking to.
+ *
+ * @category Widget slots
+ */
+export interface CommSignalLinkRateEntry {
+  /** The data rate from the craft to the command centre, in bits per second. */
+  bitsPerSec: number;
+  /**
+   * What the first hop of the route ends at, as the contributing mod names it,
+   * such as `"DSN: KSC"` or a relay's name. Leave it out when the mod does not
+   * say; the row is then not drawn.
+   */
+  target?: string;
+  /**
+   * The reading the rate was read from, or just its grade: the reading of the
+   * Topic your own mod publishes the rate on, as the contribution's `compute`
+   * received it. Only a held reading changes anything, so it can be passed
+   * unconditionally; while it is held the rate is drawn with the held mark.
+   */
+  held?: HeldGrade | Reading<unknown>;
+}
+
+/**
  * How strongly a Tracking Station entity is drawn when its style names no tone
  * or colour: `"faint"` is dim, `"normal"` is the default, `"bright"` stands out.
  * Useful for dimming or highlighting an entity without choosing a colour. Used
@@ -775,6 +808,18 @@ declare module "./types" {
      */
     "comm-signal.hop-rates": {
       entry: CommSignalHopRateEntry;
+    };
+    /**
+     * The data rate from the craft to the command centre, and the target of the
+     * first hop, as one "Data rate" and one "Target" row in CommNet Signal's
+     * detail grid, for a mod that models either. Only the highest `priority`
+     * band draws and the first entry of that band is used, so a comms mod that
+     * models the link in detail takes the slot from one that reads a simpler
+     * figure. A contribution whose `requires` Domain is absent still holds its
+     * band, as for every slot. Returns {@link CommSignalLinkRateEntry} entries.
+     */
+    "comm-signal.link-rate": {
+      entry: CommSignalLinkRateEntry;
     };
     /**
      * Screens of the Administration Building widget, each

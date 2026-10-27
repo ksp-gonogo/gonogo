@@ -8,6 +8,7 @@ import type {
   ContributionRegistry as CoreContributionRegistry,
 } from "@ksp-gonogo/core";
 import type {
+  CommSignalLinkRateEntry,
   ContributionEntry as SdkContributionEntry,
   ContributionRegistry as SdkContributionRegistry,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -117,6 +118,33 @@ type _CommSignalHopRatesRealBack = Expect<
   Assignable<
     CommSignalHopRateEntry,
     SdkContributionEntry<"comm-signal.hop-rates">
+  >
+>;
+
+// `comm-signal.link-rate`, checked both directions.
+
+type _CommSignalLinkRate = Expect<
+  Assignable<
+    SdkContributionEntry<"comm-signal.link-rate">,
+    CoreContributionEntry<"comm-signal.link-rate">
+  >
+>;
+type _CommSignalLinkRateBack = Expect<
+  Assignable<
+    CoreContributionEntry<"comm-signal.link-rate">,
+    SdkContributionEntry<"comm-signal.link-rate">
+  >
+>;
+type _CommSignalLinkRateReal = Expect<
+  Assignable<
+    SdkContributionEntry<"comm-signal.link-rate">,
+    CommSignalLinkRateEntry
+  >
+>;
+type _CommSignalLinkRateRealBack = Expect<
+  Assignable<
+    CommSignalLinkRateEntry,
+    SdkContributionEntry<"comm-signal.link-rate">
   >
 >;
 

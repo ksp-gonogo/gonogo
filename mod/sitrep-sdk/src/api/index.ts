@@ -83,6 +83,7 @@ export { useAlarmRequest } from "./alarm-request";
 export type {
   AdministrationBuildingScreenEntry,
   CommSignalHopRateEntry,
+  CommSignalLinkRateEntry,
   CrewRowToneEntry,
   ExperimentsInstrumentEntry,
   ShipMapPartMetaEntry,
