@@ -85,39 +85,9 @@ namespace Gonogo.KSP
             Channels = new List<ChannelDeclaration>(),
         };
 
-        /// <summary>
-        /// Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): degraded while
-        /// contract objectives reach home without their signal delay, because the stock hooks
-        /// could not be installed or Contract Configurator is loaded with no Uplink holding its
-        /// objectives.
-        /// </summary>
-        public UplinkHealth Health() =>
-            ObjectiveDelay.ObjectiveDelayHealth.Of(
-                ContractConfiguratorLoaded(),
-                ObjectiveDelay.ObjectiveDelayLine.IsBound(ObjectiveDelayCapability.ContractConfiguratorOwner),
-                ObjectiveDelay.StockObjectiveHooks.PatchFailure);
-
-        private static bool? _contractConfiguratorLoaded;
-
-        /// <summary>Whether KSP loaded an assembly named for Contract Configurator. Read once: KSP loads no assembly after startup.</summary>
-        private static bool ContractConfiguratorLoaded()
-        {
-            if (_contractConfiguratorLoaded is bool known)
-            {
-                return known;
-            }
-            var loaded = false;
-            foreach (var assembly in AssemblyLoader.loadedAssemblies)
-            {
-                if (assembly != null && string.Equals(assembly.name, ObjectiveDelay.ObjectiveDelayHealth.ContractConfiguratorAssembly, StringComparison.Ordinal))
-                {
-                    loaded = true;
-                    break;
-                }
-            }
-            _contractConfiguratorLoaded = loaded;
-            return loaded;
-        }
+        /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain
+        /// channel uplink is Healthy once it has registered without error.</summary>
+        public UplinkHealth Health() => UplinkHealth.Healthy;
 
         /// <summary>
         /// Declares the exclusive <c>"delayedScience"</c> capability with
@@ -143,17 +113,6 @@ namespace Gonogo.KSP
                 Exclusive = true,
                 SpineCritical = false,
                 Vanilla = _ => new CurrencyDelay.DelayedScienceSinkBackend(),
-            });
-
-            // Contract objectives cross the same delay as the currencies they pay, held by
-            // one line: core's own stock hooks and any Uplink holding a contract mod's
-            // objectives share it, so a deadline hold sees every change on its way home.
-            kernel.RegisterCapability(new CapabilityDescriptor
-            {
-                Id = ObjectiveDelayCapability.CapabilityId,
-                Exclusive = true,
-                SpineCritical = false,
-                Vanilla = _ => new ObjectiveDelay.ObjectiveDelayLineBackend(),
             });
 
             // The other half of the same subsystem, and the reason it is declared
@@ -227,7 +186,6 @@ namespace Gonogo.KSP
             }
 
             HookGameEvents();
-            ObjectiveDelay.StockObjectiveHooks.Install();
         }
 
         /// <summary>

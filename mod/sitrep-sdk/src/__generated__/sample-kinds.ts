@@ -74,7 +74,6 @@ export const GENERATED_CHANNEL_KINDS = {
   "spaceCenter.scene": "discrete",
   "surface.sites": "discrete",
   "system.channels": "discrete",
-  "system.dataRates": "discrete",
   "system.frame": "discrete",
   "system.units": "discrete",
   "system.uplink.gates": "discrete",

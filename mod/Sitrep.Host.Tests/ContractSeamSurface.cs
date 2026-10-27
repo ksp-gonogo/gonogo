@@ -50,7 +50,6 @@ namespace Sitrep.Host.Tests
             "Sitrep.Contract.ISignalSpeed",
             "Sitrep.Contract.ILensSites",
             "Sitrep.Contract.IDelayedScienceSink",
-            "Sitrep.Contract.IObjectiveDelayLine",
         };
 
         private const string Separator = "|";

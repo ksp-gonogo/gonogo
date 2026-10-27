@@ -169,11 +169,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     certification: "enum",
     uts: "ut",
   },
-  "CapRate": {
-    samplesPerSecond: "1",
-    tier: "id",
-    type: "id",
-  },
   "CareerBalances": {
     funds: "funds",
     reputation: "rep",
@@ -225,23 +220,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CareerMode": {
     mode: "enum",
-  },
-  "CareerObjectivePending": {
-    contractId: "id",
-    contractTitle: "text",
-    homeArrivesUt: "ut",
-    key: "id",
-    objective: "text",
-    objectivePath: "id",
-    target: "text",
-    ut: "ut",
-    vesselId: "id",
-    vesselName: "text",
-  },
-  "CareerObjectiveSettled": {
-    key: "id",
-    outcome: "text",
-    ut: "ut",
   },
   "CareerStrategies": {
     activationPatched: "flag",
@@ -686,10 +664,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     stupidity: "ratio",
     trait: "text",
     unavailableReason: "text",
-  },
-  "DataRateTierEntry": {
-    samplesPerSecond: "1",
-    tier: "id",
   },
   "DeactivateStrategyArgs": {
     strategyId: "id",
@@ -1443,11 +1417,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "SetPausedArgs": {
     paused: "flag",
   },
-  "SetRate": {
-    tier: "id",
-    topic: "id",
-    type: "id",
-  },
   "SetSasModeArgs": {
     mode: "enum",
   },
@@ -1545,7 +1514,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "StreamData": {
     topic: "id",
     type: "id",
-    unchanged: "id",
   },
   "Subscribe": {
     topic: "id",
@@ -1585,11 +1553,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     kerbinTime: "flag",
     minuteSeconds: "s",
     yearSeconds: "s",
-  },
-  "TopicDataRate": {
-    samplesPerSecond: "1",
-    tier: "id",
-    topic: "id",
   },
   "TrackingStationDismissArgs": {
     vesselId: "id",
@@ -2574,7 +2537,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     balances: "CareerBalances",
     contracts: "CareerContracts",
     meta: "PayloadMeta",
-    objectivesSettled: "CareerObjectiveSettled[]",
     strategies: "CareerStrategies",
     tech: "CareerTech",
   },
@@ -2727,10 +2689,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "CrewMember": {
     carrying: "InventoryItem[]",
-  },
-  "DataRateReport": {
-    tiers: "DataRateTierEntry[]",
-    topics: "TopicDataRate[]",
   },
   "DelayedObservation": {
     state: "StateVector",
@@ -2983,7 +2941,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     balances: "CareerBalances",
     contracts: "CareerContracts",
     meta: "PayloadMeta",
-    objectivesSettled: "CareerObjectiveSettled[]",
     strategies: "CareerStrategies",
     tech: "CareerTech",
   },

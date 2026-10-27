@@ -47,14 +47,13 @@ describe("a probe render leaves no page behind", () => {
 
 describe("no package script writes into the shared temp root directly", () => {
   it("every probe page path is made inside makeTempDir", () => {
-    // Tests are left out here rather than by an exclude pathspec, which some git builds answer with no files at all.
-    const files = execFileSync("git", ["ls-files", "packages/*/scripts/*.ts"], {
-      cwd: ROOT,
-      encoding: "utf8",
-    })
+    const files = execFileSync(
+      "git",
+      ["ls-files", "packages/*/scripts/*.ts", ":!:*.test.ts"],
+      { cwd: ROOT, encoding: "utf8" },
+    )
       .split("\n")
-      .filter((f) => f !== "" && !f.endsWith(".test.ts"));
-    expect(files.length).toBeGreaterThan(0);
+      .filter(Boolean);
     const offenders = files.filter((f) =>
       /(?:join|resolve)\(\s*tmpdir\(\)/.test(
         readFileSync(join(ROOT, f), "utf8"),

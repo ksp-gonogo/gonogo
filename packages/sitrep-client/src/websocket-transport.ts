@@ -296,10 +296,6 @@ export class WebSocketTransport implements Transport {
 
   /** Topics with a live `subscribe` (no matching `unsubscribe`), re-sent on every fresh open. */
   private readonly subscribedTopics = new Set<string>();
-  /** The rate tier asked for on each subscribed topic, base ones left out, re-sent after the subscribes on every fresh open. */
-  private readonly topicTiers = new Map<string, "fast">();
-  /** The cap last asked for on each tier, re-sent on every connect since the mod drops it with the connection. */
-  private readonly tierCaps = new Map<"base" | "fast", number>();
   /**
    * Command-requests issued while the socket wasn't open, flushed on open.
    * Capped at {@link MAX_PENDING_COMMANDS}; see {@link send} for what happens
@@ -387,28 +383,12 @@ export class WebSocketTransport implements Transport {
     }
     if (message.type === "unsubscribe") {
       this.subscribedTopics.delete(message.topic);
-      this.topicTiers.delete(message.topic);
       this.sendRaw(message);
       if (this.subscribedTopics.size === 0) this.stopSilenceWatch();
       return;
     }
     if (message.type === "set-vantage") {
       this.selectedVantage = message.centreId;
-      this.sendRaw(message);
-      return;
-    }
-    if (message.type === "set-rate") {
-      if (message.tier === "base") this.topicTiers.delete(message.topic);
-      else this.topicTiers.set(message.topic, message.tier);
-      this.sendRaw(message);
-      return;
-    }
-    if (message.type === "cap-rate") {
-      if (message.samplesPerSecond === undefined) {
-        this.tierCaps.delete(message.tier);
-      } else {
-        this.tierCaps.set(message.tier, message.samplesPerSecond);
-      }
       this.sendRaw(message);
       return;
     }
@@ -536,13 +516,6 @@ export class WebSocketTransport implements Transport {
       // Re-subscribe to everything still active, then drain queued commands.
       for (const topic of this.subscribedTopics) {
         this.sendRaw({ type: "subscribe", topic });
-      }
-      // After the subscribes: the mod ignores a rate for a topic the connection has not subscribed.
-      for (const [topic, tier] of this.topicTiers) {
-        this.sendRaw({ type: "set-rate", topic, tier });
-      }
-      for (const [tier, samplesPerSecond] of this.tierCaps) {
-        this.sendRaw({ type: "cap-rate", tier, samplesPerSecond });
       }
       const queued = this.pendingCommands.splice(0);
       for (const message of queued) this.sendRaw(message);

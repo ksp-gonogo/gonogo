@@ -29,7 +29,6 @@ import type {
   CommandId,
   CommandReply,
 } from "../commands";
-import type { WidgetDataRates } from "../data-rate";
 import type { RailTags } from "../rail-tags";
 import type { HeldGrade, Reading, TopicCurrency } from "../reading";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
@@ -486,19 +485,6 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * unhealthy Uplink serving one never replaces the widget.
    */
   channelsFromConfig?: (config: Config) => readonly string[];
-  /**
-   * The Values or Topics the widget wants sent faster than one sample a second,
-   * by rate tier, while it is open on any screen. A tier names how much the widget
-   * needs the Value, never a rate: the mod sets what each tier is and sends a
-   * Topic at the fastest tier any open widget asks for.
-   */
-  dataRates?: WidgetDataRates;
-  /**
-   * The same as {@link ComponentDefinition.dataRates} for Values that depend on
-   * how the tile is set up, such as the series a graph plots. Combined with
-   * `dataRates` when both are given.
-   */
-  dataRatesFromConfig?: (config: Config) => WidgetDataRates;
   /**
    * The commands the widget's controls can send. A command is a request that
    * changes the game or the dashboard, sent through {@link useCommand} (staging

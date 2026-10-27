@@ -46,8 +46,6 @@ public static class RtConfig
         builder.ExportAsInterface<GameState>().AutoI(false).WithPublicProperties().OverrideName("GameState");
         builder.ExportAsInterface<CommandGroupRequest>().AutoI(false).WithPublicProperties().OverrideName("CommandGroupRequest");
         builder.ExportAsInterface<ClaimRequest>().AutoI(false).WithPublicProperties().OverrideName("ClaimRequest");
-        builder.ExportAsInterface<SetRate>().AutoI(false).WithPublicProperties().OverrideName("SetRate");
-        builder.ExportAsInterface<CapRate>().AutoI(false).WithPublicProperties().OverrideName("CapRate");
         builder.ExportAsInterface<Ping>().AutoI(false).WithPublicProperties().OverrideName("Ping");
         builder.ExportAsInterface<Pong>().AutoI(false).WithPublicProperties().OverrideName("Pong");
         builder.ExportAsInterface<StreamBinary>().AutoI(false).WithPublicProperties().OverrideName("StreamBinary");
@@ -185,9 +183,6 @@ public static class RtConfig
                 // operator cannot infer a distant event from the instant career total.
                 typeof(ScienceCreditEvent),
                 typeof(ReputationLossEvent),
-                // career.objectives.<guid>.pending: a contract objective change on its
-                // way home, revealed at its source vessel's delay to each observer.
-                typeof(CareerObjectivePending),
                 // command args
                 typeof(AddManeuverNodeArgs),
                 typeof(UpdateManeuverNodeArgs),
@@ -264,7 +259,6 @@ public static class RtConfig
                 typeof(CareerContracts),
                 typeof(CareerContract),
                 typeof(CareerContractParameter),
-                typeof(CareerObjectiveSettled),
                 typeof(CareerStrategies),
                 typeof(CareerStrategy),
                 typeof(CareerTech),
@@ -321,10 +315,6 @@ public static class RtConfig
                 // treatment as system.uplink.gates above.
                 typeof(ChannelEmissionEntry),
                 typeof(ChannelEmissionReport),
-                // system.dataRates, each rate tier and the Topics sent above base.
-                typeof(DataRateTierEntry),
-                typeof(TopicDataRate),
-                typeof(DataRateReport),
                 typeof(SystemBodies),
                 typeof(BodyEntry),
                 typeof(OrbitEntry),

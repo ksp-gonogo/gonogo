@@ -653,7 +653,6 @@ registerComponent<LandingStatusConfig>({
     useEssentials: useLandingEssentials,
   },
   channels: ["vessel.flight", "vessel.landing"],
-  dataRates: { fast: ["vessel.flight", "vessel.landing"] },
   ...read,
   defaultConfig: {},
   augmentSlots: ["landing-status.sections", "landing-status.actions"],

@@ -13,11 +13,10 @@ import {
   COMMAND_LOST,
   FaultCode,
   hydratePayload,
-  samplesPerSecondOf,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { ConnStatus, PeerClientService } from "../peer/PeerClientService";
 
-/** Matches the host relay's per-topic history at one sample a second, the most it can replay of one topic; scaled by the topic's rate as the relay's is. */
+/** Matches the host relay's per-topic history, the most it can replay of one topic. */
 const SEEN_FRAMES_PER_TOPIC = 1500;
 
 /**
@@ -139,10 +138,6 @@ export class PeerTransport implements Transport {
   private readonly pendingCommandIds = new Set<string>();
   /** Topics with a live `subscribe` and no matching `unsubscribe`, re-sent on every fresh connection. */
   private readonly subscribedTopics = new Set<string>();
-  /** The latest `system.dataRates` through this transport, which sizes the seen-frame record per topic. */
-  private dataRates: unknown;
-  /** The rate tier asked for on each subscribed topic, base ones left out, replayed after the subscribes on reconnect. */
-  private readonly topicTiers = new Map<string, "fast">();
   /**
    * The newest `game-state` frame. The host tells a station what the game is
    * doing the moment the link opens, and the client that reads it is built
@@ -178,9 +173,6 @@ export class PeerTransport implements Transport {
         // whole promise of the station being the same app.
         if (message.type === "stream-data") {
           if (this.messageListeners.size > 0 && this.isRepeat(message)) return;
-          if (message.topic === "system.dataRates") {
-            this.dataRates = message.payload;
-          }
           hydratePayload(message.payload);
         }
         if (message.type === "stream-binary") {
@@ -330,16 +322,7 @@ export class PeerTransport implements Transport {
     }
     if (message.type === "unsubscribe") {
       this.subscribedTopics.delete(message.topic);
-      this.topicTiers.delete(message.topic);
       this.client.sendSitrepUnsubscribe(message.topic);
-      return;
-    }
-    // A station is slowed by the main screen, which sees its link; it never lowers the mod's rate for every screen.
-    if (message.type === "cap-rate") return;
-    if (message.type === "set-rate") {
-      if (message.tier === "base") this.topicTiers.delete(message.topic);
-      else this.topicTiers.set(message.topic, message.tier);
-      this.client.sendSitrepSetRate(message.topic, message.tier);
       return;
     }
     if (message.type === "set-vantage") {
@@ -410,7 +393,6 @@ export class PeerTransport implements Transport {
     this.lostListeners.clear();
     this.pendingCommandIds.clear();
     this.subscribedTopics.clear();
-    this.topicTiers.clear();
   }
 
   private setStatus(status: TransportStatus): void {
@@ -433,9 +415,6 @@ export class PeerTransport implements Transport {
       }
       for (const topic of this.subscribedTopics) {
         this.client.sendSitrepSubscribe(topic);
-      }
-      for (const [topic, tier] of this.topicTiers) {
-        this.client.sendSitrepSetRate(topic, tier);
       }
     }
 
@@ -489,10 +468,7 @@ export class PeerTransport implements Transport {
         return true;
       }
     }
-    if (
-      seen.size >
-      SEEN_FRAMES_PER_TOPIC * samplesPerSecondOf(this.dataRates, frame.topic)
-    ) {
+    if (seen.size > SEEN_FRAMES_PER_TOPIC) {
       const [oldest] = seen.keys();
       seen.delete(oldest);
     }

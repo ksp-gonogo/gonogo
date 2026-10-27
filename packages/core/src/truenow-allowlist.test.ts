@@ -240,10 +240,8 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // (a host mod's own settings as its Uplink reads them, one channel per
   // Uplink through one declaration: configuration of the simulation on the KSP
   // machine, not a reading about a craft, and settings as a whole Domain is
-  // TrueNow) + system.dataRates (what each rate tier is and which Topics the
-  // mod sends above the base rate: a fact about the stream itself, set by the
-  // screens that are open, so no craft ever held it). 8 explicit declarations.
-  "mod/Sitrep.Host/ChannelEngine.cs": 8,
+  // TrueNow). 7 explicit declarations.
+  "mod/Sitrep.Host/ChannelEngine.cs": 7,
 };
 
 function findRepoRoot(start: string): string {

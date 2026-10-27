@@ -26,7 +26,6 @@ export const GENERATED_TRUENOW_TOPICS = [
   "settings.gonogo",
   "spaceCenter.scene",
   "system.channels",
-  "system.dataRates",
   "system.frame",
   "system.units",
   "system.uplink.gates",
@@ -51,7 +50,6 @@ export type GeneratedTrueNowTopic =
  * to each vantage after that vantage's own delay to the home command.
  */
 export const GENERATED_HELD_AT_HOME_TOPICS = [
-  "career.contractEvent",
   "career.facilities",
   "career.mode",
   "career.status",

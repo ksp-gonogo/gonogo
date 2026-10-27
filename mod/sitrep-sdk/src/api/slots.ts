@@ -436,26 +436,6 @@ export interface ObjectiveSlotItem {
   contractId?: string;
   /** How many objectives it is nested under, so a sub-objective draws indented beneath its parent. Absent for a top-level objective. */
   depth?: number;
-  /**
-   * Set on one objective of a contract a vessel has completed and the home
-   * command has not yet heard of: the widget adds "complete" and when home
-   * hears to that objective's contract line. Absent otherwise, and always
-   * absent at the home command.
-   */
-  awaitingHome?: ObjectiveSlotAwaitingHome;
-}
-
-/**
- * A contract whose objectives a vessel has all met while the home command has
- * not yet heard, and how long until it does. Useful for showing an operator
- * nearer a vessel than home that a contract is done there. Used by the
- * Objectives widget.
- *
- * @category Widget slots
- */
-export interface ObjectiveSlotAwaitingHome {
-  /** Seconds until word of the last change reaches home, or null while a vessel it waits on has no route home. */
-  homeHearsInSeconds: number | null;
 }
 
 /**

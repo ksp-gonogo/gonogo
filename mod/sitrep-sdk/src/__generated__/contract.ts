@@ -373,13 +373,6 @@ export interface CareerStatus
 	*/
 	tech?: CareerTech | null;
 	/**
-	* The latest contract objective changes the home command has acted on, oldest
-	* first: each either took effect or was dropped. A `CareerObjectivePending`
-	* row with the same `Key` is settled once it appears here. `null` outside a
-	* career, and empty while nothing has crossed the delay.
-	*/
-	objectivesSettled?: CareerObjectiveSettled[] | null;
-	/**
 	* Provenance, and always `"game"`: a career belongs to the save, not to
 	* anything flying, so switching vessels cannot change which one is being read.
 	*
@@ -528,9 +521,9 @@ export interface CareerContracts
 * contract finished, and reaches an observer later, at the time that observer
 * would learn of it.
 *
-* A contract is decided at the home command, so the event reaches each
-* observer after its own delay from home: at once at home, later at a crewed
-* vessel or a distant command centre.
+* The event arrives after the active vessel's comms delay, because a contract
+* has no single source vessel to hold it to. It never arrives before that
+* delay.
 *
 * @category Career
 */
@@ -550,78 +543,6 @@ export interface CareerContractEvent
 	agent?: string | null;
 	/** How it finished: `"Completed"` or `"Failed"`. */
 	outcome?: string | null;
-}
-/**
-* One contract objective a vessel has met, lost or failed, while word of it is
-* still on its way to the home command. The contract, and its rewards, move
-* only when that word arrives. Useful for showing an operator nearer the
-* vessel than home what home has yet to hear.
-*
-* Carried on `career.objectives.<guid>.pending` as a delayed, reliable,
-* ordered event stamped at the vessel's own time. An observer keeps the row
-* until `CareerStatus.objectivesSettled` names its
-* `CareerObjectivePending.key`. At the home command the row arrives no earlier
-* than the change itself, so a client shows none there.
-*
-* @category Career
-*/
-export interface CareerObjectivePending
-{
-	/**
-	* Names this change; the same key appears in `CareerStatus.objectivesSettled`
-	* when home acts on it.
-	*/
-	key: string;
-	/**
-	* The contract's id, the same id `CareerContract.id` carries, or `null` when
-	* the contract could not be read.
-	*/
-	contractId?: string | null;
-	/** The contract's display title, or `null` when it could not be read. */
-	contractTitle?: string | null;
-	/** The objective's display title. */
-	objective: string;
-	/**
-	* Where the objective sits in its contract's tree, as the child index at each
-	* level joined by `/`: `"1/0"` is the first child of the contract's second
-	* objective, in the order `CareerContract.parameters` and
-	* `CareerContractParameter.children` list them.
-	*/
-	objectivePath: string;
-	/** What the objective became at the vessel: `"Met"`, `"Unmet"` or `"Failed"`. */
-	target: string;
-	/** The vessel that made the change (`Vessel.id` as a string). */
-	vesselId: string;
-	/**
-	* The vessel's display name when the change was taken, or `null` when it could
-	* not be read.
-	*/
-	vesselName?: string | null;
-	/** Universal Time the change happened at, in the vessel's own time. */
-	ut: Value<"ut">;
-	/**
-	* Universal Time word of the change is due at the home command, or `null`
-	* while the vessel has no route home and home cannot hear of it yet.
-	*/
-	homeArrivesUt?: Value<"ut"> | null;
-}
-/**
-* One entry in `CareerStatus.objectivesSettled`: a contract objective change
-* the home command has acted on.
-*
-* @category Career
-*/
-export interface CareerObjectiveSettled
-{
-	/** The `CareerObjectivePending.key` of the change. */
-	key: string;
-	/**
-	* `"Applied"` when the change took effect, `"Dropped"` when the contract could
-	* no longer take it or its vessel was lost without word of it.
-	*/
-	outcome: string;
-	/** Universal Time home acted on it. */
-	ut: Value<"ut">;
 }
 /**
 * One contract in `CareerContracts.active`, `CareerContracts.offered`,
@@ -3681,50 +3602,6 @@ export interface ReputationLossEvent
 	ut: Value<"ut">;
 }
 /**
-* One rate tier and the samples a game second it stands for now.
-*
-* @category Stream messages
-*/
-export interface DataRateTierEntry
-{
-	/** The tier: `"base"` or `"fast"`. */
-	tier: "base" | "fast";
-	/** Samples a game second at this tier. */
-	samplesPerSecond: Value<"1">;
-}
-/**
-* One Topic sent above the base rate, and the rate it is sent at.
-*
-* @category Stream messages
-*/
-export interface TopicDataRate
-{
-	/** The Topic id. */
-	topic: string;
-	/** The fastest tier any connection asks for on this Topic. */
-	tier: "base" | "fast";
-	/** Samples a game second this Topic is sent at. */
-	samplesPerSecond: Value<"1">;
-}
-/**
-* Wire wrapper for `system.dataRates`: what each rate tier is in samples a
-* game second, and every Topic sent above the base tier now. A Topic not
-* listed is sent at the base tier's rate.
-*
-* A rate is in game time. Under time warp the mod sends at most ten samples a
-* real second, so a Topic can arrive with more game time between samples than
-* its rate gives.
-*
-* @category Stream messages
-*/
-export interface DataRateReport
-{
-	/** Every tier, slowest first. Never null. */
-	tiers: DataRateTierEntry[];
-	/** Every Topic sent above the base tier, sorted by Topic id. Never null. */
-	topics: TopicDataRate[];
-}
-/**
 * One Topic sample as the mod sends it: the Topic id, its payload, and the
 * envelope `StreamData.meta` saying when the payload was true and when it
 * arrived.
@@ -3741,14 +3618,6 @@ export interface StreamData<Payload>
 	payload: Payload;
 	/** When the sample was true, when it arrived, and where it was observed from. */
 	meta: Meta;
-	/**
-	* The payload fields left out of this sample because they hold the same value
-	* as in the last sample of this Topic sent on this connection, such as the
-	* terrain grid on `vessel.landing` between the times it is retaken. A client
-	* keeps each one from that sample. Absent when nothing was left out; a field
-	* the sample holds as `null` is sent, never listed.
-	*/
-	unchanged?: string[];
 }
 /**
 * Something that happened to a subscription, sent on the Topic it happened to.
@@ -4039,55 +3908,6 @@ export interface Unsubscribe
 	type: "unsubscribe";
 	/** The Topic id to stop receiving. */
 	topic: string;
-}
-/**
-* Asks the mod to send a subscribed Topic to this connection at a rate tier.
-* The mod sends each Topic at the fastest tier any connection asks for, and at
-* `"base"` while none asks for more; `system.dataRates` says what each tier is
-* in samples a second and which Topics are above base now.
-*
-* The request lasts until the connection asks again, unsubscribes the Topic or
-* closes. Asking `"base"` withdraws it. A request for a Topic this connection
-* has not subscribed changes nothing, and a tier the mod does not know is read
-* as `"base"`. A Topic an Uplink publishes when it has news, rather than one
-* the mod samples on its own clock, arrives as it did.
-*
-* @category Stream messages
-*/
-export interface SetRate
-{
-	/** The frame type, always `"set-rate"`. */
-	type: "set-rate";
-	/** The subscribed Topic id the tier is for. */
-	topic: string;
-	/** The rate tier: `"base"` or `"fast"`. */
-	tier: "base" | "fast";
-}
-/**
-* Asks the mod to send a rate tier no faster than a given rate while this
-* connection holds the request, for a client that cannot keep up with the tier
-* as it stands. The mod sends the tier at the lowest rate any connection asks
-* for in this way, never below the base tier's rate, and `system.dataRates`
-* reports the rate it sends.
-*
-* The request lasts until the connection sends another for the same tier or
-* closes. A `null` `CapRate.samplesPerSecond` withdraws it. The base tier
-* cannot be lowered, and a request for it or for a tier the mod does not know
-* changes nothing.
-*
-* @category Stream messages
-*/
-export interface CapRate
-{
-	/** The frame type, always `"cap-rate"`. */
-	type: "cap-rate";
-	/** The rate tier to send no faster: `"fast"`. */
-	tier: "base" | "fast";
-	/**
-	* The most samples a game second this connection asks the tier to carry, or
-	* `null` to withdraw the request.
-	*/
-	samplesPerSecond?: number;
 }
 /**
 * Selects the command centre this connection commands from and observes at. It

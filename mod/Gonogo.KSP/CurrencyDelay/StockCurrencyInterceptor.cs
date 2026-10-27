@@ -368,7 +368,6 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 var ut = Planetarium.GetUniversalTime();
                 var baseAmount = ConsumeQueryBase(reason, CurrencyKind.Science, ut, fallback: newTotal - _state.ShadowScience);
-                _state.ProgressionCraftId = FlownCraftId();
                 var decision = _state.OnScienceChanged(ToStockReason(reason), newTotal, baseAmount, ut);
 
                 if (decision.Outcome == ScienceChangeOutcome.Away)
@@ -486,14 +485,12 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 var ut = Planetarium.GetUniversalTime();
                 var baseAmount = ConsumeQueryBase(reason, CurrencyKind.Funds, ut, fallback: newTotal - _state.ShadowFunds);
-                _state.ProgressionCraftId = FlownCraftId();
                 var decision = _state.OnFundsChanged(ToStockReason(reason), newTotal, baseAmount, ut);
 
-                if (!decision.IsAway)
+                if (!decision.IsAway || !_recoveryVesselsById.ContainsKey(decision.OriginVesselId))
                 {
                     return;
                 }
-                var recovered = _recoveryVesselsById.ContainsKey(decision.OriginVesselId);
 
                 _guard.RunGuarded(() => Funding.Instance?.SetFunds(decision.ShadowToRestore, TransactionReasons.None));
 
@@ -520,13 +517,9 @@ namespace Gonogo.KSP.CurrencyDelay
                 // 615-line test file built on the current classification, and
                 // rushing it would trade a real behaviour fix for a pile of
                 // hastily-rewritten assertions.
-                // A world first is news from the craft flown when it was made, and waits for that craft's route home.
-                var delay = recovered
-                    ? KscDelay.Instant
-                    : KscLightTime.ForVesselId(decision.OriginVesselId, CommsCoreUplink.SignalDelayConfig);
                 var credit = StockCurrencyDecision.BuildCredit(
                     CurrencyKind.Funds, decision.BaseAmount, decision.ShadowToRestore, decision.OriginVesselId,
-                    delay, ut, CommsCoreUplink.SignalDelayConfig);
+                    KscDelay.Instant, ut, CommsCoreUplink.SignalDelayConfig);
                 EnqueueCredit(credit);
             }
             catch (Exception ex)
@@ -558,10 +551,8 @@ namespace Gonogo.KSP.CurrencyDelay
                 // vessel to resolve light-time against comes from
                 // _deathLightTimesById below rather than a recovery
                 // ProtoVessel.
-                _state.ProgressionCraftId = FlownCraftId();
-                var stockReason = ToStockReason(reason);
-                var decision = _state.OnReputationChanged(stockReason, newTotal, baseAmount, ut);
-                ResolveReputationAway(decision, ut, worldFirst: stockReason == StockTransactionReason.Progression);
+                var decision = _state.OnReputationChanged(ToStockReason(reason), newTotal, baseAmount, ut);
+                ResolveReputationAway(decision, ut);
             }
             catch (Exception ex)
             {
@@ -575,11 +566,6 @@ namespace Gonogo.KSP.CurrencyDelay
         /// </summary>
         internal void NoteCrewAboard()
         {
-            // The editor flies nothing and may hold no FlightGlobals to read.
-            if (HighLogic.LoadedScene == GameScenes.EDITOR)
-            {
-                return;
-            }
             try
             {
                 var now = Time.realtimeSinceStartup;
@@ -673,14 +659,14 @@ namespace Gonogo.KSP.CurrencyDelay
         /// captured for the correlated death vessel. A home decision (including a still-deferred
         /// VesselLoss change awaiting its destruction push) is a no-op here.
         /// </summary>
-        private void ResolveReputationAway(CurrencyChangeDecision decision, double ut, bool worldFirst = false)
+        private void ResolveReputationAway(CurrencyChangeDecision decision, double ut)
         {
             if (!decision.IsAway)
             {
                 return;
             }
 
-            if (!TryReputationDelay(decision.OriginVesselId, worldFirst, out var delay))
+            if (!TryReputationDelay(decision.OriginVesselId, out var delay))
             {
                 return;
             }
@@ -698,17 +684,12 @@ namespace Gonogo.KSP.CurrencyDelay
             EnqueueCredit(credit);
         }
 
-        private bool TryReputationDelay(string originVesselId, bool worldFirst, out KscDelay delay)
+        private bool TryReputationDelay(string originVesselId, out KscDelay delay)
         {
             if (_recoveryVesselsById.ContainsKey(originVesselId))
             {
                 // Recovered at KSC: instant, see the funds path above.
                 delay = KscDelay.Instant;
-                return true;
-            }
-            if (worldFirst)
-            {
-                delay = KscLightTime.ForVesselId(originVesselId, CommsCoreUplink.SignalDelayConfig);
                 return true;
             }
 
@@ -718,17 +699,6 @@ namespace Gonogo.KSP.CurrencyDelay
             // the kerbal-died-out-of-contact case this whole subsystem was
             // reopened for.
             return _deathLightTimesById.TryGetValue(originVesselId, out delay);
-        }
-
-        /// <summary>The craft being flown, whose news a world first is, or empty outside flight.</summary>
-        private static string FlownCraftId()
-        {
-            if (!HighLogic.LoadedSceneIsFlight)
-            {
-                return "";
-            }
-            var active = ActiveVesselScope.Current;
-            return active != null ? active.id.ToString() : "";
         }
 
         private void EnqueueCredit(StockCurrencyCredit? credit)

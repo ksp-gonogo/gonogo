@@ -893,12 +893,6 @@ namespace Sitrep.Host
          */
         internal const string ChannelsTopic = "system.channels";
 
-        /// <summary>
-        /// Each rate tier's samples a second and every topic some connection asks to have
-        /// above base, so a client sizes what it keeps of a topic by the rate it arrives at.
-        /// </summary>
-        internal const string DataRatesTopic = "system.dataRates";
-
         // Current one-way signal delay (seconds), snooped off the comms.delay
         // channel's latest revealed value (§7.3 Step 2). 0 = no delay authority
         // (CommsDelaySource.None / signal-delay-disabled / pre-first-emit),
@@ -1308,9 +1302,8 @@ namespace Sitrep.Host
 
         /// <summary>
         /// How often each pull channel is built, UT per topic: every topic at
-        /// <see cref="SampleCadence.IntervalUt"/> unless a connection asks for a
-        /// faster tier on it or a development override says otherwise. See
-        /// <see cref="TopicCadence"/>.
+        /// <see cref="SampleCadence.IntervalUt"/> unless a development override says
+        /// otherwise. See <see cref="TopicCadence"/>.
         /// </summary>
         public TopicCadence Cadence { get; } = new TopicCadence();
 
@@ -1969,19 +1962,6 @@ namespace Sitrep.Host
             };
             _channelSources[ChannelsTopic] = _ => ChannelEmissionRoster();
             _engineStateTopics.Add(ChannelsTopic);
-
-            _channelDeclarations[DataRatesTopic] = new ChannelDeclaration
-            {
-                Kind = SampleKind.Discrete,
-                Requires = Requirement.None,
-                Topic = DataRatesTopic,
-                Delivery = Delivery.LossyLatest,
-                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                // A fact about the stream rather than a vessel, so it does not ride the reveal clock.
-                Delay = DelayRole.TrueNow,
-            };
-            _channelSources[DataRatesTopic] = _ => DataRateRoster();
-            _engineStateTopics.Add(DataRatesTopic);
             _channelCounterBudget = new PerfBudget(
                 "ChannelEngine channel-counter rows/sec",
                 threshold: ChannelCounterRowBudget,
@@ -2009,48 +1989,6 @@ namespace Sitrep.Host
                 windowSec: 1.0,
                 unit: "builds",
                 warn: LogHost);
-        }
-
-        /// <summary>
-        /// The <see cref="DataRatesTopic"/> mapper. Handed back unchanged while neither the
-        /// tier table nor the demand moved, so the change-gate declines the repeat.
-        /// </summary>
-        private DataRateReport DataRateRoster()
-        {
-            var report = new DataRateReport { Tiers = Cadence.Tiers.Entries(), Topics = Cadence.DemandReport() };
-            if (_dataRateReport != null && SameRates(_dataRateReport, report))
-            {
-                return _dataRateReport;
-            }
-            _dataRateReport = report;
-            return report;
-        }
-
-        private DataRateReport? _dataRateReport;
-
-        private static bool SameRates(DataRateReport left, DataRateReport right)
-        {
-            if (left.Tiers.Count != right.Tiers.Count || left.Topics.Count != right.Topics.Count)
-            {
-                return false;
-            }
-            for (var i = 0; i < left.Tiers.Count; i++)
-            {
-                if (left.Tiers[i].Tier != right.Tiers[i].Tier || left.Tiers[i].SamplesPerSecond != right.Tiers[i].SamplesPerSecond)
-                {
-                    return false;
-                }
-            }
-            for (var i = 0; i < left.Topics.Count; i++)
-            {
-                if (left.Topics[i].Topic != right.Topics[i].Topic
-                    || left.Topics[i].Tier != right.Topics[i].Tier
-                    || left.Topics[i].SamplesPerSecond != right.Topics[i].SamplesPerSecond)
-                {
-                    return false;
-                }
-            }
-            return true;
         }
 
         /// <summary>
@@ -7904,12 +7842,6 @@ namespace Sitrep.Host
                             case ClaimJob claim:
                                 ProcessClaim(claim.Session, claim.RequestIds);
                                 break;
-                            case SetRateJob setRate:
-                                ProcessSetRate(setRate.Session, setRate.Topic, setRate.Tier);
-                                break;
-                            case CapRateJob capRate:
-                                ProcessCapRate(capRate.Session, capRate.Tier, capRate.SamplesPerSecond);
-                                break;
                             case FreshConnectionVantageMovedJob:
                                 ProcessFreshConnectionVantageMoved();
                                 break;
@@ -11202,113 +11134,6 @@ namespace Sitrep.Host
             CleanUpSubjectIfGone(topic);
         }
 
-        /// <summary>
-        /// <paramref name="streamData"/> without each of <paramref name="sentOnChange"/>
-        /// that holds what the connection's last accepted frame of the topic held,
-        /// those fields named in <see cref="StreamData.Unchanged"/>.
-        /// <paramref name="onSent"/> records what this frame carries once the socket
-        /// accepts it, and forgets a field it carries as null, so a value that comes
-        /// back after a gap is sent again. A field is sent whole again once its last
-        /// whole frame is <see cref="SentOnChangeRefreshTicks"/> old.
-        /// </summary>
-        private static StreamData LeaveOutUnchanged(
-            ClientSession session,
-            StreamData streamData,
-            IDictionary<string, object?> fields,
-            IReadOnlyList<string> sentOnChange,
-            out Action? onSent)
-        {
-            var topic = streamData.Topic;
-            var now = System.Diagnostics.Stopwatch.GetTimestamp();
-            List<string>? leftOut = null;
-            var carried = new List<KeyValuePair<string, object?>>(sentOnChange.Count);
-            foreach (var field in sentOnChange)
-            {
-                var key = topic + "\n" + field;
-                fields.TryGetValue(field, out var value);
-                if (value != null
-                    && session.SentOnChange.TryGetValue(key, out var sent)
-                    && now - sent.SentAt < SentOnChangeRefreshTicks
-                    && SameFieldValue(sent.Value, value))
-                {
-                    (leftOut ??= new List<string>()).Add(field);
-                    continue;
-                }
-                carried.Add(new KeyValuePair<string, object?>(key, value));
-            }
-
-            var epoch = Volatile.Read(ref session.SentOnChangeEpoch);
-            onSent = () =>
-            {
-                if (Volatile.Read(ref session.SentOnChangeEpoch) != epoch)
-                {
-                    return;
-                }
-                foreach (var pair in carried)
-                {
-                    if (pair.Value == null)
-                    {
-                        session.SentOnChange.TryRemove(pair.Key, out _);
-                    }
-                    else
-                    {
-                        session.SentOnChange[pair.Key] = new SentField(pair.Value, now);
-                    }
-                }
-            };
-
-            if (leftOut == null)
-            {
-                return streamData;
-            }
-            var kept = new Dictionary<string, object?>(fields.Count, StringComparer.Ordinal);
-            foreach (var pair in fields)
-            {
-                if (!leftOut.Contains(pair.Key))
-                {
-                    kept[pair.Key] = pair.Value;
-                }
-            }
-            return new StreamData
-            {
-                Topic = streamData.Topic,
-                Payload = kept,
-                Meta = streamData.Meta,
-                Unchanged = leftOut.ToArray(),
-            };
-        }
-
-        /// <summary>The payload fields each topic sends a connection only when they change.</summary>
-        private readonly ConcurrentDictionary<string, IReadOnlyList<string>> _fieldsSentOnChange =
-            new ConcurrentDictionary<string, IReadOnlyList<string>>(VesselViewProvider.FieldsSentOnChange, StringComparer.Ordinal);
-
-        /// <summary>Send <paramref name="fields"/> of <paramref name="topic"/> to each connection only when they change, for subscriptions made after this call.</summary>
-        internal void SendFieldsOnChange(string topic, IReadOnlyList<string> fields) => _fieldsSentOnChange[topic] = fields;
-
-        /// <summary>
-        /// The longest a field sent only on change goes without being sent whole,
-        /// so a client that lost what it held (a screen rebuilt over a connection
-        /// that stayed open) has it back within this long even while it holds.
-        /// </summary>
-        private static readonly long SentOnChangeRefreshTicks = System.Diagnostics.Stopwatch.Frequency * 5;
-
-        /// <summary>A value a connection was last sent for a field sent only on change, and the <see cref="System.Diagnostics.Stopwatch"/> timestamp of that frame.</summary>
-        private sealed class SentField
-        {
-            public SentField(object value, long sentAt)
-            {
-                Value = value;
-                SentAt = sentAt;
-            }
-
-            public object Value { get; }
-            public long SentAt { get; }
-        }
-
-        private static bool SameFieldValue(object sent, object value) =>
-            ReferenceEquals(sent, value)
-            || (sent is double[] a && value is double[] b && a.SequenceEqual(b));
-
         private void ProcessSubscribe(ClientSession session, string topic)
         {
             // A close on a send can queue the disconnect ahead of a subscribe the
@@ -11371,11 +11196,6 @@ namespace Sitrep.Host
             var delivery = _channelDeclarations[topic].Delivery;
             var opaque = _channelDeclarations[topic].OpaquePayload;
             var viewerFilter = _channelDeclarations[topic].ViewerFilter;
-            var sentOnChange = !opaque && delivery != Delivery.ReliableOrdered
-                && _fieldsSentOnChange.TryGetValue(topic, out var onChange)
-                ? onChange
-                : null;
-            session.ForgetSentOnChange(topic);
 
             Action unsubscribe;
             try
@@ -11417,14 +11237,6 @@ namespace Sitrep.Host
                     // fail-softs the owning uplink on the FIRST failed
                     // serialization instead of the throw recurring silently,
                     // unattributed, on every subsequent tick.
-                    Action? onSent = null;
-                    if (sentOnChange != null
-                        && streamData.Meta.Staleness != Staleness.Recorded
-                        && streamData.Payload is IDictionary<string, object?> fields)
-                    {
-                        streamData = LeaveOutUnchanged(session, streamData, fields, sentOnChange, out onSent);
-                    }
-
                     byte[] bytes;
                     var serializeStarted = PublishStats.Enabled || PerfTelemetry.Enabled ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
                     try
@@ -11484,7 +11296,7 @@ namespace Sitrep.Host
                     }
                     else
                     {
-                        session.Outbox.PublishTelemetry(topic, bytes, onSent);
+                        session.Outbox.PublishTelemetry(topic, bytes);
                     }
                 });
             }
@@ -11707,7 +11519,6 @@ namespace Sitrep.Host
                     // topic can drain post-reset; it's a genuine no-op if
                     // nothing was pending.
                     session.Outbox.ClearTopic(topic);
-                    session.ForgetSentOnChange(topic);
 
                     var reset = new EventMsg
                     {
@@ -11747,65 +11558,7 @@ namespace Sitrep.Host
                     _subscribedTopics.TryRemove(topic, out _);
                 }
                 CleanUpSubjectIfGone(topic); // Drop a gone fleet subject's freeze maps.
-                if (session.RateTiers.Remove(topic))
-                {
-                    RecomputeRateDemand(topic);
-                }
             }
-        }
-
-        /// <summary>
-        /// Record the tier <paramref name="session"/> asks for on <paramref name="topic"/> and
-        /// put the topic on the fastest tier any connection asks for. A topic the session has
-        /// not subscribed is ignored, since the request would outlive nothing; an unknown tier
-        /// is read as base.
-        /// </summary>
-        private void ProcessSetRate(ClientSession session, string topic, string tier)
-        {
-            if (!session.Unsubscribers.ContainsKey(topic))
-            {
-                return;
-            }
-            if (!Cadence.Tiers.IsKnown(tier))
-            {
-                LogHostLimited("set-rate on \"" + topic + "\" names unknown tier \"" + tier + "\"; read as base");
-                tier = DataRateTierNames.Base;
-            }
-            if (tier == DataRateTierNames.Base)
-            {
-                if (!session.RateTiers.Remove(topic))
-                {
-                    return;
-                }
-            }
-            else
-            {
-                session.RateTiers[topic] = tier;
-            }
-            RecomputeRateDemand(topic);
-        }
-
-        /// <summary>Hold <paramref name="tier"/> to at most <paramref name="samplesPerSecond"/> while <paramref name="session"/> is connected, or withdraw its cap when that is null.</summary>
-        private void ProcessCapRate(ClientSession session, string tier, double? samplesPerSecond)
-        {
-            if (!Cadence.Tiers.TrySetCap(session.Connection.Id, tier, samplesPerSecond, out var refusal))
-            {
-                LogHostLimited("cap-rate refused: " + refusal);
-            }
-        }
-
-        /// <summary>Put <paramref name="topic"/> on the fastest tier any connected session asks for, or base.</summary>
-        private void RecomputeRateDemand(string topic)
-        {
-            var fastest = DataRateTierNames.Base;
-            foreach (var other in _sessions.Values)
-            {
-                if (other.RateTiers.TryGetValue(topic, out var tier))
-                {
-                    fastest = Cadence.Tiers.Faster(fastest, tier);
-                }
-            }
-            Cadence.SetDemand(topic, fastest);
         }
 
         private void ProcessDisconnect(ClientSession session)
@@ -11828,13 +11581,6 @@ namespace Sitrep.Host
                 unsubscribe();
             }
             session.Unsubscribers.Clear();
-            Cadence.Tiers.ClearCaps(session.Connection.Id);
-            var rated = new List<string>(session.RateTiers.Keys);
-            session.RateTiers.Clear();
-            foreach (var topic in rated)
-            {
-                RecomputeRateDemand(topic);
-            }
             ForgetWaitingClaims(session);
         }
 
@@ -12034,12 +11780,6 @@ namespace Sitrep.Host
                         break;
                     case ClaimRequest claim:
                         EnqueueJob(new ClaimJob(session, claim.RequestIds));
-                        break;
-                    case SetRate setRate:
-                        EnqueueJob(new SetRateJob(session, setRate.Topic, setRate.Tier));
-                        break;
-                    case CapRate capRate:
-                        EnqueueJob(new CapRateJob(session, capRate.Tier, capRate.SamplesPerSecond));
                         break;
                 }
             }
@@ -12571,34 +12311,6 @@ namespace Sitrep.Host
             }
         }
 
-        private sealed class CapRateJob : IEngineJob
-        {
-            public readonly ClientSession Session;
-            public readonly string Tier;
-            public readonly double? SamplesPerSecond;
-
-            public CapRateJob(ClientSession session, string tier, double? samplesPerSecond)
-            {
-                Session = session;
-                Tier = tier;
-                SamplesPerSecond = samplesPerSecond;
-            }
-        }
-
-        private sealed class SetRateJob : IEngineJob
-        {
-            public readonly ClientSession Session;
-            public readonly string Topic;
-            public readonly string Tier;
-
-            public SetRateJob(ClientSession session, string topic, string tier)
-            {
-                Session = session;
-                Topic = topic;
-                Tier = tier;
-            }
-        }
-
         private sealed class ClaimJob : IEngineJob
         {
             public readonly ClientSession Session;
@@ -12674,38 +12386,10 @@ namespace Sitrep.Host
             /// </summary>
             public volatile string? ChosenVantage;
 
-            /// <summary>The rate tier this connection asks for on each subscribed topic, base ones left out. Courier-thread-only.</summary>
-            public readonly Dictionary<string, string> RateTiers = new Dictionary<string, string>(StringComparer.Ordinal);
-
-            /// <summary>
-            /// The value each field sent only on change last carried in a frame the
-            /// socket accepted, and when, by topic and field, so a later frame can
-            /// leave it out while it still holds. Written on the pump thread, read and
-            /// cleared on the Courier thread.
-            /// </summary>
-            public readonly ConcurrentDictionary<string, SentField> SentOnChange = new ConcurrentDictionary<string, SentField>(StringComparer.Ordinal);
-
-            /// <summary>Counts <see cref="ForgetSentOnChange"/> calls, so a frame already handed to the pump before one records nothing after it.</summary>
-            public int SentOnChangeEpoch;
-
             public ClientSession(ITransportConnection connection)
             {
                 Connection = connection;
                 Outbox = new ChannelOutbox(connection);
-            }
-
-            /// <summary>Forget what <paramref name="topic"/>'s fields last held, so its next frame carries them all.</summary>
-            public void ForgetSentOnChange(string topic)
-            {
-                Interlocked.Increment(ref SentOnChangeEpoch);
-                var prefix = topic + "\n";
-                foreach (var key in SentOnChange.Keys)
-                {
-                    if (key.StartsWith(prefix, StringComparison.Ordinal))
-                    {
-                        SentOnChange.TryRemove(key, out _);
-                    }
-                }
             }
         }
 
@@ -12775,7 +12459,7 @@ namespace Sitrep.Host
         private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(50);
 
         private readonly ITransportConnection _connection;
-        private readonly ConcurrentDictionary<string, QueuedFrame> _latestByTopic = new ConcurrentDictionary<string, QueuedFrame>();
+        private readonly ConcurrentDictionary<string, byte[]> _latestByTopic = new ConcurrentDictionary<string, byte[]>();
         private readonly ConcurrentQueue<byte[]> _reliable = new ConcurrentQueue<byte[]>();
         private readonly SemaphoreSlim _signal = new SemaphoreSlim(0, int.MaxValue);
         private readonly Thread _pumpThread;
@@ -12789,12 +12473,9 @@ namespace Sitrep.Host
         }
 
         /// <summary>Courier-thread-only: publish the latest serialized telemetry frame for a topic. Never blocks. Coalesces, a later call before the pump drains replaces the earlier one.</summary>
-        public void PublishTelemetry(string topic, byte[] payload) => PublishTelemetry(topic, payload, null);
-
-        /// <summary>Courier-thread-only: as <see cref="PublishTelemetry(string, byte[])"/>, and <paramref name="onSent"/> runs on the pump thread once the socket accepts this frame. It never runs for a frame a later one replaced first.</summary>
-        public void PublishTelemetry(string topic, byte[] payload, Action? onSent)
+        public void PublishTelemetry(string topic, byte[] payload)
         {
-            _latestByTopic[topic] = new QueuedFrame(payload, onSent);
+            _latestByTopic[topic] = payload;
             _signal.Release();
         }
 
@@ -12847,14 +12528,11 @@ namespace Sitrep.Host
 
                 foreach (var topic in _latestByTopic.Keys.ToArray())
                 {
-                    if (!_latestByTopic.TryRemove(topic, out var frame))
+                    if (!_latestByTopic.TryRemove(topic, out var payload))
                     {
                         continue;
                     }
-                    if (_connection.TrySend(new ArraySegment<byte>(frame.Payload), SendClass.Telemetry))
-                    {
-                        frame.OnSent?.Invoke();
-                    }
+                    _connection.TrySend(new ArraySegment<byte>(payload), SendClass.Telemetry);
                 }
             }
         }
@@ -12864,18 +12542,6 @@ namespace Sitrep.Host
         {
             _stopping = true;
             _signal.Release();
-        }
-
-        private sealed class QueuedFrame
-        {
-            public QueuedFrame(byte[] payload, Action? onSent)
-            {
-                Payload = payload;
-                OnSent = onSent;
-            }
-
-            public byte[] Payload { get; }
-            public Action? OnSent { get; }
         }
     }
 }

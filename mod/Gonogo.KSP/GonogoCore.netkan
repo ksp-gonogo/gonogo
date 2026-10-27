@@ -26,9 +26,6 @@
     "bugtracker": "https://github.com/ksp-gonogo/gonogo/issues",
     "manual": "https://github.com/ksp-gonogo/gonogo/blob/main/docs/KSP-SETUP.md"
   },
-  "depends": [
-    { "name": "Harmony2" }
-  ],
   "install": [
     {
       "file": "GameData/Gonogo",

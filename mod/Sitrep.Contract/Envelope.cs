@@ -31,13 +31,6 @@ public class StreamData<T>
     /// <summary>When the sample was true, when it arrived, and where it was
     /// observed from.</summary>
     public Meta Meta { get; set; } = new();
-    /// <summary>The payload fields left out of this sample because they hold the
-    /// same value as in the last sample of this Topic sent on this connection,
-    /// such as the terrain grid on <c>vessel.landing</c> between the times it is
-    /// retaken. A client keeps each one from that sample. Absent when nothing was
-    /// left out; a field the sample holds as <c>null</c> is sent, never listed.</summary>
-    [SitrepUnit(Units.Id)]
-    public string[]? Unchanged { get; set; }
 }
 
 /// <summary>
@@ -457,79 +450,6 @@ public class Unsubscribe
     /// <summary>The Topic id to stop receiving.</summary>
     [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
-}
-
-/// <summary>
-/// Asks the mod to send a subscribed Topic to this connection at a rate tier. The
-/// mod sends each Topic at the fastest tier any connection asks for, and at
-/// <c>"base"</c> while none asks for more; <c>system.dataRates</c> says what each
-/// tier is in samples a second and which Topics are above base now.
-///
-/// <para>The request lasts until the connection asks again, unsubscribes the
-/// Topic or closes. Asking <c>"base"</c> withdraws it. A request for a Topic this
-/// connection has not subscribed changes nothing, and a tier the mod does not know
-/// is read as <c>"base"</c>. A Topic an Uplink publishes when it has news, rather
-/// than one the mod samples on its own clock, arrives as it did.</para>
-/// </summary>
-/// <category>Stream messages</category>
-[SitrepContract]
-#if SITREP_CODEGEN
-[TsInterface]
-#endif
-public class SetRate
-{
-    /// <summary>The frame type, always <c>"set-rate"</c>.</summary>
-#if SITREP_CODEGEN
-    [TsProperty(Type = "\"set-rate\"")]
-#endif
-    [SitrepUnit(Units.Id)]
-    public string Type { get; set; } = "set-rate";
-    /// <summary>The subscribed Topic id the tier is for.</summary>
-    [SitrepUnit(Units.Id)]
-    public string Topic { get; set; } = "";
-    /// <summary>The rate tier: <c>"base"</c> or <c>"fast"</c>.</summary>
-#if SITREP_CODEGEN
-    [TsProperty(Type = "\"base\" | \"fast\"")]
-#endif
-    [SitrepUnit(Units.Id)]
-    public string Tier { get; set; } = DataRateTierNames.Base;
-}
-
-/// <summary>
-/// Asks the mod to send a rate tier no faster than a given rate while this
-/// connection holds the request, for a client that cannot keep up with the tier
-/// as it stands. The mod sends the tier at the lowest rate any connection asks for
-/// in this way, never below the base tier's rate, and <c>system.dataRates</c>
-/// reports the rate it sends.
-///
-/// <para>The request lasts until the connection sends another for the same tier or
-/// closes. A <c>null</c> <see cref="SamplesPerSecond"/> withdraws it. The base tier
-/// cannot be lowered, and a request for it or for a tier the mod does not know
-/// changes nothing.</para>
-/// </summary>
-/// <category>Stream messages</category>
-[SitrepContract]
-#if SITREP_CODEGEN
-[TsInterface]
-#endif
-public class CapRate
-{
-    /// <summary>The frame type, always <c>"cap-rate"</c>.</summary>
-#if SITREP_CODEGEN
-    [TsProperty(Type = "\"cap-rate\"")]
-#endif
-    [SitrepUnit(Units.Id)]
-    public string Type { get; set; } = "cap-rate";
-    /// <summary>The rate tier to send no faster: <c>"fast"</c>.</summary>
-#if SITREP_CODEGEN
-    [TsProperty(Type = "\"base\" | \"fast\"")]
-#endif
-    [SitrepUnit(Units.Id)]
-    public string Tier { get; set; } = DataRateTierNames.Fast;
-    /// <summary>The most samples a game second this connection asks the tier to
-    /// carry, or <c>null</c> to withdraw the request.</summary>
-    [SitrepUnit(Units.Dimensionless)]
-    public double? SamplesPerSecond { get; set; }
 }
 
 /// <summary>

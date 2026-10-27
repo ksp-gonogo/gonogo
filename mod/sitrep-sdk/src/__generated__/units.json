@@ -129,11 +129,6 @@
       "certification": "enum",
       "uts": "ut"
     },
-    "CapRate": {
-      "samplesPerSecond": "1",
-      "tier": "id",
-      "type": "id"
-    },
     "CareerBalances": {
       "funds": "funds",
       "reputation": "rep",
@@ -185,23 +180,6 @@
     },
     "CareerMode": {
       "mode": "enum"
-    },
-    "CareerObjectivePending": {
-      "contractId": "id",
-      "contractTitle": "text",
-      "homeArrivesUt": "ut",
-      "key": "id",
-      "objective": "text",
-      "objectivePath": "id",
-      "target": "text",
-      "ut": "ut",
-      "vesselId": "id",
-      "vesselName": "text"
-    },
-    "CareerObjectiveSettled": {
-      "key": "id",
-      "outcome": "text",
-      "ut": "ut"
     },
     "CareerStrategies": {
       "activationPatched": "flag",
@@ -646,10 +624,6 @@
       "stupidity": "ratio",
       "trait": "text",
       "unavailableReason": "text"
-    },
-    "DataRateTierEntry": {
-      "samplesPerSecond": "1",
-      "tier": "id"
     },
     "DeactivateStrategyArgs": {
       "strategyId": "id"
@@ -1403,11 +1377,6 @@
     "SetPausedArgs": {
       "paused": "flag"
     },
-    "SetRate": {
-      "tier": "id",
-      "topic": "id",
-      "type": "id"
-    },
     "SetSasModeArgs": {
       "mode": "enum"
     },
@@ -1504,8 +1473,7 @@
     },
     "StreamData": {
       "topic": "id",
-      "type": "id",
-      "unchanged": "id"
+      "type": "id"
     },
     "Subscribe": {
       "topic": "id",
@@ -1545,11 +1513,6 @@
       "kerbinTime": "flag",
       "minuteSeconds": "s",
       "yearSeconds": "s"
-    },
-    "TopicDataRate": {
-      "samplesPerSecond": "1",
-      "tier": "id",
-      "topic": "id"
     },
     "TrackingStationDismissArgs": {
       "vesselId": "id"
@@ -2500,7 +2463,6 @@
       "balances": "CareerBalances",
       "contracts": "CareerContracts",
       "meta": "PayloadMeta",
-      "objectivesSettled": "CareerObjectiveSettled[]",
       "strategies": "CareerStrategies",
       "tech": "CareerTech"
     },
@@ -2653,10 +2615,6 @@
     },
     "CrewMember": {
       "carrying": "InventoryItem[]"
-    },
-    "DataRateReport": {
-      "tiers": "DataRateTierEntry[]",
-      "topics": "TopicDataRate[]"
     },
     "DelayedObservation": {
       "state": "StateVector"
@@ -2907,7 +2865,6 @@
       "balances": "CareerBalances",
       "contracts": "CareerContracts",
       "meta": "PayloadMeta",
-      "objectivesSettled": "CareerObjectiveSettled[]",
       "strategies": "CareerStrategies",
       "tech": "CareerTech"
     },
