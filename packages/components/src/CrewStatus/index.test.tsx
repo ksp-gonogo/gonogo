@@ -743,6 +743,20 @@ describe("CrewStatusComponent, per-row survival meters", () => {
     ).toBeNull();
   });
 
+  it("draws a kerbal's name as wrappable text rather than a one-line truncation", async () => {
+    const fixture = newFixture();
+    renderCrew(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 1,
+        capacity: 1,
+        crew: [{ name: "Valentina Kerman" }],
+      });
+    });
+    const name = await screen.findByText("Valentina Kerman");
+    expect(name).not.toHaveStyle({ whiteSpace: "nowrap" });
+  });
+
   it("names each row's meter stack as the kerbal's vitals", async () => {
     const fixture = newFixture();
     renderCrew(fixture, [

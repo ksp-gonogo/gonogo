@@ -11,7 +11,6 @@ import {
   MeterStack,
   ReadoutCaption,
   Stack,
-  Truncate,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { EvaKerbalRow } from "./EvaKerbalRow";
@@ -112,7 +111,7 @@ export function renderRoster({
             // The row's identity for assistive tech while its visible name is suppressed.
             aria-label={suppressName ? name : undefined}
             /* The avatar is a visual, so it sits in a framed left aside; the aside sets the frame's corner. */
-            title={suppressName ? undefined : <Truncate>{name}</Truncate>}
+            title={suppressName ? undefined : name}
             titleRight={
               <Inline>
                 <AugmentSlot
