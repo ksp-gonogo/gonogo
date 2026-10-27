@@ -1,4 +1,5 @@
 import { AxiomFetchClient } from "./AxiomFetchClient.js";
+import { collapseContext } from "./collapseContext.js";
 import { scrubEntry } from "./scrub.js";
 import type { LogEntry, LogTransport } from "./types.js";
 
@@ -55,7 +56,8 @@ export interface AxiomTransportOptions {
  * as a request that outlives the page.
  *
  * Entries are scrubbed of share codes, addresses, host names, peer ids and
- * URLs before they leave. Failures are swallowed, log delivery never crashes
+ * URLs before they leave, and a context object whose keys come from data is
+ * collapsed to a JSON string so it cannot add fields to the dataset. Failures are swallowed, log delivery never crashes
  * the app.
  */
 export class AxiomTransport implements LogTransport {
@@ -127,7 +129,10 @@ export class AxiomTransport implements LogTransport {
        * whole pre-consent buffer at the moment analytics was switched on.
        */
       for (const e of unscrubbed) {
-        this.queue.push({ _time: e.timestamp, ...scrubEntry(e) });
+        this.queue.push({
+          _time: e.timestamp,
+          ...collapseContext(scrubEntry(e)),
+        });
       }
       if (
         this.queue.length >= AxiomTransport.MAX_BATCH ||

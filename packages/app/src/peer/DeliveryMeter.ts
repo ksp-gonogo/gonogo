@@ -108,7 +108,7 @@ export class DeliveryMeter {
         {
           side: this.side,
           windowSeconds: Math.round(seconds),
-          channels: Object.fromEntries(listed),
+          channels: listed.map(([channel, d]) => ({ channel, ...d })),
         },
       );
     }

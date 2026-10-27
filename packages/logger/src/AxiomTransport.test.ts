@@ -463,3 +463,40 @@ describe("AxiomTransport delivery", () => {
     expect(client.flush).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("AxiomTransport field cap", () => {
+  it("sends an object keyed by data as one JSON string and keeps a fixed-shape one", () => {
+    const client = makeClient();
+    const transport = new AxiomTransport({
+      client,
+      dataset: "gonogo",
+      flushOnPageHide: false,
+    });
+    const byChannel = Object.fromEntries(
+      Array.from({ length: 30 }, (_, i) => [`topic-${i}`, { fps: i }]),
+    );
+    transport.send([
+      {
+        ...entry("x"),
+        context: {
+          channels: byChannel,
+          rows: [{ channel: "a", fps: 1 }],
+          initial: { a: 1, b: { c: { d: { e: 1 } } } },
+        },
+      },
+    ]);
+    void transport.flush();
+    transport.dispose();
+    const [, events] = client.ingest.mock.calls[0] as [
+      string,
+      { context: Record<string, unknown> }[],
+    ];
+    const ctx = events[0].context;
+    expect(ctx.channels).toBe(JSON.stringify(byChannel));
+    expect(ctx.rows).toEqual([{ channel: "a", fps: 1 }]);
+    expect(ctx.initial).toEqual({
+      a: 1,
+      b: { c: { d: JSON.stringify({ e: 1 }) } },
+    });
+  });
+});

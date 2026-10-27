@@ -1,3 +1,4 @@
+import { logger } from "@ksp-gonogo/logger";
 import { describe, expect, it } from "vitest";
 import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
 
@@ -17,6 +18,28 @@ describe("DeliveryMeter", () => {
       n: 5,
       fps: 0.5,
       maxGapMs: 6_700,
+    });
+  });
+
+  it("lists channels as an array so the log adds no fields per channel", () => {
+    const wasEnabled = logger.isEnabled();
+    logger.setEnabled(true);
+    logger.clearBuffer();
+    let t = 0;
+    const meter = new DeliveryMeter("host", 10_000, () => t);
+    meter.start();
+    meter.record("alarm-snapshot");
+    t = 10_000;
+    meter.flush();
+    meter.stop();
+    logger.setEnabled(wasEnabled);
+    const line = logger.getBuffer().find((e) => e.tag === "peer:delivery");
+    expect(line?.context).toEqual({
+      side: "host",
+      windowSeconds: 10,
+      channels: [
+        { channel: "alarm-snapshot", n: 1, fps: 0.1, maxGapMs: 10_000 },
+      ],
     });
   });
 
