@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using Sitrep.Contract;
 using Sitrep.Host;
 using Xunit;
 
@@ -119,6 +120,36 @@ namespace Sitrep.Host.Tests
 
             Assert.Equal(SampleCadence.IntervalUt, cadence.FastestIntervalUt);
             Assert.InRange(Run(cadence, new[] { "vessel.flight" }, seconds: 20)["vessel.flight"], 9, 11);
+        }
+
+        [Fact]
+        public void ADemandedTierSpeedsUpOnlyItsTopicAndFollowsTheTierTable()
+        {
+            var cadence = new TopicCadence();
+            cadence.SetDemand("vessel.landing", DataRateTierNames.Fast);
+
+            Assert.Equal(0.1, cadence.FastestIntervalUt, 9);
+            var counts = Run(cadence, new[] { "vessel.landing", "vessel.flight" }, seconds: 20);
+            Assert.InRange(counts["vessel.landing"], 195, 201);
+            Assert.InRange(counts["vessel.flight"], 19, 21);
+
+            Assert.True(cadence.Tiers.TrySetSamplesPerSecond(DataRateTierNames.Fast, 4, out _));
+            Assert.Equal(0.25, cadence.IntervalUtFor("vessel.landing"), 9);
+            Assert.Equal(0.25, cadence.FastestIntervalUt, 9);
+
+            cadence.SetDemand("vessel.landing", DataRateTierNames.Base);
+            Assert.Equal(SampleCadence.IntervalUt, cadence.FastestIntervalUt);
+            Assert.Empty(cadence.DemandReport());
+        }
+
+        [Fact]
+        public void AnOverrideWinsOverADemandEvenWhenSlower()
+        {
+            var cadence = new TopicCadence();
+            cadence.SetDemand("vessel.flight", DataRateTierNames.Fast);
+            cadence.TrySetRateHz("vessel.flight", 0.5, out _);
+
+            Assert.Equal(2.0, cadence.IntervalUtFor("vessel.flight"), 9);
         }
 
         [Fact]

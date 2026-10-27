@@ -37,6 +37,7 @@ function makeSessions() {
         topics.add(topic);
         return () => topics.delete(topic);
       },
+      requestRate: () => () => {},
       onRawMessage: (cb) => {
         frameListeners.set(vantage, cb);
         return () => frameListeners.delete(vantage);

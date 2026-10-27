@@ -67,15 +67,19 @@ export class ClientTimeline<Payload = unknown> {
   private points: TimelinePoint<Payload>[] = [];
   private currentEpoch = 0;
   private readonly retentionSeconds: number | undefined;
-  private readonly maxPoints: number;
+  private readonly baseMaxPoints: number;
+  private maxPoints: number;
   private droppedThrough: number | undefined;
+  /** How many of the oldest points `supersedeBefore` has already passed over. */
+  private superseded = 0;
 
   /** Bumped on every append that changes the buffer (insert or epoch-reset). Memo key for later tasks. */
   revision = 0;
 
   constructor(options: ClientTimelineOptions = {}) {
     this.retentionSeconds = options.retentionSeconds;
-    this.maxPoints = options.maxPoints ?? DEFAULT_MAX_POINTS;
+    this.baseMaxPoints = options.maxPoints ?? DEFAULT_MAX_POINTS;
+    this.maxPoints = this.baseMaxPoints;
   }
 
   /**
@@ -115,10 +119,12 @@ export class ClientTimeline<Payload = unknown> {
       this.points = [];
       this.currentEpoch = point.epoch;
       this.droppedThrough = undefined;
+      this.superseded = 0;
     }
 
     const index = this.insertionIndex(point);
     this.points.splice(index, 0, point);
+    this.superseded = Math.min(this.superseded, index);
     this.revision++;
 
     this.autoEvict();
@@ -183,6 +189,7 @@ export class ClientTimeline<Payload = unknown> {
     this.points = [];
     this.currentEpoch = epoch;
     this.droppedThrough = undefined;
+    this.superseded = 0;
     this.revision++;
   }
 
@@ -190,8 +197,52 @@ export class ClientTimeline<Payload = unknown> {
   evictBelow(ut: number): void {
     const next = this.points.filter((p) => p.validAt >= ut);
     if (next.length === this.points.length) return;
+    this.superseded = Math.max(
+      0,
+      this.superseded - (this.points.length - next.length),
+    );
     this.points = next;
     this.revision++;
+  }
+
+  /**
+   * Keep `scale` times the configured point bound, for a Topic arriving that many
+   * times faster than one sample a second, so the buffer spans the same game
+   * time. Dropping back evicts the oldest points at once.
+   */
+  scaleMaxPoints(scale: number): void {
+    const maxPoints = Math.round(this.baseMaxPoints * scale);
+    if (maxPoints === this.maxPoints) return;
+    this.maxPoints = maxPoints;
+    this.autoEvict();
+  }
+
+  /**
+   * Replace the payload of every point older than the one on screen at `ut`,
+   * the newest at or before it, with `shed(payload)`. The point on screen and
+   * every point after it keep theirs, so a view that reaches `ut` or later
+   * reads each sample whole. `ut` must not move back while the epoch holds,
+   * which the delayed view edge never does.
+   */
+  supersedeBefore(
+    ut: number,
+    shed: (
+      payload: TimelinePoint<Payload>["payload"],
+    ) => TimelinePoint<Payload>["payload"],
+  ): void {
+    let onScreen = this.points.length;
+    while (onScreen > 0 && this.points[onScreen - 1].validAt > ut) onScreen--;
+    onScreen--;
+    let changed = false;
+    for (let i = this.superseded; i < onScreen; i++) {
+      const point = this.points[i];
+      const payload = shed(point.payload);
+      if (payload === point.payload) continue;
+      this.points[i] = { ...point, payload };
+      changed = true;
+    }
+    this.superseded = Math.max(this.superseded, onScreen);
+    if (changed) this.revision++;
   }
 
   private autoEvict(): void {
@@ -205,6 +256,7 @@ export class ClientTimeline<Payload = unknown> {
     // Read the drop edge BEFORE splicing: it is the newest point going, which is the one at the boundary.
     this.droppedThrough = this.points[surplus - 1].validAt;
     this.points.splice(0, surplus);
+    this.superseded = Math.max(0, this.superseded - surplus);
     this.revision++;
   }
 

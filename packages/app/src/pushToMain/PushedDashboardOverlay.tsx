@@ -13,6 +13,7 @@ import {
   rowHeightFor,
 } from "../components/Dashboard/GridDashboard";
 import { COLS } from "../components/Dashboard/layoutNormalization";
+import { WidgetDataRateBridge } from "../telemetry/WidgetDataRateBridge";
 import { usePushedWidgets, usePushHost } from "./PushHostContext";
 import type { PushedWidget } from "./PushHostService";
 
@@ -191,6 +192,7 @@ function PushedItem({
           <DashboardItemContext.Provider
             value={{ instanceId: placement.widget.widgetInstanceId }}
           >
+            <WidgetDataRateBridge def={def} config={placement.widget.config} />
             <ErrorBoundary
               fallback={(error) => (
                 <MissingComponent>

@@ -672,6 +672,7 @@ describe("asyncapi.yaml", () => {
       "command-group",
       "command-request",
       "ping",
+      "set-rate",
       "set-vantage",
       "subscribe",
       "unsubscribe",

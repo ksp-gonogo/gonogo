@@ -1072,4 +1072,29 @@ describe("WebSocketTransport outbound queue", () => {
 
     transport.dispose();
   });
+
+  it("replays each topic's rate tier after the re-subscribes, and forgets one whose topic was unsubscribed", () => {
+    const { transport, socket } = downTransport();
+    transport.send({ type: "subscribe", topic: "vessel.flight" });
+    transport.send({ type: "subscribe", topic: "vessel.landing" });
+    transport.send({ type: "set-rate", topic: "vessel.flight", tier: "fast" });
+    transport.send({ type: "set-rate", topic: "vessel.landing", tier: "fast" });
+    transport.send({ type: "set-rate", topic: "vessel.landing", tier: "base" });
+    transport.send({ type: "subscribe", topic: "vessel.orbit" });
+    transport.send({ type: "set-rate", topic: "vessel.orbit", tier: "fast" });
+    transport.send({ type: "unsubscribe", topic: "vessel.orbit" });
+
+    socket.fire("open");
+    const sent = sentMessages(socket);
+    const rates = sent.filter((message) => message.type === "set-rate");
+    expect(rates).toEqual([
+      { type: "set-rate", topic: "vessel.flight", tier: "fast" },
+    ]);
+    const types = sent.map((message) => message.type);
+    expect(types.indexOf("set-rate")).toBeGreaterThan(
+      types.lastIndexOf("subscribe"),
+    );
+
+    transport.dispose();
+  });
 });

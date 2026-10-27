@@ -186,6 +186,7 @@ const FRAMES_FROM_CLIENT = [
     "choose the command centre this connection observes from and commands from",
   ],
   ["claim", "ask for the answers to commands sent on an earlier connection"],
+  ["set-rate", "ask for a subscribed channel at a faster rate tier"],
   ["ping", "ask whether the connection is alive"],
   ["command-request", "send one command"],
   ["command-group", "send several delayed commands to one craft as a unit"],
@@ -230,6 +231,9 @@ const SESSION_DESCRIPTION = `Frames that belong to the connection and not to any
 and observes at, which sets what it reads and how long its commands take.
 \`claim\` names the commands a reconnecting client is still waiting on, so the
 mod sends their answers to the new connection.
+\`set-rate\` asks for a subscribed topic at a rate tier. The mod sends each topic
+at the fastest tier any connection asks for, and \`system.dataRates\` says what
+each tier is in samples a second.
 The mod opens every connection with a \`hello\` naming the run it has reached,
 and answers a \`ping\` with a \`pong\` at once in any scene, even with nothing
 subscribed. A client uses that to tell a quiet connection from a dead one.
@@ -557,6 +561,7 @@ export function buildDocument({
       unsubscribe: { $ref: "#/components/messages/unsubscribe" },
       setVantage: { $ref: "#/components/messages/setVantage" },
       claim: { $ref: "#/components/messages/claim" },
+      setRate: { $ref: "#/components/messages/setRate" },
       commandGroup: { $ref: "#/components/messages/commandGroup" },
       ping: { $ref: "#/components/messages/ping" },
       hello: { $ref: "#/components/messages/hello" },
@@ -595,6 +600,11 @@ export function buildDocument({
     name: "claim",
     title: "Claim the answers to commands sent on an earlier connection",
     payload: schemas.ref("ClaimRequest"),
+  };
+  messages.setRate = {
+    name: "set-rate",
+    title: "Ask for a subscribed channel at a rate tier",
+    payload: schemas.ref("SetRate"),
   };
   messages.commandGroup = {
     name: "command-group",
@@ -653,13 +663,14 @@ export function buildDocument({
     action: "send",
     channel: { $ref: "#/channels/session" },
     title:
-      "Open or close delivery, change vantage, claim earlier commands' answers, send a command group, or ask whether the connection is alive",
+      "Open or close delivery, change vantage or rate, claim earlier commands' answers, send a command group, or ask whether the connection is alive",
     tags: [{ name: "session" }],
     messages: [
       { $ref: "#/channels/session/messages/subscribe" },
       { $ref: "#/channels/session/messages/unsubscribe" },
       { $ref: "#/channels/session/messages/setVantage" },
       { $ref: "#/channels/session/messages/claim" },
+      { $ref: "#/channels/session/messages/setRate" },
       { $ref: "#/channels/session/messages/commandGroup" },
       { $ref: "#/channels/session/messages/ping" },
     ],

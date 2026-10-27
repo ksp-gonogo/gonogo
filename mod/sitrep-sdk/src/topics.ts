@@ -49,6 +49,7 @@
 import type {
   ChannelEmissionReport,
   CommandGateReport,
+  DataRateReport,
   PendingUplinkQueue,
 } from "./__generated__/contract";
 import type { GeneratedTopicPayloadMap } from "./__generated__/topic-map";
@@ -253,6 +254,18 @@ export interface SystemChannelsTopicPayloadMap {
 }
 
 /**
+ * `system.dataRates`: what each rate tier stands for in samples a game second,
+ * and every Topic sent above the base tier now. A Topic not listed arrives at
+ * the base tier's rate. Useful for sizing how many samples of a Topic to keep so
+ * a plot spans the same time at any rate. Hand-mapped here because the mod
+ * declares it itself, like `system.channels`.
+ */
+export interface SystemDataRatesTopicPayloadMap {
+  /** Each tier's rate and the Topics above the base tier. */
+  "system.dataRates": DataRateReport;
+}
+
+/**
  * The SDK's own Topic map: the generated entries plus the engine-owned tail
  * (`system.uplinks`, `system.uplink.pending`). Deliberately distinct from the
  * public, augmentable `TopicPayloadMap` below: bare-primitive Uplink Topics
@@ -270,7 +283,8 @@ interface SdkOwnedTopicPayloadMap
     SystemUplinkPendingTopicPayloadMap,
     SystemUplinkGatesTopicPayloadMap,
     SystemUnitsTopicPayloadMap,
-    SystemChannelsTopicPayloadMap {}
+    SystemChannelsTopicPayloadMap,
+    SystemDataRatesTopicPayloadMap {}
 
 /**
  * Every Topic id mapped to the type of its payload. {@link TopicId} and
@@ -339,6 +353,7 @@ export const TOPIC_IDS = [
   "system.uplink.gates",
   "system.units",
   "system.channels",
+  "system.dataRates",
 ] as const satisfies readonly TopicId[];
 
 const TOPIC_ID_SET: ReadonlySet<string> = new Set(TOPIC_IDS);

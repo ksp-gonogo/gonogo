@@ -12,6 +12,7 @@ import type {
   Hello,
   Ping,
   Pong,
+  SetRate,
   SetVantage,
   StreamData,
   Subscribe,
@@ -56,4 +57,5 @@ export type ClientMessage =
   | CommandRequest<unknown>
   | CommandGroupRequest
   | ClaimRequest
+  | SetRate
   | Ping;
