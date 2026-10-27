@@ -546,7 +546,7 @@ describe("return from a moon to its parent", () => {
     expect(plan.arrivalUt).toBeGreaterThan(plan.burnUt);
   });
 
-  it("escapes against the Mun's motion at the excess speed that lowers the periapsis", () => {
+  it("escapes against the Mun's motion", () => {
     const craft = orbit(0);
     const plan = returnPlan(craft);
     if (!plan) throw new Error("no plan");
@@ -567,12 +567,78 @@ describe("return from a moon to its parent", () => {
     const moonVelocity = MUN_BODY.state(exitUt).velocity;
     const against = -dot(leaving.direction, unit(moonVelocity));
     expect(against).toBeGreaterThan(0.99);
-    const speed = norm(moonVelocity) - leaving.excessSpeed;
-    // Tangential departure from the orbit radius gives the periapsis by vis-viva.
-    const r = norm(MUN_BODY.state(exitUt).position);
-    const peri =
-      (2 * KERBIN_MU * (KERBIN_R + 40_000)) / (r * (r + KERBIN_R + 40_000));
-    expect(speed).toBeCloseTo(Math.sqrt(peri), -1);
+  });
+
+  it("reaches the periapsis asked once the escape is flown to the sphere edge", () => {
+    const craft: OrbitElements = { ...orbit(0), sma: 250_000 };
+    const plan = returnPlan(craft, 100_000);
+    if (!plan) throw new Error("no plan");
+    const before = solve(craft, plan.burnUt);
+    const burn = burnVector(plan, before);
+    let pos: Vec3Tuple = [...before.position];
+    let vel: Vec3Tuple = [
+      before.velocity[0] + burn[0],
+      before.velocity[1] + burn[1],
+      before.velocity[2] + burn[2],
+    ];
+    const accel = (p: Vec3Tuple): Vec3Tuple => {
+      const k = -MUN_MU / norm(p) ** 3;
+      return [p[0] * k, p[1] * k, p[2] * k];
+    };
+    const step = 1;
+    let ut = plan.burnUt;
+    while (norm(pos) < MUN_BODY.soi && ut - plan.burnUt < 86_400) {
+      const add = (a: Vec3Tuple, b: Vec3Tuple, f: number): Vec3Tuple => [
+        a[0] + b[0] * f,
+        a[1] + b[1] * f,
+        a[2] + b[2] * f,
+      ];
+      const k1v = accel(pos);
+      const k1p = vel;
+      const k2v = accel(add(pos, k1p, step / 2));
+      const k2p = add(vel, k1v, step / 2);
+      const k3v = accel(add(pos, k2p, step / 2));
+      const k3p = add(vel, k2v, step / 2);
+      const k4v = accel(add(pos, k3p, step));
+      const k4p = add(vel, k3v, step);
+      pos = add(
+        pos,
+        [
+          k1p[0] + 2 * k2p[0] + 2 * k3p[0] + k4p[0],
+          k1p[1] + 2 * k2p[1] + 2 * k3p[1] + k4p[1],
+          k1p[2] + 2 * k2p[2] + 2 * k3p[2] + k4p[2],
+        ],
+        step / 6,
+      );
+      vel = add(
+        vel,
+        [
+          k1v[0] + 2 * k2v[0] + 2 * k3v[0] + k4v[0],
+          k1v[1] + 2 * k2v[1] + 2 * k3v[1] + k4v[1],
+          k1v[2] + 2 * k2v[2] + 2 * k3v[2] + k4v[2],
+        ],
+        step / 6,
+      );
+      ut += step;
+    }
+    const moon = MUN_BODY.state(ut);
+    const r: Vec3Tuple = [
+      moon.position[0] + pos[0],
+      moon.position[1] + pos[1],
+      moon.position[2] + pos[2],
+    ];
+    const v: Vec3Tuple = [
+      moon.velocity[0] + vel[0],
+      moon.velocity[1] + vel[1],
+      moon.velocity[2] + vel[2],
+    ];
+    const rn = norm(r);
+    const energy = dot(v, v) / 2 - KERBIN_MU / rn;
+    const h = norm(cross(r, v));
+    const sma = -KERBIN_MU / (2 * energy);
+    const ecc = Math.sqrt(1 + (2 * energy * h * h) / KERBIN_MU ** 2);
+    const periapsisAltitude = sma * (1 - ecc) - KERBIN_R;
+    expect(periapsisAltitude).toBeCloseTo(100_000, -4);
   });
 
   it("costs more for an inclined orbit than the one in the Mun's plane", () => {

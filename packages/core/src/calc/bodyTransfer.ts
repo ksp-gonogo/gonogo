@@ -786,6 +786,55 @@ function periapsisOf(
 }
 
 /**
+ * Where a state about a body is when it reaches the sphere edge at `soi`, and
+ * how long that takes, or `null` for an orbit that never gets there.
+ */
+function stateAtSphereEdge(
+  state: StateLike,
+  mu: number,
+  soi: number,
+): { position: Vec3; velocity: Vec3; seconds: number } | null {
+  const r0 = norm(state.position);
+  const v2 = dot(state.velocity, state.velocity);
+  const energy = v2 / 2 - mu / r0;
+  if (!(energy > 0) || !(soi > r0)) return null;
+  const h = cross(state.position, state.velocity);
+  const hMag = norm(h);
+  const p = (hMag * hMag) / mu;
+  const eVec = sub(
+    scale(state.position, (v2 - mu / r0) / mu),
+    scale(state.velocity, dot(state.position, state.velocity) / mu),
+  );
+  const e = norm(eVec);
+  const cosExit = (p / soi - 1) / e;
+  const cosStart = (p / r0 - 1) / e;
+  if (!(Math.abs(cosExit) <= 1) || !(Math.abs(cosStart) <= 1)) return null;
+  const inbound = dot(state.position, state.velocity) < 0;
+  const nuStart = (inbound ? -1 : 1) * Math.acos(cosStart);
+  const nuExit = Math.acos(cosExit);
+  const sweep = nuExit - nuStart;
+  const cosD = Math.cos(sweep);
+  const sinD = Math.sin(sweep);
+  const f = 1 - ((mu * soi) / (hMag * hMag)) * (1 - cosD);
+  const g = (soi * r0 * sinD) / hMag;
+  const fDot =
+    ((mu * (1 - cosD)) / (hMag * sinD)) *
+    ((mu * (1 - cosD)) / (hMag * hMag) - 1 / r0 - 1 / soi);
+  const gDot = 1 - ((mu * r0) / (hMag * hMag)) * (1 - cosD);
+  const hyperbolicMean = (nu: number): number => {
+    const F = 2 * Math.atanh(Math.sqrt((e - 1) / (e + 1)) * Math.tan(nu / 2));
+    return e * Math.sinh(F) - F;
+  };
+  const sma = mu / (2 * energy);
+  const n = Math.sqrt(mu / (sma * sma * sma));
+  return {
+    position: add(scale(state.position, f), scale(state.velocity, g)),
+    velocity: add(scale(state.position, fDot), scale(state.velocity, gDot)),
+    seconds: (hyperbolicMean(nuExit) - hyperbolicMean(nuStart)) / n,
+  };
+}
+
+/**
  * The plan to leave the craft's body for the body it orbits, or `null` where
  * no return is found.
  *
@@ -862,14 +911,90 @@ export function planParentReturn(
   const first = samples.find((s) => s.cost <= cheapest * 1.02 + 1);
   if (!first) return null;
 
-  let best = burnAt(first.ut);
+  /*
+   * The coarse search above treats the excess speed as the speed at the sphere
+   * edge and the asymptote as the exit direction. The craft actually crosses
+   * the edge faster than that and off the asymptote, so the periapsis at the
+   * parent is re-solved here by flying the escape to the edge.
+   */
+  const exactAt = (burnUt: number) => {
+    const coarse = burnAt(burnUt);
+    if (!coarse) return null;
+    const state = coarse.state;
+    const flown = (excess: number) => {
+      let exitUt = coarse.exitUt;
+      let result: {
+        velocity: Vec3;
+        exitUt: number;
+        radius: number;
+        parent: StateLike;
+      } | null = null;
+      for (let pass = 0; pass < 3; pass++) {
+        const velocity = ejectionVelocity(
+          state.position,
+          asymptote(exitUt),
+          excess,
+          origin.mu,
+          cross(state.position, state.velocity),
+        );
+        if (!velocity) return null;
+        const edge = stateAtSphereEdge(
+          { position: state.position, velocity },
+          origin.mu,
+          origin.soi,
+        );
+        if (!edge) return null;
+        exitUt = burnUt + edge.seconds;
+        const body = origin.state(exitUt);
+        const parent = {
+          position: add(body.position, edge.position),
+          velocity: add(body.velocity, edge.velocity),
+        };
+        result = {
+          velocity,
+          exitUt,
+          radius:
+            periapsisOf(parent, muParent)?.radius ?? Number.POSITIVE_INFINITY,
+          parent,
+        };
+      }
+      return result;
+    };
+    let lo = coarse.excess * 0.6;
+    let hi = coarse.excess * 1.6;
+    const low = flown(lo);
+    const high = flown(hi);
+    if (!low || !high || !(low.radius > target) || !(high.radius < target)) {
+      return null;
+    }
+    for (let i = 0; i < 40; i++) {
+      const mid = (lo + hi) / 2;
+      const hit = flown(mid);
+      if (!hit) return null;
+      if (hit.radius > target) lo = mid;
+      else hi = mid;
+    }
+    const excess = (lo + hi) / 2;
+    const hit = flown(excess);
+    if (!hit) return null;
+    const burnVector = sub(hit.velocity, state.velocity);
+    return {
+      cost: norm(burnVector),
+      burnVector,
+      state,
+      exitUt: hit.exitUt,
+      parent: hit.parent,
+    };
+  };
+
+  let best = exactAt(first.ut);
   let bestUt = first.ut;
   let half = step;
   for (let round = 0; round < 4 && best; round++) {
     const centre = bestUt;
     for (let k = 0; k < 9; k++) {
       const ut = Math.max(start, centre - half + (2 * half * k) / 8);
-      const hit = burnAt(ut);
+      const hit = exactAt(ut);
       if (hit && hit.cost < best.cost) {
         best = hit;
         bestUt = ut;
@@ -879,7 +1004,7 @@ export function planParentReturn(
   }
   if (!best) return null;
   BODY_TRANSFER_SOLVE_BUDGET.record(samples.length + 36);
-  const peri = periapsisOf(leaving(best.exitUt, best.excess), muParent);
+  const peri = periapsisOf(best.parent, muParent);
   if (!peri) return null;
   const arrivalUt = best.exitUt + peri.secondsTo;
   return {
