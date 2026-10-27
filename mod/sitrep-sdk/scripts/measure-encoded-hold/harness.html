@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Encoded hold measurement</title>
+  </head>
+  <body>
+    <video id="shown" muted playsinline autoplay width="640" height="360"></video>
+    <script type="module">
+      import { attachEncodedWorkerFrameDelay } from "/dist/media/worker/delay-worker-client.js";
+
+      const params = new URLSearchParams(location.search);
+      const delaySeconds = Number(params.get("delay") ?? 180);
+      const windowSeconds = Number(params.get("window") ?? 30);
+      const maxBufferedBytes = params.get("cap")
+        ? Number(params.get("cap"))
+        : undefined;
+      const bitrate = Number(params.get("bitrate") ?? 2_000_000);
+      const SAMPLE_EVERY_MS = 5000;
+      const BARCODE_BITS = 32;
+      const BLOCK = 16;
+      const WIDTH = 640;
+      const HEIGHT = 360;
+
+      const result = {
+        done: false,
+        delaySeconds,
+        windowSeconds,
+        maxBufferedBytes: maxBufferedBytes ?? "default",
+        bitrate,
+        samples: [],
+        errorsMs: [],
+        presented: 0,
+        error: null,
+      };
+      window.__result = result;
+
+      // The clock the worker follows: no telemetry, a fixed one-way delay.
+      const UT0 = 1_000_000;
+      const anchorWall = performance.now() / 1000;
+      const view = {
+        confirmedEdgeUt: () =>
+          UT0 + (performance.now() / 1000 - anchorWall) - delaySeconds,
+        snapshot: () => ({
+          epoch: 1,
+          anchorWall,
+          anchorUt: UT0,
+          maxSampleUt: 1e12,
+          delaySeconds,
+          warpRate: 1,
+          slackSeconds: 0,
+        }),
+        onFrame: () => () => {},
+      };
+      let sample = { ut: UT0, warpRate: 1, atMs: performance.now() };
+      setInterval(() => {
+        const nowMs = performance.now();
+        sample = {
+          ut: UT0 + (nowMs / 1000 - anchorWall),
+          warpRate: 1,
+          atMs: nowMs,
+        };
+      }, 1000);
+
+      const source = document.createElement("canvas");
+      source.width = WIDTH;
+      source.height = HEIGHT;
+      const sctx = source.getContext("2d");
+      function drawSource() {
+        const stamp = Math.round(performance.now()) >>> 0;
+        // Random blocks keep the encoder at its bitrate, so held bytes are realistic
+        for (let y = BLOCK * 2; params.get("noise") !== "0" && y < HEIGHT; y += 8) {
+          for (let x = 0; x < WIDTH; x += 8) {
+            sctx.fillStyle = `rgb(${(Math.random() * 256) | 0},${(Math.random() * 256) | 0},${(Math.random() * 256) | 0})`;
+            sctx.fillRect(x, y, 8, 8);
+          }
+        }
+        sctx.fillStyle = "#808080";
+        sctx.fillRect(0, 0, WIDTH, BLOCK * 2);
+        for (let bit = 0; bit < BARCODE_BITS; bit += 1) {
+          sctx.fillStyle = (stamp >>> bit) & 1 ? "#fff" : "#000";
+          sctx.fillRect(bit * BLOCK + 64, 0, BLOCK, BLOCK * 2);
+        }
+      }
+      drawSource();
+      setInterval(drawSource, 1000 / 30);
+
+      const reader = document.createElement("canvas");
+      reader.width = WIDTH;
+      reader.height = HEIGHT;
+      const rctx = reader.getContext("2d", { willReadFrequently: true });
+      const video = document.getElementById("shown");
+      function readStamp() {
+        rctx.drawImage(video, 0, 0, WIDTH, HEIGHT);
+        let stamp = 0;
+        for (let bit = 0; bit < BARCODE_BITS; bit += 1) {
+          const px = rctx.getImageData(
+            bit * BLOCK + 64 + BLOCK / 2,
+            BLOCK,
+            1,
+            1,
+          ).data;
+          if ((px[0] + px[1] + px[2]) / 3 > 128) stamp |= 1 << bit;
+        }
+        return stamp >>> 0;
+      }
+      function onShown() {
+        const renderedAt = performance.now();
+        const stamp = readStamp();
+        const heldMs = renderedAt - stamp;
+        // A decode of the grey bar or a torn frame reads as nonsense: keep plausible ones
+        if (heldMs > 0 && heldMs < (delaySeconds + 60) * 1000) {
+          result.presented += 1;
+          result.errorsMs.push(heldMs - delaySeconds * 1000);
+        }
+        schedule();
+      }
+      function schedule() {
+        if ("requestVideoFrameCallback" in video) {
+          video.requestVideoFrameCallback(onShown);
+        } else {
+          requestAnimationFrame(onShown);
+        }
+      }
+
+      let workerStats = null;
+      let handle = null;
+      let receiverRef = null;
+      async function inboundBytes() {
+        if (!receiverRef) return null;
+        const report = await receiverRef.getStats();
+        let bytes = null;
+        report.forEach((entry) => {
+          if (entry.type === "inbound-rtp" && entry.kind === "video") {
+            bytes = entry.bytesReceived;
+          }
+        });
+        return bytes;
+      }
+
+      async function run() {
+        const pc1 = new RTCPeerConnection();
+        const pc2 = new RTCPeerConnection();
+        pc1.onicecandidate = (e) => e.candidate && pc2.addIceCandidate(e.candidate);
+        pc2.onicecandidate = (e) => e.candidate && pc1.addIceCandidate(e.candidate);
+
+        pc2.ontrack = (e) => {
+          console.log("ontrack");
+          receiverRef = e.receiver;
+          window.__receiver = e.receiver;
+          handle = attachEncodedWorkerFrameDelay(e.receiver, {
+            view,
+            getCaptureSample: () => sample,
+            maxBufferedBytes,
+            onError: (err) => {
+              result.error = String(err);
+            },
+            onStats: (s) => {
+              workerStats = s;
+            },
+            statsIntervalMs: 1000,
+          });
+          if (!handle) throw new Error("the delay could not be attached");
+          video.srcObject = new MediaStream([e.track]);
+          video.play().catch(() => {});
+          schedule();
+        };
+
+        const stream = source.captureStream(30);
+        const sender = pc1.addTrack(stream.getVideoTracks()[0], stream);
+        const sending = sender.getParameters();
+        sending.encodings = [{ maxBitrate: bitrate, maxFramerate: 30 }];
+        await sender.setParameters(sending).catch(() => {});
+        await pc1.setLocalDescription(await pc1.createOffer());
+        await pc2.setRemoteDescription(pc1.localDescription);
+        await pc2.setLocalDescription(await pc2.createAnswer());
+        await pc1.setRemoteDescription(pc2.localDescription);
+
+        console.log("negotiated");
+        const startedAt = performance.now();
+        const endAt = startedAt + (delaySeconds + windowSeconds) * 1000;
+        while (performance.now() < endAt) {
+          await new Promise((r) => setTimeout(r, SAMPLE_EVERY_MS));
+          const heap = performance.memory
+            ? performance.memory.usedJSHeapSize
+            : null;
+          result.samples.push({
+            tSeconds: Math.round((performance.now() - startedAt) / 1000),
+            bytesReceived: await inboundBytes(),
+            jsHeapBytes: heap,
+            worker: workerStats,
+            presented: result.presented,
+            connection: pc2.connectionState,
+            ice: pc2.iceConnectionState,
+          });
+        }
+        result.done = true;
+        if (params.get("dispose") !== null) {
+          await new Promise((r) => setTimeout(r, 3000));
+          if (params.get("dispose") === "1") handle?.dispose();
+          if (params.get("dispose") === "2") window.__receiver.transform = null;
+          result.disposed = true;
+        }
+      }
+      run().catch((err) => {
+        result.error = String(err);
+        result.done = true;
+      });
+    </script>
+  </body>
+</html>

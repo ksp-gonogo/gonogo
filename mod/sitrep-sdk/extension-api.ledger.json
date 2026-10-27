@@ -13117,6 +13117,10 @@
         "note": "New: asks the sender for a keyframe after a flush"
       },
       {
+        "key": "sitrep-sdk ./media FrameDelayPipelineOptions#keepSinkOpenOnDispose?",
+        "note": "New: leaves the sink open on dispose where the browser ends it, as with an encoded transformer"
+      },
+      {
         "key": "sitrep-sdk ./media FrameDelayPipelineOptions#onNeedKeyframe?",
         "note": "New: called when a flush leaves an encoded stream waiting for a keyframe"
       },

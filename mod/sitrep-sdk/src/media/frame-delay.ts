@@ -128,6 +128,13 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
    */
   gopSafeEviction?: boolean;
   /**
+   * Leave the sink open when the pipeline is disposed. Set it where the browser
+   * owns the sink's lifetime, as with the writable of an `RTCRtpScriptTransform`,
+   * which it ends itself when the transform is removed. Unset, `dispose()`
+   * closes the sink.
+   */
+  keepSinkOpenOnDispose?: boolean;
+  /**
    * Called when `flush()` has left an encoded stream without the frames its
    * next frames depend on, so the source can be asked for a keyframe sooner than
    * its own interval. Until one arrives, frames that need earlier ones are
@@ -324,7 +331,11 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
       buffer.dispose();
       pacer?.dispose();
       void Promise.resolve(opts.source.cancel()).catch(() => {});
-      void Promise.resolve(opts.sink.close()).catch(() => {});
+      /* Closing an encoded transformer's writable while the receiver still runs
+         it crashes Chromium's renderer. */
+      if (!opts.keepSinkOpenOnDispose) {
+        void Promise.resolve(opts.sink.close()).catch(() => {});
+      }
     },
     stats: () => ({ ...stats }),
     tickPacing(nowWall: number) {

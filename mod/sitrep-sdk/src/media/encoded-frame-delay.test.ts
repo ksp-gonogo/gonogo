@@ -154,6 +154,18 @@ describe("attachEncodedFrameDelayTransform", () => {
     void written;
   });
 
+  it("leaves transformer.writable open on dispose, which the browser ends with the transform", async () => {
+    const { transformer } = fakeTransformer([keyFrame(64)]);
+    const close = vi.spyOn(transformer.writable, "close");
+    const pipeline = attachEncodedFrameDelayTransform(transformer, {
+      view: manualClock(Number.NEGATIVE_INFINITY),
+      captureUt: () => 1,
+    });
+    pipeline.dispose();
+    await new Promise((r) => setTimeout(r, 10));
+    expect(close).not.toHaveBeenCalled();
+  });
+
   it("defaults maxBufferedBytes to DEFAULT_MAX_BUFFERED_BYTES when omitted", async () => {
     const clock = manualClock(Number.NEGATIVE_INFINITY);
     // One huge frame just under the default cap survives; nothing to

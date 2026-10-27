@@ -33,17 +33,11 @@
  * holds no GPU/decoder resource (a plain data object), which is exactly why
  * `frame-delay.ts`'s `FrameLike.close` became optional.
  *
- * Not wired into the camera Uplink's delayed-stream hook; see the encoded-video-delay
- * report's "what's blocked" section. Attaching `receiver.transform =
- * new RTCRtpScriptTransform(...)` needs the `RTCRtpReceiver` object, which
- * lives inside the camera SDK's browser transport
- * (the sibling `kerbcam` repo) and is discarded there today, `onTrack`
- * only forwards the bare `MediaStreamTrack`. This module is therefore
- * correct and tested, but reachable only once that SDK exposes a receiver
- * (or an equivalent attach hook): a cross-repo, versioned change out of
- * this task's scope. The worker-side glue (`worker/delay-worker.ts`'s
- * `self.onrtctransform` handler) that would consume this on the shared
- * worker is the next piece once that SDK seam exists.
+ * The camera SDK hands the receiver over through its encoded-transform
+ * hook, so the delay worker's `self.onrtctransform` handler can take the
+ * `RTCRtpScriptTransform` it is given; `attachEncodedWorkerFrameDelay` builds
+ * that transform. The default byte cap holds tens of seconds of video, so a
+ * feed held for minutes passes a larger `maxBufferedBytes`.
  */
 
 import type { DelayClockLike } from "./delayed-playout-buffer";
@@ -161,6 +155,7 @@ export function attachEncodedFrameDelayTransform(
     isKeyframe: (f) => f.type === "key",
     frameBytes: (f) => f.data.byteLength,
     gopSafeEviction: true,
+    keepSinkOpenOnDispose: true,
     onNeedKeyframe: () => {
       try {
         transformer.sendKeyFrameRequest?.().catch(() => {});
