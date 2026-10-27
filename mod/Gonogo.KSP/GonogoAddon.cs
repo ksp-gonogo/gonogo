@@ -600,6 +600,7 @@ namespace Gonogo.KSP
                 }
 
                 var ut = _host.NowUt();
+                _engine.NoteGameUt(ut);
                 var admitted = paused
                     ? _sampleGate.AdmitFrame(ut, TimeWarp.CurrentRate, nowRealtime, Time.timeScale)
                     : _sampleGate.Admit(ut, TimeWarp.CurrentRate, nowRealtime);
