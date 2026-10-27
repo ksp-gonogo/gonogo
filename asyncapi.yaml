@@ -1410,10 +1410,9 @@ channels:
     address: eva.crew
     title: Crew on EVA
     description: |-
-      The roster of kerbals currently outside a craft and within physics range of
-      the vessel in focus (a loaded vessel in the game), so a client can find each
-      one's own `eva.kerbal.<vessel id>.state` Topic. The suit state is on those
-      Topics, not here.
+      The roster of kerbals currently outside a craft, loaded or not, so a client
+      can find each one's own `eva.kerbal.<vessel id>.state` Topic. The suit state
+      is on those Topics, not here.
 
       The roster is a fact the home command holds, so it is not held by the link
       of the craft a kerbal left or of any kerbal.
@@ -14913,10 +14912,9 @@ components:
     EvaCrew:
       type: object
       description: |-
-        The roster of kerbals currently outside a craft and within physics range of
-        the vessel in focus (a loaded vessel in the game), so a client can find each
-        one's own `eva.kerbal.<vessel id>.state` Topic. The suit state is on those
-        Topics, not here.
+        The roster of kerbals currently outside a craft, loaded or not, so a client
+        can find each one's own `eva.kerbal.<vessel id>.state` Topic. The suit state
+        is on those Topics, not here.
 
         The roster is a fact the home command holds, so it is not held by the link
         of the craft a kerbal left or of any kerbal.
@@ -14941,7 +14939,7 @@ components:
     EvaCrewMember:
       type: object
       description: |-
-        One kerbal listed on `eva.crew`: who is outside, in physics range, and which
+        One kerbal listed on `eva.crew`: who is outside, loaded or not, and which
         craft they left, enough to find the kerbal's own `eva.kerbal.<vessel
         id>.state` Topic.
       properties:

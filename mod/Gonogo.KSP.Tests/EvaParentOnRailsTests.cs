@@ -54,10 +54,14 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
-        public void only_a_loaded_kerbal_is_listed_as_outside()
+        public void only_a_loaded_kerbal_has_its_suit_read_and_an_unloaded_one_is_listed_without_it()
         {
             var source = CurrencyDelaySourceText.ReadRelative("KspHost.cs");
-            Assert.Contains("candidate.vesselType != VesselType.EVA || !candidate.loaded", source, StringComparison.Ordinal);
+            Assert.Contains("evaUnloaded.Add(BuildEvaUnloadedEntry(candidate));", source, StringComparison.Ordinal);
+            Assert.True(
+                source.IndexOf("if (!candidate.loaded)", StringComparison.Ordinal)
+                    < source.IndexOf("BuildEvaKerbalEntry(candidate)", StringComparison.Ordinal),
+                "an unloaded kerbal must be diverted before its suit is read");
 
             var entry = CurrencyDelaySourceText.MethodBody(
                 source,

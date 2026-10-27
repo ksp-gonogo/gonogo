@@ -95,6 +95,12 @@ namespace Sitrep.Host
         /// <summary>The namespace of each kerbal's own state Topic, <c>eva.kerbal.&lt;vessel id&gt;.state</c>.</summary>
         public const string EvaKerbalPrefix = "eva.kerbal.";
 
+        /// <summary>
+        /// The snapshot root key listing kerbals outside a craft that are not loaded: each one's
+        /// id, name and parent, with no suit state.
+        /// </summary>
+        public const string EvaUnloadedKey = "evaCrewUnloaded";
+
         /// <summary>The segment after a kerbal's vessel id in its own Topic.</summary>
         public const string EvaKerbalField = "state";
 
@@ -1325,7 +1331,51 @@ namespace Sitrep.Host
                 });
             }
 
+            foreach (var member in BuildEvaUnloaded(snapshot))
+            {
+                if (!result.Kerbals.Exists(k => k.KerbalVesselId == member.KerbalVesselId))
+                {
+                    result.Kerbals.Add(member);
+                }
+            }
+
             result.Count = result.Kerbals.Count;
+            return result;
+        }
+
+        /// <summary>
+        /// The kerbals outside a craft that are not loaded, from the snapshot's
+        /// <see cref="EvaUnloadedKey"/> list. Empty when the capture carries none.
+        /// </summary>
+        public static List<EvaCrewMember> BuildEvaUnloaded(KspSnapshot? snapshot)
+        {
+            var result = new List<EvaCrewMember>();
+            if (snapshot?.Values == null
+                || !snapshot.Values.TryGetValue(EvaUnloadedKey, out var rawList)
+                || rawList is not IEnumerable<object?> entries)
+            {
+                return result;
+            }
+
+            foreach (var rawEntry in entries)
+            {
+                if (rawEntry is not IDictionary<string, object?> raw)
+                {
+                    continue;
+                }
+                var id = GetString(raw, "kerbalVesselId");
+                if (string.IsNullOrEmpty(id))
+                {
+                    continue;
+                }
+                result.Add(new EvaCrewMember
+                {
+                    KerbalVesselId = id,
+                    ParentVesselId = GetString(raw, "parentVesselId"),
+                    Name = GetString(raw, "name"),
+                });
+            }
+
             return result;
         }
 

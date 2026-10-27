@@ -191,5 +191,60 @@ namespace Sitrep.Host.Tests
             Assert.Empty(eva[0].HeldData!);
             Assert.Null(eva[1].HeldData);
         }
+
+        private static KspSnapshot SnapshotWithUnloaded(object?[] loaded, params object?[] unloaded)
+        {
+            var snapshot = SnapshotWith(loaded);
+            snapshot.Values![VesselViewProvider.EvaUnloadedKey] = new List<object?>(unloaded);
+            return snapshot;
+        }
+
+        private static Dictionary<string, object?> Unloaded(string id) =>
+            new Dictionary<string, object?>
+            {
+                ["kerbalVesselId"] = id,
+                ["parentVesselId"] = "craft-1",
+                ["name"] = "Bill Kerman",
+            };
+
+        [Fact]
+        public void AnUnloadedKerbalIsOnTheRosterAndHasNoSuitStateOfItsOwn()
+        {
+            var snapshot = SnapshotWithUnloaded(new object?[] { Kerbal("loaded-1") }, Unloaded("away-1"));
+
+            var roster = Assert.IsType<EvaCrew>(VesselViewProvider.BuildEvaCrew(snapshot));
+            var suits = Assert.IsType<List<EvaKerbal>>(VesselViewProvider.BuildEvaKerbals(snapshot));
+
+            Assert.Equal(2, roster.Count);
+            Assert.Equal(new[] { "loaded-1", "away-1" }, roster.Kerbals.ConvertAll(k => k.KerbalVesselId));
+            Assert.Equal("Bill Kerman", roster.Kerbals[1].Name);
+            Assert.Equal("craft-1", roster.Kerbals[1].ParentVesselId);
+            Assert.Equal("loaded-1", Assert.Single(suits).KerbalVesselId);
+        }
+
+        [Fact]
+        public void AKerbalListedAsLoadedAndUnloadedIsOnTheRosterOnce()
+        {
+            var snapshot = SnapshotWithUnloaded(new object?[] { Kerbal("k1") }, Unloaded("k1"));
+
+            var roster = Assert.IsType<EvaCrew>(VesselViewProvider.BuildEvaCrew(snapshot));
+
+            Assert.Single(roster.Kerbals);
+        }
+
+        [Fact]
+        public void AnUnloadedKerbalAloneIsNotMappedWhenTheCaptureHasNoRoster()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    [VesselViewProvider.EvaUnloadedKey] = new List<object?> { Unloaded("away-1") },
+                },
+            };
+
+            Assert.Null(VesselViewProvider.BuildEvaCrew(snapshot));
+        }
     }
 }
