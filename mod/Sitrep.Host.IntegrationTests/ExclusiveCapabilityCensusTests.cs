@@ -208,6 +208,19 @@ namespace Sitrep.Host.IntegrationTests
                     + "Nothing gated feeds it: the provider reads the effective delay config and is "
                     + "refreshed from the frame loop, not from a capture a subscription could skip. "
                     + "An Uplink registering a provider makes this line stale and fails."),
+            new Entry(
+                "lensSites",
+                "Gonogo.KSP/CommandCentres/CommandCentreDelayUplink.cs",
+                FedByGatedCapture: false,
+                Excuse: Excuse.NoUplinkProvider,
+                WhyNoBehaviouralCase: "No Uplink registers a provider: core ships the only one, as "
+                    + "the capability's Vanilla, because where a lens stands and what of its "
+                    + "commanding centre's knowledge has reached it are the courier's own record "
+                    + "rather than a model a mod could hold a rival opinion about. No capture feeds "
+                    + "it: the station lookup enumerates the centre registry at the moment it is "
+                    + "asked, and each scope's delivered knowledge advances on the courier's own tick "
+                    + "whatever is subscribed, so there is no gated path that could starve it. An "
+                    + "Uplink registering a provider makes this line stale and fails."),
             new Entry("gameAlarmClock", "Gonogo.KSP/ScetAlarmUplink.cs", FedByGatedCapture: false),
         };
 

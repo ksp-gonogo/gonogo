@@ -224,7 +224,7 @@ namespace Gonogo.KSP
                     ccRegistry.RegisterSource(src);
                 }
                 var homeEngine = _engine;
-                RegisterCoreUplink(_engine, new CommandCentres.CommandCentreDelayUplink(ccRegistry, () => homeEngine.CurrentHomeCommand));
+                RegisterCoreUplink(_engine, new CommandCentres.CommandCentreDelayUplink(ccRegistry, () => homeEngine.CurrentHomeCommand, homeEngine));
                 // One shared hand-off: the planner and the link capture write it,
                 // store-and-forward delivery reads it.
                 var deliveryInputs = new Sitrep.Host.Comms.DeliveryInputs();

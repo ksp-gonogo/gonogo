@@ -80,7 +80,8 @@ namespace Gonogo.KSP.CommandCentres
                     home.Position,
                     active: true,
                     latitude: facts.Latitude,
-                    longitude: facts.Longitude);
+                    longitude: facts.Longitude,
+                    nodeName: string.IsNullOrEmpty(home.NodeName) ? null : home.NodeName);
             }
         }
 

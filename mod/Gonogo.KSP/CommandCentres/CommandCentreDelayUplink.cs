@@ -26,7 +26,7 @@ namespace Gonogo.KSP.CommandCentres
     /// ungated; the roster is an ordinary published channel and stays
     /// subscription-gated. See <see cref="Register"/>.</para>
     /// </summary>
-    public sealed class CommandCentreDelayUplink : ISitrepUplink
+    public sealed class CommandCentreDelayUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
         public const string RosterTopic = "commandCentre.roster";
         public const string SeparationTopic = "commandCentre.separation";
@@ -48,6 +48,7 @@ namespace Gonogo.KSP.CommandCentres
 
         private readonly CommandCentreRegistry _registry;
         private readonly Func<HomeCommand> _home;
+        private readonly ChannelEngine? _lensEngine;
         private IUplinkHost? _host;
 
         /// <param name="registry">The same registry the engine enumerates for set-vantage validation.</param>
@@ -55,11 +56,34 @@ namespace Gonogo.KSP.CommandCentres
         /// The elected home-command claimant's answer as the engine captured it this tick.
         /// Null answers not identified, which is what a test that models no claimant wants.
         /// </param>
-        public CommandCentreDelayUplink(CommandCentreRegistry registry, Func<HomeCommand>? home = null)
+        /// <param name="lensEngine">The engine that delivers knowledge to camera lenses; null declares no <c>lensSites</c> capability.</param>
+        public CommandCentreDelayUplink(CommandCentreRegistry registry, Func<HomeCommand>? home = null, ChannelEngine? lensEngine = null)
         {
             _registry = registry;
             _home = home ?? (() => HomeCommand.NotIdentified);
+            _lensEngine = lensEngine;
         }
+
+        public void DeclareCapabilities(Kernel kernel)
+        {
+            if (_lensEngine == null)
+            {
+                return;
+            }
+            var sites = new LensSitesSource(_lensEngine, NamedGroundStations);
+            kernel.RegisterCapability(new CapabilityDescriptor
+            {
+                Id = LensSitesCapability.Id,
+                Exclusive = true,
+                SpineCritical = false,
+                Vanilla = _ => sites,
+            });
+        }
+
+        private IEnumerable<NamedGroundStation> NamedGroundStations() =>
+            _registry.EnumerateActive()
+                .Where(c => c.Kind == CommandCentreKind.GroundStation)
+                .Select(c => new NamedGroundStation(c.Id, (c as KspCommandCentre)?.NodeName));
 
         /// <summary>
         /// Degraded while the registry is dropping a centre for an id another centre
