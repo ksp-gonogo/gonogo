@@ -946,6 +946,10 @@ namespace Sitrep.Host.IntegrationTests
                 ["sendPathHome"] = sendPathHome,
                 ["dataSendFailed"] = !sendPathHome,
                 ["deployedOnGround"] = true,
+                // The controller's measured link, which the real capture always
+                // attaches: a station with no known delay is held, not revealed.
+                ["stationOneWay"] = 0.0,
+                ["stationConnected"] = true,
             };
 
         private static List<object?> BuildSyntheticDeployedScienceRaw()

@@ -22,12 +22,13 @@ namespace Sitrep.Host.IntegrationTests
         private const string GroundCentre = "ground:Goldstone";
 
         /// <summary>
-        /// A vessel whose route reaches no ground station cannot reach the ledger,
-        /// and its spend is dropped at dispatch the way a command into any dead
-        /// link is: never executed, never answered.
+        /// A vessel whose route reaches no ground station cannot reach the ledger.
+        /// Its spend is accepted at the delay home it last knew and never runs or
+        /// answers, so it is lost a round trip after the press, the way a command
+        /// into any dead link is.
         /// </summary>
         [Fact]
-        public void ASpendFromAVesselThatReachesNoGroundStationIsDropped()
+        public void ASpendFromAVesselThatReachesNoGroundStationIsLostARoundTripLater()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var uplink = new HomeSpendTestUplink();
@@ -53,7 +54,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 Assert.Equal(0, uplink.HandledCount);
                 Assert.False(resolved);
-                Assert.Null(flightTime);
+                Assert.Equal(3.0, flightTime);
             }
             finally
             {

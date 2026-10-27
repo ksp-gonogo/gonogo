@@ -31,9 +31,9 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The node a lens topic records and delays under, or null when the topic is
-        /// not under a lens namespace or its key cannot be placed. A lens at a
-        /// ground station is that centre's node; a lens on a craft is the craft's
-        /// own node.
+        /// not under a lens namespace. A lens at a ground station is that centre's
+        /// node; a lens on a craft is the craft's own node; a lens whose key cannot
+        /// be placed is <see cref="UnplacedLensNode"/>, never the active craft's.
         /// </summary>
         private string? LensNodeFor(string topic)
         {
@@ -44,11 +44,8 @@ namespace Sitrep.Host
                     continue;
                 }
                 var key = KeySegment(topic, prefix.Length);
-                if (key == null)
-                {
-                    return null;
-                }
-                return NodeForLensSite(ResolveLensSite(prefix, key));
+                var node = key == null ? null : NodeForLensSite(ResolveLensSite(prefix, key));
+                return node ?? UnplacedLensNode;
             }
             return null;
         }
@@ -66,7 +63,7 @@ namespace Sitrep.Host
             }
             catch (Exception ex)
             {
-                FailSoftNamespaceResolver(prefix, ex);
+                FailSoftNamespaceResolver(prefix, ex, "LensSiteForKey threw; its lenses are held as unplaced until it stops");
                 return null;
             }
         }
@@ -119,8 +116,8 @@ namespace Sitrep.Host
         /// <summary>
         /// The newest instant of its commanding centre's knowledge that has reached every
         /// lens in <paramref name="scope"/>, or null while none has. Never moves back, and
-        /// holds still while a path to any lens is lost, and for one delay after a path is
-        /// first seen or returns (see <see cref="UplinkFrontier"/>).
+        /// holds still while a path to any lens is lost or unmeasured, and for one delay
+        /// after a path is first seen or returns (see <see cref="UplinkFrontier"/>).
         /// </summary>
         public double? LensKnowledgeUt(string scope)
         {
@@ -164,7 +161,8 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The one-way seconds from the commanding centre to the lens's site, or null when
-        /// no path exists. A centre commanding a lens at its own site has no delay.
+        /// no path exists or no delay along it has been measured. A centre commanding a
+        /// lens at its own site has no delay.
         /// </summary>
         private double? LensPathSeconds(LensBinding binding)
         {
@@ -176,7 +174,7 @@ namespace Sitrep.Host
             var routed = node.StartsWith(CentreNodePrefix, StringComparison.Ordinal)
                 ? _centreRoutes.TryGetValue(binding.Centre, out var reached) && reached.Contains(binding.Site)
                 : CanSend(binding.Centre, node);
-            if (!routed)
+            if (!routed || !DelayKnown(binding.Centre, node))
             {
                 return null;
             }

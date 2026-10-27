@@ -54,6 +54,8 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.Equal(1, uplink.HandledCount);
                 Assert.NotEqual(ForwardSeconds, engine.LedgerDelayFor(Forward, AuthorityMatrixPass.FleetNode(Craft)));
 
+                // The craft still reaches home: its own link home is measured.
+                engine.SetVesselDelay(Craft, 0.0);
                 engine.DispatchCommandAndWait(CraftCommandTestUplink.Command, "z", Ground, _ => { }, TestBudgets.Op);
                 Tick(engine, 200.0);
                 Assert.Equal(2, uplink.HandledCount);
