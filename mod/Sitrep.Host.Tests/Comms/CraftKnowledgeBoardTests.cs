@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Contract;
 using Sitrep.Contract.TestSupport;
 using Sitrep.Host.Comms;
@@ -229,7 +230,7 @@ namespace Sitrep.Host.Tests.Comms
 
             board.Note(new[] { Home }, hearing, 1000.0, InView);
 
-            Assert.Same(CraftKnowledgeReading.Unknown, Read(board, 1000.0));
+            Assert.Same(CraftKnowledgeReading.Unknown, Read(board, 1060.0));
             Assert.Same(CraftKnowledgeReading.Unknown, board.KnowledgeAt("ground:elsewhere", "probe", 1000.0));
         }
 
@@ -284,9 +285,12 @@ namespace Sitrep.Host.Tests.Comms
             throw new InvalidOperationException("the board never showed the craft out of view");
         }
 
+        private static readonly PlanGround Ground = new PlanGround(new[] { Station }, Bodies, Kerbin, index => index == Kerbin ? KerbinRadius : 0.0);
+
+        /// <summary>The crossings the geometry solves, each given the delay the looks measured so the light arrives on the scale the sight rows use.</summary>
         private static CraftKnowledgeBoard.LineCrossing Solved() =>
-            (id, centre, from, to, closing) => SightCrossing.Between(
-                LowOrbit, new PlanGround(new[] { Station }, Bodies, Kerbin, index => index == Kerbin ? KerbinRadius : 0.0), new[] { Station }, from, to, closing);
+            (id, centre, from, to) => SightCrossing.Between(LowOrbit, Ground, new[] { Station }, from, to)
+                ?.Select(change => new LineChange(change.Ut, change.Opened, OneWay)).ToList();
 
         [Theory]
         [InlineData(0.5)]
@@ -304,6 +308,89 @@ namespace Sitrep.Host.Tests.Comms
             var seenUntil = ReadOutAt(5.0, null);
 
             Assert.True(seenUntil > SetsAt() + OneWay + 4.0, "flipped at " + (seenUntil - SetsAt() - OneWay) + " s past the setting plus one delay");
+        }
+
+        [Fact]
+        public void ALineThatClosedAndReopenedInsideOneSpanIsOutOfViewBetweenThose()
+        {
+            var (board, hearing, host) = Listening();
+            host.State!(Orbiting(0.0).Unsettled());
+            host.Sighting!(CraftSighting.Of(Probe, 0.0, null, Orbiting(0.0).PlaceOnly()));
+            var inView = new Dictionary<string, IReadOnlyDictionary<string, double>> { [Probe] = new Dictionary<string, double> { [Home] = OneWay } };
+
+            board.Note(new[] { Home }, hearing, 0.0, inView, Solved());
+            board.Note(new[] { Home }, hearing, 3500.0, inView, Solved());
+
+            Assert.False(board.KnowledgeAt(Home, "probe", 1500.0).LineOfSight, "the craft was below the horizon at 1500, in view at both looks");
+            Assert.True(board.KnowledgeAt(Home, "probe", 3500.0).LineOfSight);
+        }
+
+        [Fact]
+        public void TheHomeLineClosesWhenTheLastStationToCloseDoes()
+        {
+            var west = Station;
+            var east = PlanNode.OnSurface(
+                "ground:east", Kerbin, RotatingGroundStation.FromLatitudeLongitude(0.0, 68.75, 0.0, KerbinDay, KerbinRadius, 0.0));
+            var ground = new PlanGround(new[] { west, east }, Bodies, Kerbin, index => index == Kerbin ? KerbinRadius : 0.0);
+            var rate = Math.Sqrt(KerbinMu / (OrbitRadius * OrbitRadius * OrbitRadius)) - (2.0 * Math.PI / KerbinDay);
+
+            var changes = SightCrossing.Between(LowOrbit, ground, new[] { west, east }, 0.0, 3000.0);
+
+            Assert.NotNull(changes);
+            var first = changes![0];
+            Assert.False(first.Opened);
+            Assert.Equal(SetsAt() + (68.75 * Math.PI / 180.0 / rate), first.Ut, 0.5);
+        }
+
+        [Fact]
+        public void AnInstantOutOfViewWithNoDelayEverMeasuredIsNotCountedAsArrived()
+        {
+            var (board, hearing, host) = Listening();
+            host.State!(Orbiting().Unsettled());
+            host.Sighting!(CraftSighting.Of(Probe, 1500.0, null, Orbiting(1500.0).PlaceOnly()));
+
+            board.Note(new[] { Home }, hearing, 1600.0, OutOfView);
+
+            var reading = Read(board, 1600.0);
+            Assert.Equal(CraftKnowledgeState.Seen, reading.State);
+            Assert.True(reading.LineOfSight);
+        }
+
+        [Fact]
+        public void AChangeWhoseDelayCannotBeWorkedOutIsTakenAtTheLookThatNoticedIt()
+        {
+            var (board, hearing, host) = Listening();
+            host.State!(Orbiting().Unsettled());
+            host.Sighting!(CraftSighting.Of(Probe, 1500.0, null, Orbiting(1500.0).PlaceOnly()));
+            board.Note(new[] { Home }, hearing, 1500.0, InView);
+
+            board.Note(new[] { Home }, hearing, 1600.0, OutOfView, (id, centre, from, to) => new[] { new LineChange(1550.0, false, null) });
+
+            Assert.True(board.KnowledgeAt(Home, "probe", 1550.2).LineOfSight);
+        }
+
+        [Fact]
+        public void ATimelineResetEmptiesTheBoardUntilTheNextLookRebuildsIt()
+        {
+            var (board, hearing, host) = Listening();
+            host.State!(Orbiting());
+            host.Reach!(new CraftReach(Probe, 1000.0, Reached));
+            board.Note(new[] { Home }, hearing, 1100.0, InView);
+            Assert.Equal(CraftKnowledgeState.Heard, Read(board, 1060.0).State);
+            var before = board.Version;
+
+            board.Reset();
+
+            Assert.Same(CraftKnowledgeReading.Unknown, Read(board, 1060.0));
+            Assert.True(board.Version > before);
+            board.Refresh(new[] { Home }, hearing);
+            Assert.Same(CraftKnowledgeReading.Unknown, Read(board, 1060.0));
+
+            // The delay measured on the abandoned timeline is gone: an instant out of view is not counted as arrived.
+            board.Note(new[] { Home }, hearing, 900.0, OutOfView);
+            var rebuilt = Read(board, 1060.0);
+            Assert.NotSame(CraftKnowledgeReading.Unknown, rebuilt);
+            Assert.False(rebuilt.LineOfSight);
         }
 
         private sealed class Telling : ICraftStateHost

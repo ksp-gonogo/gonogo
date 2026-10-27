@@ -42,6 +42,7 @@ namespace Sitrep.Host.Comms
         /// </summary>
         private readonly struct SightSample
         {
+            /// <param name="arrivesUt">When the light of the instant reaches the centre, or infinity when the delay was never measured, so the sample is never counted as arrived.</param>
             public SightSample(double ut, bool inView, double arrivesUt, bool solved = false)
             {
                 Ut = ut;
@@ -60,7 +61,12 @@ namespace Sitrep.Host.Comms
             public bool Solved { get; }
         }
 
+        /// <summary>A span between two looks long enough to hold a whole crossing the looks both missed.</summary>
+        private const double WarpSpanSeconds = 2.0;
+
         private readonly Dictionary<(string Centre, string Id), List<SightSample>> _samples = new Dictionary<(string, string), List<SightSample>>();
+        private bool _awaitingLook;
+
         private readonly Dictionary<(string Centre, string Id), double> _lastDelay = new Dictionary<(string, string), double>();
 
         /*
@@ -91,12 +97,25 @@ namespace Sitrep.Host.Comms
         public string ProviderId => "gonogo-craft-knowledge";
 
         /// <summary>
-        /// When a craft's line to a centre closed (<paramref name="closing"/>) or
-        /// opened, strictly between two looks, or null when that cannot be told.
+        /// Every instant a craft's line to a centre closed or opened strictly
+        /// between two looks, oldest first, or null when that cannot be told.
         /// </summary>
         /// <param name="objectId">The craft's node id.</param>
         /// <param name="centreId">The centre's id.</param>
-        public delegate double? LineCrossing(string objectId, string centreId, double fromUt, double toUt, bool closing);
+        public delegate IReadOnlyList<LineChange>? LineCrossing(string objectId, string centreId, double fromUt, double toUt);
+
+        /// <summary>
+        /// Courier thread: forgets everything, on a timeline reset. Every centre
+        /// then knows nothing of any craft until the next look rebuilds the board.
+        /// </summary>
+        public void Reset()
+        {
+            _samples.Clear();
+            _lastDelay.Clear();
+            _awaitingLook = true;
+            var previous = _board;
+            Volatile.Write(ref _board, new Snapshot(previous.Version + 1, double.NegativeInfinity, new Dictionary<string, Dictionary<string, Entry>>(StringComparer.Ordinal)));
+        }
 
         /// <summary>
         /// Courier thread: takes down what every one of <paramref name="centres"/>
@@ -105,16 +124,25 @@ namespace Sitrep.Host.Comms
         /// <param name="ut">Now, universal time: when the lines in <paramref name="sight"/> hold.</param>
         /// <param name="sight">The line from each object to each centre that has one now, by node id then centre id, or null when nothing can be placed by sight.</param>
         /// <param name="crossing">Where a line that changed since the previous look changed, or null to take the change at this look.</param>
-        public void Note(IEnumerable<string> centres, CentreHearing hearing, double ut, IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? sight, LineCrossing? crossing = null) =>
+        public void Note(IEnumerable<string> centres, CentreHearing hearing, double ut, IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? sight, LineCrossing? crossing = null)
+        {
+            _awaitingLook = false;
             Build(centres, hearing, (centre, id) => Sampled(centre, id, ut, sight, crossing), ut, false);
+        }
 
         /// <summary>
         /// Courier thread: takes down again what every one of <paramref name="centres"/>
         /// now knows from what has reached it, which moves between looks, keeping
         /// the lines of sight the last look took.
         /// </summary>
-        public void Refresh(IEnumerable<string> centres, CentreHearing hearing) =>
+        public void Refresh(IEnumerable<string> centres, CentreHearing hearing)
+        {
+            if (_awaitingLook)
+            {
+                return;
+            }
             Build(centres, hearing, (centre, id) => _samples.TryGetValue((centre, id), out var kept) ? new List<SightSample>(kept) : new List<SightSample>(), null, true);
+        }
 
         private void Build(IEnumerable<string> centres, CentreHearing hearing, Func<string, string, List<SightSample>> samplesOf, double? lookUt, bool onlyIfChanged)
         {
@@ -182,13 +210,16 @@ namespace Sitrep.Host.Comms
          * A line of sight taken now is light that reaches the centre one delay
          * later, so each look is kept with the instant it arrives and a reader
          * asks only for the newest look that has. An instant out of view has no
-         * measured delay: the last one measured stands in for it.
+         * measured delay: the last one measured stands in for it, and with none
+         * measured its light is never counted as arrived.
          *
          * Looks are spaced by wall time, so under warp a line can have changed
-         * anywhere in the span since the previous one. The instant it changed
-         * is taken from the crossing when it can be solved, and each look then
-         * carries it, so the light of the change arrives one delay after the
-         * change and not one delay after the look that noticed it.
+         * any number of times in the span since the previous one, in view at
+         * both ends or not. Every change is taken from the crossings when they
+         * can be solved, with the delay worked out at that instant, so the
+         * light of a change arrives one delay after the change and not one
+         * delay after the look that noticed it. A change whose delay cannot be
+         * worked out is left to the look that noticed it.
          */
         private List<SightSample> Sampled(string centre, string id, double ut, IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? sight, LineCrossing? crossing)
         {
@@ -203,24 +234,29 @@ namespace Sitrep.Host.Comms
                 samples.Clear();
             }
             var inView = false;
-            double delay;
-            _lastDelay.TryGetValue(key, out delay);
+            double? delay = _lastDelay.TryGetValue(key, out var lastMeasured) ? lastMeasured : (double?)null;
             if (sight != null && sight.TryGetValue(id, out var row) && row.TryGetValue(centre, out var measured))
             {
                 inView = true;
                 delay = measured;
                 _lastDelay[key] = measured;
             }
-            if (crossing != null && samples.Count > 0 && samples[samples.Count - 1].InView != inView)
+            if (crossing != null && samples.Count > 0 && (samples[samples.Count - 1].InView != inView || ut - samples[samples.Count - 1].Ut >= WarpSpanSeconds))
             {
                 var previous = samples[samples.Count - 1];
-                var changed = crossing(id, centre, previous.Ut, ut, !inView);
-                if (changed is double at && at > previous.Ut && at < ut)
+                var changes = crossing(id, centre, previous.Ut, ut);
+                if (changes != null)
                 {
-                    samples.Add(new SightSample(at, inView, at + delay, true));
+                    foreach (var change in changes)
+                    {
+                        if (change.DelaySeconds is double crossed && change.Ut > previous.Ut && change.Ut < ut)
+                        {
+                            samples.Add(new SightSample(change.Ut, change.Opened, change.Ut + crossed, true));
+                        }
+                    }
                 }
             }
-            samples.Add(new SightSample(ut, inView, ut + delay));
+            samples.Add(new SightSample(ut, inView, delay == null ? double.PositiveInfinity : ut + delay.Value));
             // Looks that have already arrived are superseded by the newest one that has.
             var newestArrived = -1;
             for (var i = 0; i < samples.Count; i++)

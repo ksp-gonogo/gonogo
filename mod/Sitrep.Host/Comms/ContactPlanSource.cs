@@ -1085,6 +1085,7 @@ namespace Sitrep.Host.Comms
                 _homeRouteKnew.Clear();
                 _seenNow.Clear();
                 _knowledge.Clear();
+                Knowledge.Reset();
                 _rosterMemory.Clear();
                 _unreachableSent.Clear();
                 _vesselsNews.Clear();
@@ -1131,7 +1132,7 @@ namespace Sitrep.Host.Comms
             _listeningAtLook = listening;
             using (PerfTelemetry.Time("courier.knowledgeBoard"))
             {
-                Knowledge.Note(listening, _hearing, looked.Ut, looked.Craft.Sight, (id, centre, from, to, closing) => LineCrossed(looked, id, centre, from, to, closing));
+                Knowledge.Note(listening, _hearing, looked.Ut, looked.Craft.Sight, (id, centre, from, to) => LineCrossed(looked, id, centre, from, to));
             }
             KeepHeardForSave(listening);
             // What is kept for a save is now what the centres were given back and have heard since.
@@ -1164,11 +1165,11 @@ namespace Sitrep.Host.Comms
         private readonly Dictionary<string, CraftState> _lastRead = new Dictionary<string, CraftState>(StringComparer.Ordinal);
 
         /// <summary>
-        /// Courier thread: when the line from a craft to a centre closed or opened
+        /// Courier thread: every time the line from a craft to a centre closed or opened
         /// between two looks, reckoned on the craft's orbit and the ground's
         /// stations and bodies, or null when it cannot be.
         /// </summary>
-        private double? LineCrossed(Looked looked, string id, string centre, double fromUt, double toUt, bool closing)
+        private IReadOnlyList<LineChange>? LineCrossed(Looked looked, string id, string centre, double fromUt, double toUt)
         {
             if (!_lastRead.TryGetValue(id, out var state))
             {
@@ -1183,7 +1184,7 @@ namespace Sitrep.Host.Comms
                     stations.Add(station);
                 }
             }
-            return SightCrossing.Between(state, looked.Ground, stations, fromUt, toUt, closing);
+            return SightCrossing.Between(state, looked.Ground, stations, fromUt, toUt);
         }
 
         /// <summary>What each craft has said, by when it said it.</summary>
