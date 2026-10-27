@@ -52,6 +52,14 @@ export const COINCIDENTAL: readonly string[] = [
   "packages/components/src/ManeuverPlanner#timeToAp",
   // `spec.id`, the local facility spec used as a React key
   "packages/components/src/SpaceCenterStatus#id",
+  /*
+   * React keys on local rows, which collide with the `key` of
+   * `career.status.objectivesSettled`: `<Fragment key={figure.key}>`,
+   * `key={e.key}` on a tech-graph edge and `<li key={result.key}>`.
+   */
+  "packages/components/src/LaunchDirector#key",
+  "packages/components/src/ResearchAndDevelopment#key",
+  "packages/components/src/ScienceData#key",
   // `reading.state`
   "packages/components/src/SpaceCenterStatus#state",
   "packages/components/src/LaunchDirector#state",

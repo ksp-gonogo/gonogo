@@ -74,6 +74,15 @@ public class CareerStatus
     public CareerTech? Tech { get; set; }
 
     /// <summary>
+    /// The latest contract objective changes the home command has acted on, oldest
+    /// first: each either took effect or was dropped. A
+    /// <see cref="CareerObjectivePending"/> row with the same <c>Key</c> is settled
+    /// once it appears here. <c>null</c> outside a career, and empty while nothing
+    /// has crossed the delay.
+    /// </summary>
+    public List<CareerObjectiveSettled>? ObjectivesSettled { get; set; }
+
+    /// <summary>
     /// Provenance, and always <c>"game"</c>: a career belongs to the save, not
     /// to anything flying, so switching vessels cannot change which one is being
     /// read.
@@ -289,8 +298,9 @@ public class CareerContracts
 /// the moment it reaches the operator. The event is stamped with the game time
 /// the contract finished, and reaches an observer later, at the time that
 /// observer would learn of it.
-/// <para>The event arrives after the active vessel's comms delay, because a contract
-/// has no single source vessel to hold it to. It never arrives before that delay.</para>
+/// <para>A contract is decided at the home command, so the event reaches each
+/// observer after its own delay from home: at once at home, later at a crewed
+/// vessel or a distant command centre.</para>
 /// <internal>
 /// Filled by <c>Gonogo.KSP.CareerUplink</c> from <c>GameEvents.Contract.onCompleted</c>
 /// and <c>onFailed</c> through <c>Sitrep.Host.CareerViewProvider.BuildContractEvent</c>;
@@ -320,6 +330,116 @@ public class CareerContractEvent
     /// <summary>How it finished: <c>"Completed"</c> or <c>"Failed"</c>.</summary>
     [SitrepUnit(Units.Text)]
     public string? Outcome { get; set; }
+}
+
+/// <summary>
+/// Topic names for the contract objective changes still on their way to the home
+/// command. Each is a <c>career.objectives.&lt;vesselGuid&gt;.pending</c> dynamic
+/// topic, recorded against the vessel's <c>fleet.&lt;guid&gt;</c> node, so an
+/// observer hears of a change at its own delay from the vessel that made it.
+/// </summary>
+/// <category>Career</category>
+public static class CareerObjectiveTopics
+{
+    /// <summary>The dynamic-namespace prefix.</summary>
+    public const string Prefix = "career.objectives.";
+
+    /// <summary>Sub-topic (appended after the vessel guid) for a pending objective change.</summary>
+    public const string PendingField = "pending";
+
+    /// <summary>The full topic for one vessel's pending objective changes.</summary>
+    /// <param name="vesselId">The vessel's <c>Vessel.id</c> GUID, as a string.</param>
+    /// <returns><c>career.objectives.&lt;vesselId&gt;.pending</c>.</returns>
+    public static string Pending(string vesselId) => Prefix + vesselId + "." + PendingField;
+}
+
+/// <summary>
+/// One contract objective a vessel has met, lost or failed, while word of it is
+/// still on its way to the home command. The contract, and its rewards, move only
+/// when that word arrives. Useful for showing an operator nearer the vessel than
+/// home what home has yet to hear.
+///
+/// <para>Carried on <c>career.objectives.&lt;guid&gt;.pending</c> as a delayed,
+/// reliable, ordered event stamped at the vessel's own time. An observer keeps the
+/// row until <see cref="CareerStatus.ObjectivesSettled"/> names its <see cref="Key"/>.
+/// At the home command the row arrives no earlier than the change itself, so a
+/// client shows none there.</para>
+/// </summary>
+/// <category>Career</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CareerObjectivePending
+{
+    /// <summary>Names this change; the same key appears in <see cref="CareerStatus.ObjectivesSettled"/> when home acts on it.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Key { get; set; } = string.Empty;
+
+    /// <summary>The contract's id, the same id <see cref="CareerContract.Id"/> carries, or <c>null</c> when the contract could not be read.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? ContractId { get; set; }
+
+    /// <summary>The contract's display title, or <c>null</c> when it could not be read.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? ContractTitle { get; set; }
+
+    /// <summary>The objective's display title.</summary>
+    [SitrepUnit(Units.Text)]
+    public string Objective { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Where the objective sits in its contract's tree, as the child index at each level
+    /// joined by <c>/</c>: <c>"1/0"</c> is the first child of the contract's second
+    /// objective, in the order <see cref="CareerContract.Parameters"/> and
+    /// <see cref="CareerContractParameter.Children"/> list them.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string ObjectivePath { get; set; } = string.Empty;
+
+    /// <summary>What the objective became at the vessel: <c>"Met"</c>, <c>"Unmet"</c> or <c>"Failed"</c>.</summary>
+    [SitrepUnit(Units.Text)]
+    public string Target { get; set; } = string.Empty;
+
+    /// <summary>The vessel that made the change (<c>Vessel.id</c> as a string).</summary>
+    [SitrepUnit(Units.Id)]
+    public string VesselId { get; set; } = string.Empty;
+
+    /// <summary>The vessel's display name when the change was taken, or <c>null</c> when it could not be read.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? VesselName { get; set; }
+
+    /// <summary>Universal Time the change happened at, in the vessel's own time.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double Ut { get; set; }
+
+    /// <summary>
+    /// Universal Time word of the change is due at the home command, or <c>null</c>
+    /// while the vessel has no route home and home cannot hear of it yet.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? HomeArrivesUt { get; set; }
+}
+
+/// <summary>One entry in <see cref="CareerStatus.ObjectivesSettled"/>: a contract objective change the home command has acted on.</summary>
+/// <category>Career</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CareerObjectiveSettled
+{
+    /// <summary>The <see cref="CareerObjectivePending.Key"/> of the change.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Key { get; set; } = string.Empty;
+
+    /// <summary><c>"Applied"</c> when the change took effect, <c>"Dropped"</c> when the contract could no longer take it or its vessel was lost without word of it.</summary>
+    [SitrepUnit(Units.Text)]
+    public string Outcome { get; set; } = string.Empty;
+
+    /// <summary>Universal Time home acted on it.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double Ut { get; set; }
 }
 
 /// <summary>One contract in <see cref="CareerContracts.Active"/>, <see

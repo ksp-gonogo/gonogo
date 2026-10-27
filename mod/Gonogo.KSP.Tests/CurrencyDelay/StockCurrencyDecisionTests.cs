@@ -19,6 +19,7 @@ public class StockCurrencyDecisionTests
         new object[] { StockTransactionReason.ScienceTransmission },
         new object[] { StockTransactionReason.VesselRecovery },
         new object[] { StockTransactionReason.VesselLoss },
+        new object[] { StockTransactionReason.Progression },
     };
 
     // Every other named reason in the confirmed table, all HOME regardless
@@ -41,7 +42,6 @@ public class StockCurrencyDecisionTests
         new object[] { StockTransactionReason.Cheating },
         new object[] { StockTransactionReason.CrewRecruited },
         new object[] { StockTransactionReason.ContractDecline },
-        new object[] { StockTransactionReason.Progression },
         new object[] { StockTransactionReason.Mission },
     };
 

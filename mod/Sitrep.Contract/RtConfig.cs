@@ -183,6 +183,9 @@ public static class RtConfig
                 // operator cannot infer a distant event from the instant career total.
                 typeof(ScienceCreditEvent),
                 typeof(ReputationLossEvent),
+                // career.objectives.<guid>.pending: a contract objective change on its
+                // way home, revealed at its source vessel's delay to each observer.
+                typeof(CareerObjectivePending),
                 // command args
                 typeof(AddManeuverNodeArgs),
                 typeof(UpdateManeuverNodeArgs),
@@ -259,6 +262,7 @@ public static class RtConfig
                 typeof(CareerContracts),
                 typeof(CareerContract),
                 typeof(CareerContractParameter),
+                typeof(CareerObjectiveSettled),
                 typeof(CareerStrategies),
                 typeof(CareerStrategy),
                 typeof(CareerTech),
