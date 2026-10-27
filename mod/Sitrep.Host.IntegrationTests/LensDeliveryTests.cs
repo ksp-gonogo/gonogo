@@ -45,6 +45,8 @@ namespace Sitrep.Host.IntegrationTests
             {
                 engine.BindLensSite("scope", Remote, Commander);
                 Route(engine, Remote, 5.0);
+                Tick(engine, 0.0);
+                Assert.Null(engine.LensKnowledgeUt("scope"));
                 Tick(engine, 100.0);
                 Assert.Equal(95.0, engine.LensKnowledgeUt("scope"));
 
@@ -58,7 +60,13 @@ namespace Sitrep.Host.IntegrationTests
 
                 Route(engine, Remote, 8.0);
                 Tick(engine, 310.0);
-                Assert.Equal(302.0, engine.LensKnowledgeUt("scope"));
+                Assert.Equal(95.0, engine.LensKnowledgeUt("scope"));
+
+                Tick(engine, 317.0);
+                Assert.Equal(95.0, engine.LensKnowledgeUt("scope"));
+
+                Tick(engine, 318.0);
+                Assert.Equal(310.0, engine.LensKnowledgeUt("scope"));
             }
             finally
             {
@@ -81,6 +89,7 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     [Commander] = new[] { Remote, FarRemote },
                 });
+                Tick(engine, 0.0);
                 Tick(engine, 100.0);
 
                 Assert.Equal(70.0, engine.LensKnowledgeUt("shared"));
@@ -104,6 +113,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 sites.Bind("scope", site!, Commander);
                 Route(engine, Remote, 5.0);
+                Tick(engine, 0.0);
                 Tick(engine, 100.0);
                 Assert.Equal(95.0, sites.KnowledgeUt("scope"));
 
