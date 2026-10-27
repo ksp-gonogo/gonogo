@@ -4071,12 +4071,14 @@ export interface SetEvaLampArgs
 	enabled: boolean;
 }
 /**
-* One kerbal currently outside a craft and within physics range of the vessel
-* in focus, on that kerbal's own `eva.kerbal.<vessel id>.state` Topic.
+* One kerbal currently outside a craft, on that kerbal's own
+* `eva.kerbal.<vessel id>.state` Topic.
 *
 * The Topic reaches a command centre by the link and signal delay of the craft
-* being reported, the same as the rest of that craft's readings. A kerbal
-* beyond physics range has no Topic.
+* being reported, the same as the rest of that craft's readings. A kerbal that
+* is not loaded (beyond physics range) cannot be read, so its Topic goes on
+* holding what the command centre last heard of it, and has no reading when
+* nothing was heard before it unloaded.
 *
 * A kerbal on EVA is a vessel in KSP's model, with its own id, so it already
 * appears on `trackingStation.catalog` and on its own per-craft Topics
@@ -4158,7 +4160,9 @@ export interface EvaKerbal
 	* The science results this kerbal is holding, such as a surface sample or an
 	* EVA report, which are on no other Topic: `science.experiments` lists the
 	* active vessel's results and a kerbal outside is not that vessel. Empty when
-	* the kerbal holds none, and `null` when it could not be read.
+	* the kerbal holds none, and `null` when it could not be read. For a kerbal
+	* that is not loaded these are the results the command centre last heard it
+	* held.
 	*/
 	heldData?: EvaHeldData[] | null;
 	/**
@@ -4198,7 +4202,7 @@ export interface EvaHeldData
 	dataAmount?: Value<"Mit"> | null;
 }
 /**
-* One kerbal listed on `eva.crew`: who is outside, in physics range, and which
+* One kerbal listed on `eva.crew`: who is outside, loaded or not, and which
 * craft they left, enough to find the kerbal's own `eva.kerbal.<vessel
 * id>.state` Topic.
 *
@@ -4220,10 +4224,9 @@ export interface EvaCrewMember
 	name?: string | null;
 }
 /**
-* The roster of kerbals currently outside a craft and within physics range of
-* the vessel in focus (a loaded vessel in the game), so a client can find each
-* one's own `eva.kerbal.<vessel id>.state` Topic. The suit state is on those
-* Topics, not here.
+* The roster of kerbals currently outside a craft, loaded or not, so a client
+* can find each one's own `eva.kerbal.<vessel id>.state` Topic. The suit state
+* is on those Topics, not here.
 *
 * The roster is a fact the home command holds, so it is not held by the link
 * of the craft a kerbal left or of any kerbal.
