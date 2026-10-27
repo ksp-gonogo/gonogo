@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Host;
@@ -29,6 +30,8 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.Equal(ChannelEngine.CentreNodePrefix + Remote, engine.NodeFor("lens.station.state"));
                 Assert.Equal(ChannelEngine.FleetNodePrefix + Craft, engine.NodeFor("lens.probe.state"));
                 Assert.Equal(ChannelEngine.UnplacedLensNode, engine.NodeFor("lens.nowhere.state"));
+                Assert.Equal(ChannelEngine.UnplacedLensNode, engine.NodeFor("lens.broken.state"));
+                Assert.Equal(ChannelEngine.UnplacedLensNode, engine.NodeFor("lens.station"));
             }
             finally
             {
@@ -200,6 +203,7 @@ namespace Sitrep.Host.IntegrationTests
                     {
                         "station" => Remote,
                         "probe" => "vessel:" + Craft,
+                        "broken" => throw new InvalidOperationException("no site snapshot yet"),
                         _ => null,
                     },
                 });

@@ -126,6 +126,30 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public void ACommandToALensWhosePlaceCannotBeReadIsRefusedNotAimedAtTheActiveCraft()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: ActiveCraftSeconds);
+            var uplink = new LensUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                Tick(engine, 0.0);
+
+                var (result, accepted) = Dispatch(engine, "broken", Commander);
+                Tick(engine, 100.0);
+
+                AssertRefusedAsUnknown(result);
+                Assert.Null(accepted);
+                Assert.Equal(0, uplink.HandledCount);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public async Task AReadingFromALensNothingHasPlacedIsHeldThenReleasedOnceItIsPlaced()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
@@ -263,8 +287,8 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// A lens namespace with a delayed aim command named on each lens's own
         /// topic. "station" stands at <see cref="Remote"/>, "nowhere" is never
-        /// placed, and "movable" stands wherever <see cref="MovableSite"/> says,
-        /// publishing a reading every tick.
+        /// placed, "broken" throws when asked, and "movable" stands wherever
+        /// <see cref="MovableSite"/> says, publishing a reading every tick.
         /// </summary>
         private sealed class LensUplink : ISitrepUplink
         {
@@ -309,6 +333,7 @@ namespace Sitrep.Host.IntegrationTests
                     {
                         "station" => Remote,
                         "movable" => _movableSite,
+                        "broken" => throw new InvalidOperationException("no site snapshot yet"),
                         _ => null,
                     },
                 });

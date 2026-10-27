@@ -244,7 +244,7 @@ namespace Sitrep.Host
             }
             catch (Exception ex)
             {
-                FailSoftNamespaceResolver(prefix, ex);
+                FailSoftNamespaceResolver(prefix, ex, "VesselIdForKey threw; its topics route to the active craft until it stops");
                 return null;
             }
         }
@@ -254,15 +254,14 @@ namespace Sitrep.Host
         /// on the per-topic resolution path, so an unthrottled report would write
         /// a line per channel per tick for as long as the fault lasted.
         /// </summary>
-        private void FailSoftNamespaceResolver(string prefix, Exception ex)
+        private void FailSoftNamespaceResolver(string prefix, Exception ex, string outcome)
         {
             if (!_reportedResolverFaults.Add(prefix))
             {
                 return;
             }
             LogHost(
-                "dynamic namespace \"" + prefix
-                + "\" VesselIdForKey threw; its topics route to the active craft until it stops: "
+                "dynamic namespace \"" + prefix + "\" " + outcome + ": "
                 + SafeExceptionMessage(ex));
         }
 

@@ -63,7 +63,7 @@ namespace Sitrep.Host
             }
             catch (Exception ex)
             {
-                FailSoftNamespaceResolver(prefix, ex);
+                FailSoftNamespaceResolver(prefix, ex, "LensSiteForKey threw; its lenses are held as unplaced until it stops");
                 return null;
             }
         }
