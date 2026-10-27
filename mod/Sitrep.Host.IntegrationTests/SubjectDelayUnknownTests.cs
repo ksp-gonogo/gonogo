@@ -191,6 +191,83 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task AReaderSubscribedBeforeALensWasPlacedIsSentItsReadingsOnceItIsPlaced()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new LensUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, LensUplink.MovableTopic, Timeout);
+
+                for (var ut = 0.0; ut <= 2.0; ut += 1.0)
+                {
+                    Tick(engine, ut);
+                }
+                Assert.DoesNotContain(await DrainAllStreamDataAsync(client, Quiet), f => f.Topic == LensUplink.MovableTopic);
+
+                engine.SetVesselDelay(Craft, 0.0);
+                uplink.MovableSite = "vessel:" + Craft;
+                Tick(engine, 3.0);
+                Tick(engine, 4.0);
+
+                var placed = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(placed, f => f.Topic == LensUplink.MovableTopic && f.Meta.ValidAt <= 2.0);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public async Task AReaderFollowsALensThatMovesToACraftWithALongerDelayAndIsNeverSentItEarly()
+        {
+            const string Far = "def";
+            const double FarSeconds = 100.0;
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new LensUplink();
+            engine.RegisterUplink(uplink);
+            engine.SetVesselDelay(Craft, 0.0);
+            engine.SetVesselDelay(Far, FarSeconds);
+            uplink.MovableSite = "vessel:" + Craft;
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, LensUplink.MovableTopic, Timeout);
+                for (var ut = 0.0; ut <= 5.0; ut += 1.0)
+                {
+                    Tick(engine, ut);
+                }
+                Assert.Contains(await DrainAllStreamDataAsync(client, Quiet), f => f.Topic == LensUplink.MovableTopic && f.Meta.ValidAt >= 4.0);
+
+                uplink.MovableSite = "vessel:" + Far;
+                for (var ut = 6.0; ut <= 10.0; ut += 1.0)
+                {
+                    Tick(engine, ut);
+                }
+
+                var after = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(after, f => f.Topic == LensUplink.MovableTopic && f.Meta.ValidAt >= 6.0);
+
+                for (var ut = 11.0; ut <= 112.0; ut += 1.0)
+                {
+                    Tick(engine, ut);
+                }
+                var released = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Contains(released, f => f.Topic == LensUplink.MovableTopic && f.Meta.ValidAt >= 6.0);
+                Assert.All(released.Where(f => f.Topic == LensUplink.MovableTopic), f => Assert.True(f.Meta.ValidAt <= 112.0 - FarSeconds));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public async Task AStationWhoseControllerHasNoMeasuredLinkIsHeldNotRevealedOnTheActiveCraftsDelay()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Core;
 
 namespace Sitrep.Host
@@ -135,6 +136,38 @@ namespace Sitrep.Host
                 foreach (var binding in _lensBindings)
                 {
                     _lensScopes[binding.Scope].Advance(binding.Site, nowUt, LensPathSeconds(binding));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Courier thread: re-subscribes every lens topic whose lens now stands at a
+        /// different node than the one its stream was bound to, the same
+        /// unsubscribe-then-subscribe a moved vantage gets. A lens placed after a client
+        /// subscribed (bound to the unplaced node until then) and a lens that moves
+        /// both follow their lens, so a reading is never left held on the old node and
+        /// never timed by it.
+        /// </summary>
+        private void RepointLensStreams()
+        {
+            if (_perLensNamespacePrefixes.Count == 0)
+            {
+                return;
+            }
+            foreach (var session in _sessions.Values)
+            {
+                if (session.LensNodes.Count == 0)
+                {
+                    continue;
+                }
+                foreach (var bound in session.LensNodes.ToArray())
+                {
+                    if (NodeFor(bound.Key) == bound.Value)
+                    {
+                        continue;
+                    }
+                    ProcessUnsubscribe(session, bound.Key);
+                    ProcessSubscribe(session, bound.Key);
                 }
             }
         }
