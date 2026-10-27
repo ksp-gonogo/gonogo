@@ -27,6 +27,7 @@ import {
 import { useRef, useState } from "react";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
 import type { ActionGroupConfig } from "./config";
+import { heldPressCaption } from "./groupState";
 import type { ActionGroupSlotContext } from "./slots";
 import { UNAVAILABLE_TITLES } from "./toggleAvailability";
 import { useGroupToggle } from "./useGroupToggle";
@@ -110,17 +111,9 @@ export function ActionGroupView({
       ? "The group's state cannot be inverted"
       : "No toggle is configured for this group");
 
-  // The state shown is held or late, and the press still goes: it names the target state, the opposite of the one shown.
-  const heldWord = valueLate
-    ? "Last reading, updates running late"
-    : "Last reading, held";
+  const heldCaption = heldPressCaption({ value, valueHeld, valueLate });
   const heldPress: ReckoningMarking | null =
-    valueLate || (valueHeld && value != null)
-      ? {
-          kind: "held",
-          caption: `${heldWord}. The press sends the opposite of the state shown`,
-        }
-      : null;
+    heldCaption === null ? null : { kind: "held", caption: heldCaption };
 
   const cols = w ?? 6;
   const showOfficialName = cols >= 5;

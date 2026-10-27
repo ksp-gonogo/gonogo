@@ -314,6 +314,13 @@ export interface TinyControl {
   title: string;
   /** A tooltip saying more than the name, such as why the button is disabled. Defaults to `title`. */
   hint?: string;
+  /**
+   * Set when the state the button shows is the last reading received and not a
+   * current one: the words that say so, spoken after the label and shown as
+   * the button's tip, with the kit's held mark drawn on the button. The button
+   * stays pressable and keeps its size.
+   */
+  held?: string;
   /** Called on a press. */
   onPress: () => void;
 }

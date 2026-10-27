@@ -325,6 +325,14 @@ describe("a button showing a held state", () => {
     expect(onClick).toHaveBeenCalledOnce();
   });
 
+  it("hangs the mark off the button's corner instead of holding room for it in the label", () => {
+    render(<Button marked={heldMarking}>ON</Button>);
+    const button = screen.getByRole("button", { name: /ON/ });
+    expect(button).toHaveAttribute("data-held-button");
+    const mark = button.querySelector("[data-held-mark]");
+    expect(mark?.parentElement?.parentElement).toBe(button);
+  });
+
   it("adds nothing to a button that is not marked", () => {
     render(<Button marked={null}>SAS ON</Button>);
     const button = screen.getByRole("button", { name: "SAS ON" });

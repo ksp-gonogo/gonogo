@@ -172,6 +172,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         $pressed={pressed === true}
         aria-pressed={pressed}
         data-predicted={predictedOutcome}
+        data-held-button={marked ? "" : undefined}
         {...passed}
         disabled={reasoned ? undefined : disabled}
         {...(reasoned ? { "aria-disabled": true } : {})}
@@ -180,9 +181,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         type={type}
       >
         {marked ? (
-          <HeldFigure kind={marked.kind} caption={marked.caption}>
+          <Button__Held kind={marked.kind} caption={marked.caption}>
             {children}
-          </HeldFigure>
+          </Button__Held>
         ) : (
           children
         )}
@@ -192,6 +193,23 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     );
   },
 );
+
+/*
+ * The held mark hangs off the button's corner and reserves no room, so a marked
+ * button is the size of the same button unmarked and its label stays centred.
+ */
+const Button__Held = styled(HeldFigure)`
+  position: static;
+
+  &::after {
+    content: none;
+  }
+
+  & > [data-held-mark] {
+    top: 3px;
+    right: 3px;
+  }
+`;
 
 /** The fill a pressed button takes: its tone's status fill, and go for a neutral one. */
 function pressedTone(tone: ButtonTone): Exclude<ButtonTone, "neutral"> {
@@ -319,6 +337,9 @@ export const Button__Body = styled.button<{
       ? ""
       : OUTLINE_HOVER}
   ${focusRing}
+  &[data-held-button] {
+    position: relative;
+  }
   &:disabled,
   &[aria-disabled="true"] {
     opacity: 0.4;
