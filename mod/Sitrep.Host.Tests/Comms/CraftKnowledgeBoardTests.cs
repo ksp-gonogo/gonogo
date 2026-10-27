@@ -138,6 +138,7 @@ namespace Sitrep.Host.Tests.Comms
 
             // It passes behind a body at 1600; its 0.3 s of light reaches the centre at 1600.3.
             board.Note(new[] { Home }, hearing, 1600.0, OutOfView);
+            board.Note(new[] { Home }, hearing, 1600.5, OutOfView);
 
             Assert.Equal(CraftKnowledgeState.Seen, Read(board, 1600.0).State);
             Assert.True(Read(board, 1600.2).LineOfSight);
@@ -145,6 +146,78 @@ namespace Sitrep.Host.Tests.Comms
             var lost = Read(board, 1600.4);
             Assert.Equal(CraftKnowledgeState.Modelled, lost.State);
             Assert.False(lost.LineOfSight);
+        }
+
+        [Fact]
+        public void AskedAheadOfTheLastLookTheSightAnswerIsWhatTheLightThatHadReachedTheCentreByThatLookShowed()
+        {
+            var (board, hearing, host) = Listening();
+            host.State!(Orbiting().Unsettled());
+            host.Sighting!(CraftSighting.Of(Probe, 1500.0, null, Orbiting(1500.0).PlaceOnly()));
+            board.Note(new[] { Home }, hearing, 1500.0, InView);
+            board.Note(new[] { Home }, hearing, 1600.0, OutOfView);
+
+            // The look at 1600 is the newest light the board has; asked later, it must not count that light as arrived.
+            var ahead = Read(board, 1700.0);
+
+            Assert.Equal(CraftKnowledgeState.Seen, ahead.State);
+            Assert.True(ahead.LineOfSight);
+        }
+
+        [Fact]
+        public void TheVersionMovesOnEveryNoteAndNotWithTheInstantAsked()
+        {
+            var (board, hearing, host) = Listening();
+            host.State!(Orbiting());
+            host.Reach!(new CraftReach(Probe, 1000.0, Reached));
+            var start = board.Version;
+
+            board.Note(new[] { Home }, hearing, 1100.0, OutOfView);
+            var first = board.Version;
+            board.KnowledgeAt(Home, "probe", 5000.0);
+            board.Note(new[] { Home }, hearing, 1200.0, OutOfView);
+
+            Assert.Equal(start + 1, first);
+            Assert.Equal(first + 1, board.Version);
+        }
+
+        [Fact]
+        public void TheBulkReadFillsTheBufferWithWhatEachSingleReadAnswers()
+        {
+            var (board, hearing, host) = Listening();
+            host.State!(Orbiting());
+            host.Reach!(new CraftReach(Probe, 1000.0, Reached));
+            board.Note(new[] { Home }, hearing, 1100.0, OutOfView);
+            var buffer = new CraftKnowledgeSample[4];
+
+            var count = board.ReadCentre(Home, 1160.0, buffer, out var version);
+
+            var single = board.KnowledgeAt(Home, "probe", 1160.0);
+            Assert.Equal(1, count);
+            Assert.Equal(board.Version, version);
+            Assert.Equal("probe", buffer[0].VesselId);
+            Assert.Equal(single.State, buffer[0].State);
+            Assert.Equal(single.LastKnownUt, buffer[0].LastKnownUt);
+            Assert.Equal(single.UncertaintyM, buffer[0].UncertaintyM);
+            Assert.Equal(single.LineOfSight, buffer[0].LineOfSight);
+            Assert.Equal(0, board.ReadCentre("ground:elsewhere", 1160.0, buffer, out _));
+            Assert.Equal(1, board.ReadCentre(Home, 1160.0, new CraftKnowledgeSample[0], out _));
+        }
+
+        [Fact]
+        public void TheBulkReadAllocatesNothingOnceWarm()
+        {
+            var (board, hearing, host) = Listening();
+            host.State!(Orbiting());
+            host.Reach!(new CraftReach(Probe, 1000.0, Reached));
+            board.Note(new[] { Home }, hearing, 1100.0, OutOfView);
+            var buffer = new CraftKnowledgeSample[4];
+            board.ReadCentre(Home, 1160.0, buffer, out _);
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            board.ReadCentre(Home, 1160.0, buffer, out _);
+
+            Assert.Equal(0L, GC.GetAllocatedBytesForCurrentThread() - before);
         }
 
         [Fact]

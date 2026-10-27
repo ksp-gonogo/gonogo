@@ -197,6 +197,17 @@ namespace Sitrep.Host.IntegrationTests
                     + "courier after every look at the game, and that look is an UNGATED sampled "
                     + "source, so no subscription can starve it. An Uplink registering a provider "
                     + "makes this line stale and fails."),
+            new Entry(
+                "signalSpeed",
+                "Gonogo.KSP/CommsCoreUplink.cs",
+                FedByGatedCapture: false,
+                Excuse: Excuse.NoUplinkProvider,
+                WhyNoBehaviouralCase: "No Uplink registers a provider: core ships the only one, as "
+                    + "the capability's Vanilla, because the speed signals travel at is the delay "
+                    + "setting in force rather than a model a mod could hold a rival opinion about. "
+                    + "Nothing gated feeds it: the provider reads the effective delay config and is "
+                    + "refreshed from the frame loop, not from a capture a subscription could skip. "
+                    + "An Uplink registering a provider makes this line stale and fails."),
             new Entry("gameAlarmClock", "Gonogo.KSP/ScetAlarmUplink.cs", FedByGatedCapture: false),
         };
 
