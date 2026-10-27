@@ -12,12 +12,11 @@ namespace Gonogo.KSP.CurrencyDelay
     /// construction: a credit created after a save point simply isn't in the ledger a load
     /// restores.
     ///
-    /// Registered for FLIGHT/SPACECENTER/TRACKSTATION - every scene a currency-change event this
-    /// subsystem cares about can actually fire in (a vessel earning/transmitting science or funds
-    /// in flight, an operator processing a recovery at the Space Center, a delayed credit
-    /// maturing while parked at the Tracking Station).
+    /// Registered for every scene the game updates contracts in, the editor included: a contract
+    /// whose deadline passes while word of a craft's objective is still on its way home must stay
+    /// open there too, and only a loaded line can say so.
     /// </summary>
-    [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION)]
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION, GameScenes.EDITOR)]
     public sealed class CurrencyDelayScenario : ScenarioModule
     {
         private CurrencyDelayBooks? _books;

@@ -52,6 +52,23 @@
     </Reference>
   </ItemGroup>
 
+  <!-- Harmony 2 is a required install of Gonogo (GonogoCore.netkan depends on
+       Harmony2): the contract objective delay patches stock methods no game
+       event lets anything hold. It ships in an install's GameData/000_Harmony:
+       found under KspGameData when that is passed, else beside the Managed/
+       directory KspManaged points into, else in the synced install the deploy
+       helpers build against. Pass -p:HarmonyDll= for any other layout. -->
+  <PropertyGroup>
+    <HarmonyDll Condition="'$(HarmonyDll)' == '' And '$(KspGameData)' != ''">$(KspGameData)\000_Harmony\0Harmony.dll</HarmonyDll>
+    <HarmonyDll Condition="'$(HarmonyDll)' == ''">$(KspManaged)\..\..\GameData\000_Harmony\0Harmony.dll</HarmonyDll>
+    <HarmonyDll Condition="!Exists('$(HarmonyDll)') And '$(GONOGO_DATA_ROOT)' != ''">$(GONOGO_DATA_ROOT)\local_docs\syncthing\kspdata\GameData\000_Harmony\0Harmony.dll</HarmonyDll>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="0Harmony" Private="false">
+      <HintPath>$(HarmonyDll)</HintPath>
+    </Reference>
+  </ItemGroup>
+
   <ItemGroup>
     <!-- net472-flavored (Sitrep.Core/Transport/Host all multi-target
          netstandard2.0;net472 - see their csproj comments) so this

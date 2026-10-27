@@ -104,24 +104,25 @@ namespace Gonogo.KSP.Tests.DevTools
         }
 
         [Fact]
-        public void The_away_set_is_still_the_three_reasons_the_modes_between_them_cover()
+        public void The_away_set_is_still_the_four_reasons_the_modes_between_them_cover()
         {
-            // recover covers VesselRecovery, destroy covers VesselLoss, and lab/none
-            // cover ScienceTransmission. A fourth away reason would be a row with no
-            // mode to exercise it, and nothing else would say so.
+            // recover covers VesselRecovery, destroy covers VesselLoss, lab/none
+            // cover ScienceTransmission, and none in flight covers Progression. A
+            // fifth away reason would be a row with no mode to exercise it, and
+            // nothing else would say so.
             var source = ReadModSource(Path.Combine("Gonogo.KSP", "CurrencyDelay", "StockCurrencyDecision.cs"));
             var awaySetAt = source.IndexOf("AwayReasons", StringComparison.Ordinal);
             Assert.True(awaySetAt >= 0, "StockCurrencyDecision no longer has an AwayReasons set");
-
             var setBody = source.Substring(awaySetAt, source.IndexOf("};", awaySetAt, StringComparison.Ordinal) - awaySetAt);
 
-            Assert.Contains("ScienceTransmission", setBody, StringComparison.Ordinal);
-            Assert.Contains("VesselRecovery", setBody, StringComparison.Ordinal);
-            Assert.Contains("VesselLoss", setBody, StringComparison.Ordinal);
-
+            var covered = new[] { "ScienceTransmission", "VesselRecovery", "VesselLoss", "Progression" };
+            foreach (var reason in covered)
+            {
+                Assert.Contains("StockTransactionReason." + reason, setBody, StringComparison.Ordinal);
+            }
             foreach (var reason in Enum.GetNames(typeof(StockTransactionReason)))
             {
-                if (reason == "ScienceTransmission" || reason == "VesselRecovery" || reason == "VesselLoss")
+                if (Array.IndexOf(covered, reason) >= 0)
                 {
                     continue;
                 }
@@ -130,25 +131,20 @@ namespace Gonogo.KSP.Tests.DevTools
         }
 
         [Fact]
-        public void The_funds_away_arm_still_reveals_instantly_so_the_probes_claim_about_it_holds()
+        public void The_funds_away_arm_reveals_a_recovery_instantly_and_a_world_first_over_the_flown_craft()
         {
-            // The addon's class doc tells an operator that a funds light-time cannot be
-            // validated because there is not one to validate: OnFundsChanged gates away
-            // purely on a recovery correlation and then passes KscDelay.Instant
-            // unconditionally. If that ever changes, the claim becomes a lie an operator
-            // has already planned a matrix around, and a lie in a dev tool's doc is worse
-            // than a missing feature.
+            // The addon's class doc tells an operator that recover reveals funds
+            // instantly and that a Progression award is how a funds delay is
+            // validated. If either stops being true, the doc becomes a lie an
+            // operator has already planned a validation matrix around.
             var source = ReadModSource(Path.Combine("Gonogo.KSP", "CurrencyDelay", "StockCurrencyInterceptor.cs"));
             var handlerAt = source.IndexOf("private void OnFundsChanged(", StringComparison.Ordinal);
             Assert.True(handlerAt >= 0, "StockCurrencyInterceptor no longer has an OnFundsChanged handler");
-
             var nextHandlerAt = source.IndexOf("private void OnReputationChanged(", handlerAt, StringComparison.Ordinal);
             Assert.True(nextHandlerAt > handlerAt, "could not bound the OnFundsChanged body");
-
             var body = source.Substring(handlerAt, nextHandlerAt - handlerAt);
-
-            Assert.Contains("KscDelay.Instant", body, StringComparison.Ordinal);
-            Assert.DoesNotContain("KscLightTime.ForVesselId", body, StringComparison.Ordinal);
+            Assert.Contains("? KscDelay.Instant", body, StringComparison.Ordinal);
+            Assert.Contains("KscLightTime.ForVesselId", body, StringComparison.Ordinal);
         }
 
         [Fact]

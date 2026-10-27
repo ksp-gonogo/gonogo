@@ -233,6 +233,9 @@
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\StockCurrencyStateMachine.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\HeldCreditRelease.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\HomeCraftViews.cs" />
+    <!-- The objective delay line's decision core: no KSP type, every fact about a craft or a contract arrives through a delegate. -->
+    <Compile Include="..\Gonogo.KSP\ObjectiveDelay\ObjectiveDelayBook.cs" />
+    <Compile Include="..\Gonogo.KSP\ObjectiveDelay\ObjectiveDelayHealth.cs" />
     <!-- CurrencyQueryBases.cs is the third piece of that same carve-out, and the
          one the interleaving defect lived in: it remembers what a currency
          change was asked for, off a modifier query the interceptor hands it as
@@ -315,6 +318,7 @@
          type at all), so only its ConfigNode half needs dropping here; it is
          re-added under the gate below beside the other round-trip suites. -->
     <Compile Remove="ActiveVessel\EvaParentagePersistenceTests.cs" />
+    <Compile Remove="ObjectiveDelay\ObjectiveDelayPersistenceTests.cs" />
   </ItemGroup>
 
   <!-- KscLightTimeTests.cs, VesselScienceAggregatorTests.cs, and
@@ -378,6 +382,9 @@
          instance (see CurrencyDelayScenario's OnLoad) - same ConfigNode/PendingCreditLedger-only
          dependency as PendingCreditLedger.cs itself, so it gets the same treatment. -->
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\CurrencyDelayLedgerPersistence.cs" />
+    <!-- ObjectiveDelayPersistence.cs is the same shape: a ConfigNode round-trip over the KSP-free ObjectiveDelayBook. -->
+    <Compile Include="..\Gonogo.KSP\ObjectiveDelay\ObjectiveDelayPersistence.cs" />
+    <Compile Include="ObjectiveDelay\ObjectiveDelayPersistenceTests.cs" />
     <!-- SilenceTrackerPersistence.cs is the same shape: a ConfigNode round-trip over a
          KSP-free record (Sitrep.Host.Comms.VesselContactState, pulled in transitively via the
          Sitrep.Host ProjectReference above), so it needs the same KspManaged gating. -->
@@ -538,6 +545,7 @@
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\StockCurrencyInterceptor.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\CrewDeathTies.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\CurrencyDelayBooks.cs" />
+    <Compile Include="..\Gonogo.KSP\ObjectiveDelay\ObjectiveDelayLine.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\RevealApplier.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\DelayedScienceSink.cs" />
     <Compile Include="..\Gonogo.KSP\Career\HirePrice.cs" />

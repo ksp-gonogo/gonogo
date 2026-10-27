@@ -4,13 +4,13 @@ Gonogo reads your game through mods installed in KSP. This page covers what you 
 
 ## The mods you need
 
-Gonogo is built for KSP 1.12. One mod is required: the **Gonogo mod**. Everything else is optional: each add-on is an Uplink, a small mod that connects Gonogo to one other mod and adds its widgets.
+Gonogo is built for KSP 1.12. Two mods are required: the **Gonogo mod** and [Harmony 2](https://github.com/KSPModdingLibs/HarmonyKSP). Everything else is optional: each add-on is an Uplink, a small mod that connects Gonogo to one other mod and adds its widgets.
 
 ## Installing the Gonogo mod
 
-The easiest way is CKAN, a mod manager for KSP: [install CKAN](https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN), then search it for `Gonogo` and install it.
+The easiest way is CKAN, a mod manager for KSP: [install CKAN](https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN), then search it for `Gonogo` and install it. CKAN installs Harmony 2 with it.
 
-If CKAN does not list it, download `Gonogo-v<version>.zip` from the [releases page](https://github.com/ksp-gonogo/gonogo/releases), unzip it and copy the folders inside its `GameData/` into your KSP install's `GameData/`, so that `Squad/` and `Gonogo/` sit side by side. On Steam, find the install with Manage, Browse local files. Until a release carries the zip there is nothing to download.
+If CKAN does not list it, download `Gonogo-v<version>.zip` from the [releases page](https://github.com/ksp-gonogo/gonogo/releases), unzip it and copy the folders inside its `GameData/` into your KSP install's `GameData/`, so that `Squad/` and `Gonogo/` sit side by side. Install Harmony 2 the same way, from its own releases page, so that `000_Harmony/` sits beside them. On Steam, find the install with Manage, Browse local files. Until a release carries the zip there is nothing to download.
 
 To install an Uplink, search CKAN for `dep:GonogoCore`, or do the same by hand with its zip from the [Uplinks releases page](https://github.com/ksp-gonogo/gonogo-uplinks/releases), after installing the mod it connects to.
 

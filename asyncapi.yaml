@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 49.6.0
+  version: 49.7.0
   description: |-
     The WebSocket API of the Gonogo mod: 90 telemetry channels a client
     subscribes to and 72 commands it sends, each with its payload and what it
@@ -410,15 +410,16 @@ channels:
       contract finished, and reaches an observer later, at the time that observer
       would learn of it.
 
-      The event arrives after the active vessel's comms delay, because a contract
-      has no single source vessel to hold it to. It never arrives before that
-      delay.
+      A contract is decided at the home command, so the event reaches each
+      observer after its own delay from home: at once at home, later at a crewed
+      vessel or a distant command centre.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
     x-sitrep-delay-role: delayed
     x-sitrep-sample-kind: event
     x-sitrep-keyframe-interval-ut: 3600
+    x-sitrep-held-at-home: true
     messages:
       streamData:
         $ref: "#/components/messages/streamData.career.contractEvent"
@@ -10277,9 +10278,9 @@ components:
         contract finished, and reaches an observer later, at the time that observer
         would learn of it.
 
-        The event arrives after the active vessel's comms delay, because a contract
-        has no single source vessel to hold it to. It never arrives before that
-        delay.
+        A contract is decided at the home command, so the event reaches each
+        observer after its own delay from home: at once at home, later at a crewed
+        vessel or a distant command centre.
       properties:
         id:
           type:
@@ -10555,6 +10556,30 @@ components:
           allOf:
             - $ref: "#/components/schemas/GameMode"
               x-sitrep-unit: enum
+    CareerObjectiveSettled:
+      type: object
+      description: |-
+        One entry in `CareerStatus.objectivesSettled`: a contract objective change
+        the home command has acted on.
+      required:
+        - key
+        - outcome
+        - ut
+      properties:
+        key:
+          type: string
+          x-sitrep-unit: id
+          description: The `CareerObjectivePending.key` of the change.
+        outcome:
+          type: string
+          x-sitrep-unit: text
+          description: |-
+            `"Applied"` when the change took effect, `"Dropped"` when the contract could
+            no longer take it or its vessel was lost without word of it.
+        ut:
+          type: number
+          x-sitrep-unit: ut
+          description: Universal Time home acted on it.
     CareerStatus:
       type: object
       description: |-
@@ -10605,6 +10630,17 @@ components:
           anyOf:
             - $ref: "#/components/schemas/CareerTech"
             - type: "null"
+        objectivesSettled:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/CareerObjectiveSettled"
+          description: |-
+            The latest contract objective changes the home command has acted on, oldest
+            first: each either took effect or was dropped. A `CareerObjectivePending`
+            row with the same `Key` is settled once it appears here. `null` outside a
+            career, and empty while nothing has crossed the delay.
         meta:
           description: |-
             Provenance, and always `"game"`: a career belongs to the save, not to
