@@ -6,7 +6,14 @@ import empty from "./__fixtures__/empty.json";
 import mixedStates from "./__fixtures__/mixed-states.json";
 import { ObjectivesComponent } from "./index";
 
-/** DOM snapshots off the stream pipeline, driven by each fixture's own `_stream` block. */
+/**
+ * DOM snapshots off the stream pipeline, driven by each fixture's own `_stream` block.
+ *
+ * The `heard-*` scenes are left out: their rows arrive on a per-craft topic the
+ * widget subscribes to only once the catalog has named the craft, and this
+ * harness replays every emit inside one `act` scope, so that subscription never
+ * lands before the replay ends. `heardAway.test.tsx` drives them emit by emit.
+ */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {
   "contracts-only": contractsOnly,
