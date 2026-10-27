@@ -35,6 +35,7 @@ namespace Gonogo.KSP
     {
         private readonly ICareerActuator _actuator;
         private IChannelPublisher? _contractEvents;
+        private IDynamicChannelSource? _pendingObjectives;
         private bool _subscribed;
 
         public CareerUplink(ICareerActuator actuator)
@@ -106,11 +107,11 @@ namespace Gonogo.KSP
                     // that reconnects a moment later still learns of the last one.
                     Delivery = Delivery.ReliableOrdered,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
-                    // A contract names no single vessel, so there is no craft clock
-                    // to hold the finish to: it rides the whole-network delay, the
-                    // active vessel's comms delay, like any other fact with no one
-                    // source. It is not held at the home command.
+                    // A contract is decided at the home command, when word of its
+                    // objectives arrives there, so the finish is a fact at home like
+                    // the contract board in career.status.
                     Delay = DelayRole.Delayed,
+                    HeldAtHome = true,
                 },
                 new ChannelDeclaration
                 {
@@ -181,6 +182,19 @@ namespace Gonogo.KSP
             host.AddChannelSource(CareerViewProvider.ModeTopic, CareerViewProvider.BuildCareerMode);
             host.AddChannelSource(CareerViewProvider.FacilitiesTopic, CareerViewProvider.BuildFacilities);
             _contractEvents = host.Publisher(CareerViewProvider.ContractEventTopic);
+            _pendingObjectives = host.RegisterDynamicNamespace(CareerObjectiveTopics.Prefix, new ChannelDeclaration
+            {
+                Kind = SampleKind.Event,
+                Requires = Requirement.None,
+                // Every change is its own row, delivered in order and replayed to a
+                // late subscriber, the same lane currency.<guid>.* rides.
+                Delivery = Delivery.ReliableOrdered,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
+                // News of what a craft did, so each observer hears it at its own
+                // delay from that craft, and nothing while the craft is out of contact.
+                Delay = DelayRole.Delayed,
+                PerVesselNode = true,
+            });
             HookContractEvents();
 
             host.AddCommandHandler<ActivateStrategyArgs, CommandResult>(CareerCommandProvider.ActivateStrategyCommand, args => CareerCommandProvider.HandleActivateStrategy(_actuator, args));
@@ -209,6 +223,57 @@ namespace Gonogo.KSP
 
             GameEvents.Contract.onCompleted.Add(contract => PublishFinish(contract, completed: true));
             GameEvents.Contract.onFailed.Add(contract => PublishFinish(contract, completed: false));
+            ObjectiveDelay.ObjectiveDelayLine.Taken += PublishPending;
+        }
+
+        /// <summary>One row per source craft, stamped at the craft's own time, so each observer hears of it at its delay from that craft.</summary>
+        private void PublishPending(ObjectiveDelay.HeldObjective held)
+        {
+            if (_pendingObjectives == null)
+            {
+                return;
+            }
+            try
+            {
+                var change = held.Change;
+                var contract = ObjectiveDelay.StockObjectiveHooks.FindContract(change.ContractId);
+                foreach (var vesselId in change.SourceVesselIds)
+                {
+                    var payload = CareerViewProvider.BuildObjectivePending(
+                        held.Key,
+                        contract?.ContractID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        contract?.Title,
+                        change.Description,
+                        change.ObjectivePath,
+                        change.Target.ToString(),
+                        vesselId,
+                        VesselNameOf(vesselId),
+                        change.CraftUt,
+                        held.UnheardSources.Count == 0 ? held.ArrivesUt : null);
+                    _pendingObjectives.Publisher(vesselId + "." + CareerObjectiveTopics.PendingField).Publish(payload, change.CraftUt);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                GonogoLog.WarnLimited("publishing a pending objective change failed", ex);
+            }
+        }
+
+        private static string? VesselNameOf(string vesselId)
+        {
+            var vessels = FlightGlobals.Vessels;
+            if (vessels == null)
+            {
+                return null;
+            }
+            foreach (var vessel in vessels)
+            {
+                if (vessel != null && vessel.id.ToString() == vesselId)
+                {
+                    return vessel.vesselName;
+                }
+            }
+            return null;
         }
 
         private void PublishFinish(global::Contracts.Contract? contract, bool completed)

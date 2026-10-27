@@ -181,6 +181,23 @@
     "CareerMode": {
       "mode": "enum"
     },
+    "CareerObjectivePending": {
+      "contractId": "id",
+      "contractTitle": "text",
+      "homeArrivesUt": "ut",
+      "key": "id",
+      "objective": "text",
+      "objectivePath": "id",
+      "target": "text",
+      "ut": "ut",
+      "vesselId": "id",
+      "vesselName": "text"
+    },
+    "CareerObjectiveSettled": {
+      "key": "id",
+      "outcome": "text",
+      "ut": "ut"
+    },
     "CareerStrategies": {
       "activationPatched": "flag",
       "activeCount": "count"
@@ -2463,6 +2480,7 @@
       "balances": "CareerBalances",
       "contracts": "CareerContracts",
       "meta": "PayloadMeta",
+      "objectivesSettled": "CareerObjectiveSettled[]",
       "strategies": "CareerStrategies",
       "tech": "CareerTech"
     },
@@ -2865,6 +2883,7 @@
       "balances": "CareerBalances",
       "contracts": "CareerContracts",
       "meta": "PayloadMeta",
+      "objectivesSettled": "CareerObjectiveSettled[]",
       "strategies": "CareerStrategies",
       "tech": "CareerTech"
     },
