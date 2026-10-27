@@ -129,6 +129,11 @@
       "certification": "enum",
       "uts": "ut"
     },
+    "CapRate": {
+      "samplesPerSecond": "1",
+      "tier": "id",
+      "type": "id"
+    },
     "CareerBalances": {
       "funds": "funds",
       "reputation": "rep",

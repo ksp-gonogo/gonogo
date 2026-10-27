@@ -51,6 +51,67 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task ACapHoldsTheFastTierDownOnlyWhileItsConnectionIsOpen()
+        {
+            var probe = new RateProbeUplink();
+            using var engine = StartEngine(probe);
+            try
+            {
+                await using var asker = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(asker, RateProbeUplink.FastTopic, Timeout);
+                await SetRateAsync(asker, RateProbeUplink.FastTopic, DataRateTierNames.Fast);
+                await WaitForDemandAsync(engine, RateProbeUplink.FastTopic, DataRateTierNames.Fast);
+
+                var capper = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await capper.SendAsync(EnvelopeCodec.WriteCapRate(new CapRate { Tier = DataRateTierNames.Fast, SamplesPerSecond = 5 }));
+                await WaitForFastRateAsync(engine, 5);
+                probe.Reset();
+                for (var i = 0; i <= 100; i++)
+                {
+                    engine.TickAndWait(3000.0 + i * 0.1, RateProbeUplink.Snapshot(), Timeout);
+                }
+                Assert.InRange(probe.FastBuilds, 50, 51);
+
+                await capper.DisposeAsync();
+                await WaitForFastRateAsync(engine, DataRateTiers.DefaultFastSamplesPerSecond);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public void ACapNeverTakesATierBelowTheBaseRateAndTheLowestCapWins()
+        {
+            var tiers = new DataRateTiers();
+
+            Assert.True(tiers.TrySetCap("a", DataRateTierNames.Fast, 5, out _));
+            Assert.True(tiers.TrySetCap("b", DataRateTierNames.Fast, 0.25, out _));
+            Assert.Equal(1.0, tiers.SamplesPerSecond(DataRateTierNames.Fast));
+            Assert.True(tiers.TrySetCap("b", DataRateTierNames.Fast, null, out _));
+            Assert.Equal(5.0, tiers.SamplesPerSecond(DataRateTierNames.Fast));
+            tiers.ClearCaps("a");
+            Assert.Equal(DataRateTiers.DefaultFastSamplesPerSecond, tiers.SamplesPerSecond(DataRateTierNames.Fast));
+            Assert.False(tiers.TrySetCap("a", DataRateTierNames.Base, 5, out _));
+            Assert.False(tiers.TrySetCap("a", DataRateTierNames.Fast, 0, out _));
+        }
+
+        /// <summary>Waits until the fast tier carries <paramref name="samplesPerSecond"/>.</summary>
+        private static async Task WaitForFastRateAsync(ChannelEngine engine, double samplesPerSecond)
+        {
+            var deadline = DateTime.UtcNow + Timeout;
+            while (engine.Cadence.Tiers.SamplesPerSecond(DataRateTierNames.Fast) != samplesPerSecond)
+            {
+                if (DateTime.UtcNow > deadline)
+                {
+                    throw new TimeoutException("the fast tier never reached " + samplesPerSecond + " a second");
+                }
+                await Task.Delay(10);
+            }
+        }
+
+        [Fact]
         public async Task RetuningTheFastTierChangesTheRateWithoutAnyoneAskingAgain()
         {
             var probe = new RateProbeUplink();

@@ -3985,6 +3985,32 @@ export interface SetRate
 	tier: "base" | "fast";
 }
 /**
+* Asks the mod to send a rate tier no faster than a given rate while this
+* connection holds the request, for a client that cannot keep up with the tier
+* as it stands. The mod sends the tier at the lowest rate any connection asks
+* for in this way, never below the base tier's rate, and `system.dataRates`
+* reports the rate it sends.
+*
+* The request lasts until the connection sends another for the same tier or
+* closes. A `null` `CapRate.samplesPerSecond` withdraws it. The base tier
+* cannot be lowered, and a request for it or for a tier the mod does not know
+* changes nothing.
+*
+* @category Stream messages
+*/
+export interface CapRate
+{
+	/** The frame type, always `"cap-rate"`. */
+	type: "cap-rate";
+	/** The rate tier to send no faster: `"fast"`. */
+	tier: "base" | "fast";
+	/**
+	* The most samples a game second this connection asks the tier to carry, or
+	* `null` to withdraw the request.
+	*/
+	samplesPerSecond?: number;
+}
+/**
 * Selects the command centre this connection commands from and observes at. It
 * sets both where the connection's telemetry is observed from and where its
 * commands are sent from. The id must name a currently-active command centre,

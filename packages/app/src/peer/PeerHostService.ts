@@ -14,6 +14,8 @@ import {
   FaultCode,
   Quality,
   Staleness,
+  samplesPerSecondOf,
+  tierSamplesPerSecondOf,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import Peer, { type DataConnection } from "peerjs";
@@ -40,6 +42,7 @@ import { STUN_SERVERS, stationsSocketUrl } from "./relayAddress";
 import { SentOnChange } from "./sentOnChange";
 import { stationApprovals } from "./stationApprovals";
 import type { StationLink } from "./stationLink";
+import { StationPacer } from "./stationPace";
 import { stationTag } from "./stationPeerId";
 import { TypedListeners } from "./typedListeners";
 import { encodeWideNumbers } from "./wideNumbers";
@@ -101,6 +104,8 @@ export interface SitrepSubscriptionSink {
    * topic, and the run before it is what a chart on that topic has plotted.
    */
   cachedFrames(topic: string): PeerMessage[];
+  /** The latest `system.dataRates` report this stream carries, or undefined before one arrives. */
+  dataRates?(): unknown;
 }
 
 function isRelayHandle(handle: unknown): handle is UplinkRelayHandle {
@@ -421,6 +426,21 @@ type HostEventMap = {
   pendingStations: [readonly PendingStation[]];
 };
 
+const paceLogger = logger.tag("peer:pace");
+
+/**
+ * The bytes waiting to go out to a station, or null when they cannot be read: a
+ * direct station's data channel says so itself, and a station through the
+ * relay's endpoint by the endpoint's own report.
+ */
+function queuedBytes(conn: StationLink): number | null {
+  if (conn instanceof EndpointConnection) return conn.queuedBytes;
+  const channel: unknown = Reflect.get(conn, "dataChannel");
+  if (typeof channel !== "object" || channel === null) return null;
+  const amount: unknown = Reflect.get(channel, "bufferedAmount");
+  return typeof amount === "number" ? amount : null;
+}
+
 export class PeerHostService {
   private peer: Peer | null = null;
   /** Open connections of approved stations: everything the host sends goes to these. */
@@ -508,6 +528,10 @@ export class PeerHostService {
   private peerMode = new WeakMap<StationLink, "broadcast-all" | "selective">();
   /** Per station, what it was last sent of each field the mod sends only on change. */
   private readonly sentOnChange = new WeakMap<StationLink, SentOnChange>();
+  /** Per station, the rate it is sent the fast Topics at. */
+  private readonly pacers = new WeakMap<StationLink, StationPacer>();
+  private paceTimer: ReturnType<typeof setInterval> | null = null;
+  private paceLooks = 0;
   private peerSubs = new WeakMap<StationLink, Map<string, Set<string>>>();
 
   /**
@@ -1624,13 +1648,19 @@ export class PeerHostService {
    * topic rather than dropped silently; any other message keeps throwing.
    */
   private transmit(conn: StationLink, msg: PeerMessage): void {
+    if (msg.type === "sitrep-frame" && !this.paces(conn, msg)) return;
     let sentOnChange = this.sentOnChange.get(conn);
     if (!sentOnChange) {
       sentOnChange = new SentOnChange();
       this.sentOnChange.set(conn, sentOnChange);
     }
     if (msg.type === "sitrep-reset") sentOnChange.forget();
-    const { outgoing, sent } = sentOnChange.prepare(msg);
+    const prepared = sentOnChange.prepare(msg);
+    const { sent } = prepared;
+    const outgoing =
+      prepared.outgoing.type === "sitrep-frame"
+        ? { ...prepared.outgoing, sentAt: Date.now() }
+        : prepared.outgoing;
     try {
       conn.send(outgoing);
       sent();
@@ -1653,6 +1683,66 @@ export class PeerHostService {
         );
       }
     }
+  }
+
+  /**
+   * Whether a relayed frame goes to `conn` at the rate it is held to. Only a live
+   * sample of a Topic the mod sends above the base rate is ever held back: a
+   * replay, an event and every other Topic always go.
+   */
+  private paces(
+    conn: StationLink,
+    msg: Extract<PeerMessage, { type: "sitrep-frame" }>,
+  ): boolean {
+    const frame = msg.message;
+    if (msg.replay || frame.type !== "stream-data") return true;
+    const pacer = this.pacers.get(conn);
+    if (!pacer) return true;
+    const report = this.hostDataRates();
+    if (
+      samplesPerSecondOf(report, frame.topic) <=
+      tierSamplesPerSecondOf(report, "base")
+    ) {
+      return true;
+    }
+    return pacer.forwards(frame.topic, frame.meta.validAt);
+  }
+
+  /** The rate report on the host's own stream, which says how fast the mod sends each Topic. */
+  private hostDataRates(): unknown {
+    return this.sitrepSinks.get(HOST_SESSION)?.dataRates?.();
+  }
+
+  /** Look at every station's pace once, lowering or raising the rate it is sent the fast Topics at. */
+  private lookAtPaces(): void {
+    const modRate = tierSamplesPerSecondOf(this.hostDataRates(), "fast");
+    const now = performance.now();
+    this.paceLooks += 1;
+    for (const conn of this.connections) {
+      let pacer = this.pacers.get(conn);
+      if (!pacer) {
+        pacer = new StationPacer();
+        this.pacers.set(conn, pacer);
+      }
+      const queued = queuedBytes(conn);
+      const step = pacer.look(queued, modRate, now);
+      if (step === "hold" && this.paceLooks % 10 !== 0) continue;
+      const note = pacer.note;
+      paceLogger.info(
+        `station ${conn.peer} ${step} rate=${pacer.heldRate() ?? modRate}/${modRate} queued=${queued ?? "?"} backlog=${note?.backlogMs.toFixed(0) ?? "?"}ms lag=${note?.loopLagMs.toFixed(0) ?? "?"}ms frame=${note?.frameMs.toFixed(0) ?? "?"}ms`,
+      );
+    }
+  }
+
+  private startPacing(): void {
+    if (this.paceTimer) return;
+    this.paceTimer = setInterval(() => this.lookAtPaces(), 1_000);
+  }
+
+  private stopPacing(): void {
+    if (!this.paceTimer) return;
+    clearInterval(this.paceTimer);
+    this.paceTimer = null;
   }
 
   broadcast(msg: PeerMessage) {
@@ -1784,6 +1874,18 @@ export class PeerHostService {
     },
     "sitrep-unsubscribe": (msg, conn) => {
       this.releaseSitrepSub(conn, msg.topic);
+    },
+    "station-pace": (msg, conn) => {
+      let pacer = this.pacers.get(conn);
+      if (!pacer) {
+        pacer = new StationPacer();
+        this.pacers.set(conn, pacer);
+      }
+      pacer.note = {
+        loopLagMs: msg.loopLagMs,
+        frameMs: msg.frameMs,
+        backlogMs: msg.backlogMs,
+      };
     },
     "sitrep-set-rate": (msg, conn) => {
       let rates = this.connRates.get(conn);
@@ -2910,6 +3012,7 @@ export class PeerHostService {
   }
 
   private startHeartbeat(): void {
+    this.startPacing();
     if (this.heartbeatTimer) return;
     this.heartbeatTimer = setInterval(() => {
       for (const conn of [...this.connections, ...this.waiting]) {
@@ -2920,6 +3023,7 @@ export class PeerHostService {
   }
 
   private stopHeartbeat(): void {
+    this.stopPacing();
     if (!this.heartbeatTimer) return;
     clearInterval(this.heartbeatTimer);
     this.heartbeatTimer = null;

@@ -169,6 +169,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     certification: "enum",
     uts: "ut",
   },
+  "CapRate": {
+    samplesPerSecond: "1",
+    tier: "id",
+    type: "id",
+  },
   "CareerBalances": {
     funds: "funds",
     reputation: "rep",

@@ -134,6 +134,8 @@ const TRANSPORT_ONLY = new Set([
   // Same case as `Meta`'s timestamps, one envelope over.
   "CommandAccepted",
   "CommandResultOf",
+  // Sent by the client, as an Args type is: a Value in its `samplesPerSecond` would serialise as an object the mod's parser refuses.
+  "CapRate",
 ]);
 
 /**

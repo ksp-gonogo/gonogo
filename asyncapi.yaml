@@ -36,6 +36,7 @@ info:
     - `set-vantage`: choose the command centre this connection observes from and commands from
     - `claim`: ask for the answers to commands sent on an earlier connection
     - `set-rate`: ask for a subscribed channel at a faster rate tier
+    - `cap-rate`: ask for a rate tier no faster than this connection can take
     - `ping`: ask whether the connection is alive
     - `command-request`: send one command
     - `command-group`: send several delayed commands to one craft as a unit
@@ -2380,7 +2381,8 @@ channels:
       mod sends their answers to the new connection.
       `set-rate` asks for a subscribed topic at a rate tier. The mod sends each topic
       at the fastest tier any connection asks for, and `system.dataRates` says what
-      each tier is in samples a second.
+      each tier is in samples a second. `cap-rate` asks for a tier no faster than a
+      given rate while the connection holds the request, for a client falling behind.
       The mod opens every connection with a `hello` naming the run it has reached,
       and answers a `ping` with a `pong` at once in any scene, even with nothing
       subscribed. A client uses that to tell a quiet connection from a dead one.
@@ -2402,6 +2404,8 @@ channels:
         $ref: "#/components/messages/claim"
       setRate:
         $ref: "#/components/messages/setRate"
+      capRate:
+        $ref: "#/components/messages/capRate"
       commandGroup:
         $ref: "#/components/messages/commandGroup"
       ping:
@@ -5963,6 +5967,7 @@ operations:
       - $ref: "#/channels/session/messages/setVantage"
       - $ref: "#/channels/session/messages/claim"
       - $ref: "#/channels/session/messages/setRate"
+      - $ref: "#/channels/session/messages/capRate"
       - $ref: "#/channels/session/messages/commandGroup"
       - $ref: "#/channels/session/messages/ping"
   session.notices:
@@ -5984,6 +5989,11 @@ components:
       description: "A command and its answer are matched on `requestId`, not on order: responses may arrive in a different order from the commands, and a delayed command's answer can arrive minutes after it."
       location: $message.payload#/requestId
   messages:
+    capRate:
+      name: cap-rate
+      title: Ask for a rate tier no faster than a given rate
+      payload:
+        $ref: "#/components/schemas/CapRate"
     claim:
       name: claim
       title: Claim the answers to commands sent on an earlier connection
@@ -10101,6 +10111,44 @@ components:
           allOf:
             - $ref: "#/components/schemas/PropagationCertification"
               x-sitrep-unit: enum
+    CapRate:
+      type: object
+      description: |-
+        Asks the mod to send a rate tier no faster than a given rate while this
+        connection holds the request, for a client that cannot keep up with the tier
+        as it stands. The mod sends the tier at the lowest rate any connection asks
+        for in this way, never below the base tier's rate, and `system.dataRates`
+        reports the rate it sends.
+
+        The request lasts until the connection sends another for the same tier or
+        closes. A `null` `CapRate.samplesPerSecond` withdraws it. The base tier
+        cannot be lowered, and a request for it or for a tier the mod does not know
+        changes nothing.
+      required:
+        - type
+        - tier
+      properties:
+        type:
+          type: string
+          const: cap-rate
+          x-sitrep-unit: id
+          description: The frame type, always `"cap-rate"`.
+        tier:
+          oneOf:
+            - type: string
+              const: base
+            - type: string
+              const: fast
+          x-sitrep-unit: id
+          description: "The rate tier to send no faster: `\"fast\"`."
+        samplesPerSecond:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: "1"
+          description: |-
+            The most samples a game second this connection asks the tier to carry, or
+            `null` to withdraw the request.
     CareerBalances:
       type: object
       description: |-

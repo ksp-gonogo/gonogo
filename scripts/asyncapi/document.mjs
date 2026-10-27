@@ -187,6 +187,7 @@ const FRAMES_FROM_CLIENT = [
   ],
   ["claim", "ask for the answers to commands sent on an earlier connection"],
   ["set-rate", "ask for a subscribed channel at a faster rate tier"],
+  ["cap-rate", "ask for a rate tier no faster than this connection can take"],
   ["ping", "ask whether the connection is alive"],
   ["command-request", "send one command"],
   ["command-group", "send several delayed commands to one craft as a unit"],
@@ -233,7 +234,8 @@ and observes at, which sets what it reads and how long its commands take.
 mod sends their answers to the new connection.
 \`set-rate\` asks for a subscribed topic at a rate tier. The mod sends each topic
 at the fastest tier any connection asks for, and \`system.dataRates\` says what
-each tier is in samples a second.
+each tier is in samples a second. \`cap-rate\` asks for a tier no faster than a
+given rate while the connection holds the request, for a client falling behind.
 The mod opens every connection with a \`hello\` naming the run it has reached,
 and answers a \`ping\` with a \`pong\` at once in any scene, even with nothing
 subscribed. A client uses that to tell a quiet connection from a dead one.
@@ -563,6 +565,7 @@ export function buildDocument({
       setVantage: { $ref: "#/components/messages/setVantage" },
       claim: { $ref: "#/components/messages/claim" },
       setRate: { $ref: "#/components/messages/setRate" },
+      capRate: { $ref: "#/components/messages/capRate" },
       commandGroup: { $ref: "#/components/messages/commandGroup" },
       ping: { $ref: "#/components/messages/ping" },
       hello: { $ref: "#/components/messages/hello" },
@@ -606,6 +609,11 @@ export function buildDocument({
     name: "set-rate",
     title: "Ask for a subscribed channel at a rate tier",
     payload: schemas.ref("SetRate"),
+  };
+  messages.capRate = {
+    name: "cap-rate",
+    title: "Ask for a rate tier no faster than a given rate",
+    payload: schemas.ref("CapRate"),
   };
   messages.commandGroup = {
     name: "command-group",
@@ -672,6 +680,7 @@ export function buildDocument({
       { $ref: "#/channels/session/messages/setVantage" },
       { $ref: "#/channels/session/messages/claim" },
       { $ref: "#/channels/session/messages/setRate" },
+      { $ref: "#/channels/session/messages/capRate" },
       { $ref: "#/channels/session/messages/commandGroup" },
       { $ref: "#/channels/session/messages/ping" },
     ],

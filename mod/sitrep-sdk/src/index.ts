@@ -151,6 +151,7 @@ export {
   hasSupersededFields,
   samplesPerSecondOf,
   supersededPayload,
+  tierSamplesPerSecondOf,
   type WidgetDataRates,
 } from "./data-rate";
 // Whether a Topic's value is entitled to be read as of TRUE NOW, or only as of
