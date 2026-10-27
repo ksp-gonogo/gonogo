@@ -7241,7 +7241,6 @@ namespace Sitrep.Host
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
             var snapshot = sample();
             var sampling = System.Diagnostics.Stopwatch.GetTimestamp() - started;
-            PerfTelemetry.RecordTicks("main.sample", sampling);
             var tick = CaptureTick(snapshot.Ut, snapshot, null);
             tick.SampleStopwatchTicks = sampling;
             EnqueueTick(tick);
@@ -7280,11 +7279,6 @@ namespace Sitrep.Host
             timing.Connectivity = Lap(ref mark);
             var pathBreak = CapturePathBreakOnMain(snapshot, ut);
             timing.PathBreak = Lap(ref mark);
-            if (PerfTelemetry.Enabled)
-            {
-                timing.Record();
-                PerfTelemetry.RecordTicks("main.capture.total", mark - started);
-            }
             return new TickJob(ut, snapshot, captures, signalDelay, connectivity, pathBreak, done)
             {
                 Save = _saveOnMain,
@@ -7311,15 +7305,6 @@ namespace Sitrep.Host
             public long Connectivity;
             public long PathBreak;
             public (long Ticks, string? Name) SlowestSource;
-
-            public void Record()
-            {
-                PerfTelemetry.RecordTicks("main.commandCentres", CommandCentres);
-                PerfTelemetry.RecordTicks("main.sources", Sources);
-                PerfTelemetry.RecordTicks("main.signalDelay", SignalDelay);
-                PerfTelemetry.RecordTicks("main.connectivity", Connectivity);
-                PerfTelemetry.RecordTicks("main.pathBreak", PathBreak);
-            }
 
             public string Describe()
             {
@@ -7431,10 +7416,6 @@ namespace Sitrep.Host
                     captured.Add(new CapturedSample(i, null, ex));
                 }
                 var took = System.Diagnostics.Stopwatch.GetTimestamp() - started;
-                if (PerfTelemetry.Enabled)
-                {
-                    PerfTelemetry.RecordTicks("main.capture." + source.OwnerId, took);
-                }
                 if (took > timing.SlowestSource.Ticks)
                 {
                     timing.SlowestSource = (took, source.OwnerId);
@@ -9864,10 +9845,7 @@ namespace Sitrep.Host
             // above run before it is known. See RefreshLedgerDelays.
             RefreshLedgerDelays();
             AdvanceLensDelivery(tick.Ut);
-            using (PerfTelemetry.Time("courier.craftReach"))
-            {
-                SayCraftReach();
-            }
+            SayCraftReach();
             NoteActivePathMeasurement(tick);
             if (_activeVesselSwitched)
             {
@@ -10049,7 +10027,6 @@ namespace Sitrep.Host
             ContinueInbound(tick.Ut);
             ReleaseGameStateAfterTick();
             timing.End(ref timing.StoreAndForward);
-            timing.Record();
             ReportSlowTick(tick, timing);
             ReportPublishStats();
             tick.Done?.Set();
@@ -10124,24 +10101,6 @@ namespace Sitrep.Host
             public long StoreAndForward;
             public (long Ticks, string? Name) SlowestHandle;
             public (long Ticks, string? Name) SlowestChannel;
-
-            /// <summary>Hands each phase of the finished tick to <see cref="PerfTelemetry"/>.</summary>
-            public void Record()
-            {
-                if (!PerfTelemetry.Enabled)
-                {
-                    return;
-                }
-                PerfTelemetry.RecordTicks("courier.samplers", Samplers);
-                PerfTelemetry.RecordTicks("courier.handles", Handles);
-                PerfTelemetry.RecordTicks("courier.refresh", Refresh);
-                PerfTelemetry.RecordTicks("courier.channels", Channels);
-                PerfTelemetry.RecordTicks("courier.publishes", Publishes);
-                PerfTelemetry.RecordTicks("courier.reveal", Reveal);
-                PerfTelemetry.RecordTicks("courier.deliveries", Deliveries);
-                PerfTelemetry.RecordTicks("courier.storeAndForward", StoreAndForward);
-                PerfTelemetry.RecordTicks("courier.tick", System.Diagnostics.Stopwatch.GetTimestamp() - _started);
-            }
 
             /// <summary>The channel the loop is on, charged at the next <see cref="EndOne"/>. Null before the first.</summary>
             public string? Topic;
@@ -11158,7 +11117,7 @@ namespace Sitrep.Host
                     // serialization instead of the throw recurring silently,
                     // unattributed, on every subsequent tick.
                     byte[] bytes;
-                    var serializeStarted = PublishStats.Enabled || PerfTelemetry.Enabled ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+                    var serializeStarted = PublishStats.Enabled ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
                     try
                     {
                         // The binary lane is DECLARED, never inferred: a
@@ -11191,11 +11150,6 @@ namespace Sitrep.Host
                     if (PublishStats.Enabled)
                     {
                         PublishStats.RecordFrame(topic, bytes.Length, System.Diagnostics.Stopwatch.GetTimestamp() - serializeStarted);
-                    }
-                    if (PerfTelemetry.Enabled)
-                    {
-                        PerfTelemetry.RecordTicks("serialise", System.Diagnostics.Stopwatch.GetTimestamp() - serializeStarted);
-                        PerfTelemetry.RecordFrameBytes(topic, bytes.Length);
                     }
 
                     // A replayed sample rides the FIFO lane whatever the channel

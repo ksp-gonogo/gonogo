@@ -32,8 +32,7 @@ namespace Gonogo.KSP.CommandCentres
             Vector3d position,
             bool active,
             double? latitude = null,
-            double? longitude = null,
-            string? nodeName = null)
+            double? longitude = null)
         {
             Id = id;
             DisplayName = displayName;
@@ -44,7 +43,6 @@ namespace Gonogo.KSP.CommandCentres
             _active = active;
             Latitude = latitude;
             Longitude = longitude;
-            NodeName = nodeName;
         }
 
         public string Id { get; }
@@ -69,9 +67,6 @@ namespace Gonogo.KSP.CommandCentres
 
         /// <summary>Body-fixed surface longitude in degrees, wrapped to (-180, 180]. Null under the same rule as <see cref="Latitude"/>, and always null together with it.</summary>
         public double? Longitude { get; }
-
-        /// <summary>The ground station's <c>CommNetHome.nodeName</c>; null for a crewed vessel and for a home with none.</summary>
-        public string? NodeName { get; }
 
         public bool IsActiveNow() => _active;
     }
