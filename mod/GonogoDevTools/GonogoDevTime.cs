@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -32,6 +33,9 @@ namespace Gonogo.DevTools
     /// (the game's UT read back after a settle delay, never the requested one),
     /// <c>sunElevationDeg</c>, <c>lat</c>, <c>lon</c>, <c>body</c>, <c>message</c> and
     /// <c>time</c>. A figure the request did not ask for reads <c>unknown</c>.</para>
+    ///
+    /// <para>Loaded vessels are put on rails before the move, so every craft is carried along
+    /// its orbit to the new UT rather than kept where it is.</para>
     ///
     /// <para>A <c>setut</c> earlier than the current UT is refused with a reason and
     /// changes nothing. A request id that was already applied, or a request file written
@@ -188,6 +192,7 @@ namespace Gonogo.DevTools
                         return;
                     }
 
+                    PackLoadedVessels();
                     Planetarium.SetUniversalTime(request.SetUt.Value);
                 }
 
@@ -199,6 +204,31 @@ namespace Gonogo.DevTools
             catch (Exception ex)
             {
                 WriteRefusal(id, "exception: " + ex.Message, requestedUt);
+            }
+        }
+
+        /*
+         * Planetarium.SetUniversalTime only moves the clock. An unpacked vessel is placed by
+         * physics, so it would keep its position and KSP would refit its orbit to that spot,
+         * and a jump could never play out a descent. A vessel on rails is placed from its
+         * orbit at the current UT, the same state the game puts every craft in for time warp,
+         * so packing first moves each one along its orbit. The game unpacks the ones in
+         * range again by itself.
+         */
+        private static void PackLoadedVessels()
+        {
+            var vessels = FlightGlobals.Vessels;
+            if (vessels == null)
+            {
+                return;
+            }
+
+            foreach (var vessel in vessels.ToArray())
+            {
+                if (vessel != null && vessel.loaded && !vessel.packed)
+                {
+                    vessel.GoOnRails();
+                }
             }
         }
 
