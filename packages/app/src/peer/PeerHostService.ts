@@ -7,7 +7,7 @@ import type {
 } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
-import type { RelayCaller } from "@ksp-gonogo/sitrep-sdk";
+import type { DataRateTier, RelayCaller } from "@ksp-gonogo/sitrep-sdk";
 import {
   CommandErrorCode,
   classifyCommandRejection,
@@ -90,6 +90,8 @@ export const HOST_SESSION = "host";
 export interface SitrepSubscriptionSink {
   /** Hold an upstream subscription for `topic`. Returns its release. */
   subscribe(topic: string): () => void;
+  /** Hold an upstream request for `topic` at `tier`. Returns its release. */
+  requestRate(topic: string, tier: DataRateTier): () => void;
   /**
    * The frames seen for `topic`, oldest first, empty when there are none. A
    * station subscribing a topic the host already holds gets no new frame until
@@ -525,6 +527,18 @@ export class PeerHostService {
    * reads the host's, which is what every connection did before this existed.
    */
   private readonly connVantage = new Map<StationLink, string>();
+  /** The rate tier each connection asks for on its topics, base ones left out. */
+  private readonly connRates = new Map<
+    StationLink,
+    Map<string, DataRateTier>
+  >();
+  /**
+   * The upstream rate requests held for each connection, by topic. Held only
+   * while the connection reads the topic and its vantage has a sink, and
+   * re-made whenever either changes, so a request always sits on the session
+   * the connection reads from.
+   */
+  private readonly rateHolds = new Map<StationLink, Map<string, () => void>>();
   /**
    * How each open station connection is carried, read from `getStats()` once
    * it opens. `path` is null until the browser reports a selected pair.
@@ -1188,6 +1202,7 @@ export class PeerHostService {
     // Same rule for this station's sitrep topics: read the set before the
     // conn goes out of scope, or the refcount pins the upstream
     // subscription for the rest of the session.
+    this.connRates.delete(conn);
     const claimed = this.sitrepSubs.get(conn);
     if (claimed) {
       for (const topic of [...claimed]) {
@@ -1219,6 +1234,7 @@ export class PeerHostService {
   private reconcileSitrepSubs(): void {
     for (const [conn, claimed] of [...this.sitrepSubs]) {
       if (this.connections.has(conn)) continue;
+      this.connRates.delete(conn);
       for (const topic of [...claimed]) {
         this.releaseSitrepSub(conn, topic);
       }
@@ -1257,6 +1273,7 @@ export class PeerHostService {
     for (const [topic, entry] of this.topicRefsFor(vantage)) {
       entry.unsub ??= sink.subscribe(topic);
     }
+    this.syncRateHoldsAt(vantage);
     return () => {
       if (this.sitrepSinks.get(vantage) !== sink) return;
       for (const entry of this.topicRefsFor(vantage).values()) {
@@ -1264,6 +1281,7 @@ export class PeerHostService {
         entry.unsub = null;
       }
       this.sitrepSinks.delete(vantage);
+      this.syncRateHoldsAt(vantage);
     };
   }
 
@@ -1369,6 +1387,8 @@ export class PeerHostService {
       });
     }
 
+    this.syncRateHold(conn, topic);
+
     // The host may have been subscribed to this for a while, in which case the
     // next frame is the only thing this station would otherwise see. Replay the
     // current one to it alone.
@@ -1381,10 +1401,42 @@ export class PeerHostService {
     }
   }
 
+  /**
+   * Make the upstream rate request held for `conn` on `topic` match what it
+   * asks for now: released, and made again on the session it reads from while
+   * it reads the topic and that session has a sink.
+   */
+  private syncRateHold(conn: StationLink, topic: string): void {
+    const holds = this.rateHolds.get(conn);
+    holds?.get(topic)?.();
+    holds?.delete(topic);
+    if (holds?.size === 0) this.rateHolds.delete(conn);
+
+    const tier = this.connRates.get(conn)?.get(topic);
+    if (tier === undefined || !this.sitrepSubs.get(conn)?.has(topic)) return;
+    const sink = this.sitrepSinks.get(this.vantageOf(conn));
+    if (!sink) return;
+    let held = this.rateHolds.get(conn);
+    if (!held) {
+      held = new Map();
+      this.rateHolds.set(conn, held);
+    }
+    held.set(topic, sink.requestRate(topic, tier));
+  }
+
+  /** {@link syncRateHold} for every topic of every connection reading from `vantage`. */
+  private syncRateHoldsAt(vantage: string): void {
+    for (const [conn, rates] of this.connRates) {
+      if (this.vantageOf(conn) !== vantage) continue;
+      for (const topic of rates.keys()) this.syncRateHold(conn, topic);
+    }
+  }
+
   private releaseSitrepSub(conn: StationLink, topic: string): void {
     const claimed = this.sitrepSubs.get(conn);
     if (!claimed?.delete(topic)) return;
     if (claimed.size === 0) this.sitrepSubs.delete(conn);
+    this.syncRateHold(conn, topic);
     const vantage = this.vantageOf(conn);
     const refs = this.sitrepTopicRefs.get(vantage);
     const entry = refs?.get(topic);
@@ -1719,6 +1771,19 @@ export class PeerHostService {
     },
     "sitrep-unsubscribe": (msg, conn) => {
       this.releaseSitrepSub(conn, msg.topic);
+    },
+    "sitrep-set-rate": (msg, conn) => {
+      let rates = this.connRates.get(conn);
+      if (msg.tier === "base") {
+        rates?.delete(msg.topic);
+      } else {
+        if (!rates) {
+          rates = new Map();
+          this.connRates.set(conn, rates);
+        }
+        rates.set(msg.topic, msg.tier);
+      }
+      this.syncRateHold(conn, msg.topic);
     },
     "sitrep-set-vantage": (msg, conn) => {
       this.setConnVantage(conn, msg.vantage ?? HOST_SESSION);

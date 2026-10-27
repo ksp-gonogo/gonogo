@@ -1,6 +1,7 @@
 import { safeRandomUuid } from "@ksp-gonogo/core";
 import type { FlightRecord } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
+import type { DataRateTier } from "@ksp-gonogo/sitrep-sdk";
 import type { ConnectProgress } from "@ksp-gonogo/ui";
 import Peer, { type DataConnection } from "peerjs";
 import type { RunningUplink } from "../uplinks/loaderState";
@@ -1257,6 +1258,15 @@ export class PeerClientService {
     this.conn?.send({
       type: "sitrep-set-vantage",
       vantage,
+    } satisfies PeerMessage);
+  }
+
+  /** Ask the host for `topic` at `tier` on this station's behalf. Does nothing with no live connection, for the reason {@link sendSitrepSubscribe} gives. */
+  sendSitrepSetRate(topic: string, tier: DataRateTier): void {
+    this.conn?.send({
+      type: "sitrep-set-rate",
+      topic,
+      tier,
     } satisfies PeerMessage);
   }
 

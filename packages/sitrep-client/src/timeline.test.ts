@@ -206,3 +206,59 @@ describe("ClientTimeline", () => {
     });
   });
 });
+
+describe("ClientTimeline.supersedeBefore", () => {
+  const shed = (payload: number | null) =>
+    payload === null ? null : -Math.abs(payload);
+
+  it("sheds every point older than the one on screen and leaves that one and every later one whole", () => {
+    const timeline = new ClientTimeline<number | null>();
+    for (const ut of [1, 2, 3, 4, 5]) timeline.append(point(ut, ut));
+
+    timeline.supersedeBefore(3.5, shed);
+
+    expect(timeline.range(0, 10).map((p) => p.payload)).toEqual([
+      -1, -2, 3, 4, 5,
+    ]);
+  });
+
+  it("sheds each point once as the edge moves on", () => {
+    const timeline = new ClientTimeline<number | null>();
+    for (const ut of [1, 2, 3]) timeline.append(point(ut, ut));
+    timeline.supersedeBefore(3, shed);
+    timeline.append(point(4, 4));
+
+    timeline.supersedeBefore(4, shed);
+
+    expect(timeline.range(0, 10).map((p) => p.payload)).toEqual([
+      -1, -2, -3, 4,
+    ]);
+  });
+
+  it("sheds a point arriving out of order below the edge on the next pass", () => {
+    const timeline = new ClientTimeline<number | null>();
+    for (const ut of [1, 2, 3]) timeline.append(point(ut, ut));
+    timeline.supersedeBefore(3, shed);
+
+    timeline.append(point(1.5, 15));
+    timeline.supersedeBefore(3, shed);
+
+    expect(timeline.range(0, 10).map((p) => p.payload)).toEqual([
+      -1, -15, -2, 3,
+    ]);
+  });
+
+  it("replaces a shed point rather than changing the one a reader already holds", () => {
+    const timeline = new ClientTimeline<number | null>();
+    timeline.append(point(1, 1));
+    const held = timeline.at(1);
+    timeline.append(point(2, 2));
+    const revision = timeline.revision;
+
+    timeline.supersedeBefore(2, shed);
+
+    expect(held?.payload).toBe(1);
+    expect(timeline.at(1)?.payload).toBe(-1);
+    expect(timeline.revision).toBe(revision + 1);
+  });
+});

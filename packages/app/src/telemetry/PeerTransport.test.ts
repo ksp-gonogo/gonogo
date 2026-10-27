@@ -89,6 +89,8 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     topic: string;
   }> = [];
   const sentVantages: Array<string | null> = [];
+  /** Every message sent to the host in order, subscribes and rates together, so their order can be read. */
+  const sentClaims: string[] = [];
 
   const fake = {
     getConnStatus: () => status,
@@ -132,7 +134,11 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     ) => {
       sentGroups.push({ groupId, members, vantage });
     },
+    sendSitrepSetRate: (topic: string, tier: string) => {
+      sentClaims.push(`rate:${topic}:${tier}`);
+    },
     sendSitrepSubscribe: (topic: string) => {
+      sentClaims.push(`subscribe:${topic}`);
       sentSubscribes.push({ op: "subscribe", topic });
     },
     sendSitrepUnsubscribe: (topic: string) => {
@@ -162,6 +168,7 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     sentGroups,
     sentSubscribes,
     sentVantages,
+    sentClaims,
   };
   return fake;
 }
@@ -586,6 +593,27 @@ describe("PeerTransport", () => {
 
     expect(client.sentSubscribes).toEqual([
       { op: "subscribe", topic: "vessel.orbit" },
+    ]);
+  });
+
+  it("replays each topic's rate tier after the subscribes on a fresh connection", () => {
+    const client = makeFakeClient("connected");
+    const transport = new PeerTransport(asService(client));
+    transport.send({ type: "subscribe", topic: "vessel.flight" });
+    transport.send({ type: "set-rate", topic: "vessel.flight", tier: "fast" });
+    transport.send({ type: "subscribe", topic: "vessel.orbit" });
+    transport.send({ type: "set-rate", topic: "vessel.orbit", tier: "fast" });
+    transport.send({ type: "set-rate", topic: "vessel.orbit", tier: "base" });
+    expect(client.sentClaims).toContain("rate:vessel.flight:fast");
+    client.sentClaims.length = 0;
+
+    client.emitStatus("reconnecting");
+    client.emitStatus("connected");
+
+    expect(client.sentClaims).toEqual([
+      "subscribe:vessel.flight",
+      "subscribe:vessel.orbit",
+      "rate:vessel.flight:fast",
     ]);
   });
 
