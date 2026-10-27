@@ -668,6 +668,7 @@ describe("asyncapi.yaml", () => {
      * before the document will generate.
      */
     const clientFrames = [
+      "cap-rate",
       "claim",
       "command-group",
       "command-request",

@@ -103,6 +103,7 @@ import { initSoundSettings } from "../sound";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
 import { ScopedStationIdentity } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
+import { HostRatePacer } from "../telemetry/HostRatePacer";
 import { PilotVantage } from "../telemetry/PilotVantage";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
@@ -330,6 +331,7 @@ export function MainScreen({
   return (
     <SitrepTelemetryProvider transport={transport} screenKey={screen}>
       <SitrepPeerRelay peerHost={peerHostService} />
+      <HostRatePacer />
       <CommcastLink log={commcastLog} />
       {/*
        * The host's own session is the relay above; this serves every OTHER

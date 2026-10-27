@@ -9679,6 +9679,10 @@
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
+        "key": "sitrep-sdk ./spine TelemetryClient#capRate",
+        "note": "Asks the mod to send a rate tier no faster than a given rate while the connection is open, for a main screen that cannot keep up."
+      },
+      {
         "key": "sitrep-sdk ./spine TelemetryClient#claimedTier",
         "note": "New: the rate tier the live claims on a Topic ask for"
       },
@@ -10721,6 +10725,10 @@
       {
         "key": "sitrep-sdk ./testing ~TargetingHudContext#reticleTravelPx",
         "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#capRate",
+        "note": "The same capRate, reached through the testing entry point."
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#claimedTier",
@@ -12963,6 +12971,10 @@
       {
         "key": "sitrep-sdk . systemPosesAt",
         "note": "The same placement without a stream, for a test or a figure computed at an instant of the caller's choosing"
+      },
+      {
+        "key": "sitrep-sdk . tierSamplesPerSecondOf",
+        "note": "The samples a game second a rate tier carries now, read off a system.dataRates report."
       },
       {
         "key": "sitrep-sdk . topicDisplayNameOf",

@@ -334,6 +334,8 @@ export class PeerTransport implements Transport {
       this.client.sendSitrepUnsubscribe(message.topic);
       return;
     }
+    // A station is slowed by the main screen, which sees its link; it never lowers the mod's rate for every screen.
+    if (message.type === "cap-rate") return;
     if (message.type === "set-rate") {
       if (message.tier === "base") this.topicTiers.delete(message.topic);
       else this.topicTiers.set(message.topic, message.tier);

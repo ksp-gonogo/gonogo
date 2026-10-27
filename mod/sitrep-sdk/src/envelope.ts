@@ -1,6 +1,7 @@
 // Hand-owned: RT cannot derive the union alias from C# generics. Under the drift gate.
 
 import type {
+  CapRate,
   ClaimRequest,
   CommandAccepted,
   CommandGroupRequest,
@@ -58,4 +59,5 @@ export type ClientMessage =
   | CommandGroupRequest
   | ClaimRequest
   | SetRate
+  | CapRate
   | Ping;

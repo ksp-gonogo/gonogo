@@ -15,6 +15,7 @@
  * missed. Each test below goes red if its own half is removed.
  */
 
+import { makeMeta } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { FakeHub } = vi.hoisted(() => {
@@ -131,7 +132,7 @@ vi.stubGlobal("localStorage", localStorageMock);
 
 import { approveConnection } from "../test/approveStation";
 import { asDataConnection } from "../test/peerFakes";
-import { PeerHostService } from "./PeerHostService";
+import { HOST_SESSION, PeerHostService } from "./PeerHostService";
 import type { PeerMessage } from "./protocol";
 
 const TOPIC = "thirdparty.readout";
@@ -225,7 +226,11 @@ describe("the sitrep refcount re-syncs", () => {
     const conn = await connectStation(host, "station-a");
     claim(conn, TOPIC);
 
-    expect(conn.sent).toContainEqual({ ...frame, replay: true });
+    expect(conn.sent).toContainEqual({
+      ...frame,
+      replay: true,
+      sentAt: expect.any(Number),
+    });
     host.stop();
   });
 
@@ -366,6 +371,103 @@ describe("a station's rate tier reaches the host's stream", () => {
     host.attachSitrepSink(rebuilt);
 
     expect(rebuilt.rates.get(TOPIC)).toBe(1);
+    host.stop();
+  });
+});
+
+describe("a station that falls behind", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    FakeHub.reset();
+    localStorageMock.clear();
+  });
+
+  const report = {
+    tiers: [
+      { tier: "base", samplesPerSecond: 1 },
+      { tier: "fast", samplesPerSecond: 10 },
+    ],
+    topics: [{ topic: "vessel.landing", tier: "fast", samplesPerSecond: 10 }],
+  };
+
+  function frame(topic: string, validAt: number): PeerMessage {
+    return {
+      type: "sitrep-frame",
+      message: {
+        type: "stream-data",
+        topic,
+        payload: { validAt },
+        meta: makeMeta({ validAt, deliveredAt: validAt }),
+      },
+    };
+  }
+
+  function sentOf(conn: FakeConn, topic: string): number {
+    return conn.sent.filter(
+      (m) =>
+        typeof m === "object" &&
+        m !== null &&
+        Reflect.get(m, "type") === "sitrep-frame" &&
+        Reflect.get(Reflect.get(m, "message"), "topic") === topic,
+    ).length;
+  }
+
+  it("is sent a fast Topic at half the rate while its queue is backed up, and every other Topic whole", async () => {
+    vi.useFakeTimers({
+      toFake: ["setInterval", "clearInterval", "performance"],
+    });
+    const host = await startedHost();
+    host.attachSitrepSink({ ...makeSink(), dataRates: () => report });
+    const slow = await connectStation(host, "station-slow");
+    const quick = await connectStation(host, "station-quick");
+    Object.assign(slow, { dataChannel: { bufferedAmount: 400_000 } });
+    Object.assign(quick, { dataChannel: { bufferedAmount: 0 } });
+
+    vi.advanceTimersByTime(1_000);
+    slow.sent.length = 0;
+    quick.sent.length = 0;
+    for (let i = 0; i <= 10; i++) {
+      host.broadcastToVantage(
+        HOST_SESSION,
+        frame("vessel.landing", 100 + i / 10),
+      );
+      host.broadcastToVantage(
+        HOST_SESSION,
+        frame("vessel.flight", 100 + i / 10),
+      );
+    }
+
+    expect(sentOf(slow, "vessel.landing")).toBe(6);
+    expect(sentOf(slow, "vessel.flight")).toBe(11);
+    expect(sentOf(quick, "vessel.landing")).toBe(11);
+    host.stop();
+  });
+
+  it("is slowed on its own report that it is behind, with an empty queue", async () => {
+    vi.useFakeTimers({
+      toFake: ["setInterval", "clearInterval", "performance"],
+    });
+    const host = await startedHost();
+    host.attachSitrepSink({ ...makeSink(), dataRates: () => report });
+    const conn = await connectStation(host, "station-a");
+    Object.assign(conn, { dataChannel: { bufferedAmount: 0 } });
+    conn.emit("data", {
+      type: "station-pace",
+      loopLagMs: 5,
+      frameMs: 400,
+      backlogMs: 0,
+    });
+
+    vi.advanceTimersByTime(1_000);
+    conn.sent.length = 0;
+    for (let i = 0; i <= 10; i++) {
+      host.broadcastToVantage(
+        HOST_SESSION,
+        frame("vessel.landing", 100 + i / 10),
+      );
+    }
+
+    expect(sentOf(conn, "vessel.landing")).toBe(6);
     host.stop();
   });
 });

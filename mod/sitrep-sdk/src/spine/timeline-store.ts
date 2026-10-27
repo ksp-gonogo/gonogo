@@ -13,10 +13,10 @@ import {
 } from "../channel-tags";
 import { type SampleKind, valueTagsOf } from "../contract-tags";
 import {
-  baseSamplesPerSecondOf,
   hasSupersededFields,
   samplesPerSecondOf,
   supersededPayload,
+  tierSamplesPerSecondOf,
 } from "../data-rate";
 import {
   type DeclaredDelayRoles,
@@ -3837,7 +3837,7 @@ export class TimelineStore {
   /** Re-bound every timeline whose Topic's rate `report` changes, so each keeps the same span of game time. */
   private applyDataRates(report: DataRateReport | null): void {
     if (!report) return;
-    const base = baseSamplesPerSecondOf(report);
+    const base = tierSamplesPerSecondOf(report, "base");
     const next = new Map<string, number>();
     for (const row of report.topics) {
       const rate = samplesPerSecondOf(report, row.topic);

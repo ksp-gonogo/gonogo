@@ -55,7 +55,12 @@ type controlFrame struct {
 	// Status only.
 	PublicIP string `json:"publicIp,omitempty"`
 	Port     int    `json:"port,omitempty"`
+	// Bytes is how much waits to go out to the station, on a queued frame only.
+	Bytes *uint64 `json:"bytes,omitempty"`
 }
+
+// queueReportInterval is how often the tab is told of a change in what waits to go out to each station.
+const queueReportInterval = 500 * time.Millisecond
 
 type session struct {
 	sid    uint32
@@ -66,6 +71,8 @@ type session struct {
 	timer  *time.Timer
 	// announced tells the tab the station is open, once, before any of its messages.
 	announced sync.Once
+	// reported is the queue last reported to the tab, which starts at nothing.
+	reported uint64
 }
 
 // tab is the main screen's control socket. Writes are serialised because gorilla allows one writer.
@@ -178,6 +185,10 @@ func (e *Endpoint) serveTab(t *tab) {
 	status, _ := json.Marshal(controlFrame{Type: "status", PublicIP: e.cfg.PublicIP, Port: e.port})
 	t.write(websocket.TextMessage, status)
 
+	stopReports := make(chan struct{})
+	defer close(stopReports)
+	go e.reportQueues(stopReports)
+
 	for {
 		kind, msg, err := t.conn.ReadMessage()
 		if err != nil {
@@ -225,6 +236,36 @@ func (e *Endpoint) send(f controlFrame) {
 	}
 	data, _ := json.Marshal(f)
 	t.write(websocket.TextMessage, data)
+}
+
+// reportQueues tells the tab, every queueReportInterval until stop closes, of each open station whose queue changed since its last report, so the main screen can slow a station before forward drops it.
+func (e *Endpoint) reportQueues(stop <-chan struct{}) {
+	ticker := time.NewTicker(queueReportInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-ticker.C:
+		}
+		var changed []controlFrame
+		e.mu.Lock()
+		for sid, s := range e.sessions {
+			if !s.open || s.dc == nil {
+				continue
+			}
+			bytes := s.dc.BufferedAmount()
+			if bytes == s.reported {
+				continue
+			}
+			s.reported = bytes
+			changed = append(changed, controlFrame{Type: "queued", Sid: sid, Bytes: &bytes})
+		}
+		e.mu.Unlock()
+		for _, f := range changed {
+			e.send(f)
+		}
+	}
 }
 
 func (e *Endpoint) offer(t *tab, f controlFrame) {

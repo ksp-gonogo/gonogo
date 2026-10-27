@@ -44,7 +44,9 @@ type fakeTab struct {
 	t    *testing.T
 	conn *websocket.Conn
 	text chan map[string]any
-	data chan []byte
+	// queued holds queue reports, apart from every other control frame.
+	queued chan map[string]any
+	data   chan []byte
 	// order names every frame as it arrives: its control type, or "data".
 	order chan string
 	done  chan struct{}
@@ -56,7 +58,7 @@ func dialTab(t *testing.T, url string) *fakeTab {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tb := &fakeTab{t: t, conn: conn, text: make(chan map[string]any, 32), data: make(chan []byte, 32), order: make(chan string, 256), done: make(chan struct{})}
+	tb := &fakeTab{t: t, conn: conn, text: make(chan map[string]any, 32), queued: make(chan map[string]any, 256), data: make(chan []byte, 32), order: make(chan string, 256), done: make(chan struct{})}
 	go func() {
 		defer close(tb.done)
 		for {
@@ -67,6 +69,14 @@ func dialTab(t *testing.T, url string) *fakeTab {
 			if kind == websocket.TextMessage {
 				var m map[string]any
 				_ = json.Unmarshal(msg, &m)
+				// A queue report can land between any two frames, so it has its own channel.
+				if m["type"] == "queued" {
+					select {
+					case tb.queued <- m:
+					default:
+					}
+					continue
+				}
 				tb.order <- fmt.Sprint(m["type"])
 				tb.text <- m
 			} else {
@@ -393,5 +403,45 @@ func TestTheAnswerNamesThePublicAndLANAddressesOnOnePort(t *testing.T) {
 	tcpOnly := withCandidates(sdp, "203.0.113.7", "198.51.100.20", 47100, true)
 	if strings.Contains(tcpOnly, " udp ") {
 		t.Errorf("an answer without UDP still names a UDP candidate:\n%s", tcpOnly)
+	}
+}
+
+// A station that stops reading backs up the endpoint's queue to it, and the tab hears the queue grow and then empty.
+func TestTheTabHearsAStationsQueueGrowAndDrain(t *testing.T) {
+	_, url := startEndpoint(t, Config{MaxBuffered: 64 << 20})
+	tb := dialTab(t, url)
+	s := newStation(t)
+	join(t, tb, s, 1, "station-a")
+
+	chunk := make([]byte, 32<<10)
+	const chunks = 96
+	for i := 0; i < chunks; i++ {
+		tb.sendData(1, chunk)
+	}
+	if got := tb.nextQueued(t, func(bytes float64) bool { return bytes > 0 }); got["sid"] != float64(1) {
+		t.Fatalf("queue report for sid %v, wanted 1", got["sid"])
+	}
+
+	for i := 0; i < chunks; i++ {
+		s.nextMessage(t)
+	}
+	tb.nextQueued(t, func(bytes float64) bool { return bytes == 0 })
+}
+
+// nextQueued returns the next queue report whose bytes satisfy match, skipping any that do not.
+func (tb *fakeTab) nextQueued(t *testing.T, match func(float64) bool) map[string]any {
+	t.Helper()
+	deadline := time.After(wait)
+	for {
+		select {
+		case m := <-tb.queued:
+			bytes, _ := m["bytes"].(float64)
+			if match(bytes) {
+				return m
+			}
+		case <-deadline:
+			t.Fatalf("no matching queue report within %s", wait)
+			return nil
+		}
 	}
 }

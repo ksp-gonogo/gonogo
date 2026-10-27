@@ -296,6 +296,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
         return client.subscribe(topic, () => {});
       },
       requestRate: (topic, tier) => client.requestRate(topic, tier),
+      dataRates: () => client.getValue("system.dataRates"),
       cachedFrames: (topic) => {
         const ack = acksRef.current.get(topic);
         const frames: ServerMessage[] = [

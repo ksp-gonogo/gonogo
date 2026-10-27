@@ -1097,4 +1097,32 @@ describe("WebSocketTransport outbound queue", () => {
 
     transport.dispose();
   });
+
+  it("replays the cap it last asked for on each tier, and none once withdrawn", () => {
+    const withdrawn = downTransport();
+    withdrawn.transport.send({
+      type: "cap-rate",
+      tier: "fast",
+      samplesPerSecond: 5,
+    });
+    withdrawn.transport.send({ type: "cap-rate", tier: "fast" });
+    withdrawn.socket.fire("open");
+    expect(
+      sentMessages(withdrawn.socket).filter(
+        (message) => message.type === "cap-rate",
+      ),
+    ).toEqual([]);
+    withdrawn.transport.dispose();
+
+    const { transport, socket } = downTransport();
+    transport.send({ type: "cap-rate", tier: "fast", samplesPerSecond: 5 });
+    transport.send({ type: "cap-rate", tier: "fast", samplesPerSecond: 2 });
+
+    socket.fire("open");
+    expect(
+      sentMessages(socket).filter((message) => message.type === "cap-rate"),
+    ).toEqual([{ type: "cap-rate", tier: "fast", samplesPerSecond: 2 }]);
+
+    transport.dispose();
+  });
 });

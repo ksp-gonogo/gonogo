@@ -7907,6 +7907,9 @@ namespace Sitrep.Host
                             case SetRateJob setRate:
                                 ProcessSetRate(setRate.Session, setRate.Topic, setRate.Tier);
                                 break;
+                            case CapRateJob capRate:
+                                ProcessCapRate(capRate.Session, capRate.Tier, capRate.SamplesPerSecond);
+                                break;
                             case FreshConnectionVantageMovedJob:
                                 ProcessFreshConnectionVantageMoved();
                                 break;
@@ -11782,6 +11785,15 @@ namespace Sitrep.Host
             RecomputeRateDemand(topic);
         }
 
+        /// <summary>Hold <paramref name="tier"/> to at most <paramref name="samplesPerSecond"/> while <paramref name="session"/> is connected, or withdraw its cap when that is null.</summary>
+        private void ProcessCapRate(ClientSession session, string tier, double? samplesPerSecond)
+        {
+            if (!Cadence.Tiers.TrySetCap(session.Connection.Id, tier, samplesPerSecond, out var refusal))
+            {
+                LogHostLimited("cap-rate refused: " + refusal);
+            }
+        }
+
         /// <summary>Put <paramref name="topic"/> on the fastest tier any connected session asks for, or base.</summary>
         private void RecomputeRateDemand(string topic)
         {
@@ -11816,6 +11828,7 @@ namespace Sitrep.Host
                 unsubscribe();
             }
             session.Unsubscribers.Clear();
+            Cadence.Tiers.ClearCaps(session.Connection.Id);
             var rated = new List<string>(session.RateTiers.Keys);
             session.RateTiers.Clear();
             foreach (var topic in rated)
@@ -12024,6 +12037,9 @@ namespace Sitrep.Host
                         break;
                     case SetRate setRate:
                         EnqueueJob(new SetRateJob(session, setRate.Topic, setRate.Tier));
+                        break;
+                    case CapRate capRate:
+                        EnqueueJob(new CapRateJob(session, capRate.Tier, capRate.SamplesPerSecond));
                         break;
                 }
             }
@@ -12552,6 +12568,20 @@ namespace Sitrep.Host
             public DisconnectJob(ClientSession session)
             {
                 Session = session;
+            }
+        }
+
+        private sealed class CapRateJob : IEngineJob
+        {
+            public readonly ClientSession Session;
+            public readonly string Tier;
+            public readonly double? SamplesPerSecond;
+
+            public CapRateJob(ClientSession session, string tier, double? samplesPerSecond)
+            {
+                Session = session;
+                Tier = tier;
+                SamplesPerSecond = samplesPerSecond;
             }
         }
 
