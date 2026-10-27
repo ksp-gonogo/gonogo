@@ -96,7 +96,6 @@ describe("ComponentOverlay: add → configure → persist", () => {
     // listbox options whose accessible name combines name + description.
     await user.click(screen.getByRole("button", { name: "Add widget" }));
     await user.click(await screen.findByRole("option", { name: /Trivial/ }));
-    await user.click(screen.getByRole("button", { name: "Add 1 widget" }));
 
     // addItems fired with a fresh DashboardItem. Capture its id so we can
     // assert the updateItemConfig call routes to the same instance.
@@ -180,11 +179,14 @@ describe("ComponentOverlay: add → configure → persist", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Add widget" }));
-    await user.click(await screen.findByRole("option", { name: /Second/ }));
+    await user.click(
+      await screen.findByRole("checkbox", { name: "Select Second" }),
+    );
     expect(screen.getByRole("option", { name: /Second/ })).toHaveAttribute(
       "aria-selected",
       "true",
     );
+    await user.click(screen.getByRole("combobox"));
     await user.keyboard("Trivial");
     await user.keyboard("{Shift>}{Enter}{/Shift}");
     await user.click(screen.getByRole("button", { name: "Add 2 widgets" }));
@@ -280,12 +282,125 @@ describe("ComponentOverlay: add → configure → persist", () => {
 
     await user.click(screen.getByRole("button", { name: "Add widget" }));
     await user.click(await screen.findByRole("option", { name: /Roomy/ }));
-    await user.click(screen.getByRole("button", { name: "Add 1 widget" }));
 
     expect(addItems).toHaveBeenCalledTimes(1);
     expect(addItems.mock.calls[0][0][0].placement).toMatchObject({
       w: 6,
       h: 8,
+    });
+  });
+
+  describe("multi-select starts from a checkbox", () => {
+    function mount() {
+      registerTrivial();
+      registerComponent({
+        id: "second",
+        name: "Second",
+        description: "",
+        tags: [],
+        component: TrivialWidget,
+        dataRequirements: [],
+      });
+      const addItems = vi.fn();
+      const view = render(
+        <ModalProvider>
+          <SerialDeviceProvider
+            service={new SerialDeviceService({ screenKey: "test" })}
+          >
+            <OverlayProvider addItems={addItems} updateItemConfig={vi.fn()}>
+              <ComponentOverlay />
+            </OverlayProvider>
+          </SerialDeviceProvider>
+        </ModalProvider>,
+      );
+      return { addItems, ...view };
+    }
+    const idsAdded = (addItems: ReturnType<typeof vi.fn>, call = 0) =>
+      addItems.mock.calls[call][0].map(
+        (e: { item: { componentId: string } }) => e.item.componentId,
+      );
+
+    it("a plain click on a row adds that widget at once and closes the list", async () => {
+      const user = userEvent.setup();
+      const { addItems } = mount();
+      await user.click(screen.getByRole("button", { name: "Add widget" }));
+      await user.click(await screen.findByRole("option", { name: /Second/ }));
+
+      expect(idsAdded(addItems)).toEqual(["second"]);
+      expect(screen.queryByRole("listbox")).toBeNull();
+    });
+
+    it("pressing a checkbox ticks the widget without adding, and shows the Add bar", async () => {
+      const user = userEvent.setup();
+      const { addItems } = mount();
+      await user.click(screen.getByRole("button", { name: "Add widget" }));
+      const box = await screen.findByRole("checkbox", {
+        name: "Select Second",
+      });
+      await user.click(box);
+
+      expect(addItems).not.toHaveBeenCalled();
+      expect(box).toBeChecked();
+      expect(
+        screen.getByRole("button", { name: "Add 1 widget" }),
+      ).toBeInTheDocument();
+    });
+
+    it("once something is ticked a click on a row ticks or unticks it", async () => {
+      const user = userEvent.setup();
+      const { addItems } = mount();
+      await user.click(screen.getByRole("button", { name: "Add widget" }));
+      await user.click(
+        await screen.findByRole("checkbox", { name: "Select Second" }),
+      );
+      await user.click(screen.getByRole("option", { name: /Trivial/ }));
+      expect(addItems).not.toHaveBeenCalled();
+      await user.click(screen.getByRole("button", { name: "Add 2 widgets" }));
+
+      expect(idsAdded(addItems)).toEqual(["second", "trivial"]);
+    });
+
+    it("unticking everything returns a click to adding one widget", async () => {
+      const user = userEvent.setup();
+      const { addItems } = mount();
+      await user.click(screen.getByRole("button", { name: "Add widget" }));
+      const box = await screen.findByRole("checkbox", {
+        name: "Select Second",
+      });
+      await user.click(box);
+      await user.click(box);
+      expect(
+        screen.queryByRole("button", { name: /^Add \d+ widget/ }),
+      ).toBeNull();
+      await user.click(screen.getByRole("option", { name: /Trivial/ }));
+
+      expect(idsAdded(addItems)).toEqual(["trivial"]);
+    });
+
+    it("Space on a focused checkbox ticks it, and Enter in the search adds the highlighted widget", async () => {
+      const user = userEvent.setup();
+      const { addItems } = mount();
+      await user.click(screen.getByRole("button", { name: "Add widget" }));
+      const box = await screen.findByRole("checkbox", {
+        name: "Select Second",
+      });
+      box.focus();
+      await user.keyboard(" ");
+      expect(box).toBeChecked();
+      await user.keyboard(" ");
+      expect(box).not.toBeChecked();
+
+      await user.click(screen.getByRole("combobox"));
+      await user.keyboard("Trivial{Enter}");
+      expect(idsAdded(addItems)).toEqual(["trivial"]);
+    });
+
+    it("has no accessibility violations with the checkboxes shown", async () => {
+      const user = userEvent.setup();
+      mount();
+      await user.click(screen.getByRole("button", { name: "Add widget" }));
+      await screen.findByRole("checkbox", { name: "Select Second" });
+      await expectNoA11yViolations(document.body);
     });
   });
 });

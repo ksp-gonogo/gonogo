@@ -252,6 +252,9 @@ export function ComponentOverlay({
     setActiveIdx(0);
   }, [setOpen]);
 
+  /* Multi-select lasts while anything is ticked, so a click adds one widget until a checkbox is pressed and goes back to doing so when the last tick is cleared. */
+  const multiSelect = selectedIds.length > 0;
+
   const toggleSelected = useCallback((id: string) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
@@ -451,12 +454,15 @@ export function ComponentOverlay({
             <ResultsHeader>
               {filtered.length} of {allComponents.length} widgets
             </ResultsHeader>
-            <List
+            {/* The options sit beside their checkboxes, which a listbox may not contain, so the listbox owns them by id instead. */}
+            <div
               id={listboxId}
               role="listbox"
               aria-label="Available widgets"
               aria-multiselectable
-            >
+              aria-owns={filtered.map((d) => optionId(d.id)).join(" ")}
+            />
+            <List>
               {filtered.length === 0 && (
                 <Empty>
                   No widgets match "{query}"
@@ -469,71 +475,78 @@ export function ComponentOverlay({
                 const onHere = placement.here.get(def.id);
                 const onOthers = placement.elsewhere.get(def.id);
                 return (
-                  <ListItem
-                    key={def.id}
-                    id={optionId(def.id)}
-                    role="option"
-                    aria-selected={ticked}
-                    $active={active}
-                    $ticked={ticked}
-                    ref={active ? activeOptionRef : undefined}
-                    // Pointer focus moves the roving cursor so a subsequent keystroke continues from where the mouse last hovered.
-                    onMouseEnter={() => setActiveIdx(i)}
-                    // Keeps focus in the search box, so ticking with the pointer does not end keyboard use.
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => toggleSelected(def.id)}
-                  >
-                    <ItemHead>
-                      <ItemTitle>
-                        <ItemName>{def.name}</ItemName>
-                        {uplinkOwner(def) && (
-                          <ItemOwner>{uplinkOwner(def)?.name}</ItemOwner>
+                  <ListRow key={def.id} $active={active} $ticked={ticked}>
+                    <ListItem
+                      id={optionId(def.id)}
+                      role="option"
+                      aria-selected={ticked}
+                      ref={active ? activeOptionRef : undefined}
+                      // Pointer focus moves the roving cursor so a subsequent keystroke continues from where the mouse last hovered.
+                      onMouseEnter={() => setActiveIdx(i)}
+                      // Keeps focus in the search box, so ticking with the pointer does not end keyboard use.
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() =>
+                        multiSelect ? toggleSelected(def.id) : handleAdd([def])
+                      }
+                    >
+                      <ItemHead>
+                        <ItemTitle>
+                          <ItemName>{def.name}</ItemName>
+                          {uplinkOwner(def) && (
+                            <ItemOwner>{uplinkOwner(def)?.name}</ItemOwner>
+                          )}
+                        </ItemTitle>
+                        {onHere !== undefined && (
+                          <OnLayoutMark
+                            role="img"
+                            aria-label={`On this layout${onHere > 1 ? ` x${onHere}` : ""}`}
+                          >
+                            <LayersIcon size={22} />
+                            <OnLayoutTick>
+                              <CheckIcon size={13} />
+                            </OnLayoutTick>
+                          </OnLayoutMark>
                         )}
-                      </ItemTitle>
-                      {onHere !== undefined && (
-                        <OnLayoutMark
-                          role="img"
-                          aria-label={`On this layout${onHere > 1 ? ` x${onHere}` : ""}`}
-                        >
-                          <LayersIcon size={22} />
-                          <OnLayoutTick>
-                            <CheckIcon size={13} />
-                          </OnLayoutTick>
-                        </OnLayoutMark>
+                        {onOthers !== undefined && (
+                          <Tooltip text={`On ${onOthers.join(", ")}`}>
+                            <Badge size="sm">
+                              <BadgeContent>
+                                <LayersIcon size={10} />
+                                On another layout
+                              </BadgeContent>
+                            </Badge>
+                          </Tooltip>
+                        )}
+                      </ItemHead>
+                      {uplinkAdditions(def).length > 0 && (
+                        <ExtenderRow>
+                          {uplinkAdditions(def).map((u) => (
+                            <Tag
+                              key={u.id}
+                              label={u.name}
+                              symbol={<PlusIcon size={8} />}
+                              name
+                            />
+                          ))}
+                        </ExtenderRow>
                       )}
-                      {onOthers !== undefined && (
-                        <Tooltip text={`On ${onOthers.join(", ")}`}>
-                          <Badge size="sm">
-                            <BadgeContent>
-                              <LayersIcon size={10} />
-                              On another layout
-                            </BadgeContent>
-                          </Badge>
-                        </Tooltip>
-                      )}
-                      <TickBox $ticked={ticked} aria-hidden="true">
-                        {ticked && <CheckIcon size={12} />}
-                      </TickBox>
-                    </ItemHead>
-                    {uplinkAdditions(def).length > 0 && (
-                      <ExtenderRow>
-                        {uplinkAdditions(def).map((u) => (
-                          <Tag
-                            key={u.id}
-                            label={u.name}
-                            symbol={<PlusIcon size={8} />}
-                            name
-                          />
+                      <ItemDesc>{def.description}</ItemDesc>
+                      <TagRow>
+                        {def.tags.map((t) => (
+                          <Tag key={t} label={t} />
                         ))}
-                      </ExtenderRow>
-                    )}
-                    <ItemDesc>{def.description}</ItemDesc>
-                    <TagRow>
-                      {def.tags.map((t) => (
-                        <Tag key={t} label={t} />
-                      ))}
-                    </TagRow>
-                  </ListItem>
+                      </TagRow>
+                    </ListItem>
+                    <TickCell>
+                      <TickBox
+                        type="checkbox"
+                        aria-label={`Select ${def.name}`}
+                        checked={ticked}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() => toggleSelected(def.id)}
+                      />
+                    </TickCell>
+                  </ListRow>
                 );
               })}
             </List>
@@ -679,20 +692,11 @@ const List = styled.div`
   flex: 1;
 `;
 
-const ListItem = styled.button<{ $active?: boolean; $ticked?: boolean }>`
+const ListRow = styled.div<{ $active?: boolean; $ticked?: boolean }>`
   display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  width: 100%;
-  text-align: left;
+  align-items: flex-start;
   background: ${(p) => (p.$active || p.$ticked ? "var(--color-surface-raised)" : "none")};
-  border: none;
   border-bottom: 1px solid var(--color-surface-panel);
-  /* A full-width record on the picker's gutter, not a control, whatever the
-     element is: --inset-control would pull a row that spans the whole overlay
-     in to a button's width and off the column the header above it sits on. */
-  padding: var(--inset-overlay-band);
-  cursor: pointer;
   /* The roving highlight is the keyboard cursor; mirror it with an inset
      accent rule so it reads as "selected" while DOM focus stays in the
      search box (combobox + aria-activedescendant pattern). */
@@ -705,6 +709,23 @@ const ListItem = styled.button<{ $active?: boolean; $ticked?: boolean }>`
   &:last-child {
     border-bottom: none;
   }
+`;
+
+const ListItem = styled.button`
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-related);
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  /* A full-width record on the picker's gutter, not a control, whatever the
+     element is: --inset-control would pull a row that spans the whole overlay
+     in to a button's width and off the column the header above it sits on. */
+  padding: var(--inset-overlay-band);
+  cursor: pointer;
+
   &:focus-visible {
     /* Inset ring: the ancestor is overflow: hidden, so a positive offset
        would clip it away entirely. Ring geometry, never a spacing rung. */
@@ -720,18 +741,26 @@ const ItemHead = styled.span`
   min-width: 0;
 `;
 
-/** The square that fills with a tick once the widget is ticked for the next Add. */
-const TickBox = styled.span<{ $ticked: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+/** The checkbox on a row: pressing it ticks the widget and starts multi-select. */
+/** Holds the checkbox level with the row's first line, on the same band as the option beside it. */
+const TickCell = styled.span`
+  display: flex;
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  border: 1px solid
-    ${(p) => (p.$ticked ? "var(--color-accent-fg)" : "var(--color-border-strong)")};
-  border-radius: var(--radius-regular);
-  color: var(--color-accent-fg);
+  padding: var(--inset-overlay-band);
+  padding-left: 0;
+`;
+
+const TickBox = styled.input`
+  width: var(--icon-size-control);
+  height: var(--icon-size-control);
+  margin: 0;
+  accent-color: var(--color-accent-fg);
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
 `;
 
 const BadgeContent = styled.span`
