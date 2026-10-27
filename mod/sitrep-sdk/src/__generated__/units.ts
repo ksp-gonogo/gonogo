@@ -2717,9 +2717,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "IControlFrameSource": {
     frame: "ControlFrame",
   },
-  "ISignalSpeed": {
-    current: "SignalSpeedReading",
-  },
   "ISitrepUplink": {
     manifest: "UplinkManifest",
   },

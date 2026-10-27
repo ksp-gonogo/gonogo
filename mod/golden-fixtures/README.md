@@ -273,28 +273,3 @@ are C#-only (no TS reference): the in-flight command queue saved with a game
 and put back on a load. They are tested directly against the C# port in
 `mod/Sitrep.Core.Tests/CourierCommandQueueSnapshotRestoreTests.cs`, with no
 golden fixture, since there is no TS behavior to conform to.
-
-## `kepler-admissibility.json` (input and verdict vectors)
-
-`keplerAdmissibility` (`mod/sitrep-sdk/src/spine/kepler-reckoning.ts`) decides
-whether a craft's orbit may be carried to a view time on a conic. The mod's
-twin, `Sitrep.Host.Comms.KeplerAdmissibility`, decides the same for the
-centres' world model. Each case is the function's inputs in their wire shapes
-(`orbitPoint`, `bodies`, `viewUt`, `coast`) and the verdict the TS function
-returned: `{ "ok": true }` or `{ "declined": { reason, input, note } }`. JSON
-has no NaN or infinity, so those are the strings `"NaN"`, `"Infinity"` and
-`"-Infinity"`; a missing key is an absent input and `null` is a stated null.
-
-Cases sit on each condition's boundary: the n-body rule, elements that are
-absent or describe no orbit (each of which declines, never admits), the
-provider's horizon, the next change of sphere of influence, the sphere of influence
-itself, the atmosphere or surface floor (at the craft's place and on the way
-there), and the coast evidence a loaded craft needs (engines, last burn, air,
-commands arriving).
-
-Regenerate with
-`pnpm --filter @ksp-gonogo/sitrep-kernel exec tsx ../golden-fixtures/gen/kepler-admissibility.gen.ts`,
-then `pnpm exec biome check --write mod/golden-fixtures/kepler-admissibility.json`
-to put it in the repo's format. The TS side is `mod/sitrep-sdk/src/spine/kepler-admissibility.golden.test.ts`;
-the C# side is
-`mod/Sitrep.Host.Tests/Comms/KeplerAdmissibilityGoldenFixtureTests.cs`.

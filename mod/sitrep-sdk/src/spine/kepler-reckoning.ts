@@ -420,9 +420,6 @@ function trajectoryAuthority(
  *
  * - the propagation provider says the orbit holds forever but is not a fixed
  *   ellipse, or does not say what it is
- * - an element is absent or not a number, or the elements describe no orbit:
- *   a negative eccentricity, a gravitational parameter of zero or below, or a
- *   semi-major axis that does not fit the eccentricity
  * - the craft is being fully simulated by the game, and `coast` does not show
  *   that its engines are cold, that the elements were taken after the last
  *   burn ended, that it is above the atmosphere, and that no command reaches
@@ -432,7 +429,6 @@ function trajectoryAuthority(
  * - the orbit is outside its body's sphere of influence at `viewUt`
  * - the orbit is inside the atmosphere at `viewUt`, or under the surface of a
  *   body with none, or passed through either since the elements were taken
- * - no position can be solved at `viewUt`, as for parabolic elements
  *
  * A missing `bodies` or encounter is not a reason to decline. A burn that
  * nothing has reported, such as by a craft out of contact, cannot be seen
@@ -453,8 +449,6 @@ export function keplerAdmissibility(
   }
   const authority = trajectoryAuthority(orbitPoint.payload.horizon);
   if (authority !== null) return { declined: authority };
-  const unsolvable = unsolvableElements(orbitPoint.payload);
-  if (unsolvable !== null) return { declined: unsolvable };
   if (orbitPoint.meta.quality !== Quality.OnRails) {
     const loaded = loadedCoastDecline(
       orbitPoint,
@@ -491,29 +485,13 @@ export function keplerAdmissibility(
   const elements = buildElements(orbit);
   const solved = trySolve(elements, viewUt);
   const radius = solved == null ? Number.NaN : magnitude(solved.position);
-  if (!Number.isFinite(radius)) {
-    return {
-      declined:
-        solved == null
-          ? {
-              reason: "model-inapplicable",
-              input: "@vessel.orbit#ecc",
-              note: "parabolic elements: there is no position to carry forward",
-            }
-          : {
-              reason: "model-inapplicable",
-              input: "@vessel.orbit",
-              note: "no position can be solved for these elements at that time",
-            },
-    };
-  }
   /*
    * The encounter says when the patch ends, and it is locked until the save can
    * compute one. The body's own sphere of influence is the same boundary stated
    * as a distance, which every save has.
    */
   const reach = sphereOfInfluenceRadius(bodies, orbit.referenceBodyIndex);
-  if (reach !== undefined && radius > reach) {
+  if (reach !== undefined && Number.isFinite(radius) && radius > reach) {
     return {
       declined: {
         reason: "beyond-horizon",
@@ -524,7 +502,7 @@ export function keplerAdmissibility(
   }
   const floor = entryInterfaceRadius(bodies, orbit.referenceBodyIndex);
   if (floor !== undefined) {
-    if (radius <= floor) {
+    if (Number.isFinite(radius) && radius <= floor) {
       return {
         declined: {
           reason: "beyond-horizon",
@@ -552,66 +530,6 @@ export function keplerAdmissibility(
     }
   }
   return { ok: true };
-}
-
-/** The plain name of each element {@link unsolvableElements} checks, for the note naming one that is absent. */
-const ELEMENT_NAMES = {
-  sma: "semi-major axis",
-  ecc: "eccentricity",
-  inc: "inclination",
-  lan: "longitude of the ascending node",
-  argPe: "argument of periapsis",
-  meanAnomalyAtEpoch: "mean anomaly at epoch",
-  epoch: "epoch",
-  mu: "gravitational parameter",
-} as const;
-
-/**
- * Why `orbit`'s elements place the craft nowhere, or `null` when every one is
- * a number and together they describe an orbit. An ascending node or argument
- * of periapsis that is `null` is an undefined one and reads as 0; one that is
- * present and not a number is absent. Parabolic elements pass, so that a burn
- * through an eccentricity of 1 still reaches the coast and powered-flight
- * checks, and are declined where their position is asked for.
- */
-function unsolvableElements(orbit: ConicOrbitInput): ReckoningDecline | null {
-  for (const field of Object.keys(
-    ELEMENT_NAMES,
-  ) as (keyof typeof ELEMENT_NAMES)[]) {
-    const raw = orbit[field];
-    if ((field === "lan" || field === "argPe") && raw == null) continue;
-    if (!Number.isFinite(mag(raw))) {
-      return {
-        reason: "input-absent",
-        input: `@vessel.orbit#${field}`,
-        note: `the orbit's ${ELEMENT_NAMES[field]} is absent, so there is no position to carry forward`,
-      };
-    }
-  }
-  const ecc = mag(orbit.ecc);
-  const sma = mag(orbit.sma);
-  if (ecc < 0) {
-    return {
-      reason: "model-inapplicable",
-      input: "@vessel.orbit#ecc",
-      note: "a negative eccentricity describes no orbit",
-    };
-  }
-  if (!(mag(orbit.mu) > 0)) {
-    return {
-      reason: "model-inapplicable",
-      input: "@vessel.orbit#mu",
-      note: "a gravitational parameter of zero or below describes no orbit",
-    };
-  }
-  if (sma === 0 || (ecc < 1 && sma < 0)) {
-    return {
-      reason: "model-inapplicable",
-      input: "@vessel.orbit#sma",
-      note: "the semi-major axis does not fit the eccentricity, so the elements describe no orbit",
-    };
-  }
-  return null;
 }
 
 /** The note a decline carries when the view time is past the end of the current patch. */

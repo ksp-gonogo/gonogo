@@ -46,8 +46,6 @@ namespace Sitrep.Host.Tests
             "Sitrep.Contract.IUplinkSettings",
             "Sitrep.Contract.IActiveVessel",
             "Sitrep.Contract.ICraftKnowledge",
-            "Sitrep.Contract.IBulkCraftKnowledge",
-            "Sitrep.Contract.ISignalSpeed",
             "Sitrep.Contract.IDelayedScienceSink",
         };
 

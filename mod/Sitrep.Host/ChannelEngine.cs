@@ -2802,25 +2802,6 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Registers an Uplink the host constructs itself rather than finds by
-        /// scan: declares its capabilities first when it implements
-        /// <see cref="IUplinkCapabilityDeclarer"/>, then runs
-        /// <see cref="RegisterUplink"/>. The discovery pass does the same two
-        /// steps over every discovered Uplink, so a capability declared here
-        /// reaches the kernel the same way. An Uplink whose declaration throws
-        /// is marked unavailable and its <see cref="ISitrepUplink.Register"/>
-        /// does not run. Call before <see cref="ResolveCapabilities"/>.
-        /// </summary>
-        public void RegisterBundledUplink(ISitrepUplink uplink)
-        {
-            DeclareUplinkCapabilities(uplink);
-            if (IsUplinkAvailable(uplink.Manifest.Id))
-            {
-                RegisterUplink(uplink);
-            }
-        }
-
-        /// <summary>
         /// Two-pass discovery registration: the order-independent fix for the
         /// capability-vs-provider registration hazard. Assembly-scan discovery
         /// (<see cref="UplinkDiscovery.Discover()"/>) fixes no order between
@@ -7336,28 +7317,6 @@ namespace Sitrep.Host
 
         private volatile string? _saveOnMain;
 
-        /// <summary>
-        /// Main-thread: the game's own UT as of this frame. The engine's clock only
-        /// moves on a sampled tick, which at ordinary rates is once per UT second, so
-        /// a command pressed between two ticks would otherwise be stamped as sent at
-        /// the earlier one and arrive that much before its signal delay.
-        /// </summary>
-        public void NoteGameUt(double ut) => Volatile.Write(ref _gameUt, ut);
-
-        private double _gameUt = double.NaN;
-
-        /// <summary>
-        /// The instant a command pressed now is sent: the game's UT when the host
-        /// reports it, never earlier than the clock, which a backward jump or a
-        /// host that reports nothing leaves as the answer.
-        /// </summary>
-        private double PressUt()
-        {
-            var clock = _clock.Now();
-            var game = Volatile.Read(ref _gameUt);
-            return !double.IsNaN(game) && game > clock ? game : clock;
-        }
-
         /// <summary>The save the current timeline belongs to, as the last tick named it. Courier-thread-only.</summary>
         private string? _timelineSave;
 
@@ -10618,8 +10577,7 @@ namespace Sitrep.Host
                 label: job.Label ?? "",
                 topic: job.Topic ?? "",
                 craft: string.Equals(node, NodeId, StringComparison.Ordinal) ? _activeCraftId : null,
-                sendOrder: ++_sendOrder,
-                sentAtUt: PressUt());
+                sendOrder: ++_sendOrder);
             job.Carried = true;
 
             // The response rides the delay and lands on a later tick, which a

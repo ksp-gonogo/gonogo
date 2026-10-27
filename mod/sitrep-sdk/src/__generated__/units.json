@@ -2643,9 +2643,6 @@
     "IControlFrameSource": {
       "frame": "ControlFrame"
     },
-    "ISignalSpeed": {
-      "current": "SignalSpeedReading"
-    },
     "ISitrepUplink": {
       "manifest": "UplinkManifest"
     },

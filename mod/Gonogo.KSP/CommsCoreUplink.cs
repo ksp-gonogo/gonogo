@@ -150,17 +150,9 @@ namespace Gonogo.KSP
         /// Take the save's signal delay choice into force. Called every frame
         /// from the main thread: it does nothing unless the save's choice
         /// differs from the one in force, and keeps the choice in force while no
-        /// game is loaded. It also tells the <c>signalSpeed</c> capability to
-        /// look again, so a change from any source reaches its notice within a
-        /// frame.
+        /// game is loaded.
         /// </summary>
         public static void SyncSignalDelayFromSave()
-        {
-            TakeSaveChoice();
-            _signalSpeed?.Refresh();
-        }
-
-        private static void TakeSaveChoice()
         {
             var choice = SaveChoice.Read();
             if (!choice.HasValue)
@@ -403,9 +395,6 @@ namespace Gonogo.KSP
                 _delayModifiers.Apply(_base),
                 CommsModelPresent);
 
-        // The signalSpeed capability's provider, built when the capability is declared and told of each change from the frame loop.
-        private static SignalSpeedSource? _signalSpeed;
-
         /// <summary>The config as the settings author it, before any modifier: what the settings rows say.</summary>
         internal static SignalDelayConfig AuthoredSignalDelayConfig => _signalDelayConfig;
 
@@ -525,15 +514,6 @@ namespace Gonogo.KSP
         public void DeclareCapabilities(Kernel kernel)
         {
             CommsElection.RegisterCapability(kernel, _ => new CommNetBackend());
-
-            var speed = _signalSpeed = new SignalSpeedSource(() => SignalDelayConfig);
-            kernel.RegisterCapability(new CapabilityDescriptor
-            {
-                Id = SignalSpeedCapability.Id,
-                Exclusive = true,
-                SpineCritical = false,
-                Vanilla = _ => speed,
-            });
 
             var stockHomes = new StockHomeNodeSource();
             HomeCommandElection.RegisterCapability(kernel, stockHomes.HomeFacts, SpaceCentreSite.Current);
