@@ -139,11 +139,22 @@ const TOPIC = "thirdparty.readout";
 /** Records what the host currently holds upstream, the way `SitrepPeerRelay` supplies it. */
 function makeSink(frames: Record<string, PeerMessage[]> = {}) {
   const live = new Set<string>();
+  /** How many fast-tier requests the host holds upstream on each topic. */
+  const rates = new Map<string, number>();
   return {
     live,
+    rates,
     subscribe(topic: string) {
       live.add(topic);
       return () => live.delete(topic);
+    },
+    requestRate(topic: string) {
+      rates.set(topic, (rates.get(topic) ?? 0) + 1);
+      return () => {
+        const left = (rates.get(topic) ?? 1) - 1;
+        if (left > 0) rates.set(topic, left);
+        else rates.delete(topic);
+      };
     },
     cachedFrames(topic: string): PeerMessage[] {
       return frames[topic] ?? [];
@@ -277,6 +288,84 @@ describe("the sitrep refcount re-syncs", () => {
     expect(sink.live.has(TOPIC)).toBe(true);
     staying.close();
     expect(sink.live.has(TOPIC)).toBe(false);
+    host.stop();
+  });
+});
+
+describe("a station's rate tier reaches the host's stream", () => {
+  afterEach(() => {
+    FakeHub.reset();
+    localStorageMock.clear();
+  });
+
+  function askFast(conn: FakeConn, topic: string, tier = "fast"): void {
+    conn.emit("data", { type: "sitrep-set-rate", topic, tier });
+  }
+
+  it("holds a station's fast tier upstream while it reads the topic, and lets go when it stops", async () => {
+    const host = await startedHost();
+    const sink = makeSink();
+    host.attachSitrepSink(sink);
+
+    const conn = await connectStation(host, "station-a");
+    askFast(conn, TOPIC);
+    expect(sink.rates.has(TOPIC)).toBe(false);
+
+    claim(conn, TOPIC);
+    expect(sink.rates.get(TOPIC)).toBe(1);
+
+    conn.emit("data", { type: "sitrep-unsubscribe", topic: TOPIC });
+    expect(sink.rates.has(TOPIC)).toBe(false);
+    host.stop();
+  });
+
+  it("asking base withdraws the station's request", async () => {
+    const host = await startedHost();
+    const sink = makeSink();
+    host.attachSitrepSink(sink);
+
+    const conn = await connectStation(host, "station-a");
+    claim(conn, TOPIC);
+    askFast(conn, TOPIC);
+    askFast(conn, TOPIC, "base");
+
+    expect(sink.rates.has(TOPIC)).toBe(false);
+    host.stop();
+  });
+
+  it("keeps the topic fast while any station still asks, and drops a station's request when it leaves", async () => {
+    const host = await startedHost();
+    const sink = makeSink();
+    host.attachSitrepSink(sink);
+
+    const first = await connectStation(host, "station-a");
+    const second = await connectStation(host, "station-b");
+    for (const conn of [first, second]) {
+      claim(conn, TOPIC);
+      askFast(conn, TOPIC);
+    }
+    expect(sink.rates.get(TOPIC)).toBe(2);
+
+    first.close();
+    expect(sink.rates.get(TOPIC)).toBe(1);
+    second.peerConnection?.fail();
+    expect(sink.rates.has(TOPIC)).toBe(false);
+    host.stop();
+  });
+
+  it("asks the rebuilt stream again when the host's own client is replaced", async () => {
+    const host = await startedHost();
+    const detach = host.attachSitrepSink(makeSink());
+
+    const conn = await connectStation(host, "station-a");
+    claim(conn, TOPIC);
+    askFast(conn, TOPIC);
+
+    detach();
+    const rebuilt = makeSink();
+    host.attachSitrepSink(rebuilt);
+
+    expect(rebuilt.rates.get(TOPIC)).toBe(1);
     host.stop();
   });
 });

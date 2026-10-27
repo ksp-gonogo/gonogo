@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 49.6.0
+  version: 49.7.0
   description: |-
     The WebSocket API of the Gonogo mod: 90 telemetry channels a client
     subscribes to and 72 commands it sends, each with its payload and what it
@@ -35,6 +35,7 @@ info:
     - `unsubscribe`: stop receiving a channel
     - `set-vantage`: choose the command centre this connection observes from and commands from
     - `claim`: ask for the answers to commands sent on an earlier connection
+    - `set-rate`: ask for a subscribed channel at a faster rate tier
     - `ping`: ask whether the connection is alive
     - `command-request`: send one command
     - `command-group`: send several delayed commands to one craft as a unit
@@ -2377,6 +2378,9 @@ channels:
       and observes at, which sets what it reads and how long its commands take.
       `claim` names the commands a reconnecting client is still waiting on, so the
       mod sends their answers to the new connection.
+      `set-rate` asks for a subscribed topic at a rate tier. The mod sends each topic
+      at the fastest tier any connection asks for, and `system.dataRates` says what
+      each tier is in samples a second.
       The mod opens every connection with a `hello` naming the run it has reached,
       and answers a `ping` with a `pong` at once in any scene, even with nothing
       subscribed. A client uses that to tell a quiet connection from a dead one.
@@ -2396,6 +2400,8 @@ channels:
         $ref: "#/components/messages/setVantage"
       claim:
         $ref: "#/components/messages/claim"
+      setRate:
+        $ref: "#/components/messages/setRate"
       commandGroup:
         $ref: "#/components/messages/commandGroup"
       ping:
@@ -5948,7 +5954,7 @@ operations:
     action: send
     channel:
       $ref: "#/channels/session"
-    title: Open or close delivery, change vantage, claim earlier commands' answers, send a command group, or ask whether the connection is alive
+    title: Open or close delivery, change vantage or rate, claim earlier commands' answers, send a command group, or ask whether the connection is alive
     tags:
       - name: session
     messages:
@@ -5956,6 +5962,7 @@ operations:
       - $ref: "#/channels/session/messages/unsubscribe"
       - $ref: "#/channels/session/messages/setVantage"
       - $ref: "#/channels/session/messages/claim"
+      - $ref: "#/channels/session/messages/setRate"
       - $ref: "#/channels/session/messages/commandGroup"
       - $ref: "#/channels/session/messages/ping"
   session.notices:
@@ -8147,6 +8154,11 @@ components:
       title: The answer to a ping
       payload:
         $ref: "#/components/schemas/Pong"
+    setRate:
+      name: set-rate
+      title: Ask for a subscribed channel at a rate tier
+      payload:
+        $ref: "#/components/schemas/SetRate"
     setVantage:
       name: set-vantage
       title: Select this connection's command centre
@@ -20710,6 +20722,41 @@ components:
           type: boolean
           x-sitrep-unit: flag
           description: True to pause the game, false to resume it.
+    SetRate:
+      type: object
+      description: |-
+        Asks the mod to send a subscribed Topic to this connection at a rate tier.
+        The mod sends each Topic at the fastest tier any connection asks for, and at
+        `"base"` while none asks for more; `system.dataRates` says what each tier is
+        in samples a second and which Topics are above base now.
+
+        The request lasts until the connection asks again, unsubscribes the Topic or
+        closes. Asking `"base"` withdraws it. A request for a Topic this connection
+        has not subscribed changes nothing, and a tier the mod does not know is read
+        as `"base"`. A Topic an Uplink publishes when it has news, rather than one
+        the mod samples on its own clock, arrives as it did.
+      required:
+        - type
+        - topic
+        - tier
+      properties:
+        type:
+          type: string
+          const: set-rate
+          x-sitrep-unit: id
+          description: The frame type, always `"set-rate"`.
+        topic:
+          type: string
+          x-sitrep-unit: id
+          description: The subscribed Topic id the tier is for.
+        tier:
+          oneOf:
+            - type: string
+              const: base
+            - type: string
+              const: fast
+          x-sitrep-unit: id
+          description: "The rate tier: `\"base\"` or `\"fast\"`."
     SetSasModeArgs:
       type: object
       description: Set the SAS mode to hold. Takes the SAS mode to hold.

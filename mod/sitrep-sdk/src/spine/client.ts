@@ -3,6 +3,7 @@ import { CommandErrorCode, FaultCode } from "../__generated__/error-codes";
 import { COMMAND_LOST, COMMAND_REFUSED } from "../api/command-rejection";
 import type { Transport } from "../api/transport";
 import { wrapCommandReply } from "../command-reply-units";
+import type { DataRateTier } from "../data-rate";
 import type { ClientMessage, ServerMessage } from "../envelope";
 import { PerfBudget } from "../perf/PerfBudget";
 import { dehydrateArgs } from "../wrap-units";
@@ -346,6 +347,12 @@ export class TelemetryClient {
   private readonly transport: Transport;
   private readonly clock: Clock;
   private readonly subscribers = new Map<string, Set<Subscription>>();
+  /** How many live {@link requestRate} claims hold each topic at the fast tier. */
+  private readonly fastClaims = new Map<string, number>();
+  /** The tier last sent for each subscribed topic, base ones left out: the mod drops it on unsubscribe, and so does this. */
+  private readonly sentTiers = new Map<string, DataRateTier>();
+  /** The subscription to `system.dataRates` held while any claim is live, so a store attached to this client learns each fast Topic's rate. */
+  private releaseRateReport: (() => void) | null = null;
   private readonly lastValues = new Map<string, unknown>();
   /** The `Meta` of the frame that carried each topic's `lastValues` entry, so a value replayed on subscribe says which sample it is. */
   private readonly lastMetas = new Map<string, Meta>();
@@ -827,9 +834,53 @@ export class TelemetryClient {
     // Re-point existing subscriptions at the new vantage: the server reads the selected vantage at subscribe time, so an active topic must re-subscribe.
     for (const topic of this.subscribers.keys()) {
       this.transport.send({ type: "unsubscribe", topic });
+      this.sentTiers.delete(topic);
       this.transport.send({ type: "subscribe", topic });
       this.ownership?.noteSubscribeSent(topic);
+      this.syncRate(topic);
     }
+  }
+
+  /**
+   * Ask for `topic` at `tier` until the returned release is called. The mod is
+   * asked for the fastest tier any live claim on the topic holds, and only while
+   * the topic is subscribed: a claim made first waits for the subscribe, and one
+   * outliving its subscriptions is asked for again when the topic is next
+   * subscribed. A `"base"` claim asks for nothing.
+   */
+  requestRate(topic: string, tier: DataRateTier): () => void {
+    if (topic === "" || tier === "base") return () => {};
+    this.fastClaims.set(topic, (this.fastClaims.get(topic) ?? 0) + 1);
+    this.releaseRateReport ??= this.subscribe("system.dataRates", () => {});
+    this.syncRate(topic);
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      const remaining = (this.fastClaims.get(topic) ?? 1) - 1;
+      if (remaining > 0) this.fastClaims.set(topic, remaining);
+      else this.fastClaims.delete(topic);
+      this.syncRate(topic);
+      if (this.fastClaims.size === 0) {
+        this.releaseRateReport?.();
+        this.releaseRateReport = null;
+      }
+    };
+  }
+
+  /** The tier the live claims on `topic` ask for. */
+  claimedTier(topic: string): DataRateTier {
+    return (this.fastClaims.get(topic) ?? 0) > 0 ? "fast" : "base";
+  }
+
+  /** Send `set-rate` for `topic` when the tier its claims ask for differs from what the mod holds for it. */
+  private syncRate(topic: string): void {
+    if (!this.subscribers.has(topic)) return;
+    const wanted = this.claimedTier(topic);
+    if (wanted === (this.sentTiers.get(topic) ?? "base")) return;
+    if (wanted === "base") this.sentTiers.delete(topic);
+    else this.sentTiers.set(topic, wanted);
+    this.transport.send({ type: "set-rate", topic, tier: wanted });
   }
 
   /**
@@ -863,6 +914,7 @@ export class TelemetryClient {
       this.subscribers.set(topic, subs);
       this.transport.send({ type: "subscribe", topic });
       this.ownership?.noteSubscribeSent(topic);
+      this.syncRate(topic);
     }
     const sub: Subscription = { cb };
     subs.add(sub);
@@ -885,6 +937,7 @@ export class TelemetryClient {
         this.lastMetas.delete(topic);
         this.lastPoints.delete(topic);
         this.newestRaw.delete(topic);
+        this.sentTiers.delete(topic);
         this.transport.send({ type: "unsubscribe", topic });
         this.ownership?.noteReleased(topic);
       }

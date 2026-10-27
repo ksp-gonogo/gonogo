@@ -480,7 +480,8 @@ const WIRE_BUDGET: Record<string, number> = {
 const FUNNEL_BUDGET: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink": 2,
   // One of these is `gapModel` comparing a bare `validAt` span against the wire's `time.warp.sampleIntervalUt`.
-  "mod/sitrep-sdk": 27,
+  // One more is `rateOf` in data-rate.ts reading a `system.dataRates` sample rate into the plain number that sizes how many samples a timeline keeps.
+  "mod/sitrep-sdk": 28,
   // One of these is the alarm service reading the view instant into the plain UT seconds an alarm is stored, sent and settled in.
   "packages/app": 9,
   // Two of these are ShipMap taking the wire's wrapped throttle for the SVG engine-flame gate and the ambient temperature for its CSS colour ramp, both plain-number boundaries.

@@ -1,6 +1,14 @@
 import { PerfBudget } from "@ksp-gonogo/core";
-import { useTelemetryClientOptional } from "@ksp-gonogo/sitrep-client";
+import {
+  useTelemetryClientOptional,
+  useTelemetryStoreOptional,
+} from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage, StreamData } from "@ksp-gonogo/sitrep-sdk";
+import {
+  hasSupersededFields,
+  samplesPerSecondOf,
+  supersededPayload,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
 import { isTransmission } from "../commcast/topics";
 import { HOST_SESSION, type PeerHostService } from "../peer/PeerHostService";
@@ -48,11 +56,41 @@ const SITREP_PEER_SUB_BUDGET = new PerfBudget({
 });
 
 /**
- * Frames kept per topic for a station that subscribes late. The main screen's
- * own timeline keeps 1500 points per topic, so a station given the same run
- * plots the same trace.
+ * Frames kept per topic for a station that subscribes late, at one sample a
+ * second, and that many times more for a topic sent faster. The main screen's
+ * own timeline keeps the same, so a station given the same run plots the same
+ * trace.
  */
 const HISTORY_PER_TOPIC = 1500;
+
+/**
+ * Drop the fields only the sample on screen is read for from every frame of
+ * `run` older than the one on screen at `edgeUt`, starting at `from`, the
+ * frames before it having been passed over already. Returns how many leading
+ * frames are now passed over. A frame arriving out of order is caught on a
+ * later call, once the edge has passed it.
+ */
+function supersedeRun(
+  topic: string,
+  run: StreamData<unknown>[],
+  from: number,
+  edgeUt: number,
+): number {
+  let onScreenUt = Number.NEGATIVE_INFINITY;
+  for (let i = from; i < run.length; i++) {
+    const validAt = run[i].meta.validAt;
+    if (validAt <= edgeUt && validAt > onScreenUt) onScreenUt = validAt;
+  }
+  let passed = from;
+  for (let i = from; i < run.length; i++) {
+    const frame = run[i];
+    if (frame.meta.validAt >= onScreenUt) continue;
+    const payload = supersededPayload(topic, frame.payload);
+    if (payload !== frame.payload) run[i] = { ...frame, payload };
+    if (i === passed) passed++;
+  }
+  return passed;
+}
 
 /**
  * The game saying it is loading, at its menu, or ready. A fact about the game
@@ -109,12 +147,16 @@ function isCarriedFrame(message: ServerMessage): boolean {
  * subscribes a topic the host was already holding is sent the whole run, so
  * neither sits blank on a low-rate topic that has not changed since it asked
  * and a chart starts with the trace the main screen drew. The station
- * discards a frame it has already ingested. `event` frames and
+ * discards a frame it has already ingested. A frame older than the one on
+ * screen drops the fields only the sample on screen is read for
+ * (`supersededPayload`), so a fast `vessel.landing` run keeps its terrain on
+ * the frames still to be shown alone. `event` frames and
  * transmissions are one-shot by nature and deliberately not backfilled, same posture as
  * `StreamRecorder`'s "don't replay events out of causal context".
  */
 export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   const client = useTelemetryClientOptional();
+  const store = useTelemetryStoreOptional();
   const [hasConnections, setHasConnections] = useState(
     () => peerHost.getConnectedPeerIds().length > 0,
   );
@@ -132,6 +174,8 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
    * cadence while the main screen still reads it as live.
    */
   const acksRef = useRef(new Map<string, ServerMessage>());
+  // Per topic, how many of the oldest cached frames `supersedeRun` has passed over.
+  const supersededRef = useRef(new Map<string, number>());
   // The newest word on what the game is doing. Held apart from the frame cache because it is keyed by no topic, and kept for the same reason: a station arriving mid-load must hold at once, and no later frame is coming to tell it.
   const gameStateRef = useRef<ServerMessage | undefined>(undefined);
 
@@ -192,6 +236,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     if (previousClient.current && previousClient.current !== client) {
       cacheRef.current.clear();
       acksRef.current.clear();
+      supersededRef.current.clear();
       gameStateRef.current = undefined;
       peerHost.broadcast({ type: "sitrep-reset" } satisfies PeerMessage);
     }
@@ -204,7 +249,27 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
           cacheRef.current.set(message.topic, run);
         }
         run.push(message);
-        if (run.length > HISTORY_PER_TOPIC) run.shift();
+        const kept = Math.round(
+          HISTORY_PER_TOPIC *
+            samplesPerSecondOf(
+              client.getValue("system.dataRates"),
+              message.topic,
+            ),
+        );
+        let passed = supersededRef.current.get(message.topic) ?? 0;
+        while (run.length > kept) {
+          run.shift();
+          passed = Math.max(0, passed - 1);
+        }
+        if (store && hasSupersededFields(message.topic)) {
+          passed = supersedeRun(
+            message.topic,
+            run,
+            passed,
+            store.certaintyHorizonUt(),
+          );
+        }
+        supersededRef.current.set(message.topic, passed);
       }
       if (
         message.type === "event" &&
@@ -215,7 +280,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
       }
       if (isGameState(message)) gameStateRef.current = message;
     });
-  }, [client, peerHost]);
+  }, [client, peerHost, store]);
 
   // Demand-driven upstream subscription, independent of `hasConnections`: the
   // host refcounts what stations ask for and this is only the means of acting
@@ -230,6 +295,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
         SITREP_PEER_SUB_BUDGET.record();
         return client.subscribe(topic, () => {});
       },
+      requestRate: (topic, tier) => client.requestRate(topic, tier),
       cachedFrames: (topic) => {
         const ack = acksRef.current.get(topic);
         const frames: ServerMessage[] = [
