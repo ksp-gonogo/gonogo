@@ -339,12 +339,6 @@ export {
   usePatchChain,
 } from "./patch-chain";
 export {
-  type PendingObjectiveRow,
-  pendingObjectiveTopic,
-  unsettledObjectiveRows,
-  usePendingObjectiveRows,
-} from "./pending-objectives";
-export {
   // The uncomparable-result gate lives beside the evaluator (see its own doc
   // for why it is not wired core-side like the other two processor budgets);
   // named here so `@ksp-gonogo/core` can keep all three in one place.

@@ -4910,29 +4910,7 @@ namespace Gonogo.KSP
             TryBuildGroup(career, "contracts", BuildCareerContracts);
             TryBuildGroup(career, "strategies", BuildCareerStrategies);
             TryBuildGroup(career, "tech", BuildCareerTech);
-            career["objectivesSettled"] = BuildObjectivesSettled();
             return career;
-        }
-
-        /// <summary>The objective changes the delay line has settled, oldest first; empty while no save's line is bound.</summary>
-        private static List<object?> BuildObjectivesSettled()
-        {
-            var result = new List<object?>();
-            var book = ObjectiveDelay.ObjectiveDelayLine.Book;
-            if (book == null)
-            {
-                return result;
-            }
-            foreach (var settled in book.Settled)
-            {
-                result.Add(new Dictionary<string, object?>
-                {
-                    ["key"] = settled.Key,
-                    ["outcome"] = settled.Outcome.ToString(),
-                    ["ut"] = settled.SettledUt,
-                });
-            }
-            return result;
         }
 
         /// <summary>

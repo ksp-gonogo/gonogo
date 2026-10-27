@@ -134,16 +134,6 @@ namespace Sitrep.Host.IntegrationTests
                     + "capture is on its path. Discovered, not assumed: an Uplink "
                     + "provider appearing for it makes this line stale and fails."),
             new Entry(
-                "objectiveDelay",
-                "Gonogo.KSP/CurrencyEventUplink.cs",
-                FedByGatedCapture: false,
-                Excuse: Excuse.NoUplinkProvider,
-                WhyNoBehaviouralCase: "No Uplink registers a provider: core ships the only one, "
-                    + "the line every contract objective change crosses, and an Uplink holds "
-                    + "its own contract mod's objectives by calling it rather than replacing it. "
-                    + "No capture feeds it, so no gated path can starve it. Discovered, not "
-                    + "assumed: an Uplink provider appearing for it makes this line stale and fails."),
-            new Entry(
                 "science",
                 "Sitrep.Host/Science/ScienceElection.cs",
                 FedByGatedCapture: false,

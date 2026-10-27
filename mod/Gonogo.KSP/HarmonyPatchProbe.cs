@@ -15,9 +15,8 @@ namespace Gonogo.KSP
     /// the patching mod's half of the procedure never happens while stock's half
     /// does.</para>
     ///
-    /// <para>Reflection rather than a reference because it asks about every
-    /// Harmony install in the process, whichever copy another mod loaded, not
-    /// the one Gonogo compiles against. Everything is found by name, so every member is
+    /// <para>Reflection rather than a reference because Harmony is somebody
+    /// else's optional install. Everything is found by name, so every member is
     /// checked against the installed <c>0Harmony.dll</c> by
     /// <c>HarmonyPatchProbeMirrorTests</c>, and a member that does not resolve
     /// is <see cref="PatchState.Unknown"/>, never

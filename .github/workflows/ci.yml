@@ -852,13 +852,10 @@ jobs:
           # Vector3/Quaternion overload sets beside Assembly-CSharp.dll, and the
           # robotics servo capture needs UnityEngine.PhysicsModule.dll at TYPE
           # LOAD, because BaseServo declares ConfigurableJoint fields.
-          # Gonogo.KSP references 0Harmony.dll, which an install keeps in
-          # GameData/000_Harmony rather than Managed/.
           required=(
             "KSP_Data/Managed/Assembly-CSharp.dll"
             "KSP_Data/Managed/UnityEngine.CoreModule.dll"
             "KSP_Data/Managed/UnityEngine.PhysicsModule.dll"
-            "GameData/000_Harmony/0Harmony.dll"
           )
           missing=""
           for rel in "${required[@]}"; do

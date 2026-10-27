@@ -353,13 +353,7 @@ namespace Sitrep.Contract
         /// <c>"ground:&lt;name&gt;"</c> for a lens at a ground station, or
         /// <c>"vessel:&lt;guid&gt;"</c> for a lens on a craft, the same ids
         /// <c>commandCentre.roster</c> lists. Return null for a key that cannot be
-        /// placed yet: no delay to that lens is known, so its readings are held
-        /// and a command naming it is refused until it is placed.
-        ///
-        /// <para>A placed lens is held and refused the same way while no delay to
-        /// its site is known from the centre concerned: a ground station with no
-        /// route from it, or a craft no link to it has been measured for. A
-        /// centre commanding a lens at its own site has no delay.</para>
+        /// placed yet, and the topic is delayed as the active craft's.
         ///
         /// <para><b>Must not read live game state.</b> It is called off the main
         /// thread while resolving a topic, so maintain a snapshot during the

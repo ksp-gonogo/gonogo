@@ -55,7 +55,7 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
   );
 }
 
-// gonogo:augment-reads objectives-contracts career.status career.contractEvent spaceCenter.scene commandCentre.roster trackingStation.catalog
+// gonogo:augment-reads objectives-contracts career.status career.contractEvent spaceCenter.scene
 registerComponent<ObjectivesConfig>({
   id: "objectives",
   name: "Objectives",
@@ -67,7 +67,6 @@ registerComponent<ObjectivesConfig>({
   component: ObjectivesComponent,
   augmentSlots: ["objectives.source"],
   channels: contractsTopics.channels,
-  optionalChannels: contractsTopics.optionalChannels,
   fields: contractsTopics.fields,
   defaultConfig: {},
   actions: [],
@@ -79,13 +78,7 @@ registerAugment({
   id: "objectives-contracts",
   augments: "objectives.source",
   component: ContractsObjectiveSource,
-  channels: [
-    "career.status",
-    "career.contractEvent",
-    "spaceCenter.scene",
-    "commandCentre.roster",
-    "trackingStation.catalog",
-  ],
+  channels: contractsTopics.channels,
   priority: 20,
   settings: [
     {

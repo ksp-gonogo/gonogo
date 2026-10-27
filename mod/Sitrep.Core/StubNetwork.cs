@@ -743,40 +743,6 @@ namespace Sitrep.Core
             _revision++;
         }
 
-        /// <summary>
-        /// C#-ONLY. Whether <see cref="DelayTo"/> answers this pair from a row
-        /// written for the pair or for the node, rather than from the
-        /// whole-network default.
-        /// </summary>
-        public bool HasDelayFor(string vantage, string node) =>
-            (_delays.TryGetValue(vantage, out var byNode) && byNode.ContainsKey(node))
-            || _nodeDelays.ContainsKey(node)
-            || _nodeJourneys.ContainsKey(node);
-
-        /// <summary>
-        /// C#-ONLY. Whether a finite delay to <paramref name="node"/> is written
-        /// for the node itself or for any vantage but
-        /// <paramref name="ignoredVantage"/>.
-        /// </summary>
-        public bool HasFiniteDelayTo(string node, string ignoredVantage)
-        {
-            if (_nodeDelays.ContainsKey(node) || _nodeJourneys.ContainsKey(node))
-            {
-                return true;
-            }
-            foreach (var byNode in _delays)
-            {
-                if (byNode.Key != ignoredVantage
-                    && byNode.Value.TryGetValue(node, out var seconds)
-                    && !double.IsInfinity(seconds)
-                    && !double.IsNaN(seconds))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
         public bool Reachable(string vantage, string node)
         {
             return _reachability.TryGetValue(vantage, out var byNode) && byNode.TryGetValue(node, out var value)

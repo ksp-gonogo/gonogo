@@ -81,7 +81,6 @@ namespace Sitrep.Contract.Tests
                 typeof(IScienceBackend),
                 typeof(IIsruBackend),
                 typeof(IDelayedScienceSink),
-                typeof(IObjectiveDelayLine),
                 typeof(ICommandCentreSource),
             })
             {

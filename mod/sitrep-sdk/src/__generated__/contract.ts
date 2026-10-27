@@ -373,13 +373,6 @@ export interface CareerStatus
 	*/
 	tech?: CareerTech | null;
 	/**
-	* The latest contract objective changes the home command has acted on, oldest
-	* first: each either took effect or was dropped. A `CareerObjectivePending`
-	* row with the same `Key` is settled once it appears here. `null` outside a
-	* career, and empty while nothing has crossed the delay.
-	*/
-	objectivesSettled?: CareerObjectiveSettled[] | null;
-	/**
 	* Provenance, and always `"game"`: a career belongs to the save, not to
 	* anything flying, so switching vessels cannot change which one is being read.
 	*
@@ -528,9 +521,9 @@ export interface CareerContracts
 * contract finished, and reaches an observer later, at the time that observer
 * would learn of it.
 *
-* A contract is decided at the home command, so the event reaches each
-* observer after its own delay from home: at once at home, later at a crewed
-* vessel or a distant command centre.
+* The event arrives after the active vessel's comms delay, because a contract
+* has no single source vessel to hold it to. It never arrives before that
+* delay.
 *
 * @category Career
 */
@@ -550,78 +543,6 @@ export interface CareerContractEvent
 	agent?: string | null;
 	/** How it finished: `"Completed"` or `"Failed"`. */
 	outcome?: string | null;
-}
-/**
-* One contract objective a vessel has met, lost or failed, while word of it is
-* still on its way to the home command. The contract, and its rewards, move
-* only when that word arrives. Useful for showing an operator nearer the
-* vessel than home what home has yet to hear.
-*
-* Carried on `career.objectives.<guid>.pending` as a delayed, reliable,
-* ordered event stamped at the vessel's own time. An observer keeps the row
-* until `CareerStatus.objectivesSettled` names its
-* `CareerObjectivePending.key`. At the home command the row arrives no earlier
-* than the change itself, so a client shows none there.
-*
-* @category Career
-*/
-export interface CareerObjectivePending
-{
-	/**
-	* Names this change; the same key appears in `CareerStatus.objectivesSettled`
-	* when home acts on it.
-	*/
-	key: string;
-	/**
-	* The contract's id, the same id `CareerContract.id` carries, or `null` when
-	* the contract could not be read.
-	*/
-	contractId?: string | null;
-	/** The contract's display title, or `null` when it could not be read. */
-	contractTitle?: string | null;
-	/** The objective's display title. */
-	objective: string;
-	/**
-	* Where the objective sits in its contract's tree, as the child index at each
-	* level joined by `/`: `"1/0"` is the first child of the contract's second
-	* objective, in the order `CareerContract.parameters` and
-	* `CareerContractParameter.children` list them.
-	*/
-	objectivePath: string;
-	/** What the objective became at the vessel: `"Met"`, `"Unmet"` or `"Failed"`. */
-	target: string;
-	/** The vessel that made the change (`Vessel.id` as a string). */
-	vesselId: string;
-	/**
-	* The vessel's display name when the change was taken, or `null` when it could
-	* not be read.
-	*/
-	vesselName?: string | null;
-	/** Universal Time the change happened at, in the vessel's own time. */
-	ut: Value<"ut">;
-	/**
-	* Universal Time word of the change is due at the home command, or `null`
-	* while the vessel has no route home and home cannot hear of it yet.
-	*/
-	homeArrivesUt?: Value<"ut"> | null;
-}
-/**
-* One entry in `CareerStatus.objectivesSettled`: a contract objective change
-* the home command has acted on.
-*
-* @category Career
-*/
-export interface CareerObjectiveSettled
-{
-	/** The `CareerObjectivePending.key` of the change. */
-	key: string;
-	/**
-	* `"Applied"` when the change took effect, `"Dropped"` when the contract could
-	* no longer take it or its vessel was lost without word of it.
-	*/
-	outcome: string;
-	/** Universal Time home acted on it. */
-	ut: Value<"ut">;
 }
 /**
 * One contract in `CareerContracts.active`, `CareerContracts.offered`,

@@ -53,13 +53,8 @@ namespace Sitrep.Host.Comms
         /// <param name="nodeConnected">Whether the node's own link is up.</param>
         /// <param name="homeCentre">The home centre's id, or null while there is none.</param>
         /// <param name="direction"><see cref="CommsDirection.Forward"/> for a copy sent from the centre to the node, <see cref="CommsDirection.Reverse"/> for one heard from it.</param>
-        /// <param name="delayKnown">Whether any delay between the two is known. A pair with none is never reached, whatever else holds.</param>
-        public bool Reaches(string centre, string node, string fleetPrefix, bool networkModelled, bool nodeConnected, string? homeCentre, CommsDirection direction, bool delayKnown = true)
+        public bool Reaches(string centre, string node, string fleetPrefix, bool networkModelled, bool nodeConnected, string? homeCentre, CommsDirection direction)
         {
-            if (!delayKnown)
-            {
-                return false;
-            }
             var unroutable = !Carried(centre, node).HasFlag(direction);
             if (node.StartsWith(fleetPrefix, StringComparison.Ordinal))
             {

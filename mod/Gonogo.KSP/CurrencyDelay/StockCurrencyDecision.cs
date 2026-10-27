@@ -126,8 +126,6 @@ namespace Gonogo.KSP.CurrencyDelay
             StockTransactionReason.ScienceTransmission,
             StockTransactionReason.VesselRecovery,
             StockTransactionReason.VesselLoss,
-            // A world first: news from the craft that made it, so away while a craft is flown.
-            StockTransactionReason.Progression,
         };
 
         /// <summary>
