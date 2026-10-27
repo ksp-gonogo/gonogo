@@ -51,6 +51,30 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public void ADelayedCareerCommandIsDatedAtThePressNotTheLastTick()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new CareerTestUplink());
+            engine.Start();
+            try
+            {
+                Tick(engine, 0.0);
+                engine.SetHomeCommandDelays(new Dictionary<string, double> { [Pilot] = PathHomeSeconds });
+                Tick(engine, 1.0);
+
+                engine.NoteGameUt(1.6);
+                Dispatch(engine, Pilot);
+
+                var pending = Assert.IsType<PendingUplinkQueue>(engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Pending;
+                Assert.Equal(1.6, Assert.Single(pending).DispatchedAt, 6);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         private static void Dispatch(ChannelEngine engine, string vantage)
         {
             string? refusal = null;

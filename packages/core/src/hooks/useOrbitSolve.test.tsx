@@ -317,7 +317,7 @@ describe("useOrbitSolve", () => {
       // solve says `null` rather than letting a finite guard pass it through.
       transport.emit(
         "vessel.orbit",
-        { ...ORBIT, sma: -2_400_000, ecc: 1.283 },
+        { ...ORBIT, sma: -2_400_000, ecc: 1.283, argPe: 0 },
         { quality: Quality.OnRails, source: "vessel:1" },
       );
       transport.emit("trackingStation.bodies", BODIES, {

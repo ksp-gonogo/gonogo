@@ -494,6 +494,18 @@ const cases: FixtureCase[] = [
     viewUt: 100,
   },
   {
+    id: "lan-null-on-an-inclined-orbit-is-absent",
+    orbitPoint: onRails(circle(1_000_000, { inc: 40, ecc: 0.2, lan: null })),
+    bodies: system,
+    viewUt: 100,
+  },
+  {
+    id: "argpe-null-on-an-eccentric-orbit-is-absent",
+    orbitPoint: onRails(circle(1_000_000, { ecc: 0.2, argPe: null })),
+    bodies: system,
+    viewUt: 100,
+  },
+  {
     id: "lan-nan-places-nothing",
     orbitPoint: onRails(circle(650_000, { lan: Number.NaN })),
     bodies: system,

@@ -1135,6 +1135,35 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public void APressBetweenTwoTicksIsDatedAtTheGameUtOnASendAgain()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new HeldCommandTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                CutRoute(engine);
+                Tick(engine, 0.0);
+
+                engine.DispatchCommandAndWait(HeldCommandTestUplink.Command, "x", Centre, _ => { }, TestBudgets.Op);
+                Tick(engine, 10.0);
+                engine.NoteGameUt(10.4);
+                object? reply = null;
+                var again = new UplinkResendRequest { Epoch = Journey(engine).Epoch, Craft = CraftNode, LaneSeq = 1 };
+                engine.DispatchCommandAndWait(ChannelEngine.UplinkResendCommand, again, Centre, r => reply = r, TestBudgets.Op);
+
+                Assert.IsType<CommandResult<UplinkActionReply>>(reply);
+                var copy = engine.DeliverySnapshotNow().Held.Select(h => h.Message).OfType<CommandMessage>().Single(m => m.Attempt == 2);
+                Assert.Equal(10.4, copy.SentUt, 6);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         private static void CutRoute(ChannelEngine engine)
         {
             engine.SetAuthorityDelays(System.Array.Empty<(string, string, double)>());

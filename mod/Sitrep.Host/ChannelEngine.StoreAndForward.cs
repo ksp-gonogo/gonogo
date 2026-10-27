@@ -559,7 +559,7 @@ namespace Sitrep.Host
             {
                 return false;
             }
-            var now = _clock.Now();
+            var now = PressUt();
             var route = plan.Route(job.Vantage, craft, now, now + DeliveryNetwork.CommandLifetimeSeconds);
             var hold = ContinuousInput.FirstHold(route, job.Vantage, now);
             if (hold == null)
@@ -1343,13 +1343,13 @@ namespace Sitrep.Host
                 p.LaneSeq == request.LaneSeq
                 && string.Equals(p.Vantage, vantage, StringComparison.Ordinal)
                 && string.Equals(p.Craft, request.Craft, StringComparison.Ordinal));
-            if (!HeldOrOverdue(entry, request, vantage, _clock.Now()))
+            if (!HeldOrOverdue(entry, request, vantage, PressUt()))
             {
                 return CommandResult.Fail(
                     CommandErrorCode.WrongState,
                     "That command is on its way and its reply is not late. It can be sent again once it is held somewhere or overdue.");
             }
-            var copy = _delivery.SendAgain(lane, request.LaneSeq, _clock.Now(), NextRequestId());
+            var copy = _delivery.SendAgain(lane, request.LaneSeq, PressUt(), NextRequestId());
             if (copy == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound, "That command is already settled, or too late to send again in its place.");

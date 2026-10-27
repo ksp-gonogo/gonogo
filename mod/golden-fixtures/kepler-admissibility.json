@@ -2015,6 +2015,102 @@
       }
     },
     {
+      "id": "lan-null-on-an-inclined-orbit-is-absent",
+      "orbitPoint": {
+        "validAt": 0,
+        "quality": "OnRails",
+        "payload": {
+          "referenceBodyIndex": 1,
+          "sma": 1000000,
+          "ecc": 0.2,
+          "inc": 40,
+          "lan": null,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      "bodies": {
+        "bodies": [
+          {
+            "index": 1,
+            "radius": 600000,
+            "atmosphere": {
+              "depth": 70000
+            },
+            "sphereOfInfluence": 84159286
+          },
+          {
+            "index": 2,
+            "radius": 200000,
+            "atmosphere": null,
+            "sphereOfInfluence": 2429559
+          }
+        ]
+      },
+      "viewUt": 100,
+      "expected": {
+        "declined": {
+          "reason": "input-absent",
+          "input": "@vessel.orbit#lan",
+          "note": "the orbit's longitude of the ascending node is absent, so there is no position to carry forward"
+        }
+      }
+    },
+    {
+      "id": "argpe-null-on-an-eccentric-orbit-is-absent",
+      "orbitPoint": {
+        "validAt": 0,
+        "quality": "OnRails",
+        "payload": {
+          "referenceBodyIndex": 1,
+          "sma": 1000000,
+          "ecc": 0.2,
+          "inc": 0,
+          "lan": 0,
+          "argPe": null,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      "bodies": {
+        "bodies": [
+          {
+            "index": 1,
+            "radius": 600000,
+            "atmosphere": {
+              "depth": 70000
+            },
+            "sphereOfInfluence": 84159286
+          },
+          {
+            "index": 2,
+            "radius": 200000,
+            "atmosphere": null,
+            "sphereOfInfluence": 2429559
+          }
+        ]
+      },
+      "viewUt": 100,
+      "expected": {
+        "declined": {
+          "reason": "input-absent",
+          "input": "@vessel.orbit#argPe",
+          "note": "the orbit's argument of periapsis is absent, so there is no position to carry forward"
+        }
+      }
+    },
+    {
       "id": "lan-nan-places-nothing",
       "orbitPoint": {
         "validAt": 0,

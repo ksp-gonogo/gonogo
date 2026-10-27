@@ -48,6 +48,7 @@ describe("Orbit View figures: full render off the stream", () => {
           sma: SMA,
           ecc: ECC,
           inc: INC,
+          lan: 0,
           argPe: ARG_PE,
           mu: MU,
           horizon: ANALYTIC_UNBOUNDED_HORIZON,

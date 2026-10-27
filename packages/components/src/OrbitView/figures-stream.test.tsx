@@ -40,6 +40,7 @@ describe("Orbit View figures: genuinely runs off the stream", () => {
         sma,
         ecc: 0.00367,
         inc: 0.3,
+        lan: 0,
         argPe: 12.5,
         mu,
         horizon: ANALYTIC_UNBOUNDED_HORIZON,

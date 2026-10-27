@@ -174,6 +174,24 @@ namespace Sitrep.Host.Comms
     {
         internal const string PatchEndNote = "this patch ends at the SOI transition";
 
+        private const double UndefinedAngleTolerance = 1e-9;
+
+        /// <summary>
+        /// The ascending node, in radians, as <see cref="ConicOrbit"/> carries it: the
+        /// stated figure, 0 when none is stated and the orbit has no inclination to
+        /// anchor one, and NaN (absent) otherwise.
+        /// </summary>
+        public static double NodeRadians(double? lanRadians, double incRadians) =>
+            lanRadians ?? (Math.Abs(Math.Sin(incRadians)) < UndefinedAngleTolerance ? 0.0 : double.NaN);
+
+        /// <summary>
+        /// The argument of periapsis, in radians, as <see cref="ConicOrbit"/> carries it:
+        /// the stated figure, 0 when none is stated and the orbit is circular, and NaN
+        /// (absent) otherwise.
+        /// </summary>
+        public static double PeriapsisRadians(double? argPeRadians, double ecc) =>
+            argPeRadians ?? (Math.Abs(ecc) < UndefinedAngleTolerance ? 0.0 : double.NaN);
+
         /// <summary>
         /// Null when the orbit may be carried to <paramref name="viewUt"/>, or the
         /// decline naming the input that rules it out. It declines when:
