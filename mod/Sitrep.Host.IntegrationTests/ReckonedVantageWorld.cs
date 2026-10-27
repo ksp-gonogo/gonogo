@@ -693,14 +693,20 @@ namespace Sitrep.Host.IntegrationTests
 
         private bool _listening;
 
+        /// <summary>Seconds of wall time each tick adds to the clock the looks are paced by.</summary>
+        public float WallPerTick { get; set; } = 10f;
+
+        /// <summary>What each centre knows of where each craft is, as the capability answers it.</summary>
+        public ICraftKnowledge Knowledge => _source.Knowledge;
+
         private readonly Dictionary<string, CraftForecast> _forecastsSaid = new Dictionary<string, CraftForecast>();
 
         public ScriptedContactUplink(ScriptedContactGame game, ChannelEngine engine)
         {
             _game = game;
             _engine = engine;
-            // Every look is ten seconds of wall time after the last, so no tick is skipped for pacing.
-            _source = new ContactPlanSource(game, () => _wall += 10f, planInline: true);
+            // Every look is ten seconds of wall time after the last unless a test slows the clock, so no tick is skipped for pacing.
+            _source = new ContactPlanSource(game, () => _wall += WallPerTick, planInline: true);
             _inputs.SetLightFactor(ScriptedContactGame.LightFactor);
             engine.SetDeliveryInputs(_inputs);
             var channels = ContactPlanSource.Channels();

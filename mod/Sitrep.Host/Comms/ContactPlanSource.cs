@@ -1030,6 +1030,12 @@ namespace Sitrep.Host.Comms
         /// </summary>
         internal void PlanOnCourier(object? captured)
         {
+            if (captured == null && _listeningAtLook != null && _hearing != null && !_timelineReset)
+            {
+                // No look this tick, but word has arrived since the last one.
+                Knowledge.Refresh(_listeningAtLook, _hearing);
+                return;
+            }
             if (!(captured is Looked looked) || _craftHost == null || _hearing == null || _audience == null || _host == null)
             {
                 return;
@@ -1073,6 +1079,7 @@ namespace Sitrep.Host.Comms
                 _believed.Clear();
                 _rosterSent.Clear();
                 _said.Clear();
+                _lastRead.Clear();
                 _homeKnew.Clear();
                 _homeLinkKnew.Clear();
                 _homeRouteKnew.Clear();
@@ -1117,7 +1124,12 @@ namespace Sitrep.Host.Comms
             NoteGroundCentres(looked);
             SayCentreReports(looked);
             JudgeAtHome(looked.Ut);
-            Knowledge.Note(listening, _hearing, looked.Ut, looked.Craft.Sight);
+            foreach (var state in looked.Craft.States)
+            {
+                _lastRead[state.Id] = state;
+            }
+            _listeningAtLook = listening;
+            Knowledge.Note(listening, _hearing, looked.Ut, looked.Craft.Sight, (id, centre, from, to, closing) => LineCrossed(looked, id, centre, from, to, closing));
             KeepHeardForSave(listening);
             // What is kept for a save is now what the centres were given back and have heard since.
             System.Threading.Volatile.Write(ref _restore, null);
@@ -1137,6 +1149,35 @@ namespace Sitrep.Host.Comms
             PublishCatalogs(looked, planning);
             PublishRosters(looked, listening);
             PublishTargets(looked);
+        }
+
+        /// <summary>The newest state read of each craft, by node id, which a crossing is reckoned from.</summary>
+        /// <summary>The centres the last look listened for, which a tick with no look refreshes the board for.</summary>
+        private HashSet<string>? _listeningAtLook;
+
+        private readonly Dictionary<string, CraftState> _lastRead = new Dictionary<string, CraftState>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Courier thread: when the line from a craft to a centre closed or opened
+        /// between two looks, reckoned on the craft's orbit and the ground's
+        /// stations and bodies, or null when it cannot be.
+        /// </summary>
+        private double? LineCrossed(Looked looked, string id, string centre, double fromUt, double toUt, bool closing)
+        {
+            if (!_lastRead.TryGetValue(id, out var state))
+            {
+                return null;
+            }
+            var stations = new List<PlanNode>();
+            var home = _audience?.HomeCentre();
+            foreach (var station in looked.Ground.Stations)
+            {
+                if (string.Equals(station.Id, centre, StringComparison.Ordinal) || string.Equals(centre, home, StringComparison.Ordinal))
+                {
+                    stations.Add(station);
+                }
+            }
+            return SightCrossing.Between(state, looked.Ground, stations, fromUt, toUt, closing);
         }
 
         /// <summary>What each craft has said, by when it said it.</summary>

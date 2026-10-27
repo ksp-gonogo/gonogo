@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Contract.TestSupport;
 using Sitrep.Host.Comms;
+using Sitrep.Propagation;
+using Sitrep.Propagation.Contacts;
 using Sitrep.Propagation.Visibility;
 using Xunit;
 
@@ -229,6 +231,79 @@ namespace Sitrep.Host.Tests.Comms
 
             Assert.Same(CraftKnowledgeReading.Unknown, Read(board, 1000.0));
             Assert.Same(CraftKnowledgeReading.Unknown, board.KnowledgeAt("ground:elsewhere", "probe", 1000.0));
+        }
+
+        private const double KerbinRadius = 600_000.0;
+        private const double KerbinDay = 21_549.425;
+        private const int Kerbin = 1;
+        private const double OrbitRadius = 900_000.0;
+        private const double OneWay = 8.0;
+
+        private static readonly SystemBody[] Bodies =
+        {
+            new SystemBody(-1, null),
+            new SystemBody(0, new OrbitElements(13_599_840_256.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.1723328e18)),
+        };
+
+        private static readonly PlanNode Station = PlanNode.OnSurface(
+            Home, Kerbin, RotatingGroundStation.FromLatitudeLongitude(0.0, 0.0, 0.0, KerbinDay, KerbinRadius, 0.0));
+
+        private static readonly CraftState LowOrbit = CraftState.Orbiting(
+            Probe, 0.0, Kerbin, new OrbitElements(OrbitRadius, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, KerbinMu), null, null, true, new Dictionary<string, CraftLink>());
+
+        /// <summary>When an equatorial craft on <see cref="LowOrbit"/> dips below the horizon of a station on the equator that it started above.</summary>
+        private static double SetsAt()
+        {
+            var meanMotion = Math.Sqrt(KerbinMu / (OrbitRadius * OrbitRadius * OrbitRadius));
+            var spin = 2.0 * Math.PI / KerbinDay;
+            return Math.Acos(KerbinRadius / OrbitRadius) / (meanMotion - spin);
+        }
+
+        /// <summary>The first instant the board's light shows the craft out of view, scanned finely, for looks spaced <paramref name="gap"/> apart, the last in view a tenth of a second before the setting.</summary>
+        private static double ReadOutAt(double gap, CraftKnowledgeBoard.LineCrossing? crossing)
+        {
+            var (board, hearing, host) = Listening();
+            var sets = SetsAt();
+            host.State!(Orbiting(0.0).Unsettled());
+            host.Sighting!(CraftSighting.Of(Probe, sets - 0.1 - (3 * gap), null, Orbiting(sets - 0.1 - (3 * gap)).PlaceOnly()));
+            var inView = new Dictionary<string, IReadOnlyDictionary<string, double>> { [Probe] = new Dictionary<string, double> { [Home] = OneWay } };
+            var nextLook = -3;
+            for (var ut = sets - 0.1 - (3 * gap); ut < sets + OneWay + (2 * gap); ut += 0.05)
+            {
+                while (sets - 0.1 + (nextLook * gap) <= ut)
+                {
+                    var lookUt = sets - 0.1 + (nextLook * gap);
+                    board.Note(new[] { Home }, hearing, lookUt, nextLook <= 0 ? inView : OutOfView, crossing);
+                    nextLook++;
+                }
+                if (!board.KnowledgeAt(Home, "probe", ut).LineOfSight)
+                {
+                    return ut;
+                }
+            }
+            throw new InvalidOperationException("the board never showed the craft out of view");
+        }
+
+        private static CraftKnowledgeBoard.LineCrossing Solved() =>
+            (id, centre, from, to, closing) => SightCrossing.Between(
+                LowOrbit, new PlanGround(new[] { Station }, Bodies, Kerbin, index => index == Kerbin ? KerbinRadius : 0.0), new[] { Station }, from, to, closing);
+
+        [Theory]
+        [InlineData(0.5)]
+        [InlineData(5.0)]
+        public void ACraftThatSetsBetweenTwoLooksIsSeenUntilTheLightOfItsSettingArrives(double gap)
+        {
+            var seenUntil = ReadOutAt(gap, Solved());
+
+            Assert.Equal(SetsAt() + OneWay, seenUntil, 0.3);
+        }
+
+        [Fact]
+        public void WithNoCrossingSolvedTheSettingIsTakenAtTheLookThatNoticedIt()
+        {
+            var seenUntil = ReadOutAt(5.0, null);
+
+            Assert.True(seenUntil > SetsAt() + OneWay + 4.0, "flipped at " + (seenUntil - SetsAt() - OneWay) + " s past the setting plus one delay");
         }
 
         private sealed class Telling : ICraftStateHost

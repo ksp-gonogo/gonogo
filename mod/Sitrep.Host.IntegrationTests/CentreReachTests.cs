@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Sitrep.Contract;
 using Sitrep.Host.Comms;
 using Xunit;
 
@@ -74,6 +75,59 @@ namespace Sitrep.Host.IntegrationTests
             Ticks(world, 1600);
             Assert.False(Reaches(world, Home));
             Assert.Equal(700.0, world.Uplink.Reach(Home, Relay)!.LastReachedAt(Home));
+        }
+
+        /// <summary>The loss is dated to the tick the game read it on, so the centre hears it one delay after that tick and not one tick later.</summary>
+        [Fact]
+        public async Task ALostLinkIsHeardOneDelayAfterTheTickTheGameReadItOn()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            for (var ut = 1.0; ut <= 700.0; ut += 1.0)
+            {
+                world.Tick(ut);
+            }
+            world.Game.RelayConnected = false;
+            world.Tick(1000.0);
+
+            double? heardAt = null;
+            for (var ut = 1001.0; ut <= 1700.0 && heardAt == null; ut += 1.0)
+            {
+                world.Tick(ut);
+                if (Reaches(world, Home) == false)
+                {
+                    heardAt = ut;
+                }
+            }
+
+            Assert.Equal(1000.0 + DelayTo(Home), heardAt);
+            Assert.Equal(1000.0, world.Uplink.Reach(Home, Relay)!.CapturedUt);
+        }
+
+        /// <summary>Looks five game seconds apart, as at ten times warp: the board turns from heard to unheard within a tick of the word arriving, not at the next look.</summary>
+        [Fact]
+        public async Task TheBoardStopsHearingACraftWhenTheWordOfItsLossArrivesWhateverTheLookSpacing()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            world.Uplink.WallPerTick = 0.1f;
+            for (var ut = 1.0; ut <= 700.0; ut += 1.0)
+            {
+                world.Tick(ut);
+            }
+            world.Game.RelayConnected = false;
+            world.Tick(1000.0);
+
+            double? changedAt = null;
+            for (var ut = 1001.0; ut <= 1700.0 && changedAt == null; ut += 1.0)
+            {
+                world.Tick(ut);
+                if (world.Uplink.Knowledge.KnowledgeAt(Home, Relay, ut).State != CraftKnowledgeState.Heard)
+                {
+                    changedAt = ut;
+                }
+            }
+
+            // The tick that delivers the word runs after the board's refresh, so the board follows by one tick.
+            Assert.InRange(changedAt!.Value, 1000.0 + DelayTo(Home), 1000.0 + DelayTo(Home) + 1.0);
         }
 
         [Fact]

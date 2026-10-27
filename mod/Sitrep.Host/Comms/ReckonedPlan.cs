@@ -117,6 +117,36 @@ namespace Sitrep.Host.Comms
                 retargets.Count == 0 ? null : new CompositeRetargetModel(retargets));
         }
 
+        /// <summary>
+        /// The plan request for the line of sight alone, with no range limit and
+        /// no link model, between one craft and some stations over a span: where
+        /// the line closes or opens. Null when no path joins a station's body to
+        /// the craft's.
+        /// </summary>
+        /// <param name="craft">The craft as last read.</param>
+        /// <param name="stations">The stations the craft's line is asked of.</param>
+        public static ContactPlanRequest? OpenSkyRequest(CraftState craft, PlanGround ground, IReadOnlyList<PlanNode> stations, double fromUt, double horizonSeconds)
+        {
+            var node = craft.ToPlanNode();
+            if (node == null)
+            {
+                return null;
+            }
+            var nodes = new List<PlanNode> { node.RememberedAs(craft.Motion) };
+            var pairs = new List<PlanPair>();
+            foreach (var station in stations)
+            {
+                var occluders = Occluders(craft.BodyIndex, station.BodyIndex, ground);
+                if (occluders == null)
+                {
+                    return null;
+                }
+                nodes.Add(station);
+                pairs.Add(new PlanPair(craft.Id, station.Id, occluders, null));
+            }
+            return new ContactPlanRequest(nodes, pairs, new KeplerProvider(ground.Bodies), ground.FrameBodyIndex, fromUt, horizonSeconds);
+        }
+
         private static void AddPair(List<PlanPair> pairs, CraftState from, string toId, int toBodyIndex, PlanGround ground)
         {
             if (!from.Links.TryGetValue(toId, out var link))
