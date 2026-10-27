@@ -21655,6 +21655,19 @@ components:
           description: The topic's own value. Each channel's `stream-data` message narrows this to that channel's payload schema.
         meta:
           $ref: "#/components/schemas/Meta"
+        unchanged:
+          type:
+            - array
+            - "null"
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: |-
+            The payload fields left out of this sample because they hold the same value
+            as in the last sample of this Topic sent on this connection, such as the
+            terrain grid on `vessel.landing` between the times it is retaken. A client
+            keeps each one from that sample. Absent when nothing was left out; a field
+            the sample holds as `null` is sent, never listed.
       examples:
         - type: stream-data
           topic: vessel.flight

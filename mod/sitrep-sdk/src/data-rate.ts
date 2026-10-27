@@ -124,3 +124,45 @@ export function supersededPayload<Payload>(
   }
   return kept as Payload;
 }
+
+/*
+ * The mod's own list of fields it sends on a connection only when they change:
+ * values the game retakes about once a second or less, which would otherwise
+ * repeat unchanged on every sample of a Topic sent ten times a second.
+ */
+const SENT_ON_CHANGE: ReadonlyMap<string, readonly string[]> = new Map([
+  ["vessel.landing", ["siteHeights", "horizonAngles"]],
+]);
+
+/**
+ * The payload fields of a Topic that the mod sends on a connection only when
+ * they change, such as Landing Status's terrain grid and skyline on
+ * `vessel.landing`. Empty for every other Topic. A sample that leaves one out
+ * names it in the `stream-data` frame's `unchanged` list. Useful for passing a
+ * Topic's samples on to another screen without repeating those fields on every
+ * sample. Used by the main screen's relay to stations.
+ *
+ * @category Reading telemetry
+ */
+export function fieldsSentOnChange(topic: string): readonly string[] {
+  return SENT_ON_CHANGE.get(topic) ?? [];
+}
+
+/**
+ * Puts back into `payload` each field `unchanged` names, taken from `previous`,
+ * the last payload of the same Topic received on the same connection. A field
+ * `previous` does not hold stays absent, since its value is not known. Changes
+ * `payload` in place.
+ */
+export function fillUnchangedFields(
+  payload: unknown,
+  unchanged: readonly string[],
+  previous: unknown,
+): void {
+  if (typeof payload !== "object" || payload === null) return;
+  if (typeof previous !== "object" || previous === null) return;
+  for (const field of unchanged) {
+    if (field in previous)
+      Reflect.set(payload, field, Reflect.get(previous, field));
+  }
+}

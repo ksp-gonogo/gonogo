@@ -1,9 +1,13 @@
-import type { LimitBreach, Meta } from "../__generated__/contract";
+import type { LimitBreach, Meta, StreamData } from "../__generated__/contract";
 import { CommandErrorCode, FaultCode } from "../__generated__/error-codes";
 import { COMMAND_LOST, COMMAND_REFUSED } from "../api/command-rejection";
 import type { Transport } from "../api/transport";
 import { wrapCommandReply } from "../command-reply-units";
-import type { DataRateTier } from "../data-rate";
+import {
+  type DataRateTier,
+  fieldsSentOnChange,
+  fillUnchangedFields,
+} from "../data-rate";
 import type { ClientMessage, ServerMessage } from "../envelope";
 import { PerfBudget } from "../perf/PerfBudget";
 import { dehydrateArgs } from "../wrap-units";
@@ -354,6 +358,8 @@ export class TelemetryClient {
   /** The subscription to `system.dataRates` held while any claim is live, so a store attached to this client learns each fast Topic's rate. */
   private releaseRateReport: (() => void) | null = null;
   private readonly lastValues = new Map<string, unknown>();
+  /** The last payload this connection delivered of each Topic with fields sent only on change, which a later frame's unchanged fields are taken from. */
+  private readonly lastDeliveredWithHeldFields = new Map<string, unknown>();
   /** The `Meta` of the frame that carried each topic's `lastValues` entry, so a value replayed on subscribe says which sample it is. */
   private readonly lastMetas = new Map<string, Meta>();
 
@@ -496,6 +502,7 @@ export class TelemetryClient {
     /* A transport still connecting reports no change until it opens, so the tracker is told here that nothing can ack yet. */
     if (transport.status !== "connected") this.ownership?.handleDisconnected();
     this.unsubscribeFromTransport = transport.onMessage((message, delivery) => {
+      if (message.type === "stream-data") this.restoreUnchanged(message);
       for (const listener of this.rawMessageListeners) listener(message);
       this.handleMessage(message, delivery?.replayed === true);
     });
@@ -1401,6 +1408,26 @@ export class TelemetryClient {
     if (vantage === this.observedVantageId) return;
     this.observedVantageId = vantage;
     for (const listener of this.observedVantageListeners) listener();
+  }
+
+  /**
+   * Put back the fields a frame left out as unchanged, from the last frame of its
+   * Topic this connection delivered, so every reader past this point sees a whole
+   * payload.
+   */
+  private restoreUnchanged(message: StreamData<unknown>): void {
+    const { unchanged } = message;
+    if (unchanged !== undefined && unchanged.length > 0) {
+      fillUnchangedFields(
+        message.payload,
+        unchanged,
+        this.lastDeliveredWithHeldFields.get(message.topic),
+      );
+      message.unchanged = undefined;
+    }
+    if (fieldsSentOnChange(message.topic).length > 0) {
+      this.lastDeliveredWithHeldFields.set(message.topic, message.payload);
+    }
   }
 
   private handleMessage(message: ServerMessage, replayed = false): void {

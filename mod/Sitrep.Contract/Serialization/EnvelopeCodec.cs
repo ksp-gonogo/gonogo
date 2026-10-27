@@ -171,6 +171,21 @@ namespace Sitrep.Contract.Serialization
 
             AppendField(sb, "meta");
             AppendMeta(sb, msg.Meta);
+
+            if (msg.Unchanged is { Length: > 0 } unchanged)
+            {
+                AppendField(sb, "unchanged");
+                sb.Append('[');
+                for (var i = 0; i < unchanged.Length; i++)
+                {
+                    if (i > 0)
+                    {
+                        sb.Append(',');
+                    }
+                    JsonWriter.AppendString(sb, unchanged[i]);
+                }
+                sb.Append(']');
+            }
             sb.Append('}');
             return sb.ToString();
         }
@@ -193,6 +208,7 @@ namespace Sitrep.Contract.Serialization
                 Topic = RequireString(raw, "topic"),
                 Payload = raw.TryGetValue("payload", out var payload) ? payload : null,
                 Meta = ParseMetaRaw(RequireObject(raw, "meta")),
+                Unchanged = OptionalStringArray(raw, "unchanged"),
             };
         }
 
@@ -1093,6 +1109,25 @@ namespace Sitrep.Contract.Serialization
                 return s;
             }
             throw new FormatException($"Missing or non-string required field \"{key}\".");
+        }
+
+        /// <summary>A string array field that may be absent or null, both read as <c>null</c>.</summary>
+        private static string[]? OptionalStringArray(Dictionary<string, object?> raw, string key)
+        {
+            if (!raw.TryGetValue(key, out var value) || value == null)
+            {
+                return null;
+            }
+            if (value is not List<object?> list)
+            {
+                throw new FormatException($"Non-array field \"{key}\".");
+            }
+            var result = new string[list.Count];
+            for (var i = 0; i < list.Count; i++)
+            {
+                result[i] = list[i] as string ?? throw new FormatException($"Non-string entry in \"{key}\".");
+            }
+            return result;
         }
 
         private static string? TryGetString(Dictionary<string, object?> raw, string key)
