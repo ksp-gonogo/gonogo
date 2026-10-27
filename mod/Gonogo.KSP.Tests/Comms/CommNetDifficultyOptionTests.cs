@@ -194,7 +194,7 @@ namespace Gonogo.KSP.Tests.Comms
         /// A link report is about a craft. With none on screen (an editor)
         /// connectivity and the link say nothing is reported, rather than
         /// keeping the last craft's link or reporting one the no-comms-model
-        /// wrapper would call connected. Control stays silent, and the
+        /// wrapper would call connected. Control says it is not known, and the
         /// occlusion rule, which is about the bodies, still goes out.
         /// </summary>
         [Fact]
@@ -210,7 +210,7 @@ namespace Gonogo.KSP.Tests.Comms
                 uplink.HandleOnCourier(uplink.CaptureOnMain(new KspSnapshot { Ut = 100.0 }));
 
                 Assert.Equal(
-                    new[] { CommsCoreUplink.OcclusionTopic, CommsCoreUplink.ConnectivityTopic, CommsCoreUplink.LinkTopic },
+                    new[] { CommsCoreUplink.OcclusionTopic, CommsCoreUplink.ConnectivityTopic, CommsCoreUplink.ControlTopic, CommsCoreUplink.LinkTopic },
                     host.Published);
                 AssertUnreported(host);
             }
@@ -396,7 +396,6 @@ namespace Gonogo.KSP.Tests.Comms
                 var first = new KspSnapshot { Ut = 100.0 };
                 Assert.Null(uplink.ComputeConnectedOnMain(first));
                 uplink.HandleOnCourier(uplink.CaptureOnMain(first));
-                Assert.DoesNotContain(CommsCoreUplink.ControlTopic, host.Published);
                 AssertUnreported(host);
 
                 backend.Connected = true;
@@ -413,6 +412,43 @@ namespace Gonogo.KSP.Tests.Comms
             }
         }
 
+        /// <summary>
+        /// A switch to another craft says nothing is known of its control until
+        /// it is read, rather than leaving the previous craft's control level as
+        /// the last thing sent.
+        /// </summary>
+        [Fact]
+        public void ASwitchToAnotherCraft_ReplacesTheLastCraftsControlWithUnknown()
+        {
+            var first = UnityStandIns.Craft(Guid.NewGuid());
+            var second = UnityStandIns.Craft(Guid.NewGuid());
+            var active = first;
+            var backend = new DeadGraphBackend { Connected = true };
+            var host = new NoOpUplinkHost(new Kernel());
+            var uplink = RegisteredUplink(backend, host);
+
+            CommsCoreUplink.ConfigureCommsModelProbe(() => true);
+            CommsCoreUplink.ConfigureActiveVesselProbe(() => active);
+            try
+            {
+                uplink.HandleOnCourier(uplink.CaptureOnMain(new KspSnapshot { Ut = 100.0 }));
+                Assert.Equal(
+                    CommsControlStateKind.None,
+                    Assert.IsType<CommsControl>(host.Last(CommsCoreUplink.ControlTopic)).Level);
+
+                active = second;
+                backend.Connected = false;
+                uplink.HandleOnCourier(uplink.CaptureOnMain(new KspSnapshot { Ut = 101.0 }));
+
+                AssertUnreported(host);
+            }
+            finally
+            {
+                CommsCoreUplink.ConfigureCommsModelProbe(null);
+                CommsCoreUplink.ConfigureActiveVesselProbe(null);
+            }
+        }
+
         private static void AssertUnreported(NoOpUplinkHost host)
         {
             var connectivity = Assert.IsType<CommsConnectivity>(host.Last(CommsCoreUplink.ConnectivityTopic));
@@ -420,6 +456,9 @@ namespace Gonogo.KSP.Tests.Comms
             Assert.Equal(CommsControlSource.Unknown, connectivity.ControlSource);
             Assert.False(connectivity.HasLocalControl);
             Assert.Null(Assert.IsType<CommsLink>(host.Last(CommsCoreUplink.LinkTopic)).Connected);
+            var control = Assert.IsType<CommsControl>(host.Last(CommsCoreUplink.ControlTopic));
+            Assert.Equal(CommsControlStateKind.Unknown, control.Level);
+            Assert.Null(control.Reason);
         }
 
         /// <summary>A craft that is never read connected is a loss once the window has passed.</summary>

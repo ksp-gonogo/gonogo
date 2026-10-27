@@ -259,6 +259,40 @@ describe("AutoRecordController", () => {
     expect(getAutoRecordStatus().recording).toBe(true);
   });
 
+  it("starts recording from the tick it already holds when the scene says Flight after the only tick has gone by", () => {
+    const rig = buildRig();
+    const tree = (scene: "Unknown" | "Flight") => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene={scene} />
+      </TelemetryProvider>
+    );
+    const { rerender } = render(tree("Unknown"));
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    expect(getAutoRecordStatus().recording).toBe(false);
+
+    act(() => rerender(tree("Flight")));
+
+    expect(getAutoRecordStatus().recording).toBe(true);
+  });
+
+  it("does not start from a tick held before the scene arrived when the operator has since left the Flight scene", () => {
+    const rig = buildRig();
+    const tree = (scene: "Unknown" | "Flight" | "SpaceCenter") => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene={scene} />
+      </TelemetryProvider>
+    );
+    const { rerender } = render(tree("Unknown"));
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+
+    act(() => rerender(tree("SpaceCenter")));
+    act(() => rerender(tree("Flight")));
+
+    expect(getAutoRecordStatus().recording).toBe(false);
+  });
+
   describe("at the Space Center, where no vessel is active", () => {
     /** What the stream says when the page opens, or a flight is recovered, with the game at the Space Center. */
     function spaceCenterFrames(rig: Rig, ut: number): void {

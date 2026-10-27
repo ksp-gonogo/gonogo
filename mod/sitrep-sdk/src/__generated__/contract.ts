@@ -2204,7 +2204,9 @@ export interface CommsControl
 {
 	/**
 	* The vessel's control level. `CommsControlStateKind.None` when no link state
-	* could be read.
+	* could be read, and `CommsControlStateKind.Unknown` while the active craft
+	* has not been read yet, such as just after a switch to another craft or with
+	* none on screen.
 	*/
 	level: CommsControlStateKind;
 	/**

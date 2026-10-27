@@ -1038,12 +1038,24 @@ namespace Gonogo.KSP
             }, capture.Ut);
         }
 
-        /// <summary>Courier thread: <c>comms.connectivity</c> and <c>comms.link</c> saying nothing is reported.</summary>
+        /// <summary>
+        /// Courier thread: <c>comms.connectivity</c> and <c>comms.link</c> saying
+        /// nothing is reported, and <c>comms.control</c> saying what can be
+        /// commanded is not known, so a client never keeps showing the control
+        /// the previous craft had.
+        /// </summary>
         private void PublishUnreported(string source, double ut)
         {
             _connectivity?.Publish(Unreported, ut);
+            _control?.Publish(ControlUnreported, ut);
             _link?.Publish(new CommsLink { Connected = null, Meta = new PayloadMeta { Source = source } }, ut);
         }
+
+        private static readonly CommsControl ControlUnreported = new CommsControl
+        {
+            Level = CommsControlStateKind.Unknown,
+            Reason = null,
+        };
 
         private static readonly CommsConnectivity Unreported = new CommsConnectivity
         {

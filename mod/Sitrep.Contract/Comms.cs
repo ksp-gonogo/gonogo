@@ -299,7 +299,11 @@ public enum CommsControlStateKind
 [SitrepTopic("comms.control", DisplayName = "Comms control")]
 public class CommsControl
 {
-    /// <summary>The vessel's control level. <see cref="CommsControlStateKind.None"/> when no link state could be read.</summary>
+    /// <summary>
+    /// The vessel's control level. <see cref="CommsControlStateKind.None"/> when no link state could be read,
+    /// and <see cref="CommsControlStateKind.Unknown"/> while the active craft has not been read yet, such as
+    /// just after a switch to another craft or with none on screen.
+    /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public CommsControlStateKind Level { get; set; }
     /// <summary>

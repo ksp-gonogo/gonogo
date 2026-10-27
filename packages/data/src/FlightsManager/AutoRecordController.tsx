@@ -89,6 +89,11 @@ export interface AutoRecordControllerProps {
   partSeconds?: number;
 }
 
+/** Whether the scene reading has arrived: until it does the scene prop is absent or `"Unknown"`. */
+function isSceneKnown(scene: GameScene | undefined): boolean {
+  return scene !== undefined && scene !== "Unknown";
+}
+
 /**
  * Automatic, on-by-default flight recording for the main screen: while
  * `missionHistoryEnabled` is on, every flight is captured with no user
@@ -162,6 +167,8 @@ export function AutoRecordController({
    */
   const parkedFlightsRef = useRef<Map<string, ParkedFlight>>(new Map());
   const prevSceneRef = useRef<GameScene | undefined>(scene);
+  /** The flight whose tick arrived before the scene reading did, for the scene to start once it says Flight. */
+  const tickBeforeSceneRef = useRef<string | null>(null);
   const missionHistoryEnabledRef = useRef(missionHistoryEnabled);
   missionHistoryEnabledRef.current = missionHistoryEnabled;
   const sceneRef = useRef(scene);
@@ -311,6 +318,30 @@ export function AutoRecordController({
       frameCount: recorder.frameCount,
     });
   }, [missionHistoryEnabled, recorder]);
+
+  /*
+   * A flight's only tick can arrive before the scene reading does: a page
+   * opened during a blackout is sent the held tick once and no more, so the
+   * tick handler turned it away and nothing would start the recording. The
+   * scene saying Flight with that flight still tracked is the same proof the
+   * tick is. Only a tick from before the scene was known is kept, so a vessel
+   * the operator has since switched away from is never picked up again.
+   */
+  useEffect(() => {
+    if (!isSceneKnown(scene)) return;
+    const heldFlightId = tickBeforeSceneRef.current;
+    tickBeforeSceneRef.current = null;
+    if (!recorder || recorder.recording || !heldFlightId) return;
+    if (scene !== "Flight" || !missionHistoryEnabled) return;
+    if (heldFlightId !== activeFlightIdRef.current) return;
+    resumeParkedFlight(heldFlightId);
+    recorder.start();
+    setAutoRecordStatus({
+      recording: true,
+      vesselName: activeVesselNameRef.current,
+      frameCount: recorder.frameCount,
+    });
+  }, [scene, recorder, missionHistoryEnabled, resumeParkedFlight]);
 
   // Scene-exit-to-non-flight -> stop + save. Without this a recording started
   // in flight sits open until the mod's OWN flight.ended eventually fires (a
@@ -552,7 +583,12 @@ export function AutoRecordController({
         if (!recorder.recording) {
           if (!missionHistoryEnabledRef.current) return;
           if (payload.flightId !== activeFlightIdRef.current) return;
-          if (sceneRef.current !== "Flight") return;
+          if (sceneRef.current !== "Flight") {
+            if (!isSceneKnown(sceneRef.current)) {
+              tickBeforeSceneRef.current = payload.flightId;
+            }
+            return;
+          }
           resumeParkedFlight(payload.flightId);
           recorder.start();
         }
