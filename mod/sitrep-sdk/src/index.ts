@@ -147,6 +147,7 @@ export {
 } from "./crew-standing";
 export {
   type DataRateTier,
+  fieldsSentOnChange,
   hasSupersededFields,
   samplesPerSecondOf,
   supersededPayload,

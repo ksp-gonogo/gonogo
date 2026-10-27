@@ -37,6 +37,7 @@ import type { HostLayout, PeerMessage } from "./protocol";
 import { asPeerMessage, HOST_HEARTBEAT_MS } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
 import { STUN_SERVERS, stationsSocketUrl } from "./relayAddress";
+import { SentOnChange } from "./sentOnChange";
 import { stationApprovals } from "./stationApprovals";
 import type { StationLink } from "./stationLink";
 import { stationTag } from "./stationPeerId";
@@ -505,6 +506,8 @@ export class PeerHostService {
   // its subs. Cleared on disconnect so a reconnecting station gets a
   // fresh broadcast-all baseline.
   private peerMode = new WeakMap<StationLink, "broadcast-all" | "selective">();
+  /** Per station, what it was last sent of each field the mod sends only on change. */
+  private readonly sentOnChange = new WeakMap<StationLink, SentOnChange>();
   private peerSubs = new WeakMap<StationLink, Map<string, Set<string>>>();
 
   /**
@@ -1621,21 +1624,31 @@ export class PeerHostService {
    * topic rather than dropped silently; any other message keeps throwing.
    */
   private transmit(conn: StationLink, msg: PeerMessage): void {
+    let sentOnChange = this.sentOnChange.get(conn);
+    if (!sentOnChange) {
+      sentOnChange = new SentOnChange();
+      this.sentOnChange.set(conn, sentOnChange);
+    }
+    if (msg.type === "sitrep-reset") sentOnChange.forget();
+    const { outgoing, sent } = sentOnChange.prepare(msg);
     try {
-      conn.send(msg);
+      conn.send(outgoing);
+      sent();
       return;
     } catch (err) {
-      if (msg.type !== "sitrep-frame") throw err;
+      if (outgoing.type !== "sitrep-frame") throw err;
       try {
         conn.send({
-          ...msg,
-          message: encodeWideNumbers(msg.message),
+          ...outgoing,
+          message: encodeWideNumbers(outgoing.message),
           wide: true,
         } satisfies PeerMessage);
+        sent();
       } catch (retryErr) {
-        const topic = "topic" in msg.message ? msg.message.topic : undefined;
+        const topic =
+          "topic" in outgoing.message ? outgoing.message.topic : undefined;
         logger.error(
-          `[PeerHost] sitrep frame could not be sent to ${conn.peer}: topic=${topic ?? msg.message.type}`,
+          `[PeerHost] sitrep frame could not be sent to ${conn.peer}: topic=${topic ?? outgoing.message.type}`,
           retryErr instanceof Error ? retryErr : new Error(String(retryErr)),
         );
       }

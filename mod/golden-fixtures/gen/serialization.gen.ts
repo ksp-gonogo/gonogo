@@ -180,6 +180,15 @@ const streamDataObject: StreamData<Record<string, unknown>> = {
   meta: metaNormal,
 };
 
+// A sample that left a field out as unchanged names it after `meta`.
+const streamDataUnchanged: StreamData<Record<string, unknown>> = {
+  type: "stream-data",
+  topic: "vessel.landing",
+  payload: { outcome: "terrain-assessed", siteHeightsSize: 24 },
+  meta: metaNormal,
+  unchanged: ["siteHeights", "horizonAngles"],
+};
+
 // NaN/Infinity through the FREE-FORM payload path, not just Meta's
 // fixed-schema fields, proves the policy is applied uniformly, not just
 // hard-coded for Meta.
@@ -262,6 +271,11 @@ const vectors: Vector[] = [
     name: "stream-data-object",
     kind: "streamData",
     json: safeStringify(streamDataObject),
+  },
+  {
+    name: "stream-data-unchanged",
+    kind: "streamData",
+    json: safeStringify(streamDataUnchanged),
   },
   {
     name: "stream-data-nan-payload",

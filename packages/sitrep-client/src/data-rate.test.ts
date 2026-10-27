@@ -1,4 +1,8 @@
-import type { ClientMessage } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type ClientMessage,
+  fieldsSentOnChange,
+  type ServerMessage,
+} from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";
 import { makeMeta, StubTransport } from "./stub-transport";
@@ -180,5 +184,64 @@ describe("TimelineStore point bound under a faster rate", () => {
     });
 
     expect(store.getTimeline("vessel.flight").range(0, 1e9)).toHaveLength(100);
+  });
+});
+
+describe("a frame that leaves fields out as unchanged", () => {
+  function landing(payload: object, validAt: number, unchanged?: string[]) {
+    return {
+      type: "stream-data",
+      topic: "vessel.landing",
+      payload,
+      meta: makeMeta({ validAt, deliveredAt: validAt }),
+      ...(unchanged ? { unchanged } : {}),
+    } satisfies ServerMessage;
+  }
+
+  it("names the terrain grid and skyline as the fields vessel.landing sends on change", () => {
+    expect(fieldsSentOnChange("vessel.landing")).toEqual([
+      "siteHeights",
+      "horizonAngles",
+    ]);
+    expect(fieldsSentOnChange("vessel.flight")).toEqual([]);
+  });
+
+  it("reads with the fields the last frame of its Topic carried, raw listeners included", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const read: unknown[] = [];
+    const raw: unknown[] = [];
+    client.subscribe("vessel.landing", (payload) => read.push(payload));
+    client.onRawMessage((message) => {
+      if (message.type === "stream-data") raw.push(message);
+    });
+    const grid = [1, 2, 3];
+    const skyline = [4, 5];
+
+    transport.emitRaw(
+      landing({ outcome: "a", siteHeights: grid, horizonAngles: skyline }, 1),
+    );
+    transport.emitRaw(
+      landing({ outcome: "b" }, 2, ["siteHeights", "horizonAngles"]),
+    );
+
+    expect(read[1]).toEqual({
+      outcome: "b",
+      siteHeights: grid,
+      horizonAngles: skyline,
+    });
+    expect(raw[1]).not.toHaveProperty("unchanged", expect.anything());
+    expect(raw[1]).toHaveProperty("payload.siteHeights", grid);
+  });
+
+  it("leaves a field absent, not empty, when no earlier frame carried it", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const read: unknown[] = [];
+    client.subscribe("vessel.landing", (payload) => read.push(payload));
+
+    transport.emitRaw(landing({ outcome: "b" }, 2, ["siteHeights"]));
+
+    expect(read[0]).toEqual({ outcome: "b" });
   });
 });

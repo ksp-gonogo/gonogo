@@ -1482,7 +1482,8 @@
     },
     "StreamData": {
       "topic": "id",
-      "type": "id"
+      "type": "id",
+      "unchanged": "id"
     },
     "Subscribe": {
       "topic": "id",

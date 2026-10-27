@@ -11119,6 +11119,113 @@ namespace Sitrep.Host
             CleanUpSubjectIfGone(topic);
         }
 
+        /// <summary>
+        /// <paramref name="streamData"/> without each of <paramref name="sentOnChange"/>
+        /// that holds what the connection's last accepted frame of the topic held,
+        /// those fields named in <see cref="StreamData.Unchanged"/>.
+        /// <paramref name="onSent"/> records what this frame carries once the socket
+        /// accepts it, and forgets a field it carries as null, so a value that comes
+        /// back after a gap is sent again. A field is sent whole again once its last
+        /// whole frame is <see cref="SentOnChangeRefreshTicks"/> old.
+        /// </summary>
+        private static StreamData LeaveOutUnchanged(
+            ClientSession session,
+            StreamData streamData,
+            IDictionary<string, object?> fields,
+            IReadOnlyList<string> sentOnChange,
+            out Action? onSent)
+        {
+            var topic = streamData.Topic;
+            var now = System.Diagnostics.Stopwatch.GetTimestamp();
+            List<string>? leftOut = null;
+            var carried = new List<KeyValuePair<string, object?>>(sentOnChange.Count);
+            foreach (var field in sentOnChange)
+            {
+                var key = topic + "\n" + field;
+                fields.TryGetValue(field, out var value);
+                if (value != null
+                    && session.SentOnChange.TryGetValue(key, out var sent)
+                    && now - sent.SentAt < SentOnChangeRefreshTicks
+                    && SameFieldValue(sent.Value, value))
+                {
+                    (leftOut ??= new List<string>()).Add(field);
+                    continue;
+                }
+                carried.Add(new KeyValuePair<string, object?>(key, value));
+            }
+
+            var epoch = Volatile.Read(ref session.SentOnChangeEpoch);
+            onSent = () =>
+            {
+                if (Volatile.Read(ref session.SentOnChangeEpoch) != epoch)
+                {
+                    return;
+                }
+                foreach (var pair in carried)
+                {
+                    if (pair.Value == null)
+                    {
+                        session.SentOnChange.TryRemove(pair.Key, out _);
+                    }
+                    else
+                    {
+                        session.SentOnChange[pair.Key] = new SentField(pair.Value, now);
+                    }
+                }
+            };
+
+            if (leftOut == null)
+            {
+                return streamData;
+            }
+            var kept = new Dictionary<string, object?>(fields.Count, StringComparer.Ordinal);
+            foreach (var pair in fields)
+            {
+                if (!leftOut.Contains(pair.Key))
+                {
+                    kept[pair.Key] = pair.Value;
+                }
+            }
+            return new StreamData
+            {
+                Topic = streamData.Topic,
+                Payload = kept,
+                Meta = streamData.Meta,
+                Unchanged = leftOut.ToArray(),
+            };
+        }
+
+        /// <summary>The payload fields each topic sends a connection only when they change.</summary>
+        private readonly ConcurrentDictionary<string, IReadOnlyList<string>> _fieldsSentOnChange =
+            new ConcurrentDictionary<string, IReadOnlyList<string>>(VesselViewProvider.FieldsSentOnChange, StringComparer.Ordinal);
+
+        /// <summary>Send <paramref name="fields"/> of <paramref name="topic"/> to each connection only when they change, for subscriptions made after this call.</summary>
+        internal void SendFieldsOnChange(string topic, IReadOnlyList<string> fields) => _fieldsSentOnChange[topic] = fields;
+
+        /// <summary>
+        /// The longest a field sent only on change goes without being sent whole,
+        /// so a client that lost what it held (a screen rebuilt over a connection
+        /// that stayed open) has it back within this long even while it holds.
+        /// </summary>
+        private static readonly long SentOnChangeRefreshTicks = System.Diagnostics.Stopwatch.Frequency * 5;
+
+        /// <summary>A value a connection was last sent for a field sent only on change, and the <see cref="System.Diagnostics.Stopwatch"/> timestamp of that frame.</summary>
+        private sealed class SentField
+        {
+            public SentField(object value, long sentAt)
+            {
+                Value = value;
+                SentAt = sentAt;
+            }
+
+            public object Value { get; }
+            public long SentAt { get; }
+        }
+
+        private static bool SameFieldValue(object sent, object value) =>
+            ReferenceEquals(sent, value)
+            || (sent is double[] a && value is double[] b && a.SequenceEqual(b));
+
         private void ProcessSubscribe(ClientSession session, string topic)
         {
             // A close on a send can queue the disconnect ahead of a subscribe the
@@ -11181,6 +11288,11 @@ namespace Sitrep.Host
             var delivery = _channelDeclarations[topic].Delivery;
             var opaque = _channelDeclarations[topic].OpaquePayload;
             var viewerFilter = _channelDeclarations[topic].ViewerFilter;
+            var sentOnChange = !opaque && delivery != Delivery.ReliableOrdered
+                && _fieldsSentOnChange.TryGetValue(topic, out var onChange)
+                ? onChange
+                : null;
+            session.ForgetSentOnChange(topic);
 
             Action unsubscribe;
             try
@@ -11222,6 +11334,14 @@ namespace Sitrep.Host
                     // fail-softs the owning uplink on the FIRST failed
                     // serialization instead of the throw recurring silently,
                     // unattributed, on every subsequent tick.
+                    Action? onSent = null;
+                    if (sentOnChange != null
+                        && streamData.Meta.Staleness != Staleness.Recorded
+                        && streamData.Payload is IDictionary<string, object?> fields)
+                    {
+                        streamData = LeaveOutUnchanged(session, streamData, fields, sentOnChange, out onSent);
+                    }
+
                     byte[] bytes;
                     var serializeStarted = PublishStats.Enabled || PerfTelemetry.Enabled ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
                     try
@@ -11281,7 +11401,7 @@ namespace Sitrep.Host
                     }
                     else
                     {
-                        session.Outbox.PublishTelemetry(topic, bytes);
+                        session.Outbox.PublishTelemetry(topic, bytes, onSent);
                     }
                 });
             }
@@ -11504,6 +11624,7 @@ namespace Sitrep.Host
                     // topic can drain post-reset; it's a genuine no-op if
                     // nothing was pending.
                     session.Outbox.ClearTopic(topic);
+                    session.ForgetSentOnChange(topic);
 
                     var reset = new EventMsg
                     {
@@ -12446,10 +12567,35 @@ namespace Sitrep.Host
             /// <summary>The rate tier this connection asks for on each subscribed topic, base ones left out. Courier-thread-only.</summary>
             public readonly Dictionary<string, string> RateTiers = new Dictionary<string, string>(StringComparer.Ordinal);
 
+            /// <summary>
+            /// The value each field sent only on change last carried in a frame the
+            /// socket accepted, and when, by topic and field, so a later frame can
+            /// leave it out while it still holds. Written on the pump thread, read and
+            /// cleared on the Courier thread.
+            /// </summary>
+            public readonly ConcurrentDictionary<string, SentField> SentOnChange = new ConcurrentDictionary<string, SentField>(StringComparer.Ordinal);
+
+            /// <summary>Counts <see cref="ForgetSentOnChange"/> calls, so a frame already handed to the pump before one records nothing after it.</summary>
+            public int SentOnChangeEpoch;
+
             public ClientSession(ITransportConnection connection)
             {
                 Connection = connection;
                 Outbox = new ChannelOutbox(connection);
+            }
+
+            /// <summary>Forget what <paramref name="topic"/>'s fields last held, so its next frame carries them all.</summary>
+            public void ForgetSentOnChange(string topic)
+            {
+                Interlocked.Increment(ref SentOnChangeEpoch);
+                var prefix = topic + "\n";
+                foreach (var key in SentOnChange.Keys)
+                {
+                    if (key.StartsWith(prefix, StringComparison.Ordinal))
+                    {
+                        SentOnChange.TryRemove(key, out _);
+                    }
+                }
             }
         }
 
@@ -12519,7 +12665,7 @@ namespace Sitrep.Host
         private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(50);
 
         private readonly ITransportConnection _connection;
-        private readonly ConcurrentDictionary<string, byte[]> _latestByTopic = new ConcurrentDictionary<string, byte[]>();
+        private readonly ConcurrentDictionary<string, QueuedFrame> _latestByTopic = new ConcurrentDictionary<string, QueuedFrame>();
         private readonly ConcurrentQueue<byte[]> _reliable = new ConcurrentQueue<byte[]>();
         private readonly SemaphoreSlim _signal = new SemaphoreSlim(0, int.MaxValue);
         private readonly Thread _pumpThread;
@@ -12533,9 +12679,12 @@ namespace Sitrep.Host
         }
 
         /// <summary>Courier-thread-only: publish the latest serialized telemetry frame for a topic. Never blocks. Coalesces, a later call before the pump drains replaces the earlier one.</summary>
-        public void PublishTelemetry(string topic, byte[] payload)
+        public void PublishTelemetry(string topic, byte[] payload) => PublishTelemetry(topic, payload, null);
+
+        /// <summary>Courier-thread-only: as <see cref="PublishTelemetry(string, byte[])"/>, and <paramref name="onSent"/> runs on the pump thread once the socket accepts this frame. It never runs for a frame a later one replaced first.</summary>
+        public void PublishTelemetry(string topic, byte[] payload, Action? onSent)
         {
-            _latestByTopic[topic] = payload;
+            _latestByTopic[topic] = new QueuedFrame(payload, onSent);
             _signal.Release();
         }
 
@@ -12588,11 +12737,14 @@ namespace Sitrep.Host
 
                 foreach (var topic in _latestByTopic.Keys.ToArray())
                 {
-                    if (!_latestByTopic.TryRemove(topic, out var payload))
+                    if (!_latestByTopic.TryRemove(topic, out var frame))
                     {
                         continue;
                     }
-                    _connection.TrySend(new ArraySegment<byte>(payload), SendClass.Telemetry);
+                    if (_connection.TrySend(new ArraySegment<byte>(frame.Payload), SendClass.Telemetry))
+                    {
+                        frame.OnSent?.Invoke();
+                    }
                 }
             }
         }
@@ -12602,6 +12754,18 @@ namespace Sitrep.Host
         {
             _stopping = true;
             _signal.Release();
+        }
+
+        private sealed class QueuedFrame
+        {
+            public QueuedFrame(byte[] payload, Action? onSent)
+            {
+                Payload = payload;
+                OnSent = onSent;
+            }
+
+            public byte[] Payload { get; }
+            public Action? OnSent { get; }
         }
     }
 }

@@ -422,6 +422,7 @@ function defineEnvelopes(schemas, contract) {
           "this to that channel's payload schema.",
       },
       meta: schemas.ref("Meta"),
+      unchanged: field("StreamData", "unchanged"),
     },
     examples: [EXAMPLE_STREAM_DATA],
   });

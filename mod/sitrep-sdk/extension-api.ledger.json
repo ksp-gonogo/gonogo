@@ -12905,6 +12905,10 @@
         "note": "The name the publishing contract gives a field, for a picker, a graph title or a legend"
       },
       {
+        "key": "sitrep-sdk . fieldsSentOnChange",
+        "note": "The payload fields of a Topic the mod sends a connection only when they change, so a relay to another screen can leave them out the same way."
+      },
+      {
         "key": "sitrep-sdk . hasSupersededFields",
         "note": "New: whether a Topic's history drops some fields from samples no longer on screen"
       },
