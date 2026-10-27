@@ -10612,7 +10612,7 @@ namespace Sitrep.Host
                     // later job.Vantage read passed to
                     // _courier.DispatchCommand below (CS8604).
                     Vantage = job.Vantage,
-                    DispatchedAt = _clock.Now(),
+                    DispatchedAt = PressUt(),
                     OneWaySeconds = uplinkDelay,
                     // What the command asked for, when it is a declared control
                     // channel's write half. Still a dispatch-time fact (see
