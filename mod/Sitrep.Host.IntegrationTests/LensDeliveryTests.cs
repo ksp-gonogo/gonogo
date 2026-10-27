@@ -75,6 +75,31 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public void ARouteWithNoMeasuredDelayDeliversNothingUntilTheDelayIsMeasured()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.Start();
+            try
+            {
+                engine.BindLensSite("scope", Remote, Commander);
+                engine.SetCentreRoutes(new Dictionary<string, IReadOnlyCollection<string>> { [Commander] = new[] { Remote } });
+                Tick(engine, 100.0);
+                Assert.Null(engine.LensKnowledgeUt("scope"));
+
+                engine.SetCentreDelay(Commander, Remote, 5.0);
+                Tick(engine, 110.0);
+                Assert.Null(engine.LensKnowledgeUt("scope"));
+
+                Tick(engine, 115.0);
+                Assert.Equal(110.0, engine.LensKnowledgeUt("scope"));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public void TwoSitesSharingAScopeAreAgedByTheLongestDelay()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
