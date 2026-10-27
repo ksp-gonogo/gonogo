@@ -283,7 +283,7 @@ describe("Dashboard: mobile / touch path", () => {
     expect(cell?.getAttribute("data-mobile-width")).toBe("half");
   });
 
-  it("remove asks again inside the menu before dropping the tile", async () => {
+  it("remove drops the tile at once", async () => {
     const user = userEvent.setup();
     registerStubWidget("alpha", "Alpha");
     const KEY = "test-mobile-remove";
@@ -298,9 +298,7 @@ describe("Dashboard: mobile / touch path", () => {
       />,
     );
 
-    await chooseFromMenu(user, "Alpha", "Remove Alpha...");
-    expect(screen.getByTestId("body-alpha")).toBeInTheDocument();
-    await user.click(screen.getByRole("menuitem", { name: "Remove Alpha" }));
+    await chooseFromMenu(user, "Alpha", "Remove Alpha");
     expect(screen.queryByTestId("body-alpha")).toBeNull();
   });
 

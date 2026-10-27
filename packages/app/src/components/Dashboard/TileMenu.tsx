@@ -32,7 +32,6 @@ interface TileMenuProps {
  * The list dashboard's per-tile controls behind one button: reorder, width,
  * height, push to the main screen and remove. A half-width tile has no room
  * for five 44px targets beside its name, so they open from here instead.
- * Removing asks again inside the menu, as the grid's remove button does.
  */
 export function TileMenu({
   item,
@@ -52,13 +51,11 @@ export function TileMenu({
 }: Readonly<TileMenuProps>) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const pushClient = usePushClient();
   const pushed = pushClient?.isPushed(item.i) ?? false;
 
   const dismiss = useCallback(() => {
     setOpen(false);
-    setConfirming(false);
     triggerRef.current?.focus();
   }, []);
 
@@ -67,32 +64,27 @@ export function TileMenu({
     return rect ? { x: rect.right, y: rect.bottom } : null;
   }, []);
 
-  const items: ActionMenuItem[] = confirming
-    ? [
-        { key: "remove-confirm", label: `Remove ${name}` },
-        { key: "remove-cancel", label: "Keep it" },
-      ]
-    : [
-        { key: "up", label: "Move up", disabled: isFirst },
-        { key: "down", label: "Move down", disabled: isLast },
-        {
-          key: "width",
-          label: half ? "Expand to full width" : "Shrink to half width",
-        },
-        {
-          key: "height",
-          label: halfHeight ? "Expand to full height" : "Shrink to half height",
-        },
-        ...(pushable && pushClient
-          ? [
-              {
-                key: "push",
-                label: pushed ? "Recall from main" : "Push to main",
-              },
-            ]
-          : []),
-        { key: "remove", label: `Remove ${name}...` },
-      ];
+  const items: ActionMenuItem[] = [
+    { key: "up", label: "Move up", disabled: isFirst },
+    { key: "down", label: "Move down", disabled: isLast },
+    {
+      key: "width",
+      label: half ? "Expand to full width" : "Shrink to half width",
+    },
+    {
+      key: "height",
+      label: halfHeight ? "Expand to full height" : "Shrink to half height",
+    },
+    ...(pushable && pushClient
+      ? [
+          {
+            key: "push",
+            label: pushed ? "Recall from main" : "Push to main",
+          },
+        ]
+      : []),
+    { key: "remove", label: `Remove ${name}` },
+  ];
 
   const select = (key: string) => {
     switch (key) {
@@ -120,9 +112,6 @@ export function TileMenu({
           });
         break;
       case "remove":
-        setConfirming(true);
-        return;
-      case "remove-confirm":
         onRemove();
         return;
       default:

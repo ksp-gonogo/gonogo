@@ -1,6 +1,5 @@
 import { CloseIcon, PushUpIcon, RecallIcon } from "@ksp-gonogo/ui";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
-import { useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { usePushClient } from "../../pushToMain/PushClientContext";
 import type { DashboardItem } from "./index";
@@ -8,84 +7,21 @@ import { handleMouseDown } from "./mouseHandlers";
 import { touchTarget } from "./touchTarget";
 
 /**
- * Removes a widget from the dashboard. Pressing it swaps the control for a
- * labelled "Remove <name>?" prompt with Remove and Cancel buttons; Escape
- * cancels, and focus moves to Cancel on open and back to the remove button
- * on cancel.
+ * Removes a widget from the dashboard at once. Undo in the header brings it
+ * back. Used in the header of every tile on the grid dashboard.
  */
 export function RemoveButton({
   onRemove,
   name = "widget",
 }: Readonly<{ onRemove: () => void; name?: string }>) {
-  const [confirming, setConfirming] = useState(false);
-  const removeRef = useRef<HTMLButtonElement>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
-  const restoreFocus = useRef(false);
-
-  useEffect(() => {
-    if (confirming) {
-      cancelRef.current?.focus();
-      return;
-    }
-    if (restoreFocus.current) {
-      restoreFocus.current = false;
-      removeRef.current?.focus();
-    }
-  }, [confirming]);
-
-  function cancel() {
-    restoreFocus.current = true;
-    setConfirming(false);
-  }
-
-  if (confirming) {
-    return (
-      // biome-ignore lint/a11y/useSemanticElements: a group of two buttons, not a fieldset
-      <ConfirmGroup
-        role="group"
-        aria-label={`Remove ${name}?`}
-        onMouseDown={handleMouseDown}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.stopPropagation();
-            cancel();
-          }
-        }}
-      >
-        <ConfirmText>Remove {name}?</ConfirmText>
-        <ConfirmBtn
-          type="button"
-          $danger
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-        >
-          Remove
-        </ConfirmBtn>
-        <ConfirmBtn
-          type="button"
-          ref={cancelRef}
-          onClick={(e) => {
-            e.stopPropagation();
-            cancel();
-          }}
-        >
-          Cancel
-        </ConfirmBtn>
-      </ConfirmGroup>
-    );
-  }
-
   return (
     <Tooltip text={`Remove ${name}`}>
       <RemoveBtn
-        ref={removeRef}
         type="button"
         onMouseDown={handleMouseDown}
         onClick={(e) => {
           e.stopPropagation();
-          setConfirming(true);
+          onRemove();
         }}
         aria-label={`Remove ${name}`}
       >
@@ -238,37 +174,6 @@ const RemoveBtn = styled.button`
   &:hover {
     color: var(--color-nogo-text);
   }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-`;
-
-const ConfirmGroup = styled.span`
-  pointer-events: all;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--gap-glyph-tray);
-  margin-left: var(--gap-glyph-tray);
-  font-size: var(--font-size-xs);
-  white-space: nowrap;
-`;
-
-const ConfirmText = styled.span`
-  color: var(--color-text-faint);
-`;
-
-const ConfirmBtn = styled.button<{ $danger?: boolean }>`
-  background: none;
-  border: 1px solid currentColor;
-  border-radius: var(--radius-regular);
-  color: ${({ $danger }) => ($danger ? "var(--color-tag-red-fg)" : "var(--color-text-faint)")};
-  cursor: pointer;
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-flush);
-  padding: var(--inset-control-compact);
-  ${touchTarget}
 
   &:focus-visible {
     outline: 2px solid var(--color-focus);
