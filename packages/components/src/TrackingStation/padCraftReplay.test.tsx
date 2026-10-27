@@ -50,7 +50,7 @@ describe("TrackingStation: a craft on the pad", () => {
     const panel = await selectPadCraft();
 
     expect(panel).toHaveTextContent(/Crew\s*0\/0/);
-    expect(panel).toHaveTextContent(/Comms\s*connected/);
+    expect(panel).toHaveTextContent(/Link\s*DIRECT/);
     expect(panel).not.toHaveTextContent("unknown");
   }, 60_000);
 });

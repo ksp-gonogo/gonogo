@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -154,6 +154,41 @@ describe("a home folder path in a recording", () => {
       expect(() =>
         assertNoHomePaths(readWireFixture(join(folder, name))),
       ).not.toThrow();
+    }
+  });
+});
+
+describe("committed recordings", () => {
+  const root = join(import.meta.dirname, "../../../");
+  const folder = join(root, "tests/fixtures/wire");
+  const source = readFileSync(
+    join(root, "mod/Sitrep.Contract/ContractVersion.cs"),
+    "utf8",
+  );
+  const declared = (name: "Major" | "Minor"): number =>
+    Number(
+      new RegExp(`public\\s+const\\s+int\\s+${name}\\s*=\\s*(\\d+)`).exec(
+        source,
+      )?.[1],
+    );
+
+  it("carry the contract major the app speaks and no minor ahead of it", () => {
+    const major = declared("Major");
+    const minor = declared("Minor");
+    expect(Number.isInteger(major) && Number.isInteger(minor)).toBe(true);
+    for (const name of readdirSync(folder)) {
+      const hello = readWireFixture(join(folder, name)).find(
+        (row) => row.frame.type === "hello",
+      )?.frame;
+      const recorded = `${hello?.contractMajor}.${hello?.contractMinor}`;
+      const current =
+        hello?.contractMajor === major &&
+        typeof hello.contractMinor === "number" &&
+        hello.contractMinor <= minor;
+      expect(
+        current,
+        `${name} was recorded on contract ${recorded} but ContractVersion.cs is ${major}.${minor}. A replay shows "Update the mod" when the major differs or the minor is ahead of the app; a minor behind it replays fine. Re-record it on the rig and cut it with tests/playwright/wire-fixture.mjs trim`,
+      ).toBe(true);
     }
   });
 });

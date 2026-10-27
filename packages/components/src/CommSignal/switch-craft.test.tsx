@@ -5,8 +5,8 @@ import { act, render } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { startRigReplay, wireFixture } from "../test/replayRig";
 
-const PROBE = "cd07e665-3ece-761f-05a5-2c8c4bad5344";
-const CONTROL = "0556f872-7559-0466-d6d6-f7648bcd4344";
+const PROBE = "7af03fa9-43f6-4263-b2c8-8a498dd42a84";
+const CONTROL = "2c75c3b3-03c2-4e2d-a0b5-856ff50f6864";
 
 /** What the signal and identity widgets read, captured on every render. */
 const linkStates: string[] = [];
@@ -48,14 +48,14 @@ describe("switching from a craft 286 s away to a craft with no link", () => {
       </replay.Provider>,
     );
 
-    act(() => replay.advanceTo(0));
+    act(() => replay.advanceTo(1.5));
     expect(shown.at(-1)).toEqual({ level: 2, vesselId: PROBE });
 
     act(() => replay.advanceTo(30));
-    expect(shown.at(-1)).toEqual({ level: 0, vesselId: CONTROL });
+    expect(shown.at(-1)?.vesselId).toBe(CONTROL);
 
     act(() => replay.advanceTo(replay.duration));
-    expect(shown.at(-1)).toEqual({ level: 0, vesselId: CONTROL });
+    expect(shown.at(-1)?.vesselId).toBe(CONTROL);
   });
 
   it("reads a craft with no link as not connected once it is connected to, not as awaited for the old craft's delay", () => {

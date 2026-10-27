@@ -1,0 +1,19 @@
+{
+  "id": "kerbalism",
+  "name": "Kerbalism",
+  "description": "Kerbalism life support as one ledger: every profile resource as a meter with the per-source rates that move it, plus wear, habitat, processes and power.",
+  "author": "jpeps",
+  "repo": "https://github.com/ksp-gonogo/gonogo-uplinks",
+  "mod": {
+    "name": "Kerbalism",
+    "builtAgainst": "3.32"
+  },
+  "version": "1.0.0-rc.4",
+  "minAppVersion": "0.0.0",
+  "apiVersion": "6.0.0",
+  "contractMajor": 49,
+  "contractMinor": 4,
+  "bundleUrl": "kerbalism/kerbalism.client.js",
+  "integrity": "sha256-a54dca386ad2212c73c31c08f5ef11d6ebeec29b3fe0dc4c89e43c0c9206eda1",
+  "sdkVersion": "0.0.1"
+}
