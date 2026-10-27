@@ -244,7 +244,7 @@ namespace Sitrep.Host
             }
             catch (Exception ex)
             {
-                FailSoftNamespaceResolver(prefix, ex);
+                FailSoftNamespaceResolver(prefix, ex, "VesselIdForKey threw; its topics route to the active craft until it stops");
                 return null;
             }
         }
@@ -254,15 +254,14 @@ namespace Sitrep.Host
         /// on the per-topic resolution path, so an unthrottled report would write
         /// a line per channel per tick for as long as the fault lasted.
         /// </summary>
-        private void FailSoftNamespaceResolver(string prefix, Exception ex)
+        private void FailSoftNamespaceResolver(string prefix, Exception ex, string outcome)
         {
             if (!_reportedResolverFaults.Add(prefix))
             {
                 return;
             }
             LogHost(
-                "dynamic namespace \"" + prefix
-                + "\" VesselIdForKey threw; its topics route to the active craft until it stops: "
+                "dynamic namespace \"" + prefix + "\" " + outcome + ": "
                 + SafeExceptionMessage(ex));
         }
 
@@ -283,6 +282,7 @@ namespace Sitrep.Host
 
         private readonly ManualClock _clock;
         private readonly INetwork _network;
+        private readonly StubNetwork _ledger;
         private readonly Courier _courier;
         private readonly FleckTransportListener _listener;
         private readonly Kernel _kernel = new Kernel();
@@ -1725,6 +1725,7 @@ namespace Sitrep.Host
             // learn its own balance a craft's distance late.
             stubNetwork.SetNodeDelay(HomeCommandNode, 0.0);
             _network = stubNetwork;
+            _ledger = stubNetwork;
             _courier = new Courier(_clock, _network) { NewestWins = IsFreezeExempt };
             // A break in a craft's route catches the light the craft sent. A
             // TrueNow channel is the ground's own state, and a freeze-exempt
@@ -3567,28 +3568,40 @@ namespace Sitrep.Host
          */
         private Dictionary<(string Centre, string Node), double> _uplinkOnlySeconds = new Dictionary<(string, string), double>();
 
+        /*
+         * The one-way seconds each centre last knew to a node its route no longer
+         * carries a command to. Its ledger row says "never", so a press into that
+         * route is timed by this instead, and is lost a round trip later.
+         */
+        private Dictionary<(string Centre, string Node), double> _lostRouteSeconds = new Dictionary<(string, string), double>();
+
         public void SetCarried(IReadOnlyDictionary<string, IReadOnlyDictionary<string, CommsDirection>> nodesByCentre)
         {
             var next = new Dictionary<string, Dictionary<string, CommsDirection>>();
             var uplinkOnly = new Dictionary<(string, string), double>();
+            var lastKnown = new Dictionary<(string, string), double>();
             foreach (var row in nodesByCentre)
             {
                 var nodes = new Dictionary<string, CommsDirection>(StringComparer.Ordinal);
                 foreach (var node in row.Value)
                 {
                     nodes[node.Key] = node.Value;
-                    if (node.Value.HasFlag(CommsDirection.Forward) && !node.Value.HasFlag(CommsDirection.Reverse))
+                    var pair = (row.Key, node.Key);
+                    var seconds = _network.DelayTo(row.Key, node.Key);
+                    var finite = !double.IsInfinity(seconds) && !double.IsNaN(seconds);
+                    if (node.Value.HasFlag(CommsDirection.Forward) && !node.Value.HasFlag(CommsDirection.Reverse) && finite)
                     {
-                        var seconds = _network.DelayTo(row.Key, node.Key);
-                        if (!double.IsInfinity(seconds) && !double.IsNaN(seconds))
-                        {
-                            uplinkOnly[(row.Key, node.Key)] = seconds;
-                        }
+                        uplinkOnly[pair] = seconds;
+                    }
+                    if (!node.Value.HasFlag(CommsDirection.Forward) && LastKnownSeconds(pair, seconds, finite) is double known)
+                    {
+                        lastKnown[pair] = known;
                     }
                 }
                 next[row.Key] = nodes;
             }
             _uplinkOnlySeconds = uplinkOnly;
+            _lostRouteSeconds = lastKnown;
 
             /*
              * A centre that cannot hear a node is delivered nothing from it. With
@@ -3628,12 +3641,48 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// The delay a centre last knew to a node its route no longer carries a
+        /// command to: the pair's own row when this pass still has one, otherwise
+        /// what the last pass kept, or null when it never knew one.
+        /// </summary>
+        private double? LastKnownSeconds((string Centre, string Node) pair, double seconds, bool finite)
+        {
+            if (finite && _ledger.HasDelayFor(pair.Centre, pair.Node))
+            {
+                return seconds;
+            }
+            return _lostRouteSeconds.TryGetValue(pair, out var held) ? held : (double?)null;
+        }
+
+        /// <summary>
+        /// The one-way seconds a press from <paramref name="vantage"/> into a link
+        /// that is down is sent at: the pair's own delay, or the one the centre
+        /// knew before its route stopped carrying commands, or null when it never
+        /// knew one.
+        /// </summary>
+        private double? SecondsIntoALostLink(string vantage, string node)
+        {
+            var seconds = UplinkDelayTo(vantage, node);
+            if (!double.IsInfinity(seconds) && !double.IsNaN(seconds))
+            {
+                return seconds;
+            }
+            return _lostRouteSeconds.TryGetValue((vantage, node), out var known) ? known : (double?)null;
+        }
+
+        /// <summary>
         /// The one-way seconds a command from <paramref name="vantage"/> is quoted to
         /// <paramref name="node"/>: the pair's ledger row, or the pass's own figure
         /// where that row is held at "never" because nothing comes back.
         /// </summary>
-        internal double UplinkDelayTo(string vantage, string node) =>
-            _uplinkOnlySeconds.TryGetValue((vantage, node), out var seconds) ? seconds : _network.DelayTo(vantage, node);
+        internal double UplinkDelayTo(string vantage, string node)
+        {
+            if (IsOwnSite(vantage, node))
+            {
+                return 0.0;
+            }
+            return _uplinkOnlySeconds.TryGetValue((vantage, node), out var seconds) ? seconds : _network.DelayTo(vantage, node);
+        }
 
         /*
          * Centre-to-centre pairs with a routed path as of the last SetCentreRoutes,
@@ -8297,6 +8346,15 @@ namespace Sitrep.Host
                 return double.PositiveInfinity;
             }
 
+            // A subject with no delay known from anywhere would be timed by the
+            // whole-network default, the active craft's delay. It is held the way
+            // a dark subject's reading is, until ReleaseReadingsNowTimed finds one.
+            if (!NodeDelayKnown(node))
+            {
+                _heldForUnknownDelay.Add(topic);
+                return double.PositiveInfinity;
+            }
+
             // Delay migrated to the ledger: a connected ordinary
             // Delayed topic records straight through the gate; the Courier/
             // Archive apply the light-time via DelayTo. The gate now only
@@ -8537,12 +8595,13 @@ namespace Sitrep.Host
         /// rule: a sender that knows it has no route to the subject is refused,
         /// never quoted a delay. There is no route when the subject's own link is
         /// down, or when the sending centre's pass found no path from it to the
-        /// subject, whatever the subject's link home reads. The home command's
-        /// ledger is never out of contact with itself, so for it only the second
-        /// half can be down. Courier-thread-only.
+        /// subject, whatever the subject's link home reads, or when no delay from
+        /// it to the subject is known at all (see <see cref="DelayKnown"/>). The
+        /// home command's ledger is never out of contact with itself, so for it
+        /// only the second half can be down. Courier-thread-only.
         /// </summary>
         internal bool CanSend(string vantage, string node) =>
-            _reach.Reaches(vantage, node, FleetNodePrefix, _deliveryInputs.NetworkModelled, SubjectConnected(node), HomeCentre(), CommsDirection.Forward);
+            _reach.Reaches(vantage, node, FleetNodePrefix, _deliveryInputs.NetworkModelled, SubjectConnected(node), HomeCentre(), CommsDirection.Forward, DelayKnown(vantage, node));
 
         /// <summary>
         /// Whether what <paramref name="node"/> sends reaches <paramref name="vantage"/>:
@@ -8550,7 +8609,7 @@ namespace Sitrep.Host
         /// telemetry, spans and reports travel. Courier-thread-only.
         /// </summary>
         internal bool CanHear(string vantage, string node) =>
-            _reach.Reaches(vantage, node, FleetNodePrefix, _deliveryInputs.NetworkModelled, SubjectConnected(node), HomeCentre(), CommsDirection.Reverse);
+            _reach.Reaches(vantage, node, FleetNodePrefix, _deliveryInputs.NetworkModelled, SubjectConnected(node), HomeCentre(), CommsDirection.Reverse, DelayKnown(vantage, node));
 
         /// <summary>
         /// Rewrite the delay ledger for this tick, after
@@ -9754,6 +9813,7 @@ namespace Sitrep.Host
                 // in-flight Courier deliveries: §7.3 Step 3, on-reset flush).
                 _revealBuffer.Clear();
                 _recordings.Clear();
+                _heldForUnknownDelay.Clear();
                 _recordedBytes = 0;
                 _heldSampleBytes.Clear();
                 _releasing.Clear();
@@ -9932,6 +9992,7 @@ namespace Sitrep.Host
             // above run before it is known. See RefreshLedgerDelays.
             RefreshLedgerDelays();
             AdvanceLensDelivery(tick.Ut);
+            ReleaseReadingsNowTimed(tick.Ut);
             using (PerfTelemetry.Time("courier.craftReach"))
             {
                 SayCraftReach();
@@ -10622,12 +10683,24 @@ namespace Sitrep.Host
                 return;
             }
 
+            // With no delay known to the subject the only figure left is the
+            // whole-network default, the active craft's delay, which says nothing
+            // about where this order is going. Refused where it was pressed.
+            if (!DelayKnown(job.Vantage, node))
+            {
+                job.OnResult(CommandResult.Fail(CommandErrorCode.NoConnection, SubjectDelayUnknownDetail));
+                job.Done?.Set();
+                return;
+            }
+
             // What a centre is told at the press is what its own plan says, so
             // the press reads the same whether or not the far link is really up.
             var plannedSeconds = PlannedLiveSeconds(job, node);
             var lostOnTheWay = !CanSend(job.Vantage, node);
-            if (lostOnTheWay && plannedSeconds == null)
+            var sentSeconds = plannedSeconds ?? (lostOnTheWay ? SecondsIntoALostLink(job.Vantage, node) : UplinkDelayTo(job.Vantage, node));
+            if (sentSeconds == null)
             {
+                job.OnResult(CommandResult.Fail(CommandErrorCode.NoConnection, SubjectDelayUnknownDetail));
                 job.Done?.Set();
                 return;
             }
@@ -10647,7 +10720,7 @@ namespace Sitrep.Host
             // CaptureSignalDelay). Used for the pending-uplink prediction here
             // and, via the Courier's own DelayTo fallback below, for the actual
             // round-trip. NaN/Inf/<=0 already collapse to 0 inside SetDefaultDelay.
-            var uplinkDelay = plannedSeconds ?? UplinkDelayTo(job.Vantage, node);
+            var uplinkDelay = sentSeconds.Value;
 
             var requestId = NextRequestId();
 
@@ -10702,10 +10775,16 @@ namespace Sitrep.Host
 
             if (lostOnTheWay)
             {
-                // Sent on the centre's plan into a link that is not there. It
-                // never arrives and nothing answers, so the centre learns of
-                // the loss when the reply it predicted fails to come, a round
-                // trip after the press and no sooner.
+                // Sent into a link that is not there, on the centre's plan or on
+                // the delay it last knew. It never arrives and nothing answers,
+                // so the centre learns of the loss when the reply it predicted
+                // fails to come, a round trip after the press and no sooner. A
+                // zero delay is still told, so the client has a deadline to
+                // settle it by.
+                if (uplinkDelay <= 0)
+                {
+                    job.OnAccepted?.Invoke(0.0);
+                }
                 job.Done?.Set();
                 return;
             }
@@ -10723,6 +10802,7 @@ namespace Sitrep.Host
                 job.Args,
                 job.Vantage,
                 response => AnswerLivePath(requestId, clientRequestId, command, response),
+                uplinkDelaySeconds: IsOwnSite(job.Vantage, node) ? 0.0 : (double?)null,
                 correlation: clientRequestId,
                 label: job.Label ?? "",
                 topic: job.Topic ?? "",
