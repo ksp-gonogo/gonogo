@@ -13,10 +13,22 @@ namespace Sitrep.Core
     /// where it was until the longer path catches up. A path that is lost freezes
     /// it, and nothing is read from the last finite delay: no path means nothing
     /// new has been delivered, not that the delay stayed the same.</para>
+    ///
+    /// <para>Only an instant sent while the path stood counts. After a loss the
+    /// instant holds until the path returns and one delay has passed, then reads
+    /// the centre's state as of the return, never anything sent during the
+    /// outage.</para>
     /// </summary>
     public sealed class UplinkFrontier
     {
         private double _deliveredUt = double.NegativeInfinity;
+
+        /*
+         * The first tick of the path that stands now, or null while there is none.
+         * It starts at negative infinity: before the first loss nothing says the path
+         * was ever down.
+         */
+        private double? _pathSinceUt = double.NegativeInfinity;
 
         /// <summary>Whether any of the centre's knowledge has reached the lens yet.</summary>
         public bool HasDelivered => !double.IsNegativeInfinity(_deliveredUt);
@@ -35,9 +47,15 @@ namespace Sitrep.Core
                 || double.IsInfinity(oneWaySeconds.Value)
                 || oneWaySeconds.Value < 0)
             {
+                _pathSinceUt = null;
                 return;
             }
-            _deliveredUt = Math.Max(_deliveredUt, nowUt - oneWaySeconds.Value);
+            _pathSinceUt ??= nowUt;
+            var sentUt = nowUt - oneWaySeconds.Value;
+            if (sentUt >= _pathSinceUt.Value)
+            {
+                _deliveredUt = Math.Max(_deliveredUt, sentUt);
+            }
         }
     }
 

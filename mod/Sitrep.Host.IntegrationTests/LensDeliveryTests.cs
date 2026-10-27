@@ -58,7 +58,13 @@ namespace Sitrep.Host.IntegrationTests
 
                 Route(engine, Remote, 8.0);
                 Tick(engine, 310.0);
-                Assert.Equal(302.0, engine.LensKnowledgeUt("scope"));
+                Assert.Equal(95.0, engine.LensKnowledgeUt("scope"));
+
+                Tick(engine, 317.0);
+                Assert.Equal(95.0, engine.LensKnowledgeUt("scope"));
+
+                Tick(engine, 318.0);
+                Assert.Equal(310.0, engine.LensKnowledgeUt("scope"));
             }
             finally
             {

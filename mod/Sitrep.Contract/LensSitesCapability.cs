@@ -63,8 +63,11 @@ namespace Sitrep.Contract
         /// The newest universal time of its commanding centre's knowledge that
         /// has reached every lens in <paramref name="scope"/>, or null while
         /// none has, or when nothing is bound to it. Never moves back, and
-        /// holds still while the path to any of its lenses is lost: a lens
-        /// whose link drops keeps what it knew and learns nothing new.
+        /// holds still while the path to any of its lenses is lost, or has no
+        /// measured delay: a lens whose link drops keeps what it knew and learns
+        /// nothing new. When the path returns it holds for one more delay, then
+        /// reads the centre's knowledge as of the return; nothing sent while the
+        /// path was down ever counts as reached.
         /// </summary>
         double? KnowledgeUt(string scope);
     }

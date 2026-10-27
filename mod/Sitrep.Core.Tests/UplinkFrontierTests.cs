@@ -6,8 +6,8 @@ namespace Sitrep.Core.Tests
     /// <summary>
     /// What has reached a lens from its commanding centre is a running maximum:
     /// it follows a shortening path forward, holds through a lengthening one,
-    /// freezes while there is no path, and for sites sharing a scope is aged by
-    /// the longest delay among them.
+    /// freezes while there is no path and until one delay after it returns, and
+    /// for sites sharing a scope is aged by the longest delay among them.
     /// </summary>
     public class UplinkFrontierTests
     {
@@ -52,14 +52,23 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
-        public void ARestoredPathCatchesUpFromTheNewDelay()
+        public void ARestoredPathDeliversNothingSentDuringTheOutage()
         {
             var frontier = new UplinkFrontier();
             frontier.Advance(100.0, 5.0);
             frontier.Advance(200.0, null);
 
             frontier.Advance(300.0, 8.0);
-            Assert.Equal(292.0, frontier.DeliveredUt);
+            Assert.Equal(95.0, frontier.DeliveredUt);
+
+            frontier.Advance(307.0, 8.0);
+            Assert.Equal(95.0, frontier.DeliveredUt);
+
+            frontier.Advance(308.0, 8.0);
+            Assert.Equal(300.0, frontier.DeliveredUt);
+
+            frontier.Advance(320.0, 8.0);
+            Assert.Equal(312.0, frontier.DeliveredUt);
         }
 
         [Fact]
