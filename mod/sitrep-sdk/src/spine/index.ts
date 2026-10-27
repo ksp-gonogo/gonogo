@@ -136,6 +136,7 @@ export * from "./use-stream";
 export * from "./use-stream-event";
 export * from "./use-system-instant";
 export * from "./use-telemetry";
+export * from "./use-topic-clock";
 export * from "./use-transmissions";
 export * from "./view-clock";
 export * from "./wire-payloads";

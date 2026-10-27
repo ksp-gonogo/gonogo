@@ -43,6 +43,7 @@ import {
   useStreamEvent,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
+  useTopicClock,
   useUtNow,
   useViewClock,
   useViewClockOptional,
@@ -104,6 +105,7 @@ export function buildGonogoHost(): GonogoHost {
     useUtNow: () => useUtNow(),
     useTelemetryStoreOptional: () => useTelemetryStoreOptional(),
     useViewClockOptional: () => useViewClockOptional(),
+    useTopicClock: (topic) => useTopicClock(topic),
     getActiveTelemetryClient: () =>
       getActiveTelemetryClient() as ReturnType<
         GonogoHost["getActiveTelemetryClient"]

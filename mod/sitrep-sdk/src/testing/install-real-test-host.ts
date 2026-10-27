@@ -30,6 +30,7 @@ import { useRouteCommands } from "../spine/use-route-commands";
 import { useLatestValue, useStream } from "../spine/use-stream";
 import { useStreamEvent } from "../spine/use-stream-event";
 import { useTelemetry } from "../spine/use-telemetry";
+import { useTopicClock } from "../spine/use-topic-clock";
 import { consoleLogger } from "./console-logger";
 import { installTestHost } from "./install-test-host";
 import { recordAlarmRequest } from "./recorded-alarm-requests";
@@ -146,6 +147,7 @@ export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
     useUtNow: () => useUtNow(),
     useTelemetryStoreOptional: () => useTelemetryStoreOptional(),
     useViewClockOptional: () => useViewClockOptional(),
+    useTopicClock: (topic) => useTopicClock(topic),
     getActiveTelemetryClient: () =>
       getActiveTelemetryClient() as ReturnType<
         GonogoHost["getActiveTelemetryClient"]

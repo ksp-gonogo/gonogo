@@ -56,6 +56,7 @@ import type {
   SettingsTabDefinition,
   SlotProps,
   TelemetryClient,
+  TopicClock,
   UplinkClientHandle,
   UseCommandOptions,
   UseCommandResult,
@@ -271,6 +272,8 @@ export type {
   TinyEssentialTone,
   TinyGauge,
   TinyMode,
+  TopicClock,
+  TopicClockLink,
   UplinkClientConfig,
   UplinkClientHandle,
   UplinkClientIdentity,
@@ -1185,6 +1188,29 @@ export function useTelemetryStoreOptional(): unknown {
  */
 export function useViewClockOptional(): ViewClockLike | undefined {
   return getHost().useViewClockOptional();
+}
+
+/**
+ * The clock and link state of one Topic read at its own delay, for a feed whose
+ * site is not the active craft's. Useful for releasing a camera's video at the
+ * delay of the place the camera stands and drawing it dark while its link is
+ * silent, where the shared view clock holds every feed to the active craft's
+ * delay. Used by a camera feed for a camera on another craft or at a ground
+ * station.
+ *
+ * The clock follows the Topic's own arrivals, so pass a Topic whose Uplink
+ * declared it delivered per site: one held at the active craft's delay yields
+ * that delay. The Topic stays subscribed while the caller is mounted. `link`
+ * is `"unknown"` until a first sample arrives, and until then the clock stands
+ * at `-Infinity`, so media is held and never shown live. With no stream
+ * mounted the clock is `undefined`. An empty `topic` subscribes to nothing and
+ * reads as `"unknown"`, for a caller that has no camera to read yet.
+ *
+ * @category Delay and vantage
+ */
+export function useTopicClock(topic: string): TopicClock {
+  // gonogo:reads none
+  return getHost().useTopicClock(topic);
 }
 
 /**

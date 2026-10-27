@@ -8283,6 +8283,10 @@
         "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
+        "key": "sitrep-sdk . GonogoHost#useTopicClock",
+        "note": "The host member behind useTopicClock"
+      },
+      {
         "key": "sitrep-sdk . GonogoHost#useViewClock",
         "note": "the view clock is typed as DelayClockLike instead of unknown"
       },
@@ -10245,6 +10249,10 @@
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#useHostIceServers",
         "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GonogoHost#useTopicClock",
+        "note": "The host member behind useTopicClock"
       },
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#useViewClock",
@@ -12605,6 +12613,26 @@
         "note": "Draws every essential as an equal row in shared columns with no large first figure, for a widget whose figures are peers. Optional, so a tiny mode without it is drawn as before"
       },
       {
+        "key": "sitrep-sdk . TopicClock",
+        "note": "A clock that follows one Topic's own arrivals, with whether they are arriving"
+      },
+      {
+        "key": "sitrep-sdk . TopicClock#clock",
+        "note": "The clock a Topic's media is released against"
+      },
+      {
+        "key": "sitrep-sdk . TopicClock#delaySeconds",
+        "note": "The one-way delay the Topic's newest live sample was held for"
+      },
+      {
+        "key": "sitrep-sdk . TopicClock#link",
+        "note": "Whether the Topic's samples are arriving"
+      },
+      {
+        "key": "sitrep-sdk . TopicClockLink",
+        "note": "Unknown before a first sample, live while samples arrive, silent once the game runs on without one"
+      },
+      {
         "key": "sitrep-sdk . TrackingStationProjection",
         "note": "The Tracking Station widget's name for SystemViewProjection"
       },
@@ -12867,6 +12895,10 @@
       {
         "key": "sitrep-sdk . useSystemInstant",
         "note": "Where every body is at the instant on screen, as a pose that says whether it is exact, modelled, held or withdrawn"
+      },
+      {
+        "key": "sitrep-sdk . useTopicClock",
+        "note": "A clock and link state that follow one Topic's own arrivals, so a feed is released at the delay of the site it stands at"
       },
       {
         "key": "sitrep-sdk . ~GeneratedReckonableFieldMap",
@@ -14973,8 +15005,32 @@
         "note": "The poses of every body at one instant, by body index"
       },
       {
+        "key": "sitrep-sdk ./spine TOPIC_SILENCE_SECONDS",
+        "note": "The UT seconds without a new sample after which a Topic's link reads silent"
+      },
+      {
         "key": "sitrep-sdk ./spine TelemetryClientOptions#outstanding?",
         "note": "New option: the store a client keeps its outstanding commands in"
+      },
+      {
+        "key": "sitrep-sdk ./spine TopicClockState",
+        "note": "What useTopicClock returns: a clock that follows one Topic's own arrivals, with its link"
+      },
+      {
+        "key": "sitrep-sdk ./spine TopicClockState#clock",
+        "note": "The clock a Topic's media is released against"
+      },
+      {
+        "key": "sitrep-sdk ./spine TopicClockState#delaySeconds",
+        "note": "The one-way delay the Topic's newest live sample was held for"
+      },
+      {
+        "key": "sitrep-sdk ./spine TopicClockState#link",
+        "note": "Whether the Topic's samples are arriving"
+      },
+      {
+        "key": "sitrep-sdk ./spine TopicLinkState",
+        "note": "Unknown before a first sample, live while samples arrive, silent once the game runs on without one"
       },
       {
         "key": "sitrep-sdk ./spine UplinkClientConfig",
@@ -15159,6 +15215,10 @@
       {
         "key": "sitrep-sdk ./spine useSystemInstant",
         "note": "Where every body is at the instant on screen, as a pose that says whether it is exact, modelled, held or withdrawn"
+      },
+      {
+        "key": "sitrep-sdk ./spine useTopicClock",
+        "note": "A clock and link state that follow one Topic's own arrivals, so a feed is released at the delay of the site it stands at"
       },
       {
         "key": "sitrep-sdk ./spine wrap180",
@@ -16131,6 +16191,26 @@
       {
         "key": "sitrep-sdk ./testing ~TelemetryClientOptions#outstanding?",
         "note": "New option: the store a client keeps its outstanding commands in"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TopicClock",
+        "note": "A clock that follows one Topic's own arrivals, with whether they are arriving"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TopicClock#clock",
+        "note": "The clock to release a Topic's media against"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TopicClock#delaySeconds",
+        "note": "The one-way delay the Topic's newest live sample was held for"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TopicClock#link",
+        "note": "Whether the Topic's samples are arriving"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TopicClockLink",
+        "note": "Unknown before a first sample, live while samples arrive, silent once the game runs on without one"
       },
       {
         "key": "sitrep-sdk ./testing ~TrackingStationProjection",

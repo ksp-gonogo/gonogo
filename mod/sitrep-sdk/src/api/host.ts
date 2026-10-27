@@ -42,6 +42,7 @@ import type {
   SettingDefinition,
   SettingsTabDefinition,
   TelemetryClient,
+  TopicClock,
   UplinkClientHandle,
   UplinkRelay,
   UseCommandOptions,
@@ -130,6 +131,8 @@ export interface GonogoHost {
   useTelemetryStoreOptional(): unknown;
   /** What {@link useViewClockOptional} calls. */
   useViewClockOptional(): ViewClockLike | undefined;
+  /** What {@link useTopicClock} calls. */
+  useTopicClock(topic: string): TopicClock;
 
   /** What {@link useReplaySessionActive} calls. */
   useReplaySessionActive(): boolean;

@@ -1936,6 +1936,39 @@ export interface ViewClockLike extends DelayClockLike {
   utNowEstimate(): number;
 }
 
+/**
+ * Whether a Topic's own samples are arriving: `"unknown"` before the first one,
+ * `"live"` while they keep coming, and `"silent"` once the game has run on for
+ * five seconds of UT without a new one. Counted in game time, so a paused game
+ * is never silent. Returned in {@link TopicClock}.
+ *
+ * @category Delay and vantage
+ */
+export type TopicClockLink = "unknown" | "live" | "silent";
+
+/**
+ * A clock that follows one Topic's own arrivals, with whether they are
+ * arriving. Returned by {@link useTopicClock}.
+ *
+ * @category Delay and vantage
+ */
+export interface TopicClock {
+  /**
+   * The clock to release this Topic's media against, or `undefined` with no
+   * telemetry stream mounted. It stands at `-Infinity` until the first sample
+   * arrives, so media released against it is held, never shown early.
+   */
+  readonly clock: ViewClockLike | undefined;
+  /** Whether the Topic's samples are arriving. */
+  readonly link: TopicClockLink;
+  /**
+   * The one-way delay in seconds the Topic's newest live sample was held for,
+   * or `undefined` before one has arrived. It is the last delay seen, so it is
+   * still present while `link` is `"silent"`.
+   */
+  readonly delaySeconds: number | undefined;
+}
+
 // The real one, from this package's own `perf/PerfBudget.ts`. It was mirrored
 // here, like every other type in this file, because the class lived in
 // `@ksp-gonogo/core` and the leaf could not name it. The class is now in this
