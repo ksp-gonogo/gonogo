@@ -129,6 +129,28 @@ public class EvaKerbal
     /// kerbal holds none, and <c>null</c> when it could not be read.
     /// </summary>
     public List<EvaHeldData>? HeldData { get; set; }
+
+    /// <summary>
+    /// Whether the kerbal has the helmet on, from the crew member's own record
+    /// (<c>ProtoCrewMember.hasHelmetOn</c>). <c>null</c> when it could not be read.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? HelmetOn { get; set; }
+
+    /// <summary>
+    /// What the kerbal is carrying, from the kerbal's own inventory. Empty when the
+    /// kerbal carries nothing, and <c>null</c> when the inventory could not be read:
+    /// a kerbal whose pack could not be read is not one with an empty pack.
+    /// </summary>
+    public List<InventoryItem>? Carrying { get; set; }
+
+    /// <summary>How many slots the kerbal's inventory has, or <c>null</c> when it could not be read.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? Slots { get; set; }
+
+    /// <summary>How many of those slots hold something, or <c>null</c> when it could not be read.</summary>
+    [SitrepUnit(Units.Count)]
+    public int? SlotsUsed { get; set; }
 }
 
 /// <summary>

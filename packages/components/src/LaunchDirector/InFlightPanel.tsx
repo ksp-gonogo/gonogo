@@ -1,5 +1,6 @@
 import type { Reading, TargetListEntry, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Badge,
   Button,
   type CommandButtonHandle,
   Tooltip,
@@ -25,6 +26,7 @@ export function InFlightPanel({
   altitude,
   crashInProgress,
   noActiveVessel,
+  crewOutside,
   availableVessels,
   distanceOf,
   recoverCmd,
@@ -39,6 +41,8 @@ export function InFlightPanel({
   crashInProgress: boolean;
   /** The game has no vessel in this flight, so there is nothing to recover. */
   noActiveVessel: boolean;
+  /** Crew of this vessel who are outside it, who a recovery would leave behind. */
+  crewOutside: readonly string[];
   availableVessels: TargetListEntry[] | undefined;
   distanceOf: (entry: TargetListEntry) => Reading<Value<"m">> | undefined;
   /** The handles: each control holds its own arm and in-flight state off the one it is given. */
@@ -70,6 +74,9 @@ export function InFlightPanel({
         </FlightStatRow>
       </FlightStats>
       <PadActions>
+        {!noActiveVessel && crewOutside.length > 0 && (
+          <Badge tone="warn">{crewOutside.length} crew outside</Badge>
+        )}
         {!noActiveVessel && (
           <ArmedButton
             bindAs="recover"

@@ -333,6 +333,7 @@ public static class RtConfig
                 typeof(EvaCrewMember),
                 typeof(EvaKerbal),
                 typeof(EvaHeldData),
+                typeof(SetEvaLampArgs),
                 // surface.sites, one planted flag
                 typeof(PlantedFlag),
                 // trackingStation.bodies.statesAt reply entry

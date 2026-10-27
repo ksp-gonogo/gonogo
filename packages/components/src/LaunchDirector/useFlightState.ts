@@ -19,6 +19,14 @@ export function useFlightState() {
   const noActiveVessel = identityReading.state === "absent";
   const vesselName = identity?.name;
   const vesselId = identity?.vesselId;
+  // Crew of this vessel who are outside it: recovering the vessel does not bring them home.
+  const crewOutside = (
+    stillTrue(useTelemetry("eva.crew"), undefined)?.kerbals ?? []
+  ).flatMap((member) =>
+    member.name && vesselId !== undefined && member.parentVesselId === vesselId
+      ? [member.name]
+      : [],
+  );
   // Off `vessel.flight`'s own field reading, which stays live on rails.
   const altitudeReading: Reading<Value<"m">> =
     useTelemetry("vessel.flight").altitudeAsl;
@@ -81,6 +89,7 @@ export function useFlightState() {
   return {
     vesselName,
     noActiveVessel,
+    crewOutside,
     missionTime: missionTime ?? null,
     // The reading itself, so the figure carries its own mark: held keeps the square, a model's figure the triangle.
     altitude: altitudeReading,

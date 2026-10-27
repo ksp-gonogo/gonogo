@@ -16865,6 +16865,14 @@
         "note": "The figure is of something other than what its label names, so its mark is drawn hollow: a ring for a current figure, the held square or modelled triangle emptied otherwise"
       },
       {
+        "key": "ui-kit . HelmetIcon",
+        "note": "A space helmet icon, for whether a kerbal outside has a helmet on"
+      },
+      {
+        "key": "ui-kit . HelmetVisorUpIcon",
+        "note": "A space helmet with the visor swung up, for a kerbal outside whose visor is raised"
+      },
+      {
         "key": "ui-kit . IconButtonProps",
         "note": "IconButton is a component taking pressed, which sets aria-pressed"
       },
@@ -16981,8 +16989,20 @@
         "note": "Exported from the kit's index because a published signature names it"
       },
       {
+        "key": "ui-kit . KitIcon",
+        "note": "A wrench icon, for what a kerbal outside is carrying in their kit"
+      },
+      {
         "key": "ui-kit . LadderOfSymbol",
         "note": "Exported from the kit's index because a published signature names it"
+      },
+      {
+        "key": "ui-kit . LampIcon",
+        "note": "A light bulb icon, for the control that switches a kerbal's headlamp"
+      },
+      {
+        "key": "ui-kit . LampOffIcon",
+        "note": "A light bulb with a slash, for a kerbal's headlamp being off"
       },
       {
         "key": "ui-kit . LimitSide",

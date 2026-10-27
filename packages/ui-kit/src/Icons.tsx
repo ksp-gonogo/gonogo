@@ -13,6 +13,7 @@ import {
   Columns2,
   Computer,
   CornerDownLeft,
+  createLucideIcon,
   Database,
   FileText,
   Grip,
@@ -22,6 +23,8 @@ import {
   Info,
   Joystick,
   Layers,
+  Lightbulb,
+  LightbulbOff,
   Lock,
   type LucideProps,
   Maximize,
@@ -43,6 +46,7 @@ import {
   Undo2,
   Volume2,
   VolumeX,
+  Wrench,
   X,
 } from "lucide-react";
 import { forwardRef } from "react";
@@ -435,3 +439,78 @@ export const FullHeightIcon = makeIcon(RectangleVertical);
  * @category Icons
  */
 export const SendIcon = makeIcon(CornerDownLeft);
+const SpaceHelmet = createLucideIcon("space-helmet", [
+  [
+    "path",
+    {
+      d: "M4 11a8 8 0 0 1 16 0v3a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z",
+      key: "shell",
+    },
+  ],
+  [
+    "path",
+    { d: "M10.5 8h3a3.5 3.5 0 0 1 0 7h-3a3.5 3.5 0 0 1 0-7z", key: "visor" },
+  ],
+  ["path", { d: "M8 19v2h8v-2", key: "neck" }],
+]);
+
+const SpaceHelmetVisorUp = createLucideIcon("space-helmet-visor-up", [
+  [
+    "path",
+    {
+      d: "M4 11a8 8 0 0 1 16 0v3a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z",
+      key: "shell",
+    },
+  ],
+  ["path", { d: "M8 7.5C9.5 5 14.5 5 16 7.5", key: "visor" }],
+  [
+    "circle",
+    { cx: "12", cy: "12.5", r: "2", fill: "currentColor", key: "face" },
+  ],
+  ["path", { d: "M8 19v2h8v-2", key: "neck" }],
+]);
+
+/**
+ * A space helmet: a round shell with a round visor and a neck ring. Useful for
+ * showing the operator whether a kerbal outside has a helmet on. Used by Crew
+ * Status for each kerbal on EVA. Unnamed, it is decorative, so give it a
+ * `label` that says the state.
+ *
+ * @category Icons
+ */
+export const HelmetIcon = makeIcon(SpaceHelmet);
+/**
+ * A space helmet with its visor swung up, the kerbal's face showing under it.
+ * Useful for showing the operator that a kerbal outside has the helmet on with
+ * the visor raised. Used by Crew Status for each kerbal on EVA. Unnamed, it is
+ * decorative, so give it a `label` that says the state. {@link HelmetIcon} is
+ * its visor-down pair.
+ *
+ * @category Icons
+ */
+export const HelmetVisorUpIcon = makeIcon(SpaceHelmetVisorUp);
+/**
+ * A wrench. Useful for showing the operator what a kerbal outside is carrying
+ * in their kit. Used by Crew Status for each kerbal on EVA. Unnamed, it is
+ * decorative, so give it a `label`.
+ *
+ * @category Icons
+ */
+export const KitIcon = makeIcon(Wrench);
+/**
+ * A light bulb. Useful for the control that switches a kerbal's headlamp, and
+ * for showing it on when drawn filled. Used by Crew Status for each kerbal on
+ * EVA. Unnamed, it is decorative, so name the control it sits in.
+ * {@link LampOffIcon} is its off pair.
+ *
+ * @category Icons
+ */
+export const LampIcon = makeIcon(Lightbulb);
+/**
+ * A light bulb with a slash through it. Useful for showing a kerbal's headlamp
+ * is off. Used by Crew Status for each kerbal on EVA. Unnamed, it is
+ * decorative, so name the control it sits in. {@link LampIcon} is its on pair.
+ *
+ * @category Icons
+ */
+export const LampOffIcon = makeIcon(LightbulbOff);

@@ -1917,8 +1917,22 @@ namespace Gonogo.KSP
                 entry["parentVesselId"] = parentId.ToString();
             }
 
-            TrySet(entry, "propellantAmount", () => (object?)eva.Fuel);
-            TrySet(entry, "propellantCapacity", () => (object?)eva.FuelCapacity);
+            /* A tank with no capacity is one the game has not given this kerbal, so neither figure is
+               reported: an amount of zero in a tank of zero would read as a kerbal who has run dry. */
+            double? capacity = null;
+            try
+            {
+                capacity = eva.FuelCapacity;
+            }
+            catch
+            {
+                capacity = null;
+            }
+            if (capacity is > 0)
+            {
+                TrySet(entry, "propellantAmount", () => (object?)eva.Fuel);
+                TrySet(entry, "propellantCapacity", () => (object?)capacity);
+            }
             TrySet(entry, "hasJetpack", () => (object?)eva.HasJetpack);
             TrySet(entry, "jetpackDeployed", () => (object?)eva.JetpackDeployed);
             TrySet(entry, "jetpackIsThrusting", () => (object?)eva.JetpackIsThrusting);
@@ -1929,6 +1943,19 @@ namespace Gonogo.KSP
             TrySet(entry, "canSafelyRemoveHelmet", () => (object?)eva.CanSafelyRemoveHelmet());
             TrySet(entry, "helmetUnsafeReason", () => (object?)eva.HelmetUnsafeReason);
             TrySet(entry, "heldData", () => BuildEvaHeldData(vessel));
+            TrySet(entry, "helmetOn", () =>
+            {
+                var crew = vessel.GetVesselCrew();
+                return crew != null && crew.Count > 0 && crew[0] != null ? (object?)crew[0].hasHelmetOn : null;
+            });
+            try
+            {
+                AddInventoryFields(entry, vessel.rootPart.FindModuleImplementing<ModuleInventoryPart>());
+            }
+            catch
+            {
+                // The pack stays unread, which the wire says as null and not as empty.
+            }
 
             return entry;
         }

@@ -73,11 +73,11 @@ export function CrewStatusComponent(
   // Kerbals outside within physics range are part of the craft's crew, so they are listed beside who is aboard and counted with them. A kerbal that is the craft itself has its own row above.
   const evaReading = crewStatusTopics.useTelemetry("eva.crew");
   const evaCrew = stillTrue(evaReading, undefined);
-  const outsideNames = (evaCrew?.kerbals ?? []).flatMap((kerbal) =>
+  const outside = (evaCrew?.kerbals ?? []).flatMap((kerbal) =>
     kerbal.name &&
     (identity?.vesselId === undefined ||
       kerbal.kerbalVesselId !== identity.vesselId)
-      ? [kerbal.name]
+      ? [{ kerbalVesselId: kerbal.kerbalVesselId, name: kerbal.name }]
       : [],
   );
 
@@ -95,8 +95,8 @@ export function CrewStatusComponent(
   const crewSummary =
     known && isEVA === true
       ? "EVA"
-      : outsideNames.length > 0
-        ? `${outsideNames.length} on EVA`
+      : outside.length > 0
+        ? `${outside.length} on EVA`
         : "";
 
   // On EVA the header names the kerbal; with no single resolved name yet it falls back to a bare "EVA".
@@ -148,7 +148,7 @@ export function CrewStatusComponent(
                 : undefined,
             })}
           </div>
-          {outsideNames.length > 0 && <EvaCrewList names={outsideNames} />}
+          {outside.length > 0 && <EvaCrewList kerbals={outside} />}
         </Section>
       }
     />

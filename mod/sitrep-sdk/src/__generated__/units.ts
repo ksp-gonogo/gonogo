@@ -723,6 +723,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "EvaKerbal": {
     canSafelyRemoveHelmet: "flag",
     hasJetpack: "flag",
+    helmetOn: "flag",
     helmetUnsafeReason: "text",
     jetpackDeployed: "flag",
     jetpackIsThrusting: "flag",
@@ -734,6 +735,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     propellantAmount: "units",
     propellantCapacity: "units",
     situation: "text",
+    slots: "count",
+    slotsUsed: "count",
     visorState: "text",
     willDieWithoutHelmet: "flag",
   },
@@ -1403,6 +1406,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "SetEnabledArgs": {
     enabled: "flag",
+  },
+  "SetEvaLampArgs": {
+    enabled: "flag",
+    kerbalVesselId: "id",
   },
   "SetFlyByWireArgs": {
     enabled: "flag",
@@ -2699,6 +2706,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     kerbals: "EvaCrewMember[]",
   },
   "EvaKerbal": {
+    carrying: "InventoryItem[]",
     heldData: "EvaHeldData[]",
   },
   "EventMsg": {

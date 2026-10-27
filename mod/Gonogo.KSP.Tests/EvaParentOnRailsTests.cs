@@ -73,6 +73,19 @@ namespace Gonogo.KSP.Tests
             Assert.Contains("|| candidate.state == Vessel.State.DEAD)", source, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void a_tank_with_no_capacity_reports_neither_propellant_figure()
+        {
+            var entry = CurrencyDelaySourceText.MethodBody(
+                CurrencyDelaySourceText.ReadRelative("KspHost.cs"),
+                "private static Dictionary<string, object?>? BuildEvaKerbalEntry(Vessel vessel)");
+
+            var gate = entry.IndexOf("capacity is > 0", StringComparison.Ordinal);
+            Assert.True(gate >= 0, "the propellant read must be gated on a capacity");
+            Assert.True(entry.IndexOf("\"propellantAmount\"", StringComparison.Ordinal) > gate);
+            Assert.True(entry.IndexOf("\"propellantCapacity\"", StringComparison.Ordinal) > gate);
+        }
+
         [Theory]
         [InlineData("attitude")]
         [InlineData("landing")]

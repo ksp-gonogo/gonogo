@@ -683,6 +683,7 @@
     "EvaKerbal": {
       "canSafelyRemoveHelmet": "flag",
       "hasJetpack": "flag",
+      "helmetOn": "flag",
       "helmetUnsafeReason": "text",
       "jetpackDeployed": "flag",
       "jetpackIsThrusting": "flag",
@@ -694,6 +695,8 @@
       "propellantAmount": "units",
       "propellantCapacity": "units",
       "situation": "text",
+      "slots": "count",
+      "slotsUsed": "count",
       "visorState": "text",
       "willDieWithoutHelmet": "flag"
     },
@@ -1363,6 +1366,10 @@
     },
     "SetEnabledArgs": {
       "enabled": "flag"
+    },
+    "SetEvaLampArgs": {
+      "enabled": "flag",
+      "kerbalVesselId": "id"
     },
     "SetFlyByWireArgs": {
       "enabled": "flag"
@@ -2625,6 +2632,7 @@
       "kerbals": "EvaCrewMember[]"
     },
     "EvaKerbal": {
+      "carrying": "InventoryItem[]",
       "heldData": "EvaHeldData[]"
     },
     "EventMsg": {

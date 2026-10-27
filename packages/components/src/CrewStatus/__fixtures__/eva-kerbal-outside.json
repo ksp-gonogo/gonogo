@@ -1,0 +1,59 @@
+{
+  "_meta": {
+    "shows": "Jebediah aboard a pod with Bob outside, Bob's helmet on with the visor down, a repair kit and two parachutes in his pack, and his lamp off.",
+    "scenario": "eva-kerbal-outside",
+    "source": "Sitrep.Contract.EvaCrew lists the loaded kerbals out of any vessel, and each kerbal's own eva.kerbal.<vessel id>.state carries helmetOn, visorState, slotsUsed and the carried items. Part titles are the stock ones; the quantities are illustrative."
+  },
+  "_stream": {
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "vessel.crew",
+        "value": {
+          "count": 1,
+          "capacity": 2,
+          "crew": [{ "name": "Jebediah Kerman", "trait": "Pilot" }]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "pod-1",
+          "name": "tester (Mk1 pod)",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1
+        }
+      },
+      {
+        "channel": "eva.crew",
+        "value": {
+          "count": 1,
+          "kerbals": [
+            {
+              "kerbalVesselId": "bob-eva-1",
+              "parentVesselId": "pod-1",
+              "name": "Bob Kerman"
+            }
+          ]
+        }
+      },
+      {
+        "channel": "eva.kerbal.bob-eva-1.state",
+        "value": {
+          "kerbalVesselId": "bob-eva-1",
+          "name": "Bob Kerman",
+          "lampOn": false,
+          "helmetOn": true,
+          "visorState": "Lowered",
+          "slots": 6,
+          "slotsUsed": 2,
+          "carrying": [
+            { "name": "evaRepairKit", "title": "Repair Kit", "quantity": 1 },
+            { "name": "parachutePack", "title": "Parachute", "quantity": 2 }
+          ]
+        }
+      }
+    ]
+  }
+}

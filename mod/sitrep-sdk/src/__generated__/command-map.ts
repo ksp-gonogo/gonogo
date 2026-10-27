@@ -90,6 +90,7 @@ import type {
   SetControlAxesArgs,
   SetControlFrameArgs,
   SetEnabledArgs,
+  SetEvaLampArgs,
   SetFlyByWireArgs,
   SetPausedArgs,
   SetSasModeArgs,
@@ -142,6 +143,8 @@ export interface GeneratedCommandArgsMap {
   "commcast.message.send": CommcastMessageSendArgs;
   /** One batch of live push-to-talk audio, spoken to a group. */
   "commcast.radio.transmit": CommcastRadioTransmitArgs;
+  /** Turn a kerbal's headlamp on or off. */
+  "eva.kerbal.setLamp": SetEvaLampArgs;
   /** Load a saved craft onto a launch site. */
   "ksp.launch": LaunchArgs;
   /** Recover the active vessel. */
@@ -287,6 +290,8 @@ export interface GeneratedCommandReplyMap {
   "commcast.message.send": CommcastSendReceipt;
   /** One batch of live push-to-talk audio, spoken to a group. */
   "commcast.radio.transmit": CommandResult;
+  /** Turn a kerbal's headlamp on or off. */
+  "eva.kerbal.setLamp": CommandResult;
   /** Load a saved craft onto a launch site. */
   "ksp.launch": CommandResult;
   /** Recover the active vessel. */
@@ -425,6 +430,7 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "commcast.message.ack": "CommandResult",
   "commcast.message.send": "CommcastSendReceipt",
   "commcast.radio.transmit": "CommandResult",
+  "eva.kerbal.setLamp": "CommandResult",
   "ksp.launch": "CommandResult",
   "ksp.recover": "CommandResult",
   "ksp.recoverVessel": "CommandResult",
@@ -537,6 +543,7 @@ export const GENERATED_COMMAND_RAIL = {
   "commcast.message.ack": { replies: true, delayed: false },
   "commcast.message.send": { replies: true, delayed: false },
   "commcast.radio.transmit": { replies: true, delayed: false },
+  "eva.kerbal.setLamp": { replies: true, delayed: true },
   "ksp.launch": { replies: true, delayed: false },
   "ksp.recover": { replies: true, delayed: false },
   "ksp.recoverVessel": { replies: true, delayed: false },
@@ -611,6 +618,7 @@ export const GENERATED_COMMAND_IDS = [
   "commcast.message.ack",
   "commcast.message.send",
   "commcast.radio.transmit",
+  "eva.kerbal.setLamp",
   "ksp.launch",
   "ksp.recover",
   "ksp.recoverVessel",

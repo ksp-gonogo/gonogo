@@ -4,7 +4,7 @@ info:
   version: 49.6.0
   description: |-
     The WebSocket API of the Gonogo mod: 90 telemetry channels a client
-    subscribes to and 71 commands it sends, each with its payload and what it
+    subscribes to and 72 commands it sends, each with its payload and what it
     means, all over one socket.
 
     ## Frames the mod sends
@@ -1432,6 +1432,31 @@ channels:
         $ref: "#/components/messages/streamData.eva.crew"
       event:
         $ref: "#/components/messages/event"
+  eva.kerbal.setLamp:
+    address: eva.kerbal.setLamp
+    description: |-
+      Switch the headlamp of one kerbal outside a craft on or off, the
+      remote-control equivalent of the player pressing the lamp key while flying
+      that kerbal.
+
+      It acts on a kerbal in the group of the craft being reported, so it waits on
+      that craft's signal delay, like `vessel.control.*`. It sets an absolute
+      state, never a toggle, so a repeated command is safe. Read the result back
+      from `EvaKerbal.lampOn` on the kerbal's own Topic, one signal delay later.
+
+      KSP switches a lamp only for the kerbal it is flying, so a command for any
+      other kerbal is refused with `CommandErrorCode.WrongState` and says why. An
+      id that is not a kerbal outside is `CommandErrorCode.NotFound`.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: true
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.eva.kerbal.setLamp"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.eva.kerbal.setLamp"
+      commandAccepted:
+        $ref: "#/components/messages/commandAccepted"
   flight.current:
     address: flight.current
     title: Current flight
@@ -4124,6 +4149,21 @@ operations:
         $ref: "#/channels/commcast.radio.transmit"
       messages:
         - $ref: "#/channels/commcast.radio.transmit/messages/commandResponse"
+  dispatch:eva.kerbal.setLamp:
+    action: send
+    channel:
+      $ref: "#/channels/eva.kerbal.setLamp"
+    title: Dispatch eva.kerbal.setLamp
+    tags:
+      - name: eva
+    messages:
+      - $ref: "#/channels/eva.kerbal.setLamp/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/eva.kerbal.setLamp"
+      messages:
+        - $ref: "#/channels/eva.kerbal.setLamp/messages/commandResponse"
+        - $ref: "#/channels/eva.kerbal.setLamp/messages/commandAccepted"
   dispatch:ksp.launch:
     action: send
     channel:
@@ -6210,6 +6250,21 @@ components:
                 const: commcast.radio.transmit
               args:
                 $ref: "#/components/schemas/CommcastRadioTransmitArgs"
+    commandRequest.eva.kerbal.setLamp:
+      name: command-request
+      title: Dispatch eva.kerbal.setLamp
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `eva.kerbal.setLamp`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: eva.kerbal.setLamp
+              args:
+                $ref: "#/components/schemas/SetEvaLampArgs"
     commandRequest.ksp.launch:
       name: command-request
       title: Dispatch ksp.launch
@@ -7236,6 +7291,19 @@ components:
         $ref: "#/components/correlationIds/requestId"
       payload:
         description: The `command-response` envelope for `commcast.radio.transmit`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
+    commandResponse.eva.kerbal.setLamp:
+      name: command-response
+      title: Reply to eva.kerbal.setLamp
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `eva.kerbal.setLamp`, with its typed `result`.
         allOf:
           - $ref: "#/components/schemas/CommandResponse"
           - properties:
@@ -20581,6 +20649,35 @@ components:
           type: boolean
           x-sitrep-unit: flag
           description: "`true` to switch the system on (or fire abort), `false` to switch it off."
+    SetEvaLampArgs:
+      type: object
+      description: |-
+        Switch the headlamp of one kerbal outside a craft on or off, the
+        remote-control equivalent of the player pressing the lamp key while flying
+        that kerbal.
+
+        It acts on a kerbal in the group of the craft being reported, so it waits on
+        that craft's signal delay, like `vessel.control.*`. It sets an absolute
+        state, never a toggle, so a repeated command is safe. Read the result back
+        from `EvaKerbal.lampOn` on the kerbal's own Topic, one signal delay later.
+
+        KSP switches a lamp only for the kerbal it is flying, so a command for any
+        other kerbal is refused with `CommandErrorCode.WrongState` and says why. An
+        id that is not a kerbal outside is `CommandErrorCode.NotFound`.
+      required:
+        - kerbalVesselId
+        - enabled
+      properties:
+        kerbalVesselId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The kerbal's own vessel id, the same id `eva.crew` lists as
+            `EvaCrewMember.kerbalVesselId`.
+        enabled:
+          type: boolean
+          x-sitrep-unit: flag
+          description: "`true` to switch the lamp on, `false` to switch it off."
     SetFlyByWireArgs:
       type: object
       description: |-

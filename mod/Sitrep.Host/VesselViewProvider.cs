@@ -1389,6 +1389,10 @@ namespace Sitrep.Host
             CanSafelyRemoveHelmet = GetBool(raw, "canSafelyRemoveHelmet"),
             HelmetUnsafeReason = GetString(raw, "helmetUnsafeReason"),
             HeldData = BuildHeldData(raw),
+            HelmetOn = GetBool(raw, "helmetOn"),
+            Carrying = BuildInventoryItems(raw),
+            Slots = GetInt(raw, "slots"),
+            SlotsUsed = GetInt(raw, "slotsUsed"),
         };
 
         /// <summary>The results a kerbal holds, or null when the capture did not read them, which is not the same as holding none.</summary>
@@ -2098,6 +2102,10 @@ namespace Sitrep.Host
             ["canSafelyRemoveHelmet"] = kerbal.CanSafelyRemoveHelmet,
             ["helmetUnsafeReason"] = kerbal.HelmetUnsafeReason,
             ["heldData"] = kerbal.HeldData?.Select(ToWire).ToList<object?>(),
+            ["helmetOn"] = kerbal.HelmetOn,
+            ["carrying"] = kerbal.Carrying?.Select(ToWire).ToList<object?>(),
+            ["slots"] = kerbal.Slots,
+            ["slotsUsed"] = kerbal.SlotsUsed,
         };
 
         private static Dictionary<string, object?> ToWire(EvaHeldData held) => new Dictionary<string, object?>

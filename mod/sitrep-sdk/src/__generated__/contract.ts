@@ -4045,6 +4045,32 @@ export interface Pong
 	nonce: string;
 }
 /**
+* Switch the headlamp of one kerbal outside a craft on or off, the
+* remote-control equivalent of the player pressing the lamp key while flying
+* that kerbal.
+*
+* It acts on a kerbal in the group of the craft being reported, so it waits on
+* that craft's signal delay, like `vessel.control.*`. It sets an absolute
+* state, never a toggle, so a repeated command is safe. Read the result back
+* from `EvaKerbal.lampOn` on the kerbal's own Topic, one signal delay later.
+*
+* KSP switches a lamp only for the kerbal it is flying, so a command for any
+* other kerbal is refused with `CommandErrorCode.WrongState` and says why. An
+* id that is not a kerbal outside is `CommandErrorCode.NotFound`.
+*
+* @category Command arguments
+*/
+export interface SetEvaLampArgs
+{
+	/**
+	* The kerbal's own vessel id, the same id `eva.crew` lists as
+	* `EvaCrewMember.kerbalVesselId`.
+	*/
+	kerbalVesselId: string;
+	/** `true` to switch the lamp on, `false` to switch it off. */
+	enabled: boolean;
+}
+/**
 * One kerbal currently outside a craft and within physics range of the vessel
 * in focus, on that kerbal's own `eva.kerbal.<vessel id>.state` Topic.
 *
@@ -4135,6 +4161,24 @@ export interface EvaKerbal
 	* the kerbal holds none, and `null` when it could not be read.
 	*/
 	heldData?: EvaHeldData[] | null;
+	/**
+	* Whether the kerbal has the helmet on, from the crew member's own record
+	* (`ProtoCrewMember.hasHelmetOn`). `null` when it could not be read.
+	*/
+	helmetOn?: boolean | null;
+	/**
+	* What the kerbal is carrying, from the kerbal's own inventory. Empty when the
+	* kerbal carries nothing, and `null` when the inventory could not be read: a
+	* kerbal whose pack could not be read is not one with an empty pack.
+	*/
+	carrying?: InventoryItem[] | null;
+	/**
+	* How many slots the kerbal's inventory has, or `null` when it could not be
+	* read.
+	*/
+	slots?: Value<"count"> | null;
+	/** How many of those slots hold something, or `null` when it could not be read. */
+	slotsUsed?: Value<"count"> | null;
 }
 /**
 * One science result a kerbal on EVA is holding, in `EvaKerbal.heldData`.

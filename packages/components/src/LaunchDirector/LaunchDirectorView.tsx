@@ -234,6 +234,7 @@ export function LaunchDirectorComponent({
                 altitude={flight.altitude}
                 crashInProgress={flight.crashInProgress}
                 noActiveVessel={flight.noActiveVessel}
+                crewOutside={flight.crewOutside}
                 availableVessels={flight.availableVessels}
                 distanceOf={flight.distanceOf}
                 recoverCmd={recoverCmd}

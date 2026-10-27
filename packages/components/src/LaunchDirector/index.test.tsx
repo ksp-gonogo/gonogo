@@ -618,6 +618,48 @@ describe("LaunchDirectorComponent", () => {
     });
   });
 
+  it("badges beside Recover how many of this vessel's crew are outside, nothing for another vessel's, and nothing with no data", async () => {
+    renderWidget();
+    act(() => {
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      emitInFlightVessel(stream, { name: "Learstar A1", altitudeAsl: 70 });
+      stream.emit("vessel.identity", {
+        name: "Learstar A1",
+        vesselId: "pod",
+        launchUt: null,
+      });
+    });
+    await screen.findByText(/Confirm recover|Recover/);
+    // No crew data yet: nothing, not a zero.
+    expect(screen.queryByText(/crew outside/)).toBeNull();
+
+    act(() => {
+      stream.emit("eva.crew", {
+        count: 3,
+        kerbals: [
+          {
+            kerbalVesselId: "k1",
+            parentVesselId: "pod",
+            name: "Valentina Kerman",
+          },
+          { kerbalVesselId: "k2", parentVesselId: "pod", name: "Bob Kerman" },
+          {
+            kerbalVesselId: "k3",
+            parentVesselId: "elsewhere",
+            name: "Maxwell Kerman",
+          },
+        ],
+      });
+    });
+    expect(await screen.findByText("2 crew outside")).toBeInTheDocument();
+
+    act(() => {
+      stream.emit("eva.crew", { count: 0, kerbals: [] });
+    });
+    await waitFor(() => expect(screen.queryByText(/crew outside/)).toBeNull());
+  });
+
   it("surfaces a crash chip when the active vessel itself crashed, and leaves Recover to the command", async () => {
     renderWidget();
     act(() => {

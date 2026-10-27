@@ -14,6 +14,7 @@ import {
   Truncate,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
+import { EvaKerbalRow } from "./EvaKerbalRow";
 
 /** Avatar cell bounds. Sized off the roster's measured width, not the viewport, since a tile's width has no fixed relation to the window. */
 const AVATAR_CELL_MIN_PX = 36;
@@ -204,16 +205,22 @@ function CrewAvatarCell({
   );
 }
 
-/** The kerbals outside the craft, named and marked as out. */
-export function EvaCrewList({ names }: Readonly<{ names: readonly string[] }>) {
+/** The kerbals outside the craft, named and marked as out, each with its helmet, kit and lamp. */
+export function EvaCrewList({
+  kerbals,
+}: Readonly<{
+  kerbals: readonly {
+    kerbalVesselId: string | null | undefined;
+    name: string;
+  }[];
+}>) {
   return (
     <Stack as="ul" style={EVA_LIST_STYLE}>
-      {names.map((name) => (
-        <Card
-          as="li"
-          key={name}
-          title={<Truncate>{name}</Truncate>}
-          titleRight={<ReadoutCaption>EVA</ReadoutCaption>}
+      {kerbals.map((kerbal) => (
+        <EvaKerbalRow
+          key={kerbal.kerbalVesselId ?? kerbal.name}
+          kerbalVesselId={kerbal.kerbalVesselId}
+          name={kerbal.name}
         />
       ))}
     </Stack>

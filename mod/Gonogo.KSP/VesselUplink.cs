@@ -60,6 +60,8 @@ namespace Gonogo.KSP
         /// </summary>
         private readonly IPartActionActuator _partActionActuator;
 
+        private readonly IEvaKerbalActuator _evaKerbalActuator = new KspEvaKerbalActuator();
+
         private Kernel? _kernel;
 
         private IUplinkHost? _host;
@@ -264,6 +266,7 @@ namespace Gonogo.KSP
                 Command(VesselCommandProvider.SetWarpIndexCommand),
                 Command(VesselCommandProvider.SetPausedCommand),
                 Command(PartActionCommandProvider.InvokePartActionCommand, PartActionsViewProvider.PartActionsPrefix + "{args.PartId}"),
+                Command(EvaKerbalCommandProvider.SetLampCommand, VesselViewProvider.EvaKerbalPrefix + "{args.KerbalVesselId}." + VesselViewProvider.EvaKerbalField),
             },
         };
 
@@ -393,6 +396,7 @@ namespace Gonogo.KSP
             host.AddCommandHandler<SetWarpIndexArgs, CommandResult>(VesselCommandProvider.SetWarpIndexCommand, args => VesselCommandProvider.HandleSetWarpIndex(_actuator, args));
             host.AddCommandHandler<SetPausedArgs, CommandResult>(VesselCommandProvider.SetPausedCommand, args => VesselCommandProvider.HandleSetPaused(_actuator, args));
             host.AddCommandHandler<InvokePartActionArgs, CommandResult>(PartActionCommandProvider.InvokePartActionCommand, args => PartActionCommandProvider.HandleInvoke(_partActionActuator, args));
+            host.AddCommandHandler<SetEvaLampArgs, CommandResult>(EvaKerbalCommandProvider.SetLampCommand, args => EvaKerbalCommandProvider.HandleSetLamp(_evaKerbalActuator, args));
 
             RegisterPartActions(host);
             RegisterEvaKerbals(host);

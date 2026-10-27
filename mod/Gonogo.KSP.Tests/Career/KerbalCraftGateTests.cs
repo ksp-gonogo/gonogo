@@ -68,5 +68,15 @@ namespace Gonogo.KSP.Tests.Career
             Assert.Contains(requirements, r => r.Kind == KspGateEvaluators.Kinds.PartModuleResearched);
             Assert.Contains(requirements, r => r.Kind == KspGateEvaluators.Kinds.KerbalIsTheCraft);
         }
+
+        [Fact]
+        public void TheLampCommandIsNotRefusedForAKerbalBeingTheCraft()
+        {
+            Assert.DoesNotContain(
+                GateDeclarations.For(EvaKerbalCommandProvider.SetLampCommand),
+                r => r.Kind == KspGateEvaluators.Kinds.KerbalIsTheCraft);
+            Assert.DoesNotContain(VesselCommandProvider.SetWarpIndexCommand, GateDeclarations.KerbalGated);
+            Assert.DoesNotContain(VesselCommandProvider.SetPausedCommand, GateDeclarations.KerbalGated);
+        }
     }
 }

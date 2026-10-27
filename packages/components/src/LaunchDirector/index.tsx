@@ -67,6 +67,7 @@ registerComponent<LaunchDirectorConfig>({
     "vessel.identity.name",
     "vessel.identity.vesselId",
     "vessel.identity.launchUt",
+    "eva.crew.kerbals",
     "vessel.flight.altitudeAsl",
     "crash.hasRecent",
     "crash.lastCrash.ut",
