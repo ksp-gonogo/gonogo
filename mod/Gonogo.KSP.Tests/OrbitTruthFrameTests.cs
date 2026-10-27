@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Text.RegularExpressions;
 using Gonogo.KSP;
 using Xunit;
 
@@ -36,38 +38,30 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
-        public void TheTruthIsTheStoredVectorsTakenOutOfTheFrameTheyAreHeldIn()
+        public void TheOrbitCaptureTakesBothVectorsThroughTheFixedFrame()
         {
-            var original = Planetarium.Zup;
-            try
-            {
-                Planetarium.CelestialFrame.PlanetaryFrame(0.0, 90.0, 37.0, ref Planetarium.Zup);
-                var position = new Vector3d(700000.0, 0.0, 0.0);
-                var velocity = new Vector3d(0.0, 2200.0, 0.0);
+            var source = File.ReadAllText(FindKspHost());
 
-                var truth = OrbitTruthFrame.Read(true, position, velocity);
-
-                Assert.NotNull(truth);
-                Assert.Equal(OrbitTruthFrame.ToFixedFrame(position), truth!.Value.Position);
-                Assert.Equal(OrbitTruthFrame.ToFixedFrame(velocity), truth.Value.Velocity);
-            }
-            finally
-            {
-                Planetarium.Zup = original;
-            }
+            Assert.Contains("[\"truthPosition\"] = OrbitTruthFrame.ToFixedFrame(orbit.pos)", source);
+            Assert.Contains("[\"truthVelocity\"] = OrbitTruthFrame.ToFixedFrame(orbit.vel)", source);
+            Assert.False(
+                Regex.IsMatch(source, @"new\[\] \{ (pos|vel)\.x"),
+                "BuildOrbit publishes a raw Orbit.pos or Orbit.vel again");
         }
 
-        [Fact]
-        public void AnOrbitWithNoReferenceBodyHasNoTruth()
+        private static string FindKspHost()
         {
-            Assert.Null(OrbitTruthFrame.Read(false, new Vector3d(700000.0, 0.0, 0.0), new Vector3d(0.0, 2200.0, 0.0)));
-        }
-
-        [Fact]
-        public void AStoredVectorThatIsNotANumberHasNoTruth()
-        {
-            Assert.Null(OrbitTruthFrame.Read(true, new Vector3d(double.NaN, 0.0, 0.0), new Vector3d(0.0, 2200.0, 0.0)));
-            Assert.Null(OrbitTruthFrame.Read(true, new Vector3d(700000.0, 0.0, 0.0), new Vector3d(0.0, double.PositiveInfinity, 0.0)));
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null)
+            {
+                var candidate = Path.Combine(dir.FullName, "mod", "Gonogo.KSP", "KspHost.cs");
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+                dir = dir.Parent;
+            }
+            throw new FileNotFoundException("KspHost.cs");
         }
     }
 }

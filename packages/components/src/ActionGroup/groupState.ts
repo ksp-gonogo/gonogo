@@ -49,20 +49,3 @@ export function groupStateOf(
     value == null;
   return { value, valueHeld, valueLate, stateUnreadable };
 }
-
-/**
- * The words that mark the state a toggle shows as held, or `null` when it is a
- * current reading. The press still goes and names the opposite of the state
- * shown.
- */
-export function heldPressCaption(
-  state: Pick<GroupState, "value" | "valueHeld" | "valueLate">,
-): string | null {
-  if (!state.valueLate && !(state.valueHeld && state.value != null)) {
-    return null;
-  }
-  const word = state.valueLate
-    ? "Last reading, updates running late"
-    : "Last reading, held";
-  return `${word}. The press sends the opposite of the state shown`;
-}

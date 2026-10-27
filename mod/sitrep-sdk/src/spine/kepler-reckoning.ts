@@ -566,32 +566,11 @@ const ELEMENT_NAMES = {
   mu: "gravitational parameter",
 } as const;
 
-/** How near zero an inclination (as a sine) or an eccentricity must be for the angle it anchors to be undefined. */
-const UNDEFINED_ANGLE_TOLERANCE = 1e-9;
-
-/**
- * Whether `field` is an angle the orbit leaves undefined: the ascending node of
- * an orbit with no inclination, the argument of periapsis of one with no
- * eccentricity. Any other field is never undefined.
- */
-function isUndefinedAngle(field: string, orbit: ConicOrbitInput): boolean {
-  if (field === "lan") {
-    return (
-      Math.abs(Math.sin(degToRad(mag(orbit.inc)))) < UNDEFINED_ANGLE_TOLERANCE
-    );
-  }
-  if (field === "argPe") {
-    return Math.abs(mag(orbit.ecc)) < UNDEFINED_ANGLE_TOLERANCE;
-  }
-  return false;
-}
-
 /**
  * Why `orbit`'s elements place the craft nowhere, or `null` when every one is
  * a number and together they describe an orbit. An ascending node or argument
- * of periapsis that is `null` is an undefined one and reads as 0 only where the
- * orbit leaves it undefined (see {@link isUndefinedAngle}); anywhere else, and
- * for one that is present and not a number, it is absent. Parabolic elements pass, so that a burn
+ * of periapsis that is `null` is an undefined one and reads as 0; one that is
+ * present and not a number is absent. Parabolic elements pass, so that a burn
  * through an eccentricity of 1 still reaches the coast and powered-flight
  * checks, and are declined where their position is asked for.
  */
@@ -600,7 +579,7 @@ function unsolvableElements(orbit: ConicOrbitInput): ReckoningDecline | null {
     ELEMENT_NAMES,
   ) as (keyof typeof ELEMENT_NAMES)[]) {
     const raw = orbit[field];
-    if (raw == null && isUndefinedAngle(field, orbit)) continue;
+    if ((field === "lan" || field === "argPe") && raw == null) continue;
     if (!Number.isFinite(mag(raw))) {
       return {
         reason: "input-absent",

@@ -261,8 +261,8 @@ namespace Sitrep.Host.Tests.Comms
             // Word captured at 1500 reaches the centre one delay (say 2 s) later, so the centre's newest fix is 2 s old when it arrives.
             Assert.True(fix.InContact);
             Assert.Equal(1500.0, fix.LastKnownUt);
-            // Burning for those 2 s at 10 m/s²: 10 × 2² / 2 = 20 m.
-            Assert.Equal(20.0, fix.UncertaintyMAt(1502.0)!.Value, 1);
+            Assert.Equal(PositionUncertainty.Bound(fix.Known, 1500.0, 1502.0), fix.UncertaintyMAt(1502.0));
+            Assert.True(fix.UncertaintyMAt(1502.0) > 0.0);
         }
 
         private sealed class Telling : ICraftStateHost

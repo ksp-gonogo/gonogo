@@ -755,8 +755,7 @@ namespace Gonogo.KSP
         /// directly comparable to an elements-based reconstruction using the
         /// standard Vallado/AIAA 3-1-3 rotation (see
         /// <c>Sitrep.Propagation.KeplerProvider</c>). <c>truthFrameRotating</c>
-        /// is always <c>false</c> for that reason. All three are null when the
-        /// orbit has no reference body or the frame cannot be read. Reported parent-body-relative,
+        /// is always <c>false</c> for that reason. Reported parent-body-relative,
         /// matching every other vector in this dictionary.</para>
         ///
         /// <para><b>Encounter.</b> <c>nextPatch</c> is routinely non-null
@@ -805,7 +804,6 @@ namespace Gonogo.KSP
                 };
             }
 
-            var truth = OrbitTruthFrame.Read(body != null, orbit.pos, orbit.vel);
             return new Dictionary<string, object?>
             {
                 ["sma"] = orbit.semiMajorAxis,
@@ -827,9 +825,9 @@ namespace Gonogo.KSP
                 ["timeToAp"] = orbit.timeToAp,
                 ["timeToPe"] = orbit.timeToPe,
                 ["referenceBody"] = body != null ? body.bodyName : null,
-                ["truthPosition"] = truth?.Position,
-                ["truthVelocity"] = truth?.Velocity,
-                ["truthFrameRotating"] = truth != null ? (bool?)false : null,
+                ["truthPosition"] = OrbitTruthFrame.ToFixedFrame(orbit.pos),
+                ["truthVelocity"] = OrbitTruthFrame.ToFixedFrame(orbit.vel),
+                ["truthFrameRotating"] = false,
                 ["encounter"] = encounter,
                 ["patches"] = BuildOrbitPatchChain(orbit),
             };

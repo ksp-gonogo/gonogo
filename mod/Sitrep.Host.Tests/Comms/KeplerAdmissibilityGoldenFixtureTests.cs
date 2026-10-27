@@ -75,17 +75,15 @@ namespace Sitrep.Host.Tests.Comms
             return new ConicSample(Number(point.GetProperty("validAt")), quality, payload.ValueKind == JsonValueKind.Null ? null : Orbit(payload));
         }
 
-        /// <summary>The payload as the mod holds it: radians, and a node or periapsis the orbit leaves undefined as 0.</summary>
+        /// <summary>The payload as the mod holds it: radians, and an undefined node or periapsis as 0.</summary>
         private static ConicOrbit Orbit(JsonElement o)
         {
-            var ecc = Field(o, "ecc");
-            var inc = Radians(Field(o, "inc"));
             var elements = new OrbitElements(
                 Field(o, "sma"),
-                ecc,
-                inc,
-                KeplerAdmissibility.NodeRadians(Optional(o, "lan") is double lan ? Radians(lan) : (double?)null, inc),
-                KeplerAdmissibility.PeriapsisRadians(Optional(o, "argPe") is double argPe ? Radians(argPe) : (double?)null, ecc),
+                Field(o, "ecc"),
+                Radians(Field(o, "inc")),
+                Radians(Optional(o, "lan") ?? 0.0),
+                Radians(Optional(o, "argPe") ?? 0.0),
                 Field(o, "meanAnomalyAtEpoch"),
                 Field(o, "epoch"),
                 Field(o, "mu"));

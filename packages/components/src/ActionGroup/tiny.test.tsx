@@ -133,27 +133,6 @@ describe("ActionGroup tiny mode", () => {
     );
   });
 
-  it("marks the toggle held when the group's reading is late, and the press still goes", async () => {
-    const { fixture } = setup({ w: 4, h: 4 }, true);
-    const toggle = await screen.findByRole("button", { name: "Toggle SAS" });
-    expect(toggle.querySelector("[data-held-mark]")).toBeNull();
-
-    act(() => {
-      fixture.wall.advanceBy(120);
-      fixture.emit(
-        "comms.link",
-        { connected: true },
-        { validAt: 120, deliveredAt: 120 },
-      );
-    });
-    await waitFor(() =>
-      expect(toggle.querySelector("[data-held-mark]")).not.toBeNull(),
-    );
-    expect(toggle).not.toBeDisabled();
-    expect(toggle).toHaveTextContent("Last reading, updates running late");
-    await act(async () => {});
-  });
-
   it("is the body from 5x4", async () => {
     setup({ w: 5, h: 4 });
     await screen.findByRole("button", { name: "Toggle SAS" });

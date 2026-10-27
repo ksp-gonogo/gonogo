@@ -243,11 +243,6 @@ function EssentialFigure({ essential }: { essential: TinyEssential }) {
           pressed={control.active}
           disabled={control.disabled}
           onClick={control.onPress}
-          marked={
-            control.held === undefined
-              ? null
-              : { kind: "held", caption: control.held }
-          }
           aria-label={control.title}
         >
           {control.label}
