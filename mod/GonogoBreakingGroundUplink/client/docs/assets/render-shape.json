@@ -3,77 +3,77 @@
   "engine": "chromium",
   "assets": {
     "breaking-ground-absent--default.png": {
-      "hash": "8a3db899ab392f54",
+      "hash": "6e956fcd461e168f",
       "elements": 16,
       "text": "e2f1fa7a"
     },
     "mun-and-minmus-stations--default.png": {
-      "hash": "be1e64b2433026ad",
+      "hash": "33c14fb161e6b7dd",
       "elements": 85,
       "text": "520188a3"
     },
     "mun-and-minmus-stations--min.png": {
-      "hash": "be1e64b2433026ad",
+      "hash": "33c14fb161e6b7dd",
       "elements": 85,
       "text": "520188a3"
     },
     "mun-and-minmus-stations-stopped-arriving--default.png": {
-      "hash": "2705b6a91c0526d6",
+      "hash": "d37fa669c357af09",
       "elements": 86,
       "text": "c03c2572"
     },
     "mun-and-minmus-stations-stopped-arriving--min.png": {
-      "hash": "2705b6a91c0526d6",
+      "hash": "d37fa669c357af09",
       "elements": 86,
       "text": "c03c2572"
     },
     "robotics-dlc-absent--default.png": {
-      "hash": "bc52ddf64c800482",
+      "hash": "c02a3f1ecc02de43",
       "elements": 17,
       "text": "f93a7788"
     },
     "rotors--default.png": {
-      "hash": "686227d8d937ec72",
+      "hash": "c64029e9c7232947",
       "elements": 65,
       "text": "f14fa8db"
     },
     "rotors--min.png": {
-      "hash": "08134ac70cfcc630",
+      "hash": "60b0bab2dcb1038e",
       "elements": 53,
       "text": "482ff170"
     },
     "rotors-dlc-absent--default.png": {
-      "hash": "8ce87d150fd74fcc",
+      "hash": "8c900997bef1e4a6",
       "elements": 17,
       "text": "f903d91f"
     },
     "rotors-link-lost--default.png": {
-      "hash": "b3499f716216154c",
+      "hash": "dafdbe5beef72b15",
       "elements": 80,
       "text": "27596147"
     },
     "servos--default.png": {
-      "hash": "8bd433f08f115275",
+      "hash": "d5dbd1c6598b04a4",
       "elements": 61,
       "text": "c9621c46"
     },
     "servos--min.png": {
-      "hash": "3816420bf85c574c",
+      "hash": "bcf4c91af8382140",
       "elements": 36,
       "text": "220c5a23"
     },
     "servos-link-lost--default.png": {
-      "hash": "ea707b1d551f55b2",
+      "hash": "6868858254fbc55d",
       "elements": 69,
       "text": "08e4ea00"
     },
     "station-out-of-contact--default.png": {
-      "hash": "19004d8168c2e5e3",
+      "hash": "62af9b38312ac3ff",
       "elements": 43,
       "text": "c750e602"
     },
     "station-out-of-contact--min.png": {
-      "hash": "19004d8168c2e5e3",
+      "hash": "62af9b38312ac3ff",
       "elements": 43,
       "text": "c750e602"
     }
