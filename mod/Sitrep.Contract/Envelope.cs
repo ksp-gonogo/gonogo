@@ -31,6 +31,13 @@ public class StreamData<T>
     /// <summary>When the sample was true, when it arrived, and where it was
     /// observed from.</summary>
     public Meta Meta { get; set; } = new();
+    /// <summary>The payload fields left out of this sample because they hold the
+    /// same value as in the last sample of this Topic sent on this connection,
+    /// such as the terrain grid on <c>vessel.landing</c> between the times it is
+    /// retaken. A client keeps each one from that sample. Absent when nothing was
+    /// left out; a field the sample holds as <c>null</c> is sent, never listed.</summary>
+    [SitrepUnit(Units.Id)]
+    public string[]? Unchanged { get; set; }
 }
 
 /// <summary>

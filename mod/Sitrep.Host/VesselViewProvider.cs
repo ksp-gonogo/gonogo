@@ -113,6 +113,17 @@ namespace Sitrep.Host
             CalendarTopic, DockTopic, SurfaceTopic, LandingTopic, LightTopic,
         };
 
+        /// <summary>
+        /// Payload fields a connection is sent only when they change, by Topic: large
+        /// values the game retakes far less often than the Topic is sent, which repeat
+        /// unchanged on every sample in between.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> FieldsSentOnChange =
+            new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
+            {
+                [LandingTopic] = new[] { "siteHeights", "horizonAngles" },
+            };
+
 
         public static VesselIdentity? BuildIdentity(KspSnapshot? snapshot)
         {

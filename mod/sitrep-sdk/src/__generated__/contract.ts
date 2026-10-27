@@ -3741,6 +3741,14 @@ export interface StreamData<Payload>
 	payload: Payload;
 	/** When the sample was true, when it arrived, and where it was observed from. */
 	meta: Meta;
+	/**
+	* The payload fields left out of this sample because they hold the same value
+	* as in the last sample of this Topic sent on this connection, such as the
+	* terrain grid on `vessel.landing` between the times it is retaken. A client
+	* keeps each one from that sample. Absent when nothing was left out; a field
+	* the sample holds as `null` is sent, never listed.
+	*/
+	unchanged?: string[];
 }
 /**
 * Something that happened to a subscription, sent on the Topic it happened to.

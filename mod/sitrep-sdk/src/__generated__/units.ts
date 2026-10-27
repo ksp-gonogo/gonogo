@@ -1540,6 +1540,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "StreamData": {
     topic: "id",
     type: "id",
+    unchanged: "id",
   },
   "Subscribe": {
     topic: "id",
