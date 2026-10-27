@@ -3,7 +3,11 @@ import { getComponent } from "@ksp-gonogo/core";
 import type { Layout } from "react-grid-layout";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DashboardItem } from "../components/Dashboard";
-import { DEFAULT_TEMPLATES, snapshotOf } from "./layoutTemplates";
+import {
+  DEFAULT_TEMPLATES,
+  FLIGHT_TEMPLATE,
+  snapshotOf,
+} from "./layoutTemplates";
 import { MissionProfilesService } from "./MissionProfilesService";
 import {
   AUTOSAVE_DELAY_MS,
@@ -336,6 +340,22 @@ describe("ProfileDashboard new layouts", () => {
     dashboard.addTemplates(DEFAULT_TEMPLATES, "TrackingStation");
 
     expect(svc.getCurrent()?.name).toBe("Space Center");
+  });
+
+  it("gives the starter graph fresh series ids every time a layout is made", () => {
+    const seriesIds = () =>
+      snapshotOf(FLIGHT_TEMPLATE).items.flatMap((it) => {
+        const series = it.config?.series;
+        return it.componentId === "graph" && Array.isArray(series)
+          ? series.map((x) => x.id)
+          : [];
+      });
+
+    const first = seriesIds();
+    const second = seriesIds();
+
+    expect(first).toHaveLength(2);
+    expect(new Set([...first, ...second]).size).toBe(4);
   });
 
   it("places every starter widget on a registered component with unique ids and no overlap", () => {
