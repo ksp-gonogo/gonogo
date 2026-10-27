@@ -163,7 +163,7 @@ const AVATAR_LAYER_STYLE = {
 /** The meters Uplinks addressed to one kerbal, as a stack under the kerbal's name. */
 function CrewMeters({ entries }: ContributedEntries<"meters">) {
   return (
-    <MeterStack style={CREW_METERS_STYLE} role="group" aria-label="meters">
+    <MeterStack style={CREW_METERS_STYLE} role="group" aria-label="Vitals">
       {entries.map((entry) => (
         <Meter
           key={entry.id}

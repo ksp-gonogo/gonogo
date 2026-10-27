@@ -742,6 +742,29 @@ describe("CrewStatusComponent, per-row survival meters", () => {
       }),
     ).toBeNull();
   });
+
+  it("names each row's meter stack as the kerbal's vitals", async () => {
+    const fixture = newFixture();
+    renderCrew(fixture, [
+      {
+        id: "jeb:stress",
+        label: "Stress",
+        value: value("ratio", 0.1),
+        tone: "go",
+        valueLabel: "10%",
+        row: "Jebediah Kerman",
+      },
+    ]);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 1,
+        capacity: 1,
+        crew: [{ name: "Jebediah Kerman" }],
+      });
+    });
+    await screen.findByRole("meter", { name: "Stress" });
+    expect(screen.getByRole("group", { name: "Vitals" })).toBeInTheDocument();
+  });
 });
 
 /** The `crew-status.summary` slot: one whole-widget section above the roster, composing nothing when unbound. */
