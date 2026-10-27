@@ -395,17 +395,18 @@ namespace Gonogo.KSP
                             }
                         }
                         values["evaCrew"] = eva;
+                    }
 
-                        // Every planted flag in the save, empty when there is none.
+                    // Every planted flag in the save, empty when there is none. A flag is a vessel
+                    // the save holds in every scene, so it is read from the protovessel when unloaded.
+                    if (SystemCapture.ReadsPlantedFlags(readsTheSystem) && allVessels != null)
+                    {
                         var sites = new List<object?>();
-                        if (allVessels != null)
+                        foreach (var candidate in allVessels)
                         {
-                            foreach (var candidate in allVessels)
+                            if (candidate != null && candidate.vesselType == VesselType.Flag && candidate.state != Vessel.State.DEAD)
                             {
-                                if (candidate != null && candidate.vesselType == VesselType.Flag && candidate.state != Vessel.State.DEAD)
-                                {
-                                    sites.Add(BuildSurfaceSiteEntry(candidate));
-                                }
+                                sites.Add(BuildSurfaceSiteEntry(candidate));
                             }
                         }
                         values["surfaceSites"] = sites;

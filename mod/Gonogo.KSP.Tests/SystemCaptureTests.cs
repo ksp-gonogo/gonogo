@@ -45,5 +45,19 @@ namespace Gonogo.KSP.Tests
             Assert.False(SystemCapture.ReadsTheActiveVessel(globalsPresent: true, flightReady: false));
             Assert.False(SystemCapture.ReadsTheActiveVessel(globalsPresent: false, flightReady: true));
         }
+
+        [Fact]
+        public void PlantedFlagsAreListedAtTheSpaceCentreAndTheTrackingStationThoughFlightIsNotReady()
+        {
+            Assert.True(SystemCapture.ReadsPlantedFlags(SystemCapture.ReadsTheSystem(globalsPresent: true, inAGame: true, inFlight: false, flightReady: false, listed: 34, inGameState: 34)));
+            Assert.True(SystemCapture.ReadsPlantedFlags(SystemCapture.ReadsTheSystem(globalsPresent: true, inAGame: true, inFlight: false, flightReady: false, listed: 0, inGameState: 0)));
+        }
+
+        [Fact]
+        public void PlantedFlagsAreNotListedFromAListStillBeingFilledOrWithNoGameLoaded()
+        {
+            Assert.False(SystemCapture.ReadsPlantedFlags(SystemCapture.ReadsTheSystem(globalsPresent: true, inAGame: true, inFlight: false, flightReady: false, listed: 0, inGameState: 34)));
+            Assert.False(SystemCapture.ReadsPlantedFlags(SystemCapture.ReadsTheSystem(globalsPresent: true, inAGame: false, inFlight: false, flightReady: false, listed: 0, inGameState: null)));
+        }
     }
 }

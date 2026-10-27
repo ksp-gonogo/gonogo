@@ -36,5 +36,12 @@ namespace Gonogo.KSP
             }
             return VesselListStanding.Stands(inFlight, flightReady, false, listed, inGameState);
         }
+
+        /// <summary>
+        /// Whether the planted flags are listed: wherever the system is read, since a flag is a
+        /// vessel the save holds whether or not it is loaded.
+        /// </summary>
+        /// <param name="readsTheSystem">The verdict of <see cref="ReadsTheSystem"/>.</param>
+        public static bool ReadsPlantedFlags(bool readsTheSystem) => readsTheSystem;
     }
 }
