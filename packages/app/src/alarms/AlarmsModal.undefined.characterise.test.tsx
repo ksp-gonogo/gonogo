@@ -2,6 +2,7 @@ import {
   clearRegistry,
   registerDataSource,
   useOrbitSolve,
+  useTelemetry,
 } from "@ksp-gonogo/core";
 import { PropagationHorizonKind, TrajectoryKind } from "@ksp-gonogo/sitrep-sdk";
 import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -140,12 +141,14 @@ function emitOrbit(
 }
 
 /** The apsis countdowns the presets are gated on, as the solve states them. */
+/** The conic's answer for `vessel.orbit` beside whether a solve came back, so a test can tell a decline from an orbit that never arrived. */
 function SolveReport() {
+  const reckoning = useTelemetry("vessel.orbit").reckoning;
   const solve = useOrbitSolve();
-  return solve ? (
+  return reckoning.status === "declined" ? (
     <span>
-      solved: timeToAp {String(solve.timeToAp)}, timeToPe{" "}
-      {String(solve.timeToPe)}
+      declined: {reckoning.declined.reason}, solve{" "}
+      {solve ? "present" : "absent"}
     </span>
   ) : null;
 }
@@ -256,12 +259,8 @@ describe("AlarmsModal: the orbit-solve preset gate", () => {
     expect(screen.queryByRole("button", { name: /recommended/i })).toBeNull();
   });
 
-  it("treats a null timeToAp/timeToPe exactly as never-arrived: no Recommended disclosure", async () => {
-    // Which meaning is implemented: `solve?.timeToAp ?? undefined` rewrites the
-    // solve's `null` (a CONFIRMED "this orbit has no time-to-apoapsis", here a
-    // degenerate mu) into the same `undefined` that means "nothing has
-    // arrived". The two render identically, so an orbit that genuinely cannot
-    // offer an apsis preset is reported as warmup.
+  it("declines an orbit with a gravitational parameter of zero before solving it: no Recommended disclosure", async () => {
+    // A mu of zero describes no orbit, so the conic declines it and no countdown is solved for either preset.
     const fixture = mount(
       <>
         {modalWithUt()}
@@ -270,8 +269,7 @@ describe("AlarmsModal: the orbit-solve preset gate", () => {
     );
     emitOrbit(fixture.emit, { mu: 0 });
 
-    // The orbit has landed and been solved, and the solve states both countdowns as a confirmed null.
-    await screen.findByText("solved: timeToAp null, timeToPe null");
+    await screen.findByText("declined: model-inapplicable, solve absent");
     expect(screen.queryByRole("button", { name: /recommended/i })).toBeNull();
   });
 

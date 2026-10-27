@@ -278,7 +278,7 @@ describe("the vessel.orbit reckoner", () => {
 
     expect(reading.reckoning).toMatchObject({
       status: "declined",
-      declined: { reason: "model-inapplicable", input: "ecc" },
+      declined: { reason: "model-inapplicable", input: "@vessel.orbit#ecc" },
     });
   });
 
