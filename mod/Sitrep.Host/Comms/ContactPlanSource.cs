@@ -1129,18 +1129,24 @@ namespace Sitrep.Host.Comms
                 _lastRead[state.Id] = state;
             }
             _listeningAtLook = listening;
-            Knowledge.Note(listening, _hearing, looked.Ut, looked.Craft.Sight, (id, centre, from, to, closing) => LineCrossed(looked, id, centre, from, to, closing));
+            using (PerfTelemetry.Time("courier.knowledgeBoard"))
+            {
+                Knowledge.Note(listening, _hearing, looked.Ut, looked.Craft.Sight, (id, centre, from, to, closing) => LineCrossed(looked, id, centre, from, to, closing));
+            }
             KeepHeardForSave(listening);
             // What is kept for a save is now what the centres were given back and have heard since.
             System.Threading.Volatile.Write(ref _restore, null);
 
             NoteGround(looked);
-            TakeFinished(looked.Ut);
-            Forget(planning);
-            StartDue(planning, looked.Ut);
-            if (_planInline)
+            using (PerfTelemetry.Time("courier.contactPlanner"))
             {
                 TakeFinished(looked.Ut);
+                Forget(planning);
+                StartDue(planning, looked.Ut);
+                if (_planInline)
+                {
+                    TakeFinished(looked.Ut);
+                }
             }
             PublishPlans(looked.Ut);
             PublishRoutes(looked, planning);

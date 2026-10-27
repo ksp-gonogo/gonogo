@@ -302,7 +302,10 @@ namespace Sitrep.Host.Comms
             var plans = new Dictionary<string, ContactPlan>(StringComparer.Ordinal);
             foreach (var entry in byCentre)
             {
-                plans[entry.Key] = entry.Value.Run(GridFor(entry.Value));
+                using (PerfTelemetry.Time("planner.plan"))
+                {
+                    plans[entry.Key] = entry.Value.Run(GridFor(entry.Value));
+                }
             }
             return plans;
         }
