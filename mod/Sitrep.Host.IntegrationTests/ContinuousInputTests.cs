@@ -38,7 +38,7 @@ namespace Sitrep.Host.IntegrationTests
             return world;
         }
 
-        private static (FaultCode? Code, string? Reason, double? Accepted, string? Warning, bool Told) Throttle(ReckonedVantageWorld world)
+        private static (FaultCode? Code, string? Reason, double? Accepted, string? Warning, bool Told) Throttle(ReckonedVantageWorld world, string vantage = Home)
         {
             FaultCode? code = null;
             string? reason = null;
@@ -48,7 +48,7 @@ namespace Sitrep.Host.IntegrationTests
             world.Engine.DispatchCommandAndWait(
                 ScriptedContactUplink.ThrottleCommand,
                 new Dictionary<string, object?> { ["value"] = 0.65 },
-                Home,
+                vantage,
                 _ => { },
                 TestBudgets.Op,
                 onRefused: (c, r) =>
@@ -343,6 +343,36 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Empty(Pending(dark));
             Assert.Equal(0, dark.Uplink.ThrottledCount);
             Assert.Equal(1, linked.Uplink.ThrottledCount);
+        }
+
+        /// <summary>
+        /// The same dark link, pressed from a vantage that holds no plan and so
+        /// cannot know the link is down. It is accepted at the delay it knows,
+        /// never refused at once, and the loss is learned when the reply fails to
+        /// come, a round trip after the press and no sooner.
+        /// </summary>
+        [Fact]
+        public async Task APressFromAVantageWithNoPlanIntoADarkLinkIsAcceptedAndLostARoundTripLater()
+        {
+            const string NoPlan = "ground:NoPlan";
+            await using var dark = await RisingAsync();
+            dark.Tick(1600.0);
+            dark.Game.RelayConnected = false;
+            dark.Tick(1601.0);
+
+            var press = Throttle(dark, NoPlan);
+
+            Assert.Null(press.Code);
+            Assert.True(press.Told);
+            var oneWay = press.Accepted!.Value;
+            Assert.True(oneWay > 0.0, "the press should be quoted the delay its vantage knows");
+            Assert.Single(Pending(dark));
+
+            dark.Tick(1601.0 + (2.0 * oneWay) - 1.0);
+            Assert.Single(Pending(dark));
+            dark.Tick(1601.0 + (2.0 * oneWay) + 1.0);
+            Assert.Empty(Pending(dark));
+            Assert.Equal(0, dark.Uplink.ThrottledCount);
         }
 
         private static List<PendingUplink> Pending(ReckonedVantageWorld world) =>

@@ -3506,28 +3506,40 @@ namespace Sitrep.Host
          */
         private Dictionary<(string Centre, string Node), double> _uplinkOnlySeconds = new Dictionary<(string, string), double>();
 
+        /*
+         * The one-way seconds each centre last knew to a node its route no longer
+         * carries a command to. Its ledger row says "never", so a press into that
+         * route is timed by this instead, and is lost a round trip later.
+         */
+        private Dictionary<(string Centre, string Node), double> _lostRouteSeconds = new Dictionary<(string, string), double>();
+
         public void SetCarried(IReadOnlyDictionary<string, IReadOnlyDictionary<string, CommsDirection>> nodesByCentre)
         {
             var next = new Dictionary<string, Dictionary<string, CommsDirection>>();
             var uplinkOnly = new Dictionary<(string, string), double>();
+            var lastKnown = new Dictionary<(string, string), double>();
             foreach (var row in nodesByCentre)
             {
                 var nodes = new Dictionary<string, CommsDirection>(StringComparer.Ordinal);
                 foreach (var node in row.Value)
                 {
                     nodes[node.Key] = node.Value;
-                    if (node.Value.HasFlag(CommsDirection.Forward) && !node.Value.HasFlag(CommsDirection.Reverse))
+                    var pair = (row.Key, node.Key);
+                    var seconds = _network.DelayTo(row.Key, node.Key);
+                    var finite = !double.IsInfinity(seconds) && !double.IsNaN(seconds);
+                    if (node.Value.HasFlag(CommsDirection.Forward) && !node.Value.HasFlag(CommsDirection.Reverse) && finite)
                     {
-                        var seconds = _network.DelayTo(row.Key, node.Key);
-                        if (!double.IsInfinity(seconds) && !double.IsNaN(seconds))
-                        {
-                            uplinkOnly[(row.Key, node.Key)] = seconds;
-                        }
+                        uplinkOnly[pair] = seconds;
+                    }
+                    if (!node.Value.HasFlag(CommsDirection.Forward) && LastKnownSeconds(pair, seconds, finite) is double known)
+                    {
+                        lastKnown[pair] = known;
                     }
                 }
                 next[row.Key] = nodes;
             }
             _uplinkOnlySeconds = uplinkOnly;
+            _lostRouteSeconds = lastKnown;
 
             /*
              * A centre that cannot hear a node is delivered nothing from it. With
@@ -3564,6 +3576,36 @@ namespace Sitrep.Host
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// The delay a centre last knew to a node its route no longer carries a
+        /// command to: the pair's own row when this pass still has one, otherwise
+        /// what the last pass kept, or null when it never knew one.
+        /// </summary>
+        private double? LastKnownSeconds((string Centre, string Node) pair, double seconds, bool finite)
+        {
+            if (finite && _ledger.HasDelayFor(pair.Centre, pair.Node))
+            {
+                return seconds;
+            }
+            return _lostRouteSeconds.TryGetValue(pair, out var held) ? held : (double?)null;
+        }
+
+        /// <summary>
+        /// The one-way seconds a press from <paramref name="vantage"/> into a link
+        /// that is down is sent at: the pair's own delay, or the one the centre
+        /// knew before its route stopped carrying commands, or null when it never
+        /// knew one.
+        /// </summary>
+        private double? SecondsIntoALostLink(string vantage, string node)
+        {
+            var seconds = UplinkDelayTo(vantage, node);
+            if (!double.IsInfinity(seconds) && !double.IsNaN(seconds))
+            {
+                return seconds;
+            }
+            return _lostRouteSeconds.TryGetValue((vantage, node), out var known) ? known : (double?)null;
         }
 
         /// <summary>
@@ -10587,8 +10629,10 @@ namespace Sitrep.Host
             // the press reads the same whether or not the far link is really up.
             var plannedSeconds = PlannedLiveSeconds(job, node);
             var lostOnTheWay = !CanSend(job.Vantage, node);
-            if (lostOnTheWay && plannedSeconds == null)
+            var sentSeconds = plannedSeconds ?? (lostOnTheWay ? SecondsIntoALostLink(job.Vantage, node) : UplinkDelayTo(job.Vantage, node));
+            if (sentSeconds == null)
             {
+                job.OnResult(CommandResult.Fail(CommandErrorCode.NoConnection, SubjectDelayUnknownDetail));
                 job.Done?.Set();
                 return;
             }
@@ -10608,7 +10652,7 @@ namespace Sitrep.Host
             // CaptureSignalDelay). Used for the pending-uplink prediction here
             // and, via the Courier's own DelayTo fallback below, for the actual
             // round-trip. NaN/Inf/<=0 already collapse to 0 inside SetDefaultDelay.
-            var uplinkDelay = plannedSeconds ?? UplinkDelayTo(job.Vantage, node);
+            var uplinkDelay = sentSeconds.Value;
 
             var requestId = NextRequestId();
 
@@ -10663,10 +10707,16 @@ namespace Sitrep.Host
 
             if (lostOnTheWay)
             {
-                // Sent on the centre's plan into a link that is not there. It
-                // never arrives and nothing answers, so the centre learns of
-                // the loss when the reply it predicted fails to come, a round
-                // trip after the press and no sooner.
+                // Sent into a link that is not there, on the centre's plan or on
+                // the delay it last knew. It never arrives and nothing answers,
+                // so the centre learns of the loss when the reply it predicted
+                // fails to come, a round trip after the press and no sooner. A
+                // zero delay is still told, so the client has a deadline to
+                // settle it by.
+                if (uplinkDelay <= 0)
+                {
+                    job.OnAccepted?.Invoke(0.0);
+                }
                 job.Done?.Set();
                 return;
             }
