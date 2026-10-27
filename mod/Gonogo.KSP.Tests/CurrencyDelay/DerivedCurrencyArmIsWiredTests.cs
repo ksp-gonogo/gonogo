@@ -95,7 +95,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
             // The reputation arm is shared between its two away reasons, and the funds
             // arm sits inline in its handler, so each is checked where it actually is.
             var reputationArm = CurrencyDelaySourceText.MethodBody(
-                interceptor, "private void ResolveReputationAway(CurrencyChangeDecision decision, double ut, bool worldFirst = false)");
+                interceptor, "private void ResolveReputationAway(CurrencyChangeDecision decision, double ut)");
             Assert.Contains("DerivedCurrencyWithholding.WithholdDerived", reputationArm, StringComparison.Ordinal);
 
             var fundsHandler = CurrencyDelaySourceText.MethodBody(

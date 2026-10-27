@@ -12197,10 +12197,6 @@
         "note": "New: how many parts a recording is stored in, absent for one"
       },
       {
-        "key": "sitrep-sdk . ObjectiveSlotItem#awaitingHome?",
-        "note": "Marks an objective's contract as complete at a vessel and not yet heard at home"
-      },
-      {
         "key": "sitrep-sdk . ObjectiveSlotItem#depth?",
         "note": "New: how deeply an objective is nested, so a sub-objective draws indented under its parent"
       },
@@ -12907,14 +12903,6 @@
       {
         "key": "sitrep-sdk . ~GeneratedReckonableFieldMap",
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
-      },
-      {
-        "key": "sitrep-sdk . ~ObjectiveSlotAwaitingHome",
-        "note": "A contract a vessel has completed before the home command has heard"
-      },
-      {
-        "key": "sitrep-sdk . ~ObjectiveSlotAwaitingHome#homeHearsInSeconds",
-        "note": "Seconds until home hears the contract is complete, null while a vessel has no route home"
       },
       {
         "key": "sitrep-sdk . ~Vec3Tuple",
@@ -13757,20 +13745,8 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
-        "key": "sitrep-sdk ./registry ~ObjectiveSlotAwaitingHome",
-        "note": "A contract a vessel has completed before the home command has heard"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ObjectiveSlotAwaitingHome#homeHearsInSeconds",
-        "note": "Seconds until home hears the contract is complete, null while a vessel has no route home"
-      },
-      {
         "key": "sitrep-sdk ./registry ~ObjectiveSlotItem",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ObjectiveSlotItem#awaitingHome?",
-        "note": "Marks an objective's contract as complete at a vessel and not yet heard at home"
       },
       {
         "key": "sitrep-sdk ./registry ~ObjectiveSlotItem#contractId?",
@@ -15931,18 +15907,6 @@
       {
         "key": "sitrep-sdk ./testing ~GroupMember#topic?",
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ObjectiveSlotAwaitingHome",
-        "note": "A contract a vessel has completed before the home command has heard"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ObjectiveSlotAwaitingHome#homeHearsInSeconds",
-        "note": "Seconds until home hears the contract is complete, null while a vessel has no route home"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ObjectiveSlotItem#awaitingHome?",
-        "note": "Marks an objective's contract as complete at a vessel and not yet heard at home"
       },
       {
         "key": "sitrep-sdk ./testing ~ObjectiveSlotItem#depth?",

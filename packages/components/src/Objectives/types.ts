@@ -17,14 +17,6 @@ export interface ObjectiveItem {
   contractId?: string;
   /** How many objectives it is nested under; drawn indented. Absent at the top level. */
   depth?: number;
-  /** Set on one objective of a contract a vessel has completed and home has not heard of yet; never at the home command. */
-  awaitingHome?: ObjectiveAwaitingHome;
-}
-
-/** A contract complete at a vessel, waiting for the home command to hear. */
-export interface ObjectiveAwaitingHome {
-  /** Seconds until word reaches home, or null while a vessel it waits on has no route home. */
-  homeHearsInSeconds: number | null;
 }
 
 /** One source's contribution, rendered by the frame's {@link ObjectivesSection}. */

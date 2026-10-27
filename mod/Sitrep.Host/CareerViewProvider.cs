@@ -38,7 +38,6 @@ namespace Sitrep.Host
     ///   "strategies": { "active": [ StrategyEntry, ... ], "all": [ StrategyEntry, ... ], "activeCount": int,
     ///     "activationPatched": bool|null }
     ///   "tech":       { "unlockedCount": int, "unlockedIds": [ string, ... ], "nodes": [ TechNodeEntry, ... ] }
-    ///   "objectivesSettled": [ { "key": string, "outcome": "Applied"|"Dropped", "ut": double }, ... ]
     /// }
     /// // ContractEntry = { "id", "title", "agent", "state", "fundsAdvance",
     /// //   "fundsCompletion", "fundsFailure", "scienceCompletion",
@@ -78,34 +77,6 @@ namespace Sitrep.Host
                 ["title"] = title,
                 ["agent"] = agent,
                 ["outcome"] = completed ? "Completed" : "Failed",
-            };
-        }
-
-        /// <summary>One objective change on its way home, as the <c>career.objectives.&lt;guid&gt;.pending</c> wire dictionary.</summary>
-        public static Dictionary<string, object?> BuildObjectivePending(
-            string key,
-            string? contractId,
-            string? contractTitle,
-            string objective,
-            string objectivePath,
-            string target,
-            string vesselId,
-            string? vesselName,
-            double ut,
-            double? homeArrivesUt)
-        {
-            return new Dictionary<string, object?>
-            {
-                ["key"] = key,
-                ["contractId"] = contractId,
-                ["contractTitle"] = contractTitle,
-                ["objective"] = objective,
-                ["objectivePath"] = objectivePath,
-                ["target"] = target,
-                ["vesselId"] = vesselId,
-                ["vesselName"] = vesselName,
-                ["ut"] = ut,
-                ["homeArrivesUt"] = homeArrivesUt,
             };
         }
 
@@ -161,7 +132,6 @@ namespace Sitrep.Host
                 ["contracts"] = BuildContracts(career),
                 ["strategies"] = BuildStrategies(career),
                 ["tech"] = BuildTech(career),
-                ["objectivesSettled"] = BuildObjectivesSettled(career),
                 // "game", because a career belongs to the save and not to
                 // anything flying: there is one of it, and switching vessels
                 // cannot change which one is being read. The stamp is what lets a
@@ -313,45 +283,6 @@ namespace Sitrep.Host
             return new Dictionary<string, object?>
             {
                 ["facilities"] = facilities,
-            };
-        }
-
-        /// <summary>
-        /// The contract objective changes home has acted on, from the raw
-        /// <c>"objectivesSettled"</c> list of <c>{ key, outcome, ut }</c>. Null when
-        /// the group is absent, outside a career.
-        /// </summary>
-        private static List<object?>? BuildObjectivesSettled(IDictionary<string, object?> career)
-        {
-            if (!career.TryGetValue("objectivesSettled", out var rawList) || rawList is not IEnumerable<object?> list)
-            {
-                return null;
-            }
-            var result = new List<object?>();
-            foreach (var rawEntry in list)
-            {
-                if (rawEntry is IDictionary<string, object?> entry && BuildObjectiveSettled(entry) is { } settled)
-                {
-                    result.Add(settled);
-                }
-            }
-            return result;
-        }
-
-        /// <summary>One settled change, or null for an entry missing its key, outcome or time.</summary>
-        private static Dictionary<string, object?>? BuildObjectiveSettled(IDictionary<string, object?> entry)
-        {
-            if (GetString(entry, "key") is not string key
-                || GetString(entry, "outcome") is not string outcome
-                || GetDouble(entry, "ut") is not double ut)
-            {
-                return null;
-            }
-            return new Dictionary<string, object?>
-            {
-                ["key"] = key,
-                ["outcome"] = outcome,
-                ["ut"] = ut,
             };
         }
 

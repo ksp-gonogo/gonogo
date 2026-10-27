@@ -1,17 +1,12 @@
 import type { HeldGrade } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Countdown,
   HeldFigure,
   heldGradeOf,
   heldWord,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
-import type {
-  ObjectiveAwaitingHome,
-  ObjectiveSection,
-  ObjectiveState,
-} from "./types";
+import type { ObjectiveSection, ObjectiveState } from "./types";
 
 const STATE_GLYPH: Record<ObjectiveState, string> = {
   pending: "○",
@@ -57,10 +52,7 @@ export function ObjectivesSection({
               {o.title}
               {o.optional && <span style={OPTIONAL}> (optional)</span>}
             </span>
-            <span style={SOURCED}>
-              {o.source}
-              {o.awaitingHome && <AwaitingHome awaiting={o.awaitingHome} />}
-            </span>
+            <span style={SOURCED}>{o.source}</span>
             {o.description && <span style={DESC}>{o.description}</span>}
           </div>
           <VisuallyHidden>{o.state}</VisuallyHidden>
@@ -68,24 +60,6 @@ export function ObjectivesSection({
         </li>
       ))}
     </ul>
-  );
-}
-
-/**
- * Appended to a contract's line when a vessel has completed it and home has
- * not heard: inline caption text, so the row keeps its shape.
- */
-function AwaitingHome({
-  awaiting,
-}: Readonly<{ awaiting: ObjectiveAwaitingHome }>) {
-  if (awaiting.homeHearsInSeconds === null) {
-    return <> · complete, home cannot hear yet</>;
-  }
-  return (
-    <>
-      {" · complete, home hears in "}
-      <Countdown value={awaiting.homeHearsInSeconds} />
-    </>
   );
 }
 
