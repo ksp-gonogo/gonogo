@@ -94,7 +94,7 @@ function rank(n: TechNode, researchable: Set<string>): number {
   return 2;
 }
 
-// Researchable-now first, then owned, then locked; within a group by cost then title, so the cheapest researchable node surfaces first.
+// Researchable-now first, then researched, then locked; within a group by cost then title, so the cheapest researchable node surfaces first.
 export function sortNodes(
   nodes: TechNode[],
   researchable: Set<string>,

@@ -7,7 +7,7 @@ import {
   useStream,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Badge, Button } from "@ksp-gonogo/ui";
-import { Card, heldWord, MissionDate } from "@ksp-gonogo/ui-kit";
+import { Card, heldWord, MissionDate, Tag } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DangerButton, RowActions, RowMeta } from "./alarmRowStyles";
 
@@ -139,7 +139,7 @@ export function GameAlarmRow({
   return (
     <Card
       as="li"
-      titleLeft={<Badge size="md">{KIND_LABEL[alarm.kind]}</Badge>}
+      titleLeft={<Tag label={KIND_LABEL[alarm.kind]} />}
       title={title}
       titleRight={
         alarm.triggered ? (

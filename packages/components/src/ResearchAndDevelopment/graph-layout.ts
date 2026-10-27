@@ -8,24 +8,24 @@ export const GRAPH_MIN_COLS = 10;
 
 export const COL_W = 134; // px between column left edges
 export const CARD_W = 118;
-export const CARD_H = 48; // fits a 2-line clamped title + the cost/owned row
+export const CARD_H = 48; // fits a 2-line clamped title + the cost/tick row
 export const ROW_GAP = 12;
 export const CANVAS_PAD = 16;
 
-export type DisplayState = "owned" | "researchable" | "locked";
+export type DisplayState = "researched" | "researchable" | "locked";
 
 export function displayState(
   node: TechNode,
   researchable: Set<string>,
 ): DisplayState {
-  if (node.state === "Available") return "owned";
+  if (node.state === "Available") return "researched";
   if (researchable.has(node.id)) return "researchable";
   return "locked";
 }
 
 /** The kit tone each state is drawn in, by the legend, the badges, the list cards and the graph cards alike. */
 export function displayTone(ds: DisplayState): Tone {
-  if (ds === "owned") return "go";
+  if (ds === "researched") return "go";
   if (ds === "researchable") return "info";
   return "neutral";
 }
@@ -38,7 +38,7 @@ export function dsBorder(ds: DisplayState): string {
 // A card the search filtered out drops its state's fill and edge, so the matches are the only cards still drawn in a state.
 export function graphCardBg(ds: DisplayState, dimmed: boolean): string {
   if (dimmed) return "var(--color-surface-panel)";
-  if (ds === "owned") return "var(--color-go-status)";
+  if (ds === "researched") return "var(--color-go-status)";
   if (ds === "researchable") return "var(--color-surface-raised)";
   return "var(--color-surface-panel)";
 }
@@ -49,7 +49,7 @@ export function graphCardBorder(ds: DisplayState, dimmed: boolean): string {
 }
 
 /**
- * A node is researchable when it is not owned and every parent is unlocked. Whether the balance can pay for it is a separate verdict drawn on its Unlock control, so a node the career cannot afford yet stays researchable. The plugin only emits `Available` / `Unavailable`, so this is computed; an explicit `"Researchable"` state is also honoured.
+ * A node is researchable when it is not researched and every parent is unlocked. Whether the balance can pay for it is a separate verdict drawn on its Unlock control, so a node the career cannot afford yet stays researchable. The plugin only emits `Available` / `Unavailable`, so this is computed; an explicit `"Researchable"` state is also honoured.
  */
 export function computeResearchable(nodes: TechNode[]): Set<string> {
   const byId = new Map(nodes.map((n) => [n.id, n]));

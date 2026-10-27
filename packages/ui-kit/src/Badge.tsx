@@ -82,7 +82,8 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
  * A stateful tone (`info`, `go`, `caution`, `warn`, `nogo` or `offline`; `Tone`
  * has the full set and `Button` takes a narrower one) draws an outlined pill in
  * that tone's colour, with a glow that grows with severity. No tone, or
- * `neutral`, draws a grey rounded chip for a state with no good or bad side.
+ * `neutral`, draws a grey chip, rounded like the rest, for a state with no good
+ * or bad side.
  *
  * @example
  * ```tsx
@@ -154,7 +155,7 @@ export function Badge({
   );
 }
 
-/** Decorative grey, solid-filled: a kind-chip or count with no state. Distinct from `offline`, which is a real "data absent" reading. */
+/** Solid grey for a state with no good or bad side. Distinct from `offline`, which is a real "data absent" reading. */
 const DECORATIVE_STYLE = css`
   background: var(--color-surface-raised);
   border-color: var(--color-border-subtle);
@@ -231,9 +232,7 @@ const Badge__Body = styled.span<{
   text-transform: uppercase;
   white-space: nowrap;
 
-  /* Pill-shaped only for a real severity; a decorative kind chip keeps the rounded rect. */
-  border-radius: ${({ $severity }) =>
-    $severity === undefined ? "var(--radius-regular)" : "var(--radius-pill)"};
+  border-radius: var(--radius-pill);
 
   ${({ $size }) => SIZE_STYLES[$size]}
   ${({ $severity }) =>

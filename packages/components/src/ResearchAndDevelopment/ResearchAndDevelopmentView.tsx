@@ -1,7 +1,6 @@
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import type { CommandButtonHandle, UnitValue } from "@ksp-gonogo/ui-kit";
 import {
-  Badge,
   Cluster,
   EmptyState,
   FilterChip,
@@ -20,9 +19,7 @@ import { DetailPanel } from "./DetailPanel";
 import {
   computeResearchable,
   computeTiers,
-  type DisplayState,
   displayState,
-  displayTone,
   GRAPH_MIN_COLS,
 } from "./graph-layout";
 import { NodeRow } from "./NodeRow";
@@ -42,12 +39,6 @@ export interface ResearchAndDevelopmentViewProps {
   unlockCmd: CommandButtonHandle;
   unlockBlocked: boolean;
 }
-
-const LEGEND: readonly { display: DisplayState; label: string }[] = [
-  { display: "owned", label: "Owned" },
-  { display: "researchable", label: "Researchable" },
-  { display: "locked", label: "Locked" },
-];
 
 type ListFilter = "all" | "researchable" | "unlocked";
 
@@ -176,15 +167,6 @@ export function ResearchAndDevelopmentView({
       <Panel
         panelTitle="Research and Development"
         compactTitle={["R&D"]}
-        panelToolbar={
-          <Cluster justify="start" gap="related" wrap aria-hidden="true">
-            {LEGEND.map(({ display, label }) => (
-              <Badge key={display} tone={displayTone(display)} size="sm">
-                {label}
-              </Badge>
-            ))}
-          </Cluster>
-        }
         panelFilter={filter}
         panelSidebar={
           selectedNode ? (

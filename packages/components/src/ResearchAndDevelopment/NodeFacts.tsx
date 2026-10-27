@@ -1,12 +1,12 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Badge,
   CheckIcon,
   Cluster,
   ExpandableText,
   Row,
   RowName,
   Stack,
+  Tag,
   Text,
   Tooltip,
   Unit,
@@ -32,9 +32,7 @@ export function NodeRequires({ node }: Readonly<{ node: TechNode }>) {
         Requires
       </Text>
       {node.parents.map((p) => (
-        <Badge key={p} size="sm">
-          {p}
-        </Badge>
+        <Tag key={p} label={p} name />
       ))}
     </Cluster>
   );

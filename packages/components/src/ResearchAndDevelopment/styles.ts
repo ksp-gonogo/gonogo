@@ -63,7 +63,8 @@ export const GraphCard = styled.button<{
 `;
 
 // Off both type scales: the fixed CARD_H of 48 leaves a 37px content budget that the title already fills; changing these means raising CARD_H.
-export const GraphCardTitle = styled.span`
+export const GraphCardTitle = styled.span<{ $reserve: string }>`
+  padding-right: ${(p) => p.$reserve};
   font-size: 11px;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -75,7 +76,11 @@ export const GraphCardTitle = styled.span`
   -webkit-box-orient: vertical;
 `;
 
-export const GraphCardMeta = styled.span`
+/* Each figure's own side bearing differs, so the right gap is picked per figure to land its visible right inset on its visible top inset. */
+export const GraphCardMeta = styled.span<{ $researched: boolean }>`
+  position: absolute;
+  top: var(--gap-line);
+  right: ${(p) => (p.$researched ? "var(--gap-glyph)" : "var(--gap-caption)")};
   display: inline-flex;
   align-items: baseline;
 `;
@@ -90,7 +95,7 @@ export const GraphCost = styled.span<{ $ds: DisplayState; $dimmed: boolean }>`
       : "var(--color-text-muted)"};
 `;
 
-export const GraphOwned = styled.span<{ $dimmed: boolean }>`
+export const GraphResearched = styled.span<{ $dimmed: boolean }>`
   /* Off the type scale: the same CARD_H budget as GraphCardTitle. */
   font-size: 10px;
   color: ${(p) =>

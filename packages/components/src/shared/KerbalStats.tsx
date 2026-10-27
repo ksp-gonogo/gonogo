@@ -10,6 +10,7 @@ import {
   NULL_DISPLAY,
   type Severity,
   speakQuantity,
+  Tag,
   Tooltip,
   Unit,
   writeQuantity,
@@ -227,9 +228,10 @@ export function KerbalBadges({ kerbal }: { kerbal: KerbalStatFields }) {
           text={`${kerbal.careerFlights} career flight${kerbal.careerFlights === 1 ? "" : "s"} completed`}
           focusable
         >
-          <Badge size="sm" aria-label={`${kerbal.careerFlights} flights`}>
-            {kerbal.careerFlights}F
-          </Badge>
+          <Tag
+            label={`${kerbal.careerFlights}F`}
+            aria-label={`${kerbal.careerFlights} flights`}
+          />
         </Tooltip>
       )}
       {/* One badge for every way a kerbal cannot fly; a new axis needs no badge of its own. */}

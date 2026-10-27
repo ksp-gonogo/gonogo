@@ -1,6 +1,7 @@
 import {
   Badge,
   Card,
+  CheckIcon,
   Cluster,
   type CommandButtonHandle,
   NULL_DISPLAY,
@@ -10,6 +11,7 @@ import {
   Text,
   Unit,
   type UnitValue,
+  VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import { type DisplayState, displayTone } from "./graph-layout";
 import { NodeDescription, NodeParts, NodeRequires } from "./NodeFacts";
@@ -30,7 +32,7 @@ interface NodeRowProps {
 }
 
 const STATE_LABEL: Record<DisplayState, string> = {
-  owned: "Owned",
+  researched: "Researched",
   researchable: "Researchable",
   locked: "Locked",
 };
@@ -78,7 +80,7 @@ export function NodeRow({
           </Text>
         </RowName>
         <Cluster gap="related" wrap>
-          {display !== "owned" && (
+          {display !== "researched" && (
             <Text
               tone={unaffordable ? "nogo" : undefined}
               level={display === "locked" ? "faint" : undefined}
@@ -90,9 +92,16 @@ export function NodeRow({
               <Unit>science</Unit>
             </Text>
           )}
-          <Badge tone={displayTone(display)} size="sm">
-            {STATE_LABEL[display]}
-          </Badge>
+          {display === "researched" ? (
+            <>
+              <CheckIcon size={12} aria-hidden="true" />
+              <VisuallyHidden>{STATE_LABEL[display]}</VisuallyHidden>
+            </>
+          ) : (
+            <Badge tone={displayTone(display)} size="sm">
+              {STATE_LABEL[display]}
+            </Badge>
+          )}
         </Cluster>
       </Row>
       {expanded && (

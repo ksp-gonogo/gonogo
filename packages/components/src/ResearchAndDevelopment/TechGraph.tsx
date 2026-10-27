@@ -14,7 +14,7 @@ import {
   GraphCardMeta,
   GraphCardTitle,
   GraphCost,
-  GraphOwned,
+  GraphResearched,
   GraphScroll,
 } from "./styles";
 import type { TechNode } from "./wire";
@@ -120,10 +120,14 @@ export function TechGraph({
               aria-pressed={selectedId === p.node.id}
               aria-label={`${p.node.title}, ${ds}, ${p.node.scienceCost ?? "unknown"} science`}
             >
-              <GraphCardTitle>{p.node.title}</GraphCardTitle>
-              <GraphCardMeta>
-                {ds === "owned" ? (
-                  <GraphOwned $dimmed={dimmed}>✓ owned</GraphOwned>
+              <GraphCardTitle $reserve={ds === "researched" ? "1.4em" : "7ch"}>
+                {p.node.title}
+              </GraphCardTitle>
+              <GraphCardMeta $researched={ds === "researched"}>
+                {ds === "researched" ? (
+                  <GraphResearched $dimmed={dimmed} aria-hidden="true">
+                    ✓
+                  </GraphResearched>
                 ) : (
                   <GraphCost $ds={ds} $dimmed={dimmed}>
                     {p.node.scienceCost ?? NULL_DISPLAY}

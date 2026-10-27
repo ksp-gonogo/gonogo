@@ -13,13 +13,14 @@ import {
   HeldFigure,
   heldWord,
   Inline,
+  Tag,
   Text,
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import type { TitledInstrument } from "./instrument";
 
-/** What each state badge on an instrument row means, shown on hover and focus. */
+/** What each badge and tag on an instrument row means, shown on hover and focus. */
 const BADGE_MEANING = {
   data: "Holds science data that has not been transmitted or recovered",
   deployed: "The experiment has been run on this instrument",
@@ -193,9 +194,6 @@ export function ScienceExperimentRow({
     instrument.hasData ||
     (continuous && typeof instrument.running === "boolean") ||
     (!continuous && instrument.deployed) ||
-    (!continuous &&
-      !instrument.rerunnable &&
-      instrument.rerunnableKnown !== false) ||
     instrument.inoperable;
   return (
     <Card
@@ -246,15 +244,15 @@ export function ScienceExperimentRow({
             !instrument.rerunnable &&
             instrument.rerunnableKnown !== false && (
               <Tooltip
-                text={said(
+                text={
                   instrument.resettable === true
                     ? BADGE_MEANING.oneShotResettable
                     : instrument.resettable === false
                       ? BADGE_MEANING.oneShotFinal
-                      : BADGE_MEANING.oneShot,
-                )}
+                      : BADGE_MEANING.oneShot
+                }
               >
-                <Badge held={heldGrade}>ONE-SHOT</Badge>
+                <Tag label="ONE-SHOT" />
               </Tooltip>
             )}
           {instrument.inoperable && (

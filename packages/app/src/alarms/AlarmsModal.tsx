@@ -32,6 +32,7 @@ import {
   SectionTitle,
   Stack,
   Switch,
+  Tag,
   Unit,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
@@ -678,9 +679,9 @@ export function AlarmsModal({
                 titleLeft={
                   renaming ? undefined : (
                     <>
-                      <Badge size="md">
-                        {a.trigger.kind === "time" ? "TIME" : "COND"}
-                      </Badge>
+                      <Tag
+                        label={a.trigger.kind === "time" ? "TIME" : "COND"}
+                      />
                       {a.trigger.kind === "threshold" &&
                         isAtSubjectVantage(a.trigger) && (
                           <Badge tone="info" size="sm">
@@ -903,9 +904,7 @@ function ForeignAlarmRow({
       as="li"
       titleLeft={
         <>
-          <Badge size="md">
-            {alarm.condition?.kind === "time" ? "TIME" : "COND"}
-          </Badge>
+          <Tag label={alarm.condition?.kind === "time" ? "TIME" : "COND"} />
           {alarm.condition?.kind === "threshold" &&
             isReckonedField(
               alarm.condition.topic,
