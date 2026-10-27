@@ -496,6 +496,43 @@ public class SetRate
 }
 
 /// <summary>
+/// Asks the mod to send a rate tier no faster than a given rate while this
+/// connection holds the request, for a client that cannot keep up with the tier
+/// as it stands. The mod sends the tier at the lowest rate any connection asks for
+/// in this way, never below the base tier's rate, and <c>system.dataRates</c>
+/// reports the rate it sends.
+///
+/// <para>The request lasts until the connection sends another for the same tier or
+/// closes. A <c>null</c> <see cref="SamplesPerSecond"/> withdraws it. The base tier
+/// cannot be lowered, and a request for it or for a tier the mod does not know
+/// changes nothing.</para>
+/// </summary>
+/// <category>Stream messages</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CapRate
+{
+    /// <summary>The frame type, always <c>"cap-rate"</c>.</summary>
+#if SITREP_CODEGEN
+    [TsProperty(Type = "\"cap-rate\"")]
+#endif
+    [SitrepUnit(Units.Id)]
+    public string Type { get; set; } = "cap-rate";
+    /// <summary>The rate tier to send no faster: <c>"fast"</c>.</summary>
+#if SITREP_CODEGEN
+    [TsProperty(Type = "\"base\" | \"fast\"")]
+#endif
+    [SitrepUnit(Units.Id)]
+    public string Tier { get; set; } = DataRateTierNames.Fast;
+    /// <summary>The most samples a game second this connection asks the tier to
+    /// carry, or <c>null</c> to withdraw the request.</summary>
+    [SitrepUnit(Units.Dimensionless)]
+    public double? SamplesPerSecond { get; set; }
+}
+
+/// <summary>
 /// Selects the command centre this connection commands from and observes at. It sets both where the connection's telemetry is observed from
 /// and where its commands are sent from. The id must name a currently-active command
 /// centre, or the request is refused with an <c>unknownVantage</c> error and the

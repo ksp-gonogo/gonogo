@@ -791,6 +791,46 @@ namespace Sitrep.Contract.Serialization
             return new SetRate { Type = "set-rate", Topic = RequireString(raw, "topic"), Tier = RequireString(raw, "tier") };
         }
 
+        /// <summary>Serializes a <c>cap-rate</c> envelope, leaving <c>samplesPerSecond</c> out for a withdrawal.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
+        public static string WriteCapRate(CapRate msg)
+        {
+            var sb = new StringBuilder();
+            sb.Append('{');
+            AppendField(sb, "type", first: true);
+            JsonWriter.AppendString(sb, msg.Type);
+
+            AppendField(sb, "tier");
+            JsonWriter.AppendString(sb, msg.Tier);
+
+            if (msg.SamplesPerSecond is { } rate)
+            {
+                AppendField(sb, "samplesPerSecond");
+                JsonWriter.AppendNumber(sb, rate);
+            }
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        /// <summary>Parses a <c>cap-rate</c> envelope. An absent or null <c>samplesPerSecond</c> reads as a withdrawal.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not a <c>cap-rate</c>
+        /// envelope, <c>tier</c> is missing or not a string, or
+        /// <c>samplesPerSecond</c> is neither a number nor null.</exception>
+        public static CapRate ParseCapRate(string json)
+        {
+            var raw = ExpectObject(JsonReader.Parse(json));
+            RequireType(raw, "cap-rate");
+            return new CapRate
+            {
+                Type = "cap-rate",
+                Tier = RequireString(raw, "tier"),
+                SamplesPerSecond = OptionalDouble(raw, "samplesPerSecond"),
+            };
+        }
+
         /// <summary>Serializes a <c>set-vantage</c> envelope.</summary>
         /// <param name="msg">The envelope to write.</param>
         /// <returns>The JSON text of the envelope.</returns>
@@ -992,7 +1032,7 @@ namespace Sitrep.Contract.Serialization
         /// <summary>
         /// Parses a client-to-server envelope (<see cref="Subscribe"/>,
         /// <see cref="Unsubscribe"/>, <see cref="SetVantage"/>,
-        /// <see cref="Ping"/>, <c>CommandRequest&lt;object?&gt;</c>, <see cref="CommandGroupRequest"/>, <see cref="ClaimRequest"/> or <see cref="SetRate"/>), dispatching on the
+        /// <see cref="Ping"/>, <c>CommandRequest&lt;object?&gt;</c>, <see cref="CommandGroupRequest"/>, <see cref="ClaimRequest"/>, <see cref="SetRate"/> or <see cref="CapRate"/>), dispatching on the
         /// <c>"type"</c> field.
         ///
         /// <para>Failure comes back as one of two <see cref="FormatException"/>
@@ -1022,6 +1062,7 @@ namespace Sitrep.Contract.Serialization
                     "command-group" => ParseCommandGroup(json),
                     "claim" => ParseClaim(json),
                     "set-rate" => ParseSetRate(json),
+                    "cap-rate" => ParseCapRate(json),
                     _ => throw new UnknownEnvelopeTypeException(
                         $"unknown client envelope type: {type}", type, PeekRequestId(json), PeekTopic(json)),
                 };

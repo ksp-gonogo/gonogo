@@ -875,6 +875,20 @@ export class TelemetryClient {
     };
   }
 
+  /**
+   * Ask the mod to send `tier` no faster than `samplesPerSecond` while this
+   * connection is open, or withdraw the request with `null`. The mod sends the
+   * tier at the lowest rate any connection asks for this way, never below the
+   * base rate, and `system.dataRates` reports what it sends.
+   */
+  capRate(tier: DataRateTier, samplesPerSecond: number | null): void {
+    this.transport.send(
+      samplesPerSecond === null
+        ? { type: "cap-rate", tier }
+        : { type: "cap-rate", tier, samplesPerSecond },
+    );
+  }
+
   /** The tier the live claims on `topic` ask for. */
   claimedTier(topic: string): DataRateTier {
     return (this.fastClaims.get(topic) ?? 0) > 0 ? "fast" : "base";

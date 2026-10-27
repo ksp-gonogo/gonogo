@@ -399,6 +399,8 @@ export type PeerMessage =
       wide?: true;
       /** Set on a frame replayed from the host's history, which describes the past and is not the newest word on the link. */
       replay?: true;
+      /** The host's `Date.now()` as it sent the frame, from which a station reads how far frames queue on the way. */
+      sentAt?: number;
     }
   // Host -> station: the host's own stream restarted from a new game process,
   // whose timeline epoch counts from zero. A station's store refuses frames
@@ -445,6 +447,18 @@ export type PeerMessage =
   // has subscribed. The host asks the mod for the fastest tier any screen asks
   // for. Re-sent after the subscribes on every fresh connection, for the reason
   // `sitrep-subscribe` is.
+  // Station -> host: how this station is keeping up, every two seconds while
+  // connected. The host lowers the rate it sends the station fast Topics at
+  // when the station falls behind (`stationPace.ts`).
+  | {
+      type: "station-pace";
+      /** How late the station's timers fire, in milliseconds. */
+      loopLagMs: number;
+      /** How long the station takes to draw a frame, in milliseconds. */
+      frameMs: number;
+      /** How much longer the latest frame took to arrive than the quickest one recently, in milliseconds. */
+      backlogMs: number;
+    }
   | {
       type: "sitrep-set-rate";
       topic: string;

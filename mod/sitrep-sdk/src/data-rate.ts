@@ -53,14 +53,24 @@ function isDataRateReport(value: unknown): value is DataRateReport {
   );
 }
 
-/** The base tier's samples a game second on a `system.dataRates` report, one a second when no report has arrived. */
-export function baseSamplesPerSecondOf(
-  report: DataRateReport | undefined,
+/**
+ * The samples a game second a rate tier carries now, read off a
+ * `system.dataRates` report. One a second when `report` is absent or not a
+ * report, or names no such tier. Useful for knowing how fast the mod sends the
+ * Topics at a tier, such as the fastest a screen can be sent them. Used by the
+ * main screen's pacing of its stations.
+ *
+ * @category Reading telemetry
+ */
+export function tierSamplesPerSecondOf(
+  report: unknown,
+  tier: DataRateTier,
 ): number {
-  return rateOf(report?.tiers.find((entry) => entry.tier === "base"));
+  if (!isDataRateReport(report)) return 1;
+  return rateOf(report.tiers.find((entry) => entry.tier === tier));
 }
 
-/* A sample rate becomes the plain number that sizes how many samples a timeline keeps. */
+/* A sample rate becomes the plain number samples are counted in, such as how many a timeline keeps. */
 function rateOf(
   row: Pick<DataRateReport["tiers"][number], "samplesPerSecond"> | undefined,
 ): number {

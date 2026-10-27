@@ -47,6 +47,7 @@ public static class RtConfig
         builder.ExportAsInterface<CommandGroupRequest>().AutoI(false).WithPublicProperties().OverrideName("CommandGroupRequest");
         builder.ExportAsInterface<ClaimRequest>().AutoI(false).WithPublicProperties().OverrideName("ClaimRequest");
         builder.ExportAsInterface<SetRate>().AutoI(false).WithPublicProperties().OverrideName("SetRate");
+        builder.ExportAsInterface<CapRate>().AutoI(false).WithPublicProperties().OverrideName("CapRate");
         builder.ExportAsInterface<Ping>().AutoI(false).WithPublicProperties().OverrideName("Ping");
         builder.ExportAsInterface<Pong>().AutoI(false).WithPublicProperties().OverrideName("Pong");
         builder.ExportAsInterface<StreamBinary>().AutoI(false).WithPublicProperties().OverrideName("StreamBinary");
