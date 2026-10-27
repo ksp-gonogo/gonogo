@@ -11,15 +11,9 @@
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-absence [--out <dir>]`.
  */
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import { withoutChannel } from "../src/test/absenceScene";
 import { ABSENCE_SCENES } from "../src/test/absenceScenes";
 import { renderWidgets } from "./widgetRenderHarness";
@@ -38,7 +32,7 @@ async function main(): Promise<void> {
     : undefined;
 
   mkdirSync(outBase, { recursive: true });
-  const staging = mkdtempSync(join(tmpdir(), "absence-scenes-"));
+  const staging = makeTempDir("absence-scenes-");
   try {
     // Every scene staged first and rendered in ONE call, so the run launches one browser rather than one per scene.
     const configs = [];

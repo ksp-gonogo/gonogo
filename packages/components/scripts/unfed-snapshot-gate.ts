@@ -36,10 +36,10 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import { KNOWN_UNFED } from "./unfed-snapshot-debt";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -143,7 +143,7 @@ function isFixtureFed(file: string): boolean {
 }
 
 function main(): void {
-  const outDir = mkdtempSync(join(tmpdir(), "unfed-gate-"));
+  const outDir = makeTempDir("unfed-gate-");
   const outFile = join(outDir, "muted.json");
   try {
     try {

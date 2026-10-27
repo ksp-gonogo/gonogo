@@ -18,12 +18,13 @@
  */
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { platform, tmpdir } from "node:os";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { platform } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { chromium, type Page } from "playwright";
+import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import type { HeroSpec } from "./probe/hero-entry";
 import type { StageSpec } from "./probe/readme-entry";
 import { HERO_COMPOSITIONS, heroSpec } from "./readmeHero";
@@ -293,7 +294,7 @@ async function animate(
   gif: string | undefined,
   mp4: string | undefined,
 ): Promise<void> {
-  const tmp = await mkdtemp(join(tmpdir(), "readme-frames-"));
+  const tmp = makeTempDir("readme-frames-");
   try {
     const lengths = Object.fromEntries(
       Object.entries(spec.tracks).map(([k, v]) => [k, v.length]),
@@ -348,7 +349,7 @@ async function heroAnimate(
   gif: string | undefined,
   mp4: string | undefined,
 ): Promise<void> {
-  const tmp = await mkdtemp(join(tmpdir(), "readme-hero-"));
+  const tmp = makeTempDir("readme-hero-");
   try {
     await mountHero(page, spec);
     const root = page.locator("#root");
