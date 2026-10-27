@@ -363,6 +363,7 @@
     </Reference>
     <!-- GonogoLog.cs is the plugin's one writer to KSP.log; every gated source
          below that reports a fault calls it, so it has to resolve here. -->
+    <Compile Include="..\Gonogo.KSP\OrbitTruthFrame.cs" />
     <Compile Include="..\Gonogo.KSP\MeshExtent.cs" />
     <Compile Include="MeshExtentTests.cs" />
     <Compile Include="..\Gonogo.KSP\BoundsPathReport.cs" />

@@ -275,7 +275,7 @@ export interface GeneratedTopicPayloadMap {
   "vessel.maneuver": VesselManeuver;
   /** The active vessel's orbital elements. */
   "vessel.orbit": VesselOrbit;
-  /** KSP's own maintained state vector for the active vessel (`Orbit.pos` and `Orbit.vel`), relative to the body it orbits. */
+  /** KSP's own maintained state vector for the active vessel (`Orbit.pos` and `Orbit.vel`), relative to the body it orbits, in the fixed frame. */
   "vessel.orbit.truth": VesselOrbitTruth;
   /** The active vessel's full part tree, with each part's position, mass, temperatures, resources, module states and action-group bindings. */
   "vessel.parts": VesselParts;

@@ -731,40 +731,25 @@ namespace Gonogo.KSP
         /// <c>mu</c> (the parent body's <c>gravParameter</c>, for
         /// dead-reckoning on the replay/consumer side), the
         /// apoapsis/periapsis altitudes callers actually display, the
-        /// GROUND-TRUTH state vector (<c>truthPosition</c>/<c>truthVelocity</c>
-        /// - see below) plus the <c>truthFrameRotating</c> flag that gates
-        /// whether that vector is even comparable to a propagator, and the
+        /// ground-truth state vector (<c>truthPosition</c>/<c>truthVelocity</c>
+        /// - see below) with its <c>truthFrameRotating</c> flag, and the
         /// next patch/encounter (see below).
         ///
-        /// <para><b>Ground truth (G-6):</b> <c>orbit.pos</c>/<c>orbit.vel</c>
-        /// are KSP's own maintained state vectors - <c>Orbit.UpdateFromUT</c>
-        /// derives them from the exact same six elements captured above
-        /// (sma/ecc/inc/lan/argPe/meanAnomalyAtEpoch/epoch) via a
-        /// perifocal-to-inertial rotation built from <c>OrbitFrame</c>
-        /// (itself constructed from those same elements). Critically, the
-        /// frame that rotation lands in depends on <c>referenceBody.
-        /// inverseRotation</c>, captured here as <c>truthFrameRotating</c>:
-        /// KSP flips a body into the rotating regime
-        /// (<c>inverseRotation == true</c>) whenever the vessel drops below
-        /// that body's <c>inverseRotThresholdAltitude</c> - i.e. low orbit,
-        /// atmospheric flight, or landed, which is the common case in any
-        /// real recording. <c>truthFrameRotating == false</c> (the inertial
-        /// regime, high orbit) is the only case where <c>truthPosition</c>/
-        /// <c>truthVelocity</c> sit in the fixed, non-rotating "Zup" frame
-        /// (<c>Planetarium.ZupAtT</c>) that the six elements above are
-        /// themselves defined against, and are therefore directly comparable
-        /// to an elements-based reconstruction using the standard
-        /// Vallado/AIAA 3-1-3 rotation (inc, then LAN, then argPe - see
-        /// <c>Sitrep.Propagation.KeplerProvider</c>). When
-        /// <c>truthFrameRotating == true</c>, the truth vectors are instead
-        /// expressed in a frame CO-ROTATING with the body's spin, so they
-        /// diverge from <c>KeplerProvider.Solve</c>'s fixed-frame output by a
-        /// rotation about the body's polar axis that grows with elapsed
-        /// time - any M1 propagator diff must gate on this flag (or restrict
-        /// the comparison to inertial-regime windows) rather than assume a
-        /// single fixed frame throughout a recording. Reported
-        /// parent-body-relative, matching every other vector in this
-        /// dictionary.</para>
+        /// <para><b>Ground truth:</b> <c>orbit.pos</c>/<c>orbit.vel</c> are KSP's
+        /// own maintained state vectors, derived by <c>Orbit.UpdateFromUT</c>
+        /// from the same six elements captured above. KSP stores them as
+        /// <c>Planetarium.Zup.WorldToLocal</c> of the fixed-frame vector, and
+        /// refreshes <c>Zup</c> only while a body is in its inverse-rotation
+        /// regime, so the stored values are rotated about the polar axis by a
+        /// frozen angle after any low flight. <c>truthPosition</c> and
+        /// <c>truthVelocity</c> are therefore published as
+        /// <c>Planetarium.Zup.LocalToWorld</c> of the stored vectors: always
+        /// the fixed, non-rotating frame the elements are defined against,
+        /// directly comparable to an elements-based reconstruction using the
+        /// standard Vallado/AIAA 3-1-3 rotation (see
+        /// <c>Sitrep.Propagation.KeplerProvider</c>). <c>truthFrameRotating</c>
+        /// is always <c>false</c> for that reason. Reported parent-body-relative,
+        /// matching every other vector in this dictionary.</para>
         ///
         /// <para><b>Encounter.</b> <c>nextPatch</c> is routinely non-null
         /// without there being a genuine upcoming SOI transition - KSP leaves
@@ -797,9 +782,6 @@ namespace Gonogo.KSP
             }
 
             var body = orbit.referenceBody;
-            var pos = orbit.pos;
-            var vel = orbit.vel;
-
             Dictionary<string, object?>? encounter = null;
             var nextPatch = orbit.nextPatch;
             var transition = orbit.patchEndTransition;
@@ -836,14 +818,9 @@ namespace Gonogo.KSP
                 ["timeToAp"] = orbit.timeToAp,
                 ["timeToPe"] = orbit.timeToPe,
                 ["referenceBody"] = body != null ? body.bodyName : null,
-                ["truthPosition"] = new[] { pos.x, pos.y, pos.z },
-                ["truthVelocity"] = new[] { vel.x, vel.y, vel.z },
-                // See the doc comment above: gates whether truthPosition/
-                // truthVelocity are directly comparable to KeplerProvider's
-                // fixed-frame output (false) or are in the body-co-rotating
-                // frame instead (true) - null only if referenceBody itself
-                // is unavailable, never a default guess.
-                ["truthFrameRotating"] = body != null ? (bool?)body.inverseRotation : null,
+                ["truthPosition"] = OrbitTruthFrame.ToFixedFrame(orbit.pos),
+                ["truthVelocity"] = OrbitTruthFrame.ToFixedFrame(orbit.vel),
+                ["truthFrameRotating"] = false,
                 ["encounter"] = encounter,
                 ["patches"] = BuildOrbitPatchChain(orbit),
             };

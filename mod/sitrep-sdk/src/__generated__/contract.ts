@@ -11523,27 +11523,23 @@ export interface OrbitEncounter
 }
 /**
 * KSP's own maintained state vector for the active vessel (`Orbit.pos` and
-* `Orbit.vel`), relative to the body it orbits. Read `vessel.orbit` for
-* altitude and velocity.
+* `Orbit.vel`), relative to the body it orbits, in the fixed frame. Read
+* `vessel.orbit` for altitude and velocity.
 *
 * Absent when the state vector or the frame flag could not be read.
 *
-* `VesselOrbitTruth.frameRotating` says which frame the vectors are in, and a
-* comparison must gate on it. When it is false they are in the fixed,
-* non-rotating frame the orbital elements are defined against, and are
-* directly comparable to a Kepler propagation of those elements. When it is
-* true (KSP switches to this below a body's `inverseRotThresholdAltitude`: low
-* orbit, atmospheric flight, landed) they are in a frame co-rotating with the
-* body's spin, and differ from a fixed-frame propagation by a rotation about
-* the polar axis that grows with time.
+* The vectors are always in the fixed, non-rotating frame the orbital elements
+* are defined against, whatever the vessel's altitude, so they are directly
+* comparable to a Kepler propagation of those elements.
+* `VesselOrbitTruth.frameRotating` is always false.
 *
 * @category Orbits and trajectories
 */
 export interface VesselOrbitTruth
 {
 	/**
-	* Position in metres relative to the body the vessel orbits, KSP's
-	* `Orbit.pos`, in the frame `VesselOrbitTruth.frameRotating` names.
+	* Position in metres relative to the body the vessel orbits, KSP's `Orbit.pos`
+	* taken into the fixed frame.
 	*
 	* To check element-to-position math, compare against the reported value, never
 	* a reckoned one: reckoning applies the same Kepler propagator being checked,
@@ -11551,14 +11547,13 @@ export interface VesselOrbitTruth
 	*/
 	position: Vec3Of<"m">;
 	/**
-	* Velocity in m/s relative to the body the vessel orbits, KSP's `Orbit.vel`,
-	* in the frame `VesselOrbitTruth.frameRotating` names.
+	* Velocity in m/s relative to the body the vessel orbits, KSP's `Orbit.vel`
+	* taken into the fixed frame.
 	*/
 	velocity: Vec3Of<"m/s">;
 	/**
-	* The reference body's `CelestialBody.inverseRotation`: true when
-	* `VesselOrbitTruth.position` and `VesselOrbitTruth.velocity` are in a frame
-	* co-rotating with the body, false when they are in the fixed inertial frame.
+	* Always false: `VesselOrbitTruth.position` and `VesselOrbitTruth.velocity`
+	* are in the fixed inertial frame, never one co-rotating with the body.
 	*/
 	frameRotating: boolean;
 	/** The payload's provenance (`"vessel:<guid>"`). */

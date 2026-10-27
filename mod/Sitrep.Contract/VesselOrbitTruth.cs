@@ -7,7 +7,7 @@ namespace Sitrep.Contract;
 /// <summary>
 /// KSP's own maintained state
 /// vector for the active vessel (<c>Orbit.pos</c> and <c>Orbit.vel</c>),
-/// relative to the body it orbits. Read <c>vessel.orbit</c> for altitude and
+/// relative to the body it orbits, in the fixed frame. Read <c>vessel.orbit</c> for altitude and
 /// velocity.
 /// <internal>
 /// A development channel for checking element-to-position math against KSP's
@@ -15,15 +15,10 @@ namespace Sitrep.Contract;
 /// </internal> Absent when
 /// the state vector or the frame flag could not be read.
 ///
-/// <para><see cref="FrameRotating"/> says which frame the vectors are in, and
-/// a comparison must gate on it. When it is false they are in the fixed,
-/// non-rotating frame the orbital elements are defined against, and are
-/// directly comparable to a Kepler propagation of those elements. When it is
-/// true (KSP switches to this below a body's
-/// <c>inverseRotThresholdAltitude</c>: low orbit, atmospheric flight, landed)
-/// they are in a frame co-rotating with the body's spin, and differ from a
-/// fixed-frame propagation by a rotation about the polar axis that grows with
-/// time.</para>
+/// <para>The vectors are always in the fixed, non-rotating frame the orbital
+/// elements are defined against, whatever the vessel's altitude, so they are
+/// directly comparable to a Kepler propagation of those elements.
+/// <see cref="FrameRotating"/> is always false.</para>
 /// <internal>
 /// Dev-only by convention: nothing binds it from a widget, and there is no
 /// engine-level flag hiding it from the data picker. KspHost.BuildOrbit's doc
@@ -40,7 +35,7 @@ public class VesselOrbitTruth
 {
     /// <summary>
     /// Position in metres relative to the body the vessel orbits, KSP's
-    /// <c>Orbit.pos</c>, in the frame <see cref="FrameRotating"/> names.
+    /// <c>Orbit.pos</c> taken into the fixed frame.
     /// <para>To check element-to-position math, compare against the reported
     /// value, never a reckoned one: reckoning applies the same Kepler
     /// propagator being checked, so it agrees with itself by construction.</para>
@@ -56,14 +51,14 @@ public class VesselOrbitTruth
     [SitrepReckonable(ReckoningBases.KeplerPropagation, "velocity", "frameRotating", "@vessel.orbit#mu", "@vessel.orbit#horizon")]
     public Vec3 Position { get; set; } = new();
 
-    /// <summary>Velocity in m/s relative to the body the vessel orbits, KSP's <c>Orbit.vel</c>, in the frame <see cref="FrameRotating"/> names.</summary>
+    /// <summary>Velocity in m/s relative to the body the vessel orbits, KSP's <c>Orbit.vel</c> taken into the fixed frame.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
     // The same conic seen from the other half of the state vector; see Position.
     [SitrepFrame(Frames.BodyCentredInertial, WhenSet = Frames.BodyCentredRotating, SelectedBy = "frameRotating")]
     [SitrepReckonable(ReckoningBases.KeplerPropagation, "position", "frameRotating", "@vessel.orbit#mu", "@vessel.orbit#horizon")]
     public Vec3 Velocity { get; set; } = new();
 
-    /// <summary>The reference body's <c>CelestialBody.inverseRotation</c>: true when <see cref="Position"/> and <see cref="Velocity"/> are in a frame co-rotating with the body, false when they are in the fixed inertial frame.</summary>
+    /// <summary>Always false: <see cref="Position"/> and <see cref="Velocity"/> are in the fixed inertial frame, never one co-rotating with the body.</summary>
     [SitrepUnit(Units.Flag)]
     public bool FrameRotating { get; set; }
 
