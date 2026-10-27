@@ -8179,6 +8179,10 @@
         "note": "CommNet Signal gains one data rate and target slot that any Uplink can fill, by priority"
       },
       {
+        "key": "sitrep-sdk . ContributionRegistry#\"science-data.archive-readouts\"",
+        "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
+      },
+      {
         "key": "sitrep-sdk . ContributionRegistry#\"strategies.screens\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -9235,6 +9239,10 @@
         "note": "CommNet Signal gains one data rate and target slot that any Uplink can fill, by priority"
       },
       {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"science-data.archive-readouts\"",
+        "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ContributionRegistry#\"strategies.screens\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -9847,6 +9855,10 @@
         "note": "CommNet Signal gains one data rate and target slot that any Uplink can fill, by priority"
       },
       {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"science-data.archive-readouts\"",
+        "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
+      },
+      {
         "key": "sitrep-sdk ./spine ~ContributionRegistry#\"strategies.screens\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -10137,6 +10149,10 @@
       {
         "key": "sitrep-sdk ./testing ~ContributionRegistry#\"comm-signal.link-rate\"",
         "note": "CommNet Signal gains one data rate and target slot that any Uplink can fill, by priority"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"science-data.archive-readouts\"",
+        "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
       },
       {
         "key": "sitrep-sdk ./testing ~ContributionRegistry#\"strategies.screens\"",
@@ -10813,6 +10829,10 @@
       {
         "key": "ui-kit . ContributionRegistry#\"comm-signal.link-rate\"",
         "note": "CommNet Signal gains one data rate and target slot that any Uplink can fill, by priority"
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"science-data.archive-readouts\"",
+        "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
       },
       {
         "key": "ui-kit . ContributionRegistry#\"strategies.screens\"",

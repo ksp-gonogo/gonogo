@@ -822,6 +822,15 @@ declare module "./types" {
       entry: CommSignalLinkRateEntry;
     };
     /**
+     * Figures in the stat strip above the Science Data widget's Archive table,
+     * such as the science a mod has transmitted from the craft, drawn in the same
+     * style as the Astronaut Complex's readouts. Returns {@link StatEntry}
+     * entries.
+     */
+    "science-data.archive-readouts": {
+      entry: StatEntry;
+    };
+    /**
      * Screens of the Administration Building widget, each
      * drawn as a tab listing some strategy departments. With no entries the
      * widget draws every strategy in one list. What a screen holds beyond its

@@ -48,6 +48,7 @@ export const KNOWN_SLOT_IDS = [
   "rendezvous.overlay",
   "research-and-development.sections",
   "science-data.aboard-row",
+  "science-data.archive-readouts",
   "ship-map.overlay",
   "ship-map.part-meta",
   "ship-map.part-meters",

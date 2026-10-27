@@ -204,6 +204,7 @@ registerComponent<ScienceDataConfig>({
   defaultConfig: {},
   actions: [],
   augmentSlots: ["science-data.aboard-row"],
+  contributionSlots: ["science-data.archive-readouts"],
   pushable: true,
 });
 

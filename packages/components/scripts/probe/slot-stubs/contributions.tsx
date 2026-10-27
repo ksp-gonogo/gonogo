@@ -19,6 +19,16 @@ plantContribution("astronaut-complex.readouts", {
   ],
 });
 
+plantContribution("science-data.archive-readouts", {
+  compute: () => [
+    {
+      id: "stub",
+      label: "science-data.archive-readouts",
+      value: value("science", 1),
+    },
+  ],
+});
+
 plantContribution("comm-signal.hop-rates", {
   deps: ["comms.path"],
   compute: (topics) =>

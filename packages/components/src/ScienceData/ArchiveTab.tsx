@@ -5,8 +5,10 @@ import {
   type DataTableSection,
   EmptyState,
   FilterRegion,
+  Grid,
   NULL_DISPLAY,
   ScrollArea,
+  StatContributions,
   Text,
   Unit,
   useRowFilter,
@@ -97,6 +99,9 @@ export function ArchiveTab({ archive, groups }: Readonly<ArchiveTabProps>) {
 
   return (
     <FilterRegion filter={filter} fill>
+      <Grid minColWidth="7rem" fit align="stretch" gap="related-compact">
+        <StatContributions slot="science-data.archive-readouts" />
+      </Grid>
       <ScrollArea>
         <DataTable
           caption="Career science archive, by body and experiment"
