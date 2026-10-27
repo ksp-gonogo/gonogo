@@ -10,11 +10,11 @@ namespace Sitrep.Host.Comms
     /// </summary>
     public sealed class SignalSpeedSource : ISignalSpeed
     {
-        private readonly Func<SignalDelayConfig?> _config;
+        private readonly Func<SignalDelayConfig> _config;
         private SignalSpeedReading _current;
 
-        /// <param name="config">The effective delay config, every modifier and the comms-model rule folded in; null when no setting exists.</param>
-        public SignalSpeedSource(Func<SignalDelayConfig?> config)
+        /// <param name="config">The effective delay config, every modifier and the comms-model rule folded in.</param>
+        public SignalSpeedSource(Func<SignalDelayConfig> config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _current = Compute(_config());
@@ -42,17 +42,12 @@ namespace Sitrep.Host.Comms
         }
 
         /*
-         * No config at all is no setting, and no setting is real light speed.
          * A config that switches delay off, or whose scale is not a positive
          * number (which DelayFactor treats as off too), is a signal that is not
          * delayed, stated as null rather than as a speed.
          */
-        private static SignalSpeedReading Compute(SignalDelayConfig? config)
+        private static SignalSpeedReading Compute(SignalDelayConfig config)
         {
-            if (config == null)
-            {
-                return new SignalSpeedReading(SignalSpeedCapability.LightSpeedMetresPerSecond);
-            }
             return new SignalSpeedReading(config.Enabled ? SignalDelay.EffectiveC(config) : null);
         }
     }

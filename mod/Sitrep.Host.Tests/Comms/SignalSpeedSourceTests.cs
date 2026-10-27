@@ -8,18 +8,18 @@ namespace Sitrep.Host.Tests.Comms
 {
     public class SignalSpeedSourceTests
     {
-        private static SignalDelayConfig? _config;
+        private static SignalDelayConfig _config = new SignalDelayConfig();
 
-        private static SignalSpeedSource Source(SignalDelayConfig? config)
+        private static SignalSpeedSource Source(SignalDelayConfig config)
         {
             _config = config;
             return new SignalSpeedSource(() => _config);
         }
 
         [Fact]
-        public void NoSettingIsTheRealSpeedOfLight()
+        public void AnUnscaledLightSpeedIsTheRealSpeedOfLight()
         {
-            var source = Source(null);
+            var source = Source(new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 });
 
             SeamConformance.AssertProviderContract(source);
             Assert.Equal(SignalSpeedCapability.LightSpeedMetresPerSecond, source.Current.MetresPerSecond);
