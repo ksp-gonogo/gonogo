@@ -178,8 +178,14 @@ export function startWireReplayServer({ port = PORT } = {}) {
     try {
       const bundle = BUNDLE_ROUTE.exec(req.url ?? "");
       if (req.method === "GET" && bundle) {
-        /* The bundle is kept as .txt so source scans do not read a built file. */
-        const stored = bundle[2].replace(/\.client\.js$/, ".client.txt");
+        /*
+         * The bundle is kept as .txt so source scans do not read a built file.
+         * The sidecar is asked for as `<id>.gonogo-uplink.json` and kept as the
+         * folder's one `gonogo-uplink.json`.
+         */
+        const stored = bundle[2]
+          .replace(/\.client\.js$/, ".client.txt")
+          .replace(/^[\w-]+\.gonogo-uplink\.json$/, "gonogo-uplink.json");
         const file = resolve(BUNDLE_DIR, bundle[1], stored);
         if (!file.startsWith(`${BUNDLE_DIR}/`) || !existsSync(file)) {
           return reply(404, { error: "no such bundle file" });

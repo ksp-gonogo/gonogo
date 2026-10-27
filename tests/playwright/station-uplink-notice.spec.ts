@@ -44,6 +44,15 @@ test("a station replaying a recording loads the roster's Uplink with its notice 
   const mainContext = await browser.newContext();
   await seedScreen(mainContext, "main", dashboard);
   const main = await mainContext.newPage();
+  const manifestFailures: string[] = [];
+  main.on("console", (msg) => {
+    if (msg.text().includes("manifest fetch failed")) {
+      manifestFailures.push(msg.text());
+    }
+  });
+  const manifestResponse = main.waitForResponse((res) =>
+    res.url().endsWith("/realantennas.gonogo-uplink.json"),
+  );
   await main.goto(`${PREVIEW}/`);
 
   // The main screen is asked, once, and answers Load.
@@ -51,6 +60,8 @@ test("a station replaying a recording loads the roster's Uplink with its notice 
   await ask.getByRole("button", { name: "Load" }).click();
   await main.getByRole("button", { name: "Continue" }).click();
   await expectLoaded(main);
+  expect((await manifestResponse).status()).toBe(200);
+  expect(manifestFailures).toEqual([]);
   await main.keyboard.press("Escape");
   const shareCode = await getHostPeerId(main);
 
