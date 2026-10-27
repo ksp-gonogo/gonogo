@@ -145,10 +145,7 @@ namespace Sitrep.Host
                 return true;
             }
 
-            return ut - lastSampledUt.Value >= intervalUt - ToleranceUt;
+            return ut - lastSampledUt.Value >= intervalUt;
         }
-
-        /// <summary>Slack on the elapsed-UT comparison, so a tick that lands a float's width short of an interval still opens the gate.</summary>
-        private const double ToleranceUt = 1e-6;
     }
 }

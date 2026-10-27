@@ -105,22 +105,6 @@ describe("the main screen's endpoint socket", () => {
     stations.stop();
   });
 
-  it("reads a station's queue as empty once it opens, then as the endpoint reports it", async () => {
-    const endpoint = fakeEndpoint();
-    const stations = await started();
-    const { conn } = stations.join("station-a", "v=a");
-    await vi.waitFor(() => expect(endpoint.control).toHaveLength(1));
-    const sid = endpoint.control[0]?.sid;
-    expect(conn.queuedBytes).toBeNull();
-
-    endpoint.send({ type: "answer", sid, sdp: "x" });
-    endpoint.send({ type: "open", sid });
-    await vi.waitFor(() => expect(conn.queuedBytes).toBe(0));
-    endpoint.send({ type: "queued", sid, bytes: 300_000 });
-    await vi.waitFor(() => expect(conn.queuedBytes).toBe(300_000));
-    stations.stop();
-  });
-
   it("carries messages each way for each station once it opens, and keeps two stations apart", async () => {
     const endpoint = fakeEndpoint();
     const stations = await started();

@@ -35,11 +35,6 @@
     "json": "{\"type\":\"stream-data\",\"topic\":\"vessel.status\",\"payload\":{\"landed\":false,\"stage\":3,\"tags\":[\"prograde\",\"warp\"],\"note\":null},\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0}}"
   },
   {
-    "name": "stream-data-unchanged",
-    "kind": "streamData",
-    "json": "{\"type\":\"stream-data\",\"topic\":\"vessel.landing\",\"payload\":{\"outcome\":\"terrain-assessed\",\"siteHeightsSize\":24},\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0},\"unchanged\":[\"siteHeights\",\"horizonAngles\"]}"
-  },
-  {
     "name": "stream-data-nan-payload",
     "kind": "streamData",
     "json": "{\"type\":\"stream-data\",\"topic\":\"vessel.orbit.eccentricAnomaly\",\"payload\":{\"eccentricAnomaly\":\"NaN\",\"apoapsis\":\"Infinity\"},\"meta\":{\"source\":\"vessel-1\",\"validAt\":0,\"seq\":1,\"deliveredAt\":0,\"vantage\":\"KSC\",\"quality\":1,\"active\":false,\"staleness\":1,\"timelineEpoch\":3}}"

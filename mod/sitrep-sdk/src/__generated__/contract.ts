@@ -3602,50 +3602,6 @@ export interface ReputationLossEvent
 	ut: Value<"ut">;
 }
 /**
-* One rate tier and the samples a game second it stands for now.
-*
-* @category Stream messages
-*/
-export interface DataRateTierEntry
-{
-	/** The tier: `"base"` or `"fast"`. */
-	tier: "base" | "fast";
-	/** Samples a game second at this tier. */
-	samplesPerSecond: Value<"1">;
-}
-/**
-* One Topic sent above the base rate, and the rate it is sent at.
-*
-* @category Stream messages
-*/
-export interface TopicDataRate
-{
-	/** The Topic id. */
-	topic: string;
-	/** The fastest tier any connection asks for on this Topic. */
-	tier: "base" | "fast";
-	/** Samples a game second this Topic is sent at. */
-	samplesPerSecond: Value<"1">;
-}
-/**
-* Wire wrapper for `system.dataRates`: what each rate tier is in samples a
-* game second, and every Topic sent above the base tier now. A Topic not
-* listed is sent at the base tier's rate.
-*
-* A rate is in game time. Under time warp the mod sends at most ten samples a
-* real second, so a Topic can arrive with more game time between samples than
-* its rate gives.
-*
-* @category Stream messages
-*/
-export interface DataRateReport
-{
-	/** Every tier, slowest first. Never null. */
-	tiers: DataRateTierEntry[];
-	/** Every Topic sent above the base tier, sorted by Topic id. Never null. */
-	topics: TopicDataRate[];
-}
-/**
 * One Topic sample as the mod sends it: the Topic id, its payload, and the
 * envelope `StreamData.meta` saying when the payload was true and when it
 * arrived.
@@ -3662,14 +3618,6 @@ export interface StreamData<Payload>
 	payload: Payload;
 	/** When the sample was true, when it arrived, and where it was observed from. */
 	meta: Meta;
-	/**
-	* The payload fields left out of this sample because they hold the same value
-	* as in the last sample of this Topic sent on this connection, such as the
-	* terrain grid on `vessel.landing` between the times it is retaken. A client
-	* keeps each one from that sample. Absent when nothing was left out; a field
-	* the sample holds as `null` is sent, never listed.
-	*/
-	unchanged?: string[];
 }
 /**
 * Something that happened to a subscription, sent on the Topic it happened to.
@@ -3960,55 +3908,6 @@ export interface Unsubscribe
 	type: "unsubscribe";
 	/** The Topic id to stop receiving. */
 	topic: string;
-}
-/**
-* Asks the mod to send a subscribed Topic to this connection at a rate tier.
-* The mod sends each Topic at the fastest tier any connection asks for, and at
-* `"base"` while none asks for more; `system.dataRates` says what each tier is
-* in samples a second and which Topics are above base now.
-*
-* The request lasts until the connection asks again, unsubscribes the Topic or
-* closes. Asking `"base"` withdraws it. A request for a Topic this connection
-* has not subscribed changes nothing, and a tier the mod does not know is read
-* as `"base"`. A Topic an Uplink publishes when it has news, rather than one
-* the mod samples on its own clock, arrives as it did.
-*
-* @category Stream messages
-*/
-export interface SetRate
-{
-	/** The frame type, always `"set-rate"`. */
-	type: "set-rate";
-	/** The subscribed Topic id the tier is for. */
-	topic: string;
-	/** The rate tier: `"base"` or `"fast"`. */
-	tier: "base" | "fast";
-}
-/**
-* Asks the mod to send a rate tier no faster than a given rate while this
-* connection holds the request, for a client that cannot keep up with the tier
-* as it stands. The mod sends the tier at the lowest rate any connection asks
-* for in this way, never below the base tier's rate, and `system.dataRates`
-* reports the rate it sends.
-*
-* The request lasts until the connection sends another for the same tier or
-* closes. A `null` `CapRate.samplesPerSecond` withdraws it. The base tier
-* cannot be lowered, and a request for it or for a tier the mod does not know
-* changes nothing.
-*
-* @category Stream messages
-*/
-export interface CapRate
-{
-	/** The frame type, always `"cap-rate"`. */
-	type: "cap-rate";
-	/** The rate tier to send no faster: `"fast"`. */
-	tier: "base" | "fast";
-	/**
-	* The most samples a game second this connection asks the tier to carry, or
-	* `null` to withdraw the request.
-	*/
-	samplesPerSecond?: number;
 }
 /**
 * Selects the command centre this connection commands from and observes at. It

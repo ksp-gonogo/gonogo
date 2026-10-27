@@ -31,10 +31,16 @@
  * two-way fallback and no obligation.
  */
 
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import { buildUplinkClientBundle } from "../uplink-bundle";
 import { UPLINK_BUNDLE_TARGETS } from "../uplink-bundle-targets";
 
@@ -96,7 +102,7 @@ if (!namespace) {
   );
 }
 
-const stagingDir = makeTempDir("gonogo-uplink-bake-");
+const stagingDir = mkdtempSync(join(tmpdir(), "gonogo-uplink-bake-"));
 const { integrity } = await buildUplinkClientBundle({
   clientDir,
   outFile: join(stagingDir, `${target.id}.client.js`),

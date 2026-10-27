@@ -111,7 +111,6 @@ export function shapeTypeName(entry: string): string {
 const HAND_DECLARED_PAYLOAD_TYPES: Readonly<Record<string, string>> =
   Object.freeze({
     "system.uplink.pending": "PendingUplinkQueue",
-    "system.dataRates": "DataRateReport",
   });
 
 /**

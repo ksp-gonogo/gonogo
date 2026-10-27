@@ -171,21 +171,6 @@ namespace Sitrep.Contract.Serialization
 
             AppendField(sb, "meta");
             AppendMeta(sb, msg.Meta);
-
-            if (msg.Unchanged is { Length: > 0 } unchanged)
-            {
-                AppendField(sb, "unchanged");
-                sb.Append('[');
-                for (var i = 0; i < unchanged.Length; i++)
-                {
-                    if (i > 0)
-                    {
-                        sb.Append(',');
-                    }
-                    JsonWriter.AppendString(sb, unchanged[i]);
-                }
-                sb.Append(']');
-            }
             sb.Append('}');
             return sb.ToString();
         }
@@ -208,7 +193,6 @@ namespace Sitrep.Contract.Serialization
                 Topic = RequireString(raw, "topic"),
                 Payload = raw.TryGetValue("payload", out var payload) ? payload : null,
                 Meta = ParseMetaRaw(RequireObject(raw, "meta")),
-                Unchanged = OptionalStringArray(raw, "unchanged"),
             };
         }
 
@@ -760,77 +744,6 @@ namespace Sitrep.Contract.Serialization
             return new Unsubscribe { Type = "unsubscribe", Topic = RequireString(raw, "topic") };
         }
 
-        /// <summary>Serializes a <c>set-rate</c> envelope.</summary>
-        /// <param name="msg">The envelope to write.</param>
-        /// <returns>The JSON text of the envelope.</returns>
-        public static string WriteSetRate(SetRate msg)
-        {
-            var sb = new StringBuilder();
-            sb.Append('{');
-            AppendField(sb, "type", first: true);
-            JsonWriter.AppendString(sb, msg.Type);
-
-            AppendField(sb, "topic");
-            JsonWriter.AppendString(sb, msg.Topic);
-
-            AppendField(sb, "tier");
-            JsonWriter.AppendString(sb, msg.Tier);
-            sb.Append('}');
-            return sb.ToString();
-        }
-
-        /// <summary>Parses a <c>set-rate</c> envelope. The tier is read as given; the engine refuses one it does not know.</summary>
-        /// <param name="json">The JSON text of the envelope.</param>
-        /// <returns>The parsed envelope.</returns>
-        /// <exception cref="FormatException">The text is not a <c>set-rate</c>
-        /// envelope, or <c>topic</c> or <c>tier</c> is missing or not a string.</exception>
-        public static SetRate ParseSetRate(string json)
-        {
-            var raw = ExpectObject(JsonReader.Parse(json));
-            RequireType(raw, "set-rate");
-            return new SetRate { Type = "set-rate", Topic = RequireString(raw, "topic"), Tier = RequireString(raw, "tier") };
-        }
-
-        /// <summary>Serializes a <c>cap-rate</c> envelope, leaving <c>samplesPerSecond</c> out for a withdrawal.</summary>
-        /// <param name="msg">The envelope to write.</param>
-        /// <returns>The JSON text of the envelope.</returns>
-        public static string WriteCapRate(CapRate msg)
-        {
-            var sb = new StringBuilder();
-            sb.Append('{');
-            AppendField(sb, "type", first: true);
-            JsonWriter.AppendString(sb, msg.Type);
-
-            AppendField(sb, "tier");
-            JsonWriter.AppendString(sb, msg.Tier);
-
-            if (msg.SamplesPerSecond is { } rate)
-            {
-                AppendField(sb, "samplesPerSecond");
-                JsonWriter.AppendNumber(sb, rate);
-            }
-            sb.Append('}');
-            return sb.ToString();
-        }
-
-        /// <summary>Parses a <c>cap-rate</c> envelope. An absent or null <c>samplesPerSecond</c> reads as a withdrawal.</summary>
-        /// <param name="json">The JSON text of the envelope.</param>
-        /// <returns>The parsed envelope.</returns>
-        /// <exception cref="FormatException">The text is not a <c>cap-rate</c>
-        /// envelope, <c>tier</c> is missing or not a string, or
-        /// <c>samplesPerSecond</c> is neither a number nor null.</exception>
-        public static CapRate ParseCapRate(string json)
-        {
-            var raw = ExpectObject(JsonReader.Parse(json));
-            RequireType(raw, "cap-rate");
-            return new CapRate
-            {
-                Type = "cap-rate",
-                Tier = RequireString(raw, "tier"),
-                SamplesPerSecond = OptionalDouble(raw, "samplesPerSecond"),
-            };
-        }
-
         /// <summary>Serializes a <c>set-vantage</c> envelope.</summary>
         /// <param name="msg">The envelope to write.</param>
         /// <returns>The JSON text of the envelope.</returns>
@@ -1032,7 +945,7 @@ namespace Sitrep.Contract.Serialization
         /// <summary>
         /// Parses a client-to-server envelope (<see cref="Subscribe"/>,
         /// <see cref="Unsubscribe"/>, <see cref="SetVantage"/>,
-        /// <see cref="Ping"/>, <c>CommandRequest&lt;object?&gt;</c>, <see cref="CommandGroupRequest"/>, <see cref="ClaimRequest"/>, <see cref="SetRate"/> or <see cref="CapRate"/>), dispatching on the
+        /// <see cref="Ping"/>, <c>CommandRequest&lt;object?&gt;</c>, <see cref="CommandGroupRequest"/> or <see cref="ClaimRequest"/>), dispatching on the
         /// <c>"type"</c> field.
         ///
         /// <para>Failure comes back as one of two <see cref="FormatException"/>
@@ -1061,8 +974,6 @@ namespace Sitrep.Contract.Serialization
                     "command-request" => ParseCommandRequest(json),
                     "command-group" => ParseCommandGroup(json),
                     "claim" => ParseClaim(json),
-                    "set-rate" => ParseSetRate(json),
-                    "cap-rate" => ParseCapRate(json),
                     _ => throw new UnknownEnvelopeTypeException(
                         $"unknown client envelope type: {type}", type, PeekRequestId(json), PeekTopic(json)),
                 };
@@ -1150,25 +1061,6 @@ namespace Sitrep.Contract.Serialization
                 return s;
             }
             throw new FormatException($"Missing or non-string required field \"{key}\".");
-        }
-
-        /// <summary>A string array field that may be absent or null, both read as <c>null</c>.</summary>
-        private static string[]? OptionalStringArray(Dictionary<string, object?> raw, string key)
-        {
-            if (!raw.TryGetValue(key, out var value) || value == null)
-            {
-                return null;
-            }
-            if (value is not List<object?> list)
-            {
-                throw new FormatException($"Non-array field \"{key}\".");
-            }
-            var result = new string[list.Count];
-            for (var i = 0; i < list.Count; i++)
-            {
-                result[i] = list[i] as string ?? throw new FormatException($"Non-string entry in \"{key}\".");
-            }
-            return result;
         }
 
         private static string? TryGetString(Dictionary<string, object?> raw, string key)

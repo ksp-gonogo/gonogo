@@ -4,11 +4,7 @@ import {
   type Transport,
   WebSocketTransport,
 } from "@ksp-gonogo/sitrep-client";
-import type {
-  DataRateTier,
-  ServerMessage,
-  StreamData,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { ServerMessage, StreamData } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
 import { isTransmission } from "../commcast/topics";
 import type { PeerHostService } from "../peer/PeerHostService";
@@ -53,8 +49,6 @@ export interface VantageSessionHost {
 export interface VantageSession {
   /** Hold an upstream subscription for `topic` on this session. */
   subscribe(topic: string, cb: () => void): () => void;
-  /** Hold an upstream request for `topic` at `tier` on this session. */
-  requestRate(topic: string, tier: DataRateTier): () => void;
   /** Every raw frame this session receives. */
   onRawMessage(cb: (message: ServerMessage) => void): () => void;
   /** Close the session and its socket. */
@@ -143,7 +137,6 @@ export function SitrepVantageSessions({
 
       const detachSink = peerHost.attachSitrepSinkFor(vantage, {
         subscribe: (topic) => client.subscribe(topic, () => {}),
-        requestRate: (topic, tier) => client.requestRate(topic, tier),
         cachedFrames: (topic) => {
           const frame = cache.get(topic);
           return frame

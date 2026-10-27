@@ -40,9 +40,6 @@ const HAND_DECLARED_TOPICS = [
   // same reason: it reports on every OTHER channel, so no one Uplink could
   // own it and there is nothing for a [SitrepTopic] to hang off.
   "system.channels",
-  // Each rate tier and the Topics sent above the base rate. Engine-declared
-  // because only ChannelEngine sees every connection's requested tier.
-  "system.dataRates",
 ];
 
 // mod/sitrep-sdk/src -> mod

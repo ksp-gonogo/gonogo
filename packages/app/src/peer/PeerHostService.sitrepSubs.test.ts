@@ -15,7 +15,6 @@
  * missed. Each test below goes red if its own half is removed.
  */
 
-import { makeMeta } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { FakeHub } = vi.hoisted(() => {
@@ -132,7 +131,7 @@ vi.stubGlobal("localStorage", localStorageMock);
 
 import { approveConnection } from "../test/approveStation";
 import { asDataConnection } from "../test/peerFakes";
-import { HOST_SESSION, PeerHostService } from "./PeerHostService";
+import { PeerHostService } from "./PeerHostService";
 import type { PeerMessage } from "./protocol";
 
 const TOPIC = "thirdparty.readout";
@@ -140,22 +139,11 @@ const TOPIC = "thirdparty.readout";
 /** Records what the host currently holds upstream, the way `SitrepPeerRelay` supplies it. */
 function makeSink(frames: Record<string, PeerMessage[]> = {}) {
   const live = new Set<string>();
-  /** How many fast-tier requests the host holds upstream on each topic. */
-  const rates = new Map<string, number>();
   return {
     live,
-    rates,
     subscribe(topic: string) {
       live.add(topic);
       return () => live.delete(topic);
-    },
-    requestRate(topic: string) {
-      rates.set(topic, (rates.get(topic) ?? 0) + 1);
-      return () => {
-        const left = (rates.get(topic) ?? 1) - 1;
-        if (left > 0) rates.set(topic, left);
-        else rates.delete(topic);
-      };
     },
     cachedFrames(topic: string): PeerMessage[] {
       return frames[topic] ?? [];
@@ -226,11 +214,7 @@ describe("the sitrep refcount re-syncs", () => {
     const conn = await connectStation(host, "station-a");
     claim(conn, TOPIC);
 
-    expect(conn.sent).toContainEqual({
-      ...frame,
-      replay: true,
-      sentAt: expect.any(Number),
-    });
+    expect(conn.sent).toContainEqual({ ...frame, replay: true });
     host.stop();
   });
 
@@ -293,181 +277,6 @@ describe("the sitrep refcount re-syncs", () => {
     expect(sink.live.has(TOPIC)).toBe(true);
     staying.close();
     expect(sink.live.has(TOPIC)).toBe(false);
-    host.stop();
-  });
-});
-
-describe("a station's rate tier reaches the host's stream", () => {
-  afterEach(() => {
-    FakeHub.reset();
-    localStorageMock.clear();
-  });
-
-  function askFast(conn: FakeConn, topic: string, tier = "fast"): void {
-    conn.emit("data", { type: "sitrep-set-rate", topic, tier });
-  }
-
-  it("holds a station's fast tier upstream while it reads the topic, and lets go when it stops", async () => {
-    const host = await startedHost();
-    const sink = makeSink();
-    host.attachSitrepSink(sink);
-
-    const conn = await connectStation(host, "station-a");
-    askFast(conn, TOPIC);
-    expect(sink.rates.has(TOPIC)).toBe(false);
-
-    claim(conn, TOPIC);
-    expect(sink.rates.get(TOPIC)).toBe(1);
-
-    conn.emit("data", { type: "sitrep-unsubscribe", topic: TOPIC });
-    expect(sink.rates.has(TOPIC)).toBe(false);
-    host.stop();
-  });
-
-  it("asking base withdraws the station's request", async () => {
-    const host = await startedHost();
-    const sink = makeSink();
-    host.attachSitrepSink(sink);
-
-    const conn = await connectStation(host, "station-a");
-    claim(conn, TOPIC);
-    askFast(conn, TOPIC);
-    askFast(conn, TOPIC, "base");
-
-    expect(sink.rates.has(TOPIC)).toBe(false);
-    host.stop();
-  });
-
-  it("keeps the topic fast while any station still asks, and drops a station's request when it leaves", async () => {
-    const host = await startedHost();
-    const sink = makeSink();
-    host.attachSitrepSink(sink);
-
-    const first = await connectStation(host, "station-a");
-    const second = await connectStation(host, "station-b");
-    for (const conn of [first, second]) {
-      claim(conn, TOPIC);
-      askFast(conn, TOPIC);
-    }
-    expect(sink.rates.get(TOPIC)).toBe(2);
-
-    first.close();
-    expect(sink.rates.get(TOPIC)).toBe(1);
-    second.peerConnection?.fail();
-    expect(sink.rates.has(TOPIC)).toBe(false);
-    host.stop();
-  });
-
-  it("asks the rebuilt stream again when the host's own client is replaced", async () => {
-    const host = await startedHost();
-    const detach = host.attachSitrepSink(makeSink());
-
-    const conn = await connectStation(host, "station-a");
-    claim(conn, TOPIC);
-    askFast(conn, TOPIC);
-
-    detach();
-    const rebuilt = makeSink();
-    host.attachSitrepSink(rebuilt);
-
-    expect(rebuilt.rates.get(TOPIC)).toBe(1);
-    host.stop();
-  });
-});
-
-describe("a station that falls behind", () => {
-  afterEach(() => {
-    vi.useRealTimers();
-    FakeHub.reset();
-    localStorageMock.clear();
-  });
-
-  const report = {
-    tiers: [
-      { tier: "base", samplesPerSecond: 1 },
-      { tier: "fast", samplesPerSecond: 10 },
-    ],
-    topics: [{ topic: "vessel.landing", tier: "fast", samplesPerSecond: 10 }],
-  };
-
-  function frame(topic: string, validAt: number): PeerMessage {
-    return {
-      type: "sitrep-frame",
-      message: {
-        type: "stream-data",
-        topic,
-        payload: { validAt },
-        meta: makeMeta({ validAt, deliveredAt: validAt }),
-      },
-    };
-  }
-
-  function sentOf(conn: FakeConn, topic: string): number {
-    return conn.sent.filter(
-      (m) =>
-        typeof m === "object" &&
-        m !== null &&
-        Reflect.get(m, "type") === "sitrep-frame" &&
-        Reflect.get(Reflect.get(m, "message"), "topic") === topic,
-    ).length;
-  }
-
-  it("is sent a fast Topic at half the rate while its queue is backed up, and every other Topic whole", async () => {
-    vi.useFakeTimers({
-      toFake: ["setInterval", "clearInterval", "performance"],
-    });
-    const host = await startedHost();
-    host.attachSitrepSink({ ...makeSink(), dataRates: () => report });
-    const slow = await connectStation(host, "station-slow");
-    const quick = await connectStation(host, "station-quick");
-    Object.assign(slow, { dataChannel: { bufferedAmount: 400_000 } });
-    Object.assign(quick, { dataChannel: { bufferedAmount: 0 } });
-
-    vi.advanceTimersByTime(1_000);
-    slow.sent.length = 0;
-    quick.sent.length = 0;
-    for (let i = 0; i <= 10; i++) {
-      host.broadcastToVantage(
-        HOST_SESSION,
-        frame("vessel.landing", 100 + i / 10),
-      );
-      host.broadcastToVantage(
-        HOST_SESSION,
-        frame("vessel.flight", 100 + i / 10),
-      );
-    }
-
-    expect(sentOf(slow, "vessel.landing")).toBe(6);
-    expect(sentOf(slow, "vessel.flight")).toBe(11);
-    expect(sentOf(quick, "vessel.landing")).toBe(11);
-    host.stop();
-  });
-
-  it("is slowed on its own report that it is behind, with an empty queue", async () => {
-    vi.useFakeTimers({
-      toFake: ["setInterval", "clearInterval", "performance"],
-    });
-    const host = await startedHost();
-    host.attachSitrepSink({ ...makeSink(), dataRates: () => report });
-    const conn = await connectStation(host, "station-a");
-    Object.assign(conn, { dataChannel: { bufferedAmount: 0 } });
-    conn.emit("data", {
-      type: "station-pace",
-      loopLagMs: 5,
-      frameMs: 400,
-      backlogMs: 0,
-    });
-
-    vi.advanceTimersByTime(1_000);
-    conn.sent.length = 0;
-    for (let i = 0; i <= 10; i++) {
-      host.broadcastToVantage(
-        HOST_SESSION,
-        frame("vessel.landing", 100 + i / 10),
-      );
-    }
-
-    expect(sentOf(conn, "vessel.landing")).toBe(6);
     host.stop();
   });
 });

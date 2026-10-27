@@ -169,11 +169,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     certification: "enum",
     uts: "ut",
   },
-  "CapRate": {
-    samplesPerSecond: "1",
-    tier: "id",
-    type: "id",
-  },
   "CareerBalances": {
     funds: "funds",
     reputation: "rep",
@@ -669,10 +664,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     stupidity: "ratio",
     trait: "text",
     unavailableReason: "text",
-  },
-  "DataRateTierEntry": {
-    samplesPerSecond: "1",
-    tier: "id",
   },
   "DeactivateStrategyArgs": {
     strategyId: "id",
@@ -1426,11 +1417,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "SetPausedArgs": {
     paused: "flag",
   },
-  "SetRate": {
-    tier: "id",
-    topic: "id",
-    type: "id",
-  },
   "SetSasModeArgs": {
     mode: "enum",
   },
@@ -1528,7 +1514,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "StreamData": {
     topic: "id",
     type: "id",
-    unchanged: "id",
   },
   "Subscribe": {
     topic: "id",
@@ -1568,11 +1553,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     kerbinTime: "flag",
     minuteSeconds: "s",
     yearSeconds: "s",
-  },
-  "TopicDataRate": {
-    samplesPerSecond: "1",
-    tier: "id",
-    topic: "id",
   },
   "TrackingStationDismissArgs": {
     vesselId: "id",
@@ -2709,10 +2689,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "CrewMember": {
     carrying: "InventoryItem[]",
-  },
-  "DataRateReport": {
-    tiers: "DataRateTierEntry[]",
-    topics: "TopicDataRate[]",
   },
   "DelayedObservation": {
     state: "StateVector",

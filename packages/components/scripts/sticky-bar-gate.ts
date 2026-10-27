@@ -10,8 +10,9 @@
  * the unit suites have neither. Set STICKY_BAR_OUT (and STICKY_BAR_SUFFIX) to
  * keep the pictures; otherwise nothing is written.
  */
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { makeTempDir } from "../../../scripts/temp-dir.mjs";
 import { renderWidgets, type WidgetRenderConfig } from "./widgetRenderHarness";
 
 const OUT = process.env.STICKY_BAR_OUT;
@@ -57,7 +58,7 @@ async function main(): Promise<void> {
       await renderWidgets([config], {
         fixture,
         capture: OUT !== undefined,
-        outBase: OUT ?? makeTempDir("sticky-bar-"),
+        outBase: OUT ?? mkdtempSync(join(tmpdir(), "sticky-bar-")),
         outSuffix: SUFFIX,
       });
     } catch (err) {

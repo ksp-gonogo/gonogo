@@ -1,9 +1,4 @@
-import {
-  type DataRateReport,
-  type Meta,
-  Quality,
-  Staleness,
-} from "../__generated__/contract";
+import { type Meta, Quality, Staleness } from "../__generated__/contract";
 import type { Transport } from "../api/transport";
 import {
   channelKindOf,
@@ -12,12 +7,6 @@ import {
   sampleKindOf,
 } from "../channel-tags";
 import { type SampleKind, valueTagsOf } from "../contract-tags";
-import {
-  hasSupersededFields,
-  samplesPerSecondOf,
-  supersededPayload,
-  tierSamplesPerSecondOf,
-} from "../data-rate";
 import {
   type DeclaredDelayRoles,
   type DelayLane,
@@ -369,7 +358,6 @@ const UPLINK_ROSTER_TOPIC = "system.uplinks";
 
 /** The report that names the active craft in its `meta.source` the moment the game switches, ahead of every delayed reading of the craft itself. */
 const ACTIVE_CRAFT_TOPIC = "comms.delay";
-const DATA_RATES_TOPIC = "system.dataRates";
 
 const CRAFT_SOURCE_PREFIX = "vessel:";
 
@@ -767,12 +755,6 @@ function interpolatedRead<Payload>(
  */
 export class TimelineStore {
   private readonly timelines = new Map<string, ClientTimeline<unknown>>();
-  /**
-   * Samples a game second each Topic above one arrives at, from the latest
-   * `system.dataRates`. A Topic's timeline keeps its point bound times this, so
-   * it spans the same game time at any rate.
-   */
-  private readonly topicRates = new Map<string, number>();
   private readonly derivedChannels = new Map<
     string,
     DerivedChannelDefinition<unknown>
@@ -1103,9 +1085,6 @@ export class TimelineStore {
     }
 
     this.timelineFor<Payload>(topic).append(point);
-    if (topic === DATA_RATES_TOPIC) {
-      this.applyDataRates(point.payload as DataRateReport | null);
-    }
     if (topic === ACTIVE_CRAFT_TOPIC) {
       this.activeCraftSource =
         craftSourceOf(point.payload) ?? this.activeCraftSource;
@@ -1120,12 +1099,6 @@ export class TimelineStore {
       point.epoch,
       options.replayed === true,
     );
-    if (hasSupersededFields(topic)) {
-      this.timelineFor<Payload>(topic).supersedeBefore(
-        this.clock.certaintyHorizonUt(),
-        (payload) => supersededPayload(topic, payload),
-      );
-    }
     // Every live sample, keyframe or change-emission alike, confirms the link
     // is alive as of this arrival. A recorded one does not: it describes the
     // past, and can be delivered while the craft is still out of contact.
@@ -3828,28 +3801,8 @@ export class TimelineStore {
     let timeline = this.timelines.get(topic);
     if (!timeline) {
       timeline = new ClientTimeline<Payload>(this.options.timelineOptions);
-      timeline.scaleMaxPoints(this.topicRates.get(topic) ?? 1);
       this.timelines.set(topic, timeline as ClientTimeline<unknown>);
     }
     return timeline as ClientTimeline<Payload>;
-  }
-
-  /** Re-bound every timeline whose Topic's rate `report` changes, so each keeps the same span of game time. */
-  private applyDataRates(report: DataRateReport | null): void {
-    if (!report) return;
-    const base = tierSamplesPerSecondOf(report, "base");
-    const next = new Map<string, number>();
-    for (const row of report.topics) {
-      const rate = samplesPerSecondOf(report, row.topic);
-      if (rate > base) next.set(row.topic, rate / base);
-    }
-    const changed = new Set([...this.topicRates.keys(), ...next.keys()]);
-    this.topicRates.clear();
-    for (const [topic, scale] of next) this.topicRates.set(topic, scale);
-    for (const topic of changed) {
-      this.timelines
-        .get(topic)
-        ?.scaleMaxPoints(this.topicRates.get(topic) ?? 1);
-    }
   }
 }

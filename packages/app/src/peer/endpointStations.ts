@@ -12,8 +12,6 @@ export type EndpointPath = "lan" | "internet";
 export class EndpointConnection extends FramedLink {
   /** Set when the endpoint reports the station's data channel open. */
   path: EndpointPath | null = null;
-  /** The bytes waiting in the endpoint to go out to the station, as it last reported, or null until the station opens. The endpoint reports only changes, from nothing queued. */
-  queuedBytes: number | null = null;
 
   constructor(
     /** The station's broker peer id, which approvals and every per-station record are keyed by. */
@@ -40,7 +38,6 @@ export class EndpointConnection extends FramedLink {
   markOpen(path: EndpointPath | null): void {
     if (this.isEnded || this.open) return;
     this.path = path;
-    this.queuedBytes = 0;
     this.opened();
   }
 
@@ -72,7 +69,6 @@ interface ControlFrame {
   sdp?: unknown;
   reason?: unknown;
   path?: unknown;
-  bytes?: unknown;
 }
 
 interface PendingJoin {
@@ -295,7 +291,6 @@ export class EndpointStations {
       sdp: field("sdp"),
       reason: field("reason"),
       path: field("path"),
-      bytes: field("bytes"),
       port: field("port"),
       publicIp: field("publicIp"),
     };
@@ -355,11 +350,6 @@ export class EndpointStations {
           .get(sid)
           ?.markOpen(f.path === "lan" || f.path === "internet" ? f.path : null);
         return;
-      case "queued": {
-        const link = this.links.get(sid);
-        if (link && typeof f.bytes === "number") link.queuedBytes = f.bytes;
-        return;
-      }
       case "close": {
         const p = this.pending.get(sid);
         if (p) {

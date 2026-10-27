@@ -1,7 +1,6 @@
 import { safeRandomUuid } from "@ksp-gonogo/core";
 import type { FlightRecord } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
-import type { DataRateTier } from "@ksp-gonogo/sitrep-sdk";
 import type { ConnectProgress } from "@ksp-gonogo/ui";
 import Peer, { type DataConnection } from "peerjs";
 import type { RunningUplink } from "../uplinks/loaderState";
@@ -24,7 +23,6 @@ import { RequestTracker } from "./RequestTracker";
 import { RetryPolicy } from "./RetryPolicy";
 import { STUN_SERVERS } from "./relayAddress";
 import type { StationLink } from "./stationLink";
-import { ArrivalBacklog, PaceMonitor } from "./stationPace";
 import {
   getStationCredential,
   getStationKey,
@@ -197,10 +195,6 @@ export class PeerClientService {
   /** The endpoint link this station offered the main screen, until it opens or the main screen serves the data connection instead. */
   private pendingEndpoint: { id: string; link: EndpointHostLink } | null = null;
   private silenceTimer: ReturnType<typeof setInterval> | null = null;
-  /** This station's own pace while connected, reported to the host every other silence check. */
-  private readonly pace = new PaceMonitor();
-  private readonly arrivalBacklog = new ArrivalBacklog();
-  private silenceChecks = 0;
   private attemptTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly attemptDeadlineMs: number;
   /** The host's broker peer id, derived from the operator-typed share-code
@@ -692,7 +686,6 @@ export class PeerClientService {
     // PeerClientDataSource are then respected per peer.
     this.sendDataMode("selective");
     this.emitConnStatus("connected");
-    this.pace.start();
     this.watchForSilence();
   }
 
@@ -706,20 +699,10 @@ export class PeerClientService {
     this.lastHostMessageAt = Date.now();
     if (this.silenceTimer !== null) clearInterval(this.silenceTimer);
     this.silenceTimer = setInterval(() => {
-      this.silenceChecks += 1;
-      if (this.silenceChecks % 2 === 0) this.reportPace();
       if (Date.now() - this.lastHostMessageAt < HOST_SILENCE_MS) return;
       logger.warn("[PeerClient] host went silent: reconnecting");
       this.retryPolicy.handleUnexpectedClose();
     }, 1_000);
-  }
-
-  private reportPace(): void {
-    this.conn?.send({
-      type: "station-pace",
-      ...this.pace.reading(),
-      backlogMs: this.arrivalBacklog.backlogMs(),
-    } satisfies PeerMessage);
   }
 
   private armAttemptDeadline(peer: Peer): void {
@@ -754,7 +737,6 @@ export class PeerClientService {
       clearInterval(this.silenceTimer);
       this.silenceTimer = null;
     }
-    this.pace.stop();
     // Cleared before closing, so the events closing emits find no current connection to fail.
     const conn = this.conn;
     const peer = this.peer;
@@ -1275,15 +1257,6 @@ export class PeerClientService {
     this.conn?.send({
       type: "sitrep-set-vantage",
       vantage,
-    } satisfies PeerMessage);
-  }
-
-  /** Ask the host for `topic` at `tier` on this station's behalf. Does nothing with no live connection, for the reason {@link sendSitrepSubscribe} gives. */
-  sendSitrepSetRate(topic: string, tier: DataRateTier): void {
-    this.conn?.send({
-      type: "sitrep-set-rate",
-      topic,
-      tier,
     } satisfies PeerMessage);
   }
 
@@ -1857,9 +1830,6 @@ export class PeerClientService {
       this.events.emit("analyticsConsent", msg.enabled, this.analyticsRunId);
     },
     "sitrep-frame": (msg) => {
-      if (msg.sentAt !== undefined) {
-        this.arrivalBacklog.note(msg.sentAt, Date.now());
-      }
       this.events.emit(
         "sitrepFrame",
         msg.wide ? decodeWideNumbers(msg.message) : msg.message,
