@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Host;
+using Sitrep.Host.CommandCentres;
 using Xunit;
 
 namespace Sitrep.Host.IntegrationTests
@@ -88,6 +89,48 @@ namespace Sitrep.Host.IntegrationTests
             {
                 engine.Stop();
             }
+        }
+
+        [Fact]
+        public void TheCapabilityBindsALensAndReportsWhatHasReachedIt()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.Start();
+            try
+            {
+                ILensSites sites = new LensSitesSource(engine, () => new[] { new NamedGroundStation(Remote, "Woomerang") });
+                var site = sites.GroundStationNamed("Woomerang");
+                Assert.Equal(Remote, site);
+
+                sites.Bind("scope", site!, Commander);
+                Route(engine, Remote, 5.0);
+                Tick(engine, 100.0);
+                Assert.Equal(95.0, sites.KnowledgeUt("scope"));
+
+                Assert.Null(sites.KnowledgeUt("nothing-bound"));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public void AStationIsFoundOnlyByAUniqueNodeName()
+        {
+            var stations = new[]
+            {
+                new NamedGroundStation("ground:KSC", "KSC"),
+                new NamedGroundStation("ground:Twin", "Twin"),
+                new NamedGroundStation("ground:Twin#2", "Twin"),
+                new NamedGroundStation("ground:unknown", null),
+            };
+
+            Assert.Equal("ground:KSC", LensSitesSource.StationNamed(stations, "KSC"));
+            Assert.Null(LensSitesSource.StationNamed(stations, "Twin"));
+            Assert.Null(LensSitesSource.StationNamed(stations, "Twin#2"));
+            Assert.Null(LensSitesSource.StationNamed(stations, "ksc"));
+            Assert.Null(LensSitesSource.StationNamed(stations, ""));
         }
 
         private static void Route(ChannelEngine engine, string site, double seconds)
