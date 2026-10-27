@@ -149,6 +149,13 @@ namespace Gonogo.KSP.CurrencyDelay
         private readonly List<PendingScienceDefer> _scienceDefers = new List<PendingScienceDefer>();
         private readonly List<PendingReputationDefer> _reputationDefers = new List<PendingReputationDefer>();
 
+        /// <summary>
+        /// The craft a world-first award is news from: the active craft while one is
+        /// flown, or empty when none is and the award is a fact at home. The glue sets
+        /// it before each currency change it hands in.
+        /// </summary>
+        public string ProgressionCraftId { get; set; } = "";
+
         public double ShadowFunds { get; private set; }
         public double ShadowScience { get; private set; }
         public double ShadowReputation { get; private set; }
@@ -261,7 +268,8 @@ namespace Gonogo.KSP.CurrencyDelay
         {
             var vesselId = "";
             var hasVessel = reason == StockTransactionReason.VesselRecovery
-                && TryClaimRecoveryVessel(CurrencyKind.Funds, ut, out vesselId);
+                ? TryClaimRecoveryVessel(CurrencyKind.Funds, ut, out vesselId)
+                : TryProgressionCraft(reason, ut, out vesselId);
 
             if (StockCurrencyDecision.ClassifyOrigin(reason, hasVessel) != CurrencyOrigin.Away)
             {
@@ -299,7 +307,8 @@ namespace Gonogo.KSP.CurrencyDelay
 
             var vesselId = "";
             var hasVessel = reason == StockTransactionReason.VesselRecovery
-                && TryClaimRecoveryVessel(CurrencyKind.Reputation, ut, out vesselId);
+                ? TryClaimRecoveryVessel(CurrencyKind.Reputation, ut, out vesselId)
+                : TryProgressionCraft(reason, ut, out vesselId);
 
             if (StockCurrencyDecision.ClassifyOrigin(reason, hasVessel) != CurrencyOrigin.Away)
             {
@@ -360,6 +369,17 @@ namespace Gonogo.KSP.CurrencyDelay
 
         public ScienceChangeDecision OnScienceChanged(StockTransactionReason reason, double newTotal, double baseAmount, double ut)
         {
+            if (reason == StockTransactionReason.Progression)
+            {
+                if (TryProgressionCraft(reason, ut, out var craftId)
+                    && StockCurrencyDecision.ClassifyOrigin(reason, hasVessel: true) == CurrencyOrigin.Away)
+                {
+                    return ScienceChangeDecision.Away(craftId, baseAmount, ShadowScience);
+                }
+                ShadowScience = newTotal;
+                return ScienceChangeDecision.Home();
+            }
+
             if (reason != StockTransactionReason.ScienceTransmission && reason != StockTransactionReason.VesselRecovery)
             {
                 ShadowScience = newTotal;
@@ -448,6 +468,26 @@ namespace Gonogo.KSP.CurrencyDelay
             return ScienceChangeDecision.Away(vesselId, amount, ShadowScience);
         }
 
+
+        /// <summary>
+        /// The craft a world-first award came from: <see cref="ProgressionCraftId"/>, unless a
+        /// recovery is being processed, whose milestones are paid with the craft already home.
+        /// </summary>
+        private bool TryProgressionCraft(StockTransactionReason reason, double ut, out string vesselId)
+        {
+            vesselId = "";
+            if (reason != StockTransactionReason.Progression || string.IsNullOrEmpty(ProgressionCraftId))
+            {
+                return false;
+            }
+            Prune(_recoveryVessels, ut);
+            if (_recoveryVessels.Count > 0)
+            {
+                return false;
+            }
+            vesselId = ProgressionCraftId;
+            return true;
+        }
 
         private static void Prune(List<PendingVessel> vessels, double ut)
         {

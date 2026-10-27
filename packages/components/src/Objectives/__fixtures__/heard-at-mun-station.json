@@ -1,0 +1,181 @@
+{
+  "_meta": {
+    "shows": "Two active Mun contracts seen from Mun Station: Mun Probe has entered orbit, so that objective is met here, and Lander Two has met both objectives of the LV-909 test, so that contract is complete here and home hears in 2m 30s.",
+    "scenario": "heard-at-mun-station",
+    "notes": "Vantage is the crewed Mun Station, not home. Each objective shows what Mun Station has heard, and a contract a vessel has completed says so on its contract line until home hears."
+  },
+  "_stream": {
+    "pinnedUt": 1000,
+    "emits": [
+      {
+        "channel": "commandCentre.roster",
+        "value": [
+          {
+            "id": "ground:Kerbin: KSC",
+            "displayName": "KSC",
+            "kind": "GroundStation",
+            "active": true,
+            "isHome": true,
+            "isHomeFallback": false
+          },
+          {
+            "id": "vessel:5a1e0000-0000-4000-8000-00000000ce01",
+            "displayName": "Mun Station",
+            "kind": "CrewedVessel",
+            "active": true,
+            "isHome": false,
+            "isHomeFallback": false
+          }
+        ],
+        "meta": {
+          "vantage": "vessel:5a1e0000-0000-4000-8000-00000000ce01"
+        }
+      },
+      {
+        "channel": "trackingStation.catalog",
+        "value": {
+          "entries": [
+            {
+              "vesselId": "9b2c0000-0000-4000-8000-0000000000a1",
+              "name": "Mun Probe",
+              "vesselType": 3,
+              "situation": 32
+            },
+            {
+              "vesselId": "9b2c0000-0000-4000-8000-0000000000b2",
+              "name": "Lander Two",
+              "vesselType": 4,
+              "situation": 1
+            },
+            {
+              "vesselId": "5a1e0000-0000-4000-8000-00000000ce01",
+              "name": "Mun Station",
+              "vesselType": 6,
+              "situation": 32
+            }
+          ]
+        },
+        "meta": {
+          "vantage": "vessel:5a1e0000-0000-4000-8000-00000000ce01"
+        }
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "balances": null,
+          "contracts": {
+            "active": [
+              {
+                "id": "9101",
+                "title": "Explore the Mun",
+                "agent": "Kerbin World-Firsts Record-Keeping Society",
+                "state": "Active",
+                "fundsAdvance": 12000,
+                "fundsCompletion": 48000,
+                "scienceCompletion": 0,
+                "reputationCompletion": 8,
+                "dateDeadline": 0,
+                "parameters": [
+                  {
+                    "title": "Orbit the Mun",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
+                  },
+                  {
+                    "title": "Plant a flag on the Mun",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
+                  }
+                ]
+              },
+              {
+                "id": "9102",
+                "title": "Test the LV-909 on the Mun",
+                "agent": "C7 Aerospace",
+                "state": "Active",
+                "fundsAdvance": 3000,
+                "fundsCompletion": 9000,
+                "scienceCompletion": 0,
+                "reputationCompletion": 2,
+                "dateDeadline": 0,
+                "parameters": [
+                  {
+                    "title": "Land on the Mun",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
+                  },
+                  {
+                    "title": "Test LV-909: Landed on the Mun",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
+                  }
+                ]
+              }
+            ],
+            "offered": []
+          },
+          "strategies": null,
+          "tech": null,
+          "objectivesSettled": []
+        },
+        "meta": {
+          "vantage": "vessel:5a1e0000-0000-4000-8000-00000000ce01"
+        }
+      },
+      {
+        "channel": "career.objectives.9b2c0000-0000-4000-8000-0000000000a1.pending",
+        "value": {
+          "key": "9101/0/Met@940",
+          "contractId": "9101",
+          "contractTitle": "Explore the Mun",
+          "objective": "Orbit the Mun",
+          "objectivePath": "0",
+          "target": "Met",
+          "vesselId": "9b2c0000-0000-4000-8000-0000000000a1",
+          "vesselName": "Mun Probe",
+          "ut": 940,
+          "homeArrivesUt": 1112
+        },
+        "meta": {
+          "vantage": "vessel:5a1e0000-0000-4000-8000-00000000ce01"
+        }
+      },
+      {
+        "channel": "career.objectives.9b2c0000-0000-4000-8000-0000000000b2.pending",
+        "value": {
+          "key": "9102/0/Met@950",
+          "contractId": "9102",
+          "contractTitle": "Test the LV-909 on the Mun",
+          "objective": "Land on the Mun",
+          "objectivePath": "0",
+          "target": "Met",
+          "vesselId": "9b2c0000-0000-4000-8000-0000000000b2",
+          "vesselName": "Lander Two",
+          "ut": 950,
+          "homeArrivesUt": 1140
+        },
+        "meta": {
+          "vantage": "vessel:5a1e0000-0000-4000-8000-00000000ce01"
+        }
+      },
+      {
+        "channel": "career.objectives.9b2c0000-0000-4000-8000-0000000000b2.pending",
+        "value": {
+          "key": "9102/1/Met@960",
+          "contractId": "9102",
+          "contractTitle": "Test the LV-909 on the Mun",
+          "objective": "Test LV-909: Landed on the Mun",
+          "objectivePath": "1",
+          "target": "Met",
+          "vesselId": "9b2c0000-0000-4000-8000-0000000000b2",
+          "vesselName": "Lander Two",
+          "ut": 960,
+          "homeArrivesUt": 1150
+        },
+        "meta": {
+          "vantage": "vessel:5a1e0000-0000-4000-8000-00000000ce01"
+        }
+      }
+    ]
+  }
+}

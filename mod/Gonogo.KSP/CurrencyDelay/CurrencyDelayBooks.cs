@@ -1,4 +1,5 @@
 using System;
+using Gonogo.KSP.ObjectiveDelay;
 using UnityEngine;
 
 namespace Gonogo.KSP.CurrencyDelay
@@ -8,7 +9,8 @@ namespace Gonogo.KSP.CurrencyDelay
     /// <see cref="CurrencyDelayGuard"/>, <see cref="PendingCreditLedger"/> and
     /// <see cref="VesselScienceAggregator"/>, the stock interceptor and the reveal
     /// applier wired onto that same trio, the ledger's save and load, and the
-    /// per-frame tick that settles, drains and reveals. <see cref="CurrencyDelayScenario"/>
+    /// per-frame tick that settles, drains and reveals, and the contract objective
+    /// changes held on their way home. <see cref="CurrencyDelayScenario"/>
     /// owns one and forwards its scenario callbacks to it.
     /// </summary>
     internal sealed class CurrencyDelayBooks
@@ -17,6 +19,7 @@ namespace Gonogo.KSP.CurrencyDelay
         private readonly VesselScienceAggregator _aggregator = new VesselScienceAggregator();
         private readonly StockCurrencyInterceptor _interceptor;
         private readonly RevealApplier _reveal;
+        private readonly ObjectiveDelayBook _objectives = new ObjectiveDelayBook();
 
         internal CurrencyDelayBooks()
         {
@@ -36,6 +39,7 @@ namespace Gonogo.KSP.CurrencyDelay
         {
             _interceptor.Subscribe();
             DelayedScienceSink.Bind(_aggregator, Ledger);
+            ObjectiveDelayLine.Bind(_objectives);
             CommsCoreUplink.DelayShortened += BringForward;
         }
 
@@ -49,8 +53,10 @@ namespace Gonogo.KSP.CurrencyDelay
         {
             try
             {
-                Ledger.BringForward(Planetarium.GetUniversalTime(), remainingFactor);
+                var nowUt = Planetarium.GetUniversalTime();
+                Ledger.BringForward(nowUt, remainingFactor);
                 _aggregator.ScaleLightTimes(remainingFactor);
+                _objectives.BringForward(nowUt, remainingFactor);
             }
             catch (Exception ex)
             {
@@ -63,9 +69,17 @@ namespace Gonogo.KSP.CurrencyDelay
         /// the interceptor and applier already hold it. A save with no ledger node
         /// leaves it empty.
         /// </summary>
-        internal void Load(ConfigNode node) => CurrencyDelayLedgerPersistence.Load(Ledger, node);
+        internal void Load(ConfigNode node)
+        {
+            CurrencyDelayLedgerPersistence.Load(Ledger, node);
+            ObjectiveDelayPersistence.Load(_objectives, node);
+        }
 
-        internal void Save(ConfigNode node) => CurrencyDelayLedgerPersistence.Save(Ledger, node);
+        internal void Save(ConfigNode node)
+        {
+            CurrencyDelayLedgerPersistence.Save(Ledger, node);
+            ObjectiveDelayPersistence.Save(_objectives, node);
+        }
 
         /// <summary>
         /// Settles any currency change still deferred past its attribution window,
@@ -105,6 +119,19 @@ namespace Gonogo.KSP.CurrencyDelay
             {
                 GonogoLog.ErrorLimited("CurrencyDelayScenario tick failed", ex);
             }
+
+            try
+            {
+                _objectives.Release(
+                    Planetarium.GetUniversalTime(),
+                    HomeCraftViews.Of,
+                    ObjectiveDelayLine.ContractViewOf,
+                    (change, ex) => GonogoLog.Warn("applying a held objective change failed, so it was dropped", ex));
+            }
+            catch (Exception ex)
+            {
+                GonogoLog.ErrorLimited("releasing held objective changes failed", ex);
+            }
         }
 
         internal void Stop()
@@ -112,6 +139,7 @@ namespace Gonogo.KSP.CurrencyDelay
             CommsCoreUplink.DelayShortened -= BringForward;
             _interceptor.Unsubscribe();
             DelayedScienceSink.Unbind();
+            ObjectiveDelayLine.Unbind(_objectives);
             CrewDeathTies.Clear();
         }
     }

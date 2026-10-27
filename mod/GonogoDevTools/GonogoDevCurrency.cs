@@ -58,14 +58,14 @@ namespace Gonogo.DevTools
     /// three is irreversible, so each is gated by
     /// <see cref="CurrencyProbeVerdicts.RefuseTrigger"/>.</para>
     ///
-    /// <para><b>A funds signal delay cannot be validated by any of this, because there is
-    /// not one.</b> <c>OnFundsChanged</c> gates away purely on a recovery correlation and
-    /// then passes <c>KscDelay.Instant</c> unconditionally, so funds has exactly one away
-    /// trigger and that trigger is defined to be instant. <c>recover</c> validates the
-    /// away classification, the neutralise and the same-frame instant reveal round trip,
-    /// which is worth validating because a bug there double-credits or erases funds.
-    /// Reputation is the currency with a genuinely delayable away path, and
-    /// <c>destroy</c> is its only trigger.</para>
+    /// <para><b>A funds signal delay is validated with an award, not a trigger.</b>
+    /// <c>OnFundsChanged</c> reveals a recovery's funds instantly, since the craft is
+    /// home: <c>recover</c> validates the away classification, the neutralise and the
+    /// same-frame instant reveal round trip, which is worth validating because a bug
+    /// there double-credits or erases funds. A world first is news from the craft being
+    /// flown, so an award under <c>reason = Progression</c> in flight carries funds,
+    /// science or reputation over that craft's route home. <c>destroy</c> is reputation's
+    /// trigger.</para>
     ///
     /// <para>Request format (mirrors <see cref="GonogoDevTeleport"/>'s teleport node):
     /// <code>
@@ -88,8 +88,8 @@ namespace Gonogo.DevTools
     /// }
     /// </code>
     /// In an award mode the reason is what decides whether the award delays at all: the
-    /// interceptor's away set is ScienceTransmission, VesselRecovery and VesselLoss, and
-    /// everything else reveals instantly.</para>
+    /// interceptor's away set is ScienceTransmission, VesselRecovery, VesselLoss and,
+    /// while a craft is flown, Progression, and everything else reveals instantly.</para>
     ///
     /// <para>The result cfg carries one sample node per reading, labelled
     /// <c>before</c>, <c>after</c>, then <c>watch</c>. Each carries all three balances
