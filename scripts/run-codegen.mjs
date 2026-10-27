@@ -21,38 +21,78 @@
  * A shared list cannot drift, so no gate polices this one: the two callers
  * agree by construction rather than by a check that would itself need checking.
  *
- * ORDER MATTERS at the ends and not in the middle. `mod/codegen.sh` runs first
+ * ORDER MATTERS at the ends and not in the middle. `mod/codegen-contract.sh` runs first
  * because it emits the generated contract the rest read; `asyncapi-doc.mjs`
  * runs last because it describes the finished surface.
  */
 
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** Every generator of a committed artifact, in the order they must run. */
+/**
+ * Every generator of a committed artifact, in the order they must run.
+ *
+ * `outputs` names what the step writes: a repo-relative file, or a directory
+ * with a trailing slash, in either case with `*` matching within one path
+ * segment. `styleguide-codegen-owners.test.ts` requires every tracked file under
+ * a `__generated__` directory to have an owner here.
+ */
 export const CODEGEN_STEPS = [
-  { label: "contract", command: "bash", args: ["mod/codegen.sh"] },
+  {
+    label: "contract",
+    command: "bash",
+    args: ["mod/codegen-contract.sh"],
+    outputs: [
+      "mod/sitrep-sdk/src/__generated__/contract.ts",
+      "mod/sitrep-sdk/src/__generated__/topic-map.ts",
+      "mod/sitrep-sdk/src/__generated__/units.ts",
+      "mod/sitrep-sdk/src/__generated__/units.json",
+      "mod/sitrep-sdk/src/__generated__/control-channels.ts",
+      "mod/sitrep-sdk/src/__generated__/command-map.ts",
+      "mod/sitrep-sdk/src/__generated__/reckonability.ts",
+      "mod/sitrep-sdk/src/__generated__/error-codes.ts",
+      "mod/sitrep-sdk/src/__generated__/frames.ts",
+      "mod/Gonogo*Uplink/client/src/__generated__/",
+    ],
+  },
   {
     label: "unit-kinds",
     command: "node",
     args: ["scripts/gen-unit-kinds.mjs"],
+    outputs: ["packages/ui-kit/src/__generated__/unit-kinds.ts"],
   },
   {
     label: "test-theme",
     command: "node",
     args: ["scripts/gen-test-theme.mjs"],
+    outputs: ["mod/sitrep-sdk/src/__generated__/test-theme.ts"],
   },
   {
     label: "delay-roles",
     command: "node",
     args: ["scripts/gen-delay-roles.mjs"],
+    outputs: [
+      "mod/sitrep-sdk/src/__generated__/delay-roles.ts",
+      "mod/sitrep-sdk/src/__generated__/sample-kinds.ts",
+    ],
   },
-  { label: "asyncapi", command: "node", args: ["scripts/asyncapi-doc.mjs"] },
+  {
+    label: "asyncapi",
+    command: "node",
+    args: ["scripts/asyncapi-doc.mjs"],
+    outputs: ["asyncapi.yaml"],
+  },
 ];
 
-for (const step of CODEGEN_STEPS) {
-  execFileSync(step.command, step.args, { cwd: ROOT, stdio: "inherit" });
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  for (const step of CODEGEN_STEPS) {
+    console.log(`codegen step: ${step.label}`);
+    execFileSync(step.command, step.args, { cwd: ROOT, stdio: "inherit" });
+  }
 }

@@ -265,16 +265,20 @@ if (legAt !== -1) {
 }
 
 /*
- * 7. codegen: nothing to cut. `mod/codegen.sh` discovers the
+ * 7. codegen: nothing to cut. `mod/codegen-contract.sh` discovers the
  * `Gonogo*Uplink.Contract.Codegen` twins, so removing the twin in step 4 is the
  * whole of it. It used to be a per-slice block cut out by its `# <Name>:`
  * heading, which missed the two whose heading did not match their directory and,
  * for the last block in the file, took the asyncapi and ui-kit steps with it.
  * Should the script ever name this Uplink again, that is reported, not cut.
  */
-if (readFileSync(join(ROOT, "mod", "codegen.sh"), "utf8").includes(dirBase)) {
+if (
+  readFileSync(join(ROOT, "mod", "codegen-contract.sh"), "utf8").includes(
+    dirBase,
+  )
+) {
   deferred.push(
-    `mod/codegen.sh names ${dirBase}. It is meant to discover the codegen twins rather than list them; remove the reference by hand.`,
+    `mod/codegen-contract.sh names ${dirBase}. It is meant to discover the codegen twins rather than list them; remove the reference by hand.`,
   );
 }
 

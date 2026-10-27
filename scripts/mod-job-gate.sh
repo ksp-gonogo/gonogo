@@ -139,7 +139,7 @@ DECLINED=""
 
 step_codegen() {
   if [ "$NO_DOTNET" = "1" ]; then
-    DECLINED="\`dotnet\` is not on PATH, and mod/codegen.sh builds the contract with it"
+    DECLINED="\`dotnet\` is not on PATH, and mod/codegen-contract.sh builds the contract with it"
     return 2
   fi
   quiet bash "$ROOT/scripts/codegen-check.sh"

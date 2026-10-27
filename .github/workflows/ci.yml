@@ -720,7 +720,7 @@ jobs:
   # The shape-gate (ContractShapeGateTests) lives in Sitrep.Host.Tests and is
   # CI-safe: it reads PE metadata and the contract's own [SitrepContract]
   # marker. Reinforced.Typings is not a runtime dependency of anything here,
-  # it is confined to Sitrep.Contract.Codegen, which only mod/codegen.sh builds.
+  # it is confined to Sitrep.Contract.Codegen, which only mod/codegen-contract.sh builds.
   mod:
     runs-on: ubuntu-24.04
     steps:
@@ -1018,7 +1018,7 @@ jobs:
         working-directory: mod
         run: |
           set -euo pipefail
-          bash codegen.sh
+          bash codegen-contract.sh
           git diff --exit-code -- sitrep-sdk/src/__generated__
 
       # The NuGet half of the Uplink surface. Packing on every push, and gating
