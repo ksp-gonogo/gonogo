@@ -316,6 +316,60 @@ describe("SitrepPeerRelay", () => {
     view.unmount();
   });
 
+  it("drops vessel.landing's terrain from frames older than the one on the main screen, and keeps every other field", async () => {
+    const peerHost = makeFakeHost();
+    const { transport, view } = renderRelay(peerHost);
+
+    act(() => peerHost.connectPeer("station-a"));
+    act(() => peerHost.claim("vessel.landing"));
+    await waitFor(() =>
+      expect(transport.isSubscribed("vessel.landing")).toBe(true),
+    );
+    act(() => {
+      for (const validAt of [1, 2, 3]) {
+        transport.emit(
+          "vessel.landing",
+          {
+            predictedLatitude: validAt,
+            siteHeights: [validAt],
+            horizonAngles: [validAt],
+            groundTrackDistances: [validAt],
+            groundTrackElevations: [validAt],
+          },
+          { validAt, deliveredAt: validAt },
+        );
+      }
+    });
+
+    /*
+     * The relay sees each frame before the main screen's store takes it, so
+     * the edge it reads stands on the frame before the newest and the run
+     * keeps terrain on the newest two.
+     */
+    const replay = peerHost
+      .cachedFrames("vessel.landing")
+      .map(
+        (m) =>
+          (m as { message: { payload: Record<string, unknown> } }).message
+            .payload,
+      );
+    expect(replay.map((payload) => "siteHeights" in payload)).toEqual([
+      false,
+      true,
+      true,
+    ]);
+    expect(
+      replay.map((payload) =>
+        Object.keys(payload).filter((key) => key !== "predictedLatitude"),
+      )[0],
+    ).toEqual([]);
+    expect(replay.every((payload) => "predictedLatitude" in payload)).toBe(
+      true,
+    );
+
+    view.unmount();
+  });
+
   it("answers a station asking for a topic the host is already holding, from the cache", async () => {
     const peerHost = makeFakeHost();
     const { transport, view } = renderRelay(peerHost);

@@ -24,6 +24,7 @@ import {
   useMemo,
 } from "react";
 import { AlarmStatusBridge } from "../../alarms/AlarmStatusBridge";
+import { WidgetDataRateBridge } from "../../telemetry/WidgetDataRateBridge";
 import { TrajectoryCurrencyBridge } from "../../trajectory/TrajectoryCurrencyBridge";
 import { UnvouchedDevClientBridge } from "../../uplinks/UnvouchedDevClientBridge";
 import type { DashboardItem } from "./index";
@@ -58,6 +59,7 @@ export function WidgetProviders({
         />
         {/* Only the two subject-wide grades: see `useWidgetStreamStatus` for why the rest stay opt-in through `panelStatus` */}
         <WidgetStreamStatusBridge def={def} config={config} />
+        <WidgetDataRateBridge def={def} config={config} />
         <TrajectoryCurrencyBridge
           declaredTopics={widgetDrawnFields(def, config)}
         />

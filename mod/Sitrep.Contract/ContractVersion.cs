@@ -50,6 +50,6 @@ namespace Sitrep.Contract
         /// Minor of the same Major stays compatible. The value is inlined into an
         /// Uplink at compile time, so it records the Minor that Uplink was built against.
         /// </summary>
-        public const int Minor = 7;
+        public const int Minor = 8;
     }
 }

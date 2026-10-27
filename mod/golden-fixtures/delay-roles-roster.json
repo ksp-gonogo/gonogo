@@ -6,6 +6,7 @@
       "comms.linkMargin",
       "settings.gonogo",
       "system.channels",
+      "system.dataRates",
       "system.units",
       "system.uplink.gates",
       "system.uplink.pending",

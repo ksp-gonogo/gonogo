@@ -9059,6 +9059,10 @@
         "note": "ResolvedDeps is exported from the root, since it is named in an author-facing signature"
       },
       {
+        "key": "sitrep-sdk . ~SdkOwnedTopicPayloadMap",
+        "note": "Gains system.dataRates, the Topic that reports each rate tier and the Topics sent above the base rate"
+      },
+      {
         "key": "sitrep-sdk . ~StoredStreamBackedSettingOf",
         "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
       },
@@ -9307,6 +9311,10 @@
         "note": "Follows ReckoningDecline#reason"
       },
       {
+        "key": "sitrep-sdk ./registry ~SdkOwnedTopicPayloadMap",
+        "note": "Gains system.dataRates, the Topic that reports each rate tier and the Topics sent above the base rate"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ShipMapPartMetaEntry",
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind; it carries the reading a row was drawn from, so a held row is drawn held"
       },
@@ -9473,6 +9481,14 @@
       {
         "key": "sitrep-sdk ./spine ClientPrefSettingOf#type?",
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk ./spine ClientTimeline#scaleMaxPoints",
+        "note": "New: keeps a multiple of the point bound, so a Topic sent faster keeps the same span of game time"
+      },
+      {
+        "key": "sitrep-sdk ./spine ClientTimeline#supersedeBefore",
+        "note": "New: replaces the payload of every point older than the one on screen, so a long history can drop fields only the newest sample is read for"
       },
       {
         "key": "sitrep-sdk ./spine CommsLinkLike#connected",
@@ -9663,12 +9679,20 @@
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
+        "key": "sitrep-sdk ./spine TelemetryClient#claimedTier",
+        "note": "New: the rate tier the live claims on a Topic ask for"
+      },
+      {
         "key": "sitrep-sdk ./spine TelemetryClient#dispatchGroup",
         "note": "New: sends several commands as one command-group frame"
       },
       {
         "key": "sitrep-sdk ./spine TelemetryClient#holdCommands",
         "note": "New: keeps the records of named commands past the sweep of answered ones, so a command group keeps reading its members' answers"
+      },
+      {
+        "key": "sitrep-sdk ./spine TelemetryClient#requestRate",
+        "note": "New: asks the mod for a subscribed Topic at a rate tier until released"
       },
       {
         "key": "sitrep-sdk ./spine TelemetryClient#restoredCommands",
@@ -9939,6 +9963,10 @@
         "note": "Read through ReckonableFieldMap, which an Uplink augments for an object Topic its own contract marks, so its reading is typed reckonable too"
       },
       {
+        "key": "sitrep-sdk ./spine ~SdkOwnedTopicPayloadMap",
+        "note": "Gains system.dataRates, the Topic that reports each rate tier and the Topics sent above the base rate"
+      },
+      {
         "key": "sitrep-sdk ./spine ~ServerMessage",
         "note": "Gains the game-state, hello and pong frames. A caller that switches over server messages without a default stops compiling until it names them; the transports and the spine client are the only ones, and all handle them"
       },
@@ -10143,6 +10171,14 @@
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
       {
+        "key": "sitrep-sdk ./testing ~ClientTimeline#scaleMaxPoints",
+        "note": "New: keeps a multiple of the point bound, so a Topic sent faster keeps the same span of game time"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ClientTimeline#supersedeBefore",
+        "note": "New: replaces the payload of every point older than the one on screen, so a long history can drop fields only the newest sample is read for"
+      },
+      {
         "key": "sitrep-sdk ./testing ~ContributionDep",
         "note": "A contribution's Topic dep now arrives as its reading, so the { reading } form is gone, and a processor dep must be one whose result carries currency"
       },
@@ -10337,6 +10373,10 @@
       {
         "key": "sitrep-sdk ./testing ~ReckoningDecline#reason",
         "note": "Follows ReckoningDecline#reason"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SdkOwnedTopicPayloadMap",
+        "note": "Gains system.dataRates, the Topic that reports each rate tier and the Topics sent above the base rate"
       },
       {
         "key": "sitrep-sdk ./testing ~ServerMessage",
@@ -10683,12 +10723,20 @@
         "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
       },
       {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#claimedTier",
+        "note": "New: the rate tier the live claims on a Topic ask for"
+      },
+      {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatchGroup",
         "note": "New: sends several commands as one command-group frame"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#holdCommands",
         "note": "New: keeps the records of named commands past the sweep of answered ones, so a command group keeps reading its members' answers"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#requestRate",
+        "note": "New: asks the mod for a subscribed Topic at a rate tier until released"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#restoredCommands",
@@ -11897,6 +11945,14 @@
         "note": "Optional list of the commands a widget's controls can send, checked against what the widget sends; it never locks or replaces the widget"
       },
       {
+        "key": "sitrep-sdk . ComponentDefinition#dataRates?",
+        "note": "New: the Values a widget wants at a faster rate tier while it is open"
+      },
+      {
+        "key": "sitrep-sdk . ComponentDefinition#dataRatesFromConfig?",
+        "note": "New: the Values a widget wants at a faster rate tier that depend on its tile's settings"
+      },
+      {
         "key": "sitrep-sdk . ComponentDefinition#heldOpenBy?",
         "note": "a widget can name a reason it stays open while a game state it requires is not met"
       },
@@ -12055,6 +12111,10 @@
       {
         "key": "sitrep-sdk . CrewRowToneEntry#held?",
         "note": "CrewRowToneEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk . DataRateTier",
+        "note": "New: the rate tiers a widget can ask for"
       },
       {
         "key": "sitrep-sdk . DataSourceState",
@@ -12813,6 +12873,14 @@
         "note": "The game's present in UT seconds with no signal delay taken off; ui-kit's in-flight countdown reads it once a second"
       },
       {
+        "key": "sitrep-sdk . WidgetDataRates",
+        "note": "New: a widget's faster rate tiers, as lists of Values"
+      },
+      {
+        "key": "sitrep-sdk . WidgetDataRates#fast?",
+        "note": "Follows WidgetDataRates"
+      },
+      {
         "key": "sitrep-sdk . ZERO_DELAY_DEAD_ZONE_SECONDS",
         "note": "The one-way delay, in seconds, at or below which a delay readout is drawn as no delay"
       },
@@ -12841,6 +12909,10 @@
         "note": "The name the publishing contract gives a field, for a picker, a graph title or a legend"
       },
       {
+        "key": "sitrep-sdk . hasSupersededFields",
+        "note": "New: whether a Topic's history drops some fields from samples no longer on screen"
+      },
+      {
         "key": "sitrep-sdk . keplerAdmissibilityAcrossPatches",
         "note": "the orbit admissibility answer that also says which patch the craft is on past a sphere-of-influence change"
       },
@@ -12861,6 +12933,10 @@
         "note": "Rotates a perifocal-frame vector into the inertial frame, now reachable from the root barrel"
       },
       {
+        "key": "sitrep-sdk . samplesPerSecondOf",
+        "note": "New: the rate a Topic arrives at, read off a system.dataRates report"
+      },
+      {
         "key": "sitrep-sdk . sendTogether",
         "note": "New: sends the commands made inside its callback as one message"
       },
@@ -12875,6 +12951,10 @@
       {
         "key": "sitrep-sdk . solveHyperbolicAnomaly",
         "note": "New: solves the hyperbolic form of Kepler's equation, so an open orbit (a flyby or an escape) can be carried to an instant"
+      },
+      {
+        "key": "sitrep-sdk . supersededPayload",
+        "note": "New: a sample's payload without the fields only the sample on screen is read for, such as Landing Status's terrain"
       },
       {
         "key": "sitrep-sdk . systemPosesAt",
@@ -12915,6 +12995,14 @@
       {
         "key": "sitrep-sdk . ~ObjectiveSlotAwaitingHome#homeHearsInSeconds",
         "note": "Seconds until home hears the contract is complete, null while a vessel has no route home"
+      },
+      {
+        "key": "sitrep-sdk . ~SystemDataRatesTopicPayloadMap",
+        "note": "New: system.dataRates, each rate tier and the Topics sent above the base rate"
+      },
+      {
+        "key": "sitrep-sdk . ~SystemDataRatesTopicPayloadMap#\"system.dataRates\"",
+        "note": "New: the Values a widget wants at a faster rate tier while it is open"
       },
       {
         "key": "sitrep-sdk . ~Vec3Tuple",
@@ -13419,6 +13507,14 @@
       {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#commands?",
         "note": "Optional list of the commands a widget's controls can send, checked against what the widget sends; it never locks or replaces the widget"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ComponentDefinition#dataRates?",
+        "note": "New: the Values a widget wants at a faster rate tier while it is open"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ComponentDefinition#dataRatesFromConfig?",
+        "note": "New: the Values a widget wants at a faster rate tier that depend on its tile's settings"
       },
       {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#heldOpenBy?",
@@ -14341,6 +14437,14 @@
         "note": "StatEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
       {
+        "key": "sitrep-sdk ./registry ~SystemDataRatesTopicPayloadMap",
+        "note": "New: system.dataRates, each rate tier and the Topics sent above the base rate"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemDataRatesTopicPayloadMap#\"system.dataRates\"",
+        "note": "New: the Values a widget wants at a faster rate tier while it is open"
+      },
+      {
         "key": "sitrep-sdk ./registry ~SystemEntity#currency?",
         "note": "Lets a contribution say its entity's place is held, which draws it dimmed and dashed and names it as held"
       },
@@ -14551,6 +14655,14 @@
       {
         "key": "sitrep-sdk ./registry ~VesselCatalogUpdatesContext#vesselName",
         "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#vesselName"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~WidgetDataRates",
+        "note": "New: a widget's faster rate tiers, as lists of Values"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~WidgetDataRates#fast?",
+        "note": "Follows WidgetDataRates"
       },
       {
         "key": "sitrep-sdk ./spine Arrival",
@@ -15353,6 +15465,10 @@
         "note": "CrewRowToneEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
       {
+        "key": "sitrep-sdk ./spine ~DataRateTier",
+        "note": "New: the rate tiers a widget can ask for"
+      },
+      {
         "key": "sitrep-sdk ./spine ~DataSourceStatus",
         "note": "reachable through the spine's DataSourceState"
       },
@@ -15547,6 +15663,14 @@
       {
         "key": "sitrep-sdk ./spine ~StatEntry#held?",
         "note": "StatEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemDataRatesTopicPayloadMap",
+        "note": "New: system.dataRates, each rate tier and the Topics sent above the base rate"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemDataRatesTopicPayloadMap#\"system.dataRates\"",
+        "note": "New: the Values a widget wants at a faster rate tier while it is open"
       },
       {
         "key": "sitrep-sdk ./spine ~SystemEntity#currency?",
@@ -15811,6 +15935,10 @@
       {
         "key": "sitrep-sdk ./testing ~CrewRowToneEntry#held?",
         "note": "CrewRowToneEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~DataRateTier",
+        "note": "New: the rate tiers a widget can ask for"
       },
       {
         "key": "sitrep-sdk ./testing ~DataSourceState",
@@ -16199,6 +16327,14 @@
       {
         "key": "sitrep-sdk ./testing ~StationBrokerWatcher",
         "note": "The type a watcher on the testing subpath receives from watchStationBrokers"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemDataRatesTopicPayloadMap",
+        "note": "New: system.dataRates, each rate tier and the Topics sent above the base rate"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemDataRatesTopicPayloadMap#\"system.dataRates\"",
+        "note": "New: the Values a widget wants at a faster rate tier while it is open"
       },
       {
         "key": "sitrep-sdk ./testing ~SystemEntity#currency?",

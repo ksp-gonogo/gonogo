@@ -642,6 +642,10 @@
       "trait": "text",
       "unavailableReason": "text"
     },
+    "DataRateTierEntry": {
+      "samplesPerSecond": "1",
+      "tier": "id"
+    },
     "DeactivateStrategyArgs": {
       "strategyId": "id"
     },
@@ -1394,6 +1398,11 @@
     "SetPausedArgs": {
       "paused": "flag"
     },
+    "SetRate": {
+      "tier": "id",
+      "topic": "id",
+      "type": "id"
+    },
     "SetSasModeArgs": {
       "mode": "enum"
     },
@@ -1530,6 +1539,11 @@
       "kerbinTime": "flag",
       "minuteSeconds": "s",
       "yearSeconds": "s"
+    },
+    "TopicDataRate": {
+      "samplesPerSecond": "1",
+      "tier": "id",
+      "topic": "id"
     },
     "TrackingStationDismissArgs": {
       "vesselId": "id"
@@ -2633,6 +2647,10 @@
     },
     "CrewMember": {
       "carrying": "InventoryItem[]"
+    },
+    "DataRateReport": {
+      "tiers": "DataRateTierEntry[]",
+      "topics": "TopicDataRate[]"
     },
     "DelayedObservation": {
       "state": "StateVector"
