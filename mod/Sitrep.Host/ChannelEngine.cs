@@ -893,12 +893,6 @@ namespace Sitrep.Host
          */
         internal const string ChannelsTopic = "system.channels";
 
-        /// <summary>
-        /// Each rate tier's samples a second and every topic some connection asks to have
-        /// above base, so a client sizes what it keeps of a topic by the rate it arrives at.
-        /// </summary>
-        internal const string DataRatesTopic = "system.dataRates";
-
         // Current one-way signal delay (seconds), snooped off the comms.delay
         // channel's latest revealed value (§7.3 Step 2). 0 = no delay authority
         // (CommsDelaySource.None / signal-delay-disabled / pre-first-emit),
@@ -1308,9 +1302,8 @@ namespace Sitrep.Host
 
         /// <summary>
         /// How often each pull channel is built, UT per topic: every topic at
-        /// <see cref="SampleCadence.IntervalUt"/> unless a connection asks for a
-        /// faster tier on it or a development override says otherwise. See
-        /// <see cref="TopicCadence"/>.
+        /// <see cref="SampleCadence.IntervalUt"/> unless a development override says
+        /// otherwise. See <see cref="TopicCadence"/>.
         /// </summary>
         public TopicCadence Cadence { get; } = new TopicCadence();
 
@@ -1968,19 +1961,6 @@ namespace Sitrep.Host
             };
             _channelSources[ChannelsTopic] = _ => ChannelEmissionRoster();
             _engineStateTopics.Add(ChannelsTopic);
-
-            _channelDeclarations[DataRatesTopic] = new ChannelDeclaration
-            {
-                Kind = SampleKind.Discrete,
-                Requires = Requirement.None,
-                Topic = DataRatesTopic,
-                Delivery = Delivery.LossyLatest,
-                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                // A fact about the stream rather than a vessel, so it does not ride the reveal clock.
-                Delay = DelayRole.TrueNow,
-            };
-            _channelSources[DataRatesTopic] = _ => DataRateRoster();
-            _engineStateTopics.Add(DataRatesTopic);
             _channelCounterBudget = new PerfBudget(
                 "ChannelEngine channel-counter rows/sec",
                 threshold: ChannelCounterRowBudget,
@@ -2008,48 +1988,6 @@ namespace Sitrep.Host
                 windowSec: 1.0,
                 unit: "builds",
                 warn: LogHost);
-        }
-
-        /// <summary>
-        /// The <see cref="DataRatesTopic"/> mapper. Handed back unchanged while neither the
-        /// tier table nor the demand moved, so the change-gate declines the repeat.
-        /// </summary>
-        private DataRateReport DataRateRoster()
-        {
-            var report = new DataRateReport { Tiers = Cadence.Tiers.Entries(), Topics = Cadence.DemandReport() };
-            if (_dataRateReport != null && SameRates(_dataRateReport, report))
-            {
-                return _dataRateReport;
-            }
-            _dataRateReport = report;
-            return report;
-        }
-
-        private DataRateReport? _dataRateReport;
-
-        private static bool SameRates(DataRateReport left, DataRateReport right)
-        {
-            if (left.Tiers.Count != right.Tiers.Count || left.Topics.Count != right.Topics.Count)
-            {
-                return false;
-            }
-            for (var i = 0; i < left.Tiers.Count; i++)
-            {
-                if (left.Tiers[i].Tier != right.Tiers[i].Tier || left.Tiers[i].SamplesPerSecond != right.Tiers[i].SamplesPerSecond)
-                {
-                    return false;
-                }
-            }
-            for (var i = 0; i < left.Topics.Count; i++)
-            {
-                if (left.Topics[i].Topic != right.Topics[i].Topic
-                    || left.Topics[i].Tier != right.Topics[i].Tier
-                    || left.Topics[i].SamplesPerSecond != right.Topics[i].SamplesPerSecond)
-                {
-                    return false;
-                }
-            }
-            return true;
         }
 
         /// <summary>
@@ -7855,9 +7793,6 @@ namespace Sitrep.Host
                             case ClaimJob claim:
                                 ProcessClaim(claim.Session, claim.RequestIds);
                                 break;
-                            case SetRateJob setRate:
-                                ProcessSetRate(setRate.Session, setRate.Topic, setRate.Tier);
-                                break;
                             case FreshConnectionVantageMovedJob:
                                 ProcessFreshConnectionVantageMoved();
                                 break;
@@ -11543,56 +11478,7 @@ namespace Sitrep.Host
                     _subscribedTopics.TryRemove(topic, out _);
                 }
                 CleanUpSubjectIfGone(topic); // Drop a gone fleet subject's freeze maps.
-                if (session.RateTiers.Remove(topic))
-                {
-                    RecomputeRateDemand(topic);
-                }
             }
-        }
-
-        /// <summary>
-        /// Record the tier <paramref name="session"/> asks for on <paramref name="topic"/> and
-        /// put the topic on the fastest tier any connection asks for. A topic the session has
-        /// not subscribed is ignored, since the request would outlive nothing; an unknown tier
-        /// is read as base.
-        /// </summary>
-        private void ProcessSetRate(ClientSession session, string topic, string tier)
-        {
-            if (!session.Unsubscribers.ContainsKey(topic))
-            {
-                return;
-            }
-            if (!Cadence.Tiers.IsKnown(tier))
-            {
-                LogHostLimited("set-rate on \"" + topic + "\" names unknown tier \"" + tier + "\"; read as base");
-                tier = DataRateTierNames.Base;
-            }
-            if (tier == DataRateTierNames.Base)
-            {
-                if (!session.RateTiers.Remove(topic))
-                {
-                    return;
-                }
-            }
-            else
-            {
-                session.RateTiers[topic] = tier;
-            }
-            RecomputeRateDemand(topic);
-        }
-
-        /// <summary>Put <paramref name="topic"/> on the fastest tier any connected session asks for, or base.</summary>
-        private void RecomputeRateDemand(string topic)
-        {
-            var fastest = DataRateTierNames.Base;
-            foreach (var other in _sessions.Values)
-            {
-                if (other.RateTiers.TryGetValue(topic, out var tier))
-                {
-                    fastest = Cadence.Tiers.Faster(fastest, tier);
-                }
-            }
-            Cadence.SetDemand(topic, fastest);
         }
 
         private void ProcessDisconnect(ClientSession session)
@@ -11615,12 +11501,6 @@ namespace Sitrep.Host
                 unsubscribe();
             }
             session.Unsubscribers.Clear();
-            var rated = new List<string>(session.RateTiers.Keys);
-            session.RateTiers.Clear();
-            foreach (var topic in rated)
-            {
-                RecomputeRateDemand(topic);
-            }
             ForgetWaitingClaims(session);
         }
 
@@ -11820,9 +11700,6 @@ namespace Sitrep.Host
                         break;
                     case ClaimRequest claim:
                         EnqueueJob(new ClaimJob(session, claim.RequestIds));
-                        break;
-                    case SetRate setRate:
-                        EnqueueJob(new SetRateJob(session, setRate.Topic, setRate.Tier));
                         break;
                 }
             }
@@ -12354,20 +12231,6 @@ namespace Sitrep.Host
             }
         }
 
-        private sealed class SetRateJob : IEngineJob
-        {
-            public readonly ClientSession Session;
-            public readonly string Topic;
-            public readonly string Tier;
-
-            public SetRateJob(ClientSession session, string topic, string tier)
-            {
-                Session = session;
-                Topic = topic;
-                Tier = tier;
-            }
-        }
-
         private sealed class ClaimJob : IEngineJob
         {
             public readonly ClientSession Session;
@@ -12442,9 +12305,6 @@ namespace Sitrep.Host
             /// Written on a socket thread, read on the Courier thread.
             /// </summary>
             public volatile string? ChosenVantage;
-
-            /// <summary>The rate tier this connection asks for on each subscribed topic, base ones left out. Courier-thread-only.</summary>
-            public readonly Dictionary<string, string> RateTiers = new Dictionary<string, string>(StringComparer.Ordinal);
 
             public ClientSession(ITransportConnection connection)
             {

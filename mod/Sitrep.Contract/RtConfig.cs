@@ -46,7 +46,6 @@ public static class RtConfig
         builder.ExportAsInterface<GameState>().AutoI(false).WithPublicProperties().OverrideName("GameState");
         builder.ExportAsInterface<CommandGroupRequest>().AutoI(false).WithPublicProperties().OverrideName("CommandGroupRequest");
         builder.ExportAsInterface<ClaimRequest>().AutoI(false).WithPublicProperties().OverrideName("ClaimRequest");
-        builder.ExportAsInterface<SetRate>().AutoI(false).WithPublicProperties().OverrideName("SetRate");
         builder.ExportAsInterface<Ping>().AutoI(false).WithPublicProperties().OverrideName("Ping");
         builder.ExportAsInterface<Pong>().AutoI(false).WithPublicProperties().OverrideName("Pong");
         builder.ExportAsInterface<StreamBinary>().AutoI(false).WithPublicProperties().OverrideName("StreamBinary");
@@ -316,10 +315,6 @@ public static class RtConfig
                 // treatment as system.uplink.gates above.
                 typeof(ChannelEmissionEntry),
                 typeof(ChannelEmissionReport),
-                // system.dataRates, each rate tier and the Topics sent above base.
-                typeof(DataRateTierEntry),
-                typeof(TopicDataRate),
-                typeof(DataRateReport),
                 typeof(SystemBodies),
                 typeof(BodyEntry),
                 typeof(OrbitEntry),

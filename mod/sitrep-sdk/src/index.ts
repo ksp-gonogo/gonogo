@@ -145,13 +145,6 @@ export {
   crewUnavailableSentence,
   isFatality,
 } from "./crew-standing";
-export {
-  type DataRateTier,
-  hasSupersededFields,
-  samplesPerSecondOf,
-  supersededPayload,
-  type WidgetDataRates,
-} from "./data-rate";
 // Whether a Topic's value is entitled to be read as of TRUE NOW, or only as of
 // now minus the light-time to the craft. Published for the same reason
 // reckonability is: an Uplink declaring a ground-side channel of its own needs

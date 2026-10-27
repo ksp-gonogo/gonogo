@@ -3600,50 +3600,6 @@ export interface ReputationLossEvent
 	ut: Value<"ut">;
 }
 /**
-* One rate tier and the samples a game second it stands for now.
-*
-* @category Stream messages
-*/
-export interface DataRateTierEntry
-{
-	/** The tier: `"base"` or `"fast"`. */
-	tier: "base" | "fast";
-	/** Samples a game second at this tier. */
-	samplesPerSecond: Value<"1">;
-}
-/**
-* One Topic sent above the base rate, and the rate it is sent at.
-*
-* @category Stream messages
-*/
-export interface TopicDataRate
-{
-	/** The Topic id. */
-	topic: string;
-	/** The fastest tier any connection asks for on this Topic. */
-	tier: "base" | "fast";
-	/** Samples a game second this Topic is sent at. */
-	samplesPerSecond: Value<"1">;
-}
-/**
-* Wire wrapper for `system.dataRates`: what each rate tier is in samples a
-* game second, and every Topic sent above the base tier now. A Topic not
-* listed is sent at the base tier's rate.
-*
-* A rate is in game time. Under time warp the mod sends at most ten samples a
-* real second, so a Topic can arrive with more game time between samples than
-* its rate gives.
-*
-* @category Stream messages
-*/
-export interface DataRateReport
-{
-	/** Every tier, slowest first. Never null. */
-	tiers: DataRateTierEntry[];
-	/** Every Topic sent above the base tier, sorted by Topic id. Never null. */
-	topics: TopicDataRate[];
-}
-/**
 * One Topic sample as the mod sends it: the Topic id, its payload, and the
 * envelope `StreamData.meta` saying when the payload was true and when it
 * arrived.
@@ -3950,29 +3906,6 @@ export interface Unsubscribe
 	type: "unsubscribe";
 	/** The Topic id to stop receiving. */
 	topic: string;
-}
-/**
-* Asks the mod to send a subscribed Topic to this connection at a rate tier.
-* The mod sends each Topic at the fastest tier any connection asks for, and at
-* `"base"` while none asks for more; `system.dataRates` says what each tier is
-* in samples a second and which Topics are above base now.
-*
-* The request lasts until the connection asks again, unsubscribes the Topic or
-* closes. Asking `"base"` withdraws it. A request for a Topic this connection
-* has not subscribed changes nothing, and a tier the mod does not know is read
-* as `"base"`. A Topic an Uplink publishes when it has news, rather than one
-* the mod samples on its own clock, arrives as it did.
-*
-* @category Stream messages
-*/
-export interface SetRate
-{
-	/** The frame type, always `"set-rate"`. */
-	type: "set-rate";
-	/** The subscribed Topic id the tier is for. */
-	topic: string;
-	/** The rate tier: `"base"` or `"fast"`. */
-	tier: "base" | "fast";
 }
 /**
 * Selects the command centre this connection commands from and observes at. It

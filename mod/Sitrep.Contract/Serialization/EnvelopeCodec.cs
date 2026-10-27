@@ -744,37 +744,6 @@ namespace Sitrep.Contract.Serialization
             return new Unsubscribe { Type = "unsubscribe", Topic = RequireString(raw, "topic") };
         }
 
-        /// <summary>Serializes a <c>set-rate</c> envelope.</summary>
-        /// <param name="msg">The envelope to write.</param>
-        /// <returns>The JSON text of the envelope.</returns>
-        public static string WriteSetRate(SetRate msg)
-        {
-            var sb = new StringBuilder();
-            sb.Append('{');
-            AppendField(sb, "type", first: true);
-            JsonWriter.AppendString(sb, msg.Type);
-
-            AppendField(sb, "topic");
-            JsonWriter.AppendString(sb, msg.Topic);
-
-            AppendField(sb, "tier");
-            JsonWriter.AppendString(sb, msg.Tier);
-            sb.Append('}');
-            return sb.ToString();
-        }
-
-        /// <summary>Parses a <c>set-rate</c> envelope. The tier is read as given; the engine refuses one it does not know.</summary>
-        /// <param name="json">The JSON text of the envelope.</param>
-        /// <returns>The parsed envelope.</returns>
-        /// <exception cref="FormatException">The text is not a <c>set-rate</c>
-        /// envelope, or <c>topic</c> or <c>tier</c> is missing or not a string.</exception>
-        public static SetRate ParseSetRate(string json)
-        {
-            var raw = ExpectObject(JsonReader.Parse(json));
-            RequireType(raw, "set-rate");
-            return new SetRate { Type = "set-rate", Topic = RequireString(raw, "topic"), Tier = RequireString(raw, "tier") };
-        }
-
         /// <summary>Serializes a <c>set-vantage</c> envelope.</summary>
         /// <param name="msg">The envelope to write.</param>
         /// <returns>The JSON text of the envelope.</returns>
@@ -976,7 +945,7 @@ namespace Sitrep.Contract.Serialization
         /// <summary>
         /// Parses a client-to-server envelope (<see cref="Subscribe"/>,
         /// <see cref="Unsubscribe"/>, <see cref="SetVantage"/>,
-        /// <see cref="Ping"/>, <c>CommandRequest&lt;object?&gt;</c>, <see cref="CommandGroupRequest"/>, <see cref="ClaimRequest"/> or <see cref="SetRate"/>), dispatching on the
+        /// <see cref="Ping"/>, <c>CommandRequest&lt;object?&gt;</c>, <see cref="CommandGroupRequest"/> or <see cref="ClaimRequest"/>), dispatching on the
         /// <c>"type"</c> field.
         ///
         /// <para>Failure comes back as one of two <see cref="FormatException"/>
@@ -1005,7 +974,6 @@ namespace Sitrep.Contract.Serialization
                     "command-request" => ParseCommandRequest(json),
                     "command-group" => ParseCommandGroup(json),
                     "claim" => ParseClaim(json),
-                    "set-rate" => ParseSetRate(json),
                     _ => throw new UnknownEnvelopeTypeException(
                         $"unknown client envelope type: {type}", type, PeekRequestId(json), PeekTopic(json)),
                 };

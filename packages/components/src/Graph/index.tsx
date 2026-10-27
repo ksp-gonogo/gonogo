@@ -48,7 +48,6 @@ registerComponent<GraphConfig>({
   configComponent: GraphConfigComponent,
   openConfigOnAdd: true,
   channelsFromConfig: graphTopicsOf,
-  dataRatesFromConfig: (config) => ({ fast: graphTopicsOf(config) }),
   defaultConfig: { series: [], windowSec: 300 },
   actions: [],
   pushable: true,

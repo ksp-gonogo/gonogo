@@ -441,15 +441,6 @@ export type PeerMessage =
       type: "sitrep-unsubscribe";
       topic: string;
     }
-  // Station -> host: the rate tier this station's widgets ask for on a topic it
-  // has subscribed. The host asks the mod for the fastest tier any screen asks
-  // for. Re-sent after the subscribes on every fresh connection, for the reason
-  // `sitrep-subscribe` is.
-  | {
-      type: "sitrep-set-rate";
-      topic: string;
-      tier: import("@ksp-gonogo/sitrep-sdk").DataRateTier;
-    }
   // Station -> host: fire a mapped Sitrep command (`useCommand`'s carried
   // branch) through the host's own live TelemetryClient, the host is the
   // only thing that ever talks to the mod server, so this is a one-way

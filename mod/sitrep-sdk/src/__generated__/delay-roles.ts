@@ -26,7 +26,6 @@ export const GENERATED_TRUENOW_TOPICS = [
   "settings.gonogo",
   "spaceCenter.scene",
   "system.channels",
-  "system.dataRates",
   "system.frame",
   "system.units",
   "system.uplink.gates",

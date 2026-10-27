@@ -396,15 +396,6 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.ChannelEmissionEntry channelEmissionEntry:
                     AppendChannelEmissionEntry(sb, channelEmissionEntry);
                     break;
-                case Sitrep.Contract.DataRateReport dataRateReport:
-                    AppendDataRateReport(sb, dataRateReport);
-                    break;
-                case Sitrep.Contract.DataRateTierEntry dataRateTierEntry:
-                    AppendDataRateTierEntry(sb, dataRateTierEntry);
-                    break;
-                case Sitrep.Contract.TopicDataRate topicDataRate:
-                    AppendTopicDataRate(sb, topicDataRate);
-                    break;
                 case Sitrep.Contract.ScienceTransmission scienceTransmission:
                     // science.experiment.transmit's reply payload, inside CommandResult<ScienceTransmission>.Payload.
                     AppendScienceTransmission(sb, scienceTransmission);
@@ -1537,70 +1528,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "verdict");
             sb.Append(':');
             AppendGateVerdict(sb, item.Verdict ?? Sitrep.Contract.GateVerdict.Pass());
-            sb.Append('}');
-        }
-
-        /// <summary>
-        /// Flattens a <see cref="Sitrep.Contract.DataRateReport"/> to
-        /// <c>{ tiers: [{ tier, samplesPerSecond }], topics: [{ topic, tier, samplesPerSecond }] }</c>.
-        /// Hand-enumerated: a field added to the contract types is not on the wire until it is added here.
-        /// </summary>
-        private static void AppendDataRateReport(StringBuilder sb, Sitrep.Contract.DataRateReport report)
-        {
-            sb.Append('{');
-            AppendString(sb, "tiers");
-            sb.Append(":[");
-            for (var i = 0; i < report.Tiers.Count; i++)
-            {
-                if (i > 0)
-                {
-                    sb.Append(',');
-                }
-                AppendDataRateTierEntry(sb, report.Tiers[i]);
-            }
-            sb.Append("],");
-            AppendString(sb, "topics");
-            sb.Append(":[");
-            for (var i = 0; i < report.Topics.Count; i++)
-            {
-                if (i > 0)
-                {
-                    sb.Append(',');
-                }
-                AppendTopicDataRate(sb, report.Topics[i]);
-            }
-            sb.Append("]}");
-        }
-
-        /// <summary>Flattens one <see cref="Sitrep.Contract.DataRateTierEntry"/> to <c>{ tier, samplesPerSecond }</c>.</summary>
-        private static void AppendDataRateTierEntry(StringBuilder sb, Sitrep.Contract.DataRateTierEntry tier)
-        {
-            sb.Append('{');
-            AppendString(sb, "tier");
-            sb.Append(':');
-            AppendString(sb, tier.Tier);
-            sb.Append(',');
-            AppendString(sb, "samplesPerSecond");
-            sb.Append(':');
-            AppendNumber(sb, tier.SamplesPerSecond);
-            sb.Append('}');
-        }
-
-        /// <summary>Flattens one <see cref="Sitrep.Contract.TopicDataRate"/> to <c>{ topic, tier, samplesPerSecond }</c>.</summary>
-        private static void AppendTopicDataRate(StringBuilder sb, Sitrep.Contract.TopicDataRate topic)
-        {
-            sb.Append('{');
-            AppendString(sb, "topic");
-            sb.Append(':');
-            AppendString(sb, topic.Topic);
-            sb.Append(',');
-            AppendString(sb, "tier");
-            sb.Append(':');
-            AppendString(sb, topic.Tier);
-            sb.Append(',');
-            AppendString(sb, "samplesPerSecond");
-            sb.Append(':');
-            AppendNumber(sb, topic.SamplesPerSecond);
             sb.Append('}');
         }
 

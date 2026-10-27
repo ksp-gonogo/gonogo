@@ -134,17 +134,11 @@ const CRAFT = "vessel:abc-123";
 /** Records what the host currently holds upstream, the way `SitrepPeerRelay` supplies it. */
 function makeSink() {
   const live = new Set<string>();
-  const rates = new Map<string, string>();
   return {
     live,
-    rates,
     subscribe(topic: string) {
       live.add(topic);
       return () => live.delete(topic);
-    },
-    requestRate(topic: string, tier: string) {
-      rates.set(topic, tier);
-      return () => rates.delete(topic);
     },
     cachedFrames() {
       return [];
@@ -201,25 +195,6 @@ describe("a connection's upstream vantage", () => {
 
     expect(hostSink.live.has(TOPIC)).toBe(true);
     expect(host.requestedVantages()).toEqual([]);
-    host.stop();
-  });
-
-  it("carries a station's rate tier to the session it moves to", async () => {
-    const host = await startedHost();
-    const hostSink = makeSink();
-    const craftSink = makeSink();
-    host.attachSitrepSink(hostSink);
-    host.attachSitrepSinkFor(CRAFT, craftSink);
-
-    const conn = await connectStation(host, "pilot-a");
-    claim(conn, TOPIC);
-    conn.emit("data", { type: "sitrep-set-rate", topic: TOPIC, tier: "fast" });
-    expect(hostSink.rates.get(TOPIC)).toBe("fast");
-
-    setVantage(conn, CRAFT);
-
-    expect(hostSink.rates.has(TOPIC)).toBe(false);
-    expect(craftSink.rates.get(TOPIC)).toBe("fast");
     host.stop();
   });
 

@@ -453,42 +453,6 @@ public class Unsubscribe
 }
 
 /// <summary>
-/// Asks the mod to send a subscribed Topic to this connection at a rate tier. The
-/// mod sends each Topic at the fastest tier any connection asks for, and at
-/// <c>"base"</c> while none asks for more; <c>system.dataRates</c> says what each
-/// tier is in samples a second and which Topics are above base now.
-///
-/// <para>The request lasts until the connection asks again, unsubscribes the
-/// Topic or closes. Asking <c>"base"</c> withdraws it. A request for a Topic this
-/// connection has not subscribed changes nothing, and a tier the mod does not know
-/// is read as <c>"base"</c>. A Topic an Uplink publishes when it has news, rather
-/// than one the mod samples on its own clock, arrives as it did.</para>
-/// </summary>
-/// <category>Stream messages</category>
-[SitrepContract]
-#if SITREP_CODEGEN
-[TsInterface]
-#endif
-public class SetRate
-{
-    /// <summary>The frame type, always <c>"set-rate"</c>.</summary>
-#if SITREP_CODEGEN
-    [TsProperty(Type = "\"set-rate\"")]
-#endif
-    [SitrepUnit(Units.Id)]
-    public string Type { get; set; } = "set-rate";
-    /// <summary>The subscribed Topic id the tier is for.</summary>
-    [SitrepUnit(Units.Id)]
-    public string Topic { get; set; } = "";
-    /// <summary>The rate tier: <c>"base"</c> or <c>"fast"</c>.</summary>
-#if SITREP_CODEGEN
-    [TsProperty(Type = "\"base\" | \"fast\"")]
-#endif
-    [SitrepUnit(Units.Id)]
-    public string Tier { get; set; } = DataRateTierNames.Base;
-}
-
-/// <summary>
 /// Selects the command centre this connection commands from and observes at. It sets both where the connection's telemetry is observed from
 /// and where its commands are sent from. The id must name a currently-active command
 /// centre, or the request is refused with an <c>unknownVantage</c> error and the

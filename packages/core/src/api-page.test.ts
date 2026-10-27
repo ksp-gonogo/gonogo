@@ -165,7 +165,7 @@ describe("the API page", () => {
         field(field(field(schema, "properties"), "type"), "const"),
       )
       .filter((type): type is string => typeof type === "string");
-    expect(frameTypes.length).toBe(17);
+    expect(frameTypes.length).toBe(16);
     for (const type of frameTypes) expect(page).toContain(`id="frame-${type}"`);
     expect(model.session.received.map((frame) => frame.type)).toContain(
       "stream-data",
