@@ -177,7 +177,7 @@ export interface GeneratedTopicPayloadMap {
   "dv.stages": StageDeltaVEntry[];
   /** The whole-vessel ΔV rollup the game's own ΔV simulation (`VesselDeltaV`) exposes alongside the per-stage `StageDeltaVEntry` list: the ΔV-producing stage count plus the vacuum, sea-level and current totals and total burn time. */
   "dv.summary": StageDeltaVSummary;
-  /** The roster of kerbals currently outside a craft, loaded or not, so a client can find each one's own `eva.kerbal.<vessel id>.state` Topic. */
+  /** The roster of kerbals currently outside a craft and within physics range of the vessel in focus (a loaded vessel in the game), so a client can find each one's own `eva.kerbal.<vessel id>.state` Topic. */
   "eva.crew": EvaCrew;
   /** Which flight is active and what phase it is in, for the vessel gonogo is reporting as active. */
   "flight.current": FlightCurrent;

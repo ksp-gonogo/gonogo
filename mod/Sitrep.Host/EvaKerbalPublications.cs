@@ -6,8 +6,8 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// What to put on each kerbal's own <c>eva.kerbal.&lt;vessel id&gt;.state</c> Topic this
-    /// tick: the suit state of every loaded kerbal outside, and one withdrawal for each kerbal
-    /// that was outside last tick and is no longer outside, loaded or not.
+    /// tick: the suit state of every kerbal outside, and one withdrawal for each kerbal
+    /// that was outside last tick and is not now.
     ///
     /// <para>Not a change-gate: the emitter already puts nothing on the wire for a value
     /// equal to the last one published. Courier-thread-only, so the set of kerbals seen
@@ -52,17 +52,6 @@ namespace Sitrep.Host
                 var id = kerbal.KerbalVesselId!;
                 now.Add(id);
                 publications.Add(new Publication(SubTopicOf(id), VesselViewProvider.BuildEvaKerbalWire(kerbal)));
-            }
-
-            /*
-             * A kerbal still outside but not loaded has no suit to read, and the command
-             * centre last heard its state while it was. Withdrawing it would drop that
-             * reading, and publishing a fresh one would be news the centre never received,
-             * so it is neither published nor withdrawn.
-             */
-            foreach (var unloaded in VesselViewProvider.BuildEvaUnloaded(snapshot))
-            {
-                now.Add(unloaded.KerbalVesselId!);
             }
 
             foreach (var gone in _outside.Where(id => !now.Contains(id)).OrderBy(id => id, System.StringComparer.Ordinal))

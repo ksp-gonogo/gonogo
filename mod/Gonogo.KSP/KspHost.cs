@@ -379,18 +379,12 @@ namespace Gonogo.KSP
                     {
                         // A suit's state is read off a loaded kerbal, and none is loaded outside a flight.
                         var eva = new List<object?>();
-                        var evaUnloaded = new List<object?>();
                         if (allVessels != null)
                         {
                             foreach (var candidate in allVessels)
                             {
-                                if (candidate == null || candidate.vesselType != VesselType.EVA || candidate.state == Vessel.State.DEAD)
+                                if (candidate == null || candidate.vesselType != VesselType.EVA || !candidate.loaded || candidate.state == Vessel.State.DEAD)
                                 {
-                                    continue;
-                                }
-                                if (!candidate.loaded)
-                                {
-                                    evaUnloaded.Add(BuildEvaUnloadedEntry(candidate));
                                     continue;
                                 }
                                 var entry = BuildEvaKerbalEntry(candidate);
@@ -401,7 +395,6 @@ namespace Gonogo.KSP
                             }
                         }
                         values["evaCrew"] = eva;
-                        values[VesselViewProvider.EvaUnloadedKey] = evaUnloaded;
                     }
 
                     // Every planted flag in the save, empty when there is none. A flag is a vessel
@@ -1967,24 +1960,6 @@ namespace Gonogo.KSP
                 // The pack stays unread, which the wire says as null and not as empty.
             }
 
-            return entry;
-        }
-
-        /// <summary>
-        /// A kerbal outside a craft that is not loaded: who it is and which craft it left, and
-        /// nothing of its suit, which only a loaded kerbal can be asked about.
-        /// </summary>
-        private static Dictionary<string, object?> BuildEvaUnloadedEntry(Vessel vessel)
-        {
-            var entry = new Dictionary<string, object?>
-            {
-                ["kerbalVesselId"] = vessel.id.ToString(),
-                ["name"] = GameWords.VesselName(vessel),
-            };
-            if (ActiveVesselScope.Book.TryParentOf(vessel.id, out var parentId))
-            {
-                entry["parentVesselId"] = parentId.ToString();
-            }
             return entry;
         }
 

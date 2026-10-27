@@ -153,55 +153,5 @@ namespace Sitrep.Host.Tests
 
             Assert.Empty(publications.Next(bare));
         }
-
-        private static KspSnapshot SnapshotWithUnloaded(string[] loaded, params string[] unloaded)
-        {
-            var snapshot = SnapshotWith(loaded);
-            var entries = new List<object?>();
-            foreach (var id in unloaded)
-            {
-                entries.Add(new Dictionary<string, object?> { ["kerbalVesselId"] = id, ["name"] = "Bill Kerman" });
-            }
-            snapshot.Values![VesselViewProvider.EvaUnloadedKey] = entries;
-            return snapshot;
-        }
-
-        [Fact]
-        public void AKerbalWhoUnloadsIsNeitherWithdrawnNorRepublishedSoWhatWasHeardIsKept()
-        {
-            var publications = new EvaKerbalPublications();
-            publications.Next(SnapshotWith("k1"));
-
-            var unloaded = publications.Next(SnapshotWithUnloaded(new string[0], "k1"));
-
-            Assert.Empty(unloaded);
-            Assert.Empty(publications.Next(SnapshotWithUnloaded(new string[0], "k1")));
-        }
-
-        [Fact]
-        public void AnUnloadedKerbalWhoLaterGoesBackAboardIsWithdrawnOnce()
-        {
-            var publications = new EvaKerbalPublications();
-            publications.Next(SnapshotWith("k1"));
-            publications.Next(SnapshotWithUnloaded(new string[0], "k1"));
-
-            var next = publications.Next(SnapshotWith());
-
-            var withdrawal = Assert.Single(next);
-            Assert.Equal("k1.state", withdrawal.SubTopic);
-            Assert.Null(withdrawal.Payload);
-        }
-
-        [Fact]
-        public void AnUnloadedKerbalWhoLoadsAgainIsPublishedWithItsSuit()
-        {
-            var publications = new EvaKerbalPublications();
-            publications.Next(SnapshotWith("k1"));
-            publications.Next(SnapshotWithUnloaded(new string[0], "k1"));
-
-            var next = publications.Next(SnapshotWith("k1"));
-
-            Assert.Equal(3.5, Assert.IsAssignableFrom<IDictionary<string, object?>>(Assert.Single(next).Payload)["propellantAmount"]);
-        }
     }
 }
