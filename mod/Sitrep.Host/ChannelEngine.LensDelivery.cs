@@ -31,9 +31,9 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The node a lens topic records and delays under, or null when the topic is
-        /// not under a lens namespace or its key cannot be placed. A lens at a
-        /// ground station is that centre's node; a lens on a craft is the craft's
-        /// own node.
+        /// not under a lens namespace. A lens at a ground station is that centre's
+        /// node; a lens on a craft is the craft's own node; a lens whose key cannot
+        /// be placed is <see cref="UnplacedLensNode"/>, never the active craft's.
         /// </summary>
         private string? LensNodeFor(string topic)
         {
@@ -44,11 +44,8 @@ namespace Sitrep.Host
                     continue;
                 }
                 var key = KeySegment(topic, prefix.Length);
-                if (key == null)
-                {
-                    return null;
-                }
-                return NodeForLensSite(ResolveLensSite(prefix, key));
+                var node = key == null ? null : NodeForLensSite(ResolveLensSite(prefix, key));
+                return node ?? UnplacedLensNode;
             }
             return null;
         }

@@ -283,6 +283,7 @@ namespace Sitrep.Host
 
         private readonly ManualClock _clock;
         private readonly INetwork _network;
+        private readonly StubNetwork _ledger;
         private readonly Courier _courier;
         private readonly FleckTransportListener _listener;
         private readonly Kernel _kernel = new Kernel();
@@ -1718,6 +1719,7 @@ namespace Sitrep.Host
             // learn its own balance a craft's distance late.
             stubNetwork.SetNodeDelay(HomeCommandNode, 0.0);
             _network = stubNetwork;
+            _ledger = stubNetwork;
             _courier = new Courier(_clock, _network) { NewestWins = IsFreezeExempt };
             // A break in a craft's route catches the light the craft sent. A
             // TrueNow channel is the ground's own state, and a freeze-exempt
@@ -3570,8 +3572,14 @@ namespace Sitrep.Host
         /// <paramref name="node"/>: the pair's ledger row, or the pass's own figure
         /// where that row is held at "never" because nothing comes back.
         /// </summary>
-        internal double UplinkDelayTo(string vantage, string node) =>
-            _uplinkOnlySeconds.TryGetValue((vantage, node), out var seconds) ? seconds : _network.DelayTo(vantage, node);
+        internal double UplinkDelayTo(string vantage, string node)
+        {
+            if (IsOwnSite(vantage, node))
+            {
+                return 0.0;
+            }
+            return _uplinkOnlySeconds.TryGetValue((vantage, node), out var seconds) ? seconds : _network.DelayTo(vantage, node);
+        }
 
         /*
          * Centre-to-centre pairs with a routed path as of the last SetCentreRoutes,
@@ -8229,6 +8237,15 @@ namespace Sitrep.Host
                 return double.PositiveInfinity;
             }
 
+            // A subject with no delay known from anywhere would be timed by the
+            // whole-network default, the active craft's delay. It is held the way
+            // a dark subject's reading is, until ReleaseReadingsNowTimed finds one.
+            if (!NodeDelayKnown(node))
+            {
+                _heldForUnknownDelay.Add(topic);
+                return double.PositiveInfinity;
+            }
+
             // Delay migrated to the ledger: a connected ordinary
             // Delayed topic records straight through the gate; the Courier/
             // Archive apply the light-time via DelayTo. The gate now only
@@ -8469,12 +8486,13 @@ namespace Sitrep.Host
         /// rule: a sender that knows it has no route to the subject is refused,
         /// never quoted a delay. There is no route when the subject's own link is
         /// down, or when the sending centre's pass found no path from it to the
-        /// subject, whatever the subject's link home reads. The home command's
-        /// ledger is never out of contact with itself, so for it only the second
-        /// half can be down. Courier-thread-only.
+        /// subject, whatever the subject's link home reads, or when no delay from
+        /// it to the subject is known at all (see <see cref="DelayKnown"/>). The
+        /// home command's ledger is never out of contact with itself, so for it
+        /// only the second half can be down. Courier-thread-only.
         /// </summary>
         internal bool CanSend(string vantage, string node) =>
-            _reach.Reaches(vantage, node, FleetNodePrefix, _deliveryInputs.NetworkModelled, SubjectConnected(node), HomeCentre(), CommsDirection.Forward);
+            _reach.Reaches(vantage, node, FleetNodePrefix, _deliveryInputs.NetworkModelled, SubjectConnected(node), HomeCentre(), CommsDirection.Forward, DelayKnown(vantage, node));
 
         /// <summary>
         /// Whether what <paramref name="node"/> sends reaches <paramref name="vantage"/>:
@@ -8482,7 +8500,7 @@ namespace Sitrep.Host
         /// telemetry, spans and reports travel. Courier-thread-only.
         /// </summary>
         internal bool CanHear(string vantage, string node) =>
-            _reach.Reaches(vantage, node, FleetNodePrefix, _deliveryInputs.NetworkModelled, SubjectConnected(node), HomeCentre(), CommsDirection.Reverse);
+            _reach.Reaches(vantage, node, FleetNodePrefix, _deliveryInputs.NetworkModelled, SubjectConnected(node), HomeCentre(), CommsDirection.Reverse, DelayKnown(vantage, node));
 
         /// <summary>
         /// Rewrite the delay ledger for this tick, after
@@ -9686,6 +9704,7 @@ namespace Sitrep.Host
                 // in-flight Courier deliveries: §7.3 Step 3, on-reset flush).
                 _revealBuffer.Clear();
                 _recordings.Clear();
+                _heldForUnknownDelay.Clear();
                 _recordedBytes = 0;
                 _heldSampleBytes.Clear();
                 _releasing.Clear();
@@ -9864,6 +9883,7 @@ namespace Sitrep.Host
             // above run before it is known. See RefreshLedgerDelays.
             RefreshLedgerDelays();
             AdvanceLensDelivery(tick.Ut);
+            ReleaseReadingsNowTimed(tick.Ut);
             using (PerfTelemetry.Time("courier.craftReach"))
             {
                 SayCraftReach();
@@ -10554,6 +10574,16 @@ namespace Sitrep.Host
                 return;
             }
 
+            // With no delay known to the subject the only figure left is the
+            // whole-network default, the active craft's delay, which says nothing
+            // about where this order is going. Refused where it was pressed.
+            if (!DelayKnown(job.Vantage, node))
+            {
+                job.OnResult(CommandResult.Fail(CommandErrorCode.NoConnection, SubjectDelayUnknownDetail));
+                job.Done?.Set();
+                return;
+            }
+
             // What a centre is told at the press is what its own plan says, so
             // the press reads the same whether or not the far link is really up.
             var plannedSeconds = PlannedLiveSeconds(job, node);
@@ -10655,6 +10685,7 @@ namespace Sitrep.Host
                 job.Args,
                 job.Vantage,
                 response => AnswerLivePath(requestId, clientRequestId, command, response),
+                uplinkDelaySeconds: IsOwnSite(job.Vantage, node) ? 0.0 : (double?)null,
                 correlation: clientRequestId,
                 label: job.Label ?? "",
                 topic: job.Topic ?? "",
