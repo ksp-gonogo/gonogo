@@ -73,10 +73,12 @@ export function InFlightPanel({
           </StatValue>
         </FlightStatRow>
       </FlightStats>
-      <PadActions>
-        {!noActiveVessel && crewOutside.length > 0 && (
+      {!noActiveVessel && crewOutside.length > 0 && (
+        <div>
           <Badge tone="warn">{crewOutside.length} crew outside</Badge>
-        )}
+        </div>
+      )}
+      <PadActions>
         {!noActiveVessel && (
           <ArmedButton
             bindAs="recover"

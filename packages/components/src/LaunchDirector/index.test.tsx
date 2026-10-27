@@ -618,7 +618,7 @@ describe("LaunchDirectorComponent", () => {
     });
   });
 
-  it("badges beside Recover how many of this vessel's crew are outside, nothing for another vessel's, and nothing with no data", async () => {
+  it("badges above Recover how many of this vessel's crew are outside, nothing for another vessel's, and nothing with no data", async () => {
     renderWidget();
     act(() => {
       stream.emit("spaceCenter.savedShips", []);
