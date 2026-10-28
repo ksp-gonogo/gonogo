@@ -163,7 +163,25 @@ export class ClientTimeline<Payload = unknown> {
 
   /** All points with `validAt` in `[fromUt, toUt]`, inclusive. */
   range(fromUt: number, toUt: number): TimelinePoint<Payload>[] {
-    return this.points.filter((p) => p.validAt >= fromUt && p.validAt <= toUt);
+    if (!(fromUt <= toUt)) return [];
+    // The points are sorted by `validAt`, so the window is one run of them, found by halving from each end rather than by reading every point a long flight has kept.
+    return this.points.slice(
+      this.firstIndexAfter(fromUt, false),
+      this.firstIndexAfter(toUt, true),
+    );
+  }
+
+  /** Where a window's edge at `ut` falls among the points: after every point at `ut` when `inclusive`, before them when not. */
+  private firstIndexAfter(ut: number, inclusive: boolean): number {
+    let low = 0;
+    let high = this.points.length;
+    while (low < high) {
+      const mid = (low + high) >>> 1;
+      const at = this.points[mid].validAt;
+      if (inclusive ? at <= ut : at < ut) low = mid + 1;
+      else high = mid;
+    }
+    return low;
   }
 
   /** The most recently ingested point: the confirmed edge for this topic. */

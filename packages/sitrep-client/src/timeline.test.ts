@@ -46,6 +46,41 @@ describe("ClientTimeline", () => {
     expect(timeline.latest()?.payload).toBe(300);
   });
 
+  it("range() returns exactly the points a scan of every point would, for any window", () => {
+    const timeline = new ClientTimeline<number | null>();
+    const validAts = [0, 1, 1, 1, 2.5, 4, 4, 7, 9, 9, 12];
+    for (const [seq, validAt] of validAts.entries()) {
+      timeline.append(point(validAt, seq, { seq }));
+    }
+    const all = timeline.range(
+      Number.NEGATIVE_INFINITY,
+      Number.POSITIVE_INFINITY,
+    );
+    expect(all).toHaveLength(validAts.length);
+    const edges = [
+      Number.NEGATIVE_INFINITY,
+      -1,
+      0,
+      0.5,
+      1,
+      2.5,
+      3,
+      4,
+      9,
+      12,
+      13,
+      Number.POSITIVE_INFINITY,
+      Number.NaN,
+    ];
+    for (const from of edges) {
+      for (const to of edges) {
+        expect(timeline.range(from, to)).toEqual(
+          all.filter((p) => p.validAt >= from && p.validAt <= to),
+        );
+      }
+    }
+  });
+
   it("range() returns points inclusive of both bounds", () => {
     const timeline = new ClientTimeline<number | null>();
     timeline.append(point(10, 100));
