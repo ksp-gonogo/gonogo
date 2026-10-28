@@ -4710,7 +4710,8 @@ namespace Gonogo.KSP
          * every part of the craft, a long frame and a collection's worth of garbage, so one craft is
          * priced per scan, never in flight where nothing can be launched, and the price is kept on
          * disk so the next launch of the game does not pay it again. Until its turn a craft keeps
-         * the file's cost.
+         * the file's cost. A craft naming a part this install lacks cannot be loaded, so it is
+         * never priced and always keeps the file's cost.
          */
         private const int ModulePricingsPerScan = 1;
         private static readonly CraftPriceBook SavedShipCosts = new CraftPriceBook(
@@ -4860,6 +4861,17 @@ namespace Gonogo.KSP
                             continue;
                         }
 
+                        // A craft naming a part this install lacks stays so until the game restarts, so its file is not read again.
+                        var remembered = _unbuildableCraft.Recall(file, fileStamp);
+                        if (remembered != null)
+                        {
+                            seenFiles.Add(file);
+                            var again = new Dictionary<string, object?>(remembered.Fields);
+                            again["missingParts"] = MissingPartsNow(remembered.PartNames);
+                            ships.Add(again);
+                            continue;
+                        }
+
                         var root = ConfigNode.Load(file);
                         if (root == null)
                         {
@@ -4869,14 +4881,6 @@ namespace Gonogo.KSP
                         seenFiles.Add(file);
                         var stamp = fileStamp;
                         var buildable = CraftHasEveryPart(root);
-                        var remembered = buildable ? null : _unbuildableCraft.Recall(file, stamp);
-                        if (remembered != null)
-                        {
-                            var again = new Dictionary<string, object?>(remembered.Fields);
-                            again["missingParts"] = MissingPartsNow(remembered.PartNames);
-                            ships.Add(again);
-                            continue;
-                        }
 
                         var info = new CraftProfileInfo();
                         info.LoadDetailsFromCraftFile(root, file);
