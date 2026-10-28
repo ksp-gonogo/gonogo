@@ -96,22 +96,57 @@ namespace Sitrep.Host
             double radius,
             double maxRangeMeters)
         {
-            var ranges = Ranges(maxRangeMeters);
-            var angles = new double[AzimuthCount];
-            for (var a = 0; a < AzimuthCount; a++)
-            {
-                var azimuth = AzimuthDegrees(a);
-                var best = double.NegativeInfinity;
-                for (var r = 0; r < ranges.Length; r++)
-                {
-                    var angle = ElevationAngleDegrees(terrainAt(azimuth, ranges[r]), eyeAltitude, ranges[r], radius);
-                    if (angle > best) best = angle;
-                }
+            var sweep = new Sweep(terrainAt, eyeAltitude, radius, maxRangeMeters);
+            sweep.Advance(AzimuthCount);
+            return sweep.Angles!;
+        }
 
-                angles[a] = best;
+        /// <summary>
+        /// One profile taken a few bearings at a time, so its terrain reads can be spread
+        /// over several samples. Every read is from the place and eye height the sweep
+        /// started at, and the terrain does not move, so the finished profile is the one
+        /// <see cref="Profile"/> gives for that place.
+        /// </summary>
+        public sealed class Sweep
+        {
+            private readonly Func<double, double, double> _terrainAt;
+            private readonly double _eyeAltitude;
+            private readonly double _radius;
+            private readonly double[] _ranges;
+            private readonly double[] _angles = new double[AzimuthCount];
+            private int _next;
+
+            /// <param name="terrainAt">The terrain altitude, metres, at a bearing (degrees clockwise from north) and a distance along the ground, from the sweep's own place.</param>
+            public Sweep(Func<double, double, double> terrainAt, double eyeAltitude, double radius, double maxRangeMeters)
+            {
+                _terrainAt = terrainAt;
+                _eyeAltitude = eyeAltitude;
+                _radius = radius;
+                _ranges = Ranges(maxRangeMeters);
             }
 
-            return angles;
+            /// <summary>The finished profile, or null while bearings are left to read.</summary>
+            public double[]? Angles => _next == AzimuthCount ? _angles : null;
+
+            /// <summary>Reads up to <paramref name="bearings"/> more bearings and returns the terrain reads that took.</summary>
+            public int Advance(int bearings)
+            {
+                var reads = 0;
+                for (var done = 0; done < bearings && _next < AzimuthCount; done++, _next++)
+                {
+                    var azimuth = AzimuthDegrees(_next);
+                    var best = double.NegativeInfinity;
+                    for (var r = 0; r < _ranges.Length; r++)
+                    {
+                        var angle = ElevationAngleDegrees(_terrainAt(azimuth, _ranges[r]), _eyeAltitude, _ranges[r], _radius);
+                        if (angle > best) best = angle;
+                    }
+
+                    _angles[_next] = best;
+                    reads += _ranges.Length;
+                }
+                return reads;
+            }
         }
 
         /// <summary>

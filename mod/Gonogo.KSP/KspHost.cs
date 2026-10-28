@@ -3112,6 +3112,16 @@ namespace Gonogo.KSP
         private static Guid siteGridVessel;
         private static CelestialBody? siteGridBody;
 
+        /// <summary>The grid being taken, a few rows a sample, and the site, extent, craft and body it is taken for.</summary>
+        private static LandingSiteGrid.Sweep? siteGridSweep;
+        private static double siteGridSweepHalfExtent;
+        private static double siteGridSweepLat;
+        private static double siteGridSweepLon;
+        private static long siteGridSweepTicks;
+        private static Guid siteGridSweepVessel;
+        private static CelestialBody? siteGridSweepBody;
+        private static long siteGridLastSampleTicks;
+
         /// <summary>
         /// Sample a square of terrain heights around the predicted site into
         /// <c>siteHeights</c>, <c>siteHeightsSize</c> and
@@ -3120,6 +3130,10 @@ namespace Gonogo.KSP
         /// grid a second at most, and the last grid is sent again in between. The
         /// site is the predicted touchdown point, or the sub-vessel point when none
         /// was predicted.
+        ///
+        /// <para>A grid is read a few rows a sample (see <see cref="LandingSweepPacing"/>),
+        /// so no one frame pays for all of it, and is sent only once every row is in: until
+        /// then the last whole grid stands. The first grid for a craft is read at once.</para>
         /// </summary>
         private static void SampleSiteGrid(
             Dictionary<string, object?> result,
@@ -3143,45 +3157,61 @@ namespace Gonogo.KSP
             {
                 siteGridHeights = null;
             }
+            if (siteGridSweep != null && (vessel.id != siteGridSweepVessel || !ReferenceEquals(body, siteGridSweepBody)))
+            {
+                siteGridSweep = null;
+            }
 
             long now = System.Diagnostics.Stopwatch.GetTimestamp();
+            double interval = (now - siteGridLastSampleTicks) / (double)System.Diagnostics.Stopwatch.Frequency;
+            siteGridLastSampleTicks = now;
             double seconds = (now - siteGridTicks) / (double)System.Diagnostics.Stopwatch.Frequency;
             double moved = siteGridHeights == null
                 ? 0.0
                 : LandingGroundTrack.DistanceMeters(siteGridLat, siteGridLon, lat, lon, r);
-            if (LandingSiteGrid.NeedsRefresh(
-                    siteGridHeights != null, seconds, moved, halfExtent, siteGridHalfExtent))
+            if (siteGridSweep == null
+                && LandingSiteGrid.NeedsRefresh(siteGridHeights != null, seconds, moved, halfExtent, siteGridHalfExtent))
             {
-                int n = LandingSiteGrid.Size;
-                var heights = new double[n * n];
                 double cosLat = Math.Cos(lat * Math.PI / 180.0);
                 if (Math.Abs(cosLat) < 1e-6) cosLat = 1e-6;
-                for (int row = 0; row < n; row++)
+                var sweepHalfExtent = halfExtent;
+                siteGridSweep = new LandingSiteGrid.Sweep((row, col) =>
                 {
-                    for (int col = 0; col < n; col++)
-                    {
-                        var (east, north) = LandingSiteGrid.Offset(row, col, halfExtent);
-                        // A site near a pole has no ground past it, so the row stays on the globe.
-                        double la = Math.Max(-90.0, Math.Min(90.0, lat + north / r * (180.0 / Math.PI)));
-                        double lo = lon + east / (r * cosLat) * (180.0 / Math.PI);
-                        // allowNegative so ocean floor reads honestly rather than clamping to 0.
-                        heights[row * n + col] = body.TerrainAltitude(la, lo, allowNegative: true);
-                    }
-                }
+                    var (east, north) = LandingSiteGrid.Offset(row, col, sweepHalfExtent);
+                    // A site near a pole has no ground past it, so the row stays on the globe.
+                    double la = Math.Max(-90.0, Math.Min(90.0, lat + north / r * (180.0 / Math.PI)));
+                    double lo = lon + east / (r * cosLat) * (180.0 / Math.PI);
+                    // allowNegative so ocean floor reads honestly rather than clamping to 0.
+                    return body.TerrainAltitude(la, lo, allowNegative: true);
+                });
+                siteGridSweepHalfExtent = halfExtent;
+                siteGridSweepLat = lat;
+                siteGridSweepLon = lon;
+                siteGridSweepTicks = now;
+                siteGridSweepVessel = vessel.id;
+                siteGridSweepBody = body;
+            }
 
-                SampleTiming.Count("landing.grid.reads", heights.Length);
-                siteGridHeights = heights;
-                siteGridHalfExtent = halfExtent;
-                siteGridLat = lat;
-                siteGridLon = lon;
-                siteGridTicks = now;
-                siteGridVessel = vessel.id;
-                siteGridBody = body;
-            }
-            else
+            var reads = 0;
+            if (siteGridSweep != null)
             {
-                SampleTiming.Count("landing.grid.reads", 0);
+                var rows = siteGridHeights == null
+                    ? LandingSiteGrid.Size
+                    : LandingSweepPacing.PerSample(LandingSiteGrid.Size, interval, LandingSiteGrid.MinRefreshSeconds);
+                reads = siteGridSweep.Advance(rows);
+                if (siteGridSweep.Heights is { } heights)
+                {
+                    siteGridHeights = heights;
+                    siteGridHalfExtent = siteGridSweepHalfExtent;
+                    siteGridLat = siteGridSweepLat;
+                    siteGridLon = siteGridSweepLon;
+                    siteGridTicks = siteGridSweepTicks;
+                    siteGridVessel = siteGridSweepVessel;
+                    siteGridBody = siteGridSweepBody;
+                    siteGridSweep = null;
+                }
             }
+            SampleTiming.Count("landing.grid.reads", reads);
 
             if (siteGridHeights != null)
             {
@@ -3199,6 +3229,15 @@ namespace Gonogo.KSP
         private static Guid horizonVessel;
         private static CelestialBody? horizonBody;
 
+        /// <summary>The profile being taken, a few bearings a sample, and the place, craft and body it is taken from.</summary>
+        private static LandingHorizon.Sweep? horizonSweep;
+        private static double horizonSweepLat;
+        private static double horizonSweepLon;
+        private static long horizonSweepTicks;
+        private static Guid horizonSweepVessel;
+        private static CelestialBody? horizonSweepBody;
+        private static long horizonLastSampleTicks;
+
         /// <summary>
         /// Sample the skyline the vessel sees into <c>horizonAngles</c>:
         /// <see cref="LandingHorizon.AzimuthCount"/> bearings by
@@ -3207,6 +3246,12 @@ namespace Gonogo.KSP
         /// holds it to one profile a second at the very most, and usually one in two,
         /// sending the last one again in between. Does nothing without a predicted site,
         /// like the other terrain samples.
+        ///
+        /// <para>A profile is read a few bearings a sample from the place it started at
+        /// (see <see cref="LandingSweepPacing"/>), so no one frame pays for all of it, and
+        /// is sent only once every bearing is in: until then the last whole profile
+        /// stands. Its age is counted from when it started. The first profile for a craft
+        /// is read at once.</para>
         /// </summary>
         private static void SampleHorizon(
             Dictionary<string, object?> result,
@@ -3227,39 +3272,58 @@ namespace Gonogo.KSP
             {
                 horizonAngles = null;
             }
+            if (horizonSweep != null && (vessel.id != horizonSweepVessel || !ReferenceEquals(body, horizonSweepBody)))
+            {
+                horizonSweep = null;
+            }
+
             long now = System.Diagnostics.Stopwatch.GetTimestamp();
+            double interval = (now - horizonLastSampleTicks) / (double)System.Diagnostics.Stopwatch.Frequency;
+            horizonLastSampleTicks = now;
             double seconds = (now - horizonTicks) / (double)System.Diagnostics.Stopwatch.Frequency;
             double moved = horizonAngles == null
                 ? 0.0
                 : LandingGroundTrack.DistanceMeters(horizonLat, horizonLon, lat, lon, r);
-            if (LandingHorizon.NeedsRefresh(horizonAngles != null, seconds, moved, heightAboveTerrain))
+            if (horizonSweep == null && LandingHorizon.NeedsRefresh(horizonAngles != null, seconds, moved, heightAboveTerrain))
             {
-                double eye = vessel.altitude;
                 bool sea = body.ocean;
-                var reads = 0;
-                horizonAngles = LandingHorizon.Profile(
+                horizonSweep = new LandingHorizon.Sweep(
                     (azimuth, range) =>
                     {
-                        reads++;
                         var p = LandingGroundTrack.Destination(lat, lon, azimuth, range, r);
                         // The sea's surface is what is seen over an ocean, not the floor under it.
                         var terrain = body.TerrainAltitude(p.lat, p.lon, allowNegative: true);
                         return sea ? Math.Max(terrain, 0.0) : terrain;
                     },
-                    eye,
+                    vessel.altitude,
                     r,
                     LandingHorizon.RangeLimit(heightAboveTerrain, r));
-                SampleTiming.Count("landing.horizon.reads", reads);
-                horizonLat = lat;
-                horizonLon = lon;
-                horizonTicks = now;
-                horizonVessel = vessel.id;
-                horizonBody = body;
+                horizonSweepLat = lat;
+                horizonSweepLon = lon;
+                horizonSweepTicks = now;
+                horizonSweepVessel = vessel.id;
+                horizonSweepBody = body;
             }
-            else
+
+            var reads = 0;
+            if (horizonSweep != null)
             {
-                SampleTiming.Count("landing.horizon.reads", 0);
+                var bearings = horizonAngles == null
+                    ? LandingHorizon.AzimuthCount
+                    : LandingSweepPacing.PerSample(LandingHorizon.AzimuthCount, interval, LandingHorizon.MinRefreshSeconds);
+                reads = horizonSweep.Advance(bearings);
+                if (horizonSweep.Angles is { } angles)
+                {
+                    horizonAngles = angles;
+                    horizonLat = horizonSweepLat;
+                    horizonLon = horizonSweepLon;
+                    horizonTicks = horizonSweepTicks;
+                    horizonVessel = horizonSweepVessel;
+                    horizonBody = horizonSweepBody;
+                    horizonSweep = null;
+                }
             }
+            SampleTiming.Count("landing.horizon.reads", reads);
 
             if (horizonAngles != null)
             {

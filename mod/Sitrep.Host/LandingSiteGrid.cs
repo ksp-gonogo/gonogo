@@ -82,6 +82,43 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// One grid taken a few rows at a time, so its terrain reads can be spread over
+        /// several samples. Every point is placed from the site and extent the sweep
+        /// started with, and the terrain does not move, so the finished grid is the one
+        /// a single pass over that site gives.
+        /// </summary>
+        public sealed class Sweep
+        {
+            private readonly Func<int, int, double> _heightAt;
+            private readonly double[] _heights = new double[Size * Size];
+            private int _nextRow;
+
+            /// <param name="heightAt">The terrain height, metres, of the point at a row and a column.</param>
+            public Sweep(Func<int, int, double> heightAt)
+            {
+                _heightAt = heightAt;
+            }
+
+            /// <summary>The finished grid, row by row, or null while rows are left to read.</summary>
+            public double[]? Heights => _nextRow == Size ? _heights : null;
+
+            /// <summary>Reads up to <paramref name="rows"/> more rows and returns the terrain reads that took.</summary>
+            public int Advance(int rows)
+            {
+                var reads = 0;
+                for (var done = 0; done < rows && _nextRow < Size; done++, _nextRow++)
+                {
+                    for (var column = 0; column < Size; column++)
+                    {
+                        _heights[_nextRow * Size + column] = _heightAt(_nextRow, column);
+                    }
+                    reads += Size;
+                }
+                return reads;
+            }
+        }
+
+        /// <summary>
         /// Whether the grid should be taken again. Never faster than
         /// <see cref="MinRefreshSeconds"/>; at once after that when the site has moved
         /// a point's width or the extent has changed by <see cref="ExtentChangeFraction"/>;
