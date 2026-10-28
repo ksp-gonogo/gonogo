@@ -932,7 +932,6 @@ export class TimelineStore {
    * reference by default.
    */
   private transportConnected = true;
-  private readonly connectionListeners = new Set<() => void>();
 
   /**
    * What the game is doing, as the mod last said and as the operator is shown
@@ -985,25 +984,7 @@ export class TimelineStore {
    * outright over this.
    */
   setTransportConnected(connected: boolean): void {
-    if (this.transportConnected === connected) return;
     this.transportConnected = connected;
-    for (const listener of this.connectionListeners) listener();
-  }
-
-  /**
-   * Whether the stream to the mod is open, as the transport last said. True
-   * until a transport says otherwise.
-   */
-  streamConnected(): boolean {
-    return this.transportConnected;
-  }
-
-  /** Called whenever {@link streamConnected} changes. Returns an unsubscribe function. */
-  subscribeStreamConnected(listener: () => void): () => void {
-    this.connectionListeners.add(listener);
-    return () => {
-      this.connectionListeners.delete(listener);
-    };
   }
 
   /**

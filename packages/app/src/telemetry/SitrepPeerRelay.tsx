@@ -191,26 +191,6 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     };
   }, [peerHost]);
 
-  // A station's commands go to the mod through this screen, so it is told whether the stream to the mod is open, at once when it connects and on every change after.
-  useEffect(() => {
-    if (!store) return;
-    const link = () =>
-      ({
-        type: "sitrep-link",
-        connected: store.streamConnected(),
-      }) satisfies PeerMessage;
-    const offChange = store.subscribeStreamConnected(() =>
-      peerHost.broadcast(link()),
-    );
-    const offConnect = peerHost.onPeerConnect((peerId) =>
-      peerHost.sendToPeer(peerId, link()),
-    );
-    return () => {
-      offChange();
-      offConnect();
-    };
-  }, [peerHost, store]);
-
   // Per-connection backfill, independent of the `hasConnections` gating below:
   // whatever the host has seen so far is replayed to the arriving connection
   // alone, so a station joining mid-flight is not blank on a topic that last

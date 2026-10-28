@@ -20,7 +20,11 @@ import {
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 import { makeMeta } from "./stub-transport";
 import type { TransportStatus } from "./transport";
-import { WebSocketTransport } from "./websocket-transport";
+import {
+  MAX_PENDING_COMMANDS,
+  SEND_QUEUE_FULL,
+  WebSocketTransport,
+} from "./websocket-transport";
 
 /**
  * Network-boundary tests for `WebSocketTransport` (browser transport): intercept the real WebSocket via MSW's `ws` link, the same
@@ -679,9 +683,14 @@ describe("WebSocketTransport", () => {
 });
 
 /**
- * A command pressed with no open socket does nothing: it is refused at once
- * and never reaches a socket, however long the outage lasts or when the link
- * returns.
+ * The outbound queue: what the transport holds for a link that is down, and
+ * what it does when it cannot hold any more.
+ *
+ * A tab left open through a long outage kept queueing command-requests with no
+ * cap at all, so the backlog grew until the page stopped working. Bounding it
+ * means something has to be dropped, and the rule these tests pin is that no
+ * command is ever dropped silently: every one is either delivered on the next
+ * open or refused to its sender.
  */
 describe("WebSocketTransport outbound queue", () => {
   /** A command-request envelope, distinguishable by `requestId`. */
@@ -739,82 +748,291 @@ describe("WebSocketTransport outbound queue", () => {
   /** Let the refusals, which are minted in a microtask, land. */
   const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-  it("refuses every command sent with no open socket, and never sends one when the socket opens", async () => {
+  it("accounts for every command sent while the link is down: delivered or refused, never silently dropped", async () => {
     const { transport, socket } = downTransport();
     const errors: Array<{ requestId?: string; code: string }> = [];
     transport.onMessage((message) => {
       if (message.type === "error") errors.push(message);
     });
 
-    const ids = Array.from({ length: 200 }, (_, i) => `r${i}`);
+    const ids = Array.from({ length: 5_000 }, (_, i) => `r${i}`);
     for (const id of ids) transport.send(commandRequest(id));
     await flush();
 
-    expect(errors.map((e) => e.requestId)).toEqual(ids);
-    expect(errors.every((e) => e.code === FaultCode.NoClient)).toBe(true);
-
     socket.fire("open");
+    const delivered = deliveredRequestIds(socket);
+    const refused = errors.map((error) => error.requestId);
+
+    // The backlog is BOUNDED: an outage cannot make the transport hold everything an operator (or an automation loop) ever pressed.
+    expect(delivered.length).toBeLessThan(ids.length);
+    // ...and nothing vanished on the way: the two outcomes partition the set.
+    expect([...delivered, ...refused].sort()).toEqual([...ids].sort());
+    // The survivors are the OLDEST, in order. A queue that evicted its head
+    // would run the tail of an ordered dispatch sequence without its start.
+    expect(delivered).toEqual(ids.slice(0, delivered.length));
+
+    transport.dispose();
+  });
+
+  it("holds exactly MAX_PENDING_COMMANDS, refusing only past the cap", async () => {
+    const atCap = downTransport();
+    const refusedAtCap: string[] = [];
+    atCap.transport.onMessage((message) => {
+      if (message.type === "error") refusedAtCap.push(message.code);
+    });
+    for (let i = 0; i < MAX_PENDING_COMMANDS; i++) {
+      atCap.transport.send(commandRequest(`r${i}`));
+    }
     await flush();
+    // A cap one too tight would refuse here, and the whole backlog is legitimate.
+    expect(refusedAtCap).toEqual([]);
+    atCap.socket.fire("open");
+    expect(deliveredRequestIds(atCap.socket)).toHaveLength(
+      MAX_PENDING_COMMANDS,
+    );
+    atCap.transport.dispose();
+
+    const overCap = downTransport();
+    const refusals: Array<{ requestId?: string; code: string }> = [];
+    overCap.transport.onMessage((message) => {
+      if (message.type === "error") refusals.push(message);
+    });
+    for (let i = 0; i <= MAX_PENDING_COMMANDS; i++) {
+      overCap.transport.send(commandRequest(`r${i}`));
+    }
+    await flush();
+    // The one past the cap is refused, and it is the NEWEST that is refused.
+    expect(refusals).toHaveLength(1);
+    expect(refusals[0].requestId).toBe(`r${MAX_PENDING_COMMANDS}`);
+    expect(refusals[0].code).toBe(SEND_QUEUE_FULL);
+    overCap.transport.dispose();
+  });
+
+  it("rejects a refused dispatch as `failed`, so the operator is told a retry may work", async () => {
+    const { transport } = downTransport();
+    const client = new TelemetryClient(transport);
+
+    for (let i = 0; i < MAX_PENDING_COMMANDS; i++) {
+      // Fill the queue. These stay in flight for the whole test and are
+      // rejected by `dispose()`; swallow that, it is not what is under test.
+      client.dispatch("vessel.stage").result.catch(() => {});
+    }
+    const overflow = client.dispatch("vessel.stage");
+
+    // Raced against a short timer rather than awaited bare: a dispatch that is never answered is precisely the regression this guards, and it should read as one instead of consuming the whole test timeout in silence.
+    const rejection = await Promise.race([
+      overflow.result.then(
+        () => null,
+        (error: unknown) => classifyCommandRejection(error),
+      ),
+      new Promise<never>((_, fail) =>
+        setTimeout(
+          () => fail(new Error("the refused dispatch never settled")),
+          1_000,
+        ),
+      ),
+    ]);
+    // NOT `lost`: nothing was decided over there because nothing ever left here, and `lost` warns that re-sending could double a command that may already have run. `failed` is the honest one, and it is the outcome that invites the retry.
+    expect(rejection?.kind).toBe("failed");
+    expect(client.getCommand(overflow.requestId).phase).toBe("failed");
+
+    client.dispose();
+    transport.dispose();
+    // A full queue sent in one tick is over the dispatch budget by design.
+    for (const budget of PerfBudget.getAll()) {
+      if (budget.name === "TelemetryClient command dispatch/sec")
+        budget.reset();
+    }
+  });
+
+  /**
+   * A transport whose link stays down past the command-hold window: every
+   * socket fails to connect, and a monotonically advancing `now` walks past
+   * the hold. `giveUp()` drives enough failed attempts to get there.
+   */
+  function abandonedTransport() {
+    const fakes = makeFakeSocketCtor();
+    let elapsed = 0;
+    const transport = new WebSocketTransport({
+      url: SITREP_URL,
+      retryIntervalMs: 1,
+      commandHoldMs: 20,
+      WebSocketImpl: fakes.ctor,
+      now: () => {
+        elapsed += 15;
+        return elapsed;
+      },
+    });
+    const giveUp = async () => {
+      for (let i = 0; i < 4; i++) {
+        const before = fakes.instances.length;
+        fakes.instances.at(-1)?.fire("close");
+        await vi.waitFor(
+          () => expect(fakes.instances.length).toBeGreaterThan(before),
+          { timeout: WAIT_TIMEOUT_MS },
+        );
+      }
+    };
+    return { transport, socket: fakes.instances[0], giveUp };
+  }
+
+  it("reports every command left in the queue once the outage outlasts the hold window", async () => {
+    const { transport, socket, giveUp } = abandonedTransport();
+    const errors: Array<{ requestId?: string; code: string }> = [];
+    const undelivered: Array<{ requestId: string; reason: string }> = [];
+    transport.onMessage((message) => {
+      if (message.type === "error") errors.push(message);
+    });
+    transport.onUndelivered((command) => undelivered.push(command));
+
+    for (const id of ["r0", "r1", "r2"]) transport.send(commandRequest(id));
+    await flush();
+    // Well under the cap: nothing is refused at the press, so the only thing that can ever account for these three is the expiry below.
+    expect(errors).toEqual([]);
+
+    await giveUp();
+    await flush();
+
+    // Every one of them, in the order they were pressed, and none of them on any wire.
+    expect(undelivered.map((command) => command.requestId)).toEqual([
+      "r0",
+      "r1",
+      "r2",
+    ]);
+    expect(deliveredRequestIds(socket)).toEqual([]);
+    /*
+     * NOT on the error channel, which is the whole reason this one exists: an
+     * `error` correlated to a requestId the client has already called `lost` is
+     * read as proof the mod RECEIVED the command (`handleCommandError` flips it
+     * to `found`), and these never left the machine.
+     */
+    expect(errors).toEqual([]);
+
+    transport.dispose();
+  });
+
+  it("holds a command group as one queue slot and reports each member when the outage outlasts the hold window", async () => {
+    const { transport, socket, giveUp } = abandonedTransport();
+    const undelivered: string[] = [];
+    transport.onUndelivered((command) => undelivered.push(command.requestId));
+
+    transport.send({
+      type: "command-group",
+      groupId: "g0",
+      members: [
+        commandRequest("r0"),
+        commandRequest("r1"),
+        commandRequest("r2"),
+      ],
+    });
+    await giveUp();
+    await flush();
+
+    expect(undelivered).toEqual(["r0", "r1", "r2"]);
     expect(deliveredRequestIds(socket)).toEqual([]);
     transport.dispose();
   });
 
-  it("refuses a command group member by member", async () => {
-    const { transport, socket } = downTransport();
-    const errors: Array<{ requestId?: string }> = [];
-    transport.onMessage((message) => {
-      if (message.type === "error") errors.push(message);
-    });
-    transport.send({
-      type: "command-group",
-      members: [
-        { ...commandRequest("g1"), type: undefined } as never,
-        { ...commandRequest("g2"), type: undefined } as never,
-      ],
-    } as never);
+  it("reports a stranded command once, and does not go on holding it", async () => {
+    const { transport, giveUp } = abandonedTransport();
+    const undelivered: string[] = [];
+    transport.onUndelivered((command) => undelivered.push(command.requestId));
+
+    transport.send(commandRequest("r0"));
+    await giveUp();
     await flush();
-    expect(errors.map((e) => e.requestId)).toEqual(["g1", "g2"]);
+    // A second expiry pass must not re-report a queue that is already empty.
+    await giveUp();
+    await flush();
+
+    expect(undelivered).toEqual(["r0"]);
     transport.dispose();
   });
 
-  it("rejects a refused dispatch as `failed` at the press, and says it was not sent", async () => {
-    const { transport } = downTransport();
-    const client = new TelemetryClient(transport, new ManualClock(0));
+  it("says WHY, in words a surface can put in front of the operator", async () => {
+    const { transport, giveUp } = abandonedTransport();
+    const reasons: string[] = [];
+    transport.onUndelivered((command) => reasons.push(command.reason));
+
+    transport.send(commandRequest("r0"));
+    await giveUp();
+    await flush();
+
+    expect(reasons).toHaveLength(1);
+    expect(reasons[0]).toMatch(/never (left|sent)|not sent/i);
+    transport.dispose();
+  });
+
+  it("tells a stranded command it never left, rather than leaving it called lost", async () => {
+    const { transport, giveUp } = abandonedTransport();
+    const ut = new ManualClock(0);
+    const client = new TelemetryClient(transport, ut);
+    // 2s one way, as DelayAuthority reports it off `comms.delay`.
+    client.setDelaySource(() => 2);
+
     const { requestId, result } = client.dispatch("vessel.staging.activate");
-    const rejection = await result.then(
+    const settled = result.then(
       () => "resolved",
       (error: unknown) => classifyCommandRejection(error),
     );
-    expect(rejection).toMatchObject({
-      kind: "failed",
-      code: FaultCode.NoClient,
-    });
+
+    /*
+     * The loss timer fires long before the hold window ends (a round trip
+     * here is 4s, the window is minutes), so this is the state the command is
+     * in when the link is abandoned.
+     */
+    ut.advanceTo(4 + LOSS_MARGIN);
+    expect(client.getCommand(requestId).phase).toBe("lost");
+    expect(await settled).toMatchObject({ kind: "lost" });
+
+    await giveUp();
+    await flush();
+
+    // `lost` says WE DO NOT KNOW. Once the hold window has passed we know: it
+    // was still in the queue, it never reached a socket, so nothing over there
+    // ran it. That is a stronger claim and it gets its own phase.
+    expect(client.getCommand(requestId).phase).toBe("undelivered");
+    // And emphatically not `found`, which asserts the mod received it.
     expect(client.getCommand(requestId).phase).not.toBe("found");
+
     client.dispose();
     transport.dispose();
   });
 
-  it("sends a command on an open socket, and refuses the next once the link drops", async () => {
-    const fakes = makeFakeSocketCtor();
-    const transport = new WebSocketTransport({
-      url: SITREP_URL,
-      retryIntervalMs: 1,
-      WebSocketImpl: fakes.ctor,
-    });
-    const socket = fakes.instances[0];
-    socket.fire("open");
-    transport.send(commandRequest("up"));
-    expect(deliveredRequestIds(socket)).toEqual(["up"]);
+  it("settles a command still in flight when the link is abandoned", async () => {
+    const { transport, giveUp } = abandonedTransport();
+    // A clock that never advances: the loss timer is armed and never fires, so nothing but the expiry can end this dispatch's wait.
+    const client = new TelemetryClient(transport, new ManualClock(0));
+    client.setDelaySource(() => 2);
 
-    const errors: Array<{ requestId?: string }> = [];
-    transport.onMessage((message) => {
-      if (message.type === "error") errors.push(message);
-    });
-    socket.fire("close");
-    transport.send(commandRequest("down"));
+    const { requestId, result } = client.dispatch("vessel.staging.activate");
+    const settled = result.then(
+      () => "resolved",
+      (error: unknown) => classifyCommandRejection(error),
+    );
+
+    await giveUp();
     await flush();
-    expect(errors.map((e) => e.requestId)).toEqual(["down"]);
-    expect(deliveredRequestIds(socket)).toEqual(["up"]);
+
+    const rejection = await Promise.race([
+      settled,
+      new Promise<never>((_, fail) =>
+        setTimeout(
+          () => fail(new Error("the stranded dispatch never settled")),
+          1_000,
+        ),
+      ),
+    ]);
+    // `failed`, for the same reason the at-the-press refusal is: the command
+    // never left this machine, so nothing was decided over there and a retry
+    // cannot double it. The code is what separates it from a broken handler.
+    expect(rejection).toMatchObject({
+      kind: "failed",
+      code: FaultCode.Undelivered,
+    });
+    expect(client.getCommand(requestId).phase).toBe("undelivered");
+
+    client.dispose();
     transport.dispose();
   });
 
