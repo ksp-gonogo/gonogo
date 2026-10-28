@@ -5317,34 +5317,51 @@ namespace Gonogo.KSP
             var active = new List<object?>();
             var offered = new List<object?>();
             var all = system.Contracts;
-            if (all != null)
+            using (SampleTiming.Part("contracts.open"))
             {
-                foreach (var contract in all)
+                if (all != null)
                 {
-                    if (contract == null)
+                    foreach (var contract in all)
                     {
-                        continue;
-                    }
+                        if (contract == null)
+                        {
+                            continue;
+                        }
 
-                    switch (contract.ContractState)
-                    {
-                        case Contract.State.Active:
-                            active.Add(BuildContractEntry(contract));
-                            break;
-                        case Contract.State.Offered:
-                            offered.Add(BuildContractEntry(contract));
-                            break;
+                        switch (contract.ContractState)
+                        {
+                            case Contract.State.Active:
+                                active.Add(BuildContractEntry(contract));
+                                break;
+                            case Contract.State.Offered:
+                                offered.Add(BuildContractEntry(contract));
+                                break;
+                        }
                     }
                 }
+            }
+
+            // The finished index goes first: it refreshes the entries the recent lists are drawn from.
+            Dictionary<string, object?>? finished;
+            using (SampleTiming.Part("contracts.finished"))
+            {
+                finished = BuildFinishedById(system);
+            }
+            List<object?> completedRecent;
+            List<object?> failedRecent;
+            using (SampleTiming.Part("contracts.recent"))
+            {
+                completedRecent = BuildFinishedRecent(system, Contract.State.Completed);
+                failedRecent = BuildFinishedRecent(system, Contract.State.Failed);
             }
 
             return new Dictionary<string, object?>
             {
                 ["active"] = active,
                 ["offered"] = offered,
-                ["completedRecent"] = BuildFinishedRecent(system, Contract.State.Completed),
-                ["failedRecent"] = BuildFinishedRecent(system, Contract.State.Failed),
-                ["finished"] = BuildFinishedById(system),
+                ["completedRecent"] = completedRecent,
+                ["failedRecent"] = failedRecent,
+                ["finished"] = finished,
             };
         }
 
@@ -5437,7 +5454,7 @@ namespace Gonogo.KSP
 
             for (var i = 0; i < matching.Count && i < CompletedRecentLimit; i++)
             {
-                result.Add(BuildContractEntry(matching[i]));
+                result.Add(_finishedEntries.TryGetValue(matching[i], out var entry) ? entry : BuildContractEntry(matching[i]));
             }
 
             return result;
