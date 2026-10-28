@@ -516,7 +516,6 @@ export function StationScreen() {
             </PeerClientProvider>
           </ScopedStationIdentity>
         </MissionProfilesProvider>
-        ,
       </SettingsProvider>
     </ScreenProvider>
   );
