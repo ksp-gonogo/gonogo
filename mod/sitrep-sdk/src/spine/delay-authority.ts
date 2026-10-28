@@ -136,15 +136,6 @@ function readPayloadCraft(payload: unknown): string | null {
 }
 
 /**
- * What {@link DelayAuthority.delaySeconds} reads while the delay to the active
- * craft is not known, after a change of craft and before the new craft's delay
- * arrives. The view clock puts its confirmed edge at negative infinity for it,
- * so telemetry and video stay where they were instead of running live or on the
- * previous craft's figure.
- */
-const UNKNOWN_DELAY = Number.POSITIVE_INFINITY;
-
-/**
  * Holds the one-way delay between this session's command centre and the vessel,
  * which times the frames the operator sees, and exposes it as `delaySeconds()`
  * for the view clock to read (`ViewClockOptions.delaySeconds`). Useful for
@@ -247,7 +238,7 @@ export class DelayAuthority {
     const previous = this.measuredCraft;
     this.measuredCraft = craft;
     if (previous === undefined || previous === craft) return;
-    this.oneWaySeconds = UNKNOWN_DELAY;
+    this.oneWaySeconds = 0;
     this.centreDelays = new Map();
     this.lastCentreDelays.clear();
     this.routeDelays = new Map();

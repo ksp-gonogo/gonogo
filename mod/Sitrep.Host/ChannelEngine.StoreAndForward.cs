@@ -380,7 +380,7 @@ namespace Sitrep.Host
             {
                 return false;
             }
-            job.OnResult(CommandResult.Fail(CommandErrorCode.WrongState, SwitchDetailFor(job)));
+            job.OnResult(CommandResult.Fail(CommandErrorCode.WrongState, SwitchedAwayDetail));
             job.Done?.Set();
             return true;
         }
@@ -393,18 +393,6 @@ namespace Sitrep.Host
             && !string.Equals("vessel:" + job.SeenVesselId, _activeCraftId, StringComparison.Ordinal);
 
         /// <summary>What an operator is told when an order is pressed for a craft the game has already switched away from.</summary>
-        /// <summary>The craft id a client sends when it read a craft and the game has since withdrawn it, with no new one read yet. No craft has it.</summary>
-        internal const string CraftBeingSwitchedTo = "unknown";
-
-        /// <summary>What an operator is told when an order is pressed while the screen has not yet heard the craft being switched to.</summary>
-        internal const string StillSwitchingDetail = "Still switching vessels, so this order was not sent.";
-
-        /// <summary>The refusal for <paramref name="job"/>: still switching when the screen has no craft yet, otherwise switched away.</summary>
-        private static string SwitchDetailFor(DispatchCommandJob job) =>
-            string.Equals(job.SeenVesselId, CraftBeingSwitchedTo, StringComparison.Ordinal)
-                ? StillSwitchingDetail
-                : SwitchedAwayDetail;
-
         internal const string SwitchedAwayDetail = "The active vessel has changed since the one on screen was current, so this order was not sent.";
 
         /// <summary>The craft id a courier node addresses, or null for one that is not a craft.</summary>

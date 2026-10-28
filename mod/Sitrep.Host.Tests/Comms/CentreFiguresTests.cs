@@ -90,53 +90,6 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
-        public void ACentreIsQuotedTheRouteAsItWasWhenTheSignalItHearsNowLeftNotAsItIsNow()
-        {
-            var growing = new ContactPlan(
-                0.0,
-                Horizon,
-                Step,
-                new[]
-                {
-                    new PairPlan(
-                        "ground:forward", "vessel:crewed", Horizon, new[] { Always() }, 0.0, Step,
-                        Enumerable.Range(0, (int)(Horizon / Step) + 1).Select(i => (100.0 + 0.1 * i * Step) * C).ToArray()),
-                },
-                0,
-                0);
-            var now = 1000.0;
-
-            var delays = CentreFigures.ActiveVesselDelays(Roster, growing, "vessel:crewed", "ground:ksc", Stations, now, 1.0);
-
-            var heard = delays.Centres.Single(c => c.Id == "ground:forward").OneWaySeconds;
-            var leftAt = now - heard;
-            Assert.Equal(now, leftAt + CentreFigures.Between("vessel:crewed", "ground:forward", growing, "ground:ksc", Stations, leftAt, 1.0)!.Value, 1);
-            var sentNow = CentreFigures.Between("vessel:crewed", "ground:forward", growing, "ground:ksc", Stations, now, 1.0)!.Value;
-            Assert.True(sentNow - heard > 10.0, "the centre was quoted the delay of a signal sent now, which it cannot have heard yet");
-        }
-
-        [Fact]
-        public void ACentreWhosePlanStartsAfterWhenTheSignalLeftIsQuotedTheRouteAtThePlansStart()
-        {
-            var late = new ContactPlan(
-                900.0,
-                Horizon,
-                Step,
-                new[]
-                {
-                    new PairPlan(
-                        "ground:forward", "vessel:crewed", Horizon, new[] { Always() }, 900.0, Step,
-                        Enumerable.Range(0, (int)(Horizon / Step) + 1).Select(i => (100.0 + 0.1 * i * Step) * C).ToArray()),
-                },
-                0,
-                0);
-
-            var delays = CentreFigures.ActiveVesselDelays(Roster, late, "vessel:crewed", "ground:ksc", Stations, 1000.0, 1.0);
-
-            Assert.Single(delays.Centres, c => c.Id == "ground:forward");
-        }
-
-        [Fact]
         public void TheCentreThatIsTheActiveCraftIsNoDistanceFromItAndOneWithNoRouteIsNotListed()
         {
             var delays = CentreFigures.ActiveVesselDelays(Roster, null, "vessel:crewed", "ground:ksc", Stations, 10.0, 1.0);

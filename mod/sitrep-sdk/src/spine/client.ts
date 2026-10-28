@@ -335,26 +335,12 @@ function randomIdPrefix(): string {
 }
 
 /**
- * The `seenVesselId` a command carries when the screen has read a
- * `vessel.identity` and the mod has since withdrawn it, because the active
- * vessel changed and the new one has not been heard yet. No vessel has this id,
- * so the mod refuses the order instead of sending it to a vessel the operator
- * has not seen.
- */
-const UNKNOWN_CRAFT_ID = "unknown";
-
-/**
  * The vessel the operator's screen shows as active, as the optional
- * `seenVesselId` of a command frame. Nothing when no `vessel.identity` reading
- * has ever arrived; {@link UNKNOWN_CRAFT_ID} when one has arrived and been
- * withdrawn. The mod refuses an order for the active vessel when the game has
- * since switched to another one.
+ * `seenVesselId` of a command frame, or nothing when no `vessel.identity`
+ * reading has arrived. The mod refuses an order for the active vessel when the
+ * game has since switched to another one.
  */
-function seenVessel(
-  identity: unknown,
-  read: boolean,
-): { seenVesselId?: string } {
-  if (identity === null && read) return { seenVesselId: UNKNOWN_CRAFT_ID };
+function seenVessel(identity: unknown): { seenVesselId?: string } {
   if (typeof identity !== "object" || identity === null) return {};
   if (!("vesselId" in identity)) return {};
   const id = identity.vesselId;
@@ -1100,14 +1086,6 @@ export class TelemetryClient {
     };
   }
 
-  /** The delay source's figure, or nothing while it says the delay is unknown (not finite). */
-  private knownSourceDelay(): number | undefined {
-    const seconds = this.delaySource?.();
-    return seconds !== undefined && Number.isFinite(seconds)
-      ? seconds
-      : undefined;
-  }
-
   /**
    * Say so, once, when a dispatch gets no loss deadline.
    *
@@ -1261,11 +1239,10 @@ export class TelemetryClient {
     // They are alternatives, never both: one source per deployment rather than two
     // competing ones. See `Transport.predictConfirmEta` for the rule a new transport
     // must follow.
-    const sourceDelay = this.knownSourceDelay();
     const predictedEta =
       this.transport.predictConfirmEta?.() ??
-      (sourceDelay !== undefined
-        ? this.clock.now() + 2 * sourceDelay
+      (this.delaySource
+        ? this.clock.now() + 2 * this.delaySource()
         : undefined);
     const etaConfirm = predictedEta ?? this.clock.now();
     /*
@@ -1276,9 +1253,9 @@ export class TelemetryClient {
     const dispatchUt = this.gameUtNow();
     const delayDeadlineUt =
       this.transport.predictConfirmEta?.() === undefined &&
-      sourceDelay !== undefined &&
+      this.delaySource &&
       dispatchUt !== undefined
-        ? dispatchUt + 2 * sourceDelay
+        ? dispatchUt + 2 * this.delaySource()
         : undefined;
     if (predictedEta === undefined) this.warnNoLossDeadlineOnce();
     const replyDueUt =
@@ -1328,10 +1305,7 @@ export class TelemetryClient {
         topic: topic ?? "",
         // Per-call vantage override (delay-UX): "" ⇒ the server uses the session vantage; "meta" pins a program-meta command to instant dispatch.
         vantage: vantage ?? "",
-        ...seenVessel(
-          this.lastValues.get("vessel.identity"),
-          this.lastValues.has("vessel.identity"),
-        ),
+        ...seenVessel(this.lastValues.get("vessel.identity")),
         args: wireArgs,
         sentAt: 0,
       },

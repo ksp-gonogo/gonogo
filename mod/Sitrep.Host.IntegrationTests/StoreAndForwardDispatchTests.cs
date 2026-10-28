@@ -536,36 +536,6 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        /// <summary>
-        /// A screen that read a craft and then had it withdrawn by a switch names no craft
-        /// the game could have, so the press is refused and the operator is told the
-        /// switch is still under way.
-        /// </summary>
-        [Fact]
-        public void AnOrderPressedWhileTheScreenHasNoCraftAfterASwitchSaysTheSwitchIsUnderWay()
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds);
-            var uplink = new ActiveCraftTestUplink();
-            engine.RegisterUplink(uplink);
-            engine.Start();
-            try
-            {
-                TickActive(engine, uplink, 0.0, loaded: true);
-                object? result = null;
-                engine.DispatchCommandAndWait(ActiveCraftTestUplink.Command, "x", Centre, r => result = r, TestBudgets.Op, seenVesselId: "unknown");
-
-                var refusal = Assert.IsType<CommandResult>(result);
-                Assert.False(refusal.Success);
-                Assert.Equal(CommandErrorCode.WrongState, refusal.ErrorCode);
-                Assert.Equal("Still switching vessels, so this order was not sent.", refusal.Detail);
-                Assert.Empty(Pending(engine));
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
         /// <summary>The same press naming the craft that is active, or naming none, is accepted.</summary>
         [Fact]
         public void AnOrderPressedWhileSeeingTheActiveCraftOrNoneIsAccepted()
