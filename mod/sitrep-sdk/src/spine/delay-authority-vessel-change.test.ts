@@ -34,7 +34,28 @@ describe("DelayAuthority across a change of craft", () => {
       meta: { source: UNLINKED },
     });
 
-    expect(authority.delaySeconds()).toBe(0);
+    expect(authority.delaySeconds()).toBe(Number.POSITIVE_INFINITY);
+  });
+
+  it("times the new craft by its own delay once that arrives", () => {
+    const authority = new DelayAuthority();
+    authority.attach(AT_HOME);
+    authority.observe({
+      oneWaySeconds: value("s", 285.97),
+      source: CommsDelaySource.SignalDelay,
+      meta: { source: LINKED },
+    });
+    authority.observe({
+      oneWaySeconds: null,
+      source: CommsDelaySource.None,
+      meta: { source: UNLINKED },
+    });
+    authority.observe({
+      oneWaySeconds: value("s", 12),
+      source: CommsDelaySource.SignalDelay,
+      meta: { source: UNLINKED },
+    });
+    expect(authority.delaySeconds()).toBe(12);
   });
 
   it("still holds a craft's own last delay through its own blackout", () => {
@@ -55,7 +76,7 @@ describe("DelayAuthority across a change of craft", () => {
 });
 
 describe("the view clock after a change of craft", () => {
-  it("advances at once on a craft with no path, with no signal-delay freeze", () => {
+  it("holds the view time, and releases no video, until the new craft's delay arrives", () => {
     let wall = 0;
     const authority = new DelayAuthority();
     authority.attach(AT_HOME);
@@ -69,15 +90,19 @@ describe("the view clock after a change of craft", () => {
       meta: { source: LINKED },
     });
     clock.observeSample(1000, 1000);
+    wall = 300;
+    clock.observeSample(1300, 1300);
+    const before = clock.viewUt();
     authority.observe({
       oneWaySeconds: null,
       source: CommsDelaySource.None,
       meta: { source: UNLINKED },
     });
 
-    wall = 10;
-    clock.observeSample(1010, 1010);
+    wall = 310;
+    clock.observeSample(1310, 1310);
 
-    expect(clock.viewUt()).toBe(1010);
+    expect(clock.confirmedEdgeUt()).toBe(Number.NEGATIVE_INFINITY);
+    expect(clock.viewUt()).toBe(before);
   });
 });

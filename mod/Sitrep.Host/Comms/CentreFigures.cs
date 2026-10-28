@@ -81,7 +81,7 @@ namespace Sitrep.Host.Comms
                 {
                     continue;
                 }
-                var seconds = Between(activeCraft, centre.Id, plan, home, antennas, ut, lightFactor);
+                var seconds = AsHeardBy(activeCraft, centre.Id, plan, home, antennas, ut, lightFactor);
                 if (seconds != null)
                 {
                     centres.Add(new CentreDelayEntry { Id = centre.Id, OneWaySeconds = seconds.Value });
@@ -89,6 +89,45 @@ namespace Sitrep.Host.Comms
             }
             return new CommandCentreActiveVesselDelay { Centres = centres };
         }
+
+        /// <summary>
+        /// The delay between two nodes as the receiving centre can know it: the
+        /// route open when the signal it hears now left, which is <paramref name="ut"/>
+        /// less that delay, found by repeating until the figure settles. A centre
+        /// is never told the route as it is at <paramref name="ut"/> itself, which
+        /// no signal could have carried to it yet. Null with no open route then,
+        /// and never earlier than the plan's own start.
+        /// </summary>
+        private static double? AsHeardBy(
+            string? from,
+            string? to,
+            ContactPlan? plan,
+            string? home,
+            IReadOnlyCollection<string>? antennas,
+            double ut,
+            double lightFactor)
+        {
+            var seconds = Between(from, to, plan, home, antennas, ut, lightFactor);
+            if (seconds == null || plan == null)
+            {
+                return seconds;
+            }
+            for (var pass = 0; pass < SettlePasses; pass++)
+            {
+                var at = Math.Max(plan.FromUt, ut - seconds.Value);
+                var settled = Between(from, to, plan, home, antennas, at, lightFactor);
+                if (settled == null || Math.Abs(settled.Value - seconds.Value) < SettledToSeconds)
+                {
+                    return settled;
+                }
+                seconds = settled;
+            }
+            return seconds;
+        }
+
+        private const int SettlePasses = 6;
+
+        private const double SettledToSeconds = 0.001;
 
         /// <summary>
         /// The signal delay of the route the plan has open now between two nodes,

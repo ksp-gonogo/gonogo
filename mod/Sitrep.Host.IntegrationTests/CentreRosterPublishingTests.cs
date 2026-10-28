@@ -92,6 +92,17 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task ACentresOwnDelayToTheActiveCraftArrivesTheInstantItIsMade()
+        {
+            await using var seated = await SeatedAsync();
+            await seated.TickAsync(1, 2);
+
+            Assert.NotNull(seated.FarView.Latest(ContactPlanSource.ActiveVesselDelayTopic));
+            var (validAt, deliveredAt) = seated.FarView.Stamps[ContactPlanSource.ActiveVesselDelayTopic];
+            Assert.Equal(validAt, deliveredAt);
+        }
+
+        [Fact]
         public async Task ACraftThatBecomesACommandCentreJoinsEachCentresRosterWhenItsWordArrives()
         {
             await using var seated = await SeatedAsync();
