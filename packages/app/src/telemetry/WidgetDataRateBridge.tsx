@@ -27,7 +27,7 @@ export function WidgetDataRateBridge({
   def,
   config,
 }: {
-  def: ComponentDefinition;
+  def: Pick<ComponentDefinition, "dataRates" | "dataRatesFromConfig">;
   config: Record<string, unknown>;
 }) {
   const client = useTelemetryClientOptional();

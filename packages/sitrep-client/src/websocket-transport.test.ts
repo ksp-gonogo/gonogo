@@ -300,6 +300,66 @@ describe("WebSocketTransport", () => {
     transport.dispose();
   });
 
+  it("asks a restarted mod for the fast rate and the cap again, after the subscribes", async () => {
+    const receivedByConnection: string[][] = [];
+    const closeFirst: { current: (() => void) | null } = { current: null };
+    server.use(
+      link.addEventListener("connection", ({ client }) => {
+        const bucket: string[] = [];
+        receivedByConnection.push(bucket);
+        client.addEventListener("message", (event) => {
+          bucket.push(event.data as string);
+        });
+        if (receivedByConnection.length === 1) {
+          closeFirst.current = () => client.close();
+        }
+      }),
+    );
+
+    const transport = new WebSocketTransport({
+      url: SITREP_URL,
+      retryIntervalMs: 10,
+    });
+    const client = new TelemetryClient(transport);
+    await waitForStatus(transport, "connected");
+    client.subscribe("vessel.flight", () => {});
+    client.requestRate("vessel.flight", "fast");
+    client.capRate("fast", 5);
+    const wireTypes = (connection: number) =>
+      receivedByConnection[connection]
+        .map((raw) => JSON.parse(raw))
+        .filter((m) => m.type !== "subscribe" || m.topic === "vessel.flight")
+        .map((m) => `${m.type}${m.topic ? `:${m.topic}` : ""}`);
+    await vi.waitFor(
+      () =>
+        expect(wireTypes(0)).toEqual([
+          "subscribe:vessel.flight",
+          "set-rate:vessel.flight",
+          "cap-rate",
+        ]),
+      { timeout: WAIT_TIMEOUT_MS },
+    );
+
+    closeFirst.current?.();
+    await waitForStatus(transport, "reconnecting");
+    await waitForStatus(transport, "connected");
+
+    await vi.waitFor(() => expect(receivedByConnection).toHaveLength(2), {
+      timeout: WAIT_TIMEOUT_MS,
+    });
+    await vi.waitFor(
+      () =>
+        expect(wireTypes(1)).toEqual([
+          "subscribe:vessel.flight",
+          "set-rate:vessel.flight",
+          "cap-rate",
+        ]),
+      { timeout: WAIT_TIMEOUT_MS },
+    );
+    client.dispose?.();
+    transport.dispose();
+  });
+
   it("treats a subscribed socket that goes silent without closing as dead, and re-subscribes on a fresh one", async () => {
     const receivedByConnection: string[][] = [];
     server.use(
