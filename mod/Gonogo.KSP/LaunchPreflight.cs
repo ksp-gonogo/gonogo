@@ -144,7 +144,8 @@ namespace Gonogo.KSP
             EditorFacility editorFacility,
             string craftPath,
             string site,
-            int crewNamed)
+            int crewNamed,
+            IReadOnlyList<string>? unavailableCrew = null)
         {
             var checks = new List<LaunchCheck>();
             var gameVariables = GameVariables.Instance;
@@ -219,7 +220,7 @@ namespace Gonogo.KSP
                 Add(checks, () => new LaunchCheck(
                     new PreFlightTests.NoControlSources(manifest),
                     CommandErrorCode.CapabilityMismatch,
-                    detail: LaunchRule.NoControlSourceDetail(HasCrewedCommandModule(manifest), crewNamed)));
+                    detail: LaunchRule.NoControlSourceDetail(HasCrewedCommandModule(manifest), crewNamed, unavailableCrew)));
             }
 
             if (!string.IsNullOrEmpty(craftPath) && TryLaunchSiteEditor(site, out var expectedEditor))

@@ -172,6 +172,24 @@ namespace Gonogo.KSP.Tests.Career
         }
 
         [Fact]
+        public void ANamedCrewThatCouldNotBeSeatedIsNamedWithItsRosterStatus()
+        {
+            var detail = LaunchRule.NoControlSourceDetail(
+                hasCrewedCommandModule: true,
+                crewNamed: 2,
+                unavailableCrew: new[]
+                {
+                    LaunchRule.UnavailableKerbal("Jebediah Kerman", "Assigned"),
+                    LaunchRule.UnavailableKerbal("Nobody Kerman", null),
+                });
+
+            Assert.Equal(
+                "the kerbals named in the crew list do not fill the craft's command module: "
+                + "Jebediah Kerman (Assigned), Nobody Kerman (not on the roster) could not be seated",
+                detail);
+        }
+
+        [Fact]
         public void ACraftWithNoCrewedCommandModuleKeepsTheGamesWords()
         {
             Assert.Null(LaunchRule.NoControlSourceDetail(hasCrewedCommandModule: false, crewNamed: 0));

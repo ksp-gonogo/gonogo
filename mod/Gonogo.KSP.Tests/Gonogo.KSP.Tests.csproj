@@ -135,6 +135,7 @@
          that throws inside StartWithNewLaunch refuses the call rather than
          escaping. Sitrep.Contract only, no KSP type. -->
     <Compile Include="..\Gonogo.KSP\LaunchRule.cs" />
+    <Compile Include="..\Gonogo.KSP\LaunchArrival.cs" />
     <Compile Include="..\Gonogo.KSP\SavedShipParseMemo.cs" />
     <Compile Include="..\Gonogo.KSP\StrategyEligibility.cs" />
     <Compile Include="..\Gonogo.KSP\StrategyActivationRule.cs" />
@@ -217,6 +218,7 @@
     <Compile Include="..\GonogoDevTools\TimeRequest.cs" />
     <Compile Include="..\GonogoDevTools\TeleportAnomaly.cs" />
     <Compile Include="..\GonogoDevTools\TeleportHeight.cs" />
+    <Compile Include="..\GonogoDevTools\WarpTrace.cs" />
   </ItemGroup>
 
   <!-- StockCurrencyDecision.cs mirrors TransactionReasons as its own plain
