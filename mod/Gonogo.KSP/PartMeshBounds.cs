@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Sitrep.Host;
 using UnityEngine;
 
 namespace Gonogo.KSP
@@ -67,28 +68,57 @@ namespace Gonogo.KSP
              * with particle renderers, and prefabSize also changes between the
              * pad and flight for the same part.
              */
-            var hiddenByVariant = HiddenByVariant(part, variantName);
-            var uses = new List<PartBox.Use>();
-            foreach (var renderer in model.GetComponentsInChildren<MeshRenderer>(true))
+            HashSet<string>? hiddenByVariant;
+            using (SampleTiming.Part("topo.mesh.variant"))
             {
-                var filter = renderer.GetComponent<MeshFilter>();
-                if (filter == null || filter.sharedMesh == null || BelongsToAnotherPart(renderer.transform, model)
-                    || IsUnder(renderer.transform, model, hiddenByVariant))
+                hiddenByVariant = HiddenByVariant(part, variantName);
+            }
+            MeshRenderer[] renderers;
+            using (SampleTiming.Part("topo.mesh.renderers"))
+            {
+                renderers = model.GetComponentsInChildren<MeshRenderer>(true);
+            }
+            var timing = SampleTiming.Enabled;
+            var measuredBefore = Pieces.Measured;
+            long carryTicks = 0;
+            var uses = new List<PartBox.Use>();
+            using (SampleTiming.Part("topo.mesh.walk"))
+            {
+                foreach (var renderer in renderers)
                 {
-                    continue;
-                }
+                    var filter = renderer.GetComponent<MeshFilter>();
+                    if (filter == null || filter.sharedMesh == null || BelongsToAnotherPart(renderer.transform, model)
+                        || IsUnder(renderer.transform, model, hiddenByVariant))
+                    {
+                        continue;
+                    }
 
-                var mesh = filter.sharedMesh;
-                var toPartFromMesh = ToPart(renderer.transform, part.transform);
-                var piece = Pieces.Piece(
-                    renderer,
-                    mesh,
-                    toPartFromMesh,
-                    () => MeshPiece.Measure(VerticesOf(mesh), mesh.bounds, toPartFromMesh, () => CandidatesOf(mesh)));
-                uses.Add(new PartBox.Use(piece, IsShown(renderer, model)));
+                    var mesh = filter.sharedMesh;
+                    var carryStarted = timing ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+                    var toPartFromMesh = ToPart(renderer.transform, part.transform);
+                    if (timing)
+                    {
+                        carryTicks += System.Diagnostics.Stopwatch.GetTimestamp() - carryStarted;
+                    }
+                    var piece = Pieces.Piece(
+                        renderer,
+                        mesh,
+                        toPartFromMesh,
+                        () => MeshPiece.Measure(VerticesOf(mesh), mesh.bounds, toPartFromMesh, () => CandidatesOf(mesh)));
+                    uses.Add(new PartBox.Use(piece, IsShown(renderer, model)));
+                }
+            }
+            if (timing)
+            {
+                SampleTiming.Add("topo.mesh.carry", carryTicks);
+                SampleTiming.Count("topo.mesh.renderers", renderers.Length);
+                SampleTiming.Count("topo.mesh.measured", Pieces.Measured - measuredBefore);
             }
 
-            return PartBox.TryAssemble(uses, out center, out size, out path, out hull);
+            using (SampleTiming.Part("topo.mesh.assemble"))
+            {
+                return PartBox.TryAssemble(uses, out center, out size, out path, out hull);
+            }
         }
 
         /*
