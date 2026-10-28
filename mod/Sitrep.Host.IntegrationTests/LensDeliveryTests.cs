@@ -31,7 +31,8 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.Equal(ChannelEngine.FleetNodePrefix + Craft, engine.NodeFor("lens.probe.state"));
                 Assert.Equal(ChannelEngine.UnplacedLensNode, engine.NodeFor("lens.nowhere.state"));
                 Assert.Equal(ChannelEngine.UnplacedLensNode, engine.NodeFor("lens.broken.state"));
-                Assert.Equal(ChannelEngine.UnplacedLensNode, engine.NodeFor("lens.station"));
+                Assert.Equal(ChannelEngine.CentreNodePrefix + Remote, engine.NodeFor("lens.station"));
+                Assert.Equal(ChannelEngine.UnplacedLensNode, engine.NodeFor("lens."));
             }
             finally
             {

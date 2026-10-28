@@ -904,12 +904,32 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
-        public void ATopicWithNoFieldAfterItsKeyIsHeldNotBorrowedFromTheActiveCraft()
+        public void ABareKeyedTopicResolvesThroughItsResolver()
         {
             var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 30);
-            engine.RegisterUplink(new KeyedNamespaceTestUplink(null));
+            engine.RegisterUplink(new KeyedNamespaceTestUplink(
+                key => key == "7" ? "vessel-abc" : null));
+
+            Assert.Equal(ChannelEngine.FleetNodePrefix + "vessel-abc", engine.NodeFor("keyed.7"));
+        }
+
+        [Fact]
+        public void ABareKeyedTopicTheResolverCannotPlaceIsHeld()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 30);
+            engine.RegisterUplink(new KeyedNamespaceTestUplink(_ => null));
 
             Assert.Equal(ChannelEngine.UnplacedLensNode, engine.NodeFor("keyed.7"));
+        }
+
+        [Fact]
+        public void ATopicWithAnEmptyKeyIsHeld()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 30);
+            engine.RegisterUplink(new KeyedNamespaceTestUplink(key => "vessel-abc"));
+
+            Assert.Equal(ChannelEngine.UnplacedLensNode, engine.NodeFor("keyed."));
+            Assert.Equal(ChannelEngine.UnplacedLensNode, engine.NodeFor("keyed..screen"));
         }
 
         /// <summary>

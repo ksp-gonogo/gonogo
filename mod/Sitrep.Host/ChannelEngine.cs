@@ -201,9 +201,11 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The key segment of a per-vessel topic: the text between
-        /// <paramref name="start"/> and the next '.', or null when the topic carries
-        /// no field after the key (a bare "currency.&lt;guid&gt;" is not a channel, so
-        /// it routes to <see cref="UnplacedLensNode"/> rather than inventing a node).
+        /// <paramref name="start"/> and the next '.', or to the end of the topic
+        /// when no field follows the key (a namespace keyed by a processor id,
+        /// such as a terminal, is addressed by its bare key). Null when the key
+        /// is empty, which routes to <see cref="UnplacedLensNode"/> rather than
+        /// inventing a node.
         ///
         /// <para>The key is usually a vessel guid, and is not always: see
         /// <see cref="ChannelDeclaration.VesselIdForKey"/>. Named for what it is
@@ -213,7 +215,8 @@ namespace Sitrep.Host
         private static string? KeySegment(string topic, int start)
         {
             var dot = topic.IndexOf('.', start);
-            return dot <= start ? null : topic.Substring(start, dot - start);
+            var end = dot < 0 ? topic.Length : dot;
+            return end <= start ? null : topic.Substring(start, end - start);
         }
 
         /// <summary>
