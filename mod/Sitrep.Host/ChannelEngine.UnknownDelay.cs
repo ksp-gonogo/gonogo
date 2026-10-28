@@ -33,6 +33,10 @@ namespace Sitrep.Host
             {
                 return false;
             }
+            if (_awaitingFirstMeasuredPath && node == NodeId && vantage != MetaVantage)
+            {
+                return false;
+            }
             if (!IsSubjectNode(node) || vantage == MetaVantage || IsOwnSite(vantage, node))
             {
                 return true;
@@ -42,7 +46,9 @@ namespace Sitrep.Host
 
         /// <summary>Whether the node itself, or any centre, has a finite delay to <paramref name="node"/>. A reading on it is held while none has.</summary>
         private bool NodeDelayKnown(string node) =>
-            node != UnplacedLensNode && (!IsSubjectNode(node) || _ledger.HasFiniteDelayTo(node, MetaVantage));
+            node != UnplacedLensNode
+            && !(_awaitingFirstMeasuredPath && node == NodeId)
+            && (!IsSubjectNode(node) || _ledger.HasFiniteDelayTo(node, MetaVantage));
 
         private static bool IsSubjectNode(string node) =>
             node.StartsWith(FleetNodePrefix, StringComparison.Ordinal)

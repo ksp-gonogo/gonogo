@@ -407,6 +407,18 @@ namespace Sitrep.Host
                 : null;
         }
 
+        /// <summary>Refuses at the press an order for the active craft when the game has no craft loaded as the active vessel. True when refused.</summary>
+        private bool RefuseIfNoCraftIsLoaded(DispatchCommandJob job, string node)
+        {
+            if (!_activeCraftKnown || _activeCraftLoaded || _activeCraftId == null || !string.Equals(node, NodeId, StringComparison.Ordinal))
+            {
+                return false;
+            }
+            job.OnResult(CommandResult.Fail(CommandErrorCode.WrongScene, NoActiveCraftDetail));
+            job.Done?.Set();
+            return true;
+        }
+
         /// <summary>
         /// Takes a delayed command onto store-and-forward when it is addressed to a
         /// craft and is not a continuous input; a throttle or a fly-by-wire axis is
@@ -432,10 +444,8 @@ namespace Sitrep.Host
                loaded as the active vessel, so with none loaded it can never run, and
                waiting for a link would not change that. It is refused here, where the
                operator pressed, rather than after the light has landed. */
-            if (_activeCraftKnown && !_activeCraftLoaded && string.Equals(node, NodeId, StringComparison.Ordinal))
+            if (RefuseIfNoCraftIsLoaded(job, node))
             {
-                job.OnResult(CommandResult.Fail(CommandErrorCode.WrongScene, NoActiveCraftDetail));
-                job.Done?.Set();
                 return true;
             }
             if (IsContinuousInput(job))

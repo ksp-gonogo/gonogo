@@ -979,6 +979,15 @@ namespace Sitrep.Host
         private DelayStamp? _lastMeasuredStamp;
         private double? _unmeasuredSinceUt;
 
+        /*
+         * Set on a switch of active craft and cleared by the first tick the delay
+         * source measures a path for the new one. Until then no delay to the
+         * active craft is known, so its readings are held and a command to it is
+         * refused, instead of being timed by the craft left behind or by 0.
+         * Courier-thread-only.
+         */
+        private bool _awaitingFirstMeasuredPath;
+
         // The routed light-time last written for each fleet.<guid> node. Shadows
         // the ledger's node-default purely so SetVesselDelay can snapshot the
         // OUTGOING value into _subjectLastConnectedDelay, the role
@@ -8158,7 +8167,7 @@ namespace Sitrep.Host
         /// craft has gone since: the rows from the last tick that measured a
         /// path. Null for everything else, which the ledger as it stands times.
         /// </summary>
-        private DelayStamp? MeasuredStampFor(string topic, double ut)
+        internal DelayStamp? MeasuredStampFor(string topic, double ut)
         {
             if (_lastMeasuredStamp == null
                 || _unmeasuredSinceUt is not double since
@@ -8436,6 +8445,10 @@ namespace Sitrep.Host
                     _subjectLastConnectedDelay[NodeId] = _signalDelaySeconds;
                 }
                 _signalDelaySeconds = commsDelay.OneWaySeconds ?? 0.0;
+                if (commsDelay.OneWaySeconds != null)
+                {
+                    _awaitingFirstMeasuredPath = false;
+                }
 
                 // Ledger migration: drive the whole-network default
                 // delay from the freshly-captured scalar so the Courier/Archive
@@ -9866,6 +9879,7 @@ namespace Sitrep.Host
                 _pendingGapSinceUt.Clear();
                 _lastMeasuredStamp = null;
                 _unmeasuredSinceUt = null;
+                _awaitingFirstMeasuredPath = false;
                 // The connectivity history's UTs belong to the abandoned
                 // timeline too: collapse it to the current link state seeded at
                 // -Inf so a post-rewind ConnectivityAt lookup fails soft to that
@@ -9900,6 +9914,9 @@ namespace Sitrep.Host
                 if (_lastActiveVesselId != null && _lastActiveVesselId != activeVesselId)
                 {
                     _activeVesselSwitched = true;
+                    _lastMeasuredStamp = null;
+                    _unmeasuredSinceUt = null;
+                    _awaitingFirstMeasuredPath = true;
                     _subjectLastConnectedDelay.Remove(NodeId);
                     _subjectLastConnectedStamp.Remove(NodeId);
                     ForgetTheDarkCraftSwitchedAwayFrom(tick.Ut);
@@ -10726,6 +10743,13 @@ namespace Sitrep.Host
             // A delayed command for a craft is held and routed rather than dropped
             // when there is no live path: store-and-forward takes it from here.
             if (TryDispatchHeld(job, node))
+            {
+                return;
+            }
+
+            // The live path tags the order with the active craft, so with none
+            // loaded it would be tagged with the one the game left.
+            if (RefuseIfNoCraftIsLoaded(job, node))
             {
                 return;
             }
